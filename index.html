@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sala de Guerra — Familia Terna</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:        #0c1119;
+    --bg-grid:   #131a26;
+    --panel:     #161d2b;
+    --panel-2:   #1b2436;
+    --line:      #263252;
+    --gold:      #c9a24b;
+    --gold-dim:  #8a7038;
+    --crimson:   #b3402f;
+    --green:     #4f9d69;
+    --text:      #e7e3d8;
+    --text-dim:  #8b93a8;
+    --text-faint:#5b6379;
+    --radius:    2px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      linear-gradient(var(--bg-grid) 1px, transparent 1px) 0 0/100% 44px,
+      linear-gradient(90deg, var(--bg-grid) 1px, transparent 1px) 0 0/44px 100%,
+      var(--bg);
+    color:var(--text);
+    font-family:'Inter', sans-serif;
+    -webkit-font-smoothing:antialiased;
+    min-height:100vh;
+  }
+  ::selection{background:var(--gold);color:#000;}
+  a{color:var(--gold);}
+
+  .wrap{max-width:1040px;margin:0 auto;padding:28px 20px 80px;}
+
+  /* ---------- HERO / BANNER DE CAMPAÑA ---------- */
+  .hero{
+    border:1px solid var(--line);
+    background:var(--panel);
+    padding:26px 24px 20px;
+    position:relative;
+    overflow:hidden;
+  }
+  .hero::before{
+    content:"";
+    position:absolute; inset:0;
+    background:
+      repeating-linear-gradient(135deg, rgba(201,162,75,0.035) 0 2px, transparent 2px 14px);
+    pointer-events:none;
+  }
+  .eyebrow{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:11px;
+    letter-spacing:.18em;
+    text-transform:uppercase;
+    color:var(--gold);
+    display:flex; align-items:center; gap:8px;
+  }
+  .eyebrow::before{content:"";width:6px;height:6px;background:var(--crimson);border-radius:50%;
+    box-shadow:0 0 0 3px rgba(179,64,47,.18);}
+  h1{
+    font-family:'Oswald', sans-serif;
+    font-weight:700;
+    text-transform:uppercase;
+    letter-spacing:.02em;
+    font-size:clamp(28px, 5vw, 44px);
+    margin:8px 0 4px;
+    line-height:1.05;
+  }
+  .sub{color:var(--text-dim);font-size:14px;margin-bottom:22px;}
+
+  /* Línea de tiempo Jue–Dom */
+  .timeline{display:flex;gap:6px;margin-top:10px;}
+  .tl-day{
+    flex:1;
+    border:1px solid var(--line);
+    background:var(--panel-2);
+    padding:10px 6px 9px;
+    text-align:center;
+    position:relative;
+  }
+  .tl-day .lbl{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:10px;
+    letter-spacing:.12em;
+    color:var(--text-faint);
+    text-transform:uppercase;
+  }
+  .tl-day .mark{
+    font-family:'Oswald', sans-serif;
+    font-size:20px;
+    margin-top:4px;
+    color:var(--text-dim);
+  }
+  .tl-day.active{
+    border-color:var(--gold);
+    background:linear-gradient(180deg, rgba(201,162,75,.14), rgba(201,162,75,.04));
+  }
+  .tl-day.active .lbl{color:var(--gold);}
+  .tl-day.active .mark{color:var(--text);}
+  .tl-day.active::after{
+    content:"HOY";
+    position:absolute; top:-9px; left:50%; transform:translateX(-50%);
+    background:var(--gold); color:#12141a;
+    font-family:'IBM Plex Mono', monospace;
+    font-size:9px; font-weight:600; letter-spacing:.08em;
+    padding:1px 6px;
+  }
+
+  /* ---------- SECCIONES ---------- */
+  section{margin-top:34px;}
+  .sec-head{
+    display:flex; align-items:baseline; justify-content:space-between;
+    border-bottom:1px solid var(--line);
+    padding-bottom:9px; margin-bottom:16px;
+  }
+  .sec-head h2{
+    font-family:'Oswald', sans-serif;
+    text-transform:uppercase;
+    font-weight:600;
+    font-size:18px;
+    letter-spacing:.03em;
+    margin:0;
+    display:flex; align-items:center; gap:10px;
+  }
+  .sec-head h2 .n{
+    font-family:'IBM Plex Mono', monospace;
+    color:var(--gold-dim);
+    font-size:13px;
+  }
+  .sec-head .count{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:12px;
+    color:var(--text-faint);
+  }
+
+  /* Clanes — guerra de hoy */
+  .clan-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;}
+  .clan-card{border:1px solid var(--line);background:var(--panel);padding:16px;}
+  .clan-card .name{font-family:'Oswald',sans-serif;font-size:16px;text-transform:uppercase;letter-spacing:.02em;}
+  .clan-card .stats{display:flex;gap:16px;margin-top:12px;font-family:'IBM Plex Mono',monospace;}
+  .clan-card .stat b{display:block;font-size:20px;color:var(--text);}
+  .clan-card .stat span{font-size:10px;color:var(--text-faint);text-transform:uppercase;letter-spacing:.08em;}
+  .bar{height:5px;background:var(--panel-2);margin-top:12px;border:1px solid var(--line);}
+  .bar i{display:block;height:100%;background:var(--gold);}
+
+  /* Tabla pendientes */
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th{
+    text-align:left; font-family:'IBM Plex Mono', monospace;
+    font-size:10px; letter-spacing:.1em; text-transform:uppercase;
+    color:var(--text-faint); padding:8px 10px; border-bottom:1px solid var(--line);
+  }
+  td{padding:9px 10px;border-bottom:1px solid rgba(38,50,82,.5);}
+  tr:hover td{background:rgba(201,162,75,.04);}
+  .falt{
+    font-family:'IBM Plex Mono', monospace; font-weight:600;
+    color:var(--crimson);
+  }
+
+  /* Resumen de clanes (barras horizontales) */
+  .resumen-row{display:flex;align-items:center;gap:12px;margin-bottom:10px;}
+  .resumen-row .clan-n{width:150px;font-size:13px;flex-shrink:0;}
+  .resumen-row .track{flex:1;height:14px;background:var(--panel-2);border:1px solid var(--line);position:relative;}
+  .resumen-row .fill{height:100%;background:linear-gradient(90deg,var(--gold-dim),var(--gold));}
+  .resumen-row .val{width:34px;text-align:right;font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--text-dim);}
+
+  /* Nuevos miembros */
+  .nuevo-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:12px;}
+  .nuevo-card{border:1px solid var(--line);background:var(--panel);padding:14px;}
+  .nuevo-card .name{font-weight:600;font-size:14px;}
+  .nuevo-card .tag{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-faint);}
+  .nuevo-card .clan{font-size:12px;color:var(--text-dim);margin:6px 0 10px;}
+  .nuevo-card .links{display:flex;gap:14px;font-size:12px;}
+  .nuevo-card .links a{text-decoration:none;border-bottom:1px solid var(--gold-dim);}
+
+  .empty{color:var(--text-faint);font-size:13px;font-style:italic;padding:14px 0;}
+
+  /* Estado de carga / error */
+  #status{
+    font-family:'IBM Plex Mono', monospace;
+    font-size:13px; color:var(--text-dim);
+    padding:60px 20px; text-align:center;
+  }
+  #status.err{color:var(--crimson);}
+
+  footer{
+    margin-top:60px; padding-top:16px; border-top:1px solid var(--line);
+    font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--text-faint);
+    display:flex; justify-content:space-between; flex-wrap:wrap; gap:8px;
+  }
+
+  @media (max-width:520px){
+    .timeline{flex-wrap:wrap;}
+    .tl-day{min-width:44%;}
+    .resumen-row .clan-n{width:100px;font-size:12px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <div class="hero">
+    <div class="eyebrow">Sala de guerra — en vivo</div>
+    <h1>Familia Terna</h1>
+    <div class="sub" id="sub">Cargando estado de la temporada…</div>
+    <div class="timeline" id="timeline"></div>
+  </div>
+
+  <div id="status">Conectando con la base de datos del clan…</div>
+
+  <div id="content" style="display:none">
+
+    <section>
+      <div class="sec-head">
+        <h2><span class="n">01</span> Guerra de hoy</h2>
+        <span class="count" id="clanCount"></span>
+      </div>
+      <div class="clan-grid" id="clanGrid"></div>
+    </section>
+
+    <section>
+      <div class="sec-head">
+        <h2><span class="n">02</span> Pendientes de atacar</h2>
+        <span class="count" id="pendCount"></span>
+      </div>
+      <div id="pendWrap"></div>
+    </section>
+
+    <section>
+      <div class="sec-head">
+        <h2><span class="n">03</span> Miembros activos por clan</h2>
+      </div>
+      <div id="resumenWrap"></div>
+    </section>
+
+    <section>
+      <div class="sec-head">
+        <h2><span class="n">04</span> Ingresos recientes</h2>
+        <span class="count" id="nuevosCount"></span>
+      </div>
+      <div class="nuevo-grid" id="nuevoGrid"></div>
+    </section>
+
+  </div>
+
+  <footer>
+    <span>Datos servidos desde Google Apps Script</span>
+    <span id="updatedAt"></span>
+  </footer>
+</div>
+
+<script>
+/* =========================================================================
+ * CONFIGURACIÓN — completa estos 2 valores después de desplegar el Web App
+ * de Apps Script (ver README-GITHUB.md, paso 2).
+ * ========================================================================= */
+const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbwxTdbddzujbus0e5JT8cDcSHrOB6i-txjdjTu6_cbUGIYmNsF0P8MF71eFmH8_3MKfiw/exec'; // termina en /exec
+const DASH_TOKEN  = 'fm7qterna9x';
+
+const DIAS = [
+  {letra:'A', label:'Jue'},
+  {letra:'B', label:'Vie'},
+  {letra:'C', label:'Sáb'},
+  {letra:'D', label:'Dom'}
+];
+
+function esc(s){
+  return String(s ?? '').replace(/[&<>"']/g, m => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[m]));
+}
+
+function fmtFecha(iso){
+  if(!iso) return '—';
+  const d = new Date(iso);
+  if(isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString('es-PE', {day:'2-digit', month:'short'});
+}
+
+async function cargar(){
+  const statusEl = document.getElementById('status');
+  if(WEBAPP_URL.indexOf('PEGA_AQUI') !== -1){
+    statusEl.textContent = 'Falta configurar WEBAPP_URL y DASH_TOKEN en index.html.';
+    statusEl.classList.add('err');
+    return;
+  }
+  try{
+    const url = `${WEBAPP_URL}?dashboard=json&token=${encodeURIComponent(DASH_TOKEN)}`;
+    const res = await fetch(url);
+    const data = await res.json();
+    if(data.error){ throw new Error(data.error); }
+    render(data);
+  }catch(err){
+    statusEl.textContent = 'No se pudo cargar el estado del clan: ' + err.message;
+    statusEl.classList.add('err');
+  }
+}
+
+function render(data){
+  document.getElementById('status').style.display = 'none';
+  document.getElementById('content').style.display = 'block';
+
+  const ctx = data.ctx || {};
+  document.getElementById('sub').textContent =
+    `Temporada ${ctx.temporada ?? '—'} · Semana ${(Number(ctx.sectionIndex)||0) + 1}` +
+    (ctx.esDiaGuerra ? ' · Día de guerra en curso' : ' · Día de entrenamiento');
+
+  // Timeline
+  const tl = document.getElementById('timeline');
+  tl.innerHTML = DIAS.map(d => `
+    <div class="tl-day ${d.letra === ctx.diaLetra ? 'active' : ''}">
+      <div class="lbl">${d.label}</div>
+      <div class="mark">${d.letra}</div>
+    </div>`).join('');
+
+  // Guerra de hoy por clan
+  const clanGrid = document.getElementById('clanGrid');
+  const clanes = Object.entries(data.guerraPorClan || {});
+  document.getElementById('clanCount').textContent = clanes.length + ' clan(es)';
+  clanGrid.innerHTML = clanes.length ? clanes.map(([nombre, g]) => {
+    const pct = g.totalHoy ? Math.round((g.atacaron / g.totalHoy) * 100) : 0;
+    return `
+    <div class="clan-card">
+      <div class="name">${esc(nombre)}</div>
+      <div class="stats">
+        <div class="stat"><b>${g.ataques}</b><span>Ataques</span></div>
+        <div class="stat"><b>${g.fame}</b><span>Fame</span></div>
+        <div class="stat"><b>${g.barcos}</b><span>Barcos</span></div>
+      </div>
+      <div class="bar"><i style="width:${pct}%"></i></div>
+      <div style="margin-top:6px;font-size:11px;color:var(--text-faint);font-family:'IBM Plex Mono',monospace;">
+        ${g.atacaron}/${g.totalHoy} atacaron hoy
+      </div>
+    </div>`;
+  }).join('') : '<div class="empty">Sin datos de guerra registrados para hoy.</div>';
+
+  // Pendientes
+  const pend = data.pendientes || [];
+  document.getElementById('pendCount').textContent = pend.length + ' jugador(es)';
+  const pendWrap = document.getElementById('pendWrap');
+  pendWrap.innerHTML = pend.length ? `
+    <table>
+      <thead><tr>
+        <th>Nombre</th><th>Clan</th><th>Faltantes</th>
+      </tr></thead>
+      <tbody>
+        ${pend.map(p => `
+          <tr>
+            <td>${esc(p.nombre || p.nomMulti || p.tag)}</td>
+            <td>${esc(p.clan)}</td>
+            <td class="falt">${p.faltantes}</td>
+          </tr>`).join('')}
+      </tbody>
+    </table>` : '<div class="empty">Nadie tiene ataques pendientes 🎉</div>';
+
+  // Resumen de clanes
+  const resumen = Object.entries(data.resumenClanes || {});
+  const maxResumen = Math.max(1, ...resumen.map(([,v]) => v));
+  const resumenWrap = document.getElementById('resumenWrap');
+  resumenWrap.innerHTML = resumen.length ? resumen.map(([nombre, count]) => `
+    <div class="resumen-row">
+      <div class="clan-n">${esc(nombre)}</div>
+      <div class="track"><div class="fill" style="width:${(count/maxResumen)*100}%"></div></div>
+      <div class="val">${count}</div>
+    </div>`).join('') : '<div class="empty">Sin datos de directorio.</div>';
+
+  // Nuevos
+  const nuevos = data.nuevos || [];
+  document.getElementById('nuevosCount').textContent = nuevos.length + ' jugador(es)';
+  const nuevoGrid = document.getElementById('nuevoGrid');
+  nuevoGrid.innerHTML = nuevos.length ? nuevos.map(n => `
+    <div class="nuevo-card">
+      <div class="name">${esc(n.nombre)}</div>
+      <div class="tag">${esc(n.tag)} · ${fmtFecha(n.fechaIng)}</div>
+      <div class="clan">${esc(n.clan)}</div>
+      <div class="links">
+        <a href="${esc(n.royaleApi)}" target="_blank" rel="noopener">RoyaleAPI</a>
+        <a href="${esc(n.cwstats)}" target="_blank" rel="noopener">CWStats</a>
+      </div>
+    </div>`).join('') : '<div class="empty">No hay ingresos recientes.</div>';
+
+  document.getElementById('updatedAt').textContent =
+    'Actualizado ' + new Date().toLocaleString('es-PE');
+}
+
+cargar();
+</script>
+</body>
+</html>
