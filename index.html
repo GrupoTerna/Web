@@ -62,9 +62,43 @@
     text-transform:uppercase;
     color:var(--gold);
     display:flex; align-items:center; gap:8px;
+    justify-content:space-between;
   }
-  .eyebrow::before{content:"";width:6px;height:6px;background:var(--crimson);border-radius:50%;
-    box-shadow:0 0 0 3px rgba(179,64,47,.18);}
+  .eyebrow .live{display:flex;align-items:center;gap:8px;}
+  .eyebrow .live::before{
+    content:"";width:6px;height:6px;background:var(--crimson);border-radius:50%;
+    box-shadow:0 0 0 3px rgba(179,64,47,.18);
+    animation:pulse 2.2s ease-in-out infinite;
+  }
+  @keyframes pulse{
+    0%,100%{opacity:1; transform:scale(1);}
+    50%{opacity:.45; transform:scale(.75);}
+  }
+  .refresh-row{
+    display:flex; align-items:center; gap:10px;
+    font-family:'IBM Plex Mono', monospace; font-size:11px; color:var(--text-faint);
+  }
+  #refreshBtn{
+    background:none; border:1px solid var(--line); color:var(--text-dim);
+    font-family:'IBM Plex Mono', monospace; font-size:10px; letter-spacing:.08em;
+    text-transform:uppercase; padding:4px 9px; cursor:pointer;
+    transition:border-color .15s, color .15s;
+  }
+  #refreshBtn:hover{border-color:var(--gold); color:var(--gold);}
+  #refreshBtn:disabled{opacity:.5; cursor:default;}
+  #refreshBtn.spinning{color:var(--gold); border-color:var(--gold);}
+  .progress-track{
+    height:2px; background:var(--panel-2); margin-top:16px; overflow:hidden;
+  }
+  .progress-track i{
+    display:block; height:100%; width:0%; background:var(--gold-dim);
+    transition:width 1s linear;
+  }
+  .flash{animation:flash-num .6s ease;}
+  @keyframes flash-num{
+    0%{color:var(--gold); text-shadow:0 0 8px rgba(201,162,75,.5);}
+    100%{color:inherit; text-shadow:none;}
+  }
   h1{
     font-family:'Oswald', sans-serif;
     font-weight:700;
@@ -208,10 +242,17 @@
 <div class="wrap">
 
   <div class="hero">
-    <div class="eyebrow">Sala de guerra — en vivo</div>
+    <div class="eyebrow">
+      <span class="live">Sala de guerra — en vivo</span>
+      <span class="refresh-row">
+        <span id="agoText">—</span>
+        <button id="refreshBtn" type="button" onclick="cargar(true)">Actualizar</button>
+      </span>
+    </div>
     <h1>Familia Terna</h1>
     <div class="sub" id="sub">Cargando estado de la temporada…</div>
     <div class="timeline" id="timeline"></div>
+    <div class="progress-track"><i id="progressFill"></i></div>
   </div>
 
   <div id="status">Conectando con la base de datos del clan…</div>
@@ -265,12 +306,18 @@
 const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbwxTdbddzujbus0e5JT8cDcSHrOB6i-txjdjTu6_cbUGIYmNsF0P8MF71eFmH8_3MKfiw/exec'; // termina en /exec
 const DASH_TOKEN  = 'fm7qterna9x';
 
+// Cada cuánto se refresca solo, en milisegundos. 60000 = cada 1 minuto.
+const REFRESH_INTERVAL_MS = 60000;
+
 const DIAS = [
   {letra:'A', label:'Jue'},
   {letra:'B', label:'Vie'},
   {letra:'C', label:'Sáb'},
   {letra:'D', label:'Dom'}
 ];
+
+let lastFetchAt = null;   // Date del último fetch exitoso
+let prevValues  = {};     // cache de valores numéricos previos, para detectar cambios y animar
 
 function esc(s){
   return String(s ?? '').replace(/[&<>"']/g, m => ({
@@ -285,22 +332,78 @@ function fmtFecha(iso){
   return d.toLocaleDateString('es-PE', {day:'2-digit', month:'short'});
 }
 
-async function cargar(){
-  const statusEl = document.getElementById('status');
+// Marca un elemento con un breve destello dorado si su valor cambió desde
+// el refresco anterior — así se nota a simple vista qué se actualizó.
+function setNum(id, val){
+  const el = document.getElementById(id);
+  if(!el) return;
+  const changed = prevValues[id] !== undefined && prevValues[id] !== val;
+  el.textContent = val;
+  if(changed){
+    el.classList.remove('flash');
+    void el.offsetWidth; // reinicia la animación si ya estaba corriendo
+    el.classList.add('flash');
+  }
+  prevValues[id] = val;
+}
+
+function actualizarAgoText(){
+  const el = document.getElementById('agoText');
+  if(!el || !lastFetchAt) return;
+  const segs = Math.floor((Date.now() - lastFetchAt.getTime()) / 1000);
+  let txt;
+  if(segs < 5)        txt = 'actualizado ahora mismo';
+  else if(segs < 60)  txt = `actualizado hace ${segs}s`;
+  else                txt = `actualizado hace ${Math.floor(segs/60)} min`;
+  el.textContent = txt;
+}
+
+function iniciarProgreso(){
+  const fill = document.getElementById('progressFill');
+  if(!fill) return;
+  fill.style.transition = 'none';
+  fill.style.width = '0%';
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => {
+      fill.style.transition = `width ${REFRESH_INTERVAL_MS}ms linear`;
+      fill.style.width = '100%';
+    });
+  });
+}
+
+async function cargar(manual){
+  const statusEl   = document.getElementById('status');
+  const refreshBtn = document.getElementById('refreshBtn');
+
   if(WEBAPP_URL.indexOf('PEGA_AQUI') !== -1){
     statusEl.textContent = 'Falta configurar WEBAPP_URL y DASH_TOKEN en index.html.';
     statusEl.classList.add('err');
     return;
   }
+
+  if(refreshBtn){ refreshBtn.classList.add('spinning'); refreshBtn.disabled = true; }
+
   try{
     const url = `${WEBAPP_URL}?dashboard=json&token=${encodeURIComponent(DASH_TOKEN)}`;
-    const res = await fetch(url);
+    const res = await fetch(url, { cache: 'no-store' });
     const data = await res.json();
     if(data.error){ throw new Error(data.error); }
     render(data);
+    lastFetchAt = new Date();
+    actualizarAgoText();
+    iniciarProgreso();
   }catch(err){
-    statusEl.textContent = 'No se pudo cargar el estado del clan: ' + err.message;
-    statusEl.classList.add('err');
+    // Si ya había datos en pantalla, no los tapamos con la pantalla de error
+    // completa — solo avisamos discretamente y seguimos mostrando lo último
+    // que cargó bien.
+    if(document.getElementById('content').style.display === 'none'){
+      statusEl.textContent = 'No se pudo cargar el estado del clan: ' + err.message;
+      statusEl.classList.add('err');
+    }else{
+      document.getElementById('agoText').textContent = 'sin conexión, mostrando última carga';
+    }
+  }finally{
+    if(refreshBtn){ refreshBtn.classList.remove('spinning'); refreshBtn.disabled = false; }
   }
 }
 
@@ -325,15 +428,16 @@ function render(data){
   const clanGrid = document.getElementById('clanGrid');
   const clanes = Object.entries(data.guerraPorClan || {});
   document.getElementById('clanCount').textContent = clanes.length + ' clan(es)';
-  clanGrid.innerHTML = clanes.length ? clanes.map(([nombre, g]) => {
+  clanGrid.innerHTML = clanes.length ? clanes.map(([nombre, g], idx) => {
     const pct = g.totalHoy ? Math.round((g.atacaron / g.totalHoy) * 100) : 0;
+    const slug = 'clan' + idx;
     return `
     <div class="clan-card">
       <div class="name">${esc(nombre)}</div>
       <div class="stats">
-        <div class="stat"><b>${g.ataques}</b><span>Ataques</span></div>
-        <div class="stat"><b>${g.fame}</b><span>Fame</span></div>
-        <div class="stat"><b>${g.barcos}</b><span>Barcos</span></div>
+        <div class="stat"><b id="${slug}-atq">${g.ataques}</b><span>Ataques</span></div>
+        <div class="stat"><b id="${slug}-fame">${g.fame}</b><span>Fame</span></div>
+        <div class="stat"><b id="${slug}-barc">${g.barcos}</b><span>Barcos</span></div>
       </div>
       <div class="bar"><i style="width:${pct}%"></i></div>
       <div style="margin-top:6px;font-size:11px;color:var(--text-faint);font-family:'IBM Plex Mono',monospace;">
@@ -341,6 +445,14 @@ function render(data){
       </div>
     </div>`;
   }).join('') : '<div class="empty">Sin datos de guerra registrados para hoy.</div>';
+
+  // Anima (destello dorado) los números que cambiaron desde el refresco anterior
+  clanes.forEach(([nombre, g], idx) => {
+    const slug = 'clan' + idx;
+    setNum(slug + '-atq',  g.ataques);
+    setNum(slug + '-fame', g.fame);
+    setNum(slug + '-barc', g.barcos);
+  });
 
   // Pendientes
   const pend = data.pendientes || [];
@@ -388,10 +500,20 @@ function render(data){
     </div>`).join('') : '<div class="empty">No hay ingresos recientes.</div>';
 
   document.getElementById('updatedAt').textContent =
-    'Actualizado ' + new Date().toLocaleString('es-PE');
+    'Última carga completa: ' + new Date().toLocaleString('es-PE');
 }
 
+// Carga inicial
 cargar();
+
+// Refresco automático en segundo plano cada REFRESH_INTERVAL_MS,
+// sin volver a mostrar la pantalla de "Cargando…" ni parpadear el resto
+// de la página — solo se actualizan los datos.
+setInterval(() => cargar(false), REFRESH_INTERVAL_MS);
+
+// Contador "hace Xs / hace X min" que va subiendo entre refrescos
+setInterval(actualizarAgoText, 1000);
+
 </script>
 </body>
 </html>
