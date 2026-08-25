@@ -11,6 +11,18 @@
 const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbwxTdbddzujbus0e5JT8cDcSHrOB6i-txjdjTu6_cbUGIYmNsF0P8MF71eFmH8_3MKfiw/exec'; // termina en /exec
 const WEB_MEMBER_TOKEN = 'terna-web-pub-24ago'; // debe ser igual al de 34_Web_API.gs
 
+/* FASE 0 (24-ago-2026): canales reales de postulación/contacto, en un solo
+ * lugar para que nunca vuelva a desincronizarse un link (bug original: el
+ * botón Discord del hero de index.html tenía un placeholder distinto al
+ * del resto del sitio). Usados por el modal "Cómo unirte" de index.html.
+ * FORM_POSTULACION_URL queda vacío a propósito hasta tener un link real de
+ * formulario — si está vacío, esa opción simplemente no se muestra en vez
+ * de linkear a algo roto. Complétalo acá cuando exista.
+ */
+const WSP_GRUPO_URL = 'https://chat.whatsapp.com/HfaoDijjtkS4mwijpdczkU';
+const DISCORD_URL = 'https://discord.gg/YKXtg93DVb';
+const FORM_POSTULACION_URL = ''; // TODO: completar cuando exista el link del formulario
+
 function esc(s){
   return String(s ?? '').replace(/[&<>"']/g, m => ({
     '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
