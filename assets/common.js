@@ -1,0 +1,66 @@
+/* =========================================================================
+ * common.js — configuración y helpers compartidos por todas las páginas.
+ * COMPLETA estos 3 valores después de desplegar el Web App de Apps Script
+ * (mismo backend que ya usa guerra.html — ver README-GITHUB.md):
+ *   - WEBAPP_URL: la misma URL /exec del Web App.
+ *   - WEB_MEMBER_TOKEN: debe coincidir EXACTO con la variable del mismo
+ *     nombre en 34_Web_API.gs (backend).
+ * El login de admin (admin.html) no necesita token acá: la contraseña se
+ * escribe una sola vez en ADMIN_PANEL_PASSWORD dentro de 34_Web_API.gs.
+ * ========================================================================= */
+const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbwxTdbddzujbus0e5JT8cDcSHrOB6i-txjdjTu6_cbUGIYmNsF0P8MF71eFmH8_3MKfiw/exec'; // termina en /exec
+const WEB_MEMBER_TOKEN = 'terna-web-pub-24ago'; // debe ser igual al de 34_Web_API.gs
+
+function esc(s){
+  return String(s ?? '').replace(/[&<>"']/g, m => ({
+    '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'
+  }[m]));
+}
+
+/** GET a una acción pública del portal (usa WEB_MEMBER_TOKEN). */
+async function apiGet(accion, params){
+  const qs = new URLSearchParams({ accion, token: WEB_MEMBER_TOKEN, ...(params||{}) });
+  const res = await fetch(`${WEBAPP_URL}?${qs.toString()}`, { cache:'no-store' });
+  const data = await res.json();
+  if(data.error) throw new Error(data.error);
+  return data;
+}
+
+/** POST a una acción del portal (login / acciones de admin). */
+async function apiPost(accion, body){
+  const url = `${WEBAPP_URL}?accion=${encodeURIComponent(accion)}`;
+  const res = await fetch(url, {
+    method:'POST',
+    cache:'no-store',
+    body: JSON.stringify(body||{})
+  });
+  return await res.json();
+}
+
+/** GET autenticado (requiere sessionToken de admin en query string). */
+async function apiGetAuth(accion, params){
+  const token = sessionStorage.getItem('terna_admin_token');
+  const qs = new URLSearchParams({ accion, sessionToken: token || '', ...(params||{}) });
+  const res = await fetch(`${WEBAPP_URL}?${qs.toString()}`, { cache:'no-store' });
+  return await res.json();
+}
+
+/** Normaliza un tag de Clash Royale para mostrar/mandar: mayúsculas, con '#'. */
+function normalizarTag(t){
+  let v = String(t||'').trim().toUpperCase().replace(/^#/, '');
+  return v ? '#' + v : '';
+}
+
+/** Marca activo el link de navegación de la página actual (por data-page). */
+function marcarNavActiva(){
+  const actual = document.body.dataset.page;
+  document.querySelectorAll('.nav .links a[data-page]').forEach(a => {
+    if(a.dataset.page === actual) a.classList.add('active');
+  });
+  const toggle = document.getElementById('navToggle');
+  const links  = document.querySelector('.nav .links');
+  if(toggle && links){
+    toggle.addEventListener('click', () => links.classList.toggle('open'));
+  }
+}
+document.addEventListener('DOMContentLoaded', marcarNavActiva);
