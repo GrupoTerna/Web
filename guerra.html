@@ -1,0 +1,292 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guerra en vivo — Familia Terna</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/styles.css">
+<style>
+  /* Estilos propios de esta página (reusa tokens de styles.css) */
+  .refresh-row{display:flex; align-items:center; gap:10px; font-family:var(--f-mono); font-size:11px; color:var(--text-faint);}
+  #refreshBtn{
+    background:none; border:1px solid var(--line); color:var(--text-dim);
+    font-family:var(--f-mono); font-size:10px; letter-spacing:.08em;
+    text-transform:uppercase; padding:5px 10px; cursor:pointer; border-radius:var(--radius-sm);
+    transition:border-color .15s, color .15s;
+  }
+  #refreshBtn:hover{border-color:var(--purple); color:var(--purple);}
+  #refreshBtn:disabled{opacity:.5; cursor:default;}
+  #refreshBtn.spinning{color:var(--purple); border-color:var(--purple);}
+  .progress-track{height:2px; background:var(--surface-2); margin-top:16px; overflow:hidden; border-radius:2px;}
+  .progress-track i{display:block; height:100%; width:0%; background:var(--purple); transition:width 1s linear;}
+  .flash{animation:flash-num .6s ease;}
+  @keyframes flash-num{
+    0%{color:var(--gold); text-shadow:0 0 8px rgba(243,169,34,.5);}
+    100%{color:inherit; text-shadow:none;}
+  }
+  .timeline{display:flex; gap:6px; margin-top:14px;}
+  .tl-day{flex:1; border:1px solid var(--line); background:var(--surface); border-radius:var(--radius-sm); padding:10px 6px 9px; text-align:center; position:relative;}
+  .tl-day .lbl{font-family:var(--f-mono); font-size:10px; letter-spacing:.12em; color:var(--text-faint); text-transform:uppercase;}
+  .tl-day .mark{font-family:var(--f-display); font-weight:700; font-size:20px; margin-top:4px; color:var(--text-dim);}
+  .tl-day.active{border-color:var(--purple); background:linear-gradient(180deg, rgba(162,57,255,.16), rgba(162,57,255,.03));}
+  .tl-day.active .lbl{color:var(--purple);}
+  .tl-day.active .mark{color:var(--text);}
+  .tl-day.active::after{
+    content:"HOY"; position:absolute; top:-9px; left:50%; transform:translateX(-50%);
+    background:var(--purple); color:#fff; font-family:var(--f-mono); font-size:9px; font-weight:600;
+    letter-spacing:.08em; padding:1px 6px; border-radius:3px;
+  }
+  .clan-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:14px;}
+  .clan-card .name{font-family:var(--f-display); font-size:16px; font-weight:700; text-transform:uppercase;}
+  .clan-card .stats{display:flex; gap:16px; margin-top:12px; font-family:var(--f-mono);}
+  .clan-card .stat b{display:block; font-size:20px; color:var(--text);}
+  .clan-card .stat span{font-size:10px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.08em;}
+  .bar{height:5px; background:var(--surface-2); margin-top:12px; border-radius:3px; overflow:hidden;}
+  .bar i{display:block; height:100%; background:var(--purple);}
+  .falt{font-family:var(--f-mono); font-weight:600; color:var(--danger);}
+  .resumen-row{display:flex; align-items:center; gap:12px; margin-bottom:10px;}
+  .resumen-row .clan-n{width:150px; font-size:13px; flex-shrink:0;}
+  .resumen-row .track{flex:1; height:14px; background:var(--surface-2); border-radius:3px; position:relative; overflow:hidden;}
+  .resumen-row .fill{height:100%; background:linear-gradient(90deg, var(--violet), var(--purple));}
+  .resumen-row .val{width:34px; text-align:right; font-family:var(--f-mono); font-size:12px; color:var(--text-dim);}
+  .nuevo-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:14px;}
+  .nuevo-card .name{font-weight:600; font-size:14px;}
+  .nuevo-card .tag{font-family:var(--f-mono); font-size:11px; color:var(--text-faint);}
+  .nuevo-card .clan{font-size:12px; color:var(--text-dim); margin:6px 0 10px;}
+  .nuevo-card .links{display:flex; gap:14px; font-size:12px;}
+  .nuevo-card .links a{text-decoration:none; border-bottom:1px solid var(--violet);}
+  #status{font-family:var(--f-mono); font-size:13px; color:var(--text-dim); padding:60px 20px; text-align:center;}
+  #status.err{color:var(--danger);}
+</style>
+</head>
+<body data-page="guerra">
+
+<nav class="nav">
+  <div class="wrap">
+    <a href="index.html" class="brand"><span class="crown">♛</span> Familia Terna</a>
+    <button id="navToggle" class="nav-toggle" aria-label="Abrir menú">☰</button>
+    <div class="links">
+      <a href="index.html" data-page="inicio">Inicio</a>
+      <a href="jugadores.html" data-page="jugadores">Jugadores</a>
+      <a href="guerra.html" data-page="guerra">Guerra en vivo</a>
+      <a href="admin.html" data-page="admin" class="cta">Admin</a>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap" style="padding-top:32px; padding-bottom:80px;">
+
+  <div class="card" style="position:relative; overflow:hidden;">
+    <div class="eyebrow" style="justify-content:space-between;">
+      <span style="display:flex; align-items:center; gap:8px;">
+        <span style="width:6px;height:6px;background:var(--danger);border-radius:50%; box-shadow:0 0 0 3px rgba(229,72,77,.18); display:inline-block;"></span>
+        Sala de guerra — en vivo
+      </span>
+      <span class="refresh-row">
+        <span id="agoText">—</span>
+        <button id="refreshBtn" type="button" onclick="cargar(true)">Actualizar</button>
+      </span>
+    </div>
+    <h1 style="font-size:clamp(28px,5vw,40px); margin-top:10px;">Guerra en vivo</h1>
+    <div class="text-dim" id="sub" style="margin-top:4px;">Cargando estado de la temporada…</div>
+    <div class="timeline" id="timeline"></div>
+    <div class="progress-track"><i id="progressFill"></i></div>
+  </div>
+
+  <div id="status">Conectando con la base de datos del clan…</div>
+
+  <div id="content" style="display:none">
+
+    <section>
+      <div class="sec-head" style="display:flex; align-items:baseline; justify-content:space-between; border-bottom:1px solid var(--line); padding-bottom:9px;">
+        <h2 style="font-size:18px;">Guerra de hoy</h2>
+        <span class="text-faint" id="clanCount" style="font-family:var(--f-mono); font-size:12px;"></span>
+      </div>
+      <div class="clan-grid" id="clanGrid" style="margin-top:16px;"></div>
+    </section>
+
+    <section>
+      <div class="sec-head" style="display:flex; align-items:baseline; justify-content:space-between; border-bottom:1px solid var(--line); padding-bottom:9px;">
+        <h2 style="font-size:18px;">Pendientes de atacar</h2>
+        <span class="text-faint" id="pendCount" style="font-family:var(--f-mono); font-size:12px;"></span>
+      </div>
+      <div id="pendWrap" style="margin-top:16px;"></div>
+    </section>
+
+    <section>
+      <div class="sec-head" style="border-bottom:1px solid var(--line); padding-bottom:9px;">
+        <h2 style="font-size:18px;">Miembros activos por clan</h2>
+      </div>
+      <div id="resumenWrap" style="margin-top:16px;"></div>
+    </section>
+
+    <section>
+      <div class="sec-head" style="display:flex; align-items:baseline; justify-content:space-between; border-bottom:1px solid var(--line); padding-bottom:9px;">
+        <h2 style="font-size:18px;">Ingresos recientes</h2>
+        <span class="text-faint" id="nuevosCount" style="font-family:var(--f-mono); font-size:12px;"></span>
+      </div>
+      <div class="nuevo-grid" id="nuevoGrid" style="margin-top:16px;"></div>
+    </section>
+
+  </div>
+
+  <footer style="margin-top:40px;">
+    <div class="wrap" style="padding:0;">
+      <span>Datos servidos desde Google Apps Script</span>
+      <span id="updatedAt"></span>
+    </div>
+  </footer>
+</div>
+
+<script src="assets/common.js"></script>
+<script>
+/* Mismo backend/patrón que el dashboard original — solo cambia el token de
+ * consulta (usa el mismo DASHBOARD_TOKEN que ya tenías, distinto de
+ * WEB_MEMBER_TOKEN de common.js). Ajusta DASHBOARD_TOKEN si lo cambias en
+ * 08_Web_Endpoints.gs. */
+const DASH_TOKEN = 'fm7qterna9x';
+const REFRESH_INTERVAL_MS = 60000;
+const DIAS = [
+  {letra:'A', label:'Jue'}, {letra:'B', label:'Vie'},
+  {letra:'C', label:'Sáb'}, {letra:'D', label:'Dom'}
+];
+let lastFetchAt = null;
+let prevValues  = {};
+
+function fmtFecha(iso){
+  if(!iso) return '—';
+  const d = new Date(iso);
+  if(isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString('es-PE', {day:'2-digit', month:'short'});
+}
+function setNum(id, val){
+  const el = document.getElementById(id);
+  if(!el) return;
+  const changed = prevValues[id] !== undefined && prevValues[id] !== val;
+  el.textContent = val;
+  if(changed){ el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); }
+  prevValues[id] = val;
+}
+function actualizarAgoText(){
+  const el = document.getElementById('agoText');
+  if(!el || !lastFetchAt) return;
+  const segs = Math.floor((Date.now() - lastFetchAt.getTime()) / 1000);
+  let txt;
+  if(segs < 5) txt = 'actualizado ahora mismo';
+  else if(segs < 60) txt = `actualizado hace ${segs}s`;
+  else txt = `actualizado hace ${Math.floor(segs/60)} min`;
+  el.textContent = txt;
+}
+function iniciarProgreso(){
+  const fill = document.getElementById('progressFill');
+  if(!fill) return;
+  fill.style.transition = 'none'; fill.style.width = '0%';
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    fill.style.transition = `width ${REFRESH_INTERVAL_MS}ms linear`;
+    fill.style.width = '100%';
+  }));
+}
+async function cargar(manual){
+  const statusEl = document.getElementById('status');
+  const refreshBtn = document.getElementById('refreshBtn');
+  if(refreshBtn){ refreshBtn.classList.add('spinning'); refreshBtn.disabled = true; }
+  try{
+    const url = `${WEBAPP_URL}?dashboard=json&token=${encodeURIComponent(DASH_TOKEN)}`;
+    const res = await fetch(url, { cache: 'no-store' });
+    const data = await res.json();
+    if(data.error){ throw new Error(data.error); }
+    render(data);
+    lastFetchAt = new Date();
+    actualizarAgoText();
+    iniciarProgreso();
+  }catch(err){
+    if(document.getElementById('content').style.display === 'none'){
+      statusEl.textContent = 'No se pudo cargar el estado del clan: ' + err.message;
+      statusEl.classList.add('err');
+    }else{
+      document.getElementById('agoText').textContent = 'sin conexión, mostrando última carga';
+    }
+  }finally{
+    if(refreshBtn){ refreshBtn.classList.remove('spinning'); refreshBtn.disabled = false; }
+  }
+}
+function render(data){
+  document.getElementById('status').style.display = 'none';
+  document.getElementById('content').style.display = 'block';
+  const ctx = data.ctx || {};
+  document.getElementById('sub').textContent =
+    `Temporada ${ctx.temporada ?? '—'} · Semana ${(Number(ctx.sectionIndex)||0) + 1}` +
+    (ctx.esDiaGuerra ? ' · Día de guerra en curso' : ' · Día de entrenamiento');
+  const tl = document.getElementById('timeline');
+  tl.innerHTML = DIAS.map(d => `
+    <div class="tl-day ${d.letra === ctx.diaLetra ? 'active' : ''}">
+      <div class="lbl">${d.label}</div><div class="mark">${d.letra}</div>
+    </div>`).join('');
+  const clanGrid = document.getElementById('clanGrid');
+  const clanes = Object.entries(data.guerraPorClan || {});
+  document.getElementById('clanCount').textContent = clanes.length + ' clan(es)';
+  clanGrid.innerHTML = clanes.length ? clanes.map(([nombre, g], idx) => {
+    const pct = g.totalHoy ? Math.round((g.atacaron / g.totalHoy) * 100) : 0;
+    const slug = 'clan' + idx;
+    return `
+    <div class="card clan-card">
+      <div class="name">${esc(nombre)}</div>
+      <div class="stats">
+        <div class="stat"><b id="${slug}-atq">${g.ataques}</b><span>Ataques</span></div>
+        <div class="stat"><b id="${slug}-fame">${g.fame}</b><span>Fame</span></div>
+        <div class="stat"><b id="${slug}-barc">${g.barcos}</b><span>Barcos</span></div>
+      </div>
+      <div class="bar"><i style="width:${pct}%"></i></div>
+      <div style="margin-top:6px;font-size:11px;color:var(--text-faint);font-family:var(--f-mono);">
+        ${g.atacaron}/${g.totalHoy} atacaron hoy
+      </div>
+    </div>`;
+  }).join('') : '<div class="empty">Sin datos de guerra registrados para hoy.</div>';
+  clanes.forEach(([nombre, g], idx) => {
+    const slug = 'clan' + idx;
+    setNum(slug + '-atq', g.ataques); setNum(slug + '-fame', g.fame); setNum(slug + '-barc', g.barcos);
+  });
+  const pend = data.pendientes || [];
+  document.getElementById('pendCount').textContent = pend.length + ' jugador(es)';
+  const pendWrap = document.getElementById('pendWrap');
+  pendWrap.innerHTML = pend.length ? `
+    <div class="card"><table>
+      <thead><tr><th>Nombre</th><th>Clan</th><th>Faltantes</th></tr></thead>
+      <tbody>${pend.map(p => `
+          <tr><td>${esc(p.nombre || p.nomMulti || p.tag)}</td><td>${esc(p.clan)}</td><td class="falt">${p.faltantes}</td></tr>`).join('')}
+      </tbody>
+    </table></div>` : '<div class="empty">Nadie tiene ataques pendientes 🎉</div>';
+  const resumen = Object.entries(data.resumenClanes || {});
+  const maxResumen = Math.max(1, ...resumen.map(([,v]) => v));
+  const resumenWrap = document.getElementById('resumenWrap');
+  resumenWrap.innerHTML = resumen.length ? `<div class="card">` + resumen.map(([nombre, count]) => `
+    <div class="resumen-row">
+      <div class="clan-n">${esc(nombre)}</div>
+      <div class="track"><div class="fill" style="width:${(count/maxResumen)*100}%"></div></div>
+      <div class="val">${count}</div>
+    </div>`).join('') + `</div>` : '<div class="empty">Sin datos de directorio.</div>';
+  const nuevos = data.nuevos || [];
+  document.getElementById('nuevosCount').textContent = nuevos.length + ' jugador(es)';
+  const nuevoGrid = document.getElementById('nuevoGrid');
+  nuevoGrid.innerHTML = nuevos.length ? nuevos.map(n => `
+    <div class="card nuevo-card">
+      <div class="name">${esc(n.nombre)}</div>
+      <div class="tag">${esc(n.tag)} · ${fmtFecha(n.fechaIng)}</div>
+      <div class="clan">${esc(n.clan)}</div>
+      <div class="links">
+        <a href="${esc(n.royaleApi)}" target="_blank" rel="noopener">RoyaleAPI</a>
+        <a href="${esc(n.cwstats)}" target="_blank" rel="noopener">CWStats</a>
+      </div>
+    </div>`).join('') : '<div class="empty">No hay ingresos recientes.</div>';
+  document.getElementById('updatedAt').textContent =
+    'Última carga completa: ' + new Date().toLocaleString('es-PE');
+}
+cargar();
+setInterval(() => cargar(false), REFRESH_INTERVAL_MS);
+setInterval(actualizarAgoText, 1000);
+</script>
+</body>
+</html>

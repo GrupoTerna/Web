@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Jugadores — Familia Terna</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/styles.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<style>
+  .buscador{display:flex; gap:10px; flex-wrap:wrap;}
+  .buscador input{flex:1; min-width:200px;}
+  .tabs{display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap;}
+  .tab{
+    font-family:var(--f-mono); font-size:12px; text-transform:uppercase; letter-spacing:.06em;
+    padding:8px 14px; border-radius:999px; border:1px solid var(--line); color:var(--text-dim); cursor:pointer;
+    background:var(--surface); transition:all .15s;
+  }
+  .tab.active{color:#fff; border-color:var(--purple); background:rgba(162,57,255,.15);}
+  .roster-row{display:flex; justify-content:space-between; align-items:center; padding:12px 14px; border-radius:var(--radius-sm); cursor:pointer; transition:background .12s;}
+  .roster-row:hover{background:var(--surface-2);}
+  .roster-row .nombre{font-weight:600;}
+  .roster-row .tag{font-family:var(--f-mono); font-size:11px; color:var(--text-faint);}
+  .req-block{margin-top:22px;}
+  .req-row{display:flex; align-items:center; gap:12px; margin-bottom:14px;}
+  .req-row .lbl{width:140px; font-size:13px; color:var(--text-dim); flex-shrink:0;}
+  .req-row .progress{flex:1;}
+  .req-row .val{width:90px; text-align:right; font-family:var(--f-mono); font-size:12px; flex-shrink:0;}
+  .chart-wrap{max-width:340px; margin:0 auto;}
+</style>
+</head>
+<body data-page="jugadores">
+
+<nav class="nav">
+  <div class="wrap">
+    <a href="index.html" class="brand"><span class="crown">♛</span> Familia Terna</a>
+    <button id="navToggle" class="nav-toggle" aria-label="Abrir menú">☰</button>
+    <div class="links">
+      <a href="index.html" data-page="inicio">Inicio</a>
+      <a href="jugadores.html" data-page="jugadores">Jugadores</a>
+      <a href="guerra.html" data-page="guerra">Guerra en vivo</a>
+      <a href="admin.html" data-page="admin" class="cta">Admin</a>
+    </div>
+  </div>
+</nav>
+
+<section style="padding-top:44px; padding-bottom:24px;">
+  <div class="wrap">
+    <div class="eyebrow">Progreso individual</div>
+    <h1 style="font-size:clamp(26px,4vw,38px); margin-top:10px;">Busca tu jugador</h1>
+    <p class="text-dim" style="margin-top:8px; max-width:560px;">
+      Busca por Tag directamente, o navega por clan si no recuerdas el tuyo.
+    </p>
+
+    <div class="card" style="margin-top:24px;">
+      <div class="buscador">
+        <input type="text" id="tagInput" placeholder="Ej: #ABC123XYZ" autocapitalize="characters">
+        <button class="btn btn-primary" id="btnBuscarTag">Buscar por Tag</button>
+      </div>
+      <div id="buscarMsg"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ---------- ROSTER POR CLAN ---------- -->
+<section id="rosterSec" style="padding-top:0;">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">O navega por clan</div>
+      <h2 style="font-size:20px;">Roster</h2>
+    </div>
+    <div id="rosterLoading" class="loading-block"><div class="spinner"></div></div>
+    <div id="rosterTabs" class="tabs" style="display:none;"></div>
+    <div id="rosterList" class="card" style="display:none;"></div>
+  </div>
+</section>
+
+<!-- ---------- PERFIL DEL JUGADOR ---------- -->
+<section id="perfilSec" style="display:none;">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">Perfil</div>
+      <h2 id="perfilNombre" style="font-size:26px;"></h2>
+      <p class="text-dim" id="perfilSub" style="margin-top:6px;"></p>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <h3 style="font-size:15px; color:var(--gold); margin-bottom:16px;">Estadísticas de la semana</h3>
+        <div class="chart-wrap"><canvas id="chartStats"></canvas></div>
+      </div>
+      <div class="card">
+        <h3 style="font-size:15px; color:var(--gold); margin-bottom:8px;" id="reqTitulo">Progreso hacia requisitos</h3>
+        <div class="tabs" id="reqTabs"></div>
+        <div id="reqContenido" class="req-block"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>Familia Terna · Portal de la comunidad</span>
+    <span>Datos servidos desde Google Apps Script</span>
+  </div>
+</footer>
+
+<script src="assets/common.js"></script>
+<script>
+let rosterData = null;
+let clanActivo = null;
+let chartInstancia = null;
+
+async function cargarRoster(){
+  try{
+    rosterData = await apiGet('webRoster');
+    document.getElementById('rosterLoading').style.display = 'none';
+    const tabsEl = document.getElementById('rosterTabs');
+    tabsEl.style.display = 'flex';
+    tabsEl.innerHTML = rosterData.clanes.map((c, i) =>
+      `<div class="tab ${i===0?'active':''}" data-idx="${i}">${esc(c.nombre)} · ${c.miembros.length}</div>`
+    ).join('');
+    tabsEl.querySelectorAll('.tab').forEach(t => {
+      t.addEventListener('click', () => {
+        tabsEl.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+        t.classList.add('active');
+        mostrarClan(Number(t.dataset.idx));
+      });
+    });
+    if(rosterData.clanes.length) mostrarClan(0);
+  }catch(err){
+    document.getElementById('rosterLoading').innerHTML =
+      `<div class="msg msg-error">No se pudo cargar el roster: ${esc(err.message)}</div>`;
+  }
+}
+
+function mostrarClan(idx){
+  const clan = rosterData.clanes[idx];
+  const listEl = document.getElementById('rosterList');
+  listEl.style.display = 'block';
+  listEl.innerHTML = clan.miembros.length ? clan.miembros.map(m => `
+    <div class="roster-row" data-tag="${esc(m.tag)}">
+      <div>
+        <div class="nombre">${esc(m.nombre)}</div>
+        <div class="tag">${esc(m.tag)} · ${esc(m.rango)}</div>
+      </div>
+      <span class="badge badge-purple">${m.vGuerra} 🏆</span>
+    </div>`).join('') : '<div class="empty">Sin miembros activos en este clan.</div>';
+  listEl.querySelectorAll('.roster-row').forEach(row => {
+    row.addEventListener('click', () => buscarPerfil(row.dataset.tag));
+  });
+}
+
+async function buscarPerfil(tag){
+  const tagNorm = normalizarTag(tag);
+  const msgEl = document.getElementById('buscarMsg');
+  msgEl.innerHTML = '';
+  if(!tagNorm){
+    msgEl.innerHTML = '<div class="msg msg-error">Escribe un Tag válido.</div>';
+    return;
+  }
+  document.getElementById('tagInput').value = tagNorm;
+  try{
+    const data = await apiGet('webPerfil', { tag: tagNorm });
+    if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
+    renderPerfil(data.jugador);
+  }catch(err){
+    msgEl.innerHTML = `<div class="msg msg-error">${esc(err.message)}</div>`;
+  }
+}
+
+function renderPerfil(j){
+  document.getElementById('perfilSec').style.display = 'block';
+  document.getElementById('rosterSec').style.display = 'none';
+  document.getElementById('perfilNombre').textContent = j.nombre;
+  document.getElementById('perfilSub').textContent = `${j.tag} · ${j.clan} · ${j.rango}`;
+
+  if(chartInstancia) chartInstancia.destroy();
+  const ctx = document.getElementById('chartStats').getContext('2d');
+  chartInstancia = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: ['Ataques', 'Fame', 'Barcos', 'Torneos', 'Trofeos guerra'],
+      datasets: [{
+        data: [j.guerraSemana.ataques, j.guerraSemana.fame, j.guerraSemana.barcos, j.torneos, j.vGuerra],
+        backgroundColor: 'rgba(162,57,255,.55)',
+        borderColor: '#a239ff', borderWidth: 1, borderRadius: 4
+      }]
+    },
+    options: {
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{ticks:{color:'#7e8a9c'}, grid:{color:'rgba(162,57,255,.08)'}},
+        y:{ticks:{color:'#7e8a9c'}, grid:{color:'rgba(162,57,255,.08)'}}
+      }
+    }
+  });
+
+  const categorias = [
+    { key:'ascensos',  label:'Ascensos'  },
+    { key:'descensos', label:'Descensos' }
+  ].filter(c => j.progreso[c.key]);
+
+  const tabsEl = document.getElementById('reqTabs');
+  tabsEl.innerHTML = categorias.map((c, i) =>
+    `<div class="tab ${i===0?'active':''}" data-key="${c.key}">${c.label}</div>`
+  ).join('');
+  tabsEl.querySelectorAll('.tab').forEach(t => {
+    t.addEventListener('click', () => {
+      tabsEl.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+      t.classList.add('active');
+      renderRequisitos(j, t.dataset.key);
+    });
+  });
+
+  if(categorias.length){
+    renderRequisitos(j, categorias[0].key);
+  }else{
+    document.getElementById('reqContenido').innerHTML =
+      '<div class="empty">Tu clan todavía no tiene requisitos configurados en T_Requisitos.</div>';
+  }
+}
+
+// Elige, según el rango actual del jugador, qué columna de Min_T mostrar
+// (Miembro/Veterano/Colíder) — así la barra compara contra el número que
+// realmente le aplica a su rango de hoy.
+function campoMinTSegunRango(rango){
+  const r = String(rango||'').toLowerCase();
+  if(r.includes('col')) return 'minTColider';
+  if(r.includes('vet')) return 'minTVeterano';
+  return 'minTMiembro';
+}
+
+function barraRequisito(lbl, actual, requerido, activo, sufijo){
+  if(!activo) return '';
+  const pct = requerido > 0 ? Math.min(100, Math.round((actual/requerido)*100)) : 100;
+  const cumplido = actual >= requerido;
+  return `
+    <div class="req-row">
+      <div class="lbl">${esc(lbl)}</div>
+      <div class="progress ${cumplido?'complete':''}"><i style="width:${pct}%"></i></div>
+      <div class="val">${actual}${sufijo||''} / ${requerido}${sufijo||''}</div>
+    </div>`;
+}
+
+function renderRequisitos(j, key){
+  const req = j.progreso[key];
+  const cont = document.getElementById('reqContenido');
+  if(!req){ cont.innerHTML = '<div class="empty">Sin datos para esta categoría.</div>'; return; }
+
+  const campoMinT = campoMinTSegunRango(j.rango);
+  const minT = req[campoMinT];
+
+  let html = '';
+  html += barraRequisito('Trofeos guerra', minT.actual, minT.requerido, minT.activo, '🏆');
+  html += barraRequisito('Ataques/semana', req.ataques.actual, req.ataques.requerido, req.ataques.activo, '');
+  html += barraRequisito('Torneos', req.torneos.actual, req.torneos.requerido, req.torneos.activo, '');
+
+  if(req.miembroActivo.activo){
+    html += `<div style="margin-top:10px;"><span class="badge badge-purple">Debe ser miembro activo</span></div>`;
+  }
+  if(req.reaccion.activo){
+    html += `<div style="margin-top:8px;"><span class="badge badge-purple">Requiere reaccionar a la publicación</span></div>`;
+  }
+  cont.innerHTML = html || '<div class="empty">Este clan no tiene requisitos activos en esta categoría.</div>';
+}
+
+document.getElementById('btnBuscarTag').addEventListener('click', () => buscarPerfil(document.getElementById('tagInput').value));
+document.getElementById('tagInput').addEventListener('keydown', e => { if(e.key === 'Enter') buscarPerfil(e.target.value); });
+
+cargarRoster();
+</script>
+</body>
+</html>
