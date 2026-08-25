@@ -34,6 +34,35 @@
     color:var(--purple); text-transform:uppercase; letter-spacing:.06em; margin-top:8px;
   }
   .tagline small{display:block; font-family:var(--f-body); font-weight:500; font-size:13px; color:var(--text-dim); text-transform:none; letter-spacing:normal; margin-top:6px;}
+
+  /* FASE 0 (24-ago-2026): modal "Cómo unirte" — reemplaza los links
+     directos de "Solicitar unirme", que no se pueden fijar porque los
+     links de invitación dentro del juego caducan en pocos días. */
+  .join-modal-overlay{
+    position:fixed; inset:0; background:rgba(5,6,8,.75); backdrop-filter:blur(2px);
+    display:none; align-items:center; justify-content:center; z-index:100; padding:20px;
+  }
+  .join-modal-overlay.open{display:flex;}
+  .join-modal{
+    background:var(--surface); border:1px solid var(--line-strong); border-radius:var(--radius);
+    padding:28px; max-width:400px; width:100%; position:relative; box-shadow:var(--glow);
+  }
+  .join-modal-close{
+    position:absolute; top:12px; right:14px; background:none; border:none;
+    color:var(--text-dim); font-size:24px; line-height:1; cursor:pointer;
+  }
+  .join-modal-close:hover{color:var(--text);}
+  .join-modal-options{display:flex; flex-direction:column; gap:10px; margin-top:20px;}
+  .join-modal-option{
+    display:flex; align-items:center; gap:12px; padding:12px 14px; border-radius:var(--radius-sm);
+    border:1px solid var(--line); text-decoration:none; color:var(--text); transition:.15s;
+  }
+  .join-modal-option:hover{border-color:var(--purple); transform:translateY(-2px);}
+  .join-modal-option .opt-icon{font-size:20px; line-height:1;}
+  .join-modal-option .opt-label{font-family:var(--f-display); font-weight:700; font-size:14px; text-transform:uppercase; letter-spacing:.02em;}
+  .join-modal-option .opt-sub{display:block; font-family:var(--f-mono); font-size:11px; color:var(--text-faint); margin-top:2px;}
+  .join-modal-option.primary{border-color:var(--purple); background:rgba(162,57,255,.06);}
+  .clan-card-skel{opacity:.5;}
 </style>
 </head>
 <body data-page="inicio">
@@ -66,7 +95,7 @@
     </p>
     <div style="display:flex; gap:14px; margin-top:30px; flex-wrap:wrap;">
       <a href="jugadores.html" class="btn btn-primary">Buscar mi progreso</a>
-      <a href="https://discord.gg/tu-servidor" target="_blank" rel="noopener" class="btn btn-ghost">Unirse por Discord</a>
+      <a id="heroDiscordBtn" href="https://discord.gg/YKXtg93DVb" target="_blank" rel="noopener" class="btn btn-ghost">Unirse por Discord</a>
     </div>
   </div>
 </section>
@@ -103,62 +132,40 @@
       <p>Cada uno con su propio estilo de juego y requisitos — encuentra el que mejor calce contigo.</p>
     </div>
     <div class="grid-4" id="clanGrid">
-      <!-- FIX: mientras no haya un endpoint público de "info de clan" (nombre,
-           trofeos mínimos de entrada, estilo), estas 4 tarjetas se completan
-           A MANO acá abajo — reemplaza nombre/tag/trofeos/estilo/link por los
-           reales de cada clan. Cuando exista ese endpoint se puede cargar
-           dinámicamente, igual que jugadores.html carga el roster. -->
-      <div class="card card-hover clan-card">
-        <div class="badge badge-gold" style="margin-bottom:12px;">Clan principal</div>
-        <h3 style="font-size:19px;">Grupo Terna</h3>
-        <div class="text-faint" style="font-family:var(--f-mono); font-size:12px; margin-top:4px;">#TAG-CLAN-1</div>
-        <p class="text-dim" style="font-size:13px; margin-top:14px; line-height:1.5;">
-          El clan líder de la familia. Guerra competitiva, exigencia alta.
-        </p>
-        <div style="display:flex; justify-content:space-between; margin-top:16px; font-family:var(--f-mono); font-size:12px;">
-          <span class="text-faint">Mín. trofeos</span><b>5000+</b>
-        </div>
-        <a href="#" target="_blank" rel="noopener" class="btn btn-ghost btn-block" style="margin-top:16px;">Solicitar unirme</a>
-      </div>
-      <div class="card card-hover clan-card">
-        <div class="badge badge-purple" style="margin-bottom:12px;">Clan Terna 2</div>
-        <h3 style="font-size:19px;">Terna 2</h3>
-        <div class="text-faint" style="font-family:var(--f-mono); font-size:12px; margin-top:4px;">#TAG-CLAN-2</div>
-        <p class="text-dim" style="font-size:13px; margin-top:14px; line-height:1.5;">
-          Guerra activa, buen espacio para crecer y ascender.
-        </p>
-        <div style="display:flex; justify-content:space-between; margin-top:16px; font-family:var(--f-mono); font-size:12px;">
-          <span class="text-faint">Mín. trofeos</span><b>4000+</b>
-        </div>
-        <a href="#" target="_blank" rel="noopener" class="btn btn-ghost btn-block" style="margin-top:16px;">Solicitar unirme</a>
-      </div>
-      <div class="card card-hover clan-card">
-        <div class="badge badge-purple" style="margin-bottom:12px;">Clan Terna 3</div>
-        <h3 style="font-size:19px;">Terna 3</h3>
-        <div class="text-faint" style="font-family:var(--f-mono); font-size:12px; margin-top:4px;">#TAG-CLAN-3</div>
-        <p class="text-dim" style="font-size:13px; margin-top:14px; line-height:1.5;">
-          Ideal para jugadores constantes que buscan comunidad.
-        </p>
-        <div style="display:flex; justify-content:space-between; margin-top:16px; font-family:var(--f-mono); font-size:12px;">
-          <span class="text-faint">Mín. trofeos</span><b>3000+</b>
-        </div>
-        <a href="#" target="_blank" rel="noopener" class="btn btn-ghost btn-block" style="margin-top:16px;">Solicitar unirme</a>
-      </div>
-      <div class="card card-hover clan-card">
-        <div class="badge badge-purple" style="margin-bottom:12px;">Mini Ternas</div>
-        <h3 style="font-size:19px;">Mini Ternas</h3>
-        <div class="text-faint" style="font-family:var(--f-mono); font-size:12px; margin-top:4px;">#TAG-CLAN-4</div>
-        <p class="text-dim" style="font-size:13px; margin-top:14px; line-height:1.5;">
-          El clan de entrada — perfecto para empezar en la familia.
-        </p>
-        <div style="display:flex; justify-content:space-between; margin-top:16px; font-family:var(--f-mono); font-size:12px;">
-          <span class="text-faint">Mín. trofeos</span><b>1500+</b>
-        </div>
-        <a href="#" target="_blank" rel="noopener" class="btn btn-ghost btn-block" style="margin-top:16px;">Solicitar unirme</a>
-      </div>
+      <!-- FASE 0 (24-ago-2026): estas 4 tarjetas ya NO se completan a mano —
+           se cargan dinámicamente desde el endpoint webClanInfo
+           (34_Web_API.gs), que lee la hoja Clan real. El backend ya
+           devuelve los clanes en el orden correcto (columna Orden de la
+           hoja Clan / CFG.TERNA_TAGS) — este script NUNCA debe reordenar
+           por nombre, o "Terna 2" quedaría antes que "Grupo Terna". Ver
+           cargarClanes() más abajo. Se deja un esqueleto de carga acá para
+           que el layout no salte mientras responde el fetch. -->
+      <div class="card clan-card-skel"><h3 style="font-size:19px;">Cargando…</h3></div>
+      <div class="card clan-card-skel"><h3 style="font-size:19px;">Cargando…</h3></div>
+      <div class="card clan-card-skel"><h3 style="font-size:19px;">Cargando…</h3></div>
+      <div class="card clan-card-skel"><h3 style="font-size:19px;">Cargando…</h3></div>
     </div>
   </div>
 </section>
+
+<!-- ---------- MODAL "CÓMO UNIRTE" ---------- -->
+<!-- FASE 0 (24-ago-2026): reemplaza los 4 botones "Solicitar unirme" que
+     antes eran <a href="#">. No hay un link fijo de invitación por clan
+     porque los links del juego caducan en pocos días — así que en vez de
+     linkear directo, se muestra el flujo real de postulación: WhatsApp
+     (canal principal, grupo informativo) + Discord + Formulario, en ese
+     orden, como confirmó el usuario. -->
+<div class="join-modal-overlay" id="joinModalOverlay">
+  <div class="join-modal">
+    <button type="button" class="join-modal-close" id="joinModalClose" aria-label="Cerrar">&times;</button>
+    <div class="eyebrow">Postular a <span id="joinModalClan">un clan</span></div>
+    <h3 style="margin-top:6px;">¿Cómo unirte?</h3>
+    <p class="text-dim" style="font-size:13px; margin-top:8px; line-height:1.5;">
+      No publicamos un link de invitación fijo porque caduca en pocos días — postula por acá:
+    </p>
+    <div class="join-modal-options" id="joinModalOptions"><!-- JS injects options --></div>
+  </div>
+</div>
 
 <!-- ---------- REDES OFICIALES ---------- -->
 <section id="redes">
@@ -217,5 +224,93 @@
 </footer>
 
 <script src="assets/common.js"></script>
+<script>
+/* FASE 0 (24-ago-2026): tarjetas de clanes dinámicas + modal "Cómo unirte".
+ * Ver comentarios en la sección #clanes y en el modal más arriba. */
+
+// Badge de cada posición — es texto de marca/branding, no vive en la hoja
+// Clan, así que se mantiene estático acá (a diferencia de nombre/tag/
+// requerimiento/descripción, que sí vienen del backend).
+const CLAN_BADGES = [
+  { cls: 'badge-gold',   label: 'Clan principal' },
+  { cls: 'badge-purple', label: 'Clan Terna 2' },
+  { cls: 'badge-purple', label: 'Clan Terna 3' },
+  { cls: 'badge-purple', label: 'Mini Ternas' }
+];
+// Se usa SOLO si la hoja Clan todavía no tiene Descripción cargada para
+// ese clan, para no dejar la tarjeta vacía mientras se completa a mano.
+const CLAN_DESC_FALLBACK = [
+  'El clan líder de la familia. Guerra competitiva, exigencia alta.',
+  'Guerra activa, buen espacio para crecer y ascender.',
+  'Ideal para jugadores constantes que buscan comunidad.',
+  'El clan de entrada — perfecto para empezar en la familia.'
+];
+
+async function cargarClanes(){
+  const grid = document.getElementById('clanGrid');
+  try{
+    const data = await apiGet('webClanInfo');
+    const clanes = data.clanes || [];
+    // IMPORTANTE: el backend (_webClanInfo, 34_Web_API.gs) ya devuelve los
+    // clanes en el orden real de la hoja Clan (columna Orden / CFG.TERNA_TAGS).
+    // NUNCA hacer .sort() acá por nombre — alfabéticamente "Terna 2" quedaría
+    // antes que "Grupo Terna".
+    grid.innerHTML = clanes.map((c, i) => {
+      const badge  = CLAN_BADGES[i] || { cls: 'badge-purple', label: 'Clan Terna' };
+      const nombre = c.nombre || badge.label;
+      const desc   = c.descripcion || CLAN_DESC_FALLBACK[i] || '';
+      const reqTxt = c.requerimiento > 0 ? c.requerimiento.toLocaleString('es-PE') + '+' : '—';
+      return `
+        <div class="card card-hover clan-card">
+          <div class="badge ${badge.cls}" style="margin-bottom:12px;">${esc(badge.label)}</div>
+          <h3 style="font-size:19px;">${esc(nombre)}</h3>
+          <div class="text-faint" style="font-family:var(--f-mono); font-size:12px; margin-top:4px;">${esc(c.clanTag)}</div>
+          <p class="text-dim" style="font-size:13px; margin-top:14px; line-height:1.5;">${esc(desc)}</p>
+          <div style="display:flex; justify-content:space-between; margin-top:16px; font-family:var(--f-mono); font-size:12px;">
+            <span class="text-faint">Mín. trofeos</span><b>${reqTxt}</b>
+          </div>
+          <button type="button" class="btn btn-ghost btn-block js-solicitar-unirme" data-clan="${esc(nombre)}" style="margin-top:16px;">Solicitar unirme</button>
+        </div>`;
+    }).join('');
+    grid.querySelectorAll('.js-solicitar-unirme').forEach(btn => {
+      btn.addEventListener('click', () => abrirModalUnirse(btn.dataset.clan));
+    });
+  }catch(err){
+    grid.innerHTML = `<div class="card" style="grid-column:1/-1; text-align:center; padding:32px;">
+      <p class="text-dim">No se pudo cargar la info de los clanes: ${esc(err.message)}</p>
+    </div>`;
+  }
+}
+
+function abrirModalUnirse(nombreClan){
+  document.getElementById('joinModalClan').textContent = nombreClan || 'un clan';
+  const opciones = [
+    { href: WSP_GRUPO_URL, icon: '📱', label: 'WhatsApp', sub: 'Canal principal — grupo informativo', primary: true },
+    { href: DISCORD_URL,   icon: '🎧', label: 'Discord',  sub: 'Canal alternativo' }
+  ];
+  // FORM_POSTULACION_URL (assets/common.js) queda vacío hasta que exista un
+  // link real de formulario — si está vacío, el modal simplemente no
+  // muestra esa opción, en vez de linkear a algo roto.
+  if (FORM_POSTULACION_URL) {
+    opciones.push({ href: FORM_POSTULACION_URL, icon: '📝', label: 'Formulario', sub: 'Canal alternativo' });
+  }
+  document.getElementById('joinModalOptions').innerHTML = opciones.map(o => `
+    <a class="join-modal-option${o.primary ? ' primary' : ''}" href="${esc(o.href)}" target="_blank" rel="noopener">
+      <span class="opt-icon">${o.icon}</span>
+      <span><span class="opt-label">${esc(o.label)}</span><span class="opt-sub">${esc(o.sub)}</span></span>
+    </a>`).join('');
+  document.getElementById('joinModalOverlay').classList.add('open');
+}
+function cerrarModalUnirse(){
+  document.getElementById('joinModalOverlay').classList.remove('open');
+}
+document.getElementById('joinModalClose').addEventListener('click', cerrarModalUnirse);
+document.getElementById('joinModalOverlay').addEventListener('click', e => {
+  if (e.target.id === 'joinModalOverlay') cerrarModalUnirse();
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarModalUnirse(); });
+
+cargarClanes();
+</script>
 </body>
 </html>
