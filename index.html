@@ -63,6 +63,22 @@
   .join-modal-option .opt-sub{display:block; font-family:var(--f-mono); font-size:11px; color:var(--text-faint); margin-top:2px;}
   .join-modal-option.primary{border-color:var(--purple); background:rgba(162,57,255,.06);}
   .clan-card-skel{opacity:.5;}
+
+  /* FASE 1 (24-ago-2026): sección de torneos — podio de ganadores +
+     grid de torneos recientes, reutiliza tokens/clases ya existentes
+     (.card, .card-hover, .badge, .grid-4) en vez de inventar un sistema
+     paralelo, mismo criterio que el resto del sitio. */
+  .podio-ganadores{
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:14px;
+    margin-bottom:28px;
+  }
+  .podio-puesto{display:flex; align-items:center; gap:12px;}
+  .podio-medalla{font-size:26px; line-height:1;}
+  .podio-nombre{font-family:var(--f-display); font-weight:700; font-size:15px;}
+  .podio-clan{font-family:var(--f-mono); font-size:11px; color:var(--text-faint); margin-top:2px;}
+  .podio-victorias{margin-left:auto; font-family:var(--f-mono); font-size:13px; color:var(--gold);}
+  .torneo-card .torneo-fecha{font-family:var(--f-mono); font-size:12px; color:var(--text-faint);}
+  .torneo-card h3{font-size:17px; margin-top:6px;}
 </style>
 </head>
 <body data-page="inicio">
@@ -216,6 +232,29 @@
   </div>
 </section>
 
+<!-- ---------- TORNEOS (FASE 1, 24-ago-2026) ---------- -->
+<!-- Vista resumida: consume webTorneos (34_Web_API.gs), que envuelve
+     T_Lista/T_Asistencia con el mismo criterio de elegibilidad que ya usa
+     el doc "Ganadores (torneo)" — ver actualizarDocGanadoresTorneo() en
+     25_Torneos_Docs.gs. Listado completo queda para una futura pantalla
+     dedicada (torneos.html o sección propia en jugadores.html); acá solo
+     se muestran los últimos 5. -->
+<section id="torneos">
+  <div class="wrap">
+    <div class="sec-head">
+      <div class="eyebrow">Competencia</div>
+      <h2>Torneos</h2>
+      <p>Los últimos torneos de la familia y los ganadores del más reciente.</p>
+    </div>
+    <div id="torneosGanadores"><!-- JS injects podio si hay ganadores --></div>
+    <div class="grid-4" id="torneosGrid">
+      <div class="card clan-card-skel"><h3 style="font-size:16px;">Cargando…</h3></div>
+      <div class="card clan-card-skel"><h3 style="font-size:16px;">Cargando…</h3></div>
+      <div class="card clan-card-skel"><h3 style="font-size:16px;">Cargando…</h3></div>
+    </div>
+  </div>
+</section>
+
 <footer>
   <div class="wrap">
     <span>Familia Terna · Portal de la comunidad</span>
@@ -311,6 +350,74 @@ document.getElementById('joinModalOverlay').addEventListener('click', e => {
 document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarModalUnirse(); });
 
 cargarClanes();
+
+/* FASE 1 (24-ago-2026): torneos públicos — consume webTorneos, que ya
+ * devuelve los torneos ordenados por fecha descendente y los ganadores del
+ * más reciente (o null si el torneo no tiene ganadores todavía o ninguno
+ * del top 3 real calificó). Ver _webTorneos()/_webGanadoresTorneoMasReciente()
+ * en 34_Web_API.gs. */
+const MEDALLAS = ['🥇', '🥈', '🥉'];
+
+function formatFechaTorneo(iso){
+  try{
+    return new Date(iso).toLocaleString('es-PE', {
+      day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'
+    });
+  }catch(e){ return iso; }
+}
+
+async function cargarTorneos(){
+  const boxGanadores = document.getElementById('torneosGanadores');
+  const grid = document.getElementById('torneosGrid');
+  try{
+    const data = await apiGet('webTorneos');
+    const torneos = data.torneos || [];
+    const ganadores = data.ganadores;
+
+    // ---- Podio del torneo más reciente (si hay ganadores calificados) ----
+    if (ganadores && ganadores.top3 && ganadores.top3.length){
+      boxGanadores.innerHTML = `
+        <div class="card" style="padding:20px 24px; margin-bottom:20px;">
+          <div class="badge badge-gold" style="margin-bottom:14px;">Ganadores · ${esc(formatFechaTorneo(ganadores.fecha))}</div>
+          <div class="podio-ganadores">
+            ${ganadores.top3.map((g, i) => `
+              <div class="podio-puesto">
+                <span class="podio-medalla">${MEDALLAS[i] || '🏅'}</span>
+                <div>
+                  <div class="podio-nombre">${esc(g.nombre)}</div>
+                  <div class="podio-clan">${esc(g.clan)}</div>
+                </div>
+                <span class="podio-victorias">${esc(String(g.victorias))}V</span>
+              </div>`).join('')}
+          </div>
+        </div>`;
+    } else {
+      boxGanadores.innerHTML = '';
+    }
+
+    // ---- Grid de torneos recientes (últimos 5, ya vienen ordenados) ----
+    const recientes = torneos.slice(0, 5);
+    if (!recientes.length){
+      grid.innerHTML = `<div class="card" style="grid-column:1/-1; text-align:center; padding:32px;">
+        <p class="text-dim">Todavía no hay torneos registrados.</p>
+      </div>`;
+      return;
+    }
+    grid.innerHTML = recientes.map(t => `
+      <div class="card card-hover torneo-card">
+        <div class="torneo-fecha">${esc(formatFechaTorneo(t.fecha))}</div>
+        <h3>${esc(t.clan || 'Familia Terna')}</h3>
+        <p class="text-dim" style="font-size:13px; margin-top:8px;">Organiza: ${esc(t.organizador || '—')}</p>
+        ${t.linkApp ? `<a href="${esc(t.linkApp)}" target="_blank" rel="noopener" class="btn btn-ghost btn-block" style="margin-top:16px;">Ver torneo</a>` : ''}
+      </div>`).join('');
+  }catch(err){
+    grid.innerHTML = `<div class="card" style="grid-column:1/-1; text-align:center; padding:32px;">
+      <p class="text-dim">No se pudo cargar los torneos: ${esc(err.message)}</p>
+    </div>`;
+  }
+}
+
+cargarTorneos();
 </script>
 </body>
 </html>
