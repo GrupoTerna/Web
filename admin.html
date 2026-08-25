@@ -31,6 +31,12 @@
   .req-row .val{width:90px; text-align:right; font-family:var(--f-mono); font-size:12px; flex-shrink:0;}
   .field-row{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
   @media (max-width:560px){ .field-row{grid-template-columns:1fr;} }
+  /* Fase 2 (24-ago-2026): visor de contenido, solo lectura */
+  .contenido-item{border:1px solid var(--line); border-radius:var(--radius-sm); padding:14px 16px; margin-top:12px;}
+  .contenido-item .cab{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px; flex-wrap:wrap;}
+  .contenido-item .etiqueta{font-family:var(--f-mono); font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--gold);}
+  .contenido-item .clan-chip{font-family:var(--f-mono); font-size:11px; color:var(--text-dim); background:var(--surface); border:1px solid var(--line); padding:2px 8px; border-radius:999px;}
+  .contenido-item pre{white-space:pre-wrap; word-break:break-word; font-family:var(--f-body,inherit); font-size:14px; color:var(--text); margin:0; line-height:1.5;}
 </style>
 </head>
 <body data-page="admin">
@@ -82,6 +88,23 @@
         <button class="btn btn-primary" id="btnBuscar">Buscar miembro</button>
       </div>
       <div id="buscarMsg"></div>
+    </div>
+
+    <!-- Fase 2 (24-ago-2026): visor de contenido por categoría, SOLO LECTURA.
+         El contenido "Estático" real se edita en los Google Docs de Drive
+         (sync automático) y "Mensajes" se recalcula solo en cada corrida —
+         por eso este panel no tiene botón de guardar, es únicamente para
+         verificar rápido qué le está mostrando el bot a cada clan ahora
+         mismo. Ver nota de diseño en la cabecera de 34_Web_API.gs. -->
+    <div class="card" style="margin-top:24px;">
+      <div class="eyebrow">Solo lectura</div>
+      <h3 style="font-size:15px; color:var(--gold); margin:10px 0 16px;">Visor de contenido por categoría</h3>
+      <div class="field" style="margin-bottom:12px;">
+        <label for="catSelect">Categoría</label>
+        <select id="catSelect"><option value="">Cargando categorías…</option></select>
+      </div>
+      <div id="contenidoMsg"></div>
+      <div id="contenidoLista"></div>
     </div>
 
     <div id="miembroSec" style="display:none; margin-top:24px;">
@@ -152,6 +175,7 @@ let miembroActual = null; // guarda el tag actualmente cargado, para el guardado
 function mostrarPanel(){
   document.getElementById('loginSec').style.display = 'none';
   document.getElementById('panelSec').style.display = 'block';
+  cargarCategorias();
 }
 function mostrarLogin(msg){
   sessionStorage.removeItem(SESSION_KEY);
@@ -307,6 +331,63 @@ document.getElementById('btnGuardar').addEventListener('click', async () => {
     if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
     msgEl.innerHTML = '<div class="msg msg-ok">Guardado correctamente.</div>';
   }catch(err){
+    msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
+  }
+});
+
+/* ---------- Fase 2: visor de contenido por categoría (solo lectura) ---------- */
+
+async function cargarCategorias(){
+  const sel = document.getElementById('catSelect');
+  const msgEl = document.getElementById('contenidoMsg');
+  msgEl.innerHTML = '';
+  try{
+    const data = await apiGetAuth('webAdminCategorias', {});
+    if(manejarRespuestaAuth(data)) return;
+    if(!data.ok){ sel.innerHTML = '<option value="">—</option>'; msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
+    if(!data.categorias || !data.categorias.length){
+      sel.innerHTML = '<option value="">Sin categorías disponibles</option>';
+      return;
+    }
+    sel.innerHTML = '<option value="">Elige una categoría…</option>' +
+      data.categorias.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+  }catch(err){
+    sel.innerHTML = '<option value="">—</option>';
+    msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
+  }
+}
+
+function renderContenido(opciones){
+  const lista = document.getElementById('contenidoLista');
+  if(!opciones || !opciones.length){
+    lista.innerHTML = '<div class="empty">Esta categoría no tiene contenido cargado todavía.</div>';
+    return;
+  }
+  lista.innerHTML = opciones.map(o => `
+    <div class="contenido-item">
+      <div class="cab">
+        <span class="etiqueta">${esc(o.etiqueta || o.subcategoria || o.clan || '—')}</span>
+        ${o.clan ? `<span class="clan-chip">${esc(o.clan)}</span>` : ''}
+      </div>
+      <pre>${esc(o.contenido)}</pre>
+    </div>`).join('');
+}
+
+document.getElementById('catSelect').addEventListener('change', async () => {
+  const categoria = document.getElementById('catSelect').value;
+  const msgEl = document.getElementById('contenidoMsg');
+  const lista = document.getElementById('contenidoLista');
+  msgEl.innerHTML = '';
+  lista.innerHTML = '';
+  if(!categoria) return;
+  lista.innerHTML = '<div class="empty">Cargando…</div>';
+  try{
+    const data = await apiGetAuth('webAdminContenido', { categoria });
+    if(manejarRespuestaAuth(data)) return;
+    if(!data.ok){ lista.innerHTML = ''; msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
+    renderContenido(data.opciones);
+  }catch(err){
+    lista.innerHTML = '';
     msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
   }
 });
