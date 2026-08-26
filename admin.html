@@ -63,8 +63,12 @@
     <h1 style="font-size:26px; margin-top:10px;">Panel de administración</h1>
     <div class="card" style="margin-top:20px;">
       <div class="field">
-        <label for="passInput">Contraseña</label>
-        <input type="password" id="passInput" placeholder="••••••••" autocomplete="current-password">
+        <label for="loginCelular">Celular</label>
+        <input type="text" id="loginCelular" placeholder="Ej: 987654321" autocomplete="username" inputmode="numeric">
+      </div>
+      <div class="field">
+        <label for="claveInput">Clave</label>
+        <input type="password" id="claveInput" placeholder="••••••••" autocomplete="current-password">
       </div>
       <button class="btn btn-primary btn-block" id="btnLogin">Ingresar</button>
       <div id="loginMsg"></div>
@@ -78,7 +82,7 @@
 
     <div class="admin-topbar">
       <div>
-        <div class="eyebrow">Gestión de miembros</div>
+        <div class="eyebrow" id="adminBienvenida">Gestión de miembros</div>
         <h1 style="font-size:clamp(24px,4vw,32px); margin-top:10px;">Panel de administración</h1>
       </div>
       <button id="logoutBtn" type="button">Cerrar sesión</button>
@@ -226,19 +230,35 @@
 <script src="assets/common.js"></script>
 <script>
 const SESSION_KEY = 'terna_admin_token';
+// FASE 5 (26-ago-2026): junto con el token, ahora se guarda también la
+// identidad del admin que devuelve webLogin (nombre/nomMulti), para poder
+// mostrar "Hola, <nombre>" en el panel sin pedirle el Celular de nuevo en
+// cada recarga de la página. Ver 34_Web_API.gs / _webAuthLogin().
+const SESSION_ADMIN_KEY = 'terna_admin_info';
 let miembroActual = null; // guarda el tag actualmente cargado, para el guardado
 
 function mostrarPanel(){
   document.getElementById('loginSec').style.display = 'none';
   document.getElementById('panelSec').style.display = 'block';
+  const adminGuardado = sessionStorage.getItem(SESSION_ADMIN_KEY);
+  const bienvenida = document.getElementById('adminBienvenida');
+  if(adminGuardado){
+    try{
+      const admin = JSON.parse(adminGuardado);
+      const nombreMostrar = admin.nomMulti || admin.nombre;
+      if(nombreMostrar) bienvenida.textContent = `Hola, ${nombreMostrar}`;
+    }catch(err){ /* si el JSON guardado no es válido, se deja el texto por defecto */ }
+  }
   cargarCategorias();
   cargarTorneosHoy();
   cargarGanadoresTorneo();
 }
 function mostrarLogin(msg){
   sessionStorage.removeItem(SESSION_KEY);
+  sessionStorage.removeItem(SESSION_ADMIN_KEY);
   document.getElementById('panelSec').style.display = 'none';
   document.getElementById('loginSec').style.display = 'block';
+  document.getElementById('adminBienvenida').textContent = 'Gestión de miembros';
   if(msg) document.getElementById('loginMsg').innerHTML = `<div class="msg msg-error">${esc(msg)}</div>`;
 }
 
@@ -248,21 +268,27 @@ function mostrarLogin(msg){
 if(sessionStorage.getItem(SESSION_KEY)) mostrarPanel();
 
 document.getElementById('btnLogin').addEventListener('click', async () => {
-  const pass = document.getElementById('passInput').value;
+  const celular = document.getElementById('loginCelular').value;
+  const clave = document.getElementById('claveInput').value;
   const msgEl = document.getElementById('loginMsg');
   msgEl.innerHTML = '';
-  if(!pass){ msgEl.innerHTML = '<div class="msg msg-error">Escribe la contraseña.</div>'; return; }
+  if(!celular || !clave){ msgEl.innerHTML = '<div class="msg msg-error">Escribe tu Celular y tu Clave.</div>'; return; }
   try{
-    const data = await apiPost('webLogin', { password: pass });
+    const data = await apiPost('webLogin', { celular, clave });
     if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error || 'No se pudo iniciar sesión.')}</div>`; return; }
     sessionStorage.setItem(SESSION_KEY, data.token);
-    document.getElementById('passInput').value = '';
+    if(data.admin) sessionStorage.setItem(SESSION_ADMIN_KEY, JSON.stringify(data.admin));
+    document.getElementById('loginCelular').value = '';
+    document.getElementById('claveInput').value = '';
     mostrarPanel();
   }catch(err){
     msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
   }
 });
-document.getElementById('passInput').addEventListener('keydown', e => {
+document.getElementById('loginCelular').addEventListener('keydown', e => {
+  if(e.key === 'Enter') document.getElementById('btnLogin').click();
+});
+document.getElementById('claveInput').addEventListener('keydown', e => {
   if(e.key === 'Enter') document.getElementById('btnLogin').click();
 });
 
