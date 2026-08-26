@@ -1,58 +1,339 @@
-# Plan de Rediseño Moderno y Competitivo — Familia Terna
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Miembros — Familia Terna</title>
+<meta name="description" content="Busca tu progreso en la Familia Terna: requisitos de ascenso, ataques de guerra, torneos y todo el roster de nuestros 4 clanes.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/styles.css">
+<link rel="icon" type="image/jpeg" href="assets/img/logo-cuadrado.jpg">
+<style>
+  .buscador{display:flex; gap:10px; flex-wrap:wrap;}
+  .buscador input{flex:1; min-width:200px;}
+  .perfil-cabecera{display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px;}
+  .perfil-cabecera .stats-mini{display:flex; gap:18px; font-family:var(--f-mono); font-size:12px; color:var(--text-dim); flex-wrap:wrap;}
+  .perfil-cabecera .stats-mini b{color:var(--text); font-size:16px; display:block; font-family:var(--f-display);}
+  .req-row{display:flex; align-items:center; gap:12px; margin-bottom:12px; flex-wrap:wrap;}
+  .req-row .lbl{width:140px; font-size:13px; color:var(--text-dim); flex-shrink:0;}
+  .req-row .progress{flex:1; min-width:120px;}
+  .req-row .val{width:100px; text-align:right; font-family:var(--f-mono); font-size:12px; flex-shrink:0;}
+  .tabs-row{display:flex; gap:8px; margin:16px 0; flex-wrap:wrap;}
+  .tab-btn{
+    font-family:var(--f-mono); font-size:11px; text-transform:uppercase; letter-spacing:.06em;
+    padding:7px 14px; border-radius:999px; border:1px solid var(--line); color:var(--text-dim);
+    cursor:pointer; background:transparent; transition:all .18s ease;
+  }
+  .tab-btn.active{color:#fff; border-color:var(--purple); background:rgba(162,57,255,.15);}
+  .ext-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:14px; margin-top:16px;}
+  .ext-item{
+    background:var(--bg-2); border:1px solid var(--line); border-radius:var(--radius-sm);
+    padding:12px 14px; text-align:left;
+  }
+  .ext-item .v{font-family:var(--f-display); font-weight:800; font-size:19px; color:var(--text);}
+  .ext-item .k{font-family:var(--f-mono); font-size:10px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.06em; margin-top:2px;}
+  .ext-links{display:flex; gap:14px; margin-top:18px; flex-wrap:wrap;}
+  .ext-links a{
+    font-family:var(--f-mono); font-size:12px; font-weight:600; color:var(--purple-light);
+    border:1px solid var(--line); padding:8px 14px; border-radius:var(--radius-sm); text-decoration:none;
+    transition:all .18s ease;
+  }
+  .ext-links a:hover{border-color:var(--purple); background:rgba(162,57,255,.1); color:var(--purple-light);}
 
-Este plan detalla la modernización del portal web de la **Familia Terna (Comunidad Clash Royale)** para elevar su nivel estético a un estándar eSports profesional, manteniendo la identidad de marca **"Dark Elixir"** (fondo negro profundo, violeta eléctrico `#a239ff` y destellos de oro `#f3a922`).
+  .roster-filter{margin-bottom:20px;}
+  .roster-clan{margin-bottom:20px;}
+  .roster-clan .rc-head{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:12px 16px; cursor:pointer; user-select:none;
+  }
+  .roster-clan .rc-head h3{font-size:16px;}
+  .roster-clan .rc-count{font-family:var(--f-mono); font-size:12px; color:var(--text-dim);}
+  .roster-clan .rc-body{display:none; padding:0 16px 16px;}
+  .roster-clan.open .rc-body{display:block;}
+  .roster-clan .rc-arrow{transition:transform .2s ease; color:var(--text-dim);}
+  .roster-clan.open .rc-arrow{transform:rotate(90deg);}
+  .miembro-row{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:10px 12px; border-radius:var(--radius-sm); cursor:pointer; transition:background .15s ease;
+    border-bottom:1px solid rgba(162,57,255,.06);
+  }
+  .miembro-row:last-child{border-bottom:none;}
+  .miembro-row:hover{background:rgba(162,57,255,.1);}
+  .miembro-row .mr-name{font-weight:600; font-size:14px;}
+  .miembro-row .mr-tag{font-family:var(--f-mono); font-size:11px; color:var(--text-faint); margin-top:2px;}
+  .miembro-row .mr-rango{font-family:var(--f-mono); font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.04em;}
+</style>
+</head>
+<body data-page="jugadores">
 
----
+<nav class="nav">
+  <div class="wrap">
+    <a href="index.html" class="brand">
+      <img src="assets/img/logo-cuadrado.jpg" alt="Escudo GxT Familia Terna" class="brand-logo">
+      <span>ᴳ乂ᵀ <span class="crown">⚜️</span> Familia Terna</span>
+    </a>
+    <button id="navToggle" class="nav-toggle" aria-label="Abrir menú">☰</button>
+    <div class="links">
+      <a href="index.html" data-page="inicio">Inicio</a>
+      <a href="jugadores.html" data-page="jugadores">Miembros</a>
+      <a href="guerra.html" data-page="guerra">Guerra</a>
+      <a href="admin.html" data-page="admin" class="cta">Acceder</a>
+    </div>
+  </div>
+</nav>
 
-## 📐 Arquitectura de Diseño y Flujo de Componentes
+<div class="wrap" style="padding-top:36px; padding-bottom:80px;">
 
-```mermaid
-graph TD
-    A[Sistema de Diseño: assets/styles.css] --> B[Navbar Glassmorphism & Status Badge]
-    A --> C[Hero Section con Ticker de Stats eSports]
-    A --> D[Grid Dinámico de Clanes Terna]
-    A --> E[Podio de Torneos & Medallero]
-    A --> F[Redes Oficiales & Tarjetas Interactivas]
-    A --> G[Modal Dinámico de Postulación]
+  <div class="eyebrow">Roster de la comunidad</div>
+  <h1 style="font-size:clamp(28px,4.5vw,42px); margin-top:14px;">Encuentra tu progreso</h1>
+  <p class="text-dim" style="margin-top:10px; font-size:16px; max-width:640px;">
+    Busca tu Tag para ver tus ataques de guerra, torneos y qué te falta para ascender —
+    o navega el roster completo de los 4 clanes más abajo.
+  </p>
 
-    C --> H[Página de Jugadores: jugadores.html]
-    C --> I[Página de Guerra: guerra.html]
-    C --> J[Panel Admin: admin.html]
-```
+  <!-- ---------- BUSCADOR POR TAG ---------- -->
+  <div class="card" style="margin-top:28px;">
+    <div class="buscador">
+      <input type="text" id="tagInput" placeholder="Ej: #ABC123XYZ" autocapitalize="characters">
+      <button class="btn btn-primary" id="btnBuscar">Buscar mi progreso</button>
+    </div>
+    <div id="buscarMsg"></div>
+  </div>
 
----
+  <!-- ---------- PERFIL DEL JUGADOR ---------- -->
+  <section id="miembroSec" style="display:none; padding:32px 0 8px;">
+    <div class="card" style="padding:28px;">
+      <div class="perfil-cabecera">
+        <div>
+          <h2 id="mNombre" style="font-size:24px;">—</h2>
+          <div class="text-dim" id="mSub" style="margin-top:6px; font-size:14px;">—</div>
+        </div>
+        <div class="stats-mini">
+          <span><b id="mCopas">0</b>Copas</span>
+          <span><b id="mVGuerra">0</b>V. Guerra</span>
+          <span><b id="mTorneos">0</b>Torneos</span>
+          <span><b id="mAtaques">0</b>Ataques/sem</span>
+        </div>
+      </div>
 
-## 🎯 Objetivos Clave de Mejora Visual
+      <div class="tabs-row" id="mReqTabs"></div>
+      <div id="mReqContenido"></div>
 
-1. **Estética Gamer / eSports de Alto Nivel**:
-   - Fondo "Dark Elixir" mejorado con gradientes radiales de luz ambiental, patrón de malla cibernética y profundidad en capas.
-   - Efecto Glassmorphism (`backdrop-filter: blur()`, traslucidez y bordes iridiscentes).
-   - Efectos de resplandor (Glows), microinteracciones al pasar el mouse (hover lifts) y bordes reactivos.
+      <div id="mExtWrap"></div>
+    </div>
+  </section>
 
-2. **Hero Section Impactante en [`index.html`](index.html)**:
-   - Banner hero con overlay dinámico y badge de estado comunitario.
-   - Barra de contadores rápidos/stats de la comunidad (4 Clanes, +180 Jugadores activos, Top 1 Torneos).
-   - Botones de acción principal (CTA) con sombras neón y degradados con brillo en movimiento.
+  <!-- ---------- ROSTER COMPLETO ---------- -->
+  <section style="padding:32px 0 0;">
+    <div class="sec-head" style="margin-bottom:20px;">
+      <div class="eyebrow">Directorio</div>
+      <h2 style="font-size:24px; margin-top:10px;">Roster por clan</h2>
+      <p style="margin-top:8px;">Busca tu nombre y toca tu fila para ver tu progreso al instante.</p>
+    </div>
+    <div class="card roster-filter" style="padding:16px 20px;">
+      <input type="text" id="rosterFiltro" placeholder="Filtrar por nombre…" style="width:100%; background:var(--bg-2); border:1px solid var(--line); color:var(--text); padding:12px 14px; border-radius:var(--radius-sm); font-family:var(--f-body); font-size:14px;">
+    </div>
+    <div id="rosterWrap" style="margin-top:20px;">
+      <div class="loading-block"><div class="spinner"></div></div>
+    </div>
+  </section>
 
-3. **Tarjetas de Clanes de Clase Mundial**:
-   - Tarjetas mejoradas con jerarquía limpia: Badge de jerarquía, trofeos mínimos, cupos y requisitos de guerra.
-   - Indicadores visuales de estado y etiquetas con estilo de insignias competitivas.
+</div>
 
-4. **Sección de Torneos y Podio**:
-   - Podio destacado de campeones con tarjetas estilo podio metálico para el 1er, 2do y 3er puesto.
-   - Tarjetas de torneos estructuradas con fecha, organizador, estado del torneo y enlace de acceso directo.
+<footer>
+  <div class="wrap">
+    <span>Familia Terna · Portal de la comunidad</span>
+    <span>Sincronizado vía Google Apps Script API</span>
+  </div>
+</footer>
 
-5. **Consistencia Visual en todo el Portal**:
-   - Actualización de [`assets/styles.css`](assets/styles.css) afectando de manera uniforme a [`index.html`](index.html), [`jugadores.html`](jugadores.html), [`guerra.html`](guerra.html) y [`admin.html`](admin.html).
+<script src="assets/common.js"></script>
+<script>
+let rosterData = [];  // lista de clanes: {nombre, miembros:[{tag,nombre,rango,vGuerra,torneos}]}
 
----
+/* ---------- Perfil por Tag ---------- */
+function campoMinTSegunRango(rango){
+  const r = String(rango||'').toLowerCase();
+  if(r.includes('col')) return 'minTColider';
+  if(r.includes('vet')) return 'minTVeterano';
+  return 'minTMiembro';
+}
+function barraRequisito(lbl, actual, requerido, activo, sufijo){
+  if(!activo) return '';
+  const pct = requerido > 0 ? Math.min(100, Math.round((actual/requerido)*100)) : 100;
+  const cumplido = actual >= requerido;
+  return `
+    <div class="req-row">
+      <div class="lbl">${esc(lbl)}</div>
+      <div class="progress ${cumplido?'complete':''}"><i style="width:${pct}%"></i></div>
+      <div class="val">${actual}${sufijo||''} / ${requerido}${sufijo||''}</div>
+    </div>`;
+}
+function renderRequisitos(j, key){
+  const req = j.progreso ? j.progreso[key] : null;
+  const cont = document.getElementById('mReqContenido');
+  if(!req){ cont.innerHTML = '<div class="empty">Sin datos para esta categoría.</div>'; return; }
+  const campoMinT = campoMinTSegunRango(j.rango);
+  const minT = req[campoMinT];
+  let html = '';
+  if (minT) html += barraRequisito('Trofeos guerra', minT.actual, minT.requerido, minT.activo, '🏆');
+  if (req.ataques) html += barraRequisito('Ataques/semana', req.ataques.actual, req.ataques.requerido, req.ataques.activo, '');
+  if (req.torneos) html += barraRequisito('Torneos', req.torneos.actual, req.torneos.requerido, req.torneos.activo, '');
+  if (req.miembroActivo && req.miembroActivo.activo) html += `<div style="margin-top:6px;"><span class="badge badge-purple">Debe ser miembro activo</span></div>`;
+  if (req.reaccion && req.reaccion.activo) html += `<div style="margin-top:8px;"><span class="badge badge-purple">Requiere reaccionar a la publicación</span></div>`;
+  cont.innerHTML = html || '<div class="empty">Este clan no tiene requisitos activos en esta categoría.</div>';
+}
 
-## 📋 Lista de Pasos Actionables
+function extItem(valor, label){
+  if (valor === undefined || valor === null || valor === '') return '';
+  return `<div class="ext-item"><div class="v">${esc(String(valor))}</div><div class="k">${esc(label)}</div></div>`;
+}
 
-1. **Auditoría e Identidad Dark Elixir**: Definir variables CSS actualizadas para bordes luminosos, capas de vidrio (glass) y sombras neon.
-2. **Rediseño del Sistema de Diseño en [`assets/styles.css`](assets/styles.css)**: Implementar utilidades de glassmorphism, botones eSports, animaciones suaves y tipografía optimizada.
-3. **Modernización de [`index.html`](index.html)**: Reestructurar el Hero Section, integrar contadores eSports, mejorar el modal de unirse y el grid de clanes.
-4. **Rediseño de Torneos**: Estilizar el podio de campeones y las tarjetas de torneos recientes.
-5. **Navegación y Modal**: Optimizar el header sticky, el menú hamburguesa responsive y el modal interactivo de postulación.
-6. **Propagación a Páginas Secundarias**: Aplicar los nuevos tokens y componentes a [`jugadores.html`](jugadores.html), [`guerra.html`](guerra.html) y [`admin.html`](admin.html).
-7. **Pruebas y Verificación**: Validar adaptabilidad responsive (móviles y tablets) y asegurar integración fluida con la API de Google Apps Script.
+function renderExtendido(ext){
+  const wrap = document.getElementById('mExtWrap');
+  if (!ext){ wrap.innerHTML = ''; return; }
+  let items = '';
+  items += extItem(ext.nivelXp, 'Nivel');
+  items += extItem(ext.copasMax, 'Copas máx.');
+  items += extItem(ext.arena, 'Arena');
+  items += extItem(ext.victorias, 'Victorias');
+  items += extItem(ext.derrotas, 'Derrotas');
+  items += extItem(ext.racha, 'Racha');
+  items += extItem(ext.victorias3Coronas, '3 coronas');
+  items += extItem(ext.maxVictoriasDesafios, 'Máx. victorias desafío');
+  items += extItem(ext.donacionesRecibidas, 'Donac. recibidas');
+  items += extItem(ext.donacionesRealizadas, 'Donac. hechas');
+  items += extItem(ext.rankingClan, 'Ranking en el clan');
+
+  let camino = '';
+  if (ext.caminoLeyendas){
+    const cl = ext.caminoLeyendas;
+    const partes = [cl.liga, cl.trofeos, cl.rango].filter(v => v !== undefined && v !== null && v !== '');
+    if (partes.length) camino = `<div style="margin-top:16px;"><span class="badge badge-gold">🏔️ Camino de Leyendas · ${partes.map(esc).join(' · ')}</span></div>`;
+  }
+
+  let links = '';
+  if (ext.royaleApi || ext.cwStats){
+    links = `<div class="ext-links">
+      ${ext.royaleApi ? `<a href="${esc(ext.royaleApi)}" target="_blank" rel="noopener">🌐 RoyaleAPI</a>` : ''}
+      ${ext.cwStats ? `<a href="${esc(ext.cwStats)}" target="_blank" rel="noopener">📊 CWStats</a>` : ''}
+    </div>`;
+  }
+
+  wrap.innerHTML = (items ? `<div class="ext-grid">${items}</div>` : '') + camino + links;
+}
+
+function renderMiembro(j){
+  document.getElementById('miembroSec').style.display = 'block';
+  document.getElementById('mNombre').textContent = j.nombre || 'Sin nombre';
+  document.getElementById('mSub').textContent = `${j.tag} · ${j.clan || '—'} · ${j.rango || '—'} · ${j.estado || '—'}`;
+  document.getElementById('mCopas').textContent = j.copas ?? 0;
+  document.getElementById('mVGuerra').textContent = j.vGuerra ?? 0;
+  document.getElementById('mTorneos').textContent = j.torneos ?? 0;
+  document.getElementById('mAtaques').textContent = (j.guerraSemana && j.guerraSemana.ataques) ?? 0;
+
+  const categorias = [
+    { key:'ascensos',  label:'Ascensos'  },
+    { key:'descensos', label:'Descensos' }
+  ].filter(c => j.progreso && j.progreso[c.key]);
+  const tabsEl = document.getElementById('mReqTabs');
+  tabsEl.innerHTML = categorias.map((c, i) =>
+    `<button type="button" class="tab-btn ${i===0?'active':''}" data-key="${c.key}">${esc(c.label)}</button>`
+  ).join('');
+  tabsEl.querySelectorAll('.tab-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      tabsEl.querySelectorAll('.tab-btn').forEach(x => x.classList.remove('active'));
+      btn.classList.add('active');
+      renderRequisitos(j, btn.dataset.key);
+    });
+  });
+  if (categorias.length){
+    renderRequisitos(j, categorias[0].key);
+  } else {
+    document.getElementById('mReqContenido').innerHTML = '<div class="empty">Este clan todavía no tiene requisitos configurados.</div>';
+  }
+
+  renderExtendido(j.extendido);
+
+  document.getElementById('miembroSec').scrollIntoView({ behavior:'smooth', block:'start' });
+}
+
+async function buscarMiembro(tagDirecto){
+  const tagNorm = normalizarTag(tagDirecto || document.getElementById('tagInput').value);
+  const msgEl = document.getElementById('buscarMsg');
+  msgEl.innerHTML = '';
+  document.getElementById('miembroSec').style.display = 'none';
+  if (!tagNorm){ msgEl.innerHTML = '<div class="msg msg-error">Escribe un Tag válido.</div>'; return; }
+  document.getElementById('tagInput').value = tagNorm;
+  try{
+    const data = await apiGet('webPerfil', { tag: tagNorm });
+    if (!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
+    renderMiembro(data.jugador);
+  }catch(err){
+    msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
+  }
+}
+document.getElementById('btnBuscar').addEventListener('click', () => buscarMiembro());
+document.getElementById('tagInput').addEventListener('keydown', e => { if (e.key === 'Enter') buscarMiembro(); });
+
+/* ---------- Roster completo, agrupado por clan ---------- */
+function renderRoster(clanes, filtro){
+  const wrap = document.getElementById('rosterWrap');
+  const f = String(filtro||'').trim().toLowerCase();
+  const clanesFiltrados = clanes.map(c => ({
+    nombre: c.nombre,
+    miembros: c.miembros.filter(m => !f || m.nombre.toLowerCase().includes(f) || m.tag.toLowerCase().includes(f))
+  })).filter(c => c.miembros.length);
+
+  if (!clanesFiltrados.length){
+    wrap.innerHTML = '<div class="card"><div class="empty">No se encontró ningún miembro con ese nombre.</div></div>';
+    return;
+  }
+
+  wrap.innerHTML = clanesFiltrados.map((c, idx) => `
+    <div class="card roster-clan ${f ? 'open' : (idx===0 ? 'open' : '')}">
+      <div class="rc-head js-toggle-clan">
+        <h3>${esc(c.nombre)}</h3>
+        <span style="display:flex; align-items:center; gap:10px;">
+          <span class="rc-count">${c.miembros.length} miembro(s)</span>
+          <span class="rc-arrow">▶</span>
+        </span>
+      </div>
+      <div class="rc-body">
+        ${c.miembros.map(m => `
+          <div class="miembro-row js-miembro" data-tag="${esc(m.tag)}">
+            <div>
+              <div class="mr-name">${esc(m.nombre)}</div>
+              <div class="mr-tag">${esc(m.tag)}</div>
+            </div>
+            <span class="mr-rango">${esc(m.rango)}</span>
+          </div>`).join('')}
+      </div>
+    </div>`).join('');
+
+  wrap.querySelectorAll('.js-toggle-clan').forEach(head => {
+    head.addEventListener('click', () => head.closest('.roster-clan').classList.toggle('open'));
+  });
+  wrap.querySelectorAll('.js-miembro').forEach(row => {
+    row.addEventListener('click', () => buscarMiembro(row.dataset.tag));
+  });
+}
+
+async function cargarRoster(){
+  const wrap = document.getElementById('rosterWrap');
+  try{
+    const data = await apiGet('webRoster');
+    rosterData = data.clanes || [];
+    renderRoster(rosterData, '');
+  }catch(err){
+    wrap.innerHTML = `<div class="card"><div class="empty">No se pudo cargar el roster: ${esc(err.message)}</div></div>`;
+  }
+}
+document.getElementById('rosterFiltro').addEventListener('input', e => renderRoster(rosterData, e.target.value));
+
+cargarRoster();
+</script>
+</body>
+</html>
