@@ -7,91 +7,124 @@
 <meta name="description" content="Portal de la Familia Terna: 4 clanes de Clash Royale. Consulta roster, tu progreso hacia ascensos y torneos, y el estado de guerra en vivo.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/styles.css">
 <link rel="icon" type="image/jpeg" href="assets/img/logo-cuadrado.jpg">
 <style>
-  /* Estilos propios de esta página (reusa tokens de styles.css) */
+  /* Estilos locales refinados para Inicio (Dark Elixir / eSports UI) */
   .hero-banner{position:relative; overflow:hidden; padding-top:0; padding-bottom:0;}
   .hero-banner-img{
     position:absolute; inset:0; width:100%; height:100%;
     object-fit:cover; object-position:center 28%;
-    opacity:.5; filter:saturate(1.05);
+    opacity:.38; filter:saturate(1.2) contrast(1.1);
   }
   .hero-banner-fade{
     position:absolute; inset:0;
-    background:linear-gradient(180deg, rgba(5,6,8,.25) 0%, rgba(5,6,8,.72) 58%, var(--bg) 96%);
+    background:
+      linear-gradient(180deg, rgba(4,5,8,.3) 0%, rgba(4,5,8,.75) 60%, var(--bg) 100%),
+      radial-gradient(circle at 50% 30%, transparent 40%, rgba(4,5,8,.8) 100%);
   }
-  .hero-banner-content{position:relative; z-index:1; padding:96px 20px 52px;}
+  .hero-banner-content{position:relative; z-index:1; padding:104px 24px 64px;}
 
-  .social-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:14px;}
-  .social-card{display:flex; align-items:center; gap:14px; text-decoration:none; color:var(--text);}
-  .social-card .social-icon{font-size:22px; line-height:1; flex-shrink:0;}
-  .social-card .social-label{font-family:var(--f-display); font-weight:700; font-size:15px; text-transform:uppercase; letter-spacing:.02em;}
-  .social-card .social-sub{font-family:var(--f-mono); font-size:11px; color:var(--text-faint); margin-top:2px;}
+  .social-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:16px;}
+  .social-card{
+    display:flex; align-items:center; gap:16px; text-decoration:none; color:var(--text);
+    background: var(--surface-card); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 16px 20px; transition: all .25s ease;
+  }
+  .social-card:hover{
+    border-color: var(--line-strong); transform: translateY(-4px);
+    box-shadow: var(--glow);
+  }
+  .social-card .social-icon{
+    font-size:26px; line-height:1; flex-shrink:0; width: 44px; height: 44px;
+    display: flex; align-items: center; justify-content: center;
+    background: rgba(162,57,255,.12); border-radius: var(--radius-sm); border: 1px solid var(--line);
+  }
+  .social-card .social-label{font-family:var(--f-display); font-weight:700; font-size:16px; text-transform:uppercase; letter-spacing:.02em;}
+  .social-card .social-sub{font-family:var(--f-mono); font-size:12px; color:var(--text-dim); margin-top:2px;}
+  
   .tagline{
-    text-align:center; font-family:var(--f-display); font-weight:700; font-size:clamp(18px,2.6vw,24px);
-    color:var(--purple); text-transform:uppercase; letter-spacing:.06em; margin-top:8px;
+    text-align:center; font-family:var(--f-display); font-weight:800; font-size:clamp(20px,2.8vw,28px);
+    color:var(--purple-light); text-transform:uppercase; letter-spacing:.08em; margin-top:48px;
+    padding: 32px; background: rgba(162,57,255,.06); border: 1px solid var(--line); border-radius: var(--radius);
   }
-  .tagline small{display:block; font-family:var(--f-body); font-weight:500; font-size:13px; color:var(--text-dim); text-transform:none; letter-spacing:normal; margin-top:6px;}
+  .tagline small{
+    display:block; font-family:var(--f-body); font-weight:600; font-size:14px;
+    color:var(--gold); text-transform:none; letter-spacing:normal; margin-top:8px;
+  }
 
-  /* FASE 0 (24-ago-2026): modal "Cómo unirte" — reemplaza los links
-     directos de "Solicitar unirme", que no se pueden fijar porque los
-     links de invitación dentro del juego caducan en pocos días. */
+  /* Modal "Cómo unirte" */
   .join-modal-overlay{
-    position:fixed; inset:0; background:rgba(5,6,8,.75); backdrop-filter:blur(2px);
-    display:none; align-items:center; justify-content:center; z-index:100; padding:20px;
+    position:fixed; inset:0; background:rgba(4,5,8,.82); backdrop-filter:blur(8px);
+    display:none; align-items:center; justify-content:center; z-index:200; padding:20px;
   }
   .join-modal-overlay.open{display:flex;}
   .join-modal{
-    background:var(--surface); border:1px solid var(--line-strong); border-radius:var(--radius);
-    padding:28px; max-width:400px; width:100%; position:relative; box-shadow:var(--glow);
+    background:var(--bg-2); border:1px solid var(--line-strong); border-radius:var(--radius);
+    padding:32px; max-width:440px; width:100%; position:relative; box-shadow:var(--glow);
   }
   .join-modal-close{
-    position:absolute; top:12px; right:14px; background:none; border:none;
-    color:var(--text-dim); font-size:24px; line-height:1; cursor:pointer;
+    position:absolute; top:16px; right:18px; background:rgba(162,57,255,.1); border:1px solid var(--line);
+    color:var(--text-dim); font-size:22px; line-height:1; cursor:pointer; width:34px; height:34px;
+    border-radius:var(--radius-sm); transition:all .15s ease; display:flex; align-items:center; justify-content:center;
   }
-  .join-modal-close:hover{color:var(--text);}
-  .join-modal-options{display:flex; flex-direction:column; gap:10px; margin-top:20px;}
+  .join-modal-close:hover{color:var(--text); border-color:var(--purple); background:rgba(162,57,255,.2);}
+  .join-modal-options{display:flex; flex-direction:column; gap:12px; margin-top:24px;}
   .join-modal-option{
-    display:flex; align-items:center; gap:12px; padding:12px 14px; border-radius:var(--radius-sm);
-    border:1px solid var(--line); text-decoration:none; color:var(--text); transition:.15s;
+    display:flex; align-items:center; gap:14px; padding:14px 16px; border-radius:var(--radius-sm);
+    border:1px solid var(--line); text-decoration:none; color:var(--text); transition:all .2s ease;
+    background: var(--surface-card);
   }
-  .join-modal-option:hover{border-color:var(--purple); transform:translateY(-2px);}
-  .join-modal-option .opt-icon{font-size:20px; line-height:1;}
-  .join-modal-option .opt-label{font-family:var(--f-display); font-weight:700; font-size:14px; text-transform:uppercase; letter-spacing:.02em;}
-  .join-modal-option .opt-sub{display:block; font-family:var(--f-mono); font-size:11px; color:var(--text-faint); margin-top:2px;}
-  .join-modal-option.primary{border-color:var(--purple); background:rgba(162,57,255,.06);}
-  .clan-card-skel{opacity:.5;}
+  .join-modal-option:hover{border-color:var(--purple); transform:translateY(-2px); box-shadow:0 4px 16px rgba(162,57,255,.25);}
+  .join-modal-option .opt-icon{font-size:24px; line-height:1;}
+  .join-modal-option .opt-label{font-family:var(--f-display); font-weight:700; font-size:15px; text-transform:uppercase; letter-spacing:.02em;}
+  .join-modal-option .opt-sub{display:block; font-family:var(--f-mono); font-size:12px; color:var(--text-dim); margin-top:2px;}
+  .join-modal-option.primary{border-color:var(--purple); background:rgba(162,57,255,.12); box-shadow: 0 0 12px rgba(162,57,255,.2);}
+  
+  /* Skeleton load grid */
+  .clan-card-skel{opacity:.6; animation: pulse 1.5s infinite ease-in-out;}
+  @keyframes pulse { 0%,100%{opacity:.4;} 50%{opacity:.7;} }
 
-  /* FASE 1 (24-ago-2026): sección de torneos — podio de ganadores +
-     grid de torneos recientes, reutiliza tokens/clases ya existentes
-     (.card, .card-hover, .badge, .grid-4) en vez de inventar un sistema
-     paralelo, mismo criterio que el resto del sitio. */
+  /* Torneos eSports & Podio de Ganadores */
   .podio-ganadores{
-    display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:14px;
-    margin-bottom:28px;
+    display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:16px;
+    margin-top:16px;
   }
-  .podio-puesto{display:flex; align-items:center; gap:12px;}
-  .podio-medalla{font-size:26px; line-height:1;}
-  .podio-nombre{font-family:var(--f-display); font-weight:700; font-size:15px;}
-  .podio-clan{font-family:var(--f-mono); font-size:11px; color:var(--text-faint); margin-top:2px;}
-  .podio-victorias{margin-left:auto; font-family:var(--f-mono); font-size:13px; color:var(--gold);}
+  .podio-puesto{
+    display:flex; align-items:center; gap:14px; padding:16px;
+    border-radius:var(--radius-sm); border:1px solid var(--line); background:rgba(15,18,29,.6);
+    transition: all .2s ease;
+  }
+  .podio-puesto:hover{transform:translateY(-2px); border-color:var(--line-strong);}
+  .podio-puesto.pos-1st{border-color:rgba(243,169,34,.5); background:rgba(243,169,34,.08); box-shadow:0 0 16px rgba(243,169,34,.15);}
+  .podio-puesto.pos-2nd{border-color:rgba(203,213,225,.4); background:rgba(203,213,225,.06);}
+  .podio-puesto.pos-3rd{border-color:rgba(224,122,95,.4); background:rgba(224,122,95,.06);}
+  .podio-medalla{font-size:32px; line-height:1;}
+  .podio-nombre{font-family:var(--f-display); font-weight:700; font-size:17px; color:var(--text);}
+  .podio-clan{font-family:var(--f-mono); font-size:12px; color:var(--text-dim); margin-top:2px;}
+  .podio-victorias{
+    margin-left:auto; font-family:var(--f-mono); font-size:14px; font-weight:700;
+    color:var(--gold); background:rgba(243,169,34,.15); padding:4px 10px; border-radius:999px;
+  }
   .torneo-card .torneo-fecha{font-family:var(--f-mono); font-size:12px; color:var(--text-faint);}
-  .torneo-card h3{font-size:17px; margin-top:6px;}
+  .torneo-card h3{font-size:18px; margin-top:8px;}
 </style>
 </head>
 <body data-page="inicio">
 
 <nav class="nav">
   <div class="wrap">
-    <a href="index.html" class="brand"><img src="assets/img/logo-cuadrado.jpg" alt="Escudo GxT Familia Terna" class="brand-logo"> Familia Terna</a>
+    <a href="index.html" class="brand">
+      <img src="assets/img/logo-cuadrado.jpg" alt="Escudo GxT Familia Terna" class="brand-logo">
+      <span>ᴳ乂ᵀ <span class="crown">⚜️</span> Familia Terna</span>
+    </a>
     <button id="navToggle" class="nav-toggle" aria-label="Abrir menú">☰</button>
     <div class="links">
       <a href="index.html" data-page="inicio">Inicio</a>
-      <a href="jugadores.html" data-page="jugadores">Jugadores</a>
-      <a href="guerra.html" data-page="guerra">Guerra en vivo</a>
-      <a href="admin.html" data-page="admin" class="cta">Admin</a>
+      <a href="jugadores.html" data-page="jugadores">Miembros</a>
+      <a href="guerra.html" data-page="guerra">Guerra</a>
+      <a href="admin.html" data-page="admin" class="cta">Acceder</a>
     </div>
   </div>
 </nav>
@@ -101,39 +134,59 @@
   <img src="assets/img/banner-hero.jpg" alt="" class="hero-banner-img" aria-hidden="true">
   <div class="hero-banner-fade" aria-hidden="true"></div>
   <div class="wrap hero-banner-content">
-    <div class="eyebrow">Comunidad de 4 clanes · Clash Royale</div>
-    <h1 style="font-size:clamp(36px,6vw,64px); line-height:1.02; margin-top:14px; max-width:820px;">
-      El cuartel general<br>de la <span style="color:var(--purple);">Familia Terna</span>.
+    <div class="eyebrow">Comunidad Competitiva · Clash Royale</div>
+    <h1 style="font-size:clamp(38px,6.5vw,68px); line-height:1.05; margin-top:16px; max-width:860px;">
+      El cuartel general de la <span class="text-gradient-purple">Familia Terna</span>.
     </h1>
-    <p class="text-dim" style="font-size:17px; max-width:560px; margin-top:18px; line-height:1.6;">
+    <p class="text-dim" style="font-size:18px; max-width:600px; margin-top:20px; line-height:1.6;">
       Roster, requisitos de ascenso, torneos y el estado de guerra de nuestros
-      4 clanes — todo en un mismo lugar, actualizado en tiempo real.
+      4 clanes — todo en un mismo portal en tiempo real.
     </p>
-    <div style="display:flex; gap:14px; margin-top:30px; flex-wrap:wrap;">
-      <a href="jugadores.html" class="btn btn-primary">Buscar mi progreso</a>
-      <a id="heroDiscordBtn" href="https://discord.gg/YKXtg93DVb" target="_blank" rel="noopener" class="btn btn-ghost">Unirse por Discord</a>
+    <div style="display:flex; gap:16px; margin-top:32px; flex-wrap:wrap;">
+      <a href="jugadores.html" class="btn btn-primary">🏆 Buscar mi progreso</a>
+      <a id="heroDiscordBtn" href="https://discord.gg/YKXtg93DVb" target="_blank" rel="noopener" class="btn btn-ghost">💬 Unirse por Discord</a>
+    </div>
+
+    <!-- Stats Ticker Component -->
+    <div class="stats-ticker">
+      <div class="stat-card">
+        <div class="stat-val">4 <span>CLANES</span></div>
+        <div class="stat-lbl">Alianza activa</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val">+180</div>
+        <div class="stat-lbl">Jugadores competitivos</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val">24/7</div>
+        <div class="stat-lbl">Guerra de Clanes</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val">LIVE <span>⚡</span></div>
+        <div class="stat-lbl">Sincronización en vivo</div>
+      </div>
     </div>
   </div>
 </section>
 
 <!-- ---------- SOBRE LA COMUNIDAD ---------- -->
-<section style="padding-top:0;">
+<section style="padding-top:24px;">
   <div class="wrap">
-    <div class="card" style="padding:28px 32px; display:flex; gap:32px; flex-wrap:wrap; align-items:center;">
-      <div style="flex:2; min-width:260px;">
-        <h3 style="font-size:18px; color:var(--gold);">¿Nuevo en la comunidad?</h3>
-        <p class="text-dim" style="margin-top:10px; line-height:1.6;">
-          Familia Terna es una alianza de 4 clanes de Clash Royale. Cada clan
-          tiene requisitos propios de trofeos de guerra, ataques semanales y
-          participación en torneos para mantener o subir de rango — puedes
-          consultar exactamente dónde estás parado en
-          <a href="jugadores.html">Jugadores</a>, buscando tu nombre o tu Tag.
+    <div class="card" style="padding:32px; display:flex; gap:32px; flex-wrap:wrap; align-items:center;">
+      <div style="flex:2; min-width:280px;">
+        <span class="eyebrow" style="margin-bottom:12px;">Comunidad & Competencia</span>
+        <h3 style="font-size:22px; color:var(--text); margin-top:6px;">¿Nuevo en la Familia Terna?</h3>
+        <p class="text-dim" style="margin-top:12px; line-height:1.6; font-size:15px;">
+          Familia Terna es una alianza de 4 clanes en Clash Royale. Cada clan
+          cuenta con sus propios requisitos de trofeos, ataques en guerra y
+          participación en torneos para mantener o ascender de rango. Puedes
+          consultar tu posición exacta en <a href="jugadores.html">Jugadores</a> buscando tu Tag.
         </p>
       </div>
-      <div style="flex:1; min-width:200px; display:flex; gap:12px; flex-direction:column;">
-        <span class="badge badge-purple">4 clanes activos</span>
-        <span class="badge badge-gold">Requisitos por rango</span>
-        <span class="badge badge-ok">Datos en vivo</span>
+      <div style="flex:1; min-width:220px; display:flex; gap:14px; flex-direction:column;">
+        <span class="badge badge-purple">⚔️ 4 clanes activos</span>
+        <span class="badge badge-gold">👑 Requisitos por rango</span>
+        <span class="badge badge-ok">🟢 Datos en directo</span>
       </div>
     </div>
   </div>
@@ -143,43 +196,29 @@
 <section id="clanes">
   <div class="wrap">
     <div class="sec-head">
-      <div class="eyebrow">Nuestros clanes</div>
-      <h2>Los 4 clanes Terna</h2>
-      <p>Cada uno con su propio estilo de juego y requisitos — encuentra el que mejor calce contigo.</p>
+      <div class="eyebrow">Nuestros Clanes</div>
+      <h2>Los 4 Clanes Terna</h2>
+      <p>Cada clan con su propia exigencia y nivel competitivo — encuentra el ideal para tu perfil.</p>
     </div>
     <div class="grid-4" id="clanGrid">
-      <!-- FASE 0 (24-ago-2026): estas 4 tarjetas ya NO se completan a mano —
-           se cargan dinámicamente desde el endpoint webClanInfo
-           (34_Web_API.gs), que lee la hoja Clan real. El backend ya
-           devuelve los clanes en el orden correcto (columna Orden de la
-           hoja Clan / CFG.TERNA_TAGS) — este script NUNCA debe reordenar
-           por nombre, o "Terna 2" quedaría antes que "Grupo Terna". Ver
-           cargarClanes() más abajo. Se deja un esqueleto de carga acá para
-           que el layout no salte mientras responde el fetch. -->
-      <div class="card clan-card-skel"><h3 style="font-size:19px;">Cargando…</h3></div>
-      <div class="card clan-card-skel"><h3 style="font-size:19px;">Cargando…</h3></div>
-      <div class="card clan-card-skel"><h3 style="font-size:19px;">Cargando…</h3></div>
-      <div class="card clan-card-skel"><h3 style="font-size:19px;">Cargando…</h3></div>
+      <div class="card clan-card-skel"><h3 style="font-size:19px;">Cargando clan…</h3></div>
+      <div class="card clan-card-skel"><h3 style="font-size:19px;">Cargando clan…</h3></div>
+      <div class="card clan-card-skel"><h3 style="font-size:19px;">Cargando clan…</h3></div>
+      <div class="card clan-card-skel"><h3 style="font-size:19px;">Cargando clan…</h3></div>
     </div>
   </div>
 </section>
 
 <!-- ---------- MODAL "CÓMO UNIRTE" ---------- -->
-<!-- FASE 0 (24-ago-2026): reemplaza los 4 botones "Solicitar unirme" que
-     antes eran <a href="#">. No hay un link fijo de invitación por clan
-     porque los links del juego caducan en pocos días — así que en vez de
-     linkear directo, se muestra el flujo real de postulación: WhatsApp
-     (canal principal, grupo informativo) + Discord + Formulario, en ese
-     orden, como confirmó el usuario. -->
 <div class="join-modal-overlay" id="joinModalOverlay">
   <div class="join-modal">
     <button type="button" class="join-modal-close" id="joinModalClose" aria-label="Cerrar">&times;</button>
     <div class="eyebrow">Postular a <span id="joinModalClan">un clan</span></div>
-    <h3 style="margin-top:6px;">¿Cómo unirte?</h3>
-    <p class="text-dim" style="font-size:13px; margin-top:8px; line-height:1.5;">
-      No publicamos un link de invitación fijo porque caduca en pocos días — postula por acá:
+    <h3 style="margin-top:10px;">¿Cómo unirte?</h3>
+    <p class="text-dim" style="font-size:14px; margin-top:8px; line-height:1.5;">
+      Los enlaces de invitación directa caducan rápidamente. Postula a través de nuestros canales oficiales:
     </p>
-    <div class="join-modal-options" id="joinModalOptions"><!-- JS injects options --></div>
+    <div class="join-modal-options" id="joinModalOptions"></div>
   </div>
 </div>
 
@@ -187,42 +226,42 @@
 <section id="redes">
   <div class="wrap">
     <div class="sec-head">
-      <div class="eyebrow">Encuéntranos también en</div>
-      <h2>Redes oficiales</h2>
-      <p>Los únicos canales verificados de Grupo乂Terna — desconfía de cualquier otro que diga representarnos.</p>
+      <div class="eyebrow">Canales Verificados</div>
+      <h2>Redes Oficiales</h2>
+      <p>Los únicos canales oficiales de Grupo乂Terna — mantente informado y conectado.</p>
     </div>
     <div class="social-grid">
-      <a class="card card-hover social-card" href="https://linktr.ee/grupoternaoficial" target="_blank" rel="noopener">
+      <a class="social-card" href="https://linktr.ee/grupoternaoficial" target="_blank" rel="noopener">
         <span class="social-icon">🌐</span>
-        <span><span class="social-label">Web</span><span class="social-sub" style="display:block;">linktr.ee/grupoternaoficial</span></span>
+        <span><span class="social-label">Web</span><span class="social-sub">linktr.ee/grupoternaoficial</span></span>
       </a>
-      <a class="card card-hover social-card" href="https://chat.whatsapp.com/HfaoDijjtkS4mwijpdczkU" target="_blank" rel="noopener">
+      <a class="social-card" href="https://chat.whatsapp.com/HfaoDijjtkS4mwijpdczkU" target="_blank" rel="noopener">
         <span class="social-icon">📱</span>
-        <span><span class="social-label">WhatsApp</span><span class="social-sub" style="display:block;">Únete al grupo</span></span>
+        <span><span class="social-label">WhatsApp</span><span class="social-sub">Únete al grupo principal</span></span>
       </a>
-      <a class="card card-hover social-card" href="https://discord.gg/YKXtg93DVb" target="_blank" rel="noopener">
+      <a class="social-card" href="https://discord.gg/YKXtg93DVb" target="_blank" rel="noopener">
         <span class="social-icon">🎧</span>
-        <span><span class="social-label">Discord</span><span class="social-sub" style="display:block;">Comunidad y soporte</span></span>
+        <span><span class="social-label">Discord</span><span class="social-sub">Comunidad y soporte</span></span>
       </a>
-      <a class="card card-hover social-card" href="https://www.facebook.com/profile.php?id=61591417920256" target="_blank" rel="noopener">
+      <a class="social-card" href="https://www.facebook.com/profile.php?id=61591417920256" target="_blank" rel="noopener">
         <span class="social-icon">📘</span>
-        <span><span class="social-label">Facebook</span><span class="social-sub" style="display:block;">Grupo Terna</span></span>
+        <span><span class="social-label">Facebook</span><span class="social-sub">Grupo Terna Oficial</span></span>
       </a>
-      <a class="card card-hover social-card" href="https://x.com/GrupoTernaTM" target="_blank" rel="noopener">
+      <a class="social-card" href="https://x.com/GrupoTernaTM" target="_blank" rel="noopener">
         <span class="social-icon">✖️</span>
-        <span><span class="social-label">X (Twitter)</span><span class="social-sub" style="display:block;">@GrupoTernaTM</span></span>
+        <span><span class="social-label">X (Twitter)</span><span class="social-sub">@GrupoTernaTM</span></span>
       </a>
-      <a class="card card-hover social-card" href="https://www.instagram.com/grupoternaoficial" target="_blank" rel="noopener">
+      <a class="social-card" href="https://www.instagram.com/grupoternaoficial" target="_blank" rel="noopener">
         <span class="social-icon">📸</span>
-        <span><span class="social-label">Instagram</span><span class="social-sub" style="display:block;">@grupoternaoficial</span></span>
+        <span><span class="social-label">Instagram</span><span class="social-sub">@grupoternaoficial</span></span>
       </a>
-      <a class="card card-hover social-card" href="https://www.tiktok.com/@grupoternaoficial" target="_blank" rel="noopener">
+      <a class="social-card" href="https://www.tiktok.com/@grupoternaoficial" target="_blank" rel="noopener">
         <span class="social-icon">🎵</span>
-        <span><span class="social-label">TikTok</span><span class="social-sub" style="display:block;">@grupoternaoficial</span></span>
+        <span><span class="social-label">TikTok</span><span class="social-sub">@grupoternaoficial</span></span>
       </a>
-      <a class="card card-hover social-card" href="https://royaleapi.com/clan/family/grupoterna/clans" target="_blank" rel="noopener">
+      <a class="social-card" href="https://royaleapi.com/clan/family/grupoterna/clans" target="_blank" rel="noopener">
         <span class="social-icon">🏆</span>
-        <span><span class="social-label">RoyaleAPI</span><span class="social-sub" style="display:block;">Perfil de familia</span></span>
+        <span><span class="social-label">RoyaleAPI</span><span class="social-sub">Perfil de la Familia</span></span>
       </a>
     </div>
     <div class="tagline">
@@ -232,25 +271,19 @@
   </div>
 </section>
 
-<!-- ---------- TORNEOS (FASE 1, 24-ago-2026) ---------- -->
-<!-- Vista resumida: consume webTorneos (34_Web_API.gs), que envuelve
-     T_Lista/T_Asistencia con el mismo criterio de elegibilidad que ya usa
-     el doc "Ganadores (torneo)" — ver actualizarDocGanadoresTorneo() en
-     25_Torneos_Docs.gs. Listado completo queda para una futura pantalla
-     dedicada (torneos.html o sección propia en jugadores.html); acá solo
-     se muestran los últimos 5. -->
+<!-- ---------- TORNEOS & PODIO ---------- -->
 <section id="torneos">
   <div class="wrap">
     <div class="sec-head">
-      <div class="eyebrow">Competencia</div>
-      <h2>Torneos</h2>
-      <p>Los últimos torneos de la familia y los ganadores del más reciente.</p>
+      <div class="eyebrow">Competencia eSports</div>
+      <h2>Torneos de la Familia</h2>
+      <p>Resultados más recientes y el cuadro de campeones de la comunidad.</p>
     </div>
-    <div id="torneosGanadores"><!-- JS injects podio si hay ganadores --></div>
-    <div class="grid-4" id="torneosGrid">
-      <div class="card clan-card-skel"><h3 style="font-size:16px;">Cargando…</h3></div>
-      <div class="card clan-card-skel"><h3 style="font-size:16px;">Cargando…</h3></div>
-      <div class="card clan-card-skel"><h3 style="font-size:16px;">Cargando…</h3></div>
+    <div id="torneosGanadores"></div>
+    <div class="grid-4" id="torneosGrid" style="margin-top:24px;">
+      <div class="card clan-card-skel"><h3 style="font-size:16px;">Cargando torneos…</h3></div>
+      <div class="card clan-card-skel"><h3 style="font-size:16px;">Cargando torneos…</h3></div>
+      <div class="card clan-card-skel"><h3 style="font-size:16px;">Cargando torneos…</h3></div>
     </div>
   </div>
 </section>
@@ -258,26 +291,19 @@
 <footer>
   <div class="wrap">
     <span>Familia Terna · Portal de la comunidad</span>
-    <span>Datos servidos desde Google Apps Script</span>
+    <span>Sincronizado vía Google Apps Script API</span>
   </div>
 </footer>
 
 <script src="assets/common.js"></script>
 <script>
-/* FASE 0 (24-ago-2026): tarjetas de clanes dinámicas + modal "Cómo unirte".
- * Ver comentarios en la sección #clanes y en el modal más arriba. */
-
-// Badge de cada posición — es texto de marca/branding, no vive en la hoja
-// Clan, así que se mantiene estático acá (a diferencia de nombre/tag/
-// requerimiento/descripción, que sí vienen del backend).
 const CLAN_BADGES = [
-  { cls: 'badge-gold',   label: 'Clan principal' },
-  { cls: 'badge-purple', label: 'Clan Terna 2' },
-  { cls: 'badge-purple', label: 'Clan Terna 3' },
-  { cls: 'badge-purple', label: 'Mini Ternas' }
+  { cls: 'badge-gold',   label: '👑 Clan Principal' },
+  { cls: 'badge-purple', label: '⚔️ Clan Terna 2' },
+  { cls: 'badge-purple', label: '🛡️ Clan Terna 3' },
+  { cls: 'badge-purple', label: '🌟 Mini Ternas' }
 ];
-// Se usa SOLO si la hoja Clan todavía no tiene Descripción cargada para
-// ese clan, para no dejar la tarjeta vacía mientras se completa a mano.
+
 const CLAN_DESC_FALLBACK = [
   'El clan líder de la familia. Guerra competitiva, exigencia alta.',
   'Guerra activa, buen espacio para crecer y ascender.',
@@ -290,25 +316,21 @@ async function cargarClanes(){
   try{
     const data = await apiGet('webClanInfo');
     const clanes = data.clanes || [];
-    // IMPORTANTE: el backend (_webClanInfo, 34_Web_API.gs) ya devuelve los
-    // clanes en el orden real de la hoja Clan (columna Orden / CFG.TERNA_TAGS).
-    // NUNCA hacer .sort() acá por nombre — alfabéticamente "Terna 2" quedaría
-    // antes que "Grupo Terna".
     grid.innerHTML = clanes.map((c, i) => {
       const badge  = CLAN_BADGES[i] || { cls: 'badge-purple', label: 'Clan Terna' };
       const nombre = c.nombre || badge.label;
       const desc   = c.descripcion || CLAN_DESC_FALLBACK[i] || '';
       const reqTxt = c.requerimiento > 0 ? c.requerimiento.toLocaleString('es-PE') + '+' : '—';
       return `
-        <div class="card card-hover clan-card">
-          <div class="badge ${badge.cls}" style="margin-bottom:12px;">${esc(badge.label)}</div>
-          <h3 style="font-size:19px;">${esc(nombre)}</h3>
+        <div class="card card-hover clan-card" style="display:flex; flex-direction:column;">
+          <div class="badge ${badge.cls}" style="margin-bottom:14px; align-self:flex-start;">${esc(badge.label)}</div>
+          <h3 style="font-size:20px;">${esc(nombre)}</h3>
           <div class="text-faint" style="font-family:var(--f-mono); font-size:12px; margin-top:4px;">${esc(c.clanTag)}</div>
-          <p class="text-dim" style="font-size:13px; margin-top:14px; line-height:1.5;">${esc(desc)}</p>
-          <div style="display:flex; justify-content:space-between; margin-top:16px; font-family:var(--f-mono); font-size:12px;">
-            <span class="text-faint">Mín. trofeos</span><b>${reqTxt}</b>
+          <p class="text-dim" style="font-size:14px; margin-top:16px; line-height:1.55; flex:1;">${esc(desc)}</p>
+          <div style="display:flex; justify-content:space-between; margin-top:20px; font-family:var(--f-mono); font-size:13px; border-top:1px solid var(--line); padding-top:12px;">
+            <span class="text-faint">Mín. trofeos</span><b style="color:var(--gold);">${reqTxt} 🏆</b>
           </div>
-          <button type="button" class="btn btn-ghost btn-block js-solicitar-unirme" data-clan="${esc(nombre)}" style="margin-top:16px;">Solicitar unirme</button>
+          <button type="button" class="btn btn-ghost btn-block js-solicitar-unirme" data-clan="${esc(nombre)}" style="margin-top:16px;">Unirse a este clan</button>
         </div>`;
     }).join('');
     grid.querySelectorAll('.js-solicitar-unirme').forEach(btn => {
@@ -324,14 +346,11 @@ async function cargarClanes(){
 function abrirModalUnirse(nombreClan){
   document.getElementById('joinModalClan').textContent = nombreClan || 'un clan';
   const opciones = [
-    { href: WSP_GRUPO_URL, icon: '📱', label: 'WhatsApp', sub: 'Canal principal — grupo informativo', primary: true },
-    { href: DISCORD_URL,   icon: '🎧', label: 'Discord',  sub: 'Canal alternativo' }
+    { href: WSP_GRUPO_URL, icon: '📱', label: 'WhatsApp', sub: 'Canal principal — Grupo informativo', primary: true },
+    { href: DISCORD_URL,   icon: '🎧', label: 'Discord',  sub: 'Canal de comunidad y voz' }
   ];
-  // FORM_POSTULACION_URL (assets/common.js) queda vacío hasta que exista un
-  // link real de formulario — si está vacío, el modal simplemente no
-  // muestra esa opción, en vez de linkear a algo roto.
   if (FORM_POSTULACION_URL) {
-    opciones.push({ href: FORM_POSTULACION_URL, icon: '📝', label: 'Formulario', sub: 'Canal alternativo' });
+    opciones.push({ href: FORM_POSTULACION_URL, icon: '📝', label: 'Formulario', sub: 'Postulación formal' });
   }
   document.getElementById('joinModalOptions').innerHTML = opciones.map(o => `
     <a class="join-modal-option${o.primary ? ' primary' : ''}" href="${esc(o.href)}" target="_blank" rel="noopener">
@@ -351,12 +370,8 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarModalU
 
 cargarClanes();
 
-/* FASE 1 (24-ago-2026): torneos públicos — consume webTorneos, que ya
- * devuelve los torneos ordenados por fecha descendente y los ganadores del
- * más reciente (o null si el torneo no tiene ganadores todavía o ninguno
- * del top 3 real calificó). Ver _webTorneos()/_webGanadoresTorneoMasReciente()
- * en 34_Web_API.gs. */
 const MEDALLAS = ['🥇', '🥈', '🥉'];
+const POS_CLASSES = ['pos-1st', 'pos-2nd', 'pos-3rd'];
 
 function formatFechaTorneo(iso){
   try{
@@ -374,20 +389,19 @@ async function cargarTorneos(){
     const torneos = data.torneos || [];
     const ganadores = data.ganadores;
 
-    // ---- Podio del torneo más reciente (si hay ganadores calificados) ----
     if (ganadores && ganadores.top3 && ganadores.top3.length){
       boxGanadores.innerHTML = `
-        <div class="card" style="padding:20px 24px; margin-bottom:20px;">
-          <div class="badge badge-gold" style="margin-bottom:14px;">Ganadores · ${esc(formatFechaTorneo(ganadores.fecha))}</div>
+        <div class="card" style="padding:24px; margin-bottom:20px;">
+          <div class="badge badge-gold" style="margin-bottom:16px;">🏆 Podio de Campeones · ${esc(formatFechaTorneo(ganadores.fecha))}</div>
           <div class="podio-ganadores">
             ${ganadores.top3.map((g, i) => `
-              <div class="podio-puesto">
+              <div class="podio-puesto ${POS_CLASSES[i] || ''}">
                 <span class="podio-medalla">${MEDALLAS[i] || '🏅'}</span>
                 <div>
                   <div class="podio-nombre">${esc(g.nombre)}</div>
                   <div class="podio-clan">${esc(g.clan)}</div>
                 </div>
-                <span class="podio-victorias">${esc(String(g.victorias))}V</span>
+                <span class="podio-victorias">${esc(String(g.victorias))} V</span>
               </div>`).join('')}
           </div>
         </div>`;
@@ -395,11 +409,10 @@ async function cargarTorneos(){
       boxGanadores.innerHTML = '';
     }
 
-    // ---- Grid de torneos recientes (últimos 5, ya vienen ordenados) ----
     const recientes = torneos.slice(0, 5);
     if (!recientes.length){
       grid.innerHTML = `<div class="card" style="grid-column:1/-1; text-align:center; padding:32px;">
-        <p class="text-dim">Todavía no hay torneos registrados.</p>
+        <p class="text-dim">No hay torneos registrados recientemente.</p>
       </div>`;
       return;
     }
@@ -408,7 +421,7 @@ async function cargarTorneos(){
         <div class="torneo-fecha">${esc(formatFechaTorneo(t.fecha))}</div>
         <h3>${esc(t.clan || 'Familia Terna')}</h3>
         <p class="text-dim" style="font-size:13px; margin-top:8px;">Organiza: ${esc(t.organizador || '—')}</p>
-        ${t.linkApp ? `<a href="${esc(t.linkApp)}" target="_blank" rel="noopener" class="btn btn-ghost btn-block" style="margin-top:16px;">Ver torneo</a>` : ''}
+        ${t.linkApp ? `<a href="${esc(t.linkApp)}" target="_blank" rel="noopener" class="btn btn-ghost btn-block" style="margin-top:16px;">Ver Torneo</a>` : ''}
       </div>`).join('');
   }catch(err){
     grid.innerHTML = `<div class="card" style="grid-column:1/-1; text-align:center; padding:32px;">
