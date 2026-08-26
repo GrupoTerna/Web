@@ -49,26 +49,16 @@ body{
   position: relative;
 }
 
-/* Resplandor místico de fondo — ahora deriva lentamente (aurora), sutil,
-   nunca compite con el contenido. Se apaga si el usuario pide menos
-   movimiento. */
+/* Resplandor místico de fondo — sutil, fijo, no distrae */
 body::before{
   content:"";
   position:fixed; inset:0;
-  background-color: var(--bg-2);
-  background-image:
+  background:
     radial-gradient(ellipse 900px 500px at 50% -10%, rgba(162,57,255,.16), transparent 60%),
-    radial-gradient(ellipse 700px 500px at 100% 20%, rgba(123,44,191,.10), transparent 60%);
-  background-position: 0% 0%, 0% 0%;
+    radial-gradient(ellipse 700px 500px at 100% 20%, rgba(123,44,191,.10), transparent 60%),
+    var(--bg-2);
   z-index:-1;
   pointer-events:none;
-}
-@media (prefers-reduced-motion: no-preference){
-  body::before{ animation: aurora-drift 26s ease-in-out infinite alternate; }
-}
-@keyframes aurora-drift{
-  0%{   background-position: 0% 0%,  0% 0%; }
-  100%{ background-position: 5% 6%, -5% -5%; }
 }
 
 ::selection{background:var(--purple); color:#fff;}
@@ -132,18 +122,6 @@ a:hover{color:var(--gold);}
   padding:13px 26px; border-radius:var(--radius-sm); border:1px solid transparent;
   cursor:pointer; transition:transform .18s cubic-bezier(.34,1.56,.64,1), box-shadow .18s, background .18s;
   text-decoration:none;
-  position:relative; overflow:hidden;
-}
-/* Destello de elixir: un brillo cruza el botón al pasar el cursor —
-   remite a la energía/elixir del tema, no un efecto genérico. */
-.btn::before{
-  content:""; position:absolute; top:0; left:-60%; width:36%; height:100%;
-  background:linear-gradient(115deg, transparent, rgba(255,255,255,.32), transparent);
-  transform:skewX(-18deg); pointer-events:none;
-}
-@media (prefers-reduced-motion: no-preference){
-  .btn::before{ transition:left .55s cubic-bezier(.16,1,.3,1); }
-  .btn:hover::before, .btn:focus-visible::before{ left:130%; }
 }
 .btn-primary{
   color:#fff; background:linear-gradient(135deg, var(--purple), var(--violet));
@@ -163,76 +141,6 @@ a:hover{color:var(--gold);}
   padding:20px; transition:transform .25s cubic-bezier(.34,1.2,.64,1), box-shadow .25s, border-color .25s;
 }
 .card-hover:hover{transform:translateY(-8px); border-color:var(--line-strong); box-shadow:var(--glow);}
-
-/* Toda tarjeta hace una pequeña entrada al aparecer en el DOM — incluye
-   las que se inyectan por fetch (clanes, torneos, roster), sin JS extra. */
-@media (prefers-reduced-motion: no-preference){
-  .card{ animation: card-in .5s cubic-bezier(.16,1,.3,1) both; }
-}
-@keyframes card-in{
-  from{ opacity:0; transform:translateY(14px) scale(.98); }
-  to{ opacity:1; transform:translateY(0) scale(1); }
-}
-
-/* ---------- Elemento firma: marco "carta de rareza" ----------
-   Remite al marco octagonal + gema de rareza de las cartas de Clash
-   Royale. Se usa en las tarjetas de clan/torneo para que el sitio se
-   sienta hecho a medida del juego, no una plantilla genérica. */
-.frame-cut{
-  clip-path: polygon(16px 0%, calc(100% - 16px) 0%, 100% 16px, 100% calc(100% - 16px),
-             calc(100% - 16px) 100%, 16px 100%, 0% calc(100% - 16px), 0% 16px);
-}
-.gem{
-  position:absolute; top:10px; right:10px; width:12px; height:12px;
-  background:linear-gradient(135deg, var(--gold), #d68d12);
-  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
-  box-shadow:0 0 8px rgba(243,169,34,.55);
-}
-.gem.purple{ background:linear-gradient(135deg, var(--purple), var(--violet)); box-shadow:0 0 8px rgba(162,57,255,.55); }
-@media (prefers-reduced-motion: no-preference){
-  .gem{ animation: gem-pulse 2.6s ease-in-out infinite; }
-}
-@keyframes gem-pulse{
-  0%,100%{ transform:scale(1); opacity:1; }
-  50%{ transform:scale(1.2); opacity:.7; }
-}
-
-/* Divisor "elixir" entre secciones — línea con brillo que recorre, en vez
-   de solo espacio en blanco. */
-.elixir-divider{
-  height:2px; width:100%; max-width:140px; margin:0 auto; border-radius:2px;
-  background:linear-gradient(90deg, transparent, var(--violet), var(--purple), var(--gold), var(--purple), var(--violet), transparent);
-  background-size:220% 100%;
-}
-@media (prefers-reduced-motion: no-preference){
-  .elixir-divider{ animation: shimmer-slide 4s linear infinite; }
-}
-@keyframes shimmer-slide{
-  0%{ background-position:0% 0; }
-  100%{ background-position:220% 0; }
-}
-
-/* ---------- Aparición escalonada (hero, listas cortas) ---------- */
-@media (prefers-reduced-motion: no-preference){
-  .stagger > *{ opacity:0; animation: fade-up .7s cubic-bezier(.16,1,.3,1) forwards; }
-  .stagger > *:nth-child(1){ animation-delay:.05s; }
-  .stagger > *:nth-child(2){ animation-delay:.18s; }
-  .stagger > *:nth-child(3){ animation-delay:.34s; }
-  .stagger > *:nth-child(4){ animation-delay:.5s; }
-}
-@keyframes fade-up{
-  from{ opacity:0; transform:translateY(18px); }
-  to{ opacity:1; transform:translateY(0); }
-}
-
-/* ---------- Revelado al hacer scroll (secciones estáticas) ---------- */
-@media (prefers-reduced-motion: no-preference){
-  .reveal{
-    opacity:0; transform:translateY(26px);
-    transition:opacity .7s cubic-bezier(.16,1,.3,1), transform .7s cubic-bezier(.16,1,.3,1);
-  }
-  .reveal.in-view{ opacity:1; transform:translateY(0); }
-}
 
 /* ---------- Tipografía ---------- */
 h1,h2,h3{font-family:var(--f-display); font-weight:700; text-transform:uppercase; letter-spacing:.02em; margin:0;}
