@@ -3,63 +3,62 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Guerra en vivo — Familia Terna</title>
+<title>Guerra en Vivo — Familia Terna</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/styles.css">
 <link rel="icon" type="image/jpeg" href="assets/img/logo-cuadrado.jpg">
 <style>
-  /* Estilos propios de esta página (reusa tokens de styles.css) */
-  .refresh-row{display:flex; align-items:center; gap:10px; font-family:var(--f-mono); font-size:11px; color:var(--text-faint);}
+  .refresh-row{display:flex; align-items:center; gap:12px; font-family:var(--f-mono); font-size:12px; color:var(--text-faint);}
   #refreshBtn{
-    background:none; border:1px solid var(--line); color:var(--text-dim);
-    font-family:var(--f-mono); font-size:10px; letter-spacing:.08em;
-    text-transform:uppercase; padding:5px 10px; cursor:pointer; border-radius:var(--radius-sm);
-    transition:border-color .15s, color .15s;
+    background:rgba(162,57,255,.1); border:1px solid var(--line-strong); color:var(--text);
+    font-family:var(--f-mono); font-size:11px; letter-spacing:.08em; font-weight:700;
+    text-transform:uppercase; padding:6px 14px; cursor:pointer; border-radius:var(--radius-sm);
+    transition:all .18s ease;
   }
-  #refreshBtn:hover{border-color:var(--purple); color:var(--purple);}
-  #refreshBtn:disabled{opacity:.5; cursor:default;}
+  #refreshBtn:hover{border-color:var(--purple); color:var(--purple-light); background:rgba(162,57,255,.2); transform:translateY(-1px);}
+  #refreshBtn:disabled{opacity:.5; cursor:not-allowed; transform:none;}
   #refreshBtn.spinning{color:var(--purple); border-color:var(--purple);}
-  .progress-track{height:2px; background:var(--surface-2); margin-top:16px; overflow:hidden; border-radius:2px;}
-  .progress-track i{display:block; height:100%; width:0%; background:var(--purple); transition:width 1s linear;}
+  .progress-track{height:3px; background:var(--bg-2); margin-top:20px; overflow:hidden; border-radius:3px;}
+  .progress-track i{display:block; height:100%; width:0%; background:linear-gradient(90deg, var(--violet), var(--purple)); transition:width 1s linear;}
   .flash{animation:flash-num .6s ease;}
   @keyframes flash-num{
-    0%{color:var(--gold); text-shadow:0 0 8px rgba(243,169,34,.5);}
+    0%{color:var(--gold); text-shadow:0 0 10px rgba(243,169,34,.6);}
     100%{color:inherit; text-shadow:none;}
   }
-  .timeline{display:flex; gap:6px; margin-top:14px;}
-  .tl-day{flex:1; border:1px solid var(--line); background:var(--surface); border-radius:var(--radius-sm); padding:10px 6px 9px; text-align:center; position:relative;}
-  .tl-day .lbl{font-family:var(--f-mono); font-size:10px; letter-spacing:.12em; color:var(--text-faint); text-transform:uppercase;}
-  .tl-day .mark{font-family:var(--f-display); font-weight:700; font-size:20px; margin-top:4px; color:var(--text-dim);}
-  .tl-day.active{border-color:var(--purple); background:linear-gradient(180deg, rgba(162,57,255,.16), rgba(162,57,255,.03));}
-  .tl-day.active .lbl{color:var(--purple);}
+  .timeline{display:flex; gap:10px; margin-top:18px;}
+  .tl-day{flex:1; border:1px solid var(--line); background:var(--surface-card); border-radius:var(--radius-sm); padding:12px 8px; text-align:center; position:relative; transition:all .2s ease;}
+  .tl-day .lbl{font-family:var(--f-mono); font-size:11px; letter-spacing:.12em; color:var(--text-faint); text-transform:uppercase;}
+  .tl-day .mark{font-family:var(--f-display); font-weight:800; font-size:22px; margin-top:4px; color:var(--text-dim);}
+  .tl-day.active{border-color:var(--purple); background:linear-gradient(180deg, rgba(162,57,255,.2), rgba(162,57,255,.04)); box-shadow:0 0 14px rgba(162,57,255,.25);}
+  .tl-day.active .lbl{color:var(--purple-light); font-weight:700;}
   .tl-day.active .mark{color:var(--text);}
   .tl-day.active::after{
-    content:"HOY"; position:absolute; top:-9px; left:50%; transform:translateX(-50%);
-    background:var(--purple); color:#fff; font-family:var(--f-mono); font-size:9px; font-weight:600;
-    letter-spacing:.08em; padding:1px 6px; border-radius:3px;
+    content:"HOY"; position:absolute; top:-10px; left:50%; transform:translateX(-50%);
+    background:var(--purple); color:#fff; font-family:var(--f-mono); font-size:9px; font-weight:700;
+    letter-spacing:.1em; padding:2px 8px; border-radius:999px; box-shadow:0 2px 8px rgba(162,57,255,.4);
   }
-  .clan-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:14px;}
-  .clan-card .name{font-family:var(--f-display); font-size:16px; font-weight:700; text-transform:uppercase;}
-  .clan-card .stats{display:flex; gap:16px; margin-top:12px; font-family:var(--f-mono);}
-  .clan-card .stat b{display:block; font-size:20px; color:var(--text);}
+  .clan-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:16px;}
+  .clan-card .name{font-family:var(--f-display); font-size:18px; font-weight:800; text-transform:uppercase; color:var(--text);}
+  .clan-card .stats{display:flex; gap:18px; margin-top:14px; font-family:var(--f-mono);}
+  .clan-card .stat b{display:block; font-size:22px; color:var(--text); font-family:var(--f-display);}
   .clan-card .stat span{font-size:10px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.08em;}
-  .bar{height:5px; background:var(--surface-2); margin-top:12px; border-radius:3px; overflow:hidden;}
-  .bar i{display:block; height:100%; background:var(--purple);}
-  .falt{font-family:var(--f-mono); font-weight:600; color:var(--danger);}
-  .resumen-row{display:flex; align-items:center; gap:12px; margin-bottom:10px;}
-  .resumen-row .clan-n{width:150px; font-size:13px; flex-shrink:0;}
-  .resumen-row .track{flex:1; height:14px; background:var(--surface-2); border-radius:3px; position:relative; overflow:hidden;}
+  .bar{height:6px; background:var(--bg-2); margin-top:14px; border-radius:3px; overflow:hidden; border:1px solid var(--line);}
+  .bar i{display:block; height:100%; background:linear-gradient(90deg, var(--violet), var(--purple));}
+  .falt{font-family:var(--f-mono); font-weight:700; color:var(--danger);}
+  .resumen-row{display:flex; align-items:center; gap:14px; margin-bottom:12px;}
+  .resumen-row .clan-n{width:160px; font-size:14px; flex-shrink:0; font-weight:600;}
+  .resumen-row .track{flex:1; height:16px; background:var(--bg-2); border-radius:4px; position:relative; overflow:hidden; border:1px solid var(--line);}
   .resumen-row .fill{height:100%; background:linear-gradient(90deg, var(--violet), var(--purple));}
-  .resumen-row .val{width:34px; text-align:right; font-family:var(--f-mono); font-size:12px; color:var(--text-dim);}
-  .nuevo-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:14px;}
-  .nuevo-card .name{font-weight:600; font-size:14px;}
-  .nuevo-card .tag{font-family:var(--f-mono); font-size:11px; color:var(--text-faint);}
-  .nuevo-card .clan{font-size:12px; color:var(--text-dim); margin:6px 0 10px;}
+  .resumen-row .val{width:40px; text-align:right; font-family:var(--f-mono); font-size:13px; color:var(--gold); font-weight:700;}
+  .nuevo-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:16px;}
+  .nuevo-card .name{font-weight:700; font-size:15px; color:var(--text);}
+  .nuevo-card .tag{font-family:var(--f-mono); font-size:12px; color:var(--text-dim);}
+  .nuevo-card .clan{font-size:13px; color:var(--text-dim); margin:6px 0 12px;}
   .nuevo-card .links{display:flex; gap:14px; font-size:12px;}
-  .nuevo-card .links a{text-decoration:none; border-bottom:1px solid var(--violet);}
-  #status{font-family:var(--f-mono); font-size:13px; color:var(--text-dim); padding:60px 20px; text-align:center;}
+  .nuevo-card .links a{text-decoration:none; color:var(--purple-light); font-weight:600;}
+  #status{font-family:var(--f-mono); font-size:14px; color:var(--text-dim); padding:64px 20px; text-align:center;}
   #status.err{color:var(--danger);}
 </style>
 </head>
@@ -67,7 +66,10 @@
 
 <nav class="nav">
   <div class="wrap">
-    <a href="index.html" class="brand"><img src="assets/img/logo-cuadrado.jpg" alt="Escudo GxT Familia Terna" class="brand-logo"> Familia Terna</a>
+    <a href="index.html" class="brand">
+      <img src="assets/img/logo-cuadrado.jpg" alt="Escudo GxT Familia Terna" class="brand-logo">
+      <span>ᴳ乂ᵀ <span class="crown">⚜️</span> Familia Terna</span>
+    </a>
     <button id="navToggle" class="nav-toggle" aria-label="Abrir menú">☰</button>
     <div class="links">
       <a href="index.html" data-page="inicio">Inicio</a>
@@ -78,65 +80,65 @@
   </div>
 </nav>
 
-<div class="wrap" style="padding-top:32px; padding-bottom:80px;">
+<div class="wrap" style="padding-top:36px; padding-bottom:80px;">
 
-  <div class="card" style="position:relative; overflow:hidden;">
-    <div class="eyebrow" style="justify-content:space-between;">
-      <span style="display:flex; align-items:center; gap:8px;">
-        <span style="width:6px;height:6px;background:var(--danger);border-radius:50%; box-shadow:0 0 0 3px rgba(229,72,77,.18); display:inline-block;"></span>
-        Sala de guerra — en vivo
+  <div class="card" style="position:relative; overflow:hidden; padding:28px;">
+    <div class="eyebrow" style="justify-content:space-between; width:100%;">
+      <span style="display:flex; align-items:center; gap:10px;">
+        <span style="width:8px;height:8px;background:var(--ok);border-radius:50%; box-shadow:0 0 10px rgba(16,185,129,.6); display:inline-block;"></span>
+        Sala de Guerra — Monitoreo en Vivo
       </span>
       <span class="refresh-row">
         <span id="agoText">—</span>
-        <button id="refreshBtn" type="button" onclick="cargar(true)">Actualizar</button>
+        <button id="refreshBtn" type="button" onclick="cargar(true)">🔄 Actualizar</button>
       </span>
     </div>
-    <h1 style="font-size:clamp(28px,5vw,40px); margin-top:10px;">Guerra en vivo</h1>
-    <div class="text-dim" id="sub" style="margin-top:4px;">Cargando estado de la temporada…</div>
+    <h1 style="font-size:clamp(30px,5vw,44px); margin-top:14px;">Guerra de Clanes en Vivo</h1>
+    <div class="text-dim" id="sub" style="margin-top:6px; font-size:16px;">Cargando estado de la temporada…</div>
     <div class="timeline" id="timeline"></div>
     <div class="progress-track"><i id="progressFill"></i></div>
   </div>
 
-  <div id="status">Conectando con la base de datos del clan…</div>
+  <div id="status">Conectando con la API de Guerra…</div>
 
   <div id="content" style="display:none">
 
-    <section>
-      <div class="sec-head" style="display:flex; align-items:baseline; justify-content:space-between; border-bottom:1px solid var(--line); padding-bottom:9px;">
-        <h2 style="font-size:18px;">Guerra de hoy</h2>
-        <span class="text-faint" id="clanCount" style="font-family:var(--f-mono); font-size:12px;"></span>
+    <section style="padding:40px 0 24px;">
+      <div class="sec-head" style="display:flex; align-items:baseline; justify-content:space-between; border-bottom:1px solid var(--line); padding-bottom:12px;">
+        <h2 style="font-size:22px;">⚔️ Guerra de Hoy</h2>
+        <span class="text-faint" id="clanCount" style="font-family:var(--f-mono); font-size:13px;"></span>
       </div>
-      <div class="clan-grid" id="clanGrid" style="margin-top:16px;"></div>
+      <div class="clan-grid" id="clanGrid" style="margin-top:20px;"></div>
     </section>
 
-    <section>
-      <div class="sec-head" style="display:flex; align-items:baseline; justify-content:space-between; border-bottom:1px solid var(--line); padding-bottom:9px;">
-        <h2 style="font-size:18px;">Pendientes de atacar</h2>
-        <span class="text-faint" id="pendCount" style="font-family:var(--f-mono); font-size:12px;"></span>
+    <section style="padding:24px 0;">
+      <div class="sec-head" style="display:flex; align-items:baseline; justify-content:space-between; border-bottom:1px solid var(--line); padding-bottom:12px;">
+        <h2 style="font-size:22px;">⚠️ Pendientes de Atacar</h2>
+        <span class="text-faint" id="pendCount" style="font-family:var(--f-mono); font-size:13px;"></span>
       </div>
-      <div id="pendWrap" style="margin-top:16px;"></div>
+      <div id="pendWrap" style="margin-top:20px;"></div>
     </section>
 
-    <section>
-      <div class="sec-head" style="border-bottom:1px solid var(--line); padding-bottom:9px;">
-        <h2 style="font-size:18px;">Miembros activos por clan</h2>
+    <section style="padding:24px 0;">
+      <div class="sec-head" style="border-bottom:1px solid var(--line); padding-bottom:12px;">
+        <h2 style="font-size:22px;">📊 Miembros Activos por Clan</h2>
       </div>
-      <div id="resumenWrap" style="margin-top:16px;"></div>
+      <div id="resumenWrap" style="margin-top:20px;"></div>
     </section>
 
-    <section>
-      <div class="sec-head" style="display:flex; align-items:baseline; justify-content:space-between; border-bottom:1px solid var(--line); padding-bottom:9px;">
-        <h2 style="font-size:18px;">Ingresos recientes</h2>
-        <span class="text-faint" id="nuevosCount" style="font-family:var(--f-mono); font-size:12px;"></span>
+    <section style="padding:24px 0;">
+      <div class="sec-head" style="display:flex; align-items:baseline; justify-content:space-between; border-bottom:1px solid var(--line); padding-bottom:12px;">
+        <h2 style="font-size:22px;">🆕 Ingresos Recientes</h2>
+        <span class="text-faint" id="nuevosCount" style="font-family:var(--f-mono); font-size:13px;"></span>
       </div>
-      <div class="nuevo-grid" id="nuevoGrid" style="margin-top:16px;"></div>
+      <div class="nuevo-grid" id="nuevoGrid" style="margin-top:20px;"></div>
     </section>
 
   </div>
 
-  <footer style="margin-top:40px;">
+  <footer>
     <div class="wrap" style="padding:0;">
-      <span>Datos servidos desde Google Apps Script</span>
+      <span>Familia Terna · Portal de la comunidad</span>
       <span id="updatedAt"></span>
     </div>
   </footer>
@@ -144,10 +146,6 @@
 
 <script src="assets/common.js"></script>
 <script>
-/* Mismo backend/patrón que el dashboard original — solo cambia el token de
- * consulta (usa el mismo DASHBOARD_TOKEN que ya tenías, distinto de
- * WEB_MEMBER_TOKEN de common.js). Ajusta DASHBOARD_TOKEN si lo cambias en
- * 08_Web_Endpoints.gs. */
 const DASH_TOKEN = 'fm7qterna9x';
 const REFRESH_INTERVAL_MS = 60000;
 const DIAS = [
@@ -241,8 +239,8 @@ function render(data){
         <div class="stat"><b id="${slug}-barc">${g.barcos}</b><span>Barcos</span></div>
       </div>
       <div class="bar"><i style="width:${pct}%"></i></div>
-      <div style="margin-top:6px;font-size:11px;color:var(--text-faint);font-family:var(--f-mono);">
-        ${g.atacaron}/${g.totalHoy} atacaron hoy
+      <div style="margin-top:10px;font-size:12px;color:var(--text-dim);font-family:var(--f-mono);">
+        ${g.atacaron}/${g.totalHoy} atacaron hoy (${pct}%)
       </div>
     </div>`;
   }).join('') : '<div class="empty">Sin datos de guerra registrados para hoy.</div>';
@@ -254,7 +252,7 @@ function render(data){
   document.getElementById('pendCount').textContent = pend.length + ' jugador(es)';
   const pendWrap = document.getElementById('pendWrap');
   pendWrap.innerHTML = pend.length ? `
-    <div class="card"><table>
+    <div class="card" style="padding:12px;"><table>
       <thead><tr><th>Nombre</th><th>Clan</th><th>Faltantes</th></tr></thead>
       <tbody>${pend.map(p => `
           <tr><td>${esc(p.nombre || p.nomMulti || p.tag)}</td><td>${esc(p.clan)}</td><td class="falt">${p.faltantes}</td></tr>`).join('')}
@@ -278,8 +276,8 @@ function render(data){
       <div class="tag">${esc(n.tag)} · ${fmtFecha(n.fechaIng)}</div>
       <div class="clan">${esc(n.clan)}</div>
       <div class="links">
-        <a href="${esc(n.royaleApi)}" target="_blank" rel="noopener">RoyaleAPI</a>
-        <a href="${esc(n.cwstats)}" target="_blank" rel="noopener">CWStats</a>
+        <a href="${esc(n.royaleApi)}" target="_blank" rel="noopener">🌐 RoyaleAPI</a>
+        <a href="${esc(n.cwstats)}" target="_blank" rel="noopener">📊 CWStats</a>
       </div>
     </div>`).join('') : '<div class="empty">No hay ingresos recientes.</div>';
   document.getElementById('updatedAt').textContent =
