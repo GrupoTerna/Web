@@ -5,8 +5,11 @@
  *   - WEBAPP_URL: la misma URL /exec del Web App.
  *   - WEB_MEMBER_TOKEN: debe coincidir EXACTO con la variable del mismo
  *     nombre en 34_Web_API.gs (backend).
- * El login de admin (admin.html) no necesita token acá: la contraseña se
- * escribe una sola vez en ADMIN_PANEL_PASSWORD dentro de 34_Web_API.gs.
+ * El login de admin (admin.html) no necesita token acá: cada admin entra
+ * con su propio Celular + Clave (autogenerada por Celular en la hoja
+ * Administradores — ver sincronizarAdministradores()/_webAuthLogin() en
+ * 11_DirectorioSheet.gs / 34_Web_API.gs del backend), no una contraseña
+ * única compartida.
  * ========================================================================= */
 const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbwxTdbddzujbus0e5JT8cDcSHrOB6i-txjdjTu6_cbUGIYmNsF0P8MF71eFmH8_3MKfiw/exec'; // termina en /exec
 const WEB_MEMBER_TOKEN = 'terna-web-pub-24ago'; // debe ser igual al de 34_Web_API.gs
