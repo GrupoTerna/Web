@@ -76,28 +76,3 @@ function marcarNavActiva(){
   }
 }
 document.addEventListener('DOMContentLoaded', marcarNavActiva);
-
-/** Revela con fade-up los elementos .reveal cuando entran en viewport.
- * No afecta contenido inyectado por fetch (esos ya tienen su propia
- * animación de entrada vía .card en styles.css). Respeta
- * prefers-reduced-motion (la clase .reveal.in-view no hace nada si el
- * usuario pidió menos movimiento, porque la transición no existe en ese
- * media query). */
-function initScrollReveal(){
-  const els = document.querySelectorAll('.reveal');
-  if(!els.length) return;
-  if(!('IntersectionObserver' in window)){
-    els.forEach(el => el.classList.add('in-view'));
-    return;
-  }
-  const obs = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if(entry.isIntersecting){
-        entry.target.classList.add('in-view');
-        obs.unobserve(entry.target);
-      }
-    });
-  }, { threshold:0.15, rootMargin:'0px 0px -40px 0px' });
-  els.forEach(el => obs.observe(el));
-}
-document.addEventListener('DOMContentLoaded', initScrollReveal);
