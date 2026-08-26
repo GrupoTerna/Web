@@ -37,6 +37,8 @@
   .contenido-item .etiqueta{font-family:var(--f-mono); font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--gold);}
   .contenido-item .clan-chip{font-family:var(--f-mono); font-size:11px; color:var(--text-dim); background:var(--surface); border:1px solid var(--line); padding:2px 8px; border-radius:999px;}
   .contenido-item pre{white-space:pre-wrap; word-break:break-word; font-family:var(--f-body,inherit); font-size:14px; color:var(--text); margin:0; line-height:1.5;}
+  /* Fase 3 (25-ago-2026): gestión de torneos */
+  .ganador-victorias{font-family:var(--f-mono); font-size:13px; color:var(--text-dim);}
 </style>
 </head>
 <body data-page="admin">
@@ -105,6 +107,60 @@
       </div>
       <div id="contenidoMsg"></div>
       <div id="contenidoLista"></div>
+    </div>
+
+    <!-- Fase 3 (25-ago-2026): gestión de torneos — registrar link nuevo,
+         modificar fecha/hora del de hoy, y ver ganadores del más reciente.
+         Reutiliza _registrarTorneoDesdeBot / _listarTorneosDeHoy /
+         _modificarFechaHoraTorneo (24_Torneos_Core.gs) — los mismos 3 pasos
+         que ya existen en el bot de WhatsApp para admins. "Ver ganadores"
+         no tiene endpoint nuevo: usa el mismo webTorneos público que
+         index.html. Ver 34_Web_API.gs / 08_Web_Endpoints.gs. -->
+    <div class="card" style="margin-top:24px;">
+      <div class="eyebrow">Torneos</div>
+      <h3 style="font-size:15px; color:var(--gold); margin:10px 0 16px;">Registrar torneo nuevo</h3>
+      <div class="field">
+        <label for="tLink">Link del torneo</label>
+        <input type="text" id="tLink" placeholder="https://link.clashroyale.com/...">
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="tFecha">Fecha</label>
+          <input type="date" id="tFecha">
+        </div>
+        <div class="field">
+          <label for="tHora">Hora</label>
+          <input type="time" id="tHora">
+        </div>
+      </div>
+      <button class="btn btn-primary btn-block" id="btnRegistrarTorneo" style="margin-top:6px;">Registrar torneo</button>
+      <div id="registrarTorneoMsg"></div>
+    </div>
+
+    <div class="card" style="margin-top:24px;">
+      <h3 style="font-size:15px; color:var(--gold); margin:10px 0 16px;">Modificar torneo de hoy</h3>
+      <div class="field" style="margin-bottom:12px;">
+        <label for="tSelectHoy">Torneo</label>
+        <select id="tSelectHoy"><option value="">Cargando torneos de hoy…</option></select>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label for="tFechaMod">Nueva fecha</label>
+          <input type="date" id="tFechaMod">
+        </div>
+        <div class="field">
+          <label for="tHoraMod">Nueva hora</label>
+          <input type="time" id="tHoraMod">
+        </div>
+      </div>
+      <button class="btn btn-primary btn-block" id="btnModificarTorneo" style="margin-top:6px;">Guardar cambios</button>
+      <div id="modificarTorneoMsg"></div>
+    </div>
+
+    <div class="card" style="margin-top:24px;">
+      <h3 style="font-size:15px; color:var(--gold); margin:10px 0 16px;">Ganadores del torneo más reciente</h3>
+      <div id="ganadoresMsg"></div>
+      <div id="ganadoresLista"></div>
     </div>
 
     <div id="miembroSec" style="display:none; margin-top:24px;">
@@ -176,6 +232,8 @@ function mostrarPanel(){
   document.getElementById('loginSec').style.display = 'none';
   document.getElementById('panelSec').style.display = 'block';
   cargarCategorias();
+  cargarTorneosHoy();
+  cargarGanadoresTorneo();
 }
 function mostrarLogin(msg){
   sessionStorage.removeItem(SESSION_KEY);
@@ -391,6 +449,131 @@ document.getElementById('catSelect').addEventListener('change', async () => {
     msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
   }
 });
+
+/* ---------- Fase 3: gestión de torneos ---------- */
+
+/** Convierte el value de un <input type="date"> ("yyyy-mm-dd") al formato
+ *  "dd/mm/yyyy" que espera el backend (_combinarFechaHora, 24_Torneos_Core.gs). */
+function fechaInputADDMMYYYY(v){
+  if(!v) return '';
+  const [y, m, d] = v.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+document.getElementById('btnRegistrarTorneo').addEventListener('click', async () => {
+  const msgEl = document.getElementById('registrarTorneoMsg');
+  msgEl.innerHTML = '';
+  const link  = document.getElementById('tLink').value.trim();
+  const fecha = fechaInputADDMMYYYY(document.getElementById('tFecha').value);
+  const hora  = document.getElementById('tHora').value;
+  if(!link){ msgEl.innerHTML = '<div class="msg msg-error">Pega el link del torneo.</div>'; return; }
+  if(!fecha || !hora){ msgEl.innerHTML = '<div class="msg msg-error">Completa fecha y hora.</div>'; return; }
+  try{
+    const data = await apiPost('webAdminTorneoRegistrar', {
+      sessionToken: sessionStorage.getItem(SESSION_KEY),
+      link, fecha, hora
+    });
+    if(manejarRespuestaAuth(data)) return;
+    if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
+    msgEl.innerHTML = `<div class="msg msg-ok">Torneo registrado (ID ${esc(data.id)}).</div>`;
+    document.getElementById('tLink').value = '';
+    document.getElementById('tFecha').value = '';
+    document.getElementById('tHora').value = '';
+    cargarTorneosHoy();
+    cargarGanadoresTorneo();
+  }catch(err){
+    msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
+  }
+});
+
+/** Puebla el <select> de "Modificar torneo de hoy" — solo torneos de HOY,
+ *  igual que el paso "Modificar" del bot (_listarTorneosDeHoy()). Cada
+ *  <option> guarda la fecha ISO en data-fecha, para precargar los campos
+ *  de fecha/hora al elegir un torneo (ver listener de 'change' abajo). */
+async function cargarTorneosHoy(){
+  const sel = document.getElementById('tSelectHoy');
+  try{
+    const data = await apiGetAuth('webAdminTorneosHoy', {});
+    if(manejarRespuestaAuth(data)) return;
+    if(!data.ok || !data.torneos || !data.torneos.length){
+      sel.innerHTML = '<option value="">Sin torneos registrados hoy</option>';
+      return;
+    }
+    sel.innerHTML = '<option value="">Elige un torneo…</option>' +
+      data.torneos.map(t => {
+        const fechaTxt = new Date(t.fecha).toLocaleString('es-PE', { hour12:false });
+        return `<option value="${esc(t.id)}" data-fecha="${esc(t.fecha)}">${esc(t.id)} — ${esc(fechaTxt)}</option>`;
+      }).join('');
+  }catch(err){
+    sel.innerHTML = '<option value="">—</option>';
+  }
+}
+
+document.getElementById('tSelectHoy').addEventListener('change', () => {
+  const opt = document.getElementById('tSelectHoy').selectedOptions[0];
+  const fechaISO = opt && opt.dataset.fecha;
+  const fFecha = document.getElementById('tFechaMod');
+  const fHora = document.getElementById('tHoraMod');
+  if(!fechaISO){ fFecha.value = ''; fHora.value = ''; return; }
+  const d = new Date(fechaISO);
+  const pad = n => String(n).padStart(2, '0');
+  fFecha.value = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+  fHora.value  = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+});
+
+document.getElementById('btnModificarTorneo').addEventListener('click', async () => {
+  const msgEl = document.getElementById('modificarTorneoMsg');
+  msgEl.innerHTML = '';
+  const id    = document.getElementById('tSelectHoy').value;
+  const fecha = fechaInputADDMMYYYY(document.getElementById('tFechaMod').value);
+  const hora  = document.getElementById('tHoraMod').value;
+  if(!id){ msgEl.innerHTML = '<div class="msg msg-error">Elige un torneo de la lista.</div>'; return; }
+  if(!fecha || !hora){ msgEl.innerHTML = '<div class="msg msg-error">Completa la nueva fecha y hora.</div>'; return; }
+  try{
+    const data = await apiPost('webAdminTorneoModificar', {
+      sessionToken: sessionStorage.getItem(SESSION_KEY),
+      id, fecha, hora
+    });
+    if(manejarRespuestaAuth(data)) return;
+    if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
+    msgEl.innerHTML = '<div class="msg msg-ok">Torneo actualizado.</div>';
+    cargarTorneosHoy();
+    cargarGanadoresTorneo();
+  }catch(err){
+    msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
+  }
+});
+
+/** "Ver ganadores" reutiliza el mismo webTorneos() público que index.html —
+ *  no hay endpoint de admin separado (ver nota de diseño en 34_Web_API.gs). */
+async function cargarGanadoresTorneo(){
+  const msgEl = document.getElementById('ganadoresMsg');
+  const lista = document.getElementById('ganadoresLista');
+  msgEl.innerHTML = '';
+  lista.innerHTML = '<div class="empty">Cargando…</div>';
+  try{
+    const data = await apiGet('webTorneos', {});
+    const g = data.ganadores;
+    if(!g || !g.top3 || !g.top3.length){
+      lista.innerHTML = '<div class="empty">Todavía no hay ganadores calificados para el torneo más reciente.</div>';
+      return;
+    }
+    const fechaTxt = new Date(g.fecha).toLocaleString('es-PE', { hour12:false });
+    lista.innerHTML =
+      `<div class="text-faint" style="font-family:var(--f-mono); font-size:12px; margin-bottom:10px;">Torneo ${esc(g.idTorneo)} · ${esc(fechaTxt)}</div>` +
+      g.top3.map(p => `
+        <div class="contenido-item">
+          <div class="cab">
+            <span class="etiqueta">Puesto ${esc(p.puesto)} — ${esc(p.nombre)}</span>
+            <span class="clan-chip">${esc(p.clan)}</span>
+          </div>
+          <div class="ganador-victorias">${esc(p.victorias)} victorias</div>
+        </div>`).join('');
+  }catch(err){
+    lista.innerHTML = '';
+    msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
+  }
+}
 </script>
 </body>
 </html>
