@@ -217,6 +217,88 @@
 
       </div>
     </div>
+
+    <!-- FASE 4 (26-ago-2026): registrar miembro nuevo, en dos pasos —
+         Paso 1 verifica el Tag contra la API (webAdminVerificarTag) antes
+         de dejar completar nada; Paso 2 se habilita solo tras un
+         "Verificar" exitoso. Reutiliza _guardarRegistroNuevoMiembro()
+         (11_DirectorioSheet.gs) vía webAdminRegistrarNuevo — mismo backend
+         que "Datos de gestión" arriba, para un miembro que todavía no
+         existe en Directorio. Card oculta si el admin logueado no tiene
+         "Registrar miembro nuevo" en Funciones (ver
+         aplicarVisibilidadPorFunciones() más abajo) — el backend igual
+         vuelve a validar esto en cada request, esto es solo para no
+         mostrar un formulario que de todos modos va a rechazar.
+         Ver arquitectura-web-familia-terna.md, Sección 7.4. -->
+    <div class="card" id="cardRegistrarNuevo" style="display:none; margin-top:24px;">
+      <div class="eyebrow">Directorio</div>
+      <h3 style="font-size:15px; color:var(--gold); margin:10px 0 16px;">Registrar miembro nuevo</h3>
+      <div class="field">
+        <label for="nmTag">Tag</label>
+        <input type="text" id="nmTag" placeholder="Ej: #ABC123XYZ" autocapitalize="characters">
+      </div>
+      <button class="btn btn-primary" id="btnNmVerificar" type="button">Verificar</button>
+      <div id="nmVerificarMsg"></div>
+
+      <div id="nmPaso2" style="display:none; margin-top:18px; padding-top:18px; border-top:1px solid var(--line);">
+        <div class="field">
+          <label for="nmNomMultiSelect">Nombre multicuenta</label>
+          <select id="nmNomMultiSelect"><option value="">Cargando…</option></select>
+        </div>
+        <div class="field" id="nmNomMultiNuevoWrap">
+          <input type="text" id="nmNomMultiNuevo" placeholder="Nombre de la multicuenta nueva" style="display:none;">
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="nmPrefijo">Prefijo (país)</label>
+            <input type="text" id="nmPrefijo" placeholder="Ej: 51">
+          </div>
+          <div class="field">
+            <label for="nmCelular">Celular</label>
+            <input type="text" id="nmCelular" placeholder="Ej: 987654321">
+          </div>
+        </div>
+        <button class="btn btn-primary btn-block" id="btnNmGuardar" style="margin-top:6px;">Guardar registro</button>
+        <div id="nmGuardarMsg"></div>
+      </div>
+    </div>
+
+    <!-- FASE 4: vetar a un miembro — de un solo sentido, sin opción de
+         deshacer desde la web (ver Sección 7.6 del documento de
+         arquitectura: no hay endpoint de "desvetar"). El backend
+         (_webAdminVetar, 34_Web_API.gs) revalida "Vetar" en Funciones y
+         que el Clan del tag esté en Clanes_Admin del admin logueado —acá
+         solo se oculta la card si no tiene "Vetar" en Funciones, como
+         arriba. La lista de Razón es la MISMA que CFG.RAZON_VALORES_VALIDOS
+         (01_Config_Global.gs) — si esa lista cambia en el backend, hay que
+         actualizarla acá también a mano (no hay endpoint que la exponga,
+         ver Sección 7.7 del documento de arquitectura). -->
+    <div class="card" id="cardVetar" style="display:none; margin-top:24px;">
+      <div class="eyebrow">Directorio</div>
+      <h3 style="font-size:15px; color:var(--gold); margin:10px 0 16px;">Vetar miembro</h3>
+      <div class="field">
+        <label for="vTag">Tag</label>
+        <input type="text" id="vTag" placeholder="Ej: #ABC123XYZ" autocapitalize="characters">
+      </div>
+      <div class="field">
+        <label for="vRazon">Razón</label>
+        <select id="vRazon">
+          <option value="">Elige una razón…</option>
+          <option value="NARANJA x">NARANJA x</option>
+          <option value="Vetado por clan">Vetado por clan</option>
+          <option value="Incumplimiento de ataques">Incumplimiento de ataques</option>
+          <option value="Conducta inapropiada">Conducta inapropiada</option>
+          <option value="Inactividad prolongada">Inactividad prolongada</option>
+          <option value="Solicitud propia">Solicitud propia</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="vComentario">Comentario (opcional)</label>
+        <textarea id="vComentario" rows="3" placeholder="Detalle adicional para el registro de Comentarios"></textarea>
+      </div>
+      <button class="btn btn-primary btn-block" id="btnVetar" style="margin-top:6px; border-color:var(--danger);">Vetar</button>
+      <div id="vMsg"></div>
+    </div>
   </div>
 </section>
 
@@ -249,9 +331,29 @@ function mostrarPanel(){
       if(nombreMostrar) bienvenida.textContent = `Hola, ${nombreMostrar}`;
     }catch(err){ /* si el JSON guardado no es válido, se deja el texto por defecto */ }
   }
+  aplicarVisibilidadPorFunciones();
   cargarCategorias();
   cargarTorneosHoy();
   cargarGanadoresTorneo();
+}
+
+/** FASE 4 (26-ago-2026): muestra/oculta las cards de "Registrar miembro
+ *  nuevo" y "Vetar miembro" según la columna Funciones del admin logueado
+ *  (texto libre separado por comas, ver Sección 7.3 de
+ *  arquitectura-web-familia-terna.md — nunca un único valor, un admin
+ *  puede tener ambas funciones a la vez). Es solo UX: el backend
+ *  (_webAdminRegistrarNuevo / _webAdminVetar, 34_Web_API.gs) vuelve a
+ *  validar esto mismo en cada request, así que ocultar la card acá no es
+ *  el control de seguridad real, solo evita mostrar un formulario que de
+ *  todos modos el servidor va a rechazar. */
+function aplicarVisibilidadPorFunciones(){
+  let funciones = '';
+  const adminGuardado = sessionStorage.getItem(SESSION_ADMIN_KEY);
+  if(adminGuardado){
+    try{ funciones = String(JSON.parse(adminGuardado).funciones || ''); }catch(err){ /* se deja vacío */ }
+  }
+  document.getElementById('cardRegistrarNuevo').style.display = funciones.indexOf('Registrar miembro nuevo') !== -1 ? 'block' : 'none';
+  document.getElementById('cardVetar').style.display = funciones.indexOf('Vetar') !== -1 ? 'block' : 'none';
 }
 function mostrarLogin(msg){
   sessionStorage.removeItem(SESSION_KEY);
@@ -600,6 +702,135 @@ async function cargarGanadoresTorneo(){
     msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
   }
 }
+
+/* ---------- Fase 4: registrar miembro nuevo (2 pasos) ---------- */
+// Ver Sección 7.4 de arquitectura-web-familia-terna.md. Paso 1
+// (webAdminVerificarTag) valida el Tag contra la API antes de habilitar
+// el Paso 2 — cualquier edición del Tag después de verificar invalida esa
+// verificación y hay que volver a apretar "Verificar".
+
+let nmTagVerificado = null;
+
+document.getElementById('nmTag').addEventListener('input', () => {
+  nmTagVerificado = null;
+  document.getElementById('nmPaso2').style.display = 'none';
+});
+
+document.getElementById('nmNomMultiSelect').addEventListener('change', () => {
+  const esNueva = document.getElementById('nmNomMultiSelect').value === '__nuevo__';
+  document.getElementById('nmNomMultiNuevo').style.display = esNueva ? 'block' : 'none';
+  if(!esNueva) document.getElementById('nmNomMultiNuevo').value = '';
+});
+
+async function verificarTagNuevoMiembro(){
+  const msgEl = document.getElementById('nmVerificarMsg');
+  const tagNorm = normalizarTag(document.getElementById('nmTag').value);
+  msgEl.innerHTML = '';
+  document.getElementById('nmPaso2').style.display = 'none';
+  nmTagVerificado = null;
+  if(!tagNorm){ msgEl.innerHTML = '<div class="msg msg-error">Escribe un Tag válido.</div>'; return; }
+  document.getElementById('nmTag').value = tagNorm;
+  msgEl.innerHTML = '<div class="empty">Verificando…</div>';
+  try{
+    const data = await apiGetAuth('webAdminVerificarTag', { tag: tagNorm });
+    if(manejarRespuestaAuth(data)) return;
+    if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
+    nmTagVerificado = data.jugador.tag;
+    msgEl.innerHTML = `<div class="msg msg-ok">Encontrado (${esc(data.fuente)}): <b>${esc(data.jugador.nombre)}</b>${data.jugador.clan ? ' · ' + esc(data.jugador.clan) : ''}</div>`;
+    document.getElementById('nmNomMultiNuevo').style.display = 'none';
+    document.getElementById('nmNomMultiNuevo').value = '';
+    document.getElementById('nmPrefijo').value = '';
+    document.getElementById('nmCelular').value = '';
+    document.getElementById('nmGuardarMsg').innerHTML = '';
+    document.getElementById('nmPaso2').style.display = 'block';
+    cargarNomMultisExistentes();
+  }catch(err){
+    msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
+  }
+}
+document.getElementById('btnNmVerificar').addEventListener('click', verificarTagNuevoMiembro);
+document.getElementById('nmTag').addEventListener('keydown', e => { if(e.key === 'Enter') verificarTagNuevoMiembro(); });
+
+/** Puebla el <select> de Nombre multicuenta con los Nom_Multi ya usados en
+ *  el sistema (webAdminNomMultisExistentes → _obtenerNomMultisDistintos(),
+ *  11_DirectorioSheet.gs), más "Ninguna de las anteriores…" que revela un
+ *  textbox para escribir uno nuevo. Si la carga falla, igual deja
+ *  disponibles las dos opciones fijas para no bloquear el registro. */
+async function cargarNomMultisExistentes(){
+  const sel = document.getElementById('nmNomMultiSelect');
+  sel.innerHTML = '<option value="">Cargando…</option>';
+  try{
+    const data = await apiGetAuth('webAdminNomMultisExistentes', {});
+    if(manejarRespuestaAuth(data)) return;
+    const existentes = (data.ok && data.nomMultis) ? data.nomMultis : [];
+    sel.innerHTML =
+      '<option value="">Sin Nombre multicuenta (cuenta única)</option>' +
+      existentes.map(nm => `<option value="${esc(nm)}">${esc(nm)}</option>`).join('') +
+      '<option value="__nuevo__">Ninguna de las anteriores…</option>';
+  }catch(err){
+    sel.innerHTML = '<option value="">Sin Nombre multicuenta (cuenta única)</option><option value="__nuevo__">Ninguna de las anteriores…</option>';
+  }
+}
+
+document.getElementById('btnNmGuardar').addEventListener('click', async () => {
+  const msgEl = document.getElementById('nmGuardarMsg');
+  msgEl.innerHTML = '';
+  if(!nmTagVerificado){ msgEl.innerHTML = '<div class="msg msg-error">Verifica el Tag primero.</div>'; return; }
+  const selVal = document.getElementById('nmNomMultiSelect').value;
+  const nomMulti = selVal === '__nuevo__' ? document.getElementById('nmNomMultiNuevo').value.trim() : selVal;
+  const payload = {
+    sessionToken: sessionStorage.getItem(SESSION_KEY),
+    datos: {
+      tag:      nmTagVerificado,
+      nomMulti: nomMulti,
+      prefijo:  document.getElementById('nmPrefijo').value,
+      celular:  document.getElementById('nmCelular').value
+    }
+  };
+  try{
+    const data = await apiPost('webAdminRegistrarNuevo', payload);
+    if(manejarRespuestaAuth(data)) return;
+    if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
+    msgEl.innerHTML = '<div class="msg msg-ok">Miembro registrado correctamente.</div>';
+    document.getElementById('nmTag').value = '';
+    document.getElementById('nmPaso2').style.display = 'none';
+    document.getElementById('nmVerificarMsg').innerHTML = '';
+    nmTagVerificado = null;
+  }catch(err){
+    msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
+  }
+});
+
+/* ---------- Fase 4: vetar miembro ---------- */
+// Ver Sección 7.5 de arquitectura-web-familia-terna.md. Sin opción de
+// deshacer desde la web (Sección 7.6) — por eso el confirm() antes de
+// disparar el request, además del color de aviso en el botón.
+
+document.getElementById('btnVetar').addEventListener('click', async () => {
+  const msgEl = document.getElementById('vMsg');
+  msgEl.innerHTML = '';
+  const tagNorm = normalizarTag(document.getElementById('vTag').value);
+  const razon = document.getElementById('vRazon').value;
+  const comentario = document.getElementById('vComentario').value.trim();
+  if(!tagNorm){ msgEl.innerHTML = '<div class="msg msg-error">Escribe un Tag válido.</div>'; return; }
+  if(!razon){ msgEl.innerHTML = '<div class="msg msg-error">Elige una Razón.</div>'; return; }
+  document.getElementById('vTag').value = tagNorm;
+  if(!window.confirm(`¿Vetar a ${tagNorm}? Esta acción no se puede deshacer desde la web.`)) return;
+  try{
+    const data = await apiPost('webAdminVetar', {
+      sessionToken: sessionStorage.getItem(SESSION_KEY),
+      datos: { tag: tagNorm, razon: razon, comentario: comentario }
+    });
+    if(manejarRespuestaAuth(data)) return;
+    if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
+    msgEl.innerHTML = '<div class="msg msg-ok">Miembro vetado.</div>';
+    document.getElementById('vTag').value = '';
+    document.getElementById('vRazon').value = '';
+    document.getElementById('vComentario').value = '';
+  }catch(err){
+    msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
+  }
+});
 </script>
 </body>
 </html>
