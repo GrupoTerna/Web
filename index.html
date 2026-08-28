@@ -300,7 +300,7 @@ async function cargarClanes(){
   try{
     const data = await apiGet('webClanInfo');
     const clanes = data.clanes || [];
-    grid.innerHTML = clanes.map((c, i) => clanCardHtml(c, i, { mostrarUnirse: true })).join('');
+    grid.innerHTML = clanes.map((c, i) => clanCardHtml(c, i, { mostrarVerClan: true, mostrarUnirse: true })).join('');
     grid.querySelectorAll('.js-solicitar-unirme').forEach(btn => {
       btn.addEventListener('click', () => abrirModalUnirse(btn.dataset.clan));
     });
@@ -352,13 +352,18 @@ async function cargarIngresos(){
       return;
     }
 
-    // Agrupar manteniendo el orden que ya entrega el backend (por clan, luego nombre).
+    // Agrupar por clan (respetando el orden de aparición que entrega el
+    // backend, que sigue el orden fijo de la Familia) y ordenar cada grupo
+    // alfabéticamente por nombre — el PDF exige "por clan y luego por
+    // nombre (orden alfabético)", así que no basta con confiar en el orden
+    // del backend para el nombre.
     const grupos = [];
     ingresos.forEach(ing => {
       let g = grupos.find(x => x.clan === ing.clan);
       if (!g){ g = { clan: ing.clan, items: [] }; grupos.push(g); }
       g.items.push(ing);
     });
+    grupos.forEach(g => g.items.sort((a, b) => (a.nombre||'').localeCompare(b.nombre||'', 'es', { sensitivity:'base' })));
 
     wrap.innerHTML = grupos.map(g => `
       <div class="ingreso-clan">
