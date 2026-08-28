@@ -89,8 +89,12 @@ const CLAN_LABELS_CORTOS = ['Principal', 'Terna 2', 'Terna 3', 'Mini'];
  * Arma el HTML de una tarjeta de clan a partir de un objeto de webClanInfo.
  *   opts.mostrarRol:    agrega la etiqueta "Cantera"/"Semillero" (solo en Clanes).
  *   opts.mostrarUnirse: agrega el botón "Unirse a este clan" (Inicio y Clanes).
- * Ya NO incluye la descripción del clan (retirada a pedido del usuario) ni
- * ningún botón "Ver clan" — solo RoyaleAPI/CWStats + (opcional) Unirse.
+ *   opts.mostrarVerClan: agrega el botón "Ver clan" (SOLO Inicio — a pedido
+ *     del usuario, la página Clanes ya no lo lleva porque el visitante ya
+ *     está ahí; en Inicio lleva directo a la pestaña de ese clan en el
+ *     roster de jugadores.html).
+ * Ya NO incluye la descripción del clan (retirada a pedido del usuario) —
+ * solo RoyaleAPI/CWStats + (opcional) Ver clan + (opcional) Unirse.
  */
 function clanCardHtml(c, i, opts){
   opts = opts || {};
@@ -100,6 +104,7 @@ function clanCardHtml(c, i, opts){
   const lider  = c.lider || '—';
   const liga   = c.liga  || '—';
   const rol    = CLAN_ROL_FAMILIA[i] || '';
+  const verClanHref = `jugadores.html?clan=${encodeURIComponent(nombre)}#roster`;
   return `
     <div class="card card-hover clan-card" style="display:flex; flex-direction:column;">
       <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px;">
@@ -120,6 +125,7 @@ function clanCardHtml(c, i, opts){
         ${c.royaleApi ? `<a class="btn btn-ghost" style="flex:1; text-align:center; font-size:12px; padding:9px 10px;" href="${esc(c.royaleApi)}" target="_blank" rel="noopener">🌐 RoyaleAPI</a>` : ''}
         ${c.cwStats  ? `<a class="btn btn-ghost" style="flex:1; text-align:center; font-size:12px; padding:9px 10px;" href="${esc(c.cwStats)}" target="_blank" rel="noopener">📊 CWStats</a>` : ''}
       </div>
+      ${opts.mostrarVerClan ? `<a class="btn btn-primary btn-block" href="${esc(verClanHref)}" style="margin-top:12px;">Ver clan</a>` : ''}
       ${opts.mostrarUnirse ? `<button type="button" class="btn btn-ghost btn-block js-solicitar-unirme" data-clan="${esc(nombre)}" style="margin-top:12px;">Unirse a este clan</button>` : ''}
     </div>`;
 }
