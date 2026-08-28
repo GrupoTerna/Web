@@ -66,6 +66,92 @@ function normalizarTag(t){
   return v ? '#' + v : '';
 }
 
+/* =========================================================================
+ * Tarjetas y gráficos de clan — compartidos por index.html y jugadores.html
+ * (28-ago-2026, pedido del usuario: mismas tarjetas en ambas páginas, sin
+ * duplicar el HTML/CSS/JS en cada archivo).
+ * ========================================================================= */
+
+/** Insignia de rol + rol dentro de la familia, en el MISMO orden que ya
+ * devuelve webClanInfo (CFG.TERNA_TAGS del backend: Principal, Terna 2,
+ * Terna 3, Mini Ternas). "rolFamilia" solo se muestra en la página Clanes. */
+const CLAN_BADGES = [
+  { cls: 'badge-gold',   label: '👑 Clan Principal' },
+  { cls: 'badge-purple', label: '⚔️ Clan Terna 2' },
+  { cls: 'badge-purple', label: '🛡️ Clan Terna 3' },
+  { cls: 'badge-purple', label: '🌟 Mini Ternas' }
+];
+const CLAN_ROL_FAMILIA  = ['', 'Cantera', 'Cantera', 'Semillero'];
+const CLAN_LABELS_CORTOS = ['Principal', 'Terna 2', 'Terna 3', 'Mini'];
+
+/**
+ * clanCardHtml(c, i, opts)
+ * Arma el HTML de una tarjeta de clan a partir de un objeto de webClanInfo.
+ *   opts.mostrarRol:    agrega la etiqueta "Cantera"/"Semillero" (solo en Clanes).
+ *   opts.mostrarUnirse: agrega el botón "Unirse a este clan" (Inicio y Clanes).
+ * Ya NO incluye la descripción del clan (retirada a pedido del usuario) ni
+ * ningún botón "Ver clan" — solo RoyaleAPI/CWStats + (opcional) Unirse.
+ */
+function clanCardHtml(c, i, opts){
+  opts = opts || {};
+  const badge  = CLAN_BADGES[i] || { cls: 'badge-purple', label: 'Clan Terna' };
+  const nombre = c.nombre || badge.label;
+  const reqTxt = c.requerimiento > 0 ? c.requerimiento.toLocaleString('es-PE') + '+' : '—';
+  const lider  = c.lider || '—';
+  const liga   = c.liga  || '—';
+  const rol    = CLAN_ROL_FAMILIA[i] || '';
+  return `
+    <div class="card card-hover clan-card" style="display:flex; flex-direction:column;">
+      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px;">
+        <span class="badge ${badge.cls}">${esc(badge.label)}</span>
+        ${(opts.mostrarRol && rol) ? `<span class="badge badge-purple">${esc(rol)}</span>` : ''}
+      </div>
+      <h3 style="font-size:20px;">${esc(nombre)}</h3>
+      <div class="text-faint" style="font-family:var(--f-mono); font-size:12px; margin-top:4px;">${esc(c.clanTag||'')}</div>
+      <div style="display:flex; flex-direction:column; gap:4px; margin-top:12px; font-size:13px;">
+        <span class="text-dim">👑 Líder: <b style="color:var(--text);">${esc(lider)}</b></span>
+        <span class="text-dim">🛡️ Liga: <b style="color:var(--text);">${esc(liga)}</b></span>
+      </div>
+      <div style="flex:1; min-height:8px;"></div>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px; font-family:var(--f-mono); font-size:13px; border-top:1px solid var(--line); padding-top:12px;">
+        <span class="text-faint">Mín. trofeos</span><b style="color:var(--gold);">${reqTxt} 🏆</b>
+      </div>
+      <div style="display:flex; gap:10px; margin-top:14px; flex-wrap:wrap;">
+        ${c.royaleApi ? `<a class="btn btn-ghost" style="flex:1; text-align:center; font-size:12px; padding:9px 10px;" href="${esc(c.royaleApi)}" target="_blank" rel="noopener">🌐 RoyaleAPI</a>` : ''}
+        ${c.cwStats  ? `<a class="btn btn-ghost" style="flex:1; text-align:center; font-size:12px; padding:9px 10px;" href="${esc(c.cwStats)}" target="_blank" rel="noopener">📊 CWStats</a>` : ''}
+      </div>
+      ${opts.mostrarUnirse ? `<button type="button" class="btn btn-ghost btn-block js-solicitar-unirme" data-clan="${esc(nombre)}" style="margin-top:12px;">Unirse a este clan</button>` : ''}
+    </div>`;
+}
+
+/**
+ * chartCardHtml(titulo, icono, clanes, campo, formatFn)
+ * Tarjeta con un mini gráfico de barras horizontales comparando los 4
+ * clanes en un campo numérico de webClanInfo (miembros/donaciones/
+ * trofeos/copas). Sin librerías externas — barras hechas con CSS puro,
+ * consistentes con el resto del sitio (ver .chart-* en jugadores.html).
+ */
+function chartCardHtml(titulo, icono, clanes, campo, formatFn){
+  const valores = clanes.map(c => Number(c[campo]) || 0);
+  const max = Math.max(1, ...valores);
+  const filas = clanes.map((c, i) => {
+    const v   = valores[i];
+    const pct = Math.max(2, Math.round((v / max) * 100));
+    const txt = formatFn ? formatFn(v) : v.toLocaleString('es-PE');
+    return `
+      <div class="chart-row">
+        <span class="chart-label">${esc(CLAN_LABELS_CORTOS[i] || c.nombre || '—')}</span>
+        <span class="chart-track"><span class="chart-fill" style="width:${pct}%"></span></span>
+        <span class="chart-val">${esc(txt)}</span>
+      </div>`;
+  }).join('');
+  return `
+    <div class="card chart-card">
+      <div class="chart-title">${icono} ${esc(titulo)}</div>
+      ${filas}
+    </div>`;
+}
+
 /** Marca activo el link de navegación de la página actual (por data-page). */
 function marcarNavActiva(){
   const actual = document.body.dataset.page;
