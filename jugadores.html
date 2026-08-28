@@ -163,7 +163,7 @@
   </section>
 
   <!-- ---------- ROSTER COMPLETO ---------- -->
-  <section style="padding:32px 0 0;">
+  <section id="roster" style="padding:32px 0 0;">
     <div class="sec-head" style="margin-bottom:20px;">
       <div class="eyebrow">Directorio</div>
       <h2 style="font-size:24px; margin-top:10px;">Roster por clan</h2>
@@ -513,14 +513,30 @@ function renderRosterClanActivo(filtro){
   });
 }
 
+/**
+ * Si venimos del botón "Ver clan" de Inicio (jugadores.html?clan=NombreDelClan),
+ * selecciona esa pestaña de entrada y hace scroll suave hasta el roster.
+ */
+function clanIdxDesdeQuery(){
+  const params = new URLSearchParams(location.search);
+  const clanParam = params.get('clan');
+  if (!clanParam) return -1;
+  const q = clanParam.trim().toLowerCase();
+  return rosterData.findIndex(c => (c.nombre || '').trim().toLowerCase() === q);
+}
+
 async function cargarRoster(){
   const wrap = document.getElementById('rosterWrap');
   try{
     const data = await apiGet('webRoster');
     rosterData = data.clanes || [];
-    clanActivoIdx = 0;
+    const idxDesdeQuery = clanIdxDesdeQuery();
+    clanActivoIdx = idxDesdeQuery >= 0 ? idxDesdeQuery : 0;
     renderClanTabs();
     renderRosterClanActivo('');
+    if (idxDesdeQuery >= 0) {
+      document.getElementById('roster').scrollIntoView({ behavior:'smooth', block:'start' });
+    }
   }catch(err){
     wrap.innerHTML = `<div class="card"><div class="empty">No se pudo cargar el roster: ${esc(err.message)}</div></div>`;
   }
