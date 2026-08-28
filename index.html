@@ -88,29 +88,29 @@
   .clan-card-skel{opacity:.6; animation: pulse 1.5s infinite ease-in-out;}
   @keyframes pulse { 0%,100%{opacity:.4;} 50%{opacity:.7;} }
 
-  /* Torneos eSports & Podio de Ganadores */
-  .podio-ganadores{
-    display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:16px;
-    margin-top:16px;
+  /* Ingresos recientes (reemplaza a Torneos, 28-ago-2026) */
+  .ingreso-clan{margin-bottom:22px;}
+  .ingreso-clan:last-child{margin-bottom:0;}
+  .ingreso-clan h3{
+    font-family:var(--f-display); font-weight:700; font-size:14px; color:var(--purple-light);
+    text-transform:uppercase; letter-spacing:.05em; margin-bottom:12px;
   }
-  .podio-puesto{
-    display:flex; align-items:center; gap:14px; padding:16px;
-    border-radius:var(--radius-sm); border:1px solid var(--line); background:rgba(15,18,29,.6);
-    transition: all .2s ease;
+  .ingreso-row{
+    display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
+    padding:14px 18px; border-radius:var(--radius-sm); border:1px solid var(--line);
+    background:var(--surface-card); margin-bottom:10px; transition:all .18s ease;
   }
-  .podio-puesto:hover{transform:translateY(-2px); border-color:var(--line-strong);}
-  .podio-puesto.pos-1st{border-color:rgba(243,169,34,.5); background:rgba(243,169,34,.08); box-shadow:0 0 16px rgba(243,169,34,.15);}
-  .podio-puesto.pos-2nd{border-color:rgba(203,213,225,.4); background:rgba(203,213,225,.06);}
-  .podio-puesto.pos-3rd{border-color:rgba(224,122,95,.4); background:rgba(224,122,95,.06);}
-  .podio-medalla{font-size:32px; line-height:1;}
-  .podio-nombre{font-family:var(--f-display); font-weight:700; font-size:17px; color:var(--text);}
-  .podio-clan{font-family:var(--f-mono); font-size:12px; color:var(--text-dim); margin-top:2px;}
-  .podio-victorias{
-    margin-left:auto; font-family:var(--f-mono); font-size:14px; font-weight:700;
-    color:var(--gold); background:rgba(243,169,34,.15); padding:4px 10px; border-radius:999px;
+  .ingreso-row:last-child{margin-bottom:0;}
+  .ingreso-row:hover{border-color:var(--line-strong); transform:translateY(-2px);}
+  .ingreso-info .ing-nombre{font-weight:700; font-size:14px; color:var(--text);}
+  .ingreso-info .ing-fecha{font-family:var(--f-mono); font-size:11px; color:var(--text-faint); margin-top:3px;}
+  .ingreso-links{display:flex; gap:8px; flex-wrap:wrap;}
+  .ingreso-links a{
+    font-family:var(--f-mono); font-size:11px; font-weight:600; color:var(--purple-light);
+    border:1px solid var(--line); padding:7px 13px; border-radius:var(--radius-sm); text-decoration:none;
+    transition:all .18s ease;
   }
-  .torneo-card .torneo-fecha{font-family:var(--f-mono); font-size:12px; color:var(--text-faint);}
-  .torneo-card h3{font-size:18px; margin-top:8px;}
+  .ingreso-links a:hover{border-color:var(--purple); background:rgba(162,57,255,.1);}
 </style>
 </head>
 <body data-page="inicio">
@@ -123,8 +123,7 @@
     </a>
     <button id="navToggle" class="nav-toggle" aria-label="Abrir menú">☰</button>
     <div class="links">
-      <a href="index.html" data-page="inicio">Inicio</a>
-      <a href="jugadores.html" data-page="jugadores">Miembros</a>
+      <a href="jugadores.html" data-page="jugadores">Clanes</a>
       <a href="guerra.html" data-page="guerra">Guerra</a>
       <a href="admin.html" data-page="admin" class="cta">Acceder</a>
     </div>
@@ -273,16 +272,16 @@
   </div>
 </section>
 
-<!-- ---------- TORNEOS & PODIO ---------- -->
-<section id="torneos">
+<!-- ---------- INGRESOS RECIENTES ---------- -->
+<section id="ingresos">
   <div class="wrap">
     <div class="sec-head">
-      <div class="eyebrow">Competencia eSports</div>
-      <h2>Torneos de la Familia</h2>
-      <p>Resultados más recientes y el cuadro de campeones de la comunidad.</p>
+      <div class="eyebrow">Roster en movimiento</div>
+      <h2>Ingresos recientes</h2>
+      <p>Los miembros más nuevos de cada clan, ordenados por clan y luego por nombre.</p>
     </div>
-    <div id="torneosGanadores">
-      <div class="card clan-card-skel"><h3 style="font-size:16px;">Cargando torneos…</h3></div>
+    <div id="ingresosWrap">
+      <div class="card clan-card-skel"><h3 style="font-size:16px;">Cargando ingresos…</h3></div>
     </div>
   </div>
 </section>
@@ -296,48 +295,12 @@
 
 <script src="assets/common.js"></script>
 <script>
-const CLAN_BADGES = [
-  { cls: 'badge-gold',   label: '👑 Clan Principal' },
-  { cls: 'badge-purple', label: '⚔️ Clan Terna 2' },
-  { cls: 'badge-purple', label: '🛡️ Clan Terna 3' },
-  { cls: 'badge-purple', label: '🌟 Mini Ternas' }
-];
-
-const CLAN_DESC_FALLBACK = [
-  'El clan líder de la familia. Guerra competitiva, exigencia alta.',
-  'Guerra activa, buen espacio para crecer y ascender.',
-  'Ideal para jugadores constantes que buscan comunidad.',
-  'El clan de entrada — perfecto para empezar en la familia.'
-];
-
 async function cargarClanes(){
   const grid = document.getElementById('clanGrid');
   try{
     const data = await apiGet('webClanInfo');
     const clanes = data.clanes || [];
-    grid.innerHTML = clanes.map((c, i) => {
-      const badge  = CLAN_BADGES[i] || { cls: 'badge-purple', label: 'Clan Terna' };
-      const nombre = c.nombre || badge.label;
-      const desc   = c.descripcion || CLAN_DESC_FALLBACK[i] || '';
-      const reqTxt = c.requerimiento > 0 ? c.requerimiento.toLocaleString('es-PE') + '+' : '—';
-      const lider  = c.lider || '—';
-      const liga   = c.liga  || '—';
-      return `
-        <div class="card card-hover clan-card" style="display:flex; flex-direction:column;">
-          <div class="badge ${badge.cls}" style="margin-bottom:14px; align-self:flex-start;">${esc(badge.label)}</div>
-          <h3 style="font-size:20px;">${esc(nombre)}</h3>
-          <div class="text-faint" style="font-family:var(--f-mono); font-size:12px; margin-top:4px;">${esc(c.clanTag)}</div>
-          <div style="display:flex; flex-direction:column; gap:4px; margin-top:12px; font-size:13px;">
-            <span class="text-dim">👑 Líder: <b style="color:var(--text);">${esc(lider)}</b></span>
-            <span class="text-dim">🛡️ Liga: <b style="color:var(--text);">${esc(liga)}</b></span>
-          </div>
-          <p class="text-dim" style="font-size:14px; margin-top:16px; line-height:1.55; flex:1;">${esc(desc)}</p>
-          <div style="display:flex; justify-content:space-between; margin-top:20px; font-family:var(--f-mono); font-size:13px; border-top:1px solid var(--line); padding-top:12px;">
-            <span class="text-faint">Mín. trofeos</span><b style="color:var(--gold);">${reqTxt} 🏆</b>
-          </div>
-          <button type="button" class="btn btn-ghost btn-block js-solicitar-unirme" data-clan="${esc(nombre)}" style="margin-top:16px;">Unirse a este clan</button>
-        </div>`;
-    }).join('');
+    grid.innerHTML = clanes.map((c, i) => clanCardHtml(c, i, { mostrarUnirse: true })).join('');
     grid.querySelectorAll('.js-solicitar-unirme').forEach(btn => {
       btn.addEventListener('click', () => abrirModalUnirse(btn.dataset.clan));
     });
@@ -375,52 +338,51 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarModalU
 
 cargarClanes();
 
-const MEDALLAS = ['🥇', '🥈', '🥉'];
-const POS_CLASSES = ['pos-1st', 'pos-2nd', 'pos-3rd'];
-
-function formatFechaTorneo(iso){
+/* ---------- Ingresos recientes (reemplaza a Torneos) ---------- */
+async function cargarIngresos(){
+  const wrap = document.getElementById('ingresosWrap');
   try{
-    return new Date(iso).toLocaleString('es-PE', {
-      day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit'
-    });
-  }catch(e){ return iso; }
-}
+    const data = await apiGet('webIngresosRecientes');
+    const ingresos = data.ingresos || [];
 
-async function cargarTorneos(){
-  const boxGanadores = document.getElementById('torneosGanadores');
-  try{
-    const data = await apiGet('webTorneos');
-    const ganadores = data.ganadores;
-
-    if (ganadores && ganadores.top3 && ganadores.top3.length){
-      boxGanadores.innerHTML = `
-        <div class="card" style="padding:24px;">
-          <div class="badge badge-gold" style="margin-bottom:16px;">🏆 Podio de Campeones · ${esc(formatFechaTorneo(ganadores.fecha))}</div>
-          <div class="podio-ganadores">
-            ${ganadores.top3.map((g, i) => `
-              <div class="podio-puesto ${POS_CLASSES[i] || ''}">
-                <span class="podio-medalla">${MEDALLAS[i] || '🏅'}</span>
-                <div>
-                  <div class="podio-nombre">${esc(g.nombre)}</div>
-                  <div class="podio-clan">${esc(g.clan)}</div>
-                </div>
-                <span class="podio-victorias">${esc(String(g.victorias))} V</span>
-              </div>`).join('')}
-          </div>
-        </div>`;
-    } else {
-      boxGanadores.innerHTML = `<div class="card" style="text-align:center; padding:32px;">
-        <p class="text-dim">No hay un podio de torneo reciente todavía.</p>
+    if (!ingresos.length){
+      wrap.innerHTML = `<div class="card" style="text-align:center; padding:32px;">
+        <p class="text-dim">No hay ingresos recientes por mostrar ahora mismo.</p>
       </div>`;
+      return;
     }
+
+    // Agrupar manteniendo el orden que ya entrega el backend (por clan, luego nombre).
+    const grupos = [];
+    ingresos.forEach(ing => {
+      let g = grupos.find(x => x.clan === ing.clan);
+      if (!g){ g = { clan: ing.clan, items: [] }; grupos.push(g); }
+      g.items.push(ing);
+    });
+
+    wrap.innerHTML = grupos.map(g => `
+      <div class="ingreso-clan">
+        <h3>${esc(g.clan)}</h3>
+        ${g.items.map(ing => `
+          <div class="ingreso-row">
+            <div class="ingreso-info">
+              <div class="ing-nombre">${esc(ing.nombre)}</div>
+              <div class="ing-fecha">${ing.fechaIngreso ? 'Ingresó el ' + esc(ing.fechaIngreso) : 'Fecha de ingreso no registrada'}</div>
+            </div>
+            <div class="ingreso-links">
+              ${ing.royaleApi ? `<a href="${esc(ing.royaleApi)}" target="_blank" rel="noopener">🌐 RoyaleAPI</a>` : ''}
+              ${ing.cwstats  ? `<a href="${esc(ing.cwstats)}" target="_blank" rel="noopener">📊 CWStats</a>` : ''}
+            </div>
+          </div>`).join('')}
+      </div>`).join('');
   }catch(err){
-    boxGanadores.innerHTML = `<div class="card" style="text-align:center; padding:32px;">
-      <p class="text-dim">No se pudo cargar los torneos: ${esc(err.message)}</p>
+    wrap.innerHTML = `<div class="card" style="text-align:center; padding:32px;">
+      <p class="text-dim">No se pudo cargar los ingresos recientes: ${esc(err.message)}</p>
     </div>`;
   }
 }
 
-cargarTorneos();
+cargarIngresos();
 </script>
 </body>
 </html>
