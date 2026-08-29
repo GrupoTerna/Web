@@ -148,12 +148,16 @@
 <script>
 const DASH_TOKEN = 'fm7qterna9x';
 const REFRESH_INTERVAL_MS = 60000;
-// Los días de guerra son siempre Jueves→Domingo (letras A-D que manda el
-// backend en ctx.diaLetra); acá solo se usa 'letra' para saber cuál está
-// activo hoy — la fecha real de cada uno se calcula en fechasSemanaGuerra().
+// Los días de guerra son siempre Jueves→Domingo. El backend manda la letra
+// real de cada uno en ctx.diaLetra / data.diasSemanaGuerra[].letra: 'J','V',
+// 'S','D' (Jueves/Viernes/Sábado/Domingo — ver CFG.DIA_LETRAS en
+// 02_Formato_Comun.gs), NO 'A'/'B'/'C'/'D'. Antes este arreglo usaba
+// 'A'/'B'/'C'/'D' para saber cuál día resaltar como "HOY", por lo que la
+// comparación con ctx.diaLetra nunca coincidía salvo por casualidad en
+// domingo (pedido del PDF de diseño, 28-ago-2026 — corregido acá).
 const DIAS = [
-  {letra:'A', label:'Jue'}, {letra:'B', label:'Vie'},
-  {letra:'C', label:'Sáb'}, {letra:'D', label:'Dom'}
+  {letra:'J', label:'Jue'}, {letra:'V', label:'Vie'},
+  {letra:'S', label:'Sáb'}, {letra:'D', label:'Dom'}
 ];
 let lastFetchAt = null;
 let prevValues  = {};
@@ -164,32 +168,12 @@ function fmtFecha(iso){
   if(isNaN(d.getTime())) return '—';
   return d.toLocaleDateString('es-PE', {day:'2-digit', month:'short'});
 }
-/** Fecha corta "DD-mmm" (ej. "27-ago") a partir de un objeto Date. */
-function fmtDiaMes(d){
+/** Fecha corta "DD-mmm" (ej. "27-ago") a partir de un ISO string o Date. */
+function fmtDiaMes(v){
+  if(!v) return '—';
+  const d = v instanceof Date ? v : new Date(v);
+  if(isNaN(d.getTime())) return '—';
   return d.toLocaleDateString('es-PE', {day:'2-digit', month:'short'});
-}
-/**
- * fechasSemanaGuerra()
- * Calcula las 4 fechas reales (Jue, Vie, Sáb, Dom) del bloque de guerra
- * vigente, anclado a la fecha de hoy — no depende de un campo extra del
- * backend. Si hoy cae dentro de Jue..Dom, usa el Jueves de esa misma
- * semana; si cae en Lun..Mié (días de entrenamiento), usa el Jueves que
- * viene. Reemplaza el rótulo fijo "A/B/C/D" que no tenía sentido para
- * quien mira el panel (pedido del PDF de diseño, 28-ago-2026: mostrar
- * "Jue" y debajo la fecha real, ej. "27-ago").
- */
-function fechasSemanaGuerra(){
-  const hoy = new Date();
-  const dow = hoy.getDay(); // 0=Dom,1=Lun,...,4=Jue,5=Vie,6=Sáb
-  const desdeJueves = (dow - 4 + 7) % 7; // 0=Jue,1=Vie,2=Sáb,3=Dom,4=Lun,5=Mar,6=Mié
-  const jueves = new Date(hoy);
-  jueves.setHours(0,0,0,0);
-  if (desdeJueves <= 3){
-    jueves.setDate(hoy.getDate() - desdeJueves);
-  } else {
-    jueves.setDate(hoy.getDate() + (7 - desdeJueves));
-  }
-  return [0,1,2,3].map(i => { const d = new Date(jueves); d.setDate(jueves.getDate() + i); return d; });
 }
 function setNum(id, val){
   const el = document.getElementById(id);
@@ -250,11 +234,19 @@ function render(data){
     `Temporada ${ctx.temporada ?? '—'} · Semana ${(Number(ctx.sectionIndex)||0) + 1}` +
     (ctx.esDiaGuerra ? ' · Día de guerra en curso' : ' · Día de entrenamiento');
   const tl = document.getElementById('timeline');
-  const fechas = fechasSemanaGuerra();
-  tl.innerHTML = DIAS.map((d, i) => `
+  // data.diasSemanaGuerra: 4 {letra, fecha} con la fecha REAL (columna
+  // DiaGuerra de la hoja Guerra) de cada día de la semana vigente, en el
+  // mismo orden J/V/S/D que DIAS. Si el backend todavía no la manda (ej.
+  // versión vieja del Web App), se cae a mostrar solo la letra sin fecha
+  // en vez de romper el timeline.
+  const diasBackend = data.diasSemanaGuerra || [];
+  tl.innerHTML = DIAS.map((d, i) => {
+    const fechaDia = diasBackend[i] ? diasBackend[i].fecha : null;
+    return `
     <div class="tl-day ${d.letra === ctx.diaLetra ? 'active' : ''}">
-      <div class="lbl">${d.label}</div><div class="mark">${fmtDiaMes(fechas[i])}</div>
-    </div>`).join('');
+      <div class="lbl">${d.label}</div><div class="mark">${fmtDiaMes(fechaDia)}</div>
+    </div>`;
+  }).join('');
   const clanGrid = document.getElementById('clanGrid');
   const clanes = Object.entries(data.guerraPorClan || {});
   document.getElementById('clanCount').textContent = clanes.length + ' clan(es)';
