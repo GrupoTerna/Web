@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Clanes — Familia Terna</title>
-<meta name="description" content="Los 4 clanes de la Familia Terna: estadísticas en vivo, roster completo y busca tu progreso hacia el siguiente ascenso.">
+<meta name="description" content="Los 4 clanes de la Familia Terna: estadísticas en vivo, directorio completo y busca tu progreso hacia el siguiente ascenso.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -58,7 +58,6 @@
   .ext-links a:hover{border-color:var(--purple); background:rgba(162,57,255,.1); color:var(--purple-light);}
 
   /* ---------- Directorio: tabs horizontales de clan + lista de miembros ---------- */
-  .roster-filter{margin-bottom:20px;}
   .clan-tabs{display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px;}
   .clan-tab-btn{
     font-family:var(--f-display); font-weight:700; font-size:13px; text-transform:uppercase; letter-spacing:.03em;
@@ -104,8 +103,8 @@
 
   <div class="eyebrow">Nuestros Clanes</div>
   <h1 style="font-size:clamp(28px,4.5vw,42px); margin-top:14px;">Los 4 Clanes Terna</h1>
-  <p class="text-dim" style="margin-top:10px; font-size:16px; max-width:640px;">
-    Estadísticas en vivo de la alianza, el roster completo de los 4 clanes y tu progreso
+  <p class="text-dim" data-fit-line style="margin-top:10px; font-size:16px; max-width:100%;">
+    Estadísticas en vivo de la alianza, el directorio completo de los 4 clanes y tu progreso
     hacia el siguiente ascenso — todo en un mismo lugar.
   </p>
 
@@ -128,7 +127,7 @@
   <!-- ---------- BUSCADOR POR NOMBRE O TAG ---------- -->
   <section style="padding:40px 0 0;">
     <div class="sec-head" style="margin-bottom:20px;">
-      <div class="eyebrow">Roster de la comunidad</div>
+      <div class="eyebrow">Directorio de la comunidad</div>
       <h2 style="font-size:24px; margin-top:10px;">Busca tu perfil por nombre o tag</h2>
       <p style="margin-top:8px;">Ingresa tu nombre o tag para ver tus ataques de guerra, torneos y si calificas para un ascenso.</p>
     </div>
@@ -141,9 +140,14 @@
     </div>
   </section>
 
-  <!-- ---------- PERFIL DEL JUGADOR ---------- -->
-  <section id="miembroSec" style="display:none; padding:32px 0 8px;">
-    <div class="card" style="padding:28px;">
+  <!-- ---------- PERFIL DEL JUGADOR ----------
+       Sección visualmente independiente del buscador de arriba (borde
+       superior + espacio propio), y con un link propio: al buscar, la URL
+       pasa a jugadores.html?tag=TAG (ver actualizarUrlPerfil() más abajo)
+       en vez de solo mostrar la info sin cambiar el link. -->
+  <section id="miembroSec" style="display:none; padding:40px 0 8px; margin-top:8px; border-top:1px solid var(--line);">
+    <div class="eyebrow" style="margin-top:32px;">Perfil del jugador</div>
+    <div class="card" style="padding:28px; margin-top:16px;">
       <div class="perfil-cabecera">
         <div>
           <h2 id="mNombre" style="font-size:24px;">—</h2>
@@ -157,22 +161,28 @@
         </div>
       </div>
 
-      <div class="tabs-row" id="mReqTabs"></div>
-      <div id="mReqContenido"></div>
+      <div id="mReqContenido" style="margin-top:16px;"></div>
 
       <div id="mExtWrap"></div>
+
+      <div style="display:flex; gap:10px; margin-top:18px; flex-wrap:wrap;">
+        <button type="button" class="btn btn-ghost" id="btnVerTorneosJugador">🏆 Ver torneos</button>
+        <button type="button" class="btn btn-ghost" id="btnVerOtrasCuentas" style="display:none;">Ver otras cuentas</button>
+      </div>
+      <div id="mTorneosWrap" style="display:none; margin-top:14px;"></div>
+      <div id="mOtrasCuentasWrap" style="margin-top:14px;"></div>
     </div>
   </section>
 
-  <!-- ---------- ROSTER COMPLETO ---------- -->
+  <!-- ---------- DIRECTORIO COMPLETO ----------
+       Sin barra de filtro propia: la barra de búsqueda de arriba ("Busca
+       tu perfil por nombre o tag") ya cumple esa función — no hace falta
+       una segunda barra buscadora acá (pedido del PDF de diseño). -->
   <section id="roster" style="padding:32px 0 0;">
     <div class="sec-head" style="margin-bottom:20px;">
       <div class="eyebrow">Directorio</div>
-      <h2 style="font-size:24px; margin-top:10px;">Roster por clan</h2>
+      <h2 style="font-size:24px; margin-top:10px;">Directorio por clan</h2>
       <p style="margin-top:8px;">Elige un clan y toca un nombre para ver su progreso al instante.</p>
-    </div>
-    <div class="card roster-filter" style="padding:16px 20px;">
-      <input type="text" id="rosterFiltro" placeholder="Filtrar por nombre…" style="width:100%; background:var(--bg-2); border:1px solid var(--line); color:var(--text); padding:12px 14px; border-radius:var(--radius-sm); font-family:var(--f-body); font-size:14px;">
     </div>
     <div class="clan-tabs" id="clanTabs"></div>
     <div id="rosterWrap">
@@ -241,21 +251,28 @@ async function cargarClanInfoYCharts(){
   const clanGrid   = document.getElementById('clanGrid');
   try{
     const data = await apiGet('webClanInfo');
-    const clanes = data.clanes || [];
+    // Orden fijo de la Familia, no alfabético — ver ordenClanIndex() en
+    // common.js. Se ordena antes de usar el índice "i" para que la
+    // insignia de rol (Cantera/Semillero) siempre le toque al clan
+    // correcto, sin importar el orden que mande el backend.
+    const clanes = ordenarClanes(data.clanes || []);
 
     chartsGrid.innerHTML = [
-      chartCardHtml('Miembros',    '👥', clanes, 'miembros',   v => String(v)),
-      chartCardHtml('Donaciones',  '🎁', clanes, 'donaciones', v => v.toLocaleString('es-PE')),
-      chartCardHtml('Trofeos',     '🏆', clanes, 'trofeos',    v => v.toLocaleString('es-PE')),
-      chartCardHtml('Copas',       '🥇', clanes, 'copas',      v => v.toLocaleString('es-PE'))
+      chartCardHtml('Miembros',    '👥', clanes, 'miembros',   v => fmtNum(v)),
+      chartCardHtml('Donaciones',  '🎁', clanes, 'donaciones'),
+      chartCardHtml('Trofeos',     '🏆', clanes, 'trofeos'),
+      chartCardHtml('Copas',       '🥇', clanes, 'copas')
     ].join('');
 
-    // Mismas tarjetas que Inicio, con el rol dentro de la familia (Cantera/
-    // Semillero) y SIN botón "Ver clan" (nunca existió acá).
+    // Mismas tarjetas que Inicio, con UNA sola insignia combinada
+    // (Cantera/Semillero) y SIN botón "Ver clan" (nunca existió acá).
     clanGrid.innerHTML = clanes.map((c, i) => clanCardHtml(c, i, { mostrarRol: true, mostrarUnirse: true })).join('');
     clanGrid.querySelectorAll('.js-solicitar-unirme').forEach(btn => {
       btn.addEventListener('click', () => abrirModalUnirse(btn.dataset.clan));
     });
+    // Tarjeta adicional (5ª) con cuentas inactivas — SOLO si hay un admin
+    // con sesión iniciada en este navegador.
+    agregarTarjetaCuentasInactivasSiAdmin(clanGrid);
   }catch(err){
     chartsGrid.innerHTML = `<div class="card" style="grid-column:1/-1; text-align:center; padding:32px;">
       <p class="text-dim">No se pudieron cargar las estadísticas: ${esc(err.message)}</p>
@@ -313,44 +330,51 @@ function barraRequisito(lbl, actual, requerido, activo, sufijo){
     <div class="req-row">
       <div class="lbl">${esc(lbl)}</div>
       <div class="progress${cumplido?' complete':''}"><i style="width:${pct}%"></i></div>
-      <div class="val">${actual}${sufijo||''} / ${requerido}${sufijo||''}</div>
+      <div class="val">${fmtNum(actual)}${sufijo||''} / ${fmtNum(requerido)}${sufijo||''}</div>
     </div>`;
 }
-function renderRequisitos(j, key){
+/**
+ * bloqueRequisitos(j, key)
+ * Progreso de UNA categoría (ascensos o descensos), sin mostrar la
+ * palabra "Ascensos"/"Descensos" en pantalla ni el badge "Debe ser
+ * miembro activo" (no aportan nada útil al jugador — pedido del PDF de
+ * diseño). Ya no hay tabs: renderMiembro() concatena todas las
+ * categorías con datos, una debajo de otra.
+ */
+function bloqueRequisitos(j, key){
   const req = j.progreso ? j.progreso[key] : null;
-  const cont = document.getElementById('mReqContenido');
-  if(!req){ cont.innerHTML = '<div class="empty">Sin datos para esta categoría.</div>'; return; }
+  if (!req) return '';
   const campoMinT = campoMinTSegunRango(j.rango);
   const minT = req[campoMinT];
   let html = '';
   if (minT) html += barraRequisito('Trofeos guerra', minT.actual, minT.requerido, minT.activo, '🏆');
   if (req.ataques) html += barraRequisito('Ataques/semana', req.ataques.actual, req.ataques.requerido, req.ataques.activo, '');
   if (req.torneos) html += barraRequisito('Torneos', req.torneos.actual, req.torneos.requerido, req.torneos.activo, '');
-  if (req.miembroActivo && req.miembroActivo.activo) html += `<div style="margin-top:6px;"><span class="badge badge-purple">Debe ser miembro activo</span></div>`;
   if (req.reaccion && req.reaccion.activo) html += `<div style="margin-top:8px;"><span class="badge badge-purple">Requiere reaccionar a la publicación</span></div>`;
-  cont.innerHTML = html || '<div class="empty">Este clan no tiene requisitos activos en esta categoría.</div>';
+  return html;
 }
 
-function extItem(valor, label){
+function extItem(valor, label, esNumero){
   if (valor === undefined || valor === null || valor === '') return '';
-  return `<div class="ext-item"><div class="v">${esc(String(valor))}</div><div class="k">${esc(label)}</div></div>`;
+  const txt = esNumero ? fmtNum(valor) : String(valor);
+  return `<div class="ext-item"><div class="v">${esc(txt)}</div><div class="k">${esc(label)}</div></div>`;
 }
 
 function renderExtendido(ext){
   const wrap = document.getElementById('mExtWrap');
   if (!ext){ wrap.innerHTML = ''; return; }
   let items = '';
-  items += extItem(ext.nivelXp, 'Nivel');
-  items += extItem(ext.copasMax, 'Copas máx.');
-  items += extItem(ext.arena, 'Arena');
-  items += extItem(ext.victorias, 'Victorias');
-  items += extItem(ext.derrotas, 'Derrotas');
-  items += extItem(ext.racha, 'Racha');
-  items += extItem(ext.victorias3Coronas, '3 coronas');
-  items += extItem(ext.maxVictoriasDesafios, 'Máx. victorias desafío');
-  items += extItem(ext.donacionesRecibidas, 'Donac. recibidas');
-  items += extItem(ext.donacionesRealizadas, 'Donac. hechas');
-  items += extItem(ext.rankingClan, 'Ranking en el clan');
+  items += extItem(ext.nivelXp, 'Nivel', true);
+  items += extItem(ext.copasMax, 'Copas máx.', true);
+  items += extItem(ext.arena, 'Arena', false);
+  items += extItem(ext.victorias, 'Victorias', true);
+  items += extItem(ext.derrotas, 'Derrotas', true);
+  items += extItem(ext.racha, 'Racha', true);
+  items += extItem(ext.victorias3Coronas, '3 coronas', true);
+  items += extItem(ext.maxVictoriasDesafios, 'Máx. victorias desafío', true);
+  items += extItem(ext.donacionesRecibidas, 'Donac. recibidas', true);
+  items += extItem(ext.donacionesRealizadas, 'Donac. hechas', true);
+  items += extItem(ext.rankingClan, 'Ranking en el clan', true);
 
   let camino = '';
   if (ext.caminoLeyendas){
@@ -359,57 +383,140 @@ function renderExtendido(ext){
     if (partes.length) camino = `<div style="margin-top:16px;"><span class="badge badge-gold">🏔️ Camino de Leyendas · ${partes.map(esc).join(' · ')}</span></div>`;
   }
 
+  const royaleOk = urlValida(ext.royaleApi);
+  const cwOk = urlValida(ext.cwStats);
   let links = '';
-  if (ext.royaleApi || ext.cwStats){
+  if (royaleOk || cwOk){
     links = `<div class="ext-links">
-      ${ext.royaleApi ? `<a href="${esc(ext.royaleApi)}" target="_blank" rel="noopener">🌐 RoyaleAPI</a>` : ''}
-      ${ext.cwStats ? `<a href="${esc(ext.cwStats)}" target="_blank" rel="noopener">📊 CWStats</a>` : ''}
+      ${royaleOk ? `<a href="${esc(ext.royaleApi)}" target="_blank" rel="noopener">🌐 RoyaleAPI</a>` : ''}
+      ${cwOk ? `<a href="${esc(ext.cwStats)}" target="_blank" rel="noopener">📊 CWStats</a>` : ''}
     </div>`;
   }
 
   wrap.innerHTML = (items ? `<div class="ext-grid">${items}</div>` : '') + camino + links;
 }
 
+/** Refleja el tag del perfil abierto en la URL (jugadores.html?tag=TAG),
+ * SIN recargar la página — pedido del PDF de diseño: "se debe generar un
+ * link al ingresar a cada perfil... actualmente solo se desglosa un
+ * cuadro con información del perfil pero no cambia el link". */
+function actualizarUrlPerfil(tag){
+  if (!history.pushState) return;
+  const url = new URL(location.href);
+  url.searchParams.set('tag', tag);
+  url.searchParams.delete('clan');
+  history.pushState({ tag }, '', url);
+}
+
 function renderMiembro(j){
   document.getElementById('miembroSec').style.display = 'block';
   document.getElementById('mNombre').textContent = j.nombre || 'Sin nombre';
   document.getElementById('mSub').textContent = `${j.tag} · ${j.clan || '—'} · ${j.rango || '—'} · ${j.estado || '—'}`;
-  document.getElementById('mCopas').textContent = j.copas ?? 0;
-  document.getElementById('mVGuerra').textContent = j.vGuerra ?? 0;
-  document.getElementById('mTorneos').textContent = j.torneos ?? 0;
-  document.getElementById('mAtaques').textContent = (j.guerraSemana && j.guerraSemana.ataques) ?? 0;
+  document.getElementById('mCopas').textContent = fmtNum(j.copas);
+  document.getElementById('mVGuerra').textContent = fmtNum(j.vGuerra);
+  document.getElementById('mTorneos').textContent = fmtNum(j.torneos);
+  document.getElementById('mAtaques').textContent = fmtNum(j.guerraSemana && j.guerraSemana.ataques);
 
-  const categorias = [
-    { key:'ascensos',  label:'Ascensos'  },
-    { key:'descensos', label:'Descensos' }
-  ].filter(c => j.progreso && j.progreso[c.key]);
-  const tabsEl = document.getElementById('mReqTabs');
-  tabsEl.innerHTML = categorias.map((c, i) =>
-    `<button type="button" class="tab-btn ${i===0?'active':''}" data-key="${c.key}">${esc(c.label)}</button>`
-  ).join('');
-  tabsEl.querySelectorAll('.tab-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      tabsEl.querySelectorAll('.tab-btn').forEach(x => x.classList.remove('active'));
-      btn.classList.add('active');
-      renderRequisitos(j, btn.dataset.key);
-    });
-  });
-  if (categorias.length){
-    renderRequisitos(j, categorias[0].key);
-  } else {
-    document.getElementById('mReqContenido').innerHTML = '<div class="empty">Este clan todavía no tiene requisitos configurados.</div>';
-  }
+  const bloques = ['ascensos', 'descensos'].map(key => bloqueRequisitos(j, key)).filter(Boolean);
+  document.getElementById('mReqContenido').innerHTML = bloques.length
+    ? bloques.join('<div style="height:14px;"></div>')
+    : '<div class="empty">Este clan todavía no tiene requisitos configurados.</div>';
 
   renderExtendido(j.extendido);
 
+  // "Ver torneos" (participación de ESTE jugador) y "Ver otras cuentas"
+  // (solo admins) arrancan cerrados/limpios cada vez que se abre un perfil.
+  document.getElementById('mTorneosWrap').style.display = 'none';
+  document.getElementById('mTorneosWrap').innerHTML = '';
+  document.getElementById('mOtrasCuentasWrap').innerHTML = '';
+  document.getElementById('btnVerTorneosJugador').dataset.tag = j.tag;
+  const btnOtras = document.getElementById('btnVerOtrasCuentas');
+  btnOtras.style.display = esAdminLogueado() ? 'inline-flex' : 'none';
+  btnOtras.dataset.tag = j.tag;
+
+  actualizarUrlPerfil(j.tag);
   document.getElementById('miembroSec').scrollIntoView({ behavior:'smooth', block:'start' });
 }
 
+/** Torneos en los que participó ESTE jugador (torneo, puesto, victorias,
+ * fecha) — distinto del botón general de Torneos, que solo muestra el
+ * top 3 de cada torneo sin indagar en un jugador puntual. Conecta con el
+ * endpoint real del backend (34_Web_API.gs, FASE 7, 29-ago-2026):
+ * 'webTorneosJugador' (GET público, mismo token que webPerfil) — devuelve
+ * { ok, torneos:[{idTorneo, fecha, puesto, victorias, clan}] } (sin
+ * "nombre" de torneo — T_Lista solo guarda el id). */
+async function verTorneosJugador(tag){
+  const wrap = document.getElementById('mTorneosWrap');
+  wrap.style.display = 'block';
+  wrap.innerHTML = '<div class="text-faint" style="font-family:var(--f-mono); font-size:12px;">Cargando torneos…</div>';
+  try{
+    const data = await apiGet('webTorneosJugador', { tag });
+    const torneos = (data && data.torneos) || [];
+    if (!torneos.length){
+      wrap.innerHTML = '<div class="empty">Este jugador no tiene participación registrada en torneos.</div>';
+      return;
+    }
+    wrap.innerHTML = `<div class="card" style="padding:8px 4px;">${torneos.map(t => `
+      <div class="ingreso-row">
+        <div class="ingreso-info">
+          <div class="ing-nombre">Torneo ${esc(String(t.idTorneo))}</div>
+          <div class="ing-fecha">${t.clan ? esc(t.clan) + ' · ' : ''}${t.fecha ? esc(t.fecha) : 'Fecha no registrada'}</div>
+        </div>
+        <div class="ingreso-links">
+          ${t.puesto ? `<span class="badge badge-gold">Puesto ${esc(String(t.puesto))}</span>` : ''}
+          ${t.victorias !== undefined ? `<span class="badge badge-purple">${fmtNum(t.victorias)} victorias</span>` : ''}
+        </div>
+      </div>`).join('')}</div>`;
+  }catch(err){
+    wrap.innerHTML = `<div class="empty">No se pudo cargar los torneos de este jugador: ${esc(err.message)}</div>`;
+  }
+}
+document.getElementById('btnVerTorneosJugador').addEventListener('click', function(){
+  verTorneosJugador(this.dataset.tag);
+});
+
+/** "Ver otras cuentas": SOLO visible para admins logueados (ver
+ * renderMiembro). Lista cuentas registradas con el mismo celular que este
+ * jugador. Conecta con el endpoint real del backend (34_Web_API.gs, FASE
+ * 7, 29-ago-2026): 'webAdminOtrasCuentas' (GET autenticado, vía
+ * apiGetAuth, con el tag como parámetro) — devuelve
+ * { ok, cuentas:[{tag,nombre,clan}] }, ya excluyendo al propio tag
+ * consultado y cruzando Directorio + Inactivos por Celular. */
+async function verOtrasCuentas(tag){
+  const wrap = document.getElementById('mOtrasCuentasWrap');
+  wrap.innerHTML = '<div class="text-faint" style="font-family:var(--f-mono); font-size:12px;">Buscando cuentas con el mismo celular…</div>';
+  try{
+    const data = await apiGetAuth('webAdminOtrasCuentas', { tag });
+    const cuentas = (data && data.cuentas) || [];
+    if (!cuentas.length){
+      wrap.innerHTML = '<div class="text-faint" style="font-family:var(--f-mono); font-size:12px;">No se encontraron otras cuentas con el mismo celular.</div>';
+      return;
+    }
+    wrap.innerHTML = `<div class="card" style="padding:8px 4px;">${cuentas.map(c => `
+      <div class="ingreso-row js-otra-cuenta" data-tag="${esc(c.tag)}" style="cursor:pointer;">
+        <div class="ingreso-info">
+          <div class="ing-nombre">${esc(c.nombre)}</div>
+          <div class="ing-fecha">${esc(c.tag)} · ${esc(c.clan || '—')}</div>
+        </div>
+      </div>`).join('')}</div>`;
+    wrap.querySelectorAll('.js-otra-cuenta').forEach(row => {
+      row.addEventListener('click', () => buscarMiembro(row.dataset.tag));
+    });
+  }catch(err){
+    wrap.innerHTML = `<div class="text-faint" style="font-family:var(--f-mono); font-size:12px;">No se pudo cargar: ${esc(err.message)}</div>`;
+  }
+}
+document.getElementById('btnVerOtrasCuentas').addEventListener('click', function(){
+  verOtrasCuentas(this.dataset.tag);
+});
+
 /**
  * buscarMiembro(tagDirecto)
- * Acepta tanto un Tag (con o sin '#') como un nombre — si el texto no
- * parece un tag, busca coincidencias por nombre en el roster ya cargado
- * (rosterData) y usa la primera coincidencia para pedir el perfil completo.
+ * Busca por SIMILITUD, ya sea por Tag o por nombre (pedido del PDF de
+ * diseño: "ese recuadro debe buscar similitudes por tag o por nombre") —
+ * ya no distingue con una expresión regular si "parece" un tag o un
+ * nombre: siempre compara el texto contra ambos campos de cada miembro
+ * del directorio ya cargado (rosterData).
  */
 async function buscarMiembro(tagDirecto){
   const raw = tagDirecto || document.getElementById('tagInput').value;
@@ -423,32 +530,34 @@ async function buscarMiembro(tagDirecto){
   let tagFinal = null;
 
   if (tagDirecto){
-    // Vino de un clic en el roster: ya es un Tag real.
+    // Vino de un clic en el directorio o en "Ver otras cuentas": ya es un Tag real.
     tagFinal = normalizarTag(tagDirecto);
+  } else if (rosterData.length){
+    const q = rawTrim.replace(/^#/, '').toLowerCase();
+    const candidatos = [];
+    rosterData.forEach(c => c.miembros.forEach(m => {
+      const tagSinNumeral = String(m.tag||'').replace(/^#/, '').toLowerCase();
+      if (m.nombre.toLowerCase().includes(q) || tagSinNumeral.includes(q)) candidatos.push(m);
+    }));
+    if (!candidatos.length){
+      msgEl.innerHTML = '<div class="msg msg-error">No se encontró ningún miembro con ese nombre o Tag.</div>';
+      return;
+    }
+    if (candidatos.length > 1){
+      msgEl.innerHTML = `<div class="msg">Se encontraron ${candidatos.length} coincidencias — mostrando a <b>${esc(candidatos[0].nombre)}</b>.</div>`;
+    }
+    tagFinal = candidatos[0].tag;
   } else {
+    // El directorio todavía no terminó de cargar: si lo escrito ya parece
+    // un Tag completo, se prueba directo contra la API en vez de obligar
+    // a esperar a que cargue el directorio.
     const sinEspacios = rawTrim.replace(/\s+/g, '');
     const pareceTag = /^#?[A-Za-z0-9]{4,}$/.test(sinEspacios);
-    if (pareceTag){
-      tagFinal = normalizarTag(rawTrim);
-    } else if (!rosterData.length){
-      msgEl.innerHTML = '<div class="msg msg-error">El roster todavía se está cargando — intenta de nuevo en un segundo.</div>';
+    if (!pareceTag){
+      msgEl.innerHTML = '<div class="msg msg-error">El directorio todavía se está cargando — intenta de nuevo en un segundo.</div>';
       return;
-    } else {
-      const q = rawTrim.toLowerCase();
-      const candidatos = [];
-      rosterData.forEach(c => c.miembros.forEach(m => {
-        if (m.nombre.toLowerCase().includes(q)) candidatos.push(m);
-      }));
-      if (!candidatos.length){
-        msgEl.innerHTML = '<div class="msg msg-error">No se encontró ningún miembro con ese nombre o Tag.</div>';
-        return;
-      }
-      if (candidatos.length > 1){
-        msgEl.innerHTML = `<div class="msg">Se encontraron ${candidatos.length} coincidencias — mostrando a <b>${esc(candidatos[0].nombre)}</b>. Usa el filtro del roster de abajo para ver el resto.</div>`;
-        document.getElementById('rosterFiltro').value = rawTrim;
-      }
-      tagFinal = candidatos[0].tag;
     }
+    tagFinal = normalizarTag(rawTrim);
   }
 
   if (!tagFinal){ msgEl.innerHTML = '<div class="msg msg-error">Escribe un nombre o Tag válido.</div>'; return; }
@@ -465,36 +574,36 @@ document.getElementById('btnBuscar').addEventListener('click', () => buscarMiemb
 document.getElementById('tagInput').addEventListener('keydown', e => { if (e.key === 'Enter') buscarMiembro(); });
 
 /* =========================================================================
- * Directorio: tabs horizontales de clan (orden fijo, NO alfabético — el
- * mismo orden que ya entrega webRoster) + lista de miembros del clan
- * seleccionado (ya viene ordenada por Rango y luego por nombre desde el
- * backend).
+ * Directorio: tabs horizontales de clan (orden fijo de la Familia, NO
+ * alfabético — se reordena con ordenarClanes() acá mismo por si
+ * webRoster llegara a mandarlos en otro orden) + lista completa de
+ * miembros del clan seleccionado (ya viene ordenada por Rango y luego
+ * por nombre desde el backend). Sin barra de filtro propia — la barra de
+ * búsqueda de arriba ya cumple esa función.
  * ========================================================================= */
 function renderClanTabs(){
   const tabsWrap = document.getElementById('clanTabs');
   tabsWrap.innerHTML = rosterData.map((c, i) => `
     <button type="button" class="clan-tab-btn${i===clanActivoIdx?' active':''}" data-idx="${i}">
-      ${esc(c.nombre)} <span class="ct-count">${c.miembros.length}</span>
+      ${esc(c.nombre)} <span class="ct-count">${fmtNum(c.miembros.length)}</span>
     </button>`).join('');
   tabsWrap.querySelectorAll('.clan-tab-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       clanActivoIdx = Number(btn.dataset.idx);
       renderClanTabs();
-      renderRosterClanActivo(document.getElementById('rosterFiltro').value);
+      renderRosterClanActivo();
     });
   });
 }
 
-function renderRosterClanActivo(filtro){
+function renderRosterClanActivo(){
   const wrap = document.getElementById('rosterWrap');
   const clan = rosterData[clanActivoIdx];
   if (!clan){ wrap.innerHTML = '<div class="card"><div class="empty">No hay clanes para mostrar.</div></div>'; return; }
 
-  const f = String(filtro||'').trim().toLowerCase();
-  const miembros = clan.miembros.filter(m => !f || m.nombre.toLowerCase().includes(f) || m.tag.toLowerCase().includes(f));
-
+  const miembros = clan.miembros;
   if (!miembros.length){
-    wrap.innerHTML = '<div class="card"><div class="empty">No se encontró ningún miembro con ese nombre en este clan.</div></div>';
+    wrap.innerHTML = '<div class="card"><div class="empty">Este clan todavía no tiene miembros registrados.</div></div>';
     return;
   }
 
@@ -517,7 +626,7 @@ function renderRosterClanActivo(filtro){
 
 /**
  * Si venimos del botón "Ver clan" de Inicio (jugadores.html?clan=NombreDelClan),
- * selecciona esa pestaña de entrada y hace scroll suave hasta el roster.
+ * selecciona esa pestaña de entrada y hace scroll suave hasta el directorio.
  */
 function clanIdxDesdeQuery(){
   const params = new URLSearchParams(location.search);
@@ -531,19 +640,23 @@ async function cargarRoster(){
   const wrap = document.getElementById('rosterWrap');
   try{
     const data = await apiGet('webRoster');
-    rosterData = data.clanes || [];
+    rosterData = ordenarClanes(data.clanes || []);
     const idxDesdeQuery = clanIdxDesdeQuery();
     clanActivoIdx = idxDesdeQuery >= 0 ? idxDesdeQuery : 0;
     renderClanTabs();
-    renderRosterClanActivo('');
+    renderRosterClanActivo();
     if (idxDesdeQuery >= 0) {
       document.getElementById('roster').scrollIntoView({ behavior:'smooth', block:'start' });
     }
+
+    // Si venimos con jugadores.html?tag=TAG (link directo a un perfil, ver
+    // actualizarUrlPerfil()), abre ese perfil automáticamente.
+    const tagParam = new URLSearchParams(location.search).get('tag');
+    if (tagParam) buscarMiembro(tagParam);
   }catch(err){
-    wrap.innerHTML = `<div class="card"><div class="empty">No se pudo cargar el roster: ${esc(err.message)}</div></div>`;
+    wrap.innerHTML = `<div class="card"><div class="empty">No se pudo cargar el directorio: ${esc(err.message)}</div></div>`;
   }
 }
-document.getElementById('rosterFiltro').addEventListener('input', e => renderRosterClanActivo(e.target.value));
 
 cargarRoster();
 </script>
