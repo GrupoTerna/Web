@@ -15,26 +15,24 @@
      aplicarVisibilidadPorFunciones() en admin.html) — no sustituye una
      validación de servidor, pero esta página no llama a ningún endpoint
      que exponga datos, así que no la necesita.
-     NOTA (29-ago-2026): sessionStorage NO se copia de forma confiable a una
-     pestaña nueva (target="_blank") en todos los navegadores, así que el
-     admin quedaba en loop de login aunque ya estuviera logueado en la otra
-     pestaña. Solución: admin.html deja el token una sola vez en
-     localStorage (terna_admin_bridge, ver botón "Abrir Ruleta de Sorteos")
-     justo antes de abrir esta página; acá se lee, se copia al
-     sessionStorage de ESTA pestaña, y se borra de inmediato del
-     localStorage para no dejarlo dando vueltas. Si no hay bridge (ej. se
-     recarga esta misma pestaña más tarde), se usa el sessionStorage propio
-     de la pestaña; si tampoco hay eso, recién ahí se manda al login. -->
+     NOTA (29-ago-2026): sessionStorage NO se copia de forma confiable entre
+     pestañas (dependía del navegador/hosting y causaba loop de login aun
+     estando logueado). Se cambió a pasar el token por query string: el
+     botón "Abrir Ruleta de Sorteos" en admin.html abre esta página como
+     sorteo.html?tk=<token>; acá se lee ese parámetro, se guarda en el
+     sessionStorage de ESTA pestaña, y se limpia de inmediato de la URL con
+     history.replaceState (no queda visible en la barra ni se repite en
+     recargas). Si se recarga esta pestaña sin el parámetro, se usa el
+     sessionStorage que ya quedó guardado; si tampoco hay eso, se manda al
+     login. -->
 <script>
 (function(){
   var SESSION_KEY = 'terna_admin_token';
-  var BRIDGE_KEY  = 'terna_admin_bridge';
-  if(!sessionStorage.getItem(SESSION_KEY)){
-    var bridge = localStorage.getItem(BRIDGE_KEY);
-    if(bridge){
-      sessionStorage.setItem(SESSION_KEY, bridge);
-      localStorage.removeItem(BRIDGE_KEY);
-    }
+  var params = new URLSearchParams(window.location.search);
+  var tk = params.get('tk');
+  if(tk){
+    sessionStorage.setItem(SESSION_KEY, tk);
+    history.replaceState({}, '', window.location.pathname);
   }
   if(!sessionStorage.getItem(SESSION_KEY)){
     window.location.replace('admin.html');
