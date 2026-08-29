@@ -141,7 +141,7 @@
     <h1 style="font-size:clamp(38px,6.5vw,68px); line-height:1.05; margin-top:16px; max-width:860px;">
       El cuartel general de la <span class="text-gradient-purple">Familia Terna</span>.
     </h1>
-    <p class="text-dim" style="font-size:18px; max-width:600px; margin-top:20px; line-height:1.6;">
+    <p class="text-dim" data-fit-line style="font-size:18px; margin-top:20px; line-height:1.6; max-width:100%;">
       Directorio, requisitos de ascenso, torneos y el estado de guerra de nuestros
       4 clanes — todo en un mismo portal en tiempo real.
     </p>
@@ -304,19 +304,19 @@ async function cargarClanes(){
   const grid = document.getElementById('clanGrid');
   try{
     const data = await apiGet('webClanInfo');
-    const clanes = data.clanes || [];
+    // Orden fijo de la Familia (Principal, Terna 2, Terna 3, Mini), NUNCA
+    // alfabético — ver ordenClanIndex() en common.js. Se ordena ACÁ, antes
+    // de asignar el índice "i" que decide qué insignia/rol le toca a cada
+    // tarjeta, para que ambas cosas queden siempre sincronizadas aunque el
+    // backend entregue los clanes en otro orden.
+    const clanes = ordenarClanes(data.clanes || []);
     grid.innerHTML = clanes.map((c, i) => clanCardHtml(c, i, { mostrarVerClan: true, mostrarUnirse: true })).join('');
     grid.querySelectorAll('.js-solicitar-unirme').forEach(btn => {
       btn.addEventListener('click', () => abrirModalUnirse(btn.dataset.clan));
     });
-    // TODO: agregarTarjetaCuentasInactivasSiAdmin(grid) — función referenciada
-    // pero nunca implementada (no existe en ningún archivo del sitio ni
-    // endpoint de backend conocido). Se deja guardada así para no romper la
-    // carga de "Nuestros Clanes" mientras se define qué debe mostrar esta
-    // tarjeta y de dónde saca los datos.
-    if(typeof agregarTarjetaCuentasInactivasSiAdmin === 'function'){
-      agregarTarjetaCuentasInactivasSiAdmin(grid);
-    }
+    // Tarjeta adicional (5ª) con cuentas inactivas — SOLO si hay un admin
+    // con sesión iniciada en este navegador. Ver agregarTarjetaCuentasInactivasSiAdmin() en common.js.
+    agregarTarjetaCuentasInactivasSiAdmin(grid);
   }catch(err){
     grid.innerHTML = `<div class="card" style="grid-column:1/-1; text-align:center; padding:32px;">
       <p class="text-dim">No se pudo cargar la info de los clanes: ${esc(err.message)}</p>
@@ -365,11 +365,13 @@ async function cargarIngresos(){
       return;
     }
 
-    // Agrupar por clan (respetando el orden de aparición que entrega el
-    // backend, que sigue el orden fijo de la Familia) y ordenar cada grupo
-    // alfabéticamente por nombre — el PDF exige "por clan y luego por
-    // nombre (orden alfabético)", así que no basta con confiar en el orden
-    // del backend para el nombre.
+    // Agrupar por clan y ordenar cada grupo alfabéticamente por nombre — el
+    // PDF exige "por clan y luego por nombre". Los GRUPOS en sí NO se
+    // ordenan alfabéticamente: usan el orden fijo de la Familia (Principal,
+    // Terna 2, Terna 3, Mini) vía ordenClanIndex(), sin importar en qué
+    // orden los haya mandado el backend (bug reportado: "el clan 2 sigue
+    // apareciendo primero, mientras que el clan principal está apareciendo
+    // tercero").
     const grupos = [];
     ingresos.forEach(ing => {
       let g = grupos.find(x => x.clan === ing.clan);
@@ -377,21 +379,26 @@ async function cargarIngresos(){
       g.items.push(ing);
     });
     grupos.forEach(g => g.items.sort((a, b) => (a.nombre||'').localeCompare(b.nombre||'', 'es', { sensitivity:'base' })));
+    grupos.sort((a, b) => ordenClanIndex(a.clan) - ordenClanIndex(b.clan));
 
     wrap.innerHTML = grupos.map(g => `
       <div class="ingreso-clan">
         <h3>${esc(g.clan)}</h3>
-        ${g.items.map(ing => `
+        ${g.items.map(ing => {
+          const royaleOk = urlValida(ing.royaleApi);
+          const cwOk = urlValida(ing.cwstats);
+          return `
           <div class="ingreso-row">
             <div class="ingreso-info">
               <div class="ing-nombre">${esc(ing.nombre)}</div>
               <div class="ing-fecha">${ing.fechaIngreso ? 'Ingresó el ' + esc(ing.fechaIngreso) : 'Fecha de ingreso no registrada'}</div>
             </div>
-            <div class="ingreso-links">
-              ${ing.royaleApi ? `<a href="${esc(ing.royaleApi)}" target="_blank" rel="noopener">🌐 RoyaleAPI</a>` : ''}
-              ${ing.cwstats  ? `<a href="${esc(ing.cwstats)}" target="_blank" rel="noopener">📊 CWStats</a>` : ''}
-            </div>
-          </div>`).join('')}
+            ${(royaleOk || cwOk) ? `<div class="ingreso-links">
+              ${royaleOk ? `<a href="${esc(ing.royaleApi)}" target="_blank" rel="noopener">🌐 RoyaleAPI</a>` : ''}
+              ${cwOk  ? `<a href="${esc(ing.cwstats)}" target="_blank" rel="noopener">📊 CWStats</a>` : ''}
+            </div>` : ''}
+          </div>`;
+        }).join('')}
       </div>`).join('');
   }catch(err){
     wrap.innerHTML = `<div class="card" style="text-align:center; padding:32px;">
