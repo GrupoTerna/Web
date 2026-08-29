@@ -420,7 +420,7 @@ function barraRequisito(lbl, actual, requerido, activo, sufijo){
     <div class="req-row">
       <div class="lbl">${esc(lbl)}</div>
       <div class="progress ${cumplido?'complete':''}"><i style="width:${pct}%"></i></div>
-      <div class="val">${actual}${sufijo||''} / ${requerido}${sufijo||''}</div>
+      <div class="val">${fmtNum(actual)}${sufijo||''} / ${fmtNum(requerido)}${sufijo||''}</div>
     </div>`;
 }
 function renderRequisitos(j, key){
@@ -443,9 +443,9 @@ function renderMiembro(j){
   document.getElementById('miembroSec').style.display = 'block';
   document.getElementById('mNombre').textContent = j.nombre;
   document.getElementById('mSub').textContent = `${j.tag} · ${j.clan} · ${j.rango} · ${j.estado}`;
-  document.getElementById('mVGuerra').textContent = j.vGuerra;
-  document.getElementById('mTorneos').textContent = j.torneos;
-  document.getElementById('mAtaques').textContent = j.guerraSemana.ataques;
+  document.getElementById('mVGuerra').textContent = fmtNum(j.vGuerra);
+  document.getElementById('mTorneos').textContent = fmtNum(j.torneos);
+  document.getElementById('mAtaques').textContent = fmtNum(j.guerraSemana.ataques);
 
   const categorias = [
     { key:'ascensos',  label:'Ascensos'  },
@@ -695,7 +695,7 @@ async function cargarGanadoresTorneo(){
             <span class="etiqueta">Puesto ${esc(p.puesto)} — ${esc(p.nombre)}</span>
             <span class="clan-chip">${esc(p.clan)}</span>
           </div>
-          <div class="ganador-victorias">${esc(p.victorias)} victorias</div>
+          <div class="ganador-victorias">${fmtNum(p.victorias)} victorias</div>
         </div>`).join('');
   }catch(err){
     lista.innerHTML = '';
