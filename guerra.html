@@ -30,7 +30,7 @@
   .timeline{display:flex; gap:10px; margin-top:18px;}
   .tl-day{flex:1; border:1px solid var(--line); background:var(--surface-card); border-radius:var(--radius-sm); padding:12px 8px; text-align:center; position:relative; transition:all .2s ease;}
   .tl-day .lbl{font-family:var(--f-mono); font-size:11px; letter-spacing:.12em; color:var(--text-faint); text-transform:uppercase;}
-  .tl-day .mark{font-family:var(--f-display); font-weight:800; font-size:22px; margin-top:4px; color:var(--text-dim);}
+  .tl-day .mark{font-family:var(--f-display); font-weight:800; font-size:15px; margin-top:4px; color:var(--text-dim); white-space:nowrap;}
   .tl-day.active{border-color:var(--purple); background:linear-gradient(180deg, rgba(162,57,255,.2), rgba(162,57,255,.04)); box-shadow:0 0 14px rgba(162,57,255,.25);}
   .tl-day.active .lbl{color:var(--purple-light); font-weight:700;}
   .tl-day.active .mark{color:var(--text);}
@@ -148,6 +148,9 @@
 <script>
 const DASH_TOKEN = 'fm7qterna9x';
 const REFRESH_INTERVAL_MS = 60000;
+// Los días de guerra son siempre Jueves→Domingo (letras A-D que manda el
+// backend en ctx.diaLetra); acá solo se usa 'letra' para saber cuál está
+// activo hoy — la fecha real de cada uno se calcula en fechasSemanaGuerra().
 const DIAS = [
   {letra:'A', label:'Jue'}, {letra:'B', label:'Vie'},
   {letra:'C', label:'Sáb'}, {letra:'D', label:'Dom'}
@@ -161,11 +164,38 @@ function fmtFecha(iso){
   if(isNaN(d.getTime())) return '—';
   return d.toLocaleDateString('es-PE', {day:'2-digit', month:'short'});
 }
+/** Fecha corta "DD-mmm" (ej. "27-ago") a partir de un objeto Date. */
+function fmtDiaMes(d){
+  return d.toLocaleDateString('es-PE', {day:'2-digit', month:'short'});
+}
+/**
+ * fechasSemanaGuerra()
+ * Calcula las 4 fechas reales (Jue, Vie, Sáb, Dom) del bloque de guerra
+ * vigente, anclado a la fecha de hoy — no depende de un campo extra del
+ * backend. Si hoy cae dentro de Jue..Dom, usa el Jueves de esa misma
+ * semana; si cae en Lun..Mié (días de entrenamiento), usa el Jueves que
+ * viene. Reemplaza el rótulo fijo "A/B/C/D" que no tenía sentido para
+ * quien mira el panel (pedido del PDF de diseño, 28-ago-2026: mostrar
+ * "Jue" y debajo la fecha real, ej. "27-ago").
+ */
+function fechasSemanaGuerra(){
+  const hoy = new Date();
+  const dow = hoy.getDay(); // 0=Dom,1=Lun,...,4=Jue,5=Vie,6=Sáb
+  const desdeJueves = (dow - 4 + 7) % 7; // 0=Jue,1=Vie,2=Sáb,3=Dom,4=Lun,5=Mar,6=Mié
+  const jueves = new Date(hoy);
+  jueves.setHours(0,0,0,0);
+  if (desdeJueves <= 3){
+    jueves.setDate(hoy.getDate() - desdeJueves);
+  } else {
+    jueves.setDate(hoy.getDate() + (7 - desdeJueves));
+  }
+  return [0,1,2,3].map(i => { const d = new Date(jueves); d.setDate(jueves.getDate() + i); return d; });
+}
 function setNum(id, val){
   const el = document.getElementById(id);
   if(!el) return;
   const changed = prevValues[id] !== undefined && prevValues[id] !== val;
-  el.textContent = val;
+  el.textContent = fmtNum(val);
   if(changed){ el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); }
   prevValues[id] = val;
 }
@@ -220,9 +250,10 @@ function render(data){
     `Temporada ${ctx.temporada ?? '—'} · Semana ${(Number(ctx.sectionIndex)||0) + 1}` +
     (ctx.esDiaGuerra ? ' · Día de guerra en curso' : ' · Día de entrenamiento');
   const tl = document.getElementById('timeline');
-  tl.innerHTML = DIAS.map(d => `
+  const fechas = fechasSemanaGuerra();
+  tl.innerHTML = DIAS.map((d, i) => `
     <div class="tl-day ${d.letra === ctx.diaLetra ? 'active' : ''}">
-      <div class="lbl">${d.label}</div><div class="mark">${d.letra}</div>
+      <div class="lbl">${d.label}</div><div class="mark">${fmtDiaMes(fechas[i])}</div>
     </div>`).join('');
   const clanGrid = document.getElementById('clanGrid');
   const clanes = Object.entries(data.guerraPorClan || {});
@@ -234,13 +265,13 @@ function render(data){
     <div class="card clan-card">
       <div class="name">${esc(nombre)}</div>
       <div class="stats">
-        <div class="stat"><b id="${slug}-atq">${g.ataques}</b><span>Ataques</span></div>
-        <div class="stat"><b id="${slug}-fame">${g.fame}</b><span>Fame</span></div>
-        <div class="stat"><b id="${slug}-barc">${g.barcos}</b><span>Barcos</span></div>
+        <div class="stat"><b id="${slug}-atq">${fmtNum(g.ataques)}</b><span>Ataques</span></div>
+        <div class="stat"><b id="${slug}-fame">${fmtNum(g.fame)}</b><span>Fame</span></div>
+        <div class="stat"><b id="${slug}-barc">${fmtNum(g.barcos)}</b><span>Barcos</span></div>
       </div>
       <div class="bar"><i style="width:${pct}%"></i></div>
       <div style="margin-top:10px;font-size:12px;color:var(--text-dim);font-family:var(--f-mono);">
-        ${g.atacaron}/${g.totalHoy} atacaron hoy (${pct}%)
+        ${fmtNum(g.atacaron)}/${fmtNum(g.totalHoy)} atacaron hoy (${pct}%)
       </div>
     </div>`;
   }).join('') : '<div class="empty">Sin datos de guerra registrados para hoy.</div>';
@@ -255,7 +286,7 @@ function render(data){
     <div class="card" style="padding:12px;"><table>
       <thead><tr><th>Nombre</th><th>Clan</th><th>Faltantes</th></tr></thead>
       <tbody>${pend.map(p => `
-          <tr><td>${esc(p.nombre || p.nomMulti || p.tag)}</td><td>${esc(p.clan)}</td><td class="falt">${p.faltantes}</td></tr>`).join('')}
+          <tr><td>${esc(p.nombre || p.nomMulti || p.tag)}</td><td>${esc(p.clan)}</td><td class="falt">${fmtNum(p.faltantes)}</td></tr>`).join('')}
       </tbody>
     </table></div>` : '<div class="empty">Nadie tiene ataques pendientes 🎉</div>';
   const resumen = Object.entries(data.resumenClanes || {});
@@ -265,7 +296,7 @@ function render(data){
     <div class="resumen-row">
       <div class="clan-n">${esc(nombre)}</div>
       <div class="track"><div class="fill" style="width:${(count/maxResumen)*100}%"></div></div>
-      <div class="val">${count}</div>
+      <div class="val">${fmtNum(count)}</div>
     </div>`).join('') + `</div>` : '<div class="empty">Sin datos de directorio.</div>';
   const nuevos = data.nuevos || [];
   document.getElementById('nuevosCount').textContent = nuevos.length + ' jugador(es)';
