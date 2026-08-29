@@ -3,49 +3,73 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Admin — Familia Terna</title>
+<title>Guerra en Vivo — Familia Terna</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/styles.css">
 <link rel="icon" type="image/jpeg" href="assets/img/logo-cuadrado.jpg">
 <style>
-  /* Estilos propios de esta página (reusa tokens de styles.css) */
-  .login-wrap{max-width:380px; margin:64px auto 0;}
-  .login-wrap .card{padding:28px;}
-  .admin-topbar{display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;}
-  #logoutBtn{
-    background:none; border:1px solid var(--line); color:var(--text-dim);
-    font-family:var(--f-mono); font-size:11px; letter-spacing:.06em; text-transform:uppercase;
-    padding:7px 14px; cursor:pointer; border-radius:var(--radius-sm); transition:border-color .15s, color .15s;
+  .refresh-row{display:flex; align-items:center; gap:12px; font-family:var(--f-mono); font-size:12px; color:var(--text-faint);}
+  #refreshBtn{
+    background:rgba(162,57,255,.1); border:1px solid var(--line-strong); color:var(--text);
+    font-family:var(--f-mono); font-size:11px; letter-spacing:.08em; font-weight:700;
+    text-transform:uppercase; padding:6px 14px; cursor:pointer; border-radius:var(--radius-sm);
+    transition:all .18s ease;
   }
-  #logoutBtn:hover{border-color:var(--danger); color:var(--danger);}
-  .buscador{display:flex; gap:10px; flex-wrap:wrap;}
-  .buscador input{flex:1; min-width:200px;}
-  .perfil-cabecera{display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px;}
-  .perfil-cabecera .stats-mini{display:flex; gap:18px; font-family:var(--f-mono); font-size:12px; color:var(--text-dim);}
-  .perfil-cabecera .stats-mini b{color:var(--text); font-size:15px; display:block;}
-  .req-row{display:flex; align-items:center; gap:12px; margin-bottom:12px;}
-  .req-row .lbl{width:140px; font-size:13px; color:var(--text-dim); flex-shrink:0;}
-  .req-row .progress{flex:1;}
-  .req-row .val{width:90px; text-align:right; font-family:var(--f-mono); font-size:12px; flex-shrink:0;}
-  .field-row{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
-  @media (max-width:560px){ .field-row{grid-template-columns:1fr;} }
-  /* Fase 2 (24-ago-2026): visor de contenido, solo lectura */
-  .contenido-item{border:1px solid var(--line); border-radius:var(--radius-sm); padding:14px 16px; margin-top:12px;}
-  .contenido-item .cab{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px; flex-wrap:wrap;}
-  .contenido-item .etiqueta{font-family:var(--f-mono); font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--gold);}
-  .contenido-item .clan-chip{font-family:var(--f-mono); font-size:11px; color:var(--text-dim); background:var(--surface); border:1px solid var(--line); padding:2px 8px; border-radius:999px;}
-  .contenido-item pre{white-space:pre-wrap; word-break:break-word; font-family:var(--f-body,inherit); font-size:14px; color:var(--text); margin:0; line-height:1.5;}
-  /* Fase 3 (25-ago-2026): gestión de torneos */
-  .ganador-victorias{font-family:var(--f-mono); font-size:13px; color:var(--text-dim);}
+  #refreshBtn:hover{border-color:var(--purple); color:var(--purple-light); background:rgba(162,57,255,.2); transform:translateY(-1px);}
+  #refreshBtn:disabled{opacity:.5; cursor:not-allowed; transform:none;}
+  #refreshBtn.spinning{color:var(--purple); border-color:var(--purple);}
+  .progress-track{height:3px; background:var(--bg-2); margin-top:20px; overflow:hidden; border-radius:3px;}
+  .progress-track i{display:block; height:100%; width:0%; background:linear-gradient(90deg, var(--violet), var(--purple)); transition:width 1s linear;}
+  .flash{animation:flash-num .6s ease;}
+  @keyframes flash-num{
+    0%{color:var(--gold); text-shadow:0 0 10px rgba(243,169,34,.6);}
+    100%{color:inherit; text-shadow:none;}
+  }
+  .timeline{display:flex; gap:10px; margin-top:18px;}
+  .tl-day{flex:1; border:1px solid var(--line); background:var(--surface-card); border-radius:var(--radius-sm); padding:12px 8px; text-align:center; position:relative; transition:all .2s ease;}
+  .tl-day .lbl{font-family:var(--f-mono); font-size:11px; letter-spacing:.12em; color:var(--text-faint); text-transform:uppercase;}
+  .tl-day .mark{font-family:var(--f-display); font-weight:800; font-size:15px; margin-top:4px; color:var(--text-dim); white-space:nowrap;}
+  .tl-day.active{border-color:var(--purple); background:linear-gradient(180deg, rgba(162,57,255,.2), rgba(162,57,255,.04)); box-shadow:0 0 14px rgba(162,57,255,.25);}
+  .tl-day.active .lbl{color:var(--purple-light); font-weight:700;}
+  .tl-day.active .mark{color:var(--text);}
+  .tl-day.active::after{
+    content:"HOY"; position:absolute; top:-10px; left:50%; transform:translateX(-50%);
+    background:var(--purple); color:#fff; font-family:var(--f-mono); font-size:9px; font-weight:700;
+    letter-spacing:.1em; padding:2px 8px; border-radius:999px; box-shadow:0 2px 8px rgba(162,57,255,.4);
+  }
+  .clan-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:16px;}
+  .clan-card .name{font-family:var(--f-display); font-size:18px; font-weight:800; text-transform:uppercase; color:var(--text);}
+  .clan-card .stats{display:flex; gap:18px; margin-top:14px; font-family:var(--f-mono);}
+  .clan-card .stat b{display:block; font-size:22px; color:var(--text); font-family:var(--f-display);}
+  .clan-card .stat span{font-size:10px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.08em;}
+  .bar{height:6px; background:var(--bg-2); margin-top:14px; border-radius:3px; overflow:hidden; border:1px solid var(--line);}
+  .bar i{display:block; height:100%; background:linear-gradient(90deg, var(--violet), var(--purple));}
+  .falt{font-family:var(--f-mono); font-weight:700; color:var(--danger);}
+  .resumen-row{display:flex; align-items:center; gap:14px; margin-bottom:12px;}
+  .resumen-row .clan-n{width:160px; font-size:14px; flex-shrink:0; font-weight:600;}
+  .resumen-row .track{flex:1; height:16px; background:var(--bg-2); border-radius:4px; position:relative; overflow:hidden; border:1px solid var(--line);}
+  .resumen-row .fill{height:100%; background:linear-gradient(90deg, var(--violet), var(--purple));}
+  .resumen-row .val{width:40px; text-align:right; font-family:var(--f-mono); font-size:13px; color:var(--gold); font-weight:700;}
+  .nuevo-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:16px;}
+  .nuevo-card .name{font-weight:700; font-size:15px; color:var(--text);}
+  .nuevo-card .tag{font-family:var(--f-mono); font-size:12px; color:var(--text-dim);}
+  .nuevo-card .clan{font-size:13px; color:var(--text-dim); margin:6px 0 12px;}
+  .nuevo-card .links{display:flex; gap:14px; font-size:12px;}
+  .nuevo-card .links a{text-decoration:none; color:var(--purple-light); font-weight:600;}
+  #status{font-family:var(--f-mono); font-size:14px; color:var(--text-dim); padding:64px 20px; text-align:center;}
+  #status.err{color:var(--danger);}
 </style>
 </head>
-<body data-page="admin">
+<body data-page="guerra">
 
 <nav class="nav">
   <div class="wrap">
-    <a href="index.html" class="brand"><img src="assets/img/logo-cuadrado.jpg" alt="Escudo GxT Familia Terna" class="brand-logo"> Familia Terna</a>
+    <a href="index.html" class="brand">
+      <img src="assets/img/logo-cuadrado.jpg" alt="Escudo GxT Familia Terna" class="brand-logo">
+      <span>ᴳ乂ᵀ <span class="crown">⚜️</span> Familia Terna</span>
+    </a>
     <button id="navToggle" class="nav-toggle" aria-label="Abrir menú">☰</button>
     <div class="links">
       <a href="jugadores.html" data-page="jugadores">Clanes</a>
@@ -57,806 +81,250 @@
   </div>
 </nav>
 
-<!-- ---------- LOGIN ---------- -->
-<section id="loginSec" style="padding-top:24px;">
-  <div class="wrap login-wrap">
-    <div class="eyebrow">Acceso restringido</div>
-    <h1 style="font-size:26px; margin-top:10px;">Panel de administración</h1>
-    <div class="card" style="margin-top:20px;">
-      <div class="field">
-        <label for="loginCelular">Celular</label>
-        <input type="text" id="loginCelular" placeholder="Ej: 987654321" autocomplete="username" inputmode="numeric">
-      </div>
-      <div class="field">
-        <label for="claveInput">Clave</label>
-        <input type="password" id="claveInput" placeholder="••••••••" autocomplete="current-password">
-      </div>
-      <button class="btn btn-primary btn-block" id="btnLogin">Ingresar</button>
-      <div id="loginMsg"></div>
+<div class="wrap" style="padding-top:36px; padding-bottom:80px;">
+
+  <div class="card" style="position:relative; overflow:hidden; padding:28px;">
+    <div class="eyebrow" style="justify-content:space-between; width:100%;">
+      <span style="display:flex; align-items:center; gap:10px;">
+        <span style="width:8px;height:8px;background:var(--ok);border-radius:50%; box-shadow:0 0 10px rgba(16,185,129,.6); display:inline-block;"></span>
+        Monitoreo en Vivo
+      </span>
+      <span class="refresh-row">
+        <span id="agoText">—</span>
+        <button id="refreshBtn" type="button" onclick="cargar(true)">🔄 Actualizar</button>
+      </span>
     </div>
+    <h1 style="font-size:clamp(30px,5vw,44px); margin-top:14px;">Control de guerra</h1>
+    <div class="text-dim" id="sub" data-fit-line style="margin-top:6px; font-size:16px; white-space:nowrap;">Cargando estado de la temporada…</div>
+    <div class="timeline" id="timeline"></div>
+    <div class="progress-track"><i id="progressFill"></i></div>
   </div>
-</section>
 
-<!-- ---------- PANEL DE ADMIN ---------- -->
-<section id="panelSec" style="display:none; padding-top:32px;">
-  <div class="wrap">
+  <div id="status">Conectando con la API de Guerra…</div>
 
-    <div class="admin-topbar">
-      <div>
-        <div class="eyebrow" id="adminBienvenida">Gestión de miembros</div>
-        <h1 style="font-size:clamp(24px,4vw,32px); margin-top:10px;">Panel de administración</h1>
+  <div id="content" style="display:none">
+
+    <section style="padding:40px 0 24px;">
+      <div class="sec-head" style="display:flex; align-items:baseline; justify-content:space-between; border-bottom:1px solid var(--line); padding-bottom:12px;">
+        <h2 style="font-size:22px;">⚔️ Guerra de Hoy</h2>
+        <span class="text-faint" id="clanCount" style="font-family:var(--f-mono); font-size:13px;"></span>
       </div>
-      <button id="logoutBtn" type="button">Cerrar sesión</button>
-    </div>
+      <div class="clan-grid" id="clanGrid" style="margin-top:20px;"></div>
+    </section>
 
-    <!-- Fase 5 (28-ago-2026): herramientas standalone incorporadas al portal
-         admin — no tienen backend propio ni datos que pedir acá, solo
-         necesitan quedar ocultas para no-admins. Se abre en pestaña nueva
-         (sin rel="noopener") para que sorteo.html herede el sessionStorage
-         de esta pestaña y pueda validar la sesión al cargar. -->
-    <div class="card" style="margin-top:24px;">
-      <div class="eyebrow">Herramientas</div>
-      <h3 style="font-size:15px; color:var(--gold); margin:10px 0 4px;">🎡 Ruleta de sorteos</h3>
-      <p class="text-dim" style="font-size:13px; margin:0 0 14px;">Sorteo en vivo con ruleta, lista de participantes y exportación del acta a Word.</p>
-      <button type="button" class="btn btn-primary" id="btnAbrirSorteo">Abrir Ruleta de Sorteos</button>
-    </div>
-
-    <div class="card" style="margin-top:24px;">
-      <div class="buscador">
-        <input type="text" id="tagInput" placeholder="Ej: #ABC123XYZ" autocapitalize="characters">
-        <button class="btn btn-primary" id="btnBuscar">Buscar miembro</button>
+    <section style="padding:24px 0;">
+      <div class="sec-head" style="display:flex; align-items:baseline; justify-content:space-between; border-bottom:1px solid var(--line); padding-bottom:12px;">
+        <h2 style="font-size:22px;">⚠️ Pendientes de Atacar</h2>
+        <span class="text-faint" id="pendCount" style="font-family:var(--f-mono); font-size:13px;"></span>
       </div>
-      <div id="buscarMsg"></div>
-    </div>
+      <div id="pendWrap" style="margin-top:20px;"></div>
+    </section>
 
-    <!-- Fase 2 (24-ago-2026): visor de contenido por categoría, SOLO LECTURA.
-         El contenido "Estático" real se edita en los Google Docs de Drive
-         (sync automático) y "Mensajes" se recalcula solo en cada corrida —
-         por eso este panel no tiene botón de guardar, es únicamente para
-         verificar rápido qué le está mostrando el bot a cada clan ahora
-         mismo. Ver nota de diseño en la cabecera de 34_Web_API.gs. -->
-    <div class="card" style="margin-top:24px;">
-      <div class="eyebrow">Solo lectura</div>
-      <h3 style="font-size:15px; color:var(--gold); margin:10px 0 16px;">Visor de contenido por categoría</h3>
-      <div class="field" style="margin-bottom:12px;">
-        <label for="catSelect">Categoría</label>
-        <select id="catSelect"><option value="">Cargando categorías…</option></select>
+    <section style="padding:24px 0;">
+      <div class="sec-head" style="border-bottom:1px solid var(--line); padding-bottom:12px;">
+        <h2 style="font-size:22px;">📊 Miembros Activos por Clan</h2>
       </div>
-      <div id="contenidoMsg"></div>
-      <div id="contenidoLista"></div>
-    </div>
+      <div id="resumenWrap" style="margin-top:20px;"></div>
+    </section>
 
-    <!-- Fase 3 (25-ago-2026): gestión de torneos — registrar link nuevo,
-         modificar fecha/hora del de hoy, y ver ganadores del más reciente.
-         Reutiliza _registrarTorneoDesdeBot / _listarTorneosDeHoy /
-         _modificarFechaHoraTorneo (24_Torneos_Core.gs) — los mismos 3 pasos
-         que ya existen en el bot de WhatsApp para admins. "Ver ganadores"
-         no tiene endpoint nuevo: usa el mismo webTorneos público que
-         index.html. Ver 34_Web_API.gs / 08_Web_Endpoints.gs. -->
-    <div class="card" style="margin-top:24px;">
-      <div class="eyebrow">Torneos</div>
-      <h3 style="font-size:15px; color:var(--gold); margin:10px 0 16px;">Registrar torneo nuevo</h3>
-      <div class="field">
-        <label for="tLink">Link del torneo</label>
-        <input type="text" id="tLink" placeholder="https://link.clashroyale.com/...">
+    <section style="padding:24px 0;">
+      <div class="sec-head" style="display:flex; align-items:baseline; justify-content:space-between; border-bottom:1px solid var(--line); padding-bottom:12px;">
+        <h2 style="font-size:22px;">🆕 Ingresos Recientes</h2>
+        <span class="text-faint" id="nuevosCount" style="font-family:var(--f-mono); font-size:13px;"></span>
       </div>
-      <div class="field-row">
-        <div class="field">
-          <label for="tFecha">Fecha</label>
-          <input type="date" id="tFecha">
-        </div>
-        <div class="field">
-          <label for="tHora">Hora</label>
-          <input type="time" id="tHora">
-        </div>
-      </div>
-      <button class="btn btn-primary btn-block" id="btnRegistrarTorneo" style="margin-top:6px;">Registrar torneo</button>
-      <div id="registrarTorneoMsg"></div>
-    </div>
+      <div class="nuevo-grid" id="nuevoGrid" style="margin-top:20px;"></div>
+    </section>
 
-    <div class="card" style="margin-top:24px;">
-      <h3 style="font-size:15px; color:var(--gold); margin:10px 0 16px;">Modificar torneo de hoy</h3>
-      <div class="field" style="margin-bottom:12px;">
-        <label for="tSelectHoy">Torneo</label>
-        <select id="tSelectHoy"><option value="">Cargando torneos de hoy…</option></select>
-      </div>
-      <div class="field-row">
-        <div class="field">
-          <label for="tFechaMod">Nueva fecha</label>
-          <input type="date" id="tFechaMod">
-        </div>
-        <div class="field">
-          <label for="tHoraMod">Nueva hora</label>
-          <input type="time" id="tHoraMod">
-        </div>
-      </div>
-      <button class="btn btn-primary btn-block" id="btnModificarTorneo" style="margin-top:6px;">Guardar cambios</button>
-      <div id="modificarTorneoMsg"></div>
-    </div>
-
-    <div class="card" style="margin-top:24px;">
-      <h3 style="font-size:15px; color:var(--gold); margin:10px 0 16px;">Ganadores del torneo más reciente</h3>
-      <div id="ganadoresMsg"></div>
-      <div id="ganadoresLista"></div>
-    </div>
-
-    <div id="miembroSec" style="display:none; margin-top:24px;">
-      <div class="grid-2">
-
-        <!-- Datos del jugador (solo lectura) + progreso -->
-        <div class="card">
-          <div class="perfil-cabecera">
-            <div>
-              <h3 id="mNombre" style="font-size:19px; font-family:var(--f-display); text-transform:uppercase;"></h3>
-              <div class="text-faint" id="mSub" style="font-family:var(--f-mono); font-size:12px; margin-top:4px;"></div>
-            </div>
-            <div class="stats-mini">
-              <span><b id="mVGuerra"></b>Trofeos guerra</span>
-              <span><b id="mTorneos"></b>Torneos</span>
-              <span><b id="mAtaques"></b>Ataques/sem</span>
-            </div>
-          </div>
-
-          <div style="margin-top:20px;">
-            <div class="tabs" id="mReqTabs" style="display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap;"></div>
-            <div id="mReqContenido"></div>
-          </div>
-        </div>
-
-        <!-- Campos editables de gestión -->
-        <div class="card">
-          <h3 style="font-size:15px; color:var(--gold); margin-bottom:16px;">Datos de gestión</h3>
-          <div class="field-row">
-            <div class="field">
-              <label for="fPrefijo">Prefijo (país)</label>
-              <input type="text" id="fPrefijo" placeholder="Ej: 51">
-            </div>
-            <div class="field">
-              <label for="fCelular">Celular</label>
-              <input type="text" id="fCelular" placeholder="Ej: 987654321">
-            </div>
-          </div>
-          <div class="field">
-            <label for="fNomMulti">Nombre multicuenta</label>
-            <input type="text" id="fNomMulti" placeholder="Nombre de referencia">
-          </div>
-          <div class="field">
-            <label for="fPrestamo">Préstamo</label>
-            <input type="text" id="fPrestamo" placeholder="Detalle del préstamo (si aplica)">
-          </div>
-          <button class="btn btn-primary btn-block" id="btnGuardar" style="margin-top:6px;">Guardar cambios</button>
-          <div id="guardarMsg"></div>
-        </div>
-
-      </div>
-    </div>
-
-    <!-- FASE 4 (26-ago-2026): registrar miembro nuevo, en dos pasos —
-         Paso 1 verifica el Tag contra la API (webAdminVerificarTag) antes
-         de dejar completar nada; Paso 2 se habilita solo tras un
-         "Verificar" exitoso. Reutiliza _guardarRegistroNuevoMiembro()
-         (11_DirectorioSheet.gs) vía webAdminRegistrarNuevo — mismo backend
-         que "Datos de gestión" arriba, para un miembro que todavía no
-         existe en Directorio. Card oculta si el admin logueado no tiene
-         "Registrar miembro nuevo" en Funciones (ver
-         aplicarVisibilidadPorFunciones() más abajo) — el backend igual
-         vuelve a validar esto en cada request, esto es solo para no
-         mostrar un formulario que de todos modos va a rechazar.
-         Ver arquitectura-web-familia-terna.md, Sección 7.4. -->
-    <div class="card" id="cardRegistrarNuevo" style="display:none; margin-top:24px;">
-      <div class="eyebrow">Directorio</div>
-      <h3 style="font-size:15px; color:var(--gold); margin:10px 0 16px;">Registrar miembro nuevo</h3>
-      <div class="field">
-        <label for="nmTag">Tag</label>
-        <input type="text" id="nmTag" placeholder="Ej: #ABC123XYZ" autocapitalize="characters">
-      </div>
-      <button class="btn btn-primary" id="btnNmVerificar" type="button">Verificar</button>
-      <div id="nmVerificarMsg"></div>
-
-      <div id="nmPaso2" style="display:none; margin-top:18px; padding-top:18px; border-top:1px solid var(--line);">
-        <div class="field">
-          <label for="nmNomMultiSelect">Nombre multicuenta</label>
-          <select id="nmNomMultiSelect"><option value="">Cargando…</option></select>
-        </div>
-        <div class="field" id="nmNomMultiNuevoWrap">
-          <input type="text" id="nmNomMultiNuevo" placeholder="Nombre de la multicuenta nueva" style="display:none;">
-        </div>
-        <div class="field-row">
-          <div class="field">
-            <label for="nmPrefijo">Prefijo (país)</label>
-            <input type="text" id="nmPrefijo" placeholder="Ej: 51">
-          </div>
-          <div class="field">
-            <label for="nmCelular">Celular</label>
-            <input type="text" id="nmCelular" placeholder="Ej: 987654321">
-          </div>
-        </div>
-        <button class="btn btn-primary btn-block" id="btnNmGuardar" style="margin-top:6px;">Guardar registro</button>
-        <div id="nmGuardarMsg"></div>
-      </div>
-    </div>
-
-    <!-- FASE 4: vetar a un miembro — de un solo sentido, sin opción de
-         deshacer desde la web (ver Sección 7.6 del documento de
-         arquitectura: no hay endpoint de "desvetar"). El backend
-         (_webAdminVetar, 34_Web_API.gs) revalida "Vetar" en Funciones y
-         que el Clan del tag esté en Clanes_Admin del admin logueado —acá
-         solo se oculta la card si no tiene "Vetar" en Funciones, como
-         arriba. La lista de Razón es la MISMA que CFG.RAZON_VALORES_VALIDOS
-         (01_Config_Global.gs) — si esa lista cambia en el backend, hay que
-         actualizarla acá también a mano (no hay endpoint que la exponga,
-         ver Sección 7.7 del documento de arquitectura). -->
-    <div class="card" id="cardVetar" style="display:none; margin-top:24px;">
-      <div class="eyebrow">Directorio</div>
-      <h3 style="font-size:15px; color:var(--gold); margin:10px 0 16px;">Vetar miembro</h3>
-      <div class="field">
-        <label for="vTag">Tag</label>
-        <input type="text" id="vTag" placeholder="Ej: #ABC123XYZ" autocapitalize="characters">
-      </div>
-      <div class="field">
-        <label for="vRazon">Razón</label>
-        <select id="vRazon">
-          <option value="">Elige una razón…</option>
-          <option value="NARANJA x">NARANJA x</option>
-          <option value="Vetado por clan">Vetado por clan</option>
-          <option value="Incumplimiento de ataques">Incumplimiento de ataques</option>
-          <option value="Conducta inapropiada">Conducta inapropiada</option>
-          <option value="Inactividad prolongada">Inactividad prolongada</option>
-          <option value="Solicitud propia">Solicitud propia</option>
-        </select>
-      </div>
-      <div class="field">
-        <label for="vComentario">Comentario (opcional)</label>
-        <textarea id="vComentario" rows="3" placeholder="Detalle adicional para el registro de Comentarios"></textarea>
-      </div>
-      <button class="btn btn-primary btn-block" id="btnVetar" style="margin-top:6px; border-color:var(--danger);">Vetar</button>
-      <div id="vMsg"></div>
-    </div>
   </div>
-</section>
 
-<footer>
-  <div class="wrap">
-    <span>Familia Terna · Panel de administración</span>
-    <span>Datos servidos desde Google Apps Script</span>
-  </div>
-</footer>
+  <footer>
+    <div class="wrap" style="padding:0;">
+      <span>Familia Terna · Portal de la comunidad</span>
+      <span id="updatedAt"></span>
+    </div>
+  </footer>
+</div>
 
 <script src="assets/common.js"></script>
 <script>
-const SESSION_KEY = 'terna_admin_token';
-// FASE 5 (26-ago-2026): junto con el token, ahora se guarda también la
-// identidad del admin que devuelve webLogin (nombre/nomMulti), para poder
-// mostrar "Hola, <nombre>" en el panel sin pedirle el Celular de nuevo en
-// cada recarga de la página. Ver 34_Web_API.gs / _webAuthLogin().
-const SESSION_ADMIN_KEY = 'terna_admin_info';
-let miembroActual = null; // guarda el tag actualmente cargado, para el guardado
+const DASH_TOKEN = 'fm7qterna9x';
+const REFRESH_INTERVAL_MS = 60000;
+// Los días de guerra son siempre Jueves→Domingo. El backend manda la letra
+// real de cada uno en ctx.diaLetra / data.diasSemanaGuerra[].letra: 'J','V',
+// 'S','D' (Jueves/Viernes/Sábado/Domingo — ver CFG.DIA_LETRAS en
+// 02_Formato_Comun.gs), NO 'A'/'B'/'C'/'D'. Antes este arreglo usaba
+// 'A'/'B'/'C'/'D' para saber cuál día resaltar como "HOY", por lo que la
+// comparación con ctx.diaLetra nunca coincidía salvo por casualidad en
+// domingo (pedido del PDF de diseño, 28-ago-2026 — corregido acá).
+const DIAS = [
+  {letra:'J', label:'Jue'}, {letra:'V', label:'Vie'},
+  {letra:'S', label:'Sáb'}, {letra:'D', label:'Dom'}
+];
+let lastFetchAt = null;
+let prevValues  = {};
 
-function mostrarPanel(){
-  document.getElementById('loginSec').style.display = 'none';
-  document.getElementById('panelSec').style.display = 'block';
-  const adminGuardado = sessionStorage.getItem(SESSION_ADMIN_KEY);
-  const bienvenida = document.getElementById('adminBienvenida');
-  if(adminGuardado){
-    try{
-      const admin = JSON.parse(adminGuardado);
-      const nombreMostrar = admin.nomMulti || admin.nombre;
-      if(nombreMostrar) bienvenida.textContent = `Hola, ${nombreMostrar}`;
-    }catch(err){ /* si el JSON guardado no es válido, se deja el texto por defecto */ }
-  }
-  aplicarVisibilidadPorFunciones();
-  cargarCategorias();
-  cargarTorneosHoy();
-  cargarGanadoresTorneo();
+function fmtFecha(iso){
+  if(!iso) return '—';
+  const d = new Date(iso);
+  if(isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString('es-PE', {day:'2-digit', month:'short'});
 }
-
-/** FASE 4 (26-ago-2026): muestra/oculta las cards de "Registrar miembro
- *  nuevo" y "Vetar miembro" según la columna Funciones del admin logueado
- *  (texto libre separado por comas, ver Sección 7.3 de
- *  arquitectura-web-familia-terna.md — nunca un único valor, un admin
- *  puede tener ambas funciones a la vez). Es solo UX: el backend
- *  (_webAdminRegistrarNuevo / _webAdminVetar, 34_Web_API.gs) vuelve a
- *  validar esto mismo en cada request, así que ocultar la card acá no es
- *  el control de seguridad real, solo evita mostrar un formulario que de
- *  todos modos el servidor va a rechazar. */
-function aplicarVisibilidadPorFunciones(){
-  let funciones = '';
-  const adminGuardado = sessionStorage.getItem(SESSION_ADMIN_KEY);
-  if(adminGuardado){
-    try{ funciones = String(JSON.parse(adminGuardado).funciones || ''); }catch(err){ /* se deja vacío */ }
-  }
-  document.getElementById('cardRegistrarNuevo').style.display = funciones.indexOf('Registrar miembro nuevo') !== -1 ? 'block' : 'none';
-  document.getElementById('cardVetar').style.display = funciones.indexOf('Vetar') !== -1 ? 'block' : 'none';
+/** Fecha corta "DD-mmm" (ej. "27-ago") a partir de un ISO string o Date. */
+function fmtDiaMes(v){
+  if(!v) return '—';
+  const d = v instanceof Date ? v : new Date(v);
+  if(isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString('es-PE', {day:'2-digit', month:'short'});
 }
-function mostrarLogin(msg){
-  sessionStorage.removeItem(SESSION_KEY);
-  sessionStorage.removeItem(SESSION_ADMIN_KEY);
-  document.getElementById('panelSec').style.display = 'none';
-  document.getElementById('loginSec').style.display = 'block';
-  document.getElementById('adminBienvenida').textContent = 'Gestión de miembros';
-  if(msg) document.getElementById('loginMsg').innerHTML = `<div class="msg msg-error">${esc(msg)}</div>`;
+function setNum(id, val){
+  const el = document.getElementById(id);
+  if(!el) return;
+  const changed = prevValues[id] !== undefined && prevValues[id] !== val;
+  el.textContent = fmtNum(val);
+  if(changed){ el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); }
+  prevValues[id] = val;
 }
-
-// Si ya hay un token de una sesión anterior (misma pestaña), saltar directo
-// al panel — si resulta estar vencido, la primera búsqueda lo detecta y
-// devuelve al login (ver manejarRespuestaAuth()).
-if(sessionStorage.getItem(SESSION_KEY)) mostrarPanel();
-
-document.getElementById('btnLogin').addEventListener('click', async () => {
-  const celular = document.getElementById('loginCelular').value;
-  const clave = document.getElementById('claveInput').value;
-  const msgEl = document.getElementById('loginMsg');
-  msgEl.innerHTML = '';
-  if(!celular || !clave){ msgEl.innerHTML = '<div class="msg msg-error">Escribe tu Celular y tu Clave.</div>'; return; }
+function actualizarAgoText(){
+  const el = document.getElementById('agoText');
+  if(!el || !lastFetchAt) return;
+  const segs = Math.floor((Date.now() - lastFetchAt.getTime()) / 1000);
+  let txt;
+  if(segs < 5) txt = 'actualizado ahora mismo';
+  else if(segs < 60) txt = `actualizado hace ${segs}s`;
+  else txt = `actualizado hace ${Math.floor(segs/60)} min`;
+  el.textContent = txt;
+}
+function iniciarProgreso(){
+  const fill = document.getElementById('progressFill');
+  if(!fill) return;
+  fill.style.transition = 'none'; fill.style.width = '0%';
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    fill.style.transition = `width ${REFRESH_INTERVAL_MS}ms linear`;
+    fill.style.width = '100%';
+  }));
+}
+async function cargar(manual){
+  const statusEl = document.getElementById('status');
+  const refreshBtn = document.getElementById('refreshBtn');
+  if(refreshBtn){ refreshBtn.classList.add('spinning'); refreshBtn.disabled = true; }
   try{
-    const data = await apiPost('webLogin', { celular, clave });
-    if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error || 'No se pudo iniciar sesión.')}</div>`; return; }
-    sessionStorage.setItem(SESSION_KEY, data.token);
-    if(data.admin) sessionStorage.setItem(SESSION_ADMIN_KEY, JSON.stringify(data.admin));
-    document.getElementById('loginCelular').value = '';
-    document.getElementById('claveInput').value = '';
-    mostrarPanel();
+    const url = `${WEBAPP_URL}?dashboard=json&token=${encodeURIComponent(DASH_TOKEN)}`;
+    const res = await fetch(url, { cache: 'no-store' });
+    const data = await res.json();
+    if(data.error){ throw new Error(data.error); }
+    render(data);
+    lastFetchAt = new Date();
+    actualizarAgoText();
+    iniciarProgreso();
   }catch(err){
-    msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
+    if(document.getElementById('content').style.display === 'none'){
+      statusEl.textContent = 'No se pudo cargar el estado del clan: ' + err.message;
+      statusEl.classList.add('err');
+    }else{
+      document.getElementById('agoText').textContent = 'sin conexión, mostrando última carga';
+    }
+  }finally{
+    if(refreshBtn){ refreshBtn.classList.remove('spinning'); refreshBtn.disabled = false; }
   }
-});
-document.getElementById('loginCelular').addEventListener('keydown', e => {
-  if(e.key === 'Enter') document.getElementById('btnLogin').click();
-});
-document.getElementById('claveInput').addEventListener('keydown', e => {
-  if(e.key === 'Enter') document.getElementById('btnLogin').click();
-});
-
-document.getElementById('logoutBtn').addEventListener('click', () => mostrarLogin());
-
-// Fase 5 (29-ago-2026): deja el token en localStorage (leído y borrado de
-// inmediato por sorteo.html) para que la pestaña nueva pueda validar la
-// sesión — ver nota en sorteo.html sobre por qué sessionStorage solo no
-// alcanza entre pestañas.
-document.getElementById('btnAbrirSorteo').addEventListener('click', () => {
-  const token = sessionStorage.getItem(SESSION_KEY);
-  console.log('[admin.html diag] token al abrir ruleta:', token ? `sí (${token.length} caracteres)` : 'NO HAY TOKEN');
-  if(!token) return mostrarLogin('Tu sesión expiró, vuelve a iniciar sesión.');
-  const url = 'sorteo.html?tk=' + encodeURIComponent(token);
-  console.log('[admin.html diag] abriendo:', url);
-  window.open(url, '_blank');
-});
-
-// Si la sesión vino vencida/inválida, cualquier respuesta con ok:false y
-// error de sesión nos regresa al login en vez de mostrar el mensaje suelto.
-function manejarRespuestaAuth(data){
-  if(data && data.ok === false && /sesión|sesion/i.test(String(data.error||''))){
-    mostrarLogin(data.error);
-    return true;
-  }
-  return false;
 }
-
-function campoMinTSegunRango(rango){
-  const r = String(rango||'').toLowerCase();
-  if(r.includes('col')) return 'minTColider';
-  if(r.includes('vet')) return 'minTVeterano';
-  return 'minTMiembro';
-}
-function barraRequisito(lbl, actual, requerido, activo, sufijo){
-  if(!activo) return '';
-  const pct = requerido > 0 ? Math.min(100, Math.round((actual/requerido)*100)) : 100;
-  const cumplido = actual >= requerido;
-  return `
-    <div class="req-row">
-      <div class="lbl">${esc(lbl)}</div>
-      <div class="progress ${cumplido?'complete':''}"><i style="width:${pct}%"></i></div>
-      <div class="val">${fmtNum(actual)}${sufijo||''} / ${fmtNum(requerido)}${sufijo||''}</div>
+function render(data){
+  document.getElementById('status').style.display = 'none';
+  document.getElementById('content').style.display = 'block';
+  const ctx = data.ctx || {};
+  const subEl = document.getElementById('sub');
+  // Nombre del día EN TEXTO COMPLETO (ej. "SÁBADO"), no la letra abreviada
+  // J/V/S/D que usa ctx.diaLetra (esa solo cubre los 4 días de guerra). Se
+  // toma del día real de hoy para que también funcione en día de
+  // entrenamiento (lunes a miércoles), que no tiene letra asignada.
+  // Formato exacto pedido: "TEMPORADA 4 - SEMANA 4 - DÍA SÁBADO (DÍA DE GUERRA)"
+  // o "... (ENTRENAMIENTO)" si no es día de guerra — todo en mayúsculas y
+  // separado por guiones en vez de "·".
+  const diaNombre = new Date().toLocaleDateString('es-PE', { weekday: 'long' }).toUpperCase();
+  subEl.textContent =
+    `TEMPORADA ${ctx.temporada ?? '—'} - SEMANA ${(Number(ctx.sectionIndex)||0) + 1} - DÍA ${diaNombre} ` +
+    (ctx.esDiaGuerra ? '(DÍA DE GUERRA)' : '(ENTRENAMIENTO)');
+  delete subEl.dataset.baseFontSize; // recalcula el tamaño base cada vez, el texto cambia de largo
+  fitOneLine(subEl);
+  const tl = document.getElementById('timeline');
+  // data.diasSemanaGuerra: 4 {letra, fecha} con la fecha REAL (columna
+  // DiaGuerra de la hoja Guerra) de cada día de la semana vigente, en el
+  // mismo orden J/V/S/D que DIAS. Si el backend todavía no la manda (ej.
+  // versión vieja del Web App), se cae a mostrar solo la letra sin fecha
+  // en vez de romper el timeline.
+  const diasBackend = data.diasSemanaGuerra || [];
+  tl.innerHTML = DIAS.map((d, i) => {
+    const fechaDia = diasBackend[i] ? diasBackend[i].fecha : null;
+    return `
+    <div class="tl-day ${d.letra === ctx.diaLetra ? 'active' : ''}">
+      <div class="lbl">${d.label}</div><div class="mark">${fmtDiaMes(fechaDia)}</div>
     </div>`;
-}
-function renderRequisitos(j, key){
-  const req = j.progreso[key];
-  const cont = document.getElementById('mReqContenido');
-  if(!req){ cont.innerHTML = '<div class="empty">Sin datos para esta categoría.</div>'; return; }
-  const campoMinT = campoMinTSegunRango(j.rango);
-  const minT = req[campoMinT];
-  let html = '';
-  html += barraRequisito('Trofeos guerra', minT.actual, minT.requerido, minT.activo, '🏆');
-  html += barraRequisito('Ataques/semana', req.ataques.actual, req.ataques.requerido, req.ataques.activo, '');
-  html += barraRequisito('Torneos', req.torneos.actual, req.torneos.requerido, req.torneos.activo, '');
-  if(req.miembroActivo.activo) html += `<div style="margin-top:6px;"><span class="badge badge-purple">Debe ser miembro activo</span></div>`;
-  if(req.reaccion.activo) html += `<div style="margin-top:8px;"><span class="badge badge-purple">Requiere reaccionar a la publicación</span></div>`;
-  cont.innerHTML = html || '<div class="empty">Este clan no tiene requisitos activos en esta categoría.</div>';
-}
-
-function renderMiembro(j){
-  miembroActual = j.tag;
-  document.getElementById('miembroSec').style.display = 'block';
-  document.getElementById('mNombre').textContent = j.nombre;
-  document.getElementById('mSub').textContent = `${j.tag} · ${j.clan} · ${j.rango} · ${j.estado}`;
-  document.getElementById('mVGuerra').textContent = fmtNum(j.vGuerra);
-  document.getElementById('mTorneos').textContent = fmtNum(j.torneos);
-  document.getElementById('mAtaques').textContent = fmtNum(j.guerraSemana.ataques);
-
-  const categorias = [
-    { key:'ascensos',  label:'Ascensos'  },
-    { key:'descensos', label:'Descensos' }
-  ].filter(c => j.progreso[c.key]);
-  const tabsEl = document.getElementById('mReqTabs');
-  tabsEl.innerHTML = categorias.map((c, i) =>
-    `<div class="tab ${i===0?'active':''}" data-key="${c.key}" style="font-family:var(--f-mono);font-size:11px;text-transform:uppercase;letter-spacing:.06em;padding:6px 12px;border-radius:999px;border:1px solid var(--line);color:var(--text-dim);cursor:pointer;">${c.label}</div>`
-  ).join('');
-  tabsEl.querySelectorAll('.tab').forEach(t => {
-    t.addEventListener('click', () => {
-      tabsEl.querySelectorAll('.tab').forEach(x => { x.classList.remove('active'); x.style.color='var(--text-dim)'; x.style.borderColor='var(--line)'; });
-      t.classList.add('active'); t.style.color = '#fff'; t.style.borderColor = 'var(--purple)';
-      renderRequisitos(j, t.dataset.key);
-    });
-  });
-  if(categorias.length){
-    tabsEl.querySelector('.tab.active').style.color = '#fff';
-    tabsEl.querySelector('.tab.active').style.borderColor = 'var(--purple)';
-    renderRequisitos(j, categorias[0].key);
-  }else{
-    document.getElementById('mReqContenido').innerHTML = '<div class="empty">Este clan todavía no tiene requisitos configurados.</div>';
-  }
-
-  const ed = j.editable || {};
-  document.getElementById('fPrefijo').value  = ed.prefijo  || '';
-  document.getElementById('fCelular').value  = ed.celular  || '';
-  document.getElementById('fNomMulti').value = ed.nomMulti || '';
-  document.getElementById('fPrestamo').value = ed.prestamo || '';
-  document.getElementById('guardarMsg').innerHTML = '';
-}
-
-async function buscarMiembro(){
-  const tagNorm = normalizarTag(document.getElementById('tagInput').value);
-  const msgEl = document.getElementById('buscarMsg');
-  msgEl.innerHTML = '';
-  document.getElementById('miembroSec').style.display = 'none';
-  if(!tagNorm){ msgEl.innerHTML = '<div class="msg msg-error">Escribe un Tag válido.</div>'; return; }
-  document.getElementById('tagInput').value = tagNorm;
-  try{
-    const data = await apiGetAuth('webAdminBuscarMiembro', { tag: tagNorm });
-    if(manejarRespuestaAuth(data)) return;
-    if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
-    renderMiembro(data.jugador);
-  }catch(err){
-    msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
-  }
-}
-document.getElementById('btnBuscar').addEventListener('click', buscarMiembro);
-document.getElementById('tagInput').addEventListener('keydown', e => { if(e.key === 'Enter') buscarMiembro(); });
-
-document.getElementById('btnGuardar').addEventListener('click', async () => {
-  const msgEl = document.getElementById('guardarMsg');
-  msgEl.innerHTML = '';
-  if(!miembroActual){ msgEl.innerHTML = '<div class="msg msg-error">Primero busca un miembro.</div>'; return; }
-  const payload = {
-    sessionToken: sessionStorage.getItem(SESSION_KEY),
-    datos: {
-      tag:      miembroActual,
-      prefijo:  document.getElementById('fPrefijo').value,
-      celular:  document.getElementById('fCelular').value,
-      nomMulti: document.getElementById('fNomMulti').value,
-      prestamo: document.getElementById('fPrestamo').value
-    }
-  };
-  try{
-    const data = await apiPost('webAdminGuardarGestion', payload);
-    if(manejarRespuestaAuth(data)) return;
-    if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
-    msgEl.innerHTML = '<div class="msg msg-ok">Guardado correctamente.</div>';
-  }catch(err){
-    msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
-  }
-});
-
-/* ---------- Fase 2: visor de contenido por categoría (solo lectura) ---------- */
-
-async function cargarCategorias(){
-  const sel = document.getElementById('catSelect');
-  const msgEl = document.getElementById('contenidoMsg');
-  msgEl.innerHTML = '';
-  try{
-    const data = await apiGetAuth('webAdminCategorias', {});
-    if(manejarRespuestaAuth(data)) return;
-    if(!data.ok){ sel.innerHTML = '<option value="">—</option>'; msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
-    if(!data.categorias || !data.categorias.length){
-      sel.innerHTML = '<option value="">Sin categorías disponibles</option>';
-      return;
-    }
-    sel.innerHTML = '<option value="">Elige una categoría…</option>' +
-      data.categorias.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
-  }catch(err){
-    sel.innerHTML = '<option value="">—</option>';
-    msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
-  }
-}
-
-function renderContenido(opciones){
-  const lista = document.getElementById('contenidoLista');
-  if(!opciones || !opciones.length){
-    lista.innerHTML = '<div class="empty">Esta categoría no tiene contenido cargado todavía.</div>';
-    return;
-  }
-  lista.innerHTML = opciones.map(o => `
-    <div class="contenido-item">
-      <div class="cab">
-        <span class="etiqueta">${esc(o.etiqueta || o.subcategoria || o.clan || '—')}</span>
-        ${o.clan ? `<span class="clan-chip">${esc(o.clan)}</span>` : ''}
+  }).join('');
+  const clanGrid = document.getElementById('clanGrid');
+  const clanes = Object.entries(data.guerraPorClan || {});
+  document.getElementById('clanCount').textContent = clanes.length + ' clan(es)';
+  clanGrid.innerHTML = clanes.length ? clanes.map(([nombre, g], idx) => {
+    const pct = g.totalHoy ? Math.round((g.atacaron / g.totalHoy) * 100) : 0;
+    const slug = 'clan' + idx;
+    return `
+    <div class="card clan-card">
+      <div class="name">${esc(nombre)}</div>
+      <div class="stats">
+        <div class="stat"><b id="${slug}-atq">${fmtNum(g.ataques)}</b><span>Ataques</span></div>
+        <div class="stat"><b id="${slug}-fame">${fmtNum(g.fame)}</b><span>Fame</span></div>
+        <div class="stat"><b id="${slug}-barc">${fmtNum(g.barcos)}</b><span>Barcos</span></div>
       </div>
-      <pre>${esc(o.contenido)}</pre>
-    </div>`).join('');
+      <div class="bar"><i style="width:${pct}%"></i></div>
+      <div style="margin-top:10px;font-size:12px;color:var(--text-dim);font-family:var(--f-mono);">
+        ${fmtNum(g.atacaron)}/${fmtNum(g.totalHoy)} atacaron hoy (${pct}%)
+      </div>
+    </div>`;
+  }).join('') : '<div class="empty">Sin datos de guerra registrados para hoy.</div>';
+  clanes.forEach(([nombre, g], idx) => {
+    const slug = 'clan' + idx;
+    setNum(slug + '-atq', g.ataques); setNum(slug + '-fame', g.fame); setNum(slug + '-barc', g.barcos);
+  });
+  const pend = data.pendientes || [];
+  document.getElementById('pendCount').textContent = pend.length + ' jugador(es)';
+  const pendWrap = document.getElementById('pendWrap');
+  pendWrap.innerHTML = pend.length ? `
+    <div class="card" style="padding:12px;"><table>
+      <thead><tr><th>Nombre</th><th>Clan</th><th>Faltantes</th></tr></thead>
+      <tbody>${pend.map(p => `
+          <tr><td>${esc(p.nombre || p.nomMulti || p.tag)}</td><td>${esc(p.clan)}</td><td class="falt">${fmtNum(p.faltantes)}</td></tr>`).join('')}
+      </tbody>
+    </table></div>` : '<div class="empty">Nadie tiene ataques pendientes 🎉</div>';
+  const resumen = Object.entries(data.resumenClanes || {});
+  const maxResumen = Math.max(1, ...resumen.map(([,v]) => v));
+  const resumenWrap = document.getElementById('resumenWrap');
+  resumenWrap.innerHTML = resumen.length ? `<div class="card">` + resumen.map(([nombre, count]) => `
+    <div class="resumen-row">
+      <div class="clan-n">${esc(nombre)}</div>
+      <div class="track"><div class="fill" style="width:${(count/maxResumen)*100}%"></div></div>
+      <div class="val">${fmtNum(count)}</div>
+    </div>`).join('') + `</div>` : '<div class="empty">Sin datos de directorio.</div>';
+  const nuevos = data.nuevos || [];
+  document.getElementById('nuevosCount').textContent = nuevos.length + ' jugador(es)';
+  const nuevoGrid = document.getElementById('nuevoGrid');
+  nuevoGrid.innerHTML = nuevos.length ? nuevos.map(n => {
+    const royaleOk = urlValida(n.royaleApi);
+    const cwOk = urlValida(n.cwstats);
+    return `
+    <div class="card nuevo-card">
+      <div class="name">${esc(n.nombre)}</div>
+      <div class="tag">${esc(n.tag)} · ${fmtFecha(n.fechaIng)}</div>
+      <div class="clan">${esc(n.clan)}</div>
+      ${(royaleOk || cwOk) ? `<div class="links">
+        ${royaleOk ? `<a href="${esc(n.royaleApi)}" target="_blank" rel="noopener">🌐 RoyaleAPI</a>` : ''}
+        ${cwOk ? `<a href="${esc(n.cwstats)}" target="_blank" rel="noopener">📊 CWStats</a>` : ''}
+      </div>` : ''}
+    </div>`;
+  }).join('') : '<div class="empty">No hay ingresos recientes.</div>';
+  document.getElementById('updatedAt').textContent =
+    'Última carga completa: ' + new Date().toLocaleString('es-PE');
 }
-
-document.getElementById('catSelect').addEventListener('change', async () => {
-  const categoria = document.getElementById('catSelect').value;
-  const msgEl = document.getElementById('contenidoMsg');
-  const lista = document.getElementById('contenidoLista');
-  msgEl.innerHTML = '';
-  lista.innerHTML = '';
-  if(!categoria) return;
-  lista.innerHTML = '<div class="empty">Cargando…</div>';
-  try{
-    const data = await apiGetAuth('webAdminContenido', { categoria });
-    if(manejarRespuestaAuth(data)) return;
-    if(!data.ok){ lista.innerHTML = ''; msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
-    renderContenido(data.opciones);
-  }catch(err){
-    lista.innerHTML = '';
-    msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
-  }
-});
-
-/* ---------- Fase 3: gestión de torneos ---------- */
-
-/** Convierte el value de un <input type="date"> ("yyyy-mm-dd") al formato
- *  "dd/mm/yyyy" que espera el backend (_combinarFechaHora, 24_Torneos_Core.gs). */
-function fechaInputADDMMYYYY(v){
-  if(!v) return '';
-  const [y, m, d] = v.split('-');
-  return `${d}/${m}/${y}`;
-}
-
-document.getElementById('btnRegistrarTorneo').addEventListener('click', async () => {
-  const msgEl = document.getElementById('registrarTorneoMsg');
-  msgEl.innerHTML = '';
-  const link  = document.getElementById('tLink').value.trim();
-  const fecha = fechaInputADDMMYYYY(document.getElementById('tFecha').value);
-  const hora  = document.getElementById('tHora').value;
-  if(!link){ msgEl.innerHTML = '<div class="msg msg-error">Pega el link del torneo.</div>'; return; }
-  if(!fecha || !hora){ msgEl.innerHTML = '<div class="msg msg-error">Completa fecha y hora.</div>'; return; }
-  try{
-    const data = await apiPost('webAdminTorneoRegistrar', {
-      sessionToken: sessionStorage.getItem(SESSION_KEY),
-      link, fecha, hora
-    });
-    if(manejarRespuestaAuth(data)) return;
-    if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
-    msgEl.innerHTML = `<div class="msg msg-ok">Torneo registrado (ID ${esc(data.id)}).</div>`;
-    document.getElementById('tLink').value = '';
-    document.getElementById('tFecha').value = '';
-    document.getElementById('tHora').value = '';
-    cargarTorneosHoy();
-    cargarGanadoresTorneo();
-  }catch(err){
-    msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
-  }
-});
-
-/** Puebla el <select> de "Modificar torneo de hoy" — solo torneos de HOY,
- *  igual que el paso "Modificar" del bot (_listarTorneosDeHoy()). Cada
- *  <option> guarda la fecha ISO en data-fecha, para precargar los campos
- *  de fecha/hora al elegir un torneo (ver listener de 'change' abajo). */
-async function cargarTorneosHoy(){
-  const sel = document.getElementById('tSelectHoy');
-  try{
-    const data = await apiGetAuth('webAdminTorneosHoy', {});
-    if(manejarRespuestaAuth(data)) return;
-    if(!data.ok || !data.torneos || !data.torneos.length){
-      sel.innerHTML = '<option value="">Sin torneos registrados hoy</option>';
-      return;
-    }
-    sel.innerHTML = '<option value="">Elige un torneo…</option>' +
-      data.torneos.map(t => {
-        const fechaTxt = new Date(t.fecha).toLocaleString('es-PE', { hour12:false });
-        return `<option value="${esc(t.id)}" data-fecha="${esc(t.fecha)}">${esc(t.id)} — ${esc(fechaTxt)}</option>`;
-      }).join('');
-  }catch(err){
-    sel.innerHTML = '<option value="">—</option>';
-  }
-}
-
-document.getElementById('tSelectHoy').addEventListener('change', () => {
-  const opt = document.getElementById('tSelectHoy').selectedOptions[0];
-  const fechaISO = opt && opt.dataset.fecha;
-  const fFecha = document.getElementById('tFechaMod');
-  const fHora = document.getElementById('tHoraMod');
-  if(!fechaISO){ fFecha.value = ''; fHora.value = ''; return; }
-  const d = new Date(fechaISO);
-  const pad = n => String(n).padStart(2, '0');
-  fFecha.value = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-  fHora.value  = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
-});
-
-document.getElementById('btnModificarTorneo').addEventListener('click', async () => {
-  const msgEl = document.getElementById('modificarTorneoMsg');
-  msgEl.innerHTML = '';
-  const id    = document.getElementById('tSelectHoy').value;
-  const fecha = fechaInputADDMMYYYY(document.getElementById('tFechaMod').value);
-  const hora  = document.getElementById('tHoraMod').value;
-  if(!id){ msgEl.innerHTML = '<div class="msg msg-error">Elige un torneo de la lista.</div>'; return; }
-  if(!fecha || !hora){ msgEl.innerHTML = '<div class="msg msg-error">Completa la nueva fecha y hora.</div>'; return; }
-  try{
-    const data = await apiPost('webAdminTorneoModificar', {
-      sessionToken: sessionStorage.getItem(SESSION_KEY),
-      id, fecha, hora
-    });
-    if(manejarRespuestaAuth(data)) return;
-    if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
-    msgEl.innerHTML = '<div class="msg msg-ok">Torneo actualizado.</div>';
-    cargarTorneosHoy();
-    cargarGanadoresTorneo();
-  }catch(err){
-    msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
-  }
-});
-
-/** "Ver ganadores" reutiliza el mismo webTorneos() público que index.html —
- *  no hay endpoint de admin separado (ver nota de diseño en 34_Web_API.gs). */
-async function cargarGanadoresTorneo(){
-  const msgEl = document.getElementById('ganadoresMsg');
-  const lista = document.getElementById('ganadoresLista');
-  msgEl.innerHTML = '';
-  lista.innerHTML = '<div class="empty">Cargando…</div>';
-  try{
-    const data = await apiGet('webTorneos', {});
-    const g = data.ganadores;
-    if(!g || !g.top3 || !g.top3.length){
-      lista.innerHTML = '<div class="empty">Todavía no hay ganadores calificados para el torneo más reciente.</div>';
-      return;
-    }
-    const fechaTxt = new Date(g.fecha).toLocaleString('es-PE', { hour12:false });
-    lista.innerHTML =
-      `<div class="text-faint" style="font-family:var(--f-mono); font-size:12px; margin-bottom:10px;">Torneo ${esc(g.idTorneo)} · ${esc(fechaTxt)}</div>` +
-      g.top3.map(p => `
-        <div class="contenido-item">
-          <div class="cab">
-            <span class="etiqueta">Puesto ${esc(p.puesto)} — ${esc(p.nombre)}</span>
-            <span class="clan-chip">${esc(p.clan)}</span>
-          </div>
-          <div class="ganador-victorias">${fmtNum(p.victorias)} victorias</div>
-        </div>`).join('');
-  }catch(err){
-    lista.innerHTML = '';
-    msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
-  }
-}
-
-/* ---------- Fase 4: registrar miembro nuevo (2 pasos) ---------- */
-// Ver Sección 7.4 de arquitectura-web-familia-terna.md. Paso 1
-// (webAdminVerificarTag) valida el Tag contra la API antes de habilitar
-// el Paso 2 — cualquier edición del Tag después de verificar invalida esa
-// verificación y hay que volver a apretar "Verificar".
-
-let nmTagVerificado = null;
-
-document.getElementById('nmTag').addEventListener('input', () => {
-  nmTagVerificado = null;
-  document.getElementById('nmPaso2').style.display = 'none';
-});
-
-document.getElementById('nmNomMultiSelect').addEventListener('change', () => {
-  const esNueva = document.getElementById('nmNomMultiSelect').value === '__nuevo__';
-  document.getElementById('nmNomMultiNuevo').style.display = esNueva ? 'block' : 'none';
-  if(!esNueva) document.getElementById('nmNomMultiNuevo').value = '';
-});
-
-async function verificarTagNuevoMiembro(){
-  const msgEl = document.getElementById('nmVerificarMsg');
-  const tagNorm = normalizarTag(document.getElementById('nmTag').value);
-  msgEl.innerHTML = '';
-  document.getElementById('nmPaso2').style.display = 'none';
-  nmTagVerificado = null;
-  if(!tagNorm){ msgEl.innerHTML = '<div class="msg msg-error">Escribe un Tag válido.</div>'; return; }
-  document.getElementById('nmTag').value = tagNorm;
-  msgEl.innerHTML = '<div class="empty">Verificando…</div>';
-  try{
-    const data = await apiGetAuth('webAdminVerificarTag', { tag: tagNorm });
-    if(manejarRespuestaAuth(data)) return;
-    if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
-    nmTagVerificado = data.jugador.tag;
-    msgEl.innerHTML = `<div class="msg msg-ok">Encontrado (${esc(data.fuente)}): <b>${esc(data.jugador.nombre)}</b>${data.jugador.clan ? ' · ' + esc(data.jugador.clan) : ''}</div>`;
-    document.getElementById('nmNomMultiNuevo').style.display = 'none';
-    document.getElementById('nmNomMultiNuevo').value = '';
-    document.getElementById('nmPrefijo').value = '';
-    document.getElementById('nmCelular').value = '';
-    document.getElementById('nmGuardarMsg').innerHTML = '';
-    document.getElementById('nmPaso2').style.display = 'block';
-    cargarNomMultisExistentes();
-  }catch(err){
-    msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
-  }
-}
-document.getElementById('btnNmVerificar').addEventListener('click', verificarTagNuevoMiembro);
-document.getElementById('nmTag').addEventListener('keydown', e => { if(e.key === 'Enter') verificarTagNuevoMiembro(); });
-
-/** Puebla el <select> de Nombre multicuenta con los Nom_Multi ya usados en
- *  el sistema (webAdminNomMultisExistentes → _obtenerNomMultisDistintos(),
- *  11_DirectorioSheet.gs), más "Ninguna de las anteriores…" que revela un
- *  textbox para escribir uno nuevo. Si la carga falla, igual deja
- *  disponibles las dos opciones fijas para no bloquear el registro. */
-async function cargarNomMultisExistentes(){
-  const sel = document.getElementById('nmNomMultiSelect');
-  sel.innerHTML = '<option value="">Cargando…</option>';
-  try{
-    const data = await apiGetAuth('webAdminNomMultisExistentes', {});
-    if(manejarRespuestaAuth(data)) return;
-    const existentes = (data.ok && data.nomMultis) ? data.nomMultis : [];
-    sel.innerHTML =
-      '<option value="">Sin Nombre multicuenta (cuenta única)</option>' +
-      existentes.map(nm => `<option value="${esc(nm)}">${esc(nm)}</option>`).join('') +
-      '<option value="__nuevo__">Ninguna de las anteriores…</option>';
-  }catch(err){
-    sel.innerHTML = '<option value="">Sin Nombre multicuenta (cuenta única)</option><option value="__nuevo__">Ninguna de las anteriores…</option>';
-  }
-}
-
-document.getElementById('btnNmGuardar').addEventListener('click', async () => {
-  const msgEl = document.getElementById('nmGuardarMsg');
-  msgEl.innerHTML = '';
-  if(!nmTagVerificado){ msgEl.innerHTML = '<div class="msg msg-error">Verifica el Tag primero.</div>'; return; }
-  const selVal = document.getElementById('nmNomMultiSelect').value;
-  const nomMulti = selVal === '__nuevo__' ? document.getElementById('nmNomMultiNuevo').value.trim() : selVal;
-  const payload = {
-    sessionToken: sessionStorage.getItem(SESSION_KEY),
-    datos: {
-      tag:      nmTagVerificado,
-      nomMulti: nomMulti,
-      prefijo:  document.getElementById('nmPrefijo').value,
-      celular:  document.getElementById('nmCelular').value
-    }
-  };
-  try{
-    const data = await apiPost('webAdminRegistrarNuevo', payload);
-    if(manejarRespuestaAuth(data)) return;
-    if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
-    msgEl.innerHTML = '<div class="msg msg-ok">Miembro registrado correctamente.</div>';
-    document.getElementById('nmTag').value = '';
-    document.getElementById('nmPaso2').style.display = 'none';
-    document.getElementById('nmVerificarMsg').innerHTML = '';
-    nmTagVerificado = null;
-  }catch(err){
-    msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
-  }
-});
-
-/* ---------- Fase 4: vetar miembro ---------- */
-// Ver Sección 7.5 de arquitectura-web-familia-terna.md. Sin opción de
-// deshacer desde la web (Sección 7.6) — por eso el confirm() antes de
-// disparar el request, además del color de aviso en el botón.
-
-document.getElementById('btnVetar').addEventListener('click', async () => {
-  const msgEl = document.getElementById('vMsg');
-  msgEl.innerHTML = '';
-  const tagNorm = normalizarTag(document.getElementById('vTag').value);
-  const razon = document.getElementById('vRazon').value;
-  const comentario = document.getElementById('vComentario').value.trim();
-  if(!tagNorm){ msgEl.innerHTML = '<div class="msg msg-error">Escribe un Tag válido.</div>'; return; }
-  if(!razon){ msgEl.innerHTML = '<div class="msg msg-error">Elige una Razón.</div>'; return; }
-  document.getElementById('vTag').value = tagNorm;
-  if(!window.confirm(`¿Vetar a ${tagNorm}? Esta acción no se puede deshacer desde la web.`)) return;
-  try{
-    const data = await apiPost('webAdminVetar', {
-      sessionToken: sessionStorage.getItem(SESSION_KEY),
-      datos: { tag: tagNorm, razon: razon, comentario: comentario }
-    });
-    if(manejarRespuestaAuth(data)) return;
-    if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
-    msgEl.innerHTML = '<div class="msg msg-ok">Miembro vetado.</div>';
-    document.getElementById('vTag').value = '';
-    document.getElementById('vRazon').value = '';
-    document.getElementById('vComentario').value = '';
-  }catch(err){
-    msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
-  }
-});
+cargar();
+setInterval(() => cargar(false), REFRESH_INTERVAL_MS);
+setInterval(actualizarAgoText, 1000);
 </script>
 </body>
 </html>
