@@ -232,9 +232,17 @@ function render(data){
   document.getElementById('content').style.display = 'block';
   const ctx = data.ctx || {};
   const subEl = document.getElementById('sub');
+  // Nombre del día EN TEXTO COMPLETO (ej. "SÁBADO"), no la letra abreviada
+  // J/V/S/D que usa ctx.diaLetra (esa solo cubre los 4 días de guerra). Se
+  // toma del día real de hoy para que también funcione en día de
+  // entrenamiento (lunes a miércoles), que no tiene letra asignada.
+  // Formato exacto pedido: "TEMPORADA 4 - SEMANA 4 - DÍA SÁBADO (DÍA DE GUERRA)"
+  // o "... (ENTRENAMIENTO)" si no es día de guerra — todo en mayúsculas y
+  // separado por guiones en vez de "·".
+  const diaNombre = new Date().toLocaleDateString('es-PE', { weekday: 'long' }).toUpperCase();
   subEl.textContent =
-    `Temporada ${ctx.temporada ?? '—'} · Semana ${(Number(ctx.sectionIndex)||0) + 1}` +
-    (ctx.esDiaGuerra ? ' · Día de guerra en curso' : ' · Día de entrenamiento');
+    `TEMPORADA ${ctx.temporada ?? '—'} - SEMANA ${(Number(ctx.sectionIndex)||0) + 1} - DÍA ${diaNombre} ` +
+    (ctx.esDiaGuerra ? '(DÍA DE GUERRA)' : '(ENTRENAMIENTO)');
   delete subEl.dataset.baseFontSize; // recalcula el tamaño base cada vez, el texto cambia de largo
   fitOneLine(subEl);
   const tl = document.getElementById('timeline');
