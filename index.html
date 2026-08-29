@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Familia Terna — Comunidad Clash Royale</title>
-<meta name="description" content="Portal de la Familia Terna: 4 clanes de Clash Royale. Consulta roster, tu progreso hacia ascensos y torneos, y el estado de guerra en vivo.">
+<meta name="description" content="Portal de la Familia Terna: 4 clanes de Clash Royale. Consulta el directorio, tu progreso hacia ascensos y torneos, y el estado de guerra en vivo.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -140,7 +140,7 @@
       El cuartel general de la <span class="text-gradient-purple">Familia Terna</span>.
     </h1>
     <p class="text-dim" style="font-size:18px; max-width:600px; margin-top:20px; line-height:1.6;">
-      Roster, requisitos de ascenso, torneos y el estado de guerra de nuestros
+      Directorio, requisitos de ascenso, torneos y el estado de guerra de nuestros
       4 clanes — todo en un mismo portal en tiempo real.
     </p>
     <div style="display:flex; gap:16px; margin-top:32px; flex-wrap:wrap;">
@@ -196,10 +196,13 @@
 <!-- ---------- GRID DE CLANES ---------- -->
 <section id="clanes">
   <div class="wrap">
-    <div class="sec-head">
-      <div class="eyebrow">Nuestros Clanes</div>
-      <h2>Los 4 Clanes Terna</h2>
-      <p>Cada clan con su propia exigencia y nivel competitivo — encuentra el ideal para tu perfil.</p>
+    <div class="sec-head" style="display:flex; align-items:center; justify-content:space-between; gap:24px; flex-wrap:wrap;">
+      <div style="flex:1; min-width:260px;">
+        <div class="eyebrow">Nuestros Clanes</div>
+        <h2>Los 4 Clanes Terna</h2>
+        <p>Cada clan con su propia exigencia y nivel competitivo — encuentra el ideal para tu perfil.</p>
+      </div>
+      <img src="assets/img/escudo.png" alt="Escudo Familia Terna" style="width:150px; height:auto; flex-shrink:0; filter:drop-shadow(0 0 20px rgba(162,57,255,.35));">
     </div>
     <div class="grid-4" id="clanGrid">
       <div class="card clan-card-skel"><h3 style="font-size:19px;">Cargando clan…</h3></div>
@@ -234,19 +237,19 @@
     <div class="social-grid">
       <a class="social-card" href="https://linktr.ee/grupoternaoficial" target="_blank" rel="noopener">
         <span class="social-icon">🌐</span>
-        <span class="social-text"><span class="social-label">Web</span><span class="social-sub">linktr.ee/grupoternaoficial</span></span>
+        <span class="social-text"><span class="social-label">Linktree</span><span class="social-sub">linktr.ee/grupoternaoficial</span></span>
       </a>
       <a class="social-card" href="https://chat.whatsapp.com/HfaoDijjtkS4mwijpdczkU" target="_blank" rel="noopener">
         <span class="social-icon">📱</span>
-        <span class="social-text"><span class="social-label">WhatsApp</span><span class="social-sub">Únete al grupo principal</span></span>
+        <span class="social-text"><span class="social-label">WhatsApp</span><span class="social-sub">Grupo informativo</span></span>
       </a>
       <a class="social-card" href="https://discord.gg/YKXtg93DVb" target="_blank" rel="noopener">
         <span class="social-icon">🎧</span>
-        <span class="social-text"><span class="social-label">Discord</span><span class="social-sub">Comunidad y soporte</span></span>
+        <span class="social-text"><span class="social-label">Discord</span><span class="social-sub">Servidor Terna</span></span>
       </a>
       <a class="social-card" href="https://www.facebook.com/profile.php?id=61591417920256" target="_blank" rel="noopener">
         <span class="social-icon">📘</span>
-        <span class="social-text"><span class="social-label">Facebook</span><span class="social-sub">Grupo Terna Oficial</span></span>
+        <span class="social-text"><span class="social-label">Facebook</span><span class="social-sub">Página oficial</span></span>
       </a>
       <a class="social-card" href="https://x.com/GrupoTernaTM" target="_blank" rel="noopener">
         <span class="social-icon">✖️</span>
@@ -262,7 +265,7 @@
       </a>
       <a class="social-card" href="https://royaleapi.com/clan/family/grupoterna/clans" target="_blank" rel="noopener">
         <span class="social-icon">🏆</span>
-        <span class="social-text"><span class="social-label">RoyaleAPI</span><span class="social-sub">Perfil de la Familia</span></span>
+        <span class="social-text"><span class="social-label">RoyaleAPI</span><span class="social-sub">grupoterna</span></span>
       </a>
     </div>
     <div class="tagline">
@@ -276,7 +279,7 @@
 <section id="ingresos">
   <div class="wrap">
     <div class="sec-head">
-      <div class="eyebrow">Roster en movimiento</div>
+      <div class="eyebrow">Directorio en movimiento</div>
       <h2>Ingresos recientes</h2>
       <p>Los miembros más nuevos de cada clan, ordenados por clan y luego por nombre.</p>
     </div>
@@ -304,6 +307,7 @@ async function cargarClanes(){
     grid.querySelectorAll('.js-solicitar-unirme').forEach(btn => {
       btn.addEventListener('click', () => abrirModalUnirse(btn.dataset.clan));
     });
+    agregarTarjetaCuentasInactivasSiAdmin(grid);
   }catch(err){
     grid.innerHTML = `<div class="card" style="grid-column:1/-1; text-align:center; padding:32px;">
       <p class="text-dim">No se pudo cargar la info de los clanes: ${esc(err.message)}</p>
