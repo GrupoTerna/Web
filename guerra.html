@@ -95,7 +95,7 @@
       </span>
     </div>
     <h1 style="font-size:clamp(30px,5vw,44px); margin-top:14px;">Control de guerra</h1>
-    <div class="text-dim" id="sub" style="margin-top:6px; font-size:16px;">Cargando estado de la temporada…</div>
+    <div class="text-dim" id="sub" data-fit-line style="margin-top:6px; font-size:16px; white-space:nowrap;">Cargando estado de la temporada…</div>
     <div class="timeline" id="timeline"></div>
     <div class="progress-track"><i id="progressFill"></i></div>
   </div>
@@ -231,9 +231,12 @@ function render(data){
   document.getElementById('status').style.display = 'none';
   document.getElementById('content').style.display = 'block';
   const ctx = data.ctx || {};
-  document.getElementById('sub').textContent =
+  const subEl = document.getElementById('sub');
+  subEl.textContent =
     `Temporada ${ctx.temporada ?? '—'} · Semana ${(Number(ctx.sectionIndex)||0) + 1}` +
     (ctx.esDiaGuerra ? ' · Día de guerra en curso' : ' · Día de entrenamiento');
+  delete subEl.dataset.baseFontSize; // recalcula el tamaño base cada vez, el texto cambia de largo
+  fitOneLine(subEl);
   const tl = document.getElementById('timeline');
   // data.diasSemanaGuerra: 4 {letra, fecha} con la fecha REAL (columna
   // DiaGuerra de la hoja Guerra) de cada día de la semana vigente, en el
@@ -294,16 +297,20 @@ function render(data){
   const nuevos = data.nuevos || [];
   document.getElementById('nuevosCount').textContent = nuevos.length + ' jugador(es)';
   const nuevoGrid = document.getElementById('nuevoGrid');
-  nuevoGrid.innerHTML = nuevos.length ? nuevos.map(n => `
+  nuevoGrid.innerHTML = nuevos.length ? nuevos.map(n => {
+    const royaleOk = urlValida(n.royaleApi);
+    const cwOk = urlValida(n.cwstats);
+    return `
     <div class="card nuevo-card">
       <div class="name">${esc(n.nombre)}</div>
       <div class="tag">${esc(n.tag)} · ${fmtFecha(n.fechaIng)}</div>
       <div class="clan">${esc(n.clan)}</div>
-      <div class="links">
-        <a href="${esc(n.royaleApi)}" target="_blank" rel="noopener">🌐 RoyaleAPI</a>
-        <a href="${esc(n.cwstats)}" target="_blank" rel="noopener">📊 CWStats</a>
-      </div>
-    </div>`).join('') : '<div class="empty">No hay ingresos recientes.</div>';
+      ${(royaleOk || cwOk) ? `<div class="links">
+        ${royaleOk ? `<a href="${esc(n.royaleApi)}" target="_blank" rel="noopener">🌐 RoyaleAPI</a>` : ''}
+        ${cwOk ? `<a href="${esc(n.cwstats)}" target="_blank" rel="noopener">📊 CWStats</a>` : ''}
+      </div>` : ''}
+    </div>`;
+  }).join('') : '<div class="empty">No hay ingresos recientes.</div>';
   document.getElementById('updatedAt').textContent =
     'Última carga completa: ' + new Date().toLocaleString('es-PE');
 }
