@@ -111,6 +111,46 @@
     transition:all .18s ease;
   }
   .ingreso-links a:hover{border-color:var(--purple); background:rgba(162,57,255,.1);}
+
+  /* Tarjeta de ingreso enriquecida (tag, copas, V_Guerra, días inactivo,
+     semana actual) — pedido del usuario, 29-ago-2026. */
+  .ingreso-row{ flex-direction:column; align-items:stretch; }
+  .ingreso-top{display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap;}
+  .ingreso-info .ing-tag{font-family:var(--f-mono); font-size:11px; color:var(--text-dim); margin-top:2px;}
+  .ingreso-stats{display:grid; grid-template-columns:repeat(auto-fit,minmax(120px,1fr)); gap:8px; margin-top:12px;}
+  .ing-stat{
+    background:var(--bg-2); border:1px solid var(--line); border-radius:var(--radius-sm);
+    padding:8px 10px; text-align:center;
+  }
+  .ing-stat b{display:block; font-family:var(--f-display); font-weight:800; font-size:16px; color:var(--text);}
+  .ing-stat span{display:block; font-family:var(--f-mono); font-size:10px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.04em; margin-top:2px;}
+  .ingreso-semana{margin-top:12px; padding-top:12px; border-top:1px solid var(--line);}
+  .ing-semana-title{font-family:var(--f-mono); font-size:11px; color:var(--purple-light); text-transform:uppercase; letter-spacing:.06em; margin-bottom:8px; font-weight:700;}
+  .ing-semana-stats{display:grid; grid-template-columns:repeat(3,1fr); gap:8px;}
+
+  /* Comparativa semanal — dos gráficas (Ataques y Puntaje) por miembro nuevo */
+  .comparativa-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(360px,1fr)); gap:20px; margin-top:24px;}
+  .linechart-card{padding:20px 20px 12px;}
+  .linechart-card .chart-title{
+    font-family:var(--f-display); font-weight:700; font-size:13px; text-transform:uppercase;
+    letter-spacing:.05em; color:var(--text-dim); margin-bottom:14px;
+  }
+  .linechart-svg{width:100%; height:auto; display:block; overflow:visible;}
+  .linechart-svg .grid-line{stroke:var(--line); stroke-width:1;}
+  .linechart-svg .axis-label{fill:var(--text-faint); font-family:var(--f-mono); font-size:9px;}
+  .linechart-svg .serie-line{fill:none; stroke-width:2; opacity:.9;}
+  .linechart-svg .serie-pt{cursor:pointer; transition:r .15s ease;}
+  .linechart-svg .serie-pt:hover{r:6;}
+  .linechart-legend{display:flex; flex-wrap:wrap; gap:10px 16px; margin-top:12px; padding-top:12px; border-top:1px solid var(--line);}
+  .linechart-legend-item{display:flex; align-items:center; gap:6px; font-family:var(--f-mono); font-size:11px; color:var(--text-dim);}
+  .linechart-legend-dot{width:9px; height:9px; border-radius:50%; flex-shrink:0;}
+  .chart-tooltip{
+    position:fixed; z-index:300; pointer-events:none; display:none;
+    background:var(--bg-2); border:1px solid var(--line-strong); border-radius:var(--radius-sm);
+    padding:8px 12px; font-family:var(--f-mono); font-size:12px; color:var(--text);
+    box-shadow:var(--glow); white-space:nowrap;
+  }
+  .chart-tooltip b{color:var(--gold);}
 </style>
 </head>
 <body data-page="inicio">
@@ -288,8 +328,10 @@
     <div id="ingresosWrap">
       <div class="card clan-card-skel"><h3 style="font-size:16px;">Cargando ingresos…</h3></div>
     </div>
+    <div id="ingresosChartsWrap"></div>
   </div>
 </section>
+<div id="chartTooltip" class="chart-tooltip"></div>
 
 <footer>
   <div class="wrap">
@@ -351,17 +393,203 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarModalU
 
 cargarClanes();
 
-/* ---------- Ingresos recientes (reemplaza a Torneos) ---------- */
+/* =========================================================================
+ * Ingresos recientes (reemplaza a Torneos)
+ * FASE 29-ago-2026 (pedido del usuario): cada tarjeta ahora suma tag,
+ * copas, V_Guerra (victorias totales de guerra), días inactivo y la
+ * "Semana actual" (Ataques/Puntaje/Barcos); debajo se agregan dos
+ * gráficas comparativas (Ataques y Puntaje por semana, una serie por
+ * miembro nuevo) con tooltip que muestra en qué clan se hizo cada
+ * registro.
+ *
+ * CONTRATO ESPERADO de 'webIngresosRecientes' (backend, fuera de este
+ * repo — solo front-end): además de lo que ya usaba (nombre, tag, clan,
+ * fechaIngreso, royaleApi, cwstats), cada ingreso debería traer:
+ *   copas, victoriasGuerra, diasInactivo,
+ *   guerraSemana: { ataques, puntaje, barcos },
+ *   historialSemanal: [ { semana, clan, ataques, puntaje }, ... ]
+ * Si el backend todavía no manda alguno de estos campos, esta función no
+ * rompe: los campos faltantes se muestran como "—" y, si nadie trae
+ * historialSemanal, las dos gráficas simplemente no se dibujan.
+ * ========================================================================= */
+
+const PALETA_SERIES = ['#a239ff','#f3a922','#3ddc97','#ff5e7e','#4ea1ff','#ffd23f','#ff6b6b','#00d4ff','#c77dff','#7bed9f'];
+
+/**
+ * tagsActivosDesdeRoster(dataRoster)
+ * Set con los tags (normalizados) de todos los miembros que hoy figuran
+ * en el directorio (webRoster — misma fuente que usa jugadores.html).
+ * Sirve para cruzar contra "Ingresos recientes": la hoja/CSV de origen
+ * de webIngresosRecientes conserva registros de cuentas que YA salieron
+ * de la Familia, así que sin este cruce se mostrarían ingresos de gente
+ * que ya no es miembro activo (pedido del usuario, 29-ago-2026).
+ */
+function tagsActivosDesdeRoster(dataRoster){
+  const set = new Set();
+  (dataRoster.clanes || []).forEach(c => (c.miembros || []).forEach(m => {
+    if (m.tag) set.add(normalizarTag(m.tag));
+  }));
+  return set;
+}
+
+function ingStatHtml(valor, label){
+  const txt = (valor === undefined || valor === null || valor === '') ? '—' : fmtNum(valor);
+  return `<div class="ing-stat"><b>${esc(txt)}</b><span>${esc(label)}</span></div>`;
+}
+
+/** Las semanas pueden venir como "S13", "Semana 13", "13", etc. Se
+ * muestran tal cual llegan pero se ordenan por el primer número que
+ * contengan (fallback alfabético si no tienen número). */
+function semanaLabel(s){ return String(s ?? '—'); }
+function semanaOrden(s){
+  const m = String(s ?? '').match(/\d+/);
+  return m ? Number(m[0]) : null;
+}
+
+/** Une las semanas de TODOS los miembros en un solo eje X ordenado y sin
+ * duplicados, compartido por ambas gráficas. */
+function construirSemanasMaestras(miembros){
+  const ordenes = new Map();
+  miembros.forEach(m => (m.historialSemanal || []).forEach(h => {
+    const lbl = semanaLabel(h.semana);
+    if (!ordenes.has(lbl)) ordenes.set(lbl, semanaOrden(h.semana));
+  }));
+  return Array.from(ordenes.keys()).sort((a, b) => {
+    const oa = ordenes.get(a), ob = ordenes.get(b);
+    if (oa !== null && ob !== null) return oa - ob;
+    return a.localeCompare(b, 'es');
+  });
+}
+
+/**
+ * lineChartSvg(miembros, campo, semanas, opts)
+ * Gráfica de líneas en SVG puro (sin librerías externas, mismo criterio
+ * que chartCardHtml en common.js) comparando "campo" (ataques|puntaje)
+ * semana a semana, una línea por miembro. Cada punto guarda su propio
+ * clan (data-clan) para el tooltip, porque un miembro pudo registrar
+ * distintas semanas en distintos clanes de la Familia.
+ */
+function lineChartSvg(miembros, campo, semanas, opts){
+  opts = opts || {};
+  const W = 760, H = 300, PAD_L = 40, PAD_R = 16, PAD_T = 16, PAD_B = 34;
+  const plotW = W - PAD_L - PAD_R, plotH = H - PAD_T - PAD_B;
+
+  let max = 0;
+  miembros.forEach(m => (m.historialSemanal || []).forEach(h => { max = Math.max(max, Number(h[campo]) || 0); }));
+  const pasos = 4;
+  const techo = Math.ceil((max || pasos) / pasos) * pasos || pasos;
+
+  const xPos = i => PAD_L + (semanas.length <= 1 ? plotW / 2 : (i / (semanas.length - 1)) * plotW);
+  const yPos = v => PAD_T + plotH - (Math.min(v, techo) / techo) * plotH;
+
+  const gridLines = [];
+  for (let i = 0; i <= pasos; i++){
+    const v = (techo / pasos) * i, y = yPos(v);
+    gridLines.push(`<line class="grid-line" x1="${PAD_L}" y1="${y}" x2="${W - PAD_R}" y2="${y}"></line>`);
+    gridLines.push(`<text class="axis-label" x="${PAD_L - 8}" y="${y + 3}" text-anchor="end">${fmtNum(Math.round(v))}</text>`);
+  }
+  const xLabels = semanas.map((s, i) => `<text class="axis-label" x="${xPos(i)}" y="${H - PAD_B + 16}" text-anchor="middle">${esc(s)}</text>`).join('');
+
+  const seriesSvg = miembros.map((m, si) => {
+    const color = PALETA_SERIES[si % PALETA_SERIES.length];
+    const puntos = (m.historialSemanal || [])
+      .map(h => ({ idx: semanas.indexOf(semanaLabel(h.semana)), valor: Number(h[campo]) || 0, clan: h.clan || m.clan || '—', semana: semanaLabel(h.semana) }))
+      .filter(p => p.idx >= 0)
+      .sort((a, b) => a.idx - b.idx);
+    if (!puntos.length) return '';
+
+    // Corta la línea si falta una semana intermedia, en vez de saltarla
+    // como si fuera continua (evita sugerir datos que no existen).
+    const tramos = [[puntos[0]]];
+    for (let i = 1; i < puntos.length; i++){
+      const ultimo = tramos[tramos.length - 1];
+      if (puntos[i].idx === ultimo[ultimo.length - 1].idx + 1) ultimo.push(puntos[i]);
+      else tramos.push([puntos[i]]);
+    }
+    const path = tramos.map(t => t.map((p, i) => `${i === 0 ? 'M' : 'L'} ${xPos(p.idx).toFixed(1)} ${yPos(p.valor).toFixed(1)}`).join(' ')).join(' ');
+    const circles = puntos.map(p => `
+      <circle class="serie-pt" cx="${xPos(p.idx).toFixed(1)}" cy="${yPos(p.valor).toFixed(1)}" r="4"
+        fill="${color}" stroke="var(--bg)" stroke-width="1.5"
+        data-nombre="${esc(m.nombre || '')}" data-valor="${p.valor}" data-clan="${esc(p.clan)}"
+        data-semana="${esc(p.semana)}" data-unidad="${esc(opts.unidad || '')}"></circle>`).join('');
+    return `<path class="serie-line" d="${path}" stroke="${color}"></path>${circles}`;
+  }).join('');
+
+  return `<svg class="linechart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">${gridLines.join('')}${xLabels}${seriesSvg}</svg>`;
+}
+
+function lineChartLegendHtml(miembros){
+  return `<div class="linechart-legend">${miembros.map((m, i) => `
+    <span class="linechart-legend-item">
+      <span class="linechart-legend-dot" style="background:${PALETA_SERIES[i % PALETA_SERIES.length]};"></span>
+      ${esc(m.nombre || '—')}
+    </span>`).join('')}</div>`;
+}
+
+/** Delegación de eventos sobre los puntos <circle> de ambas gráficas,
+ * usando un único tooltip flotante (#chartTooltip). Muestra, por
+ * ejemplo, "5 ataques — Clan X" al acercar el mouse a un punto. */
+function activarTooltipsGraficas(){
+  const tip = document.getElementById('chartTooltip');
+  if (!tip) return;
+  document.querySelectorAll('.linechart-svg .serie-pt').forEach(pt => {
+    pt.addEventListener('mousemove', e => {
+      const { nombre, valor, clan, semana, unidad } = pt.dataset;
+      tip.innerHTML = `<b>${esc(fmtNum(valor))} ${esc(unidad)}</b> — ${esc(clan)}<br><span style="color:var(--text-faint);">${esc(nombre)} · ${esc(semana)}</span>`;
+      tip.style.display = 'block';
+      tip.style.left = (e.clientX + 14) + 'px';
+      tip.style.top  = (e.clientY + 14) + 'px';
+    });
+    pt.addEventListener('mouseleave', () => { tip.style.display = 'none'; });
+  });
+}
+
+/** Arma las dos gráficas comparativas (Ataques y Puntaje por semana, una
+ * serie por miembro nuevo). Si nadie trae historialSemanal todavía, no
+ * dibuja nada en vez de mostrar gráficas vacías. */
+function renderComparativaSemanal(container, miembrosTodos){
+  const miembros = miembrosTodos.filter(m => (m.historialSemanal || []).length);
+  if (!miembros.length){ container.innerHTML = ''; return; }
+  const semanas = construirSemanasMaestras(miembros);
+  container.innerHTML = `
+    <div class="comparativa-grid">
+      <div class="card linechart-card">
+        <div class="chart-title">⚔️ Ataques por semana</div>
+        ${lineChartSvg(miembros, 'ataques', semanas, { unidad: 'ataques' })}
+        ${lineChartLegendHtml(miembros)}
+      </div>
+      <div class="card linechart-card">
+        <div class="chart-title">⭐ Puntaje por semana</div>
+        ${lineChartSvg(miembros, 'puntaje', semanas, { unidad: 'de puntaje' })}
+        ${lineChartLegendHtml(miembros)}
+      </div>
+    </div>`;
+  activarTooltipsGraficas();
+}
+
 async function cargarIngresos(){
   const wrap = document.getElementById('ingresosWrap');
+  const chartsWrap = document.getElementById('ingresosChartsWrap');
   try{
-    const data = await apiGet('webIngresosRecientes');
-    const ingresos = data.ingresos || [];
+    // webRoster = directorio actual de la Familia (misma fuente que usa
+    // jugadores.html), pedido en paralelo para cruzarlo contra
+    // webIngresosRecientes — ver comentario del bloque de arriba.
+    const [data, dataRoster] = await Promise.all([
+      apiGet('webIngresosRecientes'),
+      apiGet('webRoster').catch(() => null) // defensivo: si falla, no filtra en vez de romper la sección
+    ]);
+    let ingresos = data.ingresos || [];
+
+    if (dataRoster){
+      const activos = tagsActivosDesdeRoster(dataRoster);
+      ingresos = ingresos.filter(ing => !ing.tag || activos.has(normalizarTag(ing.tag)));
+    }
 
     if (!ingresos.length){
       wrap.innerHTML = `<div class="card" style="text-align:center; padding:32px;">
         <p class="text-dim">No hay ingresos recientes por mostrar ahora mismo.</p>
       </div>`;
+      chartsWrap.innerHTML = '';
       return;
     }
 
@@ -387,23 +615,43 @@ async function cargarIngresos(){
         ${g.items.map(ing => {
           const royaleOk = urlValida(ing.royaleApi);
           const cwOk = urlValida(ing.cwstats);
+          const sem = ing.guerraSemana || {};
           return `
           <div class="ingreso-row">
-            <div class="ingreso-info">
-              <div class="ing-nombre">${esc(ing.nombre)}</div>
-              <div class="ing-fecha">${ing.fechaIngreso ? 'Ingresó el ' + esc(ing.fechaIngreso) : 'Fecha de ingreso no registrada'}</div>
+            <div class="ingreso-top">
+              <div class="ingreso-info">
+                <div class="ing-nombre">${esc(ing.nombre)}</div>
+                <div class="ing-tag">${esc(ing.tag || '—')}</div>
+                <div class="ing-fecha">${ing.fechaIngreso ? 'Ingresó el ' + esc(ing.fechaIngreso) : 'Fecha de ingreso no registrada'}</div>
+              </div>
+              ${(royaleOk || cwOk) ? `<div class="ingreso-links">
+                ${royaleOk ? `<a href="${esc(ing.royaleApi)}" target="_blank" rel="noopener">🌐 RoyaleAPI</a>` : ''}
+                ${cwOk  ? `<a href="${esc(ing.cwstats)}" target="_blank" rel="noopener">📊 CWStats</a>` : ''}
+              </div>` : ''}
             </div>
-            ${(royaleOk || cwOk) ? `<div class="ingreso-links">
-              ${royaleOk ? `<a href="${esc(ing.royaleApi)}" target="_blank" rel="noopener">🌐 RoyaleAPI</a>` : ''}
-              ${cwOk  ? `<a href="${esc(ing.cwstats)}" target="_blank" rel="noopener">📊 CWStats</a>` : ''}
-            </div>` : ''}
+            <div class="ingreso-stats">
+              ${ingStatHtml(ing.copas, '🏆 Copas')}
+              ${ingStatHtml(ing.victoriasGuerra, '🎖️ V. Guerra')}
+              ${ingStatHtml(ing.diasInactivo, '😴 Días inactivo')}
+            </div>
+            <div class="ingreso-semana">
+              <div class="ing-semana-title">Semana actual</div>
+              <div class="ing-semana-stats">
+                ${ingStatHtml(sem.ataques, '⚔️ Ataques')}
+                ${ingStatHtml(sem.puntaje, '⭐ Puntaje')}
+                ${ingStatHtml(sem.barcos, '🚢 Barcos')}
+              </div>
+            </div>
           </div>`;
         }).join('')}
       </div>`).join('');
+
+    renderComparativaSemanal(chartsWrap, ingresos);
   }catch(err){
     wrap.innerHTML = `<div class="card" style="text-align:center; padding:32px;">
       <p class="text-dim">No se pudo cargar los ingresos recientes: ${esc(err.message)}</p>
     </div>`;
+    chartsWrap.innerHTML = '';
   }
 }
 
