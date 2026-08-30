@@ -365,13 +365,19 @@ function renderExtendido(ext){
   if (!ext){ wrap.innerHTML = ''; return; }
   let items = '';
   items += extItem(ext.nivelXp, 'Nivel', true);
+  items += extItem(ext.nivelCartas, 'Nivel de cartas', true);
   items += extItem(ext.copasMax, 'Copas máx.', true);
   items += extItem(ext.arena, 'Arena', false);
   items += extItem(ext.victorias, 'Victorias', true);
   items += extItem(ext.derrotas, 'Derrotas', true);
+  items += extItem(ext.batallas, 'Batallas', true);
   items += extItem(ext.racha, 'Racha', true);
   items += extItem(ext.victorias3Coronas, '3 coronas', true);
   items += extItem(ext.maxVictoriasDesafios, 'Máx. victorias desafío', true);
+  items += extItem(ext.cartasDesafios, 'Cartas de desafíos', true);
+  items += extItem(ext.cartasTorneos, 'Cartas de torneos', true);
+  items += extItem(ext.emotes, 'Emotes', true);
+  items += extItem(ext.banners, 'Banners', true);
   items += extItem(ext.donacionesRecibidas, 'Donac. recibidas', true);
   items += extItem(ext.donacionesRealizadas, 'Donac. hechas', true);
   items += extItem(ext.rankingClan, 'Ranking en el clan', true);
@@ -385,11 +391,19 @@ function renderExtendido(ext){
 
   const royaleOk = urlValida(ext.royaleApi);
   const cwOk = urlValida(ext.cwStats);
+  // Mazo/Mazo2 (34_Web_API.gs: ext.deck/ext.deck2): links a mazos sugeridos
+  // en RoyaleAPI para este jugador (hoja Links, columnas Mazo/Mazo2) —
+  // mismo criterio de validación de link roto (urlValida) que ya se usa
+  // para RoyaleAPI/CWStats, para no mostrar un botón que no lleve a nada.
+  const deckOk = urlValida(ext.deck);
+  const deck2Ok = urlValida(ext.deck2);
   let links = '';
-  if (royaleOk || cwOk){
+  if (royaleOk || cwOk || deckOk || deck2Ok){
     links = `<div class="ext-links">
       ${royaleOk ? `<a href="${esc(ext.royaleApi)}" target="_blank" rel="noopener">🌐 RoyaleAPI</a>` : ''}
       ${cwOk ? `<a href="${esc(ext.cwStats)}" target="_blank" rel="noopener">📊 CWStats</a>` : ''}
+      ${deckOk ? `<a href="${esc(ext.deck)}" target="_blank" rel="noopener">🃏 Mazo sugerido</a>` : ''}
+      ${deck2Ok ? `<a href="${esc(ext.deck2)}" target="_blank" rel="noopener">🃏 Mazo sugerido (2)</a>` : ''}
     </div>`;
   }
 
