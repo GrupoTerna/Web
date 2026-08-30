@@ -14,6 +14,23 @@
   .historia-card p{font-size:16px; line-height:1.75; color:var(--text-dim); margin:0 0 18px;}
   .historia-card p:last-child{margin-bottom:0;}
   .historia-card b{color:var(--text); font-weight:700;}
+
+  /* Ascensos recientes (30-ago-2026, pedido del usuario): lista pública de
+     reconocimiento — solo Ascensos, nunca Descensos ni cambios de rango de
+     administradores (eso ya lo filtra el backend, ver webAscensosRecientes()
+     en 34_Web_API.gs). Se agrega debajo de la explicación de "Ascensos y
+     Descensos" de esta misma página. */
+  .ascenso-row{
+    display:flex; align-items:center; justify-content:space-between; gap:14px;
+    padding:14px 0; border-bottom:1px solid var(--line);
+  }
+  .ascenso-row:last-child{border-bottom:none;}
+  .ascenso-row .an-name{font-weight:700; font-size:15px; color:var(--text);}
+  .ascenso-row .an-detail{font-size:13px; color:var(--text-dim); margin-top:3px;}
+  .ascenso-row .an-fecha{font-family:var(--f-mono); font-size:12px; color:var(--text-faint); white-space:nowrap;}
+  @media (max-width:560px){
+    .ascenso-row{flex-direction:column; align-items:flex-start; gap:4px;}
+  }
 </style>
 </head>
 <body data-page="comunidad">
@@ -218,6 +235,16 @@
         bajo los mismos criterios.
       </p>
     </div>
+
+    <!-- Lista pública de ascensos recientes — ver _webAscensosRecientes()
+         en 34_Web_API.gs (backend). Solo Ascensos (nunca Descensos) y
+         nunca cambios de rango de cuentas que hoy son Administradores. -->
+    <div class="card" style="margin-top:16px; padding:24px;">
+      <div class="eyebrow" style="margin-bottom:14px;">Ascensos recientes</div>
+      <div id="ascensosWrap">
+        <div class="text-faint" style="font-family:var(--f-mono); font-size:12px;">Cargando ascensos…</div>
+      </div>
+    </div>
   </section>
 
 
@@ -281,5 +308,36 @@
 </footer>
 
 <script src="assets/common.js"></script>
+<script>
+/**
+ * cargarAscensos()
+ * Consume 'webAscensosRecientes' (34_Web_API.gs) — ya viene filtrado desde
+ * el backend a solo Ascensos (nunca Descensos) y sin ningún cambio de rango
+ * de cuentas que hoy son Administradores, así que acá no hace falta volver
+ * a filtrar nada, solo pintar la lista tal cual llega.
+ */
+async function cargarAscensos(){
+  const wrap = document.getElementById('ascensosWrap');
+  try{
+    const data = await apiGet('webAscensosRecientes');
+    const ascensos = data.ascensos || [];
+    if (!ascensos.length){
+      wrap.innerHTML = '<div class="empty">Todavía no hay ascensos registrados.</div>';
+      return;
+    }
+    wrap.innerHTML = ascensos.map(a => `
+      <div class="ascenso-row">
+        <div>
+          <div class="an-name">🎖️ ${esc(a.nombre)}</div>
+          <div class="an-detail">${esc(a.rangoAnterior)} → ${esc(a.rangoNuevo)} · ${esc(a.clan)}</div>
+        </div>
+        <div class="an-fecha">${esc(a.fechaTxt || '—')}</div>
+      </div>`).join('');
+  }catch(err){
+    wrap.innerHTML = `<div class="empty">No se pudo cargar los ascensos: ${esc(err.message)}</div>`;
+  }
+}
+cargarAscensos();
+</script>
 </body>
 </html>
