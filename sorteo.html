@@ -18,60 +18,30 @@
      que exponga datos, así que no la necesita.
      NOTA (29-ago-2026): sessionStorage NO se copia de forma confiable entre
      pestañas. Se pasa el token por query string (?tk=) desde el botón
-     "Abrir Ruleta de Sorteos" en admin.html.
-     DEBUG (29-ago-2026): versión temporal con diagnóstico en pantalla — el
-     redirect automático seguía en loop y no había forma de ver por qué, así
-     que en vez de redirigir en silencio esto muestra el motivo exacto antes
-     de mandar de vuelta al login. Sacar este bloque de debug una vez
-     resuelto (ver comentario "FIN DEBUG" más abajo). -->
-<style>
-  #diagBox{position:fixed; inset:0; background:#1a1c3d; color:#fff; font-family:monospace;
-    font-size:14px; padding:24px; z-index:99999; overflow:auto; line-height:1.6; display:none;}
-  #diagBox b{color:#F0C24B;}
-  #diagBox .ok{color:#7CE0A0;}
-  #diagBox .bad{color:#F08A8A;}
-</style>
+     "Abrir Ruleta de Sorteos" en admin.html; este script lo guarda en
+     sessionStorage y limpia la URL antes de que se pinte nada.
+     FIX (30-ago-2026): se retira el bloque de diagnóstico en pantalla que
+     hubo acá (29-ago-2026, para depurar un loop de redirección) — el fix
+     real fue pasar el token por ?tk= (arriba), ya confirmado funcionando,
+     así que el diagnóstico ya cumplió su función y solo quedaba como
+     ruido/riesgo (mostraba detalles internos de sesión en pantalla ante
+     cualquier falla). -->
 <script>
 (function(){
   var SESSION_KEY = 'terna_admin_token';
   var params = new URLSearchParams(window.location.search);
   var tk = params.get('tk');
-  var log = [];
-  log.push('URL completa: ' + window.location.href);
-  log.push('Parámetro tk presente: ' + (tk ? 'sí (' + tk.length + ' caracteres)' : 'NO'));
 
   if(tk){
     sessionStorage.setItem(SESSION_KEY, tk);
     history.replaceState({}, '', window.location.pathname);
-    log.push('sessionStorage seteado desde el parámetro tk.');
   }
 
-  var stored = sessionStorage.getItem(SESSION_KEY);
-  log.push('sessionStorage["' + SESSION_KEY + '"] ahora: ' + (stored ? 'sí (' + stored.length + ' caracteres)' : 'NO'));
-
-  window.__diagLog = log;
-  console.log('[sorteo.html diag]\n' + log.join('\n'));
-
-  if(!stored){
-    document.addEventListener('DOMContentLoaded', function(){
-      var box = document.createElement('div');
-      box.id = 'diagBox';
-      box.style.display = 'block';
-      box.innerHTML =
-        '<h2>No se encontró sesión de admin</h2>' +
-        '<p>Diagnóstico (esto normalmente no debería verse — es temporal):</p>' +
-        '<pre>' + log.map(function(l){ return esc0(l); }).join('\n') + '</pre>' +
-        '<p>Volviendo a <b>admin.html</b> en 8 segundos… <button onclick="location.href=\'admin.html\'">Ir ahora</button> · <button onclick="document.getElementById(\'diagBox\').remove()">Quedarme a ver la ruleta igual</button></p>';
-      document.body.appendChild(box);
-      setTimeout(function(){
-        if(document.getElementById('diagBox')) window.location.replace('admin.html');
-      }, 8000);
-    });
+  if(!sessionStorage.getItem(SESSION_KEY)){
+    window.location.replace('admin.html');
   }
-  function esc0(s){ return String(s).replace(/[&<>]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;'}[c]; }); }
 })();
 </script>
-<!-- FIN DEBUG -->
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -649,7 +619,13 @@
       <div class="wheel-outer">
         <div class="pointer"></div>
         <div class="wheel-ring">
-          <div id="wheelDisc" class="wheel-disc">
+          <!-- data-essential-motion (30-ago-2026): excluye este disco del
+               reset global de prefers-reduced-motion (ver styles.css) — el
+               giro de la ruleta NO es decorativo, es la mecánica misma del
+               sorteo (la suspensión del giro es parte de la transmisión en
+               vivo), así que debe seguir animándose aunque el sistema
+               operativo de quien mira tenga "reducir movimiento" activado. -->
+          <div id="wheelDisc" class="wheel-disc" data-essential-motion>
             <div id="wheelLabels" class="wheel-labels"></div>
           </div>
         </div>

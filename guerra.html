@@ -84,7 +84,7 @@
 <nav class="nav">
   <div class="wrap">
     <a href="index.html" class="brand">
-      <img src="assets/img/logo-cuadrado.jpg" alt="Escudo GxT Familia Terna" class="brand-logo">
+      <img src="assets/img/logo-cuadrado.jpg" alt="Escudo GxT Familia Terna" class="brand-logo" width="256" height="256">
       <span>ᴳ乂ᵀ <span class="crown">⚜️</span> Familia Terna</span>
     </a>
     <button id="navToggle" class="nav-toggle" aria-label="Abrir menú">☰</button>
@@ -164,7 +164,6 @@
 
 <script src="assets/common.js"></script>
 <script>
-const DASH_TOKEN = 'fm7qterna9x';
 const REFRESH_INTERVAL_MS = 60000;
 // Los días de guerra son siempre Jueves→Domingo. El backend manda la letra
 // real de cada uno en ctx.diaLetra / data.diasSemanaGuerra[].letra: 'J','V',
@@ -225,10 +224,14 @@ async function cargar(manual){
   const refreshBtn = document.getElementById('refreshBtn');
   if(refreshBtn){ refreshBtn.classList.add('spinning'); refreshBtn.disabled = true; }
   try{
-    const url = `${WEBAPP_URL}?dashboard=json&token=${encodeURIComponent(DASH_TOKEN)}`;
-    const res = await fetch(url, { cache: 'no-store' });
-    const data = await res.json();
-    if(data.error){ throw new Error(data.error); }
+    // FIX (30-ago-2026, pedido usuario — revisión de seguridad): antes esto
+    // pegaba directo a ?dashboard=json con un token de administradores
+    // (fm7qterna9x) hardcodeado acá mismo, visible para cualquiera con "Ver
+    // código fuente" de esta página PÚBLICA. Ahora usa apiGet() (mismo
+    // WEB_MEMBER_TOKEN de solo-lectura que ya usan index.html/jugadores.html/
+    // etc., ver assets/common.js) contra el nuevo endpoint webGuerraEnVivo
+    // (34_Web_API.gs), que devuelve exactamente los mismos datos.
+    const data = await apiGet('webGuerraEnVivo', null, { sinCache: true });
     render(data);
     lastFetchAt = new Date();
     actualizarAgoText();

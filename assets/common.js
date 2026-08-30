@@ -98,12 +98,37 @@ function esAdminLogueado(){
   return !!sessionStorage.getItem('terna_admin_token');
 }
 
-/** GET a una acción pública del portal (usa WEB_MEMBER_TOKEN). */
-async function apiGet(accion, params){
+/**
+ * apiGet(accion, params, opts)
+ * GET a una acción pública del portal (usa WEB_MEMBER_TOKEN).
+ * FIX (30-ago-2026, pedido usuario — reducir llamadas redundantes al Web
+ * App, que tiene cuota de ejecuciones): cachea la respuesta en
+ * sessionStorage por API_GET_CACHE_TTL_MS (60s) por defecto, con clave
+ * accion+params. Así, navegar entre páginas (o volver a la misma) dentro
+ * de esa ventana no vuelve a pegarle al backend por datos que en la
+ * práctica no cambian segundo a segundo (roster, info de clanes, torneos,
+ * rankings, etc). Pasar opts.sinCache=true para lo que sí necesita forzar
+ * datos frescos siempre — ej. el botón "Actualizar" de guerra.html, la
+ * única página realmente "en vivo" del portal.
+ */
+const API_GET_CACHE_TTL_MS = 60000;
+async function apiGet(accion, params, opts){
+  opts = opts || {};
   const qs = new URLSearchParams({ accion, token: WEB_MEMBER_TOKEN, ...(params||{}) });
+  const cacheKey = 'terna_cache_' + qs.toString();
+  if(!opts.sinCache){
+    try{
+      const cached = JSON.parse(sessionStorage.getItem(cacheKey) || 'null');
+      if(cached && (Date.now() - cached.t) < API_GET_CACHE_TTL_MS) return cached.d;
+    }catch(e){ /* sessionStorage corrupto/inaccesible: seguir a la red sin romper */ }
+  }
   const res = await fetch(`${WEBAPP_URL}?${qs.toString()}`, { cache:'no-store' });
   const data = await res.json();
   if(data.error) throw new Error(data.error);
+  if(!opts.sinCache){
+    try{ sessionStorage.setItem(cacheKey, JSON.stringify({ t: Date.now(), d: data })); }
+    catch(e){ /* storage lleno: no debe romper la carga por no poder cachear */ }
+  }
   return data;
 }
 

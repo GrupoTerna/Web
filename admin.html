@@ -7,7 +7,7 @@
 <meta name="robots" content="noindex, nofollow">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=Inter:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/styles.css">
 <link rel="icon" type="image/jpeg" href="assets/img/logo-cuadrado.jpg">
 <style>
@@ -48,7 +48,7 @@
 
 <nav class="nav">
   <div class="wrap">
-    <a href="index.html" class="brand"><img src="assets/img/logo-cuadrado.jpg" alt="Escudo GxT Familia Terna" class="brand-logo"> Familia Terna</a>
+    <a href="index.html" class="brand"><img src="assets/img/logo-cuadrado.jpg" alt="Escudo GxT Familia Terna" class="brand-logo" width="256" height="256"> Familia Terna</a>
     <button id="navToggle" class="nav-toggle" aria-label="Abrir menú">☰</button>
     <div class="links">
       <a href="jugadores.html" data-page="jugadores">Clanes</a>
@@ -412,16 +412,19 @@ document.getElementById('claveInput').addEventListener('keydown', e => {
 
 document.getElementById('logoutBtn').addEventListener('click', () => mostrarLogin());
 
-// Fase 5 (29-ago-2026): deja el token en localStorage (leído y borrado de
-// inmediato por sorteo.html) para que la pestaña nueva pueda validar la
-// sesión — ver nota en sorteo.html sobre por qué sessionStorage solo no
-// alcanza entre pestañas.
+// Fase 5 (29-ago-2026): el token viaja por query string (?tk=) hacia la
+// pestaña nueva de sorteo.html, que lo guarda en su propio sessionStorage
+// apenas carga — sessionStorage NO se comparte entre pestañas por sí solo
+// (por eso no alcanza con que ya esté guardado acá), así que hace falta
+// pasarlo explícitamente en la URL de apertura.
+// FIX (30-ago-2026): se retiran los console.log() de diagnóstico que había
+// acá (mismo espíritu que el bloque de debug ya retirado de sorteo.html) —
+// exponían en la consola del navegador la longitud del token de sesión y
+// la URL completa con el token en texto plano.
 document.getElementById('btnAbrirSorteo').addEventListener('click', () => {
   const token = sessionStorage.getItem(SESSION_KEY);
-  console.log('[admin.html diag] token al abrir ruleta:', token ? `sí (${token.length} caracteres)` : 'NO HAY TOKEN');
   if(!token) return mostrarLogin('Tu sesión expiró, vuelve a iniciar sesión.');
   const url = 'sorteo.html?tk=' + encodeURIComponent(token);
-  console.log('[admin.html diag] abriendo:', url);
   window.open(url, '_blank');
 });
 

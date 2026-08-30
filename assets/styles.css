@@ -26,7 +26,14 @@
 
   --text:         #ffffff;
   --text-dim:     #94a3b8;
-  --text-faint:   #475569;
+  /* FIX (30-ago-2026, pedido usuario — revisión de accesibilidad): antes
+     era #475569, con un contraste de ~2.7:1 contra --bg/--bg-2 — muy por
+     debajo del mínimo WCAG AA para texto (4.5:1). #74839c mantiene el
+     mismo tono azul-grisáceo "apagado" (sigue leyéndose más tenue que
+     --text-dim) pero da ~5.3:1 sobre --bg y ~4.9:1 incluso sobre
+     --surface-card (el fondo semitransparente de las tarjetas, un poco
+     más claro que --bg), con margen de sobra en ambos casos. */
+  --text-faint:   #74839c;
   --danger:       #f43f5e;
   --ok:           #10b981;
 
@@ -331,4 +338,33 @@ footer .wrap{display:flex; justify-content:space-between; flex-wrap:wrap; gap:16
 }
 @media (max-width:540px){
   .grid-4{grid-template-columns:1fr;}
+}
+
+/* =========================================================================
+ * prefers-reduced-motion (30-ago-2026, pedido usuario — accesibilidad):
+ * el sitio usa scroll-behavior:smooth, hovers con transform, una tarjeta
+ * que "flashea" al cambiar (.flash, ver guerra.html) y un loader que gira
+ * infinito (.loading-spin/@keyframes spin, arriba) — nada de eso comunica
+ * información por sí solo, así que quien tenga activado "reducir
+ * movimiento" en su sistema operativo (por mareo, vestibular, etc.) no
+ * debería recibirlo.
+ * EXCEPCIÓN deliberada: [data-essential-motion] — el giro de la Ruleta de
+ * Sorteo (sorteo.html) NO es decorativo, es la mecánica misma de la
+ * herramienta (se transmite en vivo), así que se excluye explícitamente de
+ * este reset con el selector :not() de abajo en vez de dejarla afuera "por
+ * accidente" al no usar !important. Cualquier otra animación nueva que se
+ * agregue a futuro y también sea funcional (no decorativa) debe marcarse
+ * igual con el atributo data-essential-motion en vez de agregarse a esta
+ * lista de excepciones a mano.
+ * ========================================================================= */
+@media (prefers-reduced-motion: reduce){
+  html{scroll-behavior:auto;}
+  *:not([data-essential-motion]),
+  *:not([data-essential-motion])::before,
+  *:not([data-essential-motion])::after{
+    animation-duration:0.001ms !important;
+    animation-iteration-count:1 !important;
+    transition-duration:0.001ms !important;
+    scroll-behavior:auto !important;
+  }
 }
