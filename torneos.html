@@ -4,12 +4,41 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Torneos — Familia Terna</title>
-<meta name="description" content="Torneos de la Familia Terna: próximamente el calendario, los links de inscripción y los ganadores de cada edición.">
+<meta name="description" content="Torneos de la Familia Terna: calendario, links de inscripción y ganadores de cada edición.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="assets/styles.css">
 <link rel="icon" type="image/jpeg" href="assets/img/logo-cuadrado.jpg">
+<style>
+  /* FASE 9 (30-ago-2026, pedido del usuario): torneos.html deja de ser un
+     placeholder — consume 'webTorneos' (34_Web_API.gs), el mismo endpoint
+     que ya usaba admin.html para la tarjeta "Ver ganadores" del panel. */
+  .ganadores-grid{
+    display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));
+    gap:16px; margin-top:20px;
+  }
+  .ganador-card{padding:24px; text-align:center;}
+  .ganador-card .medalla{font-size:32px; line-height:1;}
+  .ganador-card .g-nombre{font-weight:700; font-size:17px; color:var(--text); margin-top:10px;}
+  .ganador-card .g-clan{font-family:var(--f-mono); font-size:12px; color:var(--text-dim); margin-top:4px;}
+  .ganador-card .g-victorias{
+    font-family:var(--f-mono); font-size:13px; color:var(--gold); margin-top:12px;
+    letter-spacing:.04em;
+  }
+  .torneo-row{
+    display:flex; align-items:center; justify-content:space-between; gap:16px;
+    padding:16px 0; border-bottom:1px solid var(--line); flex-wrap:wrap;
+  }
+  .torneo-row:last-child{border-bottom:none;}
+  .torneo-row .t-fecha{font-family:var(--f-mono); font-size:13px; color:var(--text); min-width:110px;}
+  .torneo-row .t-detalle{flex:1; min-width:160px;}
+  .torneo-row .t-clan{font-weight:700; font-size:14px; color:var(--text);}
+  .torneo-row .t-organizador{font-size:12px; color:var(--text-dim); margin-top:2px;}
+  @media (max-width:560px){
+    .torneo-row{flex-direction:column; align-items:flex-start; gap:8px;}
+  }
+</style>
 </head>
 <body data-page="torneos">
 
@@ -39,16 +68,21 @@
     mismo lugar.
   </p>
 
-  <!-- Placeholder: sección pendiente de contenido (29-ago-2026). El nav ya
-       queda disponible en todo el sitio a pedido del usuario aunque esta
-       página todavía no tenga datos que mostrar. El backend ya soporta
-       torneos (webTorneos, _registrarTorneoDesdeBot / _listarTorneosDeHoy,
-       ver admin.html) — cuando se defina qué mostrar acá públicamente
-       (calendario, link de inscripción activo, historial de ganadores),
-       se reemplaza este card por el contenido real. -->
-  <div class="card" style="margin-top:32px; padding:40px; text-align:center;">
-    <p class="text-dim" style="font-size:16px;">Esta sección está en construcción. Muy pronto vas a poder ver acá el calendario de torneos, el link de inscripción vigente y los ganadores de cada edición.</p>
-  </div>
+  <!-- Ganadores del torneo más reciente -->
+  <section style="margin-top:40px;">
+    <div class="eyebrow">🏆 Ganadores del torneo más reciente</div>
+    <div id="ganadoresWrap" class="ganadores-grid">
+      <div class="card" style="grid-column:1/-1;"><div class="empty">Cargando ganadores…</div></div>
+    </div>
+  </section>
+
+  <!-- Torneos recientes -->
+  <section style="margin-top:44px;">
+    <div class="eyebrow">Torneos recientes</div>
+    <div class="card" style="margin-top:20px; padding:8px 24px;">
+      <div id="torneosWrap"><div class="empty">Cargando torneos…</div></div>
+    </div>
+  </section>
 
 </div>
 
@@ -60,5 +94,71 @@
 </footer>
 
 <script src="assets/common.js"></script>
+<script>
+/**
+ * medallaPuesto(puesto)
+ * Medalla según el puesto real del torneo — no según la posición dentro del
+ * arreglo (top3Filtrado del backend puede saltarse un puesto si esa cuenta
+ * no calificó, ver _webGanadoresTorneoMasReciente() en 34_Web_API.gs).
+ */
+function medallaPuesto(puesto){
+  const p = Number(puesto);
+  if (p === 1) return '🥇';
+  if (p === 2) return '🥈';
+  if (p === 3) return '🥉';
+  return '🎖️';
+}
+
+async function cargarTorneos(){
+  const ganadoresWrap = document.getElementById('ganadoresWrap');
+  const torneosWrap = document.getElementById('torneosWrap');
+  try{
+    const data = await apiGet('webTorneos');
+
+    // ---- Ganadores del torneo más reciente ----
+    const g = data.ganadores;
+    if (!g || !g.top3 || !g.top3.length){
+      ganadoresWrap.innerHTML = `<div class="card" style="grid-column:1/-1;">
+        <div class="empty">Todavía no hay ganadores calificados para el torneo más reciente.</div>
+      </div>`;
+    } else {
+      ganadoresWrap.innerHTML = g.top3.map(p => `
+        <div class="card ganador-card">
+          <div class="medalla">${medallaPuesto(p.puesto)}</div>
+          <div class="g-nombre">${esc(p.nombre)}</div>
+          <div class="g-clan">${esc(p.clan)}</div>
+          <div class="g-victorias">${fmtNum(p.victorias)} victorias</div>
+        </div>`).join('');
+    }
+
+    // ---- Listado de torneos recientes ----
+    const torneos = data.torneos || [];
+    if (!torneos.length){
+      torneosWrap.innerHTML = '<div class="empty">Todavía no hay torneos registrados.</div>';
+      return;
+    }
+    torneosWrap.innerHTML = torneos.map(t => {
+      const fechaTxt = t.fecha ? new Date(t.fecha).toLocaleDateString('es-PE', { day:'2-digit', month:'2-digit', year:'numeric' }) : '—';
+      const linkOk = urlValida(t.linkApp);
+      return `
+      <div class="torneo-row">
+        <div class="t-fecha">${esc(fechaTxt)}</div>
+        <div class="t-detalle">
+          <div class="t-clan">${esc(t.clan || '—')}</div>
+          <div class="t-organizador">${t.organizador ? 'Organiza: ' + esc(t.organizador) : ''}</div>
+        </div>
+        ${linkOk ? `<a href="${esc(t.linkApp)}" target="_blank" rel="noopener" class="btn btn-ghost">Ver torneo</a>` : ''}
+      </div>`;
+    }).join('');
+  }catch(err){
+    ganadoresWrap.innerHTML = `<div class="card" style="grid-column:1/-1;">
+      <div class="empty">No se pudo cargar la info de torneos: ${esc(err.message)}</div>
+    </div>`;
+    torneosWrap.innerHTML = '';
+  }
+}
+
+cargarTorneos();
+</script>
 </body>
 </html>
