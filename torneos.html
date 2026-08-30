@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Torneos — Familia Terna</title>
+<meta name="description" content="Torneos de la Familia Terna: calendario, links de inscripción y ganadores de cada edición.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/styles.css">
+<link rel="icon" type="image/jpeg" href="assets/img/logo-cuadrado.jpg">
+<style>
+  /* FASE 9 (30-ago-2026, pedido del usuario): torneos.html deja de ser un
+     placeholder — consume 'webTorneos' (34_Web_API.gs), el mismo endpoint
+     que ya usaba admin.html para la tarjeta "Ver ganadores" del panel. */
+  .ganadores-grid{
+    display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));
+    gap:16px; margin-top:20px;
+  }
+  .ganador-card{padding:24px; text-align:center;}
+  .ganador-card .medalla{font-size:32px; line-height:1;}
+  .ganador-card .g-nombre{font-weight:700; font-size:17px; color:var(--text); margin-top:10px;}
+  .ganador-card .g-clan{font-family:var(--f-mono); font-size:12px; color:var(--text-dim); margin-top:4px;}
+  .ganador-card .g-victorias{
+    font-family:var(--f-mono); font-size:13px; color:var(--gold); margin-top:12px;
+    letter-spacing:.04em;
+  }
+  .torneo-row{
+    display:flex; align-items:center; justify-content:space-between; gap:16px;
+    padding:16px 0; border-bottom:1px solid var(--line); flex-wrap:wrap;
+  }
+  .torneo-row:last-child{border-bottom:none;}
+  .torneo-row .t-fecha{font-family:var(--f-mono); font-size:13px; color:var(--text); min-width:110px;}
+  .torneo-row .t-detalle{flex:1; min-width:160px;}
+  .torneo-row .t-clan{font-weight:700; font-size:14px; color:var(--text);}
+  .torneo-row .t-organizador{font-size:12px; color:var(--text-dim); margin-top:2px;}
+  @media (max-width:560px){
+    .torneo-row{flex-direction:column; align-items:flex-start; gap:8px;}
+  }
+
+  /* Salón de la fama: una tarjeta compacta por torneo, con su propio top 3 */
+  .salon-card{padding:18px 24px; margin-bottom:14px;}
+  .salon-card:last-child{margin-bottom:0;}
+  .salon-head{
+    display:flex; align-items:baseline; justify-content:space-between; gap:12px;
+    flex-wrap:wrap; margin-bottom:12px;
+  }
+  .salon-fecha{font-family:var(--f-mono); font-size:13px; color:var(--text-dim);}
+  .salon-clan{font-weight:700; font-size:14px; color:var(--text);}
+  .salon-top3{display:flex; flex-direction:column; gap:6px;}
+  .salon-puesto{
+    display:flex; align-items:center; gap:8px; font-size:13px; color:var(--text-dim);
+  }
+  .salon-puesto .sp-nombre{color:var(--text); font-weight:600;}
+  .salon-puesto .sp-victorias{margin-left:auto; font-family:var(--f-mono); color:var(--gold); font-size:12px;}
+</style>
+</head>
+<body data-page="torneos">
+
+<nav class="nav">
+  <div class="wrap">
+    <a href="index.html" class="brand">
+      <img src="assets/img/logo-cuadrado.jpg" alt="Escudo GxT Familia Terna" class="brand-logo">
+      <span>ᴳ乂ᵀ <span class="crown">⚜️</span> Familia Terna</span>
+    </a>
+    <button id="navToggle" class="nav-toggle" aria-label="Abrir menú">☰</button>
+    <div class="links">
+      <a href="jugadores.html" data-page="jugadores">Clanes</a>
+      <a href="guerra.html" data-page="guerra">Guerra</a>
+      <a href="torneos.html" data-page="torneos">Torneos</a>
+      <a href="comunidad.html" data-page="comunidad">Comunidad</a>
+      <a href="admin.html" data-page="admin" class="cta">Acceder</a>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap" style="padding-top:36px; padding-bottom:80px;">
+
+  <div class="eyebrow">Torneos</div>
+  <h1 style="font-size:clamp(28px,4.5vw,42px); margin-top:14px;">Torneos Familia Terna</h1>
+  <p class="text-dim" data-fit-line style="margin-top:10px; font-size:16px; max-width:100%;">
+    Calendario, links de inscripción y ganadores de cada edición — todo en un
+    mismo lugar.
+  </p>
+
+  <!-- Ganadores del torneo más reciente -->
+  <section style="margin-top:40px;">
+    <div class="eyebrow">🏆 Ganadores del torneo más reciente</div>
+    <div id="ganadoresWrap" class="ganadores-grid">
+      <div class="card" style="grid-column:1/-1;"><div class="empty">Cargando ganadores…</div></div>
+    </div>
+  </section>
+
+  <!-- Torneos recientes -->
+  <section style="margin-top:44px;">
+    <div class="eyebrow">Torneos recientes</div>
+    <div class="card" style="margin-top:20px; padding:8px 24px;">
+      <div id="torneosWrap"><div class="empty">Cargando torneos…</div></div>
+    </div>
+  </section>
+  <!-- Salón de la fama: top 3 de cada torneo, no solo el más reciente -->
+  <section style="margin-top:44px;">
+    <div class="eyebrow">🏛️ Salón de la fama</div>
+    <p class="text-dim" style="margin-top:8px; font-size:14px;">
+      Resultado real de cada torneo, tal como quedó registrado.
+    </p>
+    <div id="salonWrap" style="margin-top:20px;">
+      <div class="card"><div class="empty">Cargando salón de la fama…</div></div>
+    </div>
+  </section>
+
+</div>
+
+<footer>
+  <div class="wrap">
+    <span>Familia Terna · Portal de la comunidad</span>
+    <span>Sincronizado vía Google Apps Script API</span>
+  </div>
+</footer>
+
+<script src="assets/common.js"></script>
+<script>
+/**
+ * medallaPuesto(puesto)
+ * Medalla según el puesto real del torneo — no según la posición dentro del
+ * arreglo (top3Filtrado del backend puede saltarse un puesto si esa cuenta
+ * no calificó, ver _webGanadoresTorneoMasReciente() en 34_Web_API.gs).
+ */
+function medallaPuesto(puesto){
+  const p = Number(puesto);
+  if (p === 1) return '🥇';
+  if (p === 2) return '🥈';
+  if (p === 3) return '🥉';
+  return '🎖️';
+}
+
+async function cargarTorneos(){
+  const ganadoresWrap = document.getElementById('ganadoresWrap');
+  const torneosWrap = document.getElementById('torneosWrap');
+  try{
+    const data = await apiGet('webTorneos');
+
+    // ---- Ganadores del torneo más reciente ----
+    const g = data.ganadores;
+    if (!g || !g.top3 || !g.top3.length){
+      ganadoresWrap.innerHTML = `<div class="card" style="grid-column:1/-1;">
+        <div class="empty">Todavía no hay ganadores calificados para el torneo más reciente.</div>
+      </div>`;
+    } else {
+      ganadoresWrap.innerHTML = g.top3.map(p => `
+        <div class="card ganador-card">
+          <div class="medalla">${medallaPuesto(p.puesto)}</div>
+          <div class="g-nombre">${esc(p.nombre)}</div>
+          <div class="g-clan">${esc(p.clan)}</div>
+          <div class="g-victorias">${fmtNum(p.victorias)} victorias</div>
+        </div>`).join('');
+    }
+
+    // ---- Listado de torneos recientes ----
+    const torneos = data.torneos || [];
+    if (!torneos.length){
+      torneosWrap.innerHTML = '<div class="empty">Todavía no hay torneos registrados.</div>';
+      return;
+    }
+    torneosWrap.innerHTML = torneos.map(t => {
+      const fechaTxt = t.fecha ? new Date(t.fecha).toLocaleDateString('es-PE', { day:'2-digit', month:'2-digit', year:'numeric' }) : '—';
+      const linkOk = urlValida(t.linkApp);
+      return `
+      <div class="torneo-row">
+        <div class="t-fecha">${esc(fechaTxt)}</div>
+        <div class="t-detalle">
+          <div class="t-clan">${esc(t.clan || '—')}</div>
+          <div class="t-organizador">${t.organizador ? 'Organiza: ' + esc(t.organizador) : ''}</div>
+        </div>
+        ${linkOk ? `<a href="${esc(t.linkApp)}" target="_blank" rel="noopener" class="btn btn-ghost">Ver torneo</a>` : ''}
+      </div>`;
+    }).join('');
+  }catch(err){
+    ganadoresWrap.innerHTML = `<div class="card" style="grid-column:1/-1;">
+      <div class="empty">No se pudo cargar la info de torneos: ${esc(err.message)}</div>
+    </div>`;
+    torneosWrap.innerHTML = '';
+  }
+}
+
+cargarTorneos();
+cargarSalonDeLaFama();
+
+/**
+ * cargarSalonDeLaFama()
+ * Consume 'webHistorialTorneos' (34_Web_API.gs) — top 3 de CADA torneo
+ * registrado, ya recortado a los últimos 30 desde el backend. Excluye acá
+ * el torneo que ya se muestra arriba en "Ganadores del torneo más
+ * reciente" (mismo idTorneo) para no repetir la misma info dos veces en
+ * la misma página.
+ */
+async function cargarSalonDeLaFama(){
+  const wrap = document.getElementById('salonWrap');
+  try{
+    const [torneosData, historialData] = await Promise.all([
+      apiGet('webTorneos'),
+      apiGet('webHistorialTorneos')
+    ]);
+    const idMasReciente = torneosData.ganadores ? String(torneosData.ganadores.idTorneo) : null;
+    const historial = (historialData.historial || []).filter(t => String(t.idTorneo) !== idMasReciente);
+
+    if (!historial.length){
+      wrap.innerHTML = '<div class="card"><div class="empty">Todavía no hay más torneos con resultados registrados.</div></div>';
+      return;
+    }
+
+    wrap.innerHTML = historial.map(t => {
+      const fechaTxt = t.fecha ? new Date(t.fecha).toLocaleDateString('es-PE', { day:'2-digit', month:'2-digit', year:'numeric' }) : '—';
+      const filas = t.top3.map(p => `
+        <div class="salon-puesto">
+          <span>${medallaPuesto(p.puesto)}</span>
+          <span class="sp-nombre">${esc(p.nombre)}</span>
+          <span class="sp-victorias">${fmtNum(p.victorias)} victorias</span>
+        </div>`).join('');
+      return `
+      <div class="card salon-card">
+        <div class="salon-head">
+          <span class="salon-clan">${esc(t.clan || '—')}</span>
+          <span class="salon-fecha">${esc(fechaTxt)}</span>
+        </div>
+        <div class="salon-top3">${filas}</div>
+      </div>`;
+    }).join('');
+  }catch(err){
+    wrap.innerHTML = `<div class="card"><div class="empty">No se pudo cargar el salón de la fama: ${esc(err.message)}</div></div>`;
+  }
+}
+</script>
+</body>
+</html>
