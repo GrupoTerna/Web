@@ -112,6 +112,38 @@ function esAdminLogueado(){
  * única página realmente "en vivo" del portal.
  */
 const API_GET_CACHE_TTL_MS = 60000;
+
+/**
+ * _esErrorDeRed(err)
+ * FIX (30-ago-2026, pedido de revisión): true si `err` es un fallo de RED
+ * (no pudo llegar al servidor) y no un error de la aplicación (ej. sesión
+ * vencida, dato inválido). El navegador reporta esto de formas distintas
+ * según el motor: Chrome/Edge lanzan "TypeError: Failed to fetch", Firefox
+ * "TypeError: NetworkError when attempting to fetch resource", y Safari
+ * "TypeError: Load failed" — los tres casos son en el fondo lo mismo (no
+ * hubo respuesta del servidor: caído, sin internet, CORS, etc.), así que
+ * se detectan todos con el mismo criterio: TypeError + alguna de esas
+ * frases conocidas en el mensaje.
+ */
+function _esErrorDeRed(err){
+  if(!err || err.name !== 'TypeError') return false;
+  const msg = String(err.message || '').toLowerCase();
+  return msg.includes('failed to fetch') || msg.includes('networkerror') || msg.includes('load failed');
+}
+
+/**
+ * _mensajeErrorRed()
+ * Texto amigable para el visitante final en vez del mensaje técnico del
+ * navegador ("Failed to fetch"). Mismo patrón de mensaje que ya usan los
+ * distintos catch(err) del sitio (guerra.html, sorteo.html, admin.html,
+ * etc.): "Error de conexión: ${err.message}" — acá solo se reemplaza QUÉ
+ * va dentro de err.message cuando el fallo es de red, sin tocar esos
+ * catch ya existentes.
+ */
+function _mensajeErrorRed(){
+  return 'No pudimos conectar con el servidor. Intenta de nuevo en un momento.';
+}
+
 async function apiGet(accion, params, opts){
   opts = opts || {};
   const qs = new URLSearchParams({ accion, token: WEB_MEMBER_TOKEN, ...(params||{}) });
@@ -122,7 +154,12 @@ async function apiGet(accion, params, opts){
       if(cached && (Date.now() - cached.t) < API_GET_CACHE_TTL_MS) return cached.d;
     }catch(e){ /* sessionStorage corrupto/inaccesible: seguir a la red sin romper */ }
   }
-  const res = await fetch(`${WEBAPP_URL}?${qs.toString()}`, { cache:'no-store' });
+  let res;
+  try{
+    res = await fetch(`${WEBAPP_URL}?${qs.toString()}`, { cache:'no-store' });
+  }catch(err){
+    throw new Error(_esErrorDeRed(err) ? _mensajeErrorRed() : err.message);
+  }
   const data = await res.json();
   if(data.error) throw new Error(data.error);
   if(!opts.sinCache){
@@ -135,11 +172,16 @@ async function apiGet(accion, params, opts){
 /** POST a una acción del portal (login / acciones de admin). */
 async function apiPost(accion, body){
   const url = `${WEBAPP_URL}?accion=${encodeURIComponent(accion)}`;
-  const res = await fetch(url, {
-    method:'POST',
-    cache:'no-store',
-    body: JSON.stringify(body||{})
-  });
+  let res;
+  try{
+    res = await fetch(url, {
+      method:'POST',
+      cache:'no-store',
+      body: JSON.stringify(body||{})
+    });
+  }catch(err){
+    throw new Error(_esErrorDeRed(err) ? _mensajeErrorRed() : err.message);
+  }
   return await res.json();
 }
 
@@ -147,7 +189,12 @@ async function apiPost(accion, body){
 async function apiGetAuth(accion, params){
   const token = sessionStorage.getItem('terna_admin_token');
   const qs = new URLSearchParams({ accion, sessionToken: token || '', ...(params||{}) });
-  const res = await fetch(`${WEBAPP_URL}?${qs.toString()}`, { cache:'no-store' });
+  let res;
+  try{
+    res = await fetch(`${WEBAPP_URL}?${qs.toString()}`, { cache:'no-store' });
+  }catch(err){
+    throw new Error(_esErrorDeRed(err) ? _mensajeErrorRed() : err.message);
+  }
   return await res.json();
 }
 
