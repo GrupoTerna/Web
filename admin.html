@@ -117,6 +117,20 @@
   .btn-refrescar-categoria.girando{transform:rotate(180deg);}
   .categoria-contenido-body{padding:0 2px 14px 26px;}
   .contenido-item pre{white-space:pre-wrap; word-break:break-word; font-family:var(--f-body,inherit); font-size:14px; color:var(--text); margin:0; line-height:1.5;}
+  /* FIX (30-ago-2026, pedido usuario — "exportar a PDF dinámicamente"):
+     cuando la opción trae o.docId (el ID del Google Doc de origen en
+     Drive), suma un botón para ver el documento REAL tal cual está
+     formateado, generado al vuelo con el endpoint público de exportación
+     de Google Docs (.../export?format=pdf) dentro de un <iframe> — nada
+     se descarga ni se duplica en el backend. El iframe recién se arma la
+     primera vez que el admin lo pide (misma carga perezosa que ya usa
+     data-cargado en las categorías), y no si o.docId no viene en la
+     respuesta del backend. */
+  .contenido-pdf-wrap{margin-top:10px;}
+  .contenido-pdf-wrap iframe{
+    width:100%; height:70vh; min-height:420px; border:1px solid var(--line);
+    border-radius:var(--radius-sm); background:#fff;
+  }
   /* Fase 3 (25-ago-2026): gestión de torneos */
   .ganador-victorias{font-family:var(--f-mono); font-size:13px; color:var(--text-dim);}
 </style>
@@ -644,6 +658,14 @@ document.getElementById('btnGuardar').addEventListener('click', async () => {
  * cerrar/abrir), y queda cacheado 60s del lado del servidor — así se puede
  * abrir varias secciones/categorías de golpe sin multiplicar la carga real
  * contra el backend.
+ *
+ * FIX (30-ago-2026, pedido usuario — "que las opciones carguen colapsadas
+ * por defecto, ya luego el admin puede ir desglosando una por una"): antes
+ * la PRIMERA sección arrancaba abierta (`si === 0 ? ' open' : ''`). Ahora
+ * las tres capas (sección > categoría > texto de cada opción) arrancan
+ * siempre cerradas — el admin decide qué desglosar, sin nada abierto de
+ * entrada. Esto también evita cargar de arranque el visor de PDF nuevo
+ * (ver renderContenidoHtml), que solo se arma bajo pedido explícito.
  */
 async function cargarCategorias(){
   const wrap = document.getElementById('seccionesContenido');
@@ -659,7 +681,7 @@ async function cargarCategorias(){
       return;
     }
     wrap.innerHTML = data.secciones.map((s, si) => `
-      <details class="seccion-contenido"${si === 0 ? ' open' : ''}>
+      <details class="seccion-contenido">
         <summary>${esc(s.titulo)}</summary>
         <div class="seccion-contenido-body">
           ${s.categorias.map(c => `
@@ -725,6 +747,19 @@ async function cargarContenidoCategoria(det){
   }
 }
 
+/**
+ * renderContenidoHtml(opciones)
+ * FIX (30-ago-2026, pedido usuario — "exportar a PDF dinámicamente, la que
+ * más se usa: mostrar siempre el PDF generado al instante con
+ * .../export?format=pdf en un iframe"): si la opción trae `o.docId` (el ID
+ * del Google Doc de Drive del que sale ese texto — pendiente que el
+ * backend lo agregue a la respuesta de 'webAdminContenido' en
+ * 34_Web_API.gs si todavía no lo manda), se suma un botón "Ver original"
+ * que arma bajo demanda un <iframe> apuntando al PDF del documento real,
+ * generado al vuelo por Google sin backend propio ni PDF.js. Si la opción
+ * NO trae `o.docId` (backend viejo o esa opción no viene de un Doc), el
+ * botón simplemente no se dibuja — no rompe nada.
+ */
 function renderContenidoHtml(opciones){
   if(!opciones || !opciones.length){
     return '<div class="empty">Esta categoría no tiene contenido cargado todavía.</div>';
@@ -737,11 +772,13 @@ function renderContenidoHtml(opciones){
           ${o.clan ? `<span class="clan-chip">${esc(o.clan)}</span>` : ''}
         </div>
         <div class="contenido-acciones">
+          ${o.docId ? `<button type="button" class="btn-icono btn-ver-pdf" data-doc-id="${esc(o.docId)}" title="Ver el Google Doc original, tal como está formateado">📄 Ver original</button>` : ''}
           <button type="button" class="btn-icono btn-copiar" title="Copiar al portapapeles">⧉ Copiar</button>
           <button type="button" class="btn-icono btn-colapsar" aria-expanded="true" title="Colapsar texto">▾</button>
         </div>
       </div>
       <div class="contenido-caja"><pre>${esc(o.contenido)}</pre></div>
+      ${o.docId ? `<div class="contenido-pdf-wrap" style="display:none;"></div>` : ''}
     </div>`).join('');
 }
 
@@ -756,7 +793,32 @@ function _activarAccionesContenido(root){
   root.querySelectorAll('.contenido-item').forEach(item => {
     const btnCopiar = item.querySelector('.btn-copiar');
     const btnColapsar = item.querySelector('.btn-colapsar');
+    const btnVerPdf = item.querySelector('.btn-ver-pdf');
+    const pdfWrap = item.querySelector('.contenido-pdf-wrap');
     const pre = item.querySelector('pre');
+
+    // FIX (30-ago-2026, pedido usuario — "exportar a PDF dinámicamente"):
+    // el iframe recién se crea la primera vez que se toca "Ver original"
+    // (nunca de arranque, ver FIX en cargarCategorias) — así ver el texto
+    // plano no dispara de gratis la carga del PDF. Un segundo click oculta
+    // y destruye el iframe (no solo lo esconde) para no dejar varias
+    // pestañas de Google Docs cargadas en memoria al mismo tiempo si el
+    // admin abre y cierra varias opciones seguidas.
+    if(btnVerPdf && pdfWrap){
+      btnVerPdf.addEventListener('click', () => {
+        const abierto = pdfWrap.style.display !== 'none';
+        if(abierto){
+          pdfWrap.style.display = 'none';
+          pdfWrap.innerHTML = '';
+          btnVerPdf.textContent = '📄 Ver original';
+          return;
+        }
+        const docId = btnVerPdf.dataset.docId;
+        pdfWrap.innerHTML = `<iframe src="https://docs.google.com/document/d/${encodeURIComponent(docId)}/export?format=pdf" title="Documento original"></iframe>`;
+        pdfWrap.style.display = 'block';
+        btnVerPdf.textContent = '📄 Ocultar original';
+      });
+    }
 
     btnCopiar.addEventListener('click', async () => {
       try{

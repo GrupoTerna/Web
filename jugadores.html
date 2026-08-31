@@ -194,9 +194,20 @@
       <div style="display:flex; gap:10px; margin-top:18px; flex-wrap:wrap;">
         <button type="button" class="btn btn-ghost" id="btnVerTorneosJugador">🏆 Ver torneos</button>
         <button type="button" class="btn btn-ghost" id="btnVerOtrasCuentas" style="display:none;">Ver otras cuentas</button>
+        <!-- FIX (30-ago-2026, pedido usuario — "a la derecha de 'Ver otras
+             cuentas' añade un botón de Vetar, solo visible con sesión de
+             admin"): mismo criterio de visibilidad que btnVerOtrasCuentas
+             (esAdminLogueado()), más el mismo chequeo de "Funciones" que ya
+             usa admin.html (cardVetar) para no mostrarlo si el admin
+             logueado no tiene el permiso "Vetar" — el backend
+             (_webAdminVetar, 34_Web_API.gs) igual lo revalida siempre, acá
+             es solo UX para no mostrar un botón que el servidor va a
+             rechazar. -->
+        <button type="button" class="btn btn-ghost" id="btnVetarJugador" style="display:none; border-color:var(--danger); color:var(--danger);">🚫 Vetar</button>
       </div>
       <div id="mTorneosWrap" style="display:none; margin-top:14px;"></div>
       <div id="mOtrasCuentasWrap" style="margin-top:14px;"></div>
+      <div id="mVetarWrap" style="display:none; margin-top:14px;"></div>
     </div>
   </section>
 
@@ -287,6 +298,20 @@
   .join-modal-option .opt-label{font-family:var(--f-display); font-weight:700; font-size:15px; text-transform:uppercase; letter-spacing:.02em;}
   .join-modal-option .opt-sub{display:block; font-family:var(--f-mono); font-size:12px; color:var(--text-dim); margin-top:2px;}
   .join-modal-option.primary{border-color:var(--purple); background:rgba(162,57,255,.12); box-shadow: 0 0 12px rgba(162,57,255,.2);}
+
+  /* FIX (30-ago-2026, pedido usuario — botón "Vetar" junto a "Ver otras
+     cuentas"): mini-formulario inline dentro de mVetarWrap, mismo criterio
+     visual que el card "Vetar miembro" de admin.html (incluye el mismo
+     estilo de textarea que ahí, que solo existía en el <style> local de
+     admin.html y acá no había sido replicado todavía). */
+  .field textarea{
+    width:100%; background:var(--bg-2); border:1px solid var(--line); color:var(--text);
+    padding:13px 16px; border-radius:var(--radius-sm); font-family:var(--f-body); font-size:15px;
+    transition:all .18s ease; min-height:90px; resize:vertical;
+  }
+  .field textarea:focus{border-color:var(--purple); box-shadow:0 0 0 3px rgba(162,57,255,.2); outline:none;}
+  .vetar-form{border:1px solid var(--line); border-radius:var(--radius-sm); padding:16px; background:var(--surface);}
+  .vetar-form-titulo{font-family:var(--f-mono); font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--danger); margin-bottom:14px;}
 </style>
 <script>
 /* =========================================================================
@@ -468,6 +493,25 @@ function actualizarUrlPerfil(tag){
   history.pushState({ tag }, '', url);
 }
 
+/** true si hay un admin logueado que además tiene el permiso "Vetar" en su
+ *  columna Funciones (mismo criterio que aplicarVisibilidadPorFunciones()
+ *  en admin.html — ver ese archivo). Lee 'terna_admin_info' directo de
+ *  sessionStorage porque common.js no expone esa constante (solo vive
+ *  como SESSION_ADMIN_KEY local en admin.html); es el mismo string en
+ *  ambos lados. Esto es solo UX: el backend (_webAdminVetar,
+ *  34_Web_API.gs) revalida el permiso igual en cada request. */
+function adminPuedeVetar(){
+  if (!esAdminLogueado()) return false;
+  const adminGuardado = sessionStorage.getItem('terna_admin_info');
+  if (!adminGuardado) return false;
+  try{
+    const funciones = String(JSON.parse(adminGuardado).funciones || '');
+    return funciones.indexOf('Vetar') !== -1;
+  }catch(err){
+    return false;
+  }
+}
+
 function renderMiembro(j){
   document.getElementById('miembroSec').style.display = 'block';
   document.getElementById('mNombre').textContent = j.nombre || 'Sin nombre';
@@ -484,15 +528,23 @@ function renderMiembro(j){
 
   renderExtendido(j.extendido);
 
-  // "Ver torneos" (participación de ESTE jugador) y "Ver otras cuentas"
-  // (solo admins) arrancan cerrados/limpios cada vez que se abre un perfil.
+  // "Ver torneos" (participación de ESTE jugador), "Ver otras cuentas" y
+  // "Vetar" (los dos últimos, solo admins) arrancan cerrados/limpios cada
+  // vez que se abre un perfil.
   document.getElementById('mTorneosWrap').style.display = 'none';
   document.getElementById('mTorneosWrap').innerHTML = '';
   document.getElementById('mOtrasCuentasWrap').innerHTML = '';
+  document.getElementById('mVetarWrap').style.display = 'none';
+  document.getElementById('mVetarWrap').innerHTML = '';
   document.getElementById('btnVerTorneosJugador').dataset.tag = j.tag;
   const btnOtras = document.getElementById('btnVerOtrasCuentas');
   btnOtras.style.display = esAdminLogueado() ? 'inline-flex' : 'none';
   btnOtras.dataset.tag = j.tag;
+  const btnVetar = document.getElementById('btnVetarJugador');
+  btnVetar.style.display = adminPuedeVetar() ? 'inline-flex' : 'none';
+  btnVetar.dataset.tag = j.tag;
+  btnVetar.textContent = '🚫 Vetar';
+  btnVetar.disabled = false;
 
   actualizarUrlPerfil(j.tag);
   document.getElementById('miembroSec').scrollIntoView({ behavior:'smooth', block:'start' });
@@ -568,6 +620,89 @@ async function verOtrasCuentas(tag){
 }
 document.getElementById('btnVerOtrasCuentas').addEventListener('click', function(){
   verOtrasCuentas(this.dataset.tag);
+});
+
+/**
+ * "Vetar": SOLO visible para admins logueados con el permiso "Vetar" (ver
+ * adminPuedeVetar() y renderMiembro()). Abre un mini-formulario inline con
+ * Razón + Comentario y llama al MISMO endpoint que ya usa el card "Vetar
+ * miembro" de admin.html (_webAdminVetar, 34_Web_API.gs, vía apiPost) — de
+ * un solo sentido, sin opción de deshacer desde la web (no hay endpoint de
+ * "desvetar"), por eso el confirm() antes de mandar el request, igual que
+ * en admin.html. La lista de Razón es la MISMA que
+ * CFG.RAZON_VALORES_VALIDOS (01_Config_Global.gs) y la misma que ya usa
+ * admin.html — si esa lista cambia en el backend, hay que actualizarla ahí
+ * Y acá a mano (no hay endpoint que la exponga).
+ */
+function mostrarFormVetar(tag){
+  const wrap = document.getElementById('mVetarWrap');
+  const yaAbierto = wrap.style.display !== 'none' && wrap.innerHTML;
+  if (yaAbierto){
+    wrap.style.display = 'none';
+    wrap.innerHTML = '';
+    return;
+  }
+  wrap.innerHTML = `
+    <div class="vetar-form">
+      <div class="vetar-form-titulo">Vetar a ${esc(tag)}</div>
+      <div class="field">
+        <label for="vjRazon">Razón</label>
+        <select id="vjRazon">
+          <option value="">Elige una razón…</option>
+          <option value="NARANJA x">NARANJA x</option>
+          <option value="Vetado por clan">Vetado por clan</option>
+          <option value="Incumplimiento de ataques">Incumplimiento de ataques</option>
+          <option value="Conducta inapropiada">Conducta inapropiada</option>
+          <option value="Inactividad prolongada">Inactividad prolongada</option>
+          <option value="Solicitud propia">Solicitud propia</option>
+        </select>
+      </div>
+      <div class="field" style="margin-bottom:8px;">
+        <label for="vjComentario">Comentario (opcional)</label>
+        <textarea id="vjComentario" rows="4" placeholder="Detalle adicional para el registro de Comentarios"></textarea>
+      </div>
+      <button type="button" class="btn btn-primary btn-block" id="btnVjConfirmar" style="border-color:var(--danger);">Confirmar veto</button>
+      <div id="vjMsg"></div>
+    </div>`;
+  wrap.style.display = 'block';
+  document.getElementById('btnVjConfirmar').addEventListener('click', () => enviarVeto(tag));
+}
+
+async function enviarVeto(tag){
+  const msgEl = document.getElementById('vjMsg');
+  msgEl.innerHTML = '';
+  const razon = document.getElementById('vjRazon').value;
+  const comentario = document.getElementById('vjComentario').value.trim();
+  if (!razon){ msgEl.innerHTML = '<div class="msg msg-error">Elige una Razón.</div>'; return; }
+  if (!window.confirm(`¿Vetar a ${tag}? Esta acción no se puede deshacer desde la web.`)) return;
+
+  const btnConfirmar = document.getElementById('btnVjConfirmar');
+  btnConfirmar.disabled = true;
+  try{
+    const data = await apiPost('webAdminVetar', {
+      sessionToken: sessionStorage.getItem('terna_admin_token'),
+      datos: { tag: tag, razon: razon, comentario: comentario }
+    });
+    // Si la sesión vino vencida/inválida, se avisa acá mismo (jugadores.html
+    // no tiene pantalla de login propia como admin.html) y se oculta el
+    // botón para no invitar a reintentar con un token muerto.
+    if (data && data.ok === false && /sesión|sesion/i.test(String(data.error||''))){
+      msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)} Vuelve a iniciar sesión desde el panel de admin.</div>`;
+      document.getElementById('btnVetarJugador').style.display = 'none';
+      return;
+    }
+    if (!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; btnConfirmar.disabled = false; return; }
+    msgEl.innerHTML = '<div class="msg msg-ok">Miembro vetado.</div>';
+    const btnVetar = document.getElementById('btnVetarJugador');
+    btnVetar.disabled = true;
+    btnVetar.textContent = '🚫 Vetado';
+  }catch(err){
+    msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
+    btnConfirmar.disabled = false;
+  }
+}
+document.getElementById('btnVetarJugador').addEventListener('click', function(){
+  mostrarFormVetar(this.dataset.tag);
 });
 
 /**
