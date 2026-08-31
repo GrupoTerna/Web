@@ -37,6 +37,33 @@
   .contenido-item .cab{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px; flex-wrap:wrap;}
   .contenido-item .etiqueta{font-family:var(--f-mono); font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--gold);}
   .contenido-item .clan-chip{font-family:var(--f-mono); font-size:11px; color:var(--text-dim); background:var(--surface); border:1px solid var(--line); padding:2px 8px; border-radius:999px;}
+  /* FIX (30-ago-2026, pedido usuario — "quiero que se muestre por
+     secciones, ordenando por temática"): reemplaza el <select> plano de
+     una sola categoría a la vez por un acordeón de dos niveles (sección
+     temática > categoría), pensado para que el admin pueda tener varias
+     secciones y categorías abiertas al mismo tiempo — algo que el bot de
+     WhatsApp no puede ofrecer porque solo avanza de a una rama por turno. */
+  .seccion-contenido{border:1px solid var(--line); border-radius:var(--radius-sm); margin-top:14px; overflow:hidden;}
+  .seccion-contenido > summary{
+    cursor:pointer; list-style:none; padding:14px 16px; display:flex; align-items:center; gap:8px;
+    font-family:var(--f-mono); font-size:12px; letter-spacing:.08em; text-transform:uppercase;
+    color:var(--gold); background:var(--surface);
+  }
+  .seccion-contenido > summary::-webkit-details-marker{display:none;}
+  .seccion-contenido > summary::before{content:'▸'; display:inline-block; transition:transform .15s ease; color:var(--purple-light);}
+  .seccion-contenido[open] > summary::before{transform:rotate(90deg);}
+  .seccion-contenido-body{padding:4px 16px 12px;}
+  .categoria-contenido{border-top:1px solid var(--line);}
+  .categoria-contenido:first-child{border-top:none;}
+  .categoria-contenido > summary{
+    cursor:pointer; list-style:none; padding:12px 2px; display:flex; align-items:center; gap:10px; font-size:14px; color:var(--text);
+  }
+  .categoria-contenido > summary::-webkit-details-marker{display:none;}
+  .categoria-contenido > summary::before{
+    content:'+'; width:16px; flex-shrink:0; text-align:center; color:var(--purple-light); font-family:var(--f-mono);
+  }
+  .categoria-contenido[open] > summary::before{content:'–';}
+  .categoria-contenido-body{padding:0 2px 14px 26px;}
   .contenido-item pre{white-space:pre-wrap; word-break:break-word; font-family:var(--f-body,inherit); font-size:14px; color:var(--text); margin:0; line-height:1.5;}
   /* Fase 3 (25-ago-2026): gestión de torneos */
   .ganador-victorias{font-family:var(--f-mono); font-size:13px; color:var(--text-dim);}
@@ -120,13 +147,10 @@
          mismo. Ver nota de diseño en la cabecera de 34_Web_API.gs. -->
     <div class="card" style="margin-top:24px;">
       <div class="eyebrow">Solo lectura</div>
-      <h3 style="font-size:15px; color:var(--gold); margin:10px 0 16px;">Visor de contenido por categoría</h3>
-      <div class="field" style="margin-bottom:12px;">
-        <label for="catSelect">Categoría</label>
-        <select id="catSelect"><option value="">Cargando categorías…</option></select>
-      </div>
+      <h3 style="font-size:15px; color:var(--gold); margin:10px 0 4px;">Visor de contenido por categoría</h3>
+      <p class="text-dim" style="font-size:13px; margin:0 0 4px;">Agrupado por temática — abre las secciones y categorías que necesites, puedes tener varias abiertas a la vez.</p>
       <div id="contenidoMsg"></div>
-      <div id="contenidoLista"></div>
+      <div id="seccionesContenido"><div class="empty">Cargando categorías…</div></div>
     </div>
 
     <!-- Fase 3 (25-ago-2026): gestión de torneos — registrar link nuevo,
@@ -555,33 +579,78 @@ document.getElementById('btnGuardar').addEventListener('click', async () => {
 
 /* ---------- Fase 2: visor de contenido por categoría (solo lectura) ---------- */
 
+/**
+ * cargarCategorias() / cargarContenidoCategoria()
+ * FIX (30-ago-2026, pedido usuario — "quiero que se muestre por secciones,
+ * ordenando por temática"): antes había un único <select> con TODAS las
+ * categorías en una lista plana (calcada del bot, que solo puede avanzar
+ * de a una rama por turno). Ahora 'webAdminCategorias' devuelve `secciones`
+ * (grupos temáticos, ver WEB_SECCIONES_CONTENIDO en 34_Web_API.gs) y acá se
+ * dibujan como un acordeón <details> de dos niveles: sección > categoría.
+ * El contenido de cada categoría se pide (webAdminContenido) recién la
+ * PRIMERA vez que el admin la abre (data-cargado evita pedirlo de nuevo al
+ * cerrar/abrir), y queda cacheado 60s del lado del servidor — así se puede
+ * abrir varias secciones/categorías de golpe sin multiplicar la carga real
+ * contra el backend.
+ */
 async function cargarCategorias(){
-  const sel = document.getElementById('catSelect');
+  const wrap = document.getElementById('seccionesContenido');
   const msgEl = document.getElementById('contenidoMsg');
   msgEl.innerHTML = '';
+  wrap.innerHTML = '<div class="empty">Cargando categorías…</div>';
   try{
     const data = await apiGetAuth('webAdminCategorias', {});
     if(manejarRespuestaAuth(data)) return;
-    if(!data.ok){ sel.innerHTML = '<option value="">—</option>'; msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
-    if(!data.categorias || !data.categorias.length){
-      sel.innerHTML = '<option value="">Sin categorías disponibles</option>';
+    if(!data.ok){ wrap.innerHTML = ''; msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
+    if(!data.secciones || !data.secciones.length){
+      wrap.innerHTML = '<div class="empty">Sin categorías disponibles.</div>';
       return;
     }
-    sel.innerHTML = '<option value="">Elige una categoría…</option>' +
-      data.categorias.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+    wrap.innerHTML = data.secciones.map((s, si) => `
+      <details class="seccion-contenido"${si === 0 ? ' open' : ''}>
+        <summary>${esc(s.titulo)}</summary>
+        <div class="seccion-contenido-body">
+          ${s.categorias.map(c => `
+            <details class="categoria-contenido" data-categoria="${esc(c)}">
+              <summary>${esc(c)}</summary>
+              <div class="categoria-contenido-body"></div>
+            </details>`).join('')}
+        </div>
+      </details>`).join('');
+
+    wrap.querySelectorAll('.categoria-contenido').forEach(det => {
+      det.addEventListener('toggle', () => {
+        if(det.open) cargarContenidoCategoria(det);
+      });
+    });
   }catch(err){
-    sel.innerHTML = '<option value="">—</option>';
+    wrap.innerHTML = '';
     msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
   }
 }
 
-function renderContenido(opciones){
-  const lista = document.getElementById('contenidoLista');
-  if(!opciones || !opciones.length){
-    lista.innerHTML = '<div class="empty">Esta categoría no tiene contenido cargado todavía.</div>';
-    return;
+async function cargarContenidoCategoria(det){
+  if(det.dataset.cargado) return; // ya se pidió antes: no repetir la llamada al backend
+  det.dataset.cargado = '1';
+  const categoria = det.dataset.categoria;
+  const body = det.querySelector('.categoria-contenido-body');
+  body.innerHTML = '<div class="empty">Cargando…</div>';
+  try{
+    const data = await apiGetAuth('webAdminContenido', { categoria });
+    if(manejarRespuestaAuth(data)) return;
+    if(!data.ok){ body.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; delete det.dataset.cargado; return; }
+    body.innerHTML = renderContenidoHtml(data.opciones);
+  }catch(err){
+    body.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
+    delete det.dataset.cargado; // permitir reintentar la próxima vez que se abra
   }
-  lista.innerHTML = opciones.map(o => `
+}
+
+function renderContenidoHtml(opciones){
+  if(!opciones || !opciones.length){
+    return '<div class="empty">Esta categoría no tiene contenido cargado todavía.</div>';
+  }
+  return opciones.map(o => `
     <div class="contenido-item">
       <div class="cab">
         <span class="etiqueta">${esc(o.etiqueta || o.subcategoria || o.clan || '—')}</span>
@@ -590,25 +659,6 @@ function renderContenido(opciones){
       <pre>${esc(o.contenido)}</pre>
     </div>`).join('');
 }
-
-document.getElementById('catSelect').addEventListener('change', async () => {
-  const categoria = document.getElementById('catSelect').value;
-  const msgEl = document.getElementById('contenidoMsg');
-  const lista = document.getElementById('contenidoLista');
-  msgEl.innerHTML = '';
-  lista.innerHTML = '';
-  if(!categoria) return;
-  lista.innerHTML = '<div class="empty">Cargando…</div>';
-  try{
-    const data = await apiGetAuth('webAdminContenido', { categoria });
-    if(manejarRespuestaAuth(data)) return;
-    if(!data.ok){ lista.innerHTML = ''; msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
-    renderContenido(data.opciones);
-  }catch(err){
-    lista.innerHTML = '';
-    msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
-  }
-});
 
 /* ---------- Fase 3: gestión de torneos ---------- */
 
