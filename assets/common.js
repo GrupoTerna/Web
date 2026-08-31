@@ -359,6 +359,33 @@ function marcarNavActiva(){
   }
 }
 
+/**
+ * actualizarNavCta()
+ * FIX (31-ago-2026, pedido usuario — "si ya se inició sesión no debería
+ * seguir mostrando 'Acceder'"): el botón del nav (presente en TODAS las
+ * páginas públicas: index/jugadores/guerra/torneos/comunidad) siempre
+ * decía "Acceder" y apuntaba a admin.html, sin importar si el admin ya
+ * había iniciado sesión ahí mismo. admin.html YA salta el formulario de
+ * login y muestra el panel directo cuando hay un token guardado (ver, al
+ * final de su script, `if(sessionStorage.getItem(SESSION_KEY))
+ * mostrarPanel();`) — solo faltaba que el botón del nav lo reflejara en
+ * vez de seguir mostrando "Acceder" como si nadie hubiera iniciado sesión.
+ * Usa la MISMA clave que admin.html ('terna_admin_token', ahí declarada
+ * como SESSION_KEY) vía sessionStorage — que persiste al navegar entre
+ * páginas dentro de la MISMA pestaña (click en un link, atrás/adelante,
+ * recargar), pero no se comparte con una pestaña nueva: eso es una
+ * limitación conocida de sessionStorage (por diseño, para no dejar una
+ * sesión de admin abierta "para siempre" en cualquier pestaña que se
+ * abra), no un bug de esta función.
+ */
+const SESSION_KEY_ADMIN = 'terna_admin_token';
+function actualizarNavCta(){
+  const haySesion = !!sessionStorage.getItem(SESSION_KEY_ADMIN);
+  document.querySelectorAll('.nav .links a.cta[data-page="admin"]').forEach(a => {
+    a.textContent = haySesion ? 'Mi panel' : 'Acceder';
+  });
+}
+
 /* =========================================================================
  * fitOneLine — textos que el diseño exige "una sola línea" (PDF de diseño,
  * 28-ago-2026, pedido repetido en varias secciones: hero, subtítulos de
@@ -389,6 +416,7 @@ function fitOneLineAll(){
 }
 document.addEventListener('DOMContentLoaded', () => {
   marcarNavActiva();
+  actualizarNavCta();
   fitOneLineAll();
 });
 window.addEventListener('resize', () => {
