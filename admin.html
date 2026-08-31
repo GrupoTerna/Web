@@ -58,6 +58,23 @@
      saltos de línea/emojis de WhatsApp), más botones de acción a la
      derecha del encabezado. */
   .contenido-acciones{display:flex; align-items:center; gap:6px; margin-left:auto;}
+  /* FIX (31-ago-2026, pedido usuario — "botones para los otros clanes"):
+     cuando una categoría tiene varias opciones (una por clan, o la general
+     de Familia Terna), antes se apilaban TODAS a la vez como
+     .contenido-item uno debajo del otro — con 4-5 clanes era mucho scroll
+     para comparar o revisar uno solo. Ahora se dibuja un solo
+     .contenido-item "en escena" y estos botones (uno por opción, con su
+     .etiqueta) lo hacen cambiar de contenido al clickear, como pestañas.
+     Van en la misma fila que los chips de cabecera (junto al clan actual),
+     antes de los botones de acción (Ver original/Copiar/Colapsar). */
+  .contenido-tabs{display:flex; align-items:center; gap:6px; flex-wrap:wrap;}
+  .tab-clan{
+    background:var(--surface); border:1px solid var(--line); color:var(--text-dim);
+    font-family:var(--f-mono); font-size:11px; letter-spacing:.04em; padding:5px 10px;
+    border-radius:999px; cursor:pointer; transition:border-color .15s, color .15s, background .15s;
+  }
+  .tab-clan:hover{border-color:var(--purple-light); color:var(--text);}
+  .tab-clan.activo{border-color:var(--purple); color:var(--text); background:rgba(162,57,255,.18);}
   .btn-icono{
     display:inline-flex; align-items:center; gap:5px; background:var(--surface);
     border:1px solid var(--line); color:var(--text-dim); font-family:var(--f-mono);
@@ -120,15 +137,23 @@
   /* FIX (30-ago-2026, pedido usuario — "exportar a PDF dinámicamente"):
      cuando la opción trae o.docId (el ID del Google Doc de origen en
      Drive), suma un botón para ver el documento REAL tal cual está
-     formateado, generado al vuelo con el endpoint público de exportación
-     de Google Docs (.../export?format=pdf) dentro de un <iframe> — nada
-     se descarga ni se duplica en el backend. El iframe recién se arma la
-     primera vez que el admin lo pide (misma carga perezosa que ya usa
-     data-cargado en las categorías), y no si o.docId no viene en la
-     respuesta del backend. */
+     formateado, dentro de un <iframe> — nada se descarga ni se duplica en
+     el backend. El iframe recién se arma la primera vez que el admin lo
+     pide (misma carga perezosa que ya usa data-cargado en las
+     categorías), y no si o.docId no viene en la respuesta del backend.
+     FIX (31-ago-2026, pedido usuario — "no se aprecia bien, reemplazar por
+     un visor en fondo blanco más fácil de leer"): se cambió el endpoint de
+     .../export?format=pdf a .../preview, el modo de incrustado que Google
+     ofrece para documentos (a diferencia de export, que en algunos
+     navegadores dispara el visor de PDF nativo con su propia barra de
+     herramientas gris en vez de mostrar la hoja blanca del doc). /preview
+     conserva color, fuente y tamaño de letra reales del Doc y siempre
+     queda sobre fondo blanco, sin cuadro de descarga. Se sube el alto
+     mínimo para que se lea cómodo sin tener que hacer scroll adentro del
+     iframe en pantallas chicas. */
   .contenido-pdf-wrap{margin-top:10px;}
   .contenido-pdf-wrap iframe{
-    width:100%; height:70vh; min-height:420px; border:1px solid var(--line);
+    width:100%; height:75vh; min-height:520px; border:1px solid var(--line);
     border-radius:var(--radius-sm); background:#fff;
   }
   /* Fase 3 (25-ago-2026): gestión de torneos */
@@ -740,7 +765,7 @@ async function cargarContenidoCategoria(det){
     if(manejarRespuestaAuth(data)) return;
     if(!data.ok){ body.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; delete det.dataset.cargado; return; }
     body.innerHTML = renderContenidoHtml(data.opciones);
-    _activarAccionesContenido(body);
+    _activarAccionesContenido(body, data.opciones || []);
   }catch(err){
     body.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
     delete det.dataset.cargado; // permitir reintentar la próxima vez que se abra
@@ -749,98 +774,168 @@ async function cargarContenidoCategoria(det){
 
 /**
  * renderContenidoHtml(opciones)
- * FIX (30-ago-2026, pedido usuario — "exportar a PDF dinámicamente, la que
- * más se usa: mostrar siempre el PDF generado al instante con
- * .../export?format=pdf en un iframe"): si la opción trae `o.docId` (el ID
- * del Google Doc de Drive del que sale ese texto — pendiente que el
- * backend lo agregue a la respuesta de 'webAdminContenido' en
- * 34_Web_API.gs si todavía no lo manda), se suma un botón "Ver original"
- * que arma bajo demanda un <iframe> apuntando al PDF del documento real,
- * generado al vuelo por Google sin backend propio ni PDF.js. Si la opción
- * NO trae `o.docId` (backend viejo o esa opción no viene de un Doc), el
- * botón simplemente no se dibuja — no rompe nada.
+ * FIX (31-ago-2026, pedido usuario — "en vez de mostrar los mensajes uno
+ * después de otro, se deben mostrar botones para seleccionar los otros
+ * clanes o las opciones correspondientes"): antes se pintaba un
+ * .contenido-item POR CADA opción, uno debajo del otro (con 4-5 clanes
+ * era mucho scroll para ver o comparar una sola). Ahora se dibuja un solo
+ * .contenido-item "en escena" (el de la opción 0) y, si hay más de una
+ * opción, una fila de pestañas (.contenido-tabs, una por o.etiqueta) en
+ * la misma cabecera que cambia cuál opción está en escena — sin volver a
+ * pedir nada al backend, ya que 'opciones' completo queda en memoria (ver
+ * _activarAccionesContenido). Si la categoría tiene una sola opción no se
+ * dibuja ninguna pestaña, igual que antes.
  */
 function renderContenidoHtml(opciones){
   if(!opciones || !opciones.length){
     return '<div class="empty">Esta categoría no tiene contenido cargado todavía.</div>';
   }
-  return opciones.map(o => `
-    <div class="contenido-item">
+  const tabsHtml = opciones.length > 1
+    ? `<div class="contenido-tabs" role="tablist">
+        ${opciones.map((o, i) => `
+          <button type="button" class="tab-clan${i === 0 ? ' activo' : ''}" data-idx="${i}"
+            role="tab" aria-selected="${i === 0 ? 'true' : 'false'}">
+            ${esc(o.etiqueta || o.subcategoria || o.clan || ('Opción ' + (i + 1)))}
+          </button>`).join('')}
+      </div>`
+    : '';
+  return `
+    <div class="contenido-item" data-idx-actual="0">
       <div class="cab">
         <div class="cab-info">
-          <span class="etiqueta">${esc(o.etiqueta || o.subcategoria || o.clan || '—')}</span>
-          ${o.clan ? `<span class="clan-chip">${esc(o.clan)}</span>` : ''}
+          <span class="etiqueta" data-campo="etiqueta"></span>
+          <span class="clan-chip" data-campo="clan" style="display:none;"></span>
         </div>
+        ${tabsHtml}
         <div class="contenido-acciones">
-          ${o.docId ? `<button type="button" class="btn-icono btn-ver-pdf" data-doc-id="${esc(o.docId)}" title="Ver el Google Doc original, tal como está formateado">📄 Ver original</button>` : ''}
+          <button type="button" class="btn-icono btn-ver-pdf" style="display:none;" title="Ver el Google Doc original, tal como está formateado">📄 Ver original</button>
           <button type="button" class="btn-icono btn-copiar" title="Copiar al portapapeles">⧉ Copiar</button>
           <button type="button" class="btn-icono btn-colapsar" aria-expanded="true" title="Colapsar texto">▾</button>
         </div>
       </div>
-      <div class="contenido-caja"><pre>${esc(o.contenido)}</pre></div>
-      ${o.docId ? `<div class="contenido-pdf-wrap" style="display:none;"></div>` : ''}
-    </div>`).join('');
+      <div class="contenido-caja"><pre data-campo="contenido"></pre></div>
+      <div class="contenido-pdf-wrap" style="display:none;"></div>
+    </div>`;
 }
 
 /**
- * _activarAccionesContenido(root)
- * FIX (30-ago-2026, pedido usuario — copiar/colapsar mensajes): engancha
- * los botones de cada .contenido-item recién insertado. Lee el texto
- * directo del <pre> (nunca desde un atributo HTML) para no tener que
- * re-escapar comillas/saltos de línea al armar el markup.
+ * _pintarOpcionContenido(item, opciones, idx)
+ * FIX (31-ago-2026, ver renderContenidoHtml): rellena el .contenido-item
+ * "en escena" con los datos de opciones[idx] — se usa tanto al abrir la
+ * categoría (idx 0) como cada vez que se clickea una pestaña. Si había un
+ * visor de PDF abierto de la opción anterior lo cierra y destruye (no
+ * tendría sentido dejar cargado el Doc de un clan distinto al que ahora
+ * se está mostrando), y también deshace el colapsado para que la opción
+ * nueva siempre empiece expandida.
  */
-function _activarAccionesContenido(root){
-  root.querySelectorAll('.contenido-item').forEach(item => {
-    const btnCopiar = item.querySelector('.btn-copiar');
-    const btnColapsar = item.querySelector('.btn-colapsar');
-    const btnVerPdf = item.querySelector('.btn-ver-pdf');
-    const pdfWrap = item.querySelector('.contenido-pdf-wrap');
-    const pre = item.querySelector('pre');
+function _pintarOpcionContenido(item, opciones, idx){
+  const o = opciones[idx];
+  item.dataset.idxActual = String(idx);
 
-    // FIX (30-ago-2026, pedido usuario — "exportar a PDF dinámicamente"):
-    // el iframe recién se crea la primera vez que se toca "Ver original"
-    // (nunca de arranque, ver FIX en cargarCategorias) — así ver el texto
-    // plano no dispara de gratis la carga del PDF. Un segundo click oculta
-    // y destruye el iframe (no solo lo esconde) para no dejar varias
-    // pestañas de Google Docs cargadas en memoria al mismo tiempo si el
-    // admin abre y cierra varias opciones seguidas.
-    if(btnVerPdf && pdfWrap){
-      btnVerPdf.addEventListener('click', () => {
-        const abierto = pdfWrap.style.display !== 'none';
-        if(abierto){
-          pdfWrap.style.display = 'none';
-          pdfWrap.innerHTML = '';
-          btnVerPdf.textContent = '📄 Ver original';
-          return;
-        }
-        const docId = btnVerPdf.dataset.docId;
-        pdfWrap.innerHTML = `<iframe src="https://docs.google.com/document/d/${encodeURIComponent(docId)}/export?format=pdf" title="Documento original"></iframe>`;
-        pdfWrap.style.display = 'block';
-        btnVerPdf.textContent = '📄 Ocultar original';
+  item.querySelector('[data-campo="etiqueta"]').textContent = o.etiqueta || o.subcategoria || o.clan || '—';
+  const chipClan = item.querySelector('[data-campo="clan"]');
+  if(o.clan && o.clan !== (o.etiqueta || '')){
+    chipClan.textContent = o.clan;
+    chipClan.style.display = '';
+  }else{
+    chipClan.style.display = 'none';
+  }
+  item.querySelector('[data-campo="contenido"]').textContent = o.contenido || '';
+
+  const btnVerPdf = item.querySelector('.btn-ver-pdf');
+  const pdfWrap = item.querySelector('.contenido-pdf-wrap');
+  pdfWrap.style.display = 'none';
+  pdfWrap.innerHTML = '';
+  if(o.docId){
+    btnVerPdf.style.display = '';
+    btnVerPdf.dataset.docId = o.docId;
+    btnVerPdf.textContent = '📄 Ver original';
+  }else{
+    btnVerPdf.style.display = 'none';
+    delete btnVerPdf.dataset.docId;
+  }
+
+  item.classList.remove('colapsado');
+  const btnColapsar = item.querySelector('.btn-colapsar');
+  btnColapsar.textContent = '▾';
+  btnColapsar.setAttribute('aria-expanded', 'true');
+  btnColapsar.title = 'Colapsar texto';
+}
+
+/**
+ * _activarAccionesContenido(root, opciones)
+ * FIX (30-ago-2026, pedido usuario — copiar/colapsar mensajes) + FIX
+ * (31-ago-2026, pestañas por clan): engancha los botones del único
+ * .contenido-item "en escena" que dibuja renderContenidoHtml. `opciones`
+ * es el array completo devuelto por el backend para esta categoría — se
+ * guarda tal cual en memoria (closure) para que cambiar de pestaña sea
+ * instantáneo, sin volver a pedir nada al servidor.
+ */
+function _activarAccionesContenido(root, opciones){
+  const item = root.querySelector('.contenido-item');
+  if(!item || !opciones || !opciones.length) return;
+
+  _pintarOpcionContenido(item, opciones, 0);
+
+  root.querySelectorAll('.tab-clan').forEach(tab => {
+    tab.addEventListener('click', () => {
+      const idx = Number(tab.dataset.idx);
+      if(idx === Number(item.dataset.idxActual)) return;
+      root.querySelectorAll('.tab-clan').forEach(t => {
+        t.classList.toggle('activo', t === tab);
+        t.setAttribute('aria-selected', t === tab ? 'true' : 'false');
       });
+      _pintarOpcionContenido(item, opciones, idx);
+    });
+  });
+
+  const btnCopiar = item.querySelector('.btn-copiar');
+  const btnColapsar = item.querySelector('.btn-colapsar');
+  const btnVerPdf = item.querySelector('.btn-ver-pdf');
+  const pdfWrap = item.querySelector('.contenido-pdf-wrap');
+  const pre = item.querySelector('pre');
+
+  // FIX (31-ago-2026, "no se aprecia bien, fondo blanco más fácil de
+  // leer"): .../preview en vez de .../export?format=pdf — es el modo de
+  // incrustado que Google ofrece para Docs (a diferencia de export, que
+  // en algunos navegadores abre el visor de PDF nativo del sistema en vez
+  // de la hoja blanca del documento). El iframe se sigue armando recién
+  // al primer click (nunca de arranque) y un segundo click lo oculta y
+  // destruye, igual que antes.
+  btnVerPdf.addEventListener('click', () => {
+    const abierto = pdfWrap.style.display !== 'none';
+    if(abierto){
+      pdfWrap.style.display = 'none';
+      pdfWrap.innerHTML = '';
+      btnVerPdf.textContent = '📄 Ver original';
+      return;
     }
+    const docId = btnVerPdf.dataset.docId;
+    pdfWrap.innerHTML = `<iframe src="https://docs.google.com/document/d/${encodeURIComponent(docId)}/preview" title="Documento original"></iframe>`;
+    pdfWrap.style.display = 'block';
+    btnVerPdf.textContent = '📄 Ocultar original';
+  });
 
-    btnCopiar.addEventListener('click', async () => {
-      try{
-        await navigator.clipboard.writeText(pre.textContent);
-        btnCopiar.textContent = '✔ Copiado';
-        btnCopiar.classList.add('copiado');
-      }catch(err){
-        btnCopiar.textContent = 'No se pudo copiar';
-      }
-      setTimeout(() => {
-        btnCopiar.textContent = '⧉ Copiar';
-        btnCopiar.classList.remove('copiado');
-      }, 1600);
-    });
+  btnCopiar.addEventListener('click', async () => {
+    try{
+      await navigator.clipboard.writeText(pre.textContent);
+      btnCopiar.textContent = '✔ Copiado';
+      btnCopiar.classList.add('copiado');
+    }catch(err){
+      btnCopiar.textContent = 'No se pudo copiar';
+    }
+    setTimeout(() => {
+      btnCopiar.textContent = '⧉ Copiar';
+      btnCopiar.classList.remove('copiado');
+    }, 1600);
+  });
 
-    btnColapsar.addEventListener('click', () => {
-      const colapsando = !item.classList.contains('colapsado');
-      item.classList.toggle('colapsado', colapsando);
-      btnColapsar.textContent = colapsando ? '▸' : '▾';
-      btnColapsar.setAttribute('aria-expanded', String(!colapsando));
-      btnColapsar.title = colapsando ? 'Expandir texto' : 'Colapsar texto';
-    });
+  btnColapsar.addEventListener('click', () => {
+    const colapsando = !item.classList.contains('colapsado');
+    item.classList.toggle('colapsado', colapsando);
+    btnColapsar.textContent = colapsando ? '▸' : '▾';
+    btnColapsar.setAttribute('aria-expanded', String(!colapsando));
+    btnColapsar.title = colapsando ? 'Expandir texto' : 'Colapsar texto';
   });
 }
 
