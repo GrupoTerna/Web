@@ -261,6 +261,18 @@ function traducirNombreCarta(nombreEn){
   return NOMBRES_CARTAS_ES[n] || n;
 }
 
+/**
+ * ICONO_ROYALEAPI / ICONO_CWSTATS
+ * FIX (31-ago-2026, pedido usuario — "de preferencia muestra sus propios
+ * iconos en vez de iconos genéricos"): reemplaza el emoji 🌐/📊 que se
+ * usaba como placeholder en todos los botones de RoyaleAPI/CWStats
+ * (tarjetas de clan, ingresos recientes de index.html y guerra.html, y
+ * perfil del jugador) por el logo oficial de cada servicio. URLs dadas
+ * directamente por el usuario en el PDF de diseño.
+ */
+const ICONO_ROYALEAPI = '<img src="https://cdn.royaleapi.com/static/img/branding/royaleapi-logo-128.png?t=feb800c3c" alt="" width="14" height="14" style="vertical-align:-2px; margin-right:5px; border-radius:3px;">';
+const ICONO_CWSTATS = '<img src="https://assets.cwstats.com/icons/logo.webp" alt="" width="14" height="14" style="vertical-align:-2px; margin-right:5px; border-radius:3px;">';
+
 /* =========================================================================
  * Tarjetas y gráficos de clan — compartidos por index.html y jugadores.html
  * (28-ago-2026, pedido del usuario: mismas tarjetas en ambas páginas, sin
@@ -331,8 +343,8 @@ function clanCardHtml(c, i, opts){
         <span class="text-faint">Mín. trofeos</span><b style="color:var(--gold);">${reqTxt} 🏆</b>
       </div>
       ${(royaleApiOk || cwStatsOk) ? `<div style="display:flex; gap:10px; margin-top:14px; flex-wrap:wrap;">
-        ${royaleApiOk ? `<a class="btn btn-ghost" style="flex:1; text-align:center; font-size:12px; padding:9px 10px;" href="${esc(c.royaleApi)}" target="_blank" rel="noopener">🌐 RoyaleAPI</a>` : ''}
-        ${cwStatsOk  ? `<a class="btn btn-ghost" style="flex:1; text-align:center; font-size:12px; padding:9px 10px;" href="${esc(c.cwStats)}" target="_blank" rel="noopener">📊 CWStats</a>` : ''}
+        ${royaleApiOk ? `<a class="btn btn-ghost" style="flex:1; text-align:center; font-size:12px; padding:9px 10px;" href="${esc(c.royaleApi)}" target="_blank" rel="noopener">${ICONO_ROYALEAPI}RoyaleAPI</a>` : ''}
+        ${cwStatsOk  ? `<a class="btn btn-ghost" style="flex:1; text-align:center; font-size:12px; padding:9px 10px;" href="${esc(c.cwStats)}" target="_blank" rel="noopener">${ICONO_CWSTATS}CWStats</a>` : ''}
       </div>` : ''}
       ${opts.mostrarVerClan ? `<a class="btn btn-primary btn-block" href="${esc(verClanHref)}" style="margin-top:12px;">Ver clan</a>` : ''}
       ${opts.mostrarUnirse ? `<button type="button" class="btn btn-ghost btn-block js-solicitar-unirme" data-clan="${esc(nombre)}" style="margin-top:12px;">Unirse a este clan</button>` : ''}

@@ -46,7 +46,7 @@
   .req-row{display:flex; align-items:center; gap:12px; margin-bottom:12px; flex-wrap:wrap;}
   .req-row .lbl{width:140px; font-size:13px; color:var(--text-dim); flex-shrink:0;}
   .req-row .progress{flex:1; min-width:120px;}
-  .req-row .val{width:100px; text-align:right; font-family:var(--f-mono); font-size:12px; flex-shrink:0;}
+  .req-row .val{min-width:110px; width:auto; text-align:right; font-family:var(--f-mono); font-size:12px; flex-shrink:0; white-space:nowrap;}
   .ext-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:14px; margin-top:16px;}
   .ext-item{background:var(--bg-2); border:1px solid var(--line); border-radius:var(--radius-sm); padding:12px 14px; text-align:left;}
   .ext-item .v{font-family:var(--f-display); font-weight:800; font-size:19px; color:var(--text);}
@@ -128,6 +128,7 @@
         <div id="mExtWrap"></div>
 
         <div style="display:flex; gap:10px; margin-top:18px; flex-wrap:wrap;">
+          <div id="mRoyaleCwstatsBtns" style="display:flex; gap:10px; flex-wrap:wrap;"></div>
           <button type="button" class="btn btn-ghost" id="btnVerTorneosJugador">🏆 Ver torneos</button>
           <button type="button" class="btn btn-ghost" id="btnVerOtrasCuentas" style="display:none;">Ver otras cuentas</button>
           <button type="button" class="btn btn-ghost" id="btnVetarJugador" style="display:none; border-color:var(--danger); color:var(--danger);">🚫 Vetar</button>
@@ -173,7 +174,7 @@ function barraRequisito(lbl, actual, requerido, activo, sufijo){
     <div class="req-row">
       <div class="lbl">${esc(lbl)}</div>
       <div class="progress${cumplido?' complete':''}"><i style="width:${pct}%"></i></div>
-      <div class="val">${fmtNum(actual)}${sufijo||''} / ${fmtNum(requerido)}${sufijo||''}</div>
+      <div class="val">${fmtNum(actual)} / ${fmtNum(requerido)}${sufijo||''}</div>
     </div>`;
 }
 function bloqueRequisitos(j, key){
@@ -229,8 +230,8 @@ function renderExtendido(ext){
   let links = '';
   if (royaleOk || cwOk || deckOk || deck2Ok){
     links = `<div class="ext-links">
-      ${royaleOk ? `<a href="${esc(ext.royaleApi)}" target="_blank" rel="noopener">🌐 RoyaleAPI</a>` : ''}
-      ${cwOk ? `<a href="${esc(ext.cwStats)}" target="_blank" rel="noopener">📊 CWStats</a>` : ''}
+      ${royaleOk ? `<a href="${esc(ext.royaleApi)}" target="_blank" rel="noopener">${ICONO_ROYALEAPI}RoyaleAPI</a>` : ''}
+      ${cwOk ? `<a href="${esc(ext.cwStats)}" target="_blank" rel="noopener">${ICONO_CWSTATS}CWStats</a>` : ''}
       ${deckOk ? `<a href="${esc(ext.deck)}" target="_blank" rel="noopener">🃏 Mazo sugerido</a>` : ''}
       ${deck2Ok ? `<a href="${esc(ext.deck2)}" target="_blank" rel="noopener">🃏 Mazo sugerido (2)</a>` : ''}
     </div>`;
@@ -305,6 +306,18 @@ function renderMiembro(j){
 
   renderExtendido(j.extendido);
   renderRankingChart(j.extendido);
+
+  // FIX (31-ago-2026, pedido usuario — "en los perfiles de jugadores,
+  // antes de ver torneos, agrega el botón con el link al perfil de
+  // royaleapi y otro a cwstats"): botones dedicados en la fila de
+  // acciones (no solo el link chico que ya vive en renderExtendido/
+  // ext-links), con los íconos oficiales.
+  const ext = j.extendido || {};
+  const royaleOkBtn = urlValida(ext.royaleApi);
+  const cwOkBtn = urlValida(ext.cwStats);
+  document.getElementById('mRoyaleCwstatsBtns').innerHTML = `
+    ${royaleOkBtn ? `<a class="btn btn-ghost" href="${esc(ext.royaleApi)}" target="_blank" rel="noopener">${ICONO_ROYALEAPI}RoyaleAPI</a>` : ''}
+    ${cwOkBtn ? `<a class="btn btn-ghost" href="${esc(ext.cwStats)}" target="_blank" rel="noopener">${ICONO_CWSTATS}CWStats</a>` : ''}`;
 
   document.getElementById('btnVerTorneosJugador').dataset.tag = j.tag;
   const btnOtras = document.getElementById('btnVerOtrasCuentas');
