@@ -62,11 +62,26 @@
   .bar{height:6px; background:var(--bg-2); margin-top:14px; border-radius:3px; overflow:hidden; border:1px solid var(--line);}
   .bar i{display:block; height:100%; background:linear-gradient(90deg, var(--violet), var(--purple));}
   .falt{font-family:var(--f-mono); font-weight:700; color:var(--danger);}
-  .resumen-row{display:flex; align-items:center; gap:14px; margin-bottom:12px;}
+  .resumen-row{display:flex; align-items:center; gap:14px; margin-bottom:12px; flex-wrap:wrap;}
   .resumen-row .clan-n{width:160px; font-size:14px; flex-shrink:0; font-weight:600;}
-  .resumen-row .track{flex:1; height:16px; background:var(--bg-2); border-radius:4px; position:relative; overflow:hidden; border:1px solid var(--line);}
+  .resumen-row .track{flex:1; min-width:80px; height:16px; background:var(--bg-2); border-radius:4px; position:relative; overflow:hidden; border:1px solid var(--line);}
   .resumen-row .fill{height:100%; background:linear-gradient(90deg, var(--violet), var(--purple));}
   .resumen-row .val{width:40px; text-align:right; font-family:var(--f-mono); font-size:13px; color:var(--gold); font-weight:700;}
+  /* RESPONSIVE (pedido usuario, 31-ago-2026 — "haz que la web sea
+     responsive"): en pantallas angostas .clan-n (160px fijo) + .val (40px
+     fijo) dejaban muy poco espacio para .track, que quedaba casi
+     invisible. flex-wrap arriba ya permite que .track baje a su propia
+     línea si no entra; acá se fuerza ese salto de línea siempre por debajo
+     de los ~380px, y el nombre del clan pasa a ocupar el ancho completo
+     para que la barra de progreso tenga espacio real para leerse. */
+  @media (max-width:380px){
+    .resumen-row .clan-n{width:100%;}
+  }
+  /* Tabla de "Ataques pendientes": con nombres/clanes largos en pantallas
+     angostas, se habilita scroll horizontal dentro de su propia tarjeta en
+     vez de forzar overflow en toda la página. */
+  .table-scroll{overflow-x:auto; -webkit-overflow-scrolling:touch;}
+  .table-scroll table{min-width:420px;}
   .nuevo-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:16px;}
   .nuevo-card .name{font-weight:700; font-size:15px; color:var(--text);}
   .nuevo-card .tag{font-family:var(--f-mono); font-size:12px; color:var(--text-dim);}
@@ -307,12 +322,12 @@ function render(data){
   document.getElementById('pendCount').textContent = pend.length + ' jugador(es)';
   const pendWrap = document.getElementById('pendWrap');
   pendWrap.innerHTML = pend.length ? `
-    <div class="card" style="padding:12px;"><table>
+    <div class="card" style="padding:12px;"><div class="table-scroll"><table>
       <thead><tr><th>Nombre</th><th>Clan</th><th>Faltantes</th></tr></thead>
       <tbody>${pend.map(p => `
           <tr><td>${esc(p.nombre || p.nomMulti || p.tag)}</td><td>${esc(p.clan)}</td><td class="falt">${fmtNum(p.faltantes)}</td></tr>`).join('')}
       </tbody>
-    </table></div>` : '<div class="empty">Nadie tiene ataques pendientes 🎉</div>';
+    </table></div></div>` : '<div class="empty">Nadie tiene ataques pendientes 🎉</div>';
   const resumen = Object.entries(data.resumenClanes || {});
   const maxResumen = Math.max(1, ...resumen.map(([,v]) => v));
   const resumenWrap = document.getElementById('resumenWrap');
