@@ -184,6 +184,7 @@
       <div id="compMsg"></div>
     </div>
     <div id="compWrap" class="comp-grid" style="margin-top:16px;"></div>
+    <div id="compBarrasWrap" style="margin-top:16px;"></div>
   </section>
 
   <!-- ---------- DIRECTORIO COMPLETO ----------
@@ -495,7 +496,8 @@ function renderComparadorLado(jugador){
     extItem(jugador.guerraSemana && jugador.guerraSemana.ataques, 'Ataques/sem', true),
     extItem(ext.racha, 'Racha', true),
     extItem(ext.donacionesRealizadas, 'Donac. hechas', true),
-    extItem(ext.victorias3Coronas, '3 coronas', true)
+    extItem(ext.victorias3Coronas, '3 coronas', true),
+    extItem(ext.rankingClan, 'Ranking en el clan', true)
   ].join('');
   return `
     <div class="card comp-card">
@@ -527,6 +529,61 @@ function resolverLadoComparador(raw, ambiguasOut){
   return String(raw||'').trim(); // sin coincidencias locales: se manda tal cual
 }
 
+/**
+ * renderComparadorBarras(a, b)
+ * FIX (1-sep-2026, pedido usuario — "mejorar el comparador Cara a cara...
+ * una comparación visual tipo barras, ya identifiqué el patrón .chart-row
+ * reutilizable"): reutiliza el mismo patrón de barras horizontales que ya
+ * usan las 4 tarjetas de "Miembros/Donaciones/Trofeos/Copas" arriba en
+ * esta página (ver chartCardHtml() en common.js, mismas clases
+ * .chart-row/.chart-track/.chart-fill/.chart-val, sin CSS nuevo), pero con
+ * DOS barras por estadística (una por jugador) en vez de una por clan.
+ * Solo mete acá estadísticas donde "más grande = mejor" para que la
+ * lectura de la barra sea directa — Ranking en el clan (donde menor es
+ * mejor) se deja como dato de texto en renderComparadorLado(), no acá,
+ * para no mostrar una barra que se lea al revés de las demás.
+ */
+function renderComparadorBarras(a, b){
+  if (!a || !b) return '';
+  const extA = a.extendido || {}, extB = b.extendido || {};
+  const filas = [
+    { icono:'🏆', label:'Copas',        va: a.copas, vb: b.copas },
+    { icono:'🎖️', label:'V. Guerra',    va: a.vGuerra, vb: b.vGuerra },
+    { icono:'🏅', label:'Torneos',      va: a.torneos, vb: b.torneos },
+    { icono:'⚔️', label:'Ataques/sem',  va: a.guerraSemana && a.guerraSemana.ataques, vb: b.guerraSemana && b.guerraSemana.ataques },
+    { icono:'🔥', label:'Racha',        va: extA.racha, vb: extB.racha },
+    { icono:'👑', label:'3 coronas',    va: extA.victorias3Coronas, vb: extB.victorias3Coronas },
+    { icono:'🎁', label:'Donac. hechas',va: extA.donacionesRealizadas, vb: extB.donacionesRealizadas }
+  ].filter(f => f.va != null || f.vb != null);
+  if (!filas.length) return '';
+
+  const nombreA = a.nombre || 'Jugador 1', nombreB = b.nombre || 'Jugador 2';
+  const filaHtml = f => {
+    const va = Number(f.va) || 0, vb = Number(f.vb) || 0;
+    const max = Math.max(1, va, vb);
+    const pctA = Math.max(2, Math.round((va / max) * 100));
+    const pctB = Math.max(2, Math.round((vb / max) * 100));
+    return `
+      <div class="chart-title" style="margin-top:16px;">${f.icono} ${esc(f.label)}</div>
+      <div class="chart-row">
+        <span class="chart-label" style="width:110px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${esc(nombreA)}">${esc(nombreA)}</span>
+        <span class="chart-track"><span class="chart-fill" style="width:${pctA}%"></span></span>
+        <span class="chart-val">${fmtNum(va)}</span>
+      </div>
+      <div class="chart-row">
+        <span class="chart-label" style="width:110px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${esc(nombreB)}">${esc(nombreB)}</span>
+        <span class="chart-track"><span class="chart-fill" style="width:${pctB}%; background:linear-gradient(90deg, var(--gold), #fde68a);"></span></span>
+        <span class="chart-val">${fmtNum(vb)}</span>
+      </div>`;
+  };
+
+  return `
+    <div class="card chart-card">
+      <div class="chart-title" style="margin-top:0;">📊 Comparación visual</div>
+      ${filas.map(filaHtml).join('')}
+    </div>`;
+}
+
 function elegirComparadorLado1(tag){ document.getElementById('compTag1').value = tag; compararJugadores(); }
 function elegirComparadorLado2(tag){ document.getElementById('compTag2').value = tag; compararJugadores(); }
 
@@ -535,8 +592,10 @@ async function compararJugadores(){
   const raw2 = document.getElementById('compTag2').value.trim();
   const msgEl = document.getElementById('compMsg');
   const wrap = document.getElementById('compWrap');
+  const barrasWrap = document.getElementById('compBarrasWrap');
   msgEl.innerHTML = '';
   wrap.innerHTML = '';
+  barrasWrap.innerHTML = '';
 
   if (!raw1 || !raw2){
     msgEl.innerHTML = '<div class="msg msg-error">Ingresa los dos nombres o tags a comparar.</div>';
@@ -568,6 +627,7 @@ async function compararJugadores(){
     html += data.a ? renderComparadorLado(data.a) : `<div class="card comp-card"><div class="empty">${esc(data.errorA || 'No se encontró el primer jugador.')}</div></div>`;
     html += data.b ? renderComparadorLado(data.b) : `<div class="card comp-card"><div class="empty">${esc(data.errorB || 'No se encontró el segundo jugador.')}</div></div>`;
     wrap.innerHTML = html;
+    barrasWrap.innerHTML = renderComparadorBarras(data.a, data.b);
   }catch(err){
     msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
   }

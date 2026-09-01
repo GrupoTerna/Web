@@ -68,6 +68,24 @@
   }
   .salon-puesto .sp-nombre{color:var(--text); font-weight:600;}
   .salon-puesto .sp-victorias{margin-left:auto; font-family:var(--f-mono); color:var(--gold); font-size:12px;}
+
+  /* Ranking de victorias en torneos (1-sep-2026, pedido usuario — agregado
+     en el cliente a partir de webHistorialTorneos, sin endpoint nuevo). */
+  .rk-victorias-row{
+    display:flex; align-items:center; gap:14px; padding:13px 4px;
+    border-bottom:1px solid var(--line);
+  }
+  .rk-victorias-row:last-child{border-bottom:none;}
+  .rk-victorias-puesto{
+    font-family:var(--f-display); font-weight:800; font-size:15px; color:var(--purple-light);
+    width:34px; flex-shrink:0; text-align:center;
+  }
+  .rk-victorias-info{flex:1; min-width:0;}
+  .rk-victorias-nombre{font-weight:700; font-size:14px; color:var(--text);}
+  .rk-victorias-clan{font-family:var(--f-mono); font-size:11px; color:var(--text-dim); margin-top:2px;}
+  .rk-victorias-stats{text-align:right; flex-shrink:0;}
+  .rk-victorias-total{font-family:var(--f-mono); font-weight:700; font-size:14px; color:var(--gold);}
+  .rk-victorias-apariciones{font-family:var(--f-mono); font-size:11px; color:var(--text-faint); margin-top:2px;}
 </style>
 </head>
 <body data-page="torneos">
@@ -123,6 +141,18 @@
     </p>
     <div id="salonWrap" style="margin-top:20px;">
       <div class="card"><div class="empty">Cargando salón de la fama…</div></div>
+    </div>
+  </section>
+
+  <!-- Ranking de más victorias en todos los torneos (calculado en el
+       cliente a partir del mismo historial de arriba, sin backend nuevo). -->
+  <section style="margin-top:44px;">
+    <div class="eyebrow">🏆 Ranking de victorias en torneos</div>
+    <p class="text-dim" style="margin-top:8px; font-size:14px;">
+      Suma de victorias de cada miembro en todas sus apariciones dentro del top 3 de un torneo — para incentivar la participación, no solo el primer puesto.
+    </p>
+    <div id="rankingVictoriasWrap" style="margin-top:20px;">
+      <div class="card"><div class="empty">Cargando ranking…</div></div>
     </div>
   </section>
 
@@ -202,22 +232,84 @@ cargarTorneos();
 cargarSalonDeLaFama();
 
 /**
+ * calcularRankingVictoriasTorneos(historial)
+ * FIX (1-sep-2026, pedido usuario — "agregar en Torneos un ranking de más
+ * victorias en todos los torneos, agregable en el cliente a partir de
+ * webHistorialTorneos, sin backend nuevo"): suma victorias por jugador a
+ * través de TODAS sus apariciones en el top 3 de cada torneo del
+ * historial (últimos 30 torneos con resultados, ver _webHistorialTorneos
+ * en 34_Web_API.gs) — de ahí sale directo, sin pedir nada nuevo al
+ * backend. El top3 que manda el backend no incluye Tag, solo nombre +
+ * clan, así que se agrupa por esa combinación para no mezclar a dos
+ * jugadores distintos que compartan nombre en clanes distintos. Los
+ * participantes con 0 victorias no suman (evita ruido de quien entró al
+ * torneo pero no jugó, mismo criterio que ya pidió el usuario para otras
+ * vistas de torneos).
+ */
+function calcularRankingVictoriasTorneos(historial){
+  const mapa = new Map();
+  (historial || []).forEach(t => {
+    (t.top3 || []).forEach(p => {
+      if (!p || !p.nombre) return;
+      const victorias = Number(p.victorias) || 0;
+      if (!victorias) return;
+      const clave = `${p.nombre}|${p.clan || ''}`;
+      const actual = mapa.get(clave) || { nombre: p.nombre, clan: p.clan || '', victorias: 0, apariciones: 0 };
+      actual.victorias += victorias;
+      actual.apariciones += 1;
+      mapa.set(clave, actual);
+    });
+  });
+  return Array.from(mapa.values()).sort((a, b) => b.victorias - a.victorias || a.nombre.localeCompare(b.nombre, 'es'));
+}
+
+/** Pinta el top 10 del ranking de victorias — medalla para el podio,
+ * "#N" para el resto, mismo criterio visual que medallaPuesto() de arriba. */
+function renderRankingVictoriasTorneos(wrap, historial){
+  const ranking = calcularRankingVictoriasTorneos(historial).slice(0, 10);
+  if (!ranking.length){
+    wrap.innerHTML = '<div class="card"><div class="empty">Todavía no hay victorias registradas en el historial de torneos.</div></div>';
+    return;
+  }
+  wrap.innerHTML = `<div class="card" style="padding:8px 24px;">${ranking.map((r, i) => `
+    <div class="rk-victorias-row">
+      <span class="rk-victorias-puesto">${i < 3 ? medallaPuesto(i + 1) : '#' + (i + 1)}</span>
+      <div class="rk-victorias-info">
+        <div class="rk-victorias-nombre">${esc(r.nombre)}</div>
+        <div class="rk-victorias-clan">${esc(r.clan || '—')}</div>
+      </div>
+      <div class="rk-victorias-stats">
+        <div class="rk-victorias-total">${fmtNum(r.victorias)} victorias</div>
+        <div class="rk-victorias-apariciones">${fmtNum(r.apariciones)} torneo(s) en el top 3</div>
+      </div>
+    </div>`).join('')}</div>`;
+}
+
+/**
  * cargarSalonDeLaFama()
  * Consume 'webHistorialTorneos' (34_Web_API.gs) — top 3 de CADA torneo
  * registrado, ya recortado a los últimos 30 desde el backend. Excluye acá
  * el torneo que ya se muestra arriba en "Ganadores del torneo más
  * reciente" (mismo idTorneo) para no repetir la misma info dos veces en
  * la misma página.
+ * El ranking de victorias (renderRankingVictoriasTorneos) SÍ usa el
+ * historial completo, sin ese filtro — el torneo más reciente debe contar
+ * para el total acumulado de cada jugador aunque no se repita en la lista
+ * de abajo.
  */
 async function cargarSalonDeLaFama(){
   const wrap = document.getElementById('salonWrap');
+  const rankingWrap = document.getElementById('rankingVictoriasWrap');
   try{
     const [torneosData, historialData] = await Promise.all([
       apiGet('webTorneos'),
       apiGet('webHistorialTorneos')
     ]);
+    const historialCompleto = historialData.historial || [];
+    renderRankingVictoriasTorneos(rankingWrap, historialCompleto);
+
     const idMasReciente = torneosData.ganadores ? String(torneosData.ganadores.idTorneo) : null;
-    const historial = (historialData.historial || []).filter(t => String(t.idTorneo) !== idMasReciente);
+    const historial = historialCompleto.filter(t => String(t.idTorneo) !== idMasReciente);
 
     if (!historial.length){
       wrap.innerHTML = '<div class="card"><div class="empty">Todavía no hay más torneos con resultados registrados.</div></div>';
@@ -243,6 +335,7 @@ async function cargarSalonDeLaFama(){
     }).join('');
   }catch(err){
     wrap.innerHTML = `<div class="card"><div class="empty">No se pudo cargar el salón de la fama: ${esc(err.message)}</div></div>`;
+    rankingWrap.innerHTML = `<div class="card"><div class="empty">No se pudo cargar el ranking: ${esc(err.message)}</div></div>`;
   }
 }
 </script>

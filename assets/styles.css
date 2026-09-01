@@ -304,6 +304,18 @@ section{padding:72px 0;}
   transition:all .18s ease;
 }
 .field input:focus, .field select:focus{border-color:var(--purple); box-shadow:0 0 0 3px rgba(162,57,255,.2); outline:none;}
+.field textarea{
+  width:100%; background:var(--bg-2); border:1px solid var(--line); color:var(--text);
+  padding:13px 16px; border-radius:var(--radius-sm); font-family:var(--f-body); font-size:15px;
+  transition:all .18s ease; min-height:90px; resize:vertical;
+}
+.field textarea:focus{border-color:var(--purple); box-shadow:0 0 0 3px rgba(162,57,255,.2); outline:none;}
+/* FIX (1-sep-2026): antes vivían duplicadas en el <style> local de
+   admin.html/jugadores.html/perfil.html — se centralizan acá porque ahora
+   la vista de cuentas inactivas (common.js, compartida entre index.html y
+   jugadores.html) también necesita el mini-formulario de Vetar inline. */
+.vetar-form{border:1px solid var(--line); border-radius:var(--radius-sm); padding:16px; background:var(--surface);}
+.vetar-form-titulo{font-family:var(--f-mono); font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--danger); margin-bottom:14px;}
 .msg{padding:14px 16px; border-radius:var(--radius-sm); font-size:14px; margin-top:14px;}
 .msg-error{background:rgba(244,63,94,.12); border:1px solid rgba(244,63,94,.4); color:#fda4af;}
 .msg-ok{background:rgba(16,185,129,.12); border:1px solid rgba(16,185,129,.4); color:#6ee7b7;}
@@ -359,6 +371,38 @@ footer .wrap{display:flex; justify-content:space-between; flex-wrap:wrap; gap:16
 @media (max-width:540px){
   .grid-4{grid-template-columns:1fr;}
 }
+
+/* =========================================================================
+ * Vista de cuentas inactivas (1-sep-2026, pedido usuario — reemplaza el
+ * pop-up anterior por una vista completa dentro del flujo de la página).
+ * Se define acá, global, porque la arma common.js y la usan tanto
+ * index.html como jugadores.html — antes vivían en el <style> local de
+ * cada página, lo que hubiera obligado a duplicar estas reglas dos veces.
+ * ========================================================================= */
+.inactivo-row{
+  display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
+  padding:14px 18px; border-radius:var(--radius-sm); border:1px solid var(--line);
+  background:var(--surface-card); margin-bottom:10px; transition:all .18s ease;
+}
+.inactivo-row:last-child{margin-bottom:0;}
+.inactivo-row:hover{border-color:var(--line-strong);}
+.inactivo-nombre{font-weight:700; font-size:14px; color:var(--text);}
+.inactivo-tag{font-family:var(--f-mono); font-size:11px; color:var(--text-dim); margin-top:2px;}
+.inactivo-clan{font-family:var(--f-mono); font-size:11px; color:var(--text-faint); margin-top:2px;}
+.inactivo-links{display:flex; gap:8px; flex-wrap:wrap; align-items:center;}
+.inactivo-links a{
+  font-family:var(--f-mono); font-size:11px; font-weight:600; color:var(--purple-light);
+  border:1px solid var(--line); padding:7px 13px; border-radius:var(--radius-sm); text-decoration:none;
+  transition:all .18s ease;
+}
+.inactivo-links a:hover{border-color:var(--purple); background:rgba(162,57,255,.1);}
+.inactivo-btn-vetar{
+  font-family:var(--f-mono); font-size:11px; font-weight:600; color:var(--danger);
+  border:1px solid var(--danger); background:transparent; padding:7px 13px;
+  border-radius:var(--radius-sm); cursor:pointer; transition:all .18s ease;
+}
+.inactivo-btn-vetar:hover{background:rgba(244,63,94,.12);}
+.inactivo-btn-vetar:disabled{cursor:default; opacity:.6;}
 
 /* =========================================================================
  * prefers-reduced-motion (30-ago-2026, pedido usuario — accesibilidad):

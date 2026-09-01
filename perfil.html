@@ -129,9 +129,9 @@
 
         <div style="display:flex; gap:10px; margin-top:18px; flex-wrap:wrap;">
           <div id="mRoyaleCwstatsBtns" style="display:flex; gap:10px; flex-wrap:wrap;"></div>
+          <button type="button" class="btn btn-ghost" id="btnVetarJugador" style="display:none; border-color:var(--danger); color:var(--danger);">🚫 Vetar</button>
           <button type="button" class="btn btn-ghost" id="btnVerTorneosJugador">🏆 Ver torneos</button>
           <button type="button" class="btn btn-ghost" id="btnVerOtrasCuentas" style="display:none;">Ver otras cuentas</button>
-          <button type="button" class="btn btn-ghost" id="btnVetarJugador" style="display:none; border-color:var(--danger); color:var(--danger);">🚫 Vetar</button>
         </div>
         <div id="mTorneosWrap" style="display:none; margin-top:14px;"></div>
         <div id="mOtrasCuentasWrap" style="margin-top:14px;"></div>
@@ -278,17 +278,8 @@ function renderRankingChart(ext){
     <div class="text-faint" style="font-family:var(--f-mono); font-size:11px; margin-top:4px;">Menor número = mejor puesto en el clan.</div>`;
 }
 
-function adminPuedeVetar(){
-  if (!esAdminLogueado()) return false;
-  const adminGuardado = sessionStorage.getItem('terna_admin_info');
-  if (!adminGuardado) return false;
-  try{
-    const funciones = String(JSON.parse(adminGuardado).funciones || '');
-    return funciones.indexOf('Vetar') !== -1;
-  }catch(err){
-    return false;
-  }
-}
+// adminPuedeVetar() ahora vive en assets/common.js (1-sep-2026, reutilizada
+// también por la vista de cuentas inactivas) — se quita el duplicado local.
 
 function renderMiembro(j){
   document.title = `${j.nombre || 'Jugador'} — Familia Terna`;
