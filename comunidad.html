@@ -25,7 +25,11 @@
 <link rel="stylesheet" href="assets/styles.css">
 <link rel="icon" type="image/jpeg" href="assets/img/logo-cuadrado.jpg">
 <style>
-  .historia-card p{font-size:16px; line-height:1.75; color:var(--text-dim); margin:0 0 18px;}
+  /* FIX (31-ago-2026, pedido usuario — "mientras el texto no tenga
+     viñetas, se debe justificar el texto para lograr mayor armonía
+     visual"): solo afecta a <p>, nunca a las listas (<li>) de la misma
+     tarjeta, tal como se pidió. */
+  .historia-card p{font-size:16px; line-height:1.75; color:var(--text-dim); margin:0 0 18px; text-align:justify;}
   .historia-card p:last-child{margin-bottom:0;}
   .historia-card b{color:var(--text); font-weight:700;}
 
@@ -83,7 +87,7 @@
     </a>
     <button id="navToggle" class="nav-toggle" aria-label="Abrir menú">☰</button>
     <div class="links">
-      <a href="jugadores.html" data-page="jugadores">Clanes</a>
+      <a href="jugadores.html" data-page="jugadores">Directorio</a>
       <a href="guerra.html" data-page="guerra">Guerra</a>
       <a href="torneos.html" data-page="torneos">Torneos</a>
       <a href="comunidad.html" data-page="comunidad">Comunidad</a>
@@ -471,7 +475,7 @@ async function cargarEstadisticasCartas(){
     }
     wrap.innerHTML = data.top10.map((c, i) => `
       <div class="carta-chip">
-        <span>${i + 1}.</span> <b>${esc(c.name)}</b>
+        <span>${i + 1}.</span> <b>${esc(traducirNombreCarta(c.name))}</b>
         <span class="cc-usos">${fmtNum(c.usos)} en mazo</span>
       </div>`).join('');
   }catch(err){

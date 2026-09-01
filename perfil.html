@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Perfil de jugador — Familia Terna</title>
+<meta name="description" content="Perfil detallado de un jugador de la Familia Terna: estadísticas, progreso de ascenso, torneos y ranking en el clan.">
+<meta name="robots" content="noindex">
+<link rel="canonical" href="https://grupoterna.github.io/Web/perfil.html">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/styles.css">
+<link rel="icon" type="image/jpeg" href="assets/img/logo-cuadrado.jpg">
+<!--
+  PERFIL.HTML (31-ago-2026, pedido usuario)
+  "Cuando abro el perfil de un jugador, no basta con cambiar el link,
+  también debe verse un menú dedicado para eso. Actualmente es solo una
+  sección que se despliega dentro del mismo panel de clanes, pero debe
+  mostrarse en otra pestaña el perfil, con mayor detalle."
+
+  Página nueva, independiente de jugadores.html: todo lo que antes se
+  desplegaba inline dentro de la sección #miembroSec de jugadores.html
+  (cabecera, progreso de ascenso/descenso, estadísticas extendidas,
+  torneos del jugador, "ver otras cuentas" y "vetar", todo admin-only
+  donde corresponde) vive ahora acá, en su propia pestaña, a partir de
+  ?tag=TAG en la URL. jugadores.html ya NO renderiza el perfil inline:
+  simplemente resuelve el tag (directo, o por selección entre
+  coincidencias) y abre esta página con window.open(...,'_blank').
+
+  Además se agrega una sección nueva que no existía: "Ranking en el clan"
+  a lo largo del tiempo (pedido: "se puede hacer una gráfica de ranking en
+  el clan, porque eso se guarda en la hoja Guerra"). OJO backend: hoy
+  'webPerfil' (34_Web_API.gs) manda ext.rankingClan como un solo número
+  (el ranking ACTUAL), no una serie histórica. Para dibujar la gráfica se
+  necesita que el backend agregue algo como ext.historialRanking =
+  [{semana, ranking}, ...] leyendo la hoja Guerra semana a semana (mismo
+  patrón que ya usa miembro.historialSemanal en index.html). Mientras ese
+  campo no exista, esta sección se muestra igual pero con un mensaje claro
+  en vez de inventar datos.
+-->
+<style>
+  .perfil-cabecera{display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px;}
+  .perfil-cabecera .stats-mini{display:flex; gap:18px; font-family:var(--f-mono); font-size:12px; color:var(--text-dim); flex-wrap:wrap;}
+  .perfil-cabecera .stats-mini b{color:var(--text); font-size:16px; display:block; font-family:var(--f-display);}
+  .req-row{display:flex; align-items:center; gap:12px; margin-bottom:12px; flex-wrap:wrap;}
+  .req-row .lbl{width:140px; font-size:13px; color:var(--text-dim); flex-shrink:0;}
+  .req-row .progress{flex:1; min-width:120px;}
+  .req-row .val{width:100px; text-align:right; font-family:var(--f-mono); font-size:12px; flex-shrink:0;}
+  .ext-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:14px; margin-top:16px;}
+  .ext-item{background:var(--bg-2); border:1px solid var(--line); border-radius:var(--radius-sm); padding:12px 14px; text-align:left;}
+  .ext-item .v{font-family:var(--f-display); font-weight:800; font-size:19px; color:var(--text);}
+  .ext-item .k{font-family:var(--f-mono); font-size:10px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.06em; margin-top:2px;}
+  .ext-links{display:flex; gap:14px; margin-top:18px; flex-wrap:wrap;}
+  .ext-links a{
+    font-family:var(--f-mono); font-size:12px; font-weight:600; color:var(--purple-light);
+    border:1px solid var(--line); padding:8px 14px; border-radius:var(--radius-sm); text-decoration:none;
+    transition:all .18s ease;
+  }
+  .ext-links a:hover{border-color:var(--purple); background:rgba(162,57,255,.1); color:var(--purple-light);}
+  .ingreso-row{
+    display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
+    padding:14px 18px; border-radius:var(--radius-sm); border:1px solid var(--line);
+    background:var(--surface-card); margin-bottom:10px; transition:all .18s ease;
+  }
+  .ingreso-row:last-child{margin-bottom:0;}
+  .ingreso-row:hover{border-color:var(--line-strong); transform:translateY(-2px); cursor:pointer;}
+  .ingreso-info .ing-nombre{font-weight:700; font-size:14px; color:var(--text);}
+  .ingreso-info .ing-fecha{font-family:var(--f-mono); font-size:11px; color:var(--text-faint); margin-top:3px;}
+  .ingreso-links{display:flex; gap:8px; flex-wrap:wrap;}
+  .field textarea{
+    width:100%; background:var(--bg-2); border:1px solid var(--line); color:var(--text);
+    padding:13px 16px; border-radius:var(--radius-sm); font-family:var(--f-body); font-size:15px;
+    transition:all .18s ease; min-height:90px; resize:vertical;
+  }
+  .field textarea:focus{border-color:var(--purple); box-shadow:0 0 0 3px rgba(162,57,255,.2); outline:none;}
+  .vetar-form{border:1px solid var(--line); border-radius:var(--radius-sm); padding:16px; background:var(--surface);}
+  .vetar-form-titulo{font-family:var(--f-mono); font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--danger); margin-bottom:14px;}
+  .ranking-chart-empty{font-family:var(--f-mono); font-size:12px; color:var(--text-faint); padding:18px 4px;}
+</style>
+</head>
+<body data-page="perfil">
+
+<a href="#main-content" class="skip-link">Saltar al contenido</a>
+
+<nav class="nav">
+  <div class="wrap">
+    <a href="index.html" class="brand">
+      <img src="assets/img/logo-cuadrado.jpg" alt="Escudo GxT Familia Terna" class="brand-logo" width="256" height="256">
+      <span>ᴳ乂ᵀ <span class="crown">⚜️</span> Familia Terna</span>
+    </a>
+    <button id="navToggle" class="nav-toggle" aria-label="Abrir menú">☰</button>
+    <div class="links">
+      <a href="jugadores.html" data-page="jugadores">Directorio</a>
+      <a href="guerra.html" data-page="guerra">Guerra</a>
+      <a href="torneos.html" data-page="torneos">Torneos</a>
+      <a href="comunidad.html" data-page="comunidad">Comunidad</a>
+      <a href="admin.html" data-page="admin" class="cta">Acceder</a>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap" id="main-content" style="padding-top:36px; padding-bottom:80px;">
+
+  <a href="jugadores.html#roster" class="text-dim" style="font-family:var(--f-mono); font-size:12px;">&larr; Volver al Directorio</a>
+
+  <section id="perfilSec" style="padding:20px 0 8px;">
+    <div id="perfilCargando" class="loading-block"><div class="spinner"></div></div>
+    <div id="perfilError" style="display:none;"></div>
+
+    <div id="perfilContenido" style="display:none;">
+      <div class="eyebrow">Perfil del jugador</div>
+      <div class="card" style="padding:28px; margin-top:16px;">
+        <div class="perfil-cabecera">
+          <div>
+            <h1 id="mNombre" style="font-size:26px;">—</h1>
+            <div class="text-dim" id="mSub" style="margin-top:6px; font-size:14px;">—</div>
+          </div>
+          <div class="stats-mini">
+            <span><b id="mCopas">0</b>Copas</span>
+            <span><b id="mVGuerra">0</b>V. Guerra</span>
+            <span><b id="mTorneos">0</b>Torneos</span>
+            <span><b id="mAtaques">0</b>Ataques/sem</span>
+          </div>
+        </div>
+
+        <div id="mReqContenido" style="margin-top:16px;"></div>
+        <div id="mExtWrap"></div>
+
+        <div style="display:flex; gap:10px; margin-top:18px; flex-wrap:wrap;">
+          <button type="button" class="btn btn-ghost" id="btnVerTorneosJugador">🏆 Ver torneos</button>
+          <button type="button" class="btn btn-ghost" id="btnVerOtrasCuentas" style="display:none;">Ver otras cuentas</button>
+          <button type="button" class="btn btn-ghost" id="btnVetarJugador" style="display:none; border-color:var(--danger); color:var(--danger);">🚫 Vetar</button>
+        </div>
+        <div id="mTorneosWrap" style="display:none; margin-top:14px;"></div>
+        <div id="mOtrasCuentasWrap" style="margin-top:14px;"></div>
+        <div id="mVetarWrap" style="display:none; margin-top:14px;"></div>
+      </div>
+
+      <!-- ---------- RANKING EN EL CLAN (nuevo, 31-ago-2026) ---------- -->
+      <div class="card" style="padding:28px; margin-top:20px;">
+        <div class="eyebrow">Evolución</div>
+        <h2 style="font-size:19px; margin-top:8px;">Ranking en el clan</h2>
+        <div id="mRankingChart"></div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<footer>
+  <div class="wrap">
+    <span>Familia Terna · Portal de la comunidad</span>
+    <span>Sincronizado vía Google Apps Script API</span>
+  </div>
+</footer>
+
+<script src="assets/common.js"></script>
+<script>
+const TAG_PERFIL = normalizarTag(new URLSearchParams(location.search).get('tag') || '');
+
+function campoMinTSegunRango(rango){
+  const r = String(rango||'').toLowerCase();
+  if(r.includes('col')) return 'minTColider';
+  if(r.includes('vet')) return 'minTVeterano';
+  return 'minTMiembro';
+}
+function barraRequisito(lbl, actual, requerido, activo, sufijo){
+  if(!activo) return '';
+  const pct = requerido > 0 ? Math.min(100, Math.round((actual/requerido)*100)) : 100;
+  const cumplido = actual >= requerido;
+  return `
+    <div class="req-row">
+      <div class="lbl">${esc(lbl)}</div>
+      <div class="progress${cumplido?' complete':''}"><i style="width:${pct}%"></i></div>
+      <div class="val">${fmtNum(actual)}${sufijo||''} / ${fmtNum(requerido)}${sufijo||''}</div>
+    </div>`;
+}
+function bloqueRequisitos(j, key){
+  const req = j.progreso ? j.progreso[key] : null;
+  if (!req) return '';
+  const campoMinT = campoMinTSegunRango(j.rango);
+  const minT = req[campoMinT];
+  let html = '';
+  if (minT) html += barraRequisito('Trofeos guerra', minT.actual, minT.requerido, minT.activo, '🏆');
+  if (req.ataques) html += barraRequisito('Ataques/semana', req.ataques.actual, req.ataques.requerido, req.ataques.activo, '');
+  if (req.torneos) html += barraRequisito('Torneos', req.torneos.actual, req.torneos.requerido, req.torneos.activo, '');
+  if (req.reaccion && req.reaccion.activo) html += `<div style="margin-top:8px;"><span class="badge badge-purple">Requiere reaccionar a la publicación</span></div>`;
+  return html;
+}
+function extItem(valor, label, esNumero){
+  if (valor === undefined || valor === null || valor === '') return '';
+  const txt = esNumero ? fmtNum(valor) : String(valor);
+  return `<div class="ext-item"><div class="v">${esc(txt)}</div><div class="k">${esc(label)}</div></div>`;
+}
+function renderExtendido(ext){
+  const wrap = document.getElementById('mExtWrap');
+  if (!ext){ wrap.innerHTML = ''; return; }
+  let items = '';
+  items += extItem(ext.nivelXp, 'Nivel', true);
+  items += extItem(ext.nivelCartas, 'Nivel de cartas', true);
+  items += extItem(ext.copasMax, 'Copas máx.', true);
+  items += extItem(ext.arena, 'Arena', false);
+  items += extItem(ext.victorias, 'Victorias', true);
+  items += extItem(ext.derrotas, 'Derrotas', true);
+  items += extItem(ext.batallas, 'Batallas', true);
+  items += extItem(ext.racha, 'Racha', true);
+  items += extItem(ext.victorias3Coronas, '3 coronas', true);
+  items += extItem(ext.maxVictoriasDesafios, 'Máx. victorias desafío', true);
+  items += extItem(ext.cartasDesafios, 'Cartas de desafíos', true);
+  items += extItem(ext.cartasTorneos, 'Cartas de torneos', true);
+  items += extItem(ext.emotes, 'Emotes', true);
+  items += extItem(ext.banners, 'Banners', true);
+  items += extItem(ext.donacionesRecibidas, 'Donac. recibidas', true);
+  items += extItem(ext.donacionesRealizadas, 'Donac. hechas', true);
+  items += extItem(ext.rankingClan, 'Ranking en el clan', true);
+
+  let camino = '';
+  if (ext.caminoLeyendas){
+    const cl = ext.caminoLeyendas;
+    const partes = [cl.liga, cl.trofeos, cl.rango].filter(v => v !== undefined && v !== null && v !== '');
+    if (partes.length) camino = `<div style="margin-top:16px;"><span class="badge badge-gold">🏔️ Camino de Leyendas · ${partes.map(esc).join(' · ')}</span></div>`;
+  }
+
+  const royaleOk = urlValida(ext.royaleApi);
+  const cwOk = urlValida(ext.cwStats);
+  const deckOk = urlValida(ext.deck);
+  const deck2Ok = urlValida(ext.deck2);
+  let links = '';
+  if (royaleOk || cwOk || deckOk || deck2Ok){
+    links = `<div class="ext-links">
+      ${royaleOk ? `<a href="${esc(ext.royaleApi)}" target="_blank" rel="noopener">🌐 RoyaleAPI</a>` : ''}
+      ${cwOk ? `<a href="${esc(ext.cwStats)}" target="_blank" rel="noopener">📊 CWStats</a>` : ''}
+      ${deckOk ? `<a href="${esc(ext.deck)}" target="_blank" rel="noopener">🃏 Mazo sugerido</a>` : ''}
+      ${deck2Ok ? `<a href="${esc(ext.deck2)}" target="_blank" rel="noopener">🃏 Mazo sugerido (2)</a>` : ''}
+    </div>`;
+  }
+
+  wrap.innerHTML = (items ? `<div class="ext-grid">${items}</div>` : '') + camino + links;
+}
+
+/**
+ * renderRankingChart(ext)
+ * Gráfica de línea simple con la evolución del ranking en el clan.
+ * Necesita `ext.historialRanking` = [{semana, ranking}, ...] (más
+ * reciente al final o al principio, no importa el orden: se reordena
+ * acá). Si el backend todavía no manda ese campo (ver comentario al
+ * inicio del archivo), se muestra un mensaje en vez de una gráfica vacía.
+ */
+function renderRankingChart(ext){
+  const wrap = document.getElementById('mRankingChart');
+  const historial = ext && Array.isArray(ext.historialRanking) ? ext.historialRanking.filter(h => h && h.ranking != null) : [];
+  if (!historial.length){
+    wrap.innerHTML = `<div class="ranking-chart-empty">
+      Todavía no hay historial de ranking disponible para graficar${ext && ext.rankingClan != null ? ` — ranking actual: <b style="color:var(--text);">#${esc(String(ext.rankingClan))}</b>` : ''}.
+    </div>`;
+    return;
+  }
+  const ordenados = historial.slice().sort((a,b) => String(a.semana).localeCompare(String(b.semana)));
+  const valores = ordenados.map(h => Number(h.ranking));
+  const max = Math.max(...valores), min = Math.min(...valores);
+  const W = 640, H = 200, PAD = 28;
+  const stepX = ordenados.length > 1 ? (W - PAD*2) / (ordenados.length - 1) : 0;
+  const escalaY = v => {
+    if (max === min) return H/2;
+    // Ranking: 1 es el MEJOR puesto, así que el eje se invierte (menor = más arriba).
+    return PAD + ((v - min) / (max - min)) * (H - PAD*2);
+  };
+  const puntos = valores.map((v,i) => `${PAD + i*stepX},${escalaY(v)}`).join(' ');
+  const etiquetas = ordenados.map(h => esc(String(h.semana)));
+  wrap.innerHTML = `
+    <svg viewBox="0 0 ${W} ${H+24}" style="width:100%; height:auto; margin-top:8px;">
+      <polyline points="${puntos}" fill="none" stroke="var(--purple-light, #c084fc)" stroke-width="2.5"/>
+      ${valores.map((v,i) => `<circle cx="${PAD + i*stepX}" cy="${escalaY(v)}" r="4" fill="var(--purple-light, #c084fc)"/>`).join('')}
+      ${valores.map((v,i) => `<text x="${PAD + i*stepX}" y="${H+18}" font-size="10" fill="var(--text-faint,#888)" text-anchor="middle" font-family="var(--f-mono)">${etiquetas[i]}</text>`).join('')}
+    </svg>
+    <div class="text-faint" style="font-family:var(--f-mono); font-size:11px; margin-top:4px;">Menor número = mejor puesto en el clan.</div>`;
+}
+
+function adminPuedeVetar(){
+  if (!esAdminLogueado()) return false;
+  const adminGuardado = sessionStorage.getItem('terna_admin_info');
+  if (!adminGuardado) return false;
+  try{
+    const funciones = String(JSON.parse(adminGuardado).funciones || '');
+    return funciones.indexOf('Vetar') !== -1;
+  }catch(err){
+    return false;
+  }
+}
+
+function renderMiembro(j){
+  document.title = `${j.nombre || 'Jugador'} — Familia Terna`;
+  document.getElementById('mNombre').textContent = j.nombre || 'Sin nombre';
+  document.getElementById('mSub').textContent = `${j.tag} · ${j.clan || '—'} · ${j.rango || '—'} · ${j.estado || '—'}`;
+  document.getElementById('mCopas').textContent = fmtNum(j.copas);
+  document.getElementById('mVGuerra').textContent = fmtNum(j.vGuerra);
+  document.getElementById('mTorneos').textContent = fmtNum(j.torneos);
+  document.getElementById('mAtaques').textContent = fmtNum(j.guerraSemana && j.guerraSemana.ataques);
+
+  const bloques = ['ascensos', 'descensos'].map(key => bloqueRequisitos(j, key)).filter(Boolean);
+  document.getElementById('mReqContenido').innerHTML = bloques.length
+    ? bloques.join('<div style="height:14px;"></div>')
+    : '<div class="empty">Este clan todavía no tiene requisitos configurados.</div>';
+
+  renderExtendido(j.extendido);
+  renderRankingChart(j.extendido);
+
+  document.getElementById('btnVerTorneosJugador').dataset.tag = j.tag;
+  const btnOtras = document.getElementById('btnVerOtrasCuentas');
+  btnOtras.style.display = esAdminLogueado() ? 'inline-flex' : 'none';
+  btnOtras.dataset.tag = j.tag;
+  const btnVetar = document.getElementById('btnVetarJugador');
+  btnVetar.style.display = adminPuedeVetar() ? 'inline-flex' : 'none';
+  btnVetar.dataset.tag = j.tag;
+
+  document.getElementById('perfilCargando').style.display = 'none';
+  document.getElementById('perfilContenido').style.display = 'block';
+}
+
+async function verTorneosJugador(tag){
+  const wrap = document.getElementById('mTorneosWrap');
+  wrap.style.display = 'block';
+  wrap.innerHTML = '<div class="text-faint" style="font-family:var(--f-mono); font-size:12px;">Cargando torneos…</div>';
+  try{
+    const data = await apiGet('webTorneosJugador', { tag });
+    const torneos = (data && data.torneos) || [];
+    if (!torneos.length){
+      wrap.innerHTML = '<div class="empty">Este jugador no tiene participación registrada en torneos.</div>';
+      return;
+    }
+    wrap.innerHTML = `<div class="card" style="padding:8px 4px;">${torneos.map(t => `
+      <div class="ingreso-row" style="cursor:default;">
+        <div class="ingreso-info">
+          <div class="ing-nombre">Torneo ${esc(String(t.idTorneo))}</div>
+          <div class="ing-fecha">${t.clan ? esc(t.clan) + ' · ' : ''}${t.fecha ? esc(t.fecha) : 'Fecha no registrada'}</div>
+        </div>
+        <div class="ingreso-links">
+          ${t.puesto ? `<span class="badge badge-gold">Puesto ${esc(String(t.puesto))}</span>` : ''}
+          ${t.victorias !== undefined ? `<span class="badge badge-purple">${fmtNum(t.victorias)} victorias</span>` : ''}
+        </div>
+      </div>`).join('')}</div>`;
+  }catch(err){
+    wrap.innerHTML = `<div class="empty">No se pudo cargar los torneos de este jugador: ${esc(err.message)}</div>`;
+  }
+}
+document.getElementById('btnVerTorneosJugador').addEventListener('click', function(){
+  verTorneosJugador(this.dataset.tag);
+});
+
+/** Clic en "otra cuenta" abre SU perfil en una pestaña nueva propia,
+ * consistente con el resto del sitio (ya no navega dentro de la misma
+ * página como hacía jugadores.html). */
+async function verOtrasCuentas(tag){
+  const wrap = document.getElementById('mOtrasCuentasWrap');
+  wrap.innerHTML = '<div class="text-faint" style="font-family:var(--f-mono); font-size:12px;">Buscando cuentas con el mismo celular…</div>';
+  try{
+    const data = await apiGetAuth('webAdminOtrasCuentas', { tag });
+    const cuentas = (data && data.cuentas) || [];
+    if (!cuentas.length){
+      wrap.innerHTML = '<div class="text-faint" style="font-family:var(--f-mono); font-size:12px;">No se encontraron otras cuentas con el mismo celular.</div>';
+      return;
+    }
+    wrap.innerHTML = `<div class="card" style="padding:8px 4px;">${cuentas.map(c => `
+      <div class="ingreso-row js-otra-cuenta" data-tag="${esc(c.tag)}">
+        <div class="ingreso-info">
+          <div class="ing-nombre">${esc(c.nombre)}</div>
+          <div class="ing-fecha">${esc(c.tag)} · ${esc(c.clan || '—')}</div>
+        </div>
+      </div>`).join('')}</div>`;
+    wrap.querySelectorAll('.js-otra-cuenta').forEach(row => {
+      row.addEventListener('click', () => window.open('perfil.html?tag=' + encodeURIComponent(row.dataset.tag), '_blank'));
+    });
+  }catch(err){
+    wrap.innerHTML = `<div class="text-faint" style="font-family:var(--f-mono); font-size:12px;">No se pudo cargar: ${esc(err.message)}</div>`;
+  }
+}
+document.getElementById('btnVerOtrasCuentas').addEventListener('click', function(){
+  verOtrasCuentas(this.dataset.tag);
+});
+
+function mostrarFormVetar(tag){
+  const wrap = document.getElementById('mVetarWrap');
+  const yaAbierto = wrap.style.display !== 'none' && wrap.innerHTML;
+  if (yaAbierto){
+    wrap.style.display = 'none';
+    wrap.innerHTML = '';
+    return;
+  }
+  wrap.innerHTML = `
+    <div class="vetar-form">
+      <div class="vetar-form-titulo">Vetar a ${esc(tag)}</div>
+      <div class="field">
+        <label for="vjRazon">Razón</label>
+        <select id="vjRazon">
+          <option value="">Elige una razón…</option>
+          <option value="NARANJA x">NARANJA x</option>
+          <option value="Vetado por clan">Vetado por clan</option>
+          <option value="Incumplimiento de ataques">Incumplimiento de ataques</option>
+          <option value="Conducta inapropiada">Conducta inapropiada</option>
+          <option value="Inactividad prolongada">Inactividad prolongada</option>
+          <option value="Solicitud propia">Solicitud propia</option>
+        </select>
+      </div>
+      <div class="field" style="margin-bottom:8px;">
+        <label for="vjComentario">Comentario (opcional)</label>
+        <textarea id="vjComentario" rows="4" placeholder="Detalle adicional para el registro de Comentarios"></textarea>
+      </div>
+      <button type="button" class="btn btn-primary btn-block" id="btnVjConfirmar" style="border-color:var(--danger);">Confirmar veto</button>
+      <div id="vjMsg"></div>
+    </div>`;
+  wrap.style.display = 'block';
+  document.getElementById('btnVjConfirmar').addEventListener('click', () => enviarVeto(tag));
+}
+async function enviarVeto(tag){
+  const msgEl = document.getElementById('vjMsg');
+  msgEl.innerHTML = '';
+  const razon = document.getElementById('vjRazon').value;
+  const comentario = document.getElementById('vjComentario').value.trim();
+  if (!razon){ msgEl.innerHTML = '<div class="msg msg-error">Elige una Razón.</div>'; return; }
+  if (!window.confirm(`¿Vetar a ${tag}? Esta acción no se puede deshacer desde la web.`)) return;
+  const btnConfirmar = document.getElementById('btnVjConfirmar');
+  btnConfirmar.disabled = true;
+  try{
+    const data = await apiPost('webAdminVetar', {
+      sessionToken: sessionStorage.getItem('terna_admin_token'),
+      datos: { tag: tag, razon: razon, comentario: comentario }
+    });
+    if (data && data.ok === false && /sesión|sesion/i.test(String(data.error||''))){
+      msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)} Vuelve a iniciar sesión desde el panel de admin.</div>`;
+      document.getElementById('btnVetarJugador').style.display = 'none';
+      return;
+    }
+    if (!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; btnConfirmar.disabled = false; return; }
+    msgEl.innerHTML = '<div class="msg msg-ok">Miembro vetado.</div>';
+    const btnVetar = document.getElementById('btnVetarJugador');
+    btnVetar.disabled = true;
+    btnVetar.textContent = '🚫 Vetado';
+  }catch(err){
+    msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
+    btnConfirmar.disabled = false;
+  }
+}
+document.getElementById('btnVetarJugador').addEventListener('click', function(){
+  mostrarFormVetar(this.dataset.tag);
+});
+
+async function cargarPerfil(){
+  if (!TAG_PERFIL){
+    document.getElementById('perfilCargando').style.display = 'none';
+    document.getElementById('perfilError').style.display = 'block';
+    document.getElementById('perfilError').innerHTML = '<div class="msg msg-error">Falta el Tag del jugador en el link (?tag=...).</div>';
+    return;
+  }
+  try{
+    const data = await apiGet('webPerfil', { tag: TAG_PERFIL });
+    if (!data.ok){
+      document.getElementById('perfilCargando').style.display = 'none';
+      document.getElementById('perfilError').style.display = 'block';
+      document.getElementById('perfilError').innerHTML = `<div class="msg msg-error">${esc(data.error || 'No se encontró este jugador.')}</div>`;
+      return;
+    }
+    renderMiembro(data.jugador);
+  }catch(err){
+    document.getElementById('perfilCargando').style.display = 'none';
+    document.getElementById('perfilError').style.display = 'block';
+    document.getElementById('perfilError').innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
+  }
+}
+cargarPerfil();
+</script>
+</body>
+</html>

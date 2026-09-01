@@ -27,11 +27,18 @@
 <style>
   /* Estilos locales refinados para Inicio (Dark Elixir / eSports UI) */
   .hero-banner{position:relative; overflow:hidden; padding-top:0; padding-bottom:0;}
+  /* FIX (31-ago-2026, pedido usuario — "en la web la imagen se ve más
+     pequeña... en el celular ya casi no se distingue por estar tan oscura
+     y pequeña"): se sube el alto máximo en escritorio (460px→560px) y el
+     mínimo en celular (140px→220px), y se sube la opacidad base
+     (.26→.38) para que se distinga bien en pantallas chicas sin tapar el
+     texto — el degradado de abajo (.hero-banner-fade) sigue oscureciendo
+     lo suficiente donde el texto se superpone. */
   .hero-banner-img{
     position:absolute; top:0; left:0; width:100%;
-    height:clamp(140px, 23.8vw, 460px);
+    height:clamp(220px, 30vw, 560px);
     object-fit:cover; object-position:center 24%;
-    opacity:.26; filter:saturate(1.2) contrast(1.1);
+    opacity:.38; filter:saturate(1.25) contrast(1.1);
   }
   /* FIX (31-ago-2026, pedido usuario — "el texto del recuadro naranja se
      superpone al texto de la imagen del banner"): antes este degradado
@@ -47,7 +54,7 @@
      var(--bg) totalmente opaco y no queda rastro visible debajo del texto. */
   .hero-banner-fade{
     position:absolute; top:0; left:0; width:100%;
-    height:clamp(140px, 23.8vw, 460px);
+    height:clamp(220px, 30vw, 560px);
     background:
       linear-gradient(180deg, rgba(4,5,8,.6) 0%, rgba(4,5,8,.42) 30%, rgba(4,5,8,.8) 70%, var(--bg) 100%),
       radial-gradient(circle at 50% 30%, transparent 35%, rgba(4,5,8,.82) 100%);
@@ -261,6 +268,12 @@
     background:rgba(255,199,0,.1); border:1px solid rgba(255,199,0,.3);
     border-radius:999px; padding:5px 12px; white-space:nowrap;
   }
+
+  @media (max-width:720px){
+    .clanes-sec-head{ justify-content:center; text-align:center; }
+    .clanes-sec-head > div{ min-width:100%; }
+    .clanes-escudo{ width:100%; display:flex; justify-content:center; margin-top:4px; }
+  }
 </style>
 </head>
 <body data-page="inicio">
@@ -275,7 +288,7 @@
     </a>
     <button id="navToggle" class="nav-toggle" aria-label="Abrir menú">☰</button>
     <div class="links">
-      <a href="jugadores.html" data-page="jugadores">Clanes</a>
+      <a href="jugadores.html" data-page="jugadores">Directorio</a>
       <a href="guerra.html" data-page="guerra">Guerra</a>
       <a href="torneos.html" data-page="torneos">Torneos</a>
       <a href="comunidad.html" data-page="comunidad">Comunidad</a>
@@ -335,7 +348,7 @@
           Familia Terna es una alianza de 4 clanes en Clash Royale. Cada clan
           cuenta con sus propios requisitos de trofeos, ataques en guerra y
           participación en torneos para mantener o ascender de rango. Puedes
-          consultar tu posición exacta en <a href="jugadores.html">Jugadores</a> buscando tu Tag.
+          consultar tu posición exacta en <a href="jugadores.html">Directorio</a> buscando tu Tag.
         </p>
       </div>
       <div style="flex:1; min-width:220px; display:flex; gap:14px; flex-direction:column;">
@@ -350,15 +363,27 @@
 <!-- ---------- GRID DE CLANES ---------- -->
 <section id="clanes">
   <div class="wrap">
-    <div class="sec-head" style="display:flex; align-items:center; justify-content:space-between; gap:24px; flex-wrap:wrap;">
+    <!-- FIX (31-ago-2026, pedido usuario):
+         - Escritorio: "el escudo podría situarse un poco más a la
+           izquierda, un poco más grande tal vez, que no esté tan lejos
+           del texto" — justify-content:space-between empujaba el escudo
+           hasta el borde derecho del contenedor sin importar el ancho del
+           texto; se cambia a flex-start (los dos quedan juntos, separados
+           solo por el gap) y se agranda el escudo (150px→176px).
+         - Móvil: "el escudo debe estar al medio en la versión de celular"
+           — con flex-wrap:wrap y solo 2 ítems, al pasar el escudo a su
+           propia línea quedaba pegado al borde izquierdo (una sola línea
+           con un ítem no se centra con justify-content). Se centra
+           explícito por media query sin tocar el layout de escritorio. -->
+    <div class="sec-head clanes-sec-head" style="display:flex; align-items:center; justify-content:flex-start; gap:28px; flex-wrap:wrap;">
       <div style="flex:1; min-width:260px;">
-        <div class="eyebrow">Nuestros Clanes</div>
+        <a class="eyebrow" href="jugadores.html#roster" style="text-decoration:none;">Nuestros Clanes</a>
         <h2>Los 4 Clanes Terna</h2>
         <p>Cada clan con su propia exigencia y nivel competitivo — encuentra el ideal para tu perfil.</p>
       </div>
-      <picture>
+      <picture class="clanes-escudo">
         <source srcset="assets/escudo.webp" type="image/webp">
-        <img src="assets/img/escudo.png" alt="Escudo Familia Terna" width="150" height="150" style="width:150px; height:150px; flex-shrink:0; filter:drop-shadow(0 0 20px rgba(162,57,255,.35));">
+        <img src="assets/img/escudo.png" alt="Escudo Familia Terna" width="176" height="176" style="width:176px; height:176px; flex-shrink:0; filter:drop-shadow(0 0 20px rgba(162,57,255,.35));">
       </picture>
     </div>
     <div class="grid-4" id="clanGrid">
@@ -454,8 +479,17 @@
         <span class="social-icon"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/></svg></span>
         <span class="social-text"><span class="social-label">TikTok</span><span class="social-sub">@grupoternaoficial</span></span>
       </a>
+      <!-- FIX (31-ago-2026, pedido usuario — "el logo de RoyaleAPI no se
+           muestra, los otros logos están bien"): el PNG que se hotlinkeaba
+           directo desde royaleapi.com dejó de resolver (¿ruta cambiada o
+           bloqueo de hotlink?). Se reemplaza por el servicio de favicons
+           de Google (s2/favicons), que resuelve el ícono real del sitio de
+           forma estable y no depende de una ruta interna de RoyaleAPI que
+           puede volver a cambiar. Si en el futuro se consigue el logo
+           oficial en SVG, puede reemplazar este <img> igual que los demás
+           íconos monocromo. -->
       <a class="social-card" href="https://royaleapi.com/clan/family/grupoterna/clans" target="_blank" rel="noopener">
-        <span class="social-icon social-icon-img"><img src="https://royaleapi.com/static/img/favicon2/android-icon-96x96.png?t=c1c529c8c" alt="" width="24" height="24" loading="lazy"></span>
+        <span class="social-icon social-icon-img"><img src="https://www.google.com/s2/favicons?sz=64&domain=royaleapi.com" alt="" width="24" height="24" loading="lazy"></span>
         <span class="social-text"><span class="social-label">RoyaleAPI</span><span class="social-sub">grupoterna</span></span>
       </a>
     </div>

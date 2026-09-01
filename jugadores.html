@@ -116,7 +116,7 @@
     </a>
     <button id="navToggle" class="nav-toggle" aria-label="Abrir menú">☰</button>
     <div class="links">
-      <a href="jugadores.html" data-page="jugadores">Clanes</a>
+      <a href="jugadores.html" data-page="jugadores">Directorio</a>
       <a href="guerra.html" data-page="guerra">Guerra</a>
       <a href="torneos.html" data-page="torneos">Torneos</a>
       <a href="comunidad.html" data-page="comunidad">Comunidad</a>
@@ -155,7 +155,7 @@
     <div class="sec-head" style="margin-bottom:20px;">
       <div class="eyebrow">Directorio de la comunidad</div>
       <h2 style="font-size:24px; margin-top:10px;">Busca tu perfil por nombre o tag</h2>
-      <p style="margin-top:8px;">Ingresa tu nombre o tag para ver tus ataques de guerra, torneos y si calificas para un ascenso.</p>
+      <p style="margin-top:8px;">Ingresa tu nombre o tag para ver tus ataques de guerra, torneos y si calificas para un ascenso — se abre en una pestaña nueva.</p>
     </div>
     <div class="card">
       <div class="buscador">
@@ -163,51 +163,6 @@
         <button class="btn btn-primary" id="btnBuscar">Buscar</button>
       </div>
       <div id="buscarMsg"></div>
-    </div>
-  </section>
-
-  <!-- ---------- PERFIL DEL JUGADOR ----------
-       Sección visualmente independiente del buscador de arriba (borde
-       superior + espacio propio), y con un link propio: al buscar, la URL
-       pasa a jugadores.html?tag=TAG (ver actualizarUrlPerfil() más abajo)
-       en vez de solo mostrar la info sin cambiar el link. -->
-  <section id="miembroSec" style="display:none; padding:40px 0 8px; margin-top:8px; border-top:1px solid var(--line);">
-    <div class="eyebrow" style="margin-top:32px;">Perfil del jugador</div>
-    <div class="card" style="padding:28px; margin-top:16px;">
-      <div class="perfil-cabecera">
-        <div>
-          <h2 id="mNombre" style="font-size:24px;">—</h2>
-          <div class="text-dim" id="mSub" style="margin-top:6px; font-size:14px;">—</div>
-        </div>
-        <div class="stats-mini">
-          <span><b id="mCopas">0</b>Copas</span>
-          <span><b id="mVGuerra">0</b>V. Guerra</span>
-          <span><b id="mTorneos">0</b>Torneos</span>
-          <span><b id="mAtaques">0</b>Ataques/sem</span>
-        </div>
-      </div>
-
-      <div id="mReqContenido" style="margin-top:16px;"></div>
-
-      <div id="mExtWrap"></div>
-
-      <div style="display:flex; gap:10px; margin-top:18px; flex-wrap:wrap;">
-        <button type="button" class="btn btn-ghost" id="btnVerTorneosJugador">🏆 Ver torneos</button>
-        <button type="button" class="btn btn-ghost" id="btnVerOtrasCuentas" style="display:none;">Ver otras cuentas</button>
-        <!-- FIX (30-ago-2026, pedido usuario — "a la derecha de 'Ver otras
-             cuentas' añade un botón de Vetar, solo visible con sesión de
-             admin"): mismo criterio de visibilidad que btnVerOtrasCuentas
-             (esAdminLogueado()), más el mismo chequeo de "Funciones" que ya
-             usa admin.html (cardVetar) para no mostrarlo si el admin
-             logueado no tiene el permiso "Vetar" — el backend
-             (_webAdminVetar, 34_Web_API.gs) igual lo revalida siempre, acá
-             es solo UX para no mostrar un botón que el servidor va a
-             rechazar. -->
-        <button type="button" class="btn btn-ghost" id="btnVetarJugador" style="display:none; border-color:var(--danger); color:var(--danger);">🚫 Vetar</button>
-      </div>
-      <div id="mTorneosWrap" style="display:none; margin-top:14px;"></div>
-      <div id="mOtrasCuentasWrap" style="margin-top:14px;"></div>
-      <div id="mVetarWrap" style="display:none; margin-top:14px;"></div>
     </div>
   </section>
 
@@ -404,305 +359,65 @@ function barraRequisito(lbl, actual, requerido, activo, sufijo){
       <div class="val">${fmtNum(actual)}${sufijo||''} / ${fmtNum(requerido)}${sufijo||''}</div>
     </div>`;
 }
-/**
- * bloqueRequisitos(j, key)
- * Progreso de UNA categoría (ascensos o descensos), sin mostrar la
- * palabra "Ascensos"/"Descensos" en pantalla ni el badge "Debe ser
- * miembro activo" (no aportan nada útil al jugador — pedido del PDF de
- * diseño). Ya no hay tabs: renderMiembro() concatena todas las
- * categorías con datos, una debajo de otra.
- */
-function bloqueRequisitos(j, key){
-  const req = j.progreso ? j.progreso[key] : null;
-  if (!req) return '';
-  const campoMinT = campoMinTSegunRango(j.rango);
-  const minT = req[campoMinT];
-  let html = '';
-  if (minT) html += barraRequisito('Trofeos guerra', minT.actual, minT.requerido, minT.activo, '🏆');
-  if (req.ataques) html += barraRequisito('Ataques/semana', req.ataques.actual, req.ataques.requerido, req.ataques.activo, '');
-  if (req.torneos) html += barraRequisito('Torneos', req.torneos.actual, req.torneos.requerido, req.torneos.activo, '');
-  if (req.reaccion && req.reaccion.activo) html += `<div style="margin-top:8px;"><span class="badge badge-purple">Requiere reaccionar a la publicación</span></div>`;
-  return html;
-}
-
 function extItem(valor, label, esNumero){
   if (valor === undefined || valor === null || valor === '') return '';
   const txt = esNumero ? fmtNum(valor) : String(valor);
   return `<div class="ext-item"><div class="v">${esc(txt)}</div><div class="k">${esc(label)}</div></div>`;
 }
 
-function renderExtendido(ext){
-  const wrap = document.getElementById('mExtWrap');
-  if (!ext){ wrap.innerHTML = ''; return; }
-  let items = '';
-  items += extItem(ext.nivelXp, 'Nivel', true);
-  items += extItem(ext.nivelCartas, 'Nivel de cartas', true);
-  items += extItem(ext.copasMax, 'Copas máx.', true);
-  items += extItem(ext.arena, 'Arena', false);
-  items += extItem(ext.victorias, 'Victorias', true);
-  items += extItem(ext.derrotas, 'Derrotas', true);
-  items += extItem(ext.batallas, 'Batallas', true);
-  items += extItem(ext.racha, 'Racha', true);
-  items += extItem(ext.victorias3Coronas, '3 coronas', true);
-  items += extItem(ext.maxVictoriasDesafios, 'Máx. victorias desafío', true);
-  items += extItem(ext.cartasDesafios, 'Cartas de desafíos', true);
-  items += extItem(ext.cartasTorneos, 'Cartas de torneos', true);
-  items += extItem(ext.emotes, 'Emotes', true);
-  items += extItem(ext.banners, 'Banners', true);
-  items += extItem(ext.donacionesRecibidas, 'Donac. recibidas', true);
-  items += extItem(ext.donacionesRealizadas, 'Donac. hechas', true);
-  items += extItem(ext.rankingClan, 'Ranking en el clan', true);
+/* FIX (31-ago-2026, pedido usuario — "debe mostrarse en otra pestaña el
+   perfil, con mayor detalle"): campoMinTSegunRango/barraRequisito/
+   bloqueRequisitos/renderExtendido/actualizarUrlPerfil/renderMiembro/
+   verTorneosJugador/verOtrasCuentas/mostrarFormVetar/enviarVeto/
+   adminPuedeVetar (todo lo que pintaba el panel inline #miembroSec) se
+   movieron tal cual a perfil.html, que ahora es la única página que
+   renderiza el perfil completo. extItem() se queda porque
+   renderComparadorLado (más abajo) también lo usa. */
 
-  let camino = '';
-  if (ext.caminoLeyendas){
-    const cl = ext.caminoLeyendas;
-    const partes = [cl.liga, cl.trofeos, cl.rango].filter(v => v !== undefined && v !== null && v !== '');
-    if (partes.length) camino = `<div style="margin-top:16px;"><span class="badge badge-gold">🏔️ Camino de Leyendas · ${partes.map(esc).join(' · ')}</span></div>`;
-  }
+/* =========================================================================
+ * Coincidencias por nombre o Tag (31-ago-2026, pedido del usuario) —
+ * compartido por el buscador de perfil y el comparador de jugadores.
+ * ========================================================================= */
+const MAX_COINCIDENCIAS = 5;
 
-  const royaleOk = urlValida(ext.royaleApi);
-  const cwOk = urlValida(ext.cwStats);
-  // Mazo/Mazo2 (34_Web_API.gs: ext.deck/ext.deck2): links a mazos sugeridos
-  // en RoyaleAPI para este jugador (hoja Links, columnas Mazo/Mazo2) —
-  // mismo criterio de validación de link roto (urlValida) que ya se usa
-  // para RoyaleAPI/CWStats, para no mostrar un botón que no lleve a nada.
-  const deckOk = urlValida(ext.deck);
-  const deck2Ok = urlValida(ext.deck2);
-  let links = '';
-  if (royaleOk || cwOk || deckOk || deck2Ok){
-    links = `<div class="ext-links">
-      ${royaleOk ? `<a href="${esc(ext.royaleApi)}" target="_blank" rel="noopener">🌐 RoyaleAPI</a>` : ''}
-      ${cwOk ? `<a href="${esc(ext.cwStats)}" target="_blank" rel="noopener">📊 CWStats</a>` : ''}
-      ${deckOk ? `<a href="${esc(ext.deck)}" target="_blank" rel="noopener">🃏 Mazo sugerido</a>` : ''}
-      ${deck2Ok ? `<a href="${esc(ext.deck2)}" target="_blank" rel="noopener">🃏 Mazo sugerido (2)</a>` : ''}
-    </div>`;
-  }
-
-  wrap.innerHTML = (items ? `<div class="ext-grid">${items}</div>` : '') + camino + links;
-}
-
-/** Refleja el tag del perfil abierto en la URL (jugadores.html?tag=TAG),
- * SIN recargar la página — pedido del PDF de diseño: "se debe generar un
- * link al ingresar a cada perfil... actualmente solo se desglosa un
- * cuadro con información del perfil pero no cambia el link". */
-function actualizarUrlPerfil(tag){
-  if (!history.pushState) return;
-  const url = new URL(location.href);
-  url.searchParams.set('tag', tag);
-  url.searchParams.delete('clan');
-  history.pushState({ tag }, '', url);
-}
-
-/** true si hay un admin logueado que además tiene el permiso "Vetar" en su
- *  columna Funciones (mismo criterio que aplicarVisibilidadPorFunciones()
- *  en admin.html — ver ese archivo). Lee 'terna_admin_info' directo de
- *  sessionStorage porque common.js no expone esa constante (solo vive
- *  como SESSION_ADMIN_KEY local en admin.html); es el mismo string en
- *  ambos lados. Esto es solo UX: el backend (_webAdminVetar,
- *  34_Web_API.gs) revalida el permiso igual en cada request. */
-function adminPuedeVetar(){
-  if (!esAdminLogueado()) return false;
-  const adminGuardado = sessionStorage.getItem('terna_admin_info');
-  if (!adminGuardado) return false;
-  try{
-    const funciones = String(JSON.parse(adminGuardado).funciones || '');
-    return funciones.indexOf('Vetar') !== -1;
-  }catch(err){
-    return false;
-  }
-}
-
-function renderMiembro(j){
-  document.getElementById('miembroSec').style.display = 'block';
-  document.getElementById('mNombre').textContent = j.nombre || 'Sin nombre';
-  document.getElementById('mSub').textContent = `${j.tag} · ${j.clan || '—'} · ${j.rango || '—'} · ${j.estado || '—'}`;
-  document.getElementById('mCopas').textContent = fmtNum(j.copas);
-  document.getElementById('mVGuerra').textContent = fmtNum(j.vGuerra);
-  document.getElementById('mTorneos').textContent = fmtNum(j.torneos);
-  document.getElementById('mAtaques').textContent = fmtNum(j.guerraSemana && j.guerraSemana.ataques);
-
-  const bloques = ['ascensos', 'descensos'].map(key => bloqueRequisitos(j, key)).filter(Boolean);
-  document.getElementById('mReqContenido').innerHTML = bloques.length
-    ? bloques.join('<div style="height:14px;"></div>')
-    : '<div class="empty">Este clan todavía no tiene requisitos configurados.</div>';
-
-  renderExtendido(j.extendido);
-
-  // "Ver torneos" (participación de ESTE jugador), "Ver otras cuentas" y
-  // "Vetar" (los dos últimos, solo admins) arrancan cerrados/limpios cada
-  // vez que se abre un perfil.
-  document.getElementById('mTorneosWrap').style.display = 'none';
-  document.getElementById('mTorneosWrap').innerHTML = '';
-  document.getElementById('mOtrasCuentasWrap').innerHTML = '';
-  document.getElementById('mVetarWrap').style.display = 'none';
-  document.getElementById('mVetarWrap').innerHTML = '';
-  document.getElementById('btnVerTorneosJugador').dataset.tag = j.tag;
-  const btnOtras = document.getElementById('btnVerOtrasCuentas');
-  btnOtras.style.display = esAdminLogueado() ? 'inline-flex' : 'none';
-  btnOtras.dataset.tag = j.tag;
-  const btnVetar = document.getElementById('btnVetarJugador');
-  btnVetar.style.display = adminPuedeVetar() ? 'inline-flex' : 'none';
-  btnVetar.dataset.tag = j.tag;
-  btnVetar.textContent = '🚫 Vetar';
-  btnVetar.disabled = false;
-
-  actualizarUrlPerfil(j.tag);
-  document.getElementById('miembroSec').scrollIntoView({ behavior:'smooth', block:'start' });
-}
-
-/** Torneos en los que participó ESTE jugador (torneo, puesto, victorias,
- * fecha) — distinto del botón general de Torneos, que solo muestra el
- * top 3 de cada torneo sin indagar en un jugador puntual. Conecta con el
- * endpoint real del backend (34_Web_API.gs, FASE 7, 29-ago-2026):
- * 'webTorneosJugador' (GET público, mismo token que webPerfil) — devuelve
- * { ok, torneos:[{idTorneo, fecha, puesto, victorias, clan}] } (sin
- * "nombre" de torneo — T_Lista solo guarda el id). */
-async function verTorneosJugador(tag){
-  const wrap = document.getElementById('mTorneosWrap');
-  wrap.style.display = 'block';
-  wrap.innerHTML = '<div class="text-faint" style="font-family:var(--f-mono); font-size:12px;">Cargando torneos…</div>';
-  try{
-    const data = await apiGet('webTorneosJugador', { tag });
-    const torneos = (data && data.torneos) || [];
-    if (!torneos.length){
-      wrap.innerHTML = '<div class="empty">Este jugador no tiene participación registrada en torneos.</div>';
-      return;
+/** Todas las coincidencias (no solo la primera) de `raw` contra nombre o
+ * tag de cualquier miembro de rosterData, con su clan adjunto — recortado
+ * a `max` resultados. */
+function coincidenciasDirectorio(raw, max){
+  const q = String(raw||'').trim().replace(/^#/, '').toLowerCase();
+  if (!q) return [];
+  const out = [];
+  rosterData.forEach(c => c.miembros.forEach(m => {
+    const tagSinNumeral = String(m.tag||'').replace(/^#/, '').toLowerCase();
+    if (m.nombre.toLowerCase().includes(q) || tagSinNumeral.includes(q)){
+      out.push({ tag: m.tag, nombre: m.nombre, clan: c.nombre });
     }
-    wrap.innerHTML = `<div class="card" style="padding:8px 4px;">${torneos.map(t => `
-      <div class="ingreso-row">
-        <div class="ingreso-info">
-          <div class="ing-nombre">Torneo ${esc(String(t.idTorneo))}</div>
-          <div class="ing-fecha">${t.clan ? esc(t.clan) + ' · ' : ''}${t.fecha ? esc(t.fecha) : 'Fecha no registrada'}</div>
-        </div>
-        <div class="ingreso-links">
-          ${t.puesto ? `<span class="badge badge-gold">Puesto ${esc(String(t.puesto))}</span>` : ''}
-          ${t.victorias !== undefined ? `<span class="badge badge-purple">${fmtNum(t.victorias)} victorias</span>` : ''}
-        </div>
-      </div>`).join('')}</div>`;
-  }catch(err){
-    wrap.innerHTML = `<div class="empty">No se pudo cargar los torneos de este jugador: ${esc(err.message)}</div>`;
-  }
+  }));
+  return out.slice(0, max || MAX_COINCIDENCIAS);
 }
-document.getElementById('btnVerTorneosJugador').addEventListener('click', function(){
-  verTorneosJugador(this.dataset.tag);
-});
 
-/** "Ver otras cuentas": SOLO visible para admins logueados (ver
- * renderMiembro). Lista cuentas registradas con el mismo celular que este
- * jugador. Conecta con el endpoint real del backend (34_Web_API.gs, FASE
- * 7, 29-ago-2026): 'webAdminOtrasCuentas' (GET autenticado, vía
- * apiGetAuth, con el tag como parámetro) — devuelve
- * { ok, cuentas:[{tag,nombre,clan}] }, ya excluyendo al propio tag
- * consultado y cruzando Directorio + Inactivos por Celular. */
-async function verOtrasCuentas(tag){
-  const wrap = document.getElementById('mOtrasCuentasWrap');
-  wrap.innerHTML = '<div class="text-faint" style="font-family:var(--f-mono); font-size:12px;">Buscando cuentas con el mismo celular…</div>';
-  try{
-    const data = await apiGetAuth('webAdminOtrasCuentas', { tag });
-    const cuentas = (data && data.cuentas) || [];
-    if (!cuentas.length){
-      wrap.innerHTML = '<div class="text-faint" style="font-family:var(--f-mono); font-size:12px;">No se encontraron otras cuentas con el mismo celular.</div>';
-      return;
-    }
-    wrap.innerHTML = `<div class="card" style="padding:8px 4px;">${cuentas.map(c => `
-      <div class="ingreso-row js-otra-cuenta" data-tag="${esc(c.tag)}" style="cursor:pointer;">
-        <div class="ingreso-info">
-          <div class="ing-nombre">${esc(c.nombre)}</div>
-          <div class="ing-fecha">${esc(c.tag)} · ${esc(c.clan || '—')}</div>
-        </div>
-      </div>`).join('')}</div>`;
-    wrap.querySelectorAll('.js-otra-cuenta').forEach(row => {
-      row.addEventListener('click', () => buscarMiembro(row.dataset.tag));
-    });
-  }catch(err){
-    wrap.innerHTML = `<div class="text-faint" style="font-family:var(--f-mono); font-size:12px;">No se pudo cargar: ${esc(err.message)}</div>`;
-  }
-}
-document.getElementById('btnVerOtrasCuentas').addEventListener('click', function(){
-  verOtrasCuentas(this.dataset.tag);
-});
-
-/**
- * "Vetar": SOLO visible para admins logueados con el permiso "Vetar" (ver
- * adminPuedeVetar() y renderMiembro()). Abre un mini-formulario inline con
- * Razón + Comentario y llama al MISMO endpoint que ya usa el card "Vetar
- * miembro" de admin.html (_webAdminVetar, 34_Web_API.gs, vía apiPost) — de
- * un solo sentido, sin opción de deshacer desde la web (no hay endpoint de
- * "desvetar"), por eso el confirm() antes de mandar el request, igual que
- * en admin.html. La lista de Razón es la MISMA que
- * CFG.RAZON_VALORES_VALIDOS (01_Config_Global.gs) y la misma que ya usa
- * admin.html — si esa lista cambia en el backend, hay que actualizarla ahí
- * Y acá a mano (no hay endpoint que la exponga).
- */
-function mostrarFormVetar(tag){
-  const wrap = document.getElementById('mVetarWrap');
-  const yaAbierto = wrap.style.display !== 'none' && wrap.innerHTML;
-  if (yaAbierto){
-    wrap.style.display = 'none';
-    wrap.innerHTML = '';
-    return;
-  }
-  wrap.innerHTML = `
-    <div class="vetar-form">
-      <div class="vetar-form-titulo">Vetar a ${esc(tag)}</div>
-      <div class="field">
-        <label for="vjRazon">Razón</label>
-        <select id="vjRazon">
-          <option value="">Elige una razón…</option>
-          <option value="NARANJA x">NARANJA x</option>
-          <option value="Vetado por clan">Vetado por clan</option>
-          <option value="Incumplimiento de ataques">Incumplimiento de ataques</option>
-          <option value="Conducta inapropiada">Conducta inapropiada</option>
-          <option value="Inactividad prolongada">Inactividad prolongada</option>
-          <option value="Solicitud propia">Solicitud propia</option>
-        </select>
+/** Lista de coincidencias (nombre, tag y clan de cada una) clicable — al
+ * elegir una llama a window[onPickFn](tag). Reutiliza el estilo ya
+ * existente de .miembro-row (directorio por clan) para no sumar CSS
+ * nuevo. */
+function renderListaCoincidencias(candidatos, onPickFn){
+  const filas = candidatos.map(c => `
+    <div class="miembro-row js-coincidencia" data-tag="${esc(c.tag)}" data-onpick="${esc(onPickFn)}">
+      <div>
+        <div class="mr-name">${esc(c.nombre)}</div>
+        <div class="mr-tag">${esc(c.tag)}</div>
       </div>
-      <div class="field" style="margin-bottom:8px;">
-        <label for="vjComentario">Comentario (opcional)</label>
-        <textarea id="vjComentario" rows="4" placeholder="Detalle adicional para el registro de Comentarios"></textarea>
-      </div>
-      <button type="button" class="btn btn-primary btn-block" id="btnVjConfirmar" style="border-color:var(--danger);">Confirmar veto</button>
-      <div id="vjMsg"></div>
-    </div>`;
-  wrap.style.display = 'block';
-  document.getElementById('btnVjConfirmar').addEventListener('click', () => enviarVeto(tag));
+      <span class="mr-rango">${esc(c.clan || '—')}</span>
+    </div>`).join('');
+  return `
+    <div class="msg">Se encontraron ${candidatos.length} coincidencias — elige a quién ver:</div>
+    <div class="card" style="margin-top:8px; padding:6px 14px;">${filas}</div>`;
 }
-
-async function enviarVeto(tag){
-  const msgEl = document.getElementById('vjMsg');
-  msgEl.innerHTML = '';
-  const razon = document.getElementById('vjRazon').value;
-  const comentario = document.getElementById('vjComentario').value.trim();
-  if (!razon){ msgEl.innerHTML = '<div class="msg msg-error">Elige una Razón.</div>'; return; }
-  if (!window.confirm(`¿Vetar a ${tag}? Esta acción no se puede deshacer desde la web.`)) return;
-
-  const btnConfirmar = document.getElementById('btnVjConfirmar');
-  btnConfirmar.disabled = true;
-  try{
-    const data = await apiPost('webAdminVetar', {
-      sessionToken: sessionStorage.getItem('terna_admin_token'),
-      datos: { tag: tag, razon: razon, comentario: comentario }
-    });
-    // Si la sesión vino vencida/inválida, se avisa acá mismo (jugadores.html
-    // no tiene pantalla de login propia como admin.html) y se oculta el
-    // botón para no invitar a reintentar con un token muerto.
-    if (data && data.ok === false && /sesión|sesion/i.test(String(data.error||''))){
-      msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)} Vuelve a iniciar sesión desde el panel de admin.</div>`;
-      document.getElementById('btnVetarJugador').style.display = 'none';
-      return;
-    }
-    if (!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; btnConfirmar.disabled = false; return; }
-    msgEl.innerHTML = '<div class="msg msg-ok">Miembro vetado.</div>';
-    const btnVetar = document.getElementById('btnVetarJugador');
-    btnVetar.disabled = true;
-    btnVetar.textContent = '🚫 Vetado';
-  }catch(err){
-    msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
-    btnConfirmar.disabled = false;
-  }
-}
-document.getElementById('btnVetarJugador').addEventListener('click', function(){
-  mostrarFormVetar(this.dataset.tag);
+document.addEventListener('click', e => {
+  const row = e.target.closest('.js-coincidencia');
+  if (!row) return;
+  const fn = window[row.dataset.onpick];
+  if (typeof fn === 'function') fn(row.dataset.tag);
 });
 
 /**
@@ -718,7 +433,6 @@ async function buscarMiembro(tagDirecto){
   const rawTrim = String(raw||'').trim();
   const msgEl = document.getElementById('buscarMsg');
   msgEl.innerHTML = '';
-  document.getElementById('miembroSec').style.display = 'none';
 
   if (!rawTrim){ msgEl.innerHTML = '<div class="msg msg-error">Escribe un nombre o Tag.</div>'; return; }
 
@@ -728,18 +442,20 @@ async function buscarMiembro(tagDirecto){
     // Vino de un clic en el directorio o en "Ver otras cuentas": ya es un Tag real.
     tagFinal = normalizarTag(tagDirecto);
   } else if (rosterData.length){
-    const q = rawTrim.replace(/^#/, '').toLowerCase();
-    const candidatos = [];
-    rosterData.forEach(c => c.miembros.forEach(m => {
-      const tagSinNumeral = String(m.tag||'').replace(/^#/, '').toLowerCase();
-      if (m.nombre.toLowerCase().includes(q) || tagSinNumeral.includes(q)) candidatos.push(m);
-    }));
+    const candidatos = coincidenciasDirectorio(rawTrim, MAX_COINCIDENCIAS);
     if (!candidatos.length){
       msgEl.innerHTML = '<div class="msg msg-error">No se encontró ningún miembro con ese nombre o Tag.</div>';
       return;
     }
+    // FIX (31-ago-2026, pedido usuario — "debería mostrarme las 5
+    // coincidencias (ya sea en tag o nombre) y darme a elegir el que
+    // quiero ver"): con UNA sola coincidencia se sigue resolviendo directo
+    // (eso "se reemplaza bien", según el propio pedido); con 2 o más ya no
+    // se elige la primera en automático — se muestra la lista y se espera
+    // el clic del usuario.
     if (candidatos.length > 1){
-      msgEl.innerHTML = `<div class="msg">Se encontraron ${candidatos.length} coincidencias — mostrando a <b>${esc(candidatos[0].nombre)}</b>.</div>`;
+      msgEl.innerHTML = renderListaCoincidencias(candidatos, 'buscarMiembro');
+      return;
     }
     tagFinal = candidatos[0].tag;
   } else {
@@ -757,13 +473,8 @@ async function buscarMiembro(tagDirecto){
 
   if (!tagFinal){ msgEl.innerHTML = '<div class="msg msg-error">Escribe un nombre o Tag válido.</div>'; return; }
   document.getElementById('tagInput').value = tagFinal;
-  try{
-    const data = await apiGet('webPerfil', { tag: tagFinal });
-    if (!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
-    renderMiembro(data.jugador);
-  }catch(err){
-    msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
-  }
+  window.open('perfil.html?tag=' + encodeURIComponent(tagFinal), '_blank');
+  msgEl.innerHTML = `<div class="msg msg-ok">Perfil abierto en una pestaña nueva.</div>`;
 }
 document.getElementById('btnBuscar').addEventListener('click', () => buscarMiembro());
 document.getElementById('tagInput').addEventListener('keydown', e => { if (e.key === 'Enter') buscarMiembro(); });
@@ -801,16 +512,51 @@ function renderComparadorLado(jugador){
  * igual se pinta el que sí se encontró y se muestra el error puntual del
  * otro, sin bloquear los dos lados de la comparación.
  */
+/** Resuelve un tag "final" a partir de texto libre para UN lado del
+ * comparador: si hay 1 sola coincidencia en el directorio, la usa; si el
+ * directorio no encuentra ninguna (ej. un Tag pegado que no está en
+ * rosterData todavía, o el directorio no cargó), deja pasar el texto tal
+ * cual (el backend igual puede resolverlo — "es más complicado pegar tags
+ * pero no se debe descartar"). Si hay 2+ coincidencias, devuelve null y
+ * las deja en `ambiguas` para que el llamador muestre el picker. */
+function resolverLadoComparador(raw, ambiguasOut){
+  if (!rosterData.length) return String(raw||'').trim();
+  const candidatos = coincidenciasDirectorio(raw, MAX_COINCIDENCIAS);
+  if (candidatos.length === 1) return candidatos[0].tag;
+  if (candidatos.length > 1){ ambiguasOut.push(candidatos); return null; }
+  return String(raw||'').trim(); // sin coincidencias locales: se manda tal cual
+}
+
+function elegirComparadorLado1(tag){ document.getElementById('compTag1').value = tag; compararJugadores(); }
+function elegirComparadorLado2(tag){ document.getElementById('compTag2').value = tag; compararJugadores(); }
+
 async function compararJugadores(){
-  const tag1 = document.getElementById('compTag1').value.trim();
-  const tag2 = document.getElementById('compTag2').value.trim();
+  const raw1 = document.getElementById('compTag1').value.trim();
+  const raw2 = document.getElementById('compTag2').value.trim();
   const msgEl = document.getElementById('compMsg');
   const wrap = document.getElementById('compWrap');
   msgEl.innerHTML = '';
   wrap.innerHTML = '';
 
-  if (!tag1 || !tag2){
+  if (!raw1 || !raw2){
     msgEl.innerHTML = '<div class="msg msg-error">Ingresa los dos nombres o tags a comparar.</div>';
+    return;
+  }
+
+  // FIX (31-ago-2026, pedido usuario): antes se mandaban los textos crudos
+  // directo al backend, eligiendo a ciegas la primera coincidencia posible
+  // del lado del servidor. Ahora se resuelve cada lado por separado contra
+  // el directorio ya cargado; si algún lado es ambiguo, se muestran sus
+  // coincidencias (nombre, tag, clan) y se espera el clic antes de
+  // comparar.
+  const ambiguas1 = [], ambiguas2 = [];
+  const tag1 = resolverLadoComparador(raw1, ambiguas1);
+  const tag2 = resolverLadoComparador(raw2, ambiguas2);
+  if (tag1 === null || tag2 === null){
+    let html = '';
+    if (tag1 === null) html += `<div style="margin-bottom:6px; font-size:13px; color:var(--text-dim);">Jugador 1 (${esc(raw1)}):</div>` + renderListaCoincidencias(ambiguas1[0], 'elegirComparadorLado1');
+    if (tag2 === null) html += `<div style="margin:${tag1===null?'16px':'0'} 0 6px; font-size:13px; color:var(--text-dim);">Jugador 2 (${esc(raw2)}):</div>` + renderListaCoincidencias(ambiguas2[0], 'elegirComparadorLado2');
+    msgEl.innerHTML = html;
     return;
   }
 
@@ -906,10 +652,13 @@ async function cargarRoster(){
       document.getElementById('roster').scrollIntoView({ behavior:'smooth', block:'start' });
     }
 
-    // Si venimos con jugadores.html?tag=TAG (link directo a un perfil, ver
-    // actualizarUrlPerfil()), abre ese perfil automáticamente.
+    // FIX (31-ago-2026): un link directo a jugadores.html?tag=TAG (de
+    // antes de que existiera perfil.html) ahora redirige a la página de
+    // perfil correspondiente EN LA MISMA pestaña — un window.open() acá
+    // sería un popup disparado sin gesto del usuario y la mayoría de
+    // navegadores lo bloquearía.
     const tagParam = new URLSearchParams(location.search).get('tag');
-    if (tagParam) buscarMiembro(tagParam);
+    if (tagParam){ location.replace('perfil.html?tag=' + encodeURIComponent(tagParam)); return; }
   }catch(err){
     wrap.innerHTML = `<div class="card"><div class="empty">No se pudo cargar el directorio: ${esc(err.message)}</div></div>`;
   }
