@@ -121,11 +121,21 @@ a:hover{color:var(--gold);}
 .wrap{max-width:var(--maxw); margin:0 auto; padding:0 24px;}
 
 /* ---------- Navegación ---------- */
+/* FIX (31-ago-2026, pedido usuario — "el menú hamburguesa está roto, al
+   hacer clic se abre hacia la derecha y aparece otro espacio"): backdrop-
+   filter en un ancestro convierte a ese ancestro en el "contenedor de
+   referencia" para cualquier descendiente con position:fixed (aquí,
+   .nav .links, el panel deslizable del menú en móvil). En vez de cubrir
+   toda la pantalla, el panel se posicionaba contra la cajita de ~64px del
+   propio .nav, no contra el viewport — de ahí el desplazamiento y el hueco
+   en blanco a la derecha. Se quita backdrop-filter de .nav para que .links
+   vuelva a posicionarse contra el viewport real. El fondo semitranslúcido
+   (rgba(4,5,8,.78)) ya es lo bastante oscuro para leerse bien sin el
+   desenfoque de vidrio esmerilado.
+*/
 .nav{
   position:sticky; top:0; z-index:100;
   background: rgba(4, 5, 8, 0.78);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
   border-bottom: 1px solid var(--line);
   transition: border-color .3s, background .3s;
 }
