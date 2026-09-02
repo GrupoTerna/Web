@@ -301,6 +301,38 @@
       <h3 style="font-size:15px; color:var(--gold); margin:10px 0 16px;">Ganadores del torneo más reciente</h3>
       <div id="ganadoresMsg"></div>
       <div id="ganadoresLista"></div>
+
+      <!-- FASE 24 (02-sep-2026, pedido del usuario — descalificaciones y
+           desempates de torneos): formulario chico para registrar una
+           resolución manual sobre una cuenta puntual del torneo cargado
+           arriba. Se abre desde el botón "Gestionar" de cada participante
+           (ver abrirResolucionForm() más abajo) y llama a
+           webAdminTorneoResolucionGuardar → _registrarResolucionTorneo()
+           (24_Torneos_Core.gs). Oculto hasta que se pulsa "Gestionar". -->
+      <div id="resolucionForm" style="display:none; margin-top:16px; padding-top:16px; border-top:1px solid var(--line);">
+        <div id="resolucionParaTexto" class="text-dim" style="font-size:13px; margin-bottom:10px;"></div>
+        <div class="field">
+          <label for="resTipo">Tipo de resolución</label>
+          <select id="resTipo">
+            <option value="Descalificado">Descalificado</option>
+            <option value="Empate - Reparto de premio">Empate - Reparto de premio</option>
+            <option value="Empate - Partida de desempate">Empate - Partida de desempate</option>
+          </select>
+        </div>
+        <div class="field" id="resPuestoFinalWrap" style="display:none;">
+          <label for="resPuestoFinal">Puesto final (tras la partida de desempate)</label>
+          <input type="number" id="resPuestoFinal" min="1" step="1">
+        </div>
+        <div class="field">
+          <label for="resMotivo">Motivo</label>
+          <input type="text" id="resMotivo" placeholder="La razón del castigo o el detalle del desempate — queda visible en el Doc y en la web">
+        </div>
+        <div class="field-row">
+          <button type="button" class="btn btn-primary" id="btnGuardarResolucion">Guardar resolución</button>
+          <button type="button" class="btn" id="btnCancelarResolucion">Cancelar</button>
+        </div>
+        <div id="resolucionMsg"></div>
+      </div>
     </div>
 
     <div id="miembroSec" style="display:none; margin-top:24px;">
@@ -1038,36 +1070,138 @@ document.getElementById('btnModificarTorneo').addEventListener('click', async ()
   }
 });
 
-/** "Ver ganadores" reutiliza el mismo webTorneos() público que index.html —
- *  no hay endpoint de admin separado (ver nota de diseño en 34_Web_API.gs). */
+/** FASE 24 (02-sep-2026, pedido del usuario — descalificaciones y
+ *  desempates de torneos): "Ver ganadores" pasó de reutilizar el webTorneos
+ *  público a un endpoint propio de admin, webAdminGanadoresTorneoDetalle
+ *  (ver _webAdminGanadoresTorneoDetalle(), 34_Web_API.gs), porque el
+ *  público nunca trae el Tag y el panel lo necesita para poder registrar
+ *  una resolución sobre una cuenta puntual. Cada participante (top3 y
+ *  lista completa) sale con un botón "Gestionar" que abre el formulario
+ *  de abajo (ver abrirResolucionForm()). */
+let ganadoresIdTorneoActual = null;
+
+function filaParticipanteResolucion(p){
+  let estadoHtml = '';
+  if(p.descalificado){
+    estadoHtml = `<div class="msg msg-error" style="margin-top:6px; padding:8px 10px; font-size:13px;">Descalificado — ${esc(p.motivoResolucion)}</div>`;
+  } else if(p.premioRepartido){
+    estadoHtml = `<div class="msg msg-ok" style="margin-top:6px; padding:8px 10px; font-size:13px;">Premio repartido — ${esc(p.motivoResolucion)}</div>`;
+  } else if(p.tipoResolucion){
+    estadoHtml = `<div class="text-dim" style="font-size:12px; margin-top:6px;">Puesto original: ${esc(p.puestoOriginal)} — ${esc(p.motivoResolucion)}</div>`;
+  }
+  return `
+    <div class="contenido-item">
+      <div class="cab">
+        <span class="etiqueta">Puesto ${esc(p.puesto)} — ${esc(p.nombre)}</span>
+        <span class="clan-chip">${esc(p.clan)}</span>
+      </div>
+      <div class="ganador-victorias">${fmtNum(p.victorias)} victorias</div>
+      ${estadoHtml}
+      <button type="button" class="btn btnGestionarResolucion" style="margin-top:8px;"
+        data-tag="${esc(p.tag)}" data-nombre="${esc(p.nombre)}"
+        data-tipo="${esc(p.tipoResolucion || '')}" data-motivo="${esc(p.motivoResolucion || '')}">Gestionar</button>
+    </div>`;
+}
+
 async function cargarGanadoresTorneo(){
   const msgEl = document.getElementById('ganadoresMsg');
   const lista = document.getElementById('ganadoresLista');
   msgEl.innerHTML = '';
   lista.innerHTML = '<div class="empty">Cargando…</div>';
+  document.getElementById('resolucionForm').style.display = 'none';
   try{
-    const data = await apiGet('webTorneos', {});
-    const g = data.ganadores;
-    if(!g || !g.top3 || !g.top3.length){
-      lista.innerHTML = '<div class="empty">Todavía no hay ganadores calificados para el torneo más reciente.</div>';
+    const data = await apiGetAuth('webAdminGanadoresTorneoDetalle', {});
+    if(manejarRespuestaAuth(data)) return;
+    if(!data.ok){ lista.innerHTML = ''; msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
+    ganadoresIdTorneoActual = data.idTorneo;
+    if(!data.idTorneo || !data.top3 || !data.top3.length){
+      lista.innerHTML = '<div class="empty">Todavía no hay resultados para el torneo más reciente.</div>';
       return;
     }
-    const fechaTxt = new Date(g.fecha).toLocaleString('es-PE', { hour12:false });
+    const fechaTxt = new Date(data.fecha).toLocaleString('es-PE', { hour12:false });
     lista.innerHTML =
-      `<div class="text-faint" style="font-family:var(--f-mono); font-size:12px; margin-bottom:10px;">Torneo ${esc(g.idTorneo)} · ${esc(fechaTxt)}</div>` +
-      g.top3.map(p => `
-        <div class="contenido-item">
-          <div class="cab">
-            <span class="etiqueta">Puesto ${esc(p.puesto)} — ${esc(p.nombre)}</span>
-            <span class="clan-chip">${esc(p.clan)}</span>
-          </div>
-          <div class="ganador-victorias">${fmtNum(p.victorias)} victorias</div>
-        </div>`).join('');
+      `<div class="text-faint" style="font-family:var(--f-mono); font-size:12px; margin-bottom:10px;">Torneo ${esc(data.idTorneo)} · ${esc(fechaTxt)}</div>` +
+      data.top3.map(filaParticipanteResolucion).join('') +
+      (data.participantes.length > data.top3.length
+        ? `<details style="margin-top:14px;">
+            <summary style="cursor:pointer; color:var(--gold); font-size:13px;">Ver lista completa (${data.participantes.length})</summary>
+            <div style="margin-top:10px;">${data.participantes.map(filaParticipanteResolucion).join('')}</div>
+          </details>`
+        : '');
   }catch(err){
     lista.innerHTML = '';
     msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
   }
 }
+
+// Delegación de clics: los botones "Gestionar" se regeneran cada vez que
+// se repinta #ganadoresLista, así que el listener va en el contenedor fijo.
+document.getElementById('ganadoresLista').addEventListener('click', (ev) => {
+  const btn = ev.target.closest('.btnGestionarResolucion');
+  if(!btn) return;
+  abrirResolucionForm(btn.dataset.tag, btn.dataset.nombre, { tipoResolucion: btn.dataset.tipo, motivoResolucion: btn.dataset.motivo });
+});
+
+function abrirResolucionForm(tag, nombre, resolucionActual){
+  document.getElementById('resolucionForm').dataset.tagActual = tag;
+  document.getElementById('resolucionParaTexto').textContent = `Registrar resolución para: ${nombre}`;
+  const tipoActual = (resolucionActual && resolucionActual.tipoResolucion) || 'Descalificado';
+  document.getElementById('resTipo').value = tipoActual;
+  document.getElementById('resPuestoFinalWrap').style.display = tipoActual === 'Empate - Partida de desempate' ? 'block' : 'none';
+  document.getElementById('resPuestoFinal').value = '';
+  document.getElementById('resMotivo').value = (resolucionActual && resolucionActual.motivoResolucion) || '';
+  document.getElementById('resolucionMsg').innerHTML = '';
+  const form = document.getElementById('resolucionForm');
+  form.style.display = 'block';
+  form.scrollIntoView({ behavior:'smooth', block:'nearest' });
+}
+
+document.getElementById('resTipo').addEventListener('change', () => {
+  document.getElementById('resPuestoFinalWrap').style.display =
+    document.getElementById('resTipo').value === 'Empate - Partida de desempate' ? 'block' : 'none';
+});
+
+document.getElementById('btnCancelarResolucion').addEventListener('click', () => {
+  document.getElementById('resolucionForm').style.display = 'none';
+});
+
+document.getElementById('btnGuardarResolucion').addEventListener('click', async () => {
+  const msgEl = document.getElementById('resolucionMsg');
+  msgEl.innerHTML = '';
+  const tag = document.getElementById('resolucionForm').dataset.tagActual;
+  if(!tag || !ganadoresIdTorneoActual){
+    msgEl.innerHTML = '<div class="msg msg-error">No hay un torneo cargado.</div>';
+    return;
+  }
+  const tipoResolucion = document.getElementById('resTipo').value;
+  const puestoFinal = document.getElementById('resPuestoFinal').value;
+  const motivo = document.getElementById('resMotivo').value.trim();
+  if(tipoResolucion === 'Empate - Partida de desempate' && !puestoFinal){
+    msgEl.innerHTML = '<div class="msg msg-error">Indica el puesto final tras el desempate.</div>';
+    return;
+  }
+  if(!motivo){
+    msgEl.innerHTML = '<div class="msg msg-error">El motivo es obligatorio.</div>';
+    return;
+  }
+  try{
+    const data = await apiPost('webAdminTorneoResolucionGuardar', {
+      sessionToken: sessionStorage.getItem(SESSION_KEY),
+      datos: {
+        idTorneo: ganadoresIdTorneoActual,
+        tag, tipoResolucion,
+        puestoFinal: puestoFinal || null,
+        motivo
+      }
+    });
+    if(manejarRespuestaAuth(data)) return;
+    if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
+    document.getElementById('resolucionForm').style.display = 'none';
+    cargarGanadoresTorneo();
+  }catch(err){
+    msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
+  }
+});
 
 /* ---------- Fase 4: registrar miembro nuevo (2 pasos) ---------- */
 // Ver Sección 7.4 de arquitectura-web-familia-terna.md. Paso 1
