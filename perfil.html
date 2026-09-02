@@ -51,13 +51,25 @@
   .ext-item{background:var(--bg-2); border:1px solid var(--line); border-radius:var(--radius-sm); padding:12px 14px; text-align:left;}
   .ext-item .v{font-family:var(--f-display); font-weight:800; font-size:19px; color:var(--text);}
   .ext-item .k{font-family:var(--f-mono); font-size:10px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.06em; margin-top:2px;}
+  /* FIX (02-sep-2026, pedido usuario — "en el punto 7 se debía quitar la
+   * segunda fila, no la primera, es decir mover los nuevos botones a la
+   * primera fila, siguiendo el formato que tenía la primera fila; ahora
+   * se ha eliminado la fila que se veía bien y quedó el formato feo"):
+   * .ext-links vuelve a ser la ÚNICA fila de acciones del perfil (antes
+   * era el estilo "chico" que se quitó por error el 01-sep-2026 pensando
+   * que era la fila duplicada). Se extiende el selector a `button`
+   * además de `a`, porque ahora esta misma fila también contiene los
+   * botones Vetar/Ver torneos/Ver otras cuentas (antes en su fila aparte
+   * con clase .btn.btn-ghost, el formato "feo" que había que quitar) —
+   * ver renderMiembro() más abajo, donde se arma toda la fila junta.
+   */
   .ext-links{display:flex; gap:14px; margin-top:18px; flex-wrap:wrap;}
-  .ext-links a{
+  .ext-links a, .ext-links button{
     font-family:var(--f-mono); font-size:12px; font-weight:600; color:var(--purple-light);
     border:1px solid var(--line); padding:8px 14px; border-radius:var(--radius-sm); text-decoration:none;
-    transition:all .18s ease;
+    background:transparent; cursor:pointer; transition:all .18s ease;
   }
-  .ext-links a:hover{border-color:var(--purple); background:rgba(162,57,255,.1); color:var(--purple-light);}
+  .ext-links a:hover, .ext-links button:hover{border-color:var(--purple); background:rgba(162,57,255,.1); color:var(--purple-light);}
   .ingreso-row{
     display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
     padding:14px 18px; border-radius:var(--radius-sm); border:1px solid var(--line);
@@ -127,11 +139,14 @@
         <div id="mReqContenido" style="margin-top:16px;"></div>
         <div id="mExtWrap"></div>
 
-        <div style="display:flex; gap:10px; margin-top:18px; flex-wrap:wrap;">
-          <div id="mRoyaleCwstatsBtns" style="display:flex; gap:10px; flex-wrap:wrap;"></div>
-          <button type="button" class="btn btn-ghost" id="btnVetarJugador" style="display:none; border-color:var(--danger); color:var(--danger);">🚫 Vetar</button>
-          <button type="button" class="btn btn-ghost" id="btnVerTorneosJugador">🏆 Ver torneos</button>
-          <button type="button" class="btn btn-ghost" id="btnVerOtrasCuentas" style="display:none;">Ver otras cuentas</button>
+        <!-- FIX (02-sep-2026): una sola fila de acciones, formato "primera
+             fila" (.ext-links, pill chico) — ver comentario junto a
+             .ext-links en el <style> y a renderMiembro() más abajo. -->
+        <div class="ext-links" id="mAccionesRow" style="margin-top:18px;">
+          <div id="mRoyaleCwstatsBtns" style="display:contents;"></div>
+          <button type="button" id="btnVetarJugador" style="display:none; border-color:var(--danger); color:var(--danger);">🚫 Vetar</button>
+          <button type="button" id="btnVerTorneosJugador">🏆 Ver torneos</button>
+          <button type="button" id="btnVerOtrasCuentas" style="display:none;">Ver otras cuentas</button>
         </div>
         <div id="mTorneosWrap" style="display:none; margin-top:14px;"></div>
         <div id="mOtrasCuentasWrap" style="margin-top:14px;"></div>
@@ -224,13 +239,14 @@ function renderExtendido(ext){
   }
 
   /* FIX (01-sep-2026, pedido usuario — "se muestra dos veces la fila de
-   * botones"): esta sección armaba su propia fila chica de enlaces
+   * botones"): esta sección llegó a armar su propia fila chica de enlaces
    * (RoyaleAPI/CWStats/Mazo/Mazo2, clase .ext-links) por separado de la
-   * fila de botones grandes (#mRoyaleCwstatsBtns, ver renderMiembro()
-   * más abajo) que se agregó después (FIX 31-ago-2026 y 1-sep-2026) para
-   * los mismos 4 datos con mejor estilo — ambas se pintaban a la vez,
-   * duplicando la fila completa en pantalla. Se quita esta versión chica
-   * y se deja solo la fila de botones grandes, que ya cubre los 4 casos.
+   * fila de acciones principal (#mRoyaleCwstatsBtns + Vetar/Ver torneos/
+   * Ver otras cuentas, ver renderMiembro() más abajo), duplicando la fila
+   * completa en pantalla. Se quita de acá (renderExtendido solo pinta la
+   * grilla de estadísticas y el badge de Camino de Leyendas); los 4 links
+   * (RoyaleAPI/CWStats/Mazo/Mazo2) y los botones de acción se pintan
+   * juntos, en una sola fila con el formato .ext-links, en renderMiembro().
    */
   wrap.innerHTML = (items ? `<div class="ext-grid">${items}</div>` : '') + camino;
 }
@@ -296,23 +312,27 @@ function renderMiembro(j){
   // FIX (31-ago-2026, pedido usuario — "en los perfiles de jugadores,
   // antes de ver torneos, agrega el botón con el link al perfil de
   // royaleapi y otro a cwstats"): botones dedicados en la fila de
-  // acciones (no solo el link chico que ya vive en renderExtendido/
-  // ext-links), con los íconos oficiales.
+  // acciones, con los íconos oficiales.
   // FIX (1-sep-2026, pedido usuario — "también debería haber botones de
   // Mazos para aprovechar las columnas Mazo y Mazo2"): mismos botones,
-  // mismo estilo, para los 2 mazos sugeridos (ext.deck/ext.deck2) — antes
-  // solo vivían como link chico dentro de ext-links (ver renderExtendido),
-  // sin un botón visible en esta fila de acciones principal.
+  // mismo estilo, para los 2 mazos sugeridos (ext.deck/ext.deck2).
+  // FIX (02-sep-2026, pedido usuario — "se debía quitar la segunda fila,
+  // no la primera; mover los nuevos botones a la primera fila, siguiendo
+  // el formato que tenía la primera fila"): estos 4 links ya NO usan las
+  // clases .btn.btn-ghost (la fila "grande" que había que quitar) — ahora
+  // son <a> simples dentro de #mAccionesRow (clase .ext-links, ver <style>
+  // y el HTML de esta sección), así que heredan el estilo de la fila
+  // "chica" original, junto con Vetar/Ver torneos/Ver otras cuentas.
   const ext = j.extendido || {};
   const royaleOkBtn = urlValida(ext.royaleApi);
   const cwOkBtn = urlValida(ext.cwStats);
   const deckOkBtn = urlValida(ext.deck);
   const deck2OkBtn = urlValida(ext.deck2);
   document.getElementById('mRoyaleCwstatsBtns').innerHTML = `
-    ${royaleOkBtn ? `<a class="btn btn-ghost" href="${esc(ext.royaleApi)}" target="_blank" rel="noopener">${ICONO_ROYALEAPI}RoyaleAPI</a>` : ''}
-    ${cwOkBtn ? `<a class="btn btn-ghost" href="${esc(ext.cwStats)}" target="_blank" rel="noopener">${ICONO_CWSTATS}CWStats</a>` : ''}
-    ${deckOkBtn ? `<a class="btn btn-ghost" href="${esc(ext.deck)}" target="_blank" rel="noopener">🃏 Mazo</a>` : ''}
-    ${deck2OkBtn ? `<a class="btn btn-ghost" href="${esc(ext.deck2)}" target="_blank" rel="noopener">🃏 Mazo 2</a>` : ''}`;
+    ${royaleOkBtn ? `<a href="${esc(ext.royaleApi)}" target="_blank" rel="noopener">${ICONO_ROYALEAPI}RoyaleAPI</a>` : ''}
+    ${cwOkBtn ? `<a href="${esc(ext.cwStats)}" target="_blank" rel="noopener">${ICONO_CWSTATS}CWStats</a>` : ''}
+    ${deckOkBtn ? `<a href="${esc(ext.deck)}" target="_blank" rel="noopener">🃏 Mazo</a>` : ''}
+    ${deck2OkBtn ? `<a href="${esc(ext.deck2)}" target="_blank" rel="noopener">🃏 Mazo 2</a>` : ''}`;
 
   document.getElementById('btnVerTorneosJugador').dataset.tag = j.tag;
   const btnOtras = document.getElementById('btnVerOtrasCuentas');

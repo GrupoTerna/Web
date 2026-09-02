@@ -217,6 +217,15 @@ function medallaPuesto(puesto){
  * saturar la página; se abre con el botón "Ver todos los resultados".
  * Si el backend todavía no manda `participantes` (versión vieja del
  * endpoint), no se pinta nada — no rompe, solo no muestra el botón.
+ * FIX (02-sep-2026, pedido usuario, punto 14: "si descalificas a alguien,
+ * desaparece del podio pero nada en la web pública explica por qué —
+ * necesito una forma de dejar constancia de la resolución para que no
+ * hayan disputas de premios"): el backend ya expone `descalificado` y
+ * `premioRepartido` por participante (24_Torneos_Core.gs /
+ * 34_Web_API.gs, resoluciones de torneo), pero esta tabla todavía no los
+ * pintaba. Se agrega una etiqueta junto al nombre para cada caso, así el
+ * resultado queda explicado en la propia web pública, sin depender de
+ * que alguien pregunte por qué un jugador no está en el podio.
  */
 function todosResultadosHtml(idUnico, participantes){
   if (!participantes || !participantes.length) return '';
@@ -225,6 +234,8 @@ function todosResultadosHtml(idUnico, participantes){
       <span class="tr-puesto">${p.puesto ? '#' + esc(String(p.puesto)) : '—'}</span>
       <span class="tr-nombre">${esc(p.nombre)}</span>
       <span class="tr-clan">${esc(p.clan || '—')}</span>
+      ${p.descalificado ? '<span class="badge badge-warn">❌ Descalificado</span>' : ''}
+      ${p.premioRepartido ? '<span class="badge badge-purple">🤝 Premio repartido</span>' : ''}
       <span class="tr-victorias">${fmtNum(p.victorias)} victorias</span>
     </div>`).join('');
   return `
@@ -264,6 +275,7 @@ async function cargarTorneos(){
           <div class="medalla">${medallaPuesto(p.puesto)}</div>
           <div class="g-nombre">${esc(p.nombre)}</div>
           <div class="g-clan">${esc(p.clan)}</div>
+          ${p.premioRepartido ? '<div style="margin-top:8px;"><span class="badge badge-purple">🤝 Premio repartido</span></div>' : ''}
           <div class="g-victorias">${fmtNum(p.victorias)} victorias</div>
         </div>`).join('');
     }
@@ -404,6 +416,7 @@ async function cargarSalonDeLaFama(){
         <div class="salon-puesto">
           <span>${medallaPuesto(p.puesto)}</span>
           <span class="sp-nombre">${esc(p.nombre)}</span>
+          ${p.premioRepartido ? '<span class="badge badge-purple" style="font-size:9px; padding:3px 8px;">🤝 Repartido</span>' : ''}
           <span class="sp-victorias">${fmtNum(p.victorias)} victorias</span>
         </div>`).join('');
       // FIX (02-sep-2026, pedido usuario, punto 12): solo se ofrece "Ver
