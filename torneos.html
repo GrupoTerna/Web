@@ -69,6 +69,27 @@
   .salon-puesto .sp-nombre{color:var(--text); font-weight:600;}
   .salon-puesto .sp-victorias{margin-left:auto; font-family:var(--f-mono); color:var(--gold); font-size:12px;}
 
+  /* FIX (02-sep-2026, pedido usuario — PDF de torneos, punto 12: "mostrar
+     los resultados de T_Control, no sé si en gráfica o cuadro"): tabla
+     completa de resultados de un torneo (todos los participantes con
+     Victorias > 0, no solo el top 3), plegada por defecto bajo un botón
+     "Ver todos los resultados" en cada tarjeta del Salón de la fama y en
+     "Ganadores del torneo más reciente" — mismo dato que la hoja
+     T_Control, en formato de cuadro en vez de la cuadrícula de Sheets. */
+  .todos-resultados{margin-top:14px; padding-top:14px; border-top:1px solid var(--line); display:none;}
+  .todos-resultados.open{display:block;}
+  .todos-resultados-fila{
+    display:flex; align-items:center; gap:10px; font-size:13px; color:var(--text-dim);
+    padding:6px 0;
+  }
+  .todos-resultados-fila .tr-puesto{
+    font-family:var(--f-mono); font-size:11px; color:var(--text-faint); width:26px; flex-shrink:0; text-align:center;
+  }
+  .todos-resultados-fila .tr-nombre{color:var(--text); font-weight:600; flex:1; min-width:0;}
+  .todos-resultados-fila .tr-clan{font-family:var(--f-mono); font-size:11px; color:var(--text-faint);}
+  .todos-resultados-fila .tr-victorias{margin-left:auto; font-family:var(--f-mono); color:var(--gold); font-size:12px; flex-shrink:0;}
+  .btn-ver-todos{margin-top:14px;}
+
   /* Ranking de victorias en torneos (1-sep-2026, pedido usuario — agregado
      en el cliente a partir de webHistorialTorneos, sin endpoint nuevo). */
   .rk-victorias-row{
@@ -124,6 +145,10 @@
     <div id="ganadoresWrap" class="ganadores-grid">
       <div class="card" style="grid-column:1/-1;"><div class="empty">Cargando ganadores…</div></div>
     </div>
+    <!-- FIX (02-sep-2026, pedido usuario, punto 12: resultados de
+         T_Control): resultados completos del torneo más reciente, fuera
+         de la grilla de podio para que no se rompa el layout de tarjetas. -->
+    <div id="ganadoresResultadosWrap" class="card" style="margin-top:16px; display:none;"></div>
   </section>
 
   <!-- Torneos recientes -->
@@ -149,7 +174,7 @@
   <section style="margin-top:44px;">
     <div class="eyebrow">🏆 Ranking de victorias en torneos</div>
     <p class="text-dim" style="margin-top:8px; font-size:14px;">
-      Suma de victorias de cada miembro en todas sus apariciones dentro del top 3 de un torneo — para incentivar la participación, no solo el primer puesto.
+      Suma de victorias de cada miembro en todos los torneos jugados — cuentan todas las partidas ganadas, no solo quien llegó al podio, para incentivar la participación.
     </p>
     <div id="rankingVictoriasWrap" style="margin-top:20px;">
       <div class="card"><div class="empty">Cargando ranking…</div></div>
@@ -181,8 +206,48 @@ function medallaPuesto(puesto){
   return '🎖️';
 }
 
+/**
+ * todosResultadosHtml(idUnico, participantes)
+ * FIX (02-sep-2026, pedido usuario — PDF de torneos, punto 12: "mostrar
+ * los resultados de T_Control... no sé si en gráfica o cuadro"): cuadro
+ * plegable con TODOS los participantes de un torneo con Victorias > 0
+ * (no solo el top 3 del podio) — mismo dato que la hoja T_Control, leído
+ * de `participantes` (ver FIX 02-sep-2026 en _webGanadoresTorneoMasReciente()
+ * / _webHistorialTorneos(), 34_Web_API.gs). Plegado por defecto para no
+ * saturar la página; se abre con el botón "Ver todos los resultados".
+ * Si el backend todavía no manda `participantes` (versión vieja del
+ * endpoint), no se pinta nada — no rompe, solo no muestra el botón.
+ */
+function todosResultadosHtml(idUnico, participantes){
+  if (!participantes || !participantes.length) return '';
+  const filas = participantes.map(p => `
+    <div class="todos-resultados-fila">
+      <span class="tr-puesto">${p.puesto ? '#' + esc(String(p.puesto)) : '—'}</span>
+      <span class="tr-nombre">${esc(p.nombre)}</span>
+      <span class="tr-clan">${esc(p.clan || '—')}</span>
+      <span class="tr-victorias">${fmtNum(p.victorias)} victorias</span>
+    </div>`).join('');
+  return `
+    <button type="button" class="btn btn-ghost btn-ver-todos js-toggle-resultados" data-target="resultados-${esc(idUnico)}">
+      Ver todos los resultados (${fmtNum(participantes.length)})
+    </button>
+    <div class="todos-resultados" id="resultados-${esc(idUnico)}">${filas}</div>`;
+}
+// Delegado en <body> — cubre tanto "Ganadores del torneo más reciente"
+// como cada tarjeta del Salón de la fama, sin repetir el listener.
+document.body.addEventListener('click', e => {
+  const btn = e.target.closest('.js-toggle-resultados');
+  if (!btn) return;
+  const panel = document.getElementById(btn.dataset.target);
+  if (!panel) return;
+  const abierto = panel.classList.toggle('open');
+  const n = panel.children.length;
+  btn.textContent = (abierto ? 'Ocultar resultados' : 'Ver todos los resultados') + ' (' + fmtNum(n) + ')';
+});
+
 async function cargarTorneos(){
   const ganadoresWrap = document.getElementById('ganadoresWrap');
+  const ganadoresResultadosWrap = document.getElementById('ganadoresResultadosWrap');
   const torneosWrap = document.getElementById('torneosWrap');
   try{
     const data = await apiGet('webTorneos');
@@ -201,6 +266,16 @@ async function cargarTorneos(){
           <div class="g-clan">${esc(p.clan)}</div>
           <div class="g-victorias">${fmtNum(p.victorias)} victorias</div>
         </div>`).join('');
+    }
+    // FIX (02-sep-2026, pedido usuario, punto 12): resultados completos
+    // (T_Control) del torneo más reciente, aparte del podio calificado
+    // de arriba — usa `g.participantes` si el backend ya lo manda.
+    const resultadosHtml = g ? todosResultadosHtml('reciente', g.participantes) : '';
+    if (resultadosHtml){
+      ganadoresResultadosWrap.style.display = 'block';
+      ganadoresResultadosWrap.innerHTML = resultadosHtml;
+    } else {
+      ganadoresResultadosWrap.style.display = 'none';
     }
 
     // ---- Listado de torneos recientes ----
@@ -236,20 +311,27 @@ cargarSalonDeLaFama();
  * FIX (1-sep-2026, pedido usuario — "agregar en Torneos un ranking de más
  * victorias en todos los torneos, agregable en el cliente a partir de
  * webHistorialTorneos, sin backend nuevo"): suma victorias por jugador a
- * través de TODAS sus apariciones en el top 3 de cada torneo del
- * historial (últimos 30 torneos con resultados, ver _webHistorialTorneos
- * en 34_Web_API.gs) — de ahí sale directo, sin pedir nada nuevo al
- * backend. El top3 que manda el backend no incluye Tag, solo nombre +
- * clan, así que se agrupa por esa combinación para no mezclar a dos
- * jugadores distintos que compartan nombre en clanes distintos. Los
- * participantes con 0 victorias no suman (evita ruido de quien entró al
- * torneo pero no jugó, mismo criterio que ya pidió el usuario para otras
- * vistas de torneos).
+ * través de TODAS sus apariciones en el historial (últimos 30 torneos con
+ * resultados, ver _webHistorialTorneos en 34_Web_API.gs).
+ * FIX (02-sep-2026, pedido usuario — PDF de torneos, punto 13: "mostrar
+ * los resultados de todos los participantes que tengan más de cero
+ * victorias... o a los miembros con más victorias en todos los
+ * torneos, que pueda incentivar la participación"): antes esto solo
+ * sumaba `t.top3` (los primeros 3 puestos de cada torneo), así que
+ * alguien que ganó varias partidas en muchos torneos pero nunca llegó al
+ * podio no sumaba nada — justo el caso que el pedido quiere incentivar.
+ * Ahora usa `t.participantes` (lista completa de cada torneo con
+ * Victorias > 0, agregada en el backend — ver FIX 02-sep-2026 en
+ * _webHistorialTorneos(), 34_Web_API.gs), así que TODOS los que ganaron
+ * al menos una partida en algún torneo suman al ranking, no solo el top
+ * 3. El campo no incluye Tag, solo nombre + clan, así que se agrupa por
+ * esa combinación para no mezclar a dos jugadores distintos que compartan
+ * nombre en clanes distintos.
  */
 function calcularRankingVictoriasTorneos(historial){
   const mapa = new Map();
   (historial || []).forEach(t => {
-    (t.top3 || []).forEach(p => {
+    (t.participantes || t.top3 || []).forEach(p => {
       if (!p || !p.nombre) return;
       const victorias = Number(p.victorias) || 0;
       if (!victorias) return;
@@ -280,7 +362,7 @@ function renderRankingVictoriasTorneos(wrap, historial){
       </div>
       <div class="rk-victorias-stats">
         <div class="rk-victorias-total">${fmtNum(r.victorias)} victorias</div>
-        <div class="rk-victorias-apariciones">${fmtNum(r.apariciones)} torneo(s) en el top 3</div>
+        <div class="rk-victorias-apariciones">${fmtNum(r.apariciones)} torneo(s) con victorias</div>
       </div>
     </div>`).join('')}</div>`;
 }
@@ -324,6 +406,12 @@ async function cargarSalonDeLaFama(){
           <span class="sp-nombre">${esc(p.nombre)}</span>
           <span class="sp-victorias">${fmtNum(p.victorias)} victorias</span>
         </div>`).join('');
+      // FIX (02-sep-2026, pedido usuario, punto 12): solo se ofrece "Ver
+      // todos los resultados" cuando hay más participantes con victorias
+      // que los del podio ya mostrado arriba — si no, el botón no
+      // aportaría nada nuevo.
+      const hayExtra = t.participantes && t.participantes.length > t.top3.length;
+      const resultadosHtml = hayExtra ? todosResultadosHtml(t.idTorneo, t.participantes) : '';
       return `
       <div class="card salon-card">
         <div class="salon-head">
@@ -331,6 +419,7 @@ async function cargarSalonDeLaFama(){
           <span class="salon-fecha">${esc(fechaTxt)}</span>
         </div>
         <div class="salon-top3">${filas}</div>
+        ${resultadosHtml}
       </div>`;
     }).join('');
   }catch(err){
