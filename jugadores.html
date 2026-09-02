@@ -81,6 +81,16 @@
   }
   .ext-links a:hover{border-color:var(--purple); background:rgba(162,57,255,.1); color:var(--purple-light);}
 
+  /* ---------- Cara a cara: gráfica de guerra diaria (02-sep-2026,
+     pedido usuario, punto 9: "Cara a cara debería mostrar el desempeño
+     de guerra con gráficas, valores diarios, eje X solo por mes") ----
+     Mismo patrón visual que .ranking-chart-empty de perfil.html (línea
+     SVG), pero con DOS series (una por jugador) en vez de una. */
+  .guerra-chart-empty{font-family:var(--f-mono); font-size:12px; color:var(--text-faint); padding:18px 4px;}
+  .guerra-chart-legend{display:flex; gap:18px; flex-wrap:wrap; margin-bottom:10px; font-family:var(--f-mono); font-size:12px;}
+  .guerra-chart-legend span{display:inline-flex; align-items:center; gap:6px; color:var(--text-dim);}
+  .guerra-chart-legend .dot{width:9px; height:9px; border-radius:50%; display:inline-block; flex-shrink:0;}
+
   /* ---------- Directorio: tabs horizontales de clan + lista de miembros ---------- */
   .clan-tabs{display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px;}
   .clan-tab-btn{
@@ -168,7 +178,9 @@
 
   <!-- ---------- COMPARADOR DE JUGADORES ----------
        Ver _webCompararJugadores() en 34_Web_API.gs — envuelve dos
-       llamadas a webPerfil en un solo pedido. -->
+       llamadas a webPerfil en un solo pedido. FIX (02-sep-2026, punto 9):
+       ahora también consume _webHistorialGuerraComparador() para pintar
+       el desempeño diario de guerra (ver compGuerraChartWrap más abajo). -->
   <section style="padding:32px 0 0;">
     <div class="sec-head" style="margin-bottom:20px;">
       <div class="eyebrow">Cara a cara</div>
@@ -185,6 +197,12 @@
     </div>
     <div id="compWrap" class="comp-grid" style="margin-top:16px;"></div>
     <div id="compBarrasWrap" style="margin-top:16px;"></div>
+    <!-- FIX (02-sep-2026, pedido usuario, punto 9: "Cara a cara debería
+         mostrar el desempeño de guerra con gráficas, sacadas de la hoja
+         Guerra/CSV, valores diarios, eje X solo por mes"). Ver
+         _webHistorialGuerraComparador() en 34_Web_API.gs y
+         renderComparadorGuerraChart() más abajo. -->
+    <div id="compGuerraChartWrap" style="margin-top:16px;"></div>
   </section>
 
   <!-- ---------- DIRECTORIO COMPLETO ----------
@@ -584,6 +602,96 @@ function renderComparadorBarras(a, b){
     </div>`;
 }
 
+/**
+ * renderComparadorGuerraChart(histA, histB, nombreA, nombreB)
+ * FIX (02-sep-2026, pedido usuario, punto 9 del PDF de torneos: "Cara a
+ * cara debería mostrar el desempeño de guerra con gráficas, sacadas de la
+ * hoja Guerra/CSV — valores diarios, pero el eje X debería etiquetar solo
+ * por mes"). Consume 'webHistorialGuerraComparador' (34_Web_API.gs) — un
+ * arreglo {fecha,ataques,fame} por día para cada Tag. Grafica el Fame
+ * diario (el "puntaje" de guerra que ya se usa en el resto del sitio,
+ * ver guerraSemana.puntaje) de los dos jugadores en el MISMO eje de
+ * fechas, mismo patrón SVG que renderRankingChart() de perfil.html (línea
+ * + puntos), pero con dos series en vez de una.
+ * Eje X: en vez de una etiqueta por fecha (ilegible con meses de
+ * historia), se etiqueta SOLO cuando el mes cambia respecto a la fecha
+ * anterior en el eje — un jugador con más días registrados que el otro
+ * simplemente no dibuja punto en las fechas que no tiene (la línea salta
+ * al siguiente punto que sí tiene), en vez de inventar un valor.
+ */
+function renderComparadorGuerraChart(histA, histB, nombreA, nombreB){
+  const a = Array.isArray(histA) ? histA : [];
+  const b = Array.isArray(histB) ? histB : [];
+  if (!a.length && !b.length){
+    return `<div class="card chart-card"><div class="guerra-chart-empty">
+      Todavía no hay historial de guerra disponible para graficar el desempeño diario.
+    </div></div>`;
+  }
+
+  // Eje de fechas único = unión de fechas de ambos jugadores, ordenada.
+  const fechasSet = new Set([...a.map(r => r.fecha), ...b.map(r => r.fecha)]);
+  const fechas = Array.from(fechasSet).sort();
+  if (fechas.length < 2){
+    return `<div class="card chart-card"><div class="guerra-chart-empty">
+      Todavía no hay suficientes días registrados para graficar el desempeño diario.
+    </div></div>`;
+  }
+  const indicePorFecha = new Map(fechas.map((f, i) => [f, i]));
+
+  const valoresA = a.map(r => Number(r.fame) || 0);
+  const valoresB = b.map(r => Number(r.fame) || 0);
+  const todosValores = valoresA.concat(valoresB);
+  const max = Math.max(1, ...todosValores), min = Math.min(0, ...todosValores);
+
+  const W = 640, H = 200, PAD = 28;
+  const stepX = (W - PAD*2) / (fechas.length - 1);
+  const escalaY = v => {
+    if (max === min) return H/2;
+    return H - PAD - ((v - min) / (max - min)) * (H - PAD*2);
+  };
+  const puntosDe = serie => serie
+    .filter(r => indicePorFecha.has(r.fecha))
+    .map(r => `${PAD + indicePorFecha.get(r.fecha)*stepX},${escalaY(Number(r.fame) || 0)}`)
+    .join(' ');
+  const circulosDe = (serie, color) => serie
+    .filter(r => indicePorFecha.has(r.fecha))
+    .map(r => `<circle cx="${PAD + indicePorFecha.get(r.fecha)*stepX}" cy="${escalaY(Number(r.fame) || 0)}" r="3" fill="${color}"/>`)
+    .join('');
+
+  // Etiquetas del eje X: solo en el primer punto y cada vez que cambia el
+  // mes respecto a la fecha anterior del eje — nunca una por fecha.
+  const MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+  const etiquetas = [];
+  fechas.forEach((f, i) => {
+    const mes = MESES[Number(f.slice(5,7)) - 1] || '';
+    const anio = f.slice(0,4);
+    const mesAnterior = i > 0 ? MESES[Number(fechas[i-1].slice(5,7)) - 1] : null;
+    if (i === 0 || mes !== mesAnterior){
+      etiquetas.push({ x: PAD + i*stepX, texto: `${mes} ${anio}` });
+    }
+  });
+
+  const colorA = 'var(--purple-light, #c084fc)';
+  const colorB = 'var(--gold, #f3a922)';
+
+  return `
+    <div class="card chart-card">
+      <div class="chart-title" style="margin-top:0;">📈 Desempeño diario de guerra (Fame)</div>
+      <div class="guerra-chart-legend">
+        <span><span class="dot" style="background:${colorA};"></span>${esc(nombreA)}</span>
+        <span><span class="dot" style="background:${colorB};"></span>${esc(nombreB)}</span>
+      </div>
+      <svg viewBox="0 0 ${W} ${H+24}" style="width:100%; height:auto;">
+        ${a.length ? `<polyline points="${puntosDe(a)}" fill="none" stroke="${colorA}" stroke-width="2.5"/>` : ''}
+        ${b.length ? `<polyline points="${puntosDe(b)}" fill="none" stroke="${colorB}" stroke-width="2.5"/>` : ''}
+        ${circulosDe(a, colorA)}
+        ${circulosDe(b, colorB)}
+        ${etiquetas.map(e => `<text x="${e.x}" y="${H+18}" font-size="10" fill="var(--text-faint,#888)" text-anchor="middle" font-family="var(--f-mono)">${esc(e.texto)}</text>`).join('')}
+      </svg>
+      <div class="text-faint" style="font-family:var(--f-mono); font-size:11px; margin-top:4px;">Un punto por día de guerra jugado. El eje horizontal marca el inicio de cada mes.</div>
+    </div>`;
+}
+
 function elegirComparadorLado1(tag){ document.getElementById('compTag1').value = tag; compararJugadores(); }
 function elegirComparadorLado2(tag){ document.getElementById('compTag2').value = tag; compararJugadores(); }
 
@@ -593,9 +701,11 @@ async function compararJugadores(){
   const msgEl = document.getElementById('compMsg');
   const wrap = document.getElementById('compWrap');
   const barrasWrap = document.getElementById('compBarrasWrap');
+  const guerraChartWrap = document.getElementById('compGuerraChartWrap');
   msgEl.innerHTML = '';
   wrap.innerHTML = '';
   barrasWrap.innerHTML = '';
+  guerraChartWrap.innerHTML = '';
 
   if (!raw1 || !raw2){
     msgEl.innerHTML = '<div class="msg msg-error">Ingresa los dos nombres o tags a comparar.</div>';
@@ -621,13 +731,27 @@ async function compararJugadores(){
 
   msgEl.innerHTML = '<div class="text-faint" style="font-size:13px;">Buscando…</div>';
   try{
-    const data = await apiGet('webCompararJugadores', { tag1, tag2 });
+    // FIX (02-sep-2026, punto 9): el historial de guerra se pide en
+    // paralelo al perfil, no en cascada — y con su propio .catch() para
+    // que si ese endpoint falla (o es una versión vieja del backend sin
+    // 'webHistorialGuerraComparador' todavía), el resto del comparador
+    // (perfiles + barras) igual se pinte con normalidad.
+    const [data, histData] = await Promise.all([
+      apiGet('webCompararJugadores', { tag1, tag2 }),
+      apiGet('webHistorialGuerraComparador', { tag1, tag2 }).catch(() => null)
+    ]);
     msgEl.innerHTML = '';
     let html = '';
     html += data.a ? renderComparadorLado(data.a) : `<div class="card comp-card"><div class="empty">${esc(data.errorA || 'No se encontró el primer jugador.')}</div></div>`;
     html += data.b ? renderComparadorLado(data.b) : `<div class="card comp-card"><div class="empty">${esc(data.errorB || 'No se encontró el segundo jugador.')}</div></div>`;
     wrap.innerHTML = html;
     barrasWrap.innerHTML = renderComparadorBarras(data.a, data.b);
+    guerraChartWrap.innerHTML = renderComparadorGuerraChart(
+      histData ? histData.a : [],
+      histData ? histData.b : [],
+      (data.a && data.a.nombre) || 'Jugador 1',
+      (data.b && data.b.nombre) || 'Jugador 2'
+    );
   }catch(err){
     msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
   }
