@@ -223,21 +223,16 @@ function renderExtendido(ext){
     if (partes.length) camino = `<div style="margin-top:16px;"><span class="badge badge-gold">🏔️ Camino de Leyendas · ${partes.map(esc).join(' · ')}</span></div>`;
   }
 
-  const royaleOk = urlValida(ext.royaleApi);
-  const cwOk = urlValida(ext.cwStats);
-  const deckOk = urlValida(ext.deck);
-  const deck2Ok = urlValida(ext.deck2);
-  let links = '';
-  if (royaleOk || cwOk || deckOk || deck2Ok){
-    links = `<div class="ext-links">
-      ${royaleOk ? `<a href="${esc(ext.royaleApi)}" target="_blank" rel="noopener">${ICONO_ROYALEAPI}RoyaleAPI</a>` : ''}
-      ${cwOk ? `<a href="${esc(ext.cwStats)}" target="_blank" rel="noopener">${ICONO_CWSTATS}CWStats</a>` : ''}
-      ${deckOk ? `<a href="${esc(ext.deck)}" target="_blank" rel="noopener">🃏 Mazo sugerido</a>` : ''}
-      ${deck2Ok ? `<a href="${esc(ext.deck2)}" target="_blank" rel="noopener">🃏 Mazo sugerido (2)</a>` : ''}
-    </div>`;
-  }
-
-  wrap.innerHTML = (items ? `<div class="ext-grid">${items}</div>` : '') + camino + links;
+  /* FIX (01-sep-2026, pedido usuario — "se muestra dos veces la fila de
+   * botones"): esta sección armaba su propia fila chica de enlaces
+   * (RoyaleAPI/CWStats/Mazo/Mazo2, clase .ext-links) por separado de la
+   * fila de botones grandes (#mRoyaleCwstatsBtns, ver renderMiembro()
+   * más abajo) que se agregó después (FIX 31-ago-2026 y 1-sep-2026) para
+   * los mismos 4 datos con mejor estilo — ambas se pintaban a la vez,
+   * duplicando la fila completa en pantalla. Se quita esta versión chica
+   * y se deja solo la fila de botones grandes, que ya cubre los 4 casos.
+   */
+  wrap.innerHTML = (items ? `<div class="ext-grid">${items}</div>` : '') + camino;
 }
 
 /**

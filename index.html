@@ -34,11 +34,19 @@
      (.26→.38) para que se distinga bien en pantallas chicas sin tapar el
      texto — el degradado de abajo (.hero-banner-fade) sigue oscureciendo
      lo suficiente donde el texto se superpone. */
+  /* FIX (01-sep-2026, pedido usuario — "con la actualización, en la web
+     la imagen se ve más pequeña... en el celular ya casi no se distingue
+     por estar tan oscura y pequeña"): el ajuste anterior (31-ago-2026,
+     comentario de arriba) subió alto y opacidad, pero seguía sin bastar,
+     sobre todo en celular. Se vuelve a subir: alto mínimo en celular
+     (220px→300px) y máximo en escritorio (560px→640px), y opacidad base
+     (.38→.55). El degradado de abajo usa el mismo clamp() de alto, así
+     que sigue oscureciendo lo justo para que el texto sea legible. */
   .hero-banner-img{
     position:absolute; top:0; left:0; width:100%;
-    height:clamp(220px, 30vw, 560px);
+    height:clamp(300px, 34vw, 640px);
     object-fit:cover; object-position:center 24%;
-    opacity:.38; filter:saturate(1.25) contrast(1.1);
+    opacity:.55; filter:saturate(1.3) contrast(1.12);
   }
   /* FIX (31-ago-2026, pedido usuario — "el texto del recuadro naranja se
      superpone al texto de la imagen del banner"): antes este degradado
@@ -54,7 +62,7 @@
      var(--bg) totalmente opaco y no queda rastro visible debajo del texto. */
   .hero-banner-fade{
     position:absolute; top:0; left:0; width:100%;
-    height:clamp(220px, 30vw, 560px);
+    height:clamp(300px, 34vw, 640px);
     background:
       linear-gradient(180deg, rgba(4,5,8,.6) 0%, rgba(4,5,8,.42) 30%, rgba(4,5,8,.8) 70%, var(--bg) 100%),
       radial-gradient(circle at 50% 30%, transparent 35%, rgba(4,5,8,.82) 100%);
@@ -383,8 +391,20 @@
            propia línea quedaba pegado al borde izquierdo (una sola línea
            con un ítem no se centra con justify-content). Se centra
            explícito por media query sin tocar el layout de escritorio. -->
+    <!-- FIX (01-sep-2026, pedido usuario — "en la sección de clanes aún
+         sale ese espacio mal puesto" / "el escudo... que no esté tan
+         lejos del texto"): el cambio del 31-ago de arriba puso
+         justify-content:flex-start pero dejó flex:1 en el div de texto
+         de abajo — flex:1 hace que ESE div (invisible, sin fondo) crezca
+         para ocupar todo el ancho sobrante de la fila, lo que en la
+         práctica empuja al escudo hasta el borde derecho exactamente
+         igual que space-between (el hueco vacío que se veía en el PDF de
+         diseño era ese div estirado). Se cambia a flex:0 1 auto con
+         max-width, para que el div de texto solo ocupe el ancho que su
+         contenido necesita y el escudo quede pegado justo después, con
+         el gap de 28px como única separación. -->
     <div class="sec-head clanes-sec-head" style="display:flex; align-items:center; justify-content:flex-start; gap:28px; flex-wrap:wrap;">
-      <div style="flex:1; min-width:260px;">
+      <div style="flex:0 1 auto; min-width:260px; max-width:640px;">
         <a class="eyebrow" href="jugadores.html#roster" style="text-decoration:none;">Nuestros Clanes</a>
         <h2>Los 4 Clanes Terna</h2>
         <p>Cada clan con su propia exigencia y nivel competitivo — encuentra el ideal para tu perfil.</p>

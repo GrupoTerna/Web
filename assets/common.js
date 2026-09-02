@@ -500,16 +500,30 @@ function _obtenerVistaInactivos(afterEl){
     section.className = 'card';
     section.style.marginTop = '20px';
     section.style.display = 'none';
+    /* FIX (01-sep-2026, pedido usuario — "la sección negra tiene el
+     * texto muy pegado al contenedor, debe estar centrado... justificado
+     * dentro de su contenedor y el contenedor al centro"): antes el
+     * título/descripción y el botón Cerrar quedaban en las dos puntas de
+     * una fila que ocupa el ANCHO COMPLETO de la tarjeta (justify-content:
+     * space-between sobre un contenedor tan ancho como el resto del
+     * sitio) — con una descripción corta, eso se veía como texto pegado
+     * al borde izquierdo con un vacío enorme a la derecha. Ahora el
+     * título y la descripción viven en un bloque propio, centrado y con
+     * ancho máximo (max-width + margin:auto), y el botón Cerrar se
+     * posiciona aparte en la esquina superior derecha de la tarjeta en
+     * vez de compartir fila — así el contenedor de texto queda centrado
+     * en la tarjeta y el texto dentro de él, justificado a su propio
+     * ancho, no al ancho total de la tarjeta. */
     section.innerHTML = `
-      <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:18px;">
-        <div>
-          <div class="eyebrow" id="inactivosVistaTitulo">Cuentas inactivas</div>
-          <p class="text-dim" style="font-size:13px; margin-top:6px; max-width:520px;">
-            Miembros que salieron de los 4 clanes de la Familia (renuncia, expulsión, vencimiento, etc.).
-            Solo visible para administradores.
-          </p>
-        </div>
+      <div style="text-align:right; margin-bottom:8px;">
         <button type="button" class="btn btn-ghost" id="inactivosVistaCerrar">Cerrar ✕</button>
+      </div>
+      <div style="max-width:560px; margin:0 auto 18px; text-align:center;">
+        <div class="eyebrow" id="inactivosVistaTitulo">Cuentas inactivas</div>
+        <p class="text-dim" style="font-size:13px; margin-top:6px;">
+          Miembros que salieron de los 4 clanes de la Familia (renuncia, expulsión, vencimiento, etc.).
+          Solo visible para administradores.
+        </p>
       </div>
       <div id="inactivosVistaLista"></div>`;
     afterEl.parentNode.insertBefore(section, afterEl.nextSibling);
@@ -677,17 +691,34 @@ function actualizarNavCta(){
  * ========================================================================= */
 function fitOneLine(el){
   if (!el) return;
-  el.style.whiteSpace = 'nowrap';
   if (!el.dataset.baseFontSize){
     el.dataset.baseFontSize = parseFloat(getComputedStyle(el).fontSize) || 16;
   }
-  let size = parseFloat(el.dataset.baseFontSize);
+  const base = parseFloat(el.dataset.baseFontSize);
+  el.style.whiteSpace = 'nowrap';
+  let size = base;
   el.style.fontSize = size + 'px';
   let guard = 0;
   while (el.scrollWidth > el.clientWidth + 1 && size > 9 && guard < 60){
     size -= 0.5;
     el.style.fontSize = size + 'px';
     guard++;
+  }
+  /* FIX (01-sep-2026, pedido usuario — "el texto del inicio está
+   * incompleto en la versión móvil" / "el texto 'cada clan' está muy
+   * pegada a la derecha, el margen es desproporcionado"): si ni siquiera
+   * al tamaño mínimo (9px) el texto entra en una sola línea (frases
+   * largas en pantallas angostas), forzar nowrap solo logra recortarlo o
+   * desbordarlo de forma asimétrica — nunca lo muestra completo ni
+   * legible. En ese caso se abandona el modo "una sola línea" para ESE
+   * elemento y se vuelve al comportamiento normal de párrafo (puede
+   * ocupar 2+ líneas, tamaño de fuente original). Los textos cortos que
+   * sí caben en una línea (eyebrows, subtítulos breves) no se ven
+   * afectados por este cambio.
+   */
+  if (el.scrollWidth > el.clientWidth + 1){
+    el.style.whiteSpace = 'normal';
+    el.style.fontSize = base + 'px';
   }
 }
 function fitOneLineAll(){
