@@ -735,6 +735,16 @@ function tagsActivosDesdeRoster(dataRoster){
   return set;
 }
 
+/* FIX (03-sep-2026, pedido usuario — "Vigencia" en Ingresos recientes):
+ * mismo patrón que fmtFechaCortaVigencia() de jugadores.html / fmtFechaCorta()
+ * de perfil.html (cada página trae su propio helper en este proyecto). */
+function fmtFechaVigenciaCorta(v){
+  if (!v) return '—';
+  const d = v instanceof Date ? v : new Date(v);
+  if (isNaN(d.getTime())) return String(v);
+  return d.toLocaleDateString('es-PE', { day:'2-digit', month:'short', year:'numeric' });
+}
+
 function ingStatHtml(valor, label, opts){
   const txt = (valor === undefined || valor === null || valor === '') ? '—' : fmtNum(valor);
   const cls = (opts && opts.semana) ? ' ing-stat-semana' : '';
@@ -1059,7 +1069,13 @@ async function cargarIngresos(){
           const cwOk = urlValida(ing.cwstats);
           const sem = ing.guerraSemana || {};
           return `
-          <div class="ingreso-row">
+          <!-- FIX (03-sep-2026, pedido usuario — "hacer que cada tarjeta
+               lleve al perfil del jugador al hacer clic (hoy no son
+               clicables)"): mismo patrón ya aplicado en guerra.html
+               (js-nuevo-card) — data-tag + listener con window.open,
+               deteniendo la propagación en los links de RoyaleAPI/CWStats
+               para que no abran el perfil también. -->
+          <div class="ingreso-row js-ingreso-row" data-tag="${esc(ing.tag || '')}" style="cursor:pointer;">
             <div class="ingreso-top">
               <div class="ingreso-info">
                 <div class="ing-nombre">${esc(ing.nombre)}</div>
@@ -1078,11 +1094,31 @@ async function cargarIngresos(){
               ${ingStatHtml(sem.ataques, '⚔️ Ataques (sem.)', { semana: true })}
               ${ingStatHtml(sem.puntaje, '⭐ Puntaje (sem.)', { semana: true })}
               ${ingStatHtml(sem.barcos, '🚢 Barcos (sem.)', { semana: true })}
+              <!-- FIX (03-sep-2026, pedido usuario — "Vigencia [última
+                   conexión] debe mostrarse acá también"): el backend ya
+                   manda ing.vigencia (ver _construirIngresosRecientesUnificado,
+                   Base.md) — se pinta solo si viene con valor. No se usa
+                   ingStatHtml() para esto porque esa función pasa el
+                   valor por fmtNum() (numérico); acá el valor ya es texto
+                   de fecha formateado.
+              -->
+              ${ing.vigencia ? `<div class="ing-stat"><b>${esc(fmtFechaVigenciaCorta(ing.vigencia))}</b><span>🕒 Vigencia</span></div>` : ''}
             </div>
             ${desgloseDiasHtml(ing.guerraSemanaDias)}
           </div>`;
         }).join('')}
       </div>`).join('');
+
+    // FIX (03-sep-2026, pedido usuario): click en la tarjeta -> perfil,
+    // salvo que el clic haya sido sobre un link de RoyaleAPI/CWStats.
+    wrap.querySelectorAll('.js-ingreso-row').forEach(row => {
+      const linksBox = row.querySelector('.ingreso-links');
+      if (linksBox) linksBox.addEventListener('click', e => e.stopPropagation());
+      row.addEventListener('click', () => {
+        if (!row.dataset.tag) return;
+        window.open('perfil.html?tag=' + encodeURIComponent(row.dataset.tag), '_blank');
+      });
+    });
 
     // FIX (03-sep-2026, pedido usuario — "las etiquetas de los nombres
     // deben estar agrupadas por clan y luego orden alfabético de nombre

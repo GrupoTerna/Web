@@ -67,9 +67,12 @@
   }
   .tab-btn.active{color:#fff; border-color:var(--purple); background:rgba(162,57,255,.15);}
   .ext-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:14px; margin-top:16px;}
+  /* FIX (03-sep-2026, pedido usuario — "se deben centrar el texto en los
+     cuadritos del cara a cara"): antes el texto (valor + etiqueta) quedaba
+     alineado a la izquierda dentro de cada .ext-item, pegado al borde. */
   .ext-item{
     background:var(--bg-2); border:1px solid var(--line); border-radius:var(--radius-sm);
-    padding:12px 14px; text-align:left;
+    padding:12px 14px; text-align:center;
   }
   .ext-item .v{font-family:var(--f-display); font-weight:800; font-size:19px; color:var(--text);}
   .ext-item .k{font-family:var(--f-mono); font-size:10px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.06em; margin-top:2px;}
@@ -90,6 +93,25 @@
   .guerra-chart-legend{display:flex; gap:18px; flex-wrap:wrap; margin-bottom:10px; font-family:var(--f-mono); font-size:12px;}
   .guerra-chart-legend span{display:inline-flex; align-items:center; gap:6px; color:var(--text-dim);}
   .guerra-chart-legend .dot{width:9px; height:9px; border-radius:50%; display:inline-block; flex-shrink:0;}
+
+  /* FIX (03-sep-2026, pedido usuario — "el espacio entre el comparador
+     cara a cara y el directorio varía mucho / es demasiado grande cuando
+     no se ha hecho una comparación": #compWrap/#compBarrasWrap/
+     #compGuerraChartWrap tienen margin-top:16px cada uno EN EL HTML (fijo,
+     siempre presente), pero antes de la primera comparación están vacíos
+     — un <div> vacío igual ocupa su margin-top, así que los 3 sumaban
+     48px de espacio "fantasma" antes de que exista ningún contenido que
+     separar. Con :empty se anula ese margen SOLO cuando el contenedor no
+     tiene nada adentro; en cuanto compararJugadores() les mete HTML
+     (dejan de estar ":empty"), el margen vuelve solo. */
+  #compWrap:empty, #compBarrasWrap:empty, #compGuerraChartWrap:empty{margin-top:0;}
+  /* FIX (03-sep-2026, pedido usuario, punto 11): estilo del SVG copiado de
+     .linechart-svg/.grid-line/.axis-label de index.html (misma familia
+     visual que "Ingresos recientes"), que acá no existía todavía porque
+     esta página nunca había tenido un SVG con grilla propia. */
+  .linechart-svg{width:100%; height:auto; aspect-ratio:640/220; display:block; overflow:visible;}
+  .linechart-svg .grid-line{stroke:var(--line-strong); stroke-width:1; opacity:.4;}
+  .linechart-svg .axis-label{font-family:var(--f-mono); font-size:10px; fill:var(--text-faint);}
 
   /* ---------- Directorio: tabs horizontales de clan + lista de miembros ---------- */
   .clan-tabs{display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px;}
@@ -112,6 +134,12 @@
   .miembro-row .mr-name{font-weight:600; font-size:14px;}
   .miembro-row .mr-tag{font-family:var(--f-mono); font-size:11px; color:var(--text-faint); margin-top:2px;}
   .miembro-row .mr-rango{font-family:var(--f-mono); font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.04em;}
+  /* FIX (03-sep-2026, pedido usuario — "Vigencia [última conexión] debe
+     mostrarse en el Directorio"): dato nuevo (ver .mr-right más abajo),
+     bajo el rango, mismo tamaño/color que .mr-tag para no competir
+     visualmente con el rango (que es lo que ya destacaba acá). */
+  .miembro-row .mr-right{text-align:right;}
+  .miembro-row .mr-vigencia{font-family:var(--f-mono); font-size:11px; color:var(--text-faint); margin-top:2px;}
 </style>
 </head>
 <body data-page="jugadores">
@@ -511,9 +539,20 @@ function renderComparadorLado(jugador){
     extItem(jugador.copas, 'Copas', true),
     extItem(jugador.vGuerra, 'V. Guerra', true),
     extItem(jugador.torneos, 'Torneos', true),
-    extItem(jugador.guerraSemana && jugador.guerraSemana.ataques, 'Ataques/sem', true),
+    // FIX (03-sep-2026, pedido usuario — "reemplazar 'ataques/sem' por
+    // 'Ataques en la semana actual', contando solo lo que se hizo en
+    // días de guerra"): el valor (jugador.guerraSemana.ataques) ya vale
+    // eso — sale de GC.ATAQUES_SEM, que el juego mismo solo permite
+    // acumular en días de guerra (no hay "ataques" que registrar en
+    // entrenamiento), así que no hacía falta tocar el número, solo la
+    // etiqueta, que sí era ambigua sobre qué contaba.
+    extItem(jugador.guerraSemana && jugador.guerraSemana.ataques, 'Ataques en la semana actual', true),
     extItem(ext.racha, 'Racha', true),
-    extItem(ext.donacionesRealizadas, 'Donac. hechas', true),
+    // FIX (03-sep-2026, pedido usuario — "incluir 'Donaciones hechas' y
+    // 'Donaciones recibidas' en vez de cortar el texto"): antes solo
+    // estaba 'Donac. hechas' (abreviado) y faltaba el recibidas.
+    extItem(ext.donacionesRealizadas, 'Donaciones hechas', true),
+    extItem(ext.donacionesRecibidas, 'Donaciones recibidas', true),
     extItem(ext.victorias3Coronas, '3 coronas', true),
     extItem(ext.rankingClan, 'Ranking en el clan', true)
   ].join('');
@@ -568,10 +607,13 @@ function renderComparadorBarras(a, b){
     { icono:'🏆', label:'Copas',        va: a.copas, vb: b.copas },
     { icono:'🎖️', label:'V. Guerra',    va: a.vGuerra, vb: b.vGuerra },
     { icono:'🏅', label:'Torneos',      va: a.torneos, vb: b.torneos },
-    { icono:'⚔️', label:'Ataques/sem',  va: a.guerraSemana && a.guerraSemana.ataques, vb: b.guerraSemana && b.guerraSemana.ataques },
+    // FIX (03-sep-2026, pedido usuario): mismo cambio de etiqueta y de
+    // items de donaciones que renderComparadorLado() más arriba.
+    { icono:'⚔️', label:'Ataques en la semana actual', va: a.guerraSemana && a.guerraSemana.ataques, vb: b.guerraSemana && b.guerraSemana.ataques },
     { icono:'🔥', label:'Racha',        va: extA.racha, vb: extB.racha },
     { icono:'👑', label:'3 coronas',    va: extA.victorias3Coronas, vb: extB.victorias3Coronas },
-    { icono:'🎁', label:'Donac. hechas',va: extA.donacionesRealizadas, vb: extB.donacionesRealizadas }
+    { icono:'🎁', label:'Donaciones hechas',    va: extA.donacionesRealizadas, vb: extB.donacionesRealizadas },
+    { icono:'📥', label:'Donaciones recibidas', va: extA.donacionesRecibidas, vb: extB.donacionesRecibidas }
   ].filter(f => f.va != null || f.vb != null);
   if (!filas.length) return '';
 
@@ -603,63 +645,55 @@ function renderComparadorBarras(a, b){
 }
 
 /**
- * renderComparadorGuerraChart(histA, histB, nombreA, nombreB)
- * FIX (02-sep-2026, pedido usuario, punto 9 del PDF de torneos: "Cara a
- * cara debería mostrar el desempeño de guerra con gráficas, sacadas de la
- * hoja Guerra/CSV — valores diarios, pero el eje X debería etiquetar solo
- * por mes"). Consume 'webHistorialGuerraComparador' (34_Web_API.gs) — un
- * arreglo {fecha,ataques,fame} por día para cada Tag. Grafica el Fame
- * diario (el "puntaje" de guerra que ya se usa en el resto del sitio,
- * ver guerraSemana.puntaje) de los dos jugadores en el MISMO eje de
- * fechas, mismo patrón SVG que renderRankingChart() de perfil.html (línea
- * + puntos), pero con dos series en vez de una.
- * Eje X: en vez de una etiqueta por fecha (ilegible con meses de
- * historia), se etiqueta SOLO cuando el mes cambia respecto a la fecha
- * anterior en el eje — un jugador con más días registrados que el otro
- * simplemente no dibuja punto en las fechas que no tiene (la línea salta
- * al siguiente punto que sí tiene), en vez de inventar un valor.
+ * guerraComparadorMetricaSvg(a, b, campo, fechas, indicePorFecha)
+ * FIX (03-sep-2026, pedido usuario, punto 11: "las gráficas del cara a
+ * cara deben mostrar solo días de guerra [ya filtrado en el backend, ver
+ * _webHistorialGuerraComparador], el eje debería ir del mínimo al máximo
+ * ENTRE LOS DOS JUGADORES [no forzado a arrancar en 0], con margen para
+ * que no quede pegado a los extremos, y con el mismo estilo que la
+ * gráfica de Ingresos recientes; agregar también Ataques y Barcos, no
+ * solo Fame"). Dibuja UNA métrica (una de las 3 cards que arma
+ * renderComparadorGuerraChart) reutilizando el mismo lenguaje visual que
+ * .linechart-svg de index.html: cuadrícula horizontal con opacidad baja +
+ * números de eje Y, en vez del SVG "pelado" (sin grilla ni escala) que
+ * tenía antes esta función.
  */
-function renderComparadorGuerraChart(histA, histB, nombreA, nombreB){
-  const a = Array.isArray(histA) ? histA : [];
-  const b = Array.isArray(histB) ? histB : [];
-  if (!a.length && !b.length){
-    return `<div class="card chart-card"><div class="guerra-chart-empty">
-      Todavía no hay historial de guerra disponible para graficar el desempeño diario.
-    </div></div>`;
+function guerraComparadorMetricaSvg(a, b, campo, fechas, indicePorFecha){
+  const valoresA = a.map(r => Number(r[campo]) || 0);
+  const valoresB = b.map(r => Number(r[campo]) || 0);
+  const todos = valoresA.concat(valoresB);
+  const minCrudo = Math.min(...todos), maxCrudo = Math.max(...todos);
+
+  // Redondea el rango a un "paso" agradable (1/2/5 x 10^n) y le agrega
+  // ~10% de margen arriba/abajo para que ningún punto quede pegado al
+  // borde del gráfico — en vez de forzar el piso a 0, que aplastaba la
+  // variación real cuando los dos jugadores se mueven en un rango angosto
+  // y alto (ej. Fame entre 2800 y 3200).
+  function pasoAgradable(rango){
+    if (rango <= 0) return 1;
+    const exp = Math.pow(10, Math.floor(Math.log10(rango)));
+    const frac = rango / exp;
+    const base = frac <= 1 ? 1 : frac <= 2 ? 2 : frac <= 5 ? 5 : 10;
+    return (base * exp) / 5; // ~5 marcas de grilla
+  }
+  const margen = Math.max(1, (maxCrudo - minCrudo) * 0.12);
+  const paso = pasoAgradable((maxCrudo - minCrudo) + margen * 2) || 1;
+  const min = Math.max(0, Math.floor((minCrudo - margen) / paso) * paso);
+  const max = Math.ceil((maxCrudo + margen) / paso) * paso || paso;
+
+  const W = 640, H = 220, PAD_L = 50, PAD_R = 16, PAD_T = 16, PAD_B = 32;
+  const plotW = W - PAD_L - PAD_R, plotH = H - PAD_T - PAD_B;
+  const stepX = fechas.length > 1 ? plotW / (fechas.length - 1) : 0;
+  const escalaY = v => PAD_T + plotH - ((Math.min(Math.max(v, min), max) - min) / (max - min || 1)) * plotH;
+
+  const gridLines = [];
+  const pasosGrid = Math.max(1, Math.round((max - min) / paso));
+  for (let i = 0; i <= pasosGrid; i++){
+    const v = min + paso * i, y = escalaY(v);
+    gridLines.push(`<line class="grid-line" x1="${PAD_L}" y1="${y}" x2="${W - PAD_R}" y2="${y}"></line>`);
+    gridLines.push(`<text class="axis-label" x="${PAD_L - 8}" y="${y + 4}" text-anchor="end">${fmtNum(Math.round(v))}</text>`);
   }
 
-  // Eje de fechas único = unión de fechas de ambos jugadores, ordenada.
-  const fechasSet = new Set([...a.map(r => r.fecha), ...b.map(r => r.fecha)]);
-  const fechas = Array.from(fechasSet).sort();
-  if (fechas.length < 2){
-    return `<div class="card chart-card"><div class="guerra-chart-empty">
-      Todavía no hay suficientes días registrados para graficar el desempeño diario.
-    </div></div>`;
-  }
-  const indicePorFecha = new Map(fechas.map((f, i) => [f, i]));
-
-  const valoresA = a.map(r => Number(r.fame) || 0);
-  const valoresB = b.map(r => Number(r.fame) || 0);
-  const todosValores = valoresA.concat(valoresB);
-  const max = Math.max(1, ...todosValores), min = Math.min(0, ...todosValores);
-
-  const W = 640, H = 200, PAD = 28;
-  const stepX = (W - PAD*2) / (fechas.length - 1);
-  const escalaY = v => {
-    if (max === min) return H/2;
-    return H - PAD - ((v - min) / (max - min)) * (H - PAD*2);
-  };
-  const puntosDe = serie => serie
-    .filter(r => indicePorFecha.has(r.fecha))
-    .map(r => `${PAD + indicePorFecha.get(r.fecha)*stepX},${escalaY(Number(r.fame) || 0)}`)
-    .join(' ');
-  const circulosDe = (serie, color) => serie
-    .filter(r => indicePorFecha.has(r.fecha))
-    .map(r => `<circle cx="${PAD + indicePorFecha.get(r.fecha)*stepX}" cy="${escalaY(Number(r.fame) || 0)}" r="3" fill="${color}"/>`)
-    .join('');
-
-  // Etiquetas del eje X: solo en el primer punto y cada vez que cambia el
-  // mes respecto a la fecha anterior del eje — nunca una por fecha.
   const MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
   const etiquetas = [];
   fechas.forEach((f, i) => {
@@ -667,29 +701,80 @@ function renderComparadorGuerraChart(histA, histB, nombreA, nombreB){
     const anio = f.slice(0,4);
     const mesAnterior = i > 0 ? MESES[Number(fechas[i-1].slice(5,7)) - 1] : null;
     if (i === 0 || mes !== mesAnterior){
-      etiquetas.push({ x: PAD + i*stepX, texto: `${mes} ${anio}` });
+      etiquetas.push({ x: PAD_L + i*stepX, texto: `${mes} ${anio}` });
     }
   });
+
+  const puntosDe = serie => serie
+    .filter(r => indicePorFecha.has(r.fecha))
+    .map(r => `${(PAD_L + indicePorFecha.get(r.fecha)*stepX).toFixed(1)},${escalaY(Number(r[campo]) || 0).toFixed(1)}`)
+    .join(' ');
+  const circulosDe = (serie, color) => serie
+    .filter(r => indicePorFecha.has(r.fecha))
+    .map(r => `<circle cx="${(PAD_L + indicePorFecha.get(r.fecha)*stepX).toFixed(1)}" cy="${escalaY(Number(r[campo]) || 0).toFixed(1)}" r="3.5" fill="${color}" stroke="var(--bg)" stroke-width="1"/>`)
+    .join('');
 
   const colorA = 'var(--purple-light, #c084fc)';
   const colorB = 'var(--gold, #f3a922)';
 
   return `
-    <div class="card chart-card">
-      <div class="chart-title" style="margin-top:0;">📈 Desempeño diario de guerra (Fame)</div>
-      <div class="guerra-chart-legend">
-        <span><span class="dot" style="background:${colorA};"></span>${esc(nombreA)}</span>
-        <span><span class="dot" style="background:${colorB};"></span>${esc(nombreB)}</span>
-      </div>
-      <svg viewBox="0 0 ${W} ${H+24}" style="width:100%; height:auto;">
-        ${a.length ? `<polyline points="${puntosDe(a)}" fill="none" stroke="${colorA}" stroke-width="2.5"/>` : ''}
-        ${b.length ? `<polyline points="${puntosDe(b)}" fill="none" stroke="${colorB}" stroke-width="2.5"/>` : ''}
-        ${circulosDe(a, colorA)}
-        ${circulosDe(b, colorB)}
-        ${etiquetas.map(e => `<text x="${e.x}" y="${H+18}" font-size="10" fill="var(--text-faint,#888)" text-anchor="middle" font-family="var(--f-mono)">${esc(e.texto)}</text>`).join('')}
-      </svg>
-      <div class="text-faint" style="font-family:var(--f-mono); font-size:11px; margin-top:4px;">Un punto por día de guerra jugado. El eje horizontal marca el inicio de cada mes.</div>
+    <svg class="linechart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
+      ${gridLines.join('')}
+      ${etiquetas.map(e => `<text class="axis-label" x="${e.x}" y="${H - 6}" text-anchor="middle">${esc(e.texto)}</text>`).join('')}
+      ${a.length ? `<polyline points="${puntosDe(a)}" fill="none" stroke="${colorA}" stroke-width="2.5"/>` : ''}
+      ${b.length ? `<polyline points="${puntosDe(b)}" fill="none" stroke="${colorB}" stroke-width="2.5"/>` : ''}
+      ${circulosDe(a, colorA)}
+      ${circulosDe(b, colorB)}
+    </svg>`;
+}
+
+/**
+ * renderComparadorGuerraChart(histA, histB, nombreA, nombreB)
+ * FIX (02-sep-2026, punto 9) + FIX (03-sep-2026, punto 11 — ver docblock
+ * de guerraComparadorMetricaSvg() arriba): ahora arma TRES cards (Ataques,
+ * Puntaje/Fame, Barcos) en vez de solo Fame, cada una con su propio eje Y
+ * (min-max entre los dos jugadores, con margen). Los días ya vienen
+ * filtrados a "solo guerra" desde el backend (_webHistorialGuerraComparador),
+ * así que acá no hace falta filtrar nada — solo graficar.
+ */
+function renderComparadorGuerraChart(histA, histB, nombreA, nombreB){
+  const a = Array.isArray(histA) ? histA : [];
+  const b = Array.isArray(histB) ? histB : [];
+  if (!a.length && !b.length){
+    return `<div class="card chart-card"><div class="guerra-chart-empty">
+      Todavía no hay historial de días de guerra disponible para graficar el desempeño.
+    </div></div>`;
+  }
+
+  const fechasSet = new Set([...a.map(r => r.fecha), ...b.map(r => r.fecha)]);
+  const fechas = Array.from(fechasSet).sort();
+  if (fechas.length < 2){
+    return `<div class="card chart-card"><div class="guerra-chart-empty">
+      Todavía no hay suficientes días de guerra registrados para graficar el desempeño.
+    </div></div>`;
+  }
+  const indicePorFecha = new Map(fechas.map((f, i) => [f, i]));
+
+  const legend = `
+    <div class="guerra-chart-legend">
+      <span><span class="dot" style="background:var(--purple-light, #c084fc);"></span>${esc(nombreA)}</span>
+      <span><span class="dot" style="background:var(--gold, #f3a922);"></span>${esc(nombreB)}</span>
     </div>`;
+
+  const metricCard = (icono, titulo, campo) => `
+    <div class="card chart-card">
+      <div class="chart-title" style="margin-top:0;">${icono} ${titulo}</div>
+      ${legend}
+      ${guerraComparadorMetricaSvg(a, b, campo, fechas, indicePorFecha)}
+    </div>`;
+
+  return `
+    <div class="comparativa-grid" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px;">
+      ${metricCard('⚔️', 'Ataques por día de guerra', 'ataques')}
+      ${metricCard('⭐', 'Puntaje (Fame) por día de guerra', 'fame')}
+      ${metricCard('🚢', 'Barcos por día de guerra', 'barcos')}
+    </div>
+    <div class="text-faint" style="font-family:var(--f-mono); font-size:11px; margin-top:10px;">Un punto por día de guerra jugado (no se cuentan días de entrenamiento). El eje horizontal marca el inicio de cada mes.</div>`;
 }
 
 function elegirComparadorLado1(tag){ document.getElementById('compTag1').value = tag; compararJugadores(); }
@@ -768,6 +853,17 @@ document.getElementById('compTag2').addEventListener('keydown', e => { if (e.key
  * por nombre desde el backend). Sin barra de filtro propia — la barra de
  * búsqueda de arriba ya cumple esa función.
  * ========================================================================= */
+/* FIX (03-sep-2026, pedido usuario — "Vigencia" en el Directorio): mismo
+ * patrón que fmtFechaCorta() de perfil.html (no se comparte código entre
+ * páginas en este proyecto — cada página trae sus propios helpers). Si el
+ * valor no es una fecha parseable, se muestra tal cual en vez de nada. */
+function fmtFechaCortaVigencia(v){
+  if (!v) return '—';
+  const d = v instanceof Date ? v : new Date(v);
+  if (isNaN(d.getTime())) return String(v);
+  return d.toLocaleDateString('es-PE', { day:'2-digit', month:'short', year:'numeric' });
+}
+
 function renderClanTabs(){
   const tabsWrap = document.getElementById('clanTabs');
   tabsWrap.innerHTML = rosterData.map((c, i) => `
@@ -802,7 +898,10 @@ function renderRosterClanActivo(){
             <div class="mr-name">${esc(m.nombre)}</div>
             <div class="mr-tag">${esc(m.tag)}</div>
           </div>
-          <span class="mr-rango">${esc(m.rango)}</span>
+          <div class="mr-right">
+            <span class="mr-rango">${esc(m.rango)}</span>
+            ${m.vigencia ? `<div class="mr-vigencia">Vigencia: ${esc(fmtFechaCortaVigencia(m.vigencia))}</div>` : ''}
+          </div>
         </div>`).join('')}
     </div>`;
 
