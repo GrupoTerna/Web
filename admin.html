@@ -155,7 +155,21 @@
      conserva color, fuente y tamaño de letra reales del Doc y siempre
      queda sobre fondo blanco, sin cuadro de descarga. Se sube el alto
      mínimo para que se lea cómodo sin tener que hacer scroll adentro del
-     iframe en pantallas chicas. */
+     iframe en pantallas chicas.
+     FIX (03-sep-2026, pedido usuario — "se ve feo que primero muestre el
+     texto plano, luego si presiono ver original, muestra uno debajo del
+     otro y ambos se ven mal"): antes .contenido-caja (el texto plano) y
+     .contenido-pdf-wrap (el iframe) podían quedar visibles A LA VEZ,
+     apilados — .contenido-pdf-wrap se mostraba/ocultaba con estilo inline
+     (pdfWrap.style.display) pero nada ocultaba la caja de texto al
+     abrirlo. Ahora es un toggle real entre los dos: la clase
+     .viendo-original en el .contenido-item (ver btnVerPdf en
+     _activarAccionesContenido/_pintarOpcionContenido) decide cuál de los
+     dos se ve, nunca ambos. Los botones (pestañas de clan, copiar,
+     colapsar) no cambian de lugar ni de comportamiento. */
+  .contenido-item.viendo-original .contenido-caja{display:none;}
+  .contenido-item:not(.viendo-original) .contenido-pdf-wrap{display:none;}
+  .contenido-item.colapsado .contenido-pdf-wrap{display:none;}
   .contenido-pdf-wrap{margin-top:10px;}
   .contenido-pdf-wrap iframe{
     width:100%; height:75vh; min-height:520px; border:1px solid var(--line);
@@ -851,7 +865,7 @@ function renderContenidoHtml(opciones){
         </div>
       </div>
       <div class="contenido-caja"><pre data-campo="contenido"></pre></div>
-      <div class="contenido-pdf-wrap" style="display:none;"></div>
+      <div class="contenido-pdf-wrap"></div>
     </div>`;
 }
 
@@ -881,7 +895,7 @@ function _pintarOpcionContenido(item, opciones, idx){
 
   const btnVerPdf = item.querySelector('.btn-ver-pdf');
   const pdfWrap = item.querySelector('.contenido-pdf-wrap');
-  pdfWrap.style.display = 'none';
+  item.classList.remove('viendo-original'); // vuelve a mostrar el texto plano; ver FIX 03-sep-2026 más arriba
   pdfWrap.innerHTML = '';
   if(o.docId){
     btnVerPdf.style.display = '';
@@ -940,16 +954,16 @@ function _activarAccionesContenido(root, opciones){
   // al primer click (nunca de arranque) y un segundo click lo oculta y
   // destruye, igual que antes.
   btnVerPdf.addEventListener('click', () => {
-    const abierto = pdfWrap.style.display !== 'none';
+    const abierto = item.classList.contains('viendo-original');
     if(abierto){
-      pdfWrap.style.display = 'none';
+      item.classList.remove('viendo-original'); // vuelve a mostrar el texto plano (.contenido-caja)
       pdfWrap.innerHTML = '';
       btnVerPdf.textContent = '📄 Ver original';
       return;
     }
     const docId = btnVerPdf.dataset.docId;
     pdfWrap.innerHTML = `<iframe src="https://docs.google.com/document/d/${encodeURIComponent(docId)}/preview" title="Documento original"></iframe>`;
-    pdfWrap.style.display = 'block';
+    item.classList.add('viendo-original'); // oculta .contenido-caja vía CSS, nunca quedan los dos a la vez
     btnVerPdf.textContent = '📄 Ocultar original';
   });
 
