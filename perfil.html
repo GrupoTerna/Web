@@ -133,6 +133,15 @@
             <span><b id="mVGuerra">0</b>V. Guerra</span>
             <span><b id="mTorneos">0</b>Torneos</span>
             <span><b id="mAtaques">0</b>Ataques/sem</span>
+            <!-- FIX (03-sep-2026, pedido usuario — "Vigencia" (Última
+                 conexión), dato de la hoja Directorio: "eso se debe
+                 incluir también en el perfil de los jugadores"): oculto
+                 por defecto — webPerfil (34_Web_API.gs) todavía no manda
+                 j.vigencia, así que no se pinta nada en vez de mostrar
+                 "—" vacío; se muestra automáticamente en cuanto el
+                 backend agregue ese campo (ver renderMiembro() más
+                 abajo). -->
+            <span id="mVigenciaWrap" style="display:none;"><b id="mVigencia">—</b>Vigencia</span>
           </div>
         </div>
 
@@ -174,6 +183,17 @@
 <script src="assets/common.js"></script>
 <script>
 const TAG_PERFIL = normalizarTag(new URLSearchParams(location.search).get('tag') || '');
+
+/** Fecha corta "DD-mmm" (ej. "27-ago") para "Vigencia" — mismo patrón que
+ * fmtDiaMes() de guerra.html. Si el valor no es una fecha parseable (el
+ * backend podría mandar ya un texto formateado), se muestra tal cual en
+ * vez de "—", para no perder información. */
+function fmtFechaCorta(v){
+  if (!v) return '—';
+  const d = v instanceof Date ? v : new Date(v);
+  if (isNaN(d.getTime())) return String(v);
+  return d.toLocaleDateString('es-PE', { day:'2-digit', month:'short', year:'numeric' });
+}
 
 function campoMinTSegunRango(rango){
   const r = String(rango||'').toLowerCase();
@@ -300,6 +320,22 @@ function renderMiembro(j){
   document.getElementById('mVGuerra').textContent = fmtNum(j.vGuerra);
   document.getElementById('mTorneos').textContent = fmtNum(j.torneos);
   document.getElementById('mAtaques').textContent = fmtNum(j.guerraSemana && j.guerraSemana.ataques);
+
+  // FIX (03-sep-2026, pedido usuario — "Vigencia" / Última conexión, dato
+  // de la hoja Directorio): se acepta tanto `j.vigencia` como
+  // `j.extendido.vigencia`/`j.extendido.ultimaConexion` (no hay forma de
+  // confirmar el nombre exacto del campo sin ver el backend todavía) —
+  // se usa el primero que venga con valor. Si ninguno viene, el <span>
+  // se queda oculto (display:none puesto en el HTML) en vez de mostrar
+  // un campo vacío.
+  const vigenciaWrap = document.getElementById('mVigenciaWrap');
+  const vigenciaRaw = j.vigencia ?? (j.extendido && (j.extendido.vigencia ?? j.extendido.ultimaConexion));
+  if (vigenciaRaw){
+    document.getElementById('mVigencia').textContent = fmtFechaCorta(vigenciaRaw);
+    vigenciaWrap.style.display = '';
+  } else {
+    vigenciaWrap.style.display = 'none';
+  }
 
   const bloques = ['ascensos', 'descensos'].map(key => bloqueRequisitos(j, key)).filter(Boolean);
   document.getElementById('mReqContenido').innerHTML = bloques.length
