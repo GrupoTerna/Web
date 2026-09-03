@@ -138,6 +138,28 @@
   .btn-refrescar-categoria:hover{border-color:var(--purple); color:var(--text);}
   .btn-refrescar-categoria.girando{transform:rotate(180deg);}
   .categoria-contenido-body{padding:0 2px 14px 26px;}
+  /* FASE 25 (03-sep-2026, pedido usuario — "en vez de mencionar Directorio
+     2 veces, debería estar en un mismo contenedor. Igual que torneos y
+     sorteos, un contenedor y luego sus subcategorías"): mismo look de
+     acordeón +/- que .categoria-contenido de arriba, reutilizado para
+     agrupar varias cards sueltas (que antes repetían el mismo eyebrow)
+     dentro de un único .card con un solo eyebrow y una subsección
+     plegable por formulario. A diferencia de .categoria-contenido esto NO
+     va anidado dentro de una .seccion-contenido, así que no lleva el
+     padding-left extra de esa (26px) — acá cuelga directo del .card. */
+  .admin-grupo > .eyebrow{margin-bottom:2px;}
+  .admin-subseccion{border-top:1px solid var(--line); margin-top:10px; padding-top:2px;}
+  .admin-subseccion > summary{
+    cursor:pointer; list-style:none; padding:10px 2px; display:flex; align-items:center; gap:10px;
+    font-size:15px; color:var(--gold); font-family:var(--f-display,inherit);
+  }
+  .admin-subseccion > summary::-webkit-details-marker{display:none;}
+  .admin-subseccion > summary::before{
+    content:'+'; width:16px; flex-shrink:0; text-align:center; color:var(--purple-light); font-family:var(--f-mono);
+  }
+  .admin-subseccion[open] > summary::before{content:'–';}
+  .admin-subseccion > summary .cat-titulo{flex:1;}
+  .admin-subseccion-body{padding:2px 2px 14px;}
   .contenido-item pre{white-space:pre-wrap; word-break:break-word; font-family:var(--f-body,inherit); font-size:14px; color:var(--text); margin:0; line-height:1.5;}
   /* FIX (30-ago-2026, pedido usuario — "exportar a PDF dinámicamente"):
      cuando la opción trae o.docId (el ID del Google Doc de origen en
@@ -251,18 +273,6 @@
       <button id="logoutBtn" type="button">Cerrar sesión</button>
     </div>
 
-    <!-- Fase 5 (28-ago-2026): herramientas standalone incorporadas al portal
-         admin — no tienen backend propio ni datos que pedir acá, solo
-         necesitan quedar ocultas para no-admins. Se abre en pestaña nueva
-         (sin rel="noopener") para que sorteo.html herede el sessionStorage
-         de esta pestaña y pueda validar la sesión al cargar. -->
-    <div class="card" style="margin-top:24px;">
-      <div class="eyebrow">Herramientas</div>
-      <h3 style="font-size:15px; color:var(--gold); margin:10px 0 4px;">🎡 Ruleta de sorteos</h3>
-      <p class="text-dim" style="font-size:13px; margin:0 0 14px;">Sorteo en vivo con ruleta, lista de participantes y exportación del acta a Word.</p>
-      <button type="button" class="btn btn-primary" id="btnAbrirSorteo">Abrir Ruleta de Sorteos</button>
-    </div>
-
     <div class="card" style="margin-top:24px;">
       <div class="buscador">
         <input type="text" id="tagInput" placeholder="Ej: #ABC123XYZ" autocapitalize="characters">
@@ -307,90 +317,222 @@
       <div id="seccionesContenido"><div class="empty">Cargando categorías…</div></div>
     </div>
 
-    <!-- Fase 3 (25-ago-2026): gestión de torneos — registrar link nuevo,
-         modificar fecha/hora del de hoy, y ver ganadores del más reciente.
-         Reutiliza _registrarTorneoDesdeBot / _listarTorneosDeHoy /
-         _modificarFechaHoraTorneo (24_Torneos_Core.gs) — los mismos 3 pasos
-         que ya existen en el bot de WhatsApp para admins. "Ver ganadores"
-         no tiene endpoint nuevo: usa el mismo webTorneos público que
-         index.html. Ver 34_Web_API.gs / 08_Web_Endpoints.gs. -->
-    <div class="card" style="margin-top:24px;">
-      <div class="eyebrow">Torneos</div>
-      <h3 style="font-size:15px; color:var(--gold); margin:10px 0 16px;">Registrar torneo nuevo</h3>
-      <div class="field">
-        <label for="tLink">Link del torneo</label>
-        <input type="text" id="tLink" placeholder="https://link.clashroyale.com/...">
-      </div>
-      <div class="field-row">
-        <div class="field">
-          <label for="tFecha">Fecha</label>
-          <input type="date" id="tFecha">
+    <!-- FASE 25 (03-sep-2026, pedido usuario — reordenar panel admin):
+         antes "Registrar miembro nuevo" y "Vetar miembro" eran dos <div
+         class="card"> separadas, cada una con su propio eyebrow
+         "Directorio" repetido — se veía como si "Directorio" apareciera
+         2 veces en el panel. Ahora es UN solo contenedor "Directorio" con
+         ambos formularios como subsecciones plegables (mismo patrón
+         <details>/<summary> que ya usa el Visor de contenido más arriba),
+         y se ubica ANTES de Torneos y sorteos (pedido explícito del
+         usuario). Los ids de cada card (cardRegistrarNuevo/cardVetar) NO
+         cambiaron — aplicarVisibilidadPorFunciones() sigue ocultando cada
+         subsección por separado según Funciones del admin logueado, y
+         además ahora oculta el contenedor completo si ninguna de las dos
+         aplica (ver esa función más abajo). -->
+    <div class="card admin-grupo" id="directorioGrupo" style="margin-top:24px;">
+      <div class="eyebrow">Directorio</div>
+
+      <!-- FASE 4 (26-ago-2026): registrar miembro nuevo, en dos pasos —
+           Paso 1 verifica el Tag contra la API (webAdminVerificarTag) antes
+           de dejar completar nada; Paso 2 se habilita solo tras un
+           "Verificar" exitoso. Reutiliza _guardarRegistroNuevoMiembro()
+           (11_DirectorioSheet.gs) vía webAdminRegistrarNuevo — mismo backend
+           que "Datos de gestión" arriba, para un miembro que todavía no
+           existe en Directorio. Subsección oculta si el admin logueado no
+           tiene "Registrar miembro nuevo" en Funciones (ver
+           aplicarVisibilidadPorFunciones() más abajo) — el backend igual
+           vuelve a validar esto en cada request, esto es solo para no
+           mostrar un formulario que de todos modos va a rechazar.
+           Ver arquitectura-web-familia-terna.md, Sección 7.4. -->
+      <details class="admin-subseccion" id="cardRegistrarNuevo" open>
+        <summary><span class="cat-titulo">Registrar miembro nuevo</span></summary>
+        <div class="admin-subseccion-body">
+          <div class="field">
+            <label for="nmTag">Tag</label>
+            <input type="text" id="nmTag" placeholder="Ej: #ABC123XYZ" autocapitalize="characters">
+          </div>
+          <button class="btn btn-primary" id="btnNmVerificar" type="button">Verificar</button>
+          <div id="nmVerificarMsg"></div>
+
+          <div id="nmPaso2" style="display:none; margin-top:18px; padding-top:18px; border-top:1px solid var(--line);">
+            <div class="field">
+              <label for="nmNomMultiSelect">Nombre multicuenta</label>
+              <select id="nmNomMultiSelect"><option value="">Cargando…</option></select>
+            </div>
+            <div class="field" id="nmNomMultiNuevoWrap">
+              <input type="text" id="nmNomMultiNuevo" placeholder="Nombre de la multicuenta nueva" style="display:none;">
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="nmPrefijo">Prefijo (país)</label>
+                <input type="text" id="nmPrefijo" placeholder="Ej: 51">
+              </div>
+              <div class="field">
+                <label for="nmCelular">Celular</label>
+                <input type="text" id="nmCelular" placeholder="Ej: 987654321">
+              </div>
+            </div>
+            <button class="btn btn-primary btn-block" id="btnNmGuardar" style="margin-top:6px;">Guardar registro</button>
+            <div id="nmGuardarMsg"></div>
+          </div>
         </div>
-        <div class="field">
-          <label for="tHora">Hora</label>
-          <input type="time" id="tHora">
+      </details>
+
+      <!-- FASE 4: vetar a un miembro — de un solo sentido, sin opción de
+           deshacer desde la web (ver Sección 7.6 del documento de
+           arquitectura: no hay endpoint de "desvetar"). El backend
+           (_webAdminVetar, 34_Web_API.gs) revalida "Vetar" en Funciones y
+           que el Clan del tag esté en Clanes_Admin del admin logueado —acá
+           solo se oculta la subsección si no tiene "Vetar" en Funciones,
+           como arriba. La lista de Razón es la MISMA que
+           CFG.RAZON_VALORES_VALIDOS (01_Config_Global.gs) — si esa lista
+           cambia en el backend, hay que actualizarla acá también a mano
+           (no hay endpoint que la exponga, ver Sección 7.7 del documento
+           de arquitectura). -->
+      <details class="admin-subseccion" id="cardVetar">
+        <summary><span class="cat-titulo">Vetar miembro</span></summary>
+        <div class="admin-subseccion-body">
+          <div class="field">
+            <label for="vTag">Tag</label>
+            <input type="text" id="vTag" placeholder="Ej: #ABC123XYZ" autocapitalize="characters">
+          </div>
+          <div class="field">
+            <label for="vRazon">Razón</label>
+            <select id="vRazon">
+              <option value="">Elige una razón…</option>
+              <option value="NARANJA x">NARANJA x</option>
+              <option value="Vetado por clan">Vetado por clan</option>
+              <option value="Incumplimiento de ataques">Incumplimiento de ataques</option>
+              <option value="Conducta inapropiada">Conducta inapropiada</option>
+              <option value="Inactividad prolongada">Inactividad prolongada</option>
+              <option value="Solicitud propia">Solicitud propia</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="vComentario">Comentario (opcional)</label>
+            <textarea id="vComentario" rows="6" placeholder="Detalle adicional para el registro de Comentarios"></textarea>
+          </div>
+          <button class="btn btn-primary btn-block" id="btnVetar" style="margin-top:6px; border-color:var(--danger);">Vetar</button>
+          <div id="vMsg"></div>
         </div>
-      </div>
-      <button class="btn btn-primary btn-block" id="btnRegistrarTorneo" style="margin-top:6px;">Registrar torneo</button>
-      <div id="registrarTorneoMsg"></div>
+      </details>
     </div>
 
-    <div class="card" style="margin-top:24px;">
-      <h3 style="font-size:15px; color:var(--gold); margin:10px 0 16px;">Modificar torneo de hoy</h3>
-      <div class="field" style="margin-bottom:12px;">
-        <label for="tSelectHoy">Torneo</label>
-        <select id="tSelectHoy"><option value="">Cargando torneos de hoy…</option></select>
-      </div>
-      <div class="field-row">
-        <div class="field">
-          <label for="tFechaMod">Nueva fecha</label>
-          <input type="date" id="tFechaMod">
-        </div>
-        <div class="field">
-          <label for="tHoraMod">Nueva hora</label>
-          <input type="time" id="tHoraMod">
-        </div>
-      </div>
-      <button class="btn btn-primary btn-block" id="btnModificarTorneo" style="margin-top:6px;">Guardar cambios</button>
-      <div id="modificarTorneoMsg"></div>
-    </div>
+    <!-- FASE 25 (03-sep-2026, pedido usuario): "Torneos" y "Ruleta de
+         sorteos" también quedan en UN solo contenedor con subsecciones,
+         mismo criterio que Directorio arriba. La ruleta de sorteos pasa a
+         ser la ÚLTIMA subsección (antes estaba primera y suelta arriba de
+         todo el panel) — pedido explícito: "la ruleta de sorteos va
+         después de torneos". Fase 3 (25-ago-2026): gestión de torneos —
+         registrar link nuevo, modificar fecha/hora del de hoy, y ver
+         ganadores del más reciente. Reutiliza _registrarTorneoDesdeBot /
+         _listarTorneosDeHoy / _modificarFechaHoraTorneo
+         (24_Torneos_Core.gs) — los mismos 3 pasos que ya existen en el bot
+         de WhatsApp para admins. "Ver ganadores" no tiene endpoint nuevo:
+         usa el mismo webTorneos público que index.html. Ver 34_Web_API.gs
+         / 08_Web_Endpoints.gs. -->
+    <div class="card admin-grupo" style="margin-top:24px;">
+      <div class="eyebrow">Torneos y sorteos</div>
 
-    <div class="card" style="margin-top:24px;">
-      <h3 style="font-size:15px; color:var(--gold); margin:10px 0 16px;">Ganadores del torneo más reciente</h3>
-      <div id="ganadoresMsg"></div>
-      <div id="ganadoresLista"></div>
+      <details class="admin-subseccion" open>
+        <summary><span class="cat-titulo">Registrar torneo nuevo</span></summary>
+        <div class="admin-subseccion-body">
+          <div class="field">
+            <label for="tLink">Link del torneo</label>
+            <input type="text" id="tLink" placeholder="https://link.clashroyale.com/...">
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label for="tFecha">Fecha</label>
+              <input type="date" id="tFecha">
+            </div>
+            <div class="field">
+              <label for="tHora">Hora</label>
+              <input type="time" id="tHora">
+            </div>
+          </div>
+          <button class="btn btn-primary btn-block" id="btnRegistrarTorneo" style="margin-top:6px;">Registrar torneo</button>
+          <div id="registrarTorneoMsg"></div>
+        </div>
+      </details>
 
-      <!-- FASE 24 (02-sep-2026, pedido del usuario — descalificaciones y
-           desempates de torneos): formulario chico para registrar una
-           resolución manual sobre una cuenta puntual del torneo cargado
-           arriba. Se abre desde el botón "Gestionar" de cada participante
-           (ver abrirResolucionForm() más abajo) y llama a
-           webAdminTorneoResolucionGuardar → _registrarResolucionTorneo()
-           (24_Torneos_Core.gs). Oculto hasta que se pulsa "Gestionar". -->
-      <div id="resolucionForm" style="display:none; margin-top:16px; padding-top:16px; border-top:1px solid var(--line);">
-        <div id="resolucionParaTexto" class="text-dim" style="font-size:13px; margin-bottom:10px;"></div>
-        <div class="field">
-          <label for="resTipo">Tipo de resolución</label>
-          <select id="resTipo">
-            <option value="Descalificado">Descalificado</option>
-            <option value="Empate - Reparto de premio">Empate - Reparto de premio</option>
-            <option value="Empate - Partida de desempate">Empate - Partida de desempate</option>
-          </select>
+      <details class="admin-subseccion">
+        <summary><span class="cat-titulo">Modificar torneo de hoy</span></summary>
+        <div class="admin-subseccion-body">
+          <div class="field" style="margin-bottom:12px;">
+            <label for="tSelectHoy">Torneo</label>
+            <select id="tSelectHoy"><option value="">Cargando torneos de hoy…</option></select>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label for="tFechaMod">Nueva fecha</label>
+              <input type="date" id="tFechaMod">
+            </div>
+            <div class="field">
+              <label for="tHoraMod">Nueva hora</label>
+              <input type="time" id="tHoraMod">
+            </div>
+          </div>
+          <button class="btn btn-primary btn-block" id="btnModificarTorneo" style="margin-top:6px;">Guardar cambios</button>
+          <div id="modificarTorneoMsg"></div>
         </div>
-        <div class="field" id="resPuestoFinalWrap" style="display:none;">
-          <label for="resPuestoFinal">Puesto final (tras la partida de desempate)</label>
-          <input type="number" id="resPuestoFinal" min="1" step="1">
+      </details>
+
+      <details class="admin-subseccion">
+        <summary><span class="cat-titulo">Ganadores del torneo más reciente</span></summary>
+        <div class="admin-subseccion-body">
+          <div id="ganadoresMsg"></div>
+          <div id="ganadoresLista"></div>
+
+          <!-- FASE 24 (02-sep-2026, pedido del usuario — descalificaciones y
+               desempates de torneos): formulario chico para registrar una
+               resolución manual sobre una cuenta puntual del torneo cargado
+               arriba. Se abre desde el botón "Gestionar" de cada participante
+               (ver abrirResolucionForm() más abajo) y llama a
+               webAdminTorneoResolucionGuardar → _registrarResolucionTorneo()
+               (24_Torneos_Core.gs). Oculto hasta que se pulsa "Gestionar". -->
+          <div id="resolucionForm" style="display:none; margin-top:16px; padding-top:16px; border-top:1px solid var(--line);">
+            <div id="resolucionParaTexto" class="text-dim" style="font-size:13px; margin-bottom:10px;"></div>
+            <div class="field">
+              <label for="resTipo">Tipo de resolución</label>
+              <select id="resTipo">
+                <option value="Descalificado">Descalificado</option>
+                <option value="Empate - Reparto de premio">Empate - Reparto de premio</option>
+                <option value="Empate - Partida de desempate">Empate - Partida de desempate</option>
+              </select>
+            </div>
+            <div class="field" id="resPuestoFinalWrap" style="display:none;">
+              <label for="resPuestoFinal">Puesto final (tras la partida de desempate)</label>
+              <input type="number" id="resPuestoFinal" min="1" step="1">
+            </div>
+            <div class="field">
+              <label for="resMotivo">Motivo</label>
+              <input type="text" id="resMotivo" placeholder="La razón del castigo o el detalle del desempate — queda visible en el Doc y en la web">
+            </div>
+            <div class="field-row">
+              <button type="button" class="btn btn-primary" id="btnGuardarResolucion">Guardar resolución</button>
+              <button type="button" class="btn" id="btnCancelarResolucion">Cancelar</button>
+            </div>
+            <div id="resolucionMsg"></div>
+          </div>
         </div>
-        <div class="field">
-          <label for="resMotivo">Motivo</label>
-          <input type="text" id="resMotivo" placeholder="La razón del castigo o el detalle del desempate — queda visible en el Doc y en la web">
+      </details>
+
+      <!-- Fase 5 (28-ago-2026): herramienta standalone incorporada al portal
+           admin — no tiene backend propio ni datos que pedir acá, solo
+           necesita quedar oculta para no-admins. Se abre en pestaña nueva
+           (sin rel="noopener") para que sorteo.html herede el
+           sessionStorage de esta pestaña y pueda validar la sesión al
+           cargar. Última subsección del contenedor (pedido usuario — "la
+           ruleta de sorteos va después de torneos"). -->
+      <details class="admin-subseccion">
+        <summary><span class="cat-titulo">🎡 Ruleta de sorteos</span></summary>
+        <div class="admin-subseccion-body">
+          <p class="text-dim" style="font-size:13px; margin:0 0 14px;">Sorteo en vivo con ruleta, lista de participantes y exportación del acta a Word.</p>
+          <button type="button" class="btn btn-primary" id="btnAbrirSorteo">Abrir Ruleta de Sorteos</button>
         </div>
-        <div class="field-row">
-          <button type="button" class="btn btn-primary" id="btnGuardarResolucion">Guardar resolución</button>
-          <button type="button" class="btn" id="btnCancelarResolucion">Cancelar</button>
-        </div>
-        <div id="resolucionMsg"></div>
-      </div>
+      </details>
     </div>
 
     <div id="miembroSec" style="display:none; margin-top:24px;">
@@ -444,87 +586,6 @@
       </div>
     </div>
 
-    <!-- FASE 4 (26-ago-2026): registrar miembro nuevo, en dos pasos —
-         Paso 1 verifica el Tag contra la API (webAdminVerificarTag) antes
-         de dejar completar nada; Paso 2 se habilita solo tras un
-         "Verificar" exitoso. Reutiliza _guardarRegistroNuevoMiembro()
-         (11_DirectorioSheet.gs) vía webAdminRegistrarNuevo — mismo backend
-         que "Datos de gestión" arriba, para un miembro que todavía no
-         existe en Directorio. Card oculta si el admin logueado no tiene
-         "Registrar miembro nuevo" en Funciones (ver
-         aplicarVisibilidadPorFunciones() más abajo) — el backend igual
-         vuelve a validar esto en cada request, esto es solo para no
-         mostrar un formulario que de todos modos va a rechazar.
-         Ver arquitectura-web-familia-terna.md, Sección 7.4. -->
-    <div class="card" id="cardRegistrarNuevo" style="display:none; margin-top:24px;">
-      <div class="eyebrow">Directorio</div>
-      <h3 style="font-size:15px; color:var(--gold); margin:10px 0 16px;">Registrar miembro nuevo</h3>
-      <div class="field">
-        <label for="nmTag">Tag</label>
-        <input type="text" id="nmTag" placeholder="Ej: #ABC123XYZ" autocapitalize="characters">
-      </div>
-      <button class="btn btn-primary" id="btnNmVerificar" type="button">Verificar</button>
-      <div id="nmVerificarMsg"></div>
-
-      <div id="nmPaso2" style="display:none; margin-top:18px; padding-top:18px; border-top:1px solid var(--line);">
-        <div class="field">
-          <label for="nmNomMultiSelect">Nombre multicuenta</label>
-          <select id="nmNomMultiSelect"><option value="">Cargando…</option></select>
-        </div>
-        <div class="field" id="nmNomMultiNuevoWrap">
-          <input type="text" id="nmNomMultiNuevo" placeholder="Nombre de la multicuenta nueva" style="display:none;">
-        </div>
-        <div class="field-row">
-          <div class="field">
-            <label for="nmPrefijo">Prefijo (país)</label>
-            <input type="text" id="nmPrefijo" placeholder="Ej: 51">
-          </div>
-          <div class="field">
-            <label for="nmCelular">Celular</label>
-            <input type="text" id="nmCelular" placeholder="Ej: 987654321">
-          </div>
-        </div>
-        <button class="btn btn-primary btn-block" id="btnNmGuardar" style="margin-top:6px;">Guardar registro</button>
-        <div id="nmGuardarMsg"></div>
-      </div>
-    </div>
-
-    <!-- FASE 4: vetar a un miembro — de un solo sentido, sin opción de
-         deshacer desde la web (ver Sección 7.6 del documento de
-         arquitectura: no hay endpoint de "desvetar"). El backend
-         (_webAdminVetar, 34_Web_API.gs) revalida "Vetar" en Funciones y
-         que el Clan del tag esté en Clanes_Admin del admin logueado —acá
-         solo se oculta la card si no tiene "Vetar" en Funciones, como
-         arriba. La lista de Razón es la MISMA que CFG.RAZON_VALORES_VALIDOS
-         (01_Config_Global.gs) — si esa lista cambia en el backend, hay que
-         actualizarla acá también a mano (no hay endpoint que la exponga,
-         ver Sección 7.7 del documento de arquitectura). -->
-    <div class="card" id="cardVetar" style="display:none; margin-top:24px;">
-      <div class="eyebrow">Directorio</div>
-      <h3 style="font-size:15px; color:var(--gold); margin:10px 0 16px;">Vetar miembro</h3>
-      <div class="field">
-        <label for="vTag">Tag</label>
-        <input type="text" id="vTag" placeholder="Ej: #ABC123XYZ" autocapitalize="characters">
-      </div>
-      <div class="field">
-        <label for="vRazon">Razón</label>
-        <select id="vRazon">
-          <option value="">Elige una razón…</option>
-          <option value="NARANJA x">NARANJA x</option>
-          <option value="Vetado por clan">Vetado por clan</option>
-          <option value="Incumplimiento de ataques">Incumplimiento de ataques</option>
-          <option value="Conducta inapropiada">Conducta inapropiada</option>
-          <option value="Inactividad prolongada">Inactividad prolongada</option>
-          <option value="Solicitud propia">Solicitud propia</option>
-        </select>
-      </div>
-      <div class="field">
-        <label for="vComentario">Comentario (opcional)</label>
-        <textarea id="vComentario" rows="6" placeholder="Detalle adicional para el registro de Comentarios"></textarea>
-      </div>
-      <button class="btn btn-primary btn-block" id="btnVetar" style="margin-top:6px; border-color:var(--danger);">Vetar</button>
-      <div id="vMsg"></div>
-    </div>
   </div>
 </section>
 
@@ -578,8 +639,15 @@ function aplicarVisibilidadPorFunciones(){
   if(adminGuardado){
     try{ funciones = String(JSON.parse(adminGuardado).funciones || ''); }catch(err){ /* se deja vacío */ }
   }
-  document.getElementById('cardRegistrarNuevo').style.display = funciones.indexOf('Registrar miembro nuevo') !== -1 ? 'block' : 'none';
-  document.getElementById('cardVetar').style.display = funciones.indexOf('Vetar') !== -1 ? 'block' : 'none';
+  const puedeRegistrar = funciones.indexOf('Registrar miembro nuevo') !== -1;
+  const puedeVetar = funciones.indexOf('Vetar') !== -1;
+  document.getElementById('cardRegistrarNuevo').style.display = puedeRegistrar ? '' : 'none';
+  document.getElementById('cardVetar').style.display = puedeVetar ? '' : 'none';
+  // FASE 25 (03-sep-2026): ahora ambas subsecciones viven dentro de un solo
+  // contenedor "Directorio" (#directorioGrupo) — si el admin no tiene
+  // ninguna de las dos funciones, no tendría sentido mostrar el contenedor
+  // vacío (solo el eyebrow "Directorio" sin nada debajo).
+  document.getElementById('directorioGrupo').style.display = (puedeRegistrar || puedeVetar) ? '' : 'none';
 }
 function mostrarLogin(msg){
   sessionStorage.removeItem(SESSION_KEY);
