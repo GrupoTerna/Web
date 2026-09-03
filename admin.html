@@ -170,10 +170,32 @@
   .contenido-item.viendo-original .contenido-caja{display:none;}
   .contenido-item:not(.viendo-original) .contenido-pdf-wrap{display:none;}
   .contenido-item.colapsado .contenido-pdf-wrap{display:none;}
+  /* FIX (03-sep-2026, pedido usuario — "no me gusta que se vean esos
+     márgenes, debería verse como cuando en Word se escoge el modo de
+     diseño web"): el <iframe src=".../preview"> incrustaba el propio
+     visor de Google Docs, que SIEMPRE pagina con márgenes de impresión —
+     y por ser contenido de otro dominio (docs.google.com), el CSS de acá
+     no podía tocar nada adentro (el navegador bloquea estilar el DOM
+     interno de un iframe cross-origin). Se reemplaza por
+     _webAdminContenidoDocHtml() (34_Web_API.gs) — SOLO LECTURA, ver
+     docblock ahí para el detalle de por qué no toca el Doc original —
+     que devuelve el HTML del cuerpo del Doc para pintarlo en este MISMO
+     documento, dentro de .doc-original: ahora sí es nuestro CSS, así que
+     se ve corrido/ancho completo, como "Diseño web" en Word, en vez de
+     paginado. Se conservan negritas/colores/listas del Doc (vienen con
+     estilo inline en el HTML que exporta Google), solo se descarta el
+     contenedor de página (ancho fijo + márgenes) que traía el <body> del
+     export — ver la función del backend. */
   .contenido-pdf-wrap{margin-top:10px;}
-  .contenido-pdf-wrap iframe{
-    width:100%; height:75vh; min-height:520px; border:1px solid var(--line);
-    border-radius:var(--radius-sm); background:#fff;
+  .doc-original{
+    background:#fff; color:#1a1a1a; border:1px solid var(--line); border-radius:var(--radius-sm);
+    padding:20px 24px; max-height:75vh; min-height:200px; overflow:auto;
+    font-family:Arial, Helvetica, sans-serif; font-size:14px; line-height:1.5;
+  }
+  .doc-original img{max-width:100%; height:auto;}
+  .doc-original table{border-collapse:collapse; max-width:100%;}
+  .doc-original-cargando{
+    padding:16px; text-align:center; color:var(--text-dim); font-family:var(--f-mono); font-size:13px;
   }
   /* Fase 3 (25-ago-2026): gestión de torneos */
   .ganador-victorias{font-family:var(--f-mono); font-size:13px; color:var(--text-dim);}
@@ -946,14 +968,19 @@ function _activarAccionesContenido(root, opciones){
   const pdfWrap = item.querySelector('.contenido-pdf-wrap');
   const pre = item.querySelector('pre');
 
-  // FIX (31-ago-2026, "no se aprecia bien, fondo blanco más fácil de
-  // leer"): .../preview en vez de .../export?format=pdf — es el modo de
-  // incrustado que Google ofrece para Docs (a diferencia de export, que
-  // en algunos navegadores abre el visor de PDF nativo del sistema en vez
-  // de la hoja blanca del documento). El iframe se sigue armando recién
-  // al primer click (nunca de arranque) y un segundo click lo oculta y
-  // destruye, igual que antes.
-  btnVerPdf.addEventListener('click', () => {
+  // FIX (03-sep-2026, "no me gusta que se vean esos márgenes, debería
+  // verse como el modo de diseño web de Word"): ya no arma un <iframe> a
+  // docs.google.com/.../preview (ese visor de Google siempre pagina con
+  // márgenes de impresión y, por ser otro dominio, nuestro CSS no puede
+  // tocar su contenido). Ahora pide el HTML del Doc a
+  // webAdminContenidoDocHtml (SOLO LECTURA, ver docblock de
+  // _webAdminContenidoDocHtml en 34_Web_API.gs) y lo pinta en un <div
+  // class="doc-original"> propio, con nuestro CSS — texto corrido, sin
+  // margen de página. Un segundo click lo oculta y destruye, igual que
+  // antes; el pedido al backend se repite en cada apertura (no se
+  // cachea acá) porque es una lectura liviana y así siempre se ve el
+  // Doc tal cual está en Drive en ese momento.
+  btnVerPdf.addEventListener('click', async () => {
     const abierto = item.classList.contains('viendo-original');
     if(abierto){
       item.classList.remove('viendo-original'); // vuelve a mostrar el texto plano (.contenido-caja)
@@ -962,9 +989,27 @@ function _activarAccionesContenido(root, opciones){
       return;
     }
     const docId = btnVerPdf.dataset.docId;
-    pdfWrap.innerHTML = `<iframe src="https://docs.google.com/document/d/${encodeURIComponent(docId)}/preview" title="Documento original"></iframe>`;
     item.classList.add('viendo-original'); // oculta .contenido-caja vía CSS, nunca quedan los dos a la vez
     btnVerPdf.textContent = '📄 Ocultar original';
+    btnVerPdf.disabled = true;
+    pdfWrap.innerHTML = '<div class="doc-original-cargando">Cargando documento original…</div>';
+    try{
+      const data = await apiGetAuth('webAdminContenidoDocHtml', { docId });
+      if(manejarRespuestaAuth(data)) return;
+      // El item pudo haberse cerrado (otro click) o cambiar de opción
+      // (cambio de pestaña) mientras esta petición estaba en vuelo; si ya
+      // no está mostrando el original, no pisar lo que haya ahora.
+      if(!item.classList.contains('viendo-original')) return;
+      pdfWrap.innerHTML = data.ok
+        ? `<div class="doc-original">${data.html}</div>`
+        : `<div class="msg msg-error">${esc(data.error)}</div>`;
+    }catch(err){
+      if(item.classList.contains('viendo-original')){
+        pdfWrap.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
+      }
+    }finally{
+      btnVerPdf.disabled = false;
+    }
   });
 
   btnCopiar.addEventListener('click', async () => {
