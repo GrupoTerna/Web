@@ -45,12 +45,30 @@
     padding:16px 0; border-bottom:1px solid var(--line); flex-wrap:wrap;
   }
   .torneo-row:last-child{border-bottom:none;}
-  .torneo-row .t-fecha{font-family:var(--f-mono); font-size:13px; color:var(--text); min-width:110px;}
-  .torneo-row .t-detalle{flex:1; min-width:160px;}
+  .torneo-row .t-fecha{font-family:var(--f-mono); font-size:13px; color:var(--text); min-width:110px; flex-shrink:0;}
+  .torneo-row .t-detalle{flex:1 1 200px; min-width:160px;}
   .torneo-row .t-clan{font-weight:700; font-size:14px; color:var(--text);}
   .torneo-row .t-organizador{font-size:12px; color:var(--text-dim); margin-top:2px;}
+  /* FIX (03-sep-2026, pedido usuario — "Torneos Recientes: aprovechar el
+     espacio libre a la derecha de cada fila para mostrar ganadores y
+     premios de ese torneo"): antes .t-detalle era flex:1 y ocupaba TODO
+     el ancho sobrante de la fila (fecha + detalle nada más), sin dejar
+     espacio libre. Ahora .t-detalle comparte el ancho con este nuevo
+     bloque de ganadores (top 3 + victorias, mismo dato que ya usa
+     "Salón de la fama" vía webHistorialTorneos — ver mapaTop3 en el JS),
+     alineado a la derecha en escritorio. */
+  .torneo-row .t-ganadores{
+    flex:1 1 200px; min-width:200px; text-align:right;
+    display:flex; flex-direction:column; gap:3px;
+  }
+  .torneo-row .t-ganadores .tg-fila{
+    font-size:12px; color:var(--text-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+  }
+  .torneo-row .t-ganadores .tg-fila b{color:var(--text); font-weight:600;}
+  .torneo-row .t-ganadores .tg-vacio{font-size:11px; color:var(--text-faint); font-style:italic;}
   @media (max-width:560px){
     .torneo-row{flex-direction:column; align-items:flex-start; gap:8px;}
+    .torneo-row .t-ganadores{text-align:left; width:100%;}
   }
 
   /* Salón de la fama: una tarjeta compacta por torneo, con su propio top 3 */
@@ -107,6 +125,19 @@
   .rk-victorias-stats{text-align:right; flex-shrink:0;}
   .rk-victorias-total{font-family:var(--f-mono); font-weight:700; font-size:14px; color:var(--gold);}
   .rk-victorias-apariciones{font-family:var(--f-mono); font-size:11px; color:var(--text-faint); margin-top:2px;}
+
+  /* FIX (03-sep-2026, pedido usuario — "reducir el espaciado vertical
+     excesivo alrededor de 'Ganadores del torneo más reciente' y en
+     general en la página"): la regla genérica section{padding:72px 0}
+     de styles.css se sumaba al margin-top propio de cada una de las 4
+     secciones de esta página (40-44px), dejando ~112-116px de espacio
+     entre secciones. Se reemplaza por un padding fijo bastante más chico,
+     solo en esta página (no se toca la regla genérica, que sigue siendo
+     correcta para el resto del sitio), y se quita el margin-top inline
+     redundante de cada <section> (ver más abajo). */
+  .torneos-sec{padding:28px 0;}
+  .torneos-sec:first-of-type{padding-top:0;}
+  .torneos-sec:last-of-type{padding-bottom:0;}
 </style>
 </head>
 <body data-page="torneos">
@@ -140,7 +171,7 @@
   </p>
 
   <!-- Ganadores del torneo más reciente -->
-  <section style="margin-top:40px;">
+  <section class="torneos-sec">
     <div class="eyebrow">🏆 Ganadores del torneo más reciente</div>
     <div id="ganadoresWrap" class="ganadores-grid">
       <div class="card" style="grid-column:1/-1;"><div class="empty">Cargando ganadores…</div></div>
@@ -152,14 +183,14 @@
   </section>
 
   <!-- Torneos recientes -->
-  <section style="margin-top:44px;">
+  <section class="torneos-sec">
     <div class="eyebrow">Torneos recientes</div>
     <div class="card" style="margin-top:20px; padding:8px 24px;">
       <div id="torneosWrap"><div class="empty">Cargando torneos…</div></div>
     </div>
   </section>
   <!-- Salón de la fama: top 3 de cada torneo, no solo el más reciente -->
-  <section style="margin-top:44px;">
+  <section class="torneos-sec">
     <div class="eyebrow">🏛️ Salón de la fama</div>
     <p class="text-dim" style="margin-top:8px; font-size:14px;">
       Resultado real de cada torneo, tal como quedó registrado.
@@ -171,7 +202,7 @@
 
   <!-- Ranking de más victorias en todos los torneos (calculado en el
        cliente a partir del mismo historial de arriba, sin backend nuevo). -->
-  <section style="margin-top:44px;">
+  <section class="torneos-sec">
     <div class="eyebrow">🏆 Ranking de victorias en torneos</div>
     <p class="text-dim" style="margin-top:8px; font-size:14px;">
       Suma de victorias de cada miembro en todos los torneos jugados — cuentan todas las partidas ganadas, no solo quien llegó al podio, para incentivar la participación.
@@ -261,7 +292,17 @@ async function cargarTorneos(){
   const ganadoresResultadosWrap = document.getElementById('ganadoresResultadosWrap');
   const torneosWrap = document.getElementById('torneosWrap');
   try{
-    const data = await apiGet('webTorneos');
+    // FIX (03-sep-2026, pedido usuario — "Torneos Recientes: aprovechar
+    // el espacio libre a la derecha de cada fila para mostrar ganadores y
+    // premios de ese torneo"): se trae también 'webHistorialTorneos'
+    // (mismo endpoint que ya consume el Salón de la fama más abajo) para
+    // sacar el top 3 de cada torneo sin necesitar un endpoint nuevo. Si
+    // falla (o el backend todavía no lo expone), la lista de "Torneos
+    // recientes" igual se pinta, solo sin el detalle de ganadores.
+    const [data, historialData] = await Promise.all([
+      apiGet('webTorneos'),
+      apiGet('webHistorialTorneos').catch(() => null)
+    ]);
 
     // ---- Ganadores del torneo más reciente ----
     const g = data.ganadores;
@@ -296,8 +337,30 @@ async function cargarTorneos(){
       torneosWrap.innerHTML = '<div class="empty">Todavía no hay torneos registrados.</div>';
       return;
     }
+    // Mapa idTorneo / fecha+clan -> torneo con top3, para poder mostrar
+    // ganadores en cada fila de "Torneos recientes" sin backend nuevo.
+    // Se indexa por idTorneo cuando está disponible y, como respaldo, por
+    // fecha+clan (por si alguna de las dos listas no trae idTorneo en
+    // algún torneo viejo). El torneo más reciente (`g`, de arriba) se
+    // agrega también por si el historial no lo incluye.
+    const historialList = (historialData && historialData.historial) || [];
+    const mapaTop3 = new Map();
+    const indexar = (t) => {
+      if (!t) return;
+      if (t.idTorneo != null) mapaTop3.set('id:' + t.idTorneo, t);
+      if (t.fecha) mapaTop3.set('fc:' + t.fecha + '|' + (t.clan || ''), t);
+    };
+    historialList.forEach(indexar);
+    indexar(g);
     torneosWrap.innerHTML = torneos.map(t => {
       const fechaTxt = t.fecha ? new Date(t.fecha).toLocaleDateString('es-PE', { day:'2-digit', month:'2-digit', year:'numeric' }) : '—';
+      const match = (t.idTorneo != null && mapaTop3.get('id:' + t.idTorneo)) ||
+                    (t.fecha && mapaTop3.get('fc:' + t.fecha + '|' + (t.clan || ''))) || null;
+      const top3 = (match && match.top3) || [];
+      const ganadoresHtml = top3.length ? `
+        <div class="t-ganadores">
+          ${top3.map(p => `<div class="tg-fila">${medallaPuesto(p.puesto)} <b>${esc(p.nombre)}</b> · ${fmtNum(p.victorias)} vic.${p.premioRepartido ? ' · 🤝 repartido' : ''}</div>`).join('')}
+        </div>` : '<div class="t-ganadores"><span class="tg-vacio">Sin ganadores registrados</span></div>';
       return `
       <div class="torneo-row">
         <div class="t-fecha">${esc(fechaTxt)}</div>
@@ -305,6 +368,7 @@ async function cargarTorneos(){
           <div class="t-clan">${esc(t.clan || '—')}</div>
           <div class="t-organizador">${t.organizador ? 'Organiza: ' + esc(t.organizador) : ''}</div>
         </div>
+        ${ganadoresHtml}
       </div>`;
     }).join('');
   }catch(err){
