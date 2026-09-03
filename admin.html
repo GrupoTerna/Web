@@ -271,6 +271,28 @@
       <div id="buscarMsg"></div>
     </div>
 
+    <!-- FASE 6 (03-sep-2026, punto 6 del documento — Detección de
+         infiltrados/sabotaje): panel de búsqueda bajo demanda. El admin
+         escribe el Tag de un CLAN o de un JUGADOR y se consulta la API en
+         el momento (no es un escaneo automático, ver docblock de
+         35_DeteccionInfiltrados.gs). Llama a
+         accion=webAdminBuscarInfiltrado (08_Web_Endpoints.gs ->
+         _webAdminBuscarInfiltrado(), 35_DeteccionInfiltrados.gs).
+         La lista MANUAL de clanes en conflicto (hoja 'Conflictos') NO se
+         edita desde acá a propósito — el usuario pidió que ese ingreso sea
+         directo en Sheets, no un CRUD web; este panel solo consulta. -->
+    <div class="card" style="margin-top:24px;">
+      <div class="eyebrow">Detección de infiltrados</div>
+      <h3 style="font-size:15px; color:var(--gold); margin:10px 0 4px;">Buscar clan o jugador</h3>
+      <p class="text-dim" style="font-size:13px; margin:0 0 14px;">Escribe el Tag de un clan rival o de un jugador puntual. Se revisa contra los clanes rivales de esta temporada, la lista manual de conflicto (hoja "Conflictos") y nuestro propio roster (Directorio/Inactivos/Vetados).</p>
+      <div class="buscador">
+        <input type="text" id="infTagInput" placeholder="Ej: #ABC123XYZ" autocapitalize="characters">
+        <button class="btn btn-primary" id="btnBuscarInfiltrado">Buscar</button>
+      </div>
+      <div id="infMsg"></div>
+      <div id="infResultado" style="margin-top:16px;"></div>
+    </div>
+
     <!-- Fase 2 (24-ago-2026): visor de contenido por categoría, SOLO LECTURA.
          El contenido "Estático" real se edita en los Google Docs de Drive
          (sync automático) y "Mensajes" se recalcula solo en cada corrida —
@@ -716,6 +738,100 @@ async function buscarMiembro(){
 }
 document.getElementById('btnBuscar').addEventListener('click', buscarMiembro);
 document.getElementById('tagInput').addEventListener('keydown', e => { if(e.key === 'Enter') buscarMiembro(); });
+
+/* ---------- FASE 6 (03-sep-2026): Detección de infiltrados/sabotaje ---------- */
+// Ver docblock de 35_DeteccionInfiltrados.gs. _buscarInfiltrado() prueba
+// primero el Tag como CLAN y, si no existe, como JUGADOR — la respuesta
+// trae data.tipo:'clan'|'jugador' y arma cada caso distinto (ver ahí la
+// forma exacta). Este render solo interpreta esa forma, no decide nada.
+
+/** Arma el badge "Rival de esta temporada" / "En lista de conflicto"
+ *  según data.infoRival.fuente ('currentriverrace', 'manual' o
+ *  'currentriverrace+manual', ver _getRivalesYConflicto()). */
+function _badgeRival(infoRival){
+  if(!infoRival) return '';
+  let etiqueta = 'En lista de conflicto';
+  if(infoRival.fuente === 'currentriverrace') etiqueta = 'Rival de esta temporada';
+  else if(infoRival.fuente === 'currentriverrace+manual') etiqueta = 'Rival de esta temporada + conflicto manual';
+  let detalle = [];
+  if(infoRival.clanTernaNombre) detalle.push(`vs. ${esc(infoRival.clanTernaNombre)}`);
+  if(infoRival.motivo) detalle.push(esc(infoRival.motivo));
+  return `<span class="badge badge-warn">${esc(etiqueta)}</span>` +
+    (detalle.length ? `<div class="text-dim" style="font-size:12px; margin-top:6px;">${detalle.join(' · ')}</div>` : '');
+}
+
+/** Tabla de coincidencias contra nuestro propio roster (Directorio/
+ *  Inactivos/Vetados). `filas` ya viene aplanada por el llamador: un
+ *  elemento por (miembro del clan rival, coincidencia en nuestro roster)
+ *  en el caso CLAN, o directamente historialTerna en el caso JUGADOR. */
+function _tablaCoincidencias(filas, conColumnaOrigenClan){
+  if(!filas.length) return '<div class="empty">Sin coincidencias con nuestro propio roster.</div>';
+  const colExtra = conColumnaOrigenClan ? '<th>En clan rival</th><th>Rol</th>' : '';
+  const filasHtml = filas.map(f => `
+    <tr>
+      ${conColumnaOrigenClan ? `<td>${esc(f.nombreEnClanRival)} <span class="text-faint">(${esc(f.tagEnClanRival)})</span></td><td>${esc(f.rolEnClanRival)}</td>` : ''}
+      <td>${esc(f.origen)}</td>
+      <td>${esc(f.nombre)} <span class="text-faint">(${esc(f.tag)})</span></td>
+      <td>${esc(f.clan)}</td>
+      <td>${esc(f.razon || '—')}</td>
+    </tr>`).join('');
+  return `<div style="overflow-x:auto;"><table>
+    <thead><tr>${colExtra}<th>Origen</th><th>Nuestro roster</th><th>Clan</th><th>Razón</th></tr></thead>
+    <tbody>${filasHtml}</tbody>
+  </table></div>`;
+}
+
+function renderInfiltrado(data){
+  const cont = document.getElementById('infResultado');
+  if(data.tipo === 'clan'){
+    const c = data.clan;
+    let filas = [];
+    (data.coincidencias || []).forEach(m => {
+      m.coincidencias.forEach(match => filas.push(Object.assign({tagEnClanRival:m.tagEnClanRival, nombreEnClanRival:m.nombreEnClanRival, rolEnClanRival:m.rolEnClanRival}, match)));
+    });
+    cont.innerHTML = `
+      <div class="perfil-cabecera">
+        <div>
+          <h3 style="font-size:17px;">${esc(c.nombre)} <span class="text-faint" style="font-family:var(--f-mono); font-size:12px;">${esc(c.tag)}</span></h3>
+          <div class="text-dim" style="font-size:13px; margin-top:4px;">${c.miembros} miembros actuales</div>
+        </div>
+        <div>${_badgeRival(data.infoRival)}</div>
+      </div>
+      <div style="margin-top:14px;">${_tablaCoincidencias(filas, true)}</div>`;
+  } else if(data.tipo === 'jugador'){
+    const j = data.jugador;
+    cont.innerHTML = `
+      <div class="perfil-cabecera">
+        <div>
+          <h3 style="font-size:17px;">${esc(j.nombre)} <span class="text-faint" style="font-family:var(--f-mono); font-size:12px;">${esc(j.tag)}</span></h3>
+          <div class="text-dim" style="font-size:13px; margin-top:4px;">Clan actual: ${j.clanActual ? esc(j.clanActual) + ' (' + esc(j.clanActualTag) + ')' : 'Sin clan'}</div>
+        </div>
+        <div>${_badgeRival(data.infoRival)}</div>
+      </div>
+      <div style="margin-top:14px;">${_tablaCoincidencias(data.historialTerna || [], false)}</div>`;
+  }
+}
+
+async function buscarInfiltrado(){
+  const tagNorm = normalizarTag(document.getElementById('infTagInput').value);
+  const msgEl = document.getElementById('infMsg');
+  msgEl.innerHTML = '';
+  document.getElementById('infResultado').innerHTML = '';
+  if(!tagNorm){ msgEl.innerHTML = '<div class="msg msg-error">Escribe un Tag válido.</div>'; return; }
+  document.getElementById('infTagInput').value = tagNorm;
+  msgEl.innerHTML = '<div class="empty">Buscando…</div>';
+  try{
+    const data = await apiGetAuth('webAdminBuscarInfiltrado', { tag: tagNorm });
+    if(manejarRespuestaAuth(data)) return;
+    if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
+    msgEl.innerHTML = '';
+    renderInfiltrado(data);
+  }catch(err){
+    msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
+  }
+}
+document.getElementById('btnBuscarInfiltrado').addEventListener('click', buscarInfiltrado);
+document.getElementById('infTagInput').addEventListener('keydown', e => { if(e.key === 'Enter') buscarInfiltrado(); });
 
 document.getElementById('btnGuardar').addEventListener('click', async () => {
   const msgEl = document.getElementById('guardarMsg');
