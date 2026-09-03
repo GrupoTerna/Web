@@ -48,6 +48,22 @@
     object-fit:cover; object-position:center 24%;
     opacity:.55; filter:saturate(1.3) contrast(1.12);
   }
+  /* FIX (03-sep-2026, pedido usuario — "en desktop se ve el texto
+     superior cortado, las iniciales del escudo son tapadas por el texto
+     real"): en escritorio el recorte vertical de la imagen (24%, pensado
+     para que se vea bien en celular) dejaba un resto del título
+     "GxT · Familia Terna" propio de la imagen justo en el borde superior
+     (se veía cortado a la mitad) y el escudo quedaba más arriba de lo
+     ideal, chocando con el bloque de texto real superpuesto. Como el
+     recorte de object-fit:cover escala proporcional al ancho, el
+     porcentaje de corte necesario para bajar la ventana visible lo
+     suficiente es prácticamente constante en escritorio (no depende del
+     ancho exacto de viewport) — se sube a 34% solo a partir de 769px
+     (breakpoint mobile/desktop ya usado en el resto del sitio), sin tocar
+     el 24% de celular, que el usuario confirmó que sí se ve bien. */
+  @media (min-width:769px){
+    .hero-banner-img{ object-position:center 34%; }
+  }
   /* FIX (31-ago-2026, pedido usuario — "el texto del recuadro naranja se
      superpone al texto de la imagen del banner"): antes este degradado
      usaba inset:0, es decir se calculaba sobre el alto de TODA la sección
@@ -121,9 +137,19 @@
      genérica de <section> (que sí es la correcta para el resto del
      sitio). */
   #tagline-cierre{padding:40px 0 0;}
+  /* FIX (03-sep-2026, pedido usuario — "entre redes sociales y los
+     corazones hay demasiado espacio [solo en móvil]"): el padding-top de
+     40px de arriba ya reemplaza el padding genérico de <section> para
+     evitar contar el espacio dos veces (ver comentario del 31-ago), pero
+     esta caja SUMABA además su propio margin-top:48px encima de ese
+     padding, así que el espacio real antes de la caja era 40+48=88px (a
+     eso hay que sumarle el padding inferior de la sección "Redes
+     Oficiales" justo arriba). Se quita el margin-top: el padding de la
+     sección ya es suficiente separación y coincide con el resto del
+     sitio; el margin-top sobraba. */
   .tagline{
     text-align:center; font-family:var(--f-display); font-weight:800; font-size:clamp(20px,2.8vw,28px);
-    color:var(--purple-light); text-transform:uppercase; letter-spacing:.08em; margin-top:48px;
+    color:var(--purple-light); text-transform:uppercase; letter-spacing:.08em;
     padding: 32px; background: rgba(162,57,255,.06); border: 1px solid var(--line); border-radius: var(--radius);
   }
   .tagline small{
@@ -172,11 +198,21 @@
      caja ni padding propio, solo el texto suelto pegado al borde
      izquierdo del wrap. Ahora es una caja con fondo, padding simétrico
      (mismo valor a los lados) y el texto centrado dentro de esa caja. */
+  /* FIX (03-sep-2026, pedido usuario — "el texto queda demasiado pegado a
+     los bordes del contenedor. El contenedor debería quedar centrado y
+     el texto debería estar justificado dentro de él, en lugar de estar
+     todo centrado"): el fix anterior (comentario de arriba) hizo la caja
+     de ancho completo (bloque) con el texto centrado dentro. Ahora es al
+     revés: la CAJA se centra (width:fit-content + margin:auto, ya no
+     ocupa todo el ancho del wrap) y el TEXTO se justifica dentro de ella
+     en vez de centrarse (relevante cuando el nombre del clan ocupa más
+     de una línea en pantallas angostas). */
   .ingreso-clan h3{
     font-family:var(--f-display); font-weight:700; font-size:14px; color:var(--purple-light);
-    text-transform:uppercase; letter-spacing:.05em; margin-bottom:12px;
+    text-transform:uppercase; letter-spacing:.05em; margin:0 auto 12px;
     background:rgba(4,5,8,.55); border:1px solid var(--line); border-radius:var(--radius-sm);
-    padding:12px 20px; text-align:center;
+    padding:12px 24px; text-align:justify; text-justify:inter-word;
+    width:fit-content; max-width:100%;
   }
   .ingreso-row{
     display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
@@ -247,8 +283,28 @@
     font-family:var(--f-display); font-weight:700; font-size:18px; text-transform:uppercase;
     letter-spacing:.05em; color:var(--text); margin-bottom:18px;
   }
-  .linechart-svg{width:100%; height:auto; display:block; overflow:visible; min-height:420px;}
-  .linechart-svg .grid-line{stroke:var(--line-strong); stroke-width:1;}
+  /* FIX (03-sep-2026, pedido usuario — "el espacio en las gráficas es
+     excesivo... eso solo ocurre en la versión móvil"): min-height:420px
+     forzaba la CAJA del SVG a 420px sin importar el ancho de pantalla,
+     pero el contenido real del SVG (viewBox 960x460, con
+     preserveAspectRatio="meet") solo llena esa altura completa cuando el
+     ancho disponible es ~960px o más ancho en esa proporción; en celular,
+     con la caja mucho más angosta, el contenido se escala para caber por
+     ancho y queda mucho más bajo que 420px, centrado verticalmente
+     dentro de la caja — eso dejaba franjas vacías arriba y abajo del
+     gráfico (las marcas verdes de la captura). aspect-ratio en vez de
+     min-height hace que la caja SIEMPRE tenga exactamente la proporción
+     del viewBox, en cualquier ancho de pantalla, así el contenido llena
+     toda la caja sin importar el tamaño. */
+  .linechart-svg{width:100%; height:auto; aspect-ratio:960/460; display:block; overflow:visible;}
+  /* FIX (03-sep-2026, pedido usuario — "las líneas horizontales del eje x
+     son muy densas, baja la opacidad"): antes usaban var(--line-strong)
+     al 100% de opacidad, muy marcadas contra el fondo oscuro. */
+  .linechart-svg .grid-line{stroke:var(--line-strong); stroke-width:1; opacity:.4;}
+  /* Segmentos "sin dato" (semana intermedia faltante): línea punteada que
+     baja/sube a 0 en vez de cortar la línea o mostrarla continua, así se
+     distingue visualmente de un registro real. */
+  .linechart-svg .serie-line-dashed{stroke-dasharray:5 4; opacity:.55;}
   /* Contraste subido de --text-faint (#475569, casi invisible sobre el
      fondo oscuro) a --text-dim (#94a3b8) + tamaño de fuente mayor —
      pedido del usuario: "es difícil de ver por el color gris de las
@@ -258,7 +314,12 @@
   .linechart-svg .serie-line{fill:none; stroke-width:3; opacity:.95;}
   .linechart-svg .serie-pt{cursor:pointer; transition:r .15s ease;}
   .linechart-svg .serie-pt:hover{r:7;}
-  .linechart-legend{display:flex; flex-wrap:wrap; gap:12px 20px; margin-top:16px; padding-top:16px; border-top:1px solid var(--line);}
+  /* FIX (03-sep-2026, pedido usuario — "la fila de nombres ponla entre el
+     título y el gráfico"): antes la leyenda iba DESPUÉS del SVG (borde y
+     margen arriba, separándola del gráfico); ahora va ANTES, así que el
+     borde/espaciado se voltea hacia abajo (separándola del título de
+     arriba en vez de hacerlo del gráfico). */
+  .linechart-legend{display:flex; flex-wrap:wrap; gap:12px 20px; margin-bottom:16px; padding-bottom:16px; border-bottom:1px solid var(--line);}
   .linechart-legend-item{display:flex; align-items:center; gap:7px; font-family:var(--f-mono); font-size:13px; color:var(--text-dim);}
   .linechart-legend-dot{width:11px; height:11px; border-radius:50%; flex-shrink:0;}
   .chart-tooltip{
@@ -285,10 +346,16 @@
     border-radius:999px; padding:5px 12px; white-space:nowrap;
   }
 
+  /* Ver comentario FIX (03-sep-2026) junto al div.clanes-sec-head en el
+     HTML: el escudo ya no queda pegado al texto ni al borde derecho,
+     queda centrado en el espacio libre que sobra en la fila. */
+  .clanes-escudo-fill{ flex:1 1 220px; min-width:220px; display:flex; justify-content:center; }
+
   @media (max-width:720px){
     .clanes-sec-head{ justify-content:center; text-align:center; }
     .clanes-sec-head > div{ min-width:100%; }
     .clanes-escudo{ width:100%; display:flex; justify-content:center; margin-top:4px; }
+    .clanes-escudo-fill{ flex:0 0 100%; min-width:100%; }
   }
 </style>
 </head>
@@ -403,13 +470,24 @@
          max-width, para que el div de texto solo ocupe el ancho que su
          contenido necesita y el escudo quede pegado justo después, con
          el gap de 28px como única separación. -->
-    <div class="sec-head clanes-sec-head" style="display:flex; align-items:center; justify-content:flex-start; gap:28px; flex-wrap:wrap;">
+    <!-- FIX (03-sep-2026, pedido usuario — "el escudo debería estar en el
+         centro del espacio de las barras rojas [el hueco vacío a la
+         derecha del texto], aproximadamente donde está el punto rojo"):
+         el fix del 01-sep (comentario de arriba) dejó el escudo pegado
+         justo después del texto (separado solo por el gap de 28px), no
+         centrado en el espacio libre restante. Se envuelve el escudo en
+         un elemento que crece para ocupar ese espacio libre
+         (.clanes-escudo-fill, ver CSS) y centra su contenido dentro — así
+         el escudo queda centrado en el hueco, ni pegado al texto ni
+         pegado al borde derecho (que era el problema del space-between
+         original). -->
+    <div class="sec-head clanes-sec-head" style="display:flex; align-items:center; justify-content:flex-start; gap:0 28px; flex-wrap:wrap;">
       <div style="flex:0 1 auto; min-width:260px; max-width:640px;">
         <a class="eyebrow" href="jugadores.html#roster" style="text-decoration:none;">Nuestros Clanes</a>
         <h2>Los 4 Clanes Terna</h2>
         <p>Cada clan con su propia exigencia y nivel competitivo — encuentra el ideal para tu perfil.</p>
       </div>
-      <picture class="clanes-escudo">
+      <picture class="clanes-escudo clanes-escudo-fill">
         <source srcset="assets/escudo.webp" type="image/webp">
         <img src="assets/img/escudo.png" alt="Escudo Familia Terna" width="176" height="176" style="width:176px; height:176px; flex-shrink:0; filter:drop-shadow(0 0 20px rgba(162,57,255,.35));">
       </picture>
@@ -610,7 +688,10 @@ cargarClanes();
  * fechaIngreso, royaleApi, cwstats), cada ingreso debería traer:
  *   copas, victoriasGuerra, diasInactivo,
  *   guerraSemana: { ataques, puntaje, barcos },
- *   historialSemanal: [ { semana, clan, ataques, puntaje }, ... ]
+ *   historialSemanal: [ { semana, clan, ataques, puntaje, barcos }, ... ]
+ *   (campo 'barcos' agregado 03-sep-2026, pedido del usuario, para la
+ *   tercera gráfica comparativa "Barcos por semana"; si el backend
+ *   todavía no lo manda, esa gráfica se dibuja en 0 para todos.)
  * Si el backend todavía no manda alguno de estos campos, esta función no
  * rompe: los campos faltantes se muestran como "—" y, si nadie trae
  * historialSemanal, las dos gráficas simplemente no se dibujan.
@@ -697,6 +778,19 @@ const MIN_SEMANAS_POR_MIEMBRO = 5;
  * entre todos hay 10 semanas... se debería mostrar los datos disponibles
  * de todos para esas 10 semanas").
  */
+/* NOTA (03-sep-2026, pedido usuario — "si hay una semana donde nadie tuvo
+ * datos, no la omitas, así se puede tener el rango completo entre la
+ * semana más reciente y más antigua"): esta función solo puede armar el
+ * eje X a partir de las semanas que YA aparecen en el historialSemanal de
+ * al menos un miembro — si una semana no tiene NINGÚN registro de NADIE,
+ * no hay forma de saber que esa semana existió con datos solo desde el
+ * front-end (no llega ningún string de esa semana a comparar). Para poder
+ * mostrarla igual (como columna vacía) el backend tendría que mandar
+ * también la lista completa de semanas de guerra transcurridas (p. ej.
+ * un array 'semanasGuerra' aparte, no derivado de historialSemanal), y
+ * esta función tendría que usar esa lista como base del eje en vez de
+ * derivarla de los propios registros. Queda pendiente hasta que el
+ * backend exponga ese campo. */
 function construirSemanasMaestras(miembros){
   const ordenes = new Map(); // etiqueta -> valor temporal (o null si no se pudo interpretar)
   miembros.forEach(m => (m.historialSemanal || []).forEach(h => {
@@ -754,7 +848,13 @@ function semanaLabelCorta(s){
 
 function lineChartSvg(miembros, campo, semanas, opts){
   opts = opts || {};
-  const W = 960, H = 460, PAD_L = 56, PAD_R = 20, PAD_T = 20, PAD_B = 44;
+  // FIX (03-sep-2026, pedido usuario — "las semanas se superponían [las
+  // etiquetas de eje]... rotar 90° el texto a la izquierda del eje x, o
+  // 45°, tú decide"): con muchos miembros nuevos hay muchas semanas en el
+  // eje X y las etiquetas ("dd/MM") chocaban entre sí en horizontal. Se
+  // rotan -45° (ancladas por su extremo derecho, bajando hacia la
+  // izquierda) y se sube PAD_B (44→68) para que quepan sin cortarse.
+  const W = 960, H = 460, PAD_L = 56, PAD_R = 20, PAD_T = 20, PAD_B = 68;
   const plotW = W - PAD_L - PAD_R, plotH = H - PAD_T - PAD_B;
 
   let max = 0;
@@ -771,7 +871,10 @@ function lineChartSvg(miembros, campo, semanas, opts){
     gridLines.push(`<line class="grid-line" x1="${PAD_L}" y1="${y}" x2="${W - PAD_R}" y2="${y}"></line>`);
     gridLines.push(`<text class="axis-label" x="${PAD_L - 10}" y="${y + 4}" text-anchor="end">${fmtNum(Math.round(v))}</text>`);
   }
-  const xLabels = semanas.map((s, i) => `<text class="axis-label" x="${xPos(i)}" y="${H - PAD_B + 24}" text-anchor="middle">${esc(semanaLabelCorta(s))}</text>`).join('');
+  const xLabels = semanas.map((s, i) => {
+    const x = xPos(i), y = H - PAD_B + 16;
+    return `<text class="axis-label" x="${x}" y="${y}" text-anchor="end" transform="rotate(-45 ${x} ${y})">${esc(semanaLabelCorta(s))}</text>`;
+  }).join('');
 
   const seriesSvg = miembros.map((m, si) => {
     const color = PALETA_SERIES[si % PALETA_SERIES.length];
@@ -781,21 +884,44 @@ function lineChartSvg(miembros, campo, semanas, opts){
       .sort((a, b) => a.idx - b.idx);
     if (!puntos.length) return '';
 
-    // Corta la línea si falta una semana intermedia, en vez de saltarla
-    // como si fuera continua (evita sugerir datos que no existen).
-    const tramos = [[puntos[0]]];
-    for (let i = 1; i < puntos.length; i++){
-      const ultimo = tramos[tramos.length - 1];
-      if (puntos[i].idx === ultimo[ultimo.length - 1].idx + 1) ultimo.push(puntos[i]);
-      else tramos.push([puntos[i]]);
+    // FIX (03-sep-2026, pedido usuario — "en las fechas que no haya
+    // datos, baja con líneas punteadas a cero, así se evitan cortes en
+    // las líneas y se puede distinguir si está ahí porque hizo 0 puntos
+    // (con presencia en el clan) o estaba sin clan y no participó...
+    // en los puntos donde no haya dato, no colorees el centro del
+    // círculo, solo colorea los bordes"): antes, si faltaba una semana
+    // intermedia, la línea simplemente se cortaba (sin trazo entre un
+    // tramo y el siguiente), lo que en la práctica es indistinguible de
+    // "no hay datos ahí" a simple vista y deja huecos raros en el
+    // gráfico. Ahora, por cada hueco entre dos semanas con dato real, se
+    // insertan puntos sintéticos en 0 (uno por semana faltante) y se
+    // conecta todo con trazo punteado (.serie-line-dashed) en vez de
+    // trazo sólido — el punto sintético se dibuja hueco (fill:none, solo
+    // borde de color) para diferenciarlo de un 0 real reportado por el
+    // backend (que si se dibuja sólido, como cualquier otro dato real).
+    const secuencia = [];
+    puntos.forEach((p, i) => {
+      secuencia.push(Object.assign({ real: true }, p));
+      const siguiente = puntos[i + 1];
+      if (siguiente && siguiente.idx > p.idx + 1){
+        for (let idx = p.idx + 1; idx < siguiente.idx; idx++){
+          secuencia.push({ idx, valor: 0, clan: '', semana: semanaLabel(semanas[idx]), real: false });
+        }
+      }
+    });
+
+    let path = '';
+    for (let i = 0; i < secuencia.length - 1; i++){
+      const a = secuencia[i], b = secuencia[i + 1];
+      const dashed = !(a.real && b.real);
+      path += `<path class="serie-line${dashed ? ' serie-line-dashed' : ''}" d="M ${xPos(a.idx).toFixed(1)} ${yPos(a.valor).toFixed(1)} L ${xPos(b.idx).toFixed(1)} ${yPos(b.valor).toFixed(1)}" stroke="${color}"></path>`;
     }
-    const path = tramos.map(t => t.map((p, i) => `${i === 0 ? 'M' : 'L'} ${xPos(p.idx).toFixed(1)} ${yPos(p.valor).toFixed(1)}`).join(' ')).join(' ');
-    const circles = puntos.map(p => `
-      <circle class="serie-pt" cx="${xPos(p.idx).toFixed(1)}" cy="${yPos(p.valor).toFixed(1)}" r="5"
-        fill="${color}" stroke="var(--bg)" stroke-width="1.5"
-        data-nombre="${esc(m.nombre || '')}" data-valor="${p.valor}" data-clan="${esc(p.clan)}"
+    const circles = secuencia.map(p => `
+      <circle class="serie-pt${p.real ? '' : ' serie-pt-vacio'}" cx="${xPos(p.idx).toFixed(1)}" cy="${yPos(p.valor).toFixed(1)}" r="5"
+        fill="${p.real ? color : 'none'}" stroke="${p.real ? 'var(--bg)' : color}" stroke-width="${p.real ? 1.5 : 2}"
+        data-nombre="${esc(m.nombre || '')}" data-valor="${p.valor}" data-clan="${esc(p.real ? p.clan : 'Sin dato — sin clan o sin participar')}"
         data-semana="${esc(p.semana)}" data-unidad="${esc(opts.unidad || '')}"></circle>`).join('');
-    return `<path class="serie-line" d="${path}" stroke="${color}"></path>${circles}`;
+    return `${path}${circles}`;
   }).join('');
 
   return `<svg class="linechart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">${gridLines.join('')}${xLabels}${seriesSvg}</svg>`;
@@ -830,22 +956,36 @@ function activarTooltipsGraficas(){
 /** Arma las dos gráficas comparativas (Ataques y Puntaje por semana, una
  * serie por miembro nuevo). Si nadie trae historialSemanal todavía, no
  * dibuja nada en vez de mostrar gráficas vacías. */
+/** FIX (03-sep-2026, pedido usuario):
+ * - "las etiquetas de los nombres deben estar agrupadas por clan y luego
+ *   orden alfabético de nombre de jugador": ya no se usa el orden crudo
+ *   en que llega 'miembrosTodos' — quien llama a esta función (
+ *   cargarIngresos) ahora pasa la lista ya agrupada por clan y ordenada
+ *   alfabéticamente (mismo orden que las tarjetas de arriba), así la
+ *   leyenda/colores de las gráficas coinciden con ese orden.
+ * - "la fila de nombres ponla entre el título y el gráfico": la leyenda
+ *   (lineChartLegendHtml) ahora se imprime ANTES del SVG, no después.
+ * - "falta una gráfica de Barcos": se agrega una tercera tarjeta igual a
+ *   las otras dos, usando el campo 'barcos' de historialSemanal.
+ *   CONTRATO: si el backend todavía no manda 'barcos' por semana dentro
+ *   de historialSemanal (ver comentario de contrato más arriba), esta
+ *   gráfica simplemente se dibuja en 0 para todos — no rompe, pero para
+ *   que muestre datos reales el backend debe agregar ese campo. */
 function renderComparativaSemanal(container, miembrosTodos){
   const miembros = miembrosTodos.filter(m => (m.historialSemanal || []).length);
   if (!miembros.length){ container.innerHTML = ''; return; }
   const semanas = construirSemanasMaestras(miembros);
+  const chartCard = (icono, titulo, campo, unidad) => `
+      <div class="card linechart-card">
+        <div class="chart-title">${icono} ${titulo}</div>
+        ${lineChartLegendHtml(miembros)}
+        ${lineChartSvg(miembros, campo, semanas, { unidad })}
+      </div>`;
   container.innerHTML = `
     <div class="comparativa-grid">
-      <div class="card linechart-card">
-        <div class="chart-title">⚔️ Ataques por semana</div>
-        ${lineChartSvg(miembros, 'ataques', semanas, { unidad: 'ataques' })}
-        ${lineChartLegendHtml(miembros)}
-      </div>
-      <div class="card linechart-card">
-        <div class="chart-title">⭐ Puntaje por semana</div>
-        ${lineChartSvg(miembros, 'puntaje', semanas, { unidad: 'de puntaje' })}
-        ${lineChartLegendHtml(miembros)}
-      </div>
+      ${chartCard('⚔️', 'Ataques por semana', 'ataques', 'ataques')}
+      ${chartCard('⭐', 'Puntaje por semana', 'puntaje', 'de puntaje')}
+      ${chartCard('🚢', 'Barcos por semana', 'barcos', 'barcos')}
     </div>`;
   activarTooltipsGraficas();
 }
@@ -925,7 +1065,15 @@ async function cargarIngresos(){
         }).join('')}
       </div>`).join('');
 
-    renderComparativaSemanal(chartsWrap, ingresos);
+    // FIX (03-sep-2026, pedido usuario — "las etiquetas de los nombres
+    // deben estar agrupadas por clan y luego orden alfabético de nombre
+    // de jugador"): se reusa 'grupos' (ya agrupado por clan en el orden
+    // fijo de la Familia y ordenado alfabéticamente dentro de cada clan,
+    // ver comentario más arriba) en vez de pasar 'ingresos' tal cual
+    // llegó del backend, así el orden de colores/leyenda de las gráficas
+    // coincide exactamente con el de las tarjetas de arriba.
+    const ingresosOrdenados = grupos.flatMap(g => g.items);
+    renderComparativaSemanal(chartsWrap, ingresosOrdenados);
   }catch(err){
     wrap.innerHTML = `<div class="card" style="text-align:center; padding:32px;">
       <p class="text-dim">No se pudo cargar los ingresos recientes: ${esc(err.message)}</p>
