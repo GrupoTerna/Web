@@ -410,15 +410,30 @@
   }
   .ranking-row:last-child{border-bottom:none;}
   .ranking-row .rk-pos{font-family:var(--f-mono); color:var(--text-faint); width:18px; flex-shrink:0;}
-  .ranking-row .rk-nombre{flex:1; min-width:0; color:var(--text); font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  /* FIX (04-sep-2026, pedido usuario — "los nombres deben tener link al
+   * perfil y la lista debe mostrar su clan, ten en cuenta que son 4 clanes
+   * y las canteras aspiran a subir en clanes"): rk-nombre pasa de <span>
+   * de texto plano a <a> hacia perfil.html?tag=..., y se agrega rk-clan
+   * como columna aparte (max-width fijo para que las 4 listas alineen
+   * parejo pase lo que pase el largo del nombre de cada clan). */
+  .ranking-row .rk-nombre{flex:1; min-width:0; color:var(--text); font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-decoration:none;}
+  .ranking-row .rk-nombre:hover{text-decoration:underline; color:var(--purple-light);}
+  .ranking-row .rk-clan{font-family:var(--f-mono); font-size:10px; color:var(--text-faint); flex-shrink:0; max-width:88px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
   .ranking-row .rk-valor{font-family:var(--f-mono); color:var(--gold); font-size:12px; flex-shrink:0;}
   .cartas-list{display:flex; flex-wrap:wrap; gap:10px; margin-top:14px;}
+  /* FIX (04-sep-2026, pedido usuario — "falta insertar las imágenes de las
+   * cartas y su costo, usa Elixir.webp"): el chip pasa de una sola línea
+   * de texto a incluir el ícono de la carta (cc-img) y el costo de elixir
+   * junto al ícono de assets/img/Elixir.webp (cc-elixir). */
   .carta-chip{
-    display:flex; align-items:center; gap:6px; padding:7px 14px;
+    display:flex; align-items:center; gap:8px; padding:7px 14px 7px 8px;
     border:1px solid var(--line); border-radius:999px; font-size:12px; color:var(--text-dim);
   }
+  .carta-chip .cc-img{width:28px; height:34px; object-fit:cover; border-radius:4px; flex-shrink:0; background:var(--bg-2);}
   .carta-chip b{color:var(--text);}
   .carta-chip .cc-usos{color:var(--gold); font-family:var(--f-mono);}
+  .carta-chip .cc-elixir{display:inline-flex; align-items:center; gap:3px; color:var(--purple-light); font-family:var(--f-mono);}
+  .carta-chip .cc-elixir img{width:13px; height:13px; vertical-align:-2px;}
 </style>
 </head>
 <body data-page="inicio">
@@ -621,7 +636,16 @@
         <div id="rkRacha"><div class="text-faint" style="font-size:12px; margin-top:10px;">Cargando…</div></div>
       </div>
       <div class="card ranking-card">
-        <div class="ranking-title">🏅 Torneos</div>
+        <!-- FIX (04-sep-2026, pedido usuario — "no estoy segura del
+             significado de 6682 en torneos, ¿significa que ha ganado esa
+             cantidad de torneos?"): NO — DC.TORNEOS es
+             playerData.tournamentBattleCount de la API de Clash Royale
+             (ver 08_Web_Endpoints.gs/13_Sync_...), es decir BATALLAS
+             jugadas dentro de torneos, no torneos ganados ni torneos
+             distintos en los que participó. Se renombra el título y se
+             agrega el sufijo "batallas" al valor (ver cargarRankings()
+             más abajo) para que no vuelva a prestarse a esa confusión. -->
+        <div class="ranking-title">🏅 Batallas de torneo</div>
         <div id="rkTorneos"><div class="text-faint" style="font-size:12px; margin-top:10px;">Cargando…</div></div>
       </div>
       <div class="card ranking-card">
@@ -1288,14 +1312,26 @@ cargarAniversarios();
    esc/fmtNum/apiGet/traducirNombreCarta (assets/common.js), ya incluido
    en esta página, así que no necesitó ningún ajuste al moverse. */
 /**
- * renderRankingRow(pos, nombre, valor, sufijo)
+ * renderRankingRow(pos, nombre, valor, sufijo, tag, clan)
  * Fila compartida por las 4 listas de 'webRankings' — evita repetir el
  * mismo template 4 veces.
+ * FIX (04-sep-2026, pedido usuario — "los nombres deben tener link al
+ * perfil y la lista debe mostrar su clan, ten en cuenta que son 4 clanes
+ * y las canteras aspiran a subir en clanes"): se agregan `tag` y `clan`
+ * (ya vienen del backend, _webRankings() los mandaba desde antes, solo no
+ * se estaban usando acá) — el nombre pasa a ser un link a
+ * perfil.html?tag=... (mismo patrón que ya usa jugadores.html para abrir
+ * el perfil), y se pinta el clan al lado. Si por lo que sea no llega tag,
+ * se degrada a texto plano sin romper nada.
  */
-function renderRankingRow(pos, nombre, valor, sufijo){
+function renderRankingRow(pos, nombre, valor, sufijo, tag, clan){
+  const nombreHtml = tag
+    ? `<a class="rk-nombre" href="perfil.html?tag=${encodeURIComponent(tag)}" target="_blank" rel="noopener">${esc(nombre)}</a>`
+    : `<span class="rk-nombre">${esc(nombre)}</span>`;
   return `<div class="ranking-row">
     <span class="rk-pos">${pos}.</span>
-    <span class="rk-nombre">${esc(nombre)}</span>
+    ${nombreHtml}
+    ${clan ? `<span class="rk-clan">${esc(clan)}</span>` : ''}
     <span class="rk-valor">${fmtNum(valor)}${sufijo ? ' ' + sufijo : ''}</span>
   </div>`;
 }
@@ -1306,7 +1342,7 @@ function pintarRanking(elId, lista, sufijo){
     wrap.innerHTML = '<div class="empty" style="padding:16px 0;">Todavía no hay datos.</div>';
     return;
   }
-  wrap.innerHTML = lista.map((m, i) => renderRankingRow(i + 1, m.nombre, m.valor, sufijo)).join('');
+  wrap.innerHTML = lista.map((m, i) => renderRankingRow(i + 1, m.nombre, m.valor, sufijo, m.tag, m.clan)).join('');
 }
 
 /**
@@ -1319,7 +1355,7 @@ async function cargarRankings(){
     const data = await apiGet('webRankings');
     pintarRanking('rkDonadores', data.donadores, '');
     pintarRanking('rkRacha', data.racha, '');
-    pintarRanking('rkTorneos', data.torneos, '');
+    pintarRanking('rkTorneos', data.torneos, 'batallas');
     pintarRanking('rkVictorias3c', data.victorias3c, '');
   }catch(err){
     ['rkDonadores','rkRacha','rkTorneos','rkVictorias3c'].forEach(id => {
@@ -1334,6 +1370,19 @@ async function cargarRankings(){
  * backend depende de que PLAYERS_API_ENABLED esté activo — top10 puede
  * venir legítimamente vacío (no es un error), así que acá se muestra un
  * mensaje neutral, no un mensaje de error.
+ * FIX (04-sep-2026, pedido usuario — "en la sección de cartas falta
+ * insertar las imágenes de las cartas y su costo. Usa el archivo
+ * Elixir.webp en la carpeta img"): se agrega el costo de elixir
+ * (c.elixirCost) junto al ícono assets/img/Elixir.webp.
+ * CORRECCIÓN (04-sep-2026, pedido usuario — "las imágenes no son de
+ * royaleapi, los links vienen en el endpoint players desde supercell,
+ * incluso se guardan en el csv de cards en drive"): la imagen de cada
+ * carta (c.icon) es la URL real de Supercell que el backend ya lee de
+ * Backup_Cards.csv (columna "Carta") y ahora expone en
+ * _webEstadisticasCartas() — nada de hotlink a un CDN de terceros ni de
+ * assets locales inventados. Si por lo que sea esa columna viniera vacía
+ * para alguna carta puntual (catálogo desactualizado), el onerror la
+ * oculta en vez de dejar un ícono roto.
  */
 async function cargarEstadisticasCartas(){
   const wrap = document.getElementById('cartasWrap');
@@ -1345,8 +1394,10 @@ async function cargarEstadisticasCartas(){
     }
     wrap.innerHTML = data.top10.map((c, i) => `
       <div class="carta-chip">
+        ${c.icon ? `<img class="cc-img" src="${esc(c.icon)}" alt="" loading="lazy" onerror="this.remove()">` : ''}
         <span>${i + 1}.</span> <b>${esc(traducirNombreCarta(c.name))}</b>
         <span class="cc-usos">${fmtNum(c.usos)} en mazo</span>
+        ${c.elixirCost != null ? `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">${fmtNum(c.elixirCost)}</span>` : ''}
       </div>`).join('');
   }catch(err){
     wrap.innerHTML = `<div class="empty" style="padding:8px 0;">No se pudo cargar: ${esc(err.message)}</div>`;
