@@ -424,16 +424,36 @@
   /* FIX (04-sep-2026, pedido usuario — "falta insertar las imágenes de las
    * cartas y su costo, usa Elixir.webp"): el chip pasa de una sola línea
    * de texto a incluir el ícono de la carta (cc-img) y el costo de elixir
-   * junto al ícono de assets/img/Elixir.webp (cc-elixir). */
+   * junto al ícono de assets/img/Elixir.webp (cc-elixir).
+   * FIX (04-sep-2026, pedido usuario — "en las cartas más usadas se debe
+   * incluir el tipo de carta, también se debe indicar si la carta tiene
+   * evolución o héroe"): el chip pasa de una sola fila a dos (cc-fila-1
+   * con ícono+nombre+usos, cc-fila-2 con rareza/elixir/badges Héroe-
+   * Evolución), por eso cambia de píldora (radius:999px) a esquinas
+   * redondeadas normales y ya no fuerza una sola línea. */
   .carta-chip{
-    display:flex; align-items:center; gap:8px; padding:7px 14px 7px 8px;
-    border:1px solid var(--line); border-radius:999px; font-size:12px; color:var(--text-dim);
+    display:flex; flex-wrap:wrap; align-items:center; gap:5px 10px; padding:8px 14px 8px 8px;
+    border:1px solid var(--line); border-radius:14px; font-size:12px; color:var(--text-dim);
   }
   .carta-chip .cc-img{width:28px; height:34px; object-fit:cover; border-radius:4px; flex-shrink:0; background:var(--bg-2);}
   .carta-chip b{color:var(--text);}
   .carta-chip .cc-usos{color:var(--gold); font-family:var(--f-mono);}
   .carta-chip .cc-elixir{display:inline-flex; align-items:center; gap:3px; color:var(--purple-light); font-family:var(--f-mono);}
   .carta-chip .cc-elixir img{width:13px; height:13px; vertical-align:-2px;}
+  .carta-chip .cc-meta{display:flex; align-items:center; gap:6px; flex-wrap:wrap; width:100%; margin-top:2px;}
+  .carta-chip .cc-rareza{
+    font-family:var(--f-mono); font-size:10px; text-transform:uppercase; letter-spacing:.03em;
+    padding:2px 7px; border-radius:999px; border:1px solid currentColor;
+  }
+  .carta-chip .cc-rareza[data-rareza="comun"]{color:var(--text-faint);}
+  .carta-chip .cc-rareza[data-rareza="rara"]{color:#4caf50;}
+  .carta-chip .cc-rareza[data-rareza="epica"]{color:#b26fe0;}
+  .carta-chip .cc-rareza[data-rareza="legendaria"]{color:#54c8f0;}
+  .carta-chip .cc-rareza[data-rareza="campeona"]{color:var(--gold);}
+  .carta-chip .cc-badge{
+    font-family:var(--f-mono); font-size:10px; padding:2px 7px; border-radius:999px;
+    background:var(--bg-2); color:var(--text-faint);
+  }
 </style>
 </head>
 <body data-page="inicio">
@@ -981,28 +1001,86 @@ function construirSemanasMaestras(miembros){
  * distintas semanas en distintos clanes de la Familia.
  */
 /** Acorta una fecha "dd/MM/yyyy" a "dd/MM" para que quepa como etiqueta
- * del eje X sin superponerse entre sí; el resto de formatos (p. ej.
- * "Semana 13") se muestra tal cual. La fecha completa sigue apareciendo
- * en el tooltip al pasar el mouse.
+ * del eje X sin superponerse entre sí. El resto de formatos ("Semana N")
+ * ya no debería llegar acá tal cual — ver fechaEstimadaSemanaVieja() más
+ * abajo, que los convierte a una fecha real estimada antes de graficar.
  * FIX (04-sep-2026, pedido usuario, punto 19 — "no tiene mucho sentido
  * que al final diga 'Semana 5' si todo se expresa por fechas y se ordena
- * de más reciente a más antiguo"): "Semana 5" es un registro viejo real
- * (de antes de que la hoja "Nuevos" guardara la fecha del domingo de cada
- * semana, ver docblock de semanaLabel/semanaOrden más arriba) — no hay
- * forma de convertirlo a una fecha real desde acá sin inventar un dato
- * que no existe, así que se sigue ordenando como la semana más antigua
- * (ya funcionaba bien, ver semanaOrden). Lo que sí se puede arreglar es
- * que "Semana 5" se vea tan distinto de "30/08" en el mismo eje: se
- * acorta "Semana N" / "SN" a "SN" (ej. "Semana 5" → "S5"), un formato
- * corto que convive mejor con las fechas dd/mm en vez de destacar como
- * texto suelto. El tooltip (activarTooltipsGraficas) sigue mostrando el
- * texto completo "Semana 5" sin acortar, para que quede claro qué es. */
-function semanaLabelCorta(s){
+ * de más reciente a más antiguo"): primer intento, se acortaba "Semana N"
+ * a "SN" en vez de mostrar una fecha.
+ * FIX (04-sep-2026, pedido usuario — "no debería haber algo en formato
+ * S1, S2, etc, todo debe venir con fecha"): "SN" tampoco sirve — se
+ * reemplaza por una fecha real ESTIMADA (ver fechaEstimadaSemanaVieja).
+ * Sigue sin inventarse un dato que no exista: se apoya en que la
+ * cuadrícula vieja (Control_2, "Semana 1".."Semana 5") era una sola grilla
+ * compartida por TODA la Familia con cadencia semanal fija — o sea que
+ * "Semana N" de cualquier jugador cae siempre en la MISMA semana
+ * calendario. Esa semana calendario se calcula contando hacia atrás, de 7
+ * en 7 días, desde la fecha real más antigua que sí aparece en el eje
+ * (el punto exacto donde el sistema pasó de Control_2 al esquema de fecha
+ * real de la hoja "Nuevos") — ver construirFechasEstimadasSemanasViejas().
+ * Se marca con "≈" para dejar claro que es una fecha estimada, no exacta
+ * (el tooltip explica el porqué, ver activarTooltipsGraficas). */
+function semanaLabelCorta(s, fechasEstimadas){
   const m = String(s ?? '').match(/^(\d{1,2}\/\d{1,2})\/\d{4}$/);
   if (m) return m[1];
-  const sem = String(s ?? '').match(/^semana\s*(\d+)$/i);
-  if (sem) return 'S' + sem[1];
+  if (fechasEstimadas && fechasEstimadas.has(s)) return '≈' + fmtFechaCortaDDMM(fechasEstimadas.get(s));
   return semanaLabel(s);
+}
+
+/** dd/MM a partir de un objeto Date (sin librerías, mismo criterio que el
+ * resto del archivo). */
+function fmtFechaCortaDDMM(d){
+  return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0');
+}
+function fmtFechaLargaDDMMYYYY(d){
+  return fmtFechaCortaDDMM(d) + '/' + d.getFullYear();
+}
+
+/** Extrae el número N de una etiqueta vieja "Semana N" / "SN" / "N" a
+ * secas (Control_2, sin fecha real — ver docblock de semanaLabel/
+ * semanaOrden más arriba, los tres formatos son compatibles entre sí).
+ * Devuelve null si 's' no calza con ninguno (p. ej. ya es una fecha real
+ * "dd/MM/yyyy"). */
+function numeroSemanaVieja(s){
+  const str = String(s ?? '').trim();
+  const m = str.match(/^semana\s*(\d+)$/i) || str.match(/^s(\d+)$/i) || str.match(/^(\d+)$/);
+  return m ? Number(m[1]) : null;
+}
+
+/**
+ * construirFechasEstimadasSemanasViejas(semanas)
+ * Arma un Map<etiquetaVieja, Date> con la fecha estimada de cada "Semana N"
+ * presente en el eje maestro, contando hacia atrás en semanas completas
+ * desde la fecha real más antigua del eje (ver docblock de
+ * semanaLabelCorta más arriba para el razonamiento completo).
+ * Si el eje no tiene NINGUNA fecha real (caso extremo: nadie en el
+ * gráfico tiene historial nuevo todavía) o no hay ninguna "Semana N",
+ * devuelve un Map vacío y esas etiquetas se siguen mostrando tal cual
+ * (semanaLabel), en vez de arriesgar un cálculo sin ancla real.
+ */
+function construirFechasEstimadasSemanasViejas(semanas){
+  let anchorTime = null; // timestamp de la fecha real MÁS ANTIGUA del eje
+  semanas.forEach(s => {
+    if (numeroSemanaVieja(s) !== null) return; // no es fecha real
+    const o = semanaOrden(s);
+    if (o === null || o === undefined) return;
+    if (anchorTime === null || o < anchorTime) anchorTime = o;
+  });
+
+  const numeros = semanas.map(numeroSemanaVieja).filter(n => n !== null);
+  const mapa = new Map();
+  if (anchorTime === null || !numeros.length) return mapa;
+
+  const maxN = Math.max(...numeros);
+  const MS_SEMANA = 7 * 24 * 60 * 60 * 1000;
+  semanas.forEach(s => {
+    const n = numeroSemanaVieja(s);
+    if (n === null) return;
+    const semanasAtras = maxN - n + 1; // "Semana maxN" = 1 semana antes del ancla
+    mapa.set(s, new Date(anchorTime - semanasAtras * MS_SEMANA));
+  });
+  return mapa;
 }
 
 function lineChartSvg(miembros, campo, semanas, opts){
@@ -1030,9 +1108,15 @@ function lineChartSvg(miembros, campo, semanas, opts){
     gridLines.push(`<line class="grid-line" x1="${PAD_L}" y1="${y}" x2="${W - PAD_R}" y2="${y}"></line>`);
     gridLines.push(`<text class="axis-label" x="${PAD_L - 10}" y="${y + 4}" text-anchor="end">${fmtNum(Math.round(v))}</text>`);
   }
+  // FIX (04-sep-2026, pedido usuario — "todo debe venir con fecha, no
+  // debería haber algo en formato S1/S2"): se calcula UNA vez por gráfica
+  // el Map de fechas estimadas para las etiquetas viejas "Semana N" (ver
+  // construirFechasEstimadasSemanasViejas más arriba) y se usa tanto en
+  // las etiquetas del eje como en el tooltip de cada punto (más abajo).
+  const fechasEstimadas = construirFechasEstimadasSemanasViejas(semanas);
   const xLabels = semanas.map((s, i) => {
     const x = xPos(i), y = H - PAD_B + 16;
-    return `<text class="axis-label" x="${x}" y="${y}" text-anchor="end" transform="rotate(-45 ${x} ${y})">${esc(semanaLabelCorta(s))}</text>`;
+    return `<text class="axis-label" x="${x}" y="${y}" text-anchor="end" transform="rotate(-45 ${x} ${y})">${esc(semanaLabelCorta(s, fechasEstimadas))}</text>`;
   }).join('');
 
   const seriesSvg = miembros.map((m, si) => {
@@ -1075,11 +1159,18 @@ function lineChartSvg(miembros, campo, semanas, opts){
       const dashed = !(a.real && b.real);
       path += `<path class="serie-line${dashed ? ' serie-line-dashed' : ''}" d="M ${xPos(a.idx).toFixed(1)} ${yPos(a.valor).toFixed(1)} L ${xPos(b.idx).toFixed(1)} ${yPos(b.valor).toFixed(1)}" stroke="${color}"></path>`;
     }
-    const circles = secuencia.map(p => `
+    // FIX (04-sep-2026, mismo pedido — "todo debe venir con fecha"): el
+    // tooltip también reemplaza "Semana N" por la fecha estimada (con
+    // "≈" y una nota aparte), en vez de mostrar la etiqueta vieja sola.
+    const circles = secuencia.map(p => {
+      const fEst = fechasEstimadas.get(p.semana);
+      const semanaTooltip = fEst ? `≈ ${fmtFechaLargaDDMMYYYY(fEst)} (estimada)` : p.semana;
+      return `
       <circle class="serie-pt${p.real ? '' : ' serie-pt-vacio'}" cx="${xPos(p.idx).toFixed(1)}" cy="${yPos(p.valor).toFixed(1)}" r="5"
         fill="${p.real ? color : 'none'}" stroke="${p.real ? 'var(--bg)' : color}" stroke-width="${p.real ? 1.5 : 2}"
         data-nombre="${esc(m.nombre || '')}" data-valor="${p.valor}" data-clan="${esc(p.real ? p.clan : 'Sin dato — sin clan o sin participar')}"
-        data-semana="${esc(p.semana)}" data-unidad="${esc(opts.unidad || '')}"></circle>`).join('');
+        data-semana="${esc(semanaTooltip)}" data-unidad="${esc(opts.unidad || '')}"></circle>`;
+    }).join('');
     return `${path}${circles}`;
   }).join('');
 
@@ -1134,6 +1225,12 @@ function renderComparativaSemanal(container, miembrosTodos){
   const miembros = miembrosTodos.filter(m => (m.historialSemanal || []).length);
   if (!miembros.length){ container.innerHTML = ''; return; }
   const semanas = construirSemanasMaestras(miembros);
+  // FIX (04-sep-2026, pedido usuario — "todo debe venir con fecha"): si el
+  // eje trae alguna etiqueta vieja "Semana N" (convertida a fecha estimada
+  // "≈dd/MM" por semanaLabelCorta), se agrega una nota una sola vez debajo
+  // de las tres gráficas explicando el "≈" — mismo criterio que ya usan
+  // otras notas al pie de esta página (no repetirla en cada tarjeta).
+  const hayEstimadas = semanas.some(s => numeroSemanaVieja(s) !== null);
   const chartCard = (icono, titulo, campo, unidad) => `
       <div class="card linechart-card">
         <div class="chart-title">${icono} ${titulo}</div>
@@ -1145,7 +1242,8 @@ function renderComparativaSemanal(container, miembrosTodos){
       ${chartCard('⚔️', 'Ataques por semana', 'ataques', 'ataques')}
       ${chartCard('⭐', 'Puntaje por semana', 'puntaje', 'de puntaje')}
       ${chartCard('🚢', 'Barcos por semana', 'barcos', 'barcos')}
-    </div>`;
+    </div>
+    ${hayEstimadas ? `<p class="text-faint" style="font-size:11px; margin-top:8px;">≈ Fecha estimada: registros de antes de que se guardara la fecha real de cada semana (esquema viejo "Semana N"), calculada contando semanas hacia atrás desde el primer registro con fecha real.</p>` : ''}`;
   activarTooltipsGraficas();
 }
 
@@ -1383,7 +1481,30 @@ async function cargarRankings(){
  * assets locales inventados. Si por lo que sea esa columna viniera vacía
  * para alguna carta puntual (catálogo desactualizado), el onerror la
  * oculta en vez de dejar un ícono roto.
+ * FIX (04-sep-2026, pedido usuario — "en las cartas más usadas se debe
+ * incluir el tipo de carta, también se debe indicar si la carta tiene
+ * evolución o héroe"): el backend (_webEstadisticasCartas(), 34_Web_API.gs)
+ * ahora manda 'rarity' (Common/Rare/Epic/Legendary/Champion, tal cual la
+ * entrega la API de Supercell) y 'hasHero'/'hasEvolution' (true si esa
+ * carta tiene variante Héroe/Evolución en el catálogo, según las columnas
+ * "Héroe"/"Evolución" de Backup_Cards.csv). Se traduce la rareza al
+ * español con RAREZA_ES y se agrega una segunda fila al chip (cc-meta) con
+ * la rareza y, si aplica, los badges "Héroe"/"Evolución". El data-rareza
+ * del span (sin tildes, minúscula) es el que usa el CSS .cc-rareza para
+ * pintar cada rareza con su color (ver <style> más arriba).
  */
+const RAREZA_ES = {
+  common:    { texto: 'Común',      clave: 'comun' },
+  rare:      { texto: 'Rara',       clave: 'rara' },
+  epic:      { texto: 'Épica',      clave: 'epica' },
+  legendary: { texto: 'Legendaria', clave: 'legendaria' },
+  champion:  { texto: 'Campeona',   clave: 'campeona' }
+};
+function rarezaHtml(rarity){
+  const info = RAREZA_ES[String(rarity || '').toLowerCase()];
+  if (!info) return '';
+  return `<span class="cc-rareza" data-rareza="${info.clave}">${esc(info.texto)}</span>`;
+}
 async function cargarEstadisticasCartas(){
   const wrap = document.getElementById('cartasWrap');
   try{
@@ -1398,6 +1519,11 @@ async function cargarEstadisticasCartas(){
         <span>${i + 1}.</span> <b>${esc(traducirNombreCarta(c.name))}</b>
         <span class="cc-usos">${fmtNum(c.usos)} en mazo</span>
         ${c.elixirCost != null ? `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">${fmtNum(c.elixirCost)}</span>` : ''}
+        <div class="cc-meta">
+          ${rarezaHtml(c.rarity)}
+          ${c.hasHero ? '<span class="cc-badge">🦸 Héroe</span>' : ''}
+          ${c.hasEvolution ? '<span class="cc-badge">✨ Evolución</span>' : ''}
+        </div>
       </div>`).join('');
   }catch(err){
     wrap.innerHTML = `<div class="empty" style="padding:8px 0;">No se pudo cargar: ${esc(err.message)}</div>`;
