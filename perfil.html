@@ -171,9 +171,14 @@
           <button type="button" id="btnVetarJugador" style="display:none; border-color:var(--danger); color:var(--danger);">🚫 Vetar</button>
           <button type="button" id="btnVerTorneosJugador">🏆 Ver torneos</button>
           <button type="button" id="btnVerOtrasCuentas" style="display:none;">Ver otras cuentas</button>
+          <!-- FASE 2 (04-sep-2026, pedido del usuario, punto 1 del documento
+               de cambios): historial completo de guerra del jugador, solo
+               admin — mismo patrón visible/oculto que btnVerOtrasCuentas. -->
+          <button type="button" id="btnVerHistorialGuerra" style="display:none;">📜 Historial de guerra</button>
         </div>
         <div id="mTorneosWrap" style="display:none; margin-top:14px;"></div>
         <div id="mOtrasCuentasWrap" style="margin-top:14px;"></div>
+        <div id="mHistorialGuerraWrap" style="display:none; margin-top:14px;"></div>
         <div id="mVetarWrap" style="display:none; margin-top:14px;"></div>
       </div>
 
@@ -413,6 +418,11 @@ function renderMiembro(j){
   const btnOtras = document.getElementById('btnVerOtrasCuentas');
   btnOtras.style.display = esAdminLogueado() ? 'inline-flex' : 'none';
   btnOtras.dataset.tag = j.tag;
+  // FASE 2 (04-sep-2026): mismo criterio de visibilidad que "Ver otras
+  // cuentas" — cualquier admin con sesión iniciada, sin Función especial.
+  const btnHistGuerra = document.getElementById('btnVerHistorialGuerra');
+  btnHistGuerra.style.display = esAdminLogueado() ? 'inline-flex' : 'none';
+  btnHistGuerra.dataset.tag = j.tag;
   const btnVetar = document.getElementById('btnVetarJugador');
   btnVetar.style.display = adminPuedeVetar() ? 'inline-flex' : 'none';
   btnVetar.dataset.tag = j.tag;
@@ -480,6 +490,67 @@ async function verOtrasCuentas(tag){
 }
 document.getElementById('btnVerOtrasCuentas').addEventListener('click', function(){
   verOtrasCuentas(this.dataset.tag);
+});
+
+/**
+ * verHistorialGuerra(tag)
+ * FASE 2 (04-sep-2026, pedido del usuario, punto 1 del documento de
+ * cambios): tabla con el historial COMPLETO de guerra del jugador (todas
+ * las Temporada+Semana guardadas, no solo la actual) — solo admins.
+ * Ver _webHistorialGuerraJugador() (21_HistorialGuerraJugador.gs).
+ *
+ * OJO — el dato es semanal (Temporada/Semana), no día por día: no hay una
+ * columna de fecha real por fila, así que no se muestra "Fecha" en la
+ * tabla (ver docblock del backend para el detalle de por qué).
+ */
+async function verHistorialGuerra(tag){
+  const wrap = document.getElementById('mHistorialGuerraWrap');
+  wrap.style.display = 'block';
+  wrap.innerHTML = '<div class="text-faint" style="font-family:var(--f-mono); font-size:12px;">Cargando historial de guerra…</div>';
+  try{
+    const data = await apiGetAuth('webHistorialGuerraJugador', { tag });
+    if (!data || !data.ok){
+      wrap.innerHTML = `<div class="empty">${esc((data && data.error) || 'No se pudo cargar el historial.')}</div>`;
+      return;
+    }
+    const registros = data.registros || [];
+    if (!registros.length){
+      wrap.innerHTML = '<div class="text-faint" style="font-family:var(--f-mono); font-size:12px;">Todavía no hay historial de guerra guardado para esta cuenta.</div>';
+      return;
+    }
+    wrap.innerHTML = `<div class="card" style="padding:8px 4px; overflow-x:auto;">
+      <table style="width:100%; border-collapse:collapse; font-family:var(--f-mono); font-size:12px;">
+        <thead>
+          <tr style="text-align:left; color:var(--text-dim);">
+            <th style="padding:6px 8px;">Temporada</th>
+            <th style="padding:6px 8px;">Semana</th>
+            <th style="padding:6px 8px;">Clan</th>
+            <th style="padding:6px 8px;">Ataques</th>
+            <th style="padding:6px 8px;">Puntaje</th>
+            <th style="padding:6px 8px;">Barcos</th>
+            <th style="padding:6px 8px;">Comentario</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${registros.map(r => `
+          <tr style="border-top:1px solid var(--border);">
+            <td style="padding:6px 8px;">${esc(String(r.temporadaInterna ?? '—'))}</td>
+            <td style="padding:6px 8px;">${esc(String(r.semana ?? '—'))}</td>
+            <td style="padding:6px 8px;">${esc(r.clan || '—')}</td>
+            <td style="padding:6px 8px;">${r.ataques == null ? '—' : fmtNum(r.ataques)}</td>
+            <td style="padding:6px 8px;">${r.fame == null ? '—' : fmtNum(r.fame)}</td>
+            <td style="padding:6px 8px;">${r.barcos == null ? '—' : fmtNum(r.barcos)}</td>
+            <td style="padding:6px 8px; color:var(--text-dim);">${esc(r.comentario || '—')}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>`;
+  }catch(err){
+    wrap.innerHTML = `<div class="empty">No se pudo cargar el historial de guerra: ${esc(err.message)}</div>`;
+  }
+}
+document.getElementById('btnVerHistorialGuerra').addEventListener('click', function(){
+  verHistorialGuerra(this.dataset.tag);
 });
 
 function mostrarFormVetar(tag){
