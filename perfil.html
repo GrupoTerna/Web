@@ -30,25 +30,40 @@
 
   Además se agrega una sección nueva que no existía: "Ranking en el clan"
   a lo largo del tiempo (pedido: "se puede hacer una gráfica de ranking en
-  el clan, porque eso se guarda en la hoja Guerra"). OJO backend: hoy
-  'webPerfil' (34_Web_API.gs) manda ext.rankingClan como un solo número
-  (el ranking ACTUAL), no una serie histórica. Para dibujar la gráfica se
-  necesita que el backend agregue algo como ext.historialRanking =
-  [{semana, ranking}, ...] leyendo la hoja Guerra semana a semana (mismo
-  patrón que ya usa miembro.historialSemanal en index.html). Mientras ese
-  campo no exista, esta sección se muestra igual pero con un mensaje claro
-  en vez de inventar datos.
+  el clan, porque eso se guarda en la hoja Guerra").
+  RESUELTO (04-sep-2026, pedido usuario — "en el sector de Ranking del
+  clan, falta corregir porque la información diaria sí está en Sheets,
+  hoja Guerra"): 'webPerfil' (_webPerfilJugador(), 34_Web_API.gs) ya manda
+  ext.historialRanking = [{semana, ranking}, ...], leído fila por fila de
+  la hoja Guerra (columna Ranking, GC.RANKING) para el Tag del jugador.
+  Como Guerra solo retiene la temporada actual (el resto se purga a
+  Backup_Guerra.csv), el historial cubre los días ya jugados de la
+  temporada en curso, no temporadas completas anteriores. Si un jugador
+  todavía no tiene ningún día con Ranking registrado (recién ingresado, o
+  ninguna guerra jugada todavía esta temporada), esta sección sigue
+  mostrando el mensaje de "todavía no hay historial" en vez de una gráfica
+  vacía (ver renderRankingChart() más abajo).
 -->
 <style>
   .perfil-cabecera{display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px;}
-  .perfil-cabecera .stats-mini{display:flex; gap:18px; font-family:var(--f-mono); font-size:12px; color:var(--text-dim); flex-wrap:wrap;}
+  /* FIX (04-sep-2026, pedido usuario — "falta centrar los datos de los
+   * cuadritos y esto también" [refiriéndose a esta fila de stats-mini de la
+   * cabecera]): cada <span> pasa a ser una columna centrada (texto y el
+   * valor en negrita arriba), en vez de quedar todo pegado a la izquierda
+   * dentro de su ancho de contenido. */
+  .perfil-cabecera .stats-mini{display:flex; gap:18px; font-family:var(--f-mono); font-size:12px; color:var(--text-dim); flex-wrap:wrap; text-align:center;}
+  .perfil-cabecera .stats-mini span{display:flex; flex-direction:column; align-items:center;}
   .perfil-cabecera .stats-mini b{color:var(--text); font-size:16px; display:block; font-family:var(--f-display);}
   .req-row{display:flex; align-items:center; gap:12px; margin-bottom:12px; flex-wrap:wrap;}
   .req-row .lbl{width:140px; font-size:13px; color:var(--text-dim); flex-shrink:0;}
   .req-row .progress{flex:1; min-width:120px;}
   .req-row .val{min-width:110px; width:auto; text-align:right; font-family:var(--f-mono); font-size:12px; flex-shrink:0; white-space:nowrap;}
   .ext-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:14px; margin-top:16px;}
-  .ext-item{background:var(--bg-2); border:1px solid var(--line); border-radius:var(--radius-sm); padding:12px 14px; text-align:left;}
+  /* FIX (04-sep-2026, pedido usuario — "falta centrar los datos de los
+   * cuadritos"): .ext-item pasa de text-align:left a center, así el valor
+   * grande y la etiqueta chica quedan centrados dentro de cada cuadrito en
+   * vez de pegados al borde izquierdo. */
+  .ext-item{background:var(--bg-2); border:1px solid var(--line); border-radius:var(--radius-sm); padding:12px 14px; text-align:center;}
   .ext-item .v{font-family:var(--f-display); font-weight:800; font-size:19px; color:var(--text);}
   .ext-item .k{font-family:var(--f-mono); font-size:10px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.06em; margin-top:2px;}
   /* FIX (02-sep-2026, pedido usuario — "en el punto 7 se debía quitar la
@@ -323,11 +338,12 @@ function renderMiembro(j){
 
   // FIX (03-sep-2026, pedido usuario — "Vigencia" / Última conexión, dato
   // de la hoja Directorio): se acepta tanto `j.vigencia` como
-  // `j.extendido.vigencia`/`j.extendido.ultimaConexion` (no hay forma de
-  // confirmar el nombre exacto del campo sin ver el backend todavía) —
-  // se usa el primero que venga con valor. Si ninguno viene, el <span>
-  // se queda oculto (display:none puesto en el HTML) en vez de mostrar
-  // un campo vacío.
+  // `j.extendido.vigencia`/`j.extendido.ultimaConexion` — se usa el primero
+  // que venga con valor. Si ninguno viene, el <span> se queda oculto
+  // (display:none puesto en el HTML) en vez de mostrar un campo vacío.
+  // CONFIRMADO (04-sep-2026): el backend (`_webPerfilJugador()`,
+  // 34_Web_API.gs) ya manda `j.vigencia` (columna DC.VIGENCIA de
+  // Directorio), así que este bloque ya no depende de una futura conexión.
   const vigenciaWrap = document.getElementById('mVigenciaWrap');
   const vigenciaRaw = j.vigencia ?? (j.extendido && (j.extendido.vigencia ?? j.extendido.ultimaConexion));
   if (vigenciaRaw){
@@ -337,9 +353,17 @@ function renderMiembro(j){
     vigenciaWrap.style.display = 'none';
   }
 
+  // FIX (04-sep-2026, pedido usuario — "los espacios son desiguales" entre
+  // las barras de Ascensos/Descensos): antes se unían los bloques con un
+  // separador extra de 14px (`<div style="height:14px;">`), que se SUMABA
+  // al margin-bottom:12px que ya trae cada .req-row (ver <style>), dejando
+  // 26px entre el último renglón de un bloque y el primero del siguiente,
+  // contra 12px entre renglones de un mismo bloque. Se quita el separador
+  // extra: el margin-bottom:12px de .req-row ya es uniforme para TODOS los
+  // renglones, sean del mismo bloque o no.
   const bloques = ['ascensos', 'descensos'].map(key => bloqueRequisitos(j, key)).filter(Boolean);
   document.getElementById('mReqContenido').innerHTML = bloques.length
-    ? bloques.join('<div style="height:14px;"></div>')
+    ? bloques.join('')
     : '<div class="empty">Este clan todavía no tiene requisitos configurados.</div>';
 
   renderExtendido(j.extendido);
@@ -364,11 +388,26 @@ function renderMiembro(j){
   const cwOkBtn = urlValida(ext.cwStats);
   const deckOkBtn = urlValida(ext.deck);
   const deck2OkBtn = urlValida(ext.deck2);
+  // FIX (04-sep-2026, pedido usuario — "los botones pueden confundir, se
+  // debe cambiar el nombre a 'Sugerencias de mazo' y 'Sugerencias de mazo
+  // (2)' para que no se malentienda que muestran el mazo actual [del
+  // jugador]"): ambos abren RoyaleAPI con búsquedas de mazos ya filtradas
+  // según las cartas desbloqueadas de esa cuenta — NO son "el mazo que el
+  // jugador está usando ahora", así que el nombre anterior ("Mazo"/
+  // "Mazo 2") se prestaba a esa confusión. Se agrega además un `title`
+  // (tooltip nativo al pasar el mouse) explicando la diferencia entre los
+  // dos: el primero (ext.deck) fuerza incluir las cartas que sí tiene y
+  // excluye las que no, sin mirar nivel; el segundo (ext.deck2) solo
+  // excluye las que no tiene desbloqueadas, sin forzar cuáles incluir ni
+  // mirar nivel tampoco — por eso puede sugerir mazos con cartas de nivel
+  // bajo mezcladas con cartas al máximo.
+  const deckTitle = 'Búsqueda en RoyaleAPI de mazos que solo usan cartas que esta cuenta tiene desbloqueadas, forzando la inclusión de esas cartas (no distingue el nivel de cada carta).';
+  const deck2Title = 'Búsqueda en RoyaleAPI de mazos que solo usan cartas que esta cuenta tiene desbloqueadas, sin forzar cuáles incluir (no distingue el nivel de cada carta, puede mezclar cartas al máximo con cartas de nivel bajo).';
   document.getElementById('mRoyaleCwstatsBtns').innerHTML = `
     ${royaleOkBtn ? `<a href="${esc(ext.royaleApi)}" target="_blank" rel="noopener">${ICONO_ROYALEAPI}RoyaleAPI</a>` : ''}
     ${cwOkBtn ? `<a href="${esc(ext.cwStats)}" target="_blank" rel="noopener">${ICONO_CWSTATS}CWStats</a>` : ''}
-    ${deckOkBtn ? `<a href="${esc(ext.deck)}" target="_blank" rel="noopener">🃏 Mazo</a>` : ''}
-    ${deck2OkBtn ? `<a href="${esc(ext.deck2)}" target="_blank" rel="noopener">🃏 Mazo 2</a>` : ''}`;
+    ${deckOkBtn ? `<a href="${esc(ext.deck)}" target="_blank" rel="noopener" title="${esc(deckTitle)}">🃏 Sugerencias de mazo</a>` : ''}
+    ${deck2OkBtn ? `<a href="${esc(ext.deck2)}" target="_blank" rel="noopener" title="${esc(deck2Title)}">🃏 Sugerencias de mazo (2)</a>` : ''}`;
 
   document.getElementById('btnVerTorneosJugador').dataset.tag = j.tag;
   const btnOtras = document.getElementById('btnVerOtrasCuentas');
