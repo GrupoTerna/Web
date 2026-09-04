@@ -99,6 +99,11 @@
      temática > categoría), pensado para que el admin pueda tener varias
      secciones y categorías abiertas al mismo tiempo — algo que el bot de
      WhatsApp no puede ofrecer porque solo avanza de a una rama por turno. */
+  /* FIX (04-sep-2026, punto 35): el visor de "Mensajes automáticos" ya no
+     agrupa por sección (ver cargarCategorias) — este wrapper reemplaza a
+     .seccion-contenido para que la lista aplanada de categorías conserve
+     el mismo marco/borde de antes en vez de quedar suelta contra el card. */
+  .mensajes-flat-wrap{border:1px solid var(--line); border-radius:var(--radius-sm); margin-top:14px; overflow:hidden; padding:4px 16px 0;}
   .seccion-contenido{border:1px solid var(--line); border-radius:var(--radius-sm); margin-top:14px; overflow:hidden;}
   .seccion-contenido > summary{
     cursor:pointer; list-style:none; padding:14px 16px; display:flex; align-items:center; gap:8px;
@@ -297,55 +302,26 @@
       <div id="buscarMsg"></div>
     </div>
 
-    <!-- FASE 6 (03-sep-2026, punto 6 del documento — Detección de
-         infiltrados/sabotaje): panel de búsqueda bajo demanda. El admin
-         escribe el Tag de un CLAN o de un JUGADOR y se consulta la API en
-         el momento (no es un escaneo automático, ver docblock de
-         35_DeteccionInfiltrados.gs). Llama a
-         accion=webAdminBuscarInfiltrado (08_Web_Endpoints.gs ->
-         _webAdminBuscarInfiltrado(), 35_DeteccionInfiltrados.gs).
-         La lista MANUAL de clanes en conflicto (hoja 'Conflictos') NO se
-         edita desde acá a propósito — el usuario pidió que ese ingreso sea
-         directo en Sheets, no un CRUD web; este panel solo consulta. -->
-    <div class="card" style="margin-top:24px;">
-      <div class="eyebrow">Detección de infiltrados</div>
-      <h3 style="font-size:15px; color:var(--gold); margin:10px 0 4px;">Buscar clan o jugador</h3>
-      <p class="text-dim" style="font-size:13px; margin:0 0 14px;">Escribe el Tag de un clan rival o de un jugador puntual. Se revisa contra los clanes rivales de esta temporada, la lista manual de conflicto (hoja "Conflictos") y nuestro propio roster (Directorio/Inactivos/Vetados).</p>
-      <div class="buscador">
-        <input type="text" id="infTagInput" placeholder="Ej: #ABC123XYZ" autocapitalize="characters">
-        <button class="btn btn-primary" id="btnBuscarInfiltrado">Buscar</button>
-      </div>
-      <div id="infMsg"></div>
-      <div id="infResultado" style="margin-top:16px;"></div>
-    </div>
-
-    <!-- Fase 2 (24-ago-2026): visor de contenido por categoría, SOLO LECTURA.
-         El contenido "Estático" real se edita en los Google Docs de Drive
-         (sync automático) y "Mensajes" se recalcula solo en cada corrida —
-         por eso este panel no tiene botón de guardar, es únicamente para
-         verificar rápido qué le está mostrando el bot a cada clan ahora
-         mismo. Ver nota de diseño en la cabecera de 34_Web_API.gs. -->
-    <div class="card" style="margin-top:24px;">
-      <div class="eyebrow">Solo lectura</div>
-      <h3 style="font-size:15px; color:var(--gold); margin:10px 0 4px;">Visor de contenido por categoría</h3>
-      <p class="text-dim" style="font-size:13px; margin:0 0 4px;">Agrupado por temática — abre las secciones y categorías que necesites, puedes tener varias abiertas a la vez.</p>
-      <div id="contenidoMsg"></div>
-      <div id="seccionesContenido"><div class="empty">Cargando categorías…</div></div>
-    </div>
-
     <!-- FASE 25 (03-sep-2026, pedido usuario — reordenar panel admin):
          antes "Registrar miembro nuevo" y "Vetar miembro" eran dos <div
          class="card"> separadas, cada una con su propio eyebrow
          "Directorio" repetido — se veía como si "Directorio" apareciera
          2 veces en el panel. Ahora es UN solo contenedor "Directorio" con
          ambos formularios como subsecciones plegables (mismo patrón
-         <details>/<summary> que ya usa el Visor de contenido más arriba),
-         y se ubica ANTES de Torneos y sorteos (pedido explícito del
-         usuario). Los ids de cada card (cardRegistrarNuevo/cardVetar) NO
-         cambiaron — aplicarVisibilidadPorFunciones() sigue ocultando cada
-         subsección por separado según Funciones del admin logueado, y
-         además ahora oculta el contenedor completo si ninguna de las dos
-         aplica (ver esa función más abajo). -->
+         <details>/<summary> que ya usa el Visor de contenido más abajo).
+         FIX (04-sep-2026, pedido usuario, punto 38 — "la sección de
+         Directorio va antes del visor de contenido, la detección de
+         infiltrados debe ser parte de directorio (después de vetar)"):
+         (a) todo este contenedor se movió ANTES de "Visor de contenido"
+         (antes iba después, solo delante de "Torneos y sorteos"); (b) la
+         card suelta "Detección de infiltrados" (antes ubicada entre
+         "Buscar miembro" y "Visor de contenido", ver FASE 6) ahora es una
+         subsección más de Directorio, ubicada después de "Vetar miembro".
+         Los ids de cada card (cardRegistrarNuevo/cardVetar) NO cambiaron —
+         aplicarVisibilidadPorFunciones() sigue ocultando cada subsección
+         por separado según Funciones del admin logueado, y además ahora
+         oculta el contenedor completo si ninguna de las dos aplica (ver
+         esa función más abajo). -->
     <div class="card admin-grupo" id="directorioGrupo" style="margin-top:24px;">
       <div class="eyebrow">Directorio</div>
 
@@ -433,6 +409,60 @@
           <div id="vMsg"></div>
         </div>
       </details>
+
+      <!-- FASE 6 (03-sep-2026, punto 6 del documento — Detección de
+           infiltrados/sabotaje), reubicada acá el 04-sep-2026 (punto 38 —
+           "debe ser parte de directorio, después de vetar"): panel de
+           búsqueda bajo demanda. El admin escribe el Tag de un CLAN o de
+           un JUGADOR y se consulta la API en el momento (no es un escaneo
+           automático, ver docblock de 35_DeteccionInfiltrados.gs). Llama a
+           accion=webAdminBuscarInfiltrado (08_Web_Endpoints.gs ->
+           _webAdminBuscarInfiltrado(), 35_DeteccionInfiltrados.gs).
+           La lista MANUAL de clanes en conflicto (hoja 'Conflictos') NO se
+           edita desde acá a propósito — el usuario pidió que ese ingreso
+           sea directo en Sheets, no un CRUD web; este panel solo consulta.
+           Igual que Registrar/Vetar, es una <details class="admin-subseccion">
+           más dentro de directorioGrupo (mismo patrón de visibilidad por
+           Funciones). -->
+      <details class="admin-subseccion" id="cardInfiltrados">
+        <summary><span class="cat-titulo">Detección de infiltrados</span></summary>
+        <div class="admin-subseccion-body">
+          <p class="text-dim" style="font-size:13px; margin:0 0 14px;">Escribe el Tag de un clan rival o de un jugador puntual. Se revisa contra los clanes rivales de esta temporada, la lista manual de conflicto (hoja "Conflictos") y nuestro propio roster (Directorio/Inactivos/Vetados).</p>
+          <div class="buscador">
+            <input type="text" id="infTagInput" placeholder="Ej: #ABC123XYZ" autocapitalize="characters">
+            <button class="btn btn-primary" id="btnBuscarInfiltrado">Buscar</button>
+          </div>
+          <div id="infMsg"></div>
+          <div id="infResultado" style="margin-top:16px;"></div>
+        </div>
+      </details>
+    </div>
+
+    <!-- Fase 2 (24-ago-2026): visor de contenido por categoría, SOLO LECTURA.
+         El contenido "Estático" real se edita en los Google Docs de Drive
+         (sync automático) y "Mensajes" se recalcula solo en cada corrida —
+         por eso este panel no tiene botón de guardar, es únicamente para
+         verificar rápido qué le está mostrando el bot a cada clan ahora
+         mismo. Ver nota de diseño en la cabecera de 34_Web_API.gs.
+         FIX (04-sep-2026, pedido usuario, punto 35 — "Mensajes
+         automáticos, perfil de miembro, torneos y sorteos, reconocimientos
+         y otros son lo mismo, todos son mensajes automáticos... debe haber
+         una sola categoría de Mensajes automáticos"): este panel se movió
+         DESPUÉS de "Directorio" (ver punto 38 arriba) y ya no dibuja el
+         acordeón de dos niveles sección>categoría — cargarCategorias()
+         ahora aplana TODAS las categorías de TODAS las 'secciones' que
+         manda el backend en un solo nivel bajo el eyebrow "Mensajes
+         automáticos", ordenadas alfabéticamente por su etiqueta visible
+         (ver MENSAJES_ETIQUETAS_OVERRIDE / cargarCategorias más abajo).
+         PENDIENTE: ordenar por temática en vez de alfabético, tal como
+         pidió el usuario para una siguiente iteración — por ahora queda
+         solo alfabético y así se deja anotado. -->
+    <div class="card" style="margin-top:24px;">
+      <div class="eyebrow">Mensajes automáticos</div>
+      <h3 style="font-size:15px; color:var(--gold); margin:10px 0 4px;">Visor de contenido</h3>
+      <p class="text-dim" style="font-size:13px; margin:0 0 4px;">Bienvenida, perfil de miembro, torneos y sorteos, reconocimientos y otros — todo es contenido automático que el bot copia o descarga. Orden alfabético por ahora; pendiente reordenar por temática. Abre las que necesites, puedes tener varias abiertas a la vez.</p>
+      <div id="contenidoMsg"></div>
+      <div id="seccionesContenido"><div class="empty">Cargando categorías…</div></div>
     </div>
 
     <!-- FASE 25 (03-sep-2026, pedido usuario): "Torneos" y "Ruleta de
@@ -660,11 +690,16 @@ function aplicarVisibilidadPorFunciones(){
   const puedeVetar = funciones.indexOf('Vetar') !== -1;
   document.getElementById('cardRegistrarNuevo').style.display = puedeRegistrar ? '' : 'none';
   document.getElementById('cardVetar').style.display = puedeVetar ? '' : 'none';
-  // FASE 25 (03-sep-2026): ahora ambas subsecciones viven dentro de un solo
-  // contenedor "Directorio" (#directorioGrupo) — si el admin no tiene
-  // ninguna de las dos funciones, no tendría sentido mostrar el contenedor
-  // vacío (solo el eyebrow "Directorio" sin nada debajo).
-  document.getElementById('directorioGrupo').style.display = (puedeRegistrar || puedeVetar) ? '' : 'none';
+  // FIX (04-sep-2026, punto 38): "Detección de infiltrados" no depende de
+  // Funciones (nunca lo hizo cuando era una card suelta, ver FASE 6) — todo
+  // admin logueado puede consultarla, así que #cardInfiltrados siempre
+  // queda visible aunque no tenga "Registrar miembro nuevo" ni "Vetar".
+  // FASE 25 (03-sep-2026): ahora las tres subsecciones viven dentro de un
+  // solo contenedor "Directorio" (#directorioGrupo) — como Infiltrados
+  // siempre se muestra, el contenedor ya nunca queda vacío, pero se deja
+  // la misma lógica (ahora con "|| true" explícito por claridad) por si
+  // en el futuro Infiltrados también pasa a depender de una Función.
+  document.getElementById('directorioGrupo').style.display = (puedeRegistrar || puedeVetar || true) ? '' : 'none';
 }
 function mostrarLogin(msg){
   sessionStorage.removeItem(SESSION_KEY);
@@ -985,7 +1020,25 @@ async function cargarMisCuentas(){
       wrap.innerHTML = '<div class="empty">No se encontró ninguna cuenta asociada a tu número.</div>';
       return;
     }
-    wrap.innerHTML = clanes.map(c => `
+    wrap.innerHTML = clanes.map(c => {
+      // FIX (04-sep-2026, pedido usuario, punto 34 — "pueda ver su
+      // desempeño, sus estadísticas y gráficas"): la versión anterior
+      // (03-sep-2026, punto 17) ya mostraba Copas/V.Guerra/Torneos/
+      // Vigencia como texto plano, pero eso es "estadísticas", no
+      // "gráficas". Se agrega una mini barra por estadística, normalizada
+      // contra el MÁXIMO de ese mismo clan (no hay endpoint de histórico
+      // por cuenta, así que la comparación es entre cuentas del clan, no
+      // en el tiempo) — alcanza para ver de un vistazo qué cuenta destaca
+      // o se está quedando atrás sin agregar un endpoint nuevo.
+      const maxCopas = Math.max(1, ...c.cuentas.map(m => Number(m.copas) || 0));
+      const maxVGuerra = Math.max(1, ...c.cuentas.map(m => Number(m.vGuerra) || 0));
+      const maxTorneos = Math.max(1, ...c.cuentas.map(m => Number(m.torneos) || 0));
+      const barra = (valor, max, color) => {
+        const v = Number(valor) || 0;
+        const pct = Math.max(2, Math.round((v / max) * 100));
+        return `<div style="height:4px; border-radius:2px; background:var(--surface); overflow:hidden;"><div style="height:100%; width:${pct}%; background:${color};"></div></div>`;
+      };
+      return `
       <div style="margin-bottom:16px;">
         <div style="font-family:var(--f-display); font-weight:700; font-size:13px; color:var(--gold); text-transform:uppercase; letter-spacing:.04em; margin-bottom:8px;">🍀 ${esc(c.nombre)}</div>
         <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px;">
@@ -993,15 +1046,16 @@ async function cargarMisCuentas(){
             <div style="background:var(--bg-2); border:1px solid var(--line); border-radius:var(--radius-sm); padding:10px 12px;">
               <div style="font-weight:600; font-size:14px;">${esc(m.nombre)}</div>
               <div style="font-family:var(--f-mono); font-size:11px; color:var(--text-faint); margin-top:2px;">${esc(m.tag)} · ${esc(m.rango)}</div>
-              <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:8px; font-family:var(--f-mono); font-size:11px; color:var(--text-dim);">
-                <span>🏆 ${fmtNum(m.copas)}</span>
-                <span>🎖️ ${fmtNum(m.vGuerra)}</span>
-                <span>🏅 ${fmtNum(m.torneos)}</span>
+              <div style="display:flex; flex-direction:column; gap:5px; margin-top:9px;">
+                <div style="display:flex; align-items:center; gap:6px; font-family:var(--f-mono); font-size:11px; color:var(--text-dim);"><span style="width:64px; flex-shrink:0;">🏆 ${fmtNum(m.copas)}</span>${barra(m.copas, maxCopas, 'var(--gold)')}</div>
+                <div style="display:flex; align-items:center; gap:6px; font-family:var(--f-mono); font-size:11px; color:var(--text-dim);"><span style="width:64px; flex-shrink:0;">🎖️ ${fmtNum(m.vGuerra)}</span>${barra(m.vGuerra, maxVGuerra, 'var(--purple-light)')}</div>
+                <div style="display:flex; align-items:center; gap:6px; font-family:var(--f-mono); font-size:11px; color:var(--text-dim);"><span style="width:64px; flex-shrink:0;">🏅 ${fmtNum(m.torneos)}</span>${barra(m.torneos, maxTorneos, 'var(--silver)')}</div>
               </div>
-              ${m.vigencia ? `<div style="font-family:var(--f-mono); font-size:10px; color:var(--text-faint); margin-top:4px;">Vigencia: ${esc(fmtFechaVigenciaAdmin(m.vigencia))}</div>` : ''}
+              ${m.vigencia ? `<div style="font-family:var(--f-mono); font-size:10px; color:var(--text-faint); margin-top:6px;">Vigencia: ${esc(fmtFechaVigenciaAdmin(m.vigencia))}</div>` : ''}
             </div>`).join('')}
         </div>
-      </div>`).join('');
+      </div>`;
+    }).join('');
   }catch(err){
     wrap.innerHTML = '<div class="empty">No se pudieron cargar tus cuentas.</div>';
   }
@@ -1013,6 +1067,30 @@ function fmtFechaVigenciaAdmin(v){
   if (isNaN(d.getTime())) return String(v);
   return d.toLocaleDateString('es-PE', { day:'2-digit', month:'short', year:'numeric' });
 }
+
+/**
+ * MENSAJES_ETIQUETAS_OVERRIDE
+ * FIX (04-sep-2026, pedido usuario, punto 37 — renombrar etiquetas del
+ * visor de "Mensajes automáticos"): el backend (WEB_ETIQUETAS_CONTENIDO en
+ * 34_Web_API.gs) ya puede mandar una etiqueta por categoría, pero ese
+ * mapeo vive en Sheets/Apps Script y no forma parte de este repo del
+ * frontend, así que no hay forma de confirmar ni tocar desde acá lo que
+ * hoy devuelve. Para no dejar el rename pendiente de un deploy aparte del
+ * backend, se agrega este mapa LOCAL con los 6 renombres exactos que pidió
+ * el usuario — tiene prioridad sobre `etiquetas` (lo que mande el backend)
+ * y sobre el nombre crudo de la categoría, así el admin siempre ve el
+ * texto correcto sin depender de que 34_Web_API.gs también se actualice.
+ * Si el nombre real de categoría en Sheets no es exactamente una de estas
+ * claves, revisar/ajustar acá (no hay endpoint que exponga los nombres
+ * crudos aparte de éste). */
+const MENSAJES_ETIQUETAS_OVERRIDE = {
+  'Bienvenida': 'Bienvenida de miembros',
+  'Etiqueta de miembro': 'Etiqueta de miembro en grupos de WhatsApp',
+  'Celular': 'Solicitud de número de teléfono',
+  'Descripción': 'Descripción de grupos de WSP',
+  'Mazos': 'Sugerencias de mazos en RoyaleAPI',
+  'iPhone': 'Aplicación de iniciales en iPhone'
+};
 
 async function cargarCategorias(){
   const wrap = document.getElementById('seccionesContenido');
@@ -1034,21 +1112,36 @@ async function cargarCategorias(){
     // para lo que ve el admin (cat-titulo); data-categoria sigue mandando
     // el nombre real de la categoría (c), que es lo que después viaja a
     // webAdminContenido — así no hace falta tocar esa función ni las hojas.
+    // MENSAJES_ETIQUETAS_OVERRIDE (punto 37) tiene prioridad sobre esto.
     const etiquetas = data.etiquetas || {};
-    wrap.innerHTML = data.secciones.map((s, si) => `
-      <details class="seccion-contenido">
-        <summary>${esc(s.titulo)}</summary>
-        <div class="seccion-contenido-body">
-          ${s.categorias.map(c => `
-            <details class="categoria-contenido" data-categoria="${esc(c)}">
-              <summary>
-                <span class="cat-titulo">${esc(etiquetas[c] || c)}</span>
-                <button type="button" class="btn-refrescar-categoria" title="Actualizar contenido">↻</button>
-              </summary>
-              <div class="categoria-contenido-body"></div>
-            </details>`).join('')}
-        </div>
-      </details>`).join('');
+    const etiquetaDe = c => MENSAJES_ETIQUETAS_OVERRIDE[c] || etiquetas[c] || c;
+
+    // FIX (04-sep-2026, pedido usuario, punto 35 — "una sola categoría de
+    // Mensajes automáticos... orden alfabético por ahora, pendiente
+    // ordenar por temática"): antes acá se dibujaba un acordeón de DOS
+    // niveles (sección > categoría, una <details class="seccion-contenido">
+    // por cada s.titulo del backend). Ahora se ignora ese agrupamiento por
+    // 'secciones' (Bienvenida/Perfil de miembro/Torneos y sorteos/
+    // Reconocimientos/Otros eran, para el admin, "lo mismo": mensajes que
+    // se copian o descargan) y se aplanan TODAS las categorías de TODAS
+    // las secciones en una sola lista, ordenada alfabéticamente por su
+    // etiqueta visible (localeCompare 'es' para que ñ/tildes ordenen bien).
+    // PENDIENTE (dejado anotado a pedido del usuario): reemplazar este
+    // sort alfabético por un orden temático una vez que se defina el
+    // criterio — no requiere tocar el backend, alcanza con cambiar este
+    // comparator.
+    const categoriasFlat = [];
+    data.secciones.forEach(s => (s.categorias || []).forEach(c => categoriasFlat.push(c)));
+    categoriasFlat.sort((a, b) => etiquetaDe(a).localeCompare(etiquetaDe(b), 'es', { sensitivity: 'base' }));
+
+    wrap.innerHTML = `<div class="mensajes-flat-wrap">${categoriasFlat.map(c => `
+      <details class="categoria-contenido" data-categoria="${esc(c)}">
+        <summary>
+          <span class="cat-titulo">${esc(etiquetaDe(c))}</span>
+          <button type="button" class="btn-refrescar-categoria" title="Actualizar contenido">↻</button>
+        </summary>
+        <div class="categoria-contenido-body"></div>
+      </details>`).join('')}</div>`;
 
     wrap.querySelectorAll('.categoria-contenido').forEach(det => {
       det.addEventListener('toggle', () => {
