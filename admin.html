@@ -273,6 +273,22 @@
       <button id="logoutBtn" type="button">Cerrar sesión</button>
     </div>
 
+    <!-- FIX (03-sep-2026, pedido usuario, punto 17 — "mostrar primero la
+         lista de cuentas del admin, por clan y rol, con desempeño/
+         estadísticas"): mismo agrupamiento que ya usa el saludo del bot
+         de WhatsApp para admins (_msgBienvenidaAdmin, 29_BotWhatsApp.gs
+         — "Actualmente tienes a tu cargo: 🍀 [Clan] • [Cuenta] — [Rango]"),
+         reutilizado acá vía _webMisCuentas() (34_Web_API.gs), agregando
+         estadísticas por cuenta que el mensaje de WhatsApp no incluye
+         (Copas, V. Guerra, Torneos, Vigencia). Va PRIMERO en el panel,
+         antes que "Buscar miembro", tal como pidió el usuario. -->
+    <div class="card" style="margin-top:24px;">
+      <div class="eyebrow">Tus cuentas</div>
+      <h3 style="font-size:15px; color:var(--gold); margin:10px 0 4px;">Cuentas a tu cargo</h3>
+      <p class="text-dim" style="font-size:13px; margin:0 0 14px;">Agrupadas por clan, líder primero — mismo criterio que el saludo del bot de WhatsApp.</p>
+      <div id="misCuentasWrap"><div class="empty">Cargando tus cuentas…</div></div>
+    </div>
+
     <div class="card" style="margin-top:24px;">
       <div class="buscador">
         <input type="text" id="tagInput" placeholder="Ej: #ABC123XYZ" autocapitalize="characters">
@@ -619,6 +635,7 @@ function mostrarPanel(){
     }catch(err){ /* si el JSON guardado no es válido, se deja el texto por defecto */ }
   }
   aplicarVisibilidadPorFunciones();
+  cargarMisCuentas();
   cargarCategorias();
   cargarTorneosHoy();
   cargarGanadoresTorneo();
@@ -949,6 +966,54 @@ document.getElementById('btnGuardar').addEventListener('click', async () => {
  * entrada. Esto también evita cargar de arranque el visor de PDF nuevo
  * (ver renderContenidoHtml), que solo se arma bajo pedido explícito.
  */
+/**
+ * cargarMisCuentas()
+ * FIX (03-sep-2026, pedido usuario, punto 17): pinta el resultado de
+ * _webMisCuentas() (34_Web_API.gs) — mismo agrupamiento por clan/rango
+ * que el saludo del bot, con Copas/V.Guerra/Torneos/Vigencia por cuenta.
+ * Falla en silencio hacia un mensaje corto (no bloquea el resto del
+ * panel) si el admin no tiene ninguna cuenta detectable por celular.
+ */
+async function cargarMisCuentas(){
+  const wrap = document.getElementById('misCuentasWrap');
+  try{
+    const data = await apiGetAuth('webMisCuentas', {});
+    if(manejarRespuestaAuth(data)) return;
+    if(!data.ok){ wrap.innerHTML = `<div class="empty">${esc(data.error || 'No se pudieron cargar tus cuentas.')}</div>`; return; }
+    const clanes = (data.clanes || []).filter(c => c.cuentas && c.cuentas.length);
+    if(!clanes.length){
+      wrap.innerHTML = '<div class="empty">No se encontró ninguna cuenta asociada a tu número.</div>';
+      return;
+    }
+    wrap.innerHTML = clanes.map(c => `
+      <div style="margin-bottom:16px;">
+        <div style="font-family:var(--f-display); font-weight:700; font-size:13px; color:var(--gold); text-transform:uppercase; letter-spacing:.04em; margin-bottom:8px;">🍀 ${esc(c.nombre)}</div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px;">
+          ${c.cuentas.map(m => `
+            <div style="background:var(--bg-2); border:1px solid var(--line); border-radius:var(--radius-sm); padding:10px 12px;">
+              <div style="font-weight:600; font-size:14px;">${esc(m.nombre)}</div>
+              <div style="font-family:var(--f-mono); font-size:11px; color:var(--text-faint); margin-top:2px;">${esc(m.tag)} · ${esc(m.rango)}</div>
+              <div style="display:flex; gap:12px; flex-wrap:wrap; margin-top:8px; font-family:var(--f-mono); font-size:11px; color:var(--text-dim);">
+                <span>🏆 ${fmtNum(m.copas)}</span>
+                <span>🎖️ ${fmtNum(m.vGuerra)}</span>
+                <span>🏅 ${fmtNum(m.torneos)}</span>
+              </div>
+              ${m.vigencia ? `<div style="font-family:var(--f-mono); font-size:10px; color:var(--text-faint); margin-top:4px;">Vigencia: ${esc(fmtFechaVigenciaAdmin(m.vigencia))}</div>` : ''}
+            </div>`).join('')}
+        </div>
+      </div>`).join('');
+  }catch(err){
+    wrap.innerHTML = '<div class="empty">No se pudieron cargar tus cuentas.</div>';
+  }
+}
+
+function fmtFechaVigenciaAdmin(v){
+  if (!v) return '—';
+  const d = v instanceof Date ? v : new Date(v);
+  if (isNaN(d.getTime())) return String(v);
+  return d.toLocaleDateString('es-PE', { day:'2-digit', month:'short', year:'numeric' });
+}
+
 async function cargarCategorias(){
   const wrap = document.getElementById('seccionesContenido');
   const msgEl = document.getElementById('contenidoMsg');
@@ -962,6 +1027,14 @@ async function cargarCategorias(){
       wrap.innerHTML = '<div class="empty">Sin categorías disponibles.</div>';
       return;
     }
+    // FIX (03-sep-2026, pedido usuario, punto 20 — "renombrar etiquetas:
+    // 'Bienvenida' → 'Bienvenida de miembros', etc."): 'webAdminCategorias'
+    // ahora también manda 'etiquetas' (nombre real -> etiqueta bonita, ver
+    // WEB_ETIQUETAS_CONTENIDO en 34_Web_API.gs). Se usa esa etiqueta SOLO
+    // para lo que ve el admin (cat-titulo); data-categoria sigue mandando
+    // el nombre real de la categoría (c), que es lo que después viaja a
+    // webAdminContenido — así no hace falta tocar esa función ni las hojas.
+    const etiquetas = data.etiquetas || {};
     wrap.innerHTML = data.secciones.map((s, si) => `
       <details class="seccion-contenido">
         <summary>${esc(s.titulo)}</summary>
@@ -969,7 +1042,7 @@ async function cargarCategorias(){
           ${s.categorias.map(c => `
             <details class="categoria-contenido" data-categoria="${esc(c)}">
               <summary>
-                <span class="cat-titulo">${esc(c)}</span>
+                <span class="cat-titulo">${esc(etiquetas[c] || c)}</span>
                 <button type="button" class="btn-refrescar-categoria" title="Actualizar contenido">↻</button>
               </summary>
               <div class="categoria-contenido-body"></div>
@@ -1066,6 +1139,13 @@ function renderContenidoHtml(opciones){
         ${tabsHtml}
         <div class="contenido-acciones">
           <button type="button" class="btn-icono btn-ver-pdf" style="display:none;" title="Ver el Google Doc original, tal como está formateado">📄 Ver original</button>
+          <!-- FIX (03-sep-2026, pedido usuario, punto 19 — "agregar un
+               botón de descarga en PDF junto al de copiar"): "Ver
+               original" (arriba) abre el Doc EN el panel (iframe/visor);
+               este es un botón nuevo, aparte, que descarga el PDF al
+               dispositivo del admin. Mismo criterio de visibilidad que
+               btn-ver-pdf (solo si la opción tiene o.docId). -->
+          <button type="button" class="btn-icono btn-descargar-pdf" style="display:none;" title="Descargar este contenido como PDF">⬇ Descargar PDF</button>
           <button type="button" class="btn-icono btn-copiar" title="Copiar al portapapeles">⧉ Copiar</button>
           <button type="button" class="btn-icono btn-colapsar" aria-expanded="true" title="Colapsar texto">▾</button>
         </div>
@@ -1100,6 +1180,7 @@ function _pintarOpcionContenido(item, opciones, idx){
   item.querySelector('[data-campo="contenido"]').textContent = o.contenido || '';
 
   const btnVerPdf = item.querySelector('.btn-ver-pdf');
+  const btnDescargarPdf = item.querySelector('.btn-descargar-pdf');
   const pdfWrap = item.querySelector('.contenido-pdf-wrap');
   item.classList.remove('viendo-original'); // vuelve a mostrar el texto plano; ver FIX 03-sep-2026 más arriba
   pdfWrap.innerHTML = '';
@@ -1107,9 +1188,13 @@ function _pintarOpcionContenido(item, opciones, idx){
     btnVerPdf.style.display = '';
     btnVerPdf.dataset.docId = o.docId;
     btnVerPdf.textContent = '📄 Ver original';
+    btnDescargarPdf.style.display = '';
+    btnDescargarPdf.dataset.docId = o.docId;
   }else{
     btnVerPdf.style.display = 'none';
     delete btnVerPdf.dataset.docId;
+    btnDescargarPdf.style.display = 'none';
+    delete btnDescargarPdf.dataset.docId;
   }
 
   item.classList.remove('colapsado');
@@ -1149,8 +1234,20 @@ function _activarAccionesContenido(root, opciones){
   const btnCopiar = item.querySelector('.btn-copiar');
   const btnColapsar = item.querySelector('.btn-colapsar');
   const btnVerPdf = item.querySelector('.btn-ver-pdf');
+  const btnDescargarPdf = item.querySelector('.btn-descargar-pdf');
   const pdfWrap = item.querySelector('.contenido-pdf-wrap');
   const pre = item.querySelector('pre');
+
+  // FIX (03-sep-2026, pedido usuario, punto 19): descarga directa del PDF
+  // vía el endpoint de exportación nativo de Google Docs — no hace falta
+  // backend propio, Drive ya sirve el PDF con
+  // Content-Disposition:attachment, así que basta con navegar ahí (mismo
+  // patrón que btnVerOriginal, pero export?format=pdf en vez de /preview).
+  btnDescargarPdf.addEventListener('click', () => {
+    const docId = btnDescargarPdf.dataset.docId;
+    if(!docId) return;
+    window.open(`https://docs.google.com/document/d/${docId}/export?format=pdf`, '_blank');
+  });
 
   // FIX (03-sep-2026, "no me gusta que se vean esos márgenes, debería
   // verse como el modo de diseño web de Word"): ya no arma un <iframe> a
