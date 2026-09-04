@@ -50,29 +50,12 @@
     .ascenso-row{flex-direction:column; align-items:flex-start; gap:4px;}
   }
 
-  /* Rankings de la Familia + Estadísticas de cartas (30-ago-2026, pedido
-     del usuario). Ver webRankings/webEstadisticasCartas en 34_Web_API.gs. */
-  .rankings-grid{
-    display:grid; grid-template-columns:repeat(auto-fit, minmax(230px, 1fr));
-    gap:16px; margin-top:20px;
-  }
-  .ranking-card{padding:20px;}
-  .ranking-title{font-weight:700; font-size:14px; color:var(--text);}
-  .ranking-row{
-    display:flex; align-items:center; gap:10px; padding:9px 0;
-    border-bottom:1px solid var(--line); font-size:13px;
-  }
-  .ranking-row:last-child{border-bottom:none;}
-  .ranking-row .rk-pos{font-family:var(--f-mono); color:var(--text-faint); width:18px; flex-shrink:0;}
-  .ranking-row .rk-nombre{flex:1; min-width:0; color:var(--text); font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-  .ranking-row .rk-valor{font-family:var(--f-mono); color:var(--gold); font-size:12px; flex-shrink:0;}
-  .cartas-list{display:flex; flex-wrap:wrap; gap:10px; margin-top:14px;}
-  .carta-chip{
-    display:flex; align-items:center; gap:6px; padding:7px 14px;
-    border:1px solid var(--line); border-radius:999px; font-size:12px; color:var(--text-dim);
-  }
-  .carta-chip b{color:var(--text);}
-  .carta-chip .cc-usos{color:var(--gold); font-family:var(--f-mono);}
+  /* FIX (04-sep-2026, pedido usuario, punto 28 — "Rankings de la Familia
+     (tops y cartas)... habría que moverla a la sección Index"): esta
+     sección (markup + CSS + JS) se movió completa a index.html — ver el
+     mismo comentario ahí (<section id="rankings-familia">). Ya NO vive
+     acá, así se evita duplicar la llamada a webRankings()/
+     webEstadisticasCartas() en dos páginas a la vez. */
 </style>
 </head>
 <body data-page="comunidad">
@@ -291,40 +274,9 @@
     </div>
   </section>
 
-  <!-- Rankings de la Familia + Estadísticas de cartas — ver webRankings()/
-       webEstadisticasCartas() en 34_Web_API.gs. -->
-  <section style="padding:40px 0 0;">
-    <div class="eyebrow">🏆 Rankings de la Familia</div>
-    <p class="text-dim" style="margin-top:10px; font-size:15px;">
-      Los números que mueven a la comunidad, calculados en vivo desde el Directorio.
-    </p>
-
-    <div class="rankings-grid">
-      <div class="card ranking-card">
-        <div class="ranking-title">🎁 Top donadores</div>
-        <div id="rkDonadores"><div class="text-faint" style="font-size:12px; margin-top:10px;">Cargando…</div></div>
-      </div>
-      <div class="card ranking-card">
-        <div class="ranking-title">🔥 Racha de guerra</div>
-        <div id="rkRacha"><div class="text-faint" style="font-size:12px; margin-top:10px;">Cargando…</div></div>
-      </div>
-      <div class="card ranking-card">
-        <div class="ranking-title">🏅 Torneos</div>
-        <div id="rkTorneos"><div class="text-faint" style="font-size:12px; margin-top:10px;">Cargando…</div></div>
-      </div>
-      <div class="card ranking-card">
-        <div class="ranking-title">👑 Victorias con 3 coronas</div>
-        <div id="rkVictorias3c"><div class="text-faint" style="font-size:12px; margin-top:10px;">Cargando…</div></div>
-      </div>
-    </div>
-
-    <div class="card" style="margin-top:16px; padding:24px;">
-      <div class="ranking-title">🃏 Cartas más usadas en la Familia</div>
-      <div id="cartasWrap" class="cartas-list">
-        <div class="text-faint" style="font-size:12px;">Cargando…</div>
-      </div>
-    </div>
-  </section>
+  <!-- Rankings de la Familia + Estadísticas de cartas: MOVIDA a index.html
+       (pedido usuario, punto 28, 04-sep-2026) — ver comentario en el
+       <style> de arriba. -->
 
   <!-- CONVIVENCIA -->
   <section style="padding:40px 0 0;">
@@ -417,74 +369,10 @@ async function cargarAscensos(){
 }
 cargarAscensos();
 
-/**
- * renderRankingRow(pos, nombre, valor, sufijo)
- * Fila compartida por las 4 listas de 'webRankings' — evita repetir el
- * mismo template 4 veces.
- */
-function renderRankingRow(pos, nombre, valor, sufijo){
-  return `<div class="ranking-row">
-    <span class="rk-pos">${pos}.</span>
-    <span class="rk-nombre">${esc(nombre)}</span>
-    <span class="rk-valor">${fmtNum(valor)}${sufijo ? ' ' + sufijo : ''}</span>
-  </div>`;
-}
-
-function pintarRanking(elId, lista, sufijo){
-  const wrap = document.getElementById(elId);
-  if (!lista || !lista.length){
-    wrap.innerHTML = '<div class="empty" style="padding:16px 0;">Todavía no hay datos.</div>';
-    return;
-  }
-  wrap.innerHTML = lista.map((m, i) => renderRankingRow(i + 1, m.nombre, m.valor, sufijo)).join('');
-}
-
-/**
- * cargarRankings()
- * Consume 'webRankings' (34_Web_API.gs) — ya viene ordenado y recortado a
- * top 10 desde el backend, acá solo se pinta.
- */
-async function cargarRankings(){
-  try{
-    const data = await apiGet('webRankings');
-    pintarRanking('rkDonadores', data.donadores, '');
-    pintarRanking('rkRacha', data.racha, '');
-    pintarRanking('rkTorneos', data.torneos, '');
-    pintarRanking('rkVictorias3c', data.victorias3c, '');
-  }catch(err){
-    ['rkDonadores','rkRacha','rkTorneos','rkVictorias3c'].forEach(id => {
-      document.getElementById(id).innerHTML = `<div class="empty" style="padding:16px 0;">Error: ${esc(err.message)}</div>`;
-    });
-  }
-}
-
-/**
- * cargarEstadisticasCartas()
- * Consume 'webEstadisticasCartas' (34_Web_API.gs). OJO: esta función del
- * backend depende de que PLAYERS_API_ENABLED esté activo — top10 puede
- * venir legítimamente vacío (no es un error), así que acá se muestra un
- * mensaje neutral, no un mensaje de error.
- */
-async function cargarEstadisticasCartas(){
-  const wrap = document.getElementById('cartasWrap');
-  try{
-    const data = await apiGet('webEstadisticasCartas');
-    if (!data.top10 || !data.top10.length){
-      wrap.innerHTML = '<div class="empty" style="padding:8px 0;">Todavía no hay datos de mazos disponibles.</div>';
-      return;
-    }
-    wrap.innerHTML = data.top10.map((c, i) => `
-      <div class="carta-chip">
-        <span>${i + 1}.</span> <b>${esc(traducirNombreCarta(c.name))}</b>
-        <span class="cc-usos">${fmtNum(c.usos)} en mazo</span>
-      </div>`).join('');
-  }catch(err){
-    wrap.innerHTML = `<div class="empty" style="padding:8px 0;">No se pudo cargar: ${esc(err.message)}</div>`;
-  }
-}
-
-cargarRankings();
-cargarEstadisticasCartas();
+/* Rankings de la Familia + Estadísticas de cartas: renderRankingRow /
+   pintarRanking / cargarRankings / cargarEstadisticasCartas y sus
+   llamadas se MOVIERON a index.html (pedido usuario, punto 28,
+   04-sep-2026) — ver comentario junto al <style> de arriba. */
 </script>
 </body>
 </html>

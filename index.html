@@ -100,8 +100,26 @@
      de 104px caía encima del escudo — se baja un poco más solo en este
      breakpoint (el resto del contenido no se mueve, solo el punto de
      partida del bloque). */
+  /* FIX (04-sep-2026, pedido usuario, punto 3 — "en la versión móvil
+     centra la frase del cuartel general y baja un poco el botón de
+     comunidad competitiva para que no tape el escudo; la división del
+     título fue para no tapar el escudo en escritorio, pero no debería
+     reflejarse en móvil ya que ahí no hace falta partir el texto"):
+     (a) se sube un poco más el padding-top de este breakpoint (132px→160px)
+     para terminar de despegar el badge "eyebrow" del escudo en pantallas
+     angostas; (b) se centra todo el bloque de texto del hero
+     (text-align:center alcanza para el badge/h1/párrafo, que en celular ya
+     ocupan el 100% del ancho disponible — solo la fila de botones es un
+     flex aparte y necesita su propio justify-content); (c) los <br> del
+     h1 de abajo (ver comentario FIX 03-sep-2026 más arriba) llevan ahora
+     class="hero-title-break" y se ocultan acá — display:none en un <br>
+     elimina el salto de línea sin tocar el texto, así en celular el
+     título vuelve a fluir naturalmente en vez de forzar "DE LA" solo en su
+     propia línea. */
   @media (max-width:768px){
-    .hero-banner-content{padding-top:132px;}
+    .hero-banner-content{padding-top:160px; text-align:center;}
+    .hero-title-break{display:none;}
+    .hero-banner-content .hero-cta-row{justify-content:center;}
   }
 
   .social-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:16px;}
@@ -376,6 +394,31 @@
     .clanes-escudo{ width:100%; display:flex; justify-content:center; margin-top:4px; }
     .clanes-escudo-fill{ flex:0 0 100%; min-width:100%; }
   }
+
+  /* FIX (04-sep-2026, punto 28): "Rankings de la Familia" + "Cartas más
+     usadas" — CSS movida tal cual desde comunidad.html (ver comentario del
+     <section id="rankings-familia"> en el body) junto con su markup y JS. */
+  .rankings-grid{
+    display:grid; grid-template-columns:repeat(auto-fit, minmax(230px, 1fr));
+    gap:16px; margin-top:20px;
+  }
+  .ranking-card{padding:20px;}
+  .ranking-title{font-weight:700; font-size:14px; color:var(--text);}
+  .ranking-row{
+    display:flex; align-items:center; gap:10px; padding:9px 0;
+    border-bottom:1px solid var(--line); font-size:13px;
+  }
+  .ranking-row:last-child{border-bottom:none;}
+  .ranking-row .rk-pos{font-family:var(--f-mono); color:var(--text-faint); width:18px; flex-shrink:0;}
+  .ranking-row .rk-nombre{flex:1; min-width:0; color:var(--text); font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .ranking-row .rk-valor{font-family:var(--f-mono); color:var(--gold); font-size:12px; flex-shrink:0;}
+  .cartas-list{display:flex; flex-wrap:wrap; gap:10px; margin-top:14px;}
+  .carta-chip{
+    display:flex; align-items:center; gap:6px; padding:7px 14px;
+    border:1px solid var(--line); border-radius:999px; font-size:12px; color:var(--text-dim);
+  }
+  .carta-chip b{color:var(--text);}
+  .carta-chip .cc-usos{color:var(--gold); font-family:var(--f-mono);}
 </style>
 </head>
 <body data-page="inicio">
@@ -406,13 +449,13 @@
   <div class="wrap hero-banner-content">
     <div class="eyebrow">Comunidad Competitiva · Clash Royale</div>
     <h1 style="font-size:clamp(38px,6.5vw,68px); line-height:1.05; margin-top:16px; max-width:860px;">
-      El cuartel<br>general<br>de la<br><span class="text-gradient-purple">Familia Terna</span>.
+      El cuartel<br class="hero-title-break">general<br class="hero-title-break">de la<br class="hero-title-break"><span class="text-gradient-purple">Familia Terna</span>.
     </h1>
     <p class="text-dim" data-fit-line style="font-size:18px; margin-top:20px; line-height:1.6; max-width:100%;">
       <br>Directorio, requisitos de ascenso, torneos y el estado de guerra de nuestros
       4 clanes — todo en un mismo portal en tiempo real.
     </p>
-    <div style="display:flex; gap:16px; margin-top:32px; flex-wrap:wrap;">
+    <div class="hero-cta-row" style="display:flex; gap:16px; margin-top:32px; flex-wrap:wrap;">
       <a href="jugadores.html" class="btn btn-primary">🏆 Buscar mi progreso</a>
       <a id="heroDiscordBtn" href="https://discord.gg/YKXtg93DVb" target="_blank" rel="noopener" class="btn btn-ghost">💬 Unirse por Discord</a>
     </div>
@@ -548,6 +591,53 @@
   </div>
 </section>
 <div id="chartTooltip" class="chart-tooltip"></div>
+
+<!-- ---------- RANKINGS DE LA FAMILIA ---------- -->
+<!-- FIX (04-sep-2026, pedido usuario, punto 28 — "en la sección Rankings
+     de la Familia (tops y cartas) me parece que habría que moverla a la
+     sección Index"): esta sección vivía en comunidad.html (ver historial
+     de esa página) y se MUEVE acá completa — markup, CSS (.rankings-grid/
+     .ranking-card/.ranking-row/.cartas-list/.carta-chip, ver <style> de
+     arriba) y JS (renderRankingRow/pintarRanking/cargarRankings/
+     cargarEstadisticasCartas, más abajo antes de </script>). Ya no está
+     duplicada en comunidad.html. Consume webRankings()/
+     webEstadisticasCartas() (34_Web_API.gs), igual que antes — no hace
+     falta ningún cambio de backend para que siga funcionando acá. -->
+<section id="rankings-familia">
+  <div class="wrap">
+    <div class="sec-head">
+      <a class="eyebrow" href="comunidad.html" style="text-decoration:none;">🏆 Rankings de la Familia</a>
+      <h2>Los números que mueven a la comunidad</h2>
+      <p>Calculados en vivo desde el Directorio.</p>
+    </div>
+
+    <div class="rankings-grid">
+      <div class="card ranking-card">
+        <div class="ranking-title">🎁 Top donadores</div>
+        <div id="rkDonadores"><div class="text-faint" style="font-size:12px; margin-top:10px;">Cargando…</div></div>
+      </div>
+      <div class="card ranking-card">
+        <div class="ranking-title">🔥 Racha de guerra</div>
+        <div id="rkRacha"><div class="text-faint" style="font-size:12px; margin-top:10px;">Cargando…</div></div>
+      </div>
+      <div class="card ranking-card">
+        <div class="ranking-title">🏅 Torneos</div>
+        <div id="rkTorneos"><div class="text-faint" style="font-size:12px; margin-top:10px;">Cargando…</div></div>
+      </div>
+      <div class="card ranking-card">
+        <div class="ranking-title">👑 Victorias con 3 coronas</div>
+        <div id="rkVictorias3c"><div class="text-faint" style="font-size:12px; margin-top:10px;">Cargando…</div></div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px; padding:24px;">
+      <div class="ranking-title">🃏 Cartas más usadas en la Familia</div>
+      <div id="cartasWrap" class="cartas-list">
+        <div class="text-faint" style="font-size:12px;">Cargando…</div>
+      </div>
+    </div>
+  </div>
+</section>
 
 <!-- ---------- ANIVERSARIOS EN LA FAMILIA ---------- -->
 <!-- Ver webAniversarios() en 34_Web_API.gs. Solo aparece cuando hay algún
@@ -869,10 +959,26 @@ function construirSemanasMaestras(miembros){
 /** Acorta una fecha "dd/MM/yyyy" a "dd/MM" para que quepa como etiqueta
  * del eje X sin superponerse entre sí; el resto de formatos (p. ej.
  * "Semana 13") se muestra tal cual. La fecha completa sigue apareciendo
- * en el tooltip al pasar el mouse. */
+ * en el tooltip al pasar el mouse.
+ * FIX (04-sep-2026, pedido usuario, punto 19 — "no tiene mucho sentido
+ * que al final diga 'Semana 5' si todo se expresa por fechas y se ordena
+ * de más reciente a más antiguo"): "Semana 5" es un registro viejo real
+ * (de antes de que la hoja "Nuevos" guardara la fecha del domingo de cada
+ * semana, ver docblock de semanaLabel/semanaOrden más arriba) — no hay
+ * forma de convertirlo a una fecha real desde acá sin inventar un dato
+ * que no existe, así que se sigue ordenando como la semana más antigua
+ * (ya funcionaba bien, ver semanaOrden). Lo que sí se puede arreglar es
+ * que "Semana 5" se vea tan distinto de "30/08" en el mismo eje: se
+ * acorta "Semana N" / "SN" a "SN" (ej. "Semana 5" → "S5"), un formato
+ * corto que convive mejor con las fechas dd/mm en vez de destacar como
+ * texto suelto. El tooltip (activarTooltipsGraficas) sigue mostrando el
+ * texto completo "Semana 5" sin acortar, para que quede claro qué es. */
 function semanaLabelCorta(s){
   const m = String(s ?? '').match(/^(\d{1,2}\/\d{1,2})\/\d{4}$/);
-  return m ? m[1] : semanaLabel(s);
+  if (m) return m[1];
+  const sem = String(s ?? '').match(/^semana\s*(\d+)$/i);
+  if (sem) return 'S' + sem[1];
+  return semanaLabel(s);
 }
 
 function lineChartSvg(miembros, campo, semanas, opts){
@@ -1175,6 +1281,80 @@ async function cargarAniversarios(){
   }
 }
 cargarAniversarios();
+
+/* FIX (04-sep-2026, punto 28): "Rankings de la Familia" + "Cartas más
+   usadas" — JS movido tal cual desde comunidad.html (ver comentario del
+   <section id="rankings-familia"> más arriba en el body). Depende solo de
+   esc/fmtNum/apiGet/traducirNombreCarta (assets/common.js), ya incluido
+   en esta página, así que no necesitó ningún ajuste al moverse. */
+/**
+ * renderRankingRow(pos, nombre, valor, sufijo)
+ * Fila compartida por las 4 listas de 'webRankings' — evita repetir el
+ * mismo template 4 veces.
+ */
+function renderRankingRow(pos, nombre, valor, sufijo){
+  return `<div class="ranking-row">
+    <span class="rk-pos">${pos}.</span>
+    <span class="rk-nombre">${esc(nombre)}</span>
+    <span class="rk-valor">${fmtNum(valor)}${sufijo ? ' ' + sufijo : ''}</span>
+  </div>`;
+}
+
+function pintarRanking(elId, lista, sufijo){
+  const wrap = document.getElementById(elId);
+  if (!lista || !lista.length){
+    wrap.innerHTML = '<div class="empty" style="padding:16px 0;">Todavía no hay datos.</div>';
+    return;
+  }
+  wrap.innerHTML = lista.map((m, i) => renderRankingRow(i + 1, m.nombre, m.valor, sufijo)).join('');
+}
+
+/**
+ * cargarRankings()
+ * Consume 'webRankings' (34_Web_API.gs) — ya viene ordenado y recortado a
+ * top 10 desde el backend, acá solo se pinta.
+ */
+async function cargarRankings(){
+  try{
+    const data = await apiGet('webRankings');
+    pintarRanking('rkDonadores', data.donadores, '');
+    pintarRanking('rkRacha', data.racha, '');
+    pintarRanking('rkTorneos', data.torneos, '');
+    pintarRanking('rkVictorias3c', data.victorias3c, '');
+  }catch(err){
+    ['rkDonadores','rkRacha','rkTorneos','rkVictorias3c'].forEach(id => {
+      document.getElementById(id).innerHTML = `<div class="empty" style="padding:16px 0;">Error: ${esc(err.message)}</div>`;
+    });
+  }
+}
+
+/**
+ * cargarEstadisticasCartas()
+ * Consume 'webEstadisticasCartas' (34_Web_API.gs). OJO: esta función del
+ * backend depende de que PLAYERS_API_ENABLED esté activo — top10 puede
+ * venir legítimamente vacío (no es un error), así que acá se muestra un
+ * mensaje neutral, no un mensaje de error.
+ */
+async function cargarEstadisticasCartas(){
+  const wrap = document.getElementById('cartasWrap');
+  try{
+    const data = await apiGet('webEstadisticasCartas');
+    if (!data.top10 || !data.top10.length){
+      wrap.innerHTML = '<div class="empty" style="padding:8px 0;">Todavía no hay datos de mazos disponibles.</div>';
+      return;
+    }
+    wrap.innerHTML = data.top10.map((c, i) => `
+      <div class="carta-chip">
+        <span>${i + 1}.</span> <b>${esc(traducirNombreCarta(c.name))}</b>
+        <span class="cc-usos">${fmtNum(c.usos)} en mazo</span>
+      </div>`).join('');
+  }catch(err){
+    wrap.innerHTML = `<div class="empty" style="padding:8px 0;">No se pudo cargar: ${esc(err.message)}</div>`;
+  }
+}
+
+cargarRankings();
+cargarEstadisticasCartas();
 </script>
 </body>
 </html>
