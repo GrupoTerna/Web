@@ -126,6 +126,14 @@
      Arranca oculto y solo se pinta si hay sesión de admin activa
      (esAdminLogueado(), ver cargarAportesInactivosSiAdmin() más abajo). */
   #aportesInactivosSection{display:none;}
+  /* FIX (05-sep-2026, pedido usuario — "panel tipo hoja Control, con datos
+     de Directorio, priorizando las cuadrículas"): sección nueva y PÚBLICA
+     (a diferencia de #aportesInactivosSection, no requiere sesión de
+     admin). Reutiliza las mismas clases .ai-cell*/.ai-total* de abajo para
+     no duplicar estilos — mismo criterio visual que Control (0 = tenue,
+     1-3 = dorado, 4 = verde). Arranca oculta y solo se muestra si el
+     backend manda al menos un clan con Activos (ver render()). */
+  #controlActivosSection{display:none;}
   .ai-clan-card{margin-bottom:18px;}
   .ai-clan-card h3{font-size:15px; margin:0 0 10px; color:var(--purple-light);}
   .ai-cell{text-align:center; font-family:var(--f-mono); font-weight:700; border-radius:4px; padding:2px 0;}
@@ -194,6 +202,25 @@
         <h2 style="font-size:22px;">📊 Miembros Activos por Clan</h2>
       </div>
       <div id="resumenWrap" style="margin-top:20px;"></div>
+    </section>
+
+    <!-- FIX (05-sep-2026, pedido usuario — "Se debe agregar un panel, tipo
+         hoja Control, con algunos datos de la sección que viene de la hoja
+         Directorio pero debe priorizar las cuadrículas"): sección NUEVA y
+         aparte de "Miembros Activos por Clan" de arriba (esa solo muestra
+         un conteo/barra por clan) — acá se pinta la cuadrícula completa
+         Jugador/J/V/S/D/Total de CADA miembro Activo de Directorio,
+         agrupado por su clan, para la semana de guerra vigente. PÚBLICA
+         (visible para todos, sin gate de admin, igual que el resto del
+         contenido de esta sección de la página) y se listan TODOS los
+         Activos aunque tengan 0/0/0/0 — mismo criterio que la cuadrícula
+         real de la hoja Control. Ver render() más abajo y
+         _getControlActivosSemanaActual() (08_Web_Endpoints.gs). -->
+    <section id="controlActivosSection" style="padding:24px 0;">
+      <div class="sec-head" style="border-bottom:1px solid var(--line); padding-bottom:12px;">
+        <h2 style="font-size:22px;">🗂️ Cuadrícula de Activos (Semana Actual)</h2>
+      </div>
+      <div id="controlActivosWrap" style="margin-top:20px;"></div>
     </section>
 
     <!-- FIX (03-sep-2026, pedido usuario — "Pendientes de Atacar: ocultar
@@ -421,6 +448,43 @@ function render(data){
       <div class="track"><div class="fill" style="width:${(count/maxResumen)*100}%"></div></div>
       <div class="val">${fmtNum(count)}</div>
     </div>`).join('') + `</div>` : '<div class="empty">Sin datos de directorio.</div>';
+  // FIX (05-sep-2026, pedido usuario — "panel tipo hoja Control con datos
+  // de Directorio, priorizando las cuadrículas"): a diferencia del bloque
+  // de arriba (solo conteo por clan), acá se pinta la cuadrícula J/V/S/D
+  // por cada Activo de Directorio. Pública — no pasa por
+  // cargarAportesInactivosSiAdmin()/esAdminLogueado(), se pinta para
+  // cualquier visitante igual que el resto de esta sección de la página.
+  // Reutiliza las clases .ai-cell*/.ai-total* del panel de Aportes de
+  // Inactivos (más abajo) para el mismo criterio visual de color.
+  const controlActivos = data.controlActivosSemanaActual || {};
+  const clanesControlActivos = Object.keys(controlActivos).sort();
+  const controlActivosSection = document.getElementById('controlActivosSection');
+  if (clanesControlActivos.length){
+    const claseCeldaCA = (n) => n >= 4 ? 'ai-cell ai-cell-full' : (n > 0 ? 'ai-cell ai-cell-part' : 'ai-cell ai-cell-zero');
+    document.getElementById('controlActivosWrap').innerHTML = clanesControlActivos.map(clanNombre => {
+      const filas = controlActivos[clanNombre];
+      return `
+        <div class="card ai-clan-card" style="padding:16px;">
+          <h3>${esc(clanNombre)} <span class="text-faint" style="font-family:var(--f-mono); font-size:12px; font-weight:400;">(${filas.length} activo${filas.length === 1 ? '' : 's'})</span></h3>
+          <div class="table-scroll"><table>
+            <thead><tr><th>Jugador</th><th>J</th><th>V</th><th>S</th><th>D</th><th>Total</th></tr></thead>
+            <tbody>${filas.map(f => `
+              <tr>
+                <td>${esc(f.nombre || f.tag)}</td>
+                <td class="${claseCeldaCA(f.j)}">${f.j}</td>
+                <td class="${claseCeldaCA(f.v)}">${f.v}</td>
+                <td class="${claseCeldaCA(f.s)}">${f.s}</td>
+                <td class="${claseCeldaCA(f.d)}">${f.d}</td>
+                <td class="ai-total ${f.total >= 16 ? 'ai-total-full' : ''}">${f.total}</td>
+              </tr>`).join('')}
+            </tbody>
+          </table></div>
+        </div>`;
+    }).join('');
+    controlActivosSection.style.display = '';
+  } else {
+    controlActivosSection.style.display = 'none';
+  }
   // "Ingresos Recientes" (antes acá, usando data.nuevos): MOVIDO a
   // jugadores.html (pedido usuario, 04-sep-2026 — "Los ingresos recientes
   // deben moverse a Directorio (al final)"). Esta página ya no pinta esa
