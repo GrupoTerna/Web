@@ -20,6 +20,14 @@
      pestañas. Se pasa el token por query string (?tk=) desde el botón
      "Abrir Ruleta de Sorteos" en admin.html; este script lo guarda en
      sessionStorage y limpia la URL antes de que se pinte nada.
+     ACTUALIZACIÓN (04-sep-2026): la sesión de admin migró de sessionStorage
+     a localStorage en todo el sitio (ver actualizarNavCta() en common.js),
+     que sí se comparte entre pestañas del mismo origen — así que este paso
+     de token por ?tk= ya no es indispensable para que esta página vea la
+     sesión abierta en otra pestaña. Se deja el mecanismo tal cual (ahora
+     escribe/lee en localStorage, ver script de abajo) porque sigue siendo
+     inofensivo y cubre además el caso de un link ?tk= compartido/abierto
+     directamente sin sesión previa en esa pestaña.
      FIX (30-ago-2026): se retira el bloque de diagnóstico en pantalla que
      hubo acá (29-ago-2026, para depurar un loop de redirección) — el fix
      real fue pasar el token por ?tk= (arriba), ya confirmado funcionando,
@@ -33,11 +41,11 @@
   var tk = params.get('tk');
 
   if(tk){
-    sessionStorage.setItem(SESSION_KEY, tk);
+    localStorage.setItem(SESSION_KEY, tk);
     history.replaceState({}, '', window.location.pathname);
   }
 
-  if(!sessionStorage.getItem(SESSION_KEY)){
+  if(!localStorage.getItem(SESSION_KEY)){
     window.location.replace('admin.html');
   }
 })();
@@ -1273,7 +1281,7 @@
   }
 
   function loadQualifiedParticipants(){
-    var token = sessionStorage.getItem(SESSION_KEY_SORTEO);
+    var token = localStorage.getItem(SESSION_KEY_SORTEO);
     if (!token){
       showQualifyStatus('No hay sesión de admin activa. Volvé a entrar desde admin.html y abrí la ruleta de nuevo.', 'err');
       return;

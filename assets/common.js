@@ -95,7 +95,7 @@ function urlValida(u){
 /** true si hay un admin con sesión iniciada en este navegador (mismo
  * sessionStorage que usa apiGetAuth / admin.html). */
 function esAdminLogueado(){
-  return !!sessionStorage.getItem('terna_admin_token');
+  return !!localStorage.getItem('terna_admin_token');
 }
 
 /**
@@ -108,7 +108,7 @@ function esAdminLogueado(){
  */
 function adminPuedeVetar(){
   if (!esAdminLogueado()) return false;
-  const adminGuardado = sessionStorage.getItem('terna_admin_info');
+  const adminGuardado = localStorage.getItem('terna_admin_info');
   if (!adminGuardado) return false;
   try{
     const funciones = String(JSON.parse(adminGuardado).funciones || '');
@@ -207,7 +207,7 @@ async function apiPost(accion, body){
 
 /** GET autenticado (requiere sessionToken de admin en query string). */
 async function apiGetAuth(accion, params){
-  const token = sessionStorage.getItem('terna_admin_token');
+  const token = localStorage.getItem('terna_admin_token');
   const qs = new URLSearchParams({ accion, sessionToken: token || '', ...(params||{}) });
   let res;
   try{
@@ -462,7 +462,7 @@ async function _enviarVetoInactivo(wrap, tag, btnDisparador){
   btnConfirmar.disabled = true;
   try{
     const data = await apiPost('webAdminVetar', {
-      sessionToken: sessionStorage.getItem('terna_admin_token'),
+      sessionToken: localStorage.getItem('terna_admin_token'),
       datos: { tag: tag, razon: razon, comentario: comentario }
     });
     if (data && data.ok === false && /sesión|sesion/i.test(String(data.error||''))){
@@ -660,20 +660,28 @@ function marcarNavActiva(){
  * decía "Acceder" y apuntaba a admin.html, sin importar si el admin ya
  * había iniciado sesión ahí mismo. admin.html YA salta el formulario de
  * login y muestra el panel directo cuando hay un token guardado (ver, al
- * final de su script, `if(sessionStorage.getItem(SESSION_KEY))
+ * final de su script, `if(localStorage.getItem(SESSION_KEY))
  * mostrarPanel();`) — solo faltaba que el botón del nav lo reflejara en
  * vez de seguir mostrando "Acceder" como si nadie hubiera iniciado sesión.
  * Usa la MISMA clave que admin.html ('terna_admin_token', ahí declarada
- * como SESSION_KEY) vía sessionStorage — que persiste al navegar entre
- * páginas dentro de la MISMA pestaña (click en un link, atrás/adelante,
- * recargar), pero no se comparte con una pestaña nueva: eso es una
- * limitación conocida de sessionStorage (por diseño, para no dejar una
- * sesión de admin abierta "para siempre" en cualquier pestaña que se
- * abra), no un bug de esta función.
+ * como SESSION_KEY).
+ *
+ * FIX (04-sep-2026, pedido usuario — "sí puedo ver Directorio [para
+ * inactivos] pero en guerra no aparecen los botones de admin aunque
+ * tengo sesión activa"): esto vivía en sessionStorage, que se aísla POR
+ * PESTAÑA (no por sitio) — una sesión iniciada en admin.html no era
+ * visible al abrir guerra.html en una pestaña/ventana nueva, aunque el
+ * usuario sí tuviera sesión activa "en el navegador". Se migra TODO el
+ * mecanismo de sesión de admin (acá y en admin.html/perfil.html/
+ * sorteo.html) a localStorage, que sí se comparte entre pestañas del
+ * mismo origen. Contrapartida asumida (pedido explícito del usuario):
+ * la sesión ahora persiste más tiempo — sobrevive a cerrar la pestaña/
+ * el navegador, hasta que se cierre sesión explícitamente o venza el
+ * token en el backend — en vez de borrarse sola al cerrar la pestaña.
  */
 const SESSION_KEY_ADMIN = 'terna_admin_token';
 function actualizarNavCta(){
-  const haySesion = !!sessionStorage.getItem(SESSION_KEY_ADMIN);
+  const haySesion = !!localStorage.getItem(SESSION_KEY_ADMIN);
   document.querySelectorAll('.nav .links a.cta[data-page="admin"]').forEach(a => {
     a.textContent = haySesion ? 'Mi panel' : 'Acceder';
   });

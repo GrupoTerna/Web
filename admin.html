@@ -655,7 +655,7 @@ let miembroActual = null; // guarda el tag actualmente cargado, para el guardado
 function mostrarPanel(){
   document.getElementById('loginSec').style.display = 'none';
   document.getElementById('panelSec').style.display = 'block';
-  const adminGuardado = sessionStorage.getItem(SESSION_ADMIN_KEY);
+  const adminGuardado = localStorage.getItem(SESSION_ADMIN_KEY);
   const bienvenida = document.getElementById('adminBienvenida');
   if(adminGuardado){
     try{
@@ -682,7 +682,7 @@ function mostrarPanel(){
  *  todos modos el servidor va a rechazar. */
 function aplicarVisibilidadPorFunciones(){
   let funciones = '';
-  const adminGuardado = sessionStorage.getItem(SESSION_ADMIN_KEY);
+  const adminGuardado = localStorage.getItem(SESSION_ADMIN_KEY);
   if(adminGuardado){
     try{ funciones = String(JSON.parse(adminGuardado).funciones || ''); }catch(err){ /* se deja vacío */ }
   }
@@ -702,8 +702,8 @@ function aplicarVisibilidadPorFunciones(){
   document.getElementById('directorioGrupo').style.display = (puedeRegistrar || puedeVetar || true) ? '' : 'none';
 }
 function mostrarLogin(msg){
-  sessionStorage.removeItem(SESSION_KEY);
-  sessionStorage.removeItem(SESSION_ADMIN_KEY);
+  localStorage.removeItem(SESSION_KEY);
+  localStorage.removeItem(SESSION_ADMIN_KEY);
   document.getElementById('panelSec').style.display = 'none';
   document.getElementById('loginSec').style.display = 'block';
   document.getElementById('adminBienvenida').textContent = 'Gestión de miembros';
@@ -713,7 +713,7 @@ function mostrarLogin(msg){
 // Si ya hay un token de una sesión anterior (misma pestaña), saltar directo
 // al panel — si resulta estar vencido, la primera búsqueda lo detecta y
 // devuelve al login (ver manejarRespuestaAuth()).
-if(sessionStorage.getItem(SESSION_KEY)) mostrarPanel();
+if(localStorage.getItem(SESSION_KEY)) mostrarPanel();
 
 document.getElementById('btnLogin').addEventListener('click', async () => {
   const celular = document.getElementById('loginCelular').value;
@@ -724,8 +724,8 @@ document.getElementById('btnLogin').addEventListener('click', async () => {
   try{
     const data = await apiPost('webLogin', { celular, clave });
     if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error || 'No se pudo iniciar sesión.')}</div>`; return; }
-    sessionStorage.setItem(SESSION_KEY, data.token);
-    if(data.admin) sessionStorage.setItem(SESSION_ADMIN_KEY, JSON.stringify(data.admin));
+    localStorage.setItem(SESSION_KEY, data.token);
+    if(data.admin) localStorage.setItem(SESSION_ADMIN_KEY, JSON.stringify(data.admin));
     document.getElementById('loginCelular').value = '';
     document.getElementById('claveInput').value = '';
     mostrarPanel();
@@ -752,7 +752,7 @@ document.getElementById('logoutBtn').addEventListener('click', () => mostrarLogi
 // exponían en la consola del navegador la longitud del token de sesión y
 // la URL completa con el token en texto plano.
 document.getElementById('btnAbrirSorteo').addEventListener('click', () => {
-  const token = sessionStorage.getItem(SESSION_KEY);
+  const token = localStorage.getItem(SESSION_KEY);
   if(!token) return mostrarLogin('Tu sesión expiró, vuelve a iniciar sesión.');
   const url = 'sorteo.html?tk=' + encodeURIComponent(token);
   window.open(url, '_blank');
@@ -958,7 +958,7 @@ document.getElementById('btnGuardar').addEventListener('click', async () => {
   msgEl.innerHTML = '';
   if(!miembroActual){ msgEl.innerHTML = '<div class="msg msg-error">Primero busca un miembro.</div>'; return; }
   const payload = {
-    sessionToken: sessionStorage.getItem(SESSION_KEY),
+    sessionToken: localStorage.getItem(SESSION_KEY),
     datos: {
       tag:      miembroActual,
       prefijo:  document.getElementById('fPrefijo').value,
@@ -1429,7 +1429,7 @@ document.getElementById('btnRegistrarTorneo').addEventListener('click', async ()
   if(!fecha || !hora){ msgEl.innerHTML = '<div class="msg msg-error">Completa fecha y hora.</div>'; return; }
   try{
     const data = await apiPost('webAdminTorneoRegistrar', {
-      sessionToken: sessionStorage.getItem(SESSION_KEY),
+      sessionToken: localStorage.getItem(SESSION_KEY),
       link, fecha, hora
     });
     if(manejarRespuestaAuth(data)) return;
@@ -1490,7 +1490,7 @@ document.getElementById('btnModificarTorneo').addEventListener('click', async ()
   if(!fecha || !hora){ msgEl.innerHTML = '<div class="msg msg-error">Completa la nueva fecha y hora.</div>'; return; }
   try{
     const data = await apiPost('webAdminTorneoModificar', {
-      sessionToken: sessionStorage.getItem(SESSION_KEY),
+      sessionToken: localStorage.getItem(SESSION_KEY),
       id, fecha, hora
     });
     if(manejarRespuestaAuth(data)) return;
@@ -1619,7 +1619,7 @@ document.getElementById('btnGuardarResolucion').addEventListener('click', async 
   }
   try{
     const data = await apiPost('webAdminTorneoResolucionGuardar', {
-      sessionToken: sessionStorage.getItem(SESSION_KEY),
+      sessionToken: localStorage.getItem(SESSION_KEY),
       datos: {
         idTorneo: ganadoresIdTorneoActual,
         tag, tipoResolucion,
@@ -1712,7 +1712,7 @@ document.getElementById('btnNmGuardar').addEventListener('click', async () => {
   const selVal = document.getElementById('nmNomMultiSelect').value;
   const nomMulti = selVal === '__nuevo__' ? document.getElementById('nmNomMultiNuevo').value.trim() : selVal;
   const payload = {
-    sessionToken: sessionStorage.getItem(SESSION_KEY),
+    sessionToken: localStorage.getItem(SESSION_KEY),
     datos: {
       tag:      nmTagVerificado,
       nomMulti: nomMulti,
@@ -1751,7 +1751,7 @@ document.getElementById('btnVetar').addEventListener('click', async () => {
   if(!window.confirm(`¿Vetar a ${tagNorm}? Esta acción no se puede deshacer desde la web.`)) return;
   try{
     const data = await apiPost('webAdminVetar', {
-      sessionToken: sessionStorage.getItem(SESSION_KEY),
+      sessionToken: localStorage.getItem(SESSION_KEY),
       datos: { tag: tagNorm, razon: razon, comentario: comentario }
     });
     if(manejarRespuestaAuth(data)) return;
