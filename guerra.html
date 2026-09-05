@@ -184,6 +184,23 @@
      que entre el scroll horizontal, sin tocar el resto de tablas (por eso
      el selector va por .tbl-activos-grid y no por .ai-clan-card table). */
   .ai-clan-card .tbl-activos-grid{min-width:760px;}
+  /* FIX (05-sep-2026, pedido usuario — "haz una sección como la hoja
+     Control_2... 'Tipo Control_2' muestra valores SEMANALES de TODA la
+     temporada, mientras que 'Tipo Control' es de valores DIARIOS para la
+     semana actual"): sección NUEVA #controlTemporadaSection, debajo de
+     Cuadrícula de Activos — mismo criterio visual (tarjeta por clan,
+     3 megacategorías Ataques/Puntaje/Barcos con .ai-grp-atq/pje/brc) pero
+     con una columna POR SEMANA de guerra ya jugada en la temporada (en
+     vez de las 4 fijas J/V/S/D) + 2 columnas de Resumen (valor + %) por
+     megacategoría al final. Arranca oculta, igual que
+     #controlActivosSection, hasta que el backend mande
+     data.controlTemporadaPorClan (ver render() más abajo). */
+  #controlTemporadaSection{display:none;}
+  /* Columnas de Resumen (Total/Prom + %) al final de cada megacategoría:
+     mismo tinte del grupo pero un poco más marcado, para que se note que
+     son un cierre de sección y no una semana más. */
+  .ai-resumen{font-weight:700; box-shadow:inset 1px 0 0 var(--line);}
+  .ai-clan-card .tbl-temporada-grid{min-width:640px;}
   /* Bloque de Inactivos dentro de la misma tarjeta del clan: separado de
      la tabla de Activos con una línea punteada y una etiqueta chica.
      ":empty" lo colapsa por completo (sin línea ni espacio de más) cuando
@@ -284,6 +301,31 @@
         <h2 style="font-size:22px;">🗂️ Cuadrícula de Activos (Semana Actual)</h2>
       </div>
       <div id="controlActivosWrap" style="margin-top:20px;"></div>
+    </section>
+
+    <!-- FIX (05-sep-2026, pedido usuario — "haz una sección como la hoja
+         Control_2, solo por referencia visual, ya que la hoja Control_2
+         trae datos de otra parte y debes basarte en los csv, igual que en
+         la sección tipo hoja Control... 'Tipo Control_2' muestra valores
+         semanales de toda la temporada, mientras que 'Tipo Control' es de
+         valores diarios para la semana actual. Va debajo de 🗂️ Cuadrícula
+         de Activos"): sección PÚBLICA (sin gate de admin, mismo criterio
+         que la de arriba), una tarjeta por clan con Jugador +
+         Ataques/Puntaje/Barcos, pero cada megacategoría trae una columna
+         por SEMANA de guerra ya jugada en la temporada actual (sacadas de
+         la hoja Guerra/Backup_Guerra.csv — misma fuente que ya usa
+         _webHistorialGuerraComparador() para el Cara a cara, NO la hoja
+         Control_2 real de la Sheet, que arma sus semanas con datos de otra
+         parte fuera del alcance de este sitio) + Resumen (Total para
+         Ataques/Barcos, Prom para Puntaje) y % al final de cada una. Ver
+         render() más abajo — espera data.controlTemporadaPorClan y
+         data.controlTemporadaSemanas (pendientes en el backend, todavía no
+         se subió Base.md con esos campos). -->
+    <section id="controlTemporadaSection" style="padding:24px 0;">
+      <div class="sec-head" style="border-bottom:1px solid var(--line); padding-bottom:12px;">
+        <h2 style="font-size:22px;">🗓️ Cuadrícula de Temporada (Semanal)</h2>
+      </div>
+      <div id="controlTemporadaWrap" style="margin-top:20px;"></div>
     </section>
 
     <!-- FIX (03-sep-2026, pedido usuario — "Pendientes de Atacar: ocultar
@@ -436,6 +478,34 @@ function celdasMegacategoria(m, gpClase, conColor){
                 <td class="${claseDia(s)}">${conColor ? s : fmtNum(s)}</td>
                 <td class="${claseDia(d)}">${conColor ? d : fmtNum(d)}</td>
                 <td class="${claseTotal}">${fmtNum(total)}</td>`;
+}
+
+/**
+ * celdasSemanas(megacat, gpClase, conColor)
+ * Equivalente a celdasMegacategoria() pero para el "Tipo Control_2"
+ * (Cuadrícula de Temporada): en vez de 4 columnas fijas J/V/S/D, pinta una
+ * columna por cada semana ya jugada de la temporada (megacat.semanas,
+ * array), más las 2 columnas de Resumen al final (megacat.resumen +
+ * megacat.pct — "Resumen" ya trae el criterio correcto según la
+ * megacategoría, Total para Ataques/Barcos o Prom para Puntaje, decidido
+ * del lado del backend, no acá). conColor=true aplica el mismo semáforo
+ * ai-cell-zero/part/full que usa Ataques en la Cuadrícula de Activos
+ * (0/parcial/16); Puntaje y Barcos van sin semáforo, igual que en esa
+ * tabla.
+ */
+function celdasSemanas(megacat, gpClase, conColor){
+  const semanas = Array.isArray(megacat?.semanas) ? megacat.semanas : [];
+  const resumen = Number(megacat?.resumen) || 0;
+  const pct = Number(megacat?.pct) || 0;
+  const claseSemana = (n) => `${gpClase} ${conColor ? claseCeldaCA(n) : 'ai-num'}`;
+  const claseResumen = `${gpClase} ai-resumen ai-total ${conColor && resumen >= (semanas.length * 16) ? 'ai-total-full' : ''}`;
+  const celdasSem = semanas.map(v => {
+    const n = Number(v) || 0;
+    return `<td class="${claseSemana(n)}">${conColor ? n : fmtNum(n)}</td>`;
+  }).join('');
+  return `${celdasSem}
+                <td class="${claseResumen}">${fmtNum(resumen)}</td>
+                <td class="${claseResumen}">${pct}%</td>`;
 }
 
 function render(data){
@@ -597,6 +667,61 @@ function render(data){
     controlActivosSection.style.display = '';
   } else {
     controlActivosSection.style.display = 'none';
+  }
+
+  // FIX (05-sep-2026, pedido usuario — "haz una sección como la hoja
+  // Control_2... valores semanales de toda la temporada"): mismo patrón
+  // que controlActivos de arriba, pero con Sem 1..Sem N dinámicas en vez
+  // de J/V/S/D fijos (celdasSemanas() en vez de celdasMegacategoria(),
+  // ver docblock de esa función más arriba). data.controlTemporadaSemanas
+  // trae las etiquetas de columna (ej. ['Sem 1','Sem 2',...], una por
+  // semana de guerra ya jugada en la temporada actual) compartidas por
+  // todos los clanes; data.controlTemporadaPorClan trae, por clan, un
+  // array de filas { nombre, tag, ataques:{semanas,resumen,pct},
+  // puntaje:{...}, barcos:{...} }. Ninguno de los 2 campos lo manda todavía
+  // el backend probado en esta sesión (no se subió Base.md) — la sección
+  // se queda oculta hasta que existan.
+  const controlTemporada = data.controlTemporadaPorClan || {};
+  const semanasTemporada = data.controlTemporadaSemanas || [];
+  const clanesControlTemporada = Object.keys(controlTemporada)
+    .sort((a, b) => ordenClanIndex(a) - ordenClanIndex(b));
+  const controlTemporadaSection = document.getElementById('controlTemporadaSection');
+  if (clanesControlTemporada.length && semanasTemporada.length){
+    const nSem = semanasTemporada.length;
+    const thSemanas = (gpClase) => semanasTemporada.map(s => `<th class="${gpClase}">${esc(s)}</th>`).join('');
+    document.getElementById('controlTemporadaWrap').innerHTML = clanesControlTemporada.map(clanNombre => {
+      const filas = controlTemporada[clanNombre];
+      return `
+        <div class="card ai-clan-card" data-clan="${esc(clanNombre)}" style="padding:16px;">
+          <h3>${esc(clanNombre)} <span class="text-faint" style="font-family:var(--f-mono); font-size:12px; font-weight:400;">(${filas.length} activo${filas.length === 1 ? '' : 's'})</span></h3>
+          <div class="table-scroll"><table class="tbl-activos-grid tbl-temporada-grid">
+            <thead>
+              <tr>
+                <th class="col-jugador" rowspan="2">Jugador</th>
+                <th class="ai-grp-atq" colspan="${nSem + 2}">Ataques</th>
+                <th class="ai-grp-pje" colspan="${nSem + 2}">Puntaje</th>
+                <th class="ai-grp-brc" colspan="${nSem + 2}">Barcos</th>
+              </tr>
+              <tr>
+                ${thSemanas('ai-grp-atq')}<th class="ai-grp-atq ai-resumen">Total</th><th class="ai-grp-atq ai-resumen">%</th>
+                ${thSemanas('ai-grp-pje')}<th class="ai-grp-pje ai-resumen">Prom</th><th class="ai-grp-pje ai-resumen">%</th>
+                ${thSemanas('ai-grp-brc')}<th class="ai-grp-brc ai-resumen">Total</th><th class="ai-grp-brc ai-resumen">%</th>
+              </tr>
+            </thead>
+            <tbody>${filas.map(f => `
+              <tr>
+                <td class="col-jugador">${esc(f.nombre || f.tag)}</td>
+                ${celdasSemanas(f.ataques, 'ai-grp-atq', true)}
+                ${celdasSemanas(f.puntaje, 'ai-grp-pje', false)}
+                ${celdasSemanas(f.barcos, 'ai-grp-brc', false)}
+              </tr>`).join('')}
+            </tbody>
+          </table></div>
+        </div>`;
+    }).join('');
+    controlTemporadaSection.style.display = '';
+  } else {
+    controlTemporadaSection.style.display = 'none';
   }
   // "Ingresos Recientes" (antes acá, usando data.nuevos): MOVIDO a
   // jugadores.html (pedido usuario, 04-sep-2026 — "Los ingresos recientes
