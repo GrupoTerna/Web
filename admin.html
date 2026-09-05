@@ -423,10 +423,11 @@
       </details>
     </div>
 
-    <!-- FIX (05-sep-2026, pedido usuario — reorganizar el visor de
-         "Mensajes automáticos" en 3 tarjetas temáticas fijas, en vez del
-         listado plano alfabético anterior (ver FIX 04-sep-2026 arriba,
-         ahora reemplazado por completo):
+    <!-- FIX (05-sep-2026, pedido usuario): las 3 tarjetas "Mensajes
+         automáticos" se fusionan en UNA sola sección llamada "Mensajes",
+         con las mismas 3 agrupaciones de antes pero ahora como
+         subsecciones (h3) dentro de un único card admin-grupo, en vez de
+         3 cards sueltos repitiendo el mismo eyebrow:
            1) "Guerra, entrenamiento y mazos" — preparación estándar que
               se comparte igual para todos los clanes.
            2) "Torneos, sorteos y ascensos" — con botones horizontales
@@ -446,18 +447,20 @@
          sync, ver FIX correspondiente en _webAdminCategorias()
          (34_Web_API.gs). Ahora ambos quedan siempre disponibles y el
          admin alterna con los botones "Guerra"/"Entrenamiento", sin
-         depender de qué día sea. El texto de introducción ya NO dice "el
-         bot copia o descarga" en presente: el bot de WhatsApp está
-         pausado por ahora, y esta web es independiente de que esté
-         corriendo o no — la redacción quedó explícita al respecto en cada
-         tarjeta. Ver initMensajesAutomaticos()/cargarGrupoToggle() más
-         abajo; cargarContenidoCategoria()/renderContenidoHtml()/
+         depender de qué día sea. Pedido usuario: la web no debe mencionar
+         al bot en ningún texto visible, así que las 3 bajadas ya NO dicen
+         de dónde sale el contenido, solo qué es y para qué sirve. Ver
+         initMensajesAutomaticos()/cargarGrupoToggle() más abajo;
+         cargarContenidoCategoria()/renderContenidoHtml()/
          _activarAccionesContenido() (ya existentes) se reutilizan tal
-         cual para pintar cada categoría. -->
+         cual para pintar cada categoría — ninguno de esos selectores
+         depende de que cada grupo esté en su propio card, así que fusionar
+         los 3 cards en uno no rompe nada del JS. -->
     <div class="card admin-grupo" style="margin-top:24px;">
-      <div class="eyebrow">Mensajes automáticos</div>
+      <div class="eyebrow">Mensajes</div>
+
       <h3 style="font-size:15px; color:var(--gold); margin:10px 0 4px;">Guerra, entrenamiento y mazos</h3>
-      <p class="text-dim" style="font-size:13px; margin:0 0 4px;">Preparación de guerra, estándar para todos los clanes: en Entrenamiento se piden las defensas de barcos, en Mazos se pide revisar RoyaleAPI para actualizar el mazo, y los ataques pendientes son el mensaje clásico de guerra. Este contenido lo usaba el bot de WhatsApp (pausado por ahora); ábrelo para copiarlo o descargarlo tú mismo.</p>
+      <p class="text-dim" style="font-size:13px; margin:0 0 4px;">Preparación de guerra, estándar para todos los clanes: en Entrenamiento se piden las defensas de barcos, en Mazos se pide revisar RoyaleAPI para actualizar el mazo, y los ataques pendientes son el mensaje clásico de guerra. Ábrelo para copiarlo o descargarlo.</p>
 
       <details class="admin-subseccion admin-toggle-grupo">
         <summary><span class="cat-titulo">Día de guerra, entrenamiento y mazos</span><button type="button" class="btn-refrescar-categoria" title="Actualizar contenido">↻</button></summary>
@@ -475,12 +478,9 @@
         <summary><span class="cat-titulo">Mensaje de ataques pendientes</span><button type="button" class="btn-refrescar-categoria" title="Actualizar contenido">↻</button></summary>
         <div class="admin-subseccion-body categoria-contenido-body"></div>
       </details>
-    </div>
 
-    <div class="card admin-grupo" style="margin-top:24px;">
-      <div class="eyebrow">Mensajes automáticos</div>
-      <h3 style="font-size:15px; color:var(--gold); margin:10px 0 4px;">Torneos, sorteos y ascensos</h3>
-      <p class="text-dim" style="font-size:13px; margin:0 0 4px;">Mensajes de torneos, sorteos y cambios de rango. Este contenido lo usaba el bot de WhatsApp (pausado por ahora); ábrelo para copiarlo o descargarlo tú mismo.</p>
+      <h3 style="font-size:15px; color:var(--gold); margin:24px 0 4px;">Torneos, sorteos y ascensos</h3>
+      <p class="text-dim" style="font-size:13px; margin:0 0 4px;">Mensajes de torneos, sorteos y cambios de rango. Ábrelo para copiarlo o descargarlo.</p>
 
       <details class="admin-subseccion admin-toggle-grupo">
         <summary><span class="cat-titulo">Torneos</span><button type="button" class="btn-refrescar-categoria" title="Actualizar contenido">↻</button></summary>
@@ -508,12 +508,9 @@
         <summary><span class="cat-titulo">Cambio de rango</span><button type="button" class="btn-refrescar-categoria" title="Actualizar contenido">↻</button></summary>
         <div class="admin-subseccion-body categoria-contenido-body"></div>
       </details>
-    </div>
 
-    <div class="card admin-grupo" style="margin-top:24px;">
-      <div class="eyebrow">Mensajes automáticos</div>
-      <h3 style="font-size:15px; color:var(--gold); margin:10px 0 4px;">Mensajes que no suelen enviarse</h3>
-      <p class="text-dim" style="font-size:13px; margin:0 0 4px;">Bienvenida e iniciales se envían una sola vez a cada persona; etiqueta y número de teléfono se piden esporádicamente; la descripción de grupos no se le envía a nadie, es solo para actualizar los grupos de WhatsApp. Este contenido lo usaba el bot de WhatsApp (pausado por ahora); ábrelo para copiarlo o descargarlo tú mismo.</p>
+      <h3 style="font-size:15px; color:var(--gold); margin:24px 0 4px;">Mensajes que no suelen enviarse</h3>
+      <p class="text-dim" style="font-size:13px; margin:0 0 4px;">Bienvenida e iniciales se envían una sola vez a cada persona; etiqueta y número de teléfono se piden esporádicamente; la descripción de grupos no se le envía a nadie, es solo para actualizar los grupos de WhatsApp.</p>
 
       <details class="admin-subseccion categoria-contenido-simple" data-categoria="Bienvenida">
         <summary><span class="cat-titulo">Bienvenida de miembros</span><button type="button" class="btn-refrescar-categoria" title="Actualizar contenido">↻</button></summary>
@@ -557,47 +554,66 @@
     <div class="card admin-grupo" style="margin-top:24px;">
       <div class="eyebrow">Torneos y sorteos</div>
 
+      <!-- FIX (05-sep-2026, pedido usuario — "registrar y modificar torneo
+           solo se distinguen por el link, se deben fusionar"): las dos
+           subsecciones de antes ("Registrar torneo nuevo" y "Modificar
+           torneo de hoy") se fusionan en una sola, "Registrar o modificar
+           torneo". El primer paso es elegir el modo con los botones
+           .btn-toggle-torneo-modo (mismo estilo visual .tab-clan que ya se
+           usa en otras pestañas del panel, pero con su propio listener más
+           abajo, independiente de .btn-toggle-cat): "Registrar nuevo
+           torneo" muestra el recuadro para pegar el link + fecha/hora, y
+           "Modificar torneo registrado" muestra el desglose (<select>) de
+           los torneos de hoy + fecha/hora nueva. Los dos paneles
+           (#panelTorneoNuevo / #panelTorneoModificar) y sus botones/
+           listeners (btnRegistrarTorneo, btnModificarTorneo, tSelectHoy,
+           cargarTorneosHoy()) siguen siendo exactamente los mismos de
+           antes — solo cambia cómo se agrupan visualmente. -->
       <details class="admin-subseccion" open>
-        <summary><span class="cat-titulo">Registrar torneo nuevo</span></summary>
+        <summary><span class="cat-titulo">Registrar o modificar torneo</span></summary>
         <div class="admin-subseccion-body">
-          <div class="field">
-            <label for="tLink">Link del torneo</label>
-            <input type="text" id="tLink" placeholder="https://link.clashroyale.com/...">
+          <div class="contenido-tabs" style="margin-bottom:14px;">
+            <button type="button" class="tab-clan btn-toggle-torneo-modo activo" data-modo="nuevo">Registrar nuevo torneo</button>
+            <button type="button" class="tab-clan btn-toggle-torneo-modo" data-modo="modificar">Modificar torneo registrado</button>
           </div>
-          <div class="field-row">
-            <div class="field">
-              <label for="tFecha">Fecha</label>
-              <input type="date" id="tFecha">
-            </div>
-            <div class="field">
-              <label for="tHora">Hora</label>
-              <input type="time" id="tHora">
-            </div>
-          </div>
-          <button class="btn btn-primary btn-block" id="btnRegistrarTorneo" style="margin-top:6px;">Registrar torneo</button>
-          <div id="registrarTorneoMsg"></div>
-        </div>
-      </details>
 
-      <details class="admin-subseccion">
-        <summary><span class="cat-titulo">Modificar torneo de hoy</span></summary>
-        <div class="admin-subseccion-body">
-          <div class="field" style="margin-bottom:12px;">
-            <label for="tSelectHoy">Torneo</label>
-            <select id="tSelectHoy"><option value="">Cargando torneos de hoy…</option></select>
-          </div>
-          <div class="field-row">
+          <div id="panelTorneoNuevo">
             <div class="field">
-              <label for="tFechaMod">Nueva fecha</label>
-              <input type="date" id="tFechaMod">
+              <label for="tLink">Link del torneo</label>
+              <input type="text" id="tLink" placeholder="https://link.clashroyale.com/...">
             </div>
-            <div class="field">
-              <label for="tHoraMod">Nueva hora</label>
-              <input type="time" id="tHoraMod">
+            <div class="field-row">
+              <div class="field">
+                <label for="tFecha">Fecha</label>
+                <input type="date" id="tFecha">
+              </div>
+              <div class="field">
+                <label for="tHora">Hora</label>
+                <input type="time" id="tHora">
+              </div>
             </div>
+            <button class="btn btn-primary btn-block" id="btnRegistrarTorneo" style="margin-top:6px;">Registrar torneo</button>
+            <div id="registrarTorneoMsg"></div>
           </div>
-          <button class="btn btn-primary btn-block" id="btnModificarTorneo" style="margin-top:6px;">Guardar cambios</button>
-          <div id="modificarTorneoMsg"></div>
+
+          <div id="panelTorneoModificar" style="display:none;">
+            <div class="field" style="margin-bottom:12px;">
+              <label for="tSelectHoy">Torneo</label>
+              <select id="tSelectHoy"><option value="">Cargando torneos de hoy…</option></select>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="tFechaMod">Nueva fecha</label>
+                <input type="date" id="tFechaMod">
+              </div>
+              <div class="field">
+                <label for="tHoraMod">Nueva hora</label>
+                <input type="time" id="tHoraMod">
+              </div>
+            </div>
+            <button class="btn btn-primary btn-block" id="btnModificarTorneo" style="margin-top:6px;">Guardar cambios</button>
+            <div id="modificarTorneoMsg"></div>
+          </div>
         </div>
       </details>
 
@@ -1495,6 +1511,23 @@ function _activarAccionesContenido(root, opciones){
 }
 
 /* ---------- Fase 3: gestión de torneos ---------- */
+
+/** FIX (05-sep-2026, pedido usuario — fusión de "Registrar" y "Modificar"
+ *  en un solo flujo): alterna entre #panelTorneoNuevo y
+ *  #panelTorneoModificar según el botón .btn-toggle-torneo-modo activo.
+ *  No pide nada nuevo al backend: cargarTorneosHoy() ya se llama una sola
+ *  vez al cargar la página (ver DOMContentLoaded más abajo), así que el
+ *  <select id="tSelectHoy"> ya está poblado (o poblándose) apenas se entra
+ *  al modo "Modificar torneo registrado". */
+document.querySelectorAll('.btn-toggle-torneo-modo').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if(btn.classList.contains('activo')) return;
+    document.querySelectorAll('.btn-toggle-torneo-modo').forEach(b => b.classList.toggle('activo', b === btn));
+    const esNuevo = btn.dataset.modo === 'nuevo';
+    document.getElementById('panelTorneoNuevo').style.display = esNuevo ? '' : 'none';
+    document.getElementById('panelTorneoModificar').style.display = esNuevo ? 'none' : '';
+  });
+});
 
 /** Convierte el value de un <input type="date"> ("yyyy-mm-dd") al formato
  *  "dd/mm/yyyy" que espera el backend (_combinarFechaHora, 24_Torneos_Core.gs). */
