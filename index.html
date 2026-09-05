@@ -421,36 +421,36 @@
   .ranking-card{padding:20px;}
   .ranking-title{font-weight:700; font-size:14px; color:var(--text);}
   .ranking-row{
-    display:flex; align-items:center; gap:10px; padding:9px 0;
+    display:flex; align-items:flex-start; gap:10px; padding:9px 0;
     border-bottom:1px solid var(--line); font-size:13px;
   }
   .ranking-row:last-child{border-bottom:none;}
-  .ranking-row .rk-pos{font-family:var(--f-mono); color:var(--text-faint); width:18px; flex-shrink:0;}
+  .ranking-row .rk-pos{font-family:var(--f-mono); color:var(--text-faint); width:18px; flex-shrink:0; padding-top:1px;}
   /* FIX (04-sep-2026, pedido usuario — "los nombres deben tener link al
    * perfil y la lista debe mostrar su clan, ten en cuenta que son 4 clanes
    * y las canteras aspiran a subir en clanes"): rk-nombre pasa de <span>
    * de texto plano a <a> hacia perfil.html?tag=..., y se agrega rk-clan
    * como columna aparte (max-width fijo para que las 4 listas alineen
    * parejo pase lo que pase el largo del nombre de cada clan). */
-  /* CORRECCIÓN (05-sep-2026, pedido usuario — "no se muestra el nombre
-   * del jugador en escritorio, en móvil sí se ve"): rk-nombre tenía
-   * flex:1 + min-width:0, mientras que rk-clan y rk-valor tenían
-   * flex-shrink:0 (nunca se encogen). En escritorio el grid reparte 4
-   * tarjetas por fila (.rankings-grid, minmax 230px) y cada fila queda
-   * angosta; como rk-clan/rk-valor siempre reservan su ancho completo
-   * primero, a rk-nombre no le quedaba espacio y se encogía hasta
-   * desaparecer (min-width:0 lo permite). En móvil una sola tarjeta ocupa
-   * todo el ancho disponible, así que sí sobraba espacio para el nombre.
-   * Ahora rk-nombre y rk-clan comparten el espacio restante con
-   * flex-grow/shrink (3:1, el nombre tiene prioridad) y ambos tienen un
-   * min-width mínimo garantizado, así el nombre nunca vuelve a
-   * desaparecer, y como mucho el clan se trunca un poco más en pantallas
-   * angostas. rk-valor conserva flex-shrink:0 porque es el dato principal
-   * de la fila y siempre debe verse completo. */
-  .ranking-row .rk-nombre{flex:3 1 0; min-width:44px; color:var(--text); font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-decoration:none;}
+  /* CORRECCIÓN (05-sep-2026, pedido usuario — "el nombre en batallas de
+   * torneo sale incompleto"): antes rk-nombre/rk-clan/rk-valor competían
+   * por el mismo ancho de línea horizontal; en la lista de "Batallas de
+   * torneo" el sufijo " batallas" hace que rk-valor sea mucho más ancho
+   * que en las otras 3 listas (ej. "6,682 batallas" vs "1,041"), y como
+   * rk-valor tiene flex-shrink:0 (nunca se encoge), le quitaba todavía
+   * más espacio a rk-nombre y el nombre se truncaba antes de tiempo. Se
+   * reestructura la fila en dos líneas: rk-main (nombre) ocupa TODO el
+   * ancho disponible en su propia línea, y rk-clan + rk-valor pasan a una
+   * segunda línea (rk-sub) debajo. Así el nombre ya no compite por ancho
+   * con el valor en ninguna de las 4 listas, y en particular deja de
+   * cortarse en "Batallas de torneo". El markup lo arma ahora
+   * renderRankingRow() (ver <script> más abajo). */
+  .ranking-row .rk-main{flex:1 1 auto; min-width:0; display:flex; flex-direction:column; gap:3px;}
+  .ranking-row .rk-nombre{color:var(--text); font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-decoration:none; display:block; max-width:100%;}
   .ranking-row .rk-nombre:hover{text-decoration:underline; color:var(--purple-light);}
-  .ranking-row .rk-clan{font-family:var(--f-mono); font-size:10px; color:var(--text-faint); flex:1 1 0; min-width:24px; max-width:88px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-  .ranking-row .rk-valor{font-family:var(--f-mono); color:var(--gold); font-size:12px; flex-shrink:0;}
+  .ranking-row .rk-sub{display:flex; align-items:center; justify-content:space-between; gap:8px;}
+  .ranking-row .rk-clan{font-family:var(--f-mono); font-size:10px; color:var(--text-faint); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0;}
+  .ranking-row .rk-valor{font-family:var(--f-mono); color:var(--gold); font-size:12px; flex-shrink:0; white-space:nowrap;}
   .cartas-list{display:flex; flex-wrap:wrap; gap:10px; margin-top:14px;}
   /* FIX (04-sep-2026, pedido usuario — "falta insertar las imágenes de las
    * cartas y su costo, usa Elixir.webp"): el chip pasa de una sola línea
@@ -503,6 +503,21 @@
   .carta-chip .cc-badge{
     font-family:var(--f-mono); font-size:10px; padding:2px 7px; border-radius:999px;
     background:var(--bg-2); color:var(--text-faint);
+  }
+  /* FASE (05-sep-2026, pedido usuario — "falta alinear y que las cartas
+   * con héroe/evolución, al tocar los botones, cambien la imagen"):
+   * cc-badge-btn reutiliza la píldora de cc-badge pero como <button> real
+   * (reset de estilos nativos de botón para que quede alineado igual que
+   * el resto de badges de cc-meta), con estado hover y un estado
+   * "is-activa" (variante actualmente mostrada en el ícono del chip) bien
+   * distinguible. Ver cambiarVarianteCarta() más abajo en el <script>. */
+  .carta-chip .cc-badge-btn{
+    font-family:inherit; line-height:inherit; margin:0; cursor:pointer;
+    border:1px solid var(--line); transition:background .15s ease, color .15s ease, border-color .15s ease;
+  }
+  .carta-chip .cc-badge-btn:hover{ background:rgba(162,57,255,.14); color:var(--text); }
+  .carta-chip .cc-badge-btn.is-activa{
+    background:var(--purple); border-color:var(--purple); color:#fff;
   }
 </style>
 </head>
@@ -1504,6 +1519,12 @@ cargarAniversarios();
  * perfil.html?tag=... (mismo patrón que ya usa jugadores.html para abrir
  * el perfil), y se pinta el clan al lado. Si por lo que sea no llega tag,
  * se degrada a texto plano sin romper nada.
+ * CORRECCIÓN (05-sep-2026, pedido usuario — "el nombre en batallas de
+ * torneo sale incompleto"): el nombre pasa a su propia línea completa
+ * (rk-main) y clan+valor se pintan debajo (rk-sub), ver CSS de
+ * .ranking-row/.rk-main/.rk-sub más arriba — así el nombre ya no se
+ * encoge por culpa del sufijo "batallas" (o de cualquier otro valor
+ * largo) empujándolo desde el mismo renglón.
  */
 function renderRankingRow(pos, nombre, valor, sufijo, tag, clan){
   const nombreHtml = tag
@@ -1511,9 +1532,13 @@ function renderRankingRow(pos, nombre, valor, sufijo, tag, clan){
     : `<span class="rk-nombre">${esc(nombre)}</span>`;
   return `<div class="ranking-row">
     <span class="rk-pos">${pos}.</span>
-    ${nombreHtml}
-    ${clan ? `<span class="rk-clan">${esc(clan)}</span>` : ''}
-    <span class="rk-valor">${fmtNum(valor)}${sufijo ? ' ' + sufijo : ''}</span>
+    <div class="rk-main">
+      ${nombreHtml}
+      <div class="rk-sub">
+        ${clan ? `<span class="rk-clan">${esc(clan)}</span>` : '<span></span>'}
+        <span class="rk-valor">${fmtNum(valor)}${sufijo ? ' ' + sufijo : ''}</span>
+      </div>
+    </div>
   </div>`;
 }
 
@@ -1579,6 +1604,26 @@ async function cargarRankings(){
  * se agrega el badge de 'tipo' (Tropa/Hechizo/Estructura, tal cual lo
  * escribió el usuario en la columna "Tipo" de Backup_Cards.csv — no hay
  * traducción que hacer, se muestra el texto tal cual llega del backend).
+ * CORRECCIÓN (05-sep-2026, pedido usuario — "en la lanzafuegos dice
+ * Petardera porque tradujo literalmente del inglés, el csv de cards ya
+ * tiene una columna Nombre que da los valores correctos pero no se está
+ * mostrando"): 34_Web_API.gs (_webEstadisticasCartas()) ahora lee la
+ * columna "Nombre" de Backup_Cards.csv en vez de "Name", así que c.name
+ * ya llega en español correcto desde el backend. Se deja de pasar por
+ * traducirNombreCarta() (assets/common.js) acá — ese diccionario
+ * traducía "Firecracker" a "Petardera" (traducción literal), cuando el
+ * nombre real del juego es "Lanzafuegos"; ya no hace falta ninguna
+ * traducción en el frontend para esta sección.
+ * FASE (05-sep-2026, pedido usuario — "falta que las cartas con héroe
+ * y/o evolución, al tocar los botones, cambien la imagen a la que viene
+ * en su link del csv"): los badges "Héroe"/"Evolución" pasan de <span>
+ * decorativo a <button> (cc-badge-btn) con data-icon-variante = la URL
+ * real de esa variante (c.heroIcon/c.evolutionIcon, ya expuestas por el
+ * backend desde antes). Al tocar el botón, cambiarVarianteCarta() (ver
+ * más abajo) cambia la imagen del chip (cc-img) a esa URL; al volver a
+ * tocarlo, regresa al ícono base (c.icon, guardado en data-icon-base del
+ * chip). Si el link de la variante falla al cargar, se precarga con
+ * Image() antes de aplicarlo — así nunca se rompe el ícono visible.
  */
 /* CORRECCIÓN (05-sep-2026, pedido usuario — "se está traduciendo
    literalmente las calidades de las cartas, no existe 'rara' como tal, su
@@ -1609,21 +1654,53 @@ async function cargarEstadisticasCartas(){
       return;
     }
     wrap.innerHTML = data.top10.map((c, i) => `
-      <div class="carta-chip">
+      <div class="carta-chip" data-icon-base="${esc(c.icon || '')}">
         ${c.icon ? `<img class="cc-img" src="${esc(c.icon)}" alt="" loading="lazy" onerror="this.remove()">` : ''}
-        <span>${i + 1}.</span> <b>${esc(traducirNombreCarta(c.name))}</b>
+        <span>${i + 1}.</span> <b>${esc(c.name)}</b>
         <span class="cc-usos">${fmtNum(c.usos)} en mazo</span>
         ${c.elixirCost != null ? `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">${fmtNum(c.elixirCost)}</span>` : ''}
         <div class="cc-meta">
           ${rarezaHtml(c.rarity)}
           ${c.tipo ? `<span class="cc-tipo">${esc(c.tipo)}</span>` : ''}
-          ${c.hasHero ? '<span class="cc-badge">🦸 Héroe</span>' : ''}
-          ${c.hasEvolution ? '<span class="cc-badge">✨ Evolución</span>' : ''}
+          ${c.hasHero ? `<button type="button" class="cc-badge cc-badge-btn" data-icon-variante="${esc(c.heroIcon || '')}" onclick="cambiarVarianteCarta(this)">🦸 Héroe</button>` : ''}
+          ${c.hasEvolution ? `<button type="button" class="cc-badge cc-badge-btn" data-icon-variante="${esc(c.evolutionIcon || '')}" onclick="cambiarVarianteCarta(this)">✨ Evolución</button>` : ''}
         </div>
       </div>`).join('');
   }catch(err){
     wrap.innerHTML = `<div class="empty" style="padding:8px 0;">No se pudo cargar: ${esc(err.message)}</div>`;
   }
+}
+
+/**
+ * cambiarVarianteCarta(btn)
+ * FASE (05-sep-2026, pedido usuario): al tocar el botón "Héroe" o
+ * "Evolución" de una carta en "Cartas más usadas en la Familia", cambia
+ * el ícono del chip (cc-img) a la URL de esa variante (data-icon-variante,
+ * ya viene del backend en c.heroIcon/c.evolutionIcon). Un segundo toque
+ * sobre el mismo botón (o tocar el otro botón del mismo chip) vuelve al
+ * ícono base de la carta (data-icon-base del chip). La imagen se precarga
+ * con Image() antes de aplicarla — si el link de esa variante fallara,
+ * el ícono visible no se rompe ni desaparece.
+ */
+function cambiarVarianteCarta(btn){
+  const chip = btn.closest('.carta-chip');
+  const img = chip && chip.querySelector('.cc-img');
+  if (!chip || !img) return;
+
+  const yaActivo = btn.classList.contains('is-activa');
+  chip.querySelectorAll('.cc-badge-btn.is-activa').forEach(b => b.classList.remove('is-activa'));
+
+  if (yaActivo){
+    img.src = chip.dataset.iconBase || '';
+    return;
+  }
+
+  const urlVariante = btn.dataset.iconVariante;
+  if (!urlVariante) return;
+
+  const pre = new Image();
+  pre.onload = () => { img.src = urlVariante; btn.classList.add('is-activa'); };
+  pre.src = urlVariante;
 }
 
 cargarRankings();
