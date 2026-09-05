@@ -96,26 +96,25 @@
   #status{font-family:var(--f-mono); font-size:14px; color:var(--text-dim); padding:64px 20px; text-align:center;}
   #status.err{color:var(--danger);}
   /* FIX (04-sep-2026, pedido usuario — "se debe agregar botones para
-     copiar los mensajes de guerra pero visibles solo para los admin"):
-     tarjeta compacta con un botón "Copiar" por clan (+ Chat General),
-     mismo criterio visual/funcional que .btn-copiar de admin.html, pero
-     minimizada para caber en la página pública sin agregar el panel de
-     categorías completo. Solo se pinta si hay sesión de admin activa
-     (esAdminLogueado(), ver #mensajesGuerraAdmin más abajo). */
-  #mensajesGuerraAdmin{display:none;}
-  .msj-guerra-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:12px; margin-top:14px;}
-  .msj-guerra-item{
-    display:flex; align-items:center; justify-content:space-between; gap:10px;
-    padding:12px 14px; border:1px solid var(--line); border-radius:var(--radius-sm); background:var(--surface-card);
-  }
-  .msj-guerra-item .mg-clan{font-family:var(--f-mono); font-size:12px; font-weight:700; color:var(--text-dim); text-transform:uppercase; letter-spacing:.04em;}
-  .msj-guerra-item .btn-copiar-mg{
+     copiar los mensajes de guerra pero visibles solo para los admin").
+     FIX (05-sep-2026, pedido usuario — "en Guerra (lista de pendientes)
+     solo hay que poner el mismo botón, pero ya no se va a mostrar todo el
+     texto, solo el botón de copiar, así que debería agregar información
+     sobre el clan"): ya no es una sección aparte con tarjetas (label +
+     botón genérico "Copiar"); ahora es una fila compacta de botones
+     integrada arriba de la tabla de "Pendientes de Atacar" (ver
+     #msjGuerraWrap dentro de #pendSection más abajo), y el nombre del clan
+     va DENTRO del texto de cada botón (no hay tarjeta/label aparte donde
+     mostrarlo). Sigue sin pintarse nada si no hay sesión de admin activa
+     (esAdminLogueado()) — ver cargarMensajesGuerraSiAdmin(). */
+  .msj-guerra-row{display:flex; flex-wrap:wrap; gap:8px; margin-top:14px;}
+  .msj-guerra-row .btn-copiar-mg{
     background:rgba(162,57,255,.1); border:1px solid var(--line-strong); color:var(--text);
-    font-family:var(--f-mono); font-size:11px; font-weight:700; letter-spacing:.04em; text-transform:uppercase;
-    padding:6px 12px; cursor:pointer; border-radius:var(--radius-sm); transition:all .18s ease; flex-shrink:0;
+    font-family:var(--f-mono); font-size:11px; font-weight:700; letter-spacing:.03em; text-transform:uppercase;
+    padding:7px 14px; cursor:pointer; border-radius:var(--radius-sm); transition:all .18s ease;
   }
-  .msj-guerra-item .btn-copiar-mg:hover{border-color:var(--purple); color:var(--purple-light); background:rgba(162,57,255,.2);}
-  .msj-guerra-item .btn-copiar-mg.copiado{color:var(--ok); border-color:var(--ok);}
+  .msj-guerra-row .btn-copiar-mg:hover{border-color:var(--purple); color:var(--purple-light); background:rgba(162,57,255,.2);}
+  .msj-guerra-row .btn-copiar-mg.copiado{color:var(--ok); border-color:var(--ok);}
 </style>
 </head>
 <body data-page="guerra">
@@ -171,24 +170,6 @@
       <div class="clan-grid" id="clanGrid" style="margin-top:20px;"></div>
     </section>
 
-    <!-- FIX (04-sep-2026, pedido usuario — "se debe agregar botones para
-         copiar los mensajes de guerra pero visibles solo para los admin"):
-         reusa el mismo endpoint autenticado que ya usa admin.html
-         (webAdminContenido, categoria='Mensaje de Guerra' — ver
-         renderContenidoHtml() en admin.html para el patrón original) en
-         vez de duplicar lógica de backend. Toda esta sección arranca
-         oculta (display:none en el <style> de arriba) y solo se muestra
-         si hay sesión de admin activa Y es día de guerra (ver
-         cargarMensajesGuerraSiAdmin() más abajo) — un visitante normal ni
-         siquiera nota que existe. -->
-    <section id="mensajesGuerraAdmin" style="padding:24px 0;">
-      <div class="sec-head" style="border-bottom:1px solid var(--line); padding-bottom:12px;">
-        <h2 style="font-size:22px;">📋 Mensajes de Guerra</h2>
-        <span class="text-faint" style="font-family:var(--f-mono); font-size:12px;">Solo visible para administradores</span>
-      </div>
-      <div class="msj-guerra-grid" id="msjGuerraWrap"></div>
-    </section>
-
     <section style="padding:24px 0;">
       <div class="sec-head" style="border-bottom:1px solid var(--line); padding-bottom:12px;">
         <h2 style="font-size:22px;">📊 Miembros Activos por Clan</h2>
@@ -213,6 +194,14 @@
         <h2 style="font-size:22px;">⚠️ Pendientes de Atacar</h2>
         <span class="text-faint" id="pendCount" style="font-family:var(--f-mono); font-size:13px;"></span>
       </div>
+      <!-- FIX (04-sep-2026 / 05-sep-2026, pedido usuario — ver comentario
+           completo en el <style> de arriba y en cargarMensajesGuerraSiAdmin()
+           más abajo): fila de botones "Copiar" por clan (+ Chat General),
+           visible solo para admins logueados, integrada acá mismo (antes
+           era una sección aparte más arriba en la página). Arranca vacía;
+           si no hay sesión de admin o no hay contenido, se queda vacía y
+           no ocupa espacio. -->
+      <div class="msj-guerra-row" id="msjGuerraWrap"></div>
       <div id="pendWrap" style="margin-top:20px;"></div>
     </section>
 
@@ -415,31 +404,43 @@ function render(data){
  * ver renderContenidoHtml()/_activarAccionesContenido() ahí) con
  * categoria='Mensaje de Guerra' — el backend ya arma un item por clan
  * (subcategoria 'Particular') más uno de 'Chat General' (ver
- * generarTodosMensajes(), Base.md). No se pide nada ni se muestra nada si:
+ * generarTodosMensajes(), Base.md).
+ * FIX (05-sep-2026, pedido usuario — "en Guerra (lista de pendientes) solo
+ * hay que poner el mismo botón, pero ya no se va a mostrar todo el texto,
+ * solo el botón de copiar, así que debería agregar información sobre el
+ * clan"): antes esto vivía en una sección aparte (#mensajesGuerraAdmin,
+ * ya eliminada), con una tarjeta por clan: un <span> con el nombre del
+ * clan al lado de un botón genérico "⧉ Copiar". Ahora se integra
+ * directamente arriba de la tabla de "Pendientes de Atacar" (#msjGuerraWrap
+ * dentro de #pendSection) como una fila compacta de botones sueltos, SIN
+ * tarjeta ni label aparte — por eso cada botón lleva el nombre del clan
+ * metido en su propio texto ("⧉ Copiar — <Clan>"), para poder identificar
+ * cuál es cuál sin el label que ya no existe.
+ * No se pide nada ni se muestra nada si:
  *   - no hay sesión de admin en este navegador (esAdminLogueado()), o
  *   - no es día de guerra (ctx.esDiaGuerra) — 'Mensaje de Guerra' solo
  *     existe en días de guerra, pedirlo en día de entrenamiento solo
  *     devolvería vacío.
- * Cualquier error (token vencido, etc.) se traga en silencio: esta
- * sección es un plus para admins, nunca debe romper la carga de la página
- * pública para nadie.
+ * Cualquier error (token vencido, etc.) se traga en silencio: esta fila de
+ * botones es un plus para admins, nunca debe romper la carga de la página
+ * pública para nadie. Al quedar vacía (wrap.innerHTML = '') no deja hueco
+ * ni espacio de más para quien no es admin.
  */
 async function cargarMensajesGuerraSiAdmin(ctx){
-  const section = document.getElementById('mensajesGuerraAdmin');
-  if (!ctx.esDiaGuerra || !esAdminLogueado()){ section.style.display = 'none'; return; }
+  const wrap = document.getElementById('msjGuerraWrap');
+  if (!ctx.esDiaGuerra || !esAdminLogueado()){ wrap.innerHTML = ''; return; }
   try{
     const data = await apiGetAuth('webAdminContenido', { categoria: 'Mensaje de Guerra' });
     const opciones = (data && data.opciones) || [];
-    if (!opciones.length){ section.style.display = 'none'; return; }
-    const wrap = document.getElementById('msjGuerraWrap');
-    wrap.innerHTML = opciones.map((o, i) => `
-      <div class="msj-guerra-item">
-        <span class="mg-clan">${esc(o.etiqueta || o.subcategoria || o.clan || ('Opción ' + (i + 1)))}</span>
-        <button type="button" class="btn-copiar-mg" data-idx="${i}">⧉ Copiar</button>
-      </div>`).join('');
+    if (!opciones.length){ wrap.innerHTML = ''; return; }
+    wrap.innerHTML = opciones.map((o, i) => {
+      const etiqueta = esc(o.etiqueta || o.subcategoria || o.clan || ('Opción ' + (i + 1)));
+      return `<button type="button" class="btn-copiar-mg" data-idx="${i}" data-label="⧉ Copiar — ${etiqueta}">⧉ Copiar — ${etiqueta}</button>`;
+    }).join('');
     wrap.querySelectorAll('.btn-copiar-mg').forEach(btn => {
       btn.addEventListener('click', async () => {
         const o = opciones[Number(btn.dataset.idx)];
+        const textoOriginal = btn.dataset.label;
         try{
           await navigator.clipboard.writeText(o.contenido || '');
           btn.textContent = '✔ Copiado';
@@ -447,14 +448,13 @@ async function cargarMensajesGuerraSiAdmin(ctx){
         }catch(err){
           btn.textContent = 'No se pudo copiar';
         }
-        setTimeout(() => { btn.textContent = '⧉ Copiar'; btn.classList.remove('copiado'); }, 1600);
+        setTimeout(() => { btn.textContent = textoOriginal; btn.classList.remove('copiado'); }, 1600);
       });
     });
-    section.style.display = '';
   }catch(err){
     // Defensivo: sesión vencida u otro fallo — no romper el resto de la
-    // página pública por esto, la sección simplemente no aparece.
-    section.style.display = 'none';
+    // página pública por esto, la fila de botones simplemente no aparece.
+    wrap.innerHTML = '';
   }
 }
 
