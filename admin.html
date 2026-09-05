@@ -93,38 +93,15 @@
     padding:12px 14px; margin-top:2px;
   }
   .contenido-item.colapsado .contenido-caja{display:none;}
-  /* FIX (30-ago-2026, pedido usuario — "quiero que se muestre por
-     secciones, ordenando por temática"): reemplaza el <select> plano de
-     una sola categoría a la vez por un acordeón de dos niveles (sección
-     temática > categoría), pensado para que el admin pueda tener varias
-     secciones y categorías abiertas al mismo tiempo — algo que el bot de
-     WhatsApp no puede ofrecer porque solo avanza de a una rama por turno. */
-  /* FIX (04-sep-2026, punto 35): el visor de "Mensajes automáticos" ya no
-     agrupa por sección (ver cargarCategorias) — este wrapper reemplaza a
-     .seccion-contenido para que la lista aplanada de categorías conserve
-     el mismo marco/borde de antes en vez de quedar suelta contra el card. */
-  .mensajes-flat-wrap{border:1px solid var(--line); border-radius:var(--radius-sm); margin-top:14px; overflow:hidden; padding:4px 16px 0;}
-  .seccion-contenido{border:1px solid var(--line); border-radius:var(--radius-sm); margin-top:14px; overflow:hidden;}
-  .seccion-contenido > summary{
-    cursor:pointer; list-style:none; padding:14px 16px; display:flex; align-items:center; gap:8px;
-    font-family:var(--f-mono); font-size:12px; letter-spacing:.08em; text-transform:uppercase;
-    color:var(--gold); background:var(--surface);
-  }
-  .seccion-contenido > summary::-webkit-details-marker{display:none;}
-  .seccion-contenido > summary::before{content:'▸'; display:inline-block; transition:transform .15s ease; color:var(--purple-light);}
-  .seccion-contenido[open] > summary::before{transform:rotate(90deg);}
-  .seccion-contenido-body{padding:4px 16px 12px;}
-  .categoria-contenido{border-top:1px solid var(--line);}
-  .categoria-contenido:first-child{border-top:none;}
-  .categoria-contenido > summary{
-    cursor:pointer; list-style:none; padding:12px 2px; display:flex; align-items:center; gap:10px; font-size:14px; color:var(--text);
-  }
-  .categoria-contenido > summary::-webkit-details-marker{display:none;}
-  .categoria-contenido > summary::before{
-    content:'+'; width:16px; flex-shrink:0; text-align:center; color:var(--purple-light); font-family:var(--f-mono);
-  }
-  .categoria-contenido[open] > summary::before{content:'–';}
-  .categoria-contenido > summary .cat-titulo{flex:1;}
+  /* FIX (05-sep-2026, pedido usuario — reemplaza por completo el
+     acordeón dinámico de "Mensajes automáticos" (sección>categoría, luego
+     lista plana alfabética) por 3 tarjetas .admin-grupo con estructura
+     fija — ver el comentario FIX junto a esas tarjetas en el HTML y junto
+     a initMensajesAutomaticos()/cargarGrupoToggle() en el JS. Las reglas
+     .seccion-contenido/.categoria-contenido/.mensajes-flat-wrap de ese
+     acordeón (que ya no se genera) se retiraron; .categoria-contenido-body
+     sigue, la reutilizan las tarjetas nuevas vía
+     .categoria-contenido-simple (ver abajo). */
   /* FIX (30-ago-2026, pedido usuario — "los mensajes de guerra... no están
      actualizados"): Menú/Mensajes se reconstruyen enteros en cada corrida
      automática (ver docblock de _webAdminContenido, 34_Web_API.gs), pero
@@ -143,6 +120,14 @@
   .btn-refrescar-categoria:hover{border-color:var(--purple); color:var(--text);}
   .btn-refrescar-categoria.girando{transform:rotate(180deg);}
   .categoria-contenido-body{padding:0 2px 14px 26px;}
+  /* FIX (05-sep-2026): tarjetas de toggle horizontal (Guerra/Entrenamiento/
+     Mazos, Participantes/Ganadores de Torneos y de Sorteos) — ver
+     cargarGrupoToggle() en el JS. Los botones en sí reutilizan .tab-clan
+     (misma pastilla que ya usan las pestañas por clan dentro de una
+     categoría) vía la clase doble tab-clan+btn-toggle-cat en el HTML, así
+     que no hace falta redefinir su estilo acá. */
+  .admin-toggle-body{min-height:1px;}
+  .admin-toggle-panel .contenido-item{margin-top:0;}
   /* FASE 25 (03-sep-2026, pedido usuario — "en vez de mencionar Directorio
      2 veces, debería estar en un mismo contenedor. Igual que torneos y
      sorteos, un contenedor y luego sus subcategorías"): mismo look de
@@ -290,7 +275,7 @@
     <div class="card" style="margin-top:24px;">
       <div class="eyebrow">Tus cuentas</div>
       <h3 style="font-size:15px; color:var(--gold); margin:10px 0 4px;">Cuentas a tu cargo</h3>
-      <p class="text-dim" style="font-size:13px; margin:0 0 14px;">Agrupadas por clan, líder primero — mismo criterio que el saludo del bot de WhatsApp.</p>
+      <p class="text-dim" style="font-size:13px; margin:0 0 14px;">Agrupadas por clan, líder primero.</p>
       <div id="misCuentasWrap"><div class="empty">Cargando tus cuentas…</div></div>
     </div>
 
@@ -438,31 +423,122 @@
       </details>
     </div>
 
-    <!-- Fase 2 (24-ago-2026): visor de contenido por categoría, SOLO LECTURA.
-         El contenido "Estático" real se edita en los Google Docs de Drive
-         (sync automático) y "Mensajes" se recalcula solo en cada corrida —
-         por eso este panel no tiene botón de guardar, es únicamente para
-         verificar rápido qué le está mostrando el bot a cada clan ahora
-         mismo. Ver nota de diseño en la cabecera de 34_Web_API.gs.
-         FIX (04-sep-2026, pedido usuario, punto 35 — "Mensajes
-         automáticos, perfil de miembro, torneos y sorteos, reconocimientos
-         y otros son lo mismo, todos son mensajes automáticos... debe haber
-         una sola categoría de Mensajes automáticos"): este panel se movió
-         DESPUÉS de "Directorio" (ver punto 38 arriba) y ya no dibuja el
-         acordeón de dos niveles sección>categoría — cargarCategorias()
-         ahora aplana TODAS las categorías de TODAS las 'secciones' que
-         manda el backend en un solo nivel bajo el eyebrow "Mensajes
-         automáticos", ordenadas alfabéticamente por su etiqueta visible
-         (ver MENSAJES_ETIQUETAS_OVERRIDE / cargarCategorias más abajo).
-         PENDIENTE: ordenar por temática en vez de alfabético, tal como
-         pidió el usuario para una siguiente iteración — por ahora queda
-         solo alfabético y así se deja anotado. -->
-    <div class="card" style="margin-top:24px;">
+    <!-- FIX (05-sep-2026, pedido usuario — reorganizar el visor de
+         "Mensajes automáticos" en 3 tarjetas temáticas fijas, en vez del
+         listado plano alfabético anterior (ver FIX 04-sep-2026 arriba,
+         ahora reemplazado por completo):
+           1) "Guerra, entrenamiento y mazos" — preparación estándar que
+              se comparte igual para todos los clanes.
+           2) "Torneos, sorteos y ascensos" — con botones horizontales
+              Participantes/Ganadores para Torneos y, por separado, para
+              Sorteos (mismo patrón de pestañas .tab-clan que ya usa
+              renderContenidoHtml() para las opciones por clan dentro de
+              cada categoría, ver cargarGrupoToggle() más abajo).
+           3) "Mensajes que no suelen enviarse" — bienvenida/iniciales (una
+              sola vez por persona), etiqueta/celular (esporádico) y
+              descripción de grupos (nunca se envía, es solo para
+              actualizar los grupos).
+         También corrige el pedido "'Día de guerra' debe ser una sola
+         categoría con 'Entrenamiento' y tener sus botoncitos para cambiar
+         entre guerra o entrenamiento. No veo el mensaje de entrenamiento":
+         antes 'Defensas de barcos' (el mensaje real de "Entrenamiento") se
+         ocultaba solo por ser día de guerra hoy — no era un problema de
+         sync, ver FIX correspondiente en _webAdminCategorias()
+         (34_Web_API.gs). Ahora ambos quedan siempre disponibles y el
+         admin alterna con los botones "Guerra"/"Entrenamiento", sin
+         depender de qué día sea. El texto de introducción ya NO dice "el
+         bot copia o descarga" en presente: el bot de WhatsApp está
+         pausado por ahora, y esta web es independiente de que esté
+         corriendo o no — la redacción quedó explícita al respecto en cada
+         tarjeta. Ver initMensajesAutomaticos()/cargarGrupoToggle() más
+         abajo; cargarContenidoCategoria()/renderContenidoHtml()/
+         _activarAccionesContenido() (ya existentes) se reutilizan tal
+         cual para pintar cada categoría. -->
+    <div class="card admin-grupo" style="margin-top:24px;">
       <div class="eyebrow">Mensajes automáticos</div>
-      <h3 style="font-size:15px; color:var(--gold); margin:10px 0 4px;">Visor de contenido</h3>
-      <p class="text-dim" style="font-size:13px; margin:0 0 4px;">Bienvenida, perfil de miembro, torneos y sorteos, reconocimientos y otros — todo es contenido automático que el bot copia o descarga. Orden alfabético por ahora; pendiente reordenar por temática. Abre las que necesites, puedes tener varias abiertas a la vez.</p>
-      <div id="contenidoMsg"></div>
-      <div id="seccionesContenido"><div class="empty">Cargando categorías…</div></div>
+      <h3 style="font-size:15px; color:var(--gold); margin:10px 0 4px;">Guerra, entrenamiento y mazos</h3>
+      <p class="text-dim" style="font-size:13px; margin:0 0 4px;">Preparación de guerra, estándar para todos los clanes: en Entrenamiento se piden las defensas de barcos, en Mazos se pide revisar RoyaleAPI para actualizar el mazo, y los ataques pendientes son el mensaje clásico de guerra. Este contenido lo usaba el bot de WhatsApp (pausado por ahora); ábrelo para copiarlo o descargarlo tú mismo.</p>
+
+      <details class="admin-subseccion admin-toggle-grupo">
+        <summary><span class="cat-titulo">Día de guerra, entrenamiento y mazos</span><button type="button" class="btn-refrescar-categoria" title="Actualizar contenido">↻</button></summary>
+        <div class="admin-subseccion-body">
+          <div class="contenido-tabs admin-toggle-botones">
+            <button type="button" class="tab-clan btn-toggle-cat activo" data-categoria="Día de guerra">Guerra</button>
+            <button type="button" class="tab-clan btn-toggle-cat" data-categoria="Defensas de barcos">Entrenamiento</button>
+            <button type="button" class="tab-clan btn-toggle-cat" data-categoria="Mazos">Mazos</button>
+          </div>
+          <div class="admin-toggle-body" style="margin-top:10px;"><div class="empty">Cargando…</div></div>
+        </div>
+      </details>
+
+      <details class="admin-subseccion categoria-contenido-simple" data-categoria="Mensaje de Guerra">
+        <summary><span class="cat-titulo">Mensaje de ataques pendientes</span><button type="button" class="btn-refrescar-categoria" title="Actualizar contenido">↻</button></summary>
+        <div class="admin-subseccion-body categoria-contenido-body"></div>
+      </details>
+    </div>
+
+    <div class="card admin-grupo" style="margin-top:24px;">
+      <div class="eyebrow">Mensajes automáticos</div>
+      <h3 style="font-size:15px; color:var(--gold); margin:10px 0 4px;">Torneos, sorteos y ascensos</h3>
+      <p class="text-dim" style="font-size:13px; margin:0 0 4px;">Mensajes de torneos, sorteos y cambios de rango. Este contenido lo usaba el bot de WhatsApp (pausado por ahora); ábrelo para copiarlo o descargarlo tú mismo.</p>
+
+      <details class="admin-subseccion admin-toggle-grupo">
+        <summary><span class="cat-titulo">Torneos</span><button type="button" class="btn-refrescar-categoria" title="Actualizar contenido">↻</button></summary>
+        <div class="admin-subseccion-body">
+          <div class="contenido-tabs admin-toggle-botones">
+            <button type="button" class="tab-clan btn-toggle-cat activo" data-categoria="Participantes calificados (torneo)">Participantes</button>
+            <button type="button" class="tab-clan btn-toggle-cat" data-categoria="Ganadores (torneo)">Ganadores</button>
+          </div>
+          <div class="admin-toggle-body" style="margin-top:10px;"><div class="empty">Cargando…</div></div>
+        </div>
+      </details>
+
+      <details class="admin-subseccion admin-toggle-grupo">
+        <summary><span class="cat-titulo">Sorteos</span><button type="button" class="btn-refrescar-categoria" title="Actualizar contenido">↻</button></summary>
+        <div class="admin-subseccion-body">
+          <div class="contenido-tabs admin-toggle-botones">
+            <button type="button" class="tab-clan btn-toggle-cat activo" data-categoria="Participantes calificados (sorteo)">Participantes</button>
+            <button type="button" class="tab-clan btn-toggle-cat" data-categoria="Ganadores (sorteo)">Ganadores</button>
+          </div>
+          <div class="admin-toggle-body" style="margin-top:10px;"><div class="empty">Cargando…</div></div>
+        </div>
+      </details>
+
+      <details class="admin-subseccion categoria-contenido-simple" data-categoria="Ascensos y descensos">
+        <summary><span class="cat-titulo">Cambio de rango</span><button type="button" class="btn-refrescar-categoria" title="Actualizar contenido">↻</button></summary>
+        <div class="admin-subseccion-body categoria-contenido-body"></div>
+      </details>
+    </div>
+
+    <div class="card admin-grupo" style="margin-top:24px;">
+      <div class="eyebrow">Mensajes automáticos</div>
+      <h3 style="font-size:15px; color:var(--gold); margin:10px 0 4px;">Mensajes que no suelen enviarse</h3>
+      <p class="text-dim" style="font-size:13px; margin:0 0 4px;">Bienvenida e iniciales se envían una sola vez a cada persona; etiqueta y número de teléfono se piden esporádicamente; la descripción de grupos no se le envía a nadie, es solo para actualizar los grupos de WhatsApp. Este contenido lo usaba el bot de WhatsApp (pausado por ahora); ábrelo para copiarlo o descargarlo tú mismo.</p>
+
+      <details class="admin-subseccion categoria-contenido-simple" data-categoria="Bienvenida">
+        <summary><span class="cat-titulo">Bienvenida de miembros</span><button type="button" class="btn-refrescar-categoria" title="Actualizar contenido">↻</button></summary>
+        <div class="admin-subseccion-body categoria-contenido-body"></div>
+      </details>
+
+      <details class="admin-subseccion categoria-contenido-simple" data-categoria="iPhone">
+        <summary><span class="cat-titulo">Aplicación de iniciales en iPhone</span><button type="button" class="btn-refrescar-categoria" title="Actualizar contenido">↻</button></summary>
+        <div class="admin-subseccion-body categoria-contenido-body"></div>
+      </details>
+
+      <details class="admin-subseccion categoria-contenido-simple" data-categoria="Etiqueta de miembro">
+        <summary><span class="cat-titulo">Etiqueta de miembro en grupos de WhatsApp</span><button type="button" class="btn-refrescar-categoria" title="Actualizar contenido">↻</button></summary>
+        <div class="admin-subseccion-body categoria-contenido-body"></div>
+      </details>
+
+      <details class="admin-subseccion categoria-contenido-simple" data-categoria="Celular">
+        <summary><span class="cat-titulo">Solicitud de número de teléfono</span><button type="button" class="btn-refrescar-categoria" title="Actualizar contenido">↻</button></summary>
+        <div class="admin-subseccion-body categoria-contenido-body"></div>
+      </details>
+
+      <details class="admin-subseccion categoria-contenido-simple" data-categoria="Descripción">
+        <summary><span class="cat-titulo">Descripción de grupos de WSP</span><button type="button" class="btn-refrescar-categoria" title="Actualizar contenido">↻</button></summary>
+        <div class="admin-subseccion-body categoria-contenido-body"></div>
+      </details>
     </div>
 
     <!-- FASE 25 (03-sep-2026, pedido usuario): "Torneos" y "Ruleta de
@@ -666,7 +742,7 @@ function mostrarPanel(){
   }
   aplicarVisibilidadPorFunciones();
   cargarMisCuentas();
-  cargarCategorias();
+  initMensajesAutomaticos();
   cargarTorneosHoy();
   cargarGanadoresTorneo();
 }
@@ -980,26 +1056,22 @@ document.getElementById('btnGuardar').addEventListener('click', async () => {
 /* ---------- Fase 2: visor de contenido por categoría (solo lectura) ---------- */
 
 /**
- * cargarCategorias() / cargarContenidoCategoria()
- * FIX (30-ago-2026, pedido usuario — "quiero que se muestre por secciones,
- * ordenando por temática"): antes había un único <select> con TODAS las
- * categorías en una lista plana (calcada del bot, que solo puede avanzar
- * de a una rama por turno). Ahora 'webAdminCategorias' devuelve `secciones`
- * (grupos temáticos, ver WEB_SECCIONES_CONTENIDO en 34_Web_API.gs) y acá se
- * dibujan como un acordeón <details> de dos niveles: sección > categoría.
- * El contenido de cada categoría se pide (webAdminContenido) recién la
- * PRIMERA vez que el admin la abre (data-cargado evita pedirlo de nuevo al
- * cerrar/abrir), y queda cacheado 60s del lado del servidor — así se puede
- * abrir varias secciones/categorías de golpe sin multiplicar la carga real
- * contra el backend.
+ * initMensajesAutomaticos() / cargarGrupoToggle() / cargarContenidoCategoria()
+ * Historial: esta sección empezó (30-ago-2026) como un único <select> con
+ * todas las categorías en una lista plana, pasó por un acordeón de dos
+ * niveles sección>categoría, luego por una lista plana alfabética
+ * (04-sep-2026) y terminó (05-sep-2026, pedido usuario) en 3 tarjetas
+ * temáticas fijas — ver el comentario FIX junto a esas tarjetas en el
+ * HTML, y el docblock de initMensajesAutomaticos()/cargarGrupoToggle() más
+ * abajo para el criterio actual.
  *
- * FIX (30-ago-2026, pedido usuario — "que las opciones carguen colapsadas
- * por defecto, ya luego el admin puede ir desglosando una por una"): antes
- * la PRIMERA sección arrancaba abierta (`si === 0 ? ' open' : ''`). Ahora
- * las tres capas (sección > categoría > texto de cada opción) arrancan
- * siempre cerradas — el admin decide qué desglosar, sin nada abierto de
- * entrada. Esto también evita cargar de arranque el visor de PDF nuevo
- * (ver renderContenidoHtml), que solo se arma bajo pedido explícito.
+ * Lo que se mantiene sin cambios desde el principio: el contenido de cada
+ * categoría se pide (webAdminContenido) recién la PRIMERA vez que el
+ * admin la abre (data-cargado evita pedirlo de nuevo al cerrar/abrir), y
+ * queda cacheado 60s del lado del servidor — así se puede abrir varias
+ * tarjetas/categorías de golpe sin multiplicar la carga real contra el
+ * backend. Todo arranca siempre cerrado — el admin decide qué desglosar,
+ * sin nada abierto de entrada.
  */
 /**
  * cargarMisCuentas()
@@ -1069,112 +1141,125 @@ function fmtFechaVigenciaAdmin(v){
 }
 
 /**
- * MENSAJES_ETIQUETAS_OVERRIDE
- * FIX (04-sep-2026, pedido usuario, punto 37 — renombrar etiquetas del
- * visor de "Mensajes automáticos"): el backend (WEB_ETIQUETAS_CONTENIDO en
- * 34_Web_API.gs) ya puede mandar una etiqueta por categoría, pero ese
- * mapeo vive en Sheets/Apps Script y no forma parte de este repo del
- * frontend, así que no hay forma de confirmar ni tocar desde acá lo que
- * hoy devuelve. Para no dejar el rename pendiente de un deploy aparte del
- * backend, se agrega este mapa LOCAL con los 6 renombres exactos que pidió
- * el usuario — tiene prioridad sobre `etiquetas` (lo que mande el backend)
- * y sobre el nombre crudo de la categoría, así el admin siempre ve el
- * texto correcto sin depender de que 34_Web_API.gs también se actualice.
- * Si el nombre real de categoría en Sheets no es exactamente una de estas
- * claves, revisar/ajustar acá (no hay endpoint que exponga los nombres
- * crudos aparte de éste). */
-const MENSAJES_ETIQUETAS_OVERRIDE = {
-  'Bienvenida': 'Bienvenida de miembros',
-  'Etiqueta de miembro': 'Etiqueta de miembro en grupos de WhatsApp',
-  'Celular': 'Solicitud de número de teléfono',
-  'Descripción': 'Descripción de grupos de WSP',
-  'Mazos': 'Sugerencias de mazos en RoyaleAPI',
-  'iPhone': 'Aplicación de iniciales en iPhone'
-};
+ * initMensajesAutomaticos()
+ * FIX (05-sep-2026, pedido usuario — reemplaza por completo a la vieja
+ * cargarCategorias()/MENSAJES_ETIQUETAS_OVERRIDE, ver comentario FIX junto
+ * a las 3 tarjetas "Mensajes automáticos" más arriba en el HTML): la
+ * agrupación y las etiquetas visibles ahora están hardcodeadas en el
+ * propio HTML (cada <details> ya trae su data-categoria y su
+ * <span class="cat-titulo"> con el nombre bonito), así que ya no hace
+ * falta pedir 'secciones'/'etiquetas' al backend ni armar el acordeón por
+ * JS. webAdminCategorias() se sigue llamando UNA vez, pero solo como
+ * chequeo defensivo: si alguna categoría cruda (data-categoria/
+ * data-categoria de un botón toggle) no existe todavía en Sheets/Extra,
+ * esa tarjeta o botón se oculta en vez de mostrar un acordeón vacío que
+ * siempre fallaría al abrirse.
+ */
+async function initMensajesAutomaticos(){
+  const simples = Array.from(document.querySelectorAll('.categoria-contenido-simple'));
+  const grupos  = Array.from(document.querySelectorAll('.admin-toggle-grupo'));
 
-async function cargarCategorias(){
-  const wrap = document.getElementById('seccionesContenido');
-  const msgEl = document.getElementById('contenidoMsg');
-  msgEl.innerHTML = '';
-  wrap.innerHTML = '<div class="empty">Cargando categorías…</div>';
   try{
     const data = await apiGetAuth('webAdminCategorias', {});
-    if(manejarRespuestaAuth(data)) return;
-    if(!data.ok){ wrap.innerHTML = ''; msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
-    if(!data.secciones || !data.secciones.length){
-      wrap.innerHTML = '<div class="empty">Sin categorías disponibles.</div>';
-      return;
+    if(!manejarRespuestaAuth(data) && data.ok){
+      const disponibles = new Set(data.categorias || []);
+      simples.forEach(det => {
+        if(!disponibles.has(det.dataset.categoria)) det.style.display = 'none';
+      });
+      grupos.forEach(det => {
+        const botones = Array.from(det.querySelectorAll('.btn-toggle-cat'));
+        botones.forEach(b => { if(!disponibles.has(b.dataset.categoria)) b.style.display = 'none'; });
+        const quedan = botones.filter(b => b.style.display !== 'none');
+        if(!quedan.length){
+          det.style.display = 'none';
+        }else if(!quedan.some(b => b.classList.contains('activo'))){
+          botones.forEach(b => b.classList.remove('activo'));
+          quedan[0].classList.add('activo');
+        }
+      });
     }
-    // FIX (03-sep-2026, pedido usuario, punto 20 — "renombrar etiquetas:
-    // 'Bienvenida' → 'Bienvenida de miembros', etc."): 'webAdminCategorias'
-    // ahora también manda 'etiquetas' (nombre real -> etiqueta bonita, ver
-    // WEB_ETIQUETAS_CONTENIDO en 34_Web_API.gs). Se usa esa etiqueta SOLO
-    // para lo que ve el admin (cat-titulo); data-categoria sigue mandando
-    // el nombre real de la categoría (c), que es lo que después viaja a
-    // webAdminContenido — así no hace falta tocar esa función ni las hojas.
-    // MENSAJES_ETIQUETAS_OVERRIDE (punto 37) tiene prioridad sobre esto.
-    const etiquetas = data.etiquetas || {};
-    const etiquetaDe = c => MENSAJES_ETIQUETAS_OVERRIDE[c] || etiquetas[c] || c;
-
-    // FIX (04-sep-2026, pedido usuario, punto 35 — "una sola categoría de
-    // Mensajes automáticos... orden alfabético por ahora, pendiente
-    // ordenar por temática"): antes acá se dibujaba un acordeón de DOS
-    // niveles (sección > categoría, una <details class="seccion-contenido">
-    // por cada s.titulo del backend). Ahora se ignora ese agrupamiento por
-    // 'secciones' (Bienvenida/Perfil de miembro/Torneos y sorteos/
-    // Reconocimientos/Otros eran, para el admin, "lo mismo": mensajes que
-    // se copian o descargan) y se aplanan TODAS las categorías de TODAS
-    // las secciones en una sola lista, ordenada alfabéticamente por su
-    // etiqueta visible (localeCompare 'es' para que ñ/tildes ordenen bien).
-    // PENDIENTE (dejado anotado a pedido del usuario): reemplazar este
-    // sort alfabético por un orden temático una vez que se defina el
-    // criterio — no requiere tocar el backend, alcanza con cambiar este
-    // comparator.
-    const categoriasFlat = [];
-    data.secciones.forEach(s => (s.categorias || []).forEach(c => categoriasFlat.push(c)));
-    categoriasFlat.sort((a, b) => etiquetaDe(a).localeCompare(etiquetaDe(b), 'es', { sensitivity: 'base' }));
-
-    wrap.innerHTML = `<div class="mensajes-flat-wrap">${categoriasFlat.map(c => `
-      <details class="categoria-contenido" data-categoria="${esc(c)}">
-        <summary>
-          <span class="cat-titulo">${esc(etiquetaDe(c))}</span>
-          <button type="button" class="btn-refrescar-categoria" title="Actualizar contenido">↻</button>
-        </summary>
-        <div class="categoria-contenido-body"></div>
-      </details>`).join('')}</div>`;
-
-    wrap.querySelectorAll('.categoria-contenido').forEach(det => {
-      det.addEventListener('toggle', () => {
-        if(det.open) cargarContenidoCategoria(det);
-      });
-    });
-
-    // Botón "↻" del encabezado: fuerza un refetch puntual de esa categoría
-    // (ver comentario FIX junto a .btn-refrescar-categoria más arriba) sin
-    // recargar toda la página ni las demás categorías ya abiertas.
-    // preventDefault()/stopPropagation() evitan que el click en el botón
-    // (dentro del <summary>) además dispare el toggle nativo del <details>.
-    wrap.querySelectorAll('.btn-refrescar-categoria').forEach(btn => {
-      btn.addEventListener('click', (ev) => {
-        ev.preventDefault();
-        ev.stopPropagation();
-        const det = btn.closest('.categoria-contenido');
-        btn.classList.add('girando');
-        setTimeout(() => btn.classList.remove('girando'), 300);
-        delete det.dataset.cargado;
-        // Si estaba cerrada, abrirla dispara el listener 'toggle' de arriba
-        // (que ya la recarga); si ya estaba abierta ese evento no se
-        // dispara, así que se llama directo. cargarContenidoCategoria()
-        // vuelve a poner data-cargado='1' de forma síncrona apenas empieza,
-        // así que nunca se pide dos veces la misma categoría en paralelo.
-        det.open = true;
-        cargarContenidoCategoria(det);
-      });
-    });
   }catch(err){
-    wrap.innerHTML = '';
-    msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
+    // Si falla este chequeo no se bloquea nada: cada tarjeta simplemente
+    // mostrará su propio error de conexión al abrirse, igual que siempre.
   }
+
+  simples.forEach(det => {
+    det.addEventListener('toggle', () => { if(det.open) cargarContenidoCategoria(det); });
+  });
+  grupos.forEach(det => {
+    det.addEventListener('toggle', () => { if(det.open) cargarGrupoToggle(det); });
+  });
+
+  document.querySelectorAll('.categoria-contenido-simple .btn-refrescar-categoria, .admin-toggle-grupo .btn-refrescar-categoria').forEach(btn => {
+    btn.addEventListener('click', (ev) => {
+      ev.preventDefault();
+      ev.stopPropagation();
+      const det = btn.closest('details');
+      btn.classList.add('girando');
+      setTimeout(() => btn.classList.remove('girando'), 300);
+      delete det.dataset.cargado;
+      det.open = true;
+      if(det.classList.contains('admin-toggle-grupo')){
+        det.querySelector('.admin-toggle-body').innerHTML = '';
+        cargarGrupoToggle(det);
+      }else{
+        cargarContenidoCategoria(det);
+      }
+    });
+  });
+}
+
+/**
+ * cargarGrupoToggle(det)
+ * FIX (05-sep-2026, pedido usuario — tarjetas con botones horizontales
+ * para alternar entre categorías CRUDAS distintas dentro de un mismo
+ * <details>: "Día de guerra, entrenamiento y mazos" alterna entre 'Día de
+ * guerra'/'Defensas de barcos'/'Mazos'; "Torneos" y "Sorteos" alternan
+ * cada uno entre su 'Participantes calificados (...)' y 'Ganadores
+ * (...)'). Pide TODAS las categorías del grupo en paralelo apenas se abre
+ * (cada una ya cacheada 60s del lado del backend, ver _webCacheado() en
+ * 34_Web_API.gs — no es costoso), arma un panel oculto por cada una, y
+ * los botones de arriba solo hacen show/hide entre esos paneles ya
+ * pintados. Así cambiar de pestaña es instantáneo y no se pierden los
+ * listeners de copiar/PDF/etc. de _activarAccionesContenido(), que sí se
+ * perderían si se reemplazara el innerHTML del panel activo en cada
+ * click.
+ */
+async function cargarGrupoToggle(det){
+  if(det.dataset.cargado) return;
+  det.dataset.cargado = '1';
+  const botones = Array.from(det.querySelectorAll('.btn-toggle-cat')).filter(b => b.style.display !== 'none');
+  const bodyWrap = det.querySelector('.admin-toggle-body');
+  bodyWrap.innerHTML = botones.map(b =>
+    `<div class="admin-toggle-panel" data-categoria="${esc(b.dataset.categoria)}" style="display:none;"><div class="empty">Cargando…</div></div>`
+  ).join('');
+  const panels = Array.from(bodyWrap.querySelectorAll('.admin-toggle-panel'));
+
+  await Promise.all(botones.map(async (b) => {
+    const categoria = b.dataset.categoria;
+    const panel = panels.find(p => p.dataset.categoria === categoria);
+    try{
+      const data = await apiGetAuth('webAdminContenido', { categoria });
+      if(manejarRespuestaAuth(data)) return;
+      if(!data.ok){ panel.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
+      panel.innerHTML = renderContenidoHtml(data.opciones);
+      _activarAccionesContenido(panel, data.opciones || []);
+    }catch(err){
+      panel.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
+    }
+  }));
+
+  const btnActivo = botones.find(b => b.classList.contains('activo')) || botones[0];
+  const activoInicial = panels.find(p => p.dataset.categoria === (btnActivo && btnActivo.dataset.categoria)) || panels[0];
+  if(activoInicial) activoInicial.style.display = '';
+
+  botones.forEach(b => {
+    b.addEventListener('click', () => {
+      if(b.classList.contains('activo')) return;
+      botones.forEach(x => x.classList.toggle('activo', x === b));
+      panels.forEach(p => { p.style.display = (p.dataset.categoria === b.dataset.categoria) ? '' : 'none'; });
+    });
+  });
 }
 
 async function cargarContenidoCategoria(det){
