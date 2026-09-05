@@ -432,9 +432,24 @@
    * de texto plano a <a> hacia perfil.html?tag=..., y se agrega rk-clan
    * como columna aparte (max-width fijo para que las 4 listas alineen
    * parejo pase lo que pase el largo del nombre de cada clan). */
-  .ranking-row .rk-nombre{flex:1; min-width:0; color:var(--text); font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-decoration:none;}
+  /* CORRECCIÓN (05-sep-2026, pedido usuario — "no se muestra el nombre
+   * del jugador en escritorio, en móvil sí se ve"): rk-nombre tenía
+   * flex:1 + min-width:0, mientras que rk-clan y rk-valor tenían
+   * flex-shrink:0 (nunca se encogen). En escritorio el grid reparte 4
+   * tarjetas por fila (.rankings-grid, minmax 230px) y cada fila queda
+   * angosta; como rk-clan/rk-valor siempre reservan su ancho completo
+   * primero, a rk-nombre no le quedaba espacio y se encogía hasta
+   * desaparecer (min-width:0 lo permite). En móvil una sola tarjeta ocupa
+   * todo el ancho disponible, así que sí sobraba espacio para el nombre.
+   * Ahora rk-nombre y rk-clan comparten el espacio restante con
+   * flex-grow/shrink (3:1, el nombre tiene prioridad) y ambos tienen un
+   * min-width mínimo garantizado, así el nombre nunca vuelve a
+   * desaparecer, y como mucho el clan se trunca un poco más en pantallas
+   * angostas. rk-valor conserva flex-shrink:0 porque es el dato principal
+   * de la fila y siempre debe verse completo. */
+  .ranking-row .rk-nombre{flex:3 1 0; min-width:44px; color:var(--text); font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-decoration:none;}
   .ranking-row .rk-nombre:hover{text-decoration:underline; color:var(--purple-light);}
-  .ranking-row .rk-clan{font-family:var(--f-mono); font-size:10px; color:var(--text-faint); flex-shrink:0; max-width:88px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .ranking-row .rk-clan{font-family:var(--f-mono); font-size:10px; color:var(--text-faint); flex:1 1 0; min-width:24px; max-width:88px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
   .ranking-row .rk-valor{font-family:var(--f-mono); color:var(--gold); font-size:12px; flex-shrink:0;}
   .cartas-list{display:flex; flex-wrap:wrap; gap:10px; margin-top:14px;}
   /* FIX (04-sep-2026, pedido usuario — "falta insertar las imágenes de las
@@ -477,6 +492,14 @@
     border-color:#ff7cf0;
   }
   .carta-chip .cc-rareza[data-rareza="campeon"]{color:var(--gold);}
+  /* FASE (05-sep-2026, pedido del usuario): badge del tipo real de carta
+     (Tropa/Hechizo/Estructura, columna "Tipo" de Backup_Cards.csv). Mismo
+     formato de píldora que cc-rareza pero neutro, ya que el tipo no tiene
+     un color propio como las calidades. */
+  .carta-chip .cc-tipo{
+    font-family:var(--f-mono); font-size:10px; text-transform:uppercase; letter-spacing:.03em;
+    padding:2px 7px; border-radius:999px; border:1px solid var(--line); color:var(--text-faint);
+  }
   .carta-chip .cc-badge{
     font-family:var(--f-mono); font-size:10px; padding:2px 7px; border-radius:999px;
     background:var(--bg-2); color:var(--text-faint);
@@ -511,7 +534,19 @@
   <div class="wrap hero-banner-content">
     <div class="eyebrow">Comunidad Competitiva · Clash Royale</div>
     <h1 style="font-size:clamp(38px,6.5vw,68px); line-height:1.05; margin-top:16px; max-width:860px;">
-      El cuartel<br class="hero-title-break">general<br class="hero-title-break">de la<br class="hero-title-break"><span class="text-gradient-purple">Familia Terna</span>.
+      <!-- FIX (05-sep-2026, pedido usuario — "en móvil la frase del
+           cuartel queda pegada, sin espacios"): antes las palabras solo
+           quedaban separadas por el propio salto de línea del <br
+           class="hero-title-break">, sin ningún espacio real en el texto.
+           En escritorio eso no se notaba porque el <br> sí genera el
+           corte visual, pero en móvil ese <br> se oculta (display:none,
+           ver breakpoint @media max-width:768px más arriba) y, al no
+           haber ningún espacio de por medio, las palabras quedaban
+           pegadas ("cuartelgeneralde laFamilia Terna"). Se agrega un
+           espacio real antes de cada <br> — en escritorio no cambia nada
+           (un espacio antes de un salto de línea no se ve), y en móvil
+           ese espacio queda y separa las palabras correctamente. -->
+      El cuartel <br class="hero-title-break">general <br class="hero-title-break">de la <br class="hero-title-break"><span class="text-gradient-purple">Familia Terna</span>.
     </h1>
     <p class="text-dim" data-fit-line style="font-size:18px; margin-top:20px; line-height:1.6; max-width:100%;">
       <br>Directorio, requisitos de ascenso, torneos y el estado de guerra de nuestros
@@ -1540,6 +1575,10 @@ async function cargarRankings(){
  * la rareza y, si aplica, los badges "Héroe"/"Evolución". El data-rareza
  * del span (sin tildes, minúscula) es el que usa el CSS .cc-rareza para
  * pintar cada rareza con su color (ver <style> más arriba).
+ * FASE (05-sep-2026, pedido del usuario — "sí se debe mostrar [el tipo]"):
+ * se agrega el badge de 'tipo' (Tropa/Hechizo/Estructura, tal cual lo
+ * escribió el usuario en la columna "Tipo" de Backup_Cards.csv — no hay
+ * traducción que hacer, se muestra el texto tal cual llega del backend).
  */
 /* CORRECCIÓN (05-sep-2026, pedido usuario — "se está traduciendo
    literalmente las calidades de las cartas, no existe 'rara' como tal, su
@@ -1577,6 +1616,7 @@ async function cargarEstadisticasCartas(){
         ${c.elixirCost != null ? `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">${fmtNum(c.elixirCost)}</span>` : ''}
         <div class="cc-meta">
           ${rarezaHtml(c.rarity)}
+          ${c.tipo ? `<span class="cc-tipo">${esc(c.tipo)}</span>` : ''}
           ${c.hasHero ? '<span class="cc-badge">🦸 Héroe</span>' : ''}
           ${c.hasEvolution ? '<span class="cc-badge">✨ Evolución</span>' : ''}
         </div>
