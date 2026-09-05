@@ -438,6 +438,23 @@ function extItem(valor, label, esNumero){
   return `<div class="ext-item"><div class="v">${esc(txt)}</div><div class="k">${esc(label)}</div></div>`;
 }
 
+/* FIX (05-sep-2026, pedido usuario — "en los ataques [del Cara a cara],
+   agrega '/' y la cantidad de ataques que debería tener. Por ejemplo, hoy
+   viernes debería ser 4/8, mañana 4/12 y el domingo 4/16, ayer 4/4"):
+   variante de extItem() solo para "Ataques en la semana actual" — agrega
+   "/tope" cuando el backend manda un tope (guerraSemana.ataquesMax, ver
+   _calcAtaquesMaxSemana() en 34_Web_API.gs). En día de entrenamiento
+   (todavía no hay tope, ataquesMax llega en 0) se muestra el número solo,
+   igual que antes. */
+function extItemAtaques(guerraSemana, label){
+  if (!guerraSemana) return '';
+  const valor = guerraSemana.ataques;
+  if (valor === undefined || valor === null || valor === '') return '';
+  const max = Number(guerraSemana.ataquesMax) || 0;
+  const txt = max > 0 ? (fmtNum(valor) + '/' + fmtNum(max)) : fmtNum(valor);
+  return `<div class="ext-item"><div class="v">${esc(txt)}</div><div class="k">${esc(label)}</div></div>`;
+}
+
 /* FIX (31-ago-2026, pedido usuario — "debe mostrarse en otra pestaña el
    perfil, con mayor detalle"): campoMinTSegunRango/barraRequisito/
    bloqueRequisitos/renderExtendido/actualizarUrlPerfil/renderMiembro/
@@ -562,6 +579,11 @@ function renderComparadorLado(jugador){
   if (!jugador) return '';
   const ext = jugador.extendido || {};
   const items = [
+    // FIX (05-sep-2026, pedido usuario — "Falta agregar la vigencia en el
+    // cara a cara"): el backend ya manda jugador.vigencia (mismo campo que
+    // usa el Directorio, ver fmtFechaCortaVigencia() más abajo en este
+    // archivo) desde _webPerfilJugador() — solo faltaba pintarlo acá.
+    extItem(jugador.vigencia ? fmtFechaCortaVigencia(jugador.vigencia) : '', 'Vigencia', false),
     extItem(jugador.copas, 'Copas', true),
     extItem(jugador.vGuerra, 'V. Guerra', true),
     extItem(jugador.torneos, 'Torneos', true),
@@ -572,7 +594,9 @@ function renderComparadorLado(jugador){
     // acumular en días de guerra (no hay "ataques" que registrar en
     // entrenamiento), así que no hacía falta tocar el número, solo la
     // etiqueta, que sí era ambigua sobre qué contaba.
-    extItem(jugador.guerraSemana && jugador.guerraSemana.ataques, 'Ataques en la semana actual', true),
+    // FIX (05-sep-2026, pedido usuario): ahora usa extItemAtaques() en vez
+    // de extItem() para agregar "/tope" (ver docblock de esa función).
+    extItemAtaques(jugador.guerraSemana, 'Ataques en la semana actual'),
     extItem(ext.racha, 'Racha', true),
     // FIX (03-sep-2026, pedido usuario — "incluir 'Donaciones hechas' y
     // 'Donaciones recibidas' en vez de cortar el texto"): antes solo
@@ -635,7 +659,13 @@ function renderComparadorBarras(a, b){
     { icono:'🏅', label:'Torneos',      va: a.torneos, vb: b.torneos },
     // FIX (03-sep-2026, pedido usuario): mismo cambio de etiqueta y de
     // items de donaciones que renderComparadorLado() más arriba.
-    { icono:'⚔️', label:'Ataques en la semana actual', va: a.guerraSemana && a.guerraSemana.ataques, vb: b.guerraSemana && b.guerraSemana.ataques },
+    // FIX (05-sep-2026, pedido usuario — "en los ataques, agrega '/' y la
+    // cantidad de ataques que debería tener"): tope (Number(a.guerraSemana.ataquesMax) ||
+    // b.guerraSemana.ataquesMax) — cualquiera de los dos lados alcanza,
+    // ambos jugadores comparten el mismo tope de la semana en curso.
+    { icono:'⚔️', label:'Ataques en la semana actual',
+      va: a.guerraSemana && a.guerraSemana.ataques, vb: b.guerraSemana && b.guerraSemana.ataques,
+      maxAtaques: (a.guerraSemana && a.guerraSemana.ataquesMax) || (b.guerraSemana && b.guerraSemana.ataquesMax) || 0 },
     { icono:'🔥', label:'Racha',        va: extA.racha, vb: extB.racha },
     { icono:'👑', label:'3 coronas',    va: extA.victorias3Coronas, vb: extB.victorias3Coronas },
     { icono:'🎁', label:'Donaciones hechas',    va: extA.donacionesRealizadas, vb: extB.donacionesRealizadas },
@@ -646,20 +676,27 @@ function renderComparadorBarras(a, b){
   const nombreA = a.nombre || 'Jugador 1', nombreB = b.nombre || 'Jugador 2';
   const filaHtml = f => {
     const va = Number(f.va) || 0, vb = Number(f.vb) || 0;
-    const max = Math.max(1, va, vb);
-    const pctA = Math.max(2, Math.round((va / max) * 100));
-    const pctB = Math.max(2, Math.round((vb / max) * 100));
+    const maxBarra = Math.max(1, va, vb);
+    const pctA = Math.max(2, Math.round((va / maxBarra) * 100));
+    const pctB = Math.max(2, Math.round((vb / maxBarra) * 100));
+    // FIX (05-sep-2026, pedido usuario — "en los ataques, agrega '/' y la
+    // cantidad de ataques que debería tener"): f.maxAtaques solo viene con
+    // dato (>0) en la fila de "Ataques en la semana actual"; en el resto de
+    // filas queda undefined/0 y el texto se comporta igual que antes.
+    const tope = Number(f.maxAtaques) || 0;
+    const txtA = tope > 0 ? (fmtNum(va) + '/' + fmtNum(tope)) : fmtNum(va);
+    const txtB = tope > 0 ? (fmtNum(vb) + '/' + fmtNum(tope)) : fmtNum(vb);
     return `
       <div class="chart-title" style="margin-top:16px;">${f.icono} ${esc(f.label)}</div>
       <div class="chart-row">
         <span class="chart-label" style="width:110px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${esc(nombreA)}">${esc(nombreA)}</span>
         <span class="chart-track"><span class="chart-fill" style="width:${pctA}%"></span></span>
-        <span class="chart-val">${fmtNum(va)}</span>
+        <span class="chart-val">${txtA}</span>
       </div>
       <div class="chart-row">
         <span class="chart-label" style="width:110px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${esc(nombreB)}">${esc(nombreB)}</span>
         <span class="chart-track"><span class="chart-fill" style="width:${pctB}%; background:linear-gradient(90deg, var(--gold), #fde68a);"></span></span>
-        <span class="chart-val">${fmtNum(vb)}</span>
+        <span class="chart-val">${txtB}</span>
       </div>`;
   };
 
@@ -794,8 +831,16 @@ function renderComparadorGuerraChart(histA, histB, nombreA, nombreB){
       ${guerraComparadorMetricaSvg(a, b, campo, fechas, indicePorFecha)}
     </div>`;
 
+  // FIX (05-sep-2026, pedido usuario — "las gráficas del cara a cara son
+  // muy pequeñas, no es necesario que vayan las 3 en una sola línea. Con
+  // ese tamaño no se ve nada"): antes usaba
+  // "repeat(auto-fit,minmax(280px,1fr))", que en pantallas anchas metía
+  // las 3 cards en una sola fila, comprimiendo cada gráfica (viewBox
+  // 640x220) a ~280px de ancho. Ahora una sola columna (1fr): cada
+  // gráfica ocupa el ancho completo del contenedor, apiladas de arriba
+  // hacia abajo — se lee bien sin importar el tamaño de pantalla.
   return `
-    <div class="comparativa-grid" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px;">
+    <div class="comparativa-grid" style="display:grid; grid-template-columns:1fr; gap:16px;">
       ${metricCard('⚔️', 'Ataques por día de guerra', 'ataques')}
       ${metricCard('⭐', 'Puntaje (Fame) por día de guerra', 'fame')}
       ${metricCard('🚢', 'Barcos por día de guerra', 'barcos')}
