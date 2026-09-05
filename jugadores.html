@@ -140,6 +140,18 @@
      visualmente con el rango (que es lo que ya destacaba acá). */
   .miembro-row .mr-right{text-align:right;}
   .miembro-row .mr-vigencia{font-family:var(--f-mono); font-size:11px; color:var(--text-faint); margin-top:2px;}
+
+  /* FIX (04-sep-2026, pedido usuario — "Los ingresos recientes deben
+     moverse a Directorio (al final)"): sección + estilos traídos tal cual
+     de guerra.html (donde vivía antes) — mismo markup, mismo criterio
+     visual, solo que ahora aparece al final del Directorio en vez de en
+     el Panel de Guerra. Ver cargarIngresosRecientes() más abajo. */
+  .nuevo-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:16px;}
+  .nuevo-card .name{font-weight:700; font-size:15px; color:var(--text);}
+  .nuevo-card .tag{font-family:var(--f-mono); font-size:12px; color:var(--text-dim);}
+  .nuevo-card .clan{font-size:13px; color:var(--text-dim); margin:6px 0 12px;}
+  .nuevo-card .links{display:flex; gap:14px; font-size:12px;}
+  .nuevo-card .links a{text-decoration:none; color:var(--purple-light); font-weight:600;}
 </style>
 </head>
 <body data-page="jugadores">
@@ -247,6 +259,20 @@
     <div id="rosterWrap">
       <div class="loading-block"><div class="spinner"></div></div>
     </div>
+  </section>
+
+  <!-- FIX (04-sep-2026, pedido usuario — "Los ingresos recientes deben
+       moverse a Directorio (al final)"): antes vivía en guerra.html; se
+       trae completa (markup + JS, ver cargarIngresosRecientes()) al final
+       del Directorio, después de la lista de miembros por clan. Sigue
+       consumiendo 'webGuerraEnVivo' (mismo endpoint público, campo
+       'nuevos') — no hizo falta ningún cambio de backend. -->
+  <section id="ingresosRecientes" style="padding:32px 0 0;">
+    <div class="sec-head" style="display:flex; align-items:baseline; justify-content:space-between; border-bottom:1px solid var(--line); padding-bottom:12px;">
+      <h2 style="font-size:22px;">🆕 Ingresos Recientes</h2>
+      <span class="text-faint" id="nuevosCount" style="font-family:var(--f-mono); font-size:13px;"></span>
+    </div>
+    <div class="nuevo-grid" id="nuevoGrid" style="margin-top:20px;"></div>
   </section>
 
 </div>
@@ -947,7 +973,70 @@ async function cargarRoster(){
   }
 }
 
+/**
+ * fmtFecha(iso)
+ * Fecha corta "DD-mmm" (ej. "27-ago") a partir de un ISO string — traída
+ * de guerra.html junto con la sección "Ingresos Recientes" (ver FIX
+ * 04-sep-2026 más arriba).
+ */
+function fmtFecha(iso){
+  if(!iso) return '—';
+  const d = new Date(iso);
+  if(isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString('es-PE', {day:'2-digit', month:'short'});
+}
+
+/**
+ * cargarIngresosRecientes()
+ * FIX (04-sep-2026, pedido usuario — "Los ingresos recientes deben
+ * moverse a Directorio (al final)"): función traída tal cual de
+ * guerra.html, mismo criterio de orden (FIX 03-sep-2026 — "agrupar por
+ * clan, orden fijo de la Familia vía ordenClanIndex(), y alfabético
+ * dentro de cada clan") y mismo comportamiento de tarjetas clicables al
+ * perfil. Consume 'webGuerraEnVivo' (mismo endpoint público que ya usaba
+ * guerra.html) — esta página antes no lo llamaba, así que es un fetch
+ * nuevo acá, independiente de cargarRoster().
+ */
+async function cargarIngresosRecientes(){
+  const section = document.getElementById('ingresosRecientes');
+  const nuevoGrid = document.getElementById('nuevoGrid');
+  try{
+    const data = await apiGet('webGuerraEnVivo');
+    const nuevos = (data.nuevos || []).slice().sort((a, b) => {
+      const porClan = ordenClanIndex(a.clan) - ordenClanIndex(b.clan);
+      if (porClan !== 0) return porClan;
+      return (a.nombre || '').localeCompare(b.nombre || '', 'es', { sensitivity: 'base' });
+    });
+    document.getElementById('nuevosCount').textContent = nuevos.length + ' jugador(es)';
+    nuevoGrid.innerHTML = nuevos.length ? nuevos.map(n => {
+      const royaleOk = urlValida(n.royaleApi);
+      const cwOk = urlValida(n.cwstats);
+      return `
+      <div class="card nuevo-card js-nuevo-card" data-tag="${esc(n.tag || '')}" style="cursor:pointer;">
+        <div class="name">${esc(n.nombre)}</div>
+        <div class="tag">${esc(n.tag)} · ${fmtFecha(n.fechaIng)}</div>
+        <div class="clan">${esc(n.clan)}</div>
+        ${(royaleOk || cwOk) ? `<div class="links">
+          ${royaleOk ? `<a href="${esc(n.royaleApi)}" target="_blank" rel="noopener">${ICONO_ROYALEAPI}RoyaleAPI</a>` : ''}
+          ${cwOk ? `<a href="${esc(n.cwstats)}" target="_blank" rel="noopener">${ICONO_CWSTATS}CWStats</a>` : ''}
+        </div>` : ''}
+      </div>`;
+    }).join('') : '<div class="empty">No hay ingresos recientes.</div>';
+    nuevoGrid.querySelectorAll('.js-nuevo-card').forEach(card => {
+      const linksBox = card.querySelector('.links');
+      if (linksBox) linksBox.addEventListener('click', e => e.stopPropagation());
+      card.addEventListener('click', () => {
+        if (!card.dataset.tag) return;
+        window.open('perfil.html?tag=' + encodeURIComponent(card.dataset.tag), '_blank');
+      });
+    });
+  }catch(err){
+    nuevoGrid.innerHTML = `<div class="empty">No se pudo cargar los ingresos recientes: ${esc(err.message)}</div>`;
+  }
+}
+
 cargarRoster();
+cargarIngresosRecientes();
 </script>
 </body>
 </html>

@@ -57,6 +57,17 @@
   .clan-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:16px;}
   .clan-card .name{font-family:var(--f-display); font-size:18px; font-weight:800; text-transform:uppercase; color:var(--text);}
   .clan-card .stats{display:flex; gap:18px; margin-top:14px; font-family:var(--f-mono);}
+  /* FIX (04-sep-2026, pedido usuario — "no se entiende bien de dónde salen
+     los [totales] ... Ataques, fame y barcos deberían estar alineados con
+     los centros de sus números"): .stat no tenía text-align, así que el
+     número grande (<b>) y su etiqueta (<span>) quedaban alineados a la
+     izquierda del ancho del flex item (que toma el ancho del más largo de
+     los dos) — con "FAME"/"703,900" o "ATAQUES"/"822" el más corto quedaba
+     visualmente descentrado respecto al otro. text-align:center centra
+     ambos sobre el mismo eje sin depender de cuál de los dos sea más
+     largo, para los 3 (ataques/fame/barcos).
+  */
+  .clan-card .stat{text-align:center;}
   .clan-card .stat b{display:block; font-size:22px; color:var(--text); font-family:var(--f-display);}
   .clan-card .stat span{font-size:10px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.08em;}
   .bar{height:6px; background:var(--bg-2); margin-top:14px; border-radius:3px; overflow:hidden; border:1px solid var(--line);}
@@ -82,17 +93,33 @@
      vez de forzar overflow en toda la página. */
   .table-scroll{overflow-x:auto; -webkit-overflow-scrolling:touch;}
   .table-scroll table{min-width:420px;}
-  .nuevo-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:16px;}
-  .nuevo-card .name{font-weight:700; font-size:15px; color:var(--text);}
-  .nuevo-card .tag{font-family:var(--f-mono); font-size:12px; color:var(--text-dim);}
-  .nuevo-card .clan{font-size:13px; color:var(--text-dim); margin:6px 0 12px;}
-  .nuevo-card .links{display:flex; gap:14px; font-size:12px;}
-  .nuevo-card .links a{text-decoration:none; color:var(--purple-light); font-weight:600;}
   #status{font-family:var(--f-mono); font-size:14px; color:var(--text-dim); padding:64px 20px; text-align:center;}
   #status.err{color:var(--danger);}
+  /* FIX (04-sep-2026, pedido usuario — "se debe agregar botones para
+     copiar los mensajes de guerra pero visibles solo para los admin"):
+     tarjeta compacta con un botón "Copiar" por clan (+ Chat General),
+     mismo criterio visual/funcional que .btn-copiar de admin.html, pero
+     minimizada para caber en la página pública sin agregar el panel de
+     categorías completo. Solo se pinta si hay sesión de admin activa
+     (esAdminLogueado(), ver #mensajesGuerraAdmin más abajo). */
+  #mensajesGuerraAdmin{display:none;}
+  .msj-guerra-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:12px; margin-top:14px;}
+  .msj-guerra-item{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:12px 14px; border:1px solid var(--line); border-radius:var(--radius-sm); background:var(--surface-card);
+  }
+  .msj-guerra-item .mg-clan{font-family:var(--f-mono); font-size:12px; font-weight:700; color:var(--text-dim); text-transform:uppercase; letter-spacing:.04em;}
+  .msj-guerra-item .btn-copiar-mg{
+    background:rgba(162,57,255,.1); border:1px solid var(--line-strong); color:var(--text);
+    font-family:var(--f-mono); font-size:11px; font-weight:700; letter-spacing:.04em; text-transform:uppercase;
+    padding:6px 12px; cursor:pointer; border-radius:var(--radius-sm); transition:all .18s ease; flex-shrink:0;
+  }
+  .msj-guerra-item .btn-copiar-mg:hover{border-color:var(--purple); color:var(--purple-light); background:rgba(162,57,255,.2);}
+  .msj-guerra-item .btn-copiar-mg.copiado{color:var(--ok); border-color:var(--ok);}
 </style>
 </head>
 <body data-page="guerra">
+
 
 <a href="#main-content" class="skip-link">Saltar al contenido</a>
 
@@ -144,20 +171,22 @@
       <div class="clan-grid" id="clanGrid" style="margin-top:20px;"></div>
     </section>
 
-    <!-- FIX (03-sep-2026, pedido usuario — "Pendientes de Atacar: ocultar
-         la sección cuando no es día de guerra (hoy igual se muestra con
-         '1 jugador(es)' y la fila 'No es día de guerra')"): la sección
-         siempre se pintaba sin importar ctx.esDiaGuerra, así que en día de
-         entrenamiento se veía una tabla con una fila "placeholder" que
-         confunde en vez de información real de ataques pendientes. Ahora
-         toda la <section> se oculta cuando no es día de guerra — ver
-         toggle en render() (id="pendSection"). -->
-    <section id="pendSection" style="padding:24px 0;">
-      <div class="sec-head" style="display:flex; align-items:baseline; justify-content:space-between; border-bottom:1px solid var(--line); padding-bottom:12px;">
-        <h2 style="font-size:22px;">⚠️ Pendientes de Atacar</h2>
-        <span class="text-faint" id="pendCount" style="font-family:var(--f-mono); font-size:13px;"></span>
+    <!-- FIX (04-sep-2026, pedido usuario — "se debe agregar botones para
+         copiar los mensajes de guerra pero visibles solo para los admin"):
+         reusa el mismo endpoint autenticado que ya usa admin.html
+         (webAdminContenido, categoria='Mensaje de Guerra' — ver
+         renderContenidoHtml() en admin.html para el patrón original) en
+         vez de duplicar lógica de backend. Toda esta sección arranca
+         oculta (display:none en el <style> de arriba) y solo se muestra
+         si hay sesión de admin activa Y es día de guerra (ver
+         cargarMensajesGuerraSiAdmin() más abajo) — un visitante normal ni
+         siquiera nota que existe. -->
+    <section id="mensajesGuerraAdmin" style="padding:24px 0;">
+      <div class="sec-head" style="border-bottom:1px solid var(--line); padding-bottom:12px;">
+        <h2 style="font-size:22px;">📋 Mensajes de Guerra</h2>
+        <span class="text-faint" style="font-family:var(--f-mono); font-size:12px;">Solo visible para administradores</span>
       </div>
-      <div id="pendWrap" style="margin-top:20px;"></div>
+      <div class="msj-guerra-grid" id="msjGuerraWrap"></div>
     </section>
 
     <section style="padding:24px 0;">
@@ -167,13 +196,32 @@
       <div id="resumenWrap" style="margin-top:20px;"></div>
     </section>
 
-    <section style="padding:24px 0;">
+    <!-- FIX (03-sep-2026, pedido usuario — "Pendientes de Atacar: ocultar
+         la sección cuando no es día de guerra (hoy igual se muestra con
+         '1 jugador(es)' y la fila 'No es día de guerra')"): la sección
+         siempre se pintaba sin importar ctx.esDiaGuerra, así que en día de
+         entrenamiento se veía una tabla con una fila "placeholder" que
+         confunde en vez de información real de ataques pendientes. Ahora
+         esta sección se oculta cuando no es día de guerra — ver
+         toggle en render() (id="pendSection").
+         FIX (04-sep-2026, pedido usuario — orden del Panel de Guerra):
+         "Miembros Activos por Clan" pasa a mostrarse ANTES que "Pendientes
+         de Atacar" (orden pedido: Guerra de hoy / Miembros activos /
+         Pendientes de atacar) — antes iba al revés. -->
+    <section id="pendSection" style="padding:24px 0;">
       <div class="sec-head" style="display:flex; align-items:baseline; justify-content:space-between; border-bottom:1px solid var(--line); padding-bottom:12px;">
-        <h2 style="font-size:22px;">🆕 Ingresos Recientes</h2>
-        <span class="text-faint" id="nuevosCount" style="font-family:var(--f-mono); font-size:13px;"></span>
+        <h2 style="font-size:22px;">⚠️ Pendientes de Atacar</h2>
+        <span class="text-faint" id="pendCount" style="font-family:var(--f-mono); font-size:13px;"></span>
       </div>
-      <div class="nuevo-grid" id="nuevoGrid" style="margin-top:20px;"></div>
+      <div id="pendWrap" style="margin-top:20px;"></div>
     </section>
+
+    <!-- "Ingresos Recientes" (nuevo-grid): MOVIDO a jugadores.html, al
+         final de Directorio (pedido usuario, 04-sep-2026 — "Los ingresos
+         recientes deben moverse a Directorio (al final)"). Ver
+         cargarIngresosRecientes() en jugadores.html — sigue consumiendo el
+         mismo 'data.nuevos' de webGuerraEnVivo, solo que ahora esa página
+         hace su propio fetch en vez de reusar el de acá. -->
 
   </div>
 
@@ -208,12 +256,6 @@ const DIAS = [
 let lastFetchAt = null;
 let prevValues  = {};
 
-function fmtFecha(iso){
-  if(!iso) return '—';
-  const d = new Date(iso);
-  if(isNaN(d.getTime())) return '—';
-  return d.toLocaleDateString('es-PE', {day:'2-digit', month:'short'});
-}
 /** Fecha corta "DD-mmm" (ej. "27-ago") a partir de un ISO string o Date. */
 function fmtDiaMes(v){
   if(!v) return '—';
@@ -356,59 +398,66 @@ function render(data){
       <div class="track"><div class="fill" style="width:${(count/maxResumen)*100}%"></div></div>
       <div class="val">${fmtNum(count)}</div>
     </div>`).join('') + `</div>` : '<div class="empty">Sin datos de directorio.</div>';
-  // FIX (03-sep-2026, pedido usuario — "Ingresos Recientes [nuevo-grid]:
-  // ordenar por clan y luego alfabético (hoy no ordena nada — bug
-  // confirmado con captura: chox/deClow/L dani/maykel.bbto son del clan 2
-  // pero ike aparece salteado en medio siendo del clan Principal)"): antes
-  // se pintaba en el orden crudo que mandara data.nuevos, sin ordenar. Se
-  // agrupa por clan (orden fijo de la Familia vía ordenClanIndex(), mismo
-  // criterio que usan index.html e jugadores.html) y cada grupo se ordena
-  // alfabéticamente por nombre.
-  const nuevos = (data.nuevos || []).slice().sort((a, b) => {
-    const porClan = ordenClanIndex(a.clan) - ordenClanIndex(b.clan);
-    if (porClan !== 0) return porClan;
-    return (a.nombre || '').localeCompare(b.nombre || '', 'es', { sensitivity: 'base' });
-  });
-  document.getElementById('nuevosCount').textContent = nuevos.length + ' jugador(es)';
-  const nuevoGrid = document.getElementById('nuevoGrid');
-  // FIX (03-sep-2026, pedido usuario — "hacer que cada tarjeta lleve al
-  // perfil del jugador al hacer clic (hoy no son clicables)"): mismo
-  // patrón que usan perfil.html (js-otra-cuenta) y jugadores.html —
-  // data-tag en la tarjeta + addEventListener con window.open a
-  // perfil.html?tag=..., en vez de armar el tag a mano dentro de un
-  // onclick inline. Los links de RoyaleAPI/CWStats detienen la
-  // propagación del click (ver listener 'click' de .links a más abajo)
-  // para que abrir esos enlaces no dispare también la apertura del perfil.
-  // NOTA: "Vigencia" (última conexión) queda pendiente — webGuerraEnVivo
-  // todavía no manda ese dato en cada item de `nuevos` (a diferencia de
-  // 'diasInactivo' que sí devuelve webIngresosRecientes en index.html);
-  // hace falta agregarlo del lado del backend (34_Web_API.gs) antes de
-  // poder mostrarlo acá.
-  nuevoGrid.innerHTML = nuevos.length ? nuevos.map(n => {
-    const royaleOk = urlValida(n.royaleApi);
-    const cwOk = urlValida(n.cwstats);
-    return `
-    <div class="card nuevo-card js-nuevo-card" data-tag="${esc(n.tag || '')}" style="cursor:pointer;">
-      <div class="name">${esc(n.nombre)}</div>
-      <div class="tag">${esc(n.tag)} · ${fmtFecha(n.fechaIng)}</div>
-      <div class="clan">${esc(n.clan)}</div>
-      ${(royaleOk || cwOk) ? `<div class="links">
-        ${royaleOk ? `<a href="${esc(n.royaleApi)}" target="_blank" rel="noopener">${ICONO_ROYALEAPI}RoyaleAPI</a>` : ''}
-        ${cwOk ? `<a href="${esc(n.cwstats)}" target="_blank" rel="noopener">${ICONO_CWSTATS}CWStats</a>` : ''}
-      </div>` : ''}
-    </div>`;
-  }).join('') : '<div class="empty">No hay ingresos recientes.</div>';
-  nuevoGrid.querySelectorAll('.js-nuevo-card').forEach(card => {
-    const linksBox = card.querySelector('.links');
-    if (linksBox) linksBox.addEventListener('click', e => e.stopPropagation());
-    card.addEventListener('click', () => {
-      if (!card.dataset.tag) return;
-      window.open('perfil.html?tag=' + encodeURIComponent(card.dataset.tag), '_blank');
-    });
-  });
+  // "Ingresos Recientes" (antes acá, usando data.nuevos): MOVIDO a
+  // jugadores.html (pedido usuario, 04-sep-2026 — "Los ingresos recientes
+  // deben moverse a Directorio (al final)"). Esta página ya no pinta esa
+  // sección — ver cargarIngresosRecientes() en jugadores.html.
+  cargarMensajesGuerraSiAdmin(ctx);
   document.getElementById('updatedAt').textContent =
     'Última carga completa: ' + new Date().toLocaleString('es-PE');
 }
+
+/**
+ * cargarMensajesGuerraSiAdmin(ctx)
+ * FIX (04-sep-2026, pedido usuario — "se debe agregar botones para copiar
+ * los mensajes de guerra pero visibles solo para los admin"): reusa
+ * 'webAdminContenido' (mismo endpoint autenticado que ya usa admin.html,
+ * ver renderContenidoHtml()/_activarAccionesContenido() ahí) con
+ * categoria='Mensaje de Guerra' — el backend ya arma un item por clan
+ * (subcategoria 'Particular') más uno de 'Chat General' (ver
+ * generarTodosMensajes(), Base.md). No se pide nada ni se muestra nada si:
+ *   - no hay sesión de admin en este navegador (esAdminLogueado()), o
+ *   - no es día de guerra (ctx.esDiaGuerra) — 'Mensaje de Guerra' solo
+ *     existe en días de guerra, pedirlo en día de entrenamiento solo
+ *     devolvería vacío.
+ * Cualquier error (token vencido, etc.) se traga en silencio: esta
+ * sección es un plus para admins, nunca debe romper la carga de la página
+ * pública para nadie.
+ */
+async function cargarMensajesGuerraSiAdmin(ctx){
+  const section = document.getElementById('mensajesGuerraAdmin');
+  if (!ctx.esDiaGuerra || !esAdminLogueado()){ section.style.display = 'none'; return; }
+  try{
+    const data = await apiGetAuth('webAdminContenido', { categoria: 'Mensaje de Guerra' });
+    const opciones = (data && data.opciones) || [];
+    if (!opciones.length){ section.style.display = 'none'; return; }
+    const wrap = document.getElementById('msjGuerraWrap');
+    wrap.innerHTML = opciones.map((o, i) => `
+      <div class="msj-guerra-item">
+        <span class="mg-clan">${esc(o.etiqueta || o.subcategoria || o.clan || ('Opción ' + (i + 1)))}</span>
+        <button type="button" class="btn-copiar-mg" data-idx="${i}">⧉ Copiar</button>
+      </div>`).join('');
+    wrap.querySelectorAll('.btn-copiar-mg').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const o = opciones[Number(btn.dataset.idx)];
+        try{
+          await navigator.clipboard.writeText(o.contenido || '');
+          btn.textContent = '✔ Copiado';
+          btn.classList.add('copiado');
+        }catch(err){
+          btn.textContent = 'No se pudo copiar';
+        }
+        setTimeout(() => { btn.textContent = '⧉ Copiar'; btn.classList.remove('copiado'); }, 1600);
+      });
+    });
+    section.style.display = '';
+  }catch(err){
+    // Defensivo: sesión vencida u otro fallo — no romper el resto de la
+    // página pública por esto, la sección simplemente no aparece.
+    section.style.display = 'none';
+  }
+}
+
 cargar();
 setInterval(() => cargar(false), REFRESH_INTERVAL_MS);
 setInterval(actualizarAgoText, 1000);
