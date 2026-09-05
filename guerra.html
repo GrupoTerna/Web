@@ -1,0 +1,774 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Guerra en Vivo — Familia Terna</title>
+<meta name="description" content="Estado en vivo de la guerra de clanes de la Familia Terna: puntos, ataques restantes y ranking de los 4 clanes actualizados en tiempo real.">
+<link rel="canonical" href="https://grupoterna.github.io/Web/guerra.html">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://grupoterna.github.io/Web/guerra.html">
+<meta property="og:site_name" content="Familia Terna">
+<meta property="og:title" content="Guerra en Vivo — Familia Terna">
+<meta property="og:description" content="Estado en vivo de la guerra de clanes de la Familia Terna: puntos, ataques restantes y ranking de los 4 clanes actualizados en tiempo real.">
+<meta property="og:image" content="https://grupoterna.github.io/Web/assets/img/og-image.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="es_PE">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Guerra en Vivo — Familia Terna">
+<meta name="twitter:description" content="Estado en vivo de la guerra de clanes de la Familia Terna: puntos, ataques restantes y ranking de los 4 clanes actualizados en tiempo real.">
+<meta name="twitter:image" content="https://grupoterna.github.io/Web/assets/img/og-image.jpg">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/styles.css">
+<link rel="icon" type="image/jpeg" href="assets/img/logo-cuadrado.jpg">
+<style>
+  .refresh-row{display:flex; align-items:center; gap:12px; font-family:var(--f-mono); font-size:12px; color:var(--text-faint);}
+  #refreshBtn{
+    background:rgba(162,57,255,.1); border:1px solid var(--line-strong); color:var(--text);
+    font-family:var(--f-mono); font-size:11px; letter-spacing:.08em; font-weight:700;
+    text-transform:uppercase; padding:6px 14px; cursor:pointer; border-radius:var(--radius-sm);
+    transition:all .18s ease;
+  }
+  #refreshBtn:hover{border-color:var(--purple); color:var(--purple-light); background:rgba(162,57,255,.2); transform:translateY(-1px);}
+  #refreshBtn:disabled{opacity:.5; cursor:not-allowed; transform:none;}
+  #refreshBtn.spinning{color:var(--purple); border-color:var(--purple);}
+  .progress-track{height:3px; background:var(--bg-2); margin-top:20px; overflow:hidden; border-radius:3px;}
+  .progress-track i{display:block; height:100%; width:0%; background:linear-gradient(90deg, var(--violet), var(--purple)); transition:width 1s linear;}
+  .flash{animation:flash-num .6s ease;}
+  @keyframes flash-num{
+    0%{color:var(--gold); text-shadow:0 0 10px rgba(243,169,34,.6);}
+    100%{color:inherit; text-shadow:none;}
+  }
+  .timeline{display:flex; gap:10px; margin-top:18px;}
+  .tl-day{flex:1; border:1px solid var(--line); background:var(--surface-card); border-radius:var(--radius-sm); padding:12px 8px; text-align:center; position:relative; transition:all .2s ease;}
+  .tl-day .lbl{font-family:var(--f-mono); font-size:11px; letter-spacing:.12em; color:var(--text-faint); text-transform:uppercase;}
+  .tl-day .mark{font-family:var(--f-display); font-weight:800; font-size:15px; margin-top:4px; color:var(--text-dim); white-space:nowrap;}
+  .tl-day.active{border-color:var(--purple); background:linear-gradient(180deg, rgba(162,57,255,.2), rgba(162,57,255,.04)); box-shadow:0 0 14px rgba(162,57,255,.25);}
+  .tl-day.active .lbl{color:var(--purple-light); font-weight:700;}
+  .tl-day.active .mark{color:var(--text);}
+  .tl-day.active::after{
+    content:"HOY"; position:absolute; top:-10px; left:50%; transform:translateX(-50%);
+    background:var(--purple); color:#fff; font-family:var(--f-mono); font-size:9px; font-weight:700;
+    letter-spacing:.1em; padding:2px 8px; border-radius:999px; box-shadow:0 2px 8px rgba(162,57,255,.4);
+  }
+  .clan-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:16px;}
+  .clan-card .name{font-family:var(--f-display); font-size:18px; font-weight:800; text-transform:uppercase; color:var(--text);}
+  .clan-card .stats{display:flex; gap:18px; margin-top:14px; font-family:var(--f-mono);}
+  /* FIX (04-sep-2026, pedido usuario — "no se entiende bien de dónde salen
+     los [totales] ... Ataques, fame y barcos deberían estar alineados con
+     los centros de sus números"): .stat no tenía text-align, así que el
+     número grande (<b>) y su etiqueta (<span>) quedaban alineados a la
+     izquierda del ancho del flex item (que toma el ancho del más largo de
+     los dos) — con "FAME"/"703,900" o "ATAQUES"/"822" el más corto quedaba
+     visualmente descentrado respecto al otro. text-align:center centra
+     ambos sobre el mismo eje sin depender de cuál de los dos sea más
+     largo, para los 3 (ataques/fame/barcos).
+  */
+  .clan-card .stat{text-align:center;}
+  .clan-card .stat b{display:block; font-size:22px; color:var(--text); font-family:var(--f-display);}
+  .clan-card .stat span{font-size:10px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.08em;}
+  .bar{height:6px; background:var(--bg-2); margin-top:14px; border-radius:3px; overflow:hidden; border:1px solid var(--line);}
+  .bar i{display:block; height:100%; background:linear-gradient(90deg, var(--violet), var(--purple));}
+  .falt{font-family:var(--f-mono); font-weight:700; color:var(--danger);}
+  .resumen-row{display:flex; align-items:center; gap:14px; margin-bottom:12px; flex-wrap:wrap;}
+  .resumen-row .clan-n{width:160px; font-size:14px; flex-shrink:0; font-weight:600;}
+  .resumen-row .track{flex:1; min-width:80px; height:16px; background:var(--bg-2); border-radius:4px; position:relative; overflow:hidden; border:1px solid var(--line);}
+  .resumen-row .fill{height:100%; background:linear-gradient(90deg, var(--violet), var(--purple));}
+  .resumen-row .val{width:40px; text-align:right; font-family:var(--f-mono); font-size:13px; color:var(--gold); font-weight:700;}
+  /* RESPONSIVE (pedido usuario, 31-ago-2026 — "haz que la web sea
+     responsive"): en pantallas angostas .clan-n (160px fijo) + .val (40px
+     fijo) dejaban muy poco espacio para .track, que quedaba casi
+     invisible. flex-wrap arriba ya permite que .track baje a su propia
+     línea si no entra; acá se fuerza ese salto de línea siempre por debajo
+     de los ~380px, y el nombre del clan pasa a ocupar el ancho completo
+     para que la barra de progreso tenga espacio real para leerse. */
+  @media (max-width:380px){
+    .resumen-row .clan-n{width:100%;}
+  }
+  /* Tabla de "Ataques pendientes": con nombres/clanes largos en pantallas
+     angostas, se habilita scroll horizontal dentro de su propia tarjeta en
+     vez de forzar overflow en toda la página. */
+  .table-scroll{overflow-x:auto; -webkit-overflow-scrolling:touch;}
+  .table-scroll table{min-width:420px;}
+  #status{font-family:var(--f-mono); font-size:14px; color:var(--text-dim); padding:64px 20px; text-align:center;}
+  #status.err{color:var(--danger);}
+  /* FIX (04-sep-2026, pedido usuario — "se debe agregar botones para
+     copiar los mensajes de guerra pero visibles solo para los admin").
+     FIX (05-sep-2026, pedido usuario — "en Guerra (lista de pendientes)
+     solo hay que poner el mismo botón, pero ya no se va a mostrar todo el
+     texto, solo el botón de copiar, así que debería agregar información
+     sobre el clan"): ya no es una sección aparte con tarjetas (label +
+     botón genérico "Copiar"); ahora es una fila compacta de botones
+     integrada arriba de la tabla de "Pendientes de Atacar" (ver
+     #msjGuerraWrap dentro de #pendSection más abajo), y el nombre del clan
+     va DENTRO del texto de cada botón (no hay tarjeta/label aparte donde
+     mostrarlo). Sigue sin pintarse nada si no hay sesión de admin activa
+     (esAdminLogueado()) — ver cargarMensajesGuerraSiAdmin(). */
+  .msj-guerra-row{display:flex; flex-wrap:wrap; gap:8px; margin-top:14px;}
+  .msj-guerra-row .btn-copiar-mg{
+    background:rgba(162,57,255,.1); border:1px solid var(--line-strong); color:var(--text);
+    font-family:var(--f-mono); font-size:11px; font-weight:700; letter-spacing:.03em; text-transform:uppercase;
+    padding:7px 14px; cursor:pointer; border-radius:var(--radius-sm); transition:all .18s ease;
+  }
+  .msj-guerra-row .btn-copiar-mg:hover{border-color:var(--purple); color:var(--purple-light); background:rgba(162,57,255,.2);}
+  .msj-guerra-row .btn-copiar-mg.copiado{color:var(--ok); border-color:var(--ok);}
+
+  /* FIX (05-sep-2026, pedido usuario — "panel tipo hoja Control, con datos
+     de Directorio, priorizando las cuadrículas"): sección nueva y PÚBLICA
+     (no requiere sesión de admin). Reutiliza las mismas clases .ai-cell*/
+     .ai-total* de abajo para no duplicar estilos — mismo criterio visual
+     que Control (0 = tenue, 1-3 = dorado, 4 = verde). Arranca oculta y
+     solo se muestra si el backend manda al menos un clan con Activos (ver
+     render()).
+     FIX (05-sep-2026, pedido usuario — "falta Puntaje (fame) y barcos, que
+     también está en la hoja Control [...] los clanes no están en el orden
+     establecido [...] falta centrar los encabezados con sus datos [...]
+     Mejor dentro del primer cuadro, en cada clan, primero escribe las
+     filas de los activos y luego una sección para inactivos"): esta MISMA
+     tarjeta por clan ahora también recibe, al final, el bloque de
+     Inactivos (antes era la sección aparte #aportesInactivosSection,
+     debajo de "Pendientes de Atacar" — ELIMINADA, ver
+     cargarAportesInactivosSiAdmin() más abajo). El bloque de Inactivos
+     sigue siendo solo-admin (mismo esAdminLogueado() de antes); si no hay
+     sesión de admin, ".ai-inactivos-wrap" simplemente queda vacío dentro
+     de la tarjeta (ver regla ":empty" más abajo) y nadie nota que existe. */
+  #controlActivosSection{display:none;}
+  .ai-clan-card{margin-bottom:18px;}
+  .ai-clan-card h3{font-size:15px; margin:0 0 10px; color:var(--purple-light);}
+  .ai-cell{text-align:center; font-family:var(--f-mono); font-weight:700; border-radius:4px; padding:2px 0;}
+  .ai-cell-zero{color:var(--text-dim); opacity:.5;}
+  .ai-cell-part{color:var(--gold);}
+  .ai-cell-full{color:var(--ok);}
+  .ai-total{text-align:center; font-weight:700;}
+  .ai-total-full{color:var(--ok); text-shadow:0 0 8px rgba(16,185,129,.4);}
+  /* Puntaje y Barcos por día (J/V/S/D): a diferencia de Ataques (0-4
+     intentos por día), acá los valores son puntos/barcos ganados ese día
+     (pueden ser cualquier número, ver captura de la Hoja Control: Sem 1
+     Puntaje trae "500 400 700 600"), así que van sin el semáforo de color
+     0/parcial/completo de .ai-cell — solo centrados con .ai-num. */
+  .ai-num{text-align:center; font-family:var(--f-mono);}
+  /* FIX (05-sep-2026, pedido usuario — "Puntaje y Barcos son megacategorías
+     igual que Ataques"): Puntaje y Barcos NO son una columna con un único
+     valor por jugador — son, igual que Ataques, un grupo de columnas
+     J/V/S/D + Total (ver la captura de la Hoja Control: "Puntaje" tiene su
+     propio Sem 1/Sem 2/Sem 3 con J/V/S/D/T.1/T.2/T.3). Por eso el <thead>
+     de la tabla de Activos ahora tiene 2 filas: una fila superior con las
+     3 megacategorías (Ataques/Puntaje/Barcos, colspan=5 cada una) y una
+     fila inferior con J/V/S/D/Total repetido bajo cada una. Estas clases
+     dan un tinte de fondo sutil a cada grupo de columnas (encabezado Y
+     celdas) para que se puedan distinguir de un vistazo con tantas
+     columnas juntas — mismos colores que ya usa el resto del sitio
+     (violeta=tema base, dorado=Puntaje/Fame, plata=Barcos). */
+  .ai-grp-atq{background:rgba(162,57,255,.07);}
+  .ai-grp-pje{background:rgba(243,169,34,.07);}
+  .ai-grp-brc{background:rgba(203,213,225,.07);}
+  th.ai-grp-atq, th.ai-grp-pje, th.ai-grp-brc{color:var(--text-dim); font-weight:700;}
+  /* FIX (05-sep-2026): encabezados centrados sobre sus datos. El <th>
+     global de styles.css es text-align:left (para el resto de tablas del
+     sitio, ej. "Pendientes de Atacar"); acá se centra todo salvo la
+     columna "Jugador" (marcada con .col-jugador) — con el <thead> de 2
+     filas de arriba, ":not(:first-child)" ya no alcanza (la fila inferior
+     de J/V/S/D/Total no tiene la celda "Jugador" porque esta usa
+     rowspan="2", así que su primer <th> real SÍ sería :first-child de esa
+     fila y quedaría descentrado sin esta clase explícita). */
+  .ai-clan-card table th, .ai-clan-card table td{text-align:center;}
+  .ai-clan-card table th.col-jugador, .ai-clan-card table td.col-jugador{text-align:left;}
+  /* La tabla de Activos pasó de 6 a 16 columnas (Jugador + 3 megacategorías
+     de 5 columnas c/u) — el min-width:420px genérico de .table-scroll
+     (pensado para tablas angostas como "Pendientes de Atacar" y también
+     usado por la tabla, más chica, de Inactivos de abajo) dejaría esas 16
+     columnas demasiado apretadas; se le pide más ancho mínimo antes de
+     que entre el scroll horizontal, sin tocar el resto de tablas (por eso
+     el selector va por .tbl-activos-grid y no por .ai-clan-card table). */
+  .ai-clan-card .tbl-activos-grid{min-width:760px;}
+  /* Bloque de Inactivos dentro de la misma tarjeta del clan: separado de
+     la tabla de Activos con una línea punteada y una etiqueta chica.
+     ":empty" lo colapsa por completo (sin línea ni espacio de más) cuando
+     no hay sesión de admin o el clan no tiene inactivos esta semana. */
+  .ai-inactivos-wrap:empty{display:none;}
+  .ai-inactivos-block{margin-top:14px; padding-top:14px; border-top:1px dashed var(--line);}
+  .ai-inactivos-block .ai-sub-label{
+    font-family:var(--f-mono); font-size:11px; font-weight:700; letter-spacing:.08em;
+    text-transform:uppercase; color:var(--text-faint); margin:0 0 8px;
+  }
+</style>
+</head>
+<body data-page="guerra">
+
+
+<a href="#main-content" class="skip-link">Saltar al contenido</a>
+
+<nav class="nav">
+  <div class="wrap">
+    <a href="index.html" class="brand">
+      <img src="assets/img/logo-cuadrado.jpg" alt="Escudo GxT Familia Terna" class="brand-logo" width="256" height="256">
+      <span>ᴳ乂ᵀ <span class="crown">⚜️</span> Familia Terna</span>
+    </a>
+    <button id="navToggle" class="nav-toggle" aria-label="Abrir menú">☰</button>
+    <div class="links">
+      <a href="jugadores.html" data-page="jugadores">Directorio</a>
+      <a href="guerra.html" data-page="guerra">Guerra</a>
+      <a href="torneos.html" data-page="torneos">Torneos</a>
+      <a href="comunidad.html" data-page="comunidad">Comunidad</a>
+      <a href="admin.html" data-page="admin" class="cta">Acceder</a>
+    </div>
+  </div>
+</nav>
+
+<div class="wrap" id="main-content" style="padding-top:36px; padding-bottom:80px;">
+
+  <div class="card" style="position:relative; overflow:hidden; padding:28px;">
+    <div class="eyebrow" style="justify-content:space-between; width:100%;">
+      <span style="display:flex; align-items:center; gap:10px;">
+        <span style="width:8px;height:8px;background:var(--ok);border-radius:50%; box-shadow:0 0 10px rgba(16,185,129,.6); display:inline-block;"></span>
+        Monitoreo en Vivo
+      </span>
+      <span class="refresh-row">
+        <span id="agoText">—</span>
+        <button id="refreshBtn" type="button" onclick="cargar(true)">🔄 Actualizar</button>
+      </span>
+    </div>
+    <h1 style="font-size:clamp(30px,5vw,44px); margin-top:14px;">Control de guerra</h1>
+    <div class="text-dim" id="sub" data-fit-line style="margin-top:6px; font-size:16px; white-space:nowrap;">Cargando estado de la temporada…</div>
+    <div class="timeline" id="timeline"></div>
+    <div class="progress-track"><i id="progressFill"></i></div>
+  </div>
+
+  <div id="status">Conectando con la API de Guerra…</div>
+
+  <div id="content" style="display:none">
+
+    <section style="padding:40px 0 24px;">
+      <div class="sec-head" style="display:flex; align-items:baseline; justify-content:space-between; border-bottom:1px solid var(--line); padding-bottom:12px;">
+        <h2 style="font-size:22px;">⚔️ Guerra de Hoy</h2>
+        <span class="text-faint" id="clanCount" style="font-family:var(--f-mono); font-size:13px;"></span>
+      </div>
+      <div class="clan-grid" id="clanGrid" style="margin-top:20px;"></div>
+    </section>
+
+    <section style="padding:24px 0;">
+      <div class="sec-head" style="border-bottom:1px solid var(--line); padding-bottom:12px;">
+        <h2 style="font-size:22px;">📊 Miembros Activos por Clan</h2>
+      </div>
+      <div id="resumenWrap" style="margin-top:20px;"></div>
+    </section>
+
+    <!-- FIX (05-sep-2026, pedido usuario — "Se debe agregar un panel, tipo
+         hoja Control, con algunos datos de la sección que viene de la hoja
+         Directorio pero debe priorizar las cuadrículas"): sección NUEVA y
+         aparte de "Miembros Activos por Clan" de arriba (esa solo muestra
+         un conteo/barra por clan) — acá se pinta la cuadrícula completa
+         Jugador/J/V/S/D/Total/Puntaje/Barcos de CADA miembro Activo de
+         Directorio, agrupado por su clan, para la semana de guerra
+         vigente. PÚBLICA (visible para todos, sin gate de admin, igual
+         que el resto del contenido de esta sección de la página) y se
+         listan TODOS los Activos aunque tengan 0/0/0/0 — mismo criterio
+         que la cuadrícula real de la hoja Control. Ver render() más abajo
+         y _getControlActivosSemanaActual() (08_Web_Endpoints.gs).
+         FIX (05-sep-2026, pedido usuario — "solo consideró ataques, falta
+         Puntaje (fame) y barcos [...] los clanes no están en el orden
+         establecido [...] Mejor dentro del primer cuadro, en cada clan,
+         primero escribe las filas de los activos y luego una sección para
+         inactivos"): 1) la tabla de cada tarjeta suma las columnas Puntaje
+         y Barcos (además de J/V/S/D/Total de ataques, que ya existían);
+         2) las tarjetas se ordenan con ordenClanIndex() (assets/common.js)
+         en vez de alfabético; 3) cada tarjeta de clan ahora también carga,
+         debajo de la tabla de Activos, el bloque de Inactivos (solo-admin
+         — ver cargarAportesInactivosSiAdmin() más abajo), en vez de vivir
+         en una sección aparte debajo de "Pendientes de Atacar". -->
+    <section id="controlActivosSection" style="padding:24px 0;">
+      <div class="sec-head" style="border-bottom:1px solid var(--line); padding-bottom:12px;">
+        <h2 style="font-size:22px;">🗂️ Cuadrícula de Activos (Semana Actual)</h2>
+      </div>
+      <div id="controlActivosWrap" style="margin-top:20px;"></div>
+    </section>
+
+    <!-- FIX (03-sep-2026, pedido usuario — "Pendientes de Atacar: ocultar
+         la sección cuando no es día de guerra (hoy igual se muestra con
+         '1 jugador(es)' y la fila 'No es día de guerra')"): la sección
+         siempre se pintaba sin importar ctx.esDiaGuerra, así que en día de
+         entrenamiento se veía una tabla con una fila "placeholder" que
+         confunde en vez de información real de ataques pendientes. Ahora
+         esta sección se oculta cuando no es día de guerra — ver
+         toggle en render() (id="pendSection").
+         FIX (04-sep-2026, pedido usuario — orden del Panel de Guerra):
+         "Miembros Activos por Clan" pasa a mostrarse ANTES que "Pendientes
+         de Atacar" (orden pedido: Guerra de hoy / Miembros activos /
+         Pendientes de atacar) — antes iba al revés. -->
+    <section id="pendSection" style="padding:24px 0;">
+      <div class="sec-head" style="display:flex; align-items:baseline; justify-content:space-between; border-bottom:1px solid var(--line); padding-bottom:12px;">
+        <h2 style="font-size:22px;">⚠️ Pendientes de Atacar</h2>
+        <span class="text-faint" id="pendCount" style="font-family:var(--f-mono); font-size:13px;"></span>
+      </div>
+      <!-- FIX (04-sep-2026 / 05-sep-2026, pedido usuario — ver comentario
+           completo en el <style> de arriba y en cargarMensajesGuerraSiAdmin()
+           más abajo): fila de botones "Copiar" por clan (+ Chat General),
+           visible solo para admins logueados, integrada acá mismo (antes
+           era una sección aparte más arriba en la página). Arranca vacía;
+           si no hay sesión de admin o no hay contenido, se queda vacía y
+           no ocupa espacio. -->
+      <div class="msj-guerra-row" id="msjGuerraWrap"></div>
+      <div id="pendWrap" style="margin-top:20px;"></div>
+    </section>
+
+    <!-- "Ingresos Recientes" (nuevo-grid): MOVIDO a jugadores.html, al
+         final de Directorio (pedido usuario, 04-sep-2026 — "Los ingresos
+         recientes deben moverse a Directorio (al final)"). Ver
+         cargarIngresosRecientes() en jugadores.html — sigue consumiendo el
+         mismo 'data.nuevos' de webGuerraEnVivo, solo que ahora esa página
+         hace su propio fetch en vez de reusar el de acá. -->
+
+  </div>
+
+  <footer>
+    <!-- FIX (31-ago-2026, pedido usuario — "la sección negra tiene el
+         texto muy pegado al contenedor, debe tener cierto margen"): este
+         footer traía style="padding:0" que anulaba el padding:0 24px de
+         .wrap (única página del sitio que lo hacía), pegando el texto al
+         borde izquierdo/derecho. Se quita el override y queda igual que
+         el footer de todas las demás páginas. -->
+    <div class="wrap">
+      <span>Familia Terna · Portal de la comunidad</span>
+      <span id="updatedAt"></span>
+    </div>
+  </footer>
+</div>
+
+<script src="assets/common.js"></script>
+<script>
+const REFRESH_INTERVAL_MS = 60000;
+// Los días de guerra son siempre Jueves→Domingo. El backend manda la letra
+// real de cada uno en ctx.diaLetra / data.diasSemanaGuerra[].letra: 'J','V',
+// 'S','D' (Jueves/Viernes/Sábado/Domingo — ver CFG.DIA_LETRAS en
+// 02_Formato_Comun.gs), NO 'A'/'B'/'C'/'D'. Antes este arreglo usaba
+// 'A'/'B'/'C'/'D' para saber cuál día resaltar como "HOY", por lo que la
+// comparación con ctx.diaLetra nunca coincidía salvo por casualidad en
+// domingo (pedido del PDF de diseño, 28-ago-2026 — corregido acá).
+const DIAS = [
+  {letra:'J', label:'Jue'}, {letra:'V', label:'Vie'},
+  {letra:'S', label:'Sáb'}, {letra:'D', label:'Dom'}
+];
+let lastFetchAt = null;
+let prevValues  = {};
+
+/** Fecha corta "DD-mmm" (ej. "27-ago") a partir de un ISO string o Date. */
+function fmtDiaMes(v){
+  if(!v) return '—';
+  const d = v instanceof Date ? v : new Date(v);
+  if(isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString('es-PE', {day:'2-digit', month:'short'});
+}
+function setNum(id, val){
+  const el = document.getElementById(id);
+  if(!el) return;
+  const changed = prevValues[id] !== undefined && prevValues[id] !== val;
+  el.textContent = fmtNum(val);
+  if(changed){ el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); }
+  prevValues[id] = val;
+}
+function actualizarAgoText(){
+  const el = document.getElementById('agoText');
+  if(!el || !lastFetchAt) return;
+  const segs = Math.floor((Date.now() - lastFetchAt.getTime()) / 1000);
+  let txt;
+  if(segs < 5) txt = 'actualizado ahora mismo';
+  else if(segs < 60) txt = `actualizado hace ${segs}s`;
+  else txt = `actualizado hace ${Math.floor(segs/60)} min`;
+  el.textContent = txt;
+}
+function iniciarProgreso(){
+  const fill = document.getElementById('progressFill');
+  if(!fill) return;
+  fill.style.transition = 'none'; fill.style.width = '0%';
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    fill.style.transition = `width ${REFRESH_INTERVAL_MS}ms linear`;
+    fill.style.width = '100%';
+  }));
+}
+async function cargar(manual){
+  const statusEl = document.getElementById('status');
+  const refreshBtn = document.getElementById('refreshBtn');
+  if(refreshBtn){ refreshBtn.classList.add('spinning'); refreshBtn.disabled = true; }
+  try{
+    // FIX (30-ago-2026, pedido usuario — revisión de seguridad): antes esto
+    // pegaba directo a ?dashboard=json con un token de administradores
+    // (fm7qterna9x) hardcodeado acá mismo, visible para cualquiera con "Ver
+    // código fuente" de esta página PÚBLICA. Ahora usa apiGet() (mismo
+    // WEB_MEMBER_TOKEN de solo-lectura que ya usan index.html/jugadores.html/
+    // etc., ver assets/common.js) contra el nuevo endpoint webGuerraEnVivo
+    // (34_Web_API.gs), que devuelve exactamente los mismos datos.
+    const data = await apiGet('webGuerraEnVivo', null, { sinCache: true });
+    render(data);
+    lastFetchAt = new Date();
+    actualizarAgoText();
+    iniciarProgreso();
+  }catch(err){
+    if(document.getElementById('content').style.display === 'none'){
+      statusEl.textContent = 'No se pudo cargar el estado del clan: ' + err.message;
+      statusEl.classList.add('err');
+    }else{
+      document.getElementById('agoText').textContent = 'sin conexión, mostrando última carga';
+    }
+  }finally{
+    if(refreshBtn){ refreshBtn.classList.remove('spinning'); refreshBtn.disabled = false; }
+  }
+}
+function render(data){
+  document.getElementById('status').style.display = 'none';
+  document.getElementById('content').style.display = 'block';
+  const ctx = data.ctx || {};
+  const subEl = document.getElementById('sub');
+  // Nombre del día EN TEXTO COMPLETO (ej. "SÁBADO"), no la letra abreviada
+  // J/V/S/D que usa ctx.diaLetra (esa solo cubre los 4 días de guerra). Se
+  // toma del día real de hoy para que también funcione en día de
+  // entrenamiento (lunes a miércoles), que no tiene letra asignada.
+  // Formato exacto pedido: "TEMPORADA 4 - SEMANA 4 - DÍA SÁBADO (DÍA DE GUERRA)"
+  // o "... (ENTRENAMIENTO)" si no es día de guerra — todo en mayúsculas y
+  // separado por guiones en vez de "·".
+  const diaNombre = new Date().toLocaleDateString('es-PE', { weekday: 'long' }).toUpperCase();
+  subEl.textContent =
+    `TEMPORADA ${ctx.temporada ?? '—'} - SEMANA ${(Number(ctx.sectionIndex)||0) + 1} - DÍA ${diaNombre} ` +
+    (ctx.esDiaGuerra ? '(DÍA DE GUERRA)' : '(ENTRENAMIENTO)');
+  delete subEl.dataset.baseFontSize; // recalcula el tamaño base cada vez, el texto cambia de largo
+  fitOneLine(subEl);
+  const tl = document.getElementById('timeline');
+  // data.diasSemanaGuerra: 4 {letra, fecha} con la fecha REAL (columna
+  // DiaGuerra de la hoja Guerra) de cada día de la semana vigente, en el
+  // mismo orden J/V/S/D que DIAS. Si el backend todavía no la manda (ej.
+  // versión vieja del Web App), se cae a mostrar solo la letra sin fecha
+  // en vez de romper el timeline.
+  const diasBackend = data.diasSemanaGuerra || [];
+  tl.innerHTML = DIAS.map((d, i) => {
+    const fechaDia = diasBackend[i] ? diasBackend[i].fecha : null;
+    return `
+    <div class="tl-day ${d.letra === ctx.diaLetra ? 'active' : ''}">
+      <div class="lbl">${d.label}</div><div class="mark">${fmtDiaMes(fechaDia)}</div>
+    </div>`;
+  }).join('');
+  const clanGrid = document.getElementById('clanGrid');
+  const clanes = Object.entries(data.guerraPorClan || {});
+  document.getElementById('clanCount').textContent = clanes.length + ' clan(es)';
+  clanGrid.innerHTML = clanes.length ? clanes.map(([nombre, g], idx) => {
+    const pct = g.totalHoy ? Math.round((g.atacaron / g.totalHoy) * 100) : 0;
+    const slug = 'clan' + idx;
+    return `
+    <div class="card clan-card">
+      <div class="name">${esc(nombre)}</div>
+      <div class="stats">
+        <div class="stat"><b id="${slug}-atq">${fmtNum(g.ataques)}</b><span>Ataques</span></div>
+        <div class="stat"><b id="${slug}-fame">${fmtNum(g.fame)}</b><span>Fame</span></div>
+        <div class="stat"><b id="${slug}-barc">${fmtNum(g.barcos)}</b><span>Barcos</span></div>
+      </div>
+      <div class="bar"><i style="width:${pct}%"></i></div>
+      <div style="margin-top:10px;font-size:12px;color:var(--text-dim);font-family:var(--f-mono);">
+        ${fmtNum(g.atacaron)}/${fmtNum(g.totalHoy)} atacaron hoy (${pct}%)
+      </div>
+    </div>`;
+  }).join('') : '<div class="empty">Sin datos de guerra registrados para hoy.</div>';
+  clanes.forEach(([nombre, g], idx) => {
+    const slug = 'clan' + idx;
+    setNum(slug + '-atq', g.ataques); setNum(slug + '-fame', g.fame); setNum(slug + '-barc', g.barcos);
+  });
+  // FIX (03-sep-2026, pedido usuario): la sección completa se oculta en
+  // día de entrenamiento — antes se pintaba igual con lo que mandara
+  // data.pendientes (a veces una fila "placeholder" tipo "No es día de
+  // guerra" con 1 jugador), lo cual no es información real de pendientes.
+  document.getElementById('pendSection').style.display = ctx.esDiaGuerra ? '' : 'none';
+  const pend = data.pendientes || [];
+  document.getElementById('pendCount').textContent = pend.length + ' jugador(es)';
+  const pendWrap = document.getElementById('pendWrap');
+  pendWrap.innerHTML = pend.length ? `
+    <div class="card" style="padding:12px;"><div class="table-scroll"><table>
+      <thead><tr><th>Nombre</th><th>Clan</th><th>Faltantes</th></tr></thead>
+      <tbody>${pend.map(p => `
+          <tr><td>${esc(p.nombre || p.nomMulti || p.tag)}</td><td>${esc(p.clan)}</td><td class="falt">${fmtNum(p.faltantes)}</td></tr>`).join('')}
+      </tbody>
+    </table></div></div>` : '<div class="empty">Nadie tiene ataques pendientes 🎉</div>';
+  const resumen = Object.entries(data.resumenClanes || {});
+  const maxResumen = Math.max(1, ...resumen.map(([,v]) => v));
+  const resumenWrap = document.getElementById('resumenWrap');
+  resumenWrap.innerHTML = resumen.length ? `<div class="card">` + resumen.map(([nombre, count]) => `
+    <div class="resumen-row">
+      <div class="clan-n">${esc(nombre)}</div>
+      <div class="track"><div class="fill" style="width:${(count/maxResumen)*100}%"></div></div>
+      <div class="val">${fmtNum(count)}</div>
+    </div>`).join('') + `</div>` : '<div class="empty">Sin datos de directorio.</div>';
+  // FIX (05-sep-2026, pedido usuario — "panel tipo hoja Control con datos
+  // de Directorio, priorizando las cuadrículas"): a diferencia del bloque
+  // de arriba (solo conteo por clan), acá se pinta la cuadrícula J/V/S/D
+  // por cada Activo de Directorio. Pública — no pasa por
+  // cargarAportesInactivosSiAdmin()/esAdminLogueado(), se pinta para
+  // cualquier visitante igual que el resto de esta sección de la página.
+  // Reutiliza las clases .ai-cell*/.ai-total* del bloque de Inactivos
+  // (más abajo) para el mismo criterio visual de color.
+  // FIX (05-sep-2026, pedido usuario — "solo consideró ataques, falta
+  // Puntaje (fame) y barcos [...] Puntaje y Barcos son megacategorías
+  // igual que Ataques [...] los clanes no están en el orden establecido"):
+  // 1) Puntaje y Barcos NO son un valor único por jugador — son, igual
+  // que Ataques, un grupo J/V/S/D + Total (ver captura de la Hoja
+  // Control: "Puntaje" trae su propio Sem 1/Sem 2/Sem 3 con J/V/S/D/
+  // T.1/T.2/T.3). Acá se pinta solo la SEMANA ACTUAL de cada megacategoría
+  // (mismo alcance que ya tenía Ataques en esta cuadrícula), por eso cada
+  // fila espera f.puntaje = {j,v,s,d,total} y f.barcos = {j,v,s,d,total}
+  // (mismo shape que los campos planos j/v/s/d/total que Ataques ya usa,
+  // solo que agrupados bajo esas 2 llaves para no chocar de nombre). OJO:
+  // este dato por-jugador todavía no viaja en la respuesta actual del
+  // backend que se probó en esta sesión (no se subió Base.md); el
+  // `?.x ?? 0` de abajo evita que la cuadrícula se rompa mientras tanto,
+  // pero _getControlActivosSemanaActual() (08_Web_Endpoints.gs) necesita
+  // agregar esos 2 objetos a cada fila para que Puntaje/Barcos muestren el
+  // dato real en vez de "0". A diferencia de Ataques (0-4 intentos/día,
+  // con semáforo de color), los valores diarios de Puntaje/Barcos son
+  // puntos/unidades ganadas ese día (pueden ser cualquier número), así que
+  // sus celdas J/V/S/D/Total van con .ai-num, sin semáforo ni resaltado de
+  // Total=16. 2) las tarjetas ya no se ordenan alfabético (.sort() plano)
+  // sino con ordenClanIndex() (assets/common.js), el mismo orden fijo de
+  // la Familia que usa el resto del sitio.
+  const controlActivos = data.controlActivosSemanaActual || {};
+  const clanesControlActivos = Object.keys(controlActivos)
+    .sort((a, b) => ordenClanIndex(a) - ordenClanIndex(b));
+  const controlActivosSection = document.getElementById('controlActivosSection');
+  if (clanesControlActivos.length){
+    const claseCeldaCA = (n) => n >= 4 ? 'ai-cell ai-cell-full' : (n > 0 ? 'ai-cell ai-cell-part' : 'ai-cell ai-cell-zero');
+    // Genera las 5 celdas J/V/S/D/Total de una megacategoría. `conColor`
+    // activa el semáforo de .ai-cell (solo tiene sentido para Ataques,
+    // 0-4 intentos/día); Puntaje/Barcos van siempre con `conColor=false`.
+    const celdasMegacategoria = (m, gpClase, conColor) => {
+      const j = m?.j ?? 0, v = m?.v ?? 0, s = m?.s ?? 0, d = m?.d ?? 0, total = m?.total ?? 0;
+      const claseDia = (n) => `${gpClase} ${conColor ? claseCeldaCA(n) : 'ai-num'}`;
+      const claseTotal = `${gpClase} ai-total ${conColor && total >= 16 ? 'ai-total-full' : ''}`;
+      return `
+                <td class="${claseDia(j)}">${conColor ? j : fmtNum(j)}</td>
+                <td class="${claseDia(v)}">${conColor ? v : fmtNum(v)}</td>
+                <td class="${claseDia(s)}">${conColor ? s : fmtNum(s)}</td>
+                <td class="${claseDia(d)}">${conColor ? d : fmtNum(d)}</td>
+                <td class="${claseTotal}">${fmtNum(total)}</td>`;
+    };
+    document.getElementById('controlActivosWrap').innerHTML = clanesControlActivos.map(clanNombre => {
+      const filas = controlActivos[clanNombre];
+      return `
+        <div class="card ai-clan-card" data-clan="${esc(clanNombre)}" style="padding:16px;">
+          <h3>${esc(clanNombre)} <span class="text-faint" style="font-family:var(--f-mono); font-size:12px; font-weight:400;">(${filas.length} activo${filas.length === 1 ? '' : 's'})</span></h3>
+          <div class="table-scroll"><table class="tbl-activos-grid">
+            <thead>
+              <tr>
+                <th class="col-jugador" rowspan="2">Jugador</th>
+                <th class="ai-grp-atq" colspan="5">Ataques</th>
+                <th class="ai-grp-pje" colspan="5">Puntaje</th>
+                <th class="ai-grp-brc" colspan="5">Barcos</th>
+              </tr>
+              <tr>
+                <th class="ai-grp-atq">J</th><th class="ai-grp-atq">V</th><th class="ai-grp-atq">S</th><th class="ai-grp-atq">D</th><th class="ai-grp-atq">Total</th>
+                <th class="ai-grp-pje">J</th><th class="ai-grp-pje">V</th><th class="ai-grp-pje">S</th><th class="ai-grp-pje">D</th><th class="ai-grp-pje">Total</th>
+                <th class="ai-grp-brc">J</th><th class="ai-grp-brc">V</th><th class="ai-grp-brc">S</th><th class="ai-grp-brc">D</th><th class="ai-grp-brc">Total</th>
+              </tr>
+            </thead>
+            <tbody>${filas.map(f => `
+              <tr>
+                <td class="col-jugador">${esc(f.nombre || f.tag)}</td>
+                ${celdasMegacategoria({j:f.j, v:f.v, s:f.s, d:f.d, total:f.total}, 'ai-grp-atq', true)}
+                ${celdasMegacategoria(f.puntaje, 'ai-grp-pje', false)}
+                ${celdasMegacategoria(f.barcos, 'ai-grp-brc', false)}
+              </tr>`).join('')}
+            </tbody>
+          </table></div>
+          <!-- FIX (05-sep-2026, pedido usuario — "Mejor dentro del primer
+               cuadro, en cada clan, primero escribe las filas de los
+               activos y luego una sección para inactivos"): wrap vacío,
+               solo-admin, llenado por cargarAportesInactivosSiAdmin() más
+               abajo. Colapsa solo por completo (":empty" en el <style>)
+               cuando no hay sesión de admin o el clan no tiene inactivos
+               esta semana. -->
+          <div class="ai-inactivos-wrap" data-clan-inactivos="${esc(clanNombre)}"></div>
+        </div>`;
+    }).join('');
+    controlActivosSection.style.display = '';
+  } else {
+    controlActivosSection.style.display = 'none';
+  }
+  // "Ingresos Recientes" (antes acá, usando data.nuevos): MOVIDO a
+  // jugadores.html (pedido usuario, 04-sep-2026 — "Los ingresos recientes
+  // deben moverse a Directorio (al final)"). Esta página ya no pinta esa
+  // sección — ver cargarIngresosRecientes() en jugadores.html.
+  cargarMensajesGuerraSiAdmin(ctx);
+  cargarAportesInactivosSiAdmin(ctx);
+  document.getElementById('updatedAt').textContent =
+    'Última carga completa: ' + new Date().toLocaleString('es-PE');
+}
+
+/**
+ * cargarMensajesGuerraSiAdmin(ctx)
+ * FIX (04-sep-2026, pedido usuario — "se debe agregar botones para copiar
+ * los mensajes de guerra pero visibles solo para los admin"): reusa
+ * 'webAdminContenido' (mismo endpoint autenticado que ya usa admin.html,
+ * ver renderContenidoHtml()/_activarAccionesContenido() ahí) con
+ * categoria='Mensaje de Guerra' — el backend ya arma un item por clan
+ * (subcategoria 'Particular') más uno de 'Chat General' (ver
+ * generarTodosMensajes(), Base.md).
+ * FIX (05-sep-2026, pedido usuario — "en Guerra (lista de pendientes) solo
+ * hay que poner el mismo botón, pero ya no se va a mostrar todo el texto,
+ * solo el botón de copiar, así que debería agregar información sobre el
+ * clan"): antes esto vivía en una sección aparte (#mensajesGuerraAdmin,
+ * ya eliminada), con una tarjeta por clan: un <span> con el nombre del
+ * clan al lado de un botón genérico "⧉ Copiar". Ahora se integra
+ * directamente arriba de la tabla de "Pendientes de Atacar" (#msjGuerraWrap
+ * dentro de #pendSection) como una fila compacta de botones sueltos, SIN
+ * tarjeta ni label aparte — por eso cada botón lleva el nombre del clan
+ * metido en su propio texto ("⧉ Copiar — <Clan>"), para poder identificar
+ * cuál es cuál sin el label que ya no existe.
+ * No se pide nada ni se muestra nada si:
+ *   - no hay sesión de admin en este navegador (esAdminLogueado()), o
+ *   - no es día de guerra (ctx.esDiaGuerra) — 'Mensaje de Guerra' solo
+ *     existe en días de guerra, pedirlo en día de entrenamiento solo
+ *     devolvería vacío.
+ * Cualquier error (token vencido, etc.) se traga en silencio: esta fila de
+ * botones es un plus para admins, nunca debe romper la carga de la página
+ * pública para nadie. Al quedar vacía (wrap.innerHTML = '') no deja hueco
+ * ni espacio de más para quien no es admin.
+ */
+async function cargarMensajesGuerraSiAdmin(ctx){
+  const wrap = document.getElementById('msjGuerraWrap');
+  if (!ctx.esDiaGuerra || !esAdminLogueado()){ wrap.innerHTML = ''; return; }
+  try{
+    const data = await apiGetAuth('webAdminContenido', { categoria: 'Mensaje de Guerra' });
+    const opciones = (data && data.opciones) || [];
+    if (!opciones.length){ wrap.innerHTML = ''; return; }
+    wrap.innerHTML = opciones.map((o, i) => {
+      const etiqueta = esc(o.etiqueta || o.subcategoria || o.clan || ('Opción ' + (i + 1)));
+      return `<button type="button" class="btn-copiar-mg" data-idx="${i}" data-label="⧉ Copiar — ${etiqueta}">⧉ Copiar — ${etiqueta}</button>`;
+    }).join('');
+    wrap.querySelectorAll('.btn-copiar-mg').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const o = opciones[Number(btn.dataset.idx)];
+        const textoOriginal = btn.dataset.label;
+        try{
+          await navigator.clipboard.writeText(o.contenido || '');
+          btn.textContent = '✔ Copiado';
+          btn.classList.add('copiado');
+        }catch(err){
+          btn.textContent = 'No se pudo copiar';
+        }
+        setTimeout(() => { btn.textContent = textoOriginal; btn.classList.remove('copiado'); }, 1600);
+      });
+    });
+  }catch(err){
+    // Defensivo: sesión vencida u otro fallo — no romper el resto de la
+    // página pública por esto, la fila de botones simplemente no aparece.
+    wrap.innerHTML = '';
+  }
+}
+
+/**
+ * cargarAportesInactivosSiAdmin(ctx)
+ * FIX (05-sep-2026, pedido usuario — "Debajo de Pendientes, se debe
+ * agregar una sección de aportes a Guerra de miembros inactivos, por
+ * clan [...] esto sería solo para la semana actual [...] la referencia es
+ * la cuadrícula de la Hoja Control en Sheets"): pide 'webAportesInactivos'
+ * (endpoint autenticado aparte, NO viaja en webGuerraEnVivo — ver
+ * _webAportesInactivos()/_getAportesInactivosSemanaActual() en
+ * 08_Web_Endpoints.gs) y arma, por clan, una mini-cuadrícula
+ * Jugador/J/V/S/D/Total — mismo criterio visual de columnas que la hoja
+ * Control, pero acotada a un jugador pudiendo aparecer en MÁS DE UN clan
+ * (un inactivo puede aportar a 2+ clanes el mismo día), cosa que la
+ * cuadrícula de Control no contempla porque ahí cada Activo tiene un solo
+ * clan asignado. Solo J/V/S/D/Total — a diferencia de la tabla de Activos
+ * de arriba, acá no se pidió Puntaje/Barcos (el pedido original fue "así
+ * se puede ver cuáles son los aportes EXTRA de ataques con los que ha
+ * contado el clan").
+ * FIX (05-sep-2026, pedido usuario — "Mejor dentro del primer cuadro, en
+ * cada clan, primero escribe las filas de los activos y luego una sección
+ * para inactivos [...] así el mismo clan tiene su sección de activos y
+ * otra de inactivos"): antes esto pintaba una sección aparte
+ * (#aportesInactivosSection, ELIMINADA) debajo de "Pendientes de Atacar".
+ * Ahora inyecta el bloque de Inactivos de cada clan DENTRO de la misma
+ * tarjeta que ya pintó ese clan en "Cuadrícula de Activos" (buscando
+ * `.ai-inactivos-wrap[data-clan-inactivos="<clan>"]`, ver render() más
+ * arriba). Si un clan tiene inactivos pero ningún Activo (no tiene
+ * tarjeta propia todavía), se crea una tarjeta nueva para ese clan al
+ * final de #controlActivosWrap, respetando el mismo ordenClanIndex().
+ * Sigue sin pintarse nada si no hay sesión de admin (esAdminLogueado()) o
+ * no es día de guerra: en ese caso se limpian los wraps existentes (por si
+ * un admin cierra sesión sin recargar la página) y no se toca nada más.
+ * Cualquier error se traga en silencio, igual que
+ * cargarMensajesGuerraSiAdmin().
+ */
+async function cargarAportesInactivosSiAdmin(ctx){
+  const limpiarWraps = () => {
+    document.querySelectorAll('.ai-inactivos-wrap').forEach(w => { w.innerHTML = ''; });
+  };
+  if (!ctx.esDiaGuerra || !esAdminLogueado()){ limpiarWraps(); return; }
+  try{
+    const data = await apiGetAuth('webAportesInactivos', {});
+    const aportes = (data && data.ok && data.aportesInactivos) || {};
+    const clanes = Object.keys(aportes).sort((a, b) => ordenClanIndex(a) - ordenClanIndex(b));
+    if (!clanes.length){ limpiarWraps(); return; }
+
+    const claseCelda = (n) => n >= 4 ? 'ai-cell ai-cell-full' : (n > 0 ? 'ai-cell ai-cell-part' : 'ai-cell ai-cell-zero');
+    const bloqueHtml = (filas) => `
+      <div class="ai-inactivos-block">
+        <p class="ai-sub-label">🧟 Inactivos (${filas.length})</p>
+        <div class="table-scroll"><table>
+          <thead><tr><th class="col-jugador">Jugador</th><th>J</th><th>V</th><th>S</th><th>D</th><th>Total</th></tr></thead>
+          <tbody>${filas.map(f => `
+            <tr>
+              <td class="col-jugador">${esc(f.nombre || f.tag)}</td>
+              <td class="${claseCelda(f.j)}">${f.j}</td>
+              <td class="${claseCelda(f.v)}">${f.v}</td>
+              <td class="${claseCelda(f.s)}">${f.s}</td>
+              <td class="${claseCelda(f.d)}">${f.d}</td>
+              <td class="ai-total ${f.total >= 16 ? 'ai-total-full' : ''}">${f.total}</td>
+            </tr>`).join('')}
+          </tbody>
+        </table></div>
+      </div>`;
+
+    const controlActivosWrap = document.getElementById('controlActivosWrap');
+    let huboTarjetaNueva = false;
+    clanes.forEach(clanNombre => {
+      const filas = aportes[clanNombre];
+      if (!filas.length) return;
+      const wrap = controlActivosWrap.querySelector(`.ai-inactivos-wrap[data-clan-inactivos="${CSS.escape(clanNombre)}"]`);
+      if (wrap){
+        wrap.innerHTML = bloqueHtml(filas);
+        return;
+      }
+      // Clan sin Activos esta semana (sin tarjeta propia todavía en la
+      // cuadrícula de arriba) pero SÍ con inactivos que aportaron — se le
+      // crea una tarjeta nueva para que sus aportes no se pierdan.
+      huboTarjetaNueva = true;
+      const div = document.createElement('div');
+      div.innerHTML = `
+        <div class="card ai-clan-card" data-clan="${esc(clanNombre)}" style="padding:16px;">
+          <h3>${esc(clanNombre)} <span class="text-faint" style="font-family:var(--f-mono); font-size:12px; font-weight:400;">(0 activos)</span></h3>
+          <div class="ai-inactivos-wrap" data-clan-inactivos="${esc(clanNombre)}">${bloqueHtml(filas)}</div>
+        </div>`;
+      const tarjetaNueva = div.firstElementChild;
+      // Insertar en la posición correcta según ordenClanIndex, no siempre
+      // al final — busca la primera tarjeta existente que deba ir DESPUÉS
+      // de esta y la inserta justo antes; si ninguna calza, va al final.
+      const idxNueva = ordenClanIndex(clanNombre);
+      const siguiente = Array.from(controlActivosWrap.querySelectorAll('.ai-clan-card'))
+        .find(card => ordenClanIndex(card.dataset.clan) > idxNueva);
+      if (siguiente) controlActivosWrap.insertBefore(tarjetaNueva, siguiente);
+      else controlActivosWrap.appendChild(tarjetaNueva);
+    });
+    if (huboTarjetaNueva){
+      document.getElementById('controlActivosSection').style.display = '';
+    }
+  }catch(err){
+    // Defensivo: sesión vencida u otro fallo — no romper el resto de la
+    // página pública por esto, los bloques de Inactivos simplemente no
+    // aparecen (la Cuadrícula de Activos, que es pública, sigue intacta).
+    limpiarWraps();
+  }
+}
+
+cargar();
+setInterval(() => cargar(false), REFRESH_INTERVAL_MS);
+setInterval(actualizarAgoText, 1000);
+</script>
+</body>
+</html>
