@@ -451,7 +451,20 @@
   .ranking-row .rk-sub{display:flex; align-items:center; justify-content:space-between; gap:8px;}
   .ranking-row .rk-clan{font-family:var(--f-mono); font-size:10px; color:var(--text-faint); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0;}
   .ranking-row .rk-valor{font-family:var(--f-mono); color:var(--gold); font-size:12px; flex-shrink:0; white-space:nowrap;}
-  .cartas-list{display:flex; flex-wrap:wrap; gap:10px; margin-top:14px;}
+  /* CORRECCIÓN (05-sep-2026, pedido usuario — "sigue desalineado y las
+   * imágenes deben ser más grandes, moviendo los botones de calidad un
+   * poco a la derecha para que la imagen aproveche ese espacio"):
+   * .cartas-list pasa de flex-wrap (ancho de cada chip = su propio
+   * contenido, así que las columnas quedaban dentadas/desalineadas fila a
+   * fila, ver captura del usuario) a CSS Grid con 2 columnas de ancho
+   * IGUAL y fijo — cada fila del grid se alinea sola (misma altura para
+   * ambas tarjetas de esa fila, mismo borde izquierdo/derecho en todas
+   * las filas), que es justamente lo que pedía "alinear". En móvil baja a
+   * una sola columna (ver @media más abajo). */
+  .cartas-list{display:grid; grid-template-columns:repeat(2, 1fr); gap:10px; margin-top:14px;}
+  @media (max-width:680px){
+    .cartas-list{grid-template-columns:1fr;}
+  }
   /* FIX (04-sep-2026, pedido usuario — "falta insertar las imágenes de las
    * cartas y su costo, usa Elixir.webp"): el chip pasa de una sola línea
    * de texto a incluir el ícono de la carta (cc-img) y el costo de elixir
@@ -461,17 +474,38 @@
    * evolución o héroe"): el chip pasa de una sola fila a dos (cc-fila-1
    * con ícono+nombre+usos, cc-fila-2 con rareza/elixir/badges Héroe-
    * Evolución), por eso cambia de píldora (radius:999px) a esquinas
-   * redondeadas normales y ya no fuerza una sola línea. */
+   * redondeadas normales y ya no fuerza una sola línea.
+   * CORRECCIÓN (05-sep-2026, pedido usuario — "las imágenes deben ser más
+   * grandes, moviendo los botones de calidad un poco a la derecha y que
+   * la imagen aproveche ese espacio"): el chip pasa de una sola fila
+   * flexbox (ícono + texto + badges todos apretados en el mismo ancho) a
+   * un grid de 2 columnas: cc-img ahora ocupa su PROPIA columna a la
+   * izquierda, con el alto completo del chip (grid-row + align-self:
+   * stretch, ver cc-img más abajo) — así puede crecer bastante más grande
+   * sin empujar el texto. Todo el contenido de texto (nombre, usos,
+   * elixir, rareza, tipo, badges Héroe/Evolución) se agrupa ahora en un
+   * único contenedor .cc-content en la columna derecha (ver
+   * cargarEstadisticasCartas() en el <script> más abajo, arma
+   * .cc-fila-1/.cc-meta DENTRO de .cc-content) — eso es lo que "corre a
+   * la derecha" las píldoras: ya no comparten fila con la imagen, quedan
+   * apiladas debajo del nombre pero recortadas al ancho de la columna de
+   * texto, no al ancho completo del chip. */
   .carta-chip{
-    display:flex; flex-wrap:wrap; align-items:center; gap:5px 10px; padding:8px 14px 8px 8px;
+    display:grid; grid-template-columns:auto 1fr; align-items:stretch; gap:5px 12px; padding:8px 14px 8px 8px;
     border:1px solid var(--line); border-radius:14px; font-size:12px; color:var(--text-dim);
   }
-  .carta-chip .cc-img{width:28px; height:34px; object-fit:cover; border-radius:4px; flex-shrink:0; background:var(--bg-2);}
+  .carta-chip.carta-chip--sin-img{grid-template-columns:1fr;}
+  .carta-chip .cc-img{
+    width:52px; height:100%; min-height:62px; object-fit:cover; border-radius:8px;
+    background:var(--bg-2); align-self:stretch;
+  }
+  .carta-chip .cc-content{display:flex; flex-direction:column; justify-content:center; gap:5px; min-width:0;}
+  .carta-chip .cc-fila-1{display:flex; flex-wrap:wrap; align-items:center; gap:5px 10px;}
   .carta-chip b{color:var(--text);}
   .carta-chip .cc-usos{color:var(--gold); font-family:var(--f-mono);}
   .carta-chip .cc-elixir{display:inline-flex; align-items:center; gap:3px; color:var(--purple-light); font-family:var(--f-mono);}
   .carta-chip .cc-elixir img{width:13px; height:13px; vertical-align:-2px;}
-  .carta-chip .cc-meta{display:flex; align-items:center; gap:6px; flex-wrap:wrap; width:100%; margin-top:2px;}
+  .carta-chip .cc-meta{display:flex; align-items:center; gap:6px; flex-wrap:wrap;}
   .carta-chip .cc-rareza{
     font-family:var(--f-mono); font-size:10px; text-transform:uppercase; letter-spacing:.03em;
     padding:2px 7px; border-radius:999px; border:1px solid currentColor;
@@ -1654,16 +1688,20 @@ async function cargarEstadisticasCartas(){
       return;
     }
     wrap.innerHTML = data.top10.map((c, i) => `
-      <div class="carta-chip" data-icon-base="${esc(c.icon || '')}">
-        ${c.icon ? `<img class="cc-img" src="${esc(c.icon)}" alt="" loading="lazy" onerror="this.remove()">` : ''}
-        <span>${i + 1}.</span> <b>${esc(c.name)}</b>
-        <span class="cc-usos">${fmtNum(c.usos)} en mazo</span>
-        ${c.elixirCost != null ? `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">${fmtNum(c.elixirCost)}</span>` : ''}
-        <div class="cc-meta">
-          ${rarezaHtml(c.rarity)}
-          ${c.tipo ? `<span class="cc-tipo">${esc(c.tipo)}</span>` : ''}
-          ${c.hasHero ? `<button type="button" class="cc-badge cc-badge-btn" data-icon-variante="${esc(c.heroIcon || '')}" onclick="cambiarVarianteCarta(this)">🦸 Héroe</button>` : ''}
-          ${c.hasEvolution ? `<button type="button" class="cc-badge cc-badge-btn" data-icon-variante="${esc(c.evolutionIcon || '')}" onclick="cambiarVarianteCarta(this)">✨ Evolución</button>` : ''}
+      <div class="carta-chip${c.icon ? '' : ' carta-chip--sin-img'}" data-icon-base="${esc(c.icon || '')}">
+        ${c.icon ? `<img class="cc-img" src="${esc(c.icon)}" alt="" loading="lazy" onerror="const p=this.parentElement; this.remove(); if(p) p.classList.add('carta-chip--sin-img');">` : ''}
+        <div class="cc-content">
+          <div class="cc-fila-1">
+            <span>${i + 1}.</span> <b>${esc(c.name)}</b>
+            <span class="cc-usos">${fmtNum(c.usos)} en mazo</span>
+            ${c.elixirCost != null ? `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">${fmtNum(c.elixirCost)}</span>` : ''}
+          </div>
+          <div class="cc-meta">
+            ${rarezaHtml(c.rarity)}
+            ${c.tipo ? `<span class="cc-tipo">${esc(c.tipo)}</span>` : ''}
+            ${c.hasHero ? `<button type="button" class="cc-badge cc-badge-btn" data-icon-variante="${esc(c.heroIcon || '')}" onclick="cambiarVarianteCarta(this)">🦸 Héroe</button>` : ''}
+            ${c.hasEvolution ? `<button type="button" class="cc-badge cc-badge-btn" data-icon-variante="${esc(c.evolutionIcon || '')}" onclick="cambiarVarianteCarta(this)">✨ Evolución</button>` : ''}
+          </div>
         </div>
       </div>`).join('');
   }catch(err){
