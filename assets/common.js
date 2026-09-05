@@ -555,13 +555,15 @@ function _renderVistaInactivos(section, titulo, cuentas){
  * cuentas inactivas en general"). Conecta con el endpoint real del
  * backend (34_Web_API.gs, FASE 7, 29-ago-2026): 'webAdminCuentasInactivas'
  * (GET autenticado, vía apiGetAuth) — devuelve { ok, cuentas:[{tag,nombre,
- * clan}] }.
- * OJO backend: el contrato actual de 'webAdminCuentasInactivas' no manda
- * ningún campo que distinga si una cuenta es de un Administrador — se lee
- * defensivamente `c.esAdmin` (booleano) por si el backend llega a
- * agregarlo; hasta entonces, TODAS las cuentas caen en la tarjeta
- * "general" y la de "administradores" queda en 0, en vez de adivinar mal
- * quién es admin. Cada tarjeta es clicable y abre/cierra la misma vista
+ * clan,esAdmin}] }.
+ * FIX (05-sep-2026, pedido usuario — "Inactivos (Admin) sigue vacío"):
+ * comentario actualizado — el backend YA manda `esAdmin` desde el
+ * 02-sep-2026 (ver docblock de _webAdminCuentasInactivas(), 34_Web_API.gs);
+ * la tarjeta seguía en 0 por un bug de índices de columna en el backend
+ * (leía la hoja física Directorio con el ancho/esquema equivocado), ya
+ * corregido ahí — este archivo no necesitaba ningún cambio, la lectura
+ * defensiva de `c.esAdmin` de acá abajo ya estaba correcta y se deja tal
+ * cual. Cada tarjeta es clicable y abre/cierra la misma vista
  * inline (_renderVistaInactivos) — nunca muestra Celular ni ningún otro
  * dato sensible, solo nombre/tag/clan (+ RoyaleAPI/CWStats/Vetar cuando
  * corresponda, ver _filaInactivoHtml).
