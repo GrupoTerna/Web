@@ -438,19 +438,32 @@ function extItem(valor, label, esNumero){
   return `<div class="ext-item"><div class="v">${esc(txt)}</div><div class="k">${esc(label)}</div></div>`;
 }
 
-/* FIX (05-sep-2026, pedido usuario — "en los ataques [del Cara a cara],
-   agrega '/' y la cantidad de ataques que debería tener. Por ejemplo, hoy
-   viernes debería ser 4/8, mañana 4/12 y el domingo 4/16, ayer 4/4"):
-   variante de extItem() solo para "Ataques en la semana actual" — agrega
-   "/tope" cuando el backend manda un tope (guerraSemana.ataquesMax, ver
-   _calcAtaquesMaxSemana() en 34_Web_API.gs). En día de entrenamiento
-   (todavía no hay tope, ataquesMax llega en 0) se muestra el número solo,
-   igual que antes. */
+/* FIX (05-sep-2026, pedido usuario — "agrega '/' y la cantidad de ataques
+   que debería tener" — seguimiento el mismo día: "se supone que ya está en
+   el código pero no se muestra"): el "/tope" dependía ÚNICAMENTE de que el
+   backend mandara guerraSemana.ataquesMax (_calcAtaquesMaxSemana() en
+   34_Web_API.gs, basado en el periodIndex interno de Supercell) — si ese
+   campo llega en 0/ausente (backend no redesplegado, cache de clan
+   desactualizada, etc.) no había ningún respaldo y el "/tope" simplemente
+   no aparecía, que es justo lo que se ve en la captura. Se agrega
+   calcTopeAtaquesLocal() como respaldo: mismo cálculo (4 ataques por cada
+   día de guerra ya transcurrido, jue=1..dom=4) pero basado en el día de la
+   semana REAL del navegador en vez del periodIndex del backend — los
+   ejemplos del propio pedido ("hoy viernes... 4/8, mañana 4/12, domingo
+   4/16, ayer 4/4") ya estaban en días reales de calendario, no en jerga de
+   periodIndex. Se usa el valor del backend cuando SÍ llega (>0) por si el
+   día de guerra real de Supercell alguna vez no coincidiera con el
+   calendario; si no llega, se usa el cálculo local en su lugar. */
+function calcTopeAtaquesLocal(){
+  const dow = new Date().getDay(); // 0=dom, 1=lun, ..., 6=sáb
+  const diaGuerraNum = { 4:1, 5:2, 6:3, 0:4 }[dow]; // jue=1, vie=2, sáb=3, dom=4
+  return diaGuerraNum ? diaGuerraNum * 4 : 0; // lun/mar/mié: día de entrenamiento, sin tope
+}
 function extItemAtaques(guerraSemana, label){
   if (!guerraSemana) return '';
   const valor = guerraSemana.ataques;
   if (valor === undefined || valor === null || valor === '') return '';
-  const max = Number(guerraSemana.ataquesMax) || 0;
+  const max = Number(guerraSemana.ataquesMax) || calcTopeAtaquesLocal();
   const txt = max > 0 ? (fmtNum(valor) + '/' + fmtNum(max)) : fmtNum(valor);
   return `<div class="ext-item"><div class="v">${esc(txt)}</div><div class="k">${esc(label)}</div></div>`;
 }
@@ -579,11 +592,6 @@ function renderComparadorLado(jugador){
   if (!jugador) return '';
   const ext = jugador.extendido || {};
   const items = [
-    // FIX (05-sep-2026, pedido usuario — "Falta agregar la vigencia en el
-    // cara a cara"): el backend ya manda jugador.vigencia (mismo campo que
-    // usa el Directorio, ver fmtFechaCortaVigencia() más abajo en este
-    // archivo) desde _webPerfilJugador() — solo faltaba pintarlo acá.
-    extItem(jugador.vigencia ? fmtFechaCortaVigencia(jugador.vigencia) : '', 'Vigencia', false),
     extItem(jugador.copas, 'Copas', true),
     extItem(jugador.vGuerra, 'V. Guerra', true),
     extItem(jugador.torneos, 'Torneos', true),
@@ -606,10 +614,25 @@ function renderComparadorLado(jugador){
     extItem(ext.victorias3Coronas, '3 coronas', true),
     extItem(ext.rankingClan, 'Ranking en el clan', true)
   ].join('');
+  // FIX (05-sep-2026, pedido usuario — "la vigencia del cara a cara debe
+  // tener el formato que tiene en el perfil de miembro y debe ir a la
+  // derecha del nombre... con hora incluida"): antes la Vigencia salía
+  // como un cuadrito más del ext-grid (fecha sin hora); ahora se pinta
+  // junto al nombre con .perfil-cabecera/.stats-mini (mismo patrón visual
+  // que usa perfil.html para su Vigencia) y con fmtFechaConHoraVigencia()
+  // (fecha + hora) en vez de fmtFechaCortaVigencia() (solo fecha).
+  const vigenciaHtml = jugador.vigencia
+    ? `<div class="stats-mini"><span><b>${esc(fmtFechaConHoraVigencia(jugador.vigencia))}</b>Vigencia</span></div>`
+    : '';
   return `
     <div class="card comp-card">
-      <h3>${esc(jugador.nombre)}</h3>
-      <div class="comp-sub">${esc(jugador.clan)} · ${esc(jugador.rango)}</div>
+      <div class="perfil-cabecera">
+        <div>
+          <h3>${esc(jugador.nombre)}</h3>
+          <div class="comp-sub">${esc(jugador.clan)} · ${esc(jugador.rango)}</div>
+        </div>
+        ${vigenciaHtml}
+      </div>
       <div class="ext-grid" style="margin-top:14px;">${items}</div>
     </div>`;
 }
@@ -933,6 +956,24 @@ function fmtFechaCortaVigencia(v){
   const d = v instanceof Date ? v : new Date(v);
   if (isNaN(d.getTime())) return String(v);
   return d.toLocaleDateString('es-PE', { day:'2-digit', month:'short', year:'numeric' });
+}
+
+/** Fecha corta CON hora (ej. "05 set. 2026, 4:46 a. m."), mismo formato que
+ * fmtFechaCorta() de perfil.html.
+ * FIX (05-sep-2026, pedido usuario — "la vigencia del cara a cara debe
+ * tener el formato que tiene en el perfil de miembro... con hora
+ * incluida"): fmtFechaCortaVigencia() de arriba (la que usa el Directorio)
+ * solo pinta día/mes/año sin hora — para el cara a cara se necesita el
+ * mismo formato completo que ya usa perfil.html, así que se agrega este
+ * helper aparte en vez de tocar fmtFechaCortaVigencia() y así no afectar
+ * el formato que ya se ve en el Directorio. */
+function fmtFechaConHoraVigencia(v){
+  if (!v) return '—';
+  const d = v instanceof Date ? v : new Date(v);
+  if (isNaN(d.getTime())) return String(v);
+  const fecha = d.toLocaleDateString('es-PE', { day:'2-digit', month:'short', year:'numeric' });
+  const hora  = d.toLocaleTimeString('es-PE', { hour:'numeric', minute:'2-digit' });
+  return `${fecha}, ${hora}`;
 }
 
 function renderClanTabs(){
