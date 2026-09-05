@@ -499,9 +499,12 @@ document.getElementById('btnVerOtrasCuentas').addEventListener('click', function
  * las Temporada+Semana guardadas, no solo la actual) — solo admins.
  * Ver _webHistorialGuerraJugador() (21_HistorialGuerraJugador.gs).
  *
- * OJO — el dato es semanal (Temporada/Semana), no día por día: no hay una
- * columna de fecha real por fila, así que no se muestra "Fecha" en la
- * tabla (ver docblock del backend para el detalle de por qué).
+ * OJO — el dato base es semanal (Temporada/Semana), no día por día. La
+ * columna "Fecha" (FASE 2, 04-sep-2026, resolución del punto 2 pendiente)
+ * viene resuelta por el backend cruzando con Backup_Guerra.csv — ver
+ * _obtenerFechaCierrePorTemporadaSemana() (21_HistorialGuerraJugador.gs).
+ * Puede salir vacía si esa semana no tiene ninguna fila registrada para
+ * este tag en ese CSV (ej. temporadas muy viejas ya purgadas).
  */
 async function verHistorialGuerra(tag){
   const wrap = document.getElementById('mHistorialGuerraWrap');
@@ -522,6 +525,7 @@ async function verHistorialGuerra(tag){
       <table style="width:100%; border-collapse:collapse; font-family:var(--f-mono); font-size:12px;">
         <thead>
           <tr style="text-align:left; color:var(--text-dim);">
+            <th style="padding:6px 8px;">Fecha</th>
             <th style="padding:6px 8px;">Temporada</th>
             <th style="padding:6px 8px;">Semana</th>
             <th style="padding:6px 8px;">Clan</th>
@@ -534,6 +538,7 @@ async function verHistorialGuerra(tag){
         <tbody>
           ${registros.map(r => `
           <tr style="border-top:1px solid var(--border);">
+            <td style="padding:6px 8px;">${esc(r.fecha || '—')}</td>
             <td style="padding:6px 8px;">${esc(String(r.temporadaInterna ?? '—'))}</td>
             <td style="padding:6px 8px;">${esc(String(r.semana ?? '—'))}</td>
             <td style="padding:6px 8px;">${esc(r.clan || '—')}</td>
