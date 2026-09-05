@@ -461,11 +461,22 @@
     font-family:var(--f-mono); font-size:10px; text-transform:uppercase; letter-spacing:.03em;
     padding:2px 7px; border-radius:999px; border:1px solid currentColor;
   }
-  .carta-chip .cc-rareza[data-rareza="comun"]{color:var(--text-faint);}
-  .carta-chip .cc-rareza[data-rareza="rara"]{color:#4caf50;}
-  .carta-chip .cc-rareza[data-rareza="epica"]{color:#b26fe0;}
-  .carta-chip .cc-rareza[data-rareza="legendaria"]{color:#54c8f0;}
-  .carta-chip .cc-rareza[data-rareza="campeona"]{color:var(--gold);}
+  /* CORRECCIÓN (05-sep-2026, pedido usuario — colores reales de cada
+     calidad en Clash Royale): Común = azul, Especial = naranja, Épica =
+     rosa (color del elixir), Legendaria = degradado verde-rosa, Campeón =
+     letras doradas. Antes "rara"/"campeona" no correspondían a ninguna
+     calidad real del juego (ver RAREZA_ES más abajo en el <script>). */
+  .carta-chip .cc-rareza[data-rareza="comun"]{color:#4da6ff;}
+  .carta-chip .cc-rareza[data-rareza="especial"]{color:#ff9a3d;}
+  .carta-chip .cc-rareza[data-rareza="epica"]{color:#e64bd1;}
+  .carta-chip .cc-rareza[data-rareza="legendaria"]{
+    /* Degradado verde-rosa: el borde (currentColor) no puede heredar un
+       degradado, así que se fija aparte con border-color. */
+    background:linear-gradient(90deg, #6ee7a0, #ff7cf0);
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    border-color:#ff7cf0;
+  }
+  .carta-chip .cc-rareza[data-rareza="campeon"]{color:var(--gold);}
   .carta-chip .cc-badge{
     font-family:var(--f-mono); font-size:10px; padding:2px 7px; border-radius:999px;
     background:var(--bg-2); color:var(--text-faint);
@@ -1530,12 +1541,20 @@ async function cargarRankings(){
  * del span (sin tildes, minúscula) es el que usa el CSS .cc-rareza para
  * pintar cada rareza con su color (ver <style> más arriba).
  */
+/* CORRECCIÓN (05-sep-2026, pedido usuario — "se está traduciendo
+   literalmente las calidades de las cartas, no existe 'rara' como tal, su
+   equivalente es 'Especial'"): las 5 calidades reales de Clash Royale son
+   Común, Especial, Épica, Legendaria y Campeón. La clave del objeto (rare/
+   champion) se deja tal cual porque es el valor que manda la API de
+   Supercell en 'rarity' (Common/Rare/Epic/Legendary/Champion) — solo se
+   corrige el texto visible y la clave CSS (data-rareza) de cada una.
+   "Campeona" también se corrige a "Campeón" (término correcto del juego). */
 const RAREZA_ES = {
   common:    { texto: 'Común',      clave: 'comun' },
-  rare:      { texto: 'Rara',       clave: 'rara' },
+  rare:      { texto: 'Especial',   clave: 'especial' },
   epic:      { texto: 'Épica',      clave: 'epica' },
   legendary: { texto: 'Legendaria', clave: 'legendaria' },
-  champion:  { texto: 'Campeona',   clave: 'campeona' }
+  champion:  { texto: 'Campeón',    clave: 'campeon' }
 };
 function rarezaHtml(rarity){
   const info = RAREZA_ES[String(rarity || '').toLowerCase()];
