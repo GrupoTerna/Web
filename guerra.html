@@ -416,6 +416,28 @@ async function cargar(manual){
     if(refreshBtn){ refreshBtn.classList.remove('spinning'); refreshBtn.disabled = false; }
   }
 }
+/**
+ * claseCeldaCA(n) / celdasMegacategoria(m, gpClase, conColor)
+ * FIX (05-sep-2026, pedido usuario — "los inactivos estaban trayendo solo
+ * la categoría ataques, faltaba puntaje y barcos"): antes vivían como
+ * const LOCALES dentro de render() (solo para la Cuadrícula de Activos).
+ * Se hoistean a nivel de módulo para que cargarAportesInactivosSiAdmin()
+ * (más abajo) pueda pintar el mismo bloque de 3 megacategorías
+ * (Ataques/Puntaje/Barcos) para Inactivos sin duplicar esta lógica.
+ */
+function claseCeldaCA(n){ return n >= 4 ? 'ai-cell ai-cell-full' : (n > 0 ? 'ai-cell ai-cell-part' : 'ai-cell ai-cell-zero'); }
+function celdasMegacategoria(m, gpClase, conColor){
+  const j = m?.j ?? 0, v = m?.v ?? 0, s = m?.s ?? 0, d = m?.d ?? 0, total = m?.total ?? 0;
+  const claseDia = (n) => `${gpClase} ${conColor ? claseCeldaCA(n) : 'ai-num'}`;
+  const claseTotal = `${gpClase} ai-total ${conColor && total >= 16 ? 'ai-total-full' : ''}`;
+  return `
+                <td class="${claseDia(j)}">${conColor ? j : fmtNum(j)}</td>
+                <td class="${claseDia(v)}">${conColor ? v : fmtNum(v)}</td>
+                <td class="${claseDia(s)}">${conColor ? s : fmtNum(s)}</td>
+                <td class="${claseDia(d)}">${conColor ? d : fmtNum(d)}</td>
+                <td class="${claseTotal}">${fmtNum(total)}</td>`;
+}
+
 function render(data){
   document.getElementById('status').style.display = 'none';
   document.getElementById('content').style.display = 'block';
@@ -532,21 +554,8 @@ function render(data){
     .sort((a, b) => ordenClanIndex(a) - ordenClanIndex(b));
   const controlActivosSection = document.getElementById('controlActivosSection');
   if (clanesControlActivos.length){
-    const claseCeldaCA = (n) => n >= 4 ? 'ai-cell ai-cell-full' : (n > 0 ? 'ai-cell ai-cell-part' : 'ai-cell ai-cell-zero');
-    // Genera las 5 celdas J/V/S/D/Total de una megacategoría. `conColor`
-    // activa el semáforo de .ai-cell (solo tiene sentido para Ataques,
-    // 0-4 intentos/día); Puntaje/Barcos van siempre con `conColor=false`.
-    const celdasMegacategoria = (m, gpClase, conColor) => {
-      const j = m?.j ?? 0, v = m?.v ?? 0, s = m?.s ?? 0, d = m?.d ?? 0, total = m?.total ?? 0;
-      const claseDia = (n) => `${gpClase} ${conColor ? claseCeldaCA(n) : 'ai-num'}`;
-      const claseTotal = `${gpClase} ai-total ${conColor && total >= 16 ? 'ai-total-full' : ''}`;
-      return `
-                <td class="${claseDia(j)}">${conColor ? j : fmtNum(j)}</td>
-                <td class="${claseDia(v)}">${conColor ? v : fmtNum(v)}</td>
-                <td class="${claseDia(s)}">${conColor ? s : fmtNum(s)}</td>
-                <td class="${claseDia(d)}">${conColor ? d : fmtNum(d)}</td>
-                <td class="${claseTotal}">${fmtNum(total)}</td>`;
-    };
+    // claseCeldaCA()/celdasMegacategoria() ahora son helpers globales (ver
+    // arriba de render(), hoisteados para que Inactivos también los use).
     document.getElementById('controlActivosWrap').innerHTML = clanesControlActivos.map(clanNombre => {
       const filas = controlActivos[clanNombre];
       return `
@@ -669,15 +678,22 @@ async function cargarMensajesGuerraSiAdmin(ctx){
  * la cuadrícula de la Hoja Control en Sheets"): pide 'webAportesInactivos'
  * (endpoint autenticado aparte, NO viaja en webGuerraEnVivo — ver
  * _webAportesInactivos()/_getAportesInactivosSemanaActual() en
- * 08_Web_Endpoints.gs) y arma, por clan, una mini-cuadrícula
- * Jugador/J/V/S/D/Total — mismo criterio visual de columnas que la hoja
- * Control, pero acotada a un jugador pudiendo aparecer en MÁS DE UN clan
- * (un inactivo puede aportar a 2+ clanes el mismo día), cosa que la
- * cuadrícula de Control no contempla porque ahí cada Activo tiene un solo
- * clan asignado. Solo J/V/S/D/Total — a diferencia de la tabla de Activos
- * de arriba, acá no se pidió Puntaje/Barcos (el pedido original fue "así
- * se puede ver cuáles son los aportes EXTRA de ataques con los que ha
- * contado el clan").
+ * 08_Web_Endpoints.gs) y arma, por clan, una mini-cuadrícula con las
+ * mismas 3 megacategorías que la Cuadrícula de Activos (Ataques/Puntaje/
+ * Barcos, cada una J/V/S/D/Total) — mismo criterio visual de columnas que
+ * la hoja Control, pero acotada a un jugador pudiendo aparecer en MÁS DE
+ * UN clan (un inactivo puede aportar a 2+ clanes el mismo día), cosa que
+ * la cuadrícula de Control no contempla porque ahí cada Activo tiene un
+ * solo clan asignado.
+ * FIX (05-sep-2026, pedido usuario — "los inactivos estaban trayendo solo
+ * la categoría ataques, faltaba puntaje y barcos"): antes esta tabla solo
+ * traía Ataques (J/V/S/D/Total) — el pedido original había sido "así se
+ * puede ver cuáles son los aportes EXTRA de ataques con los que ha
+ * contado el clan", pero no cubría Puntaje/Barcos. Ahora sí trae las 3,
+ * igual que Activos (ver _getAportesInactivosSemanaActual() en
+ * 08_Web_Endpoints.gs y bloqueHtml() más abajo). El criterio de "quién
+ * aparece" (filtro por total de ATAQUES > 0, no de Puntaje/Barcos) no
+ * cambió — sigue siendo "aportó al menos 1 ataque esta semana".
  * FIX (05-sep-2026, pedido usuario — "Mejor dentro del primer cuadro, en
  * cada clan, primero escribe las filas de los activos y luego una sección
  * para inactivos [...] así el mismo clan tiene su sección de activos y
@@ -706,20 +722,39 @@ async function cargarAportesInactivosSiAdmin(ctx){
     const clanes = Object.keys(aportes).sort((a, b) => ordenClanIndex(a) - ordenClanIndex(b));
     if (!clanes.length){ limpiarWraps(); return; }
 
-    const claseCelda = (n) => n >= 4 ? 'ai-cell ai-cell-full' : (n > 0 ? 'ai-cell ai-cell-part' : 'ai-cell ai-cell-zero');
+    // FIX (05-sep-2026, pedido usuario — "los inactivos estaban trayendo
+    // solo la categoría ataques, faltaba puntaje y barcos"): antes esta
+    // tabla solo tenía Jugador/J/V/S/D/Total (Ataques). Ahora pinta las
+    // mismas 3 megacategorías (Ataques/Puntaje/Barcos) que ya tiene la
+    // Cuadrícula de Activos de arriba — mismo <thead> de 2 filas y mismos
+    // helpers globales claseCeldaCA()/celdasMegacategoria() (hoisteados
+    // arriba de render(), ver comentario ahí), para no duplicar el criterio
+    // visual entre Activos e Inactivos. Requiere que cada fila `f` traiga
+    // f.puntaje/f.barcos como {j,v,s,d,total} — ver
+    // _getAportesInactivosSemanaActual() (08_Web_Endpoints.gs).
     const bloqueHtml = (filas) => `
       <div class="ai-inactivos-block">
         <p class="ai-sub-label">🧟 Inactivos (${filas.length})</p>
-        <div class="table-scroll"><table>
-          <thead><tr><th class="col-jugador">Jugador</th><th>J</th><th>V</th><th>S</th><th>D</th><th>Total</th></tr></thead>
+        <div class="table-scroll"><table class="tbl-activos-grid">
+          <thead>
+            <tr>
+              <th class="col-jugador" rowspan="2">Jugador</th>
+              <th class="ai-grp-atq" colspan="5">Ataques</th>
+              <th class="ai-grp-pje" colspan="5">Puntaje</th>
+              <th class="ai-grp-brc" colspan="5">Barcos</th>
+            </tr>
+            <tr>
+              <th class="ai-grp-atq">J</th><th class="ai-grp-atq">V</th><th class="ai-grp-atq">S</th><th class="ai-grp-atq">D</th><th class="ai-grp-atq">Total</th>
+              <th class="ai-grp-pje">J</th><th class="ai-grp-pje">V</th><th class="ai-grp-pje">S</th><th class="ai-grp-pje">D</th><th class="ai-grp-pje">Total</th>
+              <th class="ai-grp-brc">J</th><th class="ai-grp-brc">V</th><th class="ai-grp-brc">S</th><th class="ai-grp-brc">D</th><th class="ai-grp-brc">Total</th>
+            </tr>
+          </thead>
           <tbody>${filas.map(f => `
             <tr>
               <td class="col-jugador">${esc(f.nombre || f.tag)}</td>
-              <td class="${claseCelda(f.j)}">${f.j}</td>
-              <td class="${claseCelda(f.v)}">${f.v}</td>
-              <td class="${claseCelda(f.s)}">${f.s}</td>
-              <td class="${claseCelda(f.d)}">${f.d}</td>
-              <td class="ai-total ${f.total >= 16 ? 'ai-total-full' : ''}">${f.total}</td>
+              ${celdasMegacategoria({j:f.j, v:f.v, s:f.s, d:f.d, total:f.total}, 'ai-grp-atq', true)}
+              ${celdasMegacategoria(f.puntaje, 'ai-grp-pje', false)}
+              ${celdasMegacategoria(f.barcos, 'ai-grp-brc', false)}
             </tr>`).join('')}
           </tbody>
         </table></div>
