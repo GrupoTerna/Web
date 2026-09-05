@@ -147,7 +147,7 @@
             <span><b id="mCopas">0</b>Copas</span>
             <span><b id="mVGuerra">0</b>V. Guerra</span>
             <span><b id="mTorneos">0</b>Torneos</span>
-            <span><b id="mAtaques">0</b>Ataques/sem</span>
+            <span><b id="mAtaques">0</b>Ataques en la semana actual</span>
             <!-- FIX (03-sep-2026, pedido usuario — "Vigencia" (Última
                  conexión), dato de la hoja Directorio: "eso se debe
                  incluir también en el perfil de los jugadores"): oculto
@@ -204,15 +204,23 @@
 <script>
 const TAG_PERFIL = normalizarTag(new URLSearchParams(location.search).get('tag') || '');
 
-/** Fecha corta "DD-mmm" (ej. "27-ago") para "Vigencia" — mismo patrón que
- * fmtDiaMes() de guerra.html. Si el valor no es una fecha parseable (el
- * backend podría mandar ya un texto formateado), se muestra tal cual en
- * vez de "—", para no perder información. */
+/** Fecha corta con hora (ej. "27 ago 2026, 9:45 a.m.") para "Vigencia".
+ * FIX (04-sep-2026, pedido usuario — "agrega la hora a la vigencia"): antes
+ * solo mostraba día/mes/año (mismo patrón que fmtDiaMes() de guerra.html),
+ * perdiendo la hora que el backend SÍ manda (columna DC.VIGENCIA de
+ * Directorio se guarda con hora completa, ver setNumberFormat con
+ * 'h:mm:ss am/pm' en 11_DirectorioSheet.gs/13_Directorio_Inactivos_
+ * Vetados.gs) — el dato ya viaja completo en el JSON, solo faltaba
+ * mostrarlo. Si el valor no es una fecha parseable (el backend podría
+ * mandar ya un texto formateado), se muestra tal cual en vez de "—", para
+ * no perder información. */
 function fmtFechaCorta(v){
   if (!v) return '—';
   const d = v instanceof Date ? v : new Date(v);
   if (isNaN(d.getTime())) return String(v);
-  return d.toLocaleDateString('es-PE', { day:'2-digit', month:'short', year:'numeric' });
+  const fecha = d.toLocaleDateString('es-PE', { day:'2-digit', month:'short', year:'numeric' });
+  const hora  = d.toLocaleTimeString('es-PE', { hour:'numeric', minute:'2-digit' });
+  return `${fecha}, ${hora}`;
 }
 
 function campoMinTSegunRango(rango){
@@ -253,7 +261,7 @@ function renderExtendido(ext){
   const wrap = document.getElementById('mExtWrap');
   if (!ext){ wrap.innerHTML = ''; return; }
   let items = '';
-  items += extItem(ext.nivelXp, 'Nivel', true);
+  items += extItem(ext.nivelXp, 'Nivel de XP', true);
   items += extItem(ext.nivelCartas, 'Nivel de cartas', true);
   items += extItem(ext.copasMax, 'Copas máx.', true);
   items += extItem(ext.arena, 'Arena', false);
@@ -267,8 +275,8 @@ function renderExtendido(ext){
   items += extItem(ext.cartasTorneos, 'Cartas de torneos', true);
   items += extItem(ext.emotes, 'Emotes', true);
   items += extItem(ext.banners, 'Banners', true);
-  items += extItem(ext.donacionesRecibidas, 'Donac. recibidas', true);
-  items += extItem(ext.donacionesRealizadas, 'Donac. hechas', true);
+  items += extItem(ext.donacionesRecibidas, 'Donaciones recibidas', true);
+  items += extItem(ext.donacionesRealizadas, 'Donaciones hechas', true);
   items += extItem(ext.rankingClan, 'Ranking en el clan', true);
 
   let camino = '';
@@ -311,22 +319,54 @@ function renderRankingChart(ext){
   const ordenados = historial.slice().sort((a,b) => String(a.semana).localeCompare(String(b.semana)));
   const valores = ordenados.map(h => Number(h.ranking));
   const max = Math.max(...valores), min = Math.min(...valores);
-  const W = 640, H = 200, PAD = 28;
-  const stepX = ordenados.length > 1 ? (W - PAD*2) / (ordenados.length - 1) : 0;
+  const W = 640, H = 200, PAD_L = 34, PAD_R = 12, PAD_TOP = 14, PAD_BOTTOM = 28;
+  const anchoUtil = W - PAD_L - PAD_R;
+  const stepX = ordenados.length > 1 ? anchoUtil / (ordenados.length - 1) : 0;
   const escalaY = v => {
-    if (max === min) return H/2;
+    if (max === min) return PAD_TOP + (H - PAD_TOP - PAD_BOTTOM)/2;
     // Ranking: 1 es el MEJOR puesto, así que el eje se invierte (menor = más arriba).
-    return PAD + ((v - min) / (max - min)) * (H - PAD*2);
+    return PAD_TOP + ((v - min) / (max - min)) * (H - PAD_TOP - PAD_BOTTOM);
   };
-  const puntos = valores.map((v,i) => `${PAD + i*stepX},${escalaY(v)}`).join(' ');
-  const etiquetas = ordenados.map(h => esc(String(h.semana)));
+  const puntos = valores.map((v,i) => `${PAD_L + i*stepX},${escalaY(v)}`).join(' ');
+
+  /* FIX (04-sep-2026, pedido usuario — "las gráficas... con ese tamaño no
+   * se ve nada" / "ya hay gráfica, pero no se entiende nada"): esta
+   * gráfica dibujaba UNA etiqueta de semana por punto sin importar cuántos
+   * puntos hubiera, así que con varias decenas de semanas las etiquetas
+   * quedaban todas superpuestas e ilegibles (una sola mancha de texto). Y
+   * al no tener ninguna referencia numérica del eje vertical, tampoco se
+   * podía saber a qué puesto correspondía cada altura de línea — el único
+   * dato visible era el texto ilegible de abajo.
+   * Ahora:
+   *   1) Como máximo ~8 etiquetas de semana, elegidas con un paso fijo
+   *      (siempre se incluye la primera y la última), en vez de una por
+   *      punto.
+   *   2) Se agregan los valores de puesto MÁXIMO (peor) y MÍNIMO (mejor)
+   *      como referencia del eje Y, a la izquierda, más una línea guía
+   *      punteada horizontal en cada extremo. */
+  const maxEtiquetas = 8;
+  const pasoEtiqueta = ordenados.length > maxEtiquetas
+    ? Math.ceil((ordenados.length - 1) / (maxEtiquetas - 1))
+    : 1;
+  const etiquetasVisibles = ordenados.map((h, i) => {
+    const esUltimo = i === ordenados.length - 1;
+    return (i % pasoEtiqueta === 0 || esUltimo) ? esc(String(h.semana)) : '';
+  });
+
+  const yMax = escalaY(max); // puesto más alto numéricamente = peor puesto = línea de abajo
+  const yMin = escalaY(min); // puesto más bajo numéricamente = mejor puesto = línea de arriba
+
   wrap.innerHTML = `
     <svg viewBox="0 0 ${W} ${H+24}" style="width:100%; height:auto; margin-top:8px;">
+      <line x1="${PAD_L}" y1="${yMin}" x2="${W-PAD_R}" y2="${yMin}" stroke="var(--border,#333)" stroke-width="1" stroke-dasharray="3,4"/>
+      <line x1="${PAD_L}" y1="${yMax}" x2="${W-PAD_R}" y2="${yMax}" stroke="var(--border,#333)" stroke-width="1" stroke-dasharray="3,4"/>
+      <text x="2" y="${yMin+3}" font-size="10" fill="var(--text-faint,#888)" font-family="var(--f-mono)">#${esc(String(min))}</text>
+      <text x="2" y="${yMax+3}" font-size="10" fill="var(--text-faint,#888)" font-family="var(--f-mono)">#${esc(String(max))}</text>
       <polyline points="${puntos}" fill="none" stroke="var(--purple-light, #c084fc)" stroke-width="2.5"/>
-      ${valores.map((v,i) => `<circle cx="${PAD + i*stepX}" cy="${escalaY(v)}" r="4" fill="var(--purple-light, #c084fc)"/>`).join('')}
-      ${valores.map((v,i) => `<text x="${PAD + i*stepX}" y="${H+18}" font-size="10" fill="var(--text-faint,#888)" text-anchor="middle" font-family="var(--f-mono)">${etiquetas[i]}</text>`).join('')}
+      ${valores.map((v,i) => `<circle cx="${PAD_L + i*stepX}" cy="${escalaY(v)}" r="4" fill="var(--purple-light, #c084fc)"/>`).join('')}
+      ${etiquetasVisibles.map((t,i) => t ? `<text x="${PAD_L + i*stepX}" y="${H+18}" font-size="10" fill="var(--text-faint,#888)" text-anchor="middle" font-family="var(--f-mono)">${t}</text>` : '').join('')}
     </svg>
-    <div class="text-faint" style="font-family:var(--f-mono); font-size:11px; margin-top:4px;">Menor número = mejor puesto en el clan.</div>`;
+    <div class="text-faint" style="font-family:var(--f-mono); font-size:11px; margin-top:4px;">Menor número = mejor puesto en el clan. Líneas punteadas: mejor puesto (#${esc(String(min))}) y peor puesto (#${esc(String(max))}) del historial mostrado.</div>`;
 }
 
 // adminPuedeVetar() ahora vive en assets/common.js (1-sep-2026, reutilizada
