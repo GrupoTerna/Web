@@ -115,6 +115,25 @@
   }
   .msj-guerra-row .btn-copiar-mg:hover{border-color:var(--purple); color:var(--purple-light); background:rgba(162,57,255,.2);}
   .msj-guerra-row .btn-copiar-mg.copiado{color:var(--ok); border-color:var(--ok);}
+
+  /* FIX (05-sep-2026, pedido usuario — "Debajo de Pendientes, se debe
+     agregar una sección de aportes a Guerra de miembros inactivos, por
+     clan [...] la referencia es la cuadrícula de la Hoja Control en
+     Sheets"): panel admin-only, debajo de "Pendientes de Atacar". Cada
+     clan es una tarjeta con una mini-tabla Jugador/J/V/S/D/Total, mismo
+     criterio de color que la cuadrícula de Control (0 ataques = tenue/rojizo,
+     1-3 = dorado/parcial, 4 = verde/completo; Total=16 se resalta aparte).
+     Arranca oculto y solo se pinta si hay sesión de admin activa
+     (esAdminLogueado(), ver cargarAportesInactivosSiAdmin() más abajo). */
+  #aportesInactivosSection{display:none;}
+  .ai-clan-card{margin-bottom:18px;}
+  .ai-clan-card h3{font-size:15px; margin:0 0 10px; color:var(--purple-light);}
+  .ai-cell{text-align:center; font-family:var(--f-mono); font-weight:700; border-radius:4px; padding:2px 0;}
+  .ai-cell-zero{color:var(--text-dim); opacity:.5;}
+  .ai-cell-part{color:var(--gold);}
+  .ai-cell-full{color:var(--ok);}
+  .ai-total{font-weight:700;}
+  .ai-total-full{color:var(--ok); text-shadow:0 0 8px rgba(16,185,129,.4);}
 </style>
 </head>
 <body data-page="guerra">
@@ -203,6 +222,21 @@
            no ocupa espacio. -->
       <div class="msj-guerra-row" id="msjGuerraWrap"></div>
       <div id="pendWrap" style="margin-top:20px;"></div>
+    </section>
+
+    <!-- FIX (05-sep-2026, pedido usuario — "Debajo de Pendientes, se debe
+         agregar una sección de aportes a Guerra de miembros inactivos, por
+         clan [...] la referencia es la cuadrícula de la Hoja Control en
+         Sheets"): solo visible para admins logueados (mismo criterio que
+         la fila de botones de arriba), y solo si es día de guerra — ver
+         cargarAportesInactivosSiAdmin() más abajo. Arranca oculta
+         (display:none en el <style> de arriba). -->
+    <section id="aportesInactivosSection" style="padding:24px 0;">
+      <div class="sec-head" style="border-bottom:1px solid var(--line); padding-bottom:12px;">
+        <h2 style="font-size:22px;">🧟 Aportes de Inactivos a la Guerra</h2>
+        <span class="text-faint" style="font-family:var(--f-mono); font-size:12px;">Semana actual · Solo visible para administradores</span>
+      </div>
+      <div id="aportesInactivosWrap" style="margin-top:20px;"></div>
     </section>
 
     <!-- "Ingresos Recientes" (nuevo-grid): MOVIDO a jugadores.html, al
@@ -392,6 +426,7 @@ function render(data){
   // deben moverse a Directorio (al final)"). Esta página ya no pinta esa
   // sección — ver cargarIngresosRecientes() en jugadores.html.
   cargarMensajesGuerraSiAdmin(ctx);
+  cargarAportesInactivosSiAdmin(ctx);
   document.getElementById('updatedAt').textContent =
     'Última carga completa: ' + new Date().toLocaleString('es-PE');
 }
@@ -455,6 +490,63 @@ async function cargarMensajesGuerraSiAdmin(ctx){
     // Defensivo: sesión vencida u otro fallo — no romper el resto de la
     // página pública por esto, la fila de botones simplemente no aparece.
     wrap.innerHTML = '';
+  }
+}
+
+/**
+ * cargarAportesInactivosSiAdmin(ctx)
+ * FIX (05-sep-2026, pedido usuario — "Debajo de Pendientes, se debe
+ * agregar una sección de aportes a Guerra de miembros inactivos, por
+ * clan [...] esto sería solo para la semana actual [...] la referencia es
+ * la cuadrícula de la Hoja Control en Sheets"): pide 'webAportesInactivos'
+ * (endpoint autenticado aparte, NO viaja en webGuerraEnVivo — ver
+ * _webAportesInactivos()/_getAportesInactivosSemanaActual() en
+ * 08_Web_Endpoints.gs) y pinta, por clan, una mini-cuadrícula
+ * Jugador/J/V/S/D/Total — mismo criterio visual de columnas que la hoja
+ * Control, pero acotada a un jugador pudiendo aparecer en MÁS DE UN clan
+ * (un inactivo puede aportar a 2+ clanes el mismo día), cosa que la
+ * cuadrícula de Control no contempla porque ahí cada Activo tiene un solo
+ * clan asignado.
+ * No se pide nada ni se muestra nada si no hay sesión de admin
+ * (esAdminLogueado()) o no es día de guerra. Cualquier error se traga en
+ * silencio, igual que cargarMensajesGuerraSiAdmin().
+ */
+async function cargarAportesInactivosSiAdmin(ctx){
+  const section = document.getElementById('aportesInactivosSection');
+  if (!ctx.esDiaGuerra || !esAdminLogueado()){ section.style.display = 'none'; return; }
+  try{
+    const data = await apiGetAuth('webAportesInactivos', {});
+    const aportes = (data && data.ok && data.aportesInactivos) || {};
+    const clanes = Object.keys(aportes).sort();
+    if (!clanes.length){ section.style.display = 'none'; return; }
+
+    const claseCelda = (n) => n >= 4 ? 'ai-cell ai-cell-full' : (n > 0 ? 'ai-cell ai-cell-part' : 'ai-cell ai-cell-zero');
+    const wrap = document.getElementById('aportesInactivosWrap');
+    wrap.innerHTML = clanes.map(clanNombre => {
+      const filas = aportes[clanNombre];
+      return `
+        <div class="card ai-clan-card" style="padding:16px;">
+          <h3>${esc(clanNombre)} <span class="text-faint" style="font-family:var(--f-mono); font-size:12px; font-weight:400;">(${filas.length} inactivo${filas.length === 1 ? '' : 's'})</span></h3>
+          <div class="table-scroll"><table>
+            <thead><tr><th>Jugador</th><th>J</th><th>V</th><th>S</th><th>D</th><th>Total</th></tr></thead>
+            <tbody>${filas.map(f => `
+              <tr>
+                <td>${esc(f.nombre || f.tag)}</td>
+                <td class="${claseCelda(f.j)}">${f.j}</td>
+                <td class="${claseCelda(f.v)}">${f.v}</td>
+                <td class="${claseCelda(f.s)}">${f.s}</td>
+                <td class="${claseCelda(f.d)}">${f.d}</td>
+                <td class="ai-total ${f.total >= 16 ? 'ai-total-full' : ''}">${f.total}</td>
+              </tr>`).join('')}
+            </tbody>
+          </table></div>
+        </div>`;
+    }).join('');
+    section.style.display = '';
+  }catch(err){
+    // Defensivo: sesión vencida u otro fallo — no romper el resto de la
+    // página pública por esto, la sección simplemente no aparece.
+    section.style.display = 'none';
   }
 }
 
