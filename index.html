@@ -359,6 +359,22 @@
   .linechart-legend{display:flex; flex-wrap:wrap; gap:12px 20px; margin-bottom:16px; padding-bottom:16px; border-bottom:1px solid var(--line);}
   .linechart-legend-item{display:flex; align-items:center; gap:7px; font-family:var(--f-mono); font-size:13px; color:var(--text-dim);}
   .linechart-legend-dot{width:11px; height:11px; border-radius:50%; flex-shrink:0;}
+  /* FIX (04-sep-2026, pedido usuario — "en el código ya se agrupan los
+     miembros por clan en las gráficas pero visualmente no sucede"): el
+     ORDEN de 'miembros' ya llegaba agrupado por clan (cargarIngresos()),
+     pero la leyenda solo pintaba nombre + punto de color, sin ninguna
+     pista visual de a qué clan pertenecía cada uno — dos nombres de
+     clanes distintos quedaban uno al lado del otro, indistinguibles.
+     flex-basis:100% obliga a que cada etiqueta de clan (ver
+     lineChartLegendHtml) empiece su propia línea dentro del flex-wrap, y
+     los nombres de ESE clan quedan debajo hasta la siguiente etiqueta —
+     así el agrupamiento que ya hacía el código ahora también se ve. */
+  .linechart-legend-clan{
+    flex-basis:100%; font-family:var(--f-mono); font-size:11px; font-weight:700;
+    letter-spacing:.04em; text-transform:uppercase; color:var(--gold);
+    margin-top:8px; padding-top:8px; border-top:1px dashed var(--line);
+  }
+  .linechart-legend-clan:first-child{margin-top:0; padding-top:0; border-top:none;}
   .chart-tooltip{
     position:fixed; z-index:300; pointer-events:none; display:none;
     background:var(--bg-2); border:1px solid var(--line-strong); border-radius:var(--radius-sm);
@@ -1177,12 +1193,33 @@ function lineChartSvg(miembros, campo, semanas, opts){
   return `<svg class="linechart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">${gridLines.join('')}${xLabels}${seriesSvg}</svg>`;
 }
 
+/** FIX (04-sep-2026, pedido usuario — "en el código ya se agrupan los
+ * miembros por clan en las gráficas pero visualmente no sucede"):
+ * 'miembros' ya venía agrupado por clan (cargarIngresos() arma 'grupos'
+ * con ordenClanIndex() y hace flatMap antes de llamar acá), así que el
+ * agrupamiento SIEMPRE existió en el orden de los datos — lo que faltaba
+ * era mostrarlo. Antes esta función solo imprimía punto de color + nombre
+ * en fila, sin ninguna marca de a qué clan pertenecía cada quien, así que
+ * a simple vista la leyenda se veía como una lista plana sin orden
+ * aparente (el bug reportado). Ahora, cada vez que el clan cambia
+ * respecto al miembro anterior, se inserta una etiqueta con el nombre
+ * corto del clan (CLAN_LABELS_CORTOS, mismo criterio que el resto del
+ * sitio) que fuerza salto de línea (.linechart-legend-clan, ver <style>
+ * de arriba) — los nombres de ese clan quedan agrupados visualmente
+ * debajo de su etiqueta, hasta la siguiente. */
 function lineChartLegendHtml(miembros){
-  return `<div class="linechart-legend">${miembros.map((m, i) => `
+  let clanPrevio;
+  const items = miembros.map((m, i) => {
+    const esNuevoGrupo = m.clan !== clanPrevio;
+    clanPrevio = m.clan;
+    const clanLabel = CLAN_LABELS_CORTOS[ordenClanIndex(m.clan)] || m.clan || '—';
+    return `${esNuevoGrupo ? `<span class="linechart-legend-clan">${esc(clanLabel)}</span>` : ''}
     <span class="linechart-legend-item">
       <span class="linechart-legend-dot" style="background:${PALETA_SERIES[i % PALETA_SERIES.length]};"></span>
       ${esc(m.nombre || '—')}
-    </span>`).join('')}</div>`;
+    </span>`;
+  }).join('');
+  return `<div class="linechart-legend">${items}</div>`;
 }
 
 /** Delegación de eventos sobre los puntos <circle> de ambas gráficas,
