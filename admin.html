@@ -554,66 +554,116 @@
     <div class="card admin-grupo" style="margin-top:24px;">
       <div class="eyebrow">Torneos y sorteos</div>
 
-      <!-- FIX (05-sep-2026, pedido usuario — "registrar y modificar torneo
-           solo se distinguen por el link, se deben fusionar"): las dos
-           subsecciones de antes ("Registrar torneo nuevo" y "Modificar
-           torneo de hoy") se fusionan en una sola, "Registrar o modificar
-           torneo". El primer paso es elegir el modo con los botones
-           .btn-toggle-torneo-modo (mismo estilo visual .tab-clan que ya se
-           usa en otras pestañas del panel, pero con su propio listener más
-           abajo, independiente de .btn-toggle-cat): "Registrar nuevo
-           torneo" muestra el recuadro para pegar el link + fecha/hora, y
-           "Modificar torneo registrado" muestra el desglose (<select>) de
-           los torneos de hoy + fecha/hora nueva. Los dos paneles
-           (#panelTorneoNuevo / #panelTorneoModificar) y sus botones/
-           listeners (btnRegistrarTorneo, btnModificarTorneo, tSelectHoy,
-           cargarTorneosHoy()) siguen siendo exactamente los mismos de
-           antes — solo cambia cómo se agrupan visualmente. -->
+      <!-- FIX (05-sep-2026, pedido usuario): "Registrar torneo nuevo" y
+           "Modificar torneo de hoy" se fusionan en un wizard de 3 pasos,
+           cada uno con un <select> (dropdown) + botón "Continuar" en vez
+           de botones laterales tipo pestaña:
+             Paso 1 (#torneoPaso1): "Registrar nuevo torneo" o "Modificar
+               torneo registrado" (#torneoAccion).
+             Paso 2 (#torneoPaso2): "Torneo principal" o "Torneo de
+               continuación" (#torneoTipo) — independiente de si se está
+               registrando o modificando.
+             Paso 3 (#torneoPaso3): combina ambas respuestas:
+               - Registrar + Principal: #camposRegistrar (link+fecha+hora).
+               - Registrar + Continuación: #camposRegistrar + además
+                 #camposTorneoPrincipal (lista desglosable).
+               - Modificar + Principal: #camposModificar (torneo de
+                 hoy a elegir + fecha/hora nueva).
+               - Modificar + Continuación: #camposModificar + además
+                 #camposTorneoPrincipal.
+           #camposTorneoPrincipal es la única parte que distingue
+           "principal" de "continuación": una lista DESGLOSABLE
+           (<details> por torneo, con hora y link para poder identificarlo
+           bien) de los torneos de hoy, para elegir de cuál es continuación
+           — a diferencia del <select> plano de #camposModificar. Esa
+           elección viaja al backend como tagTorneoPrincipal (el Tag_Tor
+           del torneo elegido, que es lo que la columna Tag_Tor_2 de
+           T_Lista espera -- ver _registrarTorneoDesdeBot()/
+           _modificarFechaHoraTorneo() en 24_Torneos_Core.gs y
+           _webAdminTorneoRegistrar()/_webAdminTorneoModificar() en
+           34_Web_API.gs). Los ids btnRegistrarTorneo/btnModificarTorneo/
+           tSelectHoy/tLink/tFecha/tHora/tFechaMod/tHoraMod y sus listeners
+           de siempre se mantienen tal cual; ver initTorneoWizard() más
+           abajo para toda la lógica nueva de pasos. -->
       <details class="admin-subseccion" open>
         <summary><span class="cat-titulo">Registrar o modificar torneo</span></summary>
         <div class="admin-subseccion-body">
-          <div class="contenido-tabs" style="margin-bottom:14px;">
-            <button type="button" class="tab-clan btn-toggle-torneo-modo activo" data-modo="nuevo">Registrar nuevo torneo</button>
-            <button type="button" class="tab-clan btn-toggle-torneo-modo" data-modo="modificar">Modificar torneo registrado</button>
-          </div>
 
-          <div id="panelTorneoNuevo">
+          <div id="torneoPaso1">
             <div class="field">
-              <label for="tLink">Link del torneo</label>
-              <input type="text" id="tLink" placeholder="https://link.clashroyale.com/...">
+              <label for="torneoAccion">¿Qué quieres hacer?</label>
+              <select id="torneoAccion">
+                <option value="">Elige una opción…</option>
+                <option value="registrar">Registrar nuevo torneo</option>
+                <option value="modificar">Modificar torneo registrado</option>
+              </select>
             </div>
-            <div class="field-row">
-              <div class="field">
-                <label for="tFecha">Fecha</label>
-                <input type="date" id="tFecha">
-              </div>
-              <div class="field">
-                <label for="tHora">Hora</label>
-                <input type="time" id="tHora">
-              </div>
-            </div>
-            <button class="btn btn-primary btn-block" id="btnRegistrarTorneo" style="margin-top:6px;">Registrar torneo</button>
-            <div id="registrarTorneoMsg"></div>
+            <button type="button" class="btn btn-primary btn-block" id="btnTorneoPaso1" style="margin-top:6px;">Continuar</button>
           </div>
 
-          <div id="panelTorneoModificar" style="display:none;">
-            <div class="field" style="margin-bottom:12px;">
-              <label for="tSelectHoy">Torneo</label>
-              <select id="tSelectHoy"><option value="">Cargando torneos de hoy…</option></select>
+          <div id="torneoPaso2" style="display:none;">
+            <a href="#" id="torneoVolverPaso1" class="text-dim" style="font-size:12px; display:inline-block; margin-bottom:10px;">‹ Cambiar</a>
+            <div class="field">
+              <label for="torneoTipo">¿Qué tipo de torneo es?</label>
+              <select id="torneoTipo">
+                <option value="">Elige una opción…</option>
+                <option value="principal">Torneo principal</option>
+                <option value="continuacion">Torneo de continuación</option>
+              </select>
             </div>
-            <div class="field-row">
+            <button type="button" class="btn btn-primary btn-block" id="btnTorneoPaso2" style="margin-top:6px;">Continuar</button>
+          </div>
+
+          <div id="torneoPaso3" style="display:none;">
+            <a href="#" id="torneoVolverPaso2" class="text-dim" style="font-size:12px; display:inline-block; margin-bottom:10px;">‹ Cambiar</a>
+
+            <div id="camposRegistrar" style="display:none;">
               <div class="field">
-                <label for="tFechaMod">Nueva fecha</label>
-                <input type="date" id="tFechaMod">
+                <label for="tLink">Link del torneo</label>
+                <input type="text" id="tLink" placeholder="https://link.clashroyale.com/...">
               </div>
-              <div class="field">
-                <label for="tHoraMod">Nueva hora</label>
-                <input type="time" id="tHoraMod">
+              <div class="field-row">
+                <div class="field">
+                  <label for="tFecha">Fecha</label>
+                  <input type="date" id="tFecha">
+                </div>
+                <div class="field">
+                  <label for="tHora">Hora</label>
+                  <input type="time" id="tHora">
+                </div>
               </div>
             </div>
-            <button class="btn btn-primary btn-block" id="btnModificarTorneo" style="margin-top:6px;">Guardar cambios</button>
+
+            <div id="camposModificar" style="display:none;">
+              <div class="field" style="margin-bottom:12px;">
+                <label for="tSelectHoy">Torneo</label>
+                <select id="tSelectHoy"><option value="">Cargando torneos de hoy…</option></select>
+              </div>
+              <div class="field-row">
+                <div class="field">
+                  <label for="tFechaMod">Nueva fecha</label>
+                  <input type="date" id="tFechaMod">
+                </div>
+                <div class="field">
+                  <label for="tHoraMod">Nueva hora</label>
+                  <input type="time" id="tHoraMod">
+                </div>
+              </div>
+            </div>
+
+            <div id="camposTorneoPrincipal" style="display:none; margin-top:14px; padding-top:14px; border-top:1px solid var(--line);">
+              <label style="display:block; margin-bottom:4px;">¿Cuál es el torneo principal?</label>
+              <p class="text-dim" style="font-size:12px; margin:0 0 8px;">Abre cada uno para ver su hora y link, y elige de cuál es continuación.</p>
+              <div id="torneoPrincipalLista"><div class="empty">Cargando torneos de hoy…</div></div>
+              <div id="torneoPrincipalElegidoMsg" style="margin-top:8px;"></div>
+            </div>
+
+            <button class="btn btn-primary btn-block" id="btnRegistrarTorneo" style="margin-top:14px; display:none;">Registrar torneo</button>
+            <button class="btn btn-primary btn-block" id="btnModificarTorneo" style="margin-top:14px; display:none;">Guardar cambios</button>
+            <div id="registrarTorneoMsg"></div>
             <div id="modificarTorneoMsg"></div>
           </div>
+
         </div>
       </details>
 
@@ -1512,23 +1562,6 @@ function _activarAccionesContenido(root, opciones){
 
 /* ---------- Fase 3: gestión de torneos ---------- */
 
-/** FIX (05-sep-2026, pedido usuario — fusión de "Registrar" y "Modificar"
- *  en un solo flujo): alterna entre #panelTorneoNuevo y
- *  #panelTorneoModificar según el botón .btn-toggle-torneo-modo activo.
- *  No pide nada nuevo al backend: cargarTorneosHoy() ya se llama una sola
- *  vez al cargar la página (ver DOMContentLoaded más abajo), así que el
- *  <select id="tSelectHoy"> ya está poblado (o poblándose) apenas se entra
- *  al modo "Modificar torneo registrado". */
-document.querySelectorAll('.btn-toggle-torneo-modo').forEach(btn => {
-  btn.addEventListener('click', () => {
-    if(btn.classList.contains('activo')) return;
-    document.querySelectorAll('.btn-toggle-torneo-modo').forEach(b => b.classList.toggle('activo', b === btn));
-    const esNuevo = btn.dataset.modo === 'nuevo';
-    document.getElementById('panelTorneoNuevo').style.display = esNuevo ? '' : 'none';
-    document.getElementById('panelTorneoModificar').style.display = esNuevo ? 'none' : '';
-  });
-});
-
 /** Convierte el value de un <input type="date"> ("yyyy-mm-dd") al formato
  *  "dd/mm/yyyy" que espera el backend (_combinarFechaHora, 24_Torneos_Core.gs). */
 function fechaInputADDMMYYYY(v){
@@ -1537,18 +1570,192 @@ function fechaInputADDMMYYYY(v){
   return `${d}/${m}/${y}`;
 }
 
+/**
+ * initTorneoWizard()
+ * FIX (05-sep-2026, pedido usuario): "Registrar torneo nuevo" y "Modificar
+ * torneo de hoy" se fusionan en un wizard de 3 pasos con <select> (no
+ * botones laterales) + botón "Continuar" en cada uno:
+ *   Paso 1 (#torneoAccion): "registrar" o "modificar".
+ *   Paso 2 (#torneoTipo): "principal" o "continuacion" — independiente
+ *     de si se registra o se modifica.
+ *   Paso 3: muestra los campos que correspondan según la combinación de
+ *     los dos anteriores (ver mostrarPaso3()). torneoTorneoPrincipalTag
+ *     guarda el Tag_Tor elegido en la lista desglosable de "¿Cuál es el
+ *     torneo principal?" (solo aplica si el paso 2 fue "continuacion");
+ *     viaja al backend como tagTorneoPrincipal en ambos listeners de abajo.
+ * Los links "‹ Cambiar" solo esconden el paso siguiente y reabren el
+ * anterior, sin perder lo ya tipeado (no se limpian los campos al volver).
+ */
+let torneoTorneoPrincipalTag = '';
+
+function initTorneoWizard(){
+  const paso1 = document.getElementById('torneoPaso1');
+  const paso2 = document.getElementById('torneoPaso2');
+  const paso3 = document.getElementById('torneoPaso3');
+  const selAccion = document.getElementById('torneoAccion');
+  const selTipo = document.getElementById('torneoTipo');
+
+  function mostrarPaso3(){
+    const esRegistrar = selAccion.value === 'registrar';
+    const esContinuacion = selTipo.value === 'continuacion';
+
+    document.getElementById('camposRegistrar').style.display = esRegistrar ? '' : 'none';
+    document.getElementById('camposModificar').style.display = esRegistrar ? 'none' : '';
+    document.getElementById('camposTorneoPrincipal').style.display = esContinuacion ? '' : 'none';
+    document.getElementById('btnRegistrarTorneo').style.display = esRegistrar ? '' : 'none';
+    document.getElementById('btnModificarTorneo').style.display = esRegistrar ? 'none' : '';
+
+    if(esContinuacion){
+      torneoTorneoPrincipalTag = '';
+      document.getElementById('torneoPrincipalElegidoMsg').innerHTML = '';
+      renderTorneoPrincipalLista();
+    }
+
+    paso3.style.display = '';
+  }
+
+  document.getElementById('btnTorneoPaso1').addEventListener('click', () => {
+    if(!selAccion.value){ return; }
+    paso2.style.display = '';
+  });
+
+  document.getElementById('btnTorneoPaso2').addEventListener('click', () => {
+    if(!selTipo.value){ return; }
+    mostrarPaso3();
+  });
+
+  document.getElementById('torneoVolverPaso1').addEventListener('click', (ev) => {
+    ev.preventDefault();
+    paso2.style.display = 'none';
+    paso3.style.display = 'none';
+  });
+
+  document.getElementById('torneoVolverPaso2').addEventListener('click', (ev) => {
+    ev.preventDefault();
+    paso3.style.display = 'none';
+  });
+}
+
+/** Puebla el <select> de "Modificar torneo de hoy" — solo torneos de HOY,
+ *  igual que el paso "Modificar" del bot (_listarTorneosDeHoy()). Cada
+ *  <option> guarda la fecha ISO en data-fecha, para precargar los campos
+ *  de fecha/hora al elegir un torneo (ver listener de 'change' abajo).
+ *  FIX (05-sep-2026, pedido usuario — lista desglosable de "torneo
+ *  principal"): la respuesta ahora también trae `tagTor` y `link` por
+ *  torneo (ver _listarTorneosDeHoy(), 24_Torneos_Core.gs); se guarda en
+ *  torneosHoyData para que renderTorneoPrincipalLista() la reutilice sin
+ *  pedir nada de nuevo al backend. */
+let torneosHoyData = [];
+
+async function cargarTorneosHoy(){
+  const sel = document.getElementById('tSelectHoy');
+  try{
+    const data = await apiGetAuth('webAdminTorneosHoy', {});
+    if(manejarRespuestaAuth(data)) return;
+    torneosHoyData = (data.ok && data.torneos) ? data.torneos : [];
+    if(!torneosHoyData.length){
+      sel.innerHTML = '<option value="">Sin torneos registrados hoy</option>';
+    }else{
+      sel.innerHTML = '<option value="">Elige un torneo…</option>' +
+        torneosHoyData.map(t => {
+          const fechaTxt = new Date(t.fecha).toLocaleString('es-PE', { hour12:false });
+          return `<option value="${esc(t.id)}" data-fecha="${esc(t.fecha)}">${esc(t.id)} — ${esc(fechaTxt)}</option>`;
+        }).join('');
+    }
+  }catch(err){
+    torneosHoyData = [];
+    sel.innerHTML = '<option value="">—</option>';
+  }
+  // El <select> pudo repoblarse mientras el paso 3 ya estaba abierto en modo
+  // "continuación" (ej. tras registrar/modificar un torneo) — refresca la
+  // lista desglosable con los datos nuevos si está visible.
+  if(document.getElementById('camposTorneoPrincipal').style.display !== 'none'){
+    renderTorneoPrincipalLista();
+  }
+}
+
+/**
+ * renderTorneoPrincipalLista()
+ * Pinta la lista DESGLOSABLE de "¿Cuál es el torneo principal?": un
+ * <details> por cada torneo de hoy que YA tenga Tag_Tor (torneos sin
+ * procesar todavía no pueden ser "principal" de nada), mostrando ID + hora
+ * en el resumen y el link completo adentro para poder identificarlo bien
+ * antes de elegirlo — a diferencia del <select> plano de "Modificar torneo
+ * registrado". Si el modo actual es "Modificar", se excluye de la lista el
+ * torneo que se está modificando (no puede ser continuación de sí mismo;
+ * el backend igual lo protege, ver _resolverGruposContinuacionTorneos(),
+ * pero acá se evita ofrecerlo directamente).
+ */
+function renderTorneoPrincipalLista(){
+  const cont = document.getElementById('torneoPrincipalLista');
+  const idExcluir = document.getElementById('torneoAccion').value === 'modificar'
+    ? document.getElementById('tSelectHoy').value
+    : null;
+  const candidatos = torneosHoyData.filter(t => t.tagTor && String(t.id) !== String(idExcluir));
+
+  if(!candidatos.length){
+    cont.innerHTML = '<div class="empty">No hay torneos de hoy ya procesados para elegir como principal.</div>';
+    return;
+  }
+
+  cont.innerHTML = candidatos.map(t => {
+    const fechaTxt = new Date(t.fecha).toLocaleString('es-PE', { hour12:false });
+    return `<details class="admin-subseccion" style="margin-top:8px;" data-tag-tor="${esc(t.tagTor)}">
+      <summary><span class="cat-titulo">${esc(t.id)} — ${esc(fechaTxt)}</span></summary>
+      <div class="admin-subseccion-body">
+        <div class="text-dim" style="font-size:12px; word-break:break-all; margin-bottom:10px;">${esc(t.link || 'Sin link registrado')}</div>
+        <button type="button" class="btn btn-primary btn-block btn-elegir-torneo-principal">Elegir este torneo principal</button>
+      </div>
+    </details>`;
+  }).join('');
+
+  cont.querySelectorAll('.btn-elegir-torneo-principal').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const det = btn.closest('details');
+      torneoTorneoPrincipalTag = det.dataset.tagTor;
+      const idTxt = det.querySelector('.cat-titulo').textContent;
+      document.getElementById('torneoPrincipalElegidoMsg').innerHTML =
+        `<div class="msg msg-ok">Torneo principal elegido: ${esc(idTxt)}</div>`;
+      cont.querySelectorAll('details').forEach(d => { d.open = false; });
+    });
+  });
+}
+
+document.getElementById('tSelectHoy').addEventListener('change', () => {
+  const opt = document.getElementById('tSelectHoy').selectedOptions[0];
+  const fechaISO = opt && opt.dataset.fecha;
+  const fFecha = document.getElementById('tFechaMod');
+  const fHora = document.getElementById('tHoraMod');
+  if(!fechaISO){ fFecha.value = ''; fHora.value = ''; }else{
+    const d = new Date(fechaISO);
+    const pad = n => String(n).padStart(2, '0');
+    fFecha.value = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+    fHora.value  = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+  // El torneo elegido para modificar ya no debe aparecer como opción de
+  // "torneo principal" de sí mismo — vuelve a pintar la lista si está abierta.
+  if(document.getElementById('camposTorneoPrincipal').style.display !== 'none'){
+    torneoTorneoPrincipalTag = '';
+    document.getElementById('torneoPrincipalElegidoMsg').innerHTML = '';
+    renderTorneoPrincipalLista();
+  }
+});
+
 document.getElementById('btnRegistrarTorneo').addEventListener('click', async () => {
   const msgEl = document.getElementById('registrarTorneoMsg');
   msgEl.innerHTML = '';
   const link  = document.getElementById('tLink').value.trim();
   const fecha = fechaInputADDMMYYYY(document.getElementById('tFecha').value);
   const hora  = document.getElementById('tHora').value;
+  const esContinuacion = document.getElementById('torneoTipo').value === 'continuacion';
   if(!link){ msgEl.innerHTML = '<div class="msg msg-error">Pega el link del torneo.</div>'; return; }
   if(!fecha || !hora){ msgEl.innerHTML = '<div class="msg msg-error">Completa fecha y hora.</div>'; return; }
+  if(esContinuacion && !torneoTorneoPrincipalTag){ msgEl.innerHTML = '<div class="msg msg-error">Elige de cuál torneo principal es continuación.</div>'; return; }
   try{
     const data = await apiPost('webAdminTorneoRegistrar', {
       sessionToken: localStorage.getItem(SESSION_KEY),
-      link, fecha, hora
+      link, fecha, hora,
+      tagTorneoPrincipal: esContinuacion ? torneoTorneoPrincipalTag : ''
     });
     if(manejarRespuestaAuth(data)) return;
     if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
@@ -1563,53 +1770,21 @@ document.getElementById('btnRegistrarTorneo').addEventListener('click', async ()
   }
 });
 
-/** Puebla el <select> de "Modificar torneo de hoy" — solo torneos de HOY,
- *  igual que el paso "Modificar" del bot (_listarTorneosDeHoy()). Cada
- *  <option> guarda la fecha ISO en data-fecha, para precargar los campos
- *  de fecha/hora al elegir un torneo (ver listener de 'change' abajo). */
-async function cargarTorneosHoy(){
-  const sel = document.getElementById('tSelectHoy');
-  try{
-    const data = await apiGetAuth('webAdminTorneosHoy', {});
-    if(manejarRespuestaAuth(data)) return;
-    if(!data.ok || !data.torneos || !data.torneos.length){
-      sel.innerHTML = '<option value="">Sin torneos registrados hoy</option>';
-      return;
-    }
-    sel.innerHTML = '<option value="">Elige un torneo…</option>' +
-      data.torneos.map(t => {
-        const fechaTxt = new Date(t.fecha).toLocaleString('es-PE', { hour12:false });
-        return `<option value="${esc(t.id)}" data-fecha="${esc(t.fecha)}">${esc(t.id)} — ${esc(fechaTxt)}</option>`;
-      }).join('');
-  }catch(err){
-    sel.innerHTML = '<option value="">—</option>';
-  }
-}
-
-document.getElementById('tSelectHoy').addEventListener('change', () => {
-  const opt = document.getElementById('tSelectHoy').selectedOptions[0];
-  const fechaISO = opt && opt.dataset.fecha;
-  const fFecha = document.getElementById('tFechaMod');
-  const fHora = document.getElementById('tHoraMod');
-  if(!fechaISO){ fFecha.value = ''; fHora.value = ''; return; }
-  const d = new Date(fechaISO);
-  const pad = n => String(n).padStart(2, '0');
-  fFecha.value = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-  fHora.value  = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
-});
-
 document.getElementById('btnModificarTorneo').addEventListener('click', async () => {
   const msgEl = document.getElementById('modificarTorneoMsg');
   msgEl.innerHTML = '';
   const id    = document.getElementById('tSelectHoy').value;
   const fecha = fechaInputADDMMYYYY(document.getElementById('tFechaMod').value);
   const hora  = document.getElementById('tHoraMod').value;
+  const esContinuacion = document.getElementById('torneoTipo').value === 'continuacion';
   if(!id){ msgEl.innerHTML = '<div class="msg msg-error">Elige un torneo de la lista.</div>'; return; }
   if(!fecha || !hora){ msgEl.innerHTML = '<div class="msg msg-error">Completa la nueva fecha y hora.</div>'; return; }
+  if(esContinuacion && !torneoTorneoPrincipalTag){ msgEl.innerHTML = '<div class="msg msg-error">Elige de cuál torneo principal es continuación.</div>'; return; }
   try{
     const data = await apiPost('webAdminTorneoModificar', {
       sessionToken: localStorage.getItem(SESSION_KEY),
-      id, fecha, hora
+      id, fecha, hora,
+      tagTorneoPrincipal: esContinuacion ? torneoTorneoPrincipalTag : ''
     });
     if(manejarRespuestaAuth(data)) return;
     if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
@@ -1620,6 +1795,8 @@ document.getElementById('btnModificarTorneo').addEventListener('click', async ()
     msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
   }
 });
+
+initTorneoWizard();
 
 /** FASE 24 (02-sep-2026, pedido del usuario — descalificaciones y
  *  desempates de torneos): "Ver ganadores" pasó de reutilizar el webTorneos
