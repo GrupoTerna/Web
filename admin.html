@@ -632,6 +632,28 @@
                   <input type="time" id="tHora">
                 </div>
               </div>
+
+              <!-- FIX (05-sep-2026, pedido usuario — "dar la opción de
+                   registrar al autor del torneo, ya que puede ser que
+                   alguien organice pero otra persona se encargue de
+                   registrar en la web"): campo OPCIONAL. Si se deja en
+                   "Lo organicé yo" (valor vacío), el backend usa el admin
+                   de la sesión como organizador -- no hace falta elegir
+                   nada acá para el caso normal. Las opciones desglosan los
+                   Nom_Multi de los ADMINS (cargarNomMultisAdmins(),
+                   webAdminNomMultisAdmins) más "Ninguna de las anteriores",
+                   que revela #tAutorManual para escribirlo a mano (por si
+                   quien organizó no es un admin). Ver btnRegistrarTorneo
+                   más abajo para cómo se arma el valor final que viaja
+                   como `autor` a webAdminTorneoRegistrar. -->
+              <div class="field" style="margin-top:14px;">
+                <label for="tAutorSelect">¿Quién organizó el torneo?</label>
+                <select id="tAutorSelect">
+                  <option value="">Lo organicé yo (el admin de esta sesión)</option>
+                  <option value="__otro__">Ninguna de las anteriores</option>
+                </select>
+                <input type="text" id="tAutorManual" placeholder="Nombre de quien organizó" style="margin-top:8px; display:none;">
+              </div>
             </div>
 
             <div id="camposModificar" style="display:none;">
@@ -657,6 +679,7 @@
               <div id="torneoPrincipalLista"><div class="empty">Cargando torneos de hoy…</div></div>
               <div id="torneoPrincipalElegidoMsg" style="margin-top:8px;"></div>
             </div>
+
 
             <button class="btn btn-primary btn-block" id="btnRegistrarTorneo" style="margin-top:14px; display:none;">Registrar torneo</button>
             <button class="btn btn-primary btn-block" id="btnModificarTorneo" style="margin-top:14px; display:none;">Guardar cambios</button>
@@ -810,6 +833,7 @@ function mostrarPanel(){
   cargarMisCuentas();
   initMensajesAutomaticos();
   cargarTorneosHoy();
+  cargarNomMultisAdmins();
   cargarGanadoresTorneo();
 }
 
@@ -1721,6 +1745,43 @@ function renderTorneoPrincipalLista(){
   });
 }
 
+/**
+ * cargarNomMultisAdmins()
+ * FIX (05-sep-2026, pedido usuario — "autor del torneo"): puebla
+ * #tAutorSelect con los Nom_Multi de los admins (webAdminNomMultisAdmins,
+ * que envuelve _obtenerNomMultisAdmins() -- MISMA lista que ya usa el
+ * dropdown de "Autor" de Vetados en la hoja). Se llama una sola vez desde
+ * mostrarPanel(), igual que cargarTorneosHoy(); las opciones fijas ("Lo
+ * organicé yo" y "Ninguna de las anteriores") ya están en el HTML, acá
+ * solo se insertan los Nom_Multi en el medio.
+ */
+async function cargarNomMultisAdmins(){
+  const sel = document.getElementById('tAutorSelect');
+  const optOtro = sel.querySelector('option[value="__otro__"]');
+  try{
+    const data = await apiGetAuth('webAdminNomMultisAdmins', {});
+    if(manejarRespuestaAuth(data)) return;
+    if(data.ok && data.nomMultis && data.nomMultis.length){
+      data.nomMultis.forEach(nm => {
+        const opt = document.createElement('option');
+        opt.value = nm;
+        opt.textContent = nm;
+        sel.insertBefore(opt, optOtro);
+      });
+    }
+  }catch(err){
+    // Sin lista de admins no se rompe el registro: el select se queda con
+    // solo las dos opciones fijas (sesión / escribir a mano).
+  }
+}
+
+document.getElementById('tAutorSelect').addEventListener('change', () => {
+  const esOtro = document.getElementById('tAutorSelect').value === '__otro__';
+  const input = document.getElementById('tAutorManual');
+  input.style.display = esOtro ? '' : 'none';
+  if(!esOtro) input.value = '';
+});
+
 document.getElementById('tSelectHoy').addEventListener('change', () => {
   const opt = document.getElementById('tSelectHoy').selectedOptions[0];
   const fechaISO = opt && opt.dataset.fecha;
@@ -1748,14 +1809,22 @@ document.getElementById('btnRegistrarTorneo').addEventListener('click', async ()
   const fecha = fechaInputADDMMYYYY(document.getElementById('tFecha').value);
   const hora  = document.getElementById('tHora').value;
   const esContinuacion = document.getElementById('torneoTipo').value === 'continuacion';
+  // FIX (05-sep-2026, pedido usuario — "autor del torneo"): valor vacío =
+  // "Lo organicé yo" (el backend usa el admin de la sesión); "__otro__" =
+  // usar lo tipeado a mano en #tAutorManual; cualquier otro valor = el
+  // Nom_Multi de admin elegido en el select.
+  const autorSelect = document.getElementById('tAutorSelect').value;
+  const autor = autorSelect === '__otro__' ? document.getElementById('tAutorManual').value.trim() : autorSelect;
   if(!link){ msgEl.innerHTML = '<div class="msg msg-error">Pega el link del torneo.</div>'; return; }
   if(!fecha || !hora){ msgEl.innerHTML = '<div class="msg msg-error">Completa fecha y hora.</div>'; return; }
   if(esContinuacion && !torneoTorneoPrincipalTag){ msgEl.innerHTML = '<div class="msg msg-error">Elige de cuál torneo principal es continuación.</div>'; return; }
+  if(autorSelect === '__otro__' && !autor){ msgEl.innerHTML = '<div class="msg msg-error">Escribe el nombre de quien organizó, o elige otra opción.</div>'; return; }
   try{
     const data = await apiPost('webAdminTorneoRegistrar', {
       sessionToken: localStorage.getItem(SESSION_KEY),
       link, fecha, hora,
-      tagTorneoPrincipal: esContinuacion ? torneoTorneoPrincipalTag : ''
+      tagTorneoPrincipal: esContinuacion ? torneoTorneoPrincipalTag : '',
+      autor
     });
     if(manejarRespuestaAuth(data)) return;
     if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
@@ -1763,6 +1832,9 @@ document.getElementById('btnRegistrarTorneo').addEventListener('click', async ()
     document.getElementById('tLink').value = '';
     document.getElementById('tFecha').value = '';
     document.getElementById('tHora').value = '';
+    document.getElementById('tAutorSelect').value = '';
+    document.getElementById('tAutorManual').value = '';
+    document.getElementById('tAutorManual').style.display = 'none';
     cargarTorneosHoy();
     cargarGanadoresTorneo();
   }catch(err){
