@@ -345,10 +345,41 @@
          — ver cargarAportesInactivosSiAdmin() más abajo), en vez de vivir
          en una sección aparte debajo de "Pendientes de Atacar". -->
     <section id="controlActivosSection" style="padding:24px 0;">
-      <div class="sec-head" style="border-bottom:1px solid var(--line); padding-bottom:12px;">
+      <div class="sec-head" style="display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:10px; border-bottom:1px solid var(--line); padding-bottom:12px;">
         <h2 style="font-size:22px;">🗂️ Cuadrícula de Activos (Semana Actual)</h2>
+        <!-- FIX (07-sep-2026, pedido usuario — "botón para seleccionar
+             otras semanas dentro de la misma temporada, solo se debe
+             mostrar semanas disponibles"): PENDIENTE de backend -- ver
+             pintarSelectorSemanaActivos() más abajo. El backend actual
+             (visto en esta sesión) solo manda la semana VIGENTE en
+             data.controlActivosSemanaActual, sin el detalle día-a-día
+             (J/V/S/D) de semanas anteriores -- eso solo existe agregado
+             por semana en data.controlTemporadaPorClan, que no alcanza
+             para repintar esta cuadrícula. Hace falta que Base.md agregue
+             data.semanasControlActivosDisponibles (lista de semanas ya
+             jugadas en la temporada actual, sin incluir semanas futuras
+             que aún no arrancan) y data.controlActivosPorSemana (mismo
+             shape que controlActivosSemanaActual, pero uno por cada
+             semana de esa lista). Mientras esos 2 campos no existan, el
+             selector se queda oculto sin romper nada. -->
+        <select id="semanaActivosSelect" style="display:none; font-family:var(--f-mono); font-size:12px; background:var(--surface-card); color:var(--text); border:1px solid var(--line-strong); border-radius:var(--radius-sm); padding:5px 10px;"></select>
       </div>
-      <div id="controlActivosWrap" style="margin-top:20px;"></div>
+      <!-- FIX (07-sep-2026, pedido usuario — "que se siga mostrando los
+           valores de la última guerra mientras se esté en entrenamiento
+           [...] hasta el cambio de periodIndex [...] y se debe actualizar
+           recién cuando empiece la guerra del jueves"): aviso visible solo
+           cuando esta cuadrícula está mostrando la foto guardada de la
+           última guerra en vez de datos en vivo de entrenamiento -- ver
+           rama `else` dentro de render() más abajo. -->
+      <div id="controlActivosCacheAviso" class="text-faint" style="display:none; font-family:var(--f-mono); font-size:11px; margin-top:10px;"></div>
+      <!-- FIX (07-sep-2026, pedido usuario — "botones horizontales para
+           seleccionar el clan"): pestañas tipo .tabs-row/.tab-btn (mismo
+           patrón ya usado en "Log de Guerra") que filtran, sin volver a
+           pedir datos, cuál(es) tarjeta(s) .ai-clan-card se muestran.
+           Arranca vacío; gestionarTabsClan() (más abajo) la llena en cuanto
+           hay al menos una tarjeta de clan pintada en #controlActivosWrap. -->
+      <div class="tabs-row" id="controlActivosClanTabs" style="margin-top:20px;"></div>
+      <div id="controlActivosWrap" style="margin-top:14px;"></div>
     </section>
 
     <!-- FIX (05-sep-2026, pedido usuario — "haz una sección como la hoja
@@ -370,10 +401,26 @@
          data.controlTemporadaSemanas (pendientes en el backend, todavía no
          se subió Base.md con esos campos). -->
     <section id="controlTemporadaSection" style="padding:24px 0;">
-      <div class="sec-head" style="border-bottom:1px solid var(--line); padding-bottom:12px;">
+      <div class="sec-head" style="display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:10px; border-bottom:1px solid var(--line); padding-bottom:12px;">
         <h2 style="font-size:22px;">🗓️ Cuadrícula de Temporada (Semanal)</h2>
+        <!-- FIX (07-sep-2026, pedido usuario — "botón para seleccionar la
+             temporada que se quiere ver, así se puede ver temporadas
+             anteriores"): PENDIENTE de backend -- ver
+             cargarSelectorTemporadas()/onCambioTemporadaSeleccionada() más
+             abajo. El backend actual (visto en esta sesión) solo manda los
+             datos de la TEMPORADA VIGENTE en data.controlTemporadaPorClan;
+             para listar y cambiar de temporada hace falta que Base.md
+             agregue el listado de temporadas disponibles y pueda devolver
+             el mismo shape para una temporada puntual (ver comentario
+             detallado en cargarSelectorTemporadas()). Mientras ese campo no
+             exista, el selector se queda oculto (:empty ya lo colapsa) sin
+             romper nada. -->
+        <select id="temporadaSelect" style="display:none; font-family:var(--f-mono); font-size:12px; background:var(--surface-card); color:var(--text); border:1px solid var(--line-strong); border-radius:var(--radius-sm); padding:5px 10px;"></select>
       </div>
-      <div id="controlTemporadaWrap" style="margin-top:20px;"></div>
+      <!-- Pestañas de clan -- mismo patrón y misma función
+           gestionarTabsClan() que la Cuadrícula de Activos de arriba. -->
+      <div class="tabs-row" id="controlTemporadaClanTabs" style="margin-top:20px;"></div>
+      <div id="controlTemporadaWrap" style="margin-top:14px;"></div>
     </section>
 
     <!-- FASE 13 punto 1 del plan de cambios web (07-sep-2026) -- vista (a)
@@ -481,6 +528,16 @@ const DIAS = [
 ];
 let lastFetchAt = null;
 let prevValues  = {};
+// FIX (07-sep-2026, pedido usuario — filtros de clan/semana/temporada de
+// las cuadrículas "Activos" y "Temporada"): estado de los selectores,
+// a nivel de módulo para que sobrevivan a cada repintado de render()
+// (cada REFRESH_INTERVAL_MS). null = "Todos" (clan) o "vigente" (semana/
+// temporada). Ver gestionarTabsClan(), pintarSelectorSemanaActivos() y
+// pintarSelectorTemporada() más abajo.
+let clanSeleccionadoActivos = null;
+let clanSeleccionadoTemporada = null;
+let sectionIndexSeleccionadoActivos = null;
+let temporadaSeleccionadaTemporada = null;
 
 /** Fecha corta "DD-mmm" (ej. "27-ago") a partir de un ISO string o Date. */
 function fmtDiaMes(v){
@@ -594,7 +651,108 @@ function celdasSemanas(megacat, gpClase, conColor){
                 <td class="${claseResumen}">${pct}%</td>`;
 }
 
+/**
+ * gestionarTabsClan(tabsWrapId, wrapId, obtenerSel, fijarSel)
+ * FIX (07-sep-2026, pedido usuario — "botones horizontales para
+ * seleccionar el clan" en Activos y en Temporada): botonera .tabs-row/
+ * .tab-btn (mismo patrón visual ya usado en "Log de Guerra") que agrega un
+ * botón "Todos" + uno por cada clan que YA tiene una tarjeta .ai-clan-card
+ * pintada dentro de `wrapId` (data-clan de cada tarjeta) y, al hacer clic,
+ * solo oculta/muestra tarjetas ya existentes en el DOM -- no vuelve a
+ * pedir nada al backend. Se reconstruye cada vez que cambia el set de
+ * tarjetas visibles (cada render() y, en Activos, también cuando
+ * cargarAportesInactivosSiAdmin() agrega una tarjeta nueva para un clan
+ * sin Activos) para no dejar afuera ningún clan nuevo, y conserva la
+ * selección vigente entre repintados -- si el clan seleccionado deja de
+ * tener tarjeta (ej. cambia el orden o ya no tiene datos esta semana),
+ * cae a "Todos" en vez de dejar la cuadrícula vacía por error.
+ */
+function gestionarTabsClan(tabsWrapId, wrapId, obtenerSel, fijarSel){
+  const tabsWrap = document.getElementById(tabsWrapId);
+  const wrap = document.getElementById(wrapId);
+  const cards = Array.from(wrap.querySelectorAll('.ai-clan-card'));
+  if (!cards.length){ tabsWrap.innerHTML = ''; return; }
+  const clanes = cards.map(c => c.dataset.clan);
+  if (obtenerSel() && !clanes.includes(obtenerSel())) fijarSel(null);
+  const aplicarFiltro = () => {
+    const sel = obtenerSel();
+    cards.forEach(card => { card.style.display = (!sel || card.dataset.clan === sel) ? '' : 'none'; });
+  };
+  tabsWrap.innerHTML = ['', ...clanes].map(c => `
+    <button type="button" class="tab-btn clan-tab-sel${(c === '' ? obtenerSel() === null : c === obtenerSel()) ? ' active' : ''}" data-clan="${esc(c)}">${c === '' ? 'Todos' : esc(c)}</button>`).join('');
+  tabsWrap.querySelectorAll('.clan-tab-sel').forEach(btn => {
+    btn.addEventListener('click', () => {
+      fijarSel(btn.dataset.clan || null);
+      tabsWrap.querySelectorAll('.clan-tab-sel').forEach(b => b.classList.toggle('active', b === btn));
+      aplicarFiltro();
+    });
+  });
+  aplicarFiltro();
+}
+
+/**
+ * pintarSelectorSemanaActivos(data)
+ * FIX (07-sep-2026, pedido usuario — "botón para seleccionar otras semanas
+ * dentro de la misma temporada, solo se debe mostrar semanas
+ * disponibles"): PENDIENTE de backend, ver comentario en el <select
+ * id="semanaActivosSelect"> del HTML. Se deja ya conectado del lado del
+ * frontend para que empiece a funcionar solo apenas Base.md mande
+ * data.semanasControlActivosDisponibles (array de {sectionIndex, label},
+ * ya filtrado por el backend a semanas que ya arrancaron -- ej. si estamos
+ * en semana 3, la lista no debe traer semana 4 ni 5) y
+ * data.controlActivosPorSemana (objeto {[sectionIndex]: mismo shape que
+ * controlActivosSemanaActual}). Si esos 2 campos todavía no llegan, el
+ * <select> se queda oculto y todo sigue funcionando igual que antes (solo
+ * semana vigente / última guerra cacheada).
+ */
+function pintarSelectorSemanaActivos(data){
+  const select = document.getElementById('semanaActivosSelect');
+  const semanas = data.semanasControlActivosDisponibles || [];
+  if (!semanas.length || !data.controlActivosPorSemana){ select.style.display = 'none'; select.innerHTML = ''; return; }
+  select.style.display = '';
+  select.innerHTML = ['<option value="">Semana vigente</option>', ...semanas.map(s =>
+    `<option value="${esc(s.sectionIndex)}"${String(s.sectionIndex) === String(sectionIndexSeleccionadoActivos) ? ' selected' : ''}>${esc(s.label)}</option>`)].join('');
+  select.onchange = () => {
+    sectionIndexSeleccionadoActivos = select.value || null;
+    render(ultimoDataGuerra);
+  };
+}
+
+/**
+ * pintarSelectorTemporada(data)
+ * FIX (07-sep-2026, pedido usuario — "Cuadrícula de Temporada debe tener
+ * un botón para seleccionar la temporada que se quiere ver, así se puede
+ * ver temporadas anteriores"): PENDIENTE de backend, ver comentario en el
+ * <select id="temporadaSelect"> del HTML. Se deja ya conectado del lado
+ * del frontend para que empiece a funcionar apenas Base.md mande
+ * data.temporadasDisponibles (array de números/labels de temporada, más
+ * reciente primero) y data.controlTemporadaPorTemporada (objeto
+ * {[temporada]: {porClan, semanas}} con el mismo shape que hoy tienen
+ * data.controlTemporadaPorClan / data.controlTemporadaSemanas, pero uno
+ * por cada temporada de esa lista). Si esos 2 campos todavía no llegan, el
+ * <select> se queda oculto y la sección sigue mostrando solo la temporada
+ * vigente, igual que antes.
+ */
+function pintarSelectorTemporada(data){
+  const select = document.getElementById('temporadaSelect');
+  const temporadas = data.temporadasDisponibles || [];
+  if (!temporadas.length || !data.controlTemporadaPorTemporada){ select.style.display = 'none'; select.innerHTML = ''; return; }
+  select.style.display = '';
+  select.innerHTML = temporadas.map(t => {
+    const valor = (typeof t === 'object') ? t.temporada : t;
+    const label = (typeof t === 'object') ? (t.label || ('Temporada ' + t.temporada)) : ('Temporada ' + t);
+    return `<option value="${esc(valor)}"${String(valor) === String(temporadaSeleccionadaTemporada) ? ' selected' : ''}>${esc(label)}</option>`;
+  }).join('');
+  select.onchange = () => {
+    temporadaSeleccionadaTemporada = select.value || null;
+    render(ultimoDataGuerra);
+  };
+}
+
+let ultimoDataGuerra = null;
+
 function render(data){
+  ultimoDataGuerra = data;
   document.getElementById('status').style.display = 'none';
   document.getElementById('content').style.display = 'block';
   const ctx = data.ctx || {};
@@ -705,7 +863,59 @@ function render(data){
   // Total=16. 2) las tarjetas ya no se ordenan alfabético (.sort() plano)
   // sino con ordenClanIndex() (assets/common.js), el mismo orden fijo de
   // la Familia que usa el resto del sitio.
-  const controlActivos = data.controlActivosSemanaActual || {};
+  // FIX (07-sep-2026, pedido usuario — "que se siga mostrando los valores
+  // de la última guerra mientras se esté en entrenamiento [...] hasta el
+  // cambio de periodIndex [...] y se debe actualizar recién cuando empiece
+  // la guerra del jueves"): fuente de datos de esta cuadrícula, resuelta
+  // en 3 pasos (el primero que aplique gana):
+  //   1) el visitante eligió a mano una semana pasada en el <select> de
+  //      arriba (sectionIndexSeleccionadoActivos) y el backend SÍ manda
+  //      esa semana en data.controlActivosPorSemana -- ver
+  //      pintarSelectorSemanaActivos() más arriba (hoy no llega, queda
+  //      pendiente de Base.md).
+  //   2) hoy ES día de guerra (ctx.esDiaGuerra) -- se usan los datos en
+  //      vivo tal cual, Y de paso se guardan en localStorage como "última
+  //      guerra" para el paso 3 durante el entrenamiento que sigue.
+  //   3) no es día de guerra (lunes a miércoles) y no hay selección manual
+  //      -- en vez de pintar la semana "vigente" que el backend ya pueda
+  //      estar reportando en 0 (su sectionIndex avanza con el periodIndex
+  //      de Supercell, ~4-5am cada día, sin esperar a que arranque la
+  //      guerra del jueves), se recupera del propio navegador la última
+  //      foto guardada en el paso 2 y se sigue mostrando esa. Si esta es
+  //      la primera visita del navegador y todavía no hay ninguna foto
+  //      guardada, se cae al dato en vivo tal como llegue (mismo
+  //      comportamiento que antes de este cambio).
+  let controlActivos = data.controlActivosSemanaActual || {};
+  let mostrandoUltimaGuerraCacheada = false;
+  let mostrandoSemanaManual = false;
+  const cacheAviso = document.getElementById('controlActivosCacheAviso');
+  if (sectionIndexSeleccionadoActivos && data.controlActivosPorSemana && data.controlActivosPorSemana[sectionIndexSeleccionadoActivos]){
+    controlActivos = data.controlActivosPorSemana[sectionIndexSeleccionadoActivos];
+    mostrandoSemanaManual = true;
+  } else if (ctx.esDiaGuerra){
+    try{
+      localStorage.setItem('ternaUltimaGuerraActivos', JSON.stringify({ temporada: ctx.temporada, sectionIndex: ctx.sectionIndex, datos: controlActivos }));
+    }catch(e){ /* localStorage lleno o bloqueado -- no crítico, se ignora */ }
+  } else {
+    try{
+      const cache = JSON.parse(localStorage.getItem('ternaUltimaGuerraActivos') || 'null');
+      if (cache && cache.datos && Object.keys(cache.datos).length){
+        controlActivos = cache.datos;
+        mostrandoUltimaGuerraCacheada = true;
+      }
+    }catch(e){ /* JSON corrupto u otro fallo de localStorage -- se usa el dato en vivo */ }
+  }
+  if (mostrandoSemanaManual){
+    cacheAviso.style.display = '';
+    cacheAviso.textContent = '📌 Mostrando la semana seleccionada arriba.';
+  } else if (mostrandoUltimaGuerraCacheada){
+    cacheAviso.style.display = '';
+    cacheAviso.textContent = '⏳ Entrenamiento en curso — mostrando los valores de la última guerra jugada. Se actualizará al empezar la guerra del jueves.';
+  } else {
+    cacheAviso.style.display = 'none';
+    cacheAviso.textContent = '';
+  }
+  pintarSelectorSemanaActivos(data);
   const clanesControlActivos = Object.keys(controlActivos)
     .sort((a, b) => ordenClanIndex(a) - ordenClanIndex(b));
   const controlActivosSection = document.getElementById('controlActivosSection');
@@ -751,8 +961,10 @@ function render(data){
         </div>`;
     }).join('');
     controlActivosSection.style.display = '';
+    gestionarTabsClan('controlActivosClanTabs', 'controlActivosWrap', () => clanSeleccionadoActivos, v => clanSeleccionadoActivos = v);
   } else {
     controlActivosSection.style.display = 'none';
+    document.getElementById('controlActivosClanTabs').innerHTML = '';
   }
 
   // FIX (05-sep-2026, pedido usuario — "haz una sección como la hoja
@@ -767,8 +979,21 @@ function render(data){
   // puntaje:{...}, barcos:{...} }. Ninguno de los 2 campos lo manda todavía
   // el backend probado en esta sesión (no se subió Base.md) — la sección
   // se queda oculta hasta que existan.
-  const controlTemporada = data.controlTemporadaPorClan || {};
-  const semanasTemporada = data.controlTemporadaSemanas || [];
+  // FIX (07-sep-2026, pedido usuario — "botón para seleccionar la
+  // temporada que se quiere ver, así se puede ver temporadas anteriores"):
+  // si hay una temporada elegida a mano en el <select> de arriba Y el
+  // backend manda esa temporada en data.controlTemporadaPorTemporada, se
+  // usa esa en vez de la vigente (data.controlTemporadaPorClan/
+  // data.controlTemporadaSemanas, ver pintarSelectorTemporada() más
+  // arriba -- hoy no llega, queda pendiente de Base.md).
+  pintarSelectorTemporada(data);
+  let controlTemporada = data.controlTemporadaPorClan || {};
+  let semanasTemporada = data.controlTemporadaSemanas || [];
+  if (temporadaSeleccionadaTemporada && data.controlTemporadaPorTemporada && data.controlTemporadaPorTemporada[temporadaSeleccionadaTemporada]){
+    const elegida = data.controlTemporadaPorTemporada[temporadaSeleccionadaTemporada];
+    controlTemporada = elegida.porClan || {};
+    semanasTemporada = elegida.semanas || [];
+  }
   const clanesControlTemporada = Object.keys(controlTemporada)
     .sort((a, b) => ordenClanIndex(a) - ordenClanIndex(b));
   const controlTemporadaSection = document.getElementById('controlTemporadaSection');
@@ -806,8 +1031,10 @@ function render(data){
         </div>`;
     }).join('');
     controlTemporadaSection.style.display = '';
+    gestionarTabsClan('controlTemporadaClanTabs', 'controlTemporadaWrap', () => clanSeleccionadoTemporada, v => clanSeleccionadoTemporada = v);
   } else {
     controlTemporadaSection.style.display = 'none';
+    document.getElementById('controlTemporadaClanTabs').innerHTML = '';
   }
   // "Ingresos Recientes" (antes acá, usando data.nuevos): MOVIDO a
   // jugadores.html (pedido usuario, 04-sep-2026 — "Los ingresos recientes
@@ -1004,6 +1231,10 @@ async function cargarAportesInactivosSiAdmin(ctx){
     });
     if (huboTarjetaNueva){
       document.getElementById('controlActivosSection').style.display = '';
+      // La tarjeta nueva trae un clan que gestionarTabsClan() todavía no
+      // conocía (no tenía Activos cuando corrió render()) -- se
+      // reconstruye la botonera para que también aparezca como pestaña.
+      gestionarTabsClan('controlActivosClanTabs', 'controlActivosWrap', () => clanSeleccionadoActivos, v => clanSeleccionadoActivos = v);
     }
   }catch(err){
     // Defensivo: sesión vencida u otro fallo — no romper el resto de la
