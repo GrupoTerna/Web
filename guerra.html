@@ -627,7 +627,7 @@ function render(data){
     <div class="card" style="padding:12px;"><div class="table-scroll"><table>
       <thead><tr><th>Nombre</th><th>Clan</th><th>Faltantes</th></tr></thead>
       <tbody>${pend.map(p => `
-          <tr><td>${esc(p.nombre || p.nomMulti || p.tag)}</td><td>${esc(p.clan)}</td><td class="falt">${fmtNum(p.faltantes)}</td></tr>`).join('')}
+          <tr><td>${p.tag ? enlaceJugador(p.nombre || p.nomMulti || p.tag, p.tag) : esc(p.nombre || p.nomMulti || p.tag)}</td><td>${esc(p.clan)}</td><td class="falt">${fmtNum(p.faltantes)}</td></tr>`).join('')}
       </tbody>
     </table></div></div>` : '<div class="empty">Nadie tiene ataques pendientes 🎉</div>';
   const resumen = Object.entries(data.resumenClanes || {});
@@ -698,7 +698,7 @@ function render(data){
             </thead>
             <tbody>${filas.map(f => `
               <tr>
-                <td class="col-jugador">${esc(f.nombre || f.tag)}</td>
+                <td class="col-jugador">${f.tag ? enlaceJugador(f.nombre || f.tag, f.tag) : esc(f.nombre || f.tag)}</td>
                 ${celdasMegacategoria({j:f.j, v:f.v, s:f.s, d:f.d, total:f.total}, 'ai-grp-atq', true)}
                 ${celdasMegacategoria(f.puntaje, 'ai-grp-pje', false)}
                 ${celdasMegacategoria(f.barcos, 'ai-grp-brc', false)}
@@ -761,7 +761,7 @@ function render(data){
             </thead>
             <tbody>${filas.map(f => `
               <tr>
-                <td class="col-jugador">${esc(f.nombre || f.tag)}</td>
+                <td class="col-jugador">${f.tag ? enlaceJugador(f.nombre || f.tag, f.tag) : esc(f.nombre || f.tag)}</td>
                 ${celdasSemanas(f.ataques, 'ai-grp-atq', true)}
                 ${celdasSemanas(f.puntaje, 'ai-grp-pje', false)}
                 ${celdasSemanas(f.barcos, 'ai-grp-brc', false)}
@@ -928,7 +928,7 @@ async function cargarAportesInactivosSiAdmin(ctx){
           </thead>
           <tbody>${filas.map(f => `
             <tr>
-              <td class="col-jugador">${esc(f.nombre || f.tag)}</td>
+              <td class="col-jugador">${f.tag ? enlaceJugador(f.nombre || f.tag, f.tag) : esc(f.nombre || f.tag)}</td>
               ${celdasMegacategoria({j:f.j, v:f.v, s:f.s, d:f.d, total:f.total}, 'ai-grp-atq', true)}
               ${celdasMegacategoria(f.puntaje, 'ai-grp-pje', false)}
               ${celdasMegacategoria(f.barcos, 'ai-grp-brc', false)}
@@ -1010,7 +1010,7 @@ async function cargarParticipacionHoySiAdmin(ctx){
     if (!clanes.length){ section.style.display = 'none'; wrap.innerHTML = ''; return; }
 
     const listaHtml = (cuentas) => cuentas.length
-      ? `<ul class="ph-lista">${cuentas.map(c => `<li>${esc(c.nombre || c.tag)}<span class="ph-tag">${esc(c.tag || '')}</span></li>`).join('')}</ul>`
+      ? `<ul class="ph-lista">${cuentas.map(c => `<li>${c.tag ? enlaceJugador(c.nombre || c.tag, c.tag) : esc(c.nombre || c.tag)}<span class="ph-tag">${esc(c.tag || '')}</span></li>`).join('')}</ul>`
       : '<div class="ph-empty">Ninguna</div>';
 
     const tarjetasHtml = clanes.map(c => `
@@ -1033,7 +1033,7 @@ async function cargarParticipacionHoySiAdmin(ctx){
     const multiClanHtml = multiClan.length ? `
       <div class="ph-multiclan">
         <div class="ph-multiclan-title">⚠️ Atacaron hoy en más de un clan Terna</div>
-        <ul>${multiClan.map(m => `<li>${esc(m.nombre || m.tag)} <span class="ph-tag">${esc(m.tag || '')}</span> — ${m.clanes.map(esc).join(', ')} (${fmtNum(m.totalAtaquesHoy)} ataque(s) en total)</li>`).join('')}</ul>
+        <ul>${multiClan.map(m => `<li>${m.tag ? enlaceJugador(m.nombre || m.tag, m.tag) : esc(m.nombre || m.tag)} <span class="ph-tag">${esc(m.tag || '')}</span> — ${m.clanes.map(esc).join(', ')} (${fmtNum(m.totalAtaquesHoy)} ataque(s) en total)</li>`).join('')}</ul>
       </div>` : '';
 
     wrap.innerHTML = tarjetasHtml + multiClanHtml;
