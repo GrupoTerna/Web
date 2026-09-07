@@ -182,6 +182,20 @@
         <div id="mVetarWrap" style="display:none; margin-top:14px;"></div>
       </div>
 
+      <!-- ---------- MAZO ACTUAL (FASE 10, 06-sep-2026) ----------
+           Distinto de "Sugerencias de mazo"/"Sugerencias de mazo (2)" (los
+           botones de arriba, que arman una búsqueda en RoyaleAPI a partir
+           del nivel de cartas desbloqueadas): esto es pd.currentDeck real,
+           tal como lo manda la API de Supercell — ver
+           _webMazoActualDesdeCards2(), 34_Web_API.gs. Oculto por defecto:
+           j.mazoActual puede venir null (jugador sin datos de Cards_2
+           todavía), ver renderMazoActual() más abajo. -->
+      <div class="card" id="mMazoActualCard" style="padding:28px; margin-top:20px; display:none;">
+        <div class="eyebrow">Mazo actual</div>
+        <h2 style="font-size:19px; margin-top:8px;">Cartas equipadas ahora mismo</h2>
+        <div id="mMazoActualContenido" style="margin-top:14px;"></div>
+      </div>
+
       <!-- ---------- RANKING EN EL CLAN (nuevo, 31-ago-2026) ---------- -->
       <div class="card" style="padding:28px; margin-top:20px;">
         <div class="eyebrow">Evolución</div>
@@ -297,6 +311,43 @@ function renderExtendido(ext){
    * juntos, en una sola fila con el formato .ext-links, en renderMiembro().
    */
   wrap.innerHTML = (items ? `<div class="ext-grid">${items}</div>` : '') + camino;
+}
+
+/**
+ * renderMazoActual(mazoActual)
+ * FASE 10 (06-sep-2026, punto 10 del documento — mazo actual real).
+ * Distinto de "Sugerencias de mazo"/"Sugerencias de mazo (2)" (los
+ * botones de la fila de acciones, que arman una búsqueda en RoyaleAPI a
+ * partir del nivel de las cartas desbloqueadas): esta sección muestra
+ * mazoActual.cartas tal como viene de pd.currentDeck (currentDeck real de
+ * la API de Supercell) — ver _webMazoActualDesdeCards2(), 34_Web_API.gs.
+ * mazoActual puede venir null (jugador sin filas de Cards_2 todavía, ej.
+ * recién ingresado y aún no escaneado por /players) — en ese caso la card
+ * completa se deja oculta, igual que el resto de secciones opcionales de
+ * este perfil (ver el mismo patrón en mTorneosWrap/mHistorialGuerraWrap).
+ */
+function renderMazoActual(mazoActual){
+  const card = document.getElementById('mMazoActualCard');
+  const cont = document.getElementById('mMazoActualContenido');
+  if (!mazoActual || !Array.isArray(mazoActual.cartas) || !mazoActual.cartas.length){
+    card.style.display = 'none';
+    cont.innerHTML = '';
+    return;
+  }
+  card.style.display = '';
+
+  const cartasHtml = mazoActual.cartas.map(c => `
+    <div style="display:flex; flex-direction:column; align-items:center; gap:6px; width:84px;">
+      ${c.icon ? `<img src="${esc(c.icon)}" alt="${esc(c.name)}" loading="lazy" style="width:64px; height:auto; border-radius:6px;">` : ''}
+      <div style="font-size:11px; text-align:center; line-height:1.25;">${esc(c.name)}</div>
+      <div class="text-faint" style="font-size:10px;">${c.nivel ? 'Nivel ' + esc(String(c.nivel)) : '—'}${c.hasEvolution ? ' · Evo' : ''}</div>
+    </div>`).join('');
+
+  const promedioHtml = (mazoActual.elixirPromedio !== null && mazoActual.elixirPromedio !== undefined)
+    ? `<div class="text-dim" style="font-size:12px; margin-top:16px;">Coste de elixir promedio: <b>${esc(String(mazoActual.elixirPromedio))}</b></div>`
+    : '';
+
+  cont.innerHTML = `<div style="display:flex; flex-wrap:wrap; gap:14px;">${cartasHtml}</div>${promedioHtml}`;
 }
 
 /**
@@ -436,6 +487,7 @@ function renderMiembro(j){
 
   renderExtendido(j.extendido);
   renderRankingChart(j.extendido);
+  renderMazoActual(j.mazoActual); // FASE 10 (06-sep-2026)
 
   // FIX (31-ago-2026, pedido usuario — "en los perfiles de jugadores,
   // antes de ver torneos, agrega el botón con el link al perfil de
