@@ -24,7 +24,7 @@ const WEB_MEMBER_TOKEN = 'terna-web-pub-24ago'; // debe ser igual al de 34_Web_A
  * Form real (contenedor: Google Sheet
  * 1-8es9UFC_kLC8U4DwBT5xKPLfo_nw7__6J9TyiDUW14).
  */
-const WSP_GRUPO_URL = 'https://chat.whatsapp.com/HfaoDijjtkS4mwijpdczkU';
+const WSP_GRUPO_URL = 'https://chat.whatsapp.com/DthBdzalBK59KjTr13CwsR'; // FIX (07-sep-2026, pedido usuario — "el link de invitación en wsp es viejo"): reemplazado por el link vigente. Al ser una constante única, actualiza sola todos los botones de "unirse por WhatsApp" (modal "Cómo unirte" de index.html y directorio.html) — el link de "Redes Oficiales" (index.html, sección #redes) es un <a> estático aparte, se actualiza también a mano ahí.
 const DISCORD_URL = 'https://discord.gg/YKXtg93DVb';
 const FORM_POSTULACION_URL = 'https://docs.google.com/forms/d/e/1FAIpQLScWHtEClZfhvV1-6zFv2QgrdUgv2pTc7A94JhuGHpB0UnL2LQ/viewform?usp=dialog';
 
