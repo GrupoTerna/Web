@@ -282,6 +282,21 @@ function renderExtendido(ext){
   items += extItem(ext.victorias, 'Victorias', true);
   items += extItem(ext.derrotas, 'Derrotas', true);
   items += extItem(ext.batallas, 'Batallas', true);
+  /* Punto 18 de la Lista "ChatGPT" (cambios_web.pdf) — % de victorias, %
+   * de derrotas y ratio V/D. Calculado 100% en frontend a partir de
+   * ext.victorias/ext.derrotas, que el backend YA envía (sin tocar
+   * 34_Web_API.gs ni ningún endpoint): son los mismos valores que se
+   * muestran arriba como "Victorias"/"Derrotas", solo derivados. Si no
+   * hay ninguna batalla registrada (total=0) no se muestra nada, para no
+   * pintar "0.0%" sin sentido en un perfil recién creado. Ratio V/D queda
+   * en '—' cuando Derrotas=0 (no hay con qué dividir, no es un error). */
+  const vNum = Number(ext.victorias) || 0, dNum = Number(ext.derrotas) || 0;
+  const totalVD = vNum + dNum;
+  if (totalVD > 0){
+    items += extItem(((vNum / totalVD) * 100).toFixed(1) + '%', '% Victorias', false);
+    items += extItem(((dNum / totalVD) * 100).toFixed(1) + '%', '% Derrotas', false);
+    items += extItem(dNum > 0 ? (vNum / dNum).toFixed(2) : '—', 'Ratio V/D', false);
+  }
   items += extItem(ext.racha, 'Racha', true);
   items += extItem(ext.victorias3Coronas, '3 coronas', true);
   items += extItem(ext.maxVictoriasDesafios, 'Máx. victorias desafío', true);
