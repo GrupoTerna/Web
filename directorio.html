@@ -183,12 +183,6 @@
     letter-spacing:.03em; color:var(--text-dim); background:var(--surface-card);
     border-bottom:1px solid var(--line);
   }
-  .roster-table thead tr.roster-filtros th{padding-top:0; padding-bottom:11px; background:var(--surface-card);}
-  .roster-table thead tr.roster-filtros input{
-    width:100%; min-width:76px; font-family:var(--f-mono); font-size:12.5px; padding:6px 8px;
-    border-radius:6px; border:1px solid var(--line); background:var(--bg-2); color:var(--text);
-  }
-  .roster-table thead tr.roster-filtros input::placeholder{color:var(--text-faint);}
   .roster-table td.rt-num{font-family:var(--f-mono); color:var(--text-faint); font-size:13px;}
   .roster-table td.rt-nombre{font-weight:700; font-size:15px;}
   .roster-table td.rt-tag, .roster-table td.rt-rango, .roster-table td.rt-ranking,
@@ -198,6 +192,50 @@
   }
   .roster-table td.rt-tag, .roster-table td.rt-rango{text-transform:uppercase; letter-spacing:.03em;}
   .roster-table tbody .empty{white-space:normal;}
+
+  /* ---------- Filtro por columna estilo "hoja de cálculo" (07-sep-2026,
+     pedido usuario — "el filtro se puede ver así?" + captura de Sheets:
+     ícono de embudo en cada encabezado que abre un desplegable con
+     buscador, checklist de valores únicos con check y Cancelar/Aceptar).
+     Reemplaza el input de texto libre que tenía cada columna. El
+     desplegable (#rtFiltroPop) se arma y posiciona por JS (getBoundingClientRect
+     del ícono clickeado) como position:fixed, colgado del <body> — así no
+     lo recorta el overflow-x:auto de .roster-table-wrap. Ver
+     abrirFiltroColumna()/cerrarFiltroPopover() más abajo. */
+  .rt-th-inner{display:flex; align-items:center; justify-content:space-between; gap:6px;}
+  .rt-filtro-btn{
+    background:transparent; border:none; cursor:pointer; padding:4px; border-radius:5px;
+    color:var(--text-faint); display:inline-flex; align-items:center; justify-content:center;
+    flex-shrink:0; transition:color .15s ease, background .15s ease;
+  }
+  .rt-filtro-btn svg{width:13px; height:13px; display:block;}
+  .rt-filtro-btn:hover{color:var(--text); background:rgba(162,57,255,.14);}
+  .rt-filtro-btn.activo{color:var(--purple-light);}
+  .rt-filtro-pop{
+    position:fixed; z-index:200; background:var(--surface-card); border:1px solid var(--line-strong);
+    border-radius:var(--radius-sm); box-shadow:var(--glow); padding:12px; width:230px;
+  }
+  .rt-filtro-pop input[type="text"]{
+    width:100%; padding:8px 10px; font-size:13px; border-radius:6px; border:1px solid var(--line);
+    background:var(--bg-2); color:var(--text); margin-bottom:8px; font-family:inherit;
+  }
+  .rt-filtro-lista{max-height:220px; overflow-y:auto; margin-bottom:10px;}
+  .rt-filtro-item{
+    display:flex; align-items:center; gap:9px; padding:6px 5px; font-size:13px; color:var(--text);
+    cursor:pointer; border-radius:5px; user-select:none;
+  }
+  .rt-filtro-item:hover{background:rgba(162,57,255,.1);}
+  .rt-filtro-item input[type="checkbox"]{accent-color:var(--purple); width:15px; height:15px; flex-shrink:0; cursor:pointer;}
+  .rt-filtro-vacio{font-size:12px; color:var(--text-faint); padding:8px 5px;}
+  .rt-filtro-acciones{display:flex; justify-content:flex-end; gap:8px; border-top:1px solid var(--line); padding-top:10px;}
+  .rt-filtro-acciones button{
+    font-family:var(--f-mono); font-size:12px; font-weight:700; padding:8px 14px; border-radius:6px; cursor:pointer;
+    border:1px solid transparent;
+  }
+  .rt-filtro-cancelar{background:transparent; border-color:var(--line); color:var(--text-dim);}
+  .rt-filtro-cancelar:hover{border-color:var(--line-strong); color:var(--text);}
+  .rt-filtro-aceptar{background:var(--purple); color:#fff;}
+  .rt-filtro-aceptar:hover{background:var(--purple-light);}
 
   /* FIX (04-sep-2026, pedido usuario — "Los ingresos recientes deben
      moverse a Directorio (al final)"): sección + estilos traídos tal cual
@@ -1176,9 +1214,10 @@ function calcularAntiguedad(fechaIngreso){
  * izquierda del nombre (N°)... filtros en cada columna"): antes el
  * Directorio por clan era una lista de .miembro-row (nombre + tag +
  * rango + vigencia); ahora es una tabla real armada desde este arreglo
- * de columnas, así el encabezado, la fila de filtros y cada celda salen
+ * de columnas, así el encabezado, el ícono de filtro y cada celda salen
  * del mismo lugar (evita repetir 12 <th> a mano). `filtrable:false` deja
- * una columna sin input de filtro (no aplica para N°).
+ * una columna sin ícono de filtro (no aplica para N°, es solo la
+ * numeración visual de la fila).
  */
 const ROSTER_COLUMNAS = [
   { key:'num',         label:'N°',            cls:'rt-num',        filtrable:false, get:(m, i) => i + 1 },
@@ -1195,22 +1234,137 @@ const ROSTER_COLUMNAS = [
   { key:'vigencia',    label:'Vigencia',      cls:'rt-vigencia',    get:m => (m.vigencia ? fmtFechaCortaVigencia(m.vigencia) : null) },
 ];
 
-/** Aplica los filtros de texto activos (uno por columna filtrable) sobre
- * las filas ya pintadas de la tabla — oculta (display:none) las que no
- * calzan con TODOS los filtros con texto (AND entre columnas). Se llama
- * en cada input de la fila de filtros, sin volver a pedir datos. */
-function aplicarFiltrosRoster(wrap){
-  const filtros = {};
-  wrap.querySelectorAll('input[data-filtro-col]').forEach(input => {
-    const v = input.value.trim().toLowerCase();
-    if (v) filtros[input.dataset.filtroCol] = v;
+const ICONO_FILTRO = '<svg viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M1 2.5A.5.5 0 0 1 1.5 2h13a.5.5 0 0 1 .4.8L10 9.4V13a.5.5 0 0 1-.2.4l-2 1.5A.5.5 0 0 1 7 14.5v-5.1L1.1 2.8A.5.5 0 0 1 1 2.5z"/></svg>';
+
+/** Estado de los filtros de la tabla activa: por columna filtrada, el Set
+ * de valores (texto ya formateado, tal cual se ve en la celda) que deben
+ * quedar visibles. Una columna sin entrada acá = sin filtro (se ven
+ * todos). Se reinicia cada vez que se pinta la tabla (cambio de pestaña
+ * de clan, ver renderRosterClanActivo()). */
+let rosterFiltrosSeleccion = {};
+let rosterFiltroPopEl = null; // popover de filtro abierto actualmente (o null)
+
+/** Todos los valores distintos (ya formateados como texto de celda, "—"
+ * incluido si aplica) que puede tomar una columna en la lista de
+ * miembros actual, ordenados. */
+function valoresUnicosColumna(col, miembros){
+  const set = new Set();
+  miembros.forEach((m, i) => {
+    const val = col.get(m, i);
+    set.add(val === null || val === undefined || val === '' ? '—' : String(val));
   });
+  return [...set].sort((a, b) => a.localeCompare(b, 'es', { numeric:true, sensitivity:'base' }));
+}
+
+function cerrarFiltroPopover(){
+  if (rosterFiltroPopEl){ rosterFiltroPopEl.remove(); rosterFiltroPopEl = null; }
+  document.removeEventListener('mousedown', cerrarFiltroPopoverSiFuera, true);
+  window.removeEventListener('scroll', cerrarFiltroPopover, true);
+  window.removeEventListener('resize', cerrarFiltroPopover, true);
+}
+function cerrarFiltroPopoverSiFuera(e){
+  if (rosterFiltroPopEl && !rosterFiltroPopEl.contains(e.target)) cerrarFiltroPopover();
+}
+
+/**
+ * abrirFiltroColumna(col, btnEl, wrap, miembros)
+ * Arma el desplegable estilo hoja de cálculo: buscador + checklist de
+ * valores únicos (todos tildados si la columna no tenía filtro previo, o
+ * reflejando la selección guardada) + Cancelar/Aceptar. Las casillas se
+ * tildan/destildan en una selección TEMPORAL (`temp`) que solo se guarda
+ * en rosterFiltrosSeleccion al tocar "Aceptar" — "Cancelar" descarta los
+ * cambios sin tocar el filtro ya aplicado.
+ */
+function abrirFiltroColumna(col, btnEl, wrap, miembros){
+  const yaAbierto = rosterFiltroPopEl && rosterFiltroPopEl.dataset.col === col.key;
+  cerrarFiltroPopover();
+  if (yaAbierto) return; // click de nuevo en el mismo ícono: solo cierra
+
+  const valores = valoresUnicosColumna(col, miembros);
+  const seleccionPrevia = rosterFiltrosSeleccion[col.key];
+  const temp = new Set(seleccionPrevia ? [...seleccionPrevia] : valores);
+
+  const pop = document.createElement('div');
+  pop.className = 'rt-filtro-pop';
+  pop.dataset.col = col.key;
+  pop.innerHTML = `
+    <input type="text" class="rt-filtro-buscar" placeholder="Buscar valor…" aria-label="Buscar valor de ${esc(col.label)}">
+    <div class="rt-filtro-lista"></div>
+    <div class="rt-filtro-acciones">
+      <button type="button" class="rt-filtro-cancelar">Cancelar</button>
+      <button type="button" class="rt-filtro-aceptar">Aceptar</button>
+    </div>`;
+  document.body.appendChild(pop);
+  rosterFiltroPopEl = pop;
+
+  const listaEl = pop.querySelector('.rt-filtro-lista');
+  const pintarLista = (filtroTexto) => {
+    const q = (filtroTexto || '').trim().toLowerCase();
+    const visibles = q ? valores.filter(v => v.toLowerCase().includes(q)) : valores;
+    listaEl.innerHTML = visibles.length ? visibles.map(v => `
+      <label class="rt-filtro-item">
+        <input type="checkbox" value="${esc(v)}"${temp.has(v) ? ' checked' : ''}>
+        <span>${esc(v)}</span>
+      </label>`).join('') : '<div class="rt-filtro-vacio">Sin coincidencias.</div>';
+    listaEl.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+      cb.addEventListener('change', () => { cb.checked ? temp.add(cb.value) : temp.delete(cb.value); });
+    });
+  };
+  pintarLista('');
+
+  pop.querySelector('.rt-filtro-buscar').addEventListener('input', e => pintarLista(e.target.value));
+  pop.querySelector('.rt-filtro-cancelar').addEventListener('click', cerrarFiltroPopover);
+  pop.querySelector('.rt-filtro-aceptar').addEventListener('click', () => {
+    // Si quedaron todos tildados, es lo mismo que "sin filtro" — se borra
+    // la entrada en vez de guardar un Set completo (más simple de leer).
+    if (temp.size >= valores.length) delete rosterFiltrosSeleccion[col.key];
+    else rosterFiltrosSeleccion[col.key] = temp;
+    cerrarFiltroPopover();
+    aplicarFiltrosRoster(wrap);
+    actualizarIconosFiltro(wrap);
+  });
+
+  // Posición: colgado del ícono clickeado, como position:fixed (así no lo
+  // recorta el overflow-x:auto de .roster-table-wrap). Se ajusta para no
+  // salirse por la derecha ni por abajo de la ventana.
+  const r = btnEl.getBoundingClientRect();
+  const popAncho = 230;
+  let left = Math.min(r.left, window.innerWidth - popAncho - 12);
+  let top = r.bottom + 6;
+  if (top + 300 > window.innerHeight) top = Math.max(8, r.top - 306);
+  pop.style.left = Math.max(8, left) + 'px';
+  pop.style.top = top + 'px';
+
+  setTimeout(() => {
+    document.addEventListener('mousedown', cerrarFiltroPopoverSiFuera, true);
+    window.addEventListener('scroll', cerrarFiltroPopover, true);
+    window.addEventListener('resize', cerrarFiltroPopover, true);
+  }, 0);
+}
+
+/** Colorea el ícono de embudo de cada columna que tiene un filtro activo
+ * (rosterFiltrosSeleccion[col.key] existe), para que se note a simple
+ * vista cuáles columnas están filtradas ahora mismo. */
+function actualizarIconosFiltro(wrap){
+  wrap.querySelectorAll('.rt-filtro-btn').forEach(btn => {
+    btn.classList.toggle('activo', !!rosterFiltrosSeleccion[btn.dataset.col]);
+  });
+}
+
+/** Aplica los filtros ya ACEPTADOS (rosterFiltrosSeleccion) sobre las
+ * filas ya pintadas de la tabla — oculta (display:none) las que no
+ * calcen con TODAS las columnas filtradas a la vez (AND entre columnas).
+ * Se llama al tocar "Aceptar" en cualquier columna, sin volver a pedir
+ * datos al backend. */
+function aplicarFiltrosRoster(wrap){
+  const cols = Object.keys(rosterFiltrosSeleccion);
   const filas = wrap.querySelectorAll('tbody tr.js-miembro');
   filas.forEach(fila => {
-    const pasa = Object.keys(filtros).every(col => {
-      const celda = fila.querySelector(`.${ROSTER_COLUMNAS.find(c => c.key === col).cls}`);
-      const texto = celda ? celda.textContent.toLowerCase() : '';
-      return texto.includes(filtros[col]);
+    const pasa = cols.every(colKey => {
+      const cls = ROSTER_COLUMNAS.find(c => c.key === colKey).cls;
+      const celda = fila.querySelector(`.${cls}`);
+      const texto = celda ? celda.textContent : '—';
+      return rosterFiltrosSeleccion[colKey].has(texto);
     });
     fila.style.display = pasa ? '' : 'none';
   });
@@ -1227,11 +1381,13 @@ function renderRosterClanActivo(){
     return;
   }
 
-  const encabezado = ROSTER_COLUMNAS.map(c => `<th>${esc(c.label)}</th>`).join('');
-  const filtros = ROSTER_COLUMNAS.map(c => c.filtrable === false
-    ? '<th></th>'
-    : `<th><input type="text" data-filtro-col="${c.key}" placeholder="Filtrar…" aria-label="Filtrar por ${esc(c.label)}"></th>`
-  ).join('');
+  cerrarFiltroPopover();
+  rosterFiltrosSeleccion = {}; // cambiar de clan resetea los filtros — cada clan tiene sus propios valores
+
+  const encabezado = ROSTER_COLUMNAS.map(c => `
+    <th><div class="rt-th-inner"><span>${esc(c.label)}</span>${c.filtrable === false ? '' :
+      `<button type="button" class="rt-filtro-btn" data-col="${c.key}" title="Filtrar por ${esc(c.label)}" aria-label="Filtrar por ${esc(c.label)}">${ICONO_FILTRO}</button>`
+    }</div></th>`).join('');
   const filas = miembros.map((m, i) => {
     const celdas = ROSTER_COLUMNAS.map(c => {
       const val = c.get(m, i);
@@ -1244,10 +1400,7 @@ function renderRosterClanActivo(){
     <div class="card" style="padding:0;">
       <div class="roster-table-wrap">
         <table class="roster-table">
-          <thead>
-            <tr>${encabezado}</tr>
-            <tr class="roster-filtros">${filtros}</tr>
-          </thead>
+          <thead><tr>${encabezado}</tr></thead>
           <tbody>${filas}</tbody>
         </table>
       </div>
@@ -1256,9 +1409,12 @@ function renderRosterClanActivo(){
   wrap.querySelectorAll('.js-miembro').forEach(row => {
     row.addEventListener('click', () => buscarMiembro(row.dataset.tag));
   });
-  wrap.querySelectorAll('input[data-filtro-col]').forEach(input => {
-    input.addEventListener('click', e => e.stopPropagation());
-    input.addEventListener('input', () => aplicarFiltrosRoster(wrap));
+  wrap.querySelectorAll('.rt-filtro-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const col = ROSTER_COLUMNAS.find(c => c.key === btn.dataset.col);
+      abrirFiltroColumna(col, btn, wrap, miembros);
+    });
   });
 }
 
