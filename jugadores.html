@@ -112,16 +112,12 @@
   .linechart-svg{width:100%; height:auto; aspect-ratio:640/220; display:block; overflow:visible;}
   .linechart-svg .grid-line{stroke:var(--line-strong); stroke-width:1; opacity:.4;}
   .linechart-svg .axis-label{font-family:var(--f-mono); font-size:10px; fill:var(--text-faint);}
-  /* FIX (07-sep-2026, pedido usuario — "en el cara a cara, rota 45° a la
-     izquierda la fecha y agrega líneas grises discretas (secundarias)
-     que permitan identificar el primer registro de cada semana y unas
-     más notorias para el inicio de cada mes (principales)"): líneas
-     verticales neutras (gris, sin teñido morado/dorado como --line/
-     --line-strong) para no competir visualmente con las series de datos.
-     .grid-line-week es discreta (semana); .grid-line-month es más
-     notoria (mes) y va por encima en el DOM para no quedar tapada. */
-  .linechart-svg .grid-line-week{stroke:#8a93a3; stroke-width:1; opacity:.16;}
-  .linechart-svg .grid-line-month{stroke:#8a93a3; stroke-width:1; opacity:.4;}
+  /* FIX (07-sep-2026, pedido usuario — líneas de referencia temporal):
+     las líneas verticales de año/temporada/semana de esta gráfica ahora
+     usan las clases GLOBALES .grid-line-anio/-temporada/-semana definidas
+     en assets/styles.css (lineasTemporalesSvg(), común.js) — ya no hace
+     falta ninguna definición propia acá (antes: .grid-line-week/-month,
+     basadas en mes calendario en vez del criterio real de temporada). */
   .linechart-svg .axis-label-month{font-family:var(--f-mono); font-size:10px; fill:var(--text-faint);}
 
   /* ---------- Directorio: tabs horizontales de clan + lista de miembros ---------- */
@@ -687,7 +683,7 @@ function renderComparadorLado(jugador){
     <div class="card comp-card">
       <div class="perfil-cabecera">
         <div>
-          <h3>${esc(jugador.nombre)}</h3>
+          <h3>${enlaceJugador(jugador.nombre, jugador.tag)}</h3>
           <div class="comp-sub">${esc(jugador.clan)} · ${esc(jugador.rango)}</div>
         </div>
         ${vigenciaHtml}
@@ -756,6 +752,7 @@ function renderComparadorBarras(a, b){
   if (!filas.length) return '';
 
   const nombreA = a.nombre || 'Jugador 1', nombreB = b.nombre || 'Jugador 2';
+  const enlaceA = enlaceJugador(nombreA, a.tag), enlaceB = enlaceJugador(nombreB, b.tag);
   const filaHtml = f => {
     const va = Number(f.va) || 0, vb = Number(f.vb) || 0;
     const maxBarra = Math.max(1, va, vb);
@@ -771,12 +768,12 @@ function renderComparadorBarras(a, b){
     return `
       <div class="chart-title" style="margin-top:16px;">${f.icono} ${esc(f.label)}</div>
       <div class="chart-row">
-        <span class="chart-label" style="width:110px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${esc(nombreA)}">${esc(nombreA)}</span>
+        <span class="chart-label" style="width:110px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${esc(nombreA)}">${enlaceA}</span>
         <span class="chart-track"><span class="chart-fill" style="width:${pctA}%"></span></span>
         <span class="chart-val">${txtA}</span>
       </div>
       <div class="chart-row">
-        <span class="chart-label" style="width:110px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${esc(nombreB)}">${esc(nombreB)}</span>
+        <span class="chart-label" style="width:110px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${esc(nombreB)}">${enlaceB}</span>
         <span class="chart-track"><span class="chart-fill" style="width:${pctB}%; background:linear-gradient(90deg, var(--gold), #fde68a);"></span></span>
         <span class="chart-val">${txtB}</span>
       </div>`;
@@ -841,47 +838,33 @@ function guerraComparadorMetricaSvg(a, b, campo, tituloMetrica, fechas, indicePo
     gridLines.push(`<line class="grid-line" x1="${PAD_L}" y1="${y}" x2="${W - PAD_R}" y2="${y}"></line>`);
     gridLines.push(`<text class="axis-label" x="${PAD_L - 8}" y="${y + 4}" text-anchor="end">${fmtNum(Math.round(v))}</text>`);
   }
+  // Líneas horizontales secundarias a mitad de espaciado (pedido usuario
+  // 07-sep-2026) — mismo criterio que el resto de gráficas del sitio.
+  const gridMedios = gridHorizontalMediosSvg(pasosGrid, max - min, v => escalaY(min + v), PAD_L, W - PAD_R);
 
-  // FIX (07-sep-2026, pedido usuario — "agrega líneas grises discretas
-  // (secundarias) que permitan identificar el primer registro de cada
-  // semana y unas más notorias para el inicio de cada mes (principales)"):
-  // se recorren las fechas una sola vez detectando dos tipos de cambio:
-  // - cambio de mes (ya existía, para las etiquetas del eje X) → línea
-  //   "principal" (grid-line-month).
-  // - cambio de semana (lunes como inicio de semana) → línea "secundaria"
-  //   (grid-line-week), salvo que coincida con un inicio de mes, en cuyo
-  //   caso ya queda cubierta por la línea de mes (más notoria) y no hace
-  //   falta duplicarla.
-  function claveSemana(fechaISO){
-    const d = new Date(fechaISO + 'T00:00:00');
-    const diaSemana = d.getDay(); // 0=domingo..6=sábado
-    const offsetDesdeLunes = (diaSemana + 6) % 7;
-    d.setDate(d.getDate() - offsetDesdeLunes);
-    return d.toISOString().slice(0, 10);
-  }
+  // FIX (07-sep-2026, pedido usuario — "agrega líneas... que permitan
+  // identificar el primer registro de cada semana y unas más notorias
+  // para el inicio de cada mes"), ACTUALIZADO el mismo día (pedido más
+  // amplio, ver docblock de lineasTemporalesSvg en common.js): esta
+  // gráfica es de granularidad DIARIA, así que las 3 líneas de
+  // referencia (año/temporada/semana) aplican todas — reemplaza el
+  // detector de "cambio de mes calendario" que había antes (una
+  // temporada de Clash Royale NO siempre coincide con el mes calendario:
+  // empieza el PRIMER LUNES de cada mes, ver esInicioTemporada() en
+  // común.js) por el mismo criterio que usa el backend.
   const MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
   const etiquetas = [];
-  const lineasMes = [];
-  const lineasSemana = [];
-  let semanaAnterior = null;
+  const fechasEje = [];
   fechas.forEach((f, i) => {
-    const mes = MESES[Number(f.slice(5,7)) - 1] || '';
-    const anio = f.slice(0,4);
-    const mesAnterior = i > 0 ? MESES[Number(fechas[i-1].slice(5,7)) - 1] : null;
-    const esInicioMes = i === 0 || mes !== mesAnterior;
-    const x = PAD_L + i * stepX;
-
-    if (esInicioMes){
-      etiquetas.push({ x, texto: `${mes} ${anio}` });
-      lineasMes.push(x);
-    }
-
-    const semana = claveSemana(f);
-    if (semana !== semanaAnterior){
-      if (!esInicioMes) lineasSemana.push(x);
-      semanaAnterior = semana;
+    const d = new Date(f + 'T00:00:00');
+    fechasEje.push(d);
+    const mes = MESES[d.getMonth()], anio = d.getFullYear();
+    const mesAnterior = i > 0 ? new Date(fechas[i-1] + 'T00:00:00').getMonth() : null;
+    if (i === 0 || d.getMonth() !== mesAnterior){
+      etiquetas.push({ x: PAD_L + i * stepX, texto: `${mes} ${anio}` });
     }
   });
+  const lineasTemporales = lineasTemporalesSvg(fechasEje, i => PAD_L + i * stepX, PAD_T, PAD_T + plotH, { granularidadDiaria: true });
 
   const puntosDe = serie => serie
     .filter(r => indicePorFecha.has(r.fecha))
@@ -907,28 +890,12 @@ function guerraComparadorMetricaSvg(a, b, campo, tituloMetrica, fechas, indicePo
   const colorA = 'var(--purple-light, #c084fc)';
   const colorB = 'var(--gold, #f3a922)';
 
-  // FIX (07-sep-2026, pedido usuario): líneas verticales de semana/mes
-  // van DESPUÉS de la grilla horizontal (gridLines) pero ANTES de las
-  // series, para quedar detrás de las curvas y no taparlas. La línea de
-  // mes se dibuja encima de la de semana (orden en el array) por si
-  // llegaran a coincidir en algún caso borde.
-  const lineasSemanaSvg = lineasSemana
-    .map(x => `<line class="grid-line-week" x1="${x.toFixed(1)}" y1="${PAD_T}" x2="${x.toFixed(1)}" y2="${PAD_T + plotH}"></line>`)
-    .join('');
-  const lineasMesSvg = lineasMes
-    .map(x => `<line class="grid-line-month" x1="${x.toFixed(1)}" y1="${PAD_T}" x2="${x.toFixed(1)}" y2="${PAD_T + plotH}"></line>`)
-    .join('');
-
-  // FIX (07-sep-2026, pedido usuario — "rota 45° a la izquierda la
-  // fecha"): text-anchor pasa de "middle" a "end" y se rota -45° sobre
-  // su propio punto de anclaje (extremo derecho del texto, pegado a la
-  // línea de mes), que es la forma estándar de inclinar una etiqueta de
-  // eje X hacia la izquierda sin que quede flotando lejos de su marca.
+  // FIX (07-sep-2026, pedido usuario): rota 45° a la izquierda la fecha.
   return `
     <svg class="linechart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">
       ${gridLines.join('')}
-      ${lineasSemanaSvg}
-      ${lineasMesSvg}
+      ${gridMedios}
+      ${lineasTemporales}
       ${etiquetas.map(e => `<text class="axis-label axis-label-month" x="${e.x}" y="${H - 6}" text-anchor="end" transform="rotate(-45 ${e.x} ${H - 6})">${esc(e.texto)}</text>`).join('')}
       ${a.length ? `<polyline points="${puntosDe(a)}" fill="none" stroke="${colorA}" stroke-width="2.5"/>` : ''}
       ${b.length ? `<polyline points="${puntosDe(b)}" fill="none" stroke="${colorB}" stroke-width="2.5"/>` : ''}
@@ -946,7 +913,7 @@ function guerraComparadorMetricaSvg(a, b, campo, tituloMetrica, fechas, indicePo
  * filtrados a "solo guerra" desde el backend (_webHistorialGuerraComparador),
  * así que acá no hace falta filtrar nada — solo graficar.
  */
-function renderComparadorGuerraChart(histA, histB, nombreA, nombreB, clanA, clanB){
+function renderComparadorGuerraChart(histA, histB, nombreA, nombreB, clanA, clanB, tagA, tagB){
   const a = Array.isArray(histA) ? histA : [];
   const b = Array.isArray(histB) ? histB : [];
   if (!a.length && !b.length){
@@ -966,8 +933,8 @@ function renderComparadorGuerraChart(histA, histB, nombreA, nombreB, clanA, clan
 
   const legend = `
     <div class="guerra-chart-legend">
-      <span><span class="dot" style="background:var(--purple-light, #c084fc);"></span>${esc(nombreA)}</span>
-      <span><span class="dot" style="background:var(--gold, #f3a922);"></span>${esc(nombreB)}</span>
+      <span><span class="dot" style="background:var(--purple-light, #c084fc);"></span>${enlaceJugador(nombreA, tagA)}</span>
+      <span><span class="dot" style="background:var(--gold, #f3a922);"></span>${enlaceJugador(nombreB, tagB)}</span>
     </div>`;
 
   const metricCard = (icono, titulo, campo) => `
@@ -991,7 +958,7 @@ function renderComparadorGuerraChart(histA, histB, nombreA, nombreB, clanA, clan
       ${metricCard('⭐', 'Puntaje (Fame) por día de guerra', 'fame')}
       ${metricCard('🚢', 'Barcos por día de guerra', 'barcos')}
     </div>
-    <div class="text-faint" style="font-family:var(--f-mono); font-size:11px; margin-top:10px;">Un punto por día de guerra jugado (no se cuentan días de entrenamiento). Pasa el cursor sobre un punto para ver nombre, clan, valor y día. Líneas grises discretas marcan el primer registro de cada semana; las más notorias marcan el inicio de cada mes.</div>`;
+    <div class="text-faint" style="font-family:var(--f-mono); font-size:11px; margin-top:10px;">Un punto por día de guerra jugado (no se cuentan días de entrenamiento). Pasa el cursor sobre un punto para ver nombre, clan, valor y día. Líneas discretas marcan el inicio de cada semana; las intermedias marcan el inicio de cada temporada; la más notoria marca el inicio de cada año.</div>`;
 }
 
 function elegirComparadorLado1(tag){ document.getElementById('compTag1').value = tag; compararJugadores(); }
@@ -1054,7 +1021,9 @@ async function compararJugadores(){
       (data.a && data.a.nombre) || 'Jugador 1',
       (data.b && data.b.nombre) || 'Jugador 2',
       data.a && data.a.clan,
-      data.b && data.b.clan
+      data.b && data.b.clan,
+      data.a && data.a.tag,
+      data.b && data.b.tag
     );
   }catch(err){
     msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
@@ -1336,6 +1305,15 @@ function lineChartSvg(miembros, campo, semanas, opts){
     gridLines.push(`<text class="ing-axis-label" x="${PAD_L - 10}" y="${y + 4}" text-anchor="end">${fmtNum(Math.round(v))}</text>`);
   }
   const fechasEstimadas = construirFechasEstimadasSemanasViejas(semanas);
+  // Líneas de referencia año/temporada (granularidad semanal — mismo
+  // criterio que index.html, ver lineasTemporalesSvg() en común.js).
+  const fechasEje = semanas.map(s => {
+    const mfecha = String(s ?? '').match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (mfecha) return new Date(Number(mfecha[3]), Number(mfecha[2]) - 1, Number(mfecha[1]));
+    return fechasEstimadas.get(s) || null;
+  });
+  const lineasTemporales = lineasTemporalesSvg(fechasEje, xPos, PAD_T, H - PAD_B, { granularidadDiaria: false });
+  const gridMedios = gridHorizontalMediosSvg(pasos, techo, yPos, PAD_L, W - PAD_R);
   const xLabels = semanas.map((s, i) => {
     const x = xPos(i), y = H - PAD_B + 16;
     return `<text class="ing-axis-label" x="${x}" y="${y}" text-anchor="end" transform="rotate(-45 ${x} ${y})">${esc(semanaLabelCorta(s, fechasEstimadas))}</text>`;
@@ -1372,13 +1350,13 @@ function lineChartSvg(miembros, campo, semanas, opts){
       return `
       <circle class="ing-serie-pt${p.real ? '' : ' serie-pt-vacio'}" cx="${xPos(p.idx).toFixed(1)}" cy="${yPos(p.valor).toFixed(1)}" r="5"
         fill="${p.real ? color : 'none'}" stroke="${p.real ? 'var(--bg)' : color}" stroke-width="${p.real ? 1.5 : 2}"
-        data-nombre="${esc(m.nombre || '')}" data-valor="${p.valor}" data-clan="${esc(p.real ? p.clan : 'Sin dato — sin clan o sin participar')}"
+        data-nombre="${esc(m.nombre || '')}" data-tag="${esc(m.tag || '')}" data-valor="${p.valor}" data-clan="${esc(p.real ? p.clan : 'Sin dato — sin clan o sin participar')}"
         data-semana="${esc(semanaTooltip)}" data-unidad="${esc(opts.unidad || '')}"></circle>`;
     }).join('');
     return `${path}${circles}`;
   }).join('');
 
-  return `<svg class="ing-linechart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">${gridLines.join('')}${xLabels}${seriesSvg}</svg>`;
+  return `<svg class="ing-linechart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">${gridLines.join('')}${gridMedios}${lineasTemporales}${xLabels}${seriesSvg}</svg>`;
 }
 
 function lineChartLegendHtml(miembros){
@@ -1390,7 +1368,7 @@ function lineChartLegendHtml(miembros){
     return `${esNuevoGrupo ? `<span class="ing-linechart-legend-clan">${esc(clanLabel)}</span>` : ''}
     <span class="ing-linechart-legend-item">
       <span class="ing-linechart-legend-dot" style="background:${PALETA_SERIES[i % PALETA_SERIES.length]};"></span>
-      ${esc(m.nombre || '—')}
+      ${enlaceJugador(m.nombre, m.tag)}
     </span>`;
   }).join('');
   return `<div class="ing-linechart-legend">${items}</div>`;
@@ -1403,8 +1381,8 @@ function activarTooltipsGraficasIngresos(){
   if (!tip) return;
   document.querySelectorAll('.ing-linechart-svg .ing-serie-pt').forEach(pt => {
     pt.addEventListener('mousemove', e => {
-      const { nombre, valor, clan, semana, unidad } = pt.dataset;
-      tip.innerHTML = `<b>${esc(fmtNum(valor))} ${esc(unidad)}</b> — ${esc(clan)}<br><span style="color:var(--text-faint);">${esc(nombre)} · ${esc(semana)}</span>`;
+      const { nombre, tag, valor, clan, semana, unidad } = pt.dataset;
+      tip.innerHTML = `<b>${esc(fmtNum(valor))} ${esc(unidad)}</b> — ${esc(clan)}<br><span style="color:var(--text-faint);">${esc(nombre)}${tag ? ' (' + esc(tag) + ')' : ''} · ${esc(semana)}</span>`;
       tip.style.display = 'block';
       tip.style.left = (e.clientX + 14) + 'px';
       tip.style.top  = (e.clientY + 14) + 'px';
