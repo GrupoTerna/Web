@@ -20,7 +20,7 @@ const WEB_MEMBER_TOKEN = 'terna-web-pub-24ago'; // debe ser igual al de 34_Web_A
  * del resto del sitio). Usados por el modal "Cómo unirte" de index.html.
  * FORM_POSTULACION_URL: si quedara vacío, esa opción simplemente no se
  * muestra en vez de linkear a algo roto (ver el `if (FORM_POSTULACION_URL)`
- * en index.html/jugadores.html). Completado el 30-ago-2026 con el Google
+ * en index.html/directorio.html). Completado el 30-ago-2026 con el Google
  * Form real (contenedor: Google Sheet
  * 1-8es9UFC_kLC8U4DwBT5xKPLfo_nw7__6J9TyiDUW14).
  */
@@ -104,7 +104,7 @@ function esAdminLogueado(){
  * asignada (mismo criterio que usa admin.html para mostrar/ocultar el
  * card "Vetar miembro"). Antes vivía duplicada solo dentro de perfil.html;
  * se sube a common.js (1-sep-2026) para reutilizarla también en la vista
- * de cuentas inactivas de jugadores.html/index.html.
+ * de cuentas inactivas de directorio.html/index.html.
  */
 function adminPuedeVetar(){
   if (!esAdminLogueado()) return false;
@@ -294,7 +294,7 @@ const ICONO_ROYALEAPI = '<img src="https://cdn.royaleapi.com/static/img/branding
 const ICONO_CWSTATS = '<img src="https://assets.cwstats.com/icons/logo.webp" alt="" width="14" height="14" style="vertical-align:-2px; margin-right:5px; border-radius:3px;">';
 
 /* =========================================================================
- * Tarjetas y gráficos de clan — compartidos por index.html y jugadores.html
+ * Tarjetas y gráficos de clan — compartidos por index.html y directorio.html
  * (28-ago-2026, pedido del usuario: mismas tarjetas en ambas páginas, sin
  * duplicar el HTML/CSS/JS en cada archivo).
  * ========================================================================= */
@@ -330,7 +330,7 @@ const CLAN_LABELS_CORTOS = ['Principal', 'Terna 2', 'Terna 3', 'Mini'];
  *   opts.mostrarVerClan: agrega el botón "Ver clan" (SOLO Inicio — a pedido
  *     del usuario, la página Clanes ya no lo lleva porque el visitante ya
  *     está ahí; en Inicio lleva directo a la pestaña de ese clan en el
- *     roster de jugadores.html).
+ *     roster de directorio.html).
  * Ya NO incluye la descripción del clan (retirada a pedido del usuario) —
  * solo RoyaleAPI/CWStats + (opcional) Ver clan + (opcional) Unirse.
  */
@@ -344,7 +344,7 @@ function clanCardHtml(c, i, opts){
   const reqTxt = c.requerimiento > 0 ? fmtNum(c.requerimiento) + '+' : '—';
   const lider  = c.lider || '—';
   const liga   = c.liga  || '—';
-  const verClanHref = `jugadores.html?clan=${encodeURIComponent(nombre)}#roster`;
+  const verClanHref = `directorio.html?clan=${encodeURIComponent(nombre)}#roster`;
   const royaleApiOk = urlValida(c.royaleApi);
   const cwStatsOk   = urlValida(c.cwStats);
   return `
@@ -386,7 +386,7 @@ function clanCardHtml(c, i, opts){
  * `_webAdminCuentasInactivas()` (34_Web_API.gs) solo manda {tag, nombre,
  * clan}, así que `c.royaleApi`/`c.cwstats` vienen undefined y esos
  * botones simplemente no se pintan (urlValida() los filtra, igual que en
- * jugadores.html/index.html con el resto de links externos). En cuanto el
+ * directorio.html/index.html con el resto de links externos). En cuanto el
  * backend agregue esos dos campos al objeto de cada cuenta, los botones
  * aparecen solos, sin tocar el frontend de nuevo. El botón Vetar sí
  * funciona hoy mismo: no depende de datos nuevos, solo de la Función
@@ -618,7 +618,7 @@ async function agregarTarjetaCuentasInactivasSiAdmin(grid){
  * Tarjeta con un mini gráfico de barras horizontales comparando los 4
  * clanes en un campo numérico de webClanInfo (miembros/donaciones/
  * trofeos/copas). Sin librerías externas — barras hechas con CSS puro,
- * consistentes con el resto del sitio (ver .chart-* en jugadores.html).
+ * consistentes con el resto del sitio (ver .chart-* en directorio.html).
  */
 function chartCardHtml(titulo, icono, clanes, campo, formatFn){
   const valores = clanes.map(c => Number(c[campo]) || 0);

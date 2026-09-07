@@ -567,7 +567,15 @@
     </a>
     <button id="navToggle" class="nav-toggle" aria-label="Abrir menú">☰</button>
     <div class="links">
-      <a href="jugadores.html" data-page="jugadores">Directorio</a>
+      <!-- FIX (07-sep-2026, pedido usuario — "Agrega un botón llamado
+           'Inicio' que lleve a index, haciendo lo mismo que hace el botón
+           de familia Terna. Este botón debe estar a la izquierda de
+           Directorio"): mismo destino que el link .brand de arriba
+           (href="index.html") — se usa data-page="inicio" para que
+           marcarNavActiva() (assets/common.js) lo resalte como activo acá,
+           mismo valor que ya tiene <body data-page="inicio">. -->
+      <a href="index.html" data-page="inicio">Inicio</a>
+      <a href="directorio.html" data-page="directorio">Directorio</a>
       <a href="guerra.html" data-page="guerra">Guerra</a>
       <a href="torneos.html" data-page="torneos">Torneos</a>
       <a href="comunidad.html" data-page="comunidad">Comunidad</a>
@@ -602,7 +610,7 @@
       4 clanes — todo en un mismo portal en tiempo real.
     </p>
     <div class="hero-cta-row" style="display:flex; gap:16px; margin-top:32px; flex-wrap:wrap;">
-      <a href="jugadores.html" class="btn btn-primary">🏆 Buscar mi progreso</a>
+      <a href="directorio.html" class="btn btn-primary">🏆 Buscar mi progreso</a>
       <a id="heroDiscordBtn" href="https://discord.gg/YKXtg93DVb" target="_blank" rel="noopener" class="btn btn-ghost">💬 Unirse por Discord</a>
     </div>
 
@@ -639,7 +647,7 @@
           Familia Terna es una alianza de 4 clanes en Clash Royale. Cada clan
           cuenta con sus propios requisitos de trofeos, ataques en guerra y
           participación en torneos para mantener o ascender de rango. Puedes
-          consultar tu posición exacta en <a href="jugadores.html">Directorio</a> buscando tu Tag.
+          consultar tu posición exacta en <a href="directorio.html">Directorio</a> buscando tu Tag.
         </p>
       </div>
       <div style="flex:1; min-width:220px; display:flex; gap:14px; flex-direction:column;">
@@ -691,7 +699,7 @@
          original). -->
     <div class="sec-head clanes-sec-head" style="display:flex; align-items:center; justify-content:flex-start; gap:0 28px; flex-wrap:wrap;">
       <div style="flex:0 1 auto; min-width:260px; max-width:640px;">
-        <a class="eyebrow" href="jugadores.html#roster" style="text-decoration:none;">Nuestros Clanes</a>
+        <a class="eyebrow" href="directorio.html#roster" style="text-decoration:none;">Nuestros Clanes</a>
         <h2>Los 4 Clanes Terna</h2>
         <p>Cada clan con su propia exigencia y nivel competitivo — encuentra el ideal para tu perfil.</p>
       </div>
@@ -726,7 +734,7 @@
 <section id="ingresos">
   <div class="wrap">
     <div class="sec-head">
-      <a class="eyebrow" href="jugadores.html#roster" style="text-decoration:none;">Directorio en movimiento</a>
+      <a class="eyebrow" href="directorio.html#roster" style="text-decoration:none;">Directorio en movimiento</a>
       <h2>Ingresos recientes</h2>
       <p>Los miembros más nuevos de cada clan, ordenados por clan y luego por nombre.</p>
     </div>
@@ -966,7 +974,7 @@ const PALETA_SERIES = ['#a239ff','#f3a922','#3ddc97','#ff5e7e','#4ea1ff','#ffd23
 /**
  * tagsActivosDesdeRoster(dataRoster)
  * Set con los tags (normalizados) de todos los miembros que hoy figuran
- * en el directorio (webRoster — misma fuente que usa jugadores.html).
+ * en el directorio (webRoster — misma fuente que usa directorio.html).
  * Sirve para cruzar contra "Ingresos recientes": la hoja/CSV de origen
  * de webIngresosRecientes conserva registros de cuentas que YA salieron
  * de la Familia, así que sin este cruce se mostrarían ingresos de gente
@@ -981,7 +989,7 @@ function tagsActivosDesdeRoster(dataRoster){
 }
 
 /* FIX (03-sep-2026, pedido usuario — "Vigencia" en Ingresos recientes):
- * mismo patrón que fmtFechaCortaVigencia() de jugadores.html / fmtFechaCorta()
+ * mismo patrón que fmtFechaCortaVigencia() de directorio.html / fmtFechaCorta()
  * de perfil.html (cada página trae su propio helper en este proyecto). */
 function fmtFechaVigenciaCorta(v){
   if (!v) return '—';
@@ -1428,7 +1436,7 @@ async function cargarIngresos(){
   const chartsWrap = document.getElementById('ingresosChartsWrap');
   try{
     // webRoster = directorio actual de la Familia (misma fuente que usa
-    // jugadores.html), pedido en paralelo para cruzarlo contra
+    // directorio.html), pedido en paralelo para cruzarlo contra
     // webIngresosRecientes — ver comentario del bloque de arriba.
     const [data, dataRoster] = await Promise.all([
       apiGet('webIngresosRecientes'),
@@ -1606,7 +1614,7 @@ cargarAniversarios();
  * y las canteras aspiran a subir en clanes"): se agregan `tag` y `clan`
  * (ya vienen del backend, _webRankings() los mandaba desde antes, solo no
  * se estaban usando acá) — el nombre pasa a ser un link a
- * perfil.html?tag=... (mismo patrón que ya usa jugadores.html para abrir
+ * perfil.html?tag=... (mismo patrón que ya usa directorio.html para abrir
  * el perfil), y se pinta el clan al lado. Si por lo que sea no llega tag,
  * se degrada a texto plano sin romper nada.
  * CORRECCIÓN (05-sep-2026, pedido usuario — "el nombre en batallas de

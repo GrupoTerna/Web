@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Clanes — Familia Terna</title>
 <meta name="description" content="Los 4 clanes de la Familia Terna: estadísticas en vivo, directorio completo y busca tu progreso hacia el siguiente ascenso.">
-<link rel="canonical" href="https://grupoterna.github.io/Web/jugadores.html">
+<link rel="canonical" href="https://grupoterna.github.io/Web/directorio.html">
 <meta property="og:type" content="website">
-<meta property="og:url" content="https://grupoterna.github.io/Web/jugadores.html">
+<meta property="og:url" content="https://grupoterna.github.io/Web/directorio.html">
 <meta property="og:site_name" content="Familia Terna">
 <meta property="og:title" content="Clanes — Familia Terna">
 <meta property="og:description" content="Los 4 clanes de la Familia Terna: estadísticas en vivo, directorio completo y busca tu progreso hacia el siguiente ascenso.">
@@ -148,6 +148,57 @@
   .miembro-row .mr-right{text-align:right;}
   .miembro-row .mr-vigencia{font-family:var(--f-mono); font-size:11px; color:var(--text-faint); margin-top:2px;}
 
+  /* ---------- Directorio por clan: TABLA (07-sep-2026, pedido usuario —
+     "aumentar el tamaño de letra", agregar columnas Ranking en el clan,
+     Nivel (xp), Nivel (cartas), Antigüedad, Copas, Arena, V_Guerra,
+     numeración a la izquierda del nombre (N°) y filtros en cada
+     columna"). Reemplaza el listado de .miembro-row dentro de
+     #rosterWrap por una tabla real — OJO: .miembro-row en sí NO se borra,
+     sigue viva porque renderListaCoincidencias() (buscador y comparador,
+     ver más abajo) la reutiliza tal cual para su lista de coincidencias.
+     Fuente de cada columna nueva, ver renderRosterClanActivo():
+       - ranking: mismo "Ranking en el clan" que ya existe en el perfil
+         individual (perfil.html, ext.historialRanking — hoja Guerra,
+         columna GC.RANKING). Acá se pinta el valor más reciente.
+       - nivelXp / nivelCartas / arena: mismos nombres que ya usa
+         perfil.html (ext.nivelXp/ext.nivelCartas/ext.arena).
+       - copas / vGuerra: mismos nombres que ya usa perfil.html (j.copas/
+         j.vGuerra).
+       - antiguedad: calculada acá mismo (calcularAntiguedad()) a partir
+         de m.fechaIngreso.
+     CONTRATO ESPERADO de 'webRoster' (backend, fuera de este repo): cada
+     miembro debería traer, además de lo que ya usaba (tag, nombre, rango,
+     vigencia), estos campos nuevos: ranking, nivelXp, nivelCartas, copas,
+     arena, vGuerra, fechaIngreso. Si el backend todavía no manda alguno,
+     esta tabla no rompe: la celda se pinta "—" (ver ROSTER_COLUMNAS). */
+  .roster-table-wrap{overflow-x:auto; -webkit-overflow-scrolling:touch;}
+  .roster-table{width:100%; border-collapse:collapse; min-width:1100px;}
+  .roster-table th, .roster-table td{padding:11px 13px; text-align:left; white-space:nowrap;}
+  .roster-table tbody td{border-bottom:1px solid rgba(162,57,255,.06); font-size:15px; color:var(--text);}
+  .roster-table tbody tr{cursor:pointer; transition:background .15s ease;}
+  .roster-table tbody tr:hover{background:rgba(162,57,255,.1);}
+  .roster-table tbody tr:last-child td{border-bottom:none;}
+  .roster-table thead th{
+    font-family:var(--f-display); font-weight:700; font-size:14px; text-transform:uppercase;
+    letter-spacing:.03em; color:var(--text-dim); background:var(--surface-card);
+    border-bottom:1px solid var(--line);
+  }
+  .roster-table thead tr.roster-filtros th{padding-top:0; padding-bottom:11px; background:var(--surface-card);}
+  .roster-table thead tr.roster-filtros input{
+    width:100%; min-width:76px; font-family:var(--f-mono); font-size:12.5px; padding:6px 8px;
+    border-radius:6px; border:1px solid var(--line); background:var(--bg-2); color:var(--text);
+  }
+  .roster-table thead tr.roster-filtros input::placeholder{color:var(--text-faint);}
+  .roster-table td.rt-num{font-family:var(--f-mono); color:var(--text-faint); font-size:13px;}
+  .roster-table td.rt-nombre{font-weight:700; font-size:15px;}
+  .roster-table td.rt-tag, .roster-table td.rt-rango, .roster-table td.rt-ranking,
+  .roster-table td.rt-nivelxp, .roster-table td.rt-nivelcartas, .roster-table td.rt-copas,
+  .roster-table td.rt-arena, .roster-table td.rt-vguerra, .roster-table td.rt-vigencia{
+    font-family:var(--f-mono); font-size:13.5px; color:var(--text-dim);
+  }
+  .roster-table td.rt-tag, .roster-table td.rt-rango{text-transform:uppercase; letter-spacing:.03em;}
+  .roster-table tbody .empty{white-space:normal;}
+
   /* FIX (04-sep-2026, pedido usuario — "Los ingresos recientes deben
      moverse a Directorio (al final)"): sección + estilos traídos tal cual
      de guerra.html (donde vivía antes) — mismo markup, mismo criterio
@@ -159,6 +210,15 @@
   .nuevo-card .clan{font-size:13px; color:var(--text-dim); margin:6px 0 12px;}
   .nuevo-card .links{display:flex; gap:14px; font-size:12px;}
   .nuevo-card .links a{text-decoration:none; color:var(--purple-light); font-weight:600;}
+  /* FIX (07-sep-2026, pedido usuario — "en el bloque de ingresos
+     recientes agrega V_Guerra, Nivel (xp)"): mini-stats debajo del clan,
+     mismo patrón visual que .ext-item (más arriba, "Cara a cara"), solo
+     que en fila y sin fondo propio para no competir con el resto de la
+     tarjeta. Si el backend todavía no manda victoriasGuerra/nivelXp para
+     este endpoint, se pinta "—" (ver ingresoStatHtml() más abajo). */
+  .nuevo-card .nc-stats{display:flex; gap:16px; margin:2px 0 12px; flex-wrap:wrap;}
+  .nuevo-card .nc-stats span{font-family:var(--f-mono); font-size:12px; color:var(--text-dim);}
+  .nuevo-card .nc-stats b{color:var(--text); font-weight:700;}
 
   /* ---------- Ingresos Recientes: gráficas comparativas (Ataques/Puntaje/
      Barcos por semana), pedido del usuario (07-sep-2026): "que la sección
@@ -207,7 +267,7 @@
   .chart-tooltip b{color:var(--gold);}
 </style>
 </head>
-<body data-page="jugadores">
+<body data-page="directorio">
 
 <a href="#main-content" class="skip-link">Saltar al contenido</a>
 
@@ -219,7 +279,7 @@
     </a>
     <button id="navToggle" class="nav-toggle" aria-label="Abrir menú">☰</button>
     <div class="links">
-      <a href="jugadores.html" data-page="jugadores">Directorio</a>
+      <a href="directorio.html" data-page="directorio">Directorio</a>
       <a href="guerra.html" data-page="guerra">Guerra</a>
       <a href="torneos.html" data-page="torneos">Torneos</a>
       <a href="comunidad.html" data-page="comunidad">Comunidad</a>
@@ -1085,6 +1145,77 @@ function renderClanTabs(){
   });
 }
 
+/**
+ * calcularAntiguedad(fechaIngreso)
+ * FIX (07-sep-2026, pedido usuario — columna "Antigüedad" en el
+ * Directorio): a diferencia de "Vigencia" (última conexión, ya viene
+ * calculada del backend), la antigüedad se calcula acá mismo a partir de
+ * la fecha de ingreso a la Familia (m.fechaIngreso), mismo campo que ya
+ * usa 'webAniversarios' en index.html para los hitos de antigüedad. Si
+ * el dato todavía no llega del backend, se pinta "—" en vez de romper.
+ */
+function calcularAntiguedad(fechaIngreso){
+  if (!fechaIngreso) return null;
+  const d = fechaIngreso instanceof Date ? fechaIngreso : new Date(fechaIngreso);
+  if (isNaN(d.getTime())) return null;
+  const dias = Math.floor((Date.now() - d.getTime()) / 86400000);
+  if (dias < 0) return null;
+  if (dias < 30) return `${dias} día${dias === 1 ? '' : 's'}`;
+  const meses = Math.floor(dias / 30);
+  if (meses < 12) return `${meses} mes${meses === 1 ? '' : 'es'}`;
+  const anios = Math.floor(meses / 12);
+  const mesesRestantes = meses % 12;
+  return mesesRestantes ? `${anios}a ${mesesRestantes}m` : `${anios} año${anios === 1 ? '' : 's'}`;
+}
+
+/**
+ * ROSTER_COLUMNAS
+ * FIX (07-sep-2026, pedido usuario — "aumentar el tamaño de letra... se
+ * debe agregar el dato del ranking en el clan, Nivel (xp), Nivel
+ * (cartas), Antigüedad, Copas, Arena, V_Guerra... numeración a la
+ * izquierda del nombre (N°)... filtros en cada columna"): antes el
+ * Directorio por clan era una lista de .miembro-row (nombre + tag +
+ * rango + vigencia); ahora es una tabla real armada desde este arreglo
+ * de columnas, así el encabezado, la fila de filtros y cada celda salen
+ * del mismo lugar (evita repetir 12 <th> a mano). `filtrable:false` deja
+ * una columna sin input de filtro (no aplica para N°).
+ */
+const ROSTER_COLUMNAS = [
+  { key:'num',         label:'N°',            cls:'rt-num',        filtrable:false, get:(m, i) => i + 1 },
+  { key:'ranking',     label:'Ranking',       cls:'rt-ranking',     get:m => (m.ranking != null ? fmtNum(m.ranking) : null) },
+  { key:'nombre',      label:'Nombre',        cls:'rt-nombre',      get:m => m.nombre },
+  { key:'tag',         label:'Tag',           cls:'rt-tag',         get:m => m.tag },
+  { key:'rango',       label:'Rango',         cls:'rt-rango',       get:m => m.rango },
+  { key:'nivelXp',     label:'Nivel (XP)',    cls:'rt-nivelxp',     get:m => (m.nivelXp != null ? fmtNum(m.nivelXp) : null) },
+  { key:'nivelCartas', label:'Nivel (cartas)',cls:'rt-nivelcartas', get:m => (m.nivelCartas != null ? fmtNum(m.nivelCartas) : null) },
+  { key:'antiguedad',  label:'Antigüedad',    cls:'rt-antiguedad',  get:m => calcularAntiguedad(m.fechaIngreso) },
+  { key:'copas',       label:'Copas',         cls:'rt-copas',       get:m => (m.copas != null ? fmtNum(m.copas) : null) },
+  { key:'arena',       label:'Arena',         cls:'rt-arena',       get:m => m.arena },
+  { key:'vGuerra',     label:'V. Guerra',     cls:'rt-vguerra',     get:m => { const v = m.vGuerra != null ? m.vGuerra : m.victoriasGuerra; return v != null ? fmtNum(v) : null; } },
+  { key:'vigencia',    label:'Vigencia',      cls:'rt-vigencia',    get:m => (m.vigencia ? fmtFechaCortaVigencia(m.vigencia) : null) },
+];
+
+/** Aplica los filtros de texto activos (uno por columna filtrable) sobre
+ * las filas ya pintadas de la tabla — oculta (display:none) las que no
+ * calzan con TODOS los filtros con texto (AND entre columnas). Se llama
+ * en cada input de la fila de filtros, sin volver a pedir datos. */
+function aplicarFiltrosRoster(wrap){
+  const filtros = {};
+  wrap.querySelectorAll('input[data-filtro-col]').forEach(input => {
+    const v = input.value.trim().toLowerCase();
+    if (v) filtros[input.dataset.filtroCol] = v;
+  });
+  const filas = wrap.querySelectorAll('tbody tr.js-miembro');
+  filas.forEach(fila => {
+    const pasa = Object.keys(filtros).every(col => {
+      const celda = fila.querySelector(`.${ROSTER_COLUMNAS.find(c => c.key === col).cls}`);
+      const texto = celda ? celda.textContent.toLowerCase() : '';
+      return texto.includes(filtros[col]);
+    });
+    fila.style.display = pasa ? '' : 'none';
+  });
+}
+
 function renderRosterClanActivo(){
   const wrap = document.getElementById('rosterWrap');
   const clan = rosterData[clanActivoIdx];
@@ -1096,28 +1227,43 @@ function renderRosterClanActivo(){
     return;
   }
 
+  const encabezado = ROSTER_COLUMNAS.map(c => `<th>${esc(c.label)}</th>`).join('');
+  const filtros = ROSTER_COLUMNAS.map(c => c.filtrable === false
+    ? '<th></th>'
+    : `<th><input type="text" data-filtro-col="${c.key}" placeholder="Filtrar…" aria-label="Filtrar por ${esc(c.label)}"></th>`
+  ).join('');
+  const filas = miembros.map((m, i) => {
+    const celdas = ROSTER_COLUMNAS.map(c => {
+      const val = c.get(m, i);
+      return `<td class="${c.cls}">${val === null || val === undefined || val === '' ? '—' : esc(val)}</td>`;
+    }).join('');
+    return `<tr class="js-miembro" data-tag="${esc(m.tag)}">${celdas}</tr>`;
+  }).join('');
+
   wrap.innerHTML = `
-    <div class="card">
-      ${miembros.map(m => `
-        <div class="miembro-row js-miembro" data-tag="${esc(m.tag)}">
-          <div>
-            <div class="mr-name">${esc(m.nombre)}</div>
-            <div class="mr-tag">${esc(m.tag)}</div>
-          </div>
-          <div class="mr-right">
-            <span class="mr-rango">${esc(m.rango)}</span>
-            ${m.vigencia ? `<div class="mr-vigencia">Vigencia: ${esc(fmtFechaCortaVigencia(m.vigencia))}</div>` : ''}
-          </div>
-        </div>`).join('')}
+    <div class="card" style="padding:0;">
+      <div class="roster-table-wrap">
+        <table class="roster-table">
+          <thead>
+            <tr>${encabezado}</tr>
+            <tr class="roster-filtros">${filtros}</tr>
+          </thead>
+          <tbody>${filas}</tbody>
+        </table>
+      </div>
     </div>`;
 
   wrap.querySelectorAll('.js-miembro').forEach(row => {
     row.addEventListener('click', () => buscarMiembro(row.dataset.tag));
   });
+  wrap.querySelectorAll('input[data-filtro-col]').forEach(input => {
+    input.addEventListener('click', e => e.stopPropagation());
+    input.addEventListener('input', () => aplicarFiltrosRoster(wrap));
+  });
 }
 
 /**
- * Si venimos del botón "Ver clan" de Inicio (jugadores.html?clan=NombreDelClan),
+ * Si venimos del botón "Ver clan" de Inicio (directorio.html?clan=NombreDelClan),
  * selecciona esa pestaña de entrada y hace scroll suave hasta el directorio.
  */
 function clanIdxDesdeQuery(){
@@ -1141,7 +1287,7 @@ async function cargarRoster(){
       document.getElementById('roster').scrollIntoView({ behavior:'smooth', block:'start' });
     }
 
-    // FIX (31-ago-2026): un link directo a jugadores.html?tag=TAG (de
+    // FIX (31-ago-2026): un link directo a directorio.html?tag=TAG (de
     // antes de que existiera perfil.html) ahora redirige a la página de
     // perfil correspondiente EN LA MISMA pestaña — un window.open() acá
     // sería un popup disparado sin gesto del usuario y la mayoría de
@@ -1437,7 +1583,22 @@ function renderComparativaSemanal(container, miembrosTodos){
  * solo lo recortaba a menos campos al mapearlo. Las tarjetas existentes
  * (nuevo-card) se dejan intactas — mismo campo `fechaIngresoISO` que
  * antes se llamaba `fechaIng`, formateado igual con fmtFecha().
+ *
+ * FIX (07-sep-2026, pedido usuario — "en el bloque de ingresos recientes
+ * agrega V_Guerra, Nivel (xp)"): cada tarjeta suma esos dos datos, mismos
+ * nombres de campo que ya usa el resto del sitio para lo mismo (vGuerra/
+ * victoriasGuerra en perfil.html e index.html respectivamente — se acepta
+ * cualquiera de los dos por si el backend manda uno u otro acá; nivelXp
+ * igual que perfil.html, ext.nivelXp). CONTRATO ESPERADO ampliado de
+ * 'webIngresosRecientes': si el backend todavía no manda vGuerra/
+ * victoriasGuerra o nivelXp para este endpoint, la tarjeta pinta "—" en
+ * vez de romper (ver ingresoStatHtml()).
  */
+function ingresoStatHtml(valor, label){
+  const txt = (valor === undefined || valor === null || valor === '') ? '—' : fmtNum(valor);
+  return `<span><b>${esc(txt)}</b> ${esc(label)}</span>`;
+}
+
 async function cargarIngresosRecientes(){
   const section = document.getElementById('ingresosRecientes');
   const nuevoGrid = document.getElementById('nuevoGrid');
@@ -1458,6 +1619,10 @@ async function cargarIngresosRecientes(){
         <div class="name">${esc(n.nombre)}</div>
         <div class="tag">${esc(n.tag)} · ${fmtFecha(n.fechaIngresoISO)}</div>
         <div class="clan">${esc(n.clan)}</div>
+        <div class="nc-stats">
+          ${ingresoStatHtml(n.vGuerra != null ? n.vGuerra : n.victoriasGuerra, 'V. Guerra')}
+          ${ingresoStatHtml(n.nivelXp, 'Nivel (XP)')}
+        </div>
         ${(royaleOk || cwOk) ? `<div class="links">
           ${royaleOk ? `<a href="${esc(n.royaleApi)}" target="_blank" rel="noopener">${ICONO_ROYALEAPI}RoyaleAPI</a>` : ''}
           ${cwOk ? `<a href="${esc(n.cwstats)}" target="_blank" rel="noopener">${ICONO_CWSTATS}CWStats</a>` : ''}
