@@ -578,11 +578,11 @@
            "Modificar torneo de hoy" se fusionan en un wizard de 3 pasos,
            cada uno con un <select> (dropdown) + botón "Continuar" en vez
            de botones laterales tipo pestaña:
-             Paso 1 (#torneoPaso1): "Registrar nuevo torneo" o "Modificar
-               torneo registrado" (#torneoAccion).
+             Paso 1 (#torneoPaso1): "Registrar nuevo torneo", "Modificar
+               torneo registrado" o "Planificar torneo" (#torneoAccion).
              Paso 2 (#torneoPaso2): "Torneo principal" o "Torneo de
-               continuación" (#torneoTipo) — independiente de si se está
-               registrando o modificando.
+               continuación" (#torneoTipo) — independiente de cuál de las
+               tres opciones del Paso 1 se haya elegido.
              Paso 3 (#torneoPaso3): combina ambas respuestas:
                - Registrar + Principal: #camposRegistrar (link+fecha+hora).
                - Registrar + Continuación: #camposRegistrar + además
@@ -591,6 +591,9 @@
                  hoy a elegir + fecha/hora nueva).
                - Modificar + Continuación: #camposModificar + además
                  #camposTorneoPrincipal.
+               - Planificar (+ Principal o Continuación): #camposPlanificar
+                 (fecha+hora+autor+editor de premios) [+ #camposTorneoPrincipal
+                 si es continuación].
            #camposTorneoPrincipal es la única parte que distingue
            "principal" de "continuación": una lista DESGLOSABLE
            (<details> por torneo, con hora y link para poder identificarlo
@@ -599,12 +602,31 @@
            elección viaja al backend como tagTorneoPrincipal (el Tag_Tor
            del torneo elegido, que es lo que la columna Tag_Tor_2 de
            T_Lista espera -- ver _registrarTorneoDesdeBot()/
-           _modificarFechaHoraTorneo() en 24_Torneos_Core.gs y
-           _webAdminTorneoRegistrar()/_webAdminTorneoModificar() en
+           _modificarFechaHoraTorneo()/_planificarTorneoDesdeBot() en
+           24_Torneos_Core.gs y _webAdminTorneoRegistrar()/
+           _webAdminTorneoModificar()/_webAdminTorneoPlanificarGuardar() en
            34_Web_API.gs). Los ids btnRegistrarTorneo/btnModificarTorneo/
            tSelectHoy/tLink/tFecha/tHora/tFechaMod/tHoraMod y sus listeners
            de siempre se mantienen tal cual; ver initTorneoWizard() más
-           abajo para toda la lógica nueva de pasos. -->
+           abajo para toda la lógica nueva de pasos.
+
+           FIX (05-sep-2026, pedido usuario — "Planificar torneo" + premios):
+           se agrega "Planificar torneo" como tercer camino del Paso 1,
+           SEPARADO de "Registrar nuevo torneo", porque el link real de
+           RoyaleAPI recién se puede generar con pocas horas de
+           anticipación, mientras que los premios (y el doc "Participantes
+           calificados") tienen que quedar listos con mucha más
+           anticipación que eso. #camposPlanificar guarda Fecha + Premios
+           en una fila de T_Lista SIN link todavía (ver
+           _planificarTorneoDesdeBot()); cuando después se registra el
+           link real de ese mismo torneo (misma fecha y hora exactas) por
+           el camino normal "Registrar nuevo torneo", esa fila se completa
+           sola en vez de duplicarse (ver el FIX correspondiente en
+           _registrarTorneoDesdeBot()). Editor de premios: arranca con 3
+           filas (lo usual), botón "+ Agregar premio" para sumar más y
+           "Quitar" en cada fila (mínimo 1); cada premio es Pass Royale,
+           Dinero (con monto) o texto libre — ver
+           armarPremiosCSV()/agregarFilaPremio() más abajo. -->
       <details class="admin-subseccion" open>
         <summary><span class="cat-titulo">Registrar o modificar torneo</span></summary>
         <div class="admin-subseccion-body">
@@ -616,6 +638,7 @@
                 <option value="">Elige una opción…</option>
                 <option value="registrar">Registrar nuevo torneo</option>
                 <option value="modificar">Modificar torneo registrado</option>
+                <option value="planificar">Planificar torneo</option>
               </select>
             </div>
             <button type="button" class="btn btn-primary btn-block" id="btnTorneoPaso1" style="margin-top:6px;">Continuar</button>
@@ -693,6 +716,43 @@
               </div>
             </div>
 
+            <!-- FIX (05-sep-2026, pedido usuario — "Planificar torneo" +
+                 premios): ver el docblock grande de más arriba, antes de
+                 <details class="admin-subseccion" open>, para el porqué de
+                 este camino separado de "Registrar nuevo torneo". Reusa el
+                 mismo patrón de #tAutorSelect (id propio -tAutorSelectPlan/
+                 tAutorManualPlan- porque conviven en el mismo DOM). El
+                 editor de premios vive en #premiosEditor; ver
+                 agregarFilaPremio()/armarPremiosCSV() más abajo. -->
+            <div id="camposPlanificar" style="display:none;">
+              <div class="field-row">
+                <div class="field">
+                  <label for="tFechaPlan">Fecha</label>
+                  <input type="date" id="tFechaPlan">
+                </div>
+                <div class="field">
+                  <label for="tHoraPlan">Hora</label>
+                  <input type="time" id="tHoraPlan">
+                </div>
+              </div>
+
+              <div class="field" style="margin-top:14px;">
+                <label for="tAutorSelectPlan">¿Quién organiza el torneo?</label>
+                <select id="tAutorSelectPlan">
+                  <option value="">Lo organizo yo (el admin de esta sesión)</option>
+                  <option value="__otro__">Ninguna de las anteriores</option>
+                </select>
+                <input type="text" id="tAutorManualPlan" placeholder="Nombre de quien organiza" style="margin-top:8px; display:none;">
+              </div>
+
+              <div style="margin-top:14px; padding-top:14px; border-top:1px solid var(--line);">
+                <label style="display:block; margin-bottom:4px;">Premios</label>
+                <p class="text-dim" style="font-size:12px; margin:0 0 10px;">Usualmente son 3, pero puedes agregar más o quitar los que no necesites.</p>
+                <div id="premiosEditor"></div>
+                <button type="button" class="btn btn-ghost btn-block" id="btnAgregarPremio" style="margin-top:10px;">+ Agregar premio</button>
+              </div>
+            </div>
+
             <div id="camposTorneoPrincipal" style="display:none; margin-top:14px; padding-top:14px; border-top:1px solid var(--line);">
               <label style="display:block; margin-bottom:4px;">¿Cuál es el torneo principal?</label>
               <p class="text-dim" style="font-size:12px; margin:0 0 8px;">Abre cada uno para ver su hora y link, y elige de cuál es continuación.</p>
@@ -703,8 +763,10 @@
 
             <button class="btn btn-primary btn-block" id="btnRegistrarTorneo" style="margin-top:14px; display:none;">Registrar torneo</button>
             <button class="btn btn-primary btn-block" id="btnModificarTorneo" style="margin-top:14px; display:none;">Guardar cambios</button>
+            <button class="btn btn-primary btn-block" id="btnPlanificarTorneo" style="margin-top:14px; display:none;">Planificar torneo</button>
             <div id="registrarTorneoMsg"></div>
             <div id="modificarTorneoMsg"></div>
+            <div id="planificarTorneoMsg"></div>
           </div>
 
         </div>
@@ -1726,16 +1788,24 @@ function fechaInputADDMMYYYY(v){
  * FIX (05-sep-2026, pedido usuario): "Registrar torneo nuevo" y "Modificar
  * torneo de hoy" se fusionan en un wizard de 3 pasos con <select> (no
  * botones laterales) + botón "Continuar" en cada uno:
- *   Paso 1 (#torneoAccion): "registrar" o "modificar".
+ *   Paso 1 (#torneoAccion): "registrar", "modificar" o "planificar".
  *   Paso 2 (#torneoTipo): "principal" o "continuacion" — independiente
- *     de si se registra o se modifica.
+ *     de cuál de las tres opciones del paso 1 se haya elegido.
  *   Paso 3: muestra los campos que correspondan según la combinación de
  *     los dos anteriores (ver mostrarPaso3()). torneoTorneoPrincipalTag
  *     guarda el Tag_Tor elegido en la lista desglosable de "¿Cuál es el
  *     torneo principal?" (solo aplica si el paso 2 fue "continuacion");
- *     viaja al backend como tagTorneoPrincipal en ambos listeners de abajo.
+ *     viaja al backend como tagTorneoPrincipal en los tres listeners de
+ *     abajo (Registrar/Modificar/Planificar).
  * Los links "‹ Cambiar" solo esconden el paso siguiente y reabren el
  * anterior, sin perder lo ya tipeado (no se limpian los campos al volver).
+ *
+ * FIX (05-sep-2026, pedido usuario — "Planificar torneo"): "planificar" es
+ * un tercer valor de #torneoAccion, independiente de "registrar" — ver el
+ * docblock grande sobre <details class="admin-subseccion" open> más arriba
+ * en el HTML para el porqué de separarlos (el link real de RoyaleAPI solo
+ * se puede generar con pocas horas de anticipación, pero los premios
+ * necesitan quedar definidos mucho antes que eso).
  */
 let torneoTorneoPrincipalTag = '';
 
@@ -1748,18 +1818,30 @@ function initTorneoWizard(){
 
   function mostrarPaso3(){
     const esRegistrar = selAccion.value === 'registrar';
+    const esModificar = selAccion.value === 'modificar';
+    const esPlanificar = selAccion.value === 'planificar';
     const esContinuacion = selTipo.value === 'continuacion';
 
     document.getElementById('camposRegistrar').style.display = esRegistrar ? '' : 'none';
-    document.getElementById('camposModificar').style.display = esRegistrar ? 'none' : '';
+    document.getElementById('camposModificar').style.display = esModificar ? '' : 'none';
+    document.getElementById('camposPlanificar').style.display = esPlanificar ? '' : 'none';
     document.getElementById('camposTorneoPrincipal').style.display = esContinuacion ? '' : 'none';
     document.getElementById('btnRegistrarTorneo').style.display = esRegistrar ? '' : 'none';
-    document.getElementById('btnModificarTorneo').style.display = esRegistrar ? 'none' : '';
+    document.getElementById('btnModificarTorneo').style.display = esModificar ? '' : 'none';
+    document.getElementById('btnPlanificarTorneo').style.display = esPlanificar ? '' : 'none';
 
     if(esContinuacion){
       torneoTorneoPrincipalTag = '';
       document.getElementById('torneoPrincipalElegidoMsg').innerHTML = '';
       renderTorneoPrincipalLista();
+    }
+
+    // FIX (05-sep-2026, pedido usuario — "Planificar torneo"): el editor de
+    // premios arranca con 3 filas vacías (lo usual) la primera vez que se
+    // entra a este paso; si ya tenía filas (el admin fue y volvió sin
+    // guardar), se respetan tal cual, no se reinician.
+    if(esPlanificar && !document.getElementById('premiosEditor').children.length){
+      reiniciarPremiosEditor();
     }
 
     paso3.style.display = '';
@@ -1786,6 +1868,113 @@ function initTorneoWizard(){
     paso3.style.display = 'none';
   });
 }
+
+/**
+ * Editor de premios ("Planificar torneo").
+ * FIX (05-sep-2026, pedido usuario — "Planificar torneo" + premios): el
+ * editor arranca con 3 filas vacías (lo usual), con botón "+ Agregar
+ * premio" para sumar más y "Quitar" en cada fila (nunca baja de 1 fila).
+ * Cada fila es Pass Royale, Dinero (con monto en soles) o texto libre
+ * ("Ingresar manualmente"). Al guardar, armarPremiosCSV() junta todo en un
+ * solo texto separado por comas -- el mismo formato que espera la columna
+ * Premios de T_Lista (ver _planificarTorneoDesdeBot(), 24_Torneos_Core.gs).
+ * Filas incompletas (Dinero sin monto, Manual sin texto) se omiten solas,
+ * sin bloquear el guardado del resto.
+ */
+let premioIdSeq = 0;
+
+function crearFilaPremioHTML(id){
+  return `<div class="contenido-item premio-fila" data-premio-id="${id}">
+    <div class="cab">
+      <span class="etiqueta">Premio <span class="premio-num"></span></span>
+      <a href="#" class="text-dim btn-quitar-premio" style="font-size:12px;">Quitar</a>
+    </div>
+    <div class="field">
+      <label>Tipo de premio</label>
+      <select class="premioTipo">
+        <option value="Pass Royale">Pass Royale</option>
+        <option value="Dinero">Dinero</option>
+        <option value="Manual">Ingresar manualmente</option>
+      </select>
+    </div>
+    <div class="field premioMontoWrap" style="display:none; margin-top:8px;">
+      <label>Monto (S/)</label>
+      <input type="number" class="premioMonto" min="0" step="0.01" placeholder="Ej. 20">
+    </div>
+    <div class="field premioManualWrap" style="display:none; margin-top:8px;">
+      <label>Describe el premio</label>
+      <input type="text" class="premioManual" placeholder="Ej. Skin legendaria">
+    </div>
+  </div>`;
+}
+
+/** Renumera "Premio N" de cada fila y esconde el "Quitar" de la única fila
+ *  restante (siempre debe quedar al menos 1). */
+function renumerarPremios(){
+  const filas = document.querySelectorAll('#premiosEditor .premio-fila');
+  filas.forEach((fila, i) => {
+    fila.querySelector('.premio-num').textContent = String(i + 1);
+    fila.querySelector('.btn-quitar-premio').style.display = filas.length > 1 ? '' : 'none';
+  });
+}
+
+function agregarFilaPremio(){
+  const cont = document.getElementById('premiosEditor');
+  const id = 'p' + (++premioIdSeq);
+  cont.insertAdjacentHTML('beforeend', crearFilaPremioHTML(id));
+  const fila = cont.querySelector(`[data-premio-id="${id}"]`);
+  const selTipo = fila.querySelector('.premioTipo');
+  const montoWrap = fila.querySelector('.premioMontoWrap');
+  const manualWrap = fila.querySelector('.premioManualWrap');
+
+  selTipo.addEventListener('change', () => {
+    montoWrap.style.display = selTipo.value === 'Dinero' ? '' : 'none';
+    manualWrap.style.display = selTipo.value === 'Manual' ? '' : 'none';
+  });
+
+  fila.querySelector('.btn-quitar-premio').addEventListener('click', (ev) => {
+    ev.preventDefault();
+    if(document.querySelectorAll('#premiosEditor .premio-fila').length <= 1) return;
+    fila.remove();
+    renumerarPremios();
+  });
+
+  renumerarPremios();
+}
+
+/** Vacía el editor y lo deja con 3 filas nuevas -- estado inicial y el que
+ *  queda después de planificar un torneo con éxito. */
+function reiniciarPremiosEditor(){
+  document.getElementById('premiosEditor').innerHTML = '';
+  agregarFilaPremio();
+  agregarFilaPremio();
+  agregarFilaPremio();
+}
+
+/** Junta las filas del editor en un solo texto separado por comas -- mismo
+ *  formato que espera la columna Premios de T_Lista. Por cada fila: "Pass
+ *  Royale" tal cual, "S/ {monto}" si es Dinero (solo si tiene monto), o el
+ *  texto libre si es Manual (solo si no está vacío). Devuelve '' si no
+ *  quedó ningún premio válido. */
+function armarPremiosCSV(){
+  const filas = document.querySelectorAll('#premiosEditor .premio-fila');
+  const partes = [];
+  filas.forEach(fila => {
+    const tipo = fila.querySelector('.premioTipo').value;
+    if(tipo === 'Dinero'){
+      const monto = fila.querySelector('.premioMonto').value.trim();
+      if(monto) partes.push(`S/ ${monto}`);
+    }else if(tipo === 'Manual'){
+      const texto = fila.querySelector('.premioManual').value.trim();
+      if(texto) partes.push(texto);
+    }else{
+      partes.push(tipo); // "Pass Royale"
+    }
+  });
+  return partes.join(', ');
+}
+
+document.getElementById('btnAgregarPremio').addEventListener('click', () => agregarFilaPremio());
 
 /** Puebla el <select> de "Modificar torneo de hoy" — solo torneos de HOY,
  *  igual que el paso "Modificar" del bot (_listarTorneosDeHoy()). Cada
@@ -1881,10 +2070,16 @@ function renderTorneoPrincipalLista(){
  * mostrarPanel(), igual que cargarTorneosHoy(); las opciones fijas ("Lo
  * organicé yo" y "Ninguna de las anteriores") ya están en el HTML, acá
  * solo se insertan los Nom_Multi en el medio.
+ *
+ * FIX (05-sep-2026, pedido usuario — "Planificar torneo"): también puebla
+ * #tAutorSelectPlan (mismo <select>, id propio porque conviven ambos en el
+ * DOM) con la MISMA lista — un solo pedido al backend para los dos.
  */
 async function cargarNomMultisAdmins(){
   const sel = document.getElementById('tAutorSelect');
   const optOtro = sel.querySelector('option[value="__otro__"]');
+  const selPlan = document.getElementById('tAutorSelectPlan');
+  const optOtroPlan = selPlan.querySelector('option[value="__otro__"]');
   try{
     const data = await apiGetAuth('webAdminNomMultisAdmins', {});
     if(manejarRespuestaAuth(data)) return;
@@ -1900,6 +2095,11 @@ async function cargarNomMultisAdmins(){
         opt.value = nm;
         opt.textContent = nm;
         sel.insertBefore(opt, optOtro);
+
+        const optPlan = document.createElement('option');
+        optPlan.value = nm;
+        optPlan.textContent = nm;
+        selPlan.insertBefore(optPlan, optOtroPlan);
       });
     }
   }catch(err){
@@ -2045,6 +2245,13 @@ document.getElementById('tAutorSelect').addEventListener('change', () => {
   if(!esOtro) input.value = '';
 });
 
+document.getElementById('tAutorSelectPlan').addEventListener('change', () => {
+  const esOtro = document.getElementById('tAutorSelectPlan').value === '__otro__';
+  const input = document.getElementById('tAutorManualPlan');
+  input.style.display = esOtro ? '' : 'none';
+  if(!esOtro) input.value = '';
+});
+
 document.getElementById('tSelectHoy').addEventListener('change', () => {
   const opt = document.getElementById('tSelectHoy').selectedOptions[0];
   const fechaISO = opt && opt.dataset.fecha;
@@ -2126,6 +2333,51 @@ document.getElementById('btnModificarTorneo').addEventListener('click', async ()
     msgEl.innerHTML = '<div class="msg msg-ok">Torneo actualizado.</div>';
     cargarTorneosHoy();
     cargarGanadoresTorneo();
+  }catch(err){
+    msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
+  }
+});
+
+/**
+ * FIX (05-sep-2026, pedido usuario — "Planificar torneo"): guarda Fecha +
+ * Premios en T_Lista sin necesitar todavía el link real (ver
+ * _webAdminTorneoPlanificarGuardar(), 34_Web_API.gs, y el docblock grande
+ * sobre <details class="admin-subseccion" open> más arriba en este HTML
+ * para el porqué de este camino separado de "Registrar nuevo torneo"). Al
+ * completar el link real más adelante, se debe volver a poner esta MISMA
+ * fecha y hora en "Registrar nuevo torneo" para que se complete esta
+ * misma fila en vez de crear una aparte — de ahí el mensaje de éxito de
+ * abajo, que lo recuerda explícitamente.
+ */
+document.getElementById('btnPlanificarTorneo').addEventListener('click', async () => {
+  const msgEl = document.getElementById('planificarTorneoMsg');
+  msgEl.innerHTML = '';
+  const fecha = fechaInputADDMMYYYY(document.getElementById('tFechaPlan').value);
+  const hora  = document.getElementById('tHoraPlan').value;
+  const esContinuacion = document.getElementById('torneoTipo').value === 'continuacion';
+  const autorSelect = document.getElementById('tAutorSelectPlan').value;
+  const autor = autorSelect === '__otro__' ? document.getElementById('tAutorManualPlan').value.trim() : autorSelect;
+  const premios = armarPremiosCSV();
+  if(!fecha || !hora){ msgEl.innerHTML = '<div class="msg msg-error">Completa fecha y hora.</div>'; return; }
+  if(!premios){ msgEl.innerHTML = '<div class="msg msg-error">Agrega al menos un premio.</div>'; return; }
+  if(esContinuacion && !torneoTorneoPrincipalTag){ msgEl.innerHTML = '<div class="msg msg-error">Elige de cuál torneo principal es continuación.</div>'; return; }
+  if(autorSelect === '__otro__' && !autor){ msgEl.innerHTML = '<div class="msg msg-error">Escribe el nombre de quien organiza, o elige otra opción.</div>'; return; }
+  try{
+    const data = await apiPost('webAdminTorneoPlanificarGuardar', {
+      sessionToken: localStorage.getItem(SESSION_KEY),
+      fecha, hora, premios,
+      tagTorneoPrincipal: esContinuacion ? torneoTorneoPrincipalTag : '',
+      autor
+    });
+    if(manejarRespuestaAuth(data)) return;
+    if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
+    msgEl.innerHTML = '<div class="msg msg-ok">Torneo planificado. Cuando tengas el link, regístralo en "Registrar nuevo torneo" con esta MISMA fecha y hora para completarlo (sin perder estos premios).</div>';
+    document.getElementById('tFechaPlan').value = '';
+    document.getElementById('tHoraPlan').value = '';
+    document.getElementById('tAutorSelectPlan').value = '';
+    document.getElementById('tAutorManualPlan').value = '';
+    document.getElementById('tAutorManualPlan').style.display = 'none';
+    reiniciarPremiosEditor();
   }catch(err){
     msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
   }
