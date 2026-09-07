@@ -444,9 +444,27 @@ function renderRankingChart(ext){
 
   const yMax = escalaY(max); // puesto más alto numéricamente = peor puesto = línea de abajo
   const yMin = escalaY(min); // puesto más bajo numéricamente = mejor puesto = línea de arriba
+  // Línea horizontal secundaria a mitad de camino entre las dos líneas
+  // principales del eje Y (pedido usuario 07-sep-2026 — mismo criterio
+  // que el resto de gráficas del sitio, ver gridHorizontalMediosSvg() en
+  // común.js; acá se calcula directo porque esta gráfica solo tiene 2
+  // líneas de referencia, no una grilla de varios pasos).
+  const yMedio = (yMin + yMax) / 2;
+
+  // Líneas verticales de referencia (inicio de año/temporada — pedido
+  // usuario 07-sep-2026): esta gráfica es de granularidad SEMANAL, así
+  // que no se agrega línea de inicio de semana (ver lineasTemporalesSvg()
+  // en común.js). Reusa el mismo parser de fecha ya definido arriba.
+  const fechasEje = ordenados.map(h => {
+    const t = parseFechaDDMMYYYY(h.semana);
+    return isNaN(t) ? null : new Date(t);
+  });
+  const lineasTemporales = lineasTemporalesSvg(fechasEje, i => PAD_L + i*stepX, PAD_TOP, H - PAD_BOTTOM, { granularidadDiaria: false });
 
   wrap.innerHTML = `
     <svg viewBox="0 0 ${W} ${H+46}" style="width:100%; height:auto; margin-top:8px;">
+      ${lineasTemporales}
+      <line x1="${PAD_L}" y1="${yMedio}" x2="${W-PAD_R}" y2="${yMedio}" class="grid-line-medio"/>
       <line x1="${PAD_L}" y1="${yMin}" x2="${W-PAD_R}" y2="${yMin}" stroke="var(--border,#333)" stroke-width="1" stroke-dasharray="3,4"/>
       <line x1="${PAD_L}" y1="${yMax}" x2="${W-PAD_R}" y2="${yMax}" stroke="var(--border,#333)" stroke-width="1" stroke-dasharray="3,4"/>
       <text x="2" y="${yMin+3}" font-size="10" fill="var(--text-faint,#888)" font-family="var(--f-mono)">#${esc(String(min))}</text>

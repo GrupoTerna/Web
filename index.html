@@ -1247,6 +1247,24 @@ function lineChartSvg(miembros, campo, semanas, opts){
   // construirFechasEstimadasSemanasViejas más arriba) y se usa tanto en
   // las etiquetas del eje como en el tooltip de cada punto (más abajo).
   const fechasEstimadas = construirFechasEstimadasSemanasViejas(semanas);
+
+  // Líneas verticales de referencia (inicio de año/temporada — pedido
+  // usuario 07-sep-2026): esta gráfica es de granularidad SEMANAL (un
+  // punto = una semana), así que NO se agrega línea de inicio de semana
+  // (ver lineasTemporalesSvg() en common.js). La fecha de cada punto del
+  // eje se obtiene de la propia etiqueta ("dd/MM/yyyy" real, o su fecha
+  // estimada si es una etiqueta vieja "Semana N" — mismo Map ya calculado
+  // arriba para las etiquetas del eje y el tooltip).
+  const fechasEje = semanas.map(s => {
+    const mfecha = String(s ?? '').match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (mfecha) return new Date(Number(mfecha[3]), Number(mfecha[2]) - 1, Number(mfecha[1]));
+    return fechasEstimadas.get(s) || null;
+  });
+  const lineasTemporales = lineasTemporalesSvg(fechasEje, xPos, PAD_T, H - PAD_B, { granularidadDiaria: false });
+  // Líneas horizontales secundarias, a la mitad del espaciado entre cada
+  // par de líneas principales del eje Y (pedido usuario 07-sep-2026).
+  const gridMedios = gridHorizontalMediosSvg(pasos, techo, yPos, PAD_L, W - PAD_R);
+
   const xLabels = semanas.map((s, i) => {
     const x = xPos(i), y = H - PAD_B + 16;
     return `<text class="axis-label" x="${x}" y="${y}" text-anchor="end" transform="rotate(-45 ${x} ${y})">${esc(semanaLabelCorta(s, fechasEstimadas))}</text>`;
@@ -1301,13 +1319,13 @@ function lineChartSvg(miembros, campo, semanas, opts){
       return `
       <circle class="serie-pt${p.real ? '' : ' serie-pt-vacio'}" cx="${xPos(p.idx).toFixed(1)}" cy="${yPos(p.valor).toFixed(1)}" r="5"
         fill="${p.real ? color : 'none'}" stroke="${p.real ? 'var(--bg)' : color}" stroke-width="${p.real ? 1.5 : 2}"
-        data-nombre="${esc(m.nombre || '')}" data-valor="${p.valor}" data-clan="${esc(p.real ? p.clan : 'Sin dato — sin clan o sin participar')}"
+        data-nombre="${esc(m.nombre || '')}" data-tag="${esc(m.tag || '')}" data-valor="${p.valor}" data-clan="${esc(p.real ? p.clan : 'Sin dato — sin clan o sin participar')}"
         data-semana="${esc(semanaTooltip)}" data-unidad="${esc(opts.unidad || '')}"></circle>`;
     }).join('');
     return `${path}${circles}`;
   }).join('');
 
-  return `<svg class="linechart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">${gridLines.join('')}${xLabels}${seriesSvg}</svg>`;
+  return `<svg class="linechart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">${gridLines.join('')}${gridMedios}${lineasTemporales}${xLabels}${seriesSvg}</svg>`;
 }
 
 /** FIX (04-sep-2026, pedido usuario — "en el código ya se agrupan los
@@ -1333,7 +1351,7 @@ function lineChartLegendHtml(miembros){
     return `${esNuevoGrupo ? `<span class="linechart-legend-clan">${esc(clanLabel)}</span>` : ''}
     <span class="linechart-legend-item">
       <span class="linechart-legend-dot" style="background:${PALETA_SERIES[i % PALETA_SERIES.length]};"></span>
-      ${esc(m.nombre || '—')}
+      ${enlaceJugador(m.nombre, m.tag)}
     </span>`;
   }).join('');
   return `<div class="linechart-legend">${items}</div>`;
@@ -1347,8 +1365,12 @@ function activarTooltipsGraficas(){
   if (!tip) return;
   document.querySelectorAll('.linechart-svg .serie-pt').forEach(pt => {
     pt.addEventListener('mousemove', e => {
-      const { nombre, valor, clan, semana, unidad } = pt.dataset;
-      tip.innerHTML = `<b>${esc(fmtNum(valor))} ${esc(unidad)}</b> — ${esc(clan)}<br><span style="color:var(--text-faint);">${esc(nombre)} · ${esc(semana)}</span>`;
+      const { nombre, tag, valor, clan, semana, unidad } = pt.dataset;
+      // Mismos campos que la tarjeta de "Ingresos recientes" (nombre, tag,
+      // clan, fecha) — pedido usuario 07-sep-2026: "al acercar el mouse
+      // debe verse información de ese registro según la información que
+      // esté mostrando la tabla".
+      tip.innerHTML = `<b>${esc(fmtNum(valor))} ${esc(unidad)}</b> — ${esc(clan)}<br><span style="color:var(--text-faint);">${esc(nombre)}${tag ? ' (' + esc(tag) + ')' : ''} · ${esc(semana)}</span>`;
       tip.style.display = 'block';
       tip.style.left = (e.clientX + 14) + 'px';
       tip.style.top  = (e.clientY + 14) + 'px';
@@ -1555,7 +1577,7 @@ async function cargarAniversarios(){
       return `
       <div class="aniversario-row">
         <div>
-          <div class="av-nombre">🎉 ${esc(a.nombre)}</div>
+          <div class="av-nombre">🎉 ${enlaceJugador(a.nombre, a.tag)}</div>
           <div class="av-detalle">${esc(a.clan)} · en la Familia desde el ${esc(a.fechaIngTxt)}</div>
         </div>
         <div class="av-hito">${hitoTxt} · ${cuandoTxt}</div>
