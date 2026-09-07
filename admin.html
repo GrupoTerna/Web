@@ -730,6 +730,32 @@
         </div>
       </details>
 
+      <!-- FASE 7 (Parte B, 06-sep-2026, punto 7 del documento — edición de
+           autor de ascenso): antes, el campo "Autor" de un registro de
+           Historial_A/D (hoja Ascensos, ver 14_Directorio_HistorialAscensos.gs)
+           solo se podía corregir a mano directo en Sheets. Este panel
+           lista los últimos registros (ascensos Y degradaciones, con su
+           Autor actual) vía webAdminAscensosEditables y permite editar el
+           Autor de uno puntual vía webAdminEditarAutorAscenso — que
+           además concatena en el Comentario de ESE registro quién hizo el
+           cambio y de qué autor a qué autor (ver docblock de
+           _webAdminEditarAutorAscenso(), 14_Directorio_HistorialAscensos.gs,
+           para la decisión de alcance completa). No depende de ninguna
+           "Función" de admin dedicada todavía (misma decisión documentada
+           ahí) — cualquier admin logueado puede usarlo. -->
+      <details class="admin-subseccion">
+        <summary><span class="cat-titulo">Editar autor de ascenso</span></summary>
+        <div class="admin-subseccion-body">
+          <p class="text-dim" style="font-size:13px; margin:0 0 14px;">Corrige quién figura como autor de un cambio de rango. El cambio queda registrado en el Comentario de ese mismo registro (autor anterior, autor nuevo y quién lo editó).</p>
+          <div class="buscador">
+            <input type="text" id="ascEditBuscar" placeholder="Filtrar por nombre o Tag…">
+            <button class="btn btn-primary" id="btnRefrescarAscensosEditables">↻ Refrescar</button>
+          </div>
+          <div id="ascEditMsg"></div>
+          <div id="ascEditLista" style="margin-top:14px;"></div>
+        </div>
+      </details>
+
       <!-- Fase 5 (28-ago-2026): herramienta standalone incorporada al portal
            admin — no tiene backend propio ni datos que pedir acá, solo
            necesita quedar oculta para no-admins. Se abre en pestaña nueva
@@ -816,6 +842,10 @@ const SESSION_KEY = 'terna_admin_token';
 // cada recarga de la página. Ver 34_Web_API.gs / _webAuthLogin().
 const SESSION_ADMIN_KEY = 'terna_admin_info';
 let miembroActual = null; // guarda el tag actualmente cargado, para el guardado
+// FASE 7 (Parte B, 06-sep-2026): Nom_Multi de admins, cacheados por
+// cargarNomMultisAdmins() para reusarlos tanto en el <select> de autor de
+// torneo como en el de "Editar autor de ascenso".
+let nomMultisAdminsCache = [];
 
 function mostrarPanel(){
   document.getElementById('loginSec').style.display = 'none';
@@ -833,7 +863,14 @@ function mostrarPanel(){
   cargarMisCuentas();
   initMensajesAutomaticos();
   cargarTorneosHoy();
-  cargarNomMultisAdmins();
+  // FASE 7 (Parte B, 06-sep-2026): cargarAscensosEditables() encadenada
+  // DESPUÉS de cargarNomMultisAdmins() (en vez de disparada en paralelo,
+  // como el resto de esta función) para que nomMultisAdminsCache ya esté
+  // poblado cuando se pinten los <select> de "Editar autor de ascenso" —
+  // si se dispararan en paralelo, el orden de respuesta de la red no está
+  // garantizado y los <select> podrían quedar solo con las dos opciones
+  // fijas hasta el próximo repintado (ej. al escribir en el filtro).
+  cargarNomMultisAdmins().then(cargarAscensosEditables);
   cargarGanadoresTorneo();
 }
 
@@ -1762,6 +1799,12 @@ async function cargarNomMultisAdmins(){
     const data = await apiGetAuth('webAdminNomMultisAdmins', {});
     if(manejarRespuestaAuth(data)) return;
     if(data.ok && data.nomMultis && data.nomMultis.length){
+      // FASE 7 (Parte B, 06-sep-2026): se cachea la lista en
+      // nomMultisAdminsCache (declarada junto a miembroActual, arriba) para
+      // reusarla también en el <select> de "Editar autor de ascenso" —
+      // mismo criterio ya confirmado por el usuario para el autor de
+      // torneos, no se pide una lista aparte para esto.
+      nomMultisAdminsCache = data.nomMultis;
       data.nomMultis.forEach(nm => {
         const opt = document.createElement('option');
         opt.value = nm;
@@ -1774,6 +1817,136 @@ async function cargarNomMultisAdmins(){
     // solo las dos opciones fijas (sesión / escribir a mano).
   }
 }
+
+/**
+ * FASE 7 (Parte B, 06-sep-2026, punto 7 del documento — edición de autor
+ * de ascenso). Panel "Editar autor de ascenso": lista los últimos
+ * registros de Historial_A/D (webAdminAscensosEditables) y permite
+ * corregir el Autor de uno puntual (webAdminEditarAutorAscenso) — ver
+ * docblock de esa función (14_Directorio_HistorialAscensos.gs) para la
+ * decisión de alcance completa (permiso requerido, dónde queda el
+ * registro de auditoría). No depende de ninguna "Función" de admin
+ * dedicada todavía, así que no hay nada que ocultar en
+ * aplicarVisibilidadPorFunciones() para esta subsección — igual que
+ * "Detección de infiltrados" (Fase 6).
+ */
+let ascensosEditablesCache = [];
+
+async function cargarAscensosEditables(){
+  const msgEl = document.getElementById('ascEditMsg');
+  const listaEl = document.getElementById('ascEditLista');
+  msgEl.innerHTML = '';
+  listaEl.innerHTML = '<div class="empty">Cargando…</div>';
+  try{
+    const data = await apiGetAuth('webAdminAscensosEditables', {});
+    if(manejarRespuestaAuth(data)) return;
+    if(!data.ok){
+      listaEl.innerHTML = '';
+      msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error || 'No se pudo cargar la lista.')}</div>`;
+      return;
+    }
+    ascensosEditablesCache = data.ascensos || [];
+    renderAscensosEditablesLista();
+  }catch(err){
+    listaEl.innerHTML = '';
+    msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
+  }
+}
+
+/** Filtra ascensosEditablesCache por el texto de #ascEditBuscar (nombre o
+ *  Tag, sin distinguir mayúsculas) y repinta #ascEditLista. Se reusa tanto
+ *  al cargar la lista como en cada tecla del filtro, sin volver a pedir
+ *  nada al backend (el filtro es 100% en el cliente). */
+function renderAscensosEditablesLista(){
+  const listaEl = document.getElementById('ascEditLista');
+  const filtro = (document.getElementById('ascEditBuscar').value || '').trim().toUpperCase();
+  const filtrada = !filtro ? ascensosEditablesCache : ascensosEditablesCache.filter(a =>
+    (a.nombre || '').toUpperCase().includes(filtro) || (a.tag || '').toUpperCase().includes(filtro)
+  );
+  if(!filtrada.length){ listaEl.innerHTML = '<div class="empty">Sin registros para mostrar.</div>'; return; }
+
+  listaEl.innerHTML = filtrada.map(a => `
+    <div style="border-top:1px solid var(--line); padding:12px 0;" data-asc-id="${esc(a.id)}">
+      <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+        <div>
+          <div style="font-weight:700; font-size:13px;">${esc(a.nombre)} <span class="text-faint" style="font-family:var(--f-mono); font-size:11px;">${esc(a.tag)}</span></div>
+          <div class="text-dim" style="font-size:12px; margin-top:2px;">${esc(a.tipo)} · ${esc(a.rangoAnterior)} → ${esc(a.rangoNuevo)} · ${esc(a.clan)} · ${esc(a.fechaTxt)}</div>
+          <div class="text-dim" style="font-size:12px; margin-top:2px;">Autor actual: <b>${esc(a.autor || 'sin autor')}</b></div>
+        </div>
+        <button type="button" class="btn js-editar-autor-asc">Editar autor</button>
+      </div>
+      <div class="js-editar-autor-asc-form" style="display:none; margin-top:12px;">
+        <div class="field">
+          <label>Nuevo autor</label>
+          <select class="js-asc-autor-select">
+            <option value="">Elige un admin…</option>
+            <option value="__otro__">Ninguna de las anteriores</option>
+          </select>
+          <input type="text" class="js-asc-autor-manual" placeholder="Nombre de quien corresponde" style="margin-top:8px; display:none;">
+        </div>
+        <div class="field-row">
+          <button type="button" class="btn btn-primary js-guardar-autor-asc">Guardar</button>
+          <button type="button" class="btn js-cancelar-autor-asc">Cancelar</button>
+        </div>
+        <div class="js-asc-autor-msg"></div>
+      </div>
+    </div>`).join('');
+
+  // Mismos Nom_Multi de admins que ya usa #tAutorSelect (cargarNomMultisAdmins()
+  // los deja en nomMultisAdminsCache) — se insertan en cada <select> recién pintado.
+  listaEl.querySelectorAll('.js-asc-autor-select').forEach(sel => {
+    const optOtro = sel.querySelector('option[value="__otro__"]');
+    nomMultisAdminsCache.forEach(nm => {
+      const opt = document.createElement('option');
+      opt.value = nm;
+      opt.textContent = nm;
+      sel.insertBefore(opt, optOtro);
+    });
+  });
+
+  listaEl.querySelectorAll('.js-editar-autor-asc').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const form = btn.closest('[data-asc-id]').querySelector('.js-editar-autor-asc-form');
+      form.style.display = (form.style.display === 'none') ? '' : 'none';
+    });
+  });
+  listaEl.querySelectorAll('.js-cancelar-autor-asc').forEach(btn => {
+    btn.addEventListener('click', () => { btn.closest('.js-editar-autor-asc-form').style.display = 'none'; });
+  });
+  listaEl.querySelectorAll('.js-asc-autor-select').forEach(sel => {
+    sel.addEventListener('change', () => {
+      const manual = sel.parentElement.querySelector('.js-asc-autor-manual');
+      const esOtro = sel.value === '__otro__';
+      manual.style.display = esOtro ? '' : 'none';
+      if(!esOtro) manual.value = '';
+    });
+  });
+  listaEl.querySelectorAll('.js-guardar-autor-asc').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const cont = btn.closest('[data-asc-id]');
+      const id = cont.dataset.ascId;
+      const sel = cont.querySelector('.js-asc-autor-select');
+      const manual = cont.querySelector('.js-asc-autor-manual');
+      const msgEl = cont.querySelector('.js-asc-autor-msg');
+      const autorNuevo = (sel.value === '__otro__' ? manual.value : sel.value).trim();
+      if(!autorNuevo){ msgEl.innerHTML = '<div class="msg msg-error">Elige o escribe un autor.</div>'; return; }
+      msgEl.innerHTML = '';
+      try{
+        const token = localStorage.getItem(SESSION_KEY);
+        const data = await apiPost('webAdminEditarAutorAscenso', { sessionToken: token, datos: { id, autorNuevo } });
+        if(manejarRespuestaAuth(data)) return;
+        if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error || 'No se pudo guardar.')}</div>`; return; }
+        msgEl.innerHTML = '<div class="msg msg-ok">Autor actualizado.</div>';
+        await cargarAscensosEditables(); // repinta con el autor/comentario ya actualizados
+      }catch(err){
+        msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
+      }
+    });
+  });
+}
+
+document.getElementById('btnRefrescarAscensosEditables').addEventListener('click', cargarAscensosEditables);
+document.getElementById('ascEditBuscar').addEventListener('input', renderAscensosEditablesLista);
 
 document.getElementById('tAutorSelect').addEventListener('change', () => {
   const esOtro = document.getElementById('tAutorSelect').value === '__otro__';

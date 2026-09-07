@@ -996,6 +996,28 @@ function ingStatHtml(valor, label, opts){
   return `<div class="ing-stat${cls}"><b>${esc(txt)}</b><span>${esc(label)}</span></div>`;
 }
 
+/**
+ * ingBadgeRivalHtml(esRivalTemporada, clanRivalDetectado)
+ * FASE 7 (Parte A, 06-sep-2026, punto 7 del documento). Mismo patrón visual
+ * que _badgeRival() en admin.html (panel "Detección de infiltrados", Fase
+ * 6): span.badge.badge-warn + un detalle chico debajo con el nombre del
+ * clan rival detectado y el motivo, si la lista manual de "Conflictos" lo
+ * trae. No se llama _badgeRival() directamente porque esa función vive en
+ * admin.html (solo accesible tras login de admin) — index.html es
+ * público, así que esta es una copia reducida a lo que hace falta acá.
+ */
+function ingBadgeRivalHtml(esRivalTemporada, clanRivalDetectado){
+  if (!esRivalTemporada) return '';
+  const info = clanRivalDetectado || {};
+  let detalle = [];
+  if (info.nombre) detalle.push(`estuvo en ${esc(info.nombre)}`);
+  if (info.motivo) detalle.push(esc(info.motivo));
+  return `<div style="margin-top:6px;">
+    <span class="badge badge-warn">Estuvo en un clan rival</span>
+    ${detalle.length ? `<div class="text-dim" style="font-size:11px; margin-top:4px;">${detalle.join(' · ')}</div>` : ''}
+  </div>`;
+}
+
 /** Cuadrícula compacta con el desglose diario (Jueves a Domingo) de
  * Ataques/Puntaje/Barcos de la semana actual. Si el backend todavía no
  * manda guerraSemanaDias (versión vieja de la API), no dibuja nada en vez
@@ -1441,6 +1463,18 @@ async function cargarIngresos(){
                 <div class="ing-nombre">${esc(ing.nombre)}</div>
                 <div class="ing-tag">${esc(ing.tag || '—')}</div>
                 <div class="ing-fecha">${ing.fechaIngreso ? 'Ingresó el ' + esc(ing.fechaIngreso) : 'Fecha de ingreso no registrada'}</div>
+                <!-- FASE 7 (Parte A, 06-sep-2026, punto 7 del documento —
+                     avisos de competencia en Ingresos recientes): el
+                     backend ya manda ing.esRivalTemporada/
+                     ing.clanRivalDetectado (ver
+                     _construirIngresosRecientesUnificado(), Base.md) cuando
+                     alguna semana del historial de este ingreso lo muestra
+                     en un clan que hoy es rival de esta temporada o está en
+                     la lista manual de conflicto. Se reusa .badge-warn
+                     (mismo estilo que "Rival de esta temporada" en el
+                     panel de Detección de infiltrados de admin.html, Fase
+                     6) para no introducir un color de alerta nuevo. -->
+                ${ingBadgeRivalHtml(ing.esRivalTemporada, ing.clanRivalDetectado)}
               </div>
               ${(royaleOk || cwOk) ? `<div class="ingreso-links">
                 ${royaleOk ? `<a href="${esc(ing.royaleApi)}" target="_blank" rel="noopener">${ICONO_ROYALEAPI}RoyaleAPI</a>` : ''}
