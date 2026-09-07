@@ -349,19 +349,15 @@
         <h2 style="font-size:22px;">🗂️ Cuadrícula de Activos (Semana Actual)</h2>
         <!-- FIX (07-sep-2026, pedido usuario — "botón para seleccionar
              otras semanas dentro de la misma temporada, solo se debe
-             mostrar semanas disponibles"): PENDIENTE de backend -- ver
-             pintarSelectorSemanaActivos() más abajo. El backend actual
-             (visto en esta sesión) solo manda la semana VIGENTE en
-             data.controlActivosSemanaActual, sin el detalle día-a-día
-             (J/V/S/D) de semanas anteriores -- eso solo existe agregado
-             por semana en data.controlTemporadaPorClan, que no alcanza
-             para repintar esta cuadrícula. Hace falta que Base.md agregue
+             mostrar semanas disponibles"): Base.md ya manda
              data.semanasControlActivosDisponibles (lista de semanas ya
              jugadas en la temporada actual, sin incluir semanas futuras
              que aún no arrancan) y data.controlActivosPorSemana (mismo
-             shape que controlActivosSemanaActual, pero uno por cada
-             semana de esa lista). Mientras esos 2 campos no existan, el
-             selector se queda oculto sin romper nada. -->
+             shape que controlActivosSemanaActual, uno por cada semana de
+             esa lista) -- ver pintarSelectorSemanaActivos() más abajo, que
+             ya los consume. El <select> arranca oculto por CSS y solo
+             cuando esos 2 campos no llegan (ej. Web App vieja) se queda
+             así en vez de romper. -->
         <select id="semanaActivosSelect" style="display:none; font-family:var(--f-mono); font-size:12px; background:var(--surface-card); color:var(--text); border:1px solid var(--line-strong); border-radius:var(--radius-sm); padding:5px 10px;"></select>
       </div>
       <!-- FIX (07-sep-2026, pedido usuario — "que se siga mostrando los
@@ -405,16 +401,13 @@
         <h2 style="font-size:22px;">🗓️ Cuadrícula de Temporada (Semanal)</h2>
         <!-- FIX (07-sep-2026, pedido usuario — "botón para seleccionar la
              temporada que se quiere ver, así se puede ver temporadas
-             anteriores"): PENDIENTE de backend -- ver
-             cargarSelectorTemporadas()/onCambioTemporadaSeleccionada() más
-             abajo. El backend actual (visto en esta sesión) solo manda los
-             datos de la TEMPORADA VIGENTE en data.controlTemporadaPorClan;
-             para listar y cambiar de temporada hace falta que Base.md
-             agregue el listado de temporadas disponibles y pueda devolver
-             el mismo shape para una temporada puntual (ver comentario
-             detallado en cargarSelectorTemporadas()). Mientras ese campo no
-             exista, el selector se queda oculto (:empty ya lo colapsa) sin
-             romper nada. -->
+             anteriores"): Base.md ya manda data.temporadasDisponibles
+             (temporadas con datos de guerra, más reciente primero) y
+             data.controlTemporadaPorTemporada ({[temporada]: {porClan,
+             semanas}} de cada temporada ANTERIOR a la vigente) -- ver
+             pintarSelectorTemporada() más abajo, que ya los consume. El
+             <select> arranca oculto por CSS y solo cuando esos 2 campos no
+             llegan (ej. Web App vieja) se queda así en vez de romper. -->
         <select id="temporadaSelect" style="display:none; font-family:var(--f-mono); font-size:12px; background:var(--surface-card); color:var(--text); border:1px solid var(--line-strong); border-radius:var(--radius-sm); padding:5px 10px;"></select>
       </div>
       <!-- Pestañas de clan -- mismo patrón y misma función
@@ -531,9 +524,17 @@ let prevValues  = {};
 // FIX (07-sep-2026, pedido usuario — filtros de clan/semana/temporada de
 // las cuadrículas "Activos" y "Temporada"): estado de los selectores,
 // a nivel de módulo para que sobrevivan a cada repintado de render()
-// (cada REFRESH_INTERVAL_MS). null = "Todos" (clan) o "vigente" (semana/
-// temporada). Ver gestionarTabsClan(), pintarSelectorSemanaActivos() y
-// pintarSelectorTemporada() más abajo.
+// (cada REFRESH_INTERVAL_MS). null = "vigente" (semana/temporada). Ver
+// pintarSelectorSemanaActivos() y pintarSelectorTemporada() más abajo.
+// FIX (07-sep-2026, pedido usuario — "mueve el botón de Todos a la
+// derecha de Mini Ternas para que cargue por defecto el clan principal en
+// las dos secciones"): clanSeleccionadoActivos/Temporada ya NO usan null
+// para representar "Todos" — null ahora significa exclusivamente "sin
+// elegir todavía" y gestionarTabsClan() lo resuelve cayendo al primer clan
+// (Principal) en vez de a Todos. "Todos" pasa a ser un valor propio y
+// explícito, TAB_TODOS, que solo se fija cuando el usuario hace clic en
+// ese botón. Ver gestionarTabsClan() más abajo para el detalle completo.
+const TAB_TODOS = '__todos__';
 let clanSeleccionadoActivos = null;
 let clanSeleccionadoTemporada = null;
 let sectionIndexSeleccionadoActivos = null;
@@ -656,16 +657,33 @@ function celdasSemanas(megacat, gpClase, conColor){
  * FIX (07-sep-2026, pedido usuario — "botones horizontales para
  * seleccionar el clan" en Activos y en Temporada): botonera .tabs-row/
  * .tab-btn (mismo patrón visual ya usado en "Log de Guerra") que agrega un
- * botón "Todos" + uno por cada clan que YA tiene una tarjeta .ai-clan-card
- * pintada dentro de `wrapId` (data-clan de cada tarjeta) y, al hacer clic,
- * solo oculta/muestra tarjetas ya existentes en el DOM -- no vuelve a
- * pedir nada al backend. Se reconstruye cada vez que cambia el set de
+ * botón por cada clan que YA tiene una tarjeta .ai-clan-card pintada
+ * dentro de `wrapId` (data-clan de cada tarjeta) + "Todos" y, al hacer
+ * clic, solo oculta/muestra tarjetas ya existentes en el DOM -- no vuelve
+ * a pedir nada al backend. Se reconstruye cada vez que cambia el set de
  * tarjetas visibles (cada render() y, en Activos, también cuando
  * cargarAportesInactivosSiAdmin() agrega una tarjeta nueva para un clan
  * sin Activos) para no dejar afuera ningún clan nuevo, y conserva la
  * selección vigente entre repintados -- si el clan seleccionado deja de
  * tener tarjeta (ej. cambia el orden o ya no tiene datos esta semana),
- * cae a "Todos" en vez de dejar la cuadrícula vacía por error.
+ * cae al default de abajo (clan Principal) en vez de dejar la cuadrícula
+ * vacía por error.
+ *
+ * FIX (07-sep-2026, pedido usuario — "mueve el botón de Todos a la
+ * derecha de Mini Ternas para que cargue por defecto el clan principal en
+ * las dos secciones"): dos cambios sobre la versión anterior:
+ *   1) El botón "Todos" ahora se pinta AL FINAL de la fila (después del
+ *      último clan, ej. Mini Ternas), no al principio -- `clanes` ya
+ *      llega ordenado con ordenClanIndex() (mismo orden oficial Principal/
+ *      Terna 2/Terna 3/Mini Ternas, ver render() más arriba), así que solo
+ *      se movió TAB_TODOS al final del array antes de mapear los <button>.
+ *   2) "Todos" deja de ser el default de carga: si `obtenerSel()` todavía
+ *      no tiene nada elegido (null, primera carga de la página), se cae
+ *      al primer clan de `clanes` -- el Principal -- en vez de a Todos.
+ *      Esto requirió separar "sin elegir todavía" (null) de "Todos
+ *      elegido a propósito" (ahora el valor propio TAB_TODOS, ver arriba)
+ *      -- antes ambos casos compartían `null` y por eso la carga inicial
+ *      siempre arrancaba mostrando todos los clanes.
  */
 function gestionarTabsClan(tabsWrapId, wrapId, obtenerSel, fijarSel){
   const tabsWrap = document.getElementById(tabsWrapId);
@@ -673,16 +691,18 @@ function gestionarTabsClan(tabsWrapId, wrapId, obtenerSel, fijarSel){
   const cards = Array.from(wrap.querySelectorAll('.ai-clan-card'));
   if (!cards.length){ tabsWrap.innerHTML = ''; return; }
   const clanes = cards.map(c => c.dataset.clan);
-  if (obtenerSel() && !clanes.includes(obtenerSel())) fijarSel(null);
+  if (obtenerSel() && obtenerSel() !== TAB_TODOS && !clanes.includes(obtenerSel())) fijarSel(null);
+  if (!obtenerSel()) fijarSel(clanes[0]); // default: clan Principal, nunca Todos
   const aplicarFiltro = () => {
     const sel = obtenerSel();
-    cards.forEach(card => { card.style.display = (!sel || card.dataset.clan === sel) ? '' : 'none'; });
+    cards.forEach(card => { card.style.display = (sel === TAB_TODOS || card.dataset.clan === sel) ? '' : 'none'; });
   };
-  tabsWrap.innerHTML = ['', ...clanes].map(c => `
-    <button type="button" class="tab-btn clan-tab-sel${(c === '' ? obtenerSel() === null : c === obtenerSel()) ? ' active' : ''}" data-clan="${esc(c)}">${c === '' ? 'Todos' : esc(c)}</button>`).join('');
-  tabsWrap.querySelectorAll('.clan-tab-sel').forEach(btn => {
+  const botones = clanes.map(c => ({ valor: c, label: c })).concat([{ valor: TAB_TODOS, label: 'Todos' }]);
+  tabsWrap.innerHTML = botones.map(b => `
+    <button type="button" class="tab-btn clan-tab-sel${b.valor === obtenerSel() ? ' active' : ''}" data-valor="${esc(b.valor)}">${esc(b.label)}</button>`).join('');
+  tabsWrap.querySelectorAll('.clan-tab-sel').forEach((btn, idx) => {
     btn.addEventListener('click', () => {
-      fijarSel(btn.dataset.clan || null);
+      fijarSel(botones[idx].valor);
       tabsWrap.querySelectorAll('.clan-tab-sel').forEach(b => b.classList.toggle('active', b === btn));
       aplicarFiltro();
     });
