@@ -93,6 +93,18 @@
      vez de forzar overflow en toda la página. */
   .table-scroll{overflow-x:auto; -webkit-overflow-scrolling:touch;}
   .table-scroll table{min-width:420px;}
+  /* FASE 13 punto 1 del plan de cambios web (07-sep-2026, vista (a) del
+     "Log" de guerra de RoyaleAPI): pestañas por clan para la sección
+     "Log de Guerra (Histórico)" -- mismo patrón visual .tabs-row/.tab-btn
+     ya usado en jugadores.html (Cara a cara / Comparador), copiado acá
+     porque guerra.html no lo tenía todavía. */
+  .tabs-row{display:flex; gap:8px; margin:16px 0; flex-wrap:wrap;}
+  .tab-btn{
+    font-family:var(--f-mono); font-size:11px; text-transform:uppercase; letter-spacing:.06em;
+    padding:7px 14px; border-radius:999px; border:1px solid var(--line); color:var(--text-dim);
+    cursor:pointer; background:transparent; transition:all .18s ease;
+  }
+  .tab-btn.active{color:#fff; border-color:var(--purple); background:rgba(162,57,255,.15);}
   #status{font-family:var(--f-mono); font-size:14px; color:var(--text-dim); padding:64px 20px; text-align:center;}
   #status.err{color:var(--danger);}
   /* FIX (04-sep-2026, pedido usuario — "se debe agregar botones para
@@ -362,6 +374,29 @@
         <h2 style="font-size:22px;">🗓️ Cuadrícula de Temporada (Semanal)</h2>
       </div>
       <div id="controlTemporadaWrap" style="margin-top:20px;"></div>
+    </section>
+
+    <!-- FASE 13 punto 1 del plan de cambios web (07-sep-2026) -- vista (a)
+         del tab "Log" de guerra de RoyaleAPI (royaleapi.com/clan/<TAG>/war/log),
+         recreada con datos propios: histórico Temporada -> Semana ->
+         Rank/Boat/Trophy de cada clan Terna, leído de la hoja Guerra_Logs
+         (acumulativa, nunca se purga -- cubre TODAS las temporadas, no
+         solo la actual). Sección PÚBLICA (sin gate de admin, mismo
+         criterio que "Cuadrícula de Activos"/"Cuadrícula de Temporada" de
+         arriba: son datos de guerra de los propios clanes Terna, no
+         información sensible). Se carga UNA sola vez al entrar a la
+         página (ver cargarGuerraLog() más abajo) -- es histórico
+         acumulado, no un dato en vivo, así que no necesita refrescarse
+         cada REFRESH_INTERVAL_MS como el resto del dashboard. Arranca
+         oculta; si el backend no devuelve ningún clan con historial (o la
+         carga falla), se queda oculta sin ocupar espacio ni romper el
+         resto de la página pública. -->
+    <section id="guerraLogSection" style="padding:24px 0; display:none;">
+      <div class="sec-head" style="border-bottom:1px solid var(--line); padding-bottom:12px;">
+        <h2 style="font-size:22px;">📜 Log de Guerra (Histórico)</h2>
+      </div>
+      <div class="tabs-row" id="guerraLogTabs" style="margin-top:20px;"></div>
+      <div id="guerraLogWrap"></div>
     </section>
 
     <!-- FIX (03-sep-2026, pedido usuario — "Pendientes de Atacar: ocultar
@@ -1046,7 +1081,91 @@ async function cargarParticipacionHoySiAdmin(ctx){
   }
 }
 
+/**
+ * cargarGuerraLog()
+ * FASE 13 punto 1 del plan de cambios web (07-sep-2026) -- vista (a) del
+ * "Log" de guerra de RoyaleAPI, recreada con datos propios. Pide
+ * 'webGuerraLog' (mismo WEB_MEMBER_TOKEN público de solo lectura que
+ * apiGet() ya usa para webGuerraEnVivo, ver _webGuerraLog(),
+ * 17_GuerraSheet.gs) SIN `tag` -- así el backend devuelve los
+ * CFG.TERNA_TAGS.length clanes Terna juntos, en su mismo orden, sin
+ * necesitar tags de clanes propios hardcodeados acá.
+ *
+ * A diferencia del resto de esta página (dashboard en vivo, refrescado
+ * cada REFRESH_INTERVAL_MS), esto es un histórico acumulado que no
+ * cambia salvo cuando corre el batch del backend -- se pide UNA sola vez
+ * al cargar la página (ver la llamada al final de este script), no en el
+ * setInterval de arriba.
+ *
+ * Pinta una pestaña por clan (data.clanes, mismo patrón visual
+ * .tabs-row/.tab-btn que jugadores.html) y, debajo, una tabla Temporada/
+ * Semana/Rank/Boat/Trophy de la pestaña activa, con el delta de Trophy
+ * contra la semana anterior (verde si subió, rojo si bajó) y las semanas
+ * ya ordenadas de más reciente a más antigua (mismo orden que ya manda
+ * el backend). Un clan sin ninguna fila registrada todavía en Guerra_Logs
+ * (`clan` vacío) se descarta de las pestañas en vez de mostrar una vacía.
+ *
+ * Cualquier error (backend caído, token vencido, etc.) se traga en
+ * silencio y la sección se oculta por completo -- mismo criterio de
+ * robustez que el resto de secciones de esta página pública.
+ */
+async function cargarGuerraLog(){
+  const section  = document.getElementById('guerraLogSection');
+  const tabsWrap = document.getElementById('guerraLogTabs');
+  const tableWrap = document.getElementById('guerraLogWrap');
+  try{
+    const data = await apiGet('webGuerraLog', {});
+    const clanes = (data.clanes || []).filter(c => c && c.clan);
+    if (!clanes.length){ section.style.display = 'none'; return; }
+
+    let idxActivo = 0;
+
+    function pintarTablaGuerraLog(){
+      const c = clanes[idxActivo];
+      const semanas = c.semanas || [];
+      tableWrap.innerHTML = semanas.length ? `
+        <div class="card" style="padding:12px;"><div class="table-scroll"><table>
+          <thead><tr><th>Temporada</th><th>Semana</th><th>Rank</th><th>Boat</th><th>Trophy</th></tr></thead>
+          <tbody>${semanas.map(s => {
+            const delta = Number(s.trophyDelta) || 0;
+            const deltaHtml = delta
+              ? ` <span style="font-family:var(--f-mono); font-size:11px; color:${delta > 0 ? 'var(--ok)' : 'var(--danger)'};">(${delta > 0 ? '+' : ''}${fmtNum(delta)})</span>`
+              : '';
+            return `
+            <tr>
+              <td>${fmtNum(s.temporada)}</td>
+              <td>${fmtNum(s.semana)}</td>
+              <td>${Number(s.rank) > 0 ? '#' + fmtNum(s.rank) : '—'}</td>
+              <td>${fmtNum(s.boat)}</td>
+              <td>${fmtNum(s.trophy)}${deltaHtml}</td>
+            </tr>`;
+          }).join('')}
+          </tbody>
+        </table></div></div>` : '<div class="empty">Sin historial registrado todavía para este clan.</div>';
+    }
+
+    tabsWrap.innerHTML = clanes.map((c, i) => `
+      <button type="button" class="tab-btn guerra-log-tab${i === idxActivo ? ' active' : ''}" data-idx="${i}">${esc(c.clan)}</button>`).join('');
+    tabsWrap.querySelectorAll('.guerra-log-tab').forEach(btn => {
+      btn.addEventListener('click', () => {
+        idxActivo = Number(btn.dataset.idx);
+        tabsWrap.querySelectorAll('.guerra-log-tab').forEach(b => b.classList.toggle('active', Number(b.dataset.idx) === idxActivo));
+        pintarTablaGuerraLog();
+      });
+    });
+    pintarTablaGuerraLog();
+    section.style.display = '';
+  }catch(err){
+    // Defensivo: mismo criterio que el resto de secciones de esta página
+    // -- si falla, la sección simplemente no aparece, sin romper nada más.
+    section.style.display = 'none';
+    tabsWrap.innerHTML = '';
+    tableWrap.innerHTML = '';
+  }
+}
+
 cargar();
+cargarGuerraLog();
 setInterval(() => cargar(false), REFRESH_INTERVAL_MS);
 setInterval(actualizarAgoText, 1000);
 </script>
