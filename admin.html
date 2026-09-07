@@ -421,6 +421,26 @@
           <div id="infResultado" style="margin-top:16px;"></div>
         </div>
       </details>
+
+      <!-- FASE 3 (06-sep-2026, punto 3 del documento — detección de
+           reemplazo de guerra): backend ya existía y estaba completo
+           (_getParticipacionHoyGuerra(), 17_GuerraSheet.gs, expuesto vía
+           webAdminParticipacionHoyGuerra, 34_Web_API.gs/08_Web_Endpoints.gs)
+           — solo faltaba la vista. Se agrega acá, junto a "Detección de
+           infiltrados", en vez de en guerra.html, porque el endpoint es
+           admin-only (requiere sessionToken) y guerra.html es una página
+           pública sin concepto de sesión — mismo criterio de ubicación que
+           ya se usó para Infiltrados. No depende de ninguna "Función" de
+           admin dedicada (mismo caso que Infiltrados), así que se auto-
+           carga al abrir el panel, sin botón de búsqueda. -->
+      <details class="admin-subseccion" id="cardParticipacionHoy" open>
+        <summary><span class="cat-titulo">Participación de hoy en guerra</span></summary>
+        <div class="admin-subseccion-body">
+          <p class="text-dim" style="font-size:13px; margin:0 0 14px;">Por clan: cuentas que ya atacaron hoy (reservadas, no reemplazables) vs. cuentas activas que todavía no atacaron (disponibles para reemplazo).</p>
+          <div id="participacionHoyMsg"></div>
+          <div id="participacionHoyResultado" style="margin-top:8px;"></div>
+        </div>
+      </details>
     </div>
 
     <!-- FIX (05-sep-2026, pedido usuario): las 3 tarjetas "Mensajes
@@ -872,6 +892,7 @@ function mostrarPanel(){
   // fijas hasta el próximo repintado (ej. al escribir en el filtro).
   cargarNomMultisAdmins().then(cargarAscensosEditables);
   cargarGanadoresTorneo();
+  cargarParticipacionHoyGuerra(); // FASE 3 (06-sep-2026)
 }
 
 /** FASE 4 (26-ago-2026): muestra/oculta las cards de "Registrar miembro
@@ -1155,6 +1176,75 @@ async function buscarInfiltrado(){
 }
 document.getElementById('btnBuscarInfiltrado').addEventListener('click', buscarInfiltrado);
 document.getElementById('infTagInput').addEventListener('keydown', e => { if(e.key === 'Enter') buscarInfiltrado(); });
+
+/**
+ * FASE 3 (06-sep-2026, punto 3 del documento — detección de reemplazo de
+ * guerra). Pinta el resultado de webAdminParticipacionHoyGuerra
+ * (_getParticipacionHoyGuerra(), 17_GuerraSheet.gs): por clan, cuentas
+ * "reservadas" (ya atacaron hoy) vs "disponibles" (activas, sin atacar
+ * todavía), más los casos "multiClan" (mismo Tag con ataques hoy en más
+ * de un clan Terna a la vez — ver docblock de esa función para el
+ * detalle). Se autocarga al abrir el panel (no depende de ningún input),
+ * mismo criterio que cargarTorneosHoy()/cargarGanadoresTorneo().
+ */
+function _listaCuentasHtml(cuentas){
+  if(!cuentas.length) return '<div class="text-faint" style="font-size:12px;">— ninguna —</div>';
+  return `<ul style="margin:6px 0 0; padding-left:18px; font-size:12px;">` +
+    cuentas.map(c => `<li>${esc(c.nombre)} <span class="text-faint" style="font-family:var(--f-mono);">${esc(c.tag)}</span></li>`).join('') +
+    `</ul>`;
+}
+
+function renderParticipacionHoyGuerra(data){
+  const cont = document.getElementById('participacionHoyResultado');
+  const clanes = data.clanes || [];
+  if(!clanes.length){ cont.innerHTML = '<div class="empty">Sin datos de guerra para hoy todavía.</div>'; return; }
+
+  const clanesHtml = clanes.map(c => `
+    <div style="border-top:1px solid var(--line); padding:12px 0;">
+      <div style="font-weight:700; font-size:13px; margin-bottom:8px;">${esc(c.clan)}</div>
+      <div class="field-row">
+        <div>
+          <div class="text-dim" style="font-size:11px; text-transform:uppercase; letter-spacing:.08em;">Reservadas (${c.reservadas.length})</div>
+          ${_listaCuentasHtml(c.reservadas)}
+        </div>
+        <div>
+          <div class="text-dim" style="font-size:11px; text-transform:uppercase; letter-spacing:.08em;">Disponibles (${c.disponibles.length})</div>
+          ${_listaCuentasHtml(c.disponibles)}
+        </div>
+      </div>
+    </div>`).join('');
+
+  const multiClan = data.multiClan || [];
+  const multiClanHtml = !multiClan.length ? '' : `
+    <div style="border-top:1px solid var(--line); padding:12px 0;">
+      <span class="badge badge-warn">Ataques en más de un clan hoy</span>
+      <ul style="margin:8px 0 0; padding-left:18px; font-size:12px;">
+        ${multiClan.map(m => `<li>${esc(m.nombre)} <span class="text-faint" style="font-family:var(--f-mono);">${esc(m.tag)}</span> — ${m.clanes.map(esc).join(' y ')} (${m.totalAtaquesHoy} ataques hoy)</li>`).join('')}
+      </ul>
+    </div>`;
+
+  cont.innerHTML = clanesHtml + multiClanHtml;
+}
+
+async function cargarParticipacionHoyGuerra(){
+  const msgEl = document.getElementById('participacionHoyMsg');
+  const cont = document.getElementById('participacionHoyResultado');
+  msgEl.innerHTML = '';
+  cont.innerHTML = '<div class="empty">Cargando…</div>';
+  try{
+    const data = await apiGetAuth('webAdminParticipacionHoyGuerra', {});
+    if(manejarRespuestaAuth(data)) return;
+    if(!data.ok){
+      cont.innerHTML = '';
+      msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error || 'No se pudo cargar la participación de hoy.')}</div>`;
+      return;
+    }
+    renderParticipacionHoyGuerra(data);
+  }catch(err){
+    cont.innerHTML = '';
+    msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
+  }
+}
 
 document.getElementById('btnGuardar').addEventListener('click', async () => {
   const msgEl = document.getElementById('guardarMsg');
