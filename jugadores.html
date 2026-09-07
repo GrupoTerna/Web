@@ -755,7 +755,7 @@ function renderComparadorBarras(a, b){
  * números de eje Y, en vez del SVG "pelado" (sin grilla ni escala) que
  * tenía antes esta función.
  */
-function guerraComparadorMetricaSvg(a, b, campo, fechas, indicePorFecha){
+function guerraComparadorMetricaSvg(a, b, campo, tituloMetrica, fechas, indicePorFecha, nombreA, clanA, nombreB, clanB){
   const valoresA = a.map(r => Number(r[campo]) || 0);
   const valoresB = b.map(r => Number(r[campo]) || 0);
   const todos = valoresA.concat(valoresB);
@@ -839,9 +839,21 @@ function guerraComparadorMetricaSvg(a, b, campo, fechas, indicePorFecha){
     .filter(r => indicePorFecha.has(r.fecha))
     .map(r => `${(PAD_L + indicePorFecha.get(r.fecha)*stepX).toFixed(1)},${escalaY(Number(r[campo]) || 0).toFixed(1)}`)
     .join(' ');
-  const circulosDe = (serie, color) => serie
+  // FIX (07-sep-2026, pedido usuario, Fase 15 punto 1 — "tooltip con
+  // Nombre, Clan, Puntaje, Día"): cada círculo pasa de auto-cerrarse
+  // (<circle ... />) a envolver un <title>, que es el tooltip nativo del
+  // navegador (sin JS/CSS extra, funciona en desktop y con tap sostenido
+  // en mobile) — mismo patrón que el resto de la página, sin dependencias
+  // nuevas. Texto: "Nombre — Clan\n<Título de la métrica>: valor\nFecha".
+  const circulosDe = (serie, color, nombre, clan) => serie
     .filter(r => indicePorFecha.has(r.fecha))
-    .map(r => `<circle cx="${(PAD_L + indicePorFecha.get(r.fecha)*stepX).toFixed(1)}" cy="${escalaY(Number(r[campo]) || 0).toFixed(1)}" r="3.5" fill="${color}" stroke="var(--bg)" stroke-width="1"/>`)
+    .map(r => {
+      const cx = (PAD_L + indicePorFecha.get(r.fecha)*stepX).toFixed(1);
+      const cy = escalaY(Number(r[campo]) || 0).toFixed(1);
+      const valor = fmtNum(Number(r[campo]) || 0);
+      const tip = `${nombre || ''}${clan ? ' — ' + clan : ''}\n${tituloMetrica}: ${valor}\nDía: ${fmtFecha(r.fecha)}`;
+      return `<circle cx="${cx}" cy="${cy}" r="3.5" fill="${color}" stroke="var(--bg)" stroke-width="1"><title>${esc(tip)}</title></circle>`;
+    })
     .join('');
 
   const colorA = 'var(--purple-light, #c084fc)';
@@ -872,8 +884,8 @@ function guerraComparadorMetricaSvg(a, b, campo, fechas, indicePorFecha){
       ${etiquetas.map(e => `<text class="axis-label axis-label-month" x="${e.x}" y="${H - 6}" text-anchor="end" transform="rotate(-45 ${e.x} ${H - 6})">${esc(e.texto)}</text>`).join('')}
       ${a.length ? `<polyline points="${puntosDe(a)}" fill="none" stroke="${colorA}" stroke-width="2.5"/>` : ''}
       ${b.length ? `<polyline points="${puntosDe(b)}" fill="none" stroke="${colorB}" stroke-width="2.5"/>` : ''}
-      ${circulosDe(a, colorA)}
-      ${circulosDe(b, colorB)}
+      ${circulosDe(a, colorA, nombreA, clanA)}
+      ${circulosDe(b, colorB, nombreB, clanB)}
     </svg>`;
 }
 
@@ -886,7 +898,7 @@ function guerraComparadorMetricaSvg(a, b, campo, fechas, indicePorFecha){
  * filtrados a "solo guerra" desde el backend (_webHistorialGuerraComparador),
  * así que acá no hace falta filtrar nada — solo graficar.
  */
-function renderComparadorGuerraChart(histA, histB, nombreA, nombreB){
+function renderComparadorGuerraChart(histA, histB, nombreA, nombreB, clanA, clanB){
   const a = Array.isArray(histA) ? histA : [];
   const b = Array.isArray(histB) ? histB : [];
   if (!a.length && !b.length){
@@ -914,7 +926,7 @@ function renderComparadorGuerraChart(histA, histB, nombreA, nombreB){
     <div class="card chart-card">
       <div class="chart-title" style="margin-top:0;">${icono} ${titulo}</div>
       ${legend}
-      ${guerraComparadorMetricaSvg(a, b, campo, fechas, indicePorFecha)}
+      ${guerraComparadorMetricaSvg(a, b, campo, titulo, fechas, indicePorFecha, nombreA, clanA, nombreB, clanB)}
     </div>`;
 
   // FIX (05-sep-2026, pedido usuario — "las gráficas del cara a cara son
@@ -931,7 +943,7 @@ function renderComparadorGuerraChart(histA, histB, nombreA, nombreB){
       ${metricCard('⭐', 'Puntaje (Fame) por día de guerra', 'fame')}
       ${metricCard('🚢', 'Barcos por día de guerra', 'barcos')}
     </div>
-    <div class="text-faint" style="font-family:var(--f-mono); font-size:11px; margin-top:10px;">Un punto por día de guerra jugado (no se cuentan días de entrenamiento). Líneas grises discretas marcan el primer registro de cada semana; las más notorias marcan el inicio de cada mes.</div>`;
+    <div class="text-faint" style="font-family:var(--f-mono); font-size:11px; margin-top:10px;">Un punto por día de guerra jugado (no se cuentan días de entrenamiento). Pasa el cursor sobre un punto para ver nombre, clan, valor y día. Líneas grises discretas marcan el primer registro de cada semana; las más notorias marcan el inicio de cada mes.</div>`;
 }
 
 function elegirComparadorLado1(tag){ document.getElementById('compTag1').value = tag; compararJugadores(); }
@@ -992,7 +1004,9 @@ async function compararJugadores(){
       histData ? histData.a : [],
       histData ? histData.b : [],
       (data.a && data.a.nombre) || 'Jugador 1',
-      (data.b && data.b.nombre) || 'Jugador 2'
+      (data.b && data.b.nombre) || 'Jugador 2',
+      data.a && data.a.clan,
+      data.b && data.b.clan
     );
   }catch(err){
     msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
