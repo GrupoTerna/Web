@@ -288,6 +288,35 @@ document.body.addEventListener('click', e => {
   btn.textContent = (abierto ? 'Ocultar resultados' : 'Ver todos los resultados') + ' (' + fmtNum(n) + ')';
 });
 
+/**
+ * esTorneoContinuacion(t) / idTorneoPrincipalDe(t)
+ * FIX (08-sep-2026, pedido usuario, punto 1 — "Los torneos de
+ * continuación no deben aparecer en la web como torneo aparte, ya que
+ * se fusiona sus resultados con el torneo principal"): antes cada
+ * torneo de T_Control (tanto el "principal" como su "continuación", ver
+ * el wizard de torneos en admin.html — #torneoTipo/tagTorneoPrincipal,
+ * donde el admin liga uno con otro al registrar) se pintaba como su
+ * propia fila en "Torneos recientes", duplicando el mismo evento en dos
+ * filas (una con los resultados, la otra sin ninguno — porque el podio
+ * final normalmente se cierra en la continuación, no en el arranque).
+ * Se admite más de un nombre de campo porque, sin ver `_webTorneos()` /
+ * `_webHistorialTorneos()` (34_Web_API.gs) para confirmar el nombre
+ * exacto que expone el backend en la respuesta pública, es más seguro
+ * cubrir los alias razonables que asumir uno solo. Si ninguno de estos
+ * campos viene en la respuesta (por ejemplo porque el backend todavía no
+ * expone esa relación al público), ambas funciones devuelven false/null
+ * y el comportamiento queda exactamente igual que antes: nada se rompe,
+ * simplemente no hay fusión hasta que el campo esté disponible.
+ */
+function esTorneoContinuacion(t){
+  return !!(t && (t.esContinuacion || t.continuacion === true ||
+    t.tipo === 'continuacion' || t.tipoTorneo === 'continuacion'));
+}
+function idTorneoPrincipalDe(t){
+  if (!t) return null;
+  return t.idTorneoPrincipal ?? t.tagTorneoPrincipal ?? t.torneoPrincipalId ?? t.principalId ?? null;
+}
+
 async function cargarTorneos(){
   const ganadoresWrap = document.getElementById('ganadoresWrap');
   const ganadoresResultadosWrap = document.getElementById('ganadoresResultadosWrap');
@@ -353,14 +382,42 @@ async function cargarTorneos(){
     };
     historialList.forEach(indexar);
     indexar(g);
-    torneosWrap.innerHTML = torneos.map(t => {
+
+    // Índice de torneos de continuación agrupados por el idTorneo de su
+    // principal, para poder fusionar sus resultados en la fila de ese
+    // principal y no pintarlas como filas aparte (ver helpers arriba).
+    const continuacionesPorPrincipal = new Map();
+    torneos.forEach(t => {
+      if (!esTorneoContinuacion(t)) return;
+      const idPrincipal = idTorneoPrincipalDe(t);
+      if (idPrincipal == null) return;
+      const lista = continuacionesPorPrincipal.get(idPrincipal) || [];
+      lista.push(t);
+      continuacionesPorPrincipal.set(idPrincipal, lista);
+    });
+    // Solo se pintan los torneos que NO son continuación de otro; sus
+    // continuaciones quedan fusionadas dentro de esa misma fila.
+    const torneosVisibles = torneos.filter(t => !esTorneoContinuacion(t));
+
+    torneosWrap.innerHTML = torneosVisibles.map(t => {
       const fechaTxt = t.fecha ? new Date(t.fecha).toLocaleDateString('es-PE', { day:'2-digit', month:'2-digit', year:'numeric' }) : '—';
       const match = (t.idTorneo != null && mapaTop3.get('id:' + t.idTorneo)) ||
                     (t.fecha && mapaTop3.get('fc:' + t.fecha + '|' + (t.clan || ''))) || null;
-      const top3 = (match && match.top3) || [];
+      let top3 = (match && match.top3) || [];
+      // El torneo principal suele no tener podio propio (el podio final se
+      // define recién en la continuación), así que si no tiene resultados
+      // se usan los de su(s) continuación(es) fusionados en esta fila.
+      if (!top3.length && t.idTorneo != null) {
+        const continuaciones = continuacionesPorPrincipal.get(t.idTorneo) || [];
+        for (const c of continuaciones) {
+          const matchC = (c.idTorneo != null && mapaTop3.get('id:' + c.idTorneo)) ||
+                        (c.fecha && mapaTop3.get('fc:' + c.fecha + '|' + (c.clan || ''))) || null;
+          if (matchC && matchC.top3 && matchC.top3.length){ top3 = matchC.top3; break; }
+        }
+      }
       const ganadoresHtml = top3.length ? `
         <div class="t-ganadores">
-          ${top3.map(p => `<div class="tg-fila">${medallaPuesto(p.puesto)} <b>${esc(p.nombre)}</b> · ${fmtNum(p.victorias)} vic.${p.premioRepartido ? ' · 🤝 repartido' : ''}</div>`).join('')}
+          ${top3.map(p => `<div class="tg-fila">${medallaPuesto(p.puesto)} <b>${esc(p.nombre)}</b> · ${fmtNum(p.victorias)} victorias${p.premioRepartido ? ' · 🤝 repartido' : ''}</div>`).join('')}
         </div>` : '<div class="t-ganadores"><span class="tg-vacio">Sin ganadores registrados</span></div>';
       return `
       <div class="torneo-row">
