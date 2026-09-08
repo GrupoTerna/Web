@@ -464,9 +464,25 @@
   .ranking-row .rk-main{flex:1 1 auto; min-width:0; display:flex; flex-direction:column; gap:3px;}
   .ranking-row .rk-nombre{color:var(--text); font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-decoration:none; display:block; max-width:100%;}
   .ranking-row .rk-nombre:hover{text-decoration:underline; color:var(--purple-light);}
-  .ranking-row .rk-sub{display:flex; align-items:center; justify-content:space-between; gap:8px;}
-  .ranking-row .rk-clan{font-family:var(--f-mono); font-size:11.5px; color:var(--text-faint); overflow:hidden; text-overflow:ellipsis; white-space:nowrap; min-width:0;}
-  .ranking-row .rk-valor{font-family:var(--f-mono); color:var(--gold); font-size:13px; flex-shrink:0; white-space:nowrap;}
+  /* FIX (08-sep-2026, pedido usuario — "hay clanes que salen incompletos"):
+     rk-sub pasa de align-items:center a flex-start porque rk-clan ahora
+     puede ocupar 2 líneas (ver rk-clan más abajo) — con "center" el nombre
+     del clan quedaba verticalmente descentrado respecto al valor cuando
+     hacía wrap. */
+  .ranking-row .rk-sub{display:flex; align-items:flex-start; justify-content:space-between; gap:8px;}
+  /* Antes: overflow:hidden + text-overflow:ellipsis + white-space:nowrap
+     cortaba el nombre del clan a la mitad ("GrupoXTer…") en cuanto no
+     entraba en una sola línea junto al valor — el nombre real de un clan
+     (con símbolos, "Grupo X Terna 2", etc.) es más largo que el alias
+     corto ("Terna 2") que se usaba antes en otras partes del sitio (ver
+     fix de "Terna 2"/"Terna 3" en lineChartLegendHtml/chartCardHtml).
+     Ahora el clan puede partirse en 2 líneas (white-space:normal +
+     overflow-wrap:break-word) en vez de recortarse, así siempre se lee
+     completo. rk-valor mantiene flex-shrink:0 y queda alineado arriba a
+     la derecha (rk-sub ahora es align-items:flex-start) incluso cuando el
+     clan ocupa 2 líneas. */
+  .ranking-row .rk-clan{font-family:var(--f-mono); font-size:11.5px; color:var(--text-faint); min-width:0; white-space:normal; overflow-wrap:break-word; line-height:1.35;}
+  .ranking-row .rk-valor{font-family:var(--f-mono); color:var(--gold); font-size:13px; flex-shrink:0; white-space:nowrap; padding-top:1px;}
   /* CORRECCIÓN (05-sep-2026, pedido usuario — "sigue desalineado y las
    * imágenes deben ser más grandes, moviendo los botones de calidad un
    * poco a la derecha para que la imagen aproveche ese espacio"):
