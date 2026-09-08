@@ -420,31 +420,62 @@ footer .wrap span{text-align:justify; text-justify:inter-word;}
  * Se define acá, global, porque la arma common.js y la usan tanto
  * index.html como jugadores.html — antes vivían en el <style> local de
  * cada página, lo que hubiera obligado a duplicar estas reglas dos veces.
+ *
+ * FIX (07-sep-2026, pedido usuario — "la letra está muy pequeña, los tags
+ * no se ven, revisa que no se partan los nombres, agrega Nom_Multi/Nivel/
+ * Copas y el botón de Vetar, cada columna alineada y los encabezados
+ * centrados respecto a sus valores"): la fila deja de ser un
+ * .inactivo-row de layout flex (nombre/tag/clan apilados a la izquierda,
+ * botones sueltos a la derecha, sin relación real entre columnas) y pasa
+ * a ser una tabla real (.inactivos-table, armada por _renderVistaInactivos()/
+ * _filaInactivoHtml() en common.js) — mismo espíritu que .roster-table de
+ * directorio.html. Cada <th> usa el MISMO text-align que su <td>
+ * correspondiente (ver .ia-th-*/.ia-td-* abajo), así el encabezado queda
+ * siempre centrado/alineado exactamente sobre sus propios valores, columna
+ * por columna. Nombre/Tag/Clan usan white-space:nowrap (en vez de dejar
+ * que el nombre se parta en dos líneas dentro de su celda) y la tabla vive
+ * dentro de un contenedor con scroll horizontal (.inactivos-table-wrap)
+ * para pantallas angostas, en vez de forzar el corte de línea.
+ * .inactivo-row se mantiene como nombre de clase (ahora sobre un <tr> en
+ * vez de un <div>) porque common.js la usa como selector para ubicar la
+ * fila desde el botón Vetar (btn.closest('.inactivo-row')).
  * ========================================================================= */
-.inactivo-row{
-  display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
-  padding:14px 18px; border-radius:var(--radius-sm); border:1px solid var(--line);
-  background:var(--surface-card); margin-bottom:10px; transition:all .18s ease;
+.inactivos-table-wrap{overflow-x:auto; -webkit-overflow-scrolling:touch;}
+.inactivos-table{width:100%; border-collapse:collapse; min-width:640px;}
+.inactivos-table th, .inactivos-table td{padding:14px 16px;}
+.inactivos-table thead th{
+  font-family:var(--f-display); font-weight:700; font-size:14px; text-transform:uppercase;
+  letter-spacing:.03em; color:var(--text-dim); background:var(--surface-card);
+  border-bottom:1px solid var(--line); text-align:left;
 }
-.inactivo-row:last-child{margin-bottom:0;}
-.inactivo-row:hover{border-color:var(--line-strong);}
-.inactivo-nombre{font-weight:700; font-size:14px; color:var(--text);}
-.inactivo-tag{font-family:var(--f-mono); font-size:11px; color:var(--text-dim); margin-top:2px;}
-.inactivo-clan{font-family:var(--f-mono); font-size:11px; color:var(--text-faint); margin-top:2px;}
-.inactivo-links{display:flex; gap:8px; flex-wrap:wrap; align-items:center;}
+.inactivos-table th.ia-th-nommulti, .inactivos-table th.ia-th-nivel,
+.inactivos-table th.ia-th-copas, .inactivos-table th.ia-th-acciones{text-align:center;}
+.inactivos-table tbody td{border-bottom:1px solid rgba(162,57,255,.06); color:var(--text);}
+.inactivos-table tr.inactivo-row:hover td{background:rgba(162,57,255,.1);}
+.inactivos-table tbody tr:last-child td{border-bottom:none;}
+.ia-td-nombre{text-align:left;}
+.ia-nombre{font-weight:700; font-size:16px; color:var(--text); white-space:nowrap;}
+.ia-tag{font-family:var(--f-mono); font-size:13px; color:var(--text-dim); margin-top:3px; white-space:nowrap;}
+.ia-clan{font-family:var(--f-mono); font-size:12px; color:var(--text-faint); margin-top:2px; white-space:nowrap;}
+.ia-td-nommulti, .ia-td-nivel, .ia-td-copas{
+  font-family:var(--f-mono); font-size:14.5px; color:var(--text-dim); text-align:center; white-space:nowrap;
+}
+.ia-td-acciones{text-align:center;}
+.inactivo-links{display:flex; gap:8px; flex-wrap:wrap; align-items:center; justify-content:center;}
 .inactivo-links a{
-  font-family:var(--f-mono); font-size:11px; font-weight:600; color:var(--purple-light);
-  border:1px solid var(--line); padding:7px 13px; border-radius:var(--radius-sm); text-decoration:none;
-  transition:all .18s ease;
+  font-family:var(--f-mono); font-size:12px; font-weight:600; color:var(--purple-light);
+  border:1px solid var(--line); padding:8px 14px; border-radius:var(--radius-sm); text-decoration:none;
+  white-space:nowrap; transition:all .18s ease;
 }
 .inactivo-links a:hover{border-color:var(--purple); background:rgba(162,57,255,.1);}
 .inactivo-btn-vetar{
-  font-family:var(--f-mono); font-size:11px; font-weight:600; color:var(--danger);
-  border:1px solid var(--danger); background:transparent; padding:7px 13px;
-  border-radius:var(--radius-sm); cursor:pointer; transition:all .18s ease;
+  font-family:var(--f-mono); font-size:12px; font-weight:600; color:var(--danger);
+  border:1px solid var(--danger); background:transparent; padding:8px 14px;
+  border-radius:var(--radius-sm); cursor:pointer; white-space:nowrap; transition:all .18s ease;
 }
 .inactivo-btn-vetar:hover{background:rgba(244,63,94,.12);}
 .inactivo-btn-vetar:disabled{cursor:default; opacity:.6;}
+.inactivo-vetar-fila td{padding:0 16px 16px;}
 
 /* =========================================================================
  * prefers-reduced-motion (30-ago-2026, pedido usuario — accesibilidad):

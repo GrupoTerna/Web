@@ -373,55 +373,78 @@ function clanCardHtml(c, i, opts){
 
 /**
  * _filaInactivoHtml(c)
- * Fila de UNA cuenta inactiva dentro de la vista (mismo look que
- * .ingreso-row de "Ingresos recientes" en index.html, así se ve
- * consistente con el resto del sitio en vez de una fila genérica).
+ * Fila de UNA cuenta inactiva dentro de la vista.
  * REGLA DURA (pedido del usuario): "en ningún caso se debe mostrar datos
- * sensibles (celulares)" — esta fila solo pinta nombre, tag y clan; nunca
- * debe agregarse acá el campo Celular aunque el backend llegara a
- * incluirlo en el objeto `cuentas`.
+ * sensibles (celulares)" — esta fila nunca debe agregar el campo Celular
+ * aunque el backend llegara a incluirlo en el objeto `cuentas`.
  * OJO backend (1-sep-2026, pedido usuario — "agregarle botones de
  * RoyaleAPI/CWStats/Vetar, también depende de que el backend devuelva
- * esos datos por cuenta inactiva, cosa que hoy no hace"): hoy
- * `_webAdminCuentasInactivas()` (34_Web_API.gs) solo manda {tag, nombre,
- * clan}, así que `c.royaleApi`/`c.cwstats` vienen undefined y esos
- * botones simplemente no se pintan (urlValida() los filtra, igual que en
- * directorio.html/index.html con el resto de links externos). En cuanto el
- * backend agregue esos dos campos al objeto de cada cuenta, los botones
- * aparecen solos, sin tocar el frontend de nuevo. El botón Vetar sí
- * funciona hoy mismo: no depende de datos nuevos, solo de la Función
- * 'Vetar' del admin logueado (adminPuedeVetar()), y pega contra el mismo
- * 'webAdminVetar' que ya usa perfil.html (busca el Tag en Directorio o
- * Inactivos indistintamente, ver _webBuscarFilaVetoPorTag en 34_Web_API.gs).
+ * esos datos por cuenta inactiva, cosa que hoy no hace"): `c.royaleApi`/
+ * `c.cwstats` se pintan solo si urlValida() los acepta, igual que en
+ * directorio.html/index.html con el resto de links externos.
+ * FIX (07-sep-2026, pedido usuario — "la letra está muy pequeña, los tags
+ * no se ven, agrega Nom_Multi/Nivel/Copas antes del botón de Vetar, cada
+ * columna alineada y encabezados centrados respecto a sus valores"): esta
+ * fila deja de ser un <div> suelto (inactivo-row de layout flex) y pasa a
+ * ser un <tr> real de la tabla .inactivos-table armada en
+ * _renderVistaInactivos() — así cada dato cae en su propia columna,
+ * alineada verticalmente con su encabezado, en vez de depender de que el
+ * flexbox "cuadre por casualidad". Nombre/Tag/Clan se mantienen dentro de
+ * una sola celda (identidad de la cuenta) pero ya no se parten de línea
+ * (white-space:nowrap, ver .ia-nombre/.ia-tag/.ia-clan en styles.css) y
+ * con letra más grande. CONTRATO ESPERADO ampliado de
+ * 'webAdminCuentasInactivas' (backend, fuera de este repo): además de
+ * {tag, nombre, clan, esAdmin}, cada cuenta debería traer nomMulti,
+ * nivelXp (mismo nombre que ya usa perfil.html/directorio.html para
+ * "Nivel (XP)") y copas. Si el backend todavía no manda alguno de los
+ * tres, la celda pinta "—" en vez de romper — igual que hace ya
+ * ROSTER_COLUMNAS en directorio.html para sus propias columnas nuevas.
  */
 function _filaInactivoHtml(c){
   const royaleOk = urlValida(c.royaleApi);
   const cwOk = urlValida(c.cwstats);
   const puedeVetar = adminPuedeVetar();
+  const nomMultiTxt = c.nomMulti ? esc(c.nomMulti) : '—';
+  const nivelTxt = c.nivelXp != null ? fmtNum(c.nivelXp) : '—';
+  const copasTxt = c.copas != null ? fmtNum(c.copas) : '—';
   return `
-    <div class="inactivo-row" data-inactivo-tag="${esc(c.tag)}">
-      <div class="inactivo-info">
-        <div class="inactivo-nombre">${esc(c.nombre || 'Sin nombre')}</div>
-        <div class="inactivo-tag">${esc(c.tag || '—')}</div>
-        <div class="inactivo-clan">${esc(c.clan || '—')}</div>
-      </div>
-      ${(royaleOk || cwOk || puedeVetar) ? `<div class="inactivo-links">
-        ${royaleOk ? `<a href="${esc(c.royaleApi)}" target="_blank" rel="noopener">${ICONO_ROYALEAPI}RoyaleAPI</a>` : ''}
-        ${cwOk ? `<a href="${esc(c.cwstats)}" target="_blank" rel="noopener">${ICONO_CWSTATS}CWStats</a>` : ''}
-        ${puedeVetar ? `<button type="button" class="js-inactivo-vetar-btn inactivo-btn-vetar">🚫 Vetar</button>` : ''}
-      </div>` : ''}
-    </div>
-    ${puedeVetar ? `<div class="js-inactivo-vetar-wrap" style="display:none; margin:-2px 0 12px;"></div>` : ''}`;
+    <tr class="inactivo-row" data-inactivo-tag="${esc(c.tag)}">
+      <td class="ia-td-nombre">
+        <div class="ia-nombre">${esc(c.nombre || 'Sin nombre')}</div>
+        <div class="ia-tag">${esc(c.tag || '—')}</div>
+        <div class="ia-clan">${esc(c.clan || '—')}</div>
+      </td>
+      <td class="ia-td-nommulti">${nomMultiTxt}</td>
+      <td class="ia-td-nivel">${nivelTxt}</td>
+      <td class="ia-td-copas">${copasTxt}</td>
+      <td class="ia-td-acciones">
+        ${(royaleOk || cwOk || puedeVetar) ? `<div class="inactivo-links">
+          ${royaleOk ? `<a href="${esc(c.royaleApi)}" target="_blank" rel="noopener">${ICONO_ROYALEAPI}RoyaleAPI</a>` : ''}
+          ${cwOk ? `<a href="${esc(c.cwstats)}" target="_blank" rel="noopener">${ICONO_CWSTATS}CWStats</a>` : ''}
+          ${puedeVetar ? `<button type="button" class="js-inactivo-vetar-btn inactivo-btn-vetar">🚫 Vetar</button>` : ''}
+        </div>` : '—'}
+      </td>
+    </tr>
+    ${puedeVetar ? `<tr class="inactivo-vetar-fila" style="display:none;"><td colspan="5"><div class="js-inactivo-vetar-wrap"></div></td></tr>` : ''}`;
 }
 
 /** Abre/cierra el mini-formulario de Vetar bajo una fila de la vista de
  * inactivos — mismo patrón que mostrarFormVetar()/enviarVeto() de
  * perfil.html, generalizado a un `wrap` cualquiera en vez de un id fijo,
- * porque acá puede haber varias filas con su propio formulario. */
-function _toggleFormVetarInactivo(wrap, tag, btnDisparador){
-  const yaAbierto = wrap.style.display !== 'none' && wrap.innerHTML;
+ * porque acá puede haber varias filas con su propio formulario.
+ * FIX (07-sep-2026, la fila de inactivos pasó a ser un <tr> de tabla, ver
+ * _filaInactivoHtml): `wrap` sigue siendo el <div> donde se pinta el
+ * formulario, pero ahora vive dentro de un <tr class="inactivo-vetar-fila">
+ * aparte (con <td colspan> para poder ocupar todas las columnas de la
+ * tabla) — ese <tr> es quien debe mostrarse/ocultarse (un <div
+ * display:none> dentro de un <tr> visible igual deja la fila pintada con
+ * su padding vacío). `filaContenedora` es opcional para no romper otros
+ * usos futuros de esta función que no vivan dentro de una tabla. */
+function _toggleFormVetarInactivo(wrap, tag, btnDisparador, filaContenedora){
+  const contenedor = filaContenedora || wrap;
+  const yaAbierto = contenedor.style.display !== 'none' && wrap.innerHTML;
   if (yaAbierto){
-    wrap.style.display = 'none';
+    contenedor.style.display = 'none';
     wrap.innerHTML = '';
     return;
   }
@@ -448,6 +471,7 @@ function _toggleFormVetarInactivo(wrap, tag, btnDisparador){
       <div class="js-iv-msg"></div>
     </div>`;
   wrap.style.display = 'block';
+  contenedor.style.display = filaContenedora ? 'table-row' : 'block';
   wrap.querySelector('.js-iv-confirmar').addEventListener('click', () => _enviarVetoInactivo(wrap, tag, btnDisparador));
 }
 
@@ -532,14 +556,45 @@ function _obtenerVistaInactivos(afterEl){
   return section;
 }
 
+/**
+ * FIX (07-sep-2026, pedido usuario — ver docblock de _filaInactivoHtml):
+ * la lista de cuentas inactivas deja de pintar <div class="inactivo-row">
+ * sueltos y ahora arma una tabla real (.inactivos-table) con su propio
+ * encabezado (Nombre / Nom_Multi / Nivel / Copas), igual en espíritu al
+ * ROSTER_COLUMNAS de directorio.html — así cada valor cae exactamente
+ * debajo de su encabezado en vez de depender de que el ancho de un flex
+ * "cuadre" a ojo.
+ */
 function _renderVistaInactivos(section, titulo, cuentas){
   section.querySelector('#inactivosVistaTitulo').textContent = titulo;
   const listaEl = section.querySelector('#inactivosVistaLista');
-  listaEl.innerHTML = cuentas.length ? cuentas.map(_filaInactivoHtml).join('') : '<div class="empty">No hay cuentas en este grupo.</div>';
+  if (!cuentas.length){
+    listaEl.innerHTML = '<div class="empty">No hay cuentas en este grupo.</div>';
+    return;
+  }
+  listaEl.innerHTML = `
+    <div class="inactivos-table-wrap">
+      <table class="inactivos-table">
+        <thead>
+          <tr>
+            <th class="ia-th-nombre">Nombre</th>
+            <th class="ia-th-nommulti">Nom_Multi</th>
+            <th class="ia-th-nivel">Nivel</th>
+            <th class="ia-th-copas">Copas</th>
+            <th class="ia-th-acciones"></th>
+          </tr>
+        </thead>
+        <tbody>
+          ${cuentas.map(_filaInactivoHtml).join('')}
+        </tbody>
+      </table>
+    </div>`;
   listaEl.querySelectorAll('.js-inactivo-vetar-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const row = btn.closest('.inactivo-row');
-      _toggleFormVetarInactivo(row.nextElementSibling, row.dataset.inactivoTag, btn);
+      const fila = row.nextElementSibling;
+      const wrapDiv = fila.querySelector('.js-inactivo-vetar-wrap');
+      _toggleFormVetarInactivo(wrapDiv, row.dataset.inactivoTag, btn, fila);
     });
   });
 }
