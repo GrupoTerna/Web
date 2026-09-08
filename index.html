@@ -354,6 +354,12 @@
      letras, no se distingue mucho del fondo". Subido de nuevo (12px→15px)
      en la 2ª ronda de ajustes: "todo se ve muy pequeño". */
   .linechart-svg .axis-label{fill:var(--text-dim); font-family:var(--f-mono); font-size:15px; font-weight:600;}
+  /* Nombres de los ejes (pedido usuario 08-sep-2026: "en cualquier parte
+     de la web, todas las gráficas deben indicar el nombre de los ejes —
+     Fecha, ataques, ataques a barcos, etc"): distinto de .axis-label (que
+     son los valores/etiquetas de cada marca), esta clase es el título fijo
+     de cada eje ("Fecha" en X, "Ataques"/"Puntaje"/"Barcos" en Y). */
+  .linechart-svg .axis-title{fill:var(--text-dim); font-family:var(--f-mono); font-size:14px; font-weight:700; letter-spacing:.04em;}
   .linechart-svg .serie-line{fill:none; stroke-width:3; opacity:.95;}
   .linechart-svg .serie-pt{cursor:pointer; transition:r .15s ease;}
   .linechart-svg .serie-pt:hover{r:7;}
@@ -1244,7 +1250,13 @@ function lineChartSvg(miembros, campo, semanas, opts){
   // eje X y las etiquetas ("dd/MM") chocaban entre sí en horizontal. Se
   // rotan -45° (ancladas por su extremo derecho, bajando hacia la
   // izquierda) y se sube PAD_B (44→68) para que quepan sin cortarse.
-  const W = 960, H = 460, PAD_L = 56, PAD_R = 20, PAD_T = 20, PAD_B = 68;
+  // FIX (08-sep-2026, pedido usuario — "todas las gráficas deben indicar
+  // el nombre de los ejes"): PAD_L (56→74) y PAD_B (68→84) suben de nuevo
+  // para dejar espacio a los títulos fijos de los ejes ("Fecha" en X,
+  // opts.ejeY en Y — ver los dos <text class="axis-title"> agregados al
+  // final de esta función), sin invadir ni las etiquetas numéricas del
+  // eje Y ni las fechas rotadas del eje X que ya vivían en ese margen.
+  const W = 960, H = 460, PAD_L = 74, PAD_R = 20, PAD_T = 20, PAD_B = 84;
   const plotW = W - PAD_L - PAD_R, plotH = H - PAD_T - PAD_B;
 
   let max = 0;
@@ -1345,7 +1357,16 @@ function lineChartSvg(miembros, campo, semanas, opts){
     return `${path}${circles}`;
   }).join('');
 
-  return `<svg class="linechart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">${gridLines.join('')}${gridMedios}${lineasTemporales}${xLabels}${seriesSvg}</svg>`;
+  // Títulos de los ejes (pedido usuario 08-sep-2026): "Fecha" centrado
+  // debajo de las etiquetas rotadas del eje X, y opts.ejeY (p.ej.
+  // "Ataques"/"Puntaje"/"Barcos" — lo arma renderComparativaSemanal a
+  // partir del título de cada tarjeta) girado -90° a la izquierda del eje Y.
+  const ejeXTitle = `<text class="axis-title" x="${PAD_L + plotW / 2}" y="${H - 8}" text-anchor="middle">Fecha</text>`;
+  const ejeYTitle = opts.ejeY
+    ? `<text class="axis-title" x="18" y="${PAD_T + plotH / 2}" text-anchor="middle" transform="rotate(-90 18 ${PAD_T + plotH / 2})">${esc(opts.ejeY)}</text>`
+    : '';
+
+  return `<svg class="linechart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">${gridLines.join('')}${gridMedios}${lineasTemporales}${xLabels}${seriesSvg}${ejeXTitle}${ejeYTitle}</svg>`;
 }
 
 /** FIX (04-sep-2026, pedido usuario — "en el código ya se agrupan los
@@ -1427,11 +1448,16 @@ function renderComparativaSemanal(container, miembrosTodos){
   // de las tres gráficas explicando el "≈" — mismo criterio que ya usan
   // otras notas al pie de esta página (no repetirla en cada tarjeta).
   const hayEstimadas = semanas.some(s => numeroSemanaVieja(s) !== null);
+  // FIX (08-sep-2026, pedido usuario — "las gráficas deben indicar el
+  // nombre de los ejes"): ejeY se arma tomando la primera palabra del
+  // título de la tarjeta ("Ataques por semana" → "Ataques", "Puntaje por
+  // semana" → "Puntaje", "Barcos por semana" → "Barcos"), así no hace
+  // falta agregar un parámetro nuevo en cada llamado de más abajo.
   const chartCard = (icono, titulo, campo, unidad) => `
       <div class="card linechart-card">
         <div class="chart-title">${icono} ${titulo}</div>
         ${lineChartLegendHtml(miembros)}
-        ${lineChartSvg(miembros, campo, semanas, { unidad })}
+        ${lineChartSvg(miembros, campo, semanas, { unidad, ejeY: titulo.split(' ')[0] })}
       </div>`;
   container.innerHTML = `
     <div class="comparativa-grid">

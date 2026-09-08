@@ -462,8 +462,18 @@ function renderRankingChart(ext){
   });
   const lineasTemporales = lineasTemporalesSvg(fechasEje, i => PAD_L + i*stepX, PAD_TOP, H - PAD_BOTTOM, { granularidadDiaria: false });
 
+  // Títulos de los ejes (pedido usuario 08-sep-2026 — "todas las gráficas
+  // deben indicar el nombre de los ejes"): se agrega un margen extra a la
+  // izquierda (gutter de 16, vía el offset negativo del viewBox) y otro
+  // abajo (H+46 → H+62) SIN tocar ninguna de las coordenadas ya calculadas
+  // arriba (PAD_L, stepX, escalaY, etc.) — el gráfico existente queda
+  // intacto y los títulos se dibujan en el espacio nuevo alrededor.
+  const ejeXTitle = `<text x="${PAD_L + anchoUtil/2}" y="${H+58}" font-size="11" font-weight="700" letter-spacing=".04em" fill="var(--text-dim,#94a3b8)" text-anchor="middle" font-family="var(--f-mono)">Fecha</text>`;
+  const centroY = PAD_TOP + (H - PAD_TOP - PAD_BOTTOM) / 2;
+  const ejeYTitle = `<text x="-8" y="${centroY}" font-size="11" font-weight="700" letter-spacing=".04em" fill="var(--text-dim,#94a3b8)" text-anchor="middle" font-family="var(--f-mono)" transform="rotate(-90 -8 ${centroY})">Ranking</text>`;
+
   wrap.innerHTML = `
-    <svg viewBox="0 0 ${W} ${H+46}" style="width:100%; height:auto; margin-top:8px;">
+    <svg viewBox="-16 0 ${W+16} ${H+62}" style="width:100%; height:auto; margin-top:8px; overflow:visible;">
       ${lineasTemporales}
       <line x1="${PAD_L}" y1="${yMedio}" x2="${W-PAD_R}" y2="${yMedio}" class="grid-line-medio"/>
       <line x1="${PAD_L}" y1="${yMin}" x2="${W-PAD_R}" y2="${yMin}" stroke="var(--border,#333)" stroke-width="1" stroke-dasharray="3,4"/>
@@ -473,6 +483,8 @@ function renderRankingChart(ext){
       <polyline points="${puntos}" fill="none" stroke="var(--purple-light, #c084fc)" stroke-width="2.5"/>
       ${ordenados.map((h,i) => `<circle cx="${PAD_L + i*stepX}" cy="${escalaY(valores[i])}" r="4" fill="var(--purple-light, #c084fc)"><title>${esc(String(h.semana))} — #${esc(String(valores[i]))}</title></circle>`).join('')}
       ${etiquetasVisibles.map((t,i) => t ? `<text x="${PAD_L + i*stepX}" y="${H+18}" font-size="10" fill="var(--text-faint,#888)" text-anchor="end" font-family="var(--f-mono)" transform="rotate(-45, ${PAD_L + i*stepX}, ${H+18})">${t}</text>` : '').join('')}
+      ${ejeXTitle}
+      ${ejeYTitle}
     </svg>
     <div class="text-faint" style="font-family:var(--f-mono); font-size:11px; margin-top:4px;">Menor número = mejor puesto en el clan. Líneas punteadas: mejor puesto (#${esc(String(min))}) y peor puesto (#${esc(String(max))}) del historial mostrado.</div>`;
 }
