@@ -269,6 +269,33 @@
   .rt-filtro-aceptar{background:var(--purple); color:#fff;}
   .rt-filtro-aceptar:hover{background:var(--purple-light);}
 
+  /* ---------- Barra de scroll horizontal ARRIBA de la tabla + botón
+     "Quitar filtros" (08-sep-2026, pedido usuario): la tabla ya tenía
+     scroll horizontal nativo (.roster-table-wrap, overflow-x:auto), pero
+     esa barra de scroll queda pegada ABAJO de la tabla — con muchas filas
+     hay que bajar hasta el final para encontrarla. .roster-topbar agrega
+     una segunda barra de desplazamiento arriba, sincronizada por JS con
+     el scroll real de la tabla (ver sincronizarScrollSuperiorRoster() y
+     actualizarAnchoScrollSuperior() más abajo): .roster-top-scroll es un
+     div angosto (14px de alto) con overflow-x:auto y un div interno
+     (.roster-top-scroll-inner) cuyo ancho se fija por JS igual al
+     scrollWidth real de la tabla, así el navegador dibuja una barra de
+     scroll con el mismo tamaño/proporción que la de abajo. Al extremo
+     derecho, fuera del área con scroll (flex-shrink:0, siempre visible
+     sin importar cuánto se haya desplazado la tabla), va el botón para
+     desmarcar todos los filtros de un toque. */
+  .roster-topbar{display:flex; align-items:center; gap:12px; padding:10px 13px; border-bottom:1px solid var(--line);}
+  .roster-top-scroll{flex:1; min-width:0; overflow-x:auto; overflow-y:hidden; height:14px; -webkit-overflow-scrolling:touch;}
+  .roster-top-scroll-inner{height:1px;}
+  .rt-limpiar-filtros{
+    flex-shrink:0; display:inline-flex; align-items:center; gap:6px;
+    font-family:var(--f-mono); font-size:12px; font-weight:700; color:var(--text-dim);
+    background:transparent; border:1px solid var(--line); border-radius:6px; padding:7px 12px;
+    cursor:pointer; transition:all .15s ease; white-space:nowrap;
+  }
+  .rt-limpiar-filtros:hover:not(:disabled){border-color:var(--purple-light); color:var(--text); background:rgba(162,57,255,.12);}
+  .rt-limpiar-filtros:disabled{opacity:.4; cursor:default;}
+
   /* FIX (04-sep-2026, pedido usuario — "Los ingresos recientes deben
      moverse a Directorio (al final)"): sección + estilos traídos tal cual
      de guerra.html (donde vivía antes) — mismo markup, mismo criterio
@@ -1404,6 +1431,15 @@ function actualizarIconosFiltro(wrap){
   wrap.querySelectorAll('.rt-filtro-btn').forEach(btn => {
     btn.classList.toggle('activo', !!rosterFiltrosSeleccion[btn.dataset.col]);
   });
+  actualizarBotonLimpiarFiltros(wrap);
+}
+
+/** Habilita el botón "Quitar filtros" solo si hay al menos una columna
+ * filtrada ahora mismo (pedido usuario 08-sep-2026) — deshabilitado
+ * (opacidad baja, sin click) cuando no hay nada que limpiar. */
+function actualizarBotonLimpiarFiltros(wrap){
+  const btn = wrap.querySelector('#rosterLimpiarFiltros');
+  if (btn) btn.disabled = !Object.keys(rosterFiltrosSeleccion).length;
 }
 
 /** Aplica los filtros ya ACEPTADOS (rosterFiltrosSeleccion) sobre las
@@ -1453,7 +1489,11 @@ function renderRosterClanActivo(){
 
   wrap.innerHTML = `
     <div class="card" style="padding:0;">
-      <div class="roster-table-wrap">
+      <div class="roster-topbar">
+        <div class="roster-top-scroll" id="rosterTopScroll"><div class="roster-top-scroll-inner" id="rosterTopScrollInner"></div></div>
+        <button type="button" class="rt-limpiar-filtros" id="rosterLimpiarFiltros" title="Desmarcar todos los filtros" aria-label="Desmarcar todos los filtros" disabled>✕ Quitar filtros</button>
+      </div>
+      <div class="roster-table-wrap" id="rosterTableWrap">
         <table class="roster-table">
           <thead><tr>${encabezado}</tr></thead>
           <tbody>${filas}</tbody>
@@ -1464,6 +1504,50 @@ function renderRosterClanActivo(){
   wrap.querySelectorAll('.js-miembro').forEach(row => {
     row.addEventListener('click', () => buscarMiembro(row.dataset.tag));
   });
+
+  // Barra de scroll superior sincronizada con la real (ver docblock de
+  // .roster-topbar más arriba, en el <style>): el div interno se estira al
+  // ancho real de la tabla, y ambos contenedores se copian el scrollLeft
+  // uno al otro (con una bandera para no entrar en loop infinito de
+  // eventos "scroll" disparándose mutuamente).
+  const tableWrap = document.getElementById('rosterTableWrap');
+  const topScroll = document.getElementById('rosterTopScroll');
+  const topScrollInner = document.getElementById('rosterTopScrollInner');
+  const tabla = tableWrap.querySelector('.roster-table');
+  const actualizarAnchoScrollSuperior = () => { topScrollInner.style.width = tabla.scrollWidth + 'px'; };
+  actualizarAnchoScrollSuperior();
+  // Recalcula si la ventana cambia de tamaño (ej. rotar el celular) — no
+  // hace falta quitar este listener al re-pintar la tabla (cambio de
+  // clan): vuelve a buscar los elementos por su id cada vez que se
+  // dispara, y esos ids siempre existen mientras la página esté abierta.
+  window.addEventListener('resize', actualizarAnchoScrollSuperior);
+  let sincronizando = false;
+  topScroll.addEventListener('scroll', () => {
+    if (sincronizando) return;
+    sincronizando = true;
+    tableWrap.scrollLeft = topScroll.scrollLeft;
+    sincronizando = false;
+  });
+  tableWrap.addEventListener('scroll', () => {
+    if (sincronizando) return;
+    sincronizando = true;
+    topScroll.scrollLeft = tableWrap.scrollLeft;
+    sincronizando = false;
+  });
+
+  // Botón "Quitar filtros" (pedido usuario 08-sep-2026): borra TODAS las
+  // entradas de rosterFiltrosSeleccion de un toque, en vez de tener que
+  // abrir columna por columna y tildar todo de nuevo. Arranca deshabilitado
+  // (no hay filtros recién pintada la tabla — ver "disabled" en el HTML de
+  // arriba) y actualizarBotonLimpiarFiltros() lo habilita/deshabilita cada
+  // vez que cambia algún filtro (ver esa función y actualizarIconosFiltro()
+  // más abajo).
+  document.getElementById('rosterLimpiarFiltros').addEventListener('click', () => {
+    rosterFiltrosSeleccion = {};
+    aplicarFiltrosRoster(wrap);
+    actualizarIconosFiltro(wrap);
+  });
+  actualizarBotonLimpiarFiltros(wrap);
   wrap.querySelectorAll('.rt-filtro-btn').forEach(btn => {
     btn.addEventListener('click', e => {
       e.stopPropagation();
