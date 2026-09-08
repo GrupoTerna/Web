@@ -1717,12 +1717,18 @@ function lineChartSvg(miembros, campo, semanas, opts){
   return `<svg class="ing-linechart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">${gridLines.join('')}${gridMedios}${lineasTemporales}${xLabels}${seriesSvg}${ejeXTitle}${ejeYTitle}</svg>`;
 }
 
+/** FIX (08-sep-2026, pedido usuario — "en las gráficas no debe decir
+ * 'Terna 2', 'Terna 3' etc, debe llevar el nombre real del clan"): mismo
+ * criterio ya aplicado en la gemela de index.html y en chartCardHtml() de
+ * assets/common.js — se usa m.clan (nombre real) siempre que exista, y
+ * solo se cae a CLAN_LABELS_CORTOS como respaldo si el backend no
+ * mandara clan para ese miembro. */
 function lineChartLegendHtml(miembros){
   let clanPrevio;
   const items = miembros.map((m, i) => {
     const esNuevoGrupo = m.clan !== clanPrevio;
     clanPrevio = m.clan;
-    const clanLabel = CLAN_LABELS_CORTOS[ordenClanIndex(m.clan)] || m.clan || '—';
+    const clanLabel = m.clan || CLAN_LABELS_CORTOS[ordenClanIndex(m.clan)] || '—';
     return `${esNuevoGrupo ? `<span class="ing-linechart-legend-clan">${esc(clanLabel)}</span>` : ''}
     <span class="ing-linechart-legend-item">
       <span class="ing-linechart-legend-dot" style="background:${PALETA_SERIES[i % PALETA_SERIES.length]};"></span>

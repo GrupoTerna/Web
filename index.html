@@ -1379,16 +1379,23 @@ function lineChartSvg(miembros, campo, semanas, opts){
  * a simple vista la leyenda se veía como una lista plana sin orden
  * aparente (el bug reportado). Ahora, cada vez que el clan cambia
  * respecto al miembro anterior, se inserta una etiqueta con el nombre
- * corto del clan (CLAN_LABELS_CORTOS, mismo criterio que el resto del
- * sitio) que fuerza salto de línea (.linechart-legend-clan, ver <style>
+ * del clan que fuerza salto de línea (.linechart-legend-clan, ver <style>
  * de arriba) — los nombres de ese clan quedan agrupados visualmente
- * debajo de su etiqueta, hasta la siguiente. */
+ * debajo de su etiqueta, hasta la siguiente.
+ * FIX (08-sep-2026, pedido usuario — "en las gráficas no debe decir
+ * 'Terna 2', 'Terna 3' etc, debe llevar el nombre real del clan"): antes
+ * la etiqueta priorizaba CLAN_LABELS_CORTOS (el alias corto fijo de la
+ * Familia) por encima de m.clan (el nombre real que manda el backend en
+ * webIngresosRecientes). Ahora es al revés — mismo criterio ya aplicado a
+ * chartCardHtml() en assets/common.js —: se usa m.clan siempre que
+ * exista, y solo se cae a CLAN_LABELS_CORTOS como respaldo si el backend
+ * no mandara clan para ese miembro. */
 function lineChartLegendHtml(miembros){
   let clanPrevio;
   const items = miembros.map((m, i) => {
     const esNuevoGrupo = m.clan !== clanPrevio;
     clanPrevio = m.clan;
-    const clanLabel = CLAN_LABELS_CORTOS[ordenClanIndex(m.clan)] || m.clan || '—';
+    const clanLabel = m.clan || CLAN_LABELS_CORTOS[ordenClanIndex(m.clan)] || '—';
     return `${esNuevoGrupo ? `<span class="linechart-legend-clan">${esc(clanLabel)}</span>` : ''}
     <span class="linechart-legend-item">
       <span class="linechart-legend-dot" style="background:${PALETA_SERIES[i % PALETA_SERIES.length]};"></span>
