@@ -729,8 +729,14 @@ function chartCardHtml(titulo, icono, clanes, campo, formatFn){
     const pct = Math.max(2, Math.round((v / max) * 100));
     const txt = formatFn ? formatFn(v) : fmtNum(v);
     const nombreClan = c.nombre || CLAN_LABELS_CORTOS[i] || '—';
+    // FIX (08-sep-2026, pedido usuario — "los nombres de los clanes salen
+    // incompletos"): "chart-row-clan" (además de "chart-row" base) es un
+    // hook para que directorio.html pueda subir align-items a flex-start
+    // SOLO en estas filas — ver CSS de .chart-row-clan/.chart-label-fuerte
+    // en directorio.html — sin afectar el resto de usos de .chart-row
+    // (ej. el comparador "Cara a cara" jugador vs jugador).
     return `
-      <div class="chart-row">
+      <div class="chart-row chart-row-clan">
         <span class="chart-label chart-label-fuerte" title="${esc(nombreClan)}">${esc(nombreClan)}</span>
         <span class="chart-track"><span class="chart-fill" style="width:${pct}%"></span></span>
         <span class="chart-val">${esc(txt)}</span>

@@ -38,17 +38,28 @@
   .chart-row .chart-track{flex:1; height:9px; background:var(--bg-2); border-radius:999px; overflow:hidden; border:1px solid var(--line);}
   .chart-row .chart-fill{display:block; height:100%; border-radius:999px; background:linear-gradient(90deg, var(--purple), var(--purple-light)); transition:width .6s ease;}
   .chart-row .chart-val{width:56px; flex-shrink:0; text-align:right; font-family:var(--f-mono); font-size:12px; font-weight:700; color:var(--text);}
-  /* FIX (08-sep-2026, pedido usuario — ver docblock de chartCardHtml() en
-     common.js): etiqueta de clan de las 4 gráficas (Miembros/Donaciones/
-     Trofeos/Copas) más resaltada que .chart-label base (texto claro y
-     con peso, no gris apagado) y con más ancho para que el nombre real
-     del clan quepa sin romperse; se recorta con "…" solo si de verdad no
-     entra (title= con el nombre completo). text-align:left explícito
-     (ya era el comportamiento por defecto del flex, pero queda dicho). */
+  /* FIX (08-sep-2026, pedido usuario — "los nombres de los clanes salen
+     incompletos en directorio"): antes .chart-label-fuerte tenía
+     white-space:nowrap + text-overflow:ellipsis con solo 90px de ancho,
+     así que el nombre real del clan (más largo que el alias corto
+     "Terna 2"/"Terna 3" — ver el otro fix de hoy en chartCardHtml/
+     lineChartLegendHtml) se recortaba con "…" en las 4 tarjetas
+     (Miembros/Donaciones/Trofeos/Copas). Mismo criterio ya aplicado a
+     rk-clan en index.html: en vez de truncar, el nombre puede partirse en
+     hasta 2 líneas (white-space:normal + overflow-wrap:break-word), así
+     siempre se lee completo. .chart-row-clan (agregada en chartCardHtml()
+     de common.js, solo para estas 4 tarjetas) sube align-items a
+     flex-start para que la barra/valor no queden verticalmente
+     descentrados cuando el nombre ocupa 2 líneas — no se toca
+     .chart-row base porque esa clase también la usa el comparador
+     "Cara a cara" (jugador vs jugador), que no tiene este problema. */
+  .chart-row-clan{align-items:flex-start;}
+  .chart-row-clan .chart-track{margin-top:3px;}
+  .chart-row-clan .chart-val{margin-top:1px;}
   .chart-row .chart-label-fuerte{
-    width:90px; font-size:13px; font-weight:700; color:var(--text);
+    width:110px; font-size:13px; font-weight:700; color:var(--text);
     text-align:left; text-transform:none; letter-spacing:normal;
-    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+    white-space:normal; overflow-wrap:break-word; line-height:1.3;
   }
 
   /* ---------- Buscador ---------- */
