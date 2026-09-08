@@ -245,7 +245,8 @@
   .rt-filtro-btn.activo{color:var(--purple-light);}
   .rt-filtro-pop{
     position:fixed; z-index:200; background:var(--surface-card); border:1px solid var(--line-strong);
-    border-radius:var(--radius-sm); box-shadow:var(--glow); padding:12px; width:230px;
+    border-radius:var(--radius-sm); box-shadow:var(--glow); padding:12px; width:250px;
+    max-height:80vh; overflow-y:auto;
   }
   .rt-filtro-pop input[type="text"]{
     width:100%; padding:8px 10px; font-size:13px; border-radius:6px; border:1px solid var(--line);
@@ -268,6 +269,37 @@
   .rt-filtro-cancelar:hover{border-color:var(--line-strong); color:var(--text);}
   .rt-filtro-aceptar{background:var(--purple); color:#fff;}
   .rt-filtro-aceptar:hover{background:var(--purple-light);}
+
+  /* ---------- Orden, comparación y seleccionar todo/ninguno dentro del
+     popover de filtro (08-sep-2026, pedido usuario — "Los filtros del
+     directorio por clan deben tener la opción de ordenar según sus
+     valores (mayor a menos, a a la z, etc) y también de filtrar (mayor
+     o menor o igual que). También debe haber la opción de seleccionar
+     todas las alternativas o desmarcar todas"). Ver abrirFiltroColumna()
+     para el armado completo del popover. */
+  .rt-filtro-divisor{height:1px; background:var(--line); margin:10px 0;}
+  .rt-filtro-orden{display:flex; flex-direction:column; gap:4px;}
+  .rt-orden-btn, .rt-orden-quitar{
+    display:flex; align-items:center; gap:7px; width:100%; text-align:left;
+    background:transparent; border:none; border-radius:5px; padding:7px 6px;
+    font-size:13px; color:var(--text); cursor:pointer; font-family:inherit;
+  }
+  .rt-orden-btn:hover, .rt-orden-quitar:hover{background:rgba(162,57,255,.1);}
+  .rt-orden-btn.activo{color:var(--purple-light); font-weight:700; background:rgba(162,57,255,.12);}
+  .rt-orden-quitar{color:var(--text-faint); font-size:12px;}
+  .rt-orden-indicador{color:var(--purple-light); font-size:12px; flex-shrink:0;}
+  .rt-filtro-comparar{display:flex; flex-direction:column; gap:8px;}
+  .rt-filtro-comparar select, .rt-filtro-comparar input{
+    width:100%; padding:8px 10px; font-size:13px; border-radius:6px; border:1px solid var(--line);
+    background:var(--bg-2); color:var(--text); font-family:inherit;
+  }
+  .rt-filtro-todos{display:flex; gap:14px; margin-bottom:8px;}
+  .rt-filtro-todos-btn{
+    background:transparent; border:none; padding:0; color:var(--purple-light);
+    font-family:var(--f-mono); font-size:11.5px; font-weight:700; cursor:pointer;
+    text-decoration:underline; text-underline-offset:2px;
+  }
+  .rt-filtro-todos-btn:hover{color:var(--gold);}
 
   /* ---------- Barra de scroll horizontal ARRIBA de la tabla + botón
      "Quitar filtros" (08-sep-2026, pedido usuario): la tabla ya tenía
@@ -1306,31 +1338,67 @@ function calcularAntiguedad(fechaIngreso){
  * derecha de Rango, en ese mismo orden (V. Guerra, Copas, Arena), y el
  * resto de columnas (Nivel XP, Nivel cartas, Antigüedad, Vigencia)
  * mantiene su orden relativo tal cual estaba.
+ * FIX (08-sep-2026, pedido usuario — "Los filtros del directorio por
+ * clan deben tener la opción de ordenar según sus valores (mayor a
+ * menos, a a la z, etc) y también de filtrar (mayor o menor o igual
+ * que). También debe haber la opción de seleccionar todas las
+ * alternativas o desmarcar todas"): cada columna suma ahora dos campos
+ * nuevos, además de `get` (que sigue siendo el TEXTO ya formateado que
+ * se pinta en la celda):
+ *   - `tipo`: 'numero' | 'fecha' | 'texto'. Decide cómo se ordena (numérico,
+ *     cronológico o alfabético) y si tiene sentido ofrecerle el filtro de
+ *     comparación (mayor/menor/igual que) — solo 'numero' y 'fecha' lo
+ *     tienen, ver abrirFiltroColumna() más abajo.
+ *   - `raw(m,i)`: el valor SIN formatear (número o fecha) que se usa para
+ *     ordenar y comparar. Si no se define, la columna se ordena/filtra
+ *     por el mismo texto de `get` (alfabético) — es el caso de Nombre,
+ *     Tag, Rango y Arena, que ya son texto libre.
+ * `sortable:false` (junto con `filtrable:false`, que ya existía) deja a
+ * "N°" fuera de ambos: no tiene sentido ordenar por la numeración visual
+ * de la fila ni filtrarla.
  */
 const ROSTER_COLUMNAS = [
-  { key:'num',         label:'N°',            cls:'rt-num',        filtrable:false, get:(m, i) => i + 1 },
-  { key:'ranking',     label:'Ranking',       cls:'rt-ranking',     get:m => (m.ranking != null ? fmtNum(m.ranking) : null) },
-  { key:'nombre',      label:'Nombre',        cls:'rt-nombre',      get:m => m.nombre },
-  { key:'tag',         label:'Tag',           cls:'rt-tag',         get:m => m.tag },
-  { key:'rango',       label:'Rango',         cls:'rt-rango',       get:m => m.rango },
-  { key:'vGuerra',     label:'V. Guerra',     cls:'rt-vguerra',     get:m => { const v = m.vGuerra != null ? m.vGuerra : m.victoriasGuerra; return v != null ? fmtNum(v) : null; } },
-  { key:'copas',       label:'Copas',         cls:'rt-copas',       get:m => (m.copas != null ? fmtNum(m.copas) : null) },
-  { key:'arena',       label:'Arena',         cls:'rt-arena',       get:m => m.arena },
-  { key:'nivelXp',     label:'Nivel (XP)',    cls:'rt-nivelxp',     get:m => (m.nivelXp != null ? fmtNum(m.nivelXp) : null) },
-  { key:'nivelCartas', label:'Nivel (cartas)',cls:'rt-nivelcartas', get:m => (m.nivelCartas != null ? fmtNum(m.nivelCartas) : null) },
-  { key:'antiguedad',  label:'Antigüedad',    cls:'rt-antiguedad',  get:m => calcularAntiguedad(m.fechaIngreso) },
-  { key:'vigencia',    label:'Vigencia',      cls:'rt-vigencia',    get:m => (m.vigencia ? fmtFechaCortaVigencia(m.vigencia) : null) },
+  { key:'num',         label:'N°',            cls:'rt-num',        filtrable:false, sortable:false, get:(m, i) => i + 1 },
+  { key:'ranking',     label:'Ranking',       cls:'rt-ranking',     tipo:'numero', get:m => (m.ranking != null ? fmtNum(m.ranking) : null), raw:m => m.ranking },
+  { key:'nombre',      label:'Nombre',        cls:'rt-nombre',      tipo:'texto',  get:m => m.nombre },
+  { key:'tag',         label:'Tag',           cls:'rt-tag',         tipo:'texto',  get:m => m.tag },
+  { key:'rango',       label:'Rango',         cls:'rt-rango',       tipo:'texto',  get:m => m.rango },
+  { key:'vGuerra',     label:'V. Guerra',     cls:'rt-vguerra',     tipo:'numero', get:m => { const v = m.vGuerra != null ? m.vGuerra : m.victoriasGuerra; return v != null ? fmtNum(v) : null; }, raw:m => (m.vGuerra != null ? m.vGuerra : m.victoriasGuerra) },
+  { key:'copas',       label:'Copas',         cls:'rt-copas',       tipo:'numero', get:m => (m.copas != null ? fmtNum(m.copas) : null), raw:m => m.copas },
+  { key:'arena',       label:'Arena',         cls:'rt-arena',       tipo:'texto',  get:m => m.arena },
+  { key:'nivelXp',     label:'Nivel (XP)',    cls:'rt-nivelxp',     tipo:'numero', get:m => (m.nivelXp != null ? fmtNum(m.nivelXp) : null), raw:m => m.nivelXp },
+  { key:'nivelCartas', label:'Nivel (cartas)',cls:'rt-nivelcartas', tipo:'numero', get:m => (m.nivelCartas != null ? fmtNum(m.nivelCartas) : null), raw:m => m.nivelCartas },
+  { key:'antiguedad',  label:'Antigüedad',    cls:'rt-antiguedad',  tipo:'fecha',  get:m => calcularAntiguedad(m.fechaIngreso), raw:m => m.fechaIngreso },
+  { key:'vigencia',    label:'Vigencia',      cls:'rt-vigencia',    tipo:'fecha',  get:m => (m.vigencia ? fmtFechaCortaVigencia(m.vigencia) : null), raw:m => m.vigencia },
 ];
 
 const ICONO_FILTRO = '<svg viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M1 2.5A.5.5 0 0 1 1.5 2h13a.5.5 0 0 1 .4.8L10 9.4V13a.5.5 0 0 1-.2.4l-2 1.5A.5.5 0 0 1 7 14.5v-5.1L1.1 2.8A.5.5 0 0 1 1 2.5z"/></svg>';
 
-/** Estado de los filtros de la tabla activa: por columna filtrada, el Set
- * de valores (texto ya formateado, tal cual se ve en la celda) que deben
- * quedar visibles. Una columna sin entrada acá = sin filtro (se ven
- * todos). Se reinicia cada vez que se pinta la tabla (cambio de pestaña
- * de clan, ver renderRosterClanActivo()). */
+/** Estado de los filtros y del orden de la tabla activa.
+ * rosterFiltrosSeleccion: por columna filtrada, o bien:
+ *   - un Set de valores de texto (checklist "estilo hoja de cálculo"), o
+ *   - un objeto { operador, valor } (filtro de comparación numérica o de
+ *     fecha: operador es 'gt'|'gte'|'lt'|'lte'|'eq', valor ya viene
+ *     convertido a número/timestamp — ver aplicarFiltrosRoster()).
+ * Una columna sin entrada acá = sin filtro (se ven todos).
+ * rosterOrden: { colKey, dir } ('asc'|'desc') de la columna por la que
+ * está ordenada la tabla ahora mismo, o null si no hay orden aplicado
+ * (se respeta el orden que ya trae el backend, por Rango).
+ * Ambos se reinician cada vez que se cambia de pestaña de clan (ver
+ * renderRosterClanActivo()).
+ * FIX (08-sep-2026, pedido usuario — "Los filtros del directorio por
+ * clan deben tener la opción de ordenar según sus valores (mayor a
+ * menos, a a la z, etc) y también de filtrar (mayor o menor o igual
+ * que). También debe haber la opción de seleccionar todas las
+ * alternativas o desmarcar todas"): antes el desplegable de cada
+ * columna solo tenía el checklist de valores únicos; ahora suma también
+ * los dos botones de orden, el filtro de comparación (en columnas
+ * numéricas/fecha) y "Seleccionar todo"/"Desmarcar todo" — ver
+ * abrirFiltroColumna() más abajo. */
 let rosterFiltrosSeleccion = {};
+let rosterOrden = null;
 let rosterFiltroPopEl = null; // popover de filtro abierto actualmente (o null)
+let rosterMiembrosBase = []; // miembros del clan activo, en el orden original del backend (sin ordenar)
 
 /** Todos los valores distintos (ya formateados como texto de celda, "—"
  * incluido si aplica) que puede tomar una columna en la lista de
@@ -1344,6 +1412,57 @@ function valoresUnicosColumna(col, miembros){
   return [...set].sort((a, b) => a.localeCompare(b, 'es', { numeric:true, sensitivity:'base' }));
 }
 
+/** Valor "crudo" comparable de una celda: número, timestamp de fecha, o
+ * (si la columna no define `raw`, ej. Nombre/Tag/Rango/Arena) el mismo
+ * texto de get(). Se usa tanto para ordenar la tabla
+ * (compararPorColumna()) como para guardarlo en data-raw de cada <td> y
+ * poder filtrar por comparación (>, <, =) sin recalcular nada — ver
+ * aplicarFiltrosRoster(). Devuelve null si el miembro no tiene valor. */
+function rawColumna(col, m, i){
+  if (col.raw){
+    const r = col.raw(m, i);
+    if (r === null || r === undefined || r === '') return null;
+    if (col.tipo === 'fecha'){
+      const d = r instanceof Date ? r : new Date(r);
+      return isNaN(d.getTime()) ? null : d.getTime();
+    }
+    const n = Number(r);
+    return isNaN(n) ? null : n;
+  }
+  const val = col.get(m, i);
+  return (val === null || val === undefined || val === '') ? null : val;
+}
+
+/** Comparador para ordenar una lista de miembros según una columna +
+ * dirección ('asc'|'desc'). Numérico/fecha: por rawColumna(); texto:
+ * alfabético (localeCompare con numeric:true, para que "2" ordene antes
+ * que "10" dentro de texto libre). Los valores vacíos ("—") siempre
+ * quedan al final sin importar la dirección, que es el criterio más
+ * predecible para quien esté mirando la tabla. */
+function compararPorColumna(col, dir){
+  const signo = dir === 'desc' ? -1 : 1;
+  return (m1, m2) => {
+    const a = rawColumna(col, m1, 0);
+    const b = rawColumna(col, m2, 0);
+    if (a === null && b === null) return 0;
+    if (a === null) return 1;
+    if (b === null) return -1;
+    if (col.tipo === 'texto' || !col.raw){
+      return signo * String(a).localeCompare(String(b), 'es', { numeric:true, sensitivity:'base' });
+    }
+    return signo * (a - b);
+  };
+}
+
+/** Etiquetas de los dos botones de orden según el tipo de columna:
+ * "Menor a mayor"/"Mayor a menor" para números, "Más antiguo"/"Más
+ * reciente primero" para fechas, "A → Z"/"Z → A" para texto. */
+function etiquetasOrden(col){
+  if (col.tipo === 'numero') return { asc:'Menor a mayor', desc:'Mayor a menor' };
+  if (col.tipo === 'fecha')  return { asc:'Más antiguo primero', desc:'Más reciente primero' };
+  return { asc:'A → Z', desc:'Z → A' };
+}
+
 function cerrarFiltroPopover(){
   if (rosterFiltroPopEl){ rosterFiltroPopEl.remove(); rosterFiltroPopEl = null; }
   document.removeEventListener('mousedown', cerrarFiltroPopoverSiFuera, true);
@@ -1355,28 +1474,69 @@ function cerrarFiltroPopoverSiFuera(e){
 }
 
 /**
- * abrirFiltroColumna(col, btnEl, wrap, miembros)
- * Arma el desplegable estilo hoja de cálculo: buscador + checklist de
- * valores únicos (todos tildados si la columna no tenía filtro previo, o
- * reflejando la selección guardada) + Cancelar/Aceptar. Las casillas se
- * tildan/destildan en una selección TEMPORAL (`temp`) que solo se guarda
- * en rosterFiltrosSeleccion al tocar "Aceptar" — "Cancelar" descarta los
- * cambios sin tocar el filtro ya aplicado.
+ * abrirFiltroColumna(col, btnEl, wrap)
+ * Arma el desplegable estilo hoja de cálculo, de arriba a abajo:
+ *   1) Ordenar (2 botones según el tipo de columna, ver etiquetasOrden())
+ *      + "Quitar orden" si esta columna ya está ordenando la tabla ahora
+ *      mismo. Se aplica al toque, sin esperar a "Aceptar" — no hay nada
+ *      que confirmar.
+ *   2) Filtro de comparación (solo columnas numéricas/fecha): operador
+ *      (mayor/mayor o igual/menor/menor o igual/igual que) + valor.
+ *   3) Buscador + "Seleccionar todo"/"Desmarcar todo" + checklist de
+ *      valores únicos (todos tildados si la columna no tenía filtro
+ *      previo, o reflejando la selección guardada).
+ * Las casillas se tildan/destildan en una selección TEMPORAL (`temp`)
+ * que solo se guarda en rosterFiltrosSeleccion al tocar "Aceptar" —
+ * "Cancelar" descarta los cambios sin tocar el filtro ya aplicado. Si al
+ * aceptar el filtro de comparación tiene operador + valor válidos,
+ * reemplaza al checklist para esa columna (son mutuamente excluyentes:
+ * no tiene sentido combinar "Copas > 3000" con una lista de valores
+ * tildados a la vez).
  */
-function abrirFiltroColumna(col, btnEl, wrap, miembros){
+function abrirFiltroColumna(col, btnEl, wrap){
   const yaAbierto = rosterFiltroPopEl && rosterFiltroPopEl.dataset.col === col.key;
   cerrarFiltroPopover();
   if (yaAbierto) return; // click de nuevo en el mismo ícono: solo cierra
 
+  const miembros = rosterMiembrosBase;
   const valores = valoresUnicosColumna(col, miembros);
   const seleccionPrevia = rosterFiltrosSeleccion[col.key];
-  const temp = new Set(seleccionPrevia ? [...seleccionPrevia] : valores);
+  const esComparacionPrevia = seleccionPrevia && !(seleccionPrevia instanceof Set);
+  const temp = new Set(seleccionPrevia instanceof Set ? [...seleccionPrevia] : valores);
+
+  const tieneComparacion = col.tipo === 'numero' || col.tipo === 'fecha';
+  const et = etiquetasOrden(col);
+  const ordenActivo = rosterOrden && rosterOrden.colKey === col.key ? rosterOrden.dir : null;
 
   const pop = document.createElement('div');
   pop.className = 'rt-filtro-pop';
   pop.dataset.col = col.key;
   pop.innerHTML = `
+    ${col.sortable === false ? '' : `
+    <div class="rt-filtro-orden">
+      <button type="button" class="rt-orden-btn${ordenActivo === 'asc' ? ' activo' : ''}" data-dir="asc">↑ ${esc(et.asc)}</button>
+      <button type="button" class="rt-orden-btn${ordenActivo === 'desc' ? ' activo' : ''}" data-dir="desc">↓ ${esc(et.desc)}</button>
+      ${ordenActivo ? '<button type="button" class="rt-orden-quitar">✕ Quitar orden</button>' : ''}
+    </div>
+    <div class="rt-filtro-divisor"></div>`}
+    ${tieneComparacion ? `
+    <div class="rt-filtro-comparar">
+      <select class="rt-comparar-operador" aria-label="Condición de comparación para ${esc(col.label)}">
+        <option value="">Sin condición de comparación</option>
+        <option value="gt">Mayor que…</option>
+        <option value="gte">Mayor o igual que…</option>
+        <option value="lt">Menor que…</option>
+        <option value="lte">Menor o igual que…</option>
+        <option value="eq">Igual a…</option>
+      </select>
+      <input type="${col.tipo === 'fecha' ? 'date' : 'number'}" class="rt-comparar-valor" placeholder="Valor…" aria-label="Valor a comparar para ${esc(col.label)}">
+    </div>
+    <div class="rt-filtro-divisor"></div>` : ''}
     <input type="text" class="rt-filtro-buscar" placeholder="Buscar valor…" aria-label="Buscar valor de ${esc(col.label)}">
+    <div class="rt-filtro-todos">
+      <button type="button" class="rt-filtro-todos-btn" data-modo="todo">Seleccionar todo</button>
+      <button type="button" class="rt-filtro-todos-btn" data-modo="ninguno">Desmarcar todo</button>
+    </div>
     <div class="rt-filtro-lista"></div>
     <div class="rt-filtro-acciones">
       <button type="button" class="rt-filtro-cancelar">Cancelar</button>
@@ -1385,6 +1545,32 @@ function abrirFiltroColumna(col, btnEl, wrap, miembros){
   document.body.appendChild(pop);
   rosterFiltroPopEl = pop;
 
+  // ---- Orden (se aplica al toque, no espera a "Aceptar") ----
+  pop.querySelectorAll('.rt-orden-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      rosterOrden = { colKey: col.key, dir: btn.dataset.dir };
+      cerrarFiltroPopover();
+      reordenarYRepintarRoster(wrap);
+    });
+  });
+  const btnQuitarOrden = pop.querySelector('.rt-orden-quitar');
+  if (btnQuitarOrden){
+    btnQuitarOrden.addEventListener('click', () => {
+      rosterOrden = null;
+      cerrarFiltroPopover();
+      reordenarYRepintarRoster(wrap);
+    });
+  }
+
+  // ---- Comparación: precarga el valor si ya había uno guardado ----
+  if (tieneComparacion && esComparacionPrevia){
+    pop.querySelector('.rt-comparar-operador').value = seleccionPrevia.operador;
+    pop.querySelector('.rt-comparar-valor').value = col.tipo === 'fecha'
+      ? new Date(seleccionPrevia.valor).toISOString().slice(0, 10)
+      : seleccionPrevia.valor;
+  }
+
+  // ---- Checklist ----
   const listaEl = pop.querySelector('.rt-filtro-lista');
   const pintarLista = (filtroTexto) => {
     const q = (filtroTexto || '').trim().toLowerCase();
@@ -1401,12 +1587,37 @@ function abrirFiltroColumna(col, btnEl, wrap, miembros){
   pintarLista('');
 
   pop.querySelector('.rt-filtro-buscar').addEventListener('input', e => pintarLista(e.target.value));
+
+  // "Seleccionar todo"/"Desmarcar todo" (pedido usuario 08-sep-2026):
+  // actúan sobre TODOS los valores de la columna, no solo los que
+  // queden visibles tras el buscador — así se puede buscar "Líder",
+  // desmarcar todo, y el resto de valores queda intacto (sin tildar).
+  pop.querySelector('[data-modo="todo"]').addEventListener('click', () => {
+    valores.forEach(v => temp.add(v));
+    pintarLista(pop.querySelector('.rt-filtro-buscar').value);
+  });
+  pop.querySelector('[data-modo="ninguno"]').addEventListener('click', () => {
+    temp.clear();
+    pintarLista(pop.querySelector('.rt-filtro-buscar').value);
+  });
+
   pop.querySelector('.rt-filtro-cancelar').addEventListener('click', cerrarFiltroPopover);
   pop.querySelector('.rt-filtro-aceptar').addEventListener('click', () => {
-    // Si quedaron todos tildados, es lo mismo que "sin filtro" — se borra
-    // la entrada en vez de guardar un Set completo (más simple de leer).
-    if (temp.size >= valores.length) delete rosterFiltrosSeleccion[col.key];
-    else rosterFiltrosSeleccion[col.key] = temp;
+    const operador = tieneComparacion ? pop.querySelector('.rt-comparar-operador').value : '';
+    const valorCrudo = tieneComparacion ? pop.querySelector('.rt-comparar-valor').value : '';
+    if (operador && valorCrudo !== ''){
+      // Filtro de comparación activo: reemplaza al checklist para esta
+      // columna (no tiene sentido combinar ambos a la vez).
+      const valorNumerico = col.tipo === 'fecha' ? new Date(valorCrudo).getTime() : Number(valorCrudo);
+      if (!isNaN(valorNumerico)) rosterFiltrosSeleccion[col.key] = { operador, valor: valorNumerico };
+      else delete rosterFiltrosSeleccion[col.key];
+    } else if (temp.size >= valores.length){
+      // Todos tildados y sin comparación = sin filtro — se borra la
+      // entrada en vez de guardar un Set completo (más simple de leer).
+      delete rosterFiltrosSeleccion[col.key];
+    } else {
+      rosterFiltrosSeleccion[col.key] = temp;
+    }
     cerrarFiltroPopover();
     aplicarFiltrosRoster(wrap);
     actualizarIconosFiltro(wrap);
@@ -1416,10 +1627,10 @@ function abrirFiltroColumna(col, btnEl, wrap, miembros){
   // recorta el overflow-x:auto de .roster-table-wrap). Se ajusta para no
   // salirse por la derecha ni por abajo de la ventana.
   const r = btnEl.getBoundingClientRect();
-  const popAncho = 230;
+  const popAncho = 250;
   let left = Math.min(r.left, window.innerWidth - popAncho - 12);
   let top = r.bottom + 6;
-  if (top + 300 > window.innerHeight) top = Math.max(8, r.top - 306);
+  if (top + 400 > window.innerHeight) top = Math.max(8, r.top - 406);
   pop.style.left = Math.max(8, left) + 'px';
   pop.style.top = top + 'px';
 
@@ -1431,11 +1642,15 @@ function abrirFiltroColumna(col, btnEl, wrap, miembros){
 }
 
 /** Colorea el ícono de embudo de cada columna que tiene un filtro activo
- * (rosterFiltrosSeleccion[col.key] existe), para que se note a simple
- * vista cuáles columnas están filtradas ahora mismo. */
+ * (rosterFiltrosSeleccion[col.key] existe, sea checklist o comparación),
+ * y la flechita (↑/↓) de la columna que ordena la tabla ahora mismo. */
 function actualizarIconosFiltro(wrap){
   wrap.querySelectorAll('.rt-filtro-btn').forEach(btn => {
     btn.classList.toggle('activo', !!rosterFiltrosSeleccion[btn.dataset.col]);
+  });
+  wrap.querySelectorAll('.rt-orden-indicador').forEach(sp => {
+    const activo = rosterOrden && rosterOrden.colKey === sp.dataset.col;
+    sp.textContent = activo ? (rosterOrden.dir === 'desc' ? '↓' : '↑') : '';
   });
   actualizarBotonLimpiarFiltros(wrap);
 }
@@ -1451,20 +1666,84 @@ function actualizarBotonLimpiarFiltros(wrap){
 /** Aplica los filtros ya ACEPTADOS (rosterFiltrosSeleccion) sobre las
  * filas ya pintadas de la tabla — oculta (display:none) las que no
  * calcen con TODAS las columnas filtradas a la vez (AND entre columnas).
- * Se llama al tocar "Aceptar" en cualquier columna, sin volver a pedir
- * datos al backend. */
+ * Cada entrada puede ser un Set (checklist, compara contra el TEXTO de
+ * la celda) o un objeto {operador, valor} (comparación numérica/fecha,
+ * compara contra el data-raw del <td> — ver rawColumna()/celdaHtmlRoster()).
+ * Se llama al tocar "Aceptar" en cualquier columna y también tras
+ * reordenar la tabla, sin volver a pedir datos al backend. */
 function aplicarFiltrosRoster(wrap){
   const cols = Object.keys(rosterFiltrosSeleccion);
   const filas = wrap.querySelectorAll('tbody tr.js-miembro');
   filas.forEach(fila => {
     const pasa = cols.every(colKey => {
-      const cls = ROSTER_COLUMNAS.find(c => c.key === colKey).cls;
-      const celda = fila.querySelector(`.${cls}`);
-      const texto = celda ? celda.textContent : '—';
-      return rosterFiltrosSeleccion[colKey].has(texto);
+      const col = ROSTER_COLUMNAS.find(c => c.key === colKey);
+      const celda = fila.querySelector(`.${col.cls}`);
+      const filtro = rosterFiltrosSeleccion[colKey];
+      if (filtro instanceof Set){
+        const texto = celda ? celda.textContent : '—';
+        return filtro.has(texto);
+      }
+      // Filtro de comparación: sin valor numérico/fecha en esta fila, no
+      // puede satisfacer ninguna condición de comparación.
+      const raw = celda && celda.dataset.raw !== undefined && celda.dataset.raw !== '' ? Number(celda.dataset.raw) : null;
+      if (raw === null || isNaN(raw)) return false;
+      switch (filtro.operador){
+        case 'gt':  return raw > filtro.valor;
+        case 'gte': return raw >= filtro.valor;
+        case 'lt':  return raw < filtro.valor;
+        case 'lte': return raw <= filtro.valor;
+        case 'eq':  return raw === filtro.valor;
+        default:    return true;
+      }
     });
     fila.style.display = pasa ? '' : 'none';
   });
+}
+
+/** Arma el <td> de una celda, agregando data-raw (el valor crudo, sin
+ * formatear) cuando la columna es numérica o de fecha — lo usa el
+ * filtro de comparación (aplicarFiltrosRoster()) sin tener que volver a
+ * calcularlo a partir del arreglo de miembros. */
+function celdaHtmlRoster(col, m, i){
+  const val = col.get(m, i);
+  const raw = rawColumna(col, m, i);
+  const dataRaw = (col.tipo === 'numero' || col.tipo === 'fecha') && raw !== null ? ` data-raw="${esc(String(raw))}"` : '';
+  return `<td class="${col.cls}"${dataRaw}>${val === null || val === undefined || val === '' ? '—' : esc(val)}</td>`;
+}
+
+function filasHtmlRoster(miembros){
+  return miembros.map((m, i) => {
+    const celdas = ROSTER_COLUMNAS.map(c => celdaHtmlRoster(c, m, i)).join('');
+    return `<tr class="js-miembro" data-tag="${esc(m.tag)}">${celdas}</tr>`;
+  }).join('');
+}
+
+/** Repinta SOLO el <tbody> de la tabla activa (por ejemplo, tras cambiar
+ * el orden), reengancha el click de cada fila, reaplica los filtros ya
+ * aceptados y actualiza el ícono de embudo + la flechita de orden. No
+ * toca el <thead> ni el resto del wrap (barra de scroll, botón "Quitar
+ * filtros"), así reordenar no reinicia nada de eso. */
+function pintarFilasRoster(wrap, miembros){
+  const tbody = wrap.querySelector('.roster-table tbody');
+  if (!tbody) return;
+  tbody.innerHTML = filasHtmlRoster(miembros);
+  tbody.querySelectorAll('.js-miembro').forEach(row => {
+    row.addEventListener('click', () => buscarMiembro(row.dataset.tag));
+  });
+  aplicarFiltrosRoster(wrap);
+  actualizarIconosFiltro(wrap);
+}
+
+/** Ordena rosterMiembrosBase según rosterOrden (o lo deja tal cual si no
+ * hay orden aplicado, es decir, el orden que ya trae el backend por
+ * Rango) y repinta la tabla con ese resultado. */
+function reordenarYRepintarRoster(wrap){
+  let miembros = rosterMiembrosBase;
+  if (rosterOrden){
+    const col = ROSTER_COLUMNAS.find(c => c.key === rosterOrden.colKey);
+    if (col) miembros = [...rosterMiembrosBase].sort(compararPorColumna(col, rosterOrden.dir));
+  }
+  pintarFilasRoster(wrap, miembros);
 }
 
 function renderRosterClanActivo(){
@@ -1480,18 +1759,13 @@ function renderRosterClanActivo(){
 
   cerrarFiltroPopover();
   rosterFiltrosSeleccion = {}; // cambiar de clan resetea los filtros — cada clan tiene sus propios valores
+  rosterOrden = null;          // ...y también el orden — cada clan arranca de nuevo en el orden del backend (por Rango)
+  rosterMiembrosBase = miembros;
 
   const encabezado = ROSTER_COLUMNAS.map(c => `
-    <th><div class="rt-th-inner"><span>${esc(c.label)}</span>${c.filtrable === false ? '' :
-      `<button type="button" class="rt-filtro-btn" data-col="${c.key}" title="Filtrar por ${esc(c.label)}" aria-label="Filtrar por ${esc(c.label)}">${ICONO_FILTRO}</button>`
+    <th><div class="rt-th-inner"><span>${esc(c.label)}</span>${c.sortable === false ? '' : `<span class="rt-orden-indicador" data-col="${c.key}"></span>`}${c.filtrable === false ? '' :
+      `<button type="button" class="rt-filtro-btn" data-col="${c.key}" title="Ordenar o filtrar por ${esc(c.label)}" aria-label="Ordenar o filtrar por ${esc(c.label)}">${ICONO_FILTRO}</button>`
     }</div></th>`).join('');
-  const filas = miembros.map((m, i) => {
-    const celdas = ROSTER_COLUMNAS.map(c => {
-      const val = c.get(m, i);
-      return `<td class="${c.cls}">${val === null || val === undefined || val === '' ? '—' : esc(val)}</td>`;
-    }).join('');
-    return `<tr class="js-miembro" data-tag="${esc(m.tag)}">${celdas}</tr>`;
-  }).join('');
 
   wrap.innerHTML = `
     <div class="card" style="padding:0;">
@@ -1502,14 +1776,12 @@ function renderRosterClanActivo(){
       <div class="roster-table-wrap" id="rosterTableWrap">
         <table class="roster-table">
           <thead><tr>${encabezado}</tr></thead>
-          <tbody>${filas}</tbody>
+          <tbody></tbody>
         </table>
       </div>
     </div>`;
 
-  wrap.querySelectorAll('.js-miembro').forEach(row => {
-    row.addEventListener('click', () => buscarMiembro(row.dataset.tag));
-  });
+  pintarFilasRoster(wrap, rosterMiembrosBase);
 
   // Barra de scroll superior sincronizada con la real (ver docblock de
   // .roster-topbar más arriba, en el <style>): el div interno se estira al
@@ -1558,7 +1830,7 @@ function renderRosterClanActivo(){
     btn.addEventListener('click', e => {
       e.stopPropagation();
       const col = ROSTER_COLUMNAS.find(c => c.key === btn.dataset.col);
-      abrirFiltroColumna(col, btn, wrap, miembros);
+      abrirFiltroColumna(col, btn, wrap);
     });
   });
 }
