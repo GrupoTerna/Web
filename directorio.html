@@ -38,6 +38,18 @@
   .chart-row .chart-track{flex:1; height:9px; background:var(--bg-2); border-radius:999px; overflow:hidden; border:1px solid var(--line);}
   .chart-row .chart-fill{display:block; height:100%; border-radius:999px; background:linear-gradient(90deg, var(--purple), var(--purple-light)); transition:width .6s ease;}
   .chart-row .chart-val{width:56px; flex-shrink:0; text-align:right; font-family:var(--f-mono); font-size:12px; font-weight:700; color:var(--text);}
+  /* FIX (08-sep-2026, pedido usuario — ver docblock de chartCardHtml() en
+     common.js): etiqueta de clan de las 4 gráficas (Miembros/Donaciones/
+     Trofeos/Copas) más resaltada que .chart-label base (texto claro y
+     con peso, no gris apagado) y con más ancho para que el nombre real
+     del clan quepa sin romperse; se recorta con "…" solo si de verdad no
+     entra (title= con el nombre completo). text-align:left explícito
+     (ya era el comportamiento por defecto del flex, pero queda dicho). */
+  .chart-row .chart-label-fuerte{
+    width:90px; font-size:13px; font-weight:700; color:var(--text);
+    text-align:left; text-transform:none; letter-spacing:normal;
+    overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
 
   /* ---------- Buscador ---------- */
   .buscador{display:flex; gap:10px; flex-wrap:wrap;}
@@ -243,10 +255,15 @@
      visual, solo que ahora aparece al final del Directorio en vez de en
      el Panel de Guerra. Ver cargarIngresosRecientes() más abajo. */
   .nuevo-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:16px;}
-  .nuevo-card .name{font-weight:700; font-size:15px; color:var(--text);}
-  .nuevo-card .tag{font-family:var(--f-mono); font-size:12px; color:var(--text-dim);}
-  .nuevo-card .clan{font-size:13px; color:var(--text-dim); margin:6px 0 12px;}
-  .nuevo-card .links{display:flex; gap:14px; font-size:12px;}
+  /* FIX (08-sep-2026, pedido usuario — "los datos de las tablas de
+   * Ingresos recientes también tienen un tamaño de letra muy bajo"):
+   * mismo criterio que la sección equivalente en index.html (ver ese
+   * archivo, bloque .ingreso-*), letra un poco más grande en nombre/
+   * tag/clan/links, sin tocar el grid. */
+  .nuevo-card .name{font-weight:700; font-size:16px; color:var(--text);}
+  .nuevo-card .tag{font-family:var(--f-mono); font-size:13.5px; color:var(--text-dim);}
+  .nuevo-card .clan{font-size:14px; color:var(--text-dim); margin:6px 0 12px;}
+  .nuevo-card .links{display:flex; gap:14px; font-size:13px;}
   .nuevo-card .links a{text-decoration:none; color:var(--purple-light); font-weight:600;}
   /* FIX (07-sep-2026, pedido usuario — "en el bloque de ingresos
      recientes agrega V_Guerra, Nivel (xp)"): mini-stats debajo del clan,
@@ -255,7 +272,7 @@
      tarjeta. Si el backend todavía no manda victoriasGuerra/nivelXp para
      este endpoint, se pinta "—" (ver ingresoStatHtml() más abajo). */
   .nuevo-card .nc-stats{display:flex; gap:16px; margin:2px 0 12px; flex-wrap:wrap;}
-  .nuevo-card .nc-stats span{font-family:var(--f-mono); font-size:12px; color:var(--text-dim);}
+  .nuevo-card .nc-stats span{font-family:var(--f-mono); font-size:13.5px; color:var(--text-dim);}
   .nuevo-card .nc-stats b{color:var(--text); font-weight:700;}
 
   /* ---------- Ingresos Recientes: gráficas comparativas (Ataques/Puntaje/

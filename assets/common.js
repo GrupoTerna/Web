@@ -538,13 +538,29 @@ function _obtenerVistaInactivos(afterEl){
      * vez de compartir fila — así el contenedor de texto queda centrado
      * en la tarjeta y el texto dentro de él, justificado a su propio
      * ancho, no al ancho total de la tarjeta. */
+    /* FIX (08-sep-2026, pedido usuario — "la frase de 'Miembros que
+     * salieron...' está partida sin necesidad, en escritorio cabe
+     * completa en una línea; asegúrate de no inducir errores en
+     * móvil"): el max-width fijo de 560px cortaba la frase aunque
+     * sobrara espacio horizontal en pantallas anchas. Se sube a 760px
+     * (suficiente para que entre completa en una sola línea en la
+     * mayoría de anchos de escritorio) y se marca el párrafo con
+     * data-fit-line, el mismo mecanismo que ya usa fitOneLine() más
+     * abajo en este archivo (ver docblock de fitOneLine): si el ancho
+     * real disponible no alcanza ni reduciendo la letra hasta 9px
+     * (pantallas angostas / móvil), se abandona el modo "una sola
+     * línea" y vuelve al párrafo normal (puede ocupar 2+ líneas, tamaño
+     * original) — así nunca se desborda ni se ve cortado en móvil.
+     * fitOneLine() se invoca explícitamente cada vez que esta vista se
+     * abre (ver click de las tarjetas, más abajo) porque al crearse la
+     * sección está en display:none y clientWidth mediría 0. */
     section.innerHTML = `
       <div style="text-align:right; margin-bottom:8px;">
         <button type="button" class="btn btn-ghost" id="inactivosVistaCerrar">Cerrar ✕</button>
       </div>
-      <div style="max-width:560px; margin:0 auto 18px; text-align:center;">
+      <div style="max-width:760px; margin:0 auto 18px; text-align:center;">
         <div class="eyebrow" id="inactivosVistaTitulo">Cuentas inactivas</div>
-        <p class="text-dim" style="font-size:13px; margin-top:6px;">
+        <p class="text-dim" data-fit-line style="font-size:13px; margin-top:6px;">
           Miembros que salieron de los 4 clanes de la Familia (renuncia, expulsión, vencimiento, etc.).
           Solo visible para administradores.
         </p>
@@ -667,6 +683,11 @@ async function agregarTarjetaCuentasInactivasSiAdmin(grid){
         vista.dataset.grupo = tituloVista;
         _renderVistaInactivos(vista, tituloVista, cuentas);
         vista.style.display = 'block';
+        // FIX (08-sep-2026): recién acá clientWidth es real (la sección
+        // ya no está en display:none), así que fitOneLine() puede medir
+        // correctamente si la frase entra en una línea o debe volver a
+        // párrafo normal — ver comentario en _obtenerVistaInactivos().
+        fitOneLine(vista.querySelector('[data-fit-line]'));
         vista.scrollIntoView({ behavior:'smooth', block:'nearest' });
       });
       return div;
@@ -686,6 +707,19 @@ async function agregarTarjetaCuentasInactivasSiAdmin(grid){
  * clanes en un campo numérico de webClanInfo (miembros/donaciones/
  * trofeos/copas). Sin librerías externas — barras hechas con CSS puro,
  * consistentes con el resto del sitio (ver .chart-* en directorio.html).
+ * FIX (08-sep-2026, pedido usuario — "en las gráficas no debe decir
+ * 'Terna 2', 'Terna 3' etc, debe llevar el nombre real del clan y estar
+ * un poco más resaltado, casi no se distingue, alinéalo a la
+ * izquierda"): antes la etiqueta priorizaba CLAN_LABELS_CORTOS (el alias
+ * corto fijo de la Familia — Principal/Terna 2/Terna 3/Mini) por encima
+ * de c.nombre (el nombre real que manda el backend en webClanInfo).
+ * Ahora es al revés: se usa c.nombre siempre que exista, y solo se cae a
+ * CLAN_LABELS_CORTOS como respaldo si el backend no mandara nombre para
+ * ese clan. El estilo de resaltado (más contraste, más peso) y la
+ * alineación a la izquierda se agregan directamente acá vía la clase
+ * chart-label-fuerte, sin tocar .chart-label base (ese sigue vigente
+ * para otras gráficas de la página — comparador Cara a cara, etc. — que
+ * no pidieron este cambio).
  */
 function chartCardHtml(titulo, icono, clanes, campo, formatFn){
   const valores = clanes.map(c => Number(c[campo]) || 0);
@@ -694,9 +728,10 @@ function chartCardHtml(titulo, icono, clanes, campo, formatFn){
     const v   = valores[i];
     const pct = Math.max(2, Math.round((v / max) * 100));
     const txt = formatFn ? formatFn(v) : fmtNum(v);
+    const nombreClan = c.nombre || CLAN_LABELS_CORTOS[i] || '—';
     return `
       <div class="chart-row">
-        <span class="chart-label">${esc(CLAN_LABELS_CORTOS[i] || c.nombre || '—')}</span>
+        <span class="chart-label chart-label-fuerte" title="${esc(nombreClan)}">${esc(nombreClan)}</span>
         <span class="chart-track"><span class="chart-fill" style="width:${pct}%"></span></span>
         <span class="chart-val">${esc(txt)}</span>
       </div>`;
