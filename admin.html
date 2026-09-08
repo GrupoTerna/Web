@@ -628,18 +628,37 @@
            "Quitar" en cada fila (mínimo 1); cada premio es Pass Royale,
            Dinero (con monto) o texto libre — ver
            armarPremiosCSV()/agregarFilaPremio() más abajo. -->
+      <!-- FIX (08-sep-2026, pedido usuario): "Registrar o modificar
+           torneo" pasa a llamarse "Planificar, registrar o modificar
+           torneos o sorteos", con dos botones horizontales (mismo patrón
+           .tab-clan que ya usan las demás pestañas de este panel) para
+           alternar entre "Torneos" (el wizard de 3 pasos de siempre,
+           reubicado dentro de #panelTorneosAccion sin cambios de lógica)
+           y "Sorteos" (nuevo, #panelSorteosAccion): las 3 opciones
+           equivalentes de sorteo se muestran igual que las de torneo
+           aunque todavía no tengan una acción real detrás — se
+           implementará más adelante, ver el listener de #sorteoAccion
+           (junto al toggle .btn-toggle-torsor) más abajo, después de
+           initTorneoWizard(). -->
       <details class="admin-subseccion" open>
-        <summary><span class="cat-titulo">Registrar o modificar torneo</span></summary>
+        <summary><span class="cat-titulo">Planificar, registrar o modificar torneos o sorteos</span></summary>
         <div class="admin-subseccion-body">
+
+          <div class="contenido-tabs" style="margin-bottom:14px;">
+            <button type="button" class="tab-clan btn-toggle-torsor activo" data-panel="torneos">Torneos</button>
+            <button type="button" class="tab-clan btn-toggle-torsor" data-panel="sorteos">Sorteos</button>
+          </div>
+
+          <div id="panelTorneosAccion">
 
           <div id="torneoPaso1">
             <div class="field">
               <label for="torneoAccion">¿Qué quieres hacer?</label>
               <select id="torneoAccion">
                 <option value="">Elige una opción…</option>
-                <option value="registrar">Registrar nuevo torneo</option>
-                <option value="modificar">Modificar torneo registrado</option>
                 <option value="planificar">Planificar torneo</option>
+                <option value="registrar">Registrar torneo</option>
+                <option value="modificar">Modificar torneo</option>
               </select>
             </div>
             <button type="button" class="btn btn-primary btn-block" id="btnTorneoPaso1" style="margin-top:6px;">Continuar</button>
@@ -770,6 +789,26 @@
             <div id="planificarTorneoMsg"></div>
           </div>
 
+          </div>
+
+          <!-- FIX (08-sep-2026, pedido usuario): panel "Sorteos" del nuevo
+               toggle Torneos/Sorteos. Mismas 3 opciones que Torneos
+               (Planificar/Registrar/Modificar) pero sin acción todavía —
+               se muestran igual, y al elegir cualquiera se avisa que se
+               implementará más adelante en vez de fallar en silencio. -->
+          <div id="panelSorteosAccion" style="display:none;">
+            <div class="field">
+              <label for="sorteoAccion">¿Qué quieres hacer?</label>
+              <select id="sorteoAccion">
+                <option value="">Elige una opción…</option>
+                <option value="planificar">Planificar sorteo</option>
+                <option value="registrar">Registrar sorteo</option>
+                <option value="modificar">Modificar sorteo</option>
+              </select>
+            </div>
+            <div id="sorteoAccionMsg" class="text-dim" style="font-size:13px; margin-top:10px; display:none;">Esta opción todavía no está disponible — se implementará más adelante.</div>
+          </div>
+
         </div>
       </details>
 
@@ -813,6 +852,20 @@
         </div>
       </details>
 
+      <!-- Fase 5 (28-ago-2026): herramienta standalone incorporada al portal
+           admin — no tiene backend propio ni datos que pedir acá, solo
+           necesita quedar oculta para no-admins. Se abre en pestaña nueva
+           (sin rel="noopener") para que sorteo.html herede el
+           sessionStorage de esta pestaña y pueda validar la sesión al
+           cargar. -->
+      <details class="admin-subseccion">
+        <summary><span class="cat-titulo">🎡 Ruleta de sorteos</span></summary>
+        <div class="admin-subseccion-body">
+          <p class="text-dim" style="font-size:13px; margin:0 0 14px;">Sorteo en vivo con ruleta, lista de participantes y exportación del acta a Word.</p>
+          <button type="button" class="btn btn-primary" id="btnAbrirSorteo">Abrir Ruleta de Sorteos</button>
+        </div>
+      </details>
+
       <!-- FASE 7 (Parte B, 06-sep-2026, punto 7 del documento — edición de
            autor de ascenso): antes, el campo "Autor" de un registro de
            Historial_A/D (hoja Ascensos, ver 14_Directorio_HistorialAscensos.gs)
@@ -825,7 +878,11 @@
            _webAdminEditarAutorAscenso(), 14_Directorio_HistorialAscensos.gs,
            para la decisión de alcance completa). No depende de ninguna
            "Función" de admin dedicada todavía (misma decisión documentada
-           ahí) — cualquier admin logueado puede usarlo. -->
+           ahí) — cualquier admin logueado puede usarlo.
+           FIX (08-sep-2026, pedido usuario — "Editar autor de ascenso debe
+           ir al final de su sección"): reubicado como última subsección
+           del contenedor "Torneos y sorteos", después de la Ruleta de
+           sorteos. -->
       <details class="admin-subseccion">
         <summary><span class="cat-titulo">Editar autor de ascenso</span></summary>
         <div class="admin-subseccion-body">
@@ -836,21 +893,6 @@
           </div>
           <div id="ascEditMsg"></div>
           <div id="ascEditLista" style="margin-top:14px;"></div>
-        </div>
-      </details>
-
-      <!-- Fase 5 (28-ago-2026): herramienta standalone incorporada al portal
-           admin — no tiene backend propio ni datos que pedir acá, solo
-           necesita quedar oculta para no-admins. Se abre en pestaña nueva
-           (sin rel="noopener") para que sorteo.html herede el
-           sessionStorage de esta pestaña y pueda validar la sesión al
-           cargar. Última subsección del contenedor (pedido usuario — "la
-           ruleta de sorteos va después de torneos"). -->
-      <details class="admin-subseccion">
-        <summary><span class="cat-titulo">🎡 Ruleta de sorteos</span></summary>
-        <div class="admin-subseccion-body">
-          <p class="text-dim" style="font-size:13px; margin:0 0 14px;">Sorteo en vivo con ruleta, lista de participantes y exportación del acta a Word.</p>
-          <button type="button" class="btn btn-primary" id="btnAbrirSorteo">Abrir Ruleta de Sorteos</button>
         </div>
       </details>
     </div>
@@ -1563,7 +1605,10 @@ async function cargarContenidoCategoria(det){
     const data = await apiGetAuth('webAdminContenido', { categoria });
     if(manejarRespuestaAuth(data)) return;
     if(!data.ok){ body.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; delete det.dataset.cargado; return; }
-    body.innerHTML = renderContenidoHtml(data.opciones);
+    const mensajeVacio = (categoria === 'Mensaje de Guerra')
+      ? 'Periodo de entrenamiento, no se realizan ataques de guerra'
+      : undefined;
+    body.innerHTML = renderContenidoHtml(data.opciones, mensajeVacio);
     _activarAccionesContenido(body, data.opciones || []);
   }catch(err){
     body.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
@@ -1584,10 +1629,18 @@ async function cargarContenidoCategoria(det){
  * pedir nada al backend, ya que 'opciones' completo queda en memoria (ver
  * _activarAccionesContenido). Si la categoría tiene una sola opción no se
  * dibuja ninguna pestaña, igual que antes.
+ *
+ * FIX (08-sep-2026, pedido usuario): "Mensaje de ataques pendientes" no
+ * tiene contenido durante el período de entrenamiento (no hay ataques de
+ * guerra que reportar), y mostrar el genérico "Esta categoría no tiene
+ * contenido cargado todavía." ahí confundía al admin, como si faltara
+ * sincronizar algo. cargarContenidoCategoria() ahora pasa un
+ * `mensajeVacio` propio para esa categoría puntual; el resto sigue usando
+ * el mensaje genérico de siempre.
  */
-function renderContenidoHtml(opciones){
+function renderContenidoHtml(opciones, mensajeVacio){
   if(!opciones || !opciones.length){
-    return '<div class="empty">Esta categoría no tiene contenido cargado todavía.</div>';
+    return `<div class="empty">${esc(mensajeVacio || 'Esta categoría no tiene contenido cargado todavía.')}</div>`;
   }
   const tabsHtml = opciones.length > 1
     ? `<div class="contenido-tabs" role="tablist">
@@ -2396,6 +2449,29 @@ document.getElementById('btnPlanificarTorneo').addEventListener('click', async (
 });
 
 initTorneoWizard();
+
+/**
+ * FIX (08-sep-2026, pedido usuario): toggle horizontal Torneos/Sorteos de
+ * "Planificar, registrar o modificar torneos o sorteos". Solo
+ * muestra/oculta los dos paneles ya pintados en el HTML (#panelTorneosAccion/
+ * #panelSorteosAccion) — no pide nada al backend, así que no reutiliza
+ * cargarGrupoToggle() (esa función sí pide contenido de categorías reales).
+ * "Sorteos" todavía no tiene acciones implementadas (ver
+ * #sorteoAccionMsg más abajo): las 3 opciones se muestran igual, pero
+ * elegir cualquiera solo avisa que se implementará más adelante.
+ */
+document.querySelectorAll('.btn-toggle-torsor').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if(btn.classList.contains('activo')) return;
+    document.querySelectorAll('.btn-toggle-torsor').forEach(b => b.classList.toggle('activo', b === btn));
+    document.getElementById('panelTorneosAccion').style.display = (btn.dataset.panel === 'torneos') ? '' : 'none';
+    document.getElementById('panelSorteosAccion').style.display = (btn.dataset.panel === 'sorteos') ? '' : 'none';
+  });
+});
+
+document.getElementById('sorteoAccion').addEventListener('change', function(){
+  document.getElementById('sorteoAccionMsg').style.display = this.value ? '' : 'none';
+});
 
 /** FASE 24 (02-sep-2026, pedido del usuario — descalificaciones y
  *  desempates de torneos): "Ver ganadores" pasó de reutilizar el webTorneos
