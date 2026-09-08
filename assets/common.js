@@ -578,7 +578,19 @@ function _renderVistaInactivos(section, titulo, cuentas){
         <thead>
           <tr>
             <th class="ia-th-nombre">Nombre</th>
-            <th class="ia-th-nommulti">Nom_Multi</th>
+            <!-- FIX (07-sep-2026, pedido usuario — "en cualquier lugar que
+                 la web requiera mostrar algo de Nom_Multi y tenga que
+                 mostrar el encabezado, no se debe mostrar como Nom_Multi,
+                 sino como 'Jugador', esto es exclusivo para fines visuales
+                 en la web. 'Jugador' en el backend hace referencia a otra
+                 cosa, no se debe confundir"): el encabezado visible dice
+                 "Jugador", pero el dato sigue siendo c.nomMulti (Nom_Multi)
+                 y así se mantienen las clases/variables internas
+                 (ia-th-nommulti, ia-td-nommulti, nomMultiTxt) — NUNCA
+                 renombrar esas referencias internas a "jugador", porque en
+                 el backend (hoja Directorio/columna DC.JUGADOR) "Jugador"
+                 ya identifica otra cosa distinta de Nom_Multi. -->
+            <th class="ia-th-nommulti">Jugador</th>
             <th class="ia-th-nivel">Nivel</th>
             <th class="ia-th-copas">Copas</th>
             <th class="ia-th-acciones"></th>
