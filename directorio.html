@@ -1300,6 +1300,12 @@ function calcularAntiguedad(fechaIngreso){
  * del mismo lugar (evita repetir 12 <th> a mano). `filtrable:false` deja
  * una columna sin ícono de filtro (no aplica para N°, es solo la
  * numeración visual de la fila).
+ * FIX (08-sep-2026, pedido usuario — "Mueve las columnas V.GUERRA, COPAS
+ * y ARENA a la derecha de RANGO"): antes iban después de Antigüedad
+ * (junto a los demás datos "de progreso"); ahora quedan pegadas a la
+ * derecha de Rango, en ese mismo orden (V. Guerra, Copas, Arena), y el
+ * resto de columnas (Nivel XP, Nivel cartas, Antigüedad, Vigencia)
+ * mantiene su orden relativo tal cual estaba.
  */
 const ROSTER_COLUMNAS = [
   { key:'num',         label:'N°',            cls:'rt-num',        filtrable:false, get:(m, i) => i + 1 },
@@ -1307,12 +1313,12 @@ const ROSTER_COLUMNAS = [
   { key:'nombre',      label:'Nombre',        cls:'rt-nombre',      get:m => m.nombre },
   { key:'tag',         label:'Tag',           cls:'rt-tag',         get:m => m.tag },
   { key:'rango',       label:'Rango',         cls:'rt-rango',       get:m => m.rango },
+  { key:'vGuerra',     label:'V. Guerra',     cls:'rt-vguerra',     get:m => { const v = m.vGuerra != null ? m.vGuerra : m.victoriasGuerra; return v != null ? fmtNum(v) : null; } },
+  { key:'copas',       label:'Copas',         cls:'rt-copas',       get:m => (m.copas != null ? fmtNum(m.copas) : null) },
+  { key:'arena',       label:'Arena',         cls:'rt-arena',       get:m => m.arena },
   { key:'nivelXp',     label:'Nivel (XP)',    cls:'rt-nivelxp',     get:m => (m.nivelXp != null ? fmtNum(m.nivelXp) : null) },
   { key:'nivelCartas', label:'Nivel (cartas)',cls:'rt-nivelcartas', get:m => (m.nivelCartas != null ? fmtNum(m.nivelCartas) : null) },
   { key:'antiguedad',  label:'Antigüedad',    cls:'rt-antiguedad',  get:m => calcularAntiguedad(m.fechaIngreso) },
-  { key:'copas',       label:'Copas',         cls:'rt-copas',       get:m => (m.copas != null ? fmtNum(m.copas) : null) },
-  { key:'arena',       label:'Arena',         cls:'rt-arena',       get:m => m.arena },
-  { key:'vGuerra',     label:'V. Guerra',     cls:'rt-vguerra',     get:m => { const v = m.vGuerra != null ? m.vGuerra : m.victoriasGuerra; return v != null ? fmtNum(v) : null; } },
   { key:'vigencia',    label:'Vigencia',      cls:'rt-vigencia',    get:m => (m.vigencia ? fmtFechaCortaVigencia(m.vigencia) : null) },
 ];
 
