@@ -93,6 +93,31 @@
      vez de forzar overflow en toda la página. */
   .table-scroll{overflow-x:auto; -webkit-overflow-scrolling:touch;}
   .table-scroll table{min-width:420px;}
+  /* FIX (09-sep-2026, pedido usuario — "barra de navegación al inicio y
+     final de cada cuadrícula si hay que desplazarse horizontalmente"):
+     mismo problema que ya se había resuelto para el roster de Directorio
+     (ver .roster-topbar/.roster-top-scroll en directorio.html) — el
+     scroll horizontal nativo de .table-scroll funciona, pero no hay
+     ninguna pista visual de que existe (la barra de scroll del sistema
+     puede ser invisible hasta que se pasa el mouse, sobre todo en temas
+     oscuros), y con tablas que pueden crecer en ancho con el tiempo
+     (Cuadrícula de Temporada suma una columna por cada semana jugada) esa
+     pista visual importa cada vez más. .grid-hscroll es una franja fina
+     y siempre visible, con su propio overflow-x:auto sincronizado por JS
+     con el scroll real de la tabla (ver enlazarScrollsHorizontales() más
+     abajo); se coloca UNA arriba Y OTRA abajo de cada tabla (a diferencia
+     del roster, que solo la tiene arriba) para que quede a mano sin
+     importar desde dónde se empiece a leer la cuadrícula. Siempre se
+     renderiza, incluso si hoy la tabla entra sin necesitar scroll, para
+     que ya esté lista el día que la cuadrícula crezca. */
+  .grid-hscroll{overflow-x:auto; overflow-y:hidden; height:14px; -webkit-overflow-scrolling:touch; border-radius:var(--radius-sm);
+    scrollbar-width:thin; scrollbar-color:var(--purple-light) rgba(255,255,255,.06);}
+  .grid-hscroll::-webkit-scrollbar{height:10px;}
+  .grid-hscroll::-webkit-scrollbar-track{background:rgba(255,255,255,.06); border-radius:6px;}
+  .grid-hscroll::-webkit-scrollbar-thumb{background:var(--purple-light); border-radius:6px;}
+  .grid-hscroll-inner{height:1px;}
+  .grid-hscroll-top{margin-bottom:6px;}
+  .grid-hscroll-bottom{margin-top:6px;}
   /* FIX (08-sep-2026, pedido usuario — "La cuadrícula de ataques
      pendientes también se debe centrar [...] los nombres no se centran,
      se alinean a la izquierda pero el encabezado sí"): esta tabla venía
@@ -178,8 +203,8 @@
 
   /* FIX (05-sep-2026, pedido usuario — "panel tipo hoja Control, con datos
      de Directorio, priorizando las cuadrículas"): sección nueva y PÚBLICA
-     (no requiere sesión de admin). Reutiliza las mismas clases .ai-cell*/
-     .ai-total* de abajo para no duplicar estilos — mismo criterio visual
+     (no requiere sesión de admin). Reutiliza las mismas clases .ai-cell y
+     .ai-total de abajo para no duplicar estilos — mismo criterio visual
      que Control (0 = tenue, 1-3 = dorado, 4 = verde). Arranca oculta y
      solo se muestra si el backend manda al menos un clan con Activos (ver
      render()).
@@ -226,6 +251,22 @@
   .ai-grp-pje{background:rgba(243,169,34,.07);}
   .ai-grp-brc{background:rgba(203,213,225,.07);}
   th.ai-grp-atq, th.ai-grp-pje, th.ai-grp-brc{color:var(--text-dim); font-weight:700;}
+  /* FIX (09-sep-2026, pedido usuario — "falta centrar bien las cuadrículas"):
+     el <th colspan> de cada megacategoría (Ataques/Puntaje/Barcos) se
+     centraba con el text-align:center genérico de más abajo, pero ESE
+     centrado es respecto al ancho TOTAL de la celda combinada (colspan),
+     no respecto a lo que realmente se ve en pantalla. Con muchas columnas
+     (sobre todo en la Cuadrícula de Temporada, que suma una columna por
+     cada semana jugada) esa celda combinada es mucho más ancha que la
+     tarjeta, así que "ATAQUES"/"PUNTAJE"/"BARCOS" terminaba centrado muy
+     lejos hacia la derecha, fuera del área visible sin hacer scroll hasta
+     ahí — la fila de arriba se veía en blanco. .ai-grp-label envuelve el
+     texto y usa position:sticky con left/right en 0 + margin:auto: eso lo
+     mantiene centrado dentro de la porción de la celda que esté visible
+     en cada momento del scroll horizontal (nunca se sale de los límites
+     de su propia columna combinada), en vez de centrarse una sola vez
+     sobre el ancho total invisible. */
+  .ai-grp-label{position:sticky; left:0; right:0; margin:0 auto; width:max-content; display:block;}
   /* FIX (05-sep-2026): encabezados centrados sobre sus datos. El <th>
      global de styles.css es text-align:left (para el resto de tablas del
      sitio, ej. "Pendientes de Atacar"); acá se centra todo salvo la
@@ -240,15 +281,7 @@
      ".col-jugador" dejaba el encabezado "Jugador" TAMBIÉN a la
      izquierda, junto con los nombres; ahora el <th> "Jugador" se centra
      igual que el resto de encabezados (ya no tiene excepción propia) y
-     SOLO el <td> con el nombre de cada fila queda a la izquierda.
-     FIX (09-sep-2026, pedido usuario — "solo las columnas que traigan
-     Nom_Multi usan el encabezado Jugador, si el valor es el nombre de la
-     cuenta, el encabezado debe ser 'Nombre'"): esta columna (clase
-     .col-jugador, nombre de clase sin cambios para no tocar el resto de
-     este CSS) trae el nombre de cuenta crudo (DC.NOMBRE/GC.NOMBRE en el
-     backend), NUNCA Nom_Multi -- su encabezado visible pasa de "Jugador" a
-     "Nombre" en las 3 tablas que la usan (Activos, Temporada, Inactivos)
-     para reflejar correctamente el dato que realmente muestra. */
+     SOLO el <td> con el nombre de cada fila queda a la izquierda. */
   /* FIX (08-sep-2026, pedido usuario — "SEM y los número no deben estar
      partidos"): con tantas columnas semanales (Sem 1...Sem 5 x 3
      megacategorías + Resumen), cada columna queda angosta y el navegador
@@ -362,12 +395,12 @@
          aparte de "Miembros Activos por Clan" de arriba (esa solo muestra
          un conteo/barra por clan) — acá se pinta la cuadrícula completa
          Jugador/J/V/S/D/Total/Puntaje/Barcos de CADA miembro Activo de
-         Directorio, agrupado por su clan. PÚBLICA (visible para todos, sin
-         gate de admin, igual que el resto del contenido de esta sección de
-         la página) y se listan TODOS los Activos aunque tengan 0/0/0/0 —
-         mismo criterio que la cuadrícula real de la hoja Control. Ver
-         render() más abajo y _getControlActivosGridPorTemporada()
-         (08_Web_Endpoints.gs).
+         Directorio, agrupado por su clan, para la semana de guerra
+         vigente. PÚBLICA (visible para todos, sin gate de admin, igual
+         que el resto del contenido de esta sección de la página) y se
+         listan TODOS los Activos aunque tengan 0/0/0/0 — mismo criterio
+         que la cuadrícula real de la hoja Control. Ver render() más abajo
+         y _getControlActivosSemanaActual() (08_Web_Endpoints.gs).
          FIX (05-sep-2026, pedido usuario — "solo consideró ataques, falta
          Puntaje (fame) y barcos [...] los clanes no están en el orden
          establecido [...] Mejor dentro del primer cuadro, en cada clan,
@@ -378,41 +411,30 @@
          en vez de alfabético; 3) cada tarjeta de clan ahora también carga,
          debajo de la tabla de Activos, el bloque de Inactivos (solo-admin
          — ver cargarAportesInactivosSiAdmin() más abajo), en vez de vivir
-         en una sección aparte debajo de "Pendientes de Atacar".
-         FIX (09-sep-2026, pedido usuario — "reestructurar, ya no es solo
-         semana actual, sino 'Valores diarios' [...] añade un selector de
-         año [...] selector de temporada [...] y el tercero es el selector
-         de semana [...] por defecto se debe seleccionar el año, temporada
-         y semana más recientes disponibles"): la sección se renombra de
-         "Cuadrícula de Activos (Semana Actual)" a "Valores diarios" y el
-         único <select> de semana (limitado a la temporada vigente) se
-         reemplaza por 3 selectores encadenados -- año, temporada (mes) y
-         semana -- que cubren CUALQUIER combinación con datos, no solo la
-         temporada en curso. Base.md ya manda data.valoresDiariosSelectores
-         ({anios, temporadasPorAnio, semanasPorTemporada, porDefecto}) y
-         data.valoresDiariosPorSemana ({[temporada]:{[sectionIndex]: mismo
-         shape que antes traía controlActivosSemanaActual}}) -- ver
-         pintarSelectoresValoresDiarios() más abajo, que ya los consume.
-         Los 3 <select> arrancan ocultos por CSS y solo cuando esos 2
-         campos no llegan (ej. Web App vieja) se quedan así en vez de
-         romper. -->
+         en una sección aparte debajo de "Pendientes de Atacar". -->
     <section id="controlActivosSection" style="padding:24px 0;">
       <div class="sec-head" style="display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:10px; border-bottom:1px solid var(--line); padding-bottom:12px;">
-        <h2 style="font-size:22px;">🗂️ Valores diarios</h2>
-        <div style="display:flex; gap:8px; flex-wrap:wrap;">
-          <select id="anioActivosSelect" style="display:none; font-family:var(--f-mono); font-size:12px; background:var(--surface-card); color:var(--text); border:1px solid var(--line-strong); border-radius:var(--radius-sm); padding:5px 10px;"></select>
-          <select id="temporadaActivosSelect" style="display:none; font-family:var(--f-mono); font-size:12px; background:var(--surface-card); color:var(--text); border:1px solid var(--line-strong); border-radius:var(--radius-sm); padding:5px 10px;"></select>
-          <select id="semanaActivosSelect" style="display:none; font-family:var(--f-mono); font-size:12px; background:var(--surface-card); color:var(--text); border:1px solid var(--line-strong); border-radius:var(--radius-sm); padding:5px 10px;"></select>
-        </div>
+        <h2 style="font-size:22px;">🗂️ Cuadrícula de Activos (Semana Actual)</h2>
+        <!-- FIX (07-sep-2026, pedido usuario — "botón para seleccionar
+             otras semanas dentro de la misma temporada, solo se debe
+             mostrar semanas disponibles"): Base.md ya manda
+             data.semanasControlActivosDisponibles (lista de semanas ya
+             jugadas en la temporada actual, sin incluir semanas futuras
+             que aún no arrancan) y data.controlActivosPorSemana (mismo
+             shape que controlActivosSemanaActual, uno por cada semana de
+             esa lista) -- ver pintarSelectorSemanaActivos() más abajo, que
+             ya los consume. El <select> arranca oculto por CSS y solo
+             cuando esos 2 campos no llegan (ej. Web App vieja) se queda
+             así en vez de romper. -->
+        <select id="semanaActivosSelect" style="display:none; font-family:var(--f-mono); font-size:12px; background:var(--surface-card); color:var(--text); border:1px solid var(--line-strong); border-radius:var(--radius-sm); padding:5px 10px;"></select>
       </div>
       <!-- FIX (07-sep-2026, pedido usuario — "que se siga mostrando los
            valores de la última guerra mientras se esté en entrenamiento
            [...] hasta el cambio de periodIndex [...] y se debe actualizar
            recién cuando empiece la guerra del jueves"): aviso visible solo
            cuando esta cuadrícula está mostrando la foto guardada de la
-           última guerra en vez de datos en vivo de entrenamiento, Y el
-           usuario no eligió manualmente otra semana -- ver rama `else`
-           dentro de render() más abajo. -->
+           última guerra en vez de datos en vivo de entrenamiento -- ver
+           rama `else` dentro de render() más abajo. -->
       <div id="controlActivosCacheAviso" class="text-faint" style="display:none; font-family:var(--f-mono); font-size:11px; margin-top:10px;"></div>
       <!-- FIX (07-sep-2026, pedido usuario — "botones horizontales para
            seleccionar el clan"): pestañas tipo .tabs-row/.tab-btn (mismo
@@ -423,7 +445,6 @@
       <div class="tabs-row" id="controlActivosClanTabs" style="margin-top:20px;"></div>
       <div id="controlActivosWrap" style="margin-top:14px;"></div>
     </section>
-
 
     <!-- FIX (05-sep-2026, pedido usuario — "haz una sección como la hoja
          Control_2, solo por referencia visual, ya que la hoja Control_2
@@ -439,31 +460,23 @@
          _webHistorialGuerraComparador() para el Cara a cara, NO la hoja
          Control_2 real de la Sheet, que arma sus semanas con datos de otra
          parte fuera del alcance de este sitio) + Resumen (Total para
-         Ataques/Barcos, Prom para Puntaje) y % al final de cada una.
-         FIX (09-sep-2026, pedido usuario — "🗓️ Cuadrícula de Temporada
-         (Semanal) también puede cambiar de nombre si es apropiado, se le
-         debe añadir el selector de año y reemplazar el selector de
-         temporada por el de mes, tal como se definió para la otra
-         cuadrícula"): la sección se renombra a "Valores semanales"
-         (pareja de "Valores diarios" de arriba) y el único <select> de
-         temporada se reemplaza por 2 selectores encadenados -- año y
-         temporada (mostrada como mes) -- mismo patrón visual y de datos
-         que "Valores diarios" (año/temporada de
-         data.controlTemporadaSelectores, ver
-         _getControlTemporadaSelectores(), 08_Web_Endpoints.gs), sin nivel
-         de semana porque esta cuadrícula siempre muestra las 5 semanas de
-         la temporada elegida juntas. Ver render() más abajo —
-         data.controlTemporadaPorClan/data.controlTemporadaSemanas siguen
-         siendo la temporada vigente, y data.controlTemporadaPorTemporada
-         sigue trayendo el resto de temporadas (sin cambios en esos 3
-         campos, solo en cómo se eligen). -->
+         Ataques/Barcos, Prom para Puntaje) y % al final de cada una. Ver
+         render() más abajo — espera data.controlTemporadaPorClan y
+         data.controlTemporadaSemanas (pendientes en el backend, todavía no
+         se subió Base.md con esos campos). -->
     <section id="controlTemporadaSection" style="padding:24px 0;">
       <div class="sec-head" style="display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:10px; border-bottom:1px solid var(--line); padding-bottom:12px;">
-        <h2 style="font-size:22px;">🗓️ Valores semanales</h2>
-        <div style="display:flex; gap:8px; flex-wrap:wrap;">
-          <select id="anioTemporadaSelect" style="display:none; font-family:var(--f-mono); font-size:12px; background:var(--surface-card); color:var(--text); border:1px solid var(--line-strong); border-radius:var(--radius-sm); padding:5px 10px;"></select>
-          <select id="temporadaSelect" style="display:none; font-family:var(--f-mono); font-size:12px; background:var(--surface-card); color:var(--text); border:1px solid var(--line-strong); border-radius:var(--radius-sm); padding:5px 10px;"></select>
-        </div>
+        <h2 style="font-size:22px;">🗓️ Cuadrícula de Temporada (Semanal)</h2>
+        <!-- FIX (07-sep-2026, pedido usuario — "botón para seleccionar la
+             temporada que se quiere ver, así se puede ver temporadas
+             anteriores"): Base.md ya manda data.temporadasDisponibles
+             (temporadas con datos de guerra, más reciente primero) y
+             data.controlTemporadaPorTemporada ({[temporada]: {porClan,
+             semanas}} de cada temporada ANTERIOR a la vigente) -- ver
+             pintarSelectorTemporada() más abajo, que ya los consume. El
+             <select> arranca oculto por CSS y solo cuando esos 2 campos no
+             llegan (ej. Web App vieja) se queda así en vez de romper. -->
+        <select id="temporadaSelect" style="display:none; font-family:var(--f-mono); font-size:12px; background:var(--surface-card); color:var(--text); border:1px solid var(--line-strong); border-radius:var(--radius-sm); padding:5px 10px;"></select>
       </div>
       <!-- Pestañas de clan -- mismo patrón y misma función
            gestionarTabsClan() que la Cuadrícula de Activos de arriba. -->
@@ -580,7 +593,7 @@ let prevValues  = {};
 // las cuadrículas "Activos" y "Temporada"): estado de los selectores,
 // a nivel de módulo para que sobrevivan a cada repintado de render()
 // (cada REFRESH_INTERVAL_MS). null = "vigente" (semana/temporada). Ver
-// pintarSelectoresValoresDiarios() y pintarSelectoresControlTemporada() más abajo.
+// pintarSelectorSemanaActivos() y pintarSelectorTemporada() más abajo.
 // FIX (07-sep-2026, pedido usuario — "mueve el botón de Todos a la
 // derecha de Mini Ternas para que cargue por defecto el clan principal en
 // las dos secciones"): clanSeleccionadoActivos/Temporada ya NO usan null
@@ -592,23 +605,7 @@ let prevValues  = {};
 const TAB_TODOS = '__todos__';
 let clanSeleccionadoActivos = null;
 let clanSeleccionadoTemporada = null;
-// FIX (09-sep-2026, pedido usuario — selectores de año/temporada(mes)/
-// semana para "Valores diarios"): antes solo existía
-// sectionIndexSeleccionadoActivos (semana dentro de la temporada vigente);
-// ahora se agregan anioSeleccionadoActivos/temporadaSeleccionadaActivos
-// para poder elegir CUALQUIER combinación con datos. Los 3 arrancan en
-// null ("todavía no se aplicó ningún default") y pintarSelectoresValoresDiarios()
-// (más abajo) los fija al año/temporada/semana más recientes disponibles
-// la primera vez que llegan data.valoresDiariosSelectores.
-let anioSeleccionadoActivos = null;
-let temporadaSeleccionadaActivos = null;
 let sectionIndexSeleccionadoActivos = null;
-// FIX (09-sep-2026, pedido usuario — selector de año para "Valores
-// semanales" además del de temporada/mes que ya existía): mismo criterio
-// que arriba -- arranca en null y pintarSelectoresControlTemporada() (más
-// abajo) lo fija al año de la temporada vigente la primera vez que llegan
-// data.controlTemporadaSelectores.
-let anioSeleccionadoTemporada = null;
 let temporadaSeleccionadaTemporada = null;
 
 /** Fecha corta "DD-mmm" (ej. "27-ago") a partir de un ISO string o Date. */
@@ -756,6 +753,54 @@ function celdasSemanas(megacat, gpClase, conColor){
  *      -- antes ambos casos compartían `null` y por eso la carga inicial
  *      siempre arrancaba mostrando todos los clanes.
  */
+/**
+ * enlazarScrollsHorizontales(wrapId)
+ * FIX (09-sep-2026, pedido usuario — "barra de navegación al inicio y
+ * final de cada cuadrícula si hay que desplazarse horizontalmente"):
+ * recorre cada .ai-clan-card dentro de `wrapId` y, si trae las franjas
+ * .grid-hscroll-top/.grid-hscroll-bottom (ver plantilla en render() y el
+ * <style> .grid-hscroll de más arriba), las sincroniza con el scroll
+ * real de la tabla (.table-scroll): mover cualquiera de las 3 — la
+ * franja de arriba, la de abajo, o la propia tabla — mueve a las otras
+ * dos. `.grid-hscroll-inner` no tiene contenido propio; su único trabajo
+ * es fijar el ancho del "carrete" de scroll (igual a tabla.scrollWidth)
+ * para que la franja fina se sienta como una barra de scroll de verdad.
+ * Se llama una vez por tarjeta después de pintar el HTML (mismo momento
+ * en que se llama gestionarTabsClan) — si `wrapId` todavía no tiene
+ * tarjetas (data vacía), simplemente no hace nada.
+ */
+function enlazarScrollsHorizontales(wrapId){
+  const wrap = document.getElementById(wrapId);
+  if (!wrap) return;
+  wrap.querySelectorAll(':scope > .ai-clan-card').forEach(card => {
+    const scroll = card.querySelector(':scope > .table-scroll');
+    const tabla = scroll && scroll.querySelector('table');
+    const barras = Array.from(card.querySelectorAll(':scope > .grid-hscroll'));
+    if (!scroll || !tabla || !barras.length) return;
+    const inners = barras.map(b => b.querySelector('.grid-hscroll-inner'));
+    const fijarAncho = () => { inners.forEach(inn => { inn.style.width = tabla.scrollWidth + 'px'; }); };
+    fijarAncho();
+    const todos = [scroll, ...barras];
+    let sincronizando = false;
+    todos.forEach(el => {
+      el.addEventListener('scroll', () => {
+        if (sincronizando) return;
+        sincronizando = true;
+        todos.forEach(otro => { if (otro !== el) otro.scrollLeft = el.scrollLeft; });
+        sincronizando = false;
+      });
+    });
+    // El ancho de la tabla puede cambiar si la ventana cambia de tamaño
+    // (columnas que se comprimen/expanden con el layout responsive).
+    // offsetParent === null cuando la tarjeta está oculta por una pestaña
+    // de clan distinta (gestionarTabsClan le pone display:none): en ese
+    // caso scrollWidth daría 0 y arruinaría el ancho de las barras para
+    // cuando se vuelva a esa pestaña, así que el resize se ignora hasta
+    // que la tarjeta esté visible de nuevo.
+    window.addEventListener('resize', () => { if (tabla.offsetParent !== null) fijarAncho(); });
+  });
+}
+
 function gestionarTabsClan(tabsWrapId, wrapId, obtenerSel, fijarSel){
   const tabsWrap = document.getElementById(tabsWrapId);
   const wrap = document.getElementById(wrapId);
@@ -782,144 +827,60 @@ function gestionarTabsClan(tabsWrapId, wrapId, obtenerSel, fijarSel){
 }
 
 /**
- * pintarSelectoresValoresDiarios(data)
- * FIX (09-sep-2026, pedido usuario — "añade un selector de año [...]
- * selector de temporada [...] y el tercero es el selector de semana [...]
- * ya no se muestran solo semanas de la temporada actual, sino cualquiera
- * disponible según el año y la temporada seleccionada [...] por defecto se
- * debe seleccionar el año, temporada y semana más recientes disponibles"):
- * reemplaza a la vieja pintarSelectorSemanaActivos() (un solo <select> de
- * semana, acotado a la temporada vigente) por 3 <select> encadenados —
- * año -> temporada (mes) -> semana — a partir de
- * data.valoresDiariosSelectores ({anios, temporadasPorAnio,
- * semanasPorTemporada, porDefecto}, ver _getValoresDiariosSelectores(),
- * 08_Web_Endpoints.gs) y data.valoresDiariosPorSemana ({[temporada]:
- * {[sectionIndex]: mismo shape que antes traía controlActivosSemanaActual}}).
- * Si esos 2 campos todavía no llegan (ej. Web App vieja), los 3 <select>
- * se quedan ocultos y todo sigue funcionando igual que antes (última
- * guerra cacheada de la temporada/semana vigente).
- *
- * El año/temporada/semana más recientes disponibles se fijan como default
- * SOLO la primera vez que llegan datos (anioSeleccionadoActivos === null);
- * si el usuario ya elegía algo, se respeta su elección en cada repintado
- * de render() (cada REFRESH_INTERVAL_MS). Cambiar de año cae a la
- * temporada más reciente de ese año; cambiar de temporada cae a su semana
- * más reciente — mismo criterio de "más reciente por defecto" que el
- * default inicial.
+ * pintarSelectorSemanaActivos(data)
+ * FIX (07-sep-2026, pedido usuario — "botón para seleccionar otras semanas
+ * dentro de la misma temporada, solo se debe mostrar semanas
+ * disponibles"): PENDIENTE de backend, ver comentario en el <select
+ * id="semanaActivosSelect"> del HTML. Se deja ya conectado del lado del
+ * frontend para que empiece a funcionar solo apenas Base.md mande
+ * data.semanasControlActivosDisponibles (array de {sectionIndex, label},
+ * ya filtrado por el backend a semanas que ya arrancaron -- ej. si estamos
+ * en semana 3, la lista no debe traer semana 4 ni 5) y
+ * data.controlActivosPorSemana (objeto {[sectionIndex]: mismo shape que
+ * controlActivosSemanaActual}). Si esos 2 campos todavía no llegan, el
+ * <select> se queda oculto y todo sigue funcionando igual que antes (solo
+ * semana vigente / última guerra cacheada).
  */
-function pintarSelectoresValoresDiarios(data){
-  const selAnio = document.getElementById('anioActivosSelect');
-  const selTemp = document.getElementById('temporadaActivosSelect');
-  const selSem  = document.getElementById('semanaActivosSelect');
-  const sel = data.valoresDiariosSelectores;
-  if (!sel || !sel.anios || !sel.anios.length || !data.valoresDiariosPorSemana){
-    [selAnio, selTemp, selSem].forEach(s => { s.style.display = 'none'; s.innerHTML = ''; s.onchange = null; });
-    return;
-  }
-  if (anioSeleccionadoActivos === null && sel.porDefecto){
-    anioSeleccionadoActivos        = sel.porDefecto.anio;
-    temporadaSeleccionadaActivos   = sel.porDefecto.temporada;
-    sectionIndexSeleccionadoActivos = sel.porDefecto.sectionIndex;
-  }
-
-  const temporadasAnio = (sel.temporadasPorAnio[anioSeleccionadoActivos]) || [];
-  const semanasTemp    = (sel.semanasPorTemporada[temporadaSeleccionadaActivos]) || [];
-
-  selAnio.style.display = '';
-  selAnio.innerHTML = sel.anios.map(a =>
-    `<option value="${esc(a)}"${String(a) === String(anioSeleccionadoActivos) ? ' selected' : ''}>${esc(a)}</option>`).join('');
-
-  selTemp.style.display = '';
-  selTemp.innerHTML = temporadasAnio.map(t =>
-    `<option value="${esc(t.temporada)}"${String(t.temporada) === String(temporadaSeleccionadaActivos) ? ' selected' : ''}>${esc(t.label)}</option>`).join('');
-
-  selSem.style.display = '';
-  // FIX (09-sep-2026, pedido usuario — "en el selector de semana debe ir
-  // de más reciente a más antiguo"): `semanasTemp` viene de
-  // _getSemanasTemporada() (08_Web_Endpoints.gs) en orden ascendente
-  // (S1, S2, S3...) porque ese orden es el que necesita el resto de la
-  // lógica de esta función (semanas[semanas.length-1] = la más reciente,
-  // usado como default arriba y en los onchange de año/temporada más
-  // abajo) -- .slice().reverse() invierte SOLO para pintar las <option>,
-  // sin tocar `semanasTemp`/`sel` en sí.
-  selSem.innerHTML = semanasTemp.slice().reverse().map(s =>
-    `<option value="${esc(s.sectionIndex)}"${String(s.sectionIndex) === String(sectionIndexSeleccionadoActivos) ? ' selected' : ''}>${esc(s.label)}</option>`).join('');
-
-  selAnio.onchange = () => {
-    anioSeleccionadoActivos = selAnio.value;
-    const temps = sel.temporadasPorAnio[anioSeleccionadoActivos] || [];
-    temporadaSeleccionadaActivos = temps.length ? temps[0].temporada : null;
-    const semanas = sel.semanasPorTemporada[temporadaSeleccionadaActivos] || [];
-    sectionIndexSeleccionadoActivos = semanas.length ? semanas[semanas.length - 1].sectionIndex : null;
-    render(ultimoDataGuerra);
-  };
-  selTemp.onchange = () => {
-    temporadaSeleccionadaActivos = selTemp.value;
-    const semanas = sel.semanasPorTemporada[temporadaSeleccionadaActivos] || [];
-    sectionIndexSeleccionadoActivos = semanas.length ? semanas[semanas.length - 1].sectionIndex : null;
-    render(ultimoDataGuerra);
-  };
-  selSem.onchange = () => {
-    sectionIndexSeleccionadoActivos = selSem.value;
+function pintarSelectorSemanaActivos(data){
+  const select = document.getElementById('semanaActivosSelect');
+  const semanas = data.semanasControlActivosDisponibles || [];
+  if (!semanas.length || !data.controlActivosPorSemana){ select.style.display = 'none'; select.innerHTML = ''; return; }
+  select.style.display = '';
+  select.innerHTML = ['<option value="">Semana vigente</option>', ...semanas.map(s =>
+    `<option value="${esc(s.sectionIndex)}"${String(s.sectionIndex) === String(sectionIndexSeleccionadoActivos) ? ' selected' : ''}>${esc(s.label)}</option>`)].join('');
+  select.onchange = () => {
+    sectionIndexSeleccionadoActivos = select.value || null;
     render(ultimoDataGuerra);
   };
 }
 
 /**
- * pintarSelectoresControlTemporada(data)
- * FIX (09-sep-2026, pedido usuario — "🗓️ Cuadrícula de Temporada
- * (Semanal) [...] añádele el selector de año y reemplaza el selector de
- * temporada por el de mes, tal como se definió para la otra cuadrícula"):
- * reemplaza a la vieja pintarSelectorTemporada() (un solo <select> de
- * temporada, con etiqueta plana "Temporada N") por 2 <select> encadenados
- * -- año y temporada (mostrada como mes, "Temporada N (Mes)") -- a partir
- * de data.controlTemporadaSelectores ({anios, temporadasPorAnio,
- * porDefecto}, ver _getControlTemporadaSelectores(), 08_Web_Endpoints.gs).
- * Mismo patrón visual y de código que pintarSelectoresValoresDiarios() de
- * arriba, sin el tercer nivel de semana (esta cuadrícula siempre muestra
- * las 5 semanas de la temporada elegida juntas, nunca una semana suelta).
- *
- * data.temporadasDisponibles/data.controlTemporadaPorTemporada (los datos
- * pesados en sí) NO cambian con este fix, solo cómo se elige entre ellos
- * -- ver render() más abajo, que sigue leyendo esos mismos 2 campos con
- * `temporadaSeleccionadaTemporada` como clave.
- *
- * El año/temporada por defecto (año/temporada VIGENTE) se fija SOLO la
- * primera vez que llegan datos (anioSeleccionadoTemporada === null); si el
- * usuario ya elegía algo, se respeta su elección en cada repintado de
- * render(). Cambiar de año cae a la temporada más reciente de ese año.
+ * pintarSelectorTemporada(data)
+ * FIX (07-sep-2026, pedido usuario — "Cuadrícula de Temporada debe tener
+ * un botón para seleccionar la temporada que se quiere ver, así se puede
+ * ver temporadas anteriores"): PENDIENTE de backend, ver comentario en el
+ * <select id="temporadaSelect"> del HTML. Se deja ya conectado del lado
+ * del frontend para que empiece a funcionar apenas Base.md mande
+ * data.temporadasDisponibles (array de números/labels de temporada, más
+ * reciente primero) y data.controlTemporadaPorTemporada (objeto
+ * {[temporada]: {porClan, semanas}} con el mismo shape que hoy tienen
+ * data.controlTemporadaPorClan / data.controlTemporadaSemanas, pero uno
+ * por cada temporada de esa lista). Si esos 2 campos todavía no llegan, el
+ * <select> se queda oculto y la sección sigue mostrando solo la temporada
+ * vigente, igual que antes.
  */
-function pintarSelectoresControlTemporada(data){
-  const selAnio = document.getElementById('anioTemporadaSelect');
-  const selMes  = document.getElementById('temporadaSelect');
-  const sel = data.controlTemporadaSelectores;
-  if (!sel || !sel.anios || !sel.anios.length){
-    [selAnio, selMes].forEach(s => { s.style.display = 'none'; s.innerHTML = ''; s.onchange = null; });
-    return;
-  }
-  if (anioSeleccionadoTemporada === null && sel.porDefecto){
-    anioSeleccionadoTemporada    = sel.porDefecto.anio;
-    temporadaSeleccionadaTemporada = sel.porDefecto.temporada;
-  }
-
-  const temporadasAnio = sel.temporadasPorAnio[anioSeleccionadoTemporada] || [];
-
-  selAnio.style.display = '';
-  selAnio.innerHTML = sel.anios.map(a =>
-    `<option value="${esc(a)}"${String(a) === String(anioSeleccionadoTemporada) ? ' selected' : ''}>${esc(a)}</option>`).join('');
-
-  selMes.style.display = '';
-  selMes.innerHTML = temporadasAnio.map(t =>
-    `<option value="${esc(t.temporada)}"${String(t.temporada) === String(temporadaSeleccionadaTemporada) ? ' selected' : ''}>${esc(t.label)}</option>`).join('');
-
-  selAnio.onchange = () => {
-    anioSeleccionadoTemporada = selAnio.value;
-    const temps = sel.temporadasPorAnio[anioSeleccionadoTemporada] || [];
-    temporadaSeleccionadaTemporada = temps.length ? temps[0].temporada : null;
-    render(ultimoDataGuerra);
-  };
-  selMes.onchange = () => {
-    temporadaSeleccionadaTemporada = selMes.value;
+function pintarSelectorTemporada(data){
+  const select = document.getElementById('temporadaSelect');
+  const temporadas = data.temporadasDisponibles || [];
+  if (!temporadas.length || !data.controlTemporadaPorTemporada){ select.style.display = 'none'; select.innerHTML = ''; return; }
+  select.style.display = '';
+  select.innerHTML = temporadas.map(t => {
+    const valor = (typeof t === 'object') ? t.temporada : t;
+    const label = (typeof t === 'object') ? (t.label || ('Temporada ' + t.temporada)) : ('Temporada ' + t);
+    return `<option value="${esc(valor)}"${String(valor) === String(temporadaSeleccionadaTemporada) ? ' selected' : ''}>${esc(label)}</option>`;
+  }).join('');
+  select.onchange = () => {
+    temporadaSeleccionadaTemporada = select.value || null;
     render(ultimoDataGuerra);
   };
 }
@@ -1025,70 +986,72 @@ function render(data){
   // (mismo alcance que ya tenía Ataques en esta cuadrícula), por eso cada
   // fila espera f.puntaje = {j,v,s,d,total} y f.barcos = {j,v,s,d,total}
   // (mismo shape que los campos planos j/v/s/d/total que Ataques ya usa,
-  // solo que agrupados bajo esas 2 llaves para no chocar de nombre). A
-  // diferencia de Ataques (0-4 intentos/día, con semáforo de color), los
-  // valores diarios de Puntaje/Barcos son puntos/unidades ganadas ese día
-  // (pueden ser cualquier número), así que sus celdas J/V/S/D/Total van
-  // con .ai-num, sin semáforo ni resaltado de Total=16. 2) las tarjetas ya
-  // no se ordenan alfabético (.sort() plano) sino con ordenClanIndex()
-  // (assets/common.js), el mismo orden fijo de la Familia que usa el
-  // resto del sitio.
-  // FIX (09-sep-2026, pedido usuario -- selectores de año/temporada/semana
-  // en "Valores diarios"): fuente de datos de esta cuadrícula, resuelta a
-  // partir de la combinación año/temporada/semana elegida en los 3
-  // <select> de arriba (pintarSelectoresValoresDiarios(), que además fija
-  // el default -- año/temporada/semana más recientes -- la primera vez que
-  // llegan datos). data.valoresDiariosPorSemana ya trae, precalculada, la
-  // cuadrícula de CUALQUIER combinación con datos -- ver
-  // _getValoresDiariosPorSemana() (08_Web_Endpoints.gs).
-  //
-  // Sigue existiendo un caso especial (heredado del comportamiento pedido
-  // el 07-sep-2026, "que se siga mostrando los valores de la última guerra
-  // mientras se esté en entrenamiento [...] hasta el cambio de periodIndex
-  // [...] y se debe actualizar recién cuando empiece la guerra del
-  // jueves"): CUANDO la combinación elegida es justo la semana VIGENTE
-  // (temporada/sectionIndex == ctx.temporada/ctx.sectionIndex) Y hoy no es
-  // día de guerra todavía, el backend reporta esa semana en ceros (recién
-  // arrancando el periodIndex de Supercell, ~4-5am, sin esperar al jueves)
-  // -- en ese caso puntual se recupera del navegador la última foto
-  // guardada en localStorage (guardada cada vez que SÍ es día de guerra) y
-  // se muestra esa en su lugar. Cualquier OTRA combinación (semana pasada,
-  // temporada pasada) ya es un dato final/histórico -- se muestra tal cual
-  // llega, sin pasar por localStorage.
-  pintarSelectoresValoresDiarios(data);
-  let controlActivos = {};
+  // solo que agrupados bajo esas 2 llaves para no chocar de nombre). OJO:
+  // este dato por-jugador todavía no viaja en la respuesta actual del
+  // backend que se probó en esta sesión (no se subió Base.md); el
+  // `?.x ?? 0` de abajo evita que la cuadrícula se rompa mientras tanto,
+  // pero _getControlActivosSemanaActual() (08_Web_Endpoints.gs) necesita
+  // agregar esos 2 objetos a cada fila para que Puntaje/Barcos muestren el
+  // dato real en vez de "0". A diferencia de Ataques (0-4 intentos/día,
+  // con semáforo de color), los valores diarios de Puntaje/Barcos son
+  // puntos/unidades ganadas ese día (pueden ser cualquier número), así que
+  // sus celdas J/V/S/D/Total van con .ai-num, sin semáforo ni resaltado de
+  // Total=16. 2) las tarjetas ya no se ordenan alfabético (.sort() plano)
+  // sino con ordenClanIndex() (assets/common.js), el mismo orden fijo de
+  // la Familia que usa el resto del sitio.
+  // FIX (07-sep-2026, pedido usuario — "que se siga mostrando los valores
+  // de la última guerra mientras se esté en entrenamiento [...] hasta el
+  // cambio de periodIndex [...] y se debe actualizar recién cuando empiece
+  // la guerra del jueves"): fuente de datos de esta cuadrícula, resuelta
+  // en 3 pasos (el primero que aplique gana):
+  //   1) el visitante eligió a mano una semana pasada en el <select> de
+  //      arriba (sectionIndexSeleccionadoActivos) y el backend SÍ manda
+  //      esa semana en data.controlActivosPorSemana -- ver
+  //      pintarSelectorSemanaActivos() más arriba (hoy no llega, queda
+  //      pendiente de Base.md).
+  //   2) hoy ES día de guerra (ctx.esDiaGuerra) -- se usan los datos en
+  //      vivo tal cual, Y de paso se guardan en localStorage como "última
+  //      guerra" para el paso 3 durante el entrenamiento que sigue.
+  //   3) no es día de guerra (lunes a miércoles) y no hay selección manual
+  //      -- en vez de pintar la semana "vigente" que el backend ya pueda
+  //      estar reportando en 0 (su sectionIndex avanza con el periodIndex
+  //      de Supercell, ~4-5am cada día, sin esperar a que arranque la
+  //      guerra del jueves), se recupera del propio navegador la última
+  //      foto guardada en el paso 2 y se sigue mostrando esa. Si esta es
+  //      la primera visita del navegador y todavía no hay ninguna foto
+  //      guardada, se cae al dato en vivo tal como llegue (mismo
+  //      comportamiento que antes de este cambio).
+  let controlActivos = data.controlActivosSemanaActual || {};
   let mostrandoUltimaGuerraCacheada = false;
-  const porSemanaSeleccionada = data.valoresDiariosPorSemana || {};
-  const esComboVigente = String(temporadaSeleccionadaActivos) === String(ctx.temporada) &&
-    String(sectionIndexSeleccionadoActivos) === String(ctx.sectionIndex);
+  let mostrandoSemanaManual = false;
   const cacheAviso = document.getElementById('controlActivosCacheAviso');
-  if (temporadaSeleccionadaActivos !== null && sectionIndexSeleccionadoActivos !== null &&
-      porSemanaSeleccionada[temporadaSeleccionadaActivos] && porSemanaSeleccionada[temporadaSeleccionadaActivos][sectionIndexSeleccionadoActivos]){
-    controlActivos = porSemanaSeleccionada[temporadaSeleccionadaActivos][sectionIndexSeleccionadoActivos];
-  }
-  if (esComboVigente && ctx.esDiaGuerra){
+  if (sectionIndexSeleccionadoActivos && data.controlActivosPorSemana && data.controlActivosPorSemana[sectionIndexSeleccionadoActivos]){
+    controlActivos = data.controlActivosPorSemana[sectionIndexSeleccionadoActivos];
+    mostrandoSemanaManual = true;
+  } else if (ctx.esDiaGuerra){
     try{
       localStorage.setItem('ternaUltimaGuerraActivos', JSON.stringify({ temporada: ctx.temporada, sectionIndex: ctx.sectionIndex, datos: controlActivos }));
     }catch(e){ /* localStorage lleno o bloqueado -- no crítico, se ignora */ }
-  } else if (esComboVigente && !ctx.esDiaGuerra){
+  } else {
     try{
       const cache = JSON.parse(localStorage.getItem('ternaUltimaGuerraActivos') || 'null');
       if (cache && cache.datos && Object.keys(cache.datos).length){
         controlActivos = cache.datos;
         mostrandoUltimaGuerraCacheada = true;
       }
-    }catch(e){ /* JSON corrupto u otro fallo de localStorage -- se usa el dato en vivo (en ceros) */ }
+    }catch(e){ /* JSON corrupto u otro fallo de localStorage -- se usa el dato en vivo */ }
   }
-  if (mostrandoUltimaGuerraCacheada){
-    cacheAviso.style.display = '';
-    cacheAviso.textContent = '⏳ Entrenamiento en curso — mostrando los valores de la última guerra jugada. Se actualizará al empezar la guerra del jueves.';
-  } else if (!esComboVigente && Object.keys(controlActivos).length){
+  if (mostrandoSemanaManual){
     cacheAviso.style.display = '';
     cacheAviso.textContent = '📌 Mostrando la semana seleccionada arriba.';
+  } else if (mostrandoUltimaGuerraCacheada){
+    cacheAviso.style.display = '';
+    cacheAviso.textContent = '⏳ Entrenamiento en curso — mostrando los valores de la última guerra jugada. Se actualizará al empezar la guerra del jueves.';
   } else {
     cacheAviso.style.display = 'none';
     cacheAviso.textContent = '';
   }
+  pintarSelectorSemanaActivos(data);
   const clanesControlActivos = Object.keys(controlActivos)
     .sort((a, b) => ordenClanIndex(a) - ordenClanIndex(b));
   const controlActivosSection = document.getElementById('controlActivosSection');
@@ -1100,13 +1063,14 @@ function render(data){
       return `
         <div class="card ai-clan-card" data-clan="${esc(clanNombre)}" style="padding:16px;">
           <h3>${esc(clanNombre)} <span class="text-faint" style="font-family:var(--f-mono); font-size:12px; font-weight:400;">(${filas.length} activo${filas.length === 1 ? '' : 's'})</span></h3>
+          <div class="grid-hscroll grid-hscroll-top" aria-hidden="true"><div class="grid-hscroll-inner"></div></div>
           <div class="table-scroll"><table class="tbl-activos-grid">
             <thead>
               <tr>
-                <th class="col-jugador" rowspan="2">Nombre</th>
-                <th class="ai-grp-atq" colspan="5">Ataques</th>
-                <th class="ai-grp-pje" colspan="5">Puntaje</th>
-                <th class="ai-grp-brc" colspan="5">Barcos</th>
+                <th class="col-jugador" rowspan="2">Jugador</th>
+                <th class="ai-grp-atq" colspan="5"><span class="ai-grp-label">Ataques</span></th>
+                <th class="ai-grp-pje" colspan="5"><span class="ai-grp-label">Puntaje</span></th>
+                <th class="ai-grp-brc" colspan="5"><span class="ai-grp-label">Barcos</span></th>
               </tr>
               <tr>
                 <th class="ai-grp-atq">J</th><th class="ai-grp-atq">V</th><th class="ai-grp-atq">S</th><th class="ai-grp-atq">D</th><th class="ai-grp-atq">Total</th>
@@ -1123,6 +1087,7 @@ function render(data){
               </tr>`).join('')}
             </tbody>
           </table></div>
+          <div class="grid-hscroll grid-hscroll-bottom" aria-hidden="true"><div class="grid-hscroll-inner"></div></div>
           <!-- FIX (05-sep-2026, pedido usuario — "Mejor dentro del primer
                cuadro, en cada clan, primero escribe las filas de los
                activos y luego una sección para inactivos"): wrap vacío,
@@ -1133,7 +1098,8 @@ function render(data){
           <div class="ai-inactivos-wrap" data-clan-inactivos="${esc(clanNombre)}"></div>
         </div>`;
     }).join('');
-    controlActivosSection.style.display = '';
+    controlActivosSection.style.display = 'block';
+    enlazarScrollsHorizontales('controlActivosWrap');
     gestionarTabsClan('controlActivosClanTabs', 'controlActivosWrap', () => clanSeleccionadoActivos, v => clanSeleccionadoActivos = v);
   } else {
     controlActivosSection.style.display = 'none';
@@ -1149,15 +1115,17 @@ function render(data){
   // semana de guerra ya jugada en la temporada actual) compartidas por
   // todos los clanes; data.controlTemporadaPorClan trae, por clan, un
   // array de filas { nombre, tag, ataques:{semanas,resumen,pct},
-  // puntaje:{...}, barcos:{...} }.
-  // FIX (09-sep-2026, pedido usuario — selectores de año/mes en "Valores
-  // semanales"): si el año/temporada elegidos en los 2 <select> de arriba
-  // (pintarSelectoresControlTemporada(), que además fija el default --
-  // año/temporada VIGENTE -- la primera vez que llegan datos) NO son la
-  // temporada vigente Y el backend manda esa temporada en
-  // data.controlTemporadaPorTemporada, se usa esa en vez de la vigente
-  // (data.controlTemporadaPorClan/data.controlTemporadaSemanas).
-  pintarSelectoresControlTemporada(data);
+  // puntaje:{...}, barcos:{...} }. Ninguno de los 2 campos lo manda todavía
+  // el backend probado en esta sesión (no se subió Base.md) — la sección
+  // se queda oculta hasta que existan.
+  // FIX (07-sep-2026, pedido usuario — "botón para seleccionar la
+  // temporada que se quiere ver, así se puede ver temporadas anteriores"):
+  // si hay una temporada elegida a mano en el <select> de arriba Y el
+  // backend manda esa temporada en data.controlTemporadaPorTemporada, se
+  // usa esa en vez de la vigente (data.controlTemporadaPorClan/
+  // data.controlTemporadaSemanas, ver pintarSelectorTemporada() más
+  // arriba -- hoy no llega, queda pendiente de Base.md).
+  pintarSelectorTemporada(data);
   let controlTemporada = data.controlTemporadaPorClan || {};
   let semanasTemporada = data.controlTemporadaSemanas || [];
   if (temporadaSeleccionadaTemporada && data.controlTemporadaPorTemporada && data.controlTemporadaPorTemporada[temporadaSeleccionadaTemporada]){
@@ -1176,13 +1144,14 @@ function render(data){
       return `
         <div class="card ai-clan-card" data-clan="${esc(clanNombre)}" style="padding:16px;">
           <h3>${esc(clanNombre)} <span class="text-faint" style="font-family:var(--f-mono); font-size:12px; font-weight:400;">(${filas.length} activo${filas.length === 1 ? '' : 's'})</span></h3>
+          <div class="grid-hscroll grid-hscroll-top" aria-hidden="true"><div class="grid-hscroll-inner"></div></div>
           <div class="table-scroll"><table class="tbl-activos-grid tbl-temporada-grid">
             <thead>
               <tr>
-                <th class="col-jugador" rowspan="2">Nombre</th>
-                <th class="ai-grp-atq" colspan="${nSem + 2}">Ataques</th>
-                <th class="ai-grp-pje" colspan="${nSem + 2}">Puntaje</th>
-                <th class="ai-grp-brc" colspan="${nSem + 2}">Barcos</th>
+                <th class="col-jugador" rowspan="2">Jugador</th>
+                <th class="ai-grp-atq" colspan="${nSem + 2}"><span class="ai-grp-label">Ataques</span></th>
+                <th class="ai-grp-pje" colspan="${nSem + 2}"><span class="ai-grp-label">Puntaje</span></th>
+                <th class="ai-grp-brc" colspan="${nSem + 2}"><span class="ai-grp-label">Barcos</span></th>
               </tr>
               <tr>
                 ${thSemanas('ai-grp-atq')}<th class="ai-grp-atq ai-resumen">Total</th><th class="ai-grp-atq ai-resumen">%</th>
@@ -1199,9 +1168,11 @@ function render(data){
               </tr>`).join('')}
             </tbody>
           </table></div>
+          <div class="grid-hscroll grid-hscroll-bottom" aria-hidden="true"><div class="grid-hscroll-inner"></div></div>
         </div>`;
     }).join('');
-    controlTemporadaSection.style.display = '';
+    controlTemporadaSection.style.display = 'block';
+    enlazarScrollsHorizontales('controlTemporadaWrap');
     gestionarTabsClan('controlTemporadaClanTabs', 'controlTemporadaWrap', () => clanSeleccionadoTemporada, v => clanSeleccionadoTemporada = v);
   } else {
     controlTemporadaSection.style.display = 'none';
@@ -1348,10 +1319,10 @@ async function cargarAportesInactivosSiAdmin(ctx){
         <div class="table-scroll"><table class="tbl-activos-grid">
           <thead>
             <tr>
-              <th class="col-jugador" rowspan="2">Nombre</th>
-              <th class="ai-grp-atq" colspan="5">Ataques</th>
-              <th class="ai-grp-pje" colspan="5">Puntaje</th>
-              <th class="ai-grp-brc" colspan="5">Barcos</th>
+              <th class="col-jugador" rowspan="2">Jugador</th>
+              <th class="ai-grp-atq" colspan="5"><span class="ai-grp-label">Ataques</span></th>
+              <th class="ai-grp-pje" colspan="5"><span class="ai-grp-label">Puntaje</span></th>
+              <th class="ai-grp-brc" colspan="5"><span class="ai-grp-label">Barcos</span></th>
             </tr>
             <tr>
               <th class="ai-grp-atq">J</th><th class="ai-grp-atq">V</th><th class="ai-grp-atq">S</th><th class="ai-grp-atq">D</th><th class="ai-grp-atq">Total</th>
@@ -1401,7 +1372,7 @@ async function cargarAportesInactivosSiAdmin(ctx){
       else controlActivosWrap.appendChild(tarjetaNueva);
     });
     if (huboTarjetaNueva){
-      document.getElementById('controlActivosSection').style.display = '';
+      document.getElementById('controlActivosSection').style.display = 'block';
       // La tarjeta nueva trae un clan que gestionarTabsClan() todavía no
       // conocía (no tenía Activos cuando corrió render()) -- se
       // reconstruye la botonera para que también aparezca como pestaña.
@@ -1474,7 +1445,7 @@ async function cargarParticipacionHoySiAdmin(ctx){
       </div>` : '';
 
     wrap.innerHTML = tarjetasHtml + multiClanHtml;
-    section.style.display = '';
+    section.style.display = 'block';
   }catch(err){
     // Defensivo: sesión vencida u otro fallo — no romper el resto de la
     // página pública por esto, la sección simplemente no aparece.
