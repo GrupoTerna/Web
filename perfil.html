@@ -185,15 +185,36 @@
 
       <!-- ---------- MAZO ACTUAL (FASE 10, 06-sep-2026) ----------
            Distinto de "Sugerencias de mazo"/"Sugerencias de mazo (2)" (los
-           botones de arriba, que arman una búsqueda en RoyaleAPI a partir
-           del nivel de cartas desbloqueadas): esto es pd.currentDeck real,
-           tal como lo manda la API de Supercell — ver
-           _webMazoActualDesdeCards2(), 34_Web_API.gs. Oculto por defecto:
-           j.mazoActual puede venir null (jugador sin datos de Cards_2
-           todavía), ver renderMazoActual() más abajo. -->
+           botones de la derecha de este mismo encabezado, que arman una
+           búsqueda en RoyaleAPI a partir del nivel de cartas
+           desbloqueadas): esto es pd.currentDeck real, tal como lo manda
+           la API de Supercell — ver _webMazoActualDesdeCards2(),
+           34_Web_API.gs. Oculto por defecto: j.mazoActual puede venir null
+           (jugador sin datos de Cards_2 todavía), ver renderMazoActual()
+           más abajo.
+           FIX (08-sep-2026, pedido usuario — "mueve los botones de
+           sugerencia de mazo a la derecha de mazo actual"): "Sugerencias
+           de mazo"/"Sugerencias de mazo (2)" vivían en #mRoyaleCwstatsBtns
+           (la fila de acciones de la cabecera del perfil, junto a
+           RoyaleAPI/CWStats/Vetar/Ver torneos/etc — se veían amontonados
+           ahí, ver la captura del pedido). Se mudan a #mMazoActualBtns,
+           en la esquina superior derecha de ESTE card (mismo renglón que
+           el eyebrow/título, alineados con flex space-between) — tiene más
+           sentido ahí porque ambos hablan de mazos de esta cuenta.
+           RoyaleAPI/CWStats se quedan donde estaban; ver renderMiembro()
+           para el reparto exacto. Como esos botones ya no dependen de
+           mazoActual (son datos de ext.deck/ext.deck2, columnas Mazo/Mazo2
+           de Directorio), la card ahora también se muestra si HAY botones
+           de sugerencia aunque el jugador todavía no tenga mazoActual
+           real (ver renderMazoActual()). -->
       <div class="card" id="mMazoActualCard" style="padding:28px; margin-top:20px; display:none;">
-        <div class="eyebrow">Mazo actual</div>
-        <h2 style="font-size:19px; margin-top:8px;">Cartas equipadas ahora mismo</h2>
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:14px; flex-wrap:wrap;">
+          <div>
+            <div class="eyebrow">Mazo actual</div>
+            <h2 style="font-size:19px; margin-top:8px;">Cartas equipadas ahora mismo</h2>
+          </div>
+          <div id="mMazoActualBtns" class="ext-links" style="margin-top:0;"></div>
+        </div>
         <div id="mMazoActualContenido" style="margin-top:14px;"></div>
       </div>
 
@@ -330,27 +351,56 @@ function renderExtendido(ext){
 }
 
 /**
- * renderMazoActual(mazoActual)
+ * renderMazoActual(mazoActual, ext)
  * FASE 10 (06-sep-2026, punto 10 del documento — mazo actual real).
  * Distinto de "Sugerencias de mazo"/"Sugerencias de mazo (2)" (los
- * botones de la fila de acciones, que arman una búsqueda en RoyaleAPI a
- * partir del nivel de las cartas desbloqueadas): esta sección muestra
- * mazoActual.cartas tal como viene de pd.currentDeck (currentDeck real de
- * la API de Supercell) — ver _webMazoActualDesdeCards2(), 34_Web_API.gs.
- * mazoActual puede venir null (jugador sin filas de Cards_2 todavía, ej.
- * recién ingresado y aún no escaneado por /players) — en ese caso la card
- * completa se deja oculta, igual que el resto de secciones opcionales de
- * este perfil (ver el mismo patrón en mTorneosWrap/mHistorialGuerraWrap).
+ * botones del encabezado de esta misma card, que arman una búsqueda en
+ * RoyaleAPI a partir del nivel de las cartas desbloqueadas, ver `ext` más
+ * abajo): la sección de cartas muestra mazoActual.cartas tal como viene de
+ * pd.currentDeck (currentDeck real de la API de Supercell) — ver
+ * _webMazoActualDesdeCards2(), 34_Web_API.gs. mazoActual puede venir null
+ * (jugador sin filas de Cards_2 todavía, ej. recién ingresado y aún no
+ * escaneado por /players).
+ *
+ * FIX (08-sep-2026, pedido usuario — "mueve los botones de sugerencia de
+ * mazo a la derecha de mazo actual"): los botones "Sugerencias de mazo"/
+ * "Sugerencias de mazo (2)" (antes armados junto a RoyaleAPI/CWStats en
+ * renderMiembro(), ver el FIX de más abajo en esa función) se arman ACÁ y
+ * se pintan en #mMazoActualBtns, la esquina superior derecha del card. Esa
+ * data sale de `ext` (ext.deck/ext.deck2, columnas Mazo/Mazo2 de
+ * Directorio) — independiente de mazoActual —, así que la card ahora se
+ * muestra si hay CUALQUIERA de las dos cosas (cartas reales o botones de
+ * sugerencia), no solo cuando hay cartas; si no hay cartas pero sí
+ * botones, se avisa con un texto en vez de dejar el bloque de cartas en
+ * blanco.
  */
-function renderMazoActual(mazoActual){
+function renderMazoActual(mazoActual, ext){
+  ext = ext || {};
   const card = document.getElementById('mMazoActualCard');
   const cont = document.getElementById('mMazoActualContenido');
-  if (!mazoActual || !Array.isArray(mazoActual.cartas) || !mazoActual.cartas.length){
+
+  // Mismos títulos/tooltips que ya explicaban la diferencia entre ambos
+  // botones cuando vivían junto a RoyaleAPI/CWStats (ver FIX 04-sep-2026
+  // en renderMiembro()) — se mudan acá tal cual, sin reescribir el texto.
+  const deckOkBtn = urlValida(ext.deck);
+  const deck2OkBtn = urlValida(ext.deck2);
+  const deckTitle = 'Búsqueda en RoyaleAPI de mazos que solo usan cartas que esta cuenta tiene desbloqueadas, forzando la inclusión de esas cartas (no distingue el nivel de cada carta).';
+  const deck2Title = 'Búsqueda en RoyaleAPI de mazos que solo usan cartas que esta cuenta tiene desbloqueadas, sin forzar cuáles incluir (no distingue el nivel de cada carta, puede mezclar cartas al máximo con cartas de nivel bajo).';
+  document.getElementById('mMazoActualBtns').innerHTML = `
+    ${deckOkBtn ? `<a href="${esc(ext.deck)}" target="_blank" rel="noopener" title="${esc(deckTitle)}">🃏 Sugerencias de mazo</a>` : ''}
+    ${deck2OkBtn ? `<a href="${esc(ext.deck2)}" target="_blank" rel="noopener" title="${esc(deck2Title)}">🃏 Sugerencias de mazo (2)</a>` : ''}`;
+
+  const hayCartas = mazoActual && Array.isArray(mazoActual.cartas) && mazoActual.cartas.length;
+  if (!hayCartas && !deckOkBtn && !deck2OkBtn){
     card.style.display = 'none';
     cont.innerHTML = '';
     return;
   }
   card.style.display = '';
+  if (!hayCartas){
+    cont.innerHTML = '<div class="empty">Todavía no hay datos del mazo actual de esta cuenta.</div>';
+    return;
+  }
 
   const cartasHtml = mazoActual.cartas.map(c => `
     <div style="display:flex; flex-direction:column; align-items:center; gap:6px; width:84px;">
@@ -533,47 +583,30 @@ function renderMiembro(j){
 
   renderExtendido(j.extendido);
   renderRankingChart(j.extendido);
-  renderMazoActual(j.mazoActual); // FASE 10 (06-sep-2026)
+  renderMazoActual(j.mazoActual, j.extendido); // FASE 10 (06-sep-2026); FIX 08-sep-2026: botones de sugerencia de mazo se arman acá ahora
 
   // FIX (31-ago-2026, pedido usuario — "en los perfiles de jugadores,
   // antes de ver torneos, agrega el botón con el link al perfil de
   // royaleapi y otro a cwstats"): botones dedicados en la fila de
   // acciones, con los íconos oficiales.
-  // FIX (1-sep-2026, pedido usuario — "también debería haber botones de
-  // Mazos para aprovechar las columnas Mazo y Mazo2"): mismos botones,
-  // mismo estilo, para los 2 mazos sugeridos (ext.deck/ext.deck2).
   // FIX (02-sep-2026, pedido usuario — "se debía quitar la segunda fila,
   // no la primera; mover los nuevos botones a la primera fila, siguiendo
-  // el formato que tenía la primera fila"): estos 4 links ya NO usan las
+  // el formato que tenía la primera fila"): estos links ya NO usan las
   // clases .btn.btn-ghost (la fila "grande" que había que quitar) — ahora
   // son <a> simples dentro de #mAccionesRow (clase .ext-links, ver <style>
   // y el HTML de esta sección), así que heredan el estilo de la fila
   // "chica" original, junto con Vetar/Ver torneos/Ver otras cuentas.
+  // FIX (08-sep-2026, pedido usuario — "mueve los botones de sugerencia de
+  // mazo a la derecha de mazo actual"): "Sugerencias de mazo"/"Sugerencias
+  // de mazo (2)" (ext.deck/ext.deck2) ya NO se arman acá — se mudaron al
+  // encabezado de la card "Mazo actual" (ver renderMazoActual() más
+  // arriba). Esta fila ahora solo trae RoyaleAPI/CWStats.
   const ext = j.extendido || {};
   const royaleOkBtn = urlValida(ext.royaleApi);
   const cwOkBtn = urlValida(ext.cwStats);
-  const deckOkBtn = urlValida(ext.deck);
-  const deck2OkBtn = urlValida(ext.deck2);
-  // FIX (04-sep-2026, pedido usuario — "los botones pueden confundir, se
-  // debe cambiar el nombre a 'Sugerencias de mazo' y 'Sugerencias de mazo
-  // (2)' para que no se malentienda que muestran el mazo actual [del
-  // jugador]"): ambos abren RoyaleAPI con búsquedas de mazos ya filtradas
-  // según las cartas desbloqueadas de esa cuenta — NO son "el mazo que el
-  // jugador está usando ahora", así que el nombre anterior ("Mazo"/
-  // "Mazo 2") se prestaba a esa confusión. Se agrega además un `title`
-  // (tooltip nativo al pasar el mouse) explicando la diferencia entre los
-  // dos: el primero (ext.deck) fuerza incluir las cartas que sí tiene y
-  // excluye las que no, sin mirar nivel; el segundo (ext.deck2) solo
-  // excluye las que no tiene desbloqueadas, sin forzar cuáles incluir ni
-  // mirar nivel tampoco — por eso puede sugerir mazos con cartas de nivel
-  // bajo mezcladas con cartas al máximo.
-  const deckTitle = 'Búsqueda en RoyaleAPI de mazos que solo usan cartas que esta cuenta tiene desbloqueadas, forzando la inclusión de esas cartas (no distingue el nivel de cada carta).';
-  const deck2Title = 'Búsqueda en RoyaleAPI de mazos que solo usan cartas que esta cuenta tiene desbloqueadas, sin forzar cuáles incluir (no distingue el nivel de cada carta, puede mezclar cartas al máximo con cartas de nivel bajo).';
   document.getElementById('mRoyaleCwstatsBtns').innerHTML = `
     ${royaleOkBtn ? `<a href="${esc(ext.royaleApi)}" target="_blank" rel="noopener">${ICONO_ROYALEAPI}RoyaleAPI</a>` : ''}
-    ${cwOkBtn ? `<a href="${esc(ext.cwStats)}" target="_blank" rel="noopener">${ICONO_CWSTATS}CWStats</a>` : ''}
-    ${deckOkBtn ? `<a href="${esc(ext.deck)}" target="_blank" rel="noopener" title="${esc(deckTitle)}">🃏 Sugerencias de mazo</a>` : ''}
-    ${deck2OkBtn ? `<a href="${esc(ext.deck2)}" target="_blank" rel="noopener" title="${esc(deck2Title)}">🃏 Sugerencias de mazo (2)</a>` : ''}`;
+    ${cwOkBtn ? `<a href="${esc(ext.cwStats)}" target="_blank" rel="noopener">${ICONO_CWSTATS}CWStats</a>` : ''}`;
 
   document.getElementById('btnVerTorneosJugador').dataset.tag = j.tag;
   const btnOtras = document.getElementById('btnVerOtrasCuentas');
