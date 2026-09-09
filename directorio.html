@@ -196,13 +196,17 @@
          perfil.html (ext.nivelXp/ext.nivelCartas/ext.arena).
        - copas / vGuerra: mismos nombres que ya usa perfil.html (j.copas/
          j.vGuerra).
-       - antiguedad: calculada acá mismo (calcularAntiguedad()) a partir
-         de m.fechaIngreso.
+       - antiguedad: FIX (09-sep-2026, pedido usuario — años en el juego,
+         no tiempo en el clan): ya NO se calcula acá a partir de
+         m.fechaIngreso; viene directo de 'webRoster' (backend), tomado de
+         la hoja Players (columna "Antigüedad"), y solo se formatea con
+         formatearAntiguedad().
      CONTRATO ESPERADO de 'webRoster' (backend, fuera de este repo): cada
      miembro debería traer, además de lo que ya usaba (tag, nombre, rango,
      vigencia), estos campos nuevos: ranking, nivelXp, nivelCartas, copas,
-     arena, vGuerra, fechaIngreso. Si el backend todavía no manda alguno,
-     esta tabla no rompe: la celda se pinta "—" (ver ROSTER_COLUMNAS). */
+     arena, vGuerra, fechaIngreso, antiguedad. Si el backend todavía no
+     manda alguno, esta tabla no rompe: la celda se pinta "—" (ver
+     ROSTER_COLUMNAS). */
   .roster-table-wrap{overflow-x:auto; -webkit-overflow-scrolling:touch;}
   .roster-table{width:100%; border-collapse:collapse; min-width:1100px;}
   .roster-table th, .roster-table td{padding:11px 13px; text-align:left; white-space:nowrap;}
@@ -1298,26 +1302,25 @@ function renderClanTabs(){
 }
 
 /**
- * calcularAntiguedad(fechaIngreso)
- * FIX (07-sep-2026, pedido usuario — columna "Antigüedad" en el
- * Directorio): a diferencia de "Vigencia" (última conexión, ya viene
- * calculada del backend), la antigüedad se calcula acá mismo a partir de
- * la fecha de ingreso a la Familia (m.fechaIngreso), mismo campo que ya
- * usa 'webAniversarios' en index.html para los hitos de antigüedad. Si
- * el dato todavía no llega del backend, se pinta "—" en vez de romper.
+ * formatearAntiguedad(antiguedad)
+ * FIX (09-sep-2026, pedido usuario — "La Antigüedad no significa cuánto
+ * tiempo lleva en el clan, sino cuánto tiempo lleva en el juego (en
+ * años), la hoja Players en sheets tiene una columna con ese nombre que
+ * trae esos datos"): reemplaza a la antigua calcularAntiguedad(fechaIngreso),
+ * que calculaba tiempo en el CLAN a partir de la fecha de ingreso a la
+ * Familia — dato equivocado para esta columna. Ahora "Antigüedad" es el
+ * valor que YA trae 'webRoster' (backend) directo de la hoja Players
+ * (columna "Antigüedad", años del jugador en Clash Royale, sincronizada
+ * desde la API oficial) — acá solo se formatea para mostrarlo. Si el
+ * dato todavía no llega del backend (cuenta sin sincronizar con Players),
+ * se pinta "—" en vez de romper, mismo criterio que el resto de
+ * ROSTER_COLUMNAS.
  */
-function calcularAntiguedad(fechaIngreso){
-  if (!fechaIngreso) return null;
-  const d = fechaIngreso instanceof Date ? fechaIngreso : new Date(fechaIngreso);
-  if (isNaN(d.getTime())) return null;
-  const dias = Math.floor((Date.now() - d.getTime()) / 86400000);
-  if (dias < 0) return null;
-  if (dias < 30) return `${dias} día${dias === 1 ? '' : 's'}`;
-  const meses = Math.floor(dias / 30);
-  if (meses < 12) return `${meses} mes${meses === 1 ? '' : 'es'}`;
-  const anios = Math.floor(meses / 12);
-  const mesesRestantes = meses % 12;
-  return mesesRestantes ? `${anios}a ${mesesRestantes}m` : `${anios} año${anios === 1 ? '' : 's'}`;
+function formatearAntiguedad(antiguedad){
+  if (antiguedad === null || antiguedad === undefined || antiguedad === '') return null;
+  const anios = Number(antiguedad);
+  if (isNaN(anios)) return null;
+  return `${anios} año${anios === 1 ? '' : 's'}`;
 }
 
 /**
@@ -1368,7 +1371,7 @@ const ROSTER_COLUMNAS = [
   { key:'arena',       label:'Arena',         cls:'rt-arena',       tipo:'texto',  get:m => m.arena },
   { key:'nivelXp',     label:'Nivel (XP)',    cls:'rt-nivelxp',     tipo:'numero', get:m => (m.nivelXp != null ? fmtNum(m.nivelXp) : null), raw:m => m.nivelXp },
   { key:'nivelCartas', label:'Nivel (cartas)',cls:'rt-nivelcartas', tipo:'numero', get:m => (m.nivelCartas != null ? fmtNum(m.nivelCartas) : null), raw:m => m.nivelCartas },
-  { key:'antiguedad',  label:'Antigüedad',    cls:'rt-antiguedad',  tipo:'fecha',  get:m => calcularAntiguedad(m.fechaIngreso), raw:m => m.fechaIngreso },
+  { key:'antiguedad',  label:'Antigüedad',    cls:'rt-antiguedad',  tipo:'numero', get:m => formatearAntiguedad(m.antiguedad), raw:m => (m.antiguedad === '' ? null : m.antiguedad) },
   { key:'vigencia',    label:'Vigencia',      cls:'rt-vigencia',    tipo:'fecha',  get:m => (m.vigencia ? fmtFechaCortaVigencia(m.vigencia) : null), raw:m => m.vigencia },
 ];
 
