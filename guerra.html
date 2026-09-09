@@ -834,7 +834,15 @@ function pintarSelectoresValoresDiarios(data){
     `<option value="${esc(t.temporada)}"${String(t.temporada) === String(temporadaSeleccionadaActivos) ? ' selected' : ''}>${esc(t.label)}</option>`).join('');
 
   selSem.style.display = '';
-  selSem.innerHTML = semanasTemp.map(s =>
+  // FIX (09-sep-2026, pedido usuario — "en el selector de semana debe ir
+  // de más reciente a más antiguo"): `semanasTemp` viene de
+  // _getSemanasTemporada() (08_Web_Endpoints.gs) en orden ascendente
+  // (S1, S2, S3...) porque ese orden es el que necesita el resto de la
+  // lógica de esta función (semanas[semanas.length-1] = la más reciente,
+  // usado como default arriba y en los onchange de año/temporada más
+  // abajo) -- .slice().reverse() invierte SOLO para pintar las <option>,
+  // sin tocar `semanasTemp`/`sel` en sí.
+  selSem.innerHTML = semanasTemp.slice().reverse().map(s =>
     `<option value="${esc(s.sectionIndex)}"${String(s.sectionIndex) === String(sectionIndexSeleccionadoActivos) ? ' selected' : ''}>${esc(s.label)}</option>`).join('');
 
   selAnio.onchange = () => {
