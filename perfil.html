@@ -570,9 +570,13 @@ function _datosCarta(nombre){
 function _ordenarCartasMazo(cartas){
   return cartas.slice().sort((a, b) => {
     const da = _datosCarta(a.name), db = _datosCarta(b.name);
-    // 1) Héroe (Campeón) primero.
-    const heroeA = da && da.rareza === 'campeon' ? 0 : 1;
-    const heroeB = db && db.rareza === 'campeon' ? 0 : 1;
+    // 1) Héroe (Campeón) primero. FIX (09-sep-2026, pedido usuario): ahora
+    // que 34_Web_API.gs manda a.hasHero/b.hasHero (dato real del catálogo,
+    // ver renderMazoActual() más abajo), se prioriza sobre la tabla
+    // estática DATOS_CARTAS_MAZO -- por si una carta Campeón nueva todavía
+    // no está agregada ahí, sigue ordenándose bien.
+    const heroeA = (a.hasHero || (da && da.rareza === 'campeon')) ? 0 : 1;
+    const heroeB = (b.hasHero || (db && db.rareza === 'campeon')) ? 0 : 1;
     if (heroeA !== heroeB) return heroeA - heroeB;
     // 2) Evolución primero (flag ya viene de _webMazoActualDesdeCards2()).
     const evoA = a.hasEvolution ? 0 : 1;
@@ -618,18 +622,24 @@ function _ordenarCartasMazo(cartas){
  * FIX (08-sep-2026, pedido usuario — "se debe ordenar el mazo por Héroe,
  * Evolución, Tipo (Tropa, Hechizo y estructura) y Calidad (Campeón,
  * Legendaria, Épica, Especial, Común)... se debe mostrar el tipo de
- * carta, calidad, costo (con su ícono)"): _webMazoActualDesdeCards2()
- * todavía solo manda name/nivel/hasEvolution/icon por carta — no tipo/
- * rareza/costo de elixir (a diferencia de _webEstadisticasCartas(), que sí
- * los manda desde Backup_Cards.csv, ver cargarEstadisticasCartas() en
- * index.html). Como el pedido es resolver esto SIN tocar backend por
- * ahora, cada carta se ordena/etiqueta con la tabla de referencia
- * estática DATOS_CARTAS_MAZO (ver más abajo) en vez de un dato real del
- * backend. Sería más prolijo que _webMazoActualDesdeCards2() mandara
- * tipo/rarity/elixirCost igual que _webEstadisticasCartas() (y de paso
- * heroIcon/evolutionIcon reales, para poder pintar la imagen correcta de
- * la variante Héroe/Evolución en vez de siempre la básica) — queda
- * pendiente para cuando se comparta 34_Web_API.gs.
+ * carta, calidad, costo (con su ícono)"): en su momento _webMazoActualDesdeCards2()
+ * todavía no mandaba tipo/rareza/costo de elixir por carta (a diferencia
+ * de _webEstadisticasCartas(), que sí los manda desde Backup_Cards.csv,
+ * ver cargarEstadisticasCartas() en index.html), así que cada carta se
+ * ordenaba/etiquetaba con la tabla de referencia estática DATOS_CARTAS_MAZO
+ * (ver más abajo) en vez de un dato real del backend. Esa tabla estática
+ * se mantiene TAL CUAL (sigue siendo la fuente de rareza/tipo/elixir para
+ * el badge y el orden) — lo único que sí llegó de 34_Web_API.gs es
+ * hasHero/heroIcon (FIX 09-sep-2026, ver justo abajo), que faltaba para
+ * pintar la imagen correcta de la variante Héroe.
+ *
+ * FIX (09-sep-2026, pedido usuario — "necesita que
+ * _webMazoActualDesdeCards2() mande heroIcon/evolutionIcon como ya hace
+ * _webEstadisticasCartas()"): evolutionIcon ya llegaba; ahora también
+ * llegan hasHero/heroIcon (misma fuente, Backup_Cards.csv, columnas
+ * Héroe/Evolución) — la imagen de cada carta ya no es siempre la básica
+ * (c.icon), prioriza Héroe > Evolución (si el jugador la desbloqueó) >
+ * básica, ver imgSrc más abajo.
  */
 function renderMazoActual(mazoActual, ext){
   ext = ext || {};
@@ -659,19 +669,33 @@ function renderMazoActual(mazoActual, ext){
     return;
   }
 
+  // FIX (09-sep-2026, pedido usuario — "necesita que
+  // _webMazoActualDesdeCards2() mande heroIcon/evolutionIcon como ya hace
+  // _webEstadisticasCartas()"): 34_Web_API.gs ya manda ambos campos.
+  // Prioridad de imagen por carta: Héroe (variante Campeón real de
+  // Supercell) > Evolución (si el jugador la tiene desbloqueada, evoLevel
+  // > 0) > ícono básico -- mismo orden que _ordenarCartasMazo() usa para
+  // el ORDEN visual (Héroe primero, Evolución después), así que la imagen
+  // que se pinta coincide con el criterio por el que la carta aparece
+  // donde aparece. hasHero es "esta carta TIENE variante Héroe en el
+  // catálogo" (todas las Campeón), no depende del progreso del jugador --
+  // a diferencia de hasEvolution.
   const cartasHtml = _ordenarCartasMazo(mazoActual.cartas).map(c => {
     const d = _datosCarta(c.name);
     const tipoTxt = d ? d.tipo.charAt(0).toUpperCase() + d.tipo.slice(1) : '';
+    const imgSrc = (c.hasHero && c.heroIcon) ? c.heroIcon
+      : (c.hasEvolution && c.evolutionIcon) ? c.evolutionIcon
+      : c.icon;
     return `
-    <div class="carta-chip${c.icon ? '' : ' carta-chip--sin-img'}">
-      ${c.icon ? `<img class="cc-img" src="${esc(c.icon)}" alt="${esc(c.name)}" loading="lazy" onerror="const p=this.parentElement; this.remove(); if(p) p.classList.add('carta-chip--sin-img');">` : ''}
+    <div class="carta-chip${imgSrc ? '' : ' carta-chip--sin-img'}">
+      ${imgSrc ? `<img class="cc-img" src="${esc(imgSrc)}" alt="${esc(c.name)}" loading="lazy" onerror="const p=this.parentElement; this.remove(); if(p) p.classList.add('carta-chip--sin-img');">` : ''}
       <div class="cc-content">
         <div class="cc-fila-1"><b>${esc(c.name)}</b></div>
         <div class="cc-meta">
           ${d ? `<span class="cc-rareza" data-rareza="${d.rareza}">${esc(RAREZA_CARTA_TXT[d.rareza])}</span>` : ''}
           ${tipoTxt ? `<span class="cc-tipo">${esc(tipoTxt)}</span>` : ''}
           ${d && d.elixir != null ? `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">${esc(String(d.elixir))}</span>` : ''}
-          ${d && d.rareza === 'campeon' ? `<span class="cc-badge">🦸 Héroe</span>` : ''}
+          ${(c.hasHero || (d && d.rareza === 'campeon')) ? `<span class="cc-badge">🦸 Héroe</span>` : ''}
           ${c.hasEvolution ? `<span class="cc-badge">✨ Evolución</span>` : ''}
         </div>
         <div class="text-faint" style="font-size:10px;">${c.nivel ? 'Nivel ' + esc(String(c.nivel)) : '—'}</div>
