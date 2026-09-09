@@ -93,6 +93,18 @@
      vez de forzar overflow en toda la página. */
   .table-scroll{overflow-x:auto; -webkit-overflow-scrolling:touch;}
   .table-scroll table{min-width:420px;}
+  /* FIX (08-sep-2026, pedido usuario — "La cuadrícula de ataques
+     pendientes también se debe centrar [...] los nombres no se centran,
+     se alinean a la izquierda pero el encabezado sí"): esta tabla venía
+     usando el th{text-align:left} genérico de styles.css (pensado para
+     el resto de tablas del sitio) para las 3 columnas por igual; ahora
+     se centran los 3 encabezados Y los valores de Clan/Faltantes, y solo
+     el nombre de cada fila (.col-nombre) queda a la izquierda — mismo
+     criterio que .col-jugador en las cuadrículas de Activos/Temporada
+     de más abajo. */
+  .tbl-pendientes th{text-align:center;}
+  .tbl-pendientes td{text-align:center;}
+  .tbl-pendientes td.col-nombre{text-align:left;}
   /* FASE 13 punto 1 del plan de cambios web (07-sep-2026, vista (a) del
      "Log" de guerra de RoyaleAPI): pestañas por clan para la sección
      "Log de Guerra (Histórico)" -- mismo patrón visual .tabs-row/.tab-btn
@@ -221,9 +233,16 @@
      filas de arriba, ":not(:first-child)" ya no alcanza (la fila inferior
      de J/V/S/D/Total no tiene la celda "Jugador" porque esta usa
      rowspan="2", así que su primer <th> real SÍ sería :first-child de esa
-     fila y quedaría descentrado sin esta clase explícita). */
+     fila y quedaría descentrado sin esta clase explícita).
+     FIX (08-sep-2026, pedido usuario — "Se debe centrar solo los valores
+     de las cuadrículas y todos los encabezados, los nombres no se
+     centran, se alinean a la izquierda pero el encabezado sí"): antes
+     ".col-jugador" dejaba el encabezado "Jugador" TAMBIÉN a la
+     izquierda, junto con los nombres; ahora el <th> "Jugador" se centra
+     igual que el resto de encabezados (ya no tiene excepción propia) y
+     SOLO el <td> con el nombre de cada fila queda a la izquierda. */
   .ai-clan-card table th, .ai-clan-card table td{text-align:center;}
-  .ai-clan-card table th.col-jugador, .ai-clan-card table td.col-jugador{text-align:left;}
+  .ai-clan-card table td.col-jugador{text-align:left;}
   /* La tabla de Activos pasó de 6 a 16 columnas (Jugador + 3 megacategorías
      de 5 columnas c/u) — el min-width:420px genérico de .table-scroll
      (pensado para tablas angostas como "Pendientes de Atacar" y también
@@ -838,10 +857,10 @@ function render(data){
   document.getElementById('pendCount').textContent = pend.length + ' jugador(es)';
   const pendWrap = document.getElementById('pendWrap');
   pendWrap.innerHTML = pend.length ? `
-    <div class="card" style="padding:12px;"><div class="table-scroll"><table>
+    <div class="card" style="padding:12px;"><div class="table-scroll"><table class="tbl-pendientes">
       <thead><tr><th>Nombre</th><th>Clan</th><th>Faltantes</th></tr></thead>
       <tbody>${pend.map(p => `
-          <tr><td>${p.tag ? enlaceJugador(p.nombre || p.nomMulti || p.tag, p.tag) : esc(p.nombre || p.nomMulti || p.tag)}</td><td>${esc(p.clan)}</td><td class="falt">${fmtNum(p.faltantes)}</td></tr>`).join('')}
+          <tr><td class="col-nombre">${p.tag ? enlaceJugador(p.nombre || p.nomMulti || p.tag, p.tag) : esc(p.nombre || p.nomMulti || p.tag)}</td><td>${esc(p.clan)}</td><td class="falt">${fmtNum(p.faltantes)}</td></tr>`).join('')}
       </tbody>
     </table></div></div>` : '<div class="empty">Nadie tiene ataques pendientes 🎉</div>';
   const resumen = Object.entries(data.resumenClanes || {});
