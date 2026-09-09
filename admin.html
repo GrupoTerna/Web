@@ -306,11 +306,19 @@
          miembro) y recién ahí alfabético por nombre — no es una
          suposición del frontend, es el mismo criterio que ya usa el bot.
          Se restaura el texto con ambos criterios (clan y rango) en vez de
-         solo el de clan. -->
+         solo el de clan.
+         FIX (09-sep-2026, pedido usuario — "'Agrupadas por clan, líder
+         primero.' No va, no es atractivo ni útil ese comentario para el
+         usuario final, se debe cambiar"): el texto anterior era correcto
+         (ver FIX de arriba) pero describía la MECÁNICA de orden interna,
+         que no le aporta nada al admin que lee la tarjeta. Se cambia por
+         una línea que dice qué información útil va a encontrar (mismos
+         datos que ya renderiza cargarMisCuentas() más abajo: Copas, V.
+         Guerra, Torneos, Vigencia), no cómo está ordenada. -->
     <div class="card" style="margin-top:24px;">
       <div class="eyebrow">Tus cuentas</div>
       <h3 style="font-size:15px; color:var(--gold); margin:10px 0 4px;">Cuentas a tu cargo</h3>
-      <p class="text-dim" style="font-size:13px; margin:0 0 14px;">Agrupadas por clan, líder primero dentro de cada uno.</p>
+      <p class="text-dim" style="font-size:13px; margin:0 0 14px;">Copas, victorias de guerra y torneos de cada cuenta, de un vistazo.</p>
       <div id="misCuentasWrap"><div class="empty">Cargando tus cuentas…</div></div>
     </div>
 
@@ -1377,7 +1385,16 @@ async function buscarMiembro(){
   }
 
   if(!tagFinal){ msgEl.innerHTML = '<div class="msg msg-error">Escribe un nombre, Nom_Multi o Tag válido.</div>'; return; }
-  inputEl.value = tagFinal;
+  // FIX (09-sep-2026, pedido usuario — "el cuadro para buscar miembro
+  // agrega un # y busca como si fuera tag [...] no debería agregarse el #
+  // de forma visual"): antes esta línea reemplazaba lo que el admin
+  // escribió (nombre, Nom_Multi o Tag) por `tagFinal` YA normalizado
+  // (mayúsculas + '#') apenas se resolvía la búsqueda — así que buscar
+  // "Juan" terminaba mostrando "#ABC123XYZ" en el cuadro, como si el
+  // admin hubiera escrito un Tag desde el principio. `tagFinal` sigue
+  // usándose igual para la llamada al backend de abajo (la búsqueda en sí
+  // no cambia) -- solo se deja de pisar visualmente lo que el admin
+  // escribió.
   try{
     // webAdminBuscarMiembro ya consulta el perfil público (endpoint
     // `players`) cuando el Tag no tiene registro en Directorio, así que
