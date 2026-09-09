@@ -23,6 +23,29 @@
   #logoutBtn:hover{border-color:var(--danger); color:var(--danger);}
   .buscador{display:flex; gap:10px; flex-wrap:wrap;}
   .buscador input{flex:1; min-width:200px;}
+  /* FIX (08-sep-2026, pedido usuario — buscador de "Buscar miembro" más
+     potente, con sugerencias mientras se escribe, ver
+     buscarSugerenciasMiembro()/renderSugerenciasMiembro() en el JS).
+     .buscador-wrap envuelve el .buscador para poder anclar el dropdown de
+     sugerencias justo debajo del input con position:absolute. Reutiliza el
+     look de .miembro-row de directorio.html (nombre + tag/nomMulti + chip
+     de la derecha) en vez de inventar un estilo nuevo. */
+  .buscador-wrap{position:relative;}
+  .sugerencias-dropdown{
+    position:absolute; left:0; right:0; top:calc(100% + 4px); z-index:20;
+    background:var(--surface); border:1px solid var(--line-strong); border-radius:var(--radius-sm);
+    max-height:320px; overflow-y:auto; box-shadow:0 10px 30px rgba(0,0,0,.35);
+  }
+  .miembro-row{
+    display:flex; align-items:center; justify-content:space-between; gap:10px;
+    padding:10px 14px; border-bottom:1px solid var(--line); cursor:pointer; transition:background .15s;
+  }
+  .miembro-row:last-child{border-bottom:none;}
+  .miembro-row:hover{background:rgba(162,57,255,.1);}
+  .miembro-row .mr-name{font-weight:600; font-size:14px;}
+  .miembro-row .mr-tag{font-family:var(--f-mono); font-size:11px; color:var(--text-faint); margin-top:2px;}
+  .miembro-row .mr-rango{font-family:var(--f-mono); font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.04em; text-align:right;}
+  .miembro-row .mr-right{text-align:right;}
   .perfil-cabecera{display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px;}
   .perfil-cabecera .stats-mini{display:flex; gap:18px; font-family:var(--f-mono); font-size:12px; color:var(--text-dim);}
   .perfil-cabecera .stats-mini b{color:var(--text); font-size:15px; display:block;}
@@ -272,20 +295,88 @@
          reutilizado acá vía _webMisCuentas() (34_Web_API.gs), agregando
          estadísticas por cuenta que el mensaje de WhatsApp no incluye
          (Copas, V. Guerra, Torneos, Vigencia). Va PRIMERO en el panel,
-         antes que "Buscar miembro", tal como pidió el usuario. -->
+         antes que "Buscar miembro", tal como pidió el usuario.
+         FIX (08-sep-2026, pedido usuario — "Agrupadas por clan, líder
+         primero. No va, revisa el saludo del bot, creo que ese estaba
+         mejor"): "líder primero" afirmaba un criterio de orden dentro de
+         cada clan que no está confirmado que sea el que realmente usa
+         _webMisCuentas()/_msgBienvenidaAdmin — se retira esa parte hasta
+         confirmar contra 29_BotWhatsApp.gs/34_Web_API.gs (Base.md) cuál es
+         el orden real dentro de cada clan; el texto se deja con SOLO lo
+         que sí es seguro (la agrupación por clan). -->
     <div class="card" style="margin-top:24px;">
       <div class="eyebrow">Tus cuentas</div>
       <h3 style="font-size:15px; color:var(--gold); margin:10px 0 4px;">Cuentas a tu cargo</h3>
-      <p class="text-dim" style="font-size:13px; margin:0 0 14px;">Agrupadas por clan, líder primero.</p>
+      <p class="text-dim" style="font-size:13px; margin:0 0 14px;">Agrupadas por clan.</p>
       <div id="misCuentasWrap"><div class="empty">Cargando tus cuentas…</div></div>
     </div>
 
+    <!-- FIX (08-sep-2026, pedido usuario):
+         (a) esta card no tenía nombre (era solo el input + botón, sin
+         eyebrow) — se le agrega "Buscar miembro".
+         (b) el input solo admitía Tag exacto (buscarMiembro() de abajo
+         llamaba a webAdminBuscarMiembro con normalizarTag() directo, sin
+         pasar por ningún candidato). Ahora reutiliza el mismo patrón de
+         "sugerencias mientras se escribe" que ya usa el buscador público
+         de directorio.html (coincidenciasDirectorio/renderListaCoincidencias
+         ahí, ver docblock de esas funciones) pero más potente, como pidió
+         el usuario:
+           - Busca por Nombre, Nom_Multi O Tag (directorio.html público
+             solo compara nombre/tag, no nom_Multi).
+           - Cubre TODO miembro con registro en nuestra base — activo o
+             inactivo — no solo el roster en vivo de cada clan (que es lo
+             único que carga rosterData en directorio.html vía el roster de
+             la API de Supercell). Requiere que el backend exponga esa
+             lista completa (ver contrato documentado junto a
+             buscarSugerenciasMiembro() en el JS, acción NUEVA
+             webAdminBuscarMiembroSugerencias — todavía no existe,
+             pendiente de conectar).
+           - Si el texto no da ninguna coincidencia en nuestra base y
+             "parece" un Tag, se prueba igual como Tag directo contra
+             webAdminBuscarMiembro (existente) al hacer clic/Enter — ese
+             endpoint ya consulta el perfil público (endpoint `players`)
+             aunque el Tag no tenga ningún registro en Directorio, así que
+             cualquier jugador de Clash Royale se puede buscar por Tag
+             aunque nunca haya sido parte de la Familia.
+         Las sugerencias se ordenan en el propio navegador (estado activo
+         primero, luego clan según ordenClanIndex() de common.js — NO
+         alfabético, y por último nombre alfabético) vía
+         _ordenarSugerenciasMiembro() más abajo, así que el orden es
+         correcto sin importar en qué orden responda el backend. -->
     <div class="card" style="margin-top:24px;">
-      <div class="buscador">
-        <input type="text" id="tagInput" placeholder="Ej: #ABC123XYZ" autocapitalize="characters">
-        <button class="btn btn-primary" id="btnBuscar">Buscar miembro</button>
+      <div class="eyebrow">Buscar miembro</div>
+      <p class="text-dim" style="font-size:13px; margin:10px 0 14px;">Busca por nombre, Nom_Multi o Tag — cualquier miembro con registro en la Familia (activo o inactivo), en cualquier clan. Si el jugador no tiene ningún registro con nosotros, igual se puede buscar directo por su Tag.</p>
+      <div class="buscador-wrap">
+        <div class="buscador">
+          <input type="text" id="tagInput" placeholder="Nombre, Nom_Multi o Tag…" autocapitalize="characters" autocomplete="off">
+          <button class="btn btn-primary" id="btnBuscar">Buscar miembro</button>
+        </div>
+        <div id="buscarSugerencias" class="sugerencias-dropdown" style="display:none;"></div>
       </div>
       <div id="buscarMsg"></div>
+
+      <!-- FIX (08-sep-2026, pedido usuario — "la detección de infiltrados
+           va justo debajo de buscar miembros pero en la misma sección"):
+           reubicada acá (antes vivía dentro de #directorioGrupo, ver el
+           comentario FASE 25/punto 38 más abajo, que ya no aplica a esta
+           subsección puntual). Mismo <details id="cardInfiltrados">, mismo
+           comportamiento y mismo backend — solo cambió DÓNDE vive en el
+           HTML; aplicarVisibilidadPorFunciones() lo sigue mostrando/
+           ocultando por id sin que le importe su nuevo contenedor. -->
+      <div style="margin-top:22px; padding-top:18px; border-top:1px solid var(--line);">
+        <details class="admin-subseccion" id="cardInfiltrados">
+          <summary><span class="cat-titulo">Detección de infiltrados</span></summary>
+          <div class="admin-subseccion-body">
+            <p class="text-dim" style="font-size:13px; margin:0 0 14px;">Escribe el Tag de un clan rival o de un jugador puntual. Se revisa contra los clanes rivales de esta temporada, la lista manual de conflicto (hoja "Conflictos") y nuestro propio roster (Directorio/Inactivos/Vetados).</p>
+            <div class="buscador">
+              <input type="text" id="infTagInput" placeholder="Ej: #ABC123XYZ" autocapitalize="characters">
+              <button class="btn btn-primary" id="btnBuscarInfiltrado">Buscar</button>
+            </div>
+            <div id="infMsg"></div>
+            <div id="infResultado" style="margin-top:16px;"></div>
+          </div>
+        </details>
+      </div>
     </div>
 
     <!-- FASE 25 (03-sep-2026, pedido usuario — reordenar panel admin):
@@ -298,16 +389,18 @@
          FIX (04-sep-2026, pedido usuario, punto 38 — "la sección de
          Directorio va antes del visor de contenido, la detección de
          infiltrados debe ser parte de directorio (después de vetar)"):
-         (a) todo este contenedor se movió ANTES de "Visor de contenido"
-         (antes iba después, solo delante de "Torneos y sorteos"); (b) la
-         card suelta "Detección de infiltrados" (antes ubicada entre
-         "Buscar miembro" y "Visor de contenido", ver FASE 6) ahora es una
-         subsección más de Directorio, ubicada después de "Vetar miembro".
-         Los ids de cada card (cardRegistrarNuevo/cardVetar) NO cambiaron —
-         aplicarVisibilidadPorFunciones() sigue ocultando cada subsección
-         por separado según Funciones del admin logueado, y además ahora
-         oculta el contenedor completo si ninguna de las dos aplica (ver
-         esa función más abajo). -->
+         todo este contenedor se movió ANTES de "Visor de contenido" (antes
+         iba después, solo delante de "Torneos y sorteos").
+         FIX (08-sep-2026, pedido usuario — "la detección de infiltrados va
+         en la sección de buscar miembros, no en Directorio"): la
+         subsección "Detección de infiltrados" que vivía ACÁ (después de
+         "Vetar miembro", ver FIX anterior) se movió a la card "Buscar
+         miembro" de arriba — este contenedor ahora solo agrupa Registrar/
+         Vetar. Los ids de cada card (cardRegistrarNuevo/cardVetar) NO
+         cambiaron — aplicarVisibilidadPorFunciones() sigue ocultando cada
+         subsección por separado según Funciones del admin logueado, y
+         además ahora oculta el contenedor completo si ninguna de las dos
+         aplica (ver esa función más abajo). -->
     <div class="card admin-grupo" id="directorioGrupo" style="margin-top:24px;">
       <div class="eyebrow">Directorio</div>
 
@@ -396,33 +489,6 @@
         </div>
       </details>
 
-      <!-- FASE 6 (03-sep-2026, punto 6 del documento — Detección de
-           infiltrados/sabotaje), reubicada acá el 04-sep-2026 (punto 38 —
-           "debe ser parte de directorio, después de vetar"): panel de
-           búsqueda bajo demanda. El admin escribe el Tag de un CLAN o de
-           un JUGADOR y se consulta la API en el momento (no es un escaneo
-           automático, ver docblock de 35_DeteccionInfiltrados.gs). Llama a
-           accion=webAdminBuscarInfiltrado (08_Web_Endpoints.gs ->
-           _webAdminBuscarInfiltrado(), 35_DeteccionInfiltrados.gs).
-           La lista MANUAL de clanes en conflicto (hoja 'Conflictos') NO se
-           edita desde acá a propósito — el usuario pidió que ese ingreso
-           sea directo en Sheets, no un CRUD web; este panel solo consulta.
-           Igual que Registrar/Vetar, es una <details class="admin-subseccion">
-           más dentro de directorioGrupo (mismo patrón de visibilidad por
-           Funciones). -->
-      <details class="admin-subseccion" id="cardInfiltrados">
-        <summary><span class="cat-titulo">Detección de infiltrados</span></summary>
-        <div class="admin-subseccion-body">
-          <p class="text-dim" style="font-size:13px; margin:0 0 14px;">Escribe el Tag de un clan rival o de un jugador puntual. Se revisa contra los clanes rivales de esta temporada, la lista manual de conflicto (hoja "Conflictos") y nuestro propio roster (Directorio/Inactivos/Vetados).</p>
-          <div class="buscador">
-            <input type="text" id="infTagInput" placeholder="Ej: #ABC123XYZ" autocapitalize="characters">
-            <button class="btn btn-primary" id="btnBuscarInfiltrado">Buscar</button>
-          </div>
-          <div id="infMsg"></div>
-          <div id="infResultado" style="margin-top:16px;"></div>
-        </div>
-      </details>
-
       <!-- FASE 3 (06-sep-2026, punto 3 del documento — detección de
            reemplazo de guerra): backend ya existía y estaba completo
            (_getParticipacionHoyGuerra(), 17_GuerraSheet.gs, expuesto vía
@@ -437,7 +503,7 @@
       <details class="admin-subseccion" id="cardParticipacionHoy" open>
         <summary><span class="cat-titulo">Participación de hoy en guerra</span></summary>
         <div class="admin-subseccion-body">
-          <p class="text-dim" style="font-size:13px; margin:0 0 14px;">Por clan: cuentas que ya atacaron hoy (reservadas, no reemplazables) vs. cuentas activas que todavía no atacaron (disponibles para reemplazo).</p>
+          <p class="text-dim" style="font-size:13px; margin:0 0 14px;">Por clan: cuentas que ya atacaron hoy (reservadas, no reemplazables) vs. cuentas activas que todavía no atacaron (reemplazables).</p>
           <div id="participacionHoyMsg"></div>
           <div id="participacionHoyResultado" style="margin-top:8px;"></div>
         </div>
@@ -1019,16 +1085,16 @@ function aplicarVisibilidadPorFunciones(){
   const puedeVetar = funciones.indexOf('Vetar') !== -1;
   document.getElementById('cardRegistrarNuevo').style.display = puedeRegistrar ? '' : 'none';
   document.getElementById('cardVetar').style.display = puedeVetar ? '' : 'none';
-  // FIX (04-sep-2026, punto 38): "Detección de infiltrados" no depende de
-  // Funciones (nunca lo hizo cuando era una card suelta, ver FASE 6) — todo
-  // admin logueado puede consultarla, así que #cardInfiltrados siempre
-  // queda visible aunque no tenga "Registrar miembro nuevo" ni "Vetar".
-  // FASE 25 (03-sep-2026): ahora las tres subsecciones viven dentro de un
-  // solo contenedor "Directorio" (#directorioGrupo) — como Infiltrados
-  // siempre se muestra, el contenedor ya nunca queda vacío, pero se deja
-  // la misma lógica (ahora con "|| true" explícito por claridad) por si
-  // en el futuro Infiltrados también pasa a depender de una Función.
-  document.getElementById('directorioGrupo').style.display = (puedeRegistrar || puedeVetar || true) ? '' : 'none';
+  // FIX (08-sep-2026, pedido usuario — "la detección de infiltrados va en
+  // la sección de buscar miembros, no en Directorio"): #cardInfiltrados ya
+  // NO vive dentro de #directorioGrupo (se movió a la card "Buscar
+  // miembro", ver el HTML) — sigue sin depender de ninguna Función (todo
+  // admin logueado puede consultarla), por eso no se toca su display acá,
+  // pero ya no es motivo para forzar visible este contenedor si está
+  // vacío. Vuelve al comportamiento original de FASE 25: "Directorio"
+  // (que ahora solo agrupa Registrar/Vetar) se oculta completo si el admin
+  // logueado no tiene ninguna de las dos Funciones.
+  document.getElementById('directorioGrupo').style.display = (puedeRegistrar || puedeVetar) ? '' : 'none';
 }
 function mostrarLogin(msg){
   localStorage.removeItem(SESSION_KEY);
@@ -1169,15 +1235,154 @@ function renderMiembro(j){
   document.getElementById('guardarMsg').innerHTML = '';
 }
 
+/**
+ * FIX (08-sep-2026, pedido usuario — buscador de "Buscar miembro" más
+ * potente): antes buscarMiembro() solo aceptaba un Tag exacto
+ * (normalizarTag() directo sobre lo escrito). Ahora el input acepta
+ * Nombre, Nom_Multi o Tag, con sugerencias mientras se escribe (mismo
+ * espíritu que coincidenciasDirectorio()/renderListaCoincidencias() de
+ * directorio.html, pero sobre la base COMPLETA del admin — activos e
+ * inactivos, no solo el roster en vivo de cada clan — y comparando
+ * también contra Nom_Multi, que el buscador público no tiene).
+ *
+ * CONTRATO PENDIENTE DE CONECTAR (backend):
+ *   accion=webAdminBuscarMiembroSugerencias
+ *   GET autenticado (apiGetAuth, requiere sessionToken de admin).
+ *   Parámetros: { q: <texto escrito, ya trim()eado, 2+ caracteres> }
+ *   Respuesta esperada: { ok:true, resultados: [
+ *     { tag, nombre, nomMulti, clan, estado } , ... ] }
+ *   - `estado`: "Activo" o "Inactivo" (tal como se muestra en el badge).
+ *   - `nomMulti`: string vacío/omitido si el miembro no tiene multicuenta.
+ *   - Debe buscar por SIMILITUD (substring, insensible a mayúsculas) en
+ *     nombre, nomMulti Y tag, sobre TODO Directorio + Inactivos (no filtra
+ *     por clan del admin logueado — el pedido fue poder ubicar el tag de
+ *     "cualquier miembro... sin importar si está o no en el clan").
+ *   - No hace falta que el backend ordene nada: _ordenarSugerenciasMiembro()
+ *     de acá abajo reordena siempre (estado activo primero, clan según
+ *     ordenClanIndex() de common.js — no alfabético, y nombre alfabético al
+ *     final) sin importar en qué orden llegue la respuesta.
+ * Esta acción TODAVÍA NO EXISTE en el backend — buscarSugerenciasMiembro()
+ * de abajo está escrita para llamarla igual y fallar en silencio (solo
+ * oculta el dropdown) si el backend responde con error/acción no
+ * reconocida, así que no rompe nada mientras no esté conectada: el input
+ * simplemente no muestra sugerencias todavía, pero el botón "Buscar
+ * miembro" (buscarMiembro(), más abajo) sigue funcionando igual que antes
+ * para un Tag exacto.
+ */
+let _sugerenciasMiembroCache = [];
+let _sugerenciasMiembroTimer = null;
+
+function _ordenarSugerenciasMiembro(lista){
+  return (lista || []).slice().sort((a, b) => {
+    const activoA = String(a.estado||'').toLowerCase().startsWith('activ') ? 0 : 1;
+    const activoB = String(b.estado||'').toLowerCase().startsWith('activ') ? 0 : 1;
+    if(activoA !== activoB) return activoA - activoB;
+    const clanA = ordenClanIndex(a.clan), clanB = ordenClanIndex(b.clan);
+    if(clanA !== clanB) return clanA - clanB;
+    return String(a.nombre||'').localeCompare(String(b.nombre||''), 'es');
+  });
+}
+
+function renderSugerenciasMiembro(resultados){
+  const cont = document.getElementById('buscarSugerencias');
+  if(!resultados || !resultados.length){ cont.style.display = 'none'; cont.innerHTML = ''; return; }
+  cont.innerHTML = resultados.map(m => {
+    const activo = String(m.estado||'').toLowerCase().startsWith('activ');
+    const nombreConMulti = m.nomMulti ? `${esc(m.nombre)} <span class="text-faint">(${esc(m.nomMulti)})</span>` : esc(m.nombre);
+    return `
+      <div class="miembro-row js-sugerencia-miembro" data-tag="${esc(m.tag)}">
+        <div>
+          <div class="mr-name">${nombreConMulti}</div>
+          <div class="mr-tag">${esc(m.tag)}</div>
+        </div>
+        <div class="mr-right">
+          <div class="mr-rango">${esc(m.clan || '—')}</div>
+          <span class="badge ${activo ? 'badge-ok' : ''}" style="margin-top:4px;">${activo ? 'Activo' : 'Inactivo'}</span>
+        </div>
+      </div>`;
+  }).join('');
+  cont.style.display = '';
+}
+document.getElementById('buscarSugerencias').addEventListener('click', e => {
+  const fila = e.target.closest('.js-sugerencia-miembro');
+  if(!fila) return;
+  document.getElementById('tagInput').value = fila.dataset.tag;
+  document.getElementById('buscarSugerencias').style.display = 'none';
+  buscarMiembro();
+});
+document.addEventListener('click', e => {
+  if(!e.target.closest('.buscador-wrap')) document.getElementById('buscarSugerencias').style.display = 'none';
+});
+
+async function buscarSugerenciasMiembro(q){
+  if(!q || q.trim().length < 2){ renderSugerenciasMiembro([]); return; }
+  try{
+    const data = await apiGetAuth('webAdminBuscarMiembroSugerencias', { q: q.trim() });
+    if(!data || !data.ok || !Array.isArray(data.resultados)){ renderSugerenciasMiembro([]); return; }
+    _sugerenciasMiembroCache = data.resultados;
+    renderSugerenciasMiembro(_ordenarSugerenciasMiembro(data.resultados));
+  }catch(err){
+    // Backend todavía no tiene esta acción conectada, o falló la red: no
+    // se muestra ningún error al admin por esto — las sugerencias son un
+    // plus, no algo de lo que dependa poder buscar (ver buscarMiembro()).
+    renderSugerenciasMiembro([]);
+  }
+}
+document.getElementById('tagInput').addEventListener('input', e => {
+  clearTimeout(_sugerenciasMiembroTimer);
+  const q = e.target.value;
+  _sugerenciasMiembroTimer = setTimeout(() => buscarSugerenciasMiembro(q), 250);
+});
+
+/** true si `texto` "parece" un Tag de Clash Royale (con o sin '#'), igual
+ * de permisivo que el chequeo ya usado en directorio.html cuando el
+ * directorio todavía no cargó (mismo patrón /^#?[A-Za-z0-9]{4,}$/). */
+function _pareceTag(texto){
+  return /^#?[A-Za-z0-9]{4,}$/.test(String(texto||'').replace(/\s+/g, ''));
+}
+
 async function buscarMiembro(){
-  const tagNorm = normalizarTag(document.getElementById('tagInput').value);
+  const inputEl = document.getElementById('tagInput');
+  const raw = inputEl.value.trim();
   const msgEl = document.getElementById('buscarMsg');
   msgEl.innerHTML = '';
+  document.getElementById('buscarSugerencias').style.display = 'none';
   document.getElementById('miembroSec').style.display = 'none';
-  if(!tagNorm){ msgEl.innerHTML = '<div class="msg msg-error">Escribe un Tag válido.</div>'; return; }
-  document.getElementById('tagInput').value = tagNorm;
+  if(!raw){ msgEl.innerHTML = '<div class="msg msg-error">Escribe un nombre, Nom_Multi o Tag.</div>'; return; }
+
+  // Si ya coincide con una sugerencia cacheada (nombre o nomMulti exacto,
+  // o hay una sola coincidencia parcial), se resuelve directo a su Tag sin
+  // esperar otro Enter — mismo criterio de "una sola coincidencia se
+  // resuelve sola" que usa buscarMiembro() de directorio.html.
+  let tagFinal = null;
+  if(!_pareceTag(raw) && _sugerenciasMiembroCache.length){
+    const q = raw.toLowerCase();
+    const exactas = _sugerenciasMiembroCache.filter(m =>
+      String(m.nombre||'').toLowerCase() === q || String(m.nomMulti||'').toLowerCase() === q);
+    if(exactas.length === 1){
+      tagFinal = exactas[0].tag;
+    } else if(_sugerenciasMiembroCache.length === 1){
+      tagFinal = _sugerenciasMiembroCache[0].tag;
+    } else if(_sugerenciasMiembroCache.length > 1){
+      msgEl.innerHTML = '<div class="msg">Hay varias coincidencias — elige una de la lista de arriba.</div>';
+      renderSugerenciasMiembro(_ordenarSugerenciasMiembro(_sugerenciasMiembroCache));
+      return;
+    } else {
+      msgEl.innerHTML = '<div class="msg msg-error">No se encontró ningún miembro con ese nombre. Si es un jugador sin registro con nosotros, escribe directamente su Tag.</div>';
+      return;
+    }
+  } else {
+    tagFinal = normalizarTag(raw);
+  }
+
+  if(!tagFinal){ msgEl.innerHTML = '<div class="msg msg-error">Escribe un nombre, Nom_Multi o Tag válido.</div>'; return; }
+  inputEl.value = tagFinal;
   try{
-    const data = await apiGetAuth('webAdminBuscarMiembro', { tag: tagNorm });
+    // webAdminBuscarMiembro ya consulta el perfil público (endpoint
+    // `players`) cuando el Tag no tiene registro en Directorio, así que
+    // esta misma llamada cubre tanto a miembros con historial como a
+    // cualquier jugador de Clash Royale buscado solo por Tag.
+    const data = await apiGetAuth('webAdminBuscarMiembro', { tag: tagFinal });
     if(manejarRespuestaAuth(data)) return;
     if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
     renderMiembro(data.jugador);
@@ -1187,6 +1392,7 @@ async function buscarMiembro(){
 }
 document.getElementById('btnBuscar').addEventListener('click', buscarMiembro);
 document.getElementById('tagInput').addEventListener('keydown', e => { if(e.key === 'Enter') buscarMiembro(); });
+
 
 /* ---------- FASE 6 (03-sep-2026): Detección de infiltrados/sabotaje ---------- */
 // Ver docblock de 35_DeteccionInfiltrados.gs. _buscarInfiltrado() prueba
@@ -1296,7 +1502,10 @@ document.getElementById('infTagInput').addEventListener('keydown', e => { if(e.k
  * guerra). Pinta el resultado de webAdminParticipacionHoyGuerra
  * (_getParticipacionHoyGuerra(), 17_GuerraSheet.gs): por clan, cuentas
  * "reservadas" (ya atacaron hoy) vs "disponibles" (activas, sin atacar
- * todavía), más los casos "multiClan" (mismo Tag con ataques hoy en más
+ * todavía — mostradas en pantalla como "Reemplazables", FIX 08-sep-2026
+ * pedido usuario: "la columna DISPONIBLES debe cambiarse por
+ * REEMPLAZABLES"; la clave c.disponibles del backend no cambió, solo la
+ * etiqueta visible), más los casos "multiClan" (mismo Tag con ataques hoy en más
  * de un clan Terna a la vez — ver docblock de esa función para el
  * detalle). Se autocarga al abrir el panel (no depende de ningún input),
  * mismo criterio que cargarTorneosHoy()/cargarGanadoresTorneo().
@@ -1322,7 +1531,7 @@ function renderParticipacionHoyGuerra(data){
           ${_listaCuentasHtml(c.reservadas)}
         </div>
         <div>
-          <div class="text-dim" style="font-size:11px; text-transform:uppercase; letter-spacing:.08em;">Disponibles (${c.disponibles.length})</div>
+          <div class="text-dim" style="font-size:11px; text-transform:uppercase; letter-spacing:.08em;">Reemplazables (${c.disponibles.length})</div>
           ${_listaCuentasHtml(c.disponibles)}
         </div>
       </div>
@@ -2480,8 +2689,64 @@ document.getElementById('sorteoAccion').addEventListener('change', function(){
  *  público nunca trae el Tag y el panel lo necesita para poder registrar
  *  una resolución sobre una cuenta puntual. Cada participante (top3 y
  *  lista completa) sale con un botón "Gestionar" que abre el formulario
- *  de abajo (ver abrirResolucionForm()). */
+ *  de abajo (ver abrirResolucionForm()).
+ *
+ * FIX (08-sep-2026, pedido usuario — "los sorteos y torneos deben mostrar
+ * links a wsp del chat de los ganadores, no se puede verificar que estén
+ * en el grupo desde el sistema, pero se puede indicar si tenemos su
+ * celular; se debe dar la opción de verificar si está en el grupo pero se
+ * nos ha olvidado registrar su número, y la opción de descalificar por no
+ * estar en el grupo (verificación manual)"):
+ *   - Si el participante trae celular (p.celular, con o sin p.prefijo —
+ *     ver CONTRATO PENDIENTE más abajo), se pinta un link directo a su
+ *     WhatsApp (wa.me) en vez de solo un badge informativo — así el admin
+ *     puede escribirle ahí mismo para confirmar/invitar al grupo de
+ *     ganadores. Si no trae celular, se pinta un badge neutro "Sin número
+ *     registrado" en su lugar (el sistema NUNCA puede confirmar por su
+ *     cuenta que alguien esté en el grupo de WhatsApp — eso siempre queda
+ *     a verificación manual del admin, con o sin número).
+ *   - "Marcar visto en el grupo (manual)": para el caso "sí está en el
+ *     grupo pero se nos olvidó registrar su número" — el admin lo
+ *     confirma a ojo. Todavía es SOLO DE ESTA SESIÓN (_grupoVerificadoTags,
+ *     un Set en memoria) — ver CONTRATO PENDIENTE, falta que el backend
+ *     tenga dónde guardar esta confirmación para que sobreviva a recargar
+ *     la página o a que otro admin la vea.
+ *   - "Descalificar: no está en el grupo" reutiliza el mismo formulario de
+ *     resolución de siempre (abrirResolucionForm, tipoResolucion ya
+ *     existente "Descalificado") con el motivo pre-rellenado, en vez de
+ *     inventar un tipo de resolución nuevo en el backend.
+ *
+ * CONTRATO PENDIENTE DE CONECTAR (backend):
+ *   1) webAdminGanadoresTorneoDetalle (_webAdminGanadoresTorneoDetalle(),
+ *      34_Web_API.gs) todavía no se sabe si devuelve celular/prefijo por
+ *      participante — _waLinkGanador() de abajo ya está lista para usarlo
+ *      en cuanto la respuesta traiga `celular` (y opcionalmente `prefijo`,
+ *      default "51" si falta) en cada objeto de `top3`/`participantes`;
+ *      mientras no llegue, simplemente se muestra siempre el badge "Sin
+ *      número registrado" con sus dos acciones manuales.
+ *   2) "Marcar visto en el grupo" necesita un lugar donde persistir esa
+ *      confirmación (ej. una acción nueva webAdminGanadorMarcarEnGrupo con
+ *      { idTorneo, tag } que escriba un campo tipo "grupoVerificado" en el
+ *      registro del torneo/participante) para dejar de ser solo-sesión.
+ *      _marcarVistoEnGrupo() de abajo ya está aislada en una sola función
+ *      para que, cuando exista esa acción, sea el único lugar a tocar. */
 let ganadoresIdTorneoActual = null;
+const _grupoVerificadoTags = new Set(); // solo-sesión, ver CONTRATO PENDIENTE punto 2
+
+/** Arma el link de WhatsApp de un ganador si hay celular disponible.
+ * Acepta p.celular ya completo (con prefijo) o p.celular + p.prefijo por
+ * separado (mismo par de campos que ya usan nmPrefijo/nmCelular y
+ * fPrefijo/fCelular en el resto del panel) — default de prefijo "51"
+ * (Perú) si viene el celular pero no el prefijo, igual que el placeholder
+ * "Ej: 987654321" que ya usan esos otros campos. Devuelve null si no hay
+ * celular (badge "Sin número registrado" en su lugar). */
+function _waLinkGanador(p){
+  const celular = String(p.celular || '').replace(/\D/g, '');
+  if(!celular) return null;
+  const yaTienePrefijo = celular.length > 9; // celular peruano = 9 dígitos
+  const prefijo = yaTienePrefijo ? '' : String(p.prefijo || '51').replace(/\D/g, '');
+  return `https://wa.me/${prefijo}${celular}`;
+}
 
 function filaParticipanteResolucion(p){
   let estadoHtml = '';
@@ -2492,6 +2757,25 @@ function filaParticipanteResolucion(p){
   } else if(p.tipoResolucion){
     estadoHtml = `<div class="text-dim" style="font-size:12px; margin-top:6px;">Puesto original: ${esc(p.puestoOriginal)} — ${esc(p.motivoResolucion)}</div>`;
   }
+
+  const waLink = _waLinkGanador(p);
+  const verificadoManual = _grupoVerificadoTags.has(p.tag);
+  let grupoHtml;
+  if(waLink){
+    grupoHtml = `
+      <a href="${esc(waLink)}" target="_blank" rel="noopener" class="btn-icono" style="text-decoration:none; margin-top:8px; display:inline-flex;">📱 Escribir por WhatsApp</a>
+      <span class="text-faint" style="font-size:11px; margin-left:6px;">Verificación de que esté en el grupo sigue siendo manual.</span>`;
+  } else {
+    grupoHtml = `
+      <div style="margin-top:8px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+        <span class="badge">Sin número registrado</span>
+        ${verificadoManual
+          ? '<span class="badge badge-ok">Visto en el grupo (manual)</span>'
+          : `<button type="button" class="btn-icono btnMarcarGrupoManual" data-tag="${esc(p.tag)}">Marcar visto en el grupo</button>`}
+        <button type="button" class="btn-icono btnDescalificarSinGrupo" data-tag="${esc(p.tag)}" data-nombre="${esc(p.nombre)}" style="border-color:var(--danger); color:var(--danger);">Descalificar: no está en el grupo</button>
+      </div>`;
+  }
+
   return `
     <div class="contenido-item">
       <div class="cab">
@@ -2500,6 +2784,7 @@ function filaParticipanteResolucion(p){
       </div>
       <div class="ganador-victorias">${fmtNum(p.victorias)} victorias</div>
       ${estadoHtml}
+      ${grupoHtml}
       <button type="button" class="btn btnGestionarResolucion" style="margin-top:8px;"
         data-tag="${esc(p.tag)}" data-nombre="${esc(p.nombre)}"
         data-tipo="${esc(p.tipoResolucion || '')}" data-motivo="${esc(p.motivoResolucion || '')}">Gestionar</button>
@@ -2540,9 +2825,31 @@ async function cargarGanadoresTorneo(){
 // Delegación de clics: los botones "Gestionar" se regeneran cada vez que
 // se repinta #ganadoresLista, así que el listener va en el contenedor fijo.
 document.getElementById('ganadoresLista').addEventListener('click', (ev) => {
-  const btn = ev.target.closest('.btnGestionarResolucion');
-  if(!btn) return;
-  abrirResolucionForm(btn.dataset.tag, btn.dataset.nombre, { tipoResolucion: btn.dataset.tipo, motivoResolucion: btn.dataset.motivo });
+  const btnGestionar = ev.target.closest('.btnGestionarResolucion');
+  if(btnGestionar){
+    abrirResolucionForm(btnGestionar.dataset.tag, btnGestionar.dataset.nombre, { tipoResolucion: btnGestionar.dataset.tipo, motivoResolucion: btnGestionar.dataset.motivo });
+    return;
+  }
+  // FIX (08-sep-2026, pedido usuario): "Marcar visto en el grupo" — ver
+  // CONTRATO PENDIENTE junto a _grupoVerificadoTags más arriba (todavía
+  // solo-sesión, no persiste en el backend). Repinta la lista completa
+  // para no tener que tocar el DOM de esa fila a mano.
+  const btnMarcar = ev.target.closest('.btnMarcarGrupoManual');
+  if(btnMarcar){
+    _grupoVerificadoTags.add(btnMarcar.dataset.tag);
+    cargarGanadoresTorneo();
+    return;
+  }
+  // "Descalificar: no está en el grupo" — reutiliza el formulario de
+  // resolución de siempre con tipoResolucion "Descalificado" (ya
+  // existente) y el motivo pre-rellenado, en vez de un tipo nuevo.
+  const btnDescalificar = ev.target.closest('.btnDescalificarSinGrupo');
+  if(btnDescalificar){
+    abrirResolucionForm(btnDescalificar.dataset.tag, btnDescalificar.dataset.nombre, {
+      tipoResolucion: 'Descalificado',
+      motivoResolucion: 'No se pudo verificar que esté en el grupo de WhatsApp de ganadores (verificación manual, sin número registrado).'
+    });
+  }
 });
 
 function abrirResolucionForm(tag, nombre, resolucionActual){
