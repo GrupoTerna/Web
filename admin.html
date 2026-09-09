@@ -296,18 +296,21 @@
          estadísticas por cuenta que el mensaje de WhatsApp no incluye
          (Copas, V. Guerra, Torneos, Vigencia). Va PRIMERO en el panel,
          antes que "Buscar miembro", tal como pidió el usuario.
-         FIX (08-sep-2026, pedido usuario — "Agrupadas por clan, líder
-         primero. No va, revisa el saludo del bot, creo que ese estaba
-         mejor"): "líder primero" afirmaba un criterio de orden dentro de
-         cada clan que no está confirmado que sea el que realmente usa
-         _webMisCuentas()/_msgBienvenidaAdmin — se retira esa parte hasta
-         confirmar contra 29_BotWhatsApp.gs/34_Web_API.gs (Base.md) cuál es
-         el orden real dentro de cada clan; el texto se deja con SOLO lo
-         que sí es seguro (la agrupación por clan). -->
+         FIX (09-sep-2026, pedido usuario — "'Agrupadas por clan, líder
+         primero.' No va, revisa el saludo del bot, creo que ese estaba
+         mejor"): confirmado contra Base.md (29_BotWhatsApp.gs/
+         34_Web_API.gs) — "líder primero" SÍ era correcto. Tanto
+         _msgBienvenidaAdmin() como _webMisCuentas() (la función que
+         realmente alimenta esta tarjeta) ordenan las cuentas DENTRO de
+         cada clan por CFG.RANGO_ORDEN (líder, luego colíder, veterano,
+         miembro) y recién ahí alfabético por nombre — no es una
+         suposición del frontend, es el mismo criterio que ya usa el bot.
+         Se restaura el texto con ambos criterios (clan y rango) en vez de
+         solo el de clan. -->
     <div class="card" style="margin-top:24px;">
       <div class="eyebrow">Tus cuentas</div>
       <h3 style="font-size:15px; color:var(--gold); margin:10px 0 4px;">Cuentas a tu cargo</h3>
-      <p class="text-dim" style="font-size:13px; margin:0 0 14px;">Agrupadas por clan.</p>
+      <p class="text-dim" style="font-size:13px; margin:0 0 14px;">Agrupadas por clan, líder primero dentro de cada uno.</p>
       <div id="misCuentasWrap"><div class="empty">Cargando tus cuentas…</div></div>
     </div>
 
@@ -1245,29 +1248,27 @@ function renderMiembro(j){
  * inactivos, no solo el roster en vivo de cada clan — y comparando
  * también contra Nom_Multi, que el buscador público no tiene).
  *
- * CONTRATO PENDIENTE DE CONECTAR (backend):
- *   accion=webAdminBuscarMiembroSugerencias
- *   GET autenticado (apiGetAuth, requiere sessionToken de admin).
+ * CONECTADO (09-sep-2026): accion=webAdminBuscarMiembroSugerencias ya
+ * existe en el backend (_webAdminBuscarMiembroSugerencias(), 34_Web_API.gs)
+ * — GET autenticado (apiGetAuth, requiere sessionToken de admin).
  *   Parámetros: { q: <texto escrito, ya trim()eado, 2+ caracteres> }
- *   Respuesta esperada: { ok:true, resultados: [
+ *   Respuesta: { ok:true, resultados: [
  *     { tag, nombre, nomMulti, clan, estado } , ... ] }
  *   - `estado`: "Activo" o "Inactivo" (tal como se muestra en el badge).
- *   - `nomMulti`: string vacío/omitido si el miembro no tiene multicuenta.
- *   - Debe buscar por SIMILITUD (substring, insensible a mayúsculas) en
+ *   - `nomMulti`: string vacío si el miembro no tiene multicuenta.
+ *   - Busca por SIMILITUD (substring, insensible a mayúsculas/tildes) en
  *     nombre, nomMulti Y tag, sobre TODO Directorio + Inactivos (no filtra
  *     por clan del admin logueado — el pedido fue poder ubicar el tag de
  *     "cualquier miembro... sin importar si está o no en el clan").
- *   - No hace falta que el backend ordene nada: _ordenarSugerenciasMiembro()
- *     de acá abajo reordena siempre (estado activo primero, clan según
+ *   - El backend no ordena nada: _ordenarSugerenciasMiembro() de acá
+ *     abajo reordena siempre (estado activo primero, clan según
  *     ordenClanIndex() de common.js — no alfabético, y nombre alfabético al
  *     final) sin importar en qué orden llegue la respuesta.
- * Esta acción TODAVÍA NO EXISTE en el backend — buscarSugerenciasMiembro()
- * de abajo está escrita para llamarla igual y fallar en silencio (solo
- * oculta el dropdown) si el backend responde con error/acción no
- * reconocida, así que no rompe nada mientras no esté conectada: el input
- * simplemente no muestra sugerencias todavía, pero el botón "Buscar
- * miembro" (buscarMiembro(), más abajo) sigue funcionando igual que antes
- * para un Tag exacto.
+ * Un miembro SIN ningún registro en nuestra base (nunca fue parte de la
+ * Familia) no puede salir en sugerencias — buscarMiembro() de abajo ya
+ * cae a buscar el Tag exacto contra webAdminBuscarMiembro en ese caso,
+ * que sí consulta el perfil público (endpoint `players`) sin necesitar
+ * ningún registro previo.
  */
 let _sugerenciasMiembroCache = [];
 let _sugerenciasMiembroTimer = null;
@@ -2698,7 +2699,7 @@ document.getElementById('sorteoAccion').addEventListener('change', function(){
  * nos ha olvidado registrar su número, y la opción de descalificar por no
  * estar en el grupo (verificación manual)"):
  *   - Si el participante trae celular (p.celular, con o sin p.prefijo —
- *     ver CONTRATO PENDIENTE más abajo), se pinta un link directo a su
+ *     ya CONECTADO, ver más abajo), se pinta un link directo a su
  *     WhatsApp (wa.me) en vez de solo un badge informativo — así el admin
  *     puede escribirle ahí mismo para confirmar/invitar al grupo de
  *     ganadores. Si no trae celular, se pinta un badge neutro "Sin número
@@ -2716,20 +2717,21 @@ document.getElementById('sorteoAccion').addEventListener('change', function(){
  *     existente "Descalificado") con el motivo pre-rellenado, en vez de
  *     inventar un tipo de resolución nuevo en el backend.
  *
- * CONTRATO PENDIENTE DE CONECTAR (backend):
+ * CONECTADO (09-sep-2026):
  *   1) webAdminGanadoresTorneoDetalle (_webAdminGanadoresTorneoDetalle(),
- *      34_Web_API.gs) todavía no se sabe si devuelve celular/prefijo por
- *      participante — _waLinkGanador() de abajo ya está lista para usarlo
- *      en cuanto la respuesta traiga `celular` (y opcionalmente `prefijo`,
- *      default "51" si falta) en cada objeto de `top3`/`participantes`;
- *      mientras no llegue, simplemente se muestra siempre el badge "Sin
- *      número registrado" con sus dos acciones manuales.
- *   2) "Marcar visto en el grupo" necesita un lugar donde persistir esa
- *      confirmación (ej. una acción nueva webAdminGanadorMarcarEnGrupo con
- *      { idTorneo, tag } que escriba un campo tipo "grupoVerificado" en el
- *      registro del torneo/participante) para dejar de ser solo-sesión.
- *      _marcarVistoEnGrupo() de abajo ya está aislada en una sola función
- *      para que, cuando exista esa acción, sea el único lugar a tocar. */
+ *      34_Web_API.gs) ya devuelve `celular` (y `prefijo` cuando la fila lo
+ *      tiene guardado) por participante — resuelto cruzando el Tag contra
+ *      Directorio + Inactivos (ver _webCelularPorTag() en ese archivo).
+ *      _waLinkGanador() de abajo ya estaba lista para usarlo y no necesitó
+ *      ningún cambio: si el participante no tiene celular registrado en
+ *      ninguna de esas dos hojas, el campo simplemente no llega y se sigue
+ *      mostrando el badge "Sin número registrado" con sus dos acciones
+ *      manuales, tal como antes.
+ *   2) "Marcar visto en el grupo" TODAVÍA sigue siendo solo-sesión — sigue
+ *      pendiente de conectar (falta un lugar en el backend donde persistir
+ *      esa confirmación). _marcarVistoEnGrupo() de abajo ya está aislada
+ *      en una sola función para que, cuando exista esa acción, sea el
+ *      único lugar a tocar. */
 let ganadoresIdTorneoActual = null;
 const _grupoVerificadoTags = new Set(); // solo-sesión, ver CONTRATO PENDIENTE punto 2
 
