@@ -104,6 +104,52 @@
   .vetar-form{border:1px solid var(--line); border-radius:var(--radius-sm); padding:16px; background:var(--surface);}
   .vetar-form-titulo{font-family:var(--f-mono); font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--danger); margin-bottom:14px;}
   .ranking-chart-empty{font-family:var(--f-mono); font-size:12px; color:var(--text-faint); padding:18px 4px;}
+  /* FIX (08-sep-2026, pedido usuario — "se debe mostrar el tipo de carta,
+   * calidad, costo (con su ícono)"): el grid de cartas de "Mazo actual"
+   * pasa del layout simple anterior (ícono+nombre+nivel en columna) a la
+   * misma ficha "carta-chip" ya usada en index.html para "Cartas más
+   * usadas en la Familia" (ver <style>/cargarEstadisticasCartas() ahí) —
+   * mismas clases .carta-chip/.cc-*, copiadas tal cual acá porque viven en
+   * el <style> de cada página (no en assets/styles.css), para que ambas
+   * secciones se vean consistentes. Ver renderMazoActual() y
+   * _ordenarCartasMazo()/_datosCarta() más abajo en el script. */
+  .mazo-chips{display:grid; grid-template-columns:repeat(auto-fill, minmax(230px, 1fr)); gap:12px;}
+  .carta-chip{
+    display:grid; grid-template-columns:auto 1fr; align-items:stretch; gap:5px 12px; padding:8px 14px 8px 8px;
+    border:1px solid var(--line); border-radius:14px; font-size:12px; color:var(--text-dim);
+  }
+  .carta-chip.carta-chip--sin-img{grid-template-columns:1fr;}
+  .carta-chip .cc-img{
+    width:52px; height:100%; min-height:62px; object-fit:cover; border-radius:8px;
+    background:var(--bg-2); align-self:stretch;
+  }
+  .carta-chip .cc-content{display:flex; flex-direction:column; justify-content:center; gap:5px; min-width:0;}
+  .carta-chip .cc-fila-1{display:flex; flex-wrap:wrap; align-items:center; gap:5px 10px;}
+  .carta-chip b{color:var(--text);}
+  .carta-chip .cc-elixir{display:inline-flex; align-items:center; gap:3px; color:var(--purple-light); font-family:var(--f-mono);}
+  .carta-chip .cc-elixir img{width:13px; height:13px; vertical-align:-2px;}
+  .carta-chip .cc-meta{display:flex; align-items:center; gap:6px; flex-wrap:wrap;}
+  .carta-chip .cc-rareza{
+    font-family:var(--f-mono); font-size:10px; text-transform:uppercase; letter-spacing:.03em;
+    padding:2px 7px; border-radius:999px; border:1px solid currentColor;
+  }
+  .carta-chip .cc-rareza[data-rareza="comun"]{color:#4da6ff;}
+  .carta-chip .cc-rareza[data-rareza="especial"]{color:#ff9a3d;}
+  .carta-chip .cc-rareza[data-rareza="epica"]{color:#e64bd1;}
+  .carta-chip .cc-rareza[data-rareza="legendaria"]{
+    background:linear-gradient(90deg, #6ee7a0, #ff7cf0);
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    border-color:#ff7cf0;
+  }
+  .carta-chip .cc-rareza[data-rareza="campeon"]{color:var(--gold);}
+  .carta-chip .cc-tipo{
+    font-family:var(--f-mono); font-size:10px; text-transform:uppercase; letter-spacing:.03em;
+    padding:2px 7px; border-radius:999px; border:1px solid var(--line); color:var(--text-faint);
+  }
+  .carta-chip .cc-badge{
+    font-family:var(--f-mono); font-size:10px; padding:2px 7px; border-radius:999px;
+    background:var(--bg-2); color:var(--text-faint);
+  }
 </style>
 </head>
 <body data-page="perfil">
@@ -223,6 +269,35 @@
         <div class="eyebrow">Evolución</div>
         <h2 style="font-size:19px; margin-top:8px;">Ranking en el clan</h2>
         <div id="mRankingChart"></div>
+      </div>
+
+      <!-- ---------- ATAQUES / PUNTAJE / BARCOS POR SEMANA (FIX 08-sep-2026,
+           pedido usuario — "solo se está mostrando evolución de ranking,
+           falta de ataques, puntaje y barcos") ----------
+           Mismo array que el ranking de arriba (j.extendido.historialRanking,
+           una fila por semana), graficando otros 3 campos de esa misma
+           fila en vez de `ranking`. Cada tarjeta arranca oculta y solo se
+           muestra si ese campo puntual (ataques/puntaje/barcos) viene con
+           datos en al menos una semana del historial — ver
+           renderMetricaSemanal()/renderMetricasSemanales() más abajo. Si
+           el backend todavía no manda esos 3 campos en historialRanking
+           (con exactamente esos nombres), estas 3 tarjetas simplemente se
+           quedan ocultas — no rompen nada — y empiezan a mostrarse solas
+           en cuanto el backend los agregue, sin tocar este HTML de nuevo. -->
+      <div class="card" id="mAtaquesChartCard" style="padding:28px; margin-top:20px; display:none;">
+        <div class="eyebrow">Evolución</div>
+        <h2 style="font-size:19px; margin-top:8px;">Ataques por semana</h2>
+        <div id="mAtaquesChart"></div>
+      </div>
+      <div class="card" id="mPuntajeChartCard" style="padding:28px; margin-top:20px; display:none;">
+        <div class="eyebrow">Evolución</div>
+        <h2 style="font-size:19px; margin-top:8px;">Puntaje por semana</h2>
+        <div id="mPuntajeChart"></div>
+      </div>
+      <div class="card" id="mBarcosChartCard" style="padding:28px; margin-top:20px; display:none;">
+        <div class="eyebrow">Evolución</div>
+        <h2 style="font-size:19px; margin-top:8px;">Barcos por semana</h2>
+        <div id="mBarcosChart"></div>
       </div>
     </div>
   </section>
@@ -351,6 +426,172 @@ function renderExtendido(ext){
 }
 
 /**
+ * DATOS_CARTAS_MAZO / _datosCarta() / _ordenarCartasMazo()
+ * FIX (08-sep-2026, pedido usuario — "se debe ordenar el mazo por Héroe,
+ * Evolución, Tipo (Tropa, Hechizo y estructura) y Calidad (Campeón,
+ * Legendaria, Épica, Especial, Común)... se debe mostrar el tipo de
+ * carta, calidad, costo (con su ícono)"): tabla de referencia estática
+ * (tipo/rareza/costo de elixir por carta) para poder ordenar y mostrar
+ * esos datos sin tocar backend — ver el comentario completo en
+ * renderMazoActual() más abajo sobre por qué esto debería, a futuro,
+ * salir de Backup_Cards.csv en vez de vivir acá duplicado. Si Supercell
+ * saca una carta nueva que todavía no está en esta tabla, esa carta
+ * puntual simplemente no muestra tipo/calidad/costo (ver _datosCarta()) y
+ * se ordena al final — no rompe el resto del mazo. Claves normalizadas
+ * (minúscula, sin tildes) para no fallar por acentos ni mayúsculas.
+ */
+function _normNombreCarta(s){
+  return String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+}
+const ORDEN_TIPO_CARTA = { tropa: 0, hechizo: 1, estructura: 2 };
+const ORDEN_RAREZA_CARTA = { campeon: 0, legendaria: 1, epica: 2, especial: 3, comun: 4 };
+const RAREZA_CARTA_TXT = { campeon: 'Campeón', legendaria: 'Legendaria', epica: 'Épica', especial: 'Especial', comun: 'Común' };
+const DATOS_CARTAS_MAZO = {
+  // Tropas
+  'caballero': {tipo:'tropa', rareza:'comun', elixir:3},
+  'arqueras': {tipo:'tropa', rareza:'comun', elixir:3},
+  'duendes': {tipo:'tropa', rareza:'comun', elixir:2},
+  'gigante': {tipo:'tropa', rareza:'especial', elixir:5},
+  'p.e.k.k.a': {tipo:'tropa', rareza:'epica', elixir:7},
+  'esbirros': {tipo:'tropa', rareza:'comun', elixir:3},
+  'globo': {tipo:'tropa', rareza:'epica', elixir:5},
+  'bruja': {tipo:'tropa', rareza:'epica', elixir:5},
+  'barbaros': {tipo:'tropa', rareza:'comun', elixir:5},
+  'golem': {tipo:'tropa', rareza:'epica', elixir:8},
+  'esqueletos': {tipo:'tropa', rareza:'comun', elixir:1},
+  'valquiria': {tipo:'tropa', rareza:'especial', elixir:4},
+  'ejercito de esqueletos': {tipo:'tropa', rareza:'epica', elixir:3},
+  'bombardero': {tipo:'tropa', rareza:'comun', elixir:2},
+  'mosquetera': {tipo:'tropa', rareza:'especial', elixir:4},
+  'bebe dragon': {tipo:'tropa', rareza:'epica', elixir:4},
+  'principe': {tipo:'tropa', rareza:'epica', elixir:5},
+  'mago': {tipo:'tropa', rareza:'especial', elixir:5},
+  'mini p.e.k.k.a': {tipo:'tropa', rareza:'especial', elixir:4},
+  'duendes lanceros': {tipo:'tropa', rareza:'comun', elixir:2},
+  'gigante esqueleto': {tipo:'tropa', rareza:'epica', elixir:6},
+  'sabueso': {tipo:'tropa', rareza:'especial', elixir:4},
+  'turba de esbirros': {tipo:'tropa', rareza:'comun', elixir:5},
+  'mago de hielo': {tipo:'tropa', rareza:'legendaria', elixir:3},
+  'gigante real': {tipo:'tropa', rareza:'comun', elixir:6},
+  'guardias': {tipo:'tropa', rareza:'epica', elixir:3},
+  'princesa': {tipo:'tropa', rareza:'legendaria', elixir:3},
+  'principe oscuro': {tipo:'tropa', rareza:'epica', elixir:4},
+  'los tres mosqueteros': {tipo:'tropa', rareza:'especial', elixir:9},
+  'sabueso de lava': {tipo:'tropa', rareza:'legendaria', elixir:7},
+  'espiritu de hielo': {tipo:'tropa', rareza:'comun', elixir:1},
+  'espiritu de fuego': {tipo:'tropa', rareza:'comun', elixir:1},
+  'minero': {tipo:'tropa', rareza:'legendaria', elixir:3},
+  'sparky': {tipo:'tropa', rareza:'legendaria', elixir:6},
+  'lanzarrocas': {tipo:'tropa', rareza:'epica', elixir:5},
+  'lenador': {tipo:'tropa', rareza:'legendaria', elixir:4},
+  'ariete de batalla': {tipo:'tropa', rareza:'especial', elixir:4},
+  'dragon infernal': {tipo:'tropa', rareza:'legendaria', elixir:4},
+  'golem de hielo': {tipo:'tropa', rareza:'especial', elixir:2},
+  'mini esbirro': {tipo:'tropa', rareza:'especial', elixir:3},
+  'duende lanzadardos': {tipo:'tropa', rareza:'especial', elixir:3},
+  'pandilla de duendes': {tipo:'tropa', rareza:'comun', elixir:3},
+  'electromago': {tipo:'tropa', rareza:'legendaria', elixir:4},
+  'barbaros de elite': {tipo:'tropa', rareza:'comun', elixir:6},
+  'cazador': {tipo:'tropa', rareza:'epica', elixir:4},
+  'verdugo': {tipo:'tropa', rareza:'epica', elixir:5},
+  'bandida': {tipo:'tropa', rareza:'legendaria', elixir:3},
+  'reclutas reales': {tipo:'tropa', rareza:'comun', elixir:7},
+  'bruja nocturna': {tipo:'tropa', rareza:'legendaria', elixir:4},
+  'murcielagos': {tipo:'tropa', rareza:'comun', elixir:2},
+  'fantasma real': {tipo:'tropa', rareza:'legendaria', elixir:3},
+  'montacarneros': {tipo:'tropa', rareza:'legendaria', elixir:5},
+  'zappies': {tipo:'tropa', rareza:'especial', elixir:4},
+  'picaros': {tipo:'tropa', rareza:'comun', elixir:5},
+  'carro canon': {tipo:'tropa', rareza:'epica', elixir:5},
+  'caballero mega': {tipo:'tropa', rareza:'legendaria', elixir:7},
+  'barril de esqueletos': {tipo:'tropa', rareza:'comun', elixir:3},
+  'maquina voladora': {tipo:'tropa', rareza:'especial', elixir:4},
+  'rompemuros': {tipo:'tropa', rareza:'comun', elixir:2},
+  'chanchos reales': {tipo:'tropa', rareza:'especial', elixir:5},
+  'duende gigante': {tipo:'tropa', rareza:'epica', elixir:6},
+  'pescador': {tipo:'tropa', rareza:'legendaria', elixir:3},
+  'arquero magico': {tipo:'tropa', rareza:'legendaria', elixir:4},
+  'dragon electrico': {tipo:'tropa', rareza:'epica', elixir:5},
+  'lanzafuegos': {tipo:'tropa', rareza:'comun', elixir:3},
+  'golem de elixir': {tipo:'tropa', rareza:'especial', elixir:3},
+  'sanadora de batalla': {tipo:'tropa', rareza:'especial', elixir:4},
+  'rey esqueleto': {tipo:'tropa', rareza:'campeon', elixir:4},
+  'reina arquera': {tipo:'tropa', rareza:'campeon', elixir:5},
+  'caballero dorado': {tipo:'tropa', rareza:'campeon', elixir:4},
+  'monje': {tipo:'tropa', rareza:'campeon', elixir:5},
+  'dragones esqueleto': {tipo:'tropa', rareza:'comun', elixir:4},
+  'bruja madre': {tipo:'tropa', rareza:'legendaria', elixir:4},
+  'espiritu electrico': {tipo:'tropa', rareza:'comun', elixir:1},
+  'gigante electrico': {tipo:'tropa', rareza:'epica', elixir:7},
+  'fenix': {tipo:'tropa', rareza:'legendaria', elixir:4},
+  'pequeno principe': {tipo:'tropa', rareza:'campeon', elixir:3},
+  'duende demoledor': {tipo:'tropa', rareza:'epica', elixir:4},
+  'arbusto sospechoso': {tipo:'tropa', rareza:'comun', elixir:2},
+  'goblinstein': {tipo:'tropa', rareza:'legendaria', elixir:5},
+  'gigante runico': {tipo:'tropa', rareza:'epica', elixir:6},
+  'espiritu de sanacion': {tipo:'tropa', rareza:'especial', elixir:1},
+  // Estructuras
+  'canon': {tipo:'estructura', rareza:'comun', elixir:3},
+  'torre tesla': {tipo:'estructura', rareza:'comun', elixir:4},
+  'mortero': {tipo:'estructura', rareza:'comun', elixir:4},
+  'torre infernal': {tipo:'estructura', rareza:'especial', elixir:5},
+  'torre de bombas': {tipo:'estructura', rareza:'especial', elixir:4},
+  'x-bow': {tipo:'estructura', rareza:'epica', elixir:6},
+  'lapida': {tipo:'estructura', rareza:'especial', elixir:3},
+  'choza de duendes': {tipo:'estructura', rareza:'especial', elixir:5},
+  'choza barbara': {tipo:'estructura', rareza:'especial', elixir:7},
+  'horno': {tipo:'estructura', rareza:'especial', elixir:4},
+  'colector de elixir': {tipo:'estructura', rareza:'especial', elixir:6},
+  'jaula de duendes': {tipo:'estructura', rareza:'especial', elixir:4},
+  'taladro de duendes': {tipo:'estructura', rareza:'epica', elixir:4},
+  // Hechizos
+  'bola de fuego': {tipo:'hechizo', rareza:'especial', elixir:4},
+  'flechas': {tipo:'hechizo', rareza:'comun', elixir:3},
+  'furia': {tipo:'hechizo', rareza:'epica', elixir:2},
+  'cohete': {tipo:'hechizo', rareza:'especial', elixir:6},
+  'barril de duendes': {tipo:'hechizo', rareza:'epica', elixir:3},
+  'congelar': {tipo:'hechizo', rareza:'epica', elixir:4},
+  'espejo': {tipo:'hechizo', rareza:'epica', elixir:1},
+  'rayo': {tipo:'hechizo', rareza:'epica', elixir:6},
+  'descarga': {tipo:'hechizo', rareza:'comun', elixir:2},
+  'veneno': {tipo:'hechizo', rareza:'epica', elixir:4},
+  'cementerio': {tipo:'hechizo', rareza:'legendaria', elixir:5},
+  'el tronco': {tipo:'hechizo', rareza:'legendaria', elixir:2},
+  'tornado': {tipo:'hechizo', rareza:'epica', elixir:3},
+  'clon': {tipo:'hechizo', rareza:'epica', elixir:3},
+  'terremoto': {tipo:'hechizo', rareza:'especial', elixir:3},
+  'barril barbaro': {tipo:'hechizo', rareza:'epica', elixir:2},
+  'bola de nieve gigante': {tipo:'hechizo', rareza:'comun', elixir:2},
+  'entrega real': {tipo:'hechizo', rareza:'comun', elixir:3}
+};
+function _datosCarta(nombre){
+  return DATOS_CARTAS_MAZO[_normNombreCarta(nombre)] || null;
+}
+function _ordenarCartasMazo(cartas){
+  return cartas.slice().sort((a, b) => {
+    const da = _datosCarta(a.name), db = _datosCarta(b.name);
+    // 1) Héroe (Campeón) primero.
+    const heroeA = da && da.rareza === 'campeon' ? 0 : 1;
+    const heroeB = db && db.rareza === 'campeon' ? 0 : 1;
+    if (heroeA !== heroeB) return heroeA - heroeB;
+    // 2) Evolución primero (flag ya viene de _webMazoActualDesdeCards2()).
+    const evoA = a.hasEvolution ? 0 : 1;
+    const evoB = b.hasEvolution ? 0 : 1;
+    if (evoA !== evoB) return evoA - evoB;
+    // 3) Tipo: Tropa, Hechizo, Estructura.
+    const tipoA = da ? (ORDEN_TIPO_CARTA[da.tipo] ?? 9) : 9;
+    const tipoB = db ? (ORDEN_TIPO_CARTA[db.tipo] ?? 9) : 9;
+    if (tipoA !== tipoB) return tipoA - tipoB;
+    // 4) Calidad: Campeón, Legendaria, Épica, Especial, Común.
+    const rarA = da ? (ORDEN_RAREZA_CARTA[da.rareza] ?? 9) : 9;
+    const rarB = db ? (ORDEN_RAREZA_CARTA[db.rareza] ?? 9) : 9;
+    if (rarA !== rarB) return rarA - rarB;
+    // Empate: alfabético, solo para que el orden sea estable/predecible.
+    return String(a.name || '').localeCompare(String(b.name || ''), 'es');
+  });
+}
+
+/**
  * renderMazoActual(mazoActual, ext)
  * FASE 10 (06-sep-2026, punto 10 del documento — mazo actual real).
  * Distinto de "Sugerencias de mazo"/"Sugerencias de mazo (2)" (los
@@ -373,6 +614,22 @@ function renderExtendido(ext){
  * sugerencia), no solo cuando hay cartas; si no hay cartas pero sí
  * botones, se avisa con un texto en vez de dejar el bloque de cartas en
  * blanco.
+ *
+ * FIX (08-sep-2026, pedido usuario — "se debe ordenar el mazo por Héroe,
+ * Evolución, Tipo (Tropa, Hechizo y estructura) y Calidad (Campeón,
+ * Legendaria, Épica, Especial, Común)... se debe mostrar el tipo de
+ * carta, calidad, costo (con su ícono)"): _webMazoActualDesdeCards2()
+ * todavía solo manda name/nivel/hasEvolution/icon por carta — no tipo/
+ * rareza/costo de elixir (a diferencia de _webEstadisticasCartas(), que sí
+ * los manda desde Backup_Cards.csv, ver cargarEstadisticasCartas() en
+ * index.html). Como el pedido es resolver esto SIN tocar backend por
+ * ahora, cada carta se ordena/etiqueta con la tabla de referencia
+ * estática DATOS_CARTAS_MAZO (ver más abajo) en vez de un dato real del
+ * backend. Sería más prolijo que _webMazoActualDesdeCards2() mandara
+ * tipo/rarity/elixirCost igual que _webEstadisticasCartas() (y de paso
+ * heroIcon/evolutionIcon reales, para poder pintar la imagen correcta de
+ * la variante Héroe/Evolución en vez de siempre la básica) — queda
+ * pendiente para cuando se comparta 34_Web_API.gs.
  */
 function renderMazoActual(mazoActual, ext){
   ext = ext || {};
@@ -402,18 +659,31 @@ function renderMazoActual(mazoActual, ext){
     return;
   }
 
-  const cartasHtml = mazoActual.cartas.map(c => `
-    <div style="display:flex; flex-direction:column; align-items:center; gap:6px; width:84px;">
-      ${c.icon ? `<img src="${esc(c.icon)}" alt="${esc(c.name)}" loading="lazy" style="width:64px; height:auto; border-radius:6px;">` : ''}
-      <div style="font-size:11px; text-align:center; line-height:1.25;">${esc(c.name)}</div>
-      <div class="text-faint" style="font-size:10px;">${c.nivel ? 'Nivel ' + esc(String(c.nivel)) : '—'}${c.hasEvolution ? ' · Evo' : ''}</div>
-    </div>`).join('');
+  const cartasHtml = _ordenarCartasMazo(mazoActual.cartas).map(c => {
+    const d = _datosCarta(c.name);
+    const tipoTxt = d ? d.tipo.charAt(0).toUpperCase() + d.tipo.slice(1) : '';
+    return `
+    <div class="carta-chip${c.icon ? '' : ' carta-chip--sin-img'}">
+      ${c.icon ? `<img class="cc-img" src="${esc(c.icon)}" alt="${esc(c.name)}" loading="lazy" onerror="const p=this.parentElement; this.remove(); if(p) p.classList.add('carta-chip--sin-img');">` : ''}
+      <div class="cc-content">
+        <div class="cc-fila-1"><b>${esc(c.name)}</b></div>
+        <div class="cc-meta">
+          ${d ? `<span class="cc-rareza" data-rareza="${d.rareza}">${esc(RAREZA_CARTA_TXT[d.rareza])}</span>` : ''}
+          ${tipoTxt ? `<span class="cc-tipo">${esc(tipoTxt)}</span>` : ''}
+          ${d && d.elixir != null ? `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">${esc(String(d.elixir))}</span>` : ''}
+          ${d && d.rareza === 'campeon' ? `<span class="cc-badge">🦸 Héroe</span>` : ''}
+          ${c.hasEvolution ? `<span class="cc-badge">✨ Evolución</span>` : ''}
+        </div>
+        <div class="text-faint" style="font-size:10px;">${c.nivel ? 'Nivel ' + esc(String(c.nivel)) : '—'}</div>
+      </div>
+    </div>`;
+  }).join('');
 
   const promedioHtml = (mazoActual.elixirPromedio !== null && mazoActual.elixirPromedio !== undefined)
     ? `<div class="text-dim" style="font-size:12px; margin-top:16px;">Coste de elixir promedio: <b>${esc(String(mazoActual.elixirPromedio))}</b></div>`
     : '';
 
-  cont.innerHTML = `<div style="display:flex; flex-wrap:wrap; gap:14px;">${cartasHtml}</div>${promedioHtml}`;
+  cont.innerHTML = `<div class="mazo-chips">${cartasHtml}</div>${promedioHtml}`;
 }
 
 /**
@@ -424,6 +694,19 @@ function renderMazoActual(mazoActual, ext){
  * acá). Si el backend todavía no manda ese campo (ver comentario al
  * inicio del archivo), se muestra un mensaje en vez de una gráfica vacía.
  */
+/** parseFechaDDMMYYYY(s) → timestamp o NaN.
+ * FIX (08-sep-2026): antes vivía como función local dentro de
+ * renderRankingChart() — se saca a nivel de módulo (mismo cuerpo, sin
+ * cambios de comportamiento) porque ahora también la usa
+ * renderMetricaSemanal() (gráficas de Ataques/Puntaje/Barcos, mismo
+ * formato de fecha "dd/MM/yyyy" que manda el backend). */
+function parseFechaDDMMYYYY(s){
+  const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(String(s || '').trim());
+  if (!m) return NaN;
+  const [, d, mo, y] = m;
+  return new Date(Number(y), Number(mo) - 1, Number(d)).getTime();
+}
+
 function renderRankingChart(ext){
   const wrap = document.getElementById('mRankingChart');
   const historial = ext && Array.isArray(ext.historialRanking) ? ext.historialRanking.filter(h => h && h.ranking != null) : [];
@@ -444,12 +727,6 @@ function renderRankingChart(ext){
    * real (parseFechaDDMMYYYY) y se ordena por esa fecha. Además se agrega
    * un tooltip nativo (<title> dentro de cada <circle>) con semana + puesto
    * exacto de ese punto al pasar el mouse. */
-  const parseFechaDDMMYYYY = (s) => {
-    const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(String(s || '').trim());
-    if (!m) return NaN;
-    const [, d, mo, y] = m;
-    return new Date(Number(y), Number(mo) - 1, Number(d)).getTime();
-  };
   const ordenados = historial.slice().sort((a, b) => {
     const fa = parseFechaDDMMYYYY(a.semana), fb = parseFechaDDMMYYYY(b.semana);
     if (!isNaN(fa) && !isNaN(fb)) return fa - fb;
@@ -539,6 +816,108 @@ function renderRankingChart(ext){
     <div class="text-faint" style="font-family:var(--f-mono); font-size:11px; margin-top:4px;">Menor número = mejor puesto en el clan. Líneas punteadas: mejor puesto (#${esc(String(min))}) y peor puesto (#${esc(String(max))}) del historial mostrado.</div>`;
 }
 
+/**
+ * renderMetricaSemanal(elId, historial, campo, opts)
+ * FIX (08-sep-2026, pedido usuario — "solo se está mostrando evolución de
+ * ranking, falta de ataques, puntaje y barcos"): gráfica de líneas
+ * genérica para el resto de métricas semanales de guerra/River Race, a
+ * partir del MISMO array que ya usa renderRankingChart() (j.extendido.
+ * historialRanking) — se asume que cada fila de ese historial puede
+ * traer, además de `ranking`, los campos `ataques`/`puntaje`/`barcos`
+ * (nombres más probables dado el pedido); si `_webPerfilJugador()`
+ * (34_Web_API.gs) todavía no los manda con exactamente esos nombres, la
+ * tarjeta correspondiente (#<elId>Card) se queda oculta en vez de
+ * mostrar una gráfica vacía o con datos inventados — no hace falta tocar
+ * este archivo de nuevo, empieza a funcionar solo en cuanto el backend
+ * agregue el campo.
+ * A diferencia de renderRankingChart() (donde el valor NUMÉRICO más bajo
+ * es el mejor puesto y por eso va arriba del gráfico), acá el criterio es
+ * el normal: valor más alto = más arriba.
+ */
+function renderMetricaSemanal(elId, historial, campo, opts){
+  opts = opts || {};
+  const card = document.getElementById(elId + 'Card');
+  const wrap = document.getElementById(elId);
+  if (!card || !wrap) return;
+
+  const datos = (historial || []).filter(h => h && h[campo] != null);
+  if (!datos.length){
+    card.style.display = 'none';
+    wrap.innerHTML = '';
+    return;
+  }
+  card.style.display = '';
+
+  const ordenados = datos.slice().sort((a, b) => {
+    const fa = parseFechaDDMMYYYY(a.semana), fb = parseFechaDDMMYYYY(b.semana);
+    if (!isNaN(fa) && !isNaN(fb)) return fa - fb;
+    if (isNaN(fa) && isNaN(fb)) return 0;
+    return isNaN(fa) ? 1 : -1;
+  });
+  const valores = ordenados.map(h => Number(h[campo]));
+  const max = Math.max(...valores), min = Math.min(...valores);
+  const W = 640, H = 200, PAD_L = 34, PAD_R = 12, PAD_TOP = 14, PAD_BOTTOM = 40;
+  const anchoUtil = W - PAD_L - PAD_R;
+  const stepX = ordenados.length > 1 ? anchoUtil / (ordenados.length - 1) : 0;
+  const escalaY = v => {
+    if (max === min) return PAD_TOP + (H - PAD_TOP - PAD_BOTTOM)/2;
+    // Criterio normal (a diferencia del ranking): valor más ALTO = más arriba.
+    return PAD_TOP + (H - PAD_TOP - PAD_BOTTOM) * (1 - (v - min) / (max - min));
+  };
+  const puntos = valores.map((v,i) => `${PAD_L + i*stepX},${escalaY(v)}`).join(' ');
+
+  const maxEtiquetas = 8;
+  const pasoEtiqueta = ordenados.length > maxEtiquetas
+    ? Math.ceil((ordenados.length - 1) / (maxEtiquetas - 1))
+    : 1;
+  const etiquetasVisibles = ordenados.map((h, i) => {
+    const esUltimo = i === ordenados.length - 1;
+    return (i % pasoEtiqueta === 0 || esUltimo) ? esc(String(h.semana)) : '';
+  });
+
+  const pixelArriba = escalaY(max);   // línea del valor máximo (arriba del gráfico)
+  const pixelAbajo = escalaY(min);    // línea del valor mínimo (abajo del gráfico)
+  const yMedio = (pixelArriba + pixelAbajo) / 2;
+  const fechasEje = ordenados.map(h => {
+    const t = parseFechaDDMMYYYY(h.semana);
+    return isNaN(t) ? null : new Date(t);
+  });
+  const lineasTemporales = lineasTemporalesSvg(fechasEje, i => PAD_L + i*stepX, PAD_TOP, H - PAD_BOTTOM, { granularidadDiaria: false });
+
+  const ejeXTitle = `<text x="${PAD_L + anchoUtil/2}" y="${H+58}" font-size="11" font-weight="700" letter-spacing=".04em" fill="var(--text-dim,#94a3b8)" text-anchor="middle" font-family="var(--f-mono)">Fecha</text>`;
+  const centroY = PAD_TOP + (H - PAD_TOP - PAD_BOTTOM) / 2;
+  const ejeYTitle = `<text x="-8" y="${centroY}" font-size="11" font-weight="700" letter-spacing=".04em" fill="var(--text-dim,#94a3b8)" text-anchor="middle" font-family="var(--f-mono)" transform="rotate(-90 -8 ${centroY})">${esc(opts.tituloEje || '')}</text>`;
+
+  wrap.innerHTML = `
+    <svg viewBox="-16 0 ${W+16} ${H+62}" style="width:100%; height:auto; margin-top:8px; overflow:visible;">
+      ${lineasTemporales}
+      <line x1="${PAD_L}" y1="${yMedio}" x2="${W-PAD_R}" y2="${yMedio}" class="grid-line-medio"/>
+      <line x1="${PAD_L}" y1="${pixelAbajo}" x2="${W-PAD_R}" y2="${pixelAbajo}" stroke="var(--border,#333)" stroke-width="1" stroke-dasharray="3,4"/>
+      <line x1="${PAD_L}" y1="${pixelArriba}" x2="${W-PAD_R}" y2="${pixelArriba}" stroke="var(--border,#333)" stroke-width="1" stroke-dasharray="3,4"/>
+      <text x="2" y="${pixelArriba+3}" font-size="10" fill="var(--text-faint,#888)" font-family="var(--f-mono)">${esc(fmtNum(max))}</text>
+      <text x="2" y="${pixelAbajo+3}" font-size="10" fill="var(--text-faint,#888)" font-family="var(--f-mono)">${esc(fmtNum(min))}</text>
+      <polyline points="${puntos}" fill="none" stroke="var(--purple-light, #c084fc)" stroke-width="2.5"/>
+      ${ordenados.map((h,i) => `<circle cx="${PAD_L + i*stepX}" cy="${escalaY(valores[i])}" r="4" fill="var(--purple-light, #c084fc)"><title>${esc(String(h.semana))} — ${esc(fmtNum(valores[i]))}</title></circle>`).join('')}
+      ${etiquetasVisibles.map((t,i) => t ? `<text x="${PAD_L + i*stepX}" y="${H+18}" font-size="10" fill="var(--text-faint,#888)" text-anchor="end" font-family="var(--f-mono)" transform="rotate(-45, ${PAD_L + i*stepX}, ${H+18})">${t}</text>` : '').join('')}
+      ${ejeXTitle}
+      ${ejeYTitle}
+    </svg>`;
+}
+
+/**
+ * renderMetricasSemanales(ext)
+ * FIX (08-sep-2026): arma las 3 gráficas nuevas (Ataques/Puntaje/Barcos
+ * por semana) a partir del mismo ext.historialRanking del Ranking en el
+ * clan — ver renderMetricaSemanal() de arriba para el detalle de por qué
+ * cada una se oculta sola si su campo todavía no llega del backend.
+ */
+function renderMetricasSemanales(ext){
+  const historial = ext && Array.isArray(ext.historialRanking) ? ext.historialRanking : [];
+  renderMetricaSemanal('mAtaquesChart', historial, 'ataques', { tituloEje: 'Ataques' });
+  renderMetricaSemanal('mPuntajeChart', historial, 'puntaje', { tituloEje: 'Puntaje' });
+  renderMetricaSemanal('mBarcosChart', historial, 'barcos', { tituloEje: 'Barcos' });
+}
+
 // adminPuedeVetar() ahora vive en assets/common.js (1-sep-2026, reutilizada
 // también por la vista de cuentas inactivas) — se quita el duplicado local.
 
@@ -583,6 +962,7 @@ function renderMiembro(j){
 
   renderExtendido(j.extendido);
   renderRankingChart(j.extendido);
+  renderMetricasSemanales(j.extendido); // FIX (08-sep-2026)
   renderMazoActual(j.mazoActual, j.extendido); // FASE 10 (06-sep-2026); FIX 08-sep-2026: botones de sugerencia de mazo se arman acá ahora
 
   // FIX (31-ago-2026, pedido usuario — "en los perfiles de jugadores,
