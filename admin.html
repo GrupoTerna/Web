@@ -829,9 +829,7 @@
                 <label for="tLink">Link del torneo</label>
                 <input type="text" id="tLink" placeholder="https://link.clashroyale.com/...">
               </div>
-              <div class="field-row">
-                <div class="field">
-                  <label for="tFechaTexto">Fecha</label>
+              <div class="field-row" id="filaFechaHoraReg">
                   <div class="campo-fecha-wrap">
                     <input type="text" id="tFechaTexto" placeholder="dd/mm/aaaa" inputmode="numeric" maxlength="10" autocomplete="off">
                     <input type="date" id="tFecha" class="campo-oculto-visual" tabindex="-1" aria-hidden="true">
@@ -931,9 +929,7 @@
                 <label for="tSelectHoy">Torneo</label>
                 <select id="tSelectHoy"><option value="">Cargando torneos de hoy…</option></select>
               </div>
-              <div class="field-row">
-                <div class="field">
-                  <label for="tFechaModTexto">Nueva fecha</label>
+              <div class="field-row" id="filaFechaHoraMod">
                   <div class="campo-fecha-wrap">
                     <input type="text" id="tFechaModTexto" placeholder="dd/mm/aaaa" inputmode="numeric" maxlength="10" autocomplete="off">
                     <input type="date" id="tFechaMod" class="campo-oculto-visual" tabindex="-1" aria-hidden="true">
@@ -1050,9 +1046,7 @@
                  editor de premios vive en #premiosEditor; ver
                  agregarFilaPremio()/armarPremiosCSV() más abajo. -->
             <div id="camposPlanificar" style="display:none;">
-              <div class="field-row">
-                <div class="field">
-                  <label for="tFechaPlanTexto">Fecha</label>
+              <div class="field-row" id="filaFechaHoraPlan">
                   <div class="campo-fecha-wrap">
                     <input type="text" id="tFechaPlanTexto" placeholder="dd/mm/aaaa" inputmode="numeric" maxlength="10" autocomplete="off">
                     <input type="date" id="tFechaPlan" class="campo-oculto-visual" tabindex="-1" aria-hidden="true">
@@ -1165,19 +1159,27 @@
                  el número.
 
                  PENDIENTE BACKEND (todo el bloque): no existe hoy ningún
-                 endpoint para LEER ni GUARDAR esta configuración. Ver
-                 cargarRequisitosPorClan() y el listener de
-                 #btnGuardarRequisitos en el <script> — ambos ya están
-                 escritos y lo único que falta es descomentar el
-                 `apiGetAuth(...)`/`apiPost(...)` de adentro cuando existan
-                 webAdminRequisitosClanes (lectura) y
-                 webAdminRequisitosClanesGuardar (guardado) en
-                 34_Web_API.gs, más su respectiva función en el .gs de
-                 Clanes/Ascensos que sea. Hasta entonces:
-                 cargarRequisitosPorClan() no hace nada (el formulario
-                 arranca en blanco) y el botón "Guardar requisitos" avisa
-                 que todavía no está conectado en vez de fingir que guardó
-                 algo. -->
+                 endpoint para LEER esta configuración con antelación
+                 (cargarRequisitosPorClan()). Para GUARDARLA ya no hay un
+                 botón propio -- FIX (10-sep-2026, pedido usuario — "quita
+                 el botón de guardar requisitos, eso ya lo hace el botón
+                 registrar torneo"): se quitó #btnGuardarRequisitos y
+                 #requisitosMsg; estos campos (reqTrofGuerra*/reqAtaques*/
+                 reqMiembroActivo/reqReaccion/reqPresenciaWhatsapp) viajan
+                 junto con el resto del formulario cuando se presiona
+                 "Registrar torneo"/"Guardar cambios"/"Planificar torneo"
+                 (btnRegistrarTorneo/btnModificarTorneo/btnPlanificarTorneo
+                 más abajo), igual que autor/premios/semanas. Falta que esos
+                 3 listeners arme y manden ese payload junto con los demás
+                 parámetros del torneo, y que el backend
+                 (_webAdminTorneoRegistrar()/_webAdminTorneoModificar()/
+                 _webAdminTorneoPlanificarGuardar() en 34_Web_API.gs) los
+                 reciba y guarde donde corresponda (webAdminRequisitosClanes
+                 para lectura previa sigue sin existir tampoco). Hasta
+                 entonces: cargarRequisitosPorClan() no hace nada (el
+                 formulario arranca con los defaults de arriba) y estos
+                 campos quedan listos para sumarse al payload en cuanto se
+                 conecte esa parte del backend. -->
             <div id="requisitosTorneoBox" style="margin-top:14px; padding-top:14px; border-top:1px solid var(--line);">
               <h3 style="font-size:15px; color:var(--gold); margin:0 0 4px;">Requisitos para participar en torneos</h3>
               <p class="text-dim" style="font-size:13px; margin:0 0 4px;">Requerimiento mínimo de trofeos de guerra para mantenerse en cada clan.</p>
@@ -1217,11 +1219,25 @@
                   <option value="No">No</option>
                 </select>
               </div>
-
-              <button type="button" class="btn btn-ghost btn-block" id="btnGuardarRequisitos" style="margin-top:16px;">Guardar requisitos</button>
-              <div id="requisitosMsg"></div>
             </div>
 
+            <!-- FIX (10-sep-2026, pedido usuario — "cuando se trata de un
+                 torneo de continuación, el sector que pide identificar el
+                 torneo principal debe estar justo debajo de donde se pide
+                 el link del torneo; luego ya viene lo demás (fecha, autor,
+                 etc.)"): #camposTorneoPrincipal sigue siendo un único nodo
+                 compartido (no triplicado por rama, mismo criterio que
+                 #requisitosTorneoBox de arriba), así que se reubica con
+                 JavaScript en vez de triplicarse. Vive acá abajo como
+                 posición de origen; mostrarPaso3() (ver initTorneoWizard()
+                 en el <script>) lo mueve con insertBefore() justo antes de
+                 la fila de fecha/hora de la rama activa
+                 (#filaFechaHoraReg/Mod/Plan) cada vez que se entra al paso 3
+                 y #torneoTipo es "continuación" -- es decir, después del
+                 campo que identifica el torneo en cada rama (Link en
+                 Registrar, el <select> "Torneo" en Modificar; Planificar no
+                 tiene un campo identificador propio así que ahí queda de
+                 primero) y antes de fecha/hora/autor/premios/etc. -->
             <div id="camposTorneoPrincipal" style="display:none; margin-top:14px; padding-top:14px; border-top:1px solid var(--line);">
               <label style="display:block; margin-bottom:4px;">¿Cuál es el torneo principal?</label>
               <p class="text-dim" style="font-size:12px; margin:0 0 8px;">Abre cada uno para ver su hora y link, y elige de cuál es continuación.</p>
@@ -2770,11 +2786,17 @@ pintarSemanasSelector('semanasSelectorPlan');
  *     comentado adentro — hoy no hace nada (dejaría el formulario en
  *     blanco), listo para descomentar cuando exista
  *     webAdminRequisitosClanes.
- *   - Listener de #btnGuardarRequisitos (más abajo, junto a los demás
- *     listeners de botones): arma el payload completo y lo deja listo,
- *     pero la llamada real a webAdminRequisitosClanesGuardar queda
- *     comentada -- mientras tanto avisa que el guardado no está
- *     conectado todavía, en vez de fingir que sí guardó.
+ *   - FIX (10-sep-2026, pedido usuario — "quita el botón de guardar
+ *     requisitos, eso ya lo hace el botón registrar torneo"): ya no hay un
+ *     botón/listener propio para esto. armarPayloadRequisitos() (más abajo)
+ *     arma el mismo objeto que antes armaba el listener de
+ *     #btnGuardarRequisitos, listo para que btnRegistrarTorneo/
+ *     btnModificarTorneo/btnPlanificarTorneo lo incluyan en su payload —
+ *     falta sumarlo en esos 3 listeners y que el backend
+ *     (_webAdminTorneoRegistrar()/_webAdminTorneoModificar()/
+ *     _webAdminTorneoPlanificarGuardar()) lo reciba y guarde (mismo
+ *     endpoint pendiente, webAdminRequisitosClanesGuardar ya no aplica como
+ *     endpoint aparte).
  */
 const CLANES_REQUISITOS = ['Grupo乂Terna™', 'GrupoXTerna™2', 'GrupoXTerna™3', 'Mini乂Ternas™'];
 
@@ -2873,10 +2895,23 @@ async function cargarRequisitosPorClan(){
   */
 }
 
-document.getElementById('btnGuardarRequisitos').addEventListener('click', async () => {
-  const msgEl = document.getElementById('requisitosMsg');
-  msgEl.innerHTML = '';
-
+/**
+ * armarPayloadRequisitos()
+ * FIX (10-sep-2026, pedido usuario — "quita el botón de guardar
+ * requisitos, eso ya lo hace el botón registrar torneo"): reemplaza al
+ * listener que antes tenía #btnGuardarRequisitos (ya no existe ese botón).
+ * Arma el mismo objeto de siempre a partir de los campos de
+ * #requisitosTorneoBox, para que btnRegistrarTorneo/btnModificarTorneo/
+ * btnPlanificarTorneo lo sumen a su propio payload al presionar
+ * "Registrar torneo"/"Guardar cambios"/"Planificar torneo".
+ * PENDIENTE: falta que esos 3 listeners llamen esta función y agreguen su
+ * resultado al payload que mandan, y que el backend
+ * (_webAdminTorneoRegistrar()/_webAdminTorneoModificar()/
+ * _webAdminTorneoPlanificarGuardar() en 34_Web_API.gs) lo reciba y guarde
+ * donde corresponda -- webAdminRequisitosClanes sigue sin existir para
+ * poder precargar estos valores tampoco (ver cargarRequisitosPorClan()).
+ */
+function armarPayloadRequisitos(){
   const requisitosPorClan = {};
   CLANES_REQUISITOS.forEach(clan => {
     requisitosPorClan[clan] = {
@@ -2884,31 +2919,13 @@ document.getElementById('btnGuardarRequisitos').addEventListener('click', async 
       minAtaquesSemana: valorPlanoInputMiles(idInputMiles('reqAtaques', clan))
     };
   });
-  const miembroActivo = document.getElementById('reqMiembroActivo').value;
-  const reaccion = document.getElementById('reqReaccion').value;
-  const presenciaWhatsapp = document.getElementById('reqPresenciaWhatsapp').value;
-
-  // PENDIENTE BACKEND: no existe todavía webAdminRequisitosClanesGuardar.
-  // El payload de abajo ya queda armado con todo lo que se necesitaría
-  // mandar -- solo falta descomentar la llamada cuando el endpoint exista.
-  // Mientras tanto, se avisa que el guardado no está conectado en vez de
-  // fingir que sí se guardó (pedido usuario: "no pasa nada si no se logra
-  // conectar ahora, solo estoy armando el formulario").
-  msgEl.innerHTML = '<div class="msg msg-error">Esta sección todavía no está conectada al backend — los valores no se guardan por ahora.</div>';
-  /*
-  try{
-    const data = await apiPost('webAdminRequisitosClanesGuardar', {
-      sessionToken: localStorage.getItem(SESSION_KEY),
-      requisitosPorClan, miembroActivo, reaccion, presenciaWhatsapp
-    });
-    if(manejarRespuestaAuth(data)) return;
-    if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
-    msgEl.innerHTML = '<div class="msg msg-ok">Requisitos guardados.</div>';
-  }catch(err){
-    msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
-  }
-  */
-});
+  return {
+    requisitosPorClan,
+    miembroActivo: document.getElementById('reqMiembroActivo').value,
+    reaccion: document.getElementById('reqReaccion').value,
+    presenciaWhatsapp: document.getElementById('reqPresenciaWhatsapp').value
+  };
+}
 
 /**
  * initTorneoWizard()
@@ -2953,6 +2970,25 @@ function initTorneoWizard(){
     document.getElementById('camposModificar').style.display = esModificar ? '' : 'none';
     document.getElementById('camposPlanificar').style.display = esPlanificar ? '' : 'none';
     document.getElementById('camposTorneoPrincipal').style.display = esContinuacion ? '' : 'none';
+
+    // FIX (10-sep-2026, pedido usuario — "el sector que pide identificar el
+    // torneo principal debe estar justo debajo de donde se pide el link
+    // del torneo; luego ya viene lo demás"): #camposTorneoPrincipal es un
+    // único nodo (no triplicado), así que se reubica en el DOM cada vez que
+    // se entra al paso 3, justo antes de la fila de fecha/hora de la rama
+    // activa (#filaFechaHoraReg/Mod/Plan) -- es decir, después del campo
+    // que identifica el torneo (Link en Registrar, el <select> "Torneo" en
+    // Modificar) y antes de fecha/hora/autor/premios/etc. En Planificar no
+    // hay campo identificador propio, así que queda de primero.
+    const torneoPrincipalBox = document.getElementById('camposTorneoPrincipal');
+    const filaFechaHora = document.getElementById(
+      esRegistrar ? 'filaFechaHoraReg' :
+      esModificar ? 'filaFechaHoraMod' :
+      esPlanificar ? 'filaFechaHoraPlan' : ''
+    );
+    if(torneoPrincipalBox && filaFechaHora && filaFechaHora.parentNode){
+      filaFechaHora.parentNode.insertBefore(torneoPrincipalBox, filaFechaHora);
+    }
 
     // FIX (10-sep-2026, pedido usuario — "mueve los requisitos justo antes
     // de la selección de semanas"): #requisitosTorneoBox es un único nodo
@@ -3118,7 +3154,13 @@ function reiniciarPremiosEditor(containerId = 'premiosEditor'){
  *  Royale" tal cual, "S/ {monto}" si es Dinero (solo si tiene monto), o el
  *  texto libre si es Manual (solo si no está vacío). Devuelve '' si no
  *  quedó ningún premio válido (o si el editor no tiene ninguna fila, como
- *  el caso normal de "Modificar torneo" sin querer tocar los premios). */
+ *  el caso normal de "Modificar torneo" sin querer tocar los premios).
+ *  FIX (10-sep-2026, pedido usuario): el texto que devuelve (separado por
+ *  ", ") es exactamente lo que debe guardarse tal cual en la columna
+ *  "Premios" del sheet — T_Lista para torneos (Registrar/Modificar/
+ *  Planificar, ya conectado) y S_Lista para sorteos (Planificar/Registrar/
+ *  Modificar, #panelSorteosAccion más arriba, todavía sin editor de
+ *  premios propio — cuando se arme, debe reusar este mismo formato). */
 function armarPremiosCSV(containerId = 'premiosEditor'){
   const filas = document.querySelectorAll(`#${containerId} .premio-fila`);
   const partes = [];
@@ -3896,6 +3938,13 @@ document.getElementById('btnRegistrarTorneo').addEventListener('click', async ()
   if(!fecha || !hora){ msgEl.innerHTML = '<div class="msg msg-error">Completa fecha y hora.</div>'; return; }
   if(esContinuacion && !torneoTorneoPrincipalTag){ msgEl.innerHTML = '<div class="msg msg-error">Elige de cuál torneo principal es continuación.</div>'; return; }
   if(autorSelect === '__otro__' && !autor){ msgEl.innerHTML = '<div class="msg msg-error">Escribe el nombre de quien organizó, o elige otra opción.</div>'; return; }
+  // PENDIENTE BACKEND (10-sep-2026, pedido usuario): al registrar un
+  // torneo (con link real), la columna "Estado" de T_Lista debe quedar en
+  // "Realizado" -- tanto si es una fila nueva como si esta acción está
+  // completando una que ya existía como "Planificado" (mismo Fecha+Hora,
+  // ver _registrarTorneoDesdeBot()/#camposPlanificar más arriba). Se
+  // escribe del lado del backend (_registrarTorneoDesdeBot(), 24_Torneos_
+  // Core.gs); este front no manda ningún parámetro de estado.
   try{
     const data = await apiPost('webAdminTorneoRegistrar', {
       sessionToken: localStorage.getItem(SESSION_KEY),
@@ -4011,6 +4060,18 @@ document.getElementById('btnPlanificarTorneo').addEventListener('click', async (
   if(!premios){ msgEl.innerHTML = '<div class="msg msg-error">Agrega al menos un premio.</div>'; return; }
   if(esContinuacion && !torneoTorneoPrincipalTag){ msgEl.innerHTML = '<div class="msg msg-error">Elige de cuál torneo principal es continuación.</div>'; return; }
   if(autorSelect === '__otro__' && !autor){ msgEl.innerHTML = '<div class="msg msg-error">Escribe el nombre de quien organiza, o elige otra opción.</div>'; return; }
+  // PENDIENTE BACKEND (10-sep-2026, pedido usuario): al planificar un
+  // torneo (sin link real todavía), la columna "Estado" de T_Lista debe
+  // quedar en "Planificado" -- luego cambia a "Realizado" cuando se
+  // complete con "Registrar torneo" (mismo Fecha+Hora, ver el comentario
+  // grande de arriba y el de btnRegistrarTorneo). También se escribe del
+  // lado del backend (_planificarTorneoDesdeBot(), 24_Torneos_Core.gs);
+  // este front no manda ningún parámetro de estado. `premios` ya viaja
+  // como texto separado por comas (ver armarPremiosCSV() más arriba) listo
+  // para escribirse tal cual en la columna "Premios" de T_Lista — mismo
+  // formato que debe usarse para la columna "Premios" de S_Lista cuando se
+  // conecten los 3 caminos de Sorteos (Planificar/Registrar/Modificar,
+  // #panelSorteosAccion más arriba en el HTML).
   try{
     const data = await apiPost('webAdminTorneoPlanificarGuardar', {
       sessionToken: localStorage.getItem(SESSION_KEY),
