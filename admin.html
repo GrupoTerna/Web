@@ -1185,7 +1185,16 @@
                  entonces: cargarRequisitosPorClan() no hace nada (el
                  formulario arranca con los defaults de arriba) y estos
                  campos quedan listos para sumarse al payload en cuanto se
-                 conecte esa parte del backend. -->
+                 conecte esa parte del backend.
+
+                 RESUELTO (10-sep-2026, sección 5.1.1 del consolidado):
+                 los grids #reqTrofeosGuerraGrid/#reqAtaquesSemanaGrid ahora
+                 traen arriba un checkbox "Usar el mismo valor para los 4
+                 clanes" + un input único (ver pintarGridRequisitosNumericos()/
+                 initMismoValorParaTodos() en el <script>) que replica un
+                 solo valor a los 4 campos por clan. Esto sigue siendo
+                 puramente de UI/UX -- no adelanta nada del PENDIENTE
+                 BACKEND de arriba, que sigue igual de pendiente. -->
             <div id="requisitosTorneoBox" style="margin-top:14px; padding-top:14px; border-top:1px solid var(--line);">
               <h3 style="font-size:15px; color:var(--gold); margin:0 0 4px;">Requisitos para participar en torneos</h3>
               <p class="text-dim" style="font-size:13px; margin:0 0 4px;">Requerimiento mínimo de trofeos de guerra para mantenerse en cada clan.</p>
@@ -2788,6 +2797,11 @@ pintarSemanasSelector('semanasSelectorPlan');
  *   - pintarGridRequisitosNumericos(): pinta un <div class="field"> por
  *     cada clan de CLANES_REQUISITOS dentro del contenedor indicado — se
  *     usa una vez para trofeos de guerra y otra para ataques/semana.
+ *     RESUELTO (10-sep-2026, sección 5.1.1): ahora también pinta, arriba
+ *     del grid, un checkbox "mismo valor para los 4 clanes" + un input
+ *     único, conectado por initMismoValorParaTodos() (ver más abajo) —
+ *     puramente de UI/UX, no cambia el payload que arma
+ *     armarPayloadRequisitos().
  *   - cargarRequisitosPorClan(): PENDIENTE BACKEND, ver el bloque
  *     comentado adentro — hoy no hace nada (dejaría el formulario en
  *     blanco), listo para descomentar cuando exista
@@ -2847,14 +2861,83 @@ function idInputMiles(prefijo, clan){
 function pintarGridRequisitosNumericos(containerId, prefijo, placeholder){
   const cont = document.getElementById(containerId);
   if(!cont) return;
-  cont.innerHTML = CLANES_REQUISITOS.map(clan => {
+  const idMismo = `${prefijo}_mismo`;
+  const idMismoValor = `${prefijo}_mismoValor`;
+  const gridHtml = CLANES_REQUISITOS.map(clan => {
     const id = idInputMiles(prefijo, clan);
     return `<div class="field" style="margin-top:10px;">
       <label for="${id}">${esc(clan)}</label>
       <input type="text" id="${id}" inputmode="numeric" placeholder="${esc(placeholder)}">
     </div>`;
   }).join('');
+  cont.innerHTML = `
+    <label style="display:flex; align-items:center; gap:8px; font-size:13px; color:var(--text-dim); margin-top:10px; cursor:pointer;">
+      <input type="checkbox" id="${idMismo}">
+      Usar el mismo valor para los 4 clanes
+    </label>
+    <div class="field" id="${idMismoValor}_wrap" style="margin-top:8px; display:none;">
+      <input type="text" id="${idMismoValor}" inputmode="numeric" placeholder="${esc(placeholder)}">
+    </div>
+    ${gridHtml}
+  `;
   CLANES_REQUISITOS.forEach(clan => initInputMiles(idInputMiles(prefijo, clan)));
+  initMismoValorParaTodos(prefijo, idMismo, idMismoValor);
+}
+
+/** FIX (10-sep-2026, pedido usuario — sección 5.1.1 del consolidado:
+ *  "mismo valor para los 4 clanes"): conecta el checkbox + input único que
+ *  pintarGridRequisitosNumericos() agrega arriba de cada grid (trofeos de
+ *  guerra / ataques por semana), para que el admin pueda escribir UN SOLO
+ *  valor y que se replique a los 4 clanes en vez de escribirlo 4 veces.
+ *
+ *  Puramente de UI/UX -- no cambia el contrato con el backend: sigue
+ *  habiendo 4 campos independientes (uno por clan), armarPayloadRequisitos()
+ *  los sigue leyendo igual que antes sin enterarse de si vinieron de acá o
+ *  de que el admin los escribió a mano. Por eso, al desmarcar la casilla,
+ *  los 4 campos quedan editables de nuevo CON el valor ya replicado adentro
+ *  (no se limpian) -- el admin puede seguir ajustando uno a mano si hace
+ *  falta, tal como pide el punto 5.1.1. No aplica a Delta (ver 5.1.1): ese
+ *  campo no pasa por esta función porque ya es un único valor para los 4
+ *  clanes por diseño de la hoja. */
+function initMismoValorParaTodos(prefijo, idMismo, idMismoValor){
+  const chk = document.getElementById(idMismo);
+  const wrap = document.getElementById(`${idMismoValor}_wrap`);
+  const inputUnico = document.getElementById(idMismoValor);
+  if(!chk || !wrap || !inputUnico) return;
+
+  const idsClanes = CLANES_REQUISITOS.map(clan => idInputMiles(prefijo, clan));
+
+  function replicarValorPlano(){
+    const valorPlano = valorPlanoInputMiles(idMismoValor);
+    idsClanes.forEach(id => {
+      const el = document.getElementById(id);
+      if(el) el.value = valorPlano;
+    });
+  }
+
+  function formatearClanes(){
+    idsClanes.forEach(id => {
+      const el = document.getElementById(id);
+      if(el) el.value = formatoMiles(el.value);
+    });
+  }
+
+  initInputMiles(idMismoValor);
+
+  chk.addEventListener('change', () => {
+    wrap.style.display = chk.checked ? '' : 'none';
+    idsClanes.forEach(id => {
+      const el = document.getElementById(id);
+      if(el) el.disabled = chk.checked;
+    });
+    if(chk.checked){
+      replicarValorPlano();
+      inputUnico.focus();
+    }
+  });
+
+  inputUnico.addEventListener('input', () => { if(chk.checked) replicarValorPlano(); });
+  inputUnico.addEventListener('blur', () => { if(chk.checked) formatearClanes(); });
 }
 
 // FIX (10-sep-2026, pedido usuario — "en vez de EJ. 2,000 se debe mostrar
