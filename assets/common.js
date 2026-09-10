@@ -165,6 +165,48 @@ function _mensajeErrorRed(){
 }
 
 /**
+ * _MAX_PETICIONES_SIMULTANEAS / _encolarPeticion(tarea)
+ * FIX (09-sep-2026, pedido usuario — Network tab: mostrarPanel() dispara
+ * 6-7 peticiones en paralelo al abrir el panel (cargarMisCuentas,
+ * cargarTorneosHoy, cargarGanadoresTorneo, cargarParticipacionHoyGuerra,
+ * cargarNomMultisAdmins, etc.), y una búsqueda de miembro justo después se
+ * suma a ese mismo tropel — todas contra la MISMA Web App de Apps Script.
+ * Con tantas peticiones simultáneas, Apps Script las encola internamente;
+ * la que queda esperando de más termina con su respuesta lista recién
+ * cuando el mecanismo de entrega anónima de Google
+ * (script.googleusercontent.com/macros/echo) ya se dio por vencido — de
+ * ahí el 404 aunque la ejecución de fondo haya terminado "Completada" sin
+ * error (ver registro de Ejecuciones). El reintento de _fetchYParsear()
+ * (FIX anterior, mismo día) ayudaba al síntoma pero EMPEORABA la causa: al
+ * reintentar sumaba otra petición más a esa misma cola ya saturada.
+ *
+ * Fix real: limitar a _MAX_PETICIONES_SIMULTANEAS cuántas peticiones a la
+ * Web App viajan EN PARALELO desde el navegador — el resto espera en una
+ * cola FIFO simple y sale apenas se libera un lugar. Así Apps Script nunca
+ * recibe más de esa cantidad a la vez, y ninguna espera lo suficiente como
+ * para que el mecanismo de entrega la dé por perdida. Se aplica en
+ * _fetchYParsear() (ver más abajo), así que cubre apiGet()/apiPost()/
+ * apiGetAuth() sin tocar cada llamada de cada página una por una.
+ */
+const _MAX_PETICIONES_SIMULTANEAS = 2;
+let _peticionesActivas = 0;
+const _colaPeticiones = [];
+
+function _encolarPeticion(tarea){
+  return new Promise(function(resolve, reject){
+    function ejecutar(){
+      _peticionesActivas++;
+      tarea().then(resolve, reject).finally(function(){
+        _peticionesActivas--;
+        if (_colaPeticiones.length) _colaPeticiones.shift()();
+      });
+    }
+    if (_peticionesActivas < _MAX_PETICIONES_SIMULTANEAS) ejecutar();
+    else _colaPeticiones.push(ejecutar);
+  });
+}
+
+/**
  * _REINTENTO_ESPERA_MS
  * Espera antes del segundo intento de _fetchYParsear() — ver docblock ahí.
  */
@@ -178,28 +220,28 @@ const _REINTENTO_ESPERA_MS = 1200;
  * Apps Script para esa búsqueda puntual — la ejecución termina
  * "Completada" en un par de segundos, sin ningún error. O sea, el backend
  * (_webPerfilJugadorSinRegistro()/_webAdminBuscarMiembro(), 34_Web_API.gs)
- * SÍ hace bien su trabajo; el corte pasa DESPUÉS, entregando la respuesta:
- * una Web App con "Acceso: Cualquiera" (anónimo) entrega su salida vía un
- * redirect a script.googleusercontent.com/macros/echo?user_content_key=...,
- * y ese paso puede devolver 404 de forma intermitente aunque la ejecución
- * de abajo ya haya terminado bien — comportamiento de la infraestructura
- * de Google, no de este código, así que no hay nada que corregir del lado
- * del backend para esto.
+ * SÍ hace bien su trabajo; el corte pasa DESPUÉS, entregando la respuesta
+ * — ver docblock de _encolarPeticion() arriba para la causa completa
+ * (cola de peticiones simultáneas contra la misma Web App).
  *
- * Mitigación práctica: si la respuesta no es JSON válido (el típico
- * "<!DOCTYPE" de la página de error de Google), se espera un momento y se
- * repite la MISMA petición una vez más — como el backend ya había
- * respondido bien la primera vez, el reintento casi siempre entra sin
- * problema. Solo reintenta ante error de PARSEO (HTML en vez de JSON); un
- * error de red real (fetch() que ni siquiera resuelve) sigue sin
- * reintentarse acá, igual que antes.
- * Usada por apiGet()/apiPost()/apiGetAuth() para no repetir esta misma
- * lógica en cada una.
+ * Con _encolarPeticion() ya limitando la concurrencia real, este
+ * reintento queda como red de seguridad extra ante algún caso residual:
+ * si la respuesta no es JSON válido, se espera un momento y se repite la
+ * MISMA petición una vez más (también encolada, nunca se salta la cola).
+ * Solo reintenta ante error de PARSEO (HTML en vez de JSON); un error de
+ * red real (fetch() que ni siquiera resuelve) sigue sin reintentarse acá,
+ * igual que antes.
  * @param {string} url
  * @param {RequestInit} [fetchOpts]
  * @returns {Promise<Object>} JSON ya parseado.
  */
 async function _fetchYParsear(url, fetchOpts){
+  return _encolarPeticion(function(){
+    return _fetchYParsearInterno(url, fetchOpts);
+  });
+}
+
+async function _fetchYParsearInterno(url, fetchOpts){
   const MAX_INTENTOS = 2;
   for (let intento = 1; intento <= MAX_INTENTOS; intento++){
     let res;
