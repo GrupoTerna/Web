@@ -1471,9 +1471,31 @@
                   </select>
                   <div id="sCuentaOrgInfo" class="text-dim" style="font-size:12px; margin-top:6px;"></div>
                 </div>
+
+                <!-- CORRECCIÓN (10-sep-2026, aclaración del usuario): el
+                     consolidado (sección 5.4) había registrado que Sorteos
+                     NO debía tener selector de semanas porque S_Lista no
+                     tiene columna "Semanas" como T_Lista. Esa nota queda
+                     corregida: el usuario aclaró que Sorteos SÍ necesita
+                     este selector -- no para escribir en una columna
+                     "Semanas" de S_Lista (que en efecto no existe), sino
+                     para indicar sobre qué semanas se debe evaluar el
+                     bloque de requisitos Min_S (trofeos de guerra/ataques
+                     por semana, ver #requisitosSorteoBox más abajo), igual
+                     de necesario acá que en Torneos. Reutiliza TAL CUAL
+                     generarSemanasRecientes()/pintarSemanasSelector() (ver
+                     <script>, ya construidas para Torneos) con un
+                     contenedor propio de Sorteos, sin duplicar esa lógica
+                     -- mismo criterio que el resto de este panel. -->
+                <div class="field" id="semanaSelectorWrapSorteoReg" style="margin-top:14px;">
+                  <label>¿Qué semanas se deben evaluar para este sorteo?</label>
+                  <p class="text-dim" style="font-size:12px; margin:0 0 8px;">Se marcan las 2 más recientes por defecto — usualmente son las que definen si un jugador puede participar.</p>
+                  <div class="semana-selector" id="semanasSelectorSorteoReg"></div>
+                </div>
               </div>
               <div id="camposModificarSorteo" style="display:none;">
                 <div class="text-dim" style="font-size:13px;">Formulario "Modificar sorteo" — pendiente de construir (select de sorteos de hoy + opción "Ingresar link" como en Torneos, nueva fecha/hora, autor, premios, requisitos, comentario — ver sección 5.4 del consolidado).</div>
+
               </div>
               <div id="camposPlanificarSorteo" style="display:none;">
                 <div class="text-dim" style="font-size:13px;">Formulario "Planificar sorteo" — pendiente de construir (fecha/hora, autor, premios, requisitos por clan + Delta + Torneos mínimos — ver sección 5.4 del consolidado).</div>
@@ -1498,11 +1520,19 @@
                    Es UN SOLO nodo (no triplicado por rama, mismo criterio
                    que #requisitosTorneoBox), visible siempre que el Paso 3
                    esté abierto sin importar la rama (Registrar/Modificar/
-                   Planificar) -- Sorteos no tiene selector de semanas
-                   (ver 5.4), así que a diferencia de Torneos, acá NO hace
-                   falta reubicarlo con JS: queda fijo en este punto del
-                   Paso 3, después de los 3 contenedores por acción y antes
-                   del selector de sorteo principal.
+                   Planificar). CORRECCIÓN (10-sep-2026, aclaración del
+                   usuario): a diferencia de lo que decía antes esta nota,
+                   Sorteos SÍ tiene selector de semanas (ver
+                   #semanaSelectorWrapSorteoReg dentro de
+                   #camposRegistrarSorteo más arriba) -- lo que sigue
+                   siendo cierto es que ese selector vive DENTRO de cada
+                   contenedor por rama (igual que #semanaSelectorWrapReg/
+                   Mod/Plan de Torneos), así que, igual que en Torneos, no
+                   hace falta reubicarlo con JS. Este bloque de requisitos
+                   Min_S es distinto: por ser un único nodo compartido por
+                   las 3 ramas, queda fijo en este punto del Paso 3,
+                   después de los 3 contenedores por acción y antes del
+                   selector de sorteo principal.
 
                    Delta (columna P de S_Lista, dentro del bloque Min_S,
                    ver sección 5.4 del consolidado) es un valor único para
@@ -3068,6 +3098,12 @@ function pintarSemanasSelector(containerId){
 pintarSemanasSelector('semanasSelectorReg');
 pintarSemanasSelector('semanasSelectorMod');
 pintarSemanasSelector('semanasSelectorPlan');
+
+// CORRECCIÓN (10-sep-2026, aclaración del usuario -- ver el comentario
+// junto a #semanaSelectorWrapSorteoReg en el HTML): Sorteos SÍ necesita
+// este selector para saber sobre qué semanas evaluar Min_S, aunque
+// S_Lista no tenga una columna "Semanas" propia como T_Lista.
+pintarSemanasSelector('semanasSelectorSorteoReg');
 
 /* ============================================================
  * FIX (10-sep-2026, pedido usuario — "cuadros para ingresar el
