@@ -919,7 +919,7 @@
                    evaluar (parámetros de guerra de esas semanas) para
                    decidir si un jugador puede participar en este torneo;
                    esa evaluación real queda PENDIENTE BACKEND. -->
-              <div class="field" style="margin-top:14px;">
+              <div class="field" id="semanaSelectorWrapReg" style="margin-top:14px;">
                 <label>¿Qué semanas se deben evaluar para este torneo?</label>
                 <p class="text-dim" style="font-size:12px; margin:0 0 8px;">Se marcan las 2 más recientes por defecto — usualmente son las que definen si un jugador puede participar.</p>
                 <div class="semana-selector" id="semanasSelectorReg"></div>
@@ -1027,7 +1027,7 @@
                    ver el docblock de #camposRegistrar (arriba) y el
                    docblock grande de generarSemanasRecientes() en el
                    <script>. -->
-              <div class="field" style="margin-top:14px;">
+              <div class="field" id="semanaSelectorWrapMod" style="margin-top:14px;">
                 <label>¿Qué semanas se deben evaluar para este torneo?</label>
                 <p class="text-dim" style="font-size:12px; margin:0 0 8px;">Se marcan las 2 más recientes por defecto — usualmente son las que definen si un jugador puede participar.</p>
                 <div class="semana-selector" id="semanasSelectorMod"></div>
@@ -1096,7 +1096,7 @@
                    ver el docblock de #camposRegistrar (arriba) y el
                    docblock grande de generarSemanasRecientes() en el
                    <script>. -->
-              <div class="field" style="margin-top:14px;">
+              <div class="field" id="semanaSelectorWrapPlan" style="margin-top:14px;">
                 <label>¿Qué semanas se deben evaluar para este torneo?</label>
                 <p class="text-dim" style="font-size:12px; margin:0 0 8px;">Se marcan las 2 más recientes por defecto — usualmente son las que definen si un jugador puede participar.</p>
                 <div class="semana-selector" id="semanasSelectorPlan"></div>
@@ -1113,22 +1113,27 @@
             <!-- FIX (10-sep-2026, pedido usuario — "cuadros para ingresar el
                  requerimiento mínimo de trofeos de guerra y la cantidad
                  mínima de ataques semanales según clan, más 3 criterios
-                 Sí/No"; corregido el mismo día — "los requisitos son parte
-                 del formulario, van justo después del autor y los premios,
-                 no aparte"): va DENTRO de #torneoPaso3, pegado justo después
-                 del bloque de autor/premios de #camposPlanificar (el
-                 último de los tres, #camposRegistrar/#camposModificar/
-                 #camposPlanificar, apilados con display:none — solo uno
-                 visible según #torneoAccion) y ANTES de los botones de
-                 envío ("Registrar torneo"/"Guardar cambios"/"Planificar
-                 torneo"). Se deja como UN SOLO bloque (no triplicado por
-                 rama) porque es la misma config global de clanes en los
-                 tres casos: al estar fuera de los tres <div
-                 style="display:none"> de arriba, siempre queda visible
-                 justo debajo de la rama activa, ya sea que esta tenga
-                 premios (Modificar/Planificar) o solo autor (Registrar) —
-                 así se ve "después del autor y los premios" sin duplicar
-                 ids ni el botón "Guardar requisitos" tres veces.
+                 Sí/No"; corregido el mismo día, dos veces:
+                   1) "los requisitos son parte del formulario, van justo
+                      después del autor y los premios, no aparte" (se le
+                      quitó el <details> propio que colgaba al final del
+                      acordeón).
+                   2) "muévela justo antes de la selección de semanas" (no
+                      después de los tres bloques como había quedado con el
+                      fix anterior).
+                 Sigue siendo UN SOLO bloque (no triplicado por rama, mismo
+                 id, mismo botón "Guardar requisitos" una sola vez) porque
+                 es la misma config global de clanes en Registrar/Modificar/
+                 Planificar. Como es un único nodo y "selección de semanas"
+                 vive en 3 lugares físicos distintos del HTML (uno por
+                 rama, ver #semanaSelectorWrapReg/Mod/Plan más arriba), este
+                 <div> se reubica con JavaScript en vez de triplicarse: vive
+                 acá abajo como posición de origen, y mostrarPaso3() (en el
+                 <script>, dentro de initTorneoWizard()) lo mueve con
+                 insertBefore() justo antes del #semanaSelectorWrap* de la
+                 rama activa cada vez que se entra al paso 3. Así queda
+                 siempre "autor/premios → Requisitos → selección de
+                 semanas" sin importar cuál de las tres ramas esté visible.
 
                  Es distinto del panel de solo LECTURA que ya existe para
                  ver el AVANCE de un miembro puntual contra requisitos ya
@@ -1173,7 +1178,7 @@
                  arranca en blanco) y el botón "Guardar requisitos" avisa
                  que todavía no está conectado en vez de fingir que guardó
                  algo. -->
-            <div style="margin-top:14px; padding-top:14px; border-top:1px solid var(--line);">
+            <div id="requisitosTorneoBox" style="margin-top:14px; padding-top:14px; border-top:1px solid var(--line);">
               <h3 style="font-size:15px; color:var(--gold); margin:0 0 4px;">Requisitos para participar en torneos</h3>
               <p class="text-dim" style="font-size:13px; margin:0 0 4px;">Requerimiento mínimo de trofeos de guerra para mantenerse en cada clan.</p>
               <div id="reqTrofeosGuerraGrid"></div>
@@ -2937,6 +2942,23 @@ function initTorneoWizard(){
     document.getElementById('camposModificar').style.display = esModificar ? '' : 'none';
     document.getElementById('camposPlanificar').style.display = esPlanificar ? '' : 'none';
     document.getElementById('camposTorneoPrincipal').style.display = esContinuacion ? '' : 'none';
+
+    // FIX (10-sep-2026, pedido usuario — "mueve los requisitos justo antes
+    // de la selección de semanas"): #requisitosTorneoBox es un único nodo
+    // (no triplicado), así que en vez de tener 3 copias se reubica en el
+    // DOM cada vez que se entra al paso 3, justo antes del selector de
+    // semanas de la rama activa (#semanaSelectorWrapReg/Mod/Plan). Ver el
+    // docblock grande junto a #requisitosTorneoBox en el HTML para el
+    // detalle completo.
+    const reqBox = document.getElementById('requisitosTorneoBox');
+    const semanaWrap = document.getElementById(
+      esRegistrar ? 'semanaSelectorWrapReg' :
+      esModificar ? 'semanaSelectorWrapMod' :
+      esPlanificar ? 'semanaSelectorWrapPlan' : ''
+    );
+    if(reqBox && semanaWrap && semanaWrap.parentNode){
+      semanaWrap.parentNode.insertBefore(reqBox, semanaWrap);
+    }
     document.getElementById('btnRegistrarTorneo').style.display = esRegistrar ? '' : 'none';
     document.getElementById('btnModificarTorneo').style.display = esModificar ? '' : 'none';
     document.getElementById('btnPlanificarTorneo').style.display = esPlanificar ? '' : 'none';
