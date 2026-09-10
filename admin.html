@@ -1251,6 +1251,19 @@ document.getElementById('btnLogin').addEventListener('click', async () => {
     document.getElementById('loginCelular').value = '';
     document.getElementById('claveInput').value = '';
     mostrarPanel();
+    // FIX (09-sep-2026 tarde, pedido usuario — cuenta propia en "Lo
+    // organicé yo"): recién ACÁ, tras un login fresco en esta pestaña, ya
+    // está disponible tanto SESSION_ADMIN_KEY (recién seteado arriba) como
+    // refrescarCuentaOrgPropia() (definida más abajo en este <script>,
+    // pero ya evaluada para cuando el usuario llega a hacer click en
+    // "Ingresar" — a diferencia de la llamada síncrona de más arriba,
+    // `if(localStorage.getItem(SESSION_KEY)) mostrarPanel();`, que corre
+    // ANTES de que se declare cuentasPorNomMultiCache y por eso NO puede
+    // llamar a esta función directamente; ese caso ya queda cubierto por
+    // la llamada a refrescarCuentaOrgPropia() que sigue a
+    // initCuentaOrgBox('Mod') más abajo, porque para cuando el script
+    // llega ahí, una sesión guardada de antes ya está en localStorage).
+    refrescarCuentaOrgPropia();
   }catch(err){
     msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
   }
@@ -2633,6 +2646,21 @@ const cuentasPorNomMultiCache = {};
  * ids que ya usa cargarNomMultisAdmins() más arriba, con la misma
  * convención de sufijos.
  */
+/**
+ * FIX (09-sep-2026 tarde, pedido usuario — "casi todos los admin son
+ * multicuentas, yo puedo marcar que yo lo organicé y podría haber usado
+ * como 7 cuentas"): lee el Nom_Multi del ADMIN DE LA SESIÓN (guardado en
+ * SESSION_ADMIN_KEY al loguearse, ver mostrarPanel()/admin.nomMulti más
+ * arriba). Devuelve '' si no hay sesión guardada o si el admin no tiene
+ * Nom_Multi (cuenta única) — en ese caso no tiene sentido mostrar el
+ * cuadro de "¿con cuál cuenta?" con una sola opción.
+ */
+function nomMultiDelAdminDeSesion(){
+  const adminGuardado = localStorage.getItem(SESSION_ADMIN_KEY);
+  if(!adminGuardado) return '';
+  try{ return String(JSON.parse(adminGuardado).nomMulti || ''); }catch(err){ return ''; }
+}
+
 function initCuentaOrgBox(sufijo){
   const selectAutor = document.getElementById('tAutorSelect' + sufijo);
   const box = document.getElementById('tCuentaOrgBox' + sufijo);
@@ -2641,15 +2669,35 @@ function initCuentaOrgBox(sufijo){
   if(!selectAutor || !box || !selectCuenta || !info) return;
 
   selectAutor.addEventListener('change', async () => {
-    const nomMulti = selectAutor.value;
-    // '' ("Lo organicé yo" / "Sin cambios") y '__otro__' ("Ninguna de las
-    // anteriores") no tienen Nom_Multi real, así que no hay cuentas que
-    // buscar — se oculta el cuadro y se limpia lo que hubiera quedado.
-    if(!nomMulti || nomMulti === '__otro__'){
+    const valor = selectAutor.value;
+    // '__otro__' ("Ninguna de las anteriores") no tiene Nom_Multi real
+    // (el nombre se escribe a mano en #tAutorManual*) — se oculta el
+    // cuadro y se limpia lo que hubiera quedado.
+    if(valor === '__otro__'){
       box.style.display = 'none';
       selectCuenta.innerHTML = '<option value="">Elige la cuenta…</option>';
       info.textContent = '';
       return;
+    }
+    let nomMulti = valor;
+    // FIX (09-sep-2026 tarde, pedido usuario): valor === '' significa
+    // cosas distintas según el formulario. En Registrar/Planificar
+    // (sufijo '' / 'Plan') es "Lo organicé/organizo yo" — el admin de la
+    // sesión, que igual que casi cualquier miembro suele ser multicuenta
+    // (hasta ~7 cuentas), así que este caso ahora reusa el mismo cuadro
+    // que un Nom_Multi elegido del dropdown, pero con el Nom_Multi propio
+    // del admin logueado. En Modificar (sufijo 'Mod') el mismo valor vacío
+    // es "Sin cambios (mantener autor actual)" — ahí NO se debe mostrar
+    // el cuadro ni mandar tagOrg/clanOrg/clanTagOrg, para no pisar lo ya
+    // guardado cuando el admin no tocó el autor.
+    if(!valor){
+      nomMulti = (sufijo === 'Mod') ? '' : nomMultiDelAdminDeSesion();
+      if(!nomMulti){
+        box.style.display = 'none';
+        selectCuenta.innerHTML = '<option value="">Elige la cuenta…</option>';
+        info.textContent = '';
+        return;
+      }
     }
     box.style.display = '';
     await cargarCuentasDelAutor(nomMulti, selectCuenta, info);
@@ -2749,6 +2797,29 @@ function leerCuentaOrgElegida(sufijo){
 initCuentaOrgBox('');
 initCuentaOrgBox('Plan');
 initCuentaOrgBox('Mod');
+
+/**
+ * FIX (09-sep-2026 tarde, pedido usuario): dispara el mismo 'change' que
+ * ya escucha initCuentaOrgBox() para los selects de Registrar/Planificar
+ * (sufijo '' y 'Plan' — Modificar no aplica, ver el comentario grande de
+ * initCuentaOrgBox()), para que el cuadro "¿con cuál cuenta organizó?" con
+ * las cuentas propias del admin aparezca solo con la página recién
+ * cargada, sin que el admin tenga que tocar el dropdown primero (que ya
+ * está en "Lo organicé/organizo yo" por defecto). Se llama:
+ *   1) Acá abajo, para el caso "sesión ya guardada de antes" (recarga de
+ *      página) — en ese momento localStorage ya tiene SESSION_ADMIN_KEY
+ *      desde antes de que este <script> arrancara a correr, así que es
+ *      seguro leerlo ya mismo.
+ *   2) Desde btnLogin (más arriba en este mismo <script>), para el caso
+ *      "login recién hecho en esta pestaña" — ver ese addEventListener.
+ */
+function refrescarCuentaOrgPropia(){
+  ['', 'Plan'].forEach(sufijo => {
+    const selectAutor = document.getElementById('tAutorSelect' + sufijo);
+    if(selectAutor) selectAutor.dispatchEvent(new Event('change'));
+  });
+}
+refrescarCuentaOrgPropia();
 
 /**
  * FASE 7 (Parte B, 06-sep-2026, punto 7 del documento — edición de autor
