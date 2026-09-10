@@ -1540,8 +1540,18 @@ function renderParticipacionHoyGuerra(data){
   const clanes = data.clanes || [];
   if(!clanes.length){ cont.innerHTML = '<div class="empty">Sin datos de guerra para hoy todavía.</div>'; return; }
 
-  const clanesHtml = clanes.map(c => `
-    <div style="border-top:1px solid var(--line); padding:12px 0;">
+  // FIX (09-sep-2026, pedido usuario — "agrega una barra horizontal al
+  // inicio y final de las cuadrículas de guerra"): cada clan ya tenía una
+  // línea divisoria (border-top) entre un bloque y el siguiente, pero eso
+  // dejaba sin línea tanto arriba del primer clan como debajo del último.
+  // Se agrega `barraHorizontal` explícita en ambos extremos del conjunto
+  // de cuadrículas (antes de la primera y después de la última), y el
+  // border-top de cada clan pasa a aplicarse solo entre clanes (i > 0)
+  // para no duplicar la línea justo debajo de la barra de inicio.
+  const barraHorizontal = '<hr style="border:none; border-top:1px solid var(--line); margin:0;">';
+
+  const clanesHtml = clanes.map((c, i) => `
+    <div style="${i > 0 ? 'border-top:1px solid var(--line);' : ''} padding:12px 0;">
       <div style="font-weight:700; font-size:13px; margin-bottom:8px;">${esc(c.clan)}</div>
       <div class="field-row">
         <div>
@@ -1564,7 +1574,7 @@ function renderParticipacionHoyGuerra(data){
       </ul>
     </div>`;
 
-  cont.innerHTML = clanesHtml + multiClanHtml;
+  cont.innerHTML = barraHorizontal + clanesHtml + barraHorizontal + multiClanHtml;
 }
 
 async function cargarParticipacionHoyGuerra(){
