@@ -234,6 +234,24 @@
   }
   /* Fase 3 (25-ago-2026): gestión de torneos */
   .ganador-victorias{font-family:var(--f-mono); font-size:13px; color:var(--text-dim);}
+  /* FIX (09-sep-2026, pedido usuario — "a la parte de la fecha, agrégale
+     ese cuadrito de fecha"): input[type="date"] ya abre el selector nativo
+     del navegador al hacer clic en cualquier parte del campo, pero eso no
+     siempre se nota a simple vista. Se agrega un icono de calendario
+     visible dentro del campo (.btn-calendario) que llama a
+     input.showPicker() — el mismo "cuadrito" del selector nativo, pero con
+     un botón explícito para abrirlo en vez de depender de que el usuario
+     sepa que el campo entero es clickeable. Ver #camposModificar en el
+     HTML y btnCalendarioMod en el JS. */
+  .campo-fecha-wrap{position:relative;}
+  .campo-fecha-wrap input[type="date"]{padding-right:40px;}
+  .btn-calendario{
+    position:absolute; right:6px; top:50%; transform:translateY(-50%);
+    background:none; border:none; color:var(--text-dim); font-size:16px;
+    cursor:pointer; padding:4px 6px; line-height:1; border-radius:var(--radius-sm);
+    transition:color .15s, background .15s;
+  }
+  .btn-calendario:hover{color:var(--purple-light); background:rgba(162,57,255,.12);}
 </style>
 </head>
 <body data-page="admin">
@@ -804,12 +822,50 @@
               <div class="field-row">
                 <div class="field">
                   <label for="tFechaMod">Nueva fecha</label>
-                  <input type="date" id="tFechaMod">
+                  <div class="campo-fecha-wrap">
+                    <input type="date" id="tFechaMod">
+                    <button type="button" class="btn-calendario" id="btnCalendarioMod" title="Abrir calendario" aria-label="Abrir calendario">📅</button>
+                  </div>
                 </div>
                 <div class="field">
                   <label for="tHoraMod">Nueva hora</label>
                   <input type="time" id="tHoraMod">
                 </div>
+              </div>
+
+              <!-- FIX (09-sep-2026, pedido usuario — "las opciones de
+                   modificar torneo no tienen la opción de editar el autor,
+                   ni el premio (planificar sí tiene)"): mismo patrón de
+                   #tAutorSelect/#tAutorSelectPlan y #premiosEditor, pero
+                   AMBOS opcionales acá porque se está editando un torneo
+                   que puede ya tener autor y premios cargados. Dejar el
+                   select en "Sin cambios" y el editor de premios vacío (sin
+                   filas) significa "no tocar esos campos" — ver
+                   btnModificarTorneo más abajo: autor/premios solo viajan
+                   al backend con contenido real, nunca forzando un valor
+                   vacío que borre lo ya guardado.
+                   PENDIENTE BACKEND: _webAdminTorneoModificar()/
+                   webAdminTorneoModificar (34_Web_API.gs) y
+                   _modificarFechaHoraTorneo() (24_Torneos_Core.gs) deben
+                   aceptar los parámetros opcionales `autor` y `premios`, y
+                   solo actualizar esas columnas de T_Lista cuando lleguen
+                   no vacíos — hoy esos archivos .gs no están disponibles
+                   en esta sesión, así que este front-end ya los envía pero
+                   el guardado real depende de esa actualización. -->
+              <div class="field" style="margin-top:14px;">
+                <label for="tAutorSelectMod">¿Quién organizó el torneo?</label>
+                <select id="tAutorSelectMod">
+                  <option value="">Sin cambios (mantener autor actual)</option>
+                  <option value="__otro__">Ninguna de las anteriores</option>
+                </select>
+                <input type="text" id="tAutorManualMod" placeholder="Nombre de quien organizó" style="margin-top:8px; display:none;">
+              </div>
+
+              <div style="margin-top:14px; padding-top:14px; border-top:1px solid var(--line);">
+                <label style="display:block; margin-bottom:4px;">Premios</label>
+                <p class="text-dim" style="font-size:12px; margin:0 0 10px;">Déjalo vacío si no quieres cambiar los premios ya registrados. Usualmente son 3, pero puedes agregar más o quitar los que no necesites.</p>
+                <div id="premiosEditorMod"></div>
+                <button type="button" class="btn btn-ghost btn-block" id="btnAgregarPremioMod" style="margin-top:10px;">+ Agregar premio</button>
               </div>
             </div>
 
@@ -2220,17 +2276,21 @@ function crearFilaPremioHTML(id){
 }
 
 /** Renumera "Premio N" de cada fila y esconde el "Quitar" de la única fila
- *  restante (siempre debe quedar al menos 1). */
-function renumerarPremios(){
-  const filas = document.querySelectorAll('#premiosEditor .premio-fila');
+ *  restante (siempre debe quedar al menos 1).
+ *  FIX (09-sep-2026, pedido usuario — premios en "Modificar torneo"):
+ *  todas las funciones de este editor ahora reciben `containerId` para
+ *  poder operar tanto sobre #premiosEditor (Planificar) como sobre
+ *  #premiosEditorMod (Modificar), que conviven en el mismo DOM. */
+function renumerarPremios(containerId = 'premiosEditor'){
+  const filas = document.querySelectorAll(`#${containerId} .premio-fila`);
   filas.forEach((fila, i) => {
     fila.querySelector('.premio-num').textContent = String(i + 1);
     fila.querySelector('.btn-quitar-premio').style.display = filas.length > 1 ? '' : 'none';
   });
 }
 
-function agregarFilaPremio(){
-  const cont = document.getElementById('premiosEditor');
+function agregarFilaPremio(containerId = 'premiosEditor'){
+  const cont = document.getElementById(containerId);
   const id = 'p' + (++premioIdSeq);
   cont.insertAdjacentHTML('beforeend', crearFilaPremioHTML(id));
   const fila = cont.querySelector(`[data-premio-id="${id}"]`);
@@ -2245,30 +2305,34 @@ function agregarFilaPremio(){
 
   fila.querySelector('.btn-quitar-premio').addEventListener('click', (ev) => {
     ev.preventDefault();
-    if(document.querySelectorAll('#premiosEditor .premio-fila').length <= 1) return;
+    if(document.querySelectorAll(`#${containerId} .premio-fila`).length <= 1) return;
     fila.remove();
-    renumerarPremios();
+    renumerarPremios(containerId);
   });
 
-  renumerarPremios();
+  renumerarPremios(containerId);
 }
 
 /** Vacía el editor y lo deja con 3 filas nuevas -- estado inicial y el que
- *  queda después de planificar un torneo con éxito. */
-function reiniciarPremiosEditor(){
-  document.getElementById('premiosEditor').innerHTML = '';
-  agregarFilaPremio();
-  agregarFilaPremio();
-  agregarFilaPremio();
+ *  queda después de planificar un torneo con éxito. En "Modificar torneo"
+ *  NO se llama automáticamente al entrar al paso (ver mostrarPaso3()): el
+ *  editor de premios ahí arranca vacío (0 filas) porque cambiar el premio
+ *  es opcional, a diferencia de Planificar donde siempre es obligatorio. */
+function reiniciarPremiosEditor(containerId = 'premiosEditor'){
+  document.getElementById(containerId).innerHTML = '';
+  agregarFilaPremio(containerId);
+  agregarFilaPremio(containerId);
+  agregarFilaPremio(containerId);
 }
 
 /** Junta las filas del editor en un solo texto separado por comas -- mismo
  *  formato que espera la columna Premios de T_Lista. Por cada fila: "Pass
  *  Royale" tal cual, "S/ {monto}" si es Dinero (solo si tiene monto), o el
  *  texto libre si es Manual (solo si no está vacío). Devuelve '' si no
- *  quedó ningún premio válido. */
-function armarPremiosCSV(){
-  const filas = document.querySelectorAll('#premiosEditor .premio-fila');
+ *  quedó ningún premio válido (o si el editor no tiene ninguna fila, como
+ *  el caso normal de "Modificar torneo" sin querer tocar los premios). */
+function armarPremiosCSV(containerId = 'premiosEditor'){
+  const filas = document.querySelectorAll(`#${containerId} .premio-fila`);
   const partes = [];
   filas.forEach(fila => {
     const tipo = fila.querySelector('.premioTipo').value;
@@ -2285,7 +2349,8 @@ function armarPremiosCSV(){
   return partes.join(', ');
 }
 
-document.getElementById('btnAgregarPremio').addEventListener('click', () => agregarFilaPremio());
+document.getElementById('btnAgregarPremio').addEventListener('click', () => agregarFilaPremio('premiosEditor'));
+document.getElementById('btnAgregarPremioMod').addEventListener('click', () => agregarFilaPremio('premiosEditorMod'));
 
 /** Puebla el <select> de "Modificar torneo de hoy" — solo torneos de HOY,
  *  igual que el paso "Modificar" del bot (_listarTorneosDeHoy()). Cada
@@ -2391,6 +2456,13 @@ async function cargarNomMultisAdmins(){
   const optOtro = sel.querySelector('option[value="__otro__"]');
   const selPlan = document.getElementById('tAutorSelectPlan');
   const optOtroPlan = selPlan.querySelector('option[value="__otro__"]');
+  // FIX (09-sep-2026, pedido usuario — editar autor en "Modificar torneo"):
+  // mismo select, tercera copia (id propio porque las tres conviven en el
+  // DOM). La opción fija "Sin cambios..." ya está en el HTML de
+  // #tAutorSelectMod, acá solo se insertan los Nom_Multi en el medio,
+  // igual que en las otras dos.
+  const selMod = document.getElementById('tAutorSelectMod');
+  const optOtroMod = selMod.querySelector('option[value="__otro__"]');
   try{
     const data = await apiGetAuth('webAdminNomMultisAdmins', {});
     if(manejarRespuestaAuth(data)) return;
@@ -2411,6 +2483,11 @@ async function cargarNomMultisAdmins(){
         optPlan.value = nm;
         optPlan.textContent = nm;
         selPlan.insertBefore(optPlan, optOtroPlan);
+
+        const optMod = document.createElement('option');
+        optMod.value = nm;
+        optMod.textContent = nm;
+        selMod.insertBefore(optMod, optOtroMod);
       });
     }
   }catch(err){
@@ -2563,6 +2640,28 @@ document.getElementById('tAutorSelectPlan').addEventListener('change', () => {
   if(!esOtro) input.value = '';
 });
 
+document.getElementById('tAutorSelectMod').addEventListener('change', () => {
+  const esOtro = document.getElementById('tAutorSelectMod').value === '__otro__';
+  const input = document.getElementById('tAutorManualMod');
+  input.style.display = esOtro ? '' : 'none';
+  if(!esOtro) input.value = '';
+});
+
+/* FIX (09-sep-2026, pedido usuario — "cuadrito de fecha"): abre el
+ * selector nativo del navegador al pulsar el icono de calendario dentro
+ * de "Nueva fecha" (ver .btn-calendario en el <style> y #camposModificar
+ * en el HTML). showPicker() no existe en navegadores muy viejos, así que
+ * si falta, se hace foco en el campo como respaldo (el navegador igual
+ * deja abrir el calendario con un clic normal). */
+document.getElementById('btnCalendarioMod').addEventListener('click', () => {
+  const input = document.getElementById('tFechaMod');
+  if(typeof input.showPicker === 'function'){
+    input.showPicker();
+  }else{
+    input.focus();
+  }
+});
+
 document.getElementById('tSelectHoy').addEventListener('change', () => {
   const opt = document.getElementById('tSelectHoy').selectedOptions[0];
   const fechaISO = opt && opt.dataset.fecha;
@@ -2630,18 +2729,36 @@ document.getElementById('btnModificarTorneo').addEventListener('click', async ()
   const fecha = fechaInputADDMMYYYY(document.getElementById('tFechaMod').value);
   const hora  = document.getElementById('tHoraMod').value;
   const esContinuacion = document.getElementById('torneoTipo').value === 'continuacion';
+  // FIX (09-sep-2026, pedido usuario — "editar el autor, ni el premio"):
+  // autorSelect vacío = "Sin cambios" (no se manda autor nuevo);
+  // "__otro__" = usar lo tipeado a mano en #tAutorManualMod; cualquier
+  // otro valor = el Nom_Multi de admin elegido. Los premios salen del
+  // editor #premiosEditorMod — si el admin no agregó ninguna fila (el
+  // caso normal, cuando solo quiere cambiar fecha/hora), armarPremiosCSV
+  // devuelve '' y no se toca lo ya guardado (ver nota "PENDIENTE BACKEND"
+  // junto a #camposModificar en el HTML).
+  const autorSelect = document.getElementById('tAutorSelectMod').value;
+  const autor = autorSelect === '__otro__' ? document.getElementById('tAutorManualMod').value.trim() : autorSelect;
+  const premios = armarPremiosCSV('premiosEditorMod');
   if(!id){ msgEl.innerHTML = '<div class="msg msg-error">Elige un torneo de la lista.</div>'; return; }
   if(!fecha || !hora){ msgEl.innerHTML = '<div class="msg msg-error">Completa la nueva fecha y hora.</div>'; return; }
   if(esContinuacion && !torneoTorneoPrincipalTag){ msgEl.innerHTML = '<div class="msg msg-error">Elige de cuál torneo principal es continuación.</div>'; return; }
+  if(autorSelect === '__otro__' && !autor){ msgEl.innerHTML = '<div class="msg msg-error">Escribe el nombre de quien organizó, o elige otra opción.</div>'; return; }
   try{
     const data = await apiPost('webAdminTorneoModificar', {
       sessionToken: localStorage.getItem(SESSION_KEY),
       id, fecha, hora,
-      tagTorneoPrincipal: esContinuacion ? torneoTorneoPrincipalTag : ''
+      tagTorneoPrincipal: esContinuacion ? torneoTorneoPrincipalTag : '',
+      autor,   // '' = no cambiar el autor ya registrado
+      premios  // '' = no cambiar los premios ya registrados
     });
     if(manejarRespuestaAuth(data)) return;
     if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
     msgEl.innerHTML = '<div class="msg msg-ok">Torneo actualizado.</div>';
+    document.getElementById('tAutorSelectMod').value = '';
+    document.getElementById('tAutorManualMod').value = '';
+    document.getElementById('tAutorManualMod').style.display = 'none';
+    document.getElementById('premiosEditorMod').innerHTML = '';
     cargarTorneosHoy();
     cargarGanadoresTorneo();
   }catch(err){
