@@ -1423,7 +1423,8 @@ function lineChartLegendHtml(miembros){
 
 /** Delegación de eventos sobre los puntos <circle> de ambas gráficas,
  * usando un único tooltip flotante (#chartTooltip). Muestra, por
- * ejemplo, "5 ataques — Clan X" al acercar el mouse a un punto. */
+ * ejemplo, "David.cr_2 (#2092GR8VGY)" arriba y "5 ataques — Clan X ·
+ * 28/12/2025" abajo al acercar el mouse a un punto. */
 function activarTooltipsGraficas(){
   const tip = document.getElementById('chartTooltip');
   if (!tip) return;
@@ -1434,7 +1435,12 @@ function activarTooltipsGraficas(){
       // clan, fecha) — pedido usuario 07-sep-2026: "al acercar el mouse
       // debe verse información de ese registro según la información que
       // esté mostrando la tabla".
-      tip.innerHTML = `<b>${esc(fmtNum(valor))} ${esc(unidad)}</b> — ${esc(clan)}<br><span style="color:var(--text-faint);">${esc(nombre)}${tag ? ' (' + esc(tag) + ')' : ''} · ${esc(semana)}</span>`;
+      // FIX (10-sep-2026, pedido usuario — "arriba debe decir el nombre de
+      // la cuenta y su tag, abajo el clan y la cantidad de ataques, barcos
+      // o fame"): orden invertido a como estaba (antes la cantidad iba
+      // arriba en negrita y el nombre abajo tenue) — así primero se
+      // identifica DE QUIÉN es el punto y después el dato en sí.
+      tip.innerHTML = `<b>${esc(nombre)}${tag ? ' (' + esc(tag) + ')' : ''}</b><br><span style="color:var(--text-faint);">${esc(fmtNum(valor))} ${esc(unidad)} — ${esc(clan)} · ${esc(semana)}</span>`;
       tip.style.display = 'block';
       tip.style.left = (e.clientX + 14) + 'px';
       tip.style.top  = (e.clientY + 14) + 'px';

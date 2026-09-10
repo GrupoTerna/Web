@@ -2115,14 +2115,20 @@ function lineChartLegendHtml(miembros){
 }
 
 /** Delegación de eventos sobre los puntos <circle> de las tres gráficas,
- * usando un único tooltip flotante (#chartTooltip). */
+ * usando un único tooltip flotante (#chartTooltip). Muestra "David.cr_2
+ * (#2092GR8VGY)" arriba y "5 ataques — Clan X · 28/12/2025" abajo. */
 function activarTooltipsGraficasIngresos(){
   const tip = document.getElementById('chartTooltip');
   if (!tip) return;
   document.querySelectorAll('.ing-linechart-svg .ing-serie-pt').forEach(pt => {
     pt.addEventListener('mousemove', e => {
       const { nombre, tag, valor, clan, semana, unidad } = pt.dataset;
-      tip.innerHTML = `<b>${esc(fmtNum(valor))} ${esc(unidad)}</b> — ${esc(clan)}<br><span style="color:var(--text-faint);">${esc(nombre)}${tag ? ' (' + esc(tag) + ')' : ''} · ${esc(semana)}</span>`;
+      // FIX (10-sep-2026, pedido usuario — "arriba debe decir el nombre de
+      // la cuenta y su tag, abajo el clan y la cantidad de ataques, barcos
+      // o fame, igual que en index"): mismo orden que activarTooltipsGraficas()
+      // en index.html — nombre+tag arriba en negrita, cantidad+clan+fecha
+      // abajo tenue (antes estaba al revés en ambos archivos).
+      tip.innerHTML = `<b>${esc(nombre)}${tag ? ' (' + esc(tag) + ')' : ''}</b><br><span style="color:var(--text-faint);">${esc(fmtNum(valor))} ${esc(unidad)} — ${esc(clan)} · ${esc(semana)}</span>`;
       tip.style.display = 'block';
       tip.style.left = (e.clientX + 14) + 'px';
       tip.style.top  = (e.clientY + 14) + 'px';
