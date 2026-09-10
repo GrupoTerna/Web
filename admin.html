@@ -958,12 +958,30 @@
                    ni el premio (planificar sí tiene)"): mismo patrón de
                    #tAutorSelect/#tAutorSelectPlan y #premiosEditor, pero
                    AMBOS opcionales acá porque se está editando un torneo
-                   que puede ya tener autor y premios cargados. Dejar el
-                   select en "Sin cambios" y el editor de premios vacío (sin
-                   filas) significa "no tocar esos campos" — ver
-                   btnModificarTorneo más abajo: autor/premios solo viajan
-                   al backend con contenido real, nunca forzando un valor
-                   vacío que borre lo ya guardado.
+                   que puede ya tener autor y premios cargados.
+
+                   FIX (09-sep-2026 tarde, pedido usuario — "los premios
+                   deben desplegarse como en planificar, y si hay que
+                   modificar algo se debe indicar el valor actual"):
+                    - #tAutorSelectMod se queda igual en "Sin cambios" por
+                      defecto (no se manda autor nuevo si no se toca), pero
+                      esa opción ahora muestra el nombre del autor YA
+                      registrado -- "Sin cambios (Diana)" en vez del texto
+                      genérico -- ver actualizarEtiquetaSinCambiosAutor() en
+                      el <script>, disparada al elegir un torneo en
+                      #tSelectHoy.
+                    - #premiosEditorMod ya NO arranca vacío: se puebla con
+                      los premios YA registrados de ese torneo (o 3 filas en
+                      blanco tipo "Pass Royale" si todavía no tiene, igual
+                      que #premiosEditor en Planificar) — ver
+                      poblarPremiosEditor()/parsearPremiosCSV(). Como el
+                      editor siempre refleja el valor actual, guardar sin
+                      tocar nada reenvía el mismo texto ya guardado (no lo
+                      borra); solo cambia si el admin edita alguna fila.
+                   btnModificarTorneo más abajo sigue mandando `autor` vacío
+                   cuando el select se deja en "Sin cambios" (el backend no
+                   debe tocar esa columna en ese caso), y `premios` con lo
+                   que haya en el editor en ese momento.
                    PENDIENTE BACKEND: _webAdminTorneoModificar()/
                    webAdminTorneoModificar (34_Web_API.gs) y
                    _modificarFechaHoraTorneo() (24_Torneos_Core.gs) deben
@@ -971,7 +989,17 @@
                    solo actualizar esas columnas de T_Lista cuando lleguen
                    no vacíos — hoy esos archivos .gs no están disponibles
                    en esta sesión, así que este front-end ya los envía pero
-                   el guardado real depende de esa actualización. -->
+                   el guardado real depende de esa actualización. Para que
+                   "Sin cambios (Diana)"/el editor de premios/el selector de
+                   semanas reflejen el valor REAL ya guardado (y no solo el
+                   default), _listarTorneosDeHoy() (24_Torneos_Core.gs) y
+                   webAdminTorneosHoy (34_Web_API.gs) deben devolver también
+                   `autor`, `premios` (mismo formato CSV que arma
+                   armarPremiosCSV()) y `semanas` (array de fechas ISO de
+                   los lunes ya evaluados) por torneo — ver
+                   data-autor/data-premios/data-semanas en cargarTorneosHoy()
+                   más abajo, ya listos para consumir esos campos en cuanto
+                   existan. -->
               <div class="field" style="margin-top:14px;">
                 <label for="tAutorSelectMod">¿Quién organizó el torneo?</label>
                 <select id="tAutorSelectMod">
@@ -1007,7 +1035,7 @@
 
               <div style="margin-top:14px; padding-top:14px; border-top:1px solid var(--line);">
                 <label style="display:block; margin-bottom:4px;">Premios</label>
-                <p class="text-dim" style="font-size:12px; margin:0 0 10px;">Déjalo vacío si no quieres cambiar los premios ya registrados. Usualmente son 3, pero puedes agregar más o quitar los que no necesites.</p>
+                <p class="text-dim" style="font-size:12px; margin:0 0 10px;">Se muestran los premios ya registrados para este torneo (o 3 filas en blanco si todavía no tiene). Déjalos tal cual si no quieres cambiarlos, o edítalos — usualmente son 3, pero puedes agregar más o quitar los que no necesites.</p>
                 <div id="premiosEditorMod"></div>
                 <button type="button" class="btn btn-ghost btn-block" id="btnAgregarPremioMod" style="margin-top:10px;">+ Agregar premio</button>
               </div>
@@ -1309,6 +1337,11 @@ function mostrarPanel(){
       if(nombreMostrar) bienvenida.textContent = `Hola, ${nombreMostrar}`;
     }catch(err){ /* si el JSON guardado no es válido, se deja el texto por defecto */ }
   }
+  // FIX (09-sep-2026 tarde, pedido usuario — "Lo organizo yo (Diana)"): se
+  // llama ya acá (con el Nom_Multi guardado en la sesión, sin depender de
+  // ningún pedido al backend) y también al final de cargarNomMultisAdmins()
+  // por si esta función corriera antes de tener el admin guardado.
+  actualizarEtiquetaAutorPropio();
   aplicarVisibilidadPorFunciones();
   cargarMisCuentas();
   initMensajesAutomaticos();
@@ -2656,6 +2689,17 @@ function initTorneoWizard(){
       reiniciarPremiosEditor();
     }
 
+    // FIX (09-sep-2026 tarde, pedido usuario — "los premios deben
+    // desplegarse como en planificar"): #premiosEditorMod ahora arranca
+    // igual que #premiosEditor de arriba (3 filas "Pass Royale" en blanco)
+    // en vez de vacío, para que se vea igual antes de elegir un torneo en
+    // #tSelectHoy. En cuanto se elige un torneo, el listener de 'change'
+    // de #tSelectHoy (más abajo) vuelve a poblar el editor con los premios
+    // YA registrados de ese torneo (poblarPremiosEditor()).
+    if(esModificar && !document.getElementById('premiosEditorMod').children.length){
+      poblarPremiosEditor('premiosEditorMod', '');
+    }
+
     paso3.style.display = '';
   }
 
@@ -2797,6 +2841,72 @@ function armarPremiosCSV(containerId = 'premiosEditor'){
 document.getElementById('btnAgregarPremio').addEventListener('click', () => agregarFilaPremio('premiosEditor'));
 document.getElementById('btnAgregarPremioMod').addEventListener('click', () => agregarFilaPremio('premiosEditorMod'));
 
+/**
+ * parsearPremiosCSV(texto) / poblarPremiosEditor(containerId, texto)
+ * FIX (09-sep-2026 tarde, pedido usuario — "los premios deben desplegarse
+ * como en planificar, pero seleccionados con las opciones y/o montos
+ * registrados"): es el camino INVERSO de armarPremiosCSV() — toma el texto
+ * ya guardado (mismo formato: "Pass Royale, S/ 20, Skin legendaria") y
+ * reconstruye las filas del editor con esos valores ya elegidos, para que
+ * "Modificar torneo" muestre primero el valor actual antes de que el admin
+ * cambie nada (en vez de arrancar vacío, como pedía el patrón viejo).
+ *
+ * Si `texto` llega vacío (torneo sin premios registrados todavía, o
+ * mientras el backend no mande el campo `premios` — ver PENDIENTE BACKEND
+ * junto a #camposModificar en el HTML), poblarPremiosEditor() deja 3 filas
+ * en blanco tipo "Pass Royale", EXACTAMENTE el mismo estado inicial que
+ * reiniciarPremiosEditor() usa en "Planificar" — así los dos editores se
+ * ven y se comportan igual, que era el pedido puntual del usuario.
+ */
+function parsearPremiosCSV(texto){
+  if(!texto) return [];
+  return String(texto).split(',').map(p => p.trim()).filter(Boolean).map(parte => {
+    const dinero = parte.match(/^S\/\s*([\d.,]+)$/i);
+    if(dinero) return { tipo: 'Dinero', monto: dinero[1] };
+    if(parte === 'Pass Royale') return { tipo: 'Pass Royale' };
+    return { tipo: 'Manual', texto: parte };
+  });
+}
+
+function poblarPremiosEditor(containerId, texto){
+  const cont = document.getElementById(containerId);
+  if(!cont) return;
+  cont.innerHTML = '';
+  let filas = parsearPremiosCSV(texto);
+  if(!filas.length) filas = [{ tipo: 'Pass Royale' }, { tipo: 'Pass Royale' }, { tipo: 'Pass Royale' }];
+  filas.forEach(f => {
+    agregarFilaPremio(containerId);
+    const fila = cont.lastElementChild;
+    const selTipo = fila.querySelector('.premioTipo');
+    selTipo.value = f.tipo;
+    selTipo.dispatchEvent(new Event('change'));
+    if(f.tipo === 'Dinero') fila.querySelector('.premioMonto').value = f.monto || '';
+    if(f.tipo === 'Manual') fila.querySelector('.premioManual').value = f.texto || '';
+  });
+}
+
+/**
+ * preseleccionarSemanas(containerId, semanasIsoCsv)
+ * FIX (09-sep-2026 tarde, pedido usuario — "en el selector de semanas se
+ * debe preseleccionar las semanas que ya estaban registradas"): recibe las
+ * fechas ISO (yyyy-mm-dd, lunes de cada semana) que ya se habían marcado
+ * para este torneo y ajusta los checkboxes ya pintados por
+ * pintarSemanasSelector() para que coincidan. Si `semanasIsoCsv` llega
+ * vacío (sin dato del backend todavía — ver PENDIENTE BACKEND junto a
+ * #camposModificar en el HTML), no toca nada y se queda el default de
+ * pintarSemanasSelector() (las 2 semanas más recientes marcadas).
+ */
+function preseleccionarSemanas(containerId, semanasIsoCsv){
+  if(!semanasIsoCsv) return;
+  const cont = document.getElementById(containerId);
+  if(!cont) return;
+  const semanasIso = String(semanasIsoCsv).split(',').map(s => s.trim()).filter(Boolean);
+  if(!semanasIso.length) return;
+  cont.querySelectorAll('.semana-check').forEach(chk => {
+    chk.checked = semanasIso.includes(chk.dataset.lunesIso);
+  });
+}
+
 /** Puebla el <select> de "Modificar torneo de hoy" — solo torneos de HOY,
  *  igual que el paso "Modificar" del bot (_listarTorneosDeHoy()). Cada
  *  <option> guarda la fecha ISO en data-fecha, para precargar los campos
@@ -2820,7 +2930,17 @@ async function cargarTorneosHoy(){
       sel.innerHTML = '<option value="">Elige un torneo…</option>' +
         torneosHoyData.map(t => {
           const fechaTxt = new Date(t.fecha).toLocaleString('es-PE', { hour12:false });
-          return `<option value="${esc(t.id)}" data-fecha="${esc(t.fecha)}">${esc(t.id)} — ${esc(fechaTxt)}</option>`;
+          // FIX (09-sep-2026 tarde, pedido usuario — "indicar el valor
+          // actual" al modificar): data-autor/data-premios/data-semanas
+          // quedan listos para cuando _listarTorneosDeHoy()/
+          // webAdminTorneosHoy devuelvan esos campos (ver PENDIENTE
+          // BACKEND junto a #camposModificar, arriba en el HTML). Mientras
+          // no existan, `t.autor`/`t.premios`/`t.semanas` llegan undefined
+          // y los ?? '' de abajo dejan los atributos vacíos — el resto del
+          // código ya sabe tratar eso como "sin dato" y usa los defaults
+          // genéricos (ver tSelectHoy 'change' más abajo).
+          const semanasCsv = Array.isArray(t.semanas) ? t.semanas.join(',') : '';
+          return `<option value="${esc(t.id)}" data-fecha="${esc(t.fecha)}" data-autor="${esc(t.autor || '')}" data-premios="${esc(t.premios || '')}" data-semanas="${esc(semanasCsv)}">${esc(t.id)} — ${esc(fechaTxt)}</option>`;
         }).join('');
     }
   }catch(err){
@@ -2908,6 +3028,17 @@ async function cargarNomMultisAdmins(){
   // igual que en las otras dos.
   const selMod = document.getElementById('tAutorSelectMod');
   const optOtroMod = selMod.querySelector('option[value="__otro__"]');
+  // FIX (09-sep-2026 tarde, pedido usuario — "al marcar que lo organizo yo,
+  // ya no debería aparecer mi nom_multi [en la lista]"): el Nom_Multi del
+  // admin de la sesión ya está cubierto por la opción "Lo organic(é/o) yo
+  // (<nombre>)" (ver actualizarEtiquetaAutorPropio() más abajo) — listarlo
+  // OTRA VEZ en #tAutorSelect/#tAutorSelectPlan sería mostrar la misma
+  // persona dos veces. En #tAutorSelectMod NO se excluye: ahí el valor
+  // vacío es "Sin cambios" (el autor YA registrado, que puede ser
+  // cualquiera, no necesariamente el admin de la sesión), así que el admin
+  // sí puede necesitar elegirse a sí mismo del dropdown si el torneo lo
+  // organizó otra persona.
+  const nomMultiPropio = nomMultiDelAdminDeSesion();
   try{
     const data = await apiGetAuth('webAdminNomMultisAdmins', {});
     if(manejarRespuestaAuth(data)) return;
@@ -2919,15 +3050,18 @@ async function cargarNomMultisAdmins(){
       // torneos, no se pide una lista aparte para esto.
       nomMultisAdminsCache = data.nomMultis;
       data.nomMultis.forEach(nm => {
-        const opt = document.createElement('option');
-        opt.value = nm;
-        opt.textContent = nm;
-        sel.insertBefore(opt, optOtro);
+        const esUnoMismo = nomMultiPropio && nm === nomMultiPropio;
+        if(!esUnoMismo){
+          const opt = document.createElement('option');
+          opt.value = nm;
+          opt.textContent = nm;
+          sel.insertBefore(opt, optOtro);
 
-        const optPlan = document.createElement('option');
-        optPlan.value = nm;
-        optPlan.textContent = nm;
-        selPlan.insertBefore(optPlan, optOtroPlan);
+          const optPlan = document.createElement('option');
+          optPlan.value = nm;
+          optPlan.textContent = nm;
+          selPlan.insertBefore(optPlan, optOtroPlan);
+        }
 
         const optMod = document.createElement('option');
         optMod.value = nm;
@@ -2939,6 +3073,7 @@ async function cargarNomMultisAdmins(){
     // Sin lista de admins no se rompe el registro: el select se queda con
     // solo las dos opciones fijas (sesión / escribir a mano).
   }
+  actualizarEtiquetaAutorPropio();
 }
 
 /* ============================================================
@@ -3031,6 +3166,44 @@ function nomMultiDelAdminDeSesion(){
   const adminGuardado = localStorage.getItem(SESSION_ADMIN_KEY);
   if(!adminGuardado) return '';
   try{ return String(JSON.parse(adminGuardado).nomMulti || ''); }catch(err){ return ''; }
+}
+
+/**
+ * actualizarEtiquetaAutorPropio()
+ * FIX (09-sep-2026 tarde, pedido usuario — "al marcar que lo organizo yo,
+ * ya no debería aparecer mi nom_multi [en la lista] ... en vez de 'Lo
+ * organizo yo (el admin de esta sesión)' debe decir 'Lo organizo yo
+ * (Diana)'"): reemplaza el texto genérico de la opción "Lo organic(é/o) yo"
+ * de #tAutorSelect (Registrar) y #tAutorSelectPlan (Planificar) por el
+ * Nom_Multi real del admin logueado (mismo dato que ya usa
+ * nomMultiDelAdminDeSesion()/mostrarPanel() para el "Hola, <nombre>").
+ * Si el admin no tiene Nom_Multi guardado (cuenta única, o sesión sin ese
+ * dato todavía), se deja el texto genérico tal como estaba.
+ */
+function actualizarEtiquetaAutorPropio(){
+  const nm = nomMultiDelAdminDeSesion();
+  if(!nm) return;
+  const optReg = document.querySelector('#tAutorSelect option[value=""]');
+  const optPlan = document.querySelector('#tAutorSelectPlan option[value=""]');
+  if(optReg) optReg.textContent = `Lo organicé yo (${nm})`;
+  if(optPlan) optPlan.textContent = `Lo organizo yo (${nm})`;
+}
+
+/**
+ * actualizarEtiquetaSinCambiosAutor(nombreActual)
+ * FIX (09-sep-2026 tarde, pedido usuario — "si hay que modificar algo, se
+ * debe indicar el valor actual. Por ejemplo: 'Sin cambios (mantener autor
+ * actual)' debería ser 'Sin cambios (Diana)'"): reemplaza el texto de la
+ * opción "Sin cambios" de #tAutorSelectMod por el nombre del autor YA
+ * registrado en el torneo elegido en #tSelectHoy (`nombreActual`, viene de
+ * data-autor — ver PENDIENTE BACKEND junto a #camposModificar en el HTML).
+ * Si no hay dato (torneo sin autor registrado, ninguno elegido todavía, o
+ * el backend aún no manda ese campo), vuelve al texto genérico.
+ */
+function actualizarEtiquetaSinCambiosAutor(nombreActual){
+  const opt = document.querySelector('#tAutorSelectMod option[value=""]');
+  if(!opt) return;
+  opt.textContent = nombreActual ? `Sin cambios (${nombreActual})` : 'Sin cambios (mantener autor actual)';
 }
 
 function initCuentaOrgBox(sufijo){
@@ -3376,6 +3549,31 @@ document.getElementById('tSelectHoy').addEventListener('change', () => {
     document.getElementById('torneoPrincipalElegidoMsg').innerHTML = '';
     renderTorneoPrincipalLista();
   }
+
+  // FIX (09-sep-2026 tarde, pedido usuario — "si hay que modificar algo, se
+  // debe indicar el valor actual"): al elegir (o quitar) un torneo, se
+  // refresca la etiqueta de "Sin cambios", el editor de premios y el
+  // selector de semanas con lo YA registrado para ESE torneo (si el
+  // backend lo manda — ver data-autor/data-premios/data-semanas en
+  // cargarTorneosHoy() y el PENDIENTE BACKEND junto a #camposModificar en
+  // el HTML). Se deja el select de autor en "Sin cambios" (no se fuerza un
+  // Nom_Multi elegido) y se limpia lo que hubiera quedado tipeado a mano de
+  // un torneo anterior.
+  actualizarEtiquetaSinCambiosAutor(opt && opt.dataset.autor);
+  document.getElementById('tAutorSelectMod').value = '';
+  document.getElementById('tAutorManualMod').value = '';
+  document.getElementById('tAutorManualMod').style.display = 'none';
+  document.getElementById('tCuentaOrgBoxMod').style.display = 'none';
+  document.getElementById('tCuentaOrgSelectMod').innerHTML = '<option value="">Elige la cuenta…</option>';
+  document.getElementById('tCuentaOrgInfoMod').textContent = '';
+
+  poblarPremiosEditor('premiosEditorMod', opt && opt.dataset.premios);
+
+  // El selector de semanas se repinta desde cero (vuelve al default de las
+  // 2 más recientes marcadas) y luego, si este torneo trae semanas ya
+  // registradas, se ajustan los checkboxes para reflejarlas.
+  pintarSemanasSelector('semanasSelectorMod');
+  preseleccionarSemanas('semanasSelectorMod', opt && opt.dataset.semanas);
 });
 
 document.getElementById('btnRegistrarTorneo').addEventListener('click', async () => {
@@ -3471,7 +3669,15 @@ document.getElementById('btnModificarTorneo').addEventListener('click', async ()
     document.getElementById('tCuentaOrgBoxMod').style.display = 'none';
     document.getElementById('tCuentaOrgSelectMod').innerHTML = '<option value="">Elige la cuenta…</option>';
     document.getElementById('tCuentaOrgInfoMod').textContent = '';
-    document.getElementById('premiosEditorMod').innerHTML = '';
+    // FIX (09-sep-2026 tarde): vuelve al mismo estado "en blanco" que
+    // #premiosEditor de Planificar (3 filas Pass Royale), en vez de dejar
+    // el editor vacío -- consistente con que ahora #premiosEditorMod nunca
+    // arranca vacío (ver poblarPremiosEditor()/mostrarPaso3()). También se
+    // repinta el selector de semanas (vuelve al default) y la etiqueta de
+    // "Sin cambios" vuelve al texto genérico hasta elegir otro torneo.
+    poblarPremiosEditor('premiosEditorMod', '');
+    pintarSemanasSelector('semanasSelectorMod');
+    actualizarEtiquetaSinCambiosAutor('');
     cargarTorneosHoy();
     cargarGanadoresTorneo();
   }catch(err){
