@@ -1187,28 +1187,33 @@
               <p class="text-dim" style="font-size:13px; margin:0 0 4px;">Cantidad mínima de ataques de guerra por semana requerida en cada clan.</p>
               <div id="reqAtaquesSemanaGrid"></div>
 
+              <!-- FIX (10-sep-2026, pedido usuario — "Miembro activo y wsp
+                   deben cargarse por defecto como 'Sí' y reacción debe
+                   guardarse por defecto como 'No'"): se quitó la opción
+                   "Elige…" de los 3 <select> y quedan con `selected` puesto
+                   directamente en la opción por defecto (Sí/Sí/No) en vez
+                   de arrancar en blanco -- así el admin no tiene que
+                   tocarlos si el clan usa los valores usuales, y solo los
+                   cambia si de verdad necesita algo distinto. -->
               <h3 style="font-size:15px; color:var(--gold); margin:20px 0 4px;">Otros criterios</h3>
               <div class="field">
                 <label for="reqMiembroActivo">Miembro activo</label>
                 <select id="reqMiembroActivo">
-                  <option value="">Elige…</option>
-                  <option value="Si">Sí</option>
+                  <option value="Si" selected>Sí</option>
                   <option value="No">No</option>
                 </select>
               </div>
               <div class="field" style="margin-top:10px;">
                 <label for="reqReaccion">Reacción</label>
                 <select id="reqReaccion">
-                  <option value="">Elige…</option>
                   <option value="Si">Sí</option>
-                  <option value="No">No</option>
+                  <option value="No" selected>No</option>
                 </select>
               </div>
               <div class="field" style="margin-top:10px;">
                 <label for="reqPresenciaWhatsapp">Presencia en el grupo de WhatsApp</label>
                 <select id="reqPresenciaWhatsapp">
-                  <option value="">Elige…</option>
-                  <option value="Si">Sí</option>
+                  <option value="Si" selected>Sí</option>
                   <option value="No">No</option>
                 </select>
               </div>
@@ -2824,8 +2829,14 @@ function pintarGridRequisitosNumericos(containerId, prefijo, placeholder){
   CLANES_REQUISITOS.forEach(clan => initInputMiles(idInputMiles(prefijo, clan)));
 }
 
-pintarGridRequisitosNumericos('reqTrofeosGuerraGrid', 'reqTrofGuerra', 'Ej. 2,000');
-pintarGridRequisitosNumericos('reqAtaquesSemanaGrid', 'reqAtaques', 'Ej. 8');
+// FIX (10-sep-2026, pedido usuario — "en vez de EJ. 2,000 se debe mostrar
+// 'Ejm: 2400' sin poner coma, para no inducir al usuario a escribir una
+// coma; la coma debe aparecer mientras se escribe pero solo visualmente"):
+// el placeholder ya no lleva coma (initInputMiles() se encarga de mostrarla
+// solo quitando el foco, ver el input real). "Ejm: 16" para ataques, mismo
+// motivo.
+pintarGridRequisitosNumericos('reqTrofeosGuerraGrid', 'reqTrofGuerra', 'Ejm: 2400');
+pintarGridRequisitosNumericos('reqAtaquesSemanaGrid', 'reqAtaques', 'Ejm: 16');
 
 /**
  * cargarRequisitosPorClan()
