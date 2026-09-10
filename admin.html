@@ -1403,8 +1403,74 @@
                    mínimos", comentario) -- eso es la parte grande de 5.4 que
                    sigue pendiente. Cada uno queda como placeholder explícito
                    en vez de fingir un formulario que no existe. -->
+              <!-- FIX (10-sep-2026, sección 5.4 del consolidado — campos
+                   reales de "Registrar sorteo", mismo patrón que
+                   #camposRegistrar de Torneos, prefijo "s" en vez de "t"):
+                   link + fecha/hora amigable + autor + cuenta organizadora.
+                   A diferencia de Torneos, NO lleva selector de semanas
+                   (Sorteos no evalúa parámetros de guerra por semana, ver
+                   5.4) ni editor de premios en Registrar (los premios de un
+                   sorteo ya en curso no se tocan al solo registrarlo — igual
+                   que Torneos, donde #premiosEditor vive únicamente en
+                   Planificar/Modificar).
+
+                   PENDIENTE JS (mismo estado que el resto de este panel):
+                   1) HECHO (10-sep-2026): #sAutorSelect ya tiene su
+                      listener de "__otro__" que revela #sAutorManual (ver
+                      junto al de #tAutorSelect en el <script>).
+                   2) HECHO (10-sep-2026): #sFechaTexto/#sHoraTexto ya
+                      llaman a initCampoFechaAmigable()/
+                      initCampoHoraAmigable() (ver junto a las llamadas de
+                      Torneos en el <script>).
+                   3) #sCuentaOrgBox depende del mismo endpoint pendiente
+                      que #tCuentaOrgBox (webAdminCuentasDeNomMulti, ver el
+                      docblock de cargarCuentasDelAutor() más abajo) --
+                      mientras no exista, este cuadro se queda sin poblarse.
+                   4) btnRegistrarSorteo (más abajo) todavía no lee ninguno
+                      de estos campos para armar su payload. -->
               <div id="camposRegistrarSorteo" style="display:none;">
-                <div class="text-dim" style="font-size:13px;">Formulario "Registrar sorteo" — pendiente de construir (link, fecha/hora, autor, cuenta organizadora, premios, requisitos por clan + Delta + Torneos mínimos, comentario — ver sección 5.4 del consolidado).</div>
+                <div class="field">
+                  <label for="sLink">Link del sorteo</label>
+                  <input type="text" id="sLink" placeholder="https://link.clashroyale.com/...">
+                </div>
+                <div class="field-row" id="filaFechaHoraSorteoReg">
+                  <div class="field">
+                    <label for="sFechaTexto">Fecha</label>
+                    <div class="campo-fecha-wrap">
+                      <input type="text" id="sFechaTexto" placeholder="dd/mm/aaaa" inputmode="numeric" maxlength="10" autocomplete="off">
+                      <input type="date" id="sFecha" class="campo-oculto-visual" tabindex="-1" aria-hidden="true">
+                      <button type="button" class="btn-calendario" id="btnCalendarioSorteoReg" title="Abrir calendario" aria-label="Abrir calendario">📅</button>
+                    </div>
+                  </div>
+                  <div class="field">
+                    <label for="sHoraTexto">Hora</label>
+                    <div class="campo-hora-wrap">
+                      <input type="text" id="sHoraTexto" placeholder="hh:mm" inputmode="numeric" maxlength="5" autocomplete="off">
+                      <select id="sHoraAmPm">
+                        <option value="AM">AM</option>
+                        <option value="PM">PM</option>
+                      </select>
+                      <input type="time" id="sHora" class="campo-oculto-visual" tabindex="-1" aria-hidden="true">
+                    </div>
+                  </div>
+                </div>
+
+                <div class="field" style="margin-top:14px;">
+                  <label for="sAutorSelect">¿Quién organizó el sorteo?</label>
+                  <select id="sAutorSelect">
+                    <option value="">Lo organicé yo (el admin de esta sesión)</option>
+                    <option value="__otro__">Ninguna de las anteriores</option>
+                  </select>
+                  <input type="text" id="sAutorManual" placeholder="Nombre de quien organizó" style="margin-top:8px; display:none;">
+                </div>
+
+                <div class="field" id="sCuentaOrgBox" style="display:none; margin-top:10px;">
+                  <label for="sCuentaOrgSelect">¿Con cuál cuenta organizó?</label>
+                  <select id="sCuentaOrgSelect">
+                    <option value="">Elige la cuenta…</option>
+                  </select>
+                  <div id="sCuentaOrgInfo" class="text-dim" style="font-size:12px; margin-top:6px;"></div>
+                </div>
               </div>
               <div id="camposModificarSorteo" style="display:none;">
                 <div class="text-dim" style="font-size:13px;">Formulario "Modificar sorteo" — pendiente de construir (select de sorteos de hoy + opción "Ingresar link" como en Torneos, nueva fecha/hora, autor, premios, requisitos, comentario — ver sección 5.4 del consolidado).</div>
@@ -2893,6 +2959,14 @@ initCampoHoraAmigable('tHoraMod', 'tHoraModTexto', 'tHoraModAmPm');
 initCampoFechaAmigable('tFechaPlan', 'tFechaPlanTexto', 'btnCalendarioPlan');
 initCampoHoraAmigable('tHoraPlan', 'tHoraPlanTexto', 'tHoraPlanAmPm');
 
+// FIX (10-sep-2026, sección 5.4 del consolidado): mismo mecanismo que las
+// 6 líneas de arriba, ahora para el fecha/hora de "Registrar sorteo"
+// (#sFecha/#sFechaTexto/#btnCalendarioSorteoReg y #sHora/#sHoraTexto/
+// #sHoraAmPm). Cuando se construyan Modificar/Planificar sorteo, agregar
+// acá sus pares equivalentes (mismo patrón que Mod/Plan de Torneos).
+initCampoFechaAmigable('sFecha', 'sFechaTexto', 'btnCalendarioSorteoReg');
+initCampoHoraAmigable('sHora', 'sHoraTexto', 'sHoraAmPm');
+
 /* ---------- Selector de semanas (Temporada) para gestión de torneos ----------
    FIX (09-sep-2026, pedido usuario): dentro del menú "Planificar, registrar
    o modificar torneos" (Registrar/Modificar/Planificar), después del
@@ -4228,6 +4302,18 @@ document.getElementById('tAutorSelectPlan').addEventListener('change', () => {
 document.getElementById('tAutorSelectMod').addEventListener('change', () => {
   const esOtro = document.getElementById('tAutorSelectMod').value === '__otro__';
   const input = document.getElementById('tAutorManualMod');
+  input.style.display = esOtro ? '' : 'none';
+  if(!esOtro) input.value = '';
+});
+
+// FIX (10-sep-2026, sección 5.4 del consolidado): mismo listener que
+// #tAutorSelect de arriba, pero para el autor de "Registrar sorteo"
+// (#sAutorSelect/#sAutorManual). Cuando se construyan los autores de
+// Modificar/Planificar sorteo (#sAutorSelectMod/#sAutorSelectPlan, todavía
+// no existen), agregar acá sus listeners equivalentes.
+document.getElementById('sAutorSelect').addEventListener('change', () => {
+  const esOtro = document.getElementById('sAutorSelect').value === '__otro__';
+  const input = document.getElementById('sAutorManual');
   input.style.display = esOtro ? '' : 'none';
   if(!esOtro) input.value = '';
 });
