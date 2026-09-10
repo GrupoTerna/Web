@@ -930,6 +930,26 @@
               <div class="field" style="margin-bottom:12px;">
                 <label for="tSelectHoy">Torneo</label>
                 <select id="tSelectHoy"><option value="">Cargando torneos de hoy…</option></select>
+                <!-- FIX (10-sep-2026, pedido usuario — sección 5.3 del
+                     consolidado, mecanismo CONFIRMADO: "Ingresar link" es
+                     una opción MÁS dentro del mismo #tSelectHoy (no un
+                     control separado tipo radio/tabs). cargarTorneosHoy()
+                     la agrega siempre como última <option> (value="__link__"),
+                     y el listener de 'change' de #tSelectHoy (más abajo)
+                     muestra/oculta este input según lo que quede
+                     seleccionado. El valor se limpia cada vez que se elige
+                     cualquier otra opción del dropdown -- nunca se conserva
+                     para la próxima vez que se vuelva a elegir "Ingresar
+                     link". Mismo patrón pendiente de replicar en Sorteos
+                     (#sSelectHoy o equivalente) en cuanto exista ese
+                     formulario (ver 5.4).
+
+                     PENDIENTE BACKEND (sin tocar en esta sesión, ver 5.3):
+                     _webAdminTorneoModificar() todavía no tiene ninguna rama
+                     que reciba/procese este link -- por ahora el cuadro solo
+                     aparece y se limpia bien, pero btnModificarTorneo no
+                     manda su valor todavía. -->
+                <input type="text" id="tModificarLink" placeholder="https://link.clashroyale.com/..." style="margin-top:8px; display:none;">
               </div>
               <div class="field-row" id="filaFechaHoraMod">
                 <div class="field">
@@ -1260,6 +1280,50 @@
               <div id="torneoPrincipalElegidoMsg" style="margin-top:8px;"></div>
             </div>
 
+            <!-- FIX (10-sep-2026, pedido usuario — sección 5.4.1 del
+                 consolidado: "cuadro de Comentario justo ANTES del botón de
+                 acción final, en los 6 formularios de Torneos y Sorteos").
+                 Por ahora solo se agrega para Torneos (los 3 formularios de
+                 Sorteos todavía no existen, ver 5.4 -- se replica este mismo
+                 bloque cuando se construyan).
+
+                 Es UN SOLO nodo compartido entre las 3 ramas (Registrar/
+                 Modificar/Planificar), mismo criterio que
+                 #requisitosTorneoBox/#camposTorneoPrincipal de arriba, pero
+                 sin necesidad de reubicarlo con JS: a diferencia de esos dos
+                 (que necesitan aparecer en un punto intermedio distinto
+                 dentro de cada rama), acá el lugar pedido es SIEMPRE "justo
+                 antes del botón de acción final" -- y como solo uno de los 3
+                 botones está visible a la vez (btnRegistrarTorneo/
+                 btnModificarTorneo/btnPlanificarTorneo, ver mostrarPaso3()),
+                 dejarlo acá quieto ya cumple la posición pedida sin importar
+                 cuál rama esté activa.
+
+                 PENDIENTE BACKEND / conexión (todavía no se hace nada con
+                 esto, mismo estado que #requisitosTorneoBox en 5.1):
+                   1) Los 3 listeners (btnRegistrarTorneo/btnModificarTorneo/
+                      btnPlanificarTorneo) no leen este campo todavía -- falta
+                      sumar su valor (`document.getElementById('tComentario').value`)
+                      al payload que arman, junto con lo que ya arma
+                      armarPayloadRequisitos().
+                   2) Precarga en Modificar: cuando `webAdminTorneosHoy()`
+                      devuelva también el Comentario existente de cada fila
+                      (ver 5.2, mismo pendiente que autor/premios/semanas),
+                      falta que el listener de #tSelectHoy escriba ese valor
+                      acá antes de que el admin edite. Hasta entonces el
+                      cuadro arranca siempre vacío, también en Modificar.
+                   3) Regla de sobrescritura ya definida (CONFIRMADO en el
+                      consolidado): a diferencia de Premios, lo que se vea en
+                      este cuadro al guardar reemplaza siempre al Comentario
+                      anterior, sin excepción para vacío -- no hace falta
+                      lógica especial en el frontend para eso, el backend
+                      simplemente escribe lo que reciba. -->
+            <div id="comentarioTorneoBox" style="margin-top:14px; padding-top:14px; border-top:1px solid var(--line);">
+              <div class="field">
+                <label for="tComentario">Comentario</label>
+                <textarea id="tComentario" rows="3" placeholder="Opcional -- cualquier nota sobre este torneo"></textarea>
+              </div>
+            </div>
 
             <button class="btn btn-primary btn-block" id="btnRegistrarTorneo" style="margin-top:14px; display:none;">Registrar torneo</button>
             <button class="btn btn-primary btn-block" id="btnModificarTorneo" style="margin-top:14px; display:none;">Guardar cambios</button>
@@ -3350,12 +3414,16 @@ let torneosHoyData = [];
 
 async function cargarTorneosHoy(){
   const sel = document.getElementById('tSelectHoy');
+  // FIX (10-sep-2026, sección 5.3 -- "Ingresar link" SIEMPRE al final del
+  // dropdown, ver CONFIRMADO junto a #tSelectHoy en el HTML): se arma aparte
+  // y se concatena al final tanto si hay torneos de hoy como si no.
+  const OPCION_INGRESAR_LINK = '<option value="__link__">Ingresar link</option>';
   try{
     const data = await apiGetAuth('webAdminTorneosHoy', {});
     if(manejarRespuestaAuth(data)) return;
     torneosHoyData = (data.ok && data.torneos) ? data.torneos : [];
     if(!torneosHoyData.length){
-      sel.innerHTML = '<option value="">Sin torneos registrados hoy</option>';
+      sel.innerHTML = '<option value="">Sin torneos registrados hoy</option>' + OPCION_INGRESAR_LINK;
     }else{
       sel.innerHTML = '<option value="">Elige un torneo…</option>' +
         torneosHoyData.map(t => {
@@ -3371,11 +3439,11 @@ async function cargarTorneosHoy(){
           // genéricos (ver tSelectHoy 'change' más abajo).
           const semanasCsv = Array.isArray(t.semanas) ? t.semanas.join(',') : '';
           return `<option value="${esc(t.id)}" data-fecha="${esc(t.fecha)}" data-autor="${esc(t.autor || '')}" data-premios="${esc(t.premios || '')}" data-semanas="${esc(semanasCsv)}">${esc(t.id)} — ${esc(fechaTxt)}</option>`;
-        }).join('');
+        }).join('') + OPCION_INGRESAR_LINK;
     }
   }catch(err){
     torneosHoyData = [];
-    sel.innerHTML = '<option value="">—</option>';
+    sel.innerHTML = '<option value="">—</option>' + OPCION_INGRESAR_LINK;
   }
   // El <select> pudo repoblarse mientras el paso 3 ya estaba abierto en modo
   // "continuación" (ej. tras registrar/modificar un torneo) — refresca la
@@ -3953,6 +4021,16 @@ document.getElementById('tAutorSelectMod').addEventListener('change', () => {
  * amigables") — ya no hace falta un listener aparte acá. */
 
 document.getElementById('tSelectHoy').addEventListener('change', () => {
+  // FIX (10-sep-2026, sección 5.3 -- comportamiento CONFIRMADO del cuadro
+  // de link, ver comentario junto a #tModificarLink en el HTML): se
+  // muestra SOLO con la opción "Ingresar link" (value="__link__") elegida,
+  // y su valor se limpia siempre que se cambie a cualquier otra opción del
+  // dropdown (no se conserva para la próxima vez).
+  const esOpcionLink = document.getElementById('tSelectHoy').value === '__link__';
+  const inputLink = document.getElementById('tModificarLink');
+  inputLink.style.display = esOpcionLink ? '' : 'none';
+  if(!esOpcionLink) inputLink.value = '';
+
   const opt = document.getElementById('tSelectHoy').selectedOptions[0];
   const fechaISO = opt && opt.dataset.fecha;
   const fFecha = document.getElementById('tFechaMod');
