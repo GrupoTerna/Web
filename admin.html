@@ -1336,34 +1336,105 @@
           </div>
 
           <!-- FIX (08-sep-2026, pedido usuario): panel "Sorteos" del nuevo
-               toggle Torneos/Sorteos. Mismas 3 opciones que Torneos
-               (Planificar/Registrar/Modificar) pero sin acción todavía —
-               se muestran igual, y al elegir cualquiera se avisa que se
-               implementará más adelante en vez de fallar en silencio. -->
+               toggle Torneos/Sorteos.
+               FIX (10-sep-2026, pedido usuario — sección 5.4 del
+               consolidado, wizard de Sorteos por tramos): PASO 1 y PASO 2
+               ya están construidos, mismo mecanismo que Torneos
+               (#torneoPaso1/#torneoPaso2 dentro de initTorneoWizard()).
+               #sorteoPaso1 y #sorteoPaso2 se quedan SIEMPRE visibles una
+               vez revelados (igual que sus equivalentes de Torneos --
+               initTorneoWizard() nunca los oculta, ver mostrarPaso3()); los
+               links "‹ Cambiar" solo esconden el paso SIGUIENTE, sin volver
+               a esconder el paso anterior.
+               PASO 2 (#sorteoPaso2/#sorteoTipo): "sorteo principal" o
+               "sorteo de continuación" -- mismo concepto que Torneos
+               (CORRECCIÓN ya registrada en la sección 5.4 del consolidado:
+               el concepto SÍ existe en Sorteos, solo que se resuelve por ID
+               en vez de por Tag). El nombre de la opción usa "sorteo" en
+               vez de "torneo" para no confundir al admin, pero los values
+               ("principal"/"continuacion") son los mismos que
+               #torneoTipo, listos para que el futuro Paso 3 los lea igual.
+               PASO 3 (campos reales del formulario -- Delta, bloque
+               "Torneos mínimos", ID/ID2 en vez de Tag_Tor/Tag_Tor_2, sin
+               Semanas -- ver sección 5.4 del consolidado) TODAVÍA NO se
+               construye: #sorteoPaso3 es un placeholder explícito que avisa
+               que sigue pendiente, para no dejar "Continuar" sin reacción
+               visible ni fingir un formulario que no existe. -->
           <div id="panelSorteosAccion" style="display:none;">
-            <div class="field">
-              <label for="sorteoAccion">¿Qué quieres hacer?</label>
-              <select id="sorteoAccion">
-                <option value="">Elige una opción…</option>
-                <option value="planificar">Planificar sorteo</option>
-                <option value="registrar">Registrar sorteo</option>
-                <option value="modificar">Modificar sorteo</option>
-              </select>
+
+            <div id="sorteoPaso1">
+              <div class="field">
+                <label for="sorteoAccion">¿Qué quieres hacer?</label>
+                <select id="sorteoAccion">
+                  <option value="">Elige una opción…</option>
+                  <option value="planificar">Planificar sorteo</option>
+                  <option value="registrar">Registrar sorteo</option>
+                  <option value="modificar">Modificar sorteo</option>
+                </select>
+              </div>
+              <button type="button" class="btn btn-primary btn-block" id="btnSorteoPaso1" style="margin-top:6px;">Continuar</button>
             </div>
-            <div id="sorteoAccionMsg" class="text-dim" style="font-size:13px; margin-top:10px; display:none;">Esta opción todavía no está disponible — se implementará más adelante.</div>
+
+            <div id="sorteoPaso2" style="display:none; margin-top:14px;">
+              <a href="#" id="sorteoVolverPaso1" class="text-dim" style="font-size:12px; display:inline-block; margin-bottom:10px;">‹ Cambiar</a>
+              <div class="field">
+                <label for="sorteoTipo">¿Qué tipo de sorteo es?</label>
+                <select id="sorteoTipo">
+                  <option value="">Elige una opción…</option>
+                  <option value="principal">Sorteo principal</option>
+                  <option value="continuacion">Sorteo de continuación</option>
+                </select>
+              </div>
+              <button type="button" class="btn btn-primary btn-block" id="btnSorteoPaso2" style="margin-top:6px;">Continuar</button>
+            </div>
+
+            <div id="sorteoPaso3" style="display:none; margin-top:14px;">
+              <a href="#" id="sorteoVolverPaso2" class="text-dim" style="font-size:12px; display:inline-block; margin-bottom:10px;">‹ Cambiar</a>
+
+              <!-- FIX (10-sep-2026, sección 5.4 del consolidado — esqueleto
+                   de ruteo del Paso 3 de Sorteos): mismos 3 contenedores que
+                   Torneos (#camposRegistrar/#camposModificar/
+                   #camposPlanificar), mostrados/ocultados por
+                   mostrarPaso3Sorteo() (ver <script>) exactamente con la
+                   misma lógica que mostrarPaso3() de Torneos -- combinación
+                   de #sorteoAccion (Paso 1) y #sorteoTipo (Paso 2).
+                   TODAVÍA NO tienen campos reales adentro (link, fecha/hora,
+                   autor, premios, requisitos C1-C4 + Delta + "Torneos
+                   mínimos", comentario) -- eso es la parte grande de 5.4 que
+                   sigue pendiente. Cada uno queda como placeholder explícito
+                   en vez de fingir un formulario que no existe. -->
+              <div id="camposRegistrarSorteo" style="display:none;">
+                <div class="text-dim" style="font-size:13px;">Formulario "Registrar sorteo" — pendiente de construir (link, fecha/hora, autor, cuenta organizadora, premios, requisitos por clan + Delta + Torneos mínimos, comentario — ver sección 5.4 del consolidado).</div>
+              </div>
+              <div id="camposModificarSorteo" style="display:none;">
+                <div class="text-dim" style="font-size:13px;">Formulario "Modificar sorteo" — pendiente de construir (select de sorteos de hoy + opción "Ingresar link" como en Torneos, nueva fecha/hora, autor, premios, requisitos, comentario — ver sección 5.4 del consolidado).</div>
+              </div>
+              <div id="camposPlanificarSorteo" style="display:none;">
+                <div class="text-dim" style="font-size:13px;">Formulario "Planificar sorteo" — pendiente de construir (fecha/hora, autor, premios, requisitos por clan + Delta + Torneos mínimos — ver sección 5.4 del consolidado).</div>
+              </div>
+              <!-- Equivalente a #camposTorneoPrincipal, pero resuelto por ID
+                   en vez de por Tag (ver corrección ya registrada en la
+                   sección 5.4 del consolidado). Pendiente de construir: el
+                   endpoint que trae los sorteos de hoy con ID todavía no
+                   tiene nombre confirmado (placeholder a definir cuando se
+                   construya esto, no antes). -->
+              <div id="camposSorteoPrincipal" style="display:none;">
+                <div class="text-dim" style="font-size:13px;">Selector de "¿cuál es el sorteo principal?" (por ID, no por Tag) — pendiente de construir, ver secciones 5.3/5.4 del consolidado.</div>
+              </div>
+            </div>
+
             <!-- PENDIENTE (09-sep-2026, pedido usuario — "el botón del
                  calendario debe aparecer en planificación, modificación y
                  registro de torneos y sorteos"): Sorteos todavía no tiene
-                 campos propios de fecha/hora (arriba solo hay un select
-                 con el mensaje "no disponible"), así que por ahora no hay
-                 dónde poner el campo amigable + calendario + selector de
-                 semanas. Cuando se construyan los 3 formularios de
-                 Sorteos (#camposRegistrarSorteo/#camposModificarSorteo/
-                 #camposPlanificarSorteo, mismo patrón que Torneos), copiar
-                 ahí el mismo bloque de fecha/hora amigable
-                 (.campo-fecha-wrap + .campo-hora-wrap) y llamar a
-                 initCampoFechaAmigable()/initCampoHoraAmigable() con sus
-                 ids nuevos -- ver la sección "Campos de fecha/hora
+                 campos propios de fecha/hora (el Paso 3 real sigue sin
+                 construir, ver comentario grande de arriba), así que por
+                 ahora no hay dónde poner el campo amigable + calendario +
+                 selector de semanas. Cuando se construya el Paso 3 real de
+                 Sorteos (mismo patrón que #camposRegistrar/#camposModificar/
+                 #camposPlanificar de Torneos), copiar ahí el mismo bloque de
+                 fecha/hora amigable (.campo-fecha-wrap + .campo-hora-wrap)
+                 y llamar a initCampoFechaAmigable()/initCampoHoraAmigable()
+                 con sus ids nuevos -- ver la sección "Campos de fecha/hora
                  amigables" en el <script> para el patrón exacto usado en
                  Torneos. -->
 
@@ -4272,9 +4343,11 @@ initTorneoWizard();
  * muestra/oculta los dos paneles ya pintados en el HTML (#panelTorneosAccion/
  * #panelSorteosAccion) — no pide nada al backend, así que no reutiliza
  * cargarGrupoToggle() (esa función sí pide contenido de categorías reales).
- * "Sorteos" todavía no tiene acciones implementadas (ver
- * #sorteoAccionMsg más abajo): las 3 opciones se muestran igual, pero
- * elegir cualquiera solo avisa que se implementará más adelante.
+ * FIX (10-sep-2026): "Sorteos" ya tiene su Paso 1 y Paso 2 reales (ver
+ * #panelSorteosAccion en el HTML y los listeners de
+ * btnSorteoPaso1/btnSorteoPaso2 más abajo) -- el Paso 3 (campos del
+ * formulario) todavía no existe, así que el segundo "Continuar" solo
+ * revela el aviso de #sorteoPaso3.
  */
 document.querySelectorAll('.btn-toggle-torsor').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -4285,8 +4358,57 @@ document.querySelectorAll('.btn-toggle-torsor').forEach(btn => {
   });
 });
 
-document.getElementById('sorteoAccion').addEventListener('change', function(){
-  document.getElementById('sorteoAccionMsg').style.display = this.value ? '' : 'none';
+/** Wizard de Sorteos, por tramos (ver comentario grande junto a
+ *  #panelSorteosAccion en el HTML) -- mismo mecanismo que
+ *  btnTorneoPaso1/btnTorneoPaso2/torneoVolverPaso1/torneoVolverPaso2 dentro
+ *  de initTorneoWizard(): cada "Continuar" solo revela el paso siguiente si
+ *  ya se eligió una opción, y ni #sorteoPaso1 ni #sorteoPaso2 se ocultan
+ *  una vez revelados (igual que sus equivalentes de Torneos) -- "‹ Cambiar"
+ *  solo esconde el paso siguiente, nunca el actual. #sorteoPaso3 por ahora
+ *  es un placeholder (ver HTML) -- el Paso 3 real (campos del formulario)
+ *  queda para otra sesión. */
+document.getElementById('btnSorteoPaso1').addEventListener('click', () => {
+  if(!document.getElementById('sorteoAccion').value) return;
+  document.getElementById('sorteoPaso2').style.display = '';
+});
+
+document.getElementById('sorteoVolverPaso1').addEventListener('click', (ev) => {
+  ev.preventDefault();
+  document.getElementById('sorteoPaso2').style.display = 'none';
+  document.getElementById('sorteoPaso3').style.display = 'none';
+});
+
+/** FIX (10-sep-2026, sección 5.4 del consolidado — esqueleto de ruteo del
+ *  Paso 3 de Sorteos): mismo patrón que mostrarPaso3() de Torneos
+ *  (initTorneoWizard(), más arriba), pero simplificado porque todavía no
+ *  hay nodos reales que reubicar (ni #requisitosSorteoBox ni editor de
+ *  premios ni selector de fecha/hora -- ver PENDIENTE en el HTML de cada
+ *  contenedor). Solo decide qué contenedor mostrar según #sorteoAccion
+ *  (Paso 1) + #sorteoTipo (Paso 2); se amplía en cuanto existan los campos
+ *  reales de cada rama. */
+function mostrarPaso3Sorteo(){
+  const selAccion = document.getElementById('sorteoAccion');
+  const selTipo = document.getElementById('sorteoTipo');
+  const esRegistrar = selAccion.value === 'registrar';
+  const esModificar = selAccion.value === 'modificar';
+  const esPlanificar = selAccion.value === 'planificar';
+  const esContinuacion = selTipo.value === 'continuacion';
+
+  document.getElementById('camposRegistrarSorteo').style.display = esRegistrar ? '' : 'none';
+  document.getElementById('camposModificarSorteo').style.display = esModificar ? '' : 'none';
+  document.getElementById('camposPlanificarSorteo').style.display = esPlanificar ? '' : 'none';
+  document.getElementById('camposSorteoPrincipal').style.display = esContinuacion ? '' : 'none';
+}
+
+document.getElementById('btnSorteoPaso2').addEventListener('click', () => {
+  if(!document.getElementById('sorteoTipo').value) return;
+  document.getElementById('sorteoPaso3').style.display = '';
+  mostrarPaso3Sorteo();
+});
+
+document.getElementById('sorteoVolverPaso2').addEventListener('click', (ev) => {
+  ev.preventDefault();
+  document.getElementById('sorteoPaso3').style.display = 'none';
 });
 
 /** FASE 24 (02-sep-2026, pedido del usuario — descalificaciones y
