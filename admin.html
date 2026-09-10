@@ -242,9 +242,25 @@
      input.showPicker() — el mismo "cuadrito" del selector nativo, pero con
      un botón explícito para abrirlo en vez de depender de que el usuario
      sepa que el campo entero es clickeable. Ver #camposModificar en el
-     HTML y btnCalendarioMod en el JS. */
-  .campo-fecha-wrap{position:relative;}
-  .campo-fecha-wrap input[type="date"]{padding-right:40px;}
+     HTML y btnCalendarioMod en el JS.
+
+     FIX (09-sep-2026, pedido usuario — "las fechas no son muy amigables
+     para el usuario, debería decir algo como dd/mm/aaaa"): el formato de
+     un <input type="date"> nativo (qué segmento va primero, con qué
+     separador) depende del idioma/región configurados en el navegador del
+     admin, por eso a veces se veía raro (p.ej. "dd----aaaa" en vez de
+     "dd/mm/aaaa"). Se arma un campo propio por cada fecha: un
+     <input type="text"> VISIBLE con placeholder fijo "dd/mm/aaaa" (se
+     puede escribir a mano, con "/" automáticos) y, oculto detrás (mismo
+     <div class="campo-fecha-wrap">), el <input type="date"> de siempre,
+     que sigue siendo la fuente real del valor en formato ISO para todo el
+     resto del código (fechaInputADDMMYYYY(), armarPremiosCSV(), etc. NO
+     cambian). El icono de calendario sigue abriendo el selector nativo,
+     ahora sobre ese input oculto. Ver initCampoFechaAmigable() en el
+     <script> (sección "Campos de fecha/hora amigables"). La misma idea
+     aplica a la hora: ver .campo-hora-wrap más abajo. */
+  .campo-fecha-wrap{position:relative; display:flex; align-items:center;}
+  .campo-fecha-wrap input[type="text"]{padding-right:40px; width:100%;}
   .btn-calendario{
     position:absolute; right:6px; top:50%; transform:translateY(-50%);
     background:none; border:none; color:var(--text-dim); font-size:16px;
@@ -252,6 +268,39 @@
     transition:color .15s, background .15s;
   }
   .btn-calendario:hover{color:var(--purple-light); background:rgba(162,57,255,.12);}
+  /* Input real (type="date"/type="time") que queda detrás del campo de
+     texto amigable: NO se usa display:none porque showPicker() necesita
+     que el elemento siga "renderizado" para poder abrirse -- se saca de la
+     vista con tamaño 1x1px y overflow oculto en su lugar (patrón estándar
+     para inputs nativos ocultos visualmente pero funcionales). */
+  .campo-oculto-visual{
+    position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+    overflow:hidden; opacity:0; pointer-events:none; border:0;
+  }
+  /* FIX (09-sep-2026, pedido usuario — hora en formato "hh:mm" + AM/PM,
+     segundos ocultos): campo de texto (12h) + <select> AM/PM al lado,
+     mismo patrón que .campo-fecha-wrap: el <input type="time"> real queda
+     oculto (.campo-oculto-visual) y sigue siendo la fuente del valor en
+     24h para horaConSegundos() y el resto del código, que no cambian. */
+  .campo-hora-wrap{display:flex; align-items:center; gap:8px;}
+  .campo-hora-wrap input[type="text"]{flex:1; min-width:0;}
+  .campo-hora-wrap select{flex-shrink:0; width:78px;}
+  /* FIX (09-sep-2026, pedido usuario — selector de semanas en Planificar/
+     Registrar/Modificar torneo, ver docblock grande junto a
+     generarSemanasRecientes() en el <script>): lista con scroll y
+     checkboxes, mismo lenguaje visual que el resto de cuadros (.field,
+     .contenido-item). */
+  .semana-selector{
+    display:flex; flex-direction:column; gap:2px; max-height:220px; overflow-y:auto;
+    border:1px solid var(--line); border-radius:var(--radius-sm); padding:6px 10px;
+    background:var(--bg-2);
+  }
+  .semana-item{
+    display:flex; align-items:center; gap:10px; padding:7px 2px; font-size:13px;
+    cursor:pointer; border-bottom:1px solid var(--line);
+  }
+  .semana-item:last-child{border-bottom:none;}
+  .semana-item input[type="checkbox"]{flex-shrink:0; width:16px; height:16px; cursor:pointer; accent-color:var(--purple-light);}
 </style>
 </head>
 <body data-page="admin">
@@ -782,12 +831,23 @@
               </div>
               <div class="field-row">
                 <div class="field">
-                  <label for="tFecha">Fecha</label>
-                  <input type="date" id="tFecha">
+                  <label for="tFechaTexto">Fecha</label>
+                  <div class="campo-fecha-wrap">
+                    <input type="text" id="tFechaTexto" placeholder="dd/mm/aaaa" inputmode="numeric" maxlength="10" autocomplete="off">
+                    <input type="date" id="tFecha" class="campo-oculto-visual" tabindex="-1" aria-hidden="true">
+                    <button type="button" class="btn-calendario" id="btnCalendarioReg" title="Abrir calendario" aria-label="Abrir calendario">📅</button>
+                  </div>
                 </div>
                 <div class="field">
-                  <label for="tHora">Hora</label>
-                  <input type="time" id="tHora">
+                  <label for="tHoraTexto">Hora</label>
+                  <div class="campo-hora-wrap">
+                    <input type="text" id="tHoraTexto" placeholder="hh:mm" inputmode="numeric" maxlength="5" autocomplete="off">
+                    <select id="tHoraAmPm">
+                      <option value="AM">AM</option>
+                      <option value="PM">PM</option>
+                    </select>
+                    <input type="time" id="tHora" class="campo-oculto-visual" tabindex="-1" aria-hidden="true">
+                  </div>
                 </div>
               </div>
 
@@ -847,6 +907,23 @@
                 </select>
                 <div id="tCuentaOrgInfo" class="text-dim" style="font-size:12px; margin-top:6px;"></div>
               </div>
+
+              <!-- FIX (09-sep-2026, pedido usuario — selector de semanas):
+                   ver el docblock grande junto a generarSemanasRecientes()
+                   en el <script> para el detalle completo (formato,
+                   preselección, y por qué "Temporada N" es un contador de
+                   marcador de posición pendiente de backend). Esta lista
+                   NO dispara ninguna acción por ahora -- pedido explícito
+                   del usuario ("no importa que no realice ninguna acción
+                   al seleccionar"): solo indica qué semanas se deberían
+                   evaluar (parámetros de guerra de esas semanas) para
+                   decidir si un jugador puede participar en este torneo;
+                   esa evaluación real queda PENDIENTE BACKEND. -->
+              <div class="field" style="margin-top:14px;">
+                <label>¿Qué semanas se deben evaluar para este torneo?</label>
+                <p class="text-dim" style="font-size:12px; margin:0 0 8px;">Se marcan las 2 más recientes por defecto — usualmente son las que definen si un jugador puede participar.</p>
+                <div class="semana-selector" id="semanasSelectorReg"></div>
+              </div>
             </div>
 
             <div id="camposModificar" style="display:none;">
@@ -856,15 +933,23 @@
               </div>
               <div class="field-row">
                 <div class="field">
-                  <label for="tFechaMod">Nueva fecha</label>
+                  <label for="tFechaModTexto">Nueva fecha</label>
                   <div class="campo-fecha-wrap">
-                    <input type="date" id="tFechaMod">
+                    <input type="text" id="tFechaModTexto" placeholder="dd/mm/aaaa" inputmode="numeric" maxlength="10" autocomplete="off">
+                    <input type="date" id="tFechaMod" class="campo-oculto-visual" tabindex="-1" aria-hidden="true">
                     <button type="button" class="btn-calendario" id="btnCalendarioMod" title="Abrir calendario" aria-label="Abrir calendario">📅</button>
                   </div>
                 </div>
                 <div class="field">
-                  <label for="tHoraMod">Nueva hora</label>
-                  <input type="time" id="tHoraMod">
+                  <label for="tHoraModTexto">Nueva hora</label>
+                  <div class="campo-hora-wrap">
+                    <input type="text" id="tHoraModTexto" placeholder="hh:mm" inputmode="numeric" maxlength="5" autocomplete="off">
+                    <select id="tHoraModAmPm">
+                      <option value="AM">AM</option>
+                      <option value="PM">PM</option>
+                    </select>
+                    <input type="time" id="tHoraMod" class="campo-oculto-visual" tabindex="-1" aria-hidden="true">
+                  </div>
                 </div>
               </div>
 
@@ -910,6 +995,16 @@
                 <div id="tCuentaOrgInfoMod" class="text-dim" style="font-size:12px; margin-top:6px;"></div>
               </div>
 
+              <!-- FIX (09-sep-2026, pedido usuario — selector de semanas):
+                   ver el docblock de #camposRegistrar (arriba) y el
+                   docblock grande de generarSemanasRecientes() en el
+                   <script>. -->
+              <div class="field" style="margin-top:14px;">
+                <label>¿Qué semanas se deben evaluar para este torneo?</label>
+                <p class="text-dim" style="font-size:12px; margin:0 0 8px;">Se marcan las 2 más recientes por defecto — usualmente son las que definen si un jugador puede participar.</p>
+                <div class="semana-selector" id="semanasSelectorMod"></div>
+              </div>
+
               <div style="margin-top:14px; padding-top:14px; border-top:1px solid var(--line);">
                 <label style="display:block; margin-bottom:4px;">Premios</label>
                 <p class="text-dim" style="font-size:12px; margin:0 0 10px;">Déjalo vacío si no quieres cambiar los premios ya registrados. Usualmente son 3, pero puedes agregar más o quitar los que no necesites.</p>
@@ -929,12 +1024,23 @@
             <div id="camposPlanificar" style="display:none;">
               <div class="field-row">
                 <div class="field">
-                  <label for="tFechaPlan">Fecha</label>
-                  <input type="date" id="tFechaPlan">
+                  <label for="tFechaPlanTexto">Fecha</label>
+                  <div class="campo-fecha-wrap">
+                    <input type="text" id="tFechaPlanTexto" placeholder="dd/mm/aaaa" inputmode="numeric" maxlength="10" autocomplete="off">
+                    <input type="date" id="tFechaPlan" class="campo-oculto-visual" tabindex="-1" aria-hidden="true">
+                    <button type="button" class="btn-calendario" id="btnCalendarioPlan" title="Abrir calendario" aria-label="Abrir calendario">📅</button>
+                  </div>
                 </div>
                 <div class="field">
-                  <label for="tHoraPlan">Hora</label>
-                  <input type="time" id="tHoraPlan">
+                  <label for="tHoraPlanTexto">Hora</label>
+                  <div class="campo-hora-wrap">
+                    <input type="text" id="tHoraPlanTexto" placeholder="hh:mm" inputmode="numeric" maxlength="5" autocomplete="off">
+                    <select id="tHoraPlanAmPm">
+                      <option value="AM">AM</option>
+                      <option value="PM">PM</option>
+                    </select>
+                    <input type="time" id="tHoraPlan" class="campo-oculto-visual" tabindex="-1" aria-hidden="true">
+                  </div>
                 </div>
               </div>
 
@@ -956,6 +1062,16 @@
                   <option value="">Elige la cuenta…</option>
                 </select>
                 <div id="tCuentaOrgInfoPlan" class="text-dim" style="font-size:12px; margin-top:6px;"></div>
+              </div>
+
+              <!-- FIX (09-sep-2026, pedido usuario — selector de semanas):
+                   ver el docblock de #camposRegistrar (arriba) y el
+                   docblock grande de generarSemanasRecientes() en el
+                   <script>. -->
+              <div class="field" style="margin-top:14px;">
+                <label>¿Qué semanas se deben evaluar para este torneo?</label>
+                <p class="text-dim" style="font-size:12px; margin:0 0 8px;">Se marcan las 2 más recientes por defecto — usualmente son las que definen si un jugador puede participar.</p>
+                <div class="semana-selector" id="semanasSelectorPlan"></div>
               </div>
 
               <div style="margin-top:14px; padding-top:14px; border-top:1px solid var(--line);">
@@ -1000,6 +1116,22 @@
               </select>
             </div>
             <div id="sorteoAccionMsg" class="text-dim" style="font-size:13px; margin-top:10px; display:none;">Esta opción todavía no está disponible — se implementará más adelante.</div>
+            <!-- PENDIENTE (09-sep-2026, pedido usuario — "el botón del
+                 calendario debe aparecer en planificación, modificación y
+                 registro de torneos y sorteos"): Sorteos todavía no tiene
+                 campos propios de fecha/hora (arriba solo hay un select
+                 con el mensaje "no disponible"), así que por ahora no hay
+                 dónde poner el campo amigable + calendario + selector de
+                 semanas. Cuando se construyan los 3 formularios de
+                 Sorteos (#camposRegistrarSorteo/#camposModificarSorteo/
+                 #camposPlanificarSorteo, mismo patrón que Torneos), copiar
+                 ahí el mismo bloque de fecha/hora amigable
+                 (.campo-fecha-wrap + .campo-hora-wrap) y llamar a
+                 initCampoFechaAmigable()/initCampoHoraAmigable() con sus
+                 ids nuevos -- ver la sección "Campos de fecha/hora
+                 amigables" en el <script> para el patrón exacto usado en
+                 Torneos. -->
+
           </div>
 
         </div>
@@ -2223,6 +2355,246 @@ function fechaInputADDMMYYYY(v){
   return `${d}/${m}/${y}`;
 }
 
+/* ---------- Campos de fecha/hora "amigables" ----------
+   FIX (09-sep-2026, pedido usuario — "las fechas no son muy amigables para
+   el usuario, debería decir algo como dd/mm/aaaa"): ver el docblock CSS de
+   .campo-fecha-wrap/.campo-hora-wrap (arriba, en el <style>) para el
+   porqué. Cada campo de fecha (Registrar/Modificar/Planificar) pasa a ser
+   un par: un <input type="text"> VISIBLE (id .../"...Texto") que el admin
+   ve y puede escribir, más el <input type="date"> de SIEMPRE (mismo id de
+   siempre: #tFecha/#tFechaMod/#tFechaPlan), ahora oculto visualmente
+   (.campo-oculto-visual) pero sin cambiar de tipo ni de id — sigue siendo
+   la fuente real del valor ISO ("yyyy-mm-dd") que ya usan
+   fechaInputADDMMYYYY(), los botones Registrar/Modificar/Planificar, etc.
+   Mismo patrón para hora: texto "hh:mm" (12h) + <select> AM/PM visibles,
+   más el <input type="time"> de siempre (24h) oculto, que sigue siendo lo
+   que lee horaConSegundos(). Los segundos NO se piden en la interfaz: se
+   asumen "00" siempre (ver horaConSegundos(), más abajo).
+
+   initCampoFechaAmigable(idOculto, idVisible, idBtnCalendario)　e
+   initCampoHoraAmigable(idOculto, idVisible, idAmPm) dejan la
+   sincronización en los dos sentidos:
+     - si el admin escribe en el campo visible, se valida y se vuelca al
+       campo oculto (formato ISO / 24h);
+     - si el campo oculto cambia por código (p.ej. el autocompletado de
+       "Nueva fecha/hora" al elegir un torneo en #tSelectHoy, ver más
+       abajo) y ese código dispara un evento 'change' sobre el oculto (o
+       llama a la función de sincronización directamente), el campo
+       visible se actualiza solo.
+   limpiarCampoFechaAmigable()/limpiarCampoHoraAmigable() se usan al
+   terminar de registrar/planificar un torneo (vaciar ambos campos, no solo
+   el oculto). */
+
+function pad2(n){ return String(n).padStart(2, '0'); }
+
+function isoAVisibleFecha(iso){
+  if(!iso) return '';
+  const [y, m, d] = iso.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+function visibleAIsoFecha(txt){
+  const m = (txt || '').trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if(!m) return '';
+  const dd = Number(m[1]), mm = Number(m[2]);
+  if(dd < 1 || dd > 31 || mm < 1 || mm > 12) return '';
+  return `${m[3]}-${pad2(mm)}-${pad2(dd)}`;
+}
+
+/* Autoformatea mientras se escribe: solo dígitos, e inserta "/" al pasar
+ * de día→mes y de mes→año (máximo dd/mm/aaaa). */
+function autoformatearFechaEscritura(ev){
+  const soloDigitos = ev.target.value.replace(/\D/g, '').slice(0, 8);
+  let out = soloDigitos;
+  if(soloDigitos.length > 4) out = `${soloDigitos.slice(0,2)}/${soloDigitos.slice(2,4)}/${soloDigitos.slice(4)}`;
+  else if(soloDigitos.length > 2) out = `${soloDigitos.slice(0,2)}/${soloDigitos.slice(2)}`;
+  ev.target.value = out;
+}
+
+function initCampoFechaAmigable(idOculto, idVisible, idBtnCalendario){
+  const oculto = document.getElementById(idOculto);
+  const visible = document.getElementById(idVisible);
+  if(!oculto || !visible) return;
+
+  const sincronizarDesdeOculto = () => { visible.value = isoAVisibleFecha(oculto.value); };
+  oculto.addEventListener('change', sincronizarDesdeOculto);
+  sincronizarDesdeOculto(); // por si ya trae un valor precargado
+
+  visible.addEventListener('input', autoformatearFechaEscritura);
+  visible.addEventListener('change', () => {
+    // Texto inválido o incompleto = se trata como "sin fecha", igual que
+    // dejar vacío el <input type="date"> nativo de antes.
+    oculto.value = visibleAIsoFecha(visible.value);
+  });
+
+  const btn = idBtnCalendario && document.getElementById(idBtnCalendario);
+  if(btn){
+    btn.addEventListener('click', () => {
+      if(typeof oculto.showPicker === 'function') oculto.showPicker();
+      else oculto.focus();
+    });
+  }
+}
+
+function limpiarCampoFechaAmigable(idOculto, idVisible){
+  const oculto = document.getElementById(idOculto);
+  const visible = document.getElementById(idVisible);
+  if(oculto) oculto.value = '';
+  if(visible) visible.value = '';
+}
+
+function initCampoHoraAmigable(idOculto, idVisible, idAmPm){
+  const oculto = document.getElementById(idOculto);
+  const visible = document.getElementById(idVisible);
+  const selAmPm = document.getElementById(idAmPm);
+  if(!oculto || !visible || !selAmPm) return;
+
+  const sincronizarDesdeOculto = () => {
+    if(!oculto.value){ visible.value = ''; selAmPm.value = 'AM'; return; }
+    const [h, m] = oculto.value.split(':').map(Number);
+    selAmPm.value = h >= 12 ? 'PM' : 'AM';
+    let h12 = h % 12; if(h12 === 0) h12 = 12;
+    visible.value = `${pad2(h12)}:${pad2(m)}`;
+  };
+  oculto.addEventListener('change', sincronizarDesdeOculto);
+  sincronizarDesdeOculto();
+
+  const sincronizarHaciaOculto = () => {
+    const m = (visible.value || '').trim().match(/^(\d{1,2}):(\d{2})$/);
+    if(!m){ oculto.value = ''; return; }
+    let h = Number(m[1]);
+    const min = Number(m[2]);
+    if(h < 1 || h > 12 || min > 59){ oculto.value = ''; return; }
+    if(selAmPm.value === 'PM' && h !== 12) h += 12;
+    if(selAmPm.value === 'AM' && h === 12) h = 0;
+    oculto.value = `${pad2(h)}:${pad2(min)}`;
+  };
+  visible.addEventListener('input', (ev) => {
+    const soloDigitos = ev.target.value.replace(/\D/g, '').slice(0, 4);
+    ev.target.value = soloDigitos.length > 2 ? `${soloDigitos.slice(0,2)}:${soloDigitos.slice(2)}` : soloDigitos;
+  });
+  visible.addEventListener('change', sincronizarHaciaOculto);
+  selAmPm.addEventListener('change', sincronizarHaciaOculto);
+}
+
+function limpiarCampoHoraAmigable(idOculto, idVisible, idAmPm){
+  const oculto = document.getElementById(idOculto);
+  const visible = document.getElementById(idVisible);
+  const selAmPm = document.getElementById(idAmPm);
+  if(oculto) oculto.value = '';
+  if(visible) visible.value = '';
+  if(selAmPm) selAmPm.value = 'AM';
+}
+
+initCampoFechaAmigable('tFecha', 'tFechaTexto', 'btnCalendarioReg');
+initCampoHoraAmigable('tHora', 'tHoraTexto', 'tHoraAmPm');
+initCampoFechaAmigable('tFechaMod', 'tFechaModTexto', 'btnCalendarioMod');
+initCampoHoraAmigable('tHoraMod', 'tHoraModTexto', 'tHoraModAmPm');
+initCampoFechaAmigable('tFechaPlan', 'tFechaPlanTexto', 'btnCalendarioPlan');
+initCampoHoraAmigable('tHoraPlan', 'tHoraPlanTexto', 'tHoraPlanAmPm');
+
+/* ---------- Selector de semanas (Temporada) para gestión de torneos ----------
+   FIX (09-sep-2026, pedido usuario): dentro del menú "Planificar, registrar
+   o modificar torneos" (Registrar/Modificar/Planificar), después del
+   bloque de autor, se muestra una lista de las 5 semanas más recientes
+   (incluida la actual) con checkboxes de selección múltiple, de más
+   reciente a más antigua, con las 2 más recientes marcadas por defecto.
+   Cada fila usa el formato pedido:
+     "Temporada N (mes) Semana M (d mmm - d mmm)"
+   Reglas usadas para construir cada semana:
+     - Cada semana va de LUNES a DOMINGO (mismo ciclo de reinicio semanal
+       de Clash Royale).
+     - "Semana M" es la posición de esa semana DENTRO de su mes (1ª, 2ª...
+       semana del mes en que cae su lunes).
+     - "Temporada N" sube en 1 cada vez que, recorriendo la lista de más
+       antigua a más reciente, el mes del lunes cambia respecto a la
+       semana anterior (por eso una semana que cruza fin de mes, como
+       "31 ago - 06 sep", cuenta como perteneciente al mes de su LUNES:
+       agosto).
+
+   ⚠️ PENDIENTE BACKEND: "Temporada N" acá es SOLO un contador relativo
+   para poder mostrar la lista con el formato pedido (arranca en 1 en la
+   semana más antigua visible de esta lista y sube de 1 en 1 en cada
+   cambio de mes) — NO es el número real de temporada/season que use el
+   backend o el juego. No existe hoy un endpoint que entregue ese número
+   real ni la definición exacta de qué semanas debe evaluar cada torneo
+   (mismo patrón "falta conectar backend" que cargarCuentasDelAutor() más
+   abajo). Tampoco existe todavía ninguna acción real al marcar/desmarcar
+   una semana — pedido explícito del usuario ("no importa que no realice
+   ninguna acción al seleccionar"): por ahora solo queda la lista marcada,
+   lista para cuando se conecte la evaluación real de parámetros de guerra
+   por semana (ver participación de guerra / vGuerra / guerraSemana más
+   arriba en este archivo, que hoy solo tienen datos del día actual, no
+   por semana histórica).
+
+   pintarSemanasSelector(containerId) pinta la MISMA lista de semanas (se
+   recalcula en cada llamada a partir de la fecha de hoy) en el contenedor
+   indicado; se llama una vez por cada uno de los 3 formularios
+   (#semanasSelectorReg/Mod/Plan) más abajo. */
+
+const MESES_ES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+const MESES_ES_ABR = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+
+function generarSemanasRecientes(cantidad){
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
+  const diaSemana = hoy.getDay(); // 0=domingo..6=sábado
+  const offsetLunes = diaSemana === 0 ? -6 : 1 - diaSemana;
+  const lunesActual = new Date(hoy);
+  lunesActual.setDate(hoy.getDate() + offsetLunes);
+
+  // Arma las N semanas de más antigua a más reciente para poder calcular
+  // Temporada/Semana-del-mes en orden cronológico.
+  const semanas = [];
+  for(let i = cantidad - 1; i >= 0; i--){
+    const lunes = new Date(lunesActual);
+    lunes.setDate(lunesActual.getDate() - 7 * i);
+    const domingo = new Date(lunes);
+    domingo.setDate(lunes.getDate() + 6);
+    semanas.push({ lunes, domingo });
+  }
+
+  let temporada = 1;
+  let mesClaveAnterior = null;
+  const semanasPorMes = {}; // "yyyy-m" -> cuántas semanas de esta lista ya cayeron en ese mes
+
+  const resultado = semanas.map(({ lunes, domingo }) => {
+    const mesClave = `${lunes.getFullYear()}-${lunes.getMonth()}`;
+    if(mesClaveAnterior !== null && mesClave !== mesClaveAnterior) temporada++;
+    mesClaveAnterior = mesClave;
+    semanasPorMes[mesClave] = (semanasPorMes[mesClave] || 0) + 1;
+    return {
+      lunes, domingo, temporada,
+      mes: MESES_ES[lunes.getMonth()],
+      semanaDelMes: semanasPorMes[mesClave]
+    };
+  });
+
+  return resultado.reverse(); // de más reciente a más antigua, como pide el usuario
+}
+
+function fmtRangoSemana(lunes, domingo){
+  return `${pad2(lunes.getDate())} ${MESES_ES_ABR[lunes.getMonth()]} - ${pad2(domingo.getDate())} ${MESES_ES_ABR[domingo.getMonth()]}`;
+}
+
+function pintarSemanasSelector(containerId){
+  const cont = document.getElementById(containerId);
+  if(!cont) return;
+  const semanas = generarSemanasRecientes(5);
+  cont.innerHTML = semanas.map((s, i) => {
+    const id = `${containerId}_${i}`;
+    const etiqueta = `Temporada ${s.temporada} (${s.mes}) Semana ${s.semanaDelMes} (${fmtRangoSemana(s.lunes, s.domingo)})`;
+    return `<label class="semana-item" for="${id}">
+      <input type="checkbox" id="${id}" class="semana-check" data-lunes-iso="${s.lunes.toISOString().slice(0,10)}" ${i < 2 ? 'checked' : ''}>
+      <span>${esc(etiqueta)}</span>
+    </label>`;
+  }).join('');
+}
+
+pintarSemanasSelector('semanasSelectorReg');
+pintarSemanasSelector('semanasSelectorMod');
+pintarSemanasSelector('semanasSelectorPlan');
+
 /**
  * initTorneoWizard()
  * FIX (05-sep-2026, pedido usuario): "Registrar torneo nuevo" y "Modificar
@@ -2972,32 +3344,31 @@ document.getElementById('tAutorSelectMod').addEventListener('change', () => {
   if(!esOtro) input.value = '';
 });
 
-/* FIX (09-sep-2026, pedido usuario — "cuadrito de fecha"): abre el
- * selector nativo del navegador al pulsar el icono de calendario dentro
- * de "Nueva fecha" (ver .btn-calendario en el <style> y #camposModificar
- * en el HTML). showPicker() no existe en navegadores muy viejos, así que
- * si falta, se hace foco en el campo como respaldo (el navegador igual
- * deja abrir el calendario con un clic normal). */
-document.getElementById('btnCalendarioMod').addEventListener('click', () => {
-  const input = document.getElementById('tFechaMod');
-  if(typeof input.showPicker === 'function'){
-    input.showPicker();
-  }else{
-    input.focus();
-  }
-});
+/* FIX (09-sep-2026): el icono de calendario de "Nueva fecha" (y ahora
+ * también el de Registrar/Planificar) queda conectado por
+ * initCampoFechaAmigable() más arriba (ver "Campos de fecha/hora
+ * amigables") — ya no hace falta un listener aparte acá. */
 
 document.getElementById('tSelectHoy').addEventListener('change', () => {
   const opt = document.getElementById('tSelectHoy').selectedOptions[0];
   const fechaISO = opt && opt.dataset.fecha;
   const fFecha = document.getElementById('tFechaMod');
   const fHora = document.getElementById('tHoraMod');
-  if(!fechaISO){ fFecha.value = ''; fHora.value = ''; }else{
+  if(!fechaISO){
+    fFecha.value = '';
+    fHora.value = '';
+  }else{
     const d = new Date(fechaISO);
-    const pad = n => String(n).padStart(2, '0');
-    fFecha.value = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-    fHora.value  = `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+    fFecha.value = `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
+    fHora.value  = `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
   }
+  // FIX (09-sep-2026): #tFechaMod/#tHoraMod son ahora los inputs OCULTOS
+  // del campo amigable (ver initCampoFechaAmigable/initCampoHoraAmigable);
+  // al tocar su .value directo con código (arriba) no se dispara 'change'
+  // solo, así que se dispara a mano para que el texto visible + el AM/PM
+  // se actualicen también.
+  fFecha.dispatchEvent(new Event('change'));
+  fHora.dispatchEvent(new Event('change'));
   // El torneo elegido para modificar ya no debe aparecer como opción de
   // "torneo principal" de sí mismo — vuelve a pintar la lista si está abierta.
   if(document.getElementById('camposTorneoPrincipal').style.display !== 'none'){
@@ -3040,8 +3411,8 @@ document.getElementById('btnRegistrarTorneo').addEventListener('click', async ()
     if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
     msgEl.innerHTML = `<div class="msg msg-ok">Torneo registrado (ID ${esc(data.id)}).</div>`;
     document.getElementById('tLink').value = '';
-    document.getElementById('tFecha').value = '';
-    document.getElementById('tHora').value = '';
+    limpiarCampoFechaAmigable('tFecha', 'tFechaTexto');
+    limpiarCampoHoraAmigable('tHora', 'tHoraTexto', 'tHoraAmPm');
     document.getElementById('tAutorSelect').value = '';
     document.getElementById('tAutorManual').value = '';
     document.getElementById('tAutorManual').style.display = 'none';
@@ -3146,8 +3517,8 @@ document.getElementById('btnPlanificarTorneo').addEventListener('click', async (
     if(manejarRespuestaAuth(data)) return;
     if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
     msgEl.innerHTML = '<div class="msg msg-ok">Torneo planificado. Cuando tengas el link, regístralo en "Registrar nuevo torneo" con esta MISMA fecha y hora para completarlo (sin perder estos premios).</div>';
-    document.getElementById('tFechaPlan').value = '';
-    document.getElementById('tHoraPlan').value = '';
+    limpiarCampoFechaAmigable('tFechaPlan', 'tFechaPlanTexto');
+    limpiarCampoHoraAmigable('tHoraPlan', 'tHoraPlanTexto', 'tHoraPlanAmPm');
     document.getElementById('tAutorSelectPlan').value = '';
     document.getElementById('tAutorManualPlan').value = '';
     document.getElementById('tAutorManualPlan').style.display = 'none';
