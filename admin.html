@@ -1395,6 +1395,14 @@ async function buscarMiembro(){
   // usándose igual para la llamada al backend de abajo (la búsqueda en sí
   // no cambia) -- solo se deja de pisar visualmente lo que el admin
   // escribió.
+  // FIX (09-sep-2026, pedido usuario — el buscador se quedaba "en blanco"
+  // sin ningún aviso mientras esperaba, porque hasta ahora esta búsqueda
+  // era instantánea (solo leía Sheets). Desde que webAdminBuscarMiembro
+  // puede caer al perfil público de Supercell/RoyaleAPI para un Tag sin
+  // registro (ver _webPerfilJugadorSinRegistro(), 34_Web_API.gs), la
+  // respuesta puede tardar varios segundos -- se avisa para que no
+  // parezca que el botón no hizo nada.
+  msgEl.innerHTML = '<div class="msg">Buscando…</div>';
   try{
     // webAdminBuscarMiembro ya consulta el perfil público (endpoint
     // `players`) cuando el Tag no tiene registro en Directorio, así que
@@ -1403,6 +1411,7 @@ async function buscarMiembro(){
     const data = await apiGetAuth('webAdminBuscarMiembro', { tag: tagFinal });
     if(manejarRespuestaAuth(data)) return;
     if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
+    msgEl.innerHTML = '';
     renderMiembro(data.jugador);
   }catch(err){
     msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
