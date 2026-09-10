@@ -1412,6 +1412,91 @@
               <div id="camposPlanificarSorteo" style="display:none;">
                 <div class="text-dim" style="font-size:13px;">Formulario "Planificar sorteo" — pendiente de construir (fecha/hora, autor, premios, requisitos por clan + Delta + Torneos mínimos — ver sección 5.4 del consolidado).</div>
               </div>
+
+              <!-- FIX (10-sep-2026, sección 5.4 del consolidado — primer
+                   bloque de campos REALES del Paso 3 de Sorteos):
+                   Requisitos para participar en el sorteo, análogo a
+                   #requisitosTorneoBox de Torneos pero con los campos
+                   exclusivos de S_Lista (ver "S_Lista tiene y T_Lista NO
+                   tiene" en la sección 5.4 del consolidado): Delta y el
+                   bloque "Torneos jugados" (C1-C4) que Torneos no tiene
+                   (Torneos no evalúa torneos jugados sobre sí mismo).
+
+                   Reutiliza TAL CUAL pintarGridRequisitosNumericos() /
+                   initInputMiles() / CLANES_REQUISITOS (ver <script>, ya
+                   construidas para Torneos) con contenedores/prefijos
+                   propios de Sorteos -- así el checkbox "mismo valor para
+                   los 4 clanes" (sección 5.1.1, initMismoValorParaTodos())
+                   viene incluido gratis, sin duplicar esa lógica.
+
+                   Es UN SOLO nodo (no triplicado por rama, mismo criterio
+                   que #requisitosTorneoBox), visible siempre que el Paso 3
+                   esté abierto sin importar la rama (Registrar/Modificar/
+                   Planificar) -- Sorteos no tiene selector de semanas
+                   (ver 5.4), así que a diferencia de Torneos, acá NO hace
+                   falta reubicarlo con JS: queda fijo en este punto del
+                   Paso 3, después de los 3 contenedores por acción y antes
+                   del selector de sorteo principal.
+
+                   Delta (columna P de S_Lista, dentro del bloque Min_S,
+                   ver sección 5.4 del consolidado) es un valor único para
+                   los 4 clanes por diseño de la hoja -- por eso NO usa
+                   pintarGridRequisitosNumericos() (que pinta 4 campos, uno
+                   por clan) sino un solo input con el mismo formato de
+                   miles (initInputMiles()), coherente con lo ya aclarado en
+                   5.1.1 ("No aplica a Delta... el campo de Delta ya es uno
+                   solo").
+
+                   PENDIENTE BACKEND (mismo estado que #requisitosTorneoBox
+                   en 5.1): no existe todavía un endpoint para precargar
+                   esto (equivalente a cargarRequisitosPorClan()) ni para
+                   guardarlo -- por ahora solo se arma el formulario, listo
+                   para conectar en otra sesión (mismo criterio ya usado en
+                   todo el resto de este panel). -->
+              <div id="requisitosSorteoBox" style="margin-top:14px; padding-top:14px; border-top:1px solid var(--line);">
+                <h3 style="font-size:15px; color:var(--gold); margin:0 0 4px;">Requisitos para participar en sorteos</h3>
+                <p class="text-dim" style="font-size:13px; margin:0 0 4px;">Requerimiento mínimo de trofeos de guerra para mantenerse en cada clan.</p>
+                <div id="reqTrofeosGuerraGridSorteo"></div>
+
+                <h3 style="font-size:15px; color:var(--gold); margin:20px 0 4px;">Ataques mínimos por semana por clan</h3>
+                <p class="text-dim" style="font-size:13px; margin:0 0 4px;">Cantidad mínima de ataques de guerra por semana requerida en cada clan.</p>
+                <div id="reqAtaquesSemanaGridSorteo"></div>
+
+                <h3 style="font-size:15px; color:var(--gold); margin:20px 0 4px;">Torneos jugados mínimos por clan</h3>
+                <p class="text-dim" style="font-size:13px; margin:0 0 4px;">Cantidad mínima de torneos jugados requerida en cada clan — este requisito es exclusivo de Sorteos, Torneos no lo tiene.</p>
+                <div id="reqTorneosGridSorteo"></div>
+
+                <h3 style="font-size:15px; color:var(--gold); margin:20px 0 4px;">Delta</h3>
+                <p class="text-dim" style="font-size:13px; margin:0 0 8px;">Escalón de trofeos extra que suma un ticket adicional en la ruleta — un solo valor para los 4 clanes (no hay Delta por clan, ver sección 5.1.1 del consolidado).</p>
+                <div class="field">
+                  <label for="reqDeltaSorteo">Delta</label>
+                  <input type="text" id="reqDeltaSorteo" inputmode="numeric" placeholder="Ejm: 100">
+                </div>
+
+                <h3 style="font-size:15px; color:var(--gold); margin:20px 0 4px;">Otros criterios</h3>
+                <div class="field">
+                  <label for="reqMiembroActivoSorteo">Miembro activo</label>
+                  <select id="reqMiembroActivoSorteo">
+                    <option value="Si" selected>Sí</option>
+                    <option value="No">No</option>
+                  </select>
+                </div>
+                <div class="field" style="margin-top:10px;">
+                  <label for="reqReaccionSorteo">Reacción</label>
+                  <select id="reqReaccionSorteo">
+                    <option value="Si">Sí</option>
+                    <option value="No" selected>No</option>
+                  </select>
+                </div>
+                <div class="field" style="margin-top:10px;">
+                  <label for="reqPresenciaWhatsappSorteo">Presencia en el grupo de WhatsApp</label>
+                  <select id="reqPresenciaWhatsappSorteo">
+                    <option value="Si" selected>Sí</option>
+                    <option value="No">No</option>
+                  </select>
+                </div>
+              </div>
+
               <!-- Equivalente a #camposTorneoPrincipal, pero resuelto por ID
                    en vez de por Tag (ver corrección ya registrada en la
                    sección 5.4 del consolidado). Pendiente de construir: el
@@ -3148,6 +3233,67 @@ function armarPayloadRequisitos(){
     miembroActivo: document.getElementById('reqMiembroActivo').value,
     reaccion: document.getElementById('reqReaccion').value,
     presenciaWhatsapp: document.getElementById('reqPresenciaWhatsapp').value
+  };
+}
+
+/**
+ * Requisitos de Sorteos (#requisitosSorteoBox, sección 5.4 del consolidado).
+ * FIX (10-sep-2026): reutiliza pintarGridRequisitosNumericos() TAL CUAL para
+ * los 2 grids que ya existían en Torneos (trofeos de guerra / ataques por
+ * semana, acá con Min_S en vez de Min_T) más uno nuevo exclusivo de
+ * S_Lista ("Torneos jugados" -- Torneos no tiene este requisito sobre sí
+ * mismo). Como pintarGridRequisitosNumericos() ya trae el checkbox "mismo
+ * valor para los 4 clanes" (sección 5.1.1), los 3 grids de Sorteos lo
+ * heredan gratis, sin duplicar esa lógica.
+ */
+pintarGridRequisitosNumericos('reqTrofeosGuerraGridSorteo', 'reqTrofGuerraSorteo', 'Ejm: 2400');
+pintarGridRequisitosNumericos('reqAtaquesSemanaGridSorteo', 'reqAtaquesSorteo', 'Ejm: 16');
+pintarGridRequisitosNumericos('reqTorneosGridSorteo', 'reqTorneosSorteo', 'Ejm: 2');
+
+// Delta (columna P de S_Lista): un solo valor para los 4 clanes por diseño
+// de la hoja (ver comentario grande junto a #requisitosSorteoBox en el
+// HTML) -- por eso usa initInputMiles() directo, sin pasar por
+// pintarGridRequisitosNumericos() (que pinta 4 campos, uno por clan).
+initInputMiles('reqDeltaSorteo');
+
+/**
+ * cargarRequisitosSorteoPorClan()
+ * PENDIENTE BACKEND, mismo estado que cargarRequisitosPorClan() de Torneos:
+ * no existe todavía un endpoint equivalente a webAdminRequisitosClanes para
+ * Sorteos. Cuando exista, se completa igual que la versión de Torneos
+ * (misma estructura, sumando minTorneosJugados y delta).
+ */
+async function cargarRequisitosSorteoPorClan(){
+  // Sin backend todavía -- el formulario arranca con los defaults de arriba
+  // (ver cargarRequisitosPorClan() de Torneos para el patrón exacto que se
+  // usará acá en cuanto exista el endpoint).
+}
+
+/**
+ * armarPayloadRequisitosSorteo()
+ * Misma función que armarPayloadRequisitos() de Torneos, pero leyendo
+ * #requisitosSorteoBox y sumando minTorneosJugados y delta (exclusivos de
+ * S_Lista). PENDIENTE: todavía no hay ningún listener de Sorteos que la
+ * llame (los 3 formularios reales de #camposRegistrarSorteo/
+ * #camposModificarSorteo/#camposPlanificarSorteo siguen siendo
+ * placeholders, ver HTML) -- queda lista para sumarse a esos payloads en
+ * cuanto se construyan.
+ */
+function armarPayloadRequisitosSorteo(){
+  const requisitosPorClan = {};
+  CLANES_REQUISITOS.forEach(clan => {
+    requisitosPorClan[clan] = {
+      minTrofeosGuerra: valorPlanoInputMiles(idInputMiles('reqTrofGuerraSorteo', clan)),
+      minAtaquesSemana: valorPlanoInputMiles(idInputMiles('reqAtaquesSorteo', clan)),
+      minTorneosJugados: valorPlanoInputMiles(idInputMiles('reqTorneosSorteo', clan))
+    };
+  });
+  return {
+    requisitosPorClan,
+    delta: valorPlanoInputMiles('reqDeltaSorteo'),
+    miembroActivo: document.getElementById('reqMiembroActivoSorteo').value,
+    reaccion: document.getElementById('reqReaccionSorteo').value,
+    presenciaWhatsapp: document.getElementById('reqPresenciaWhatsappSorteo').value
   };
 }
 
