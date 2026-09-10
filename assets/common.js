@@ -164,6 +164,59 @@ function _mensajeErrorRed(){
   return 'No pudimos conectar con el servidor. Intenta de nuevo en un momento.';
 }
 
+/**
+ * _REINTENTO_ESPERA_MS
+ * Espera antes del segundo intento de _fetchYParsear() — ver docblock ahí.
+ */
+const _REINTENTO_ESPERA_MS = 1200;
+
+/**
+ * _fetchYParsear(url, fetchOpts)
+ * FIX (09-sep-2026, pedido usuario — "Error de conexión: Unexpected token
+ * '<', "<!DOCTYPE "... is not valid JSON" buscando un Tag sin registro en
+ * el Directorio, ej. #R09228V): se revisó el registro de Ejecuciones de
+ * Apps Script para esa búsqueda puntual — la ejecución termina
+ * "Completada" en un par de segundos, sin ningún error. O sea, el backend
+ * (_webPerfilJugadorSinRegistro()/_webAdminBuscarMiembro(), 34_Web_API.gs)
+ * SÍ hace bien su trabajo; el corte pasa DESPUÉS, entregando la respuesta:
+ * una Web App con "Acceso: Cualquiera" (anónimo) entrega su salida vía un
+ * redirect a script.googleusercontent.com/macros/echo?user_content_key=...,
+ * y ese paso puede devolver 404 de forma intermitente aunque la ejecución
+ * de abajo ya haya terminado bien — comportamiento de la infraestructura
+ * de Google, no de este código, así que no hay nada que corregir del lado
+ * del backend para esto.
+ *
+ * Mitigación práctica: si la respuesta no es JSON válido (el típico
+ * "<!DOCTYPE" de la página de error de Google), se espera un momento y se
+ * repite la MISMA petición una vez más — como el backend ya había
+ * respondido bien la primera vez, el reintento casi siempre entra sin
+ * problema. Solo reintenta ante error de PARSEO (HTML en vez de JSON); un
+ * error de red real (fetch() que ni siquiera resuelve) sigue sin
+ * reintentarse acá, igual que antes.
+ * Usada por apiGet()/apiPost()/apiGetAuth() para no repetir esta misma
+ * lógica en cada una.
+ * @param {string} url
+ * @param {RequestInit} [fetchOpts]
+ * @returns {Promise<Object>} JSON ya parseado.
+ */
+async function _fetchYParsear(url, fetchOpts){
+  const MAX_INTENTOS = 2;
+  for (let intento = 1; intento <= MAX_INTENTOS; intento++){
+    let res;
+    try{
+      res = await fetch(url, fetchOpts);
+    }catch(err){
+      throw new Error(_esErrorDeRed(err) ? _mensajeErrorRed() : err.message);
+    }
+    try{
+      return await res.json();
+    }catch(parseErr){
+      if (intento >= MAX_INTENTOS) throw new Error(_mensajeErrorRed());
+      await new Promise(function(r){ setTimeout(r, _REINTENTO_ESPERA_MS); });
+    }
+  }
+}
+
 async function apiGet(accion, params, opts){
   opts = opts || {};
   const qs = new URLSearchParams({ accion, token: WEB_MEMBER_TOKEN, ...(params||{}) });
@@ -174,13 +227,7 @@ async function apiGet(accion, params, opts){
       if(cached && (Date.now() - cached.t) < API_GET_CACHE_TTL_MS) return cached.d;
     }catch(e){ /* sessionStorage corrupto/inaccesible: seguir a la red sin romper */ }
   }
-  let res;
-  try{
-    res = await fetch(`${WEBAPP_URL}?${qs.toString()}`, { cache:'no-store' });
-  }catch(err){
-    throw new Error(_esErrorDeRed(err) ? _mensajeErrorRed() : err.message);
-  }
-  const data = await res.json();
+  const data = await _fetchYParsear(`${WEBAPP_URL}?${qs.toString()}`, { cache:'no-store' });
   if(data.error) throw new Error(data.error);
   if(!opts.sinCache){
     try{ sessionStorage.setItem(cacheKey, JSON.stringify({ t: Date.now(), d: data })); }
@@ -192,30 +239,18 @@ async function apiGet(accion, params, opts){
 /** POST a una acción del portal (login / acciones de admin). */
 async function apiPost(accion, body){
   const url = `${WEBAPP_URL}?accion=${encodeURIComponent(accion)}`;
-  let res;
-  try{
-    res = await fetch(url, {
-      method:'POST',
-      cache:'no-store',
-      body: JSON.stringify(body||{})
-    });
-  }catch(err){
-    throw new Error(_esErrorDeRed(err) ? _mensajeErrorRed() : err.message);
-  }
-  return await res.json();
+  return await _fetchYParsear(url, {
+    method:'POST',
+    cache:'no-store',
+    body: JSON.stringify(body||{})
+  });
 }
 
 /** GET autenticado (requiere sessionToken de admin en query string). */
 async function apiGetAuth(accion, params){
   const token = localStorage.getItem('terna_admin_token');
   const qs = new URLSearchParams({ accion, sessionToken: token || '', ...(params||{}) });
-  let res;
-  try{
-    res = await fetch(`${WEBAPP_URL}?${qs.toString()}`, { cache:'no-store' });
-  }catch(err){
-    throw new Error(_esErrorDeRed(err) ? _mensajeErrorRed() : err.message);
-  }
-  return await res.json();
+  return await _fetchYParsear(`${WEBAPP_URL}?${qs.toString()}`, { cache:'no-store' });
 }
 
 /** Normaliza un tag de Clash Royale para mostrar/mandar: mayúsculas, con '#'. */
