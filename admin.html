@@ -1248,6 +1248,97 @@
           <div id="ascEditLista" style="margin-top:14px;"></div>
         </div>
       </details>
+
+      <!-- FIX (10-sep-2026, pedido usuario — "cuadros para ingresar el
+           requerimiento mínimo de trofeos de guerra y la cantidad mínima de
+           ataques semanales según clan, más 3 criterios Sí/No"): estos
+           criterios definen quién puede participar en los torneos (igual
+           que el selector de semanas de arriba), así que van DENTRO del
+           mismo card "Torneos y sorteos" como una subsección más — NO como
+           un card aparte. (Corregido 10-sep-2026: en el primer intento se
+           armó como card independiente tipo "ascensos", que no era lo
+           pedido; el usuario aclaró que es parte del mismo formulario de
+           torneos, no una sección de ascensos.)
+
+           Es distinto del panel de solo LECTURA que ya existe para ver el
+           AVANCE de un miembro puntual contra requisitos ya configurados
+           (ver renderRequisitos()/barraRequisito() en el <script>, que
+           pinta "Trofeos guerra"/"Ataques/semana"/etc. dentro de la ficha
+           de un miembro). Esta subsección de acá es el formulario para
+           EDITAR esos requisitos por clan — todavía sin acción real, solo
+           se está armando el formulario para conectarlo en otra sesión
+           (pedido explícito del usuario).
+
+           Los 4 clanes (Grupo乂Terna™, GrupoXTerna™2, GrupoXTerna™3,
+           Mini乂Ternas™) están hardcodeados en CLANES_REQUISITOS (ver
+           <script>) porque hoy no existe un endpoint que entregue la lista
+           de clanes de la Familia -- ver PENDIENTE BACKEND más abajo. Los
+           cuadros de trofeos/ataques se pintan dinámicamente desde ese
+           mismo array (pintarGridRequisitosNumericos()) para no repetir 4
+           bloques de HTML iguales a mano.
+
+           Formato de miles SOLO VISUAL (pedido explícito del usuario):
+           cada input es type="text" (no type="number", que no deja
+           escribir comas) y se formatea con initInputMiles() -- muestra
+           "2,000" con el input sin foco y el número plano ("2000")
+           mientras se edita, para no pelear con la posición del cursor al
+           tipear. Al guardar, valorPlanoInputMiles() quita las comas antes
+           de armar el payload; el backend nunca ve el separador de miles,
+           solo el número.
+
+           PENDIENTE BACKEND (toda la subsección): no existe hoy ningún
+           endpoint para LEER ni GUARDAR esta configuración. Ver
+           cargarRequisitosPorClan() y el listener de #btnGuardarRequisitos
+           en el <script> — ambos ya están escritos y lo único que falta es
+           descomentar el `apiGetAuth(...)`/`apiPost(...)` de adentro
+           cuando existan webAdminRequisitosClanes (lectura) y
+           webAdminRequisitosClanesGuardar (guardado) en 34_Web_API.gs, más
+           su respectiva función en el .gs de Clanes/Ascensos que sea.
+           Hasta entonces: cargarRequisitosPorClan() no hace nada (el
+           formulario arranca en blanco) y el botón "Guardar requisitos"
+           avisa que todavía no está conectado en vez de fingir que guardó
+           algo. -->
+      <details class="admin-subseccion">
+        <summary><span class="cat-titulo">Requisitos para participar en torneos</span></summary>
+        <div class="admin-subseccion-body">
+          <h3 style="font-size:15px; color:var(--gold); margin:10px 0 4px;">Trofeos mínimos de guerra por clan</h3>
+          <p class="text-dim" style="font-size:13px; margin:0 0 4px;">Requerimiento mínimo de trofeos de guerra para mantenerse en cada clan.</p>
+          <div id="reqTrofeosGuerraGrid"></div>
+
+          <h3 style="font-size:15px; color:var(--gold); margin:24px 0 4px;">Ataques mínimos por semana por clan</h3>
+          <p class="text-dim" style="font-size:13px; margin:0 0 4px;">Cantidad mínima de ataques de guerra por semana requerida en cada clan.</p>
+          <div id="reqAtaquesSemanaGrid"></div>
+
+          <h3 style="font-size:15px; color:var(--gold); margin:24px 0 4px;">Otros criterios</h3>
+          <div class="field">
+            <label for="reqMiembroActivo">Miembro activo</label>
+            <select id="reqMiembroActivo">
+              <option value="">Elige…</option>
+              <option value="Si">Sí</option>
+              <option value="No">No</option>
+            </select>
+          </div>
+          <div class="field" style="margin-top:10px;">
+            <label for="reqReaccion">Reacción</label>
+            <select id="reqReaccion">
+              <option value="">Elige…</option>
+              <option value="Si">Sí</option>
+              <option value="No">No</option>
+            </select>
+          </div>
+          <div class="field" style="margin-top:10px;">
+            <label for="reqPresenciaWhatsapp">Presencia en el grupo de WhatsApp</label>
+            <select id="reqPresenciaWhatsapp">
+              <option value="">Elige…</option>
+              <option value="Si">Sí</option>
+              <option value="No">No</option>
+            </select>
+          </div>
+
+          <button type="button" class="btn btn-primary btn-block" id="btnGuardarRequisitos" style="margin-top:18px;">Guardar requisitos</button>
+          <div id="requisitosMsg"></div>
+        </div>
+      </details>
     </div>
 
     <div id="miembroSec" style="display:none; margin-top:24px;">
@@ -1356,6 +1447,10 @@ function mostrarPanel(){
   cargarNomMultisAdmins().then(cargarAscensosEditables);
   cargarGanadoresTorneo();
   cargarParticipacionHoyGuerra(); // FASE 3 (06-sep-2026)
+  // FIX (10-sep-2026, pedido usuario — requisitos por clan): no hace nada
+  // todavía (ver el docblock grande junto a CLANES_REQUISITOS), pero se
+  // deja la llamada acá para que quede lista apenas exista el endpoint.
+  cargarRequisitosPorClan();
 }
 
 /** FASE 4 (26-ago-2026): muestra/oculta las cards de "Registrar miembro
@@ -2627,6 +2722,165 @@ function pintarSemanasSelector(containerId){
 pintarSemanasSelector('semanasSelectorReg');
 pintarSemanasSelector('semanasSelectorMod');
 pintarSemanasSelector('semanasSelectorPlan');
+
+/* ============================================================
+ * FIX (10-sep-2026, pedido usuario — "cuadros para ingresar el
+ * requerimiento mínimo de trofeos de guerra y la cantidad mínima de
+ * ataques semanales según clan, más 3 criterios Sí/No")
+ * ============================================================
+ * Ver el docblock grande junto a la subsección "Requisitos para participar
+ * en torneos" (dentro del card "Torneos y sorteos") en el HTML para el
+ * contexto completo. Resumen de esta
+ * parte (todo lo de acá es SOLO FRONT-END por ahora, pedido explícito del
+ * usuario: "no pasa nada si no se logra conectar ahora, solo estoy
+ * armando el formulario para conectarlo en otra sesión"):
+ *
+ *   - CLANES_REQUISITOS: los 4 clanes de la Familia, hardcodeados acá
+ *     porque no existe todavía un endpoint que los entregue.
+ *   - formatoMiles()/valorPlanoInputMiles()/initInputMiles(): dan formato
+ *     de miles (1,234) SOLO VISUAL a un <input type="text">, sin tocar el
+ *     valor real (siempre números planos, sin comas) que viajaría al
+ *     backend.
+ *   - pintarGridRequisitosNumericos(): pinta un <div class="field"> por
+ *     cada clan de CLANES_REQUISITOS dentro del contenedor indicado — se
+ *     usa una vez para trofeos de guerra y otra para ataques/semana.
+ *   - cargarRequisitosPorClan(): PENDIENTE BACKEND, ver el bloque
+ *     comentado adentro — hoy no hace nada (dejaría el formulario en
+ *     blanco), listo para descomentar cuando exista
+ *     webAdminRequisitosClanes.
+ *   - Listener de #btnGuardarRequisitos (más abajo, junto a los demás
+ *     listeners de botones): arma el payload completo y lo deja listo,
+ *     pero la llamada real a webAdminRequisitosClanesGuardar queda
+ *     comentada -- mientras tanto avisa que el guardado no está
+ *     conectado todavía, en vez de fingir que sí guardó.
+ */
+const CLANES_REQUISITOS = ['Grupo乂Terna™', 'GrupoXTerna™2', 'GrupoXTerna™3', 'Mini乂Ternas™'];
+
+/** Da formato de miles a un valor (limpia todo lo que no sea dígito antes
+ *  de formatear) -- ej. "2000" o "2,000" o "2.000abc" → "2,000". Devuelve
+ *  '' si no queda ningún dígito. */
+function formatoMiles(valor){
+  const limpio = String(valor || '').replace(/[^\d]/g, '');
+  if(!limpio) return '';
+  return Number(limpio).toLocaleString('en-US');
+}
+
+/** Lee el <input> de un cuadro con formato de miles y devuelve SOLO los
+ *  dígitos (sin comas) -- el valor real que debe viajar al backend. */
+function valorPlanoInputMiles(id){
+  const el = document.getElementById(id);
+  return el ? String(el.value || '').replace(/[^\d]/g, '') : '';
+}
+
+/** Conecta un <input> para que muestre el número plano mientras se edita
+ *  (foco) y con comas de miles apenas se sale de él (blur) -- así el
+ *  cursor no salta de lugar cada vez que se agrega una coma al tipear. */
+function initInputMiles(id){
+  const el = document.getElementById(id);
+  if(!el) return;
+  el.addEventListener('focus', () => { el.value = el.value.replace(/[^\d]/g, ''); });
+  el.addEventListener('blur', () => { el.value = formatoMiles(el.value); });
+}
+
+/** Arma un id de <input> estable para un clan dado, quitando símbolos
+ *  (™/乂) y espacios -- ej. idInputMiles('reqTrofGuerra','Grupo乂Terna™')
+ *  → 'reqTrofGuerra_GrupoTerna'. */
+function idInputMiles(prefijo, clan){
+  const slug = String(clan).replace(/[^\w]/g, '');
+  return `${prefijo}_${slug}`;
+}
+
+/** Pinta un cuadro numérico (con formato de miles) por cada clan de
+ *  CLANES_REQUISITOS dentro de `containerId` -- se llama una vez para
+ *  trofeos de guerra y otra para ataques/semana (mismo patrón, distinto
+ *  prefijo de id y placeholder). */
+function pintarGridRequisitosNumericos(containerId, prefijo, placeholder){
+  const cont = document.getElementById(containerId);
+  if(!cont) return;
+  cont.innerHTML = CLANES_REQUISITOS.map(clan => {
+    const id = idInputMiles(prefijo, clan);
+    return `<div class="field" style="margin-top:10px;">
+      <label for="${id}">${esc(clan)}</label>
+      <input type="text" id="${id}" inputmode="numeric" placeholder="${esc(placeholder)}">
+    </div>`;
+  }).join('');
+  CLANES_REQUISITOS.forEach(clan => initInputMiles(idInputMiles(prefijo, clan)));
+}
+
+pintarGridRequisitosNumericos('reqTrofeosGuerraGrid', 'reqTrofGuerra', 'Ej. 2,000');
+pintarGridRequisitosNumericos('reqAtaquesSemanaGrid', 'reqAtaques', 'Ej. 8');
+
+/**
+ * cargarRequisitosPorClan()
+ * PENDIENTE BACKEND: no existe todavía webAdminRequisitosClanes (ni la
+ * función .gs que lo respalde). Cuando exista, descomentar el bloque de
+ * abajo -- ya deja cada cuadro con el valor GUARDADO antes de que el admin
+ * toque nada (pedido explícito del usuario: "cargar esos valores desde el
+ * backend si es que ya hay un registro para ver antes de modificar").
+ * Se llama una vez desde mostrarPanel(), igual que cargarNomMultisAdmins();
+ * mientras el endpoint no exista, no hace nada y el formulario queda en
+ * blanco/"Elige…".
+ */
+async function cargarRequisitosPorClan(){
+  /*
+  try{
+    const data = await apiGetAuth('webAdminRequisitosClanes', {});
+    if(manejarRespuestaAuth(data)) return;
+    if(data.ok && data.requisitos){
+      CLANES_REQUISITOS.forEach(clan => {
+        const r = data.requisitos[clan] || {};
+        const idT = idInputMiles('reqTrofGuerra', clan);
+        const idA = idInputMiles('reqAtaques', clan);
+        if(document.getElementById(idT)) document.getElementById(idT).value = formatoMiles(r.minTrofeosGuerra);
+        if(document.getElementById(idA)) document.getElementById(idA).value = formatoMiles(r.minAtaquesSemana);
+      });
+      if(data.requisitos.miembroActivo) document.getElementById('reqMiembroActivo').value = data.requisitos.miembroActivo;
+      if(data.requisitos.reaccion) document.getElementById('reqReaccion').value = data.requisitos.reaccion;
+      if(data.requisitos.presenciaWhatsapp) document.getElementById('reqPresenciaWhatsapp').value = data.requisitos.presenciaWhatsapp;
+    }
+  }catch(err){
+    // Sin backend todavía: se deja el formulario en blanco (ver comentario
+    // grande de arriba).
+  }
+  */
+}
+
+document.getElementById('btnGuardarRequisitos').addEventListener('click', async () => {
+  const msgEl = document.getElementById('requisitosMsg');
+  msgEl.innerHTML = '';
+
+  const requisitosPorClan = {};
+  CLANES_REQUISITOS.forEach(clan => {
+    requisitosPorClan[clan] = {
+      minTrofeosGuerra: valorPlanoInputMiles(idInputMiles('reqTrofGuerra', clan)),
+      minAtaquesSemana: valorPlanoInputMiles(idInputMiles('reqAtaques', clan))
+    };
+  });
+  const miembroActivo = document.getElementById('reqMiembroActivo').value;
+  const reaccion = document.getElementById('reqReaccion').value;
+  const presenciaWhatsapp = document.getElementById('reqPresenciaWhatsapp').value;
+
+  // PENDIENTE BACKEND: no existe todavía webAdminRequisitosClanesGuardar.
+  // El payload de abajo ya queda armado con todo lo que se necesitaría
+  // mandar -- solo falta descomentar la llamada cuando el endpoint exista.
+  // Mientras tanto, se avisa que el guardado no está conectado en vez de
+  // fingir que sí se guardó (pedido usuario: "no pasa nada si no se logra
+  // conectar ahora, solo estoy armando el formulario").
+  msgEl.innerHTML = '<div class="msg msg-error">Esta sección todavía no está conectada al backend — los valores no se guardan por ahora.</div>';
+  /*
+  try{
+    const data = await apiPost('webAdminRequisitosClanesGuardar', {
+      sessionToken: localStorage.getItem(SESSION_KEY),
+      requisitosPorClan, miembroActivo, reaccion, presenciaWhatsapp
+    });
+    if(manejarRespuestaAuth(data)) return;
+    if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
+    msgEl.innerHTML = '<div class="msg msg-ok">Requisitos guardados.</div>';
+  }catch(err){
+    msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
+  }
+  */
+});
 
 /**
  * initTorneoWizard()
