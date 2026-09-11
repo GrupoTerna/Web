@@ -229,7 +229,16 @@
     border-bottom:1px solid var(--line);
   }
   .roster-table td.rt-num{font-family:var(--f-mono); color:var(--text-faint); font-size:13px;}
-  .roster-table td.rt-nombre{font-weight:700; font-size:15px;}
+  /* FIX (10-sep-2026, pedido usuario — "no centres los valores de la
+     columna nombre ni vigencia en directorio por clan [...] el encabezado
+     sí va centrado pero los valores van alineados a la izquierda"): el
+     centrado general de arriba (th/td) queda igual para el resto de
+     columnas, pero Nombre y Vigencia son la excepción — sus celdas
+     vuelven a alinearse a la izquierda mientras que sus encabezados (que
+     comparten el mismo th/.rt-th-inner centrado de todas las columnas) se
+     quedan centrados. */
+  .roster-table td.rt-nombre{font-weight:700; font-size:15px; text-align:left;}
+  .roster-table td.rt-vigencia{text-align:left;}
   .roster-table td.rt-tag, .roster-table td.rt-rango, .roster-table td.rt-ranking,
   .roster-table td.rt-nivelxp, .roster-table td.rt-nivelcartas, .roster-table td.rt-copas,
   .roster-table td.rt-arena, .roster-table td.rt-vguerra, .roster-table td.rt-vigencia{
@@ -328,9 +337,21 @@
      scroll con el mismo tamaño/proporción que la de abajo. Al extremo
      derecho, fuera del área con scroll (flex-shrink:0, siempre visible
      sin importar cuánto se haya desplazado la tabla), va el botón para
-     desmarcar todos los filtros de un toque. */
+     desmarcar todos los filtros de un toque.
+     FIX (10-sep-2026, pedido usuario — "esa barra de desplazamiento está
+     fea, usa el mismo formato de barra que se usa en las cuadrículas de
+     la hoja Guerra"): sin estas reglas, .roster-top-scroll dibujaba la
+     barra de scroll NATIVA del navegador/sistema (gris, gruesa, sin
+     relación con el tema oscuro del sitio). Se agregan las mismas reglas
+     que .grid-hscroll de guerra.html (franja fina, thumb morado
+     var(--purple-light) sobre track translúcido) para que ambas barras
+     de scroll "sintéticas" del sitio se vean igual. -->
   .roster-topbar{display:flex; align-items:center; gap:12px; padding:10px 13px; border-bottom:1px solid var(--line);}
-  .roster-top-scroll{flex:1; min-width:0; overflow-x:auto; overflow-y:hidden; height:14px; -webkit-overflow-scrolling:touch;}
+  .roster-top-scroll{flex:1; min-width:0; overflow-x:auto; overflow-y:hidden; height:14px; -webkit-overflow-scrolling:touch;
+    scrollbar-width:thin; scrollbar-color:var(--purple-light) rgba(255,255,255,.06);}
+  .roster-top-scroll::-webkit-scrollbar{height:10px;}
+  .roster-top-scroll::-webkit-scrollbar-track{background:rgba(255,255,255,.06); border-radius:6px;}
+  .roster-top-scroll::-webkit-scrollbar-thumb{background:var(--purple-light); border-radius:6px;}
   .roster-top-scroll-inner{height:1px;}
   .rt-limpiar-filtros{
     flex-shrink:0; display:inline-flex; align-items:center; gap:6px;
