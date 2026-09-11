@@ -117,6 +117,15 @@
   .req-row .lbl{width:140px; font-size:13px; color:var(--text-dim); flex-shrink:0;}
   .req-row .progress{flex:1; min-width:120px;}
   .req-row .val{min-width:110px; width:auto; text-align:right; font-family:var(--f-mono); font-size:12px; flex-shrink:0; white-space:nowrap;}
+  /* FIX (11-sep-2026, pedido usuario — punto 26 del docx, mitad "Insignias"):
+   * fila para cada insignia de renderInsignias() más abajo. Reusa .req-row
+   * (mismo componente que Logros/bloqueRequisitos()) agregándole el ícono
+   * a la izquierda, que Logros no necesita porque los `achievements` no
+   * traen imagen. */
+  .insignia-row{display:flex; align-items:center; gap:10px; margin-bottom:12px;}
+  .insignia-row:last-child{margin-bottom:0;}
+  .insignia-row img{width:28px; height:28px; flex-shrink:0; object-fit:contain;}
+  .insignia-row .req-row{flex:1; margin-bottom:0;}
   .ext-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:14px; margin-top:16px;}
   /* FIX (04-sep-2026, pedido usuario — "falta centrar los datos de los
    * cuadritos"): .ext-item pasa de text-align:left a center, así el valor
@@ -456,6 +465,51 @@ function renderLogros(logros){
       ${filas}
     </div>`;
 }
+/**
+ * renderInsignias(insignias)
+ * FIX (11-sep-2026, pedido usuario — punto 26 del docx, "Insignias y
+ * logros", mitad que faltaba): pinta la sección "Insignias" a partir de
+ * `ext.insignias`, que el backend armaría traduciendo el array `badges`
+ * que YA devuelve el endpoint /players de Supercell (distinto de
+ * `achievements`, que es lo que ya pinta renderLogros() de arriba desde
+ * el mismo pedido) -- no se obtiene nada de RoyaleAPI.
+ * Estructura esperada por elemento: {nombre, nivel, nivelMax, progreso,
+ * objetivo, icono}. OJO (aclarado por el usuario en conversación): el
+ * `nombre` sí se repite entre jugadores (catálogo fijo de insignias
+ * posibles, como `cards`), pero cada jugador solo trae el subconjunto que
+ * desbloqueó -- no hay que asumir que faltan las demás por error, un
+ * jugador puede simplemente no tenerlas todavía. `nivel`, `nivelMax`,
+ * `progreso`, `objetivo` e `icono` sí son propios de cada jugador (cada
+ * insignia tiene su propio nivel alcanzado, con su propio ícono según
+ * ese nivel).
+ * Reutiliza barraRequisito() igual que renderLogros() (mismo componente
+ * .req-row/.progress), agregando el ícono a la izquierda envuelto en
+ * .insignia-row (ver <style>) -- Logros no necesita ícono porque
+ * `achievements` no trae imagen, `badges` sí. El nivel/nivelMax se agrega
+ * como sufijo del valor, igual que las estrellas en renderLogros(). Si
+ * una insignia no tiene `objetivo` (algunas, como CollectionLevel al
+ * tope, no traen `target`), se usa `progreso` como objetivo para no
+ * mostrar "undefined" y pintar la barra llena en vez de inventar una
+ * meta que la API no da.
+ * PENDIENTE BACKEND: ext.insignias todavía no existe -- mientras
+ * 07_API_ClashRoyale.gs/08_Web_Endpoints.gs no agreguen `badges[]`
+ * completo a la respuesta del jugador (hoy se descartan casi todas, solo
+ * se guardan 5 sueltas para otros usos), esta función no pinta nada
+ * (mismo criterio que renderLogros() y el resto de renderExtendido()).
+ */
+function renderInsignias(insignias){
+  if (!Array.isArray(insignias) || !insignias.length) return '';
+  const filas = insignias.map(b => {
+    const objetivo = (b.objetivo != null ? b.objetivo : b.progreso);
+    const sufijo = (b.nivel != null && b.nivelMax != null) ? ` · Nv. ${b.nivel}/${b.nivelMax}` : '';
+    const icono = urlValida(b.icono) ? `<img src="${esc(b.icono)}" alt="" loading="lazy">` : '';
+    return `<div class="insignia-row">${icono}${barraRequisito(b.nombre, b.progreso, objetivo, true, sufijo)}</div>`;
+  }).join('');
+  return `<div style="margin-top:16px; padding-top:16px; border-top:1px solid var(--line);">
+      <h3 style="font-size:15px; color:var(--gold); margin:0 0 4px;">Insignias</h3>
+      ${filas}
+    </div>`;
+}
 function renderExtendido(ext){
   const wrap = document.getElementById('mExtWrap');
   if (!ext){ wrap.innerHTML = ''; return; }
@@ -507,11 +561,12 @@ function renderExtendido(ext){
    * Ver otras cuentas, ver renderMiembro() más abajo), duplicando la fila
    * completa en pantalla. Se quita de acá (renderExtendido solo pinta la
    * grilla de estadísticas, el badge de Camino de Leyendas y, desde el
-   * 11-sep-2026, la sección de Logros vía renderLogros()); los 4 links
-   * (RoyaleAPI/CWStats/Mazo/Mazo2) y los botones de acción se pintan
-   * juntos, en una sola fila con el formato .ext-links, en renderMiembro().
+   * 11-sep-2026, las secciones de Logros e Insignias vía renderLogros()/
+   * renderInsignias()); los 4 links (RoyaleAPI/CWStats/Mazo/Mazo2) y los
+   * botones de acción se pintan juntos, en una sola fila con el formato
+   * .ext-links, en renderMiembro().
    */
-  wrap.innerHTML = (items ? `<div class="ext-grid">${items}</div>` : '') + camino + renderLogros(ext.logros);
+  wrap.innerHTML = (items ? `<div class="ext-grid">${items}</div>` : '') + camino + renderLogros(ext.logros) + renderInsignias(ext.insignias);
 }
 
 /**
