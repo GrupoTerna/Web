@@ -368,6 +368,35 @@ function extItem(valor, label, esNumero){
   const txt = esNumero ? fmtNum(valor) : String(valor);
   return `<div class="ext-item"><div class="v">${esc(txt)}</div><div class="k">${esc(label)}</div></div>`;
 }
+/**
+ * renderLogros(logros)
+ * FIX (11-sep-2026, pedido usuario — punto 26 del docx, "Insignias y
+ * logros"): pinta "Logros" y su progreso a partir de `ext.logros`, que el
+ * backend arma traduciendo el array `achievements` que YA devuelve el
+ * endpoint /players de Supercell (cada logro trae name/value/target/stars/
+ * info) -- no se obtiene nada de RoyaleAPI, ese sitio solo se usó como
+ * referencia de qué secciones existen en un perfil, ver conversación.
+ * Estructura esperada por elemento: {nombre, valor, objetivo, estrellas,
+ * info}. Reutiliza barraRequisito() tal cual (mismo componente visual
+ * .req-row/.progress que ya usa bloqueRequisitos() más arriba) en vez de
+ * crear un componente nuevo -- `activo` se manda siempre true porque, a
+ * diferencia de los requisitos de clan, un logro siempre corresponde
+ * mostrarse si viene en la lista. Las estrellas (si el logro las tiene) se
+ * agregan como sufijo del valor, igual que el 🏆 de "Trofeos guerra" en
+ * bloqueRequisitos().
+ * PENDIENTE BACKEND: ext.logros todavía no existe -- mientras
+ * 07_API_ClashRoyale.gs/08_Web_Endpoints.gs no lo agreguen a la respuesta
+ * del jugador, esta función no pinta nada (mismo criterio que el resto de
+ * renderExtendido() con campos que el backend todavía no manda).
+ */
+function renderLogros(logros){
+  if (!Array.isArray(logros) || !logros.length) return '';
+  const filas = logros.map(l => barraRequisito(l.nombre, l.valor, l.objetivo, true, l.estrellas ? ` · ⭐${fmtNum(l.estrellas)}` : '')).join('');
+  return `<div style="margin-top:16px; padding-top:16px; border-top:1px solid var(--line);">
+      <h3 style="font-size:15px; color:var(--gold); margin:0 0 4px;">Logros</h3>
+      ${filas}
+    </div>`;
+}
 function renderExtendido(ext){
   const wrap = document.getElementById('mExtWrap');
   if (!ext){ wrap.innerHTML = ''; return; }
@@ -418,11 +447,12 @@ function renderExtendido(ext){
    * fila de acciones principal (#mRoyaleCwstatsBtns + Vetar/Ver torneos/
    * Ver otras cuentas, ver renderMiembro() más abajo), duplicando la fila
    * completa en pantalla. Se quita de acá (renderExtendido solo pinta la
-   * grilla de estadísticas y el badge de Camino de Leyendas); los 4 links
+   * grilla de estadísticas, el badge de Camino de Leyendas y, desde el
+   * 11-sep-2026, la sección de Logros vía renderLogros()); los 4 links
    * (RoyaleAPI/CWStats/Mazo/Mazo2) y los botones de acción se pintan
    * juntos, en una sola fila con el formato .ext-links, en renderMiembro().
    */
-  wrap.innerHTML = (items ? `<div class="ext-grid">${items}</div>` : '') + camino;
+  wrap.innerHTML = (items ? `<div class="ext-grid">${items}</div>` : '') + camino + renderLogros(ext.logros);
 }
 
 /**

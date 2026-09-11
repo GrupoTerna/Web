@@ -1195,17 +1195,19 @@
                  junto con el resto del formulario cuando se presiona
                  "Registrar torneo"/"Guardar cambios"/"Planificar torneo"
                  (btnRegistrarTorneo/btnModificarTorneo/btnPlanificarTorneo
-                 más abajo), igual que autor/premios/semanas. Falta que esos
-                 3 listeners arme y manden ese payload junto con los demás
-                 parámetros del torneo, y que el backend
-                 (_webAdminTorneoRegistrar()/_webAdminTorneoModificar()/
-                 _webAdminTorneoPlanificarGuardar() en 34_Web_API.gs) los
-                 reciba y guarde donde corresponda (webAdminRequisitosClanes
+                 más abajo), igual que autor/premios/semanas.
+
+                 RESUELTO (11-sep-2026): los 3 listeners ya arman y mandan
+                 este payload (`requisitos: armarPayloadRequisitos()`) junto
+                 con los demás parámetros del torneo -- ver el comentario FIX
+                 junto a cada uno más abajo. Lo que sigue PENDIENTE BACKEND
+                 es que _webAdminTorneoRegistrar()/_webAdminTorneoModificar()/
+                 _webAdminTorneoPlanificarGuardar() (34_Web_API.gs) reciban y
+                 guarden ese campo donde corresponda (webAdminRequisitosClanes
                  para lectura previa sigue sin existir tampoco). Hasta
                  entonces: cargarRequisitosPorClan() no hace nada (el
-                 formulario arranca con los defaults de arriba) y estos
-                 campos quedan listos para sumarse al payload en cuanto se
-                 conecte esa parte del backend.
+                 formulario arranca con los defaults de arriba) y `requisitos`
+                 viaja en cada request sin que el backend actual lo use.
 
                  RESUELTO (10-sep-2026, sección 5.1.1 del consolidado):
                  los grids #reqTrofeosGuerraGrid/#reqAtaquesSemanaGrid ahora
@@ -1299,13 +1301,20 @@
                  dejarlo acá quieto ya cumple la posición pedida sin importar
                  cuál rama esté activa.
 
-                 PENDIENTE BACKEND / conexión (todavía no se hace nada con
-                 esto, mismo estado que #requisitosTorneoBox en 5.1):
-                   1) Los 3 listeners (btnRegistrarTorneo/btnModificarTorneo/
-                      btnPlanificarTorneo) no leen este campo todavía -- falta
-                      sumar su valor (`document.getElementById('tComentario').value`)
-                      al payload que arman, junto con lo que ya arma
-                      armarPayloadRequisitos().
+                 PENDIENTE BACKEND / conexión (mismo estado que
+                 #requisitosTorneoBox en 5.1):
+                   1) RESUELTO (11-sep-2026): los 3 listeners
+                      (btnRegistrarTorneo/btnModificarTorneo/
+                      btnPlanificarTorneo) ya leen este campo
+                      (`document.getElementById('tComentario').value.trim()`)
+                      y lo suman al payload como `comentario`, junto con
+                      `requisitos` de armarPayloadRequisitos() -- ver el
+                      comentario FIX junto a cada listener más abajo. Falta
+                      que el backend (_webAdminTorneoRegistrar()/
+                      _webAdminTorneoModificar()/
+                      _webAdminTorneoPlanificarGuardar(), 34_Web_API.gs) lo
+                      reciba y lo escriba en la columna Comentario de
+                      T_Lista.
                    2) Precarga en Modificar: cuando `webAdminTorneosHoy()`
                       devuelva también el Comentario existente de cada fila
                       (ver 5.2, mismo pendiente que autor/premios/semanas),
@@ -3558,10 +3567,10 @@ async function cargarRequisitosPorClan(){
  * #requisitosTorneoBox, para que btnRegistrarTorneo/btnModificarTorneo/
  * btnPlanificarTorneo lo sumen a su propio payload al presionar
  * "Registrar torneo"/"Guardar cambios"/"Planificar torneo".
- * PENDIENTE: falta que esos 3 listeners llamen esta función y agreguen su
- * resultado al payload que mandan, y que el backend
- * (_webAdminTorneoRegistrar()/_webAdminTorneoModificar()/
- * _webAdminTorneoPlanificarGuardar() en 34_Web_API.gs) lo reciba y guarde
+ * RESUELTO (11-sep-2026): los 3 listeners ya llaman esta función y agregan
+ * su resultado al payload que mandan (campo `requisitos`). Sigue PENDIENTE
+ * BACKEND que _webAdminTorneoRegistrar()/_webAdminTorneoModificar()/
+ * _webAdminTorneoPlanificarGuardar() (34_Web_API.gs) lo reciban y guarden
  * donde corresponda -- webAdminRequisitosClanes sigue sin existir para
  * poder precargar estos valores tampoco (ver cargarRequisitosPorClan()).
  */
@@ -4701,6 +4710,15 @@ document.getElementById('btnRegistrarTorneo').addEventListener('click', async ()
   // Nom_Multi de admin elegido en el select.
   const autorSelect = document.getElementById('tAutorSelect').value;
   const autor = autorSelect === '__otro__' ? document.getElementById('tAutorManual').value.trim() : autorSelect;
+  // FIX (11-sep-2026): armarPayloadRequisitos()/#tComentario ya existían
+  // pero ningún listener los sumaba al payload todavía (ver PENDIENTE junto
+  // a #requisitosTorneoBox/#comentarioTorneoBox en el HTML y junto a
+  // armarPayloadRequisitos() más abajo). El backend puede seguir sin leer
+  // `requisitos`/`comentario` mientras no se actualice
+  // _webAdminTorneoRegistrar() -- viajan igual, sin romper nada, y quedan
+  // listos para cuando ese lado se conecte.
+  const requisitos = armarPayloadRequisitos();
+  const comentario = document.getElementById('tComentario').value.trim();
   if(!link){ msgEl.innerHTML = '<div class="msg msg-error">Pega el link del torneo.</div>'; return; }
   if(!fecha || !hora){ msgEl.innerHTML = '<div class="msg msg-error">Completa fecha y hora.</div>'; return; }
   if(esContinuacion && !torneoTorneoPrincipalTag){ msgEl.innerHTML = '<div class="msg msg-error">Elige de cuál torneo principal es continuación.</div>'; return; }
@@ -4718,7 +4736,8 @@ document.getElementById('btnRegistrarTorneo').addEventListener('click', async ()
       link, fecha, hora,
       tagTorneoPrincipal: esContinuacion ? torneoTorneoPrincipalTag : '',
       autor,
-      tagOrg, clanOrg, clanTagOrg
+      tagOrg, clanOrg, clanTagOrg,
+      requisitos, comentario
     });
     if(manejarRespuestaAuth(data)) return;
     if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
@@ -4762,6 +4781,10 @@ document.getElementById('btnModificarTorneo').addEventListener('click', async ()
   const autorSelect = document.getElementById('tAutorSelectMod').value;
   const autor = autorSelect === '__otro__' ? document.getElementById('tAutorManualMod').value.trim() : autorSelect;
   const premios = armarPremiosCSV('premiosEditorMod');
+  // FIX (11-sep-2026): mismo campo compartido #tComentario/#requisitosTorneoBox
+  // que en btnRegistrarTorneo -- ver el comentario FIX de ese listener.
+  const requisitos = armarPayloadRequisitos();
+  const comentario = document.getElementById('tComentario').value.trim();
   if(!id){ msgEl.innerHTML = '<div class="msg msg-error">Elige un torneo de la lista.</div>'; return; }
   if(!fecha || !hora){ msgEl.innerHTML = '<div class="msg msg-error">Completa la nueva fecha y hora.</div>'; return; }
   if(esContinuacion && !torneoTorneoPrincipalTag){ msgEl.innerHTML = '<div class="msg msg-error">Elige de cuál torneo principal es continuación.</div>'; return; }
@@ -4773,7 +4796,8 @@ document.getElementById('btnModificarTorneo').addEventListener('click', async ()
       tagTorneoPrincipal: esContinuacion ? torneoTorneoPrincipalTag : '',
       autor,   // '' = no cambiar el autor ya registrado
       premios, // '' = no cambiar los premios ya registrados
-      tagOrg, clanOrg, clanTagOrg // '' = no cambiar Tag_org/Clan/ClanTag ya registrados
+      tagOrg, clanOrg, clanTagOrg, // '' = no cambiar Tag_org/Clan/ClanTag ya registrados
+      requisitos, comentario
     });
     if(manejarRespuestaAuth(data)) return;
     if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
@@ -4823,6 +4847,10 @@ document.getElementById('btnPlanificarTorneo').addEventListener('click', async (
   // FIX (09-sep-2026): ver comentario grande junto a cargarCuentasDelAutor()
   // más arriba (PENDIENTE BACKEND) — mismo criterio que en Registrar.
   const { tagOrg, clanOrg, clanTagOrg } = leerCuentaOrgElegida('Plan');
+  // FIX (11-sep-2026): mismo campo compartido #tComentario/#requisitosTorneoBox
+  // que en btnRegistrarTorneo -- ver el comentario FIX de ese listener.
+  const requisitos = armarPayloadRequisitos();
+  const comentario = document.getElementById('tComentario').value.trim();
   if(!fecha || !hora){ msgEl.innerHTML = '<div class="msg msg-error">Completa fecha y hora.</div>'; return; }
   if(!premios){ msgEl.innerHTML = '<div class="msg msg-error">Agrega al menos un premio.</div>'; return; }
   if(esContinuacion && !torneoTorneoPrincipalTag){ msgEl.innerHTML = '<div class="msg msg-error">Elige de cuál torneo principal es continuación.</div>'; return; }
@@ -4845,7 +4873,8 @@ document.getElementById('btnPlanificarTorneo').addEventListener('click', async (
       fecha, hora, premios,
       tagTorneoPrincipal: esContinuacion ? torneoTorneoPrincipalTag : '',
       autor,
-      tagOrg, clanOrg, clanTagOrg
+      tagOrg, clanOrg, clanTagOrg,
+      requisitos, comentario
     });
     if(manejarRespuestaAuth(data)) return;
     if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
