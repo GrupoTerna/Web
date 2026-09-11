@@ -751,15 +751,36 @@
              requisitos de S_Lista, visible solo cuando Resultado = "No
              califica" (ver toggleWinnerResRazonVisibility() más abajo).
 
-             PENDIENTE BACKEND (puntos 4 y 6 del consolidado, todavía no
-             existen): no hay ningún endpoint que reciba esta resolución ni
-             la escriba en S_Asistencia -- por ahora btnGuardarResolucionGanador
-             solo actualiza el estado local (igual que ya hace el input de
-             nombre de cada ganador) y cierra el formulario. Cuando exista
-             ese endpoint, sumar la llamada acá (mismo patrón que
-             btnGuardarResolucion de admin.html → webAdminTorneoResolucionGuardar). -->
+             CONECTADO (10-sep-2026, puntos 4 y 6 del consolidado ya
+             resueltos en el backend): btnGuardarResolucionGanador ahora
+             llama a webAdminSorteoResolucionGuardar (guardarResolucionGanador()
+             más abajo) -- ver ese comentario para el detalle de Tag/Premio
+             y el caso "sin tag". -->
         <div id="winnerResolucionForm" style="display:none; margin-top:10px; padding-top:10px; border-top:1px solid var(--panel-line);">
           <div id="winnerResolucionParaTexto" style="font-size:12.5px; color:var(--ink-soft); margin-bottom:8px;"></div>
+          <div style="margin-bottom:8px;">
+            <label for="winnerResTag" style="display:block; font-size:12px; font-weight:600; color:var(--ink); margin-bottom:4px;">Tag</label>
+            <input type="text" id="winnerResTag" placeholder="#ABC123 (dejar vacío si no se conoce)" style="width:100%; border:1px solid var(--panel-line); border-radius:9px; padding:8px 10px; font-size:13px; color:var(--ink); box-sizing:border-box;">
+          </div>
+          <!-- RESUELTO (10-sep-2026, sección "Cómo se resuelve el Tag" del
+               consolidado): si el ganador vino de "Cargar participantes
+               calificados" el Tag ya llega prellenado (ver
+               abrirResolucionGanador() más abajo) y normalmente no hace
+               falta tocarlo. Si el ganador se agregó a mano y no se
+               conoce el Tag, este aviso se muestra solo (ver
+               toggleWinnerResSinTagVisibility()) cuando el campo de Tag
+               está vacío -- no deja guardar sin tag "en silencio": exige
+               que el admin confirme explícitamente que es intencional. -->
+          <div id="winnerResSinTagWrap" style="display:none; margin-bottom:8px; padding:8px; border-radius:8px; background:rgba(0,0,0,0.04);">
+            <label style="display:flex; align-items:flex-start; gap:6px; font-size:12px; color:var(--ink-soft); cursor:pointer;">
+              <input type="checkbox" id="winnerResSinTagConfirm" style="margin-top:2px;">
+              <span>⚠️ No se conoce el Tag de este ganador. Confirmo que es intencional (cuenta externa a los clanes o caso especial) y quiero guardarlo igual, sin Tag.</span>
+            </label>
+          </div>
+          <div style="margin-bottom:8px;">
+            <label for="winnerResPremio" style="display:block; font-size:12px; font-weight:600; color:var(--ink); margin-bottom:4px;">Premio</label>
+            <input type="text" id="winnerResPremio" placeholder="Ej: Pass Royale" style="width:100%; border:1px solid var(--panel-line); border-radius:9px; padding:8px 10px; font-size:13px; color:var(--ink); box-sizing:border-box;">
+          </div>
           <div style="margin-bottom:8px;">
             <label for="winnerResTipo" style="display:block; font-size:12px; font-weight:600; color:var(--ink); margin-bottom:4px;">Resultado</label>
             <select id="winnerResTipo" style="width:100%; border:1px solid var(--panel-line); border-radius:9px; padding:8px 10px; font-size:13px; color:var(--ink);">
@@ -776,6 +797,7 @@
               <option value="No se encuentra en el clan">No se encuentra en el clan</option>
             </select>
           </div>
+          <div id="winnerResGuardarStatus" style="font-size:12.5px; margin-bottom:8px; display:none;"></div>
           <div style="display:flex; gap:8px;">
             <button type="button" class="export-btn" id="btnGuardarResolucionGanador" style="flex:1;">Guardar resolución</button>
             <button type="button" class="winner-remove" id="btnCancelarResolucionGanador" style="flex:0 0 auto; padding:0 10px;">Cancelar</button>
@@ -812,6 +834,14 @@
   var SESSION_KEY_SORTEO = 'terna_admin_token';
 
   var winners = [];       // { id, order, pickedName, editedName, time, discarded }
+  // FASE (10-sep-2026, consolidado sección 1 puntos 4 y 6): ID (SL.ID) del
+  // sorteo al que se le atan las resoluciones que se guarden en
+  // S_Asistencia. Se completa al cargar participantes calificados (ver
+  // loadQualifiedParticipants() más abajo, data.idSorteo) -- por eso el
+  // flujo esperado es: primero "Cargar participantes calificados" (aunque
+  // sea solo para tomar el ID, incluso si después se termina sorteando a
+  // mano), después girar, después guardar resoluciones/exportar.
+  var sorteoActualId = null;
   var currentRotation = 0;
   var attempt = 1;
   var spinning = false;
@@ -1104,7 +1134,12 @@
       // compara contra "No califica" y, si aplica, se agrega también la
       // razón elegida.
       discardedLbl.textContent = (w.discarded ? 'Excluido/a del resto del sorteo' : 'Sigue participando') +
-        (w.resultado === 'No califica' ? ' · No califica' + (w.razon ? ' (' + w.razon + ')' : '') : '');
+        (w.resultado === 'No califica' ? ' · No califica' + (w.razon ? ' (' + w.razon + ')' : '') : '') +
+        // FASE (10-sep-2026, consolidado sección 1 puntos 4 y 6): refleja
+        // si esta resolución ya se guardó en S_Asistencia (ver
+        // guardarResolucionGanador() más abajo) -- así el admin ve de un
+        // vistazo a quién todavía le falta resolver/guardar.
+        (w.guardado ? ' · ✓ Guardado' : ' · Sin guardar todavía');
       meta.appendChild(discardedLbl);
       var gestionarBtn = document.createElement('button');
       gestionarBtn.className = 'winner-remove';
@@ -1153,9 +1188,15 @@
   // tiene concepto de empate, y "Razón" solo tiene sentido (y solo se
   // muestra) cuando el Resultado es "No califica".
   var winnerResolucionForm = document.getElementById('winnerResolucionForm');
+  var winnerResTag = document.getElementById('winnerResTag');
+  var winnerResSinTagWrap = document.getElementById('winnerResSinTagWrap');
+  var winnerResSinTagConfirm = document.getElementById('winnerResSinTagConfirm');
+  var winnerResPremio = document.getElementById('winnerResPremio');
   var winnerResTipo = document.getElementById('winnerResTipo');
   var winnerResRazon = document.getElementById('winnerResRazon');
   var winnerResRazonWrap = document.getElementById('winnerResRazonWrap');
+  var winnerResGuardarStatus = document.getElementById('winnerResGuardarStatus');
+  var btnGuardarResolucionGanador = document.getElementById('btnGuardarResolucionGanador');
 
   function toggleWinnerResRazonVisibility(){
     var esNoCalifica = winnerResTipo.value === 'No califica';
@@ -1164,14 +1205,37 @@
   }
   winnerResTipo.addEventListener('change', toggleWinnerResRazonVisibility);
 
+  // FASE (10-sep-2026, consolidado -- "Cómo se resuelve el Tag"): el
+  // aviso + checkbox de "sin tag" solo se muestra cuando el campo de Tag
+  // está vacío -- si el admin lo completa (a mano, o porque ya venía
+  // prellenado desde "Cargar participantes calificados"), el aviso se
+  // oculta y el check se desmarca solo (no tiene sentido dejarlo marcado
+  // si al final sí hay un tag).
+  function toggleWinnerResSinTagVisibility(){
+    var hayTag = winnerResTag.value.trim() !== '';
+    winnerResSinTagWrap.style.display = hayTag ? 'none' : 'block';
+    if (hayTag) winnerResSinTagConfirm.checked = false;
+  }
+  winnerResTag.addEventListener('input', toggleWinnerResSinTagVisibility);
+
+  function showWinnerResGuardarStatus(msg, kind){
+    winnerResGuardarStatus.textContent = msg;
+    winnerResGuardarStatus.style.display = msg ? 'block' : 'none';
+    winnerResGuardarStatus.style.color = kind === 'err' ? '#c0392b' : (kind === 'ok' ? '#2e7d32' : 'var(--ink-soft)');
+  }
+
   function abrirResolucionGanador(id){
     var w = winners.find(function(x){ return x.id === id; });
     if (!w) return;
     winnerResolucionForm.dataset.winnerId = id;
     document.getElementById('winnerResolucionParaTexto').textContent = 'Registrar resultado para: ' + w.editedName;
+    winnerResTag.value = w.tag || '';
+    winnerResPremio.value = w.premio || '';
     winnerResTipo.value = w.resultado || 'Califica';
     winnerResRazon.value = w.razon || '';
     toggleWinnerResRazonVisibility();
+    toggleWinnerResSinTagVisibility();
+    showWinnerResGuardarStatus('', null);
     winnerResolucionForm.style.display = 'block';
     winnerResolucionForm.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
@@ -1180,23 +1244,104 @@
     winnerResolucionForm.style.display = 'none';
   });
 
-  // PENDIENTE BACKEND (puntos 4 y 6 del consolidado -- ver el comentario
-  // grande junto a #winnerResolucionForm en el HTML): no existe todavía
-  // ningún endpoint que reciba esta resolución ni la escriba en
-  // S_Asistencia -- por ahora esto solo actualiza el estado local en
-  // memoria (`winners`), igual que ya hace el input de nombre de cada
-  // ganador. Cuando exista ese endpoint, agregar la llamada acá antes de
-  // cerrar el formulario (mismo patrón que btnGuardarResolucion de
-  // admin.html).
-  document.getElementById('btnGuardarResolucionGanador').addEventListener('click', function(){
+  // FASE (10-sep-2026, consolidado sección 1 puntos 4 y 6 -- CONECTADO):
+  // guarda/actualiza la resolución de UN ganador en S_Asistencia vía
+  // webAdminSorteoResolucionGuardar (mismo patrón que btnGuardarResolucion
+  // de admin.html → webAdminTorneoResolucionGuardar). Antes de mandar
+  // nada valida, en este orden:
+  //   1. Que haya un sorteoActualId (viene de "Cargar participantes
+  //      calificados", ver loadQualifiedParticipants()) -- sin eso no hay
+  //      forma de saber a qué fila de S_Lista atar la resolución.
+  //   2. Si Resultado = "No califica", que venga una Razón elegida.
+  //   3. Que haya Tag, SALVO que el admin haya marcado explícitamente el
+  //      checkbox de "sin tag intencional" (ver toggleWinnerResSinTagVisibility()
+  //      más arriba) -- ver "Cómo se resuelve el Tag" en el consolidado.
+  // El estado local (`winners`) se actualiza recién cuando el backend
+  // confirma ok:true -- si falla, el formulario queda abierto con el
+  // error visible y nada se pierde (el admin puede corregir y reintentar).
+  function guardarResolucionGanador(){
     var id = winnerResolucionForm.dataset.winnerId;
     var w = winners.find(function(x){ return x.id === id; });
     if (!w) return;
-    w.resultado = winnerResTipo.value;
-    w.razon = w.resultado === 'No califica' ? winnerResRazon.value : '';
-    winnerResolucionForm.style.display = 'none';
-    renderWinners();
-  });
+
+    if (!sorteoActualId){
+      showWinnerResGuardarStatus('No se detectó el sorteo actual. Primero usá "Cargar participantes calificados" (aunque termines sorteando a mano) para que el sistema sepa a qué sorteo atar esto.', 'err');
+      return;
+    }
+
+    var resultado = winnerResTipo.value;
+    var razon = resultado === 'No califica' ? winnerResRazon.value : '';
+    if (resultado === 'No califica' && !razon){
+      showWinnerResGuardarStatus('Falta elegir la razón (obligatoria cuando el resultado es "No califica").', 'err');
+      return;
+    }
+
+    var tag = winnerResTag.value.trim();
+    var permitirSinTag = winnerResSinTagConfirm.checked;
+    if (!tag && !permitirSinTag){
+      toggleWinnerResSinTagVisibility();
+      showWinnerResGuardarStatus('Falta el Tag del ganador. Si no lo tenés, marcá el check de abajo para guardar igual sin Tag.', 'err');
+      return;
+    }
+
+    var premio = winnerResPremio.value.trim();
+    var token = localStorage.getItem(SESSION_KEY_SORTEO);
+    if (!token){
+      showWinnerResGuardarStatus('No hay sesión de admin activa. Volvé a entrar desde admin.html.', 'err');
+      return;
+    }
+
+    btnGuardarResolucionGanador.disabled = true;
+    btnGuardarResolucionGanador.textContent = 'Guardando…';
+    showWinnerResGuardarStatus('Guardando…', null);
+
+    var url = WEBAPP_URL + '?accion=webAdminSorteoResolucionGuardar';
+    // Sin header Content-Type explícito a propósito: el body igual llega
+    // como texto plano (JSON) a doPost()/e.postData.contents, y así se
+    // evita el preflight OPTIONS que Apps Script Web Apps no maneja bien
+    // -- mismo motivo por el que el resto del sitio no fija headers en
+    // sus POST (ver assets/common.js, no incluido en esta página
+    // standalone).
+    fetch(url, {
+      method: 'POST',
+      body: JSON.stringify({
+        sessionToken: token,
+        datos: {
+          idSorteo: sorteoActualId,
+          tag: tag,
+          nombre: w.editedName,
+          premio: premio,
+          resultado: resultado,
+          razon: razon,
+          permitirSinTag: permitirSinTag
+        }
+      })
+    })
+      .then(function(res){ return res.json(); })
+      .then(function(data){
+        btnGuardarResolucionGanador.disabled = false;
+        btnGuardarResolucionGanador.textContent = 'Guardar resolución';
+
+        if (!data || !data.ok){
+          showWinnerResGuardarStatus((data && data.error) || 'Error al guardar. Revisá los datos e intentá de nuevo.', 'err');
+          return;
+        }
+
+        w.tag = tag || null;
+        w.premio = premio;
+        w.resultado = resultado;
+        w.razon = razon;
+        w.guardado = true;
+        winnerResolucionForm.style.display = 'none';
+        renderWinners();
+      })
+      .catch(function(){
+        btnGuardarResolucionGanador.disabled = false;
+        btnGuardarResolucionGanador.textContent = 'Guardar resolución';
+        showWinnerResGuardarStatus('Error de conexión al guardar. Intentá de nuevo.', 'err');
+      });
+  }
+  btnGuardarResolucionGanador.addEventListener('click', guardarResolucionGanador);
 
   // ---------- Spin mechanic ----------
   function pickWeightedIndex(slices){
@@ -1271,7 +1416,22 @@
           // de empate, ver sección 2 del consolidado) -- no hace falta
           // abrir el formulario si no hubo ninguna descalificación.
           resultado: 'Califica',
-          razon: ''
+          razon: '',
+          // FASE (10-sep-2026, consolidado sección 1 puntos 4 y 6): se
+          // propaga el tag/clan del participante calificado (si vino de
+          // "Cargar participantes calificados") -- ver
+          // loadQualifiedParticipants() más arriba. Si el ganador salió
+          // de un participante agregado a mano, ambos quedan en null y
+          // guardarResolucionGanador() exige la confirmación explícita de
+          // "sin tag" antes de guardar. `premio` arranca vacío -- se
+          // completa a mano en el formulario de resolución (todavía no
+          // hay ninguna fuente automática de premios por puesto).
+          // `guardado` refleja si esta resolución YA se guardó en
+          // S_Asistencia (ver renderWinners() para el indicador visual).
+          tag: slice.participant.tag || null,
+          clan: slice.participant.clan || null,
+          premio: '',
+          guardado: false
         };
         winners.push(w);
         if (discardToggle.checked){
@@ -1475,7 +1635,14 @@
               name: p.nombre,
               weight: pesoBackend,
               active: true,
-              clan: c.nombre
+              clan: c.nombre,
+              // FASE (10-sep-2026, consolidado sección 1 puntos 4 y 6,
+              // "Cómo se resuelve el Tag"): se guarda el tag real del
+              // participante calificado -- cuando salga sorteado, spin()
+              // lo propaga al objeto winner, y de ahí
+              // guardarResolucionGanador() lo manda tal cual a
+              // S_Asistencia sin pedirle nada al admin.
+              tag: p.tag || null
             });
           });
         });
@@ -1487,6 +1654,15 @@
 
         winners = [];
         participants = nuevos;
+        // FASE (10-sep-2026, consolidado sección 1 puntos 4 y 6): se
+        // guarda el ID del sorteo (S_Lista) que devolvió el backend --
+        // hace falta para poder guardar después cualquier resolución de
+        // ganador en S_Asistencia (ver guardarResolucionGanador() más
+        // abajo). Se sobreescribe cada vez que se recarga la lista, así
+        // que si el admin recarga a mitad de un sorteo real, las
+        // resoluciones ya guardadas siguen atadas al ID viejo (correcto:
+        // pertenecen a ESE sorteo) y solo las nuevas usan el ID recargado.
+        sorteoActualId = data.idSorteo || null;
         renderParticipants(); renderWinners(); renderWheel();
 
         showQualifyStatus('Se cargaron ' + nuevos.length + ' participante(s) calificado(s) de ' + totalClanes + ' clan(es) (temporada ' + data.temporada + ').', 'ok');
