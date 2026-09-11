@@ -472,6 +472,53 @@
       <div id="resumenWrap" style="margin-top:20px;"></div>
     </section>
 
+    <!-- FIX (03-sep-2026, pedido usuario — "Pendientes de Atacar: ocultar
+         la sección cuando no es día de guerra (hoy igual se muestra con
+         '1 jugador(es)' y la fila 'No es día de guerra')"): la sección
+         siempre se pintaba sin importar ctx.esDiaGuerra, así que en día de
+         entrenamiento se veía una tabla con una fila "placeholder" que
+         confunde en vez de información real de ataques pendientes. Ahora
+         esta sección se oculta cuando no es día de guerra — ver
+         toggle en render() (id="pendSection").
+         FIX (04-sep-2026, pedido usuario — orden del Panel de Guerra):
+         "Miembros Activos por Clan" pasa a mostrarse ANTES que "Pendientes
+         de Atacar" (orden pedido: Guerra de hoy / Miembros activos /
+         Pendientes de atacar) — antes iba al revés.
+         FIX (10-sep-2026, pedido usuario — orden del Panel de Guerra):
+         "Pendientes de Atacar" y "Participación de Hoy (Reemplazos)" pasan
+         a mostrarse ENTRE "Miembros Activos por Clan" y "Valores diarios"
+         (antes iban después de "Log de Guerra"). -->
+    <section id="pendSection" style="padding:24px 0;">
+      <div class="sec-head" style="display:flex; align-items:baseline; justify-content:space-between; border-bottom:1px solid var(--line); padding-bottom:12px;">
+        <h2 style="font-size:22px;">⚠️ Pendientes de Atacar</h2>
+        <span class="text-faint" id="pendCount" style="font-family:var(--f-mono); font-size:13px;"></span>
+      </div>
+      <!-- FIX (04-sep-2026 / 05-sep-2026, pedido usuario — ver comentario
+           completo en el <style> de arriba y en cargarMensajesGuerraSiAdmin()
+           más abajo): fila de botones "Copiar" por clan (+ Chat General),
+           visible solo para admins logueados, integrada acá mismo (antes
+           era una sección aparte más arriba en la página). Arranca vacía;
+           si no hay sesión de admin o no hay contenido, se queda vacía y
+           no ocupa espacio. -->
+      <div class="msj-guerra-row" id="msjGuerraWrap"></div>
+      <div id="pendWrap" style="margin-top:20px;"></div>
+    </section>
+
+    <!-- FASE 3 del plan de fases (punto 3 del documento — "cuentas y
+         ataques disponibles por día, detección de reemplazo"). Solo-admin
+         y solo día de guerra (mismo criterio que Mensajes de Guerra y
+         Aportes de Inactivos) — ver cargarParticipacionHoySiAdmin() más
+         abajo. Arranca oculta; si no hay sesión de admin, no es día de
+         guerra, o la carga falla, se queda oculta sin ocupar espacio ni
+         romper el resto de la página pública. -->
+    <section id="participacionHoySection" style="padding:24px 0;">
+      <div class="sec-head" style="border-bottom:1px solid var(--line); padding-bottom:12px;">
+        <h2 style="font-size:22px;">🔁 Participación de Hoy (Reemplazos)</h2>
+      </div>
+      <div class="text-faint" style="font-family:var(--f-mono); font-size:12px; margin-top:10px;">Cuentas que ya usaron al menos 1 de sus 4 ataques hoy no se pueden reemplazar. Solo visible para administradores.</div>
+      <div id="participacionHoyWrap" style="margin-top:16px;"></div>
+    </section>
+
     <!-- FIX (05-sep-2026, pedido usuario — "Se debe agregar un panel, tipo
          hoja Control, con algunos datos de la sección que viene de la hoja
          Directorio pero debe priorizar las cuadrículas"): sección NUEVA y
@@ -608,49 +655,6 @@
       </div>
       <div class="tabs-row" id="guerraLogTabs" style="margin-top:20px;"></div>
       <div id="guerraLogWrap"></div>
-    </section>
-
-    <!-- FIX (03-sep-2026, pedido usuario — "Pendientes de Atacar: ocultar
-         la sección cuando no es día de guerra (hoy igual se muestra con
-         '1 jugador(es)' y la fila 'No es día de guerra')"): la sección
-         siempre se pintaba sin importar ctx.esDiaGuerra, así que en día de
-         entrenamiento se veía una tabla con una fila "placeholder" que
-         confunde en vez de información real de ataques pendientes. Ahora
-         esta sección se oculta cuando no es día de guerra — ver
-         toggle en render() (id="pendSection").
-         FIX (04-sep-2026, pedido usuario — orden del Panel de Guerra):
-         "Miembros Activos por Clan" pasa a mostrarse ANTES que "Pendientes
-         de Atacar" (orden pedido: Guerra de hoy / Miembros activos /
-         Pendientes de atacar) — antes iba al revés. -->
-    <section id="pendSection" style="padding:24px 0;">
-      <div class="sec-head" style="display:flex; align-items:baseline; justify-content:space-between; border-bottom:1px solid var(--line); padding-bottom:12px;">
-        <h2 style="font-size:22px;">⚠️ Pendientes de Atacar</h2>
-        <span class="text-faint" id="pendCount" style="font-family:var(--f-mono); font-size:13px;"></span>
-      </div>
-      <!-- FIX (04-sep-2026 / 05-sep-2026, pedido usuario — ver comentario
-           completo en el <style> de arriba y en cargarMensajesGuerraSiAdmin()
-           más abajo): fila de botones "Copiar" por clan (+ Chat General),
-           visible solo para admins logueados, integrada acá mismo (antes
-           era una sección aparte más arriba en la página). Arranca vacía;
-           si no hay sesión de admin o no hay contenido, se queda vacía y
-           no ocupa espacio. -->
-      <div class="msj-guerra-row" id="msjGuerraWrap"></div>
-      <div id="pendWrap" style="margin-top:20px;"></div>
-    </section>
-
-    <!-- FASE 3 del plan de fases (punto 3 del documento — "cuentas y
-         ataques disponibles por día, detección de reemplazo"). Solo-admin
-         y solo día de guerra (mismo criterio que Mensajes de Guerra y
-         Aportes de Inactivos) — ver cargarParticipacionHoySiAdmin() más
-         abajo. Arranca oculta; si no hay sesión de admin, no es día de
-         guerra, o la carga falla, se queda oculta sin ocupar espacio ni
-         romper el resto de la página pública. -->
-    <section id="participacionHoySection" style="padding:24px 0;">
-      <div class="sec-head" style="border-bottom:1px solid var(--line); padding-bottom:12px;">
-        <h2 style="font-size:22px;">🔁 Participación de Hoy (Reemplazos)</h2>
-      </div>
-      <div class="text-faint" style="font-family:var(--f-mono); font-size:12px; margin-top:10px;">Cuentas que ya usaron al menos 1 de sus 4 ataques hoy no se pueden reemplazar. Solo visible para administradores.</div>
-      <div id="participacionHoyWrap" style="margin-top:16px;"></div>
     </section>
 
     <!-- "Ingresos Recientes" (nuevo-grid): MOVIDO a directorio.html, al
@@ -1470,14 +1474,20 @@ function render(data){
   // data.pendientes (a veces una fila "placeholder" tipo "No es día de
   // guerra" con 1 jugador), lo cual no es información real de pendientes.
   document.getElementById('pendSection').style.display = ctx.esDiaGuerra ? '' : 'none';
+  // FIX (10-sep-2026, pedido usuario — "se debe mostrar el rango a la
+  // derecha de la columna Clan"): columna nueva "Rango" entre Clan y
+  // Faltantes; espera p.rango por jugador (ej. Líder/Colíder/Veterano/
+  // Miembro/Aspirante) igual que el resto de datos de Directorio que ya
+  // trae data.pendientes. Si el backend aún no manda ese campo para algún
+  // jugador, se muestra "—" en vez de romper la tabla.
   const pend = data.pendientes || [];
   document.getElementById('pendCount').textContent = pend.length + ' jugador(es)';
   const pendWrap = document.getElementById('pendWrap');
   pendWrap.innerHTML = pend.length ? `
     <div class="card" style="padding:12px;"><div class="table-scroll"><table class="tbl-pendientes">
-      <thead><tr><th>Nombre</th><th>Clan</th><th>Faltantes</th></tr></thead>
+      <thead><tr><th>Nombre</th><th>Clan</th><th>Rango</th><th>Faltantes</th></tr></thead>
       <tbody>${pend.map(p => `
-          <tr><td class="col-nombre">${p.tag ? enlaceJugador(p.nombre || p.nomMulti || p.tag, p.tag) : esc(p.nombre || p.nomMulti || p.tag)}</td><td>${esc(p.clan)}</td><td class="falt">${fmtNum(p.faltantes)}</td></tr>`).join('')}
+          <tr><td class="col-nombre">${p.tag ? enlaceJugador(p.nombre || p.nomMulti || p.tag, p.tag) : esc(p.nombre || p.nomMulti || p.tag)}</td><td>${esc(p.clan)}</td><td>${esc(p.rango || '—')}</td><td class="falt">${fmtNum(p.faltantes)}</td></tr>`).join('')}
       </tbody>
     </table></div></div>` : '<div class="empty">Nadie tiene ataques pendientes 🎉</div>';
   const resumen = Object.entries(data.resumenClanes || {});
@@ -1974,7 +1984,7 @@ async function cargarParticipacionHoySiAdmin(ctx){
             ${listaHtml(c.reservadas)}
           </div>
           <div>
-            <p class="ph-col-title disponibles">✅ Disponibles</p>
+            <p class="ph-col-title disponibles">✅ Reemplazables</p>
             ${listaHtml(c.disponibles)}
           </div>
         </div>
