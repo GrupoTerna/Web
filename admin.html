@@ -1624,22 +1624,73 @@
               <div id="camposSorteoPrincipal" style="display:none;">
                 <div class="text-dim" style="font-size:13px;">Selector de "¿cuál es el sorteo principal?" (por ID, no por Tag) — pendiente de construir, ver secciones 5.3/5.4 del consolidado.</div>
               </div>
+
+              <!-- FIX (10-sep-2026, sección 5.4.1 del consolidado —
+                   "cuadro de Comentario justo ANTES del botón de acción
+                   final, en los 6 formularios de Torneos y Sorteos"): este
+                   bloque replica #comentarioTorneoBox para Sorteos, mismo
+                   criterio -- UN SOLO nodo compartido entre las 3 ramas,
+                   sin necesidad de reubicarlo con JS porque el lugar
+                   pedido ("justo antes del botón final") ya se cumple
+                   quieto acá, dado que solo uno de los 3 botones de abajo
+                   está visible a la vez.
+
+                   PENDIENTE BACKEND / conexión (mismo estado que
+                   #comentarioTorneoBox):
+                     1) btnRegistrarSorteo/btnModificarSorteo/
+                        btnPlanificarSorteo (más abajo) todavía no leen
+                        este campo para sumarlo a ningún payload -- no
+                        existe todavía ningún payload real para Sorteos.
+                     2) Precarga en Modificar: pendiente del mismo endpoint
+                        de sorteos de hoy que #sSelectHoy (todavía no
+                        existe, ver #camposModificarSorteo más arriba).
+                     3) Misma regla de sobrescritura que Torneos (CONFIRMADO
+                        en el consolidado): reemplaza siempre al Comentario
+                        anterior, sin lógica especial en el frontend. -->
+              <div id="comentarioSorteoBox" style="margin-top:14px; padding-top:14px; border-top:1px solid var(--line);">
+                <div class="field">
+                  <label for="sComentario">Comentario</label>
+                  <textarea id="sComentario" rows="3" placeholder="Opcional -- cualquier nota sobre este sorteo"></textarea>
+                </div>
+              </div>
+
+              <!-- FIX (10-sep-2026, sección 5.4 del consolidado): los 3
+                   botones de acción de Sorteos, mismo patrón que
+                   btnRegistrarTorneo/btnModificarTorneo/btnPlanificarTorneo
+                   -- mostrarPaso3Sorteo() (ver <script>) debe encargarse de
+                   mostrar/ocultar cada uno según la rama activa, igual que
+                   mostrarPaso3() hace con los de Torneos. PENDIENTE: todavía
+                   no tienen ningún listener de 'click' ni arman ningún
+                   payload -- no existe todavía ningún endpoint
+                   webAdminSorteo* para llamar (ver los 3 listeners de
+                   Torneos, btnRegistrarTorneo etc., como referencia del
+                   patrón a seguir cuando se construyan). -->
+              <button class="btn btn-primary btn-block" id="btnRegistrarSorteo" style="margin-top:14px; display:none;">Registrar sorteo</button>
+              <button class="btn btn-primary btn-block" id="btnModificarSorteo" style="margin-top:14px; display:none;">Guardar cambios</button>
+              <button class="btn btn-primary btn-block" id="btnPlanificarSorteo" style="margin-top:14px; display:none;">Planificar sorteo</button>
+              <div id="registrarSorteoMsg"></div>
+              <div id="modificarSorteoMsg"></div>
+              <div id="planificarSorteoMsg"></div>
             </div>
 
-            <!-- PENDIENTE (09-sep-2026, pedido usuario — "el botón del
-                 calendario debe aparecer en planificación, modificación y
-                 registro de torneos y sorteos"): Sorteos todavía no tiene
-                 campos propios de fecha/hora (el Paso 3 real sigue sin
-                 construir, ver comentario grande de arriba), así que por
-                 ahora no hay dónde poner el campo amigable + calendario +
-                 selector de semanas. Cuando se construya el Paso 3 real de
-                 Sorteos (mismo patrón que #camposRegistrar/#camposModificar/
-                 #camposPlanificar de Torneos), copiar ahí el mismo bloque de
-                 fecha/hora amigable (.campo-fecha-wrap + .campo-hora-wrap)
-                 y llamar a initCampoFechaAmigable()/initCampoHoraAmigable()
-                 con sus ids nuevos -- ver la sección "Campos de fecha/hora
-                 amigables" en el <script> para el patrón exacto usado en
-                 Torneos. -->
+            <!-- ACTUALIZACIÓN (10-sep-2026): este aviso quedó parcialmente
+                 obsoleto. "Registrar sorteo" (#camposRegistrarSorteo, más
+                 arriba) ya tiene su propio campo de fecha/hora amigable +
+                 calendario (#sFecha/#sFechaTexto/#btnCalendarioSorteoReg +
+                 #sHora/#sHoraTexto/#sHoraAmPm, ya inicializados con
+                 initCampoFechaAmigable()/initCampoHoraAmigable() en el
+                 <script>). Lo que SIGUE pendiente es el mismo campo para
+                 "Modificar sorteo" y "Planificar sorteo"
+                 (#camposModificarSorteo/#camposPlanificarSorteo son todavía
+                 placeholders sin fecha/hora propia, solo tienen ya su
+                 selector de semanas) -- cuando se construyan sus campos
+                 reales, copiar ahí el mismo bloque
+                 (.campo-fecha-wrap + .campo-hora-wrap) con ids nuevos
+                 (ej. sFechaMod/sHoraMod, sFechaPlan/sHoraPlan, mismo patrón
+                 que tFechaMod/tFechaPlan de Torneos) y llamar a
+                 initCampoFechaAmigable()/initCampoHoraAmigable() con esos
+                 ids -- ver la sección "Campos de fecha/hora amigables" en
+                 el <script> para el patrón exacto usado en Torneos. -->
 
           </div>
 
@@ -4672,12 +4723,12 @@ document.getElementById('sorteoVolverPaso1').addEventListener('click', (ev) => {
 
 /** FIX (10-sep-2026, sección 5.4 del consolidado — esqueleto de ruteo del
  *  Paso 3 de Sorteos): mismo patrón que mostrarPaso3() de Torneos
- *  (initTorneoWizard(), más arriba), pero simplificado porque todavía no
- *  hay nodos reales que reubicar (ni #requisitosSorteoBox ni editor de
- *  premios ni selector de fecha/hora -- ver PENDIENTE en el HTML de cada
- *  contenedor). Solo decide qué contenedor mostrar según #sorteoAccion
- *  (Paso 1) + #sorteoTipo (Paso 2); se amplía en cuanto existan los campos
- *  reales de cada rama. */
+ *  (initTorneoWizard(), más arriba). Ya reubica los 3 contenedores por
+ *  rama + #camposSorteoPrincipal y ahora también los 3 botones de acción
+ *  (btnRegistrarSorteo/btnModificarSorteo/btnPlanificarSorteo, ver HTML) --
+ *  todavía NO reubica nada dentro de #requisitosSorteoBox (nodo único
+ *  compartido, no depende de la rama) ni arma ningún editor de premios
+ *  (Sorteos no tiene uno propio todavía, ver PENDIENTE en el HTML). */
 function mostrarPaso3Sorteo(){
   const selAccion = document.getElementById('sorteoAccion');
   const selTipo = document.getElementById('sorteoTipo');
@@ -4690,6 +4741,10 @@ function mostrarPaso3Sorteo(){
   document.getElementById('camposModificarSorteo').style.display = esModificar ? '' : 'none';
   document.getElementById('camposPlanificarSorteo').style.display = esPlanificar ? '' : 'none';
   document.getElementById('camposSorteoPrincipal').style.display = esContinuacion ? '' : 'none';
+
+  document.getElementById('btnRegistrarSorteo').style.display = esRegistrar ? '' : 'none';
+  document.getElementById('btnModificarSorteo').style.display = esModificar ? '' : 'none';
+  document.getElementById('btnPlanificarSorteo').style.display = esPlanificar ? '' : 'none';
 }
 
 document.getElementById('btnSorteoPaso2').addEventListener('click', () => {
