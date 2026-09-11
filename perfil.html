@@ -43,6 +43,65 @@
   ninguna guerra jugada todavía esta temporada), esta sección sigue
   mostrando el mensaje de "todavía no hay historial" en vez de una gráfica
   vacía (ver renderRankingChart() más abajo).
+
+  PENDIENTE (11-sep-2026, pedido usuario): el usuario ahora sube a Drive,
+  carpeta "JSON", un export crudo por jugador de la API de Clash Royale
+  (nombre de archivo tipo "DD-MM-AAAA_HH_MM_-_<clan>_-_<TAG>.json", uno
+  por snapshot). Falta que el backend (34_Web_API.gs / webPerfil) se
+  conecte a esa carpeta para leer estos JSON.
+  ID de la carpeta de Drive: 1Kqmn7ExFr3cDER_DgKnHwHlWc9lLW9aF
+  (https://drive.google.com/drive/u/0/folders/1Kqmn7ExFr3cDER_DgKnHwHlWc9lLW9aF)
+
+  Revisando un ejemplo del JSON, esto es lo que trae y que perfil.html
+  todavía NO usa (currentDeck y achievements ya llegan por otra vía, ver
+  comentarios de pd.currentDeck y bloqueRequisitos() más abajo):
+    - badges[]: {name, level, maxLevel, progress, target, iconUrls.large}
+      — insignias del jugador (ej. ClanWarsVeteran, BattleWins, etc.).
+      El `name` sí se repite entre jugadores (es como `cards`: hay un
+      catálogo fijo de insignias posibles), PERO no todos los jugadores
+      tienen las mismas: cada uno desbloquea un subconjunto distinto
+      (ej. si existen A/B/C/D, un jugador puede tener A y B, otro A y C,
+      otro B y D...). Además level/maxLevel/progress/target/iconUrls
+      SÍ varían persona por persona, porque cada insignia tiene su propio
+      nivel alcanzado por jugador (y el ícono cambia según ese nivel).
+      Para armar un catálogo real de insignias (nombre + su ícono por
+      cada nivel posible) haría falta un CSV aparte en Drive con esa
+      relación nombre↔ícono-por-nivel; eso queda para evaluar al momento
+      de conectar el backend, no viene resuelto en el JSON de cada
+      jugador.
+    - cards[]: colección completa (122 cartas típico) con nivel/estrellas
+      por carta — permitiría una sección "Colección completa", más allá
+      del "Mazo actual" (que ya usa currentDeck).
+    - supportCards[] / currentDeckSupportCards[]: cartas de soporte
+      (torres/campeón de apoyo) — no confundir con currentFavouriteCard.
+    - currentFavouriteCard: {name, id, maxLevel, elixirCost, iconUrls,
+      rarity} — carta favorita marcada por el jugador en el juego.
+    - starPoints / expPoints / totalExpPoints: puntos de estrella y
+      experiencia acumulada.
+    - legacyTrophyRoadHighScore: mejor puntaje histórico del Camino de
+      Trofeos "viejo" (pre Path of Legends).
+    - currentPathOfLegendSeasonResult / lastPathOfLegendSeasonResult /
+      bestPathOfLegendSeasonResult: {leagueNumber, trophies, rank} del
+      modo competitivo Path of Legends (actual, anterior y mejor).
+    - leagueStatistics.{currentSeason,previousSeason,bestSeason}:
+      trofeos por temporada de liga.
+    - progress{}: objeto con progreso en eventos/modos puntuales activos
+      al momento del snapshot (ej. "ChaosDraftLeague",
+      "AutoChess_2026_Season_10", "seasonal-trophy-road-202608") — las
+      claves cambian según qué eventos estén corriendo esa temporada.
+    - _fecha / _clan: campos propios del exportador (no de la API de
+      Supercell), con la fecha del snapshot y el nombre del clan en ese
+      momento — al haber un JSON por snapshot y por jugador, esto abre la
+      puerta a un historial propio de estadísticas del jugador (trofeos,
+      donaciones, etc. a través del tiempo), similar en espíritu al
+      historialRanking que ya se arma desde la hoja Guerra.
+  El resto de campos del JSON (trophies, bestTrophies, wins, losses,
+  battleCount, donations, totalDonations, warDayWins,
+  clanCardsCollected, threeCrownWins, challengeMaxWins,
+  tournamentCardsWon, expLevel, collectionLevel, clan, arena, role,
+  currentWinLoseStreak) coinciden con datos que el perfil probablemente
+  ya recibe por otra vía (llamada en vivo a la API); revisar duplicados
+  antes de que el backend empiece a leer también desde estos JSON.
 -->
 <style>
   .perfil-cabecera{display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px;}
