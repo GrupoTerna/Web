@@ -334,6 +334,81 @@
     font-family:var(--f-mono); font-size:11px; font-weight:700; letter-spacing:.08em;
     text-transform:uppercase; color:var(--text-faint); margin:0 0 8px;
   }
+
+  /* ---------- Filtro/orden por columna estilo "hoja de cálculo" (10-sep-2026,
+     pedido usuario — "a las cuadrículas de valores semanales y diarios
+     agregales botones de filtro, con las mismas funciones que la hoja
+     directorio pero en la segunda fila de encabezados, para no afectar a
+     las megacategorías Ataques/Puntaje/Barcos"): mismo widget (ícono de
+     embudo + desplegable con orden/comparación/checklist) ya usado en la
+     tabla "Directorio por clan" de directorio.html — CSS traído tal cual
+     de ahí (mismas clases rt-*) para que ambas páginas se vean y se
+     sientan igual. Los botones solo se agregan a los <th> de la SEGUNDA
+     fila del <thead> (J/V/S/D/Total en Valores diarios, Sem 1..N/Total o
+     Prom/% en Valores semanales) — los <th colspan> de la primera fila
+     (Ataques/Puntaje/Barcos) no llevan botón, ver thFiltroGrid()/
+     filaSubEncabezadosMega()/filaSubEncabezadosSemanas() más abajo. */
+  .rt-th-inner{display:flex; align-items:center; justify-content:center; gap:6px;}
+  .rt-filtro-btn{
+    background:transparent; border:none; cursor:pointer; padding:4px; border-radius:5px;
+    color:var(--text-faint); display:inline-flex; align-items:center; justify-content:center;
+    flex-shrink:0; transition:color .15s ease, background .15s ease;
+  }
+  .rt-filtro-btn svg{width:13px; height:13px; display:block;}
+  .rt-filtro-btn:hover{color:var(--text); background:rgba(162,57,255,.14);}
+  .rt-filtro-btn.activo{color:var(--purple-light);}
+  .rt-filtro-pop{
+    position:fixed; z-index:200; background:var(--surface-card); border:1px solid var(--line-strong);
+    border-radius:var(--radius-sm); box-shadow:var(--glow); padding:12px; width:250px;
+    max-height:80vh; overflow-y:auto;
+  }
+  .rt-filtro-pop input[type="text"]{
+    width:100%; padding:8px 10px; font-size:13px; border-radius:6px; border:1px solid var(--line);
+    background:var(--bg-2); color:var(--text); margin-bottom:8px; font-family:inherit;
+  }
+  .rt-filtro-lista{max-height:220px; overflow-y:auto; margin-bottom:10px;}
+  .rt-filtro-item{
+    display:flex; align-items:center; gap:9px; padding:6px 5px; font-size:13px; color:var(--text);
+    cursor:pointer; border-radius:5px; user-select:none;
+  }
+  .rt-filtro-item:hover{background:rgba(162,57,255,.1);}
+  .rt-filtro-item input[type="checkbox"]{accent-color:var(--purple); width:15px; height:15px; flex-shrink:0; cursor:pointer;}
+  .rt-filtro-vacio{font-size:12px; color:var(--text-faint); padding:8px 5px;}
+  .rt-filtro-acciones{display:flex; justify-content:flex-end; gap:8px; border-top:1px solid var(--line); padding-top:10px;}
+  .rt-filtro-acciones button{
+    font-family:var(--f-mono); font-size:12px; font-weight:700; padding:8px 14px; border-radius:6px; cursor:pointer;
+    border:1px solid transparent;
+  }
+  .rt-filtro-cancelar{background:transparent; border-color:var(--line); color:var(--text-dim);}
+  .rt-filtro-cancelar:hover{border-color:var(--line-strong); color:var(--text);}
+  .rt-filtro-aceptar{background:var(--purple); color:#fff;}
+  .rt-filtro-aceptar:hover{background:var(--purple-light);}
+  .rt-filtro-divisor{height:1px; background:var(--line); margin:10px 0;}
+  .rt-filtro-orden{display:flex; flex-direction:column; gap:4px;}
+  .rt-orden-btn, .rt-orden-quitar{
+    display:flex; align-items:center; gap:7px; width:100%; text-align:left;
+    background:transparent; border:none; border-radius:5px; padding:7px 6px;
+    font-size:13px; color:var(--text); cursor:pointer; font-family:inherit;
+  }
+  .rt-orden-btn:hover, .rt-orden-quitar:hover{background:rgba(162,57,255,.1);}
+  .rt-orden-btn.activo{color:var(--purple-light); font-weight:700; background:rgba(162,57,255,.12);}
+  .rt-orden-quitar{color:var(--text-faint); font-size:12px;}
+  .rt-orden-indicador{color:var(--purple-light); font-size:12px; flex-shrink:0;}
+  .rt-filtro-comparar{display:flex; flex-direction:column; gap:8px;}
+  .rt-filtro-comparar select, .rt-filtro-comparar input{
+    width:100%; padding:8px 10px; font-size:13px; border-radius:6px; border:1px solid var(--line);
+    background:var(--bg-2); color:var(--text); font-family:inherit;
+  }
+  .rt-filtro-todos{display:flex; gap:14px; margin-bottom:8px;}
+  .rt-filtro-todos-btn{
+    background:transparent; border:none; padding:0; color:var(--purple-light);
+    font-family:var(--f-mono); font-size:11.5px; font-weight:700; cursor:pointer;
+    text-decoration:underline; text-underline-offset:2px;
+  }
+  .rt-filtro-todos-btn:hover{color:var(--gold);}
+  /* El th ya centra su contenido (.ai-clan-card table th{text-align:center}
+     de arriba) — .rt-th-inner solo alinea label + indicador + botón como
+     grupo dentro de esa celda, igual que en directorio.html. */
 </style>
 </head>
 <body data-page="guerra">
@@ -724,16 +799,29 @@ async function cargar(manual){
  * (Ataques/Puntaje/Barcos) para Inactivos sin duplicar esta lógica.
  */
 function claseCeldaCA(n){ return n >= 4 ? 'ai-cell ai-cell-full' : (n > 0 ? 'ai-cell ai-cell-part' : 'ai-cell ai-cell-zero'); }
-function celdasMegacategoria(m, gpClase, conColor){
+/**
+ * celdasMegacategoria(m, gpClase, conColor, keyPrefix)
+ * FIX (10-sep-2026, pedido usuario — filtro/orden por columna en la
+ * segunda fila de encabezados): se agrega el 4° parámetro `keyPrefix`
+ * (opcional, ej. 'atq'/'pje'/'brc') SOLO para que cada <td> lleve
+ * data-col="{keyPrefix}-j|v|s|d|total" + data-raw="{valor crudo}" — así
+ * el widget genérico de filtro (gridFiltroAplicar()/gridFiltroColumnas()
+ * más abajo) puede encontrar la celda de cada columna y su valor sin
+ * volver a tocar los datos originales. Si no se pasa keyPrefix (llamadas
+ * ya existentes, ej. el bloque de Inactivos) el comportamiento no cambia
+ * en nada: ningún data-col/data-raw, mismo HTML de siempre.
+ */
+function celdasMegacategoria(m, gpClase, conColor, keyPrefix){
   const j = m?.j ?? 0, v = m?.v ?? 0, s = m?.s ?? 0, d = m?.d ?? 0, total = m?.total ?? 0;
   const claseDia = (n) => `${gpClase} ${conColor ? claseCeldaCA(n) : 'ai-num'}`;
   const claseTotal = `${gpClase} ai-total ${conColor && total >= 16 ? 'ai-total-full' : ''}`;
+  const dc = (k, val) => keyPrefix ? ` data-col="${keyPrefix}-${k}" data-raw="${esc(String(val))}"` : '';
   return `
-                <td class="${claseDia(j)}">${conColor ? j : fmtNum(j)}</td>
-                <td class="${claseDia(v)}">${conColor ? v : fmtNum(v)}</td>
-                <td class="${claseDia(s)}">${conColor ? s : fmtNum(s)}</td>
-                <td class="${claseDia(d)}">${conColor ? d : fmtNum(d)}</td>
-                <td class="${claseTotal}">${fmtNum(total)}</td>`;
+                <td class="${claseDia(j)}"${dc('j', j)}>${conColor ? j : fmtNum(j)}</td>
+                <td class="${claseDia(v)}"${dc('v', v)}>${conColor ? v : fmtNum(v)}</td>
+                <td class="${claseDia(s)}"${dc('s', s)}>${conColor ? s : fmtNum(s)}</td>
+                <td class="${claseDia(d)}"${dc('d', d)}>${conColor ? d : fmtNum(d)}</td>
+                <td class="${claseTotal}"${dc('total', total)}>${fmtNum(total)}</td>`;
 }
 
 /**
@@ -749,19 +837,322 @@ function celdasMegacategoria(m, gpClase, conColor){
  * (0/parcial/16); Puntaje y Barcos van sin semáforo, igual que en esa
  * tabla.
  */
-function celdasSemanas(megacat, gpClase, conColor){
+/**
+ * celdasSemanas(megacat, gpClase, conColor, keyPrefix)
+ * Mismo criterio y mismo 4° parámetro `keyPrefix` (opcional) que
+ * celdasMegacategoria() de arriba — ver ese docblock. Acá las claves de
+ * columna son "{keyPrefix}-sem{i}" (una por semana), "{keyPrefix}-resumen"
+ * y "{keyPrefix}-pct".
+ */
+function celdasSemanas(megacat, gpClase, conColor, keyPrefix){
   const semanas = Array.isArray(megacat?.semanas) ? megacat.semanas : [];
   const resumen = Number(megacat?.resumen) || 0;
   const pct = Number(megacat?.pct) || 0;
   const claseSemana = (n) => `${gpClase} ${conColor ? claseCeldaCA(n) : 'ai-num'}`;
   const claseResumen = `${gpClase} ai-resumen ai-total ${conColor && resumen >= (semanas.length * 16) ? 'ai-total-full' : ''}`;
-  const celdasSem = semanas.map(v => {
+  const dc = (k, val) => keyPrefix ? ` data-col="${keyPrefix}-${k}" data-raw="${esc(String(val))}"` : '';
+  const celdasSem = semanas.map((v, i) => {
     const n = Number(v) || 0;
-    return `<td class="${claseSemana(n)}">${conColor ? n : fmtNum(n)}</td>`;
+    return `<td class="${claseSemana(n)}"${dc('sem' + i, n)}>${conColor ? n : fmtNum(n)}</td>`;
   }).join('');
   return `${celdasSem}
-                <td class="${claseResumen}">${fmtNum(resumen)}</td>
-                <td class="${claseResumen}">${pct}%</td>`;
+                <td class="${claseResumen}"${dc('resumen', resumen)}>${fmtNum(resumen)}</td>
+                <td class="${claseResumen}"${dc('pct', pct)}>${pct}%</td>`;
+}
+
+/* =========================================================================
+ * FIX (10-sep-2026, pedido usuario — "a las cuadrículas de valores
+ * semanales y diarios agregales botones de filtro, con las mismas
+ * funciones que la hoja directorio pero en la segunda fila de
+ * encabezados"): widget genérico de filtro/orden por columna, calcado del
+ * de "Directorio por clan" (directorio.html, ver ROSTER_COLUMNAS/
+ * abrirFiltroColumna() ahí) pero generalizado para poder colgarse de
+ * CUALQUIER tabla de esta página (hay una tabla POR CLAN, tanto en
+ * Valores diarios como en Valores semanales) en vez de una sola tabla
+ * global. Cada tabla se identifica con un `gridId` propio (ej.
+ * "activos:Terna 2", "temporada:Mini Ternas") — el estado de filtro/orden
+ * de cada una vive aparte en `gridEstados[gridId]` y SOBREVIVE a los
+ * refrescos automáticos (REFRESH_INTERVAL_MS, ver cargar()) porque
+ * inicializarGridFiltro() se llama de nuevo en cada render() y reusa el
+ * estado ya guardado en vez de reiniciarlo.
+ *
+ * Cada "columna" de este widget es un objeto { key, raw(fila) } — `raw`
+ * es una función que, dado el objeto de datos de una fila (el mismo `f`
+ * que ya arma celdasMegacategoria()/celdasSemanas()), devuelve el valor
+ * numérico crudo de esa columna. columnasActivosDef()/columnasTemporadaDef()
+ * más abajo arman esa lista para cada tabla; los <td> ya traen ese mismo
+ * valor en data-raw (ver dc() dentro de celdasMegacategoria/celdasSemanas)
+ * así que no hace falta volver a calcularlo al filtrar.
+ * ========================================================================= */
+const ICONO_FILTRO_GRID = '<svg viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M1 2.5A.5.5 0 0 1 1.5 2h13a.5.5 0 0 1 .4.8L10 9.4V13a.5.5 0 0 1-.2.4l-2 1.5A.5.5 0 0 1 7 14.5v-5.1L1.1 2.8A.5.5 0 0 1 1 2.5z"/></svg>';
+const gridEstados = {}; // gridId -> { filtros:{colKey: Set|{{operador,valor}}}, orden:{colKey,dir}|null }
+let gridFiltroPopEl = null;
+
+function gridEstadoDe(gridId){
+  if (!gridEstados[gridId]) gridEstados[gridId] = { filtros:{}, orden:null };
+  return gridEstados[gridId];
+}
+
+/** Th de la 2ª fila del encabezado con su botón de filtro/orden (embudo) +
+ * la flechita de orden — mismo patrón visual que .rt-th-inner en
+ * directorio.html. Los <th colspan> de la 1ª fila (Ataques/Puntaje/
+ * Barcos) NUNCA pasan por acá — se siguen pintando planos, sin botón. */
+function thFiltroGrid(claseTh, label, colKey){
+  return `<th class="${claseTh}"><div class="rt-th-inner"><span>${esc(label)}</span><span class="rt-orden-indicador" data-col="${colKey}"></span><button type="button" class="rt-filtro-btn" data-col="${colKey}" title="Ordenar o filtrar por ${esc(label)}" aria-label="Ordenar o filtrar por ${esc(label)}">${ICONO_FILTRO_GRID}</button></div></th>`;
+}
+/** 5 columnas fijas J/V/S/D/Total de una megacategoría (Valores diarios). */
+function filaSubEncabezadosMega(gpClase, prefijo){
+  return ['J', 'V', 'S', 'D', 'Total'].map((lbl, i) =>
+    thFiltroGrid(gpClase, lbl, `${prefijo}-${['j', 'v', 's', 'd', 'total'][i]}`)).join('');
+}
+/** Sem 1..Sem N + Total/Prom + % de una megacategoría (Valores semanales). */
+function filaSubEncabezadosSemanas(gpClase, prefijo, semanasLabels, labelResumen){
+  const cols = semanasLabels.map((s, i) => thFiltroGrid(gpClase, s, `${prefijo}-sem${i}`));
+  cols.push(thFiltroGrid(`${gpClase} ai-resumen`, labelResumen, `${prefijo}-resumen`));
+  cols.push(thFiltroGrid(`${gpClase} ai-resumen`, '%', `${prefijo}-pct`));
+  return cols.join('');
+}
+
+/** Columnas filtrables/ordenables de la Cuadrícula de Valores diarios: 5
+ * (J/V/S/D/Total) x 3 megacategorías. */
+function columnasActivosDef(){
+  const porMega = (prefijo, campo) => ['j', 'v', 's', 'd', 'total'].map(k => ({
+    key: `${prefijo}-${k}`, raw: f => { const m = campo(f); return m ? Number(m[k]) || 0 : 0; },
+  }));
+  return [
+    ...porMega('atq', f => ({ j: f.j, v: f.v, s: f.s, d: f.d, total: f.total })),
+    ...porMega('pje', f => f.puntaje),
+    ...porMega('brc', f => f.barcos),
+  ];
+}
+/** Columnas filtrables/ordenables de la Cuadrícula de Valores semanales:
+ * Sem 1..Sem N + Resumen + % x 3 megacategorías (nSem es dinámico, una
+ * columna por semana ya jugada en la temporada elegida). */
+function columnasTemporadaDef(nSem){
+  const porMega = (prefijo, campo) => {
+    const cols = [];
+    for (let i = 0; i < nSem; i++){
+      cols.push({ key: `${prefijo}-sem${i}`, raw: f => { const m = campo(f); return m && Array.isArray(m.semanas) ? (Number(m.semanas[i]) || 0) : 0; } });
+    }
+    cols.push({ key: `${prefijo}-resumen`, raw: f => { const m = campo(f); return m ? (Number(m.resumen) || 0) : 0; } });
+    cols.push({ key: `${prefijo}-pct`, raw: f => { const m = campo(f); return m ? (Number(m.pct) || 0) : 0; } });
+    return cols;
+  };
+  return [
+    ...porMega('atq', f => f.ataques),
+    ...porMega('pje', f => f.puntaje),
+    ...porMega('brc', f => f.barcos),
+  ];
+}
+
+function cerrarGridFiltroPopover(){
+  if (gridFiltroPopEl){ gridFiltroPopEl.remove(); gridFiltroPopEl = null; }
+  document.removeEventListener('mousedown', cerrarGridFiltroPopoverSiFuera, true);
+  window.removeEventListener('scroll', cerrarGridFiltroPopover, true);
+  window.removeEventListener('resize', cerrarGridFiltroPopover, true);
+}
+function cerrarGridFiltroPopoverSiFuera(e){
+  if (gridFiltroPopEl && !gridFiltroPopEl.contains(e.target)) cerrarGridFiltroPopover();
+}
+
+function valoresUnicosGridColumna(col, filas){
+  const set = new Set();
+  filas.forEach(f => set.add(fmtNum(Number(col.raw(f)) || 0)));
+  return [...set].sort((a, b) => a.localeCompare(b, 'es', { numeric:true, sensitivity:'base' }));
+}
+function compararPorGridColumna(col, dir){
+  const signo = dir === 'desc' ? -1 : 1;
+  return (f1, f2) => signo * ((Number(col.raw(f1)) || 0) - (Number(col.raw(f2)) || 0));
+}
+
+/** Repinta el <tbody> de `tabla` con `filasBase` ya ordenadas según el
+ * orden guardado en el estado (si hay), reaplica los filtros ya aceptados
+ * y actualiza los íconos. No reconstruye el <thead>. */
+function gridRepintar(gridId, tabla, columnas, filasBase, renderFila){
+  const estado = gridEstadoDe(gridId);
+  let filas = filasBase;
+  if (estado.orden){
+    const c = columnas.find(cc => cc.key === estado.orden.colKey);
+    if (c) filas = [...filasBase].sort(compararPorGridColumna(c, estado.orden.dir));
+  }
+  const tbody = tabla.querySelector('tbody');
+  if (tbody) tbody.innerHTML = filas.map(renderFila).join('');
+  gridAplicarFiltros(gridId, tabla);
+  gridActualizarIconos(gridId, tabla);
+}
+
+function gridAplicarFiltros(gridId, tabla){
+  const estado = gridEstadoDe(gridId);
+  const cols = Object.keys(estado.filtros);
+  tabla.querySelectorAll('tbody tr').forEach(fila => {
+    const pasa = cols.every(colKey => {
+      const celda = fila.querySelector(`[data-col="${colKey}"]`);
+      const filtro = estado.filtros[colKey];
+      const raw = celda && celda.dataset.raw !== undefined && celda.dataset.raw !== '' ? Number(celda.dataset.raw) : null;
+      if (raw === null || isNaN(raw)) return false;
+      if (filtro instanceof Set) return filtro.has(fmtNum(raw));
+      switch (filtro.operador){
+        case 'gt':  return raw > filtro.valor;
+        case 'gte': return raw >= filtro.valor;
+        case 'lt':  return raw < filtro.valor;
+        case 'lte': return raw <= filtro.valor;
+        case 'eq':  return raw === filtro.valor;
+        default:    return true;
+      }
+    });
+    fila.style.display = pasa ? '' : 'none';
+  });
+}
+
+function gridActualizarIconos(gridId, tabla){
+  const estado = gridEstadoDe(gridId);
+  tabla.querySelectorAll('.rt-filtro-btn').forEach(btn => {
+    btn.classList.toggle('activo', !!estado.filtros[btn.dataset.col]);
+  });
+  tabla.querySelectorAll('.rt-orden-indicador').forEach(sp => {
+    const activo = estado.orden && estado.orden.colKey === sp.dataset.col;
+    sp.textContent = activo ? (estado.orden.dir === 'desc' ? '↓' : '↑') : '';
+  });
+}
+
+/** Abre el desplegable de orden/filtro de una columna — mismo contenido y
+ * mismo comportamiento que abrirFiltroColumna() de directorio.html
+ * (orden asc/desc + quitar orden, filtro de comparación numérica, buscador
+ * + checklist de valores únicos + seleccionar todo/ninguno), adaptado para
+ * trabajar sobre `tabla`/`gridId` en vez de la tabla única del roster. */
+function abrirGridFiltroColumna(gridId, col, btnEl, tabla, filasBase, columnas, renderFila){
+  const estado = gridEstadoDe(gridId);
+  const yaAbierto = gridFiltroPopEl && gridFiltroPopEl.dataset.gridId === gridId && gridFiltroPopEl.dataset.col === col.key;
+  cerrarGridFiltroPopover();
+  if (yaAbierto) return;
+
+  const valores = valoresUnicosGridColumna(col, filasBase);
+  const seleccionPrevia = estado.filtros[col.key];
+  const esComparacionPrevia = seleccionPrevia && !(seleccionPrevia instanceof Set);
+  const temp = new Set(seleccionPrevia instanceof Set ? [...seleccionPrevia] : valores);
+  const ordenActivo = estado.orden && estado.orden.colKey === col.key ? estado.orden.dir : null;
+
+  const pop = document.createElement('div');
+  pop.className = 'rt-filtro-pop';
+  pop.dataset.gridId = gridId;
+  pop.dataset.col = col.key;
+  pop.innerHTML = `
+    <div class="rt-filtro-orden">
+      <button type="button" class="rt-orden-btn${ordenActivo === 'asc' ? ' activo' : ''}" data-dir="asc">↑ Menor a mayor</button>
+      <button type="button" class="rt-orden-btn${ordenActivo === 'desc' ? ' activo' : ''}" data-dir="desc">↓ Mayor a menor</button>
+      ${ordenActivo ? '<button type="button" class="rt-orden-quitar">✕ Quitar orden</button>' : ''}
+    </div>
+    <div class="rt-filtro-divisor"></div>
+    <div class="rt-filtro-comparar">
+      <select class="rt-comparar-operador" aria-label="Condición de comparación">
+        <option value="">Sin condición de comparación</option>
+        <option value="gt">Mayor que…</option>
+        <option value="gte">Mayor o igual que…</option>
+        <option value="lt">Menor que…</option>
+        <option value="lte">Menor o igual que…</option>
+        <option value="eq">Igual a…</option>
+      </select>
+      <input type="number" class="rt-comparar-valor" placeholder="Valor…" aria-label="Valor a comparar">
+    </div>
+    <div class="rt-filtro-divisor"></div>
+    <input type="text" class="rt-filtro-buscar" placeholder="Buscar valor…" aria-label="Buscar valor">
+    <div class="rt-filtro-todos">
+      <button type="button" class="rt-filtro-todos-btn" data-modo="todo">Seleccionar todo</button>
+      <button type="button" class="rt-filtro-todos-btn" data-modo="ninguno">Desmarcar todo</button>
+    </div>
+    <div class="rt-filtro-lista"></div>
+    <div class="rt-filtro-acciones">
+      <button type="button" class="rt-filtro-cancelar">Cancelar</button>
+      <button type="button" class="rt-filtro-aceptar">Aceptar</button>
+    </div>`;
+  document.body.appendChild(pop);
+  gridFiltroPopEl = pop;
+
+  pop.querySelectorAll('.rt-orden-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      estado.orden = { colKey: col.key, dir: btn.dataset.dir };
+      cerrarGridFiltroPopover();
+      gridRepintar(gridId, tabla, columnas, filasBase, renderFila);
+    });
+  });
+  const btnQuitarOrden = pop.querySelector('.rt-orden-quitar');
+  if (btnQuitarOrden){
+    btnQuitarOrden.addEventListener('click', () => {
+      estado.orden = null;
+      cerrarGridFiltroPopover();
+      gridRepintar(gridId, tabla, columnas, filasBase, renderFila);
+    });
+  }
+
+  if (esComparacionPrevia){
+    pop.querySelector('.rt-comparar-operador').value = seleccionPrevia.operador;
+    pop.querySelector('.rt-comparar-valor').value = seleccionPrevia.valor;
+  }
+
+  const listaEl = pop.querySelector('.rt-filtro-lista');
+  const pintarLista = (filtroTexto) => {
+    const q = (filtroTexto || '').trim().toLowerCase();
+    const visibles = q ? valores.filter(v => v.toLowerCase().includes(q)) : valores;
+    listaEl.innerHTML = visibles.length ? visibles.map(v => `
+      <label class="rt-filtro-item">
+        <input type="checkbox" value="${esc(v)}"${temp.has(v) ? ' checked' : ''}>
+        <span>${esc(v)}</span>
+      </label>`).join('') : '<div class="rt-filtro-vacio">Sin coincidencias.</div>';
+    listaEl.querySelectorAll('input[type="checkbox"]').forEach(cb => {
+      cb.addEventListener('change', () => { cb.checked ? temp.add(cb.value) : temp.delete(cb.value); });
+    });
+  };
+  pintarLista('');
+  pop.querySelector('.rt-filtro-buscar').addEventListener('input', e => pintarLista(e.target.value));
+  pop.querySelector('[data-modo="todo"]').addEventListener('click', () => { valores.forEach(v => temp.add(v)); pintarLista(pop.querySelector('.rt-filtro-buscar').value); });
+  pop.querySelector('[data-modo="ninguno"]').addEventListener('click', () => { temp.clear(); pintarLista(pop.querySelector('.rt-filtro-buscar').value); });
+
+  pop.querySelector('.rt-filtro-cancelar').addEventListener('click', cerrarGridFiltroPopover);
+  pop.querySelector('.rt-filtro-aceptar').addEventListener('click', () => {
+    const operador = pop.querySelector('.rt-comparar-operador').value;
+    const valorCrudo = pop.querySelector('.rt-comparar-valor').value;
+    if (operador && valorCrudo !== ''){
+      const valorNumerico = Number(valorCrudo);
+      if (!isNaN(valorNumerico)) estado.filtros[col.key] = { operador, valor: valorNumerico };
+      else delete estado.filtros[col.key];
+    } else if (temp.size >= valores.length){
+      delete estado.filtros[col.key];
+    } else {
+      estado.filtros[col.key] = temp;
+    }
+    cerrarGridFiltroPopover();
+    gridAplicarFiltros(gridId, tabla);
+    gridActualizarIconos(gridId, tabla);
+  });
+
+  const r = btnEl.getBoundingClientRect();
+  const popAncho = 250;
+  let left = Math.min(r.left, window.innerWidth - popAncho - 12);
+  let top = r.bottom + 6;
+  if (top + 420 > window.innerHeight) top = Math.max(8, r.top - 426);
+  pop.style.left = Math.max(8, left) + 'px';
+  pop.style.top = top + 'px';
+
+  setTimeout(() => {
+    document.addEventListener('mousedown', cerrarGridFiltroPopoverSiFuera, true);
+    window.addEventListener('scroll', cerrarGridFiltroPopover, true);
+    window.addEventListener('resize', cerrarGridFiltroPopover, true);
+  }, 0);
+}
+
+/** Punto de entrada: llamar una vez por tabla recién insertada en el DOM
+ * (tbody vacío). Aplica el orden/filtro ya guardado para `gridId` (si el
+ * usuario ya lo había elegido antes de este refresco), pinta las filas y
+ * engancha el click de cada botón de embudo. */
+function inicializarGridFiltro(gridId, tabla, columnas, filasBase, renderFila){
+  gridRepintar(gridId, tabla, columnas, filasBase, renderFila);
+  tabla.querySelectorAll('.rt-filtro-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const col = columnas.find(c => c.key === btn.dataset.col);
+      if (col) abrirGridFiltroColumna(gridId, col, btn, tabla, filasBase, columnas, renderFila);
+    });
+  });
 }
 
 /**
@@ -1186,13 +1577,28 @@ function render(data){
   if (clanesControlActivos.length){
     // claseCeldaCA()/celdasMegacategoria() ahora son helpers globales (ver
     // arriba de render(), hoisteados para que Inactivos también los use).
+    // FIX (10-sep-2026, pedido usuario — botones de filtro/orden en la 2ª
+    // fila de encabezados): la 1ª fila (Ataques/Puntaje/Barcos, colspan=5)
+    // se sigue pintando plana, sin botón; la 2ª (J/V/S/D/Total) ahora sale
+    // de filaSubEncabezadosMega() (ver más arriba), que sí agrega el
+    // ícono de embudo + flechita de orden a cada una. El <tbody> arranca
+    // vacío — inicializarGridFiltro() (después de insertar el HTML en el
+    // DOM) es quien lo llena, aplicando cualquier filtro/orden que ya
+    // hubiera quedado guardado en un refresco anterior.
+    const renderFilaActivos = f => `
+              <tr>
+                <td class="col-jugador">${f.tag ? enlaceJugador(f.nombre || f.tag, f.tag) : esc(f.nombre || f.tag)}</td>
+                ${celdasMegacategoria({j:f.j, v:f.v, s:f.s, d:f.d, total:f.total}, 'ai-grp-atq', true, 'atq')}
+                ${celdasMegacategoria(f.puntaje, 'ai-grp-pje', false, 'pje')}
+                ${celdasMegacategoria(f.barcos, 'ai-grp-brc', false, 'brc')}
+              </tr>`;
     document.getElementById('controlActivosWrap').innerHTML = clanesControlActivos.map(clanNombre => {
       const filas = controlActivos[clanNombre];
       return `
         <div class="card ai-clan-card" data-clan="${esc(clanNombre)}" style="padding:16px;">
           <h3>${esc(clanNombre)} <span class="text-faint" style="font-family:var(--f-mono); font-size:12px; font-weight:400;">(${filas.length} activo${filas.length === 1 ? '' : 's'})</span></h3>
           <div class="grid-hscroll grid-hscroll-top" aria-hidden="true"><div class="grid-hscroll-inner"></div></div>
-          <div class="table-scroll"><table class="tbl-activos-grid">
+          <div class="table-scroll"><table class="tbl-activos-grid" data-grid-id="activos:${esc(clanNombre)}">
             <thead>
               <tr>
                 <th class="col-jugador" rowspan="2">Nombre</th>
@@ -1201,19 +1607,12 @@ function render(data){
                 <th class="ai-grp-brc" colspan="5"><span class="ai-grp-label">Barcos</span></th>
               </tr>
               <tr>
-                <th class="ai-grp-atq">J</th><th class="ai-grp-atq">V</th><th class="ai-grp-atq">S</th><th class="ai-grp-atq">D</th><th class="ai-grp-atq">Total</th>
-                <th class="ai-grp-pje">J</th><th class="ai-grp-pje">V</th><th class="ai-grp-pje">S</th><th class="ai-grp-pje">D</th><th class="ai-grp-pje">Total</th>
-                <th class="ai-grp-brc">J</th><th class="ai-grp-brc">V</th><th class="ai-grp-brc">S</th><th class="ai-grp-brc">D</th><th class="ai-grp-brc">Total</th>
+                ${filaSubEncabezadosMega('ai-grp-atq', 'atq')}
+                ${filaSubEncabezadosMega('ai-grp-pje', 'pje')}
+                ${filaSubEncabezadosMega('ai-grp-brc', 'brc')}
               </tr>
             </thead>
-            <tbody>${filas.map(f => `
-              <tr>
-                <td class="col-jugador">${f.tag ? enlaceJugador(f.nombre || f.tag, f.tag) : esc(f.nombre || f.tag)}</td>
-                ${celdasMegacategoria({j:f.j, v:f.v, s:f.s, d:f.d, total:f.total}, 'ai-grp-atq', true)}
-                ${celdasMegacategoria(f.puntaje, 'ai-grp-pje', false)}
-                ${celdasMegacategoria(f.barcos, 'ai-grp-brc', false)}
-              </tr>`).join('')}
-            </tbody>
+            <tbody></tbody>
           </table></div>
           <div class="grid-hscroll grid-hscroll-bottom" aria-hidden="true"><div class="grid-hscroll-inner"></div></div>
           <!-- FIX (05-sep-2026, pedido usuario — "Mejor dentro del primer
@@ -1226,6 +1625,13 @@ function render(data){
           <div class="ai-inactivos-wrap" data-clan-inactivos="${esc(clanNombre)}"></div>
         </div>`;
     }).join('');
+    const wrapActivos = document.getElementById('controlActivosWrap');
+    const columnasActivos = columnasActivosDef();
+    clanesControlActivos.forEach(clanNombre => {
+      const gridId = `activos:${clanNombre}`;
+      const tabla = wrapActivos.querySelector(`table[data-grid-id="${CSS.escape(gridId)}"]`);
+      if (tabla) inicializarGridFiltro(gridId, tabla, columnasActivos, controlActivos[clanNombre], renderFilaActivos);
+    });
     controlActivosSection.style.display = 'block';
     enlazarScrollsHorizontales('controlActivosWrap');
     gestionarTabsClan('controlActivosClanTabs', 'controlActivosWrap', () => clanSeleccionadoActivos, v => clanSeleccionadoActivos = v);
@@ -1264,14 +1670,25 @@ function render(data){
   const controlTemporadaSection = document.getElementById('controlTemporadaSection');
   if (clanesControlTemporada.length && semanasTemporada.length){
     const nSem = semanasTemporada.length;
-    const thSemanas = (gpClase) => semanasTemporada.map(s => `<th class="${gpClase}">${esc(s)}</th>`).join('');
+    // FIX (10-sep-2026, pedido usuario — mismo botón de filtro/orden que en
+    // Valores diarios, también solo en la 2ª fila de encabezados): la 1ª
+    // fila (Ataques/Puntaje/Barcos) sigue plana; la 2ª sale de
+    // filaSubEncabezadosSemanas() (ver más arriba). Igual que en Activos,
+    // el <tbody> arranca vacío y lo llena inicializarGridFiltro() más abajo.
+    const renderFilaTemporada = f => `
+              <tr>
+                <td class="col-jugador">${f.tag ? enlaceJugador(f.nombre || f.tag, f.tag) : esc(f.nombre || f.tag)}</td>
+                ${celdasSemanas(f.ataques, 'ai-grp-atq', true, 'atq')}
+                ${celdasSemanas(f.puntaje, 'ai-grp-pje', false, 'pje')}
+                ${celdasSemanas(f.barcos, 'ai-grp-brc', false, 'brc')}
+              </tr>`;
     document.getElementById('controlTemporadaWrap').innerHTML = clanesControlTemporada.map(clanNombre => {
       const filas = controlTemporada[clanNombre];
       return `
         <div class="card ai-clan-card" data-clan="${esc(clanNombre)}" style="padding:16px;">
           <h3>${esc(clanNombre)} <span class="text-faint" style="font-family:var(--f-mono); font-size:12px; font-weight:400;">(${filas.length} activo${filas.length === 1 ? '' : 's'})</span></h3>
           <div class="grid-hscroll grid-hscroll-top" aria-hidden="true"><div class="grid-hscroll-inner"></div></div>
-          <div class="table-scroll"><table class="tbl-activos-grid tbl-temporada-grid">
+          <div class="table-scroll"><table class="tbl-activos-grid tbl-temporada-grid" data-grid-id="temporada:${esc(clanNombre)}">
             <thead>
               <tr>
                 <th class="col-jugador" rowspan="2">Nombre</th>
@@ -1280,23 +1697,23 @@ function render(data){
                 <th class="ai-grp-brc" colspan="${nSem + 2}"><span class="ai-grp-label">Barcos</span></th>
               </tr>
               <tr>
-                ${thSemanas('ai-grp-atq')}<th class="ai-grp-atq ai-resumen">Total</th><th class="ai-grp-atq ai-resumen">%</th>
-                ${thSemanas('ai-grp-pje')}<th class="ai-grp-pje ai-resumen">Prom</th><th class="ai-grp-pje ai-resumen">%</th>
-                ${thSemanas('ai-grp-brc')}<th class="ai-grp-brc ai-resumen">Total</th><th class="ai-grp-brc ai-resumen">%</th>
+                ${filaSubEncabezadosSemanas('ai-grp-atq', 'atq', semanasTemporada, 'Total')}
+                ${filaSubEncabezadosSemanas('ai-grp-pje', 'pje', semanasTemporada, 'Prom')}
+                ${filaSubEncabezadosSemanas('ai-grp-brc', 'brc', semanasTemporada, 'Total')}
               </tr>
             </thead>
-            <tbody>${filas.map(f => `
-              <tr>
-                <td class="col-jugador">${f.tag ? enlaceJugador(f.nombre || f.tag, f.tag) : esc(f.nombre || f.tag)}</td>
-                ${celdasSemanas(f.ataques, 'ai-grp-atq', true)}
-                ${celdasSemanas(f.puntaje, 'ai-grp-pje', false)}
-                ${celdasSemanas(f.barcos, 'ai-grp-brc', false)}
-              </tr>`).join('')}
-            </tbody>
+            <tbody></tbody>
           </table></div>
           <div class="grid-hscroll grid-hscroll-bottom" aria-hidden="true"><div class="grid-hscroll-inner"></div></div>
         </div>`;
     }).join('');
+    const wrapTemporada = document.getElementById('controlTemporadaWrap');
+    const columnasTemporada = columnasTemporadaDef(nSem);
+    clanesControlTemporada.forEach(clanNombre => {
+      const gridId = `temporada:${clanNombre}`;
+      const tabla = wrapTemporada.querySelector(`table[data-grid-id="${CSS.escape(gridId)}"]`);
+      if (tabla) inicializarGridFiltro(gridId, tabla, columnasTemporada, controlTemporada[clanNombre], renderFilaTemporada);
+    });
     controlTemporadaSection.style.display = 'block';
     enlazarScrollsHorizontales('controlTemporadaWrap');
     gestionarTabsClan('controlTemporadaClanTabs', 'controlTemporadaWrap', () => clanSeleccionadoTemporada, v => clanSeleccionadoTemporada = v);
