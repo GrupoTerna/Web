@@ -726,6 +726,49 @@
         <p id="prizeProgress" class="export-note" style="display:none;margin-top:0;margin-bottom:10px;"></p>
         <div id="winnersList"></div>
         <div id="winnersEmpty" class="empty-msg">Todavía no hay ganadores. Girá la ruleta para empezar.</div>
+
+        <!-- FIX (10-sep-2026, punto 5 del consolidado -- "Frontend
+             (sorteo.html): un formulario de resolución sobre cada ganador
+             de la lista (renderWinners()), similar a #resolucionForm de
+             admin.html"): mismo patrón que #resolucionForm -- UN SOLO
+             formulario compartido, se abre desde el botón "Gestionar" de
+             cada fila de ganador (ver abrirResolucionForm() más abajo) y
+             cambia según a cuál ganador corresponda. A diferencia de
+             Torneos, acá no hay una hoja de resoluciones aparte que
+             fusionar (Resultado/Razón viven en la misma fila de
+             S_Asistencia, ver sección 1 del consolidado) -- por eso el
+             resultado se guarda directo en el objeto `winner` en memoria
+             (ver guardarResolucionGanador() más abajo), sin necesidad de
+             re-fusionar nada al repintar.
+
+             PENDIENTE BACKEND (puntos 4 y 6 del consolidado, todavía no
+             existen): no hay ningún endpoint que reciba esta resolución ni
+             la escriba en S_Asistencia -- por ahora btnGuardarResolucionGanador
+             solo actualiza el estado local (igual que ya hace el input de
+             nombre de cada ganador) y cierra el formulario. Cuando exista
+             ese endpoint, sumar la llamada acá (mismo patrón que
+             btnGuardarResolucion de admin.html → webAdminTorneoResolucionGuardar). -->
+        <div id="winnerResolucionForm" style="display:none; margin-top:10px; padding-top:10px; border-top:1px solid var(--panel-line);">
+          <div id="winnerResolucionParaTexto" style="font-size:12.5px; color:var(--ink-soft); margin-bottom:8px;"></div>
+          <div style="margin-bottom:8px;">
+            <label for="winnerResTipo" style="display:block; font-size:12px; font-weight:600; color:var(--ink); margin-bottom:4px;">Resultado</label>
+            <select id="winnerResTipo" style="width:100%; border:1px solid var(--panel-line); border-radius:9px; padding:8px 10px; font-size:13px; color:var(--ink);">
+              <option value="Ganador">Ganador</option>
+              <option value="Descalificado">Descalificado</option>
+              <option value="Empate - Reparto de premio">Empate - Reparto de premio</option>
+              <option value="Empate - Partida de desempate">Empate - Partida de desempate</option>
+            </select>
+          </div>
+          <div style="margin-bottom:8px;">
+            <label for="winnerResRazon" style="display:block; font-size:12px; font-weight:600; color:var(--ink); margin-bottom:4px;">Razón</label>
+            <input type="text" id="winnerResRazon" placeholder="Opcional -- el detalle de la descalificación o el desempate" style="width:100%; border:1px solid var(--panel-line); border-radius:9px; padding:8px 10px; font-size:13px; color:var(--ink); box-sizing:border-box;">
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button type="button" class="export-btn" id="btnGuardarResolucionGanador" style="flex:1;">Guardar resolución</button>
+            <button type="button" class="winner-remove" id="btnCancelarResolucionGanador" style="flex:0 0 auto; padding:0 10px;">Cancelar</button>
+          </div>
+        </div>
+
         <button id="exportBtn" class="export-btn">Descargar acta del sorteo (Word)</button>
         <p class="export-note">Genera un documento .doc listo para abrir en Word (podés guardarlo como .docx desde ahí). Los nombres del documento son los que estén escritos en cada campo de ganador — podés editarlos a mano antes de descargar. Incluye la cantidad de premios configurada, para que se sepa cuántos ganadores debía tener el sorteo.</p>
       </div>
@@ -1038,8 +1081,23 @@
       var meta = document.createElement('div');
       meta.className = 'winner-meta';
       var discardedLbl = document.createElement('span');
-      discardedLbl.textContent = w.discarded ? 'Excluido/a del resto del sorteo' : 'Sigue participando';
+      // FIX (10-sep-2026): la etiqueta ahora también refleja el resultado
+      // de la resolución manual (ver #winnerResolucionForm), no solo si
+      // sigue participando o quedó excluido de la ruleta -- son dos cosas
+      // distintas: "discarded" es sobre la ruleta (¿puede volver a salir
+      // sorteado?), "resultado" es sobre el premio (¿se queda con él?).
+      discardedLbl.textContent = (w.discarded ? 'Excluido/a del resto del sorteo' : 'Sigue participando') +
+        (w.resultado && w.resultado !== 'Ganador' ? ' · ' + w.resultado : '');
       meta.appendChild(discardedLbl);
+      var gestionarBtn = document.createElement('button');
+      gestionarBtn.className = 'winner-remove';
+      gestionarBtn.textContent = 'Gestionar';
+      gestionarBtn.style.textDecoration = 'none';
+      gestionarBtn.style.color = 'var(--pointer)';
+      gestionarBtn.addEventListener('click', function(){
+        abrirResolucionGanador(w.id);
+      });
+      meta.appendChild(gestionarBtn);
       var removeBtn = document.createElement('button');
       removeBtn.className = 'winner-remove';
       removeBtn.textContent = 'Quitar';
@@ -1065,6 +1123,48 @@
     renderParticipants();
     renderWheel();
   }
+
+  // FIX (10-sep-2026, punto 5 del consolidado): mismo mecanismo que
+  // abrirResolucionForm() de admin.html, pero UN SOLO formulario
+  // compartido para todos los ganadores en vez de uno triplicado por fila
+  // -- se abre con abrirResolucionGanador(id), que recuerda a cuál
+  // ganador corresponde en winnerResolucionForm.dataset.winnerId.
+  var winnerResolucionForm = document.getElementById('winnerResolucionForm');
+  var winnerResTipo = document.getElementById('winnerResTipo');
+  var winnerResRazon = document.getElementById('winnerResRazon');
+
+  function abrirResolucionGanador(id){
+    var w = winners.find(function(x){ return x.id === id; });
+    if (!w) return;
+    winnerResolucionForm.dataset.winnerId = id;
+    document.getElementById('winnerResolucionParaTexto').textContent = 'Registrar resultado para: ' + w.editedName;
+    winnerResTipo.value = w.resultado || 'Ganador';
+    winnerResRazon.value = w.razon || '';
+    winnerResolucionForm.style.display = 'block';
+    winnerResolucionForm.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  document.getElementById('btnCancelarResolucionGanador').addEventListener('click', function(){
+    winnerResolucionForm.style.display = 'none';
+  });
+
+  // PENDIENTE BACKEND (puntos 4 y 6 del consolidado -- ver el comentario
+  // grande junto a #winnerResolucionForm en el HTML): no existe todavía
+  // ningún endpoint que reciba esta resolución ni la escriba en
+  // S_Asistencia -- por ahora esto solo actualiza el estado local en
+  // memoria (`winners`), igual que ya hace el input de nombre de cada
+  // ganador. Cuando exista ese endpoint, agregar la llamada acá antes de
+  // cerrar el formulario (mismo patrón que btnGuardarResolucion de
+  // admin.html).
+  document.getElementById('btnGuardarResolucionGanador').addEventListener('click', function(){
+    var id = winnerResolucionForm.dataset.winnerId;
+    var w = winners.find(function(x){ return x.id === id; });
+    if (!w) return;
+    w.resultado = winnerResTipo.value;
+    w.razon = winnerResRazon.value.trim();
+    winnerResolucionForm.style.display = 'none';
+    renderWinners();
+  });
 
   // ---------- Spin mechanic ----------
   function pickWeightedIndex(slices){
@@ -1131,7 +1231,14 @@
           pickedName: name,
           editedName: name,
           time: new Date().toLocaleTimeString('es-PE', {hour:'2-digit',minute:'2-digit'}),
-          discarded: discardToggle.checked
+          discarded: discardToggle.checked,
+          // FIX (10-sep-2026, punto 5 del consolidado): resultado/razón de
+          // la resolución manual sobre este ganador (ver
+          // #winnerResolucionForm más arriba). "Ganador" es el valor por
+          // defecto -- no hace falta abrir el formulario si no hubo
+          // ninguna descalificación ni empate.
+          resultado: 'Ganador',
+          razon: ''
         };
         winners.push(w);
         if (discardToggle.checked){
@@ -1310,10 +1417,30 @@
           if (!c.calificados || !c.calificados.length) return;
           totalClanes++;
           c.calificados.forEach(function(p, i){
+            // FIX (10-sep-2026, punto 3 del consolidado): usar el ticket
+            // real (peso en la ruleta) que calcule el backend en vez del
+            // `weight: 1` fijo de siempre -- computeSlices()/
+            // pickWeightedIndex() ya usan `p.weight` para la probabilidad,
+            // así que no hace falta tocar nada más ahí, solo poblarlo bien
+            // acá. El campo `.p-weight` de cada fila (ver renderParticipants()
+            // más abajo) sigue siendo editable a mano por si el admin
+            // quiere ajustar el peso de alguien puntual después de cargar.
+            //
+            // PENDIENTE BACKEND (puntos 1 y 2 del consolidado, todavía no
+            // existen): _webSorteoCalificados() (34_Web_API.gs) hoy solo
+            // devuelve `puntaje: trofeos` por participante, no tickets --
+            // el nombre exacto del campo nuevo todavía no está confirmado
+            // (¿`tickets`? ¿`peso`?), así que se leen ambos nombres acá
+            // por si se define cualquiera de los dos, con `1` como
+            // respaldo mientras ninguno llegue (deja el comportamiento de
+            // hoy intacto hasta que se conecte).
+            var pesoBackend = (typeof p.tickets === 'number' && p.tickets > 0) ? p.tickets
+              : (typeof p.peso === 'number' && p.peso > 0) ? p.peso
+              : 1;
             nuevos.push({
               id: 'q_' + c.nombre.replace(/[^a-z0-9]/gi,'') + '_' + i + '_' + Date.now(),
               name: p.nombre,
-              weight: 1,
+              weight: pesoBackend,
               active: true,
               clan: c.nombre
             });
