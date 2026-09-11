@@ -1494,12 +1494,103 @@
                 </div>
               </div>
               <div id="camposModificarSorteo" style="display:none;">
-                <div class="text-dim" style="font-size:13px;">Formulario "Modificar sorteo" — pendiente de construir (select de sorteos de hoy + opción "Ingresar link" como en Torneos, nueva fecha/hora, autor, premios, requisitos, comentario — ver sección 5.4 del consolidado).</div>
+                <!-- FIX (10-sep-2026, sección 5.4 del consolidado, mismo
+                     mecanismo CONFIRMADO que #tSelectHoy de Torneos):
+                     "Ingresar link" es una opción MÁS dentro de este mismo
+                     #sSelectHoy (no un control separado), agregada por una
+                     futura cargarSorteosHoy() como última <option>
+                     (value="__link__"). Todavía no existe esa función --
+                     ver PENDIENTE BACKEND más abajo -- así que por ahora el
+                     select se queda con el mensaje de "cargando" y nunca se
+                     puebla realmente; el input de link ya está listo para
+                     cuando el listener de 'change' (pendiente, mismo patrón
+                     que el de #tSelectHoy) lo muestre/oculte.
+
+                     PENDIENTE BACKEND: no existe todavía un
+                     webAdminSorteosHoy (equivalente a webAdminTorneosHoy)
+                     que traiga los sorteos de hoy con su ID -- por eso
+                     tampoco existe cargarSorteosHoy() todavía (ver
+                     comentario junto a #camposSorteoPrincipal más abajo,
+                     mismo pendiente). -->
+                <div class="field" style="margin-bottom:12px;">
+                  <label for="sSelectHoy">Sorteo</label>
+                  <select id="sSelectHoy"><option value="">Cargando sorteos de hoy…</option></select>
+                  <input type="text" id="sModificarLink" placeholder="https://link.clashroyale.com/..." style="margin-top:8px; display:none;">
+                </div>
+                <div class="field-row" id="filaFechaHoraSorteoMod">
+                  <div class="field">
+                    <label for="sFechaModTexto">Nueva fecha</label>
+                    <div class="campo-fecha-wrap">
+                      <input type="text" id="sFechaModTexto" placeholder="dd/mm/aaaa" inputmode="numeric" maxlength="10" autocomplete="off">
+                      <input type="date" id="sFechaMod" class="campo-oculto-visual" tabindex="-1" aria-hidden="true">
+                      <button type="button" class="btn-calendario" id="btnCalendarioSorteoMod" title="Abrir calendario" aria-label="Abrir calendario">📅</button>
+                    </div>
+                  </div>
+                  <div class="field">
+                    <label for="sHoraModTexto">Nueva hora</label>
+                    <div class="campo-hora-wrap">
+                      <input type="text" id="sHoraModTexto" placeholder="hh:mm" inputmode="numeric" maxlength="5" autocomplete="off">
+                      <select id="sHoraModAmPm">
+                        <option value="AM">AM</option>
+                        <option value="PM">PM</option>
+                      </select>
+                      <input type="time" id="sHoraMod" class="campo-oculto-visual" tabindex="-1" aria-hidden="true">
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Mismo patrón que #tAutorSelectMod: "Sin cambios" en
+                     vez de "Lo organicé yo" porque acá se edita un sorteo
+                     que puede ya tener autor cargado. Pendiente, mismo
+                     estado que Torneos: la etiqueta "Sin cambios (Nombre)"
+                     con el autor real requiere que #sSelectHoy ya venga
+                     poblado (ver PENDIENTE BACKEND arriba). -->
+                <div class="field" style="margin-top:14px;">
+                  <label for="sAutorSelectMod">¿Quién organizó el sorteo?</label>
+                  <select id="sAutorSelectMod">
+                    <option value="">Sin cambios (mantener autor actual)</option>
+                    <option value="__otro__">Ninguna de las anteriores</option>
+                  </select>
+                  <input type="text" id="sAutorManualMod" placeholder="Nombre de quien organizó" style="margin-top:8px; display:none;">
+                </div>
+
+                <div class="field" id="sCuentaOrgBoxMod" style="display:none; margin-top:10px;">
+                  <label for="sCuentaOrgSelectMod">¿Con cuál cuenta organizó?</label>
+                  <select id="sCuentaOrgSelectMod">
+                    <option value="">Elige la cuenta…</option>
+                  </select>
+                  <div id="sCuentaOrgInfoMod" class="text-dim" style="font-size:12px; margin-top:6px;"></div>
+                </div>
+
+                <!-- FIX (10-sep-2026): editor de premios de "Modificar
+                     sorteo", equivalente a #premiosEditorMod de Torneos.
+                     Reutiliza TAL CUAL agregarFilaPremio()/
+                     poblarPremiosEditor()/armarPremiosCSV() (ver <script>,
+                     ya construidas y parametrizadas por containerId) con
+                     contenedor propio de Sorteos -- sin duplicar esa
+                     lógica, mismo criterio que el resto de este panel.
+
+                     PENDIENTE: a diferencia de #premiosEditorMod, este
+                     editor todavía no se puebla con los premios YA
+                     registrados del sorteo elegido en #sSelectHoy (ese
+                     listener de 'change' no existe todavía, ver PENDIENTE
+                     junto a #sSelectHoy más arriba) -- por ahora
+                     mostrarPaso3Sorteo() (ver <script>) ya lo puebla con 3
+                     filas en blanco tipo "Pass Royale" al entrar a esta
+                     rama (mismo criterio que #premiosEditorMod), lista
+                     para reemplazarlas por los datos reales en cuanto se
+                     conecte ese listener. -->
+                <div style="margin-top:14px; padding-top:14px; border-top:1px solid var(--line);">
+                  <label style="display:block; margin-bottom:4px;">Premios</label>
+                  <p class="text-dim" style="font-size:12px; margin:0 0 10px;">Se muestran los premios ya registrados para este sorteo (o 3 filas en blanco si todavía no tiene). Déjalos tal cual si no quieres cambiarlos, o edítalos — usualmente son 3, pero puedes agregar más o quitar los que no necesites.</p>
+                  <div id="premiosEditorSorteoMod"></div>
+                  <button type="button" class="btn btn-ghost btn-block" id="btnAgregarPremioSorteoMod" style="margin-top:10px;">+ Agregar premio</button>
+                </div>
 
                 <!-- FIX (10-sep-2026, mismo pedido que en Registrar sorteo):
                      selector de semanas real, ya funcional, aunque el resto
                      del formulario de "Modificar sorteo" siga pendiente
-                     (ver el texto de arriba). Reutiliza pintarSemanasSelector()
+                     (ver arriba). Reutiliza pintarSemanasSelector()
                      con contenedor propio, mismo patrón que Torneos
                      (#semanasSelectorMod). -->
                 <div class="field" id="semanaSelectorWrapSorteoMod" style="margin-top:14px;">
@@ -3070,6 +3161,12 @@ initCampoHoraAmigable('tHoraPlan', 'tHoraPlanTexto', 'tHoraPlanAmPm');
 initCampoFechaAmigable('sFecha', 'sFechaTexto', 'btnCalendarioSorteoReg');
 initCampoHoraAmigable('sHora', 'sHoraTexto', 'sHoraAmPm');
 
+// FIX (10-sep-2026): mismo mecanismo, ahora para "Modificar sorteo"
+// (#sFechaMod/#sFechaModTexto/#btnCalendarioSorteoMod y
+// #sHoraMod/#sHoraModTexto/#sHoraModAmPm).
+initCampoFechaAmigable('sFechaMod', 'sFechaModTexto', 'btnCalendarioSorteoMod');
+initCampoHoraAmigable('sHoraMod', 'sHoraModTexto', 'sHoraModAmPm');
+
 /* ---------- Selector de semanas (Temporada) para gestión de torneos ----------
    FIX (09-sep-2026, pedido usuario): dentro del menú "Planificar, registrar
    o modificar torneos" (Registrar/Modificar/Planificar), después del
@@ -3736,6 +3833,10 @@ function armarPremiosCSV(containerId = 'premiosEditor'){
 
 document.getElementById('btnAgregarPremio').addEventListener('click', () => agregarFilaPremio('premiosEditor'));
 document.getElementById('btnAgregarPremioMod').addEventListener('click', () => agregarFilaPremio('premiosEditorMod'));
+
+// FIX (10-sep-2026): mismo listener, ahora para el editor de premios de
+// "Modificar sorteo" (#premiosEditorSorteoMod).
+document.getElementById('btnAgregarPremioSorteoMod').addEventListener('click', () => agregarFilaPremio('premiosEditorSorteoMod'));
 
 /**
  * parsearPremiosCSV(texto) / poblarPremiosEditor(containerId, texto)
@@ -4429,6 +4530,15 @@ document.getElementById('sAutorSelect').addEventListener('change', () => {
   if(!esOtro) input.value = '';
 });
 
+// FIX (10-sep-2026): mismo listener, ahora para el autor de "Modificar
+// sorteo" (#sAutorSelectMod/#sAutorManualMod).
+document.getElementById('sAutorSelectMod').addEventListener('change', () => {
+  const esOtro = document.getElementById('sAutorSelectMod').value === '__otro__';
+  const input = document.getElementById('sAutorManualMod');
+  input.style.display = esOtro ? '' : 'none';
+  if(!esOtro) input.value = '';
+});
+
 /* FIX (09-sep-2026): el icono de calendario de "Nueva fecha" (y ahora
  * también el de Registrar/Planificar) queda conectado por
  * initCampoFechaAmigable() más arriba (ver "Campos de fecha/hora
@@ -4724,11 +4834,15 @@ document.getElementById('sorteoVolverPaso1').addEventListener('click', (ev) => {
 /** FIX (10-sep-2026, sección 5.4 del consolidado — esqueleto de ruteo del
  *  Paso 3 de Sorteos): mismo patrón que mostrarPaso3() de Torneos
  *  (initTorneoWizard(), más arriba). Ya reubica los 3 contenedores por
- *  rama + #camposSorteoPrincipal y ahora también los 3 botones de acción
- *  (btnRegistrarSorteo/btnModificarSorteo/btnPlanificarSorteo, ver HTML) --
- *  todavía NO reubica nada dentro de #requisitosSorteoBox (nodo único
- *  compartido, no depende de la rama) ni arma ningún editor de premios
- *  (Sorteos no tiene uno propio todavía, ver PENDIENTE en el HTML). */
+ *  rama + #camposSorteoPrincipal, los 3 botones de acción
+ *  (btnRegistrarSorteo/btnModificarSorteo/btnPlanificarSorteo, ver HTML) y
+ *  ahora también puebla #premiosEditorSorteoMod con 3 filas en blanco si
+ *  todavía no tiene ninguna (mismo criterio que #premiosEditorMod de
+ *  Torneos) -- todavía NO reubica nada dentro de #requisitosSorteoBox
+ *  (nodo único compartido, no depende de la rama) ni reemplaza esas filas
+ *  en blanco por los premios YA registrados del sorteo elegido en
+ *  #sSelectHoy (ese listener de 'change' no existe todavía, ver PENDIENTE
+ *  junto a #sSelectHoy en el HTML). */
 function mostrarPaso3Sorteo(){
   const selAccion = document.getElementById('sorteoAccion');
   const selTipo = document.getElementById('sorteoTipo');
@@ -4745,6 +4859,10 @@ function mostrarPaso3Sorteo(){
   document.getElementById('btnRegistrarSorteo').style.display = esRegistrar ? '' : 'none';
   document.getElementById('btnModificarSorteo').style.display = esModificar ? '' : 'none';
   document.getElementById('btnPlanificarSorteo').style.display = esPlanificar ? '' : 'none';
+
+  if(esModificar && !document.getElementById('premiosEditorSorteoMod').children.length){
+    poblarPremiosEditor('premiosEditorSorteoMod', '');
+  }
 }
 
 document.getElementById('btnSorteoPaso2').addEventListener('click', () => {
