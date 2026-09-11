@@ -741,6 +741,16 @@
              (ver guardarResolucionGanador() más abajo), sin necesidad de
              re-fusionar nada al repintar.
 
+             CORREGIDO (10-sep-2026, sección 1 y sección 2 del consolidado):
+             esta primera versión copiaba el dropdown de 4 opciones de
+             Torneos (Ganador/Descalificado/2 tipos de empate) y dejaba
+             "Razón" como texto libre -- pero Sorteos NO tiene concepto de
+             empate, así que Resultado es un dropdown cerrado de 2 valores
+             (Califica/No califica, CFG.SORTEOS_RESULTADO_TIPOS) y Razón es
+             otro dropdown cerrado con los 3 motivos ligados a los
+             requisitos de S_Lista, visible solo cuando Resultado = "No
+             califica" (ver toggleWinnerResRazonVisibility() más abajo).
+
              PENDIENTE BACKEND (puntos 4 y 6 del consolidado, todavía no
              existen): no hay ningún endpoint que reciba esta resolución ni
              la escriba en S_Asistencia -- por ahora btnGuardarResolucionGanador
@@ -753,15 +763,18 @@
           <div style="margin-bottom:8px;">
             <label for="winnerResTipo" style="display:block; font-size:12px; font-weight:600; color:var(--ink); margin-bottom:4px;">Resultado</label>
             <select id="winnerResTipo" style="width:100%; border:1px solid var(--panel-line); border-radius:9px; padding:8px 10px; font-size:13px; color:var(--ink);">
-              <option value="Ganador">Ganador</option>
-              <option value="Descalificado">Descalificado</option>
-              <option value="Empate - Reparto de premio">Empate - Reparto de premio</option>
-              <option value="Empate - Partida de desempate">Empate - Partida de desempate</option>
+              <option value="Califica">Califica</option>
+              <option value="No califica">No califica</option>
             </select>
           </div>
-          <div style="margin-bottom:8px;">
+          <div id="winnerResRazonWrap" style="margin-bottom:8px; display:none;">
             <label for="winnerResRazon" style="display:block; font-size:12px; font-weight:600; color:var(--ink); margin-bottom:4px;">Razón</label>
-            <input type="text" id="winnerResRazon" placeholder="Opcional -- el detalle de la descalificación o el desempate" style="width:100%; border:1px solid var(--panel-line); border-radius:9px; padding:8px 10px; font-size:13px; color:var(--ink); box-sizing:border-box;">
+            <select id="winnerResRazon" style="width:100%; border:1px solid var(--panel-line); border-radius:9px; padding:8px 10px; font-size:13px; color:var(--ink);">
+              <option value="">-- Seleccionar --</option>
+              <option value="No está en el grupo de WhatsApp">No está en el grupo de WhatsApp</option>
+              <option value="No reaccionó a la publicación">No reaccionó a la publicación</option>
+              <option value="No se encuentra en el clan">No se encuentra en el clan</option>
+            </select>
           </div>
           <div style="display:flex; gap:8px;">
             <button type="button" class="export-btn" id="btnGuardarResolucionGanador" style="flex:1;">Guardar resolución</button>
@@ -1086,8 +1099,12 @@
       // sigue participando o quedó excluido de la ruleta -- son dos cosas
       // distintas: "discarded" es sobre la ruleta (¿puede volver a salir
       // sorteado?), "resultado" es sobre el premio (¿se queda con él?).
+      // CORREGIDO (10-sep-2026): "Ganador" ya no es un valor posible de
+      // w.resultado (Sorteos solo usa Califica/No califica) -- ahora se
+      // compara contra "No califica" y, si aplica, se agrega también la
+      // razón elegida.
       discardedLbl.textContent = (w.discarded ? 'Excluido/a del resto del sorteo' : 'Sigue participando') +
-        (w.resultado && w.resultado !== 'Ganador' ? ' · ' + w.resultado : '');
+        (w.resultado === 'No califica' ? ' · No califica' + (w.razon ? ' (' + w.razon + ')' : '') : '');
       meta.appendChild(discardedLbl);
       var gestionarBtn = document.createElement('button');
       gestionarBtn.className = 'winner-remove';
@@ -1129,17 +1146,32 @@
   // compartido para todos los ganadores en vez de uno triplicado por fila
   // -- se abre con abrirResolucionGanador(id), que recuerda a cuál
   // ganador corresponde en winnerResolucionForm.dataset.winnerId.
+  //
+  // CORREGIDO (10-sep-2026, sección 1 y sección 2 del consolidado): el
+  // valor por defecto/"sin problemas" ya no es "Ganador" (copiado de
+  // Torneos) sino "Califica" (CFG.SORTEOS_RESULTADO_TIPOS) -- Sorteos no
+  // tiene concepto de empate, y "Razón" solo tiene sentido (y solo se
+  // muestra) cuando el Resultado es "No califica".
   var winnerResolucionForm = document.getElementById('winnerResolucionForm');
   var winnerResTipo = document.getElementById('winnerResTipo');
   var winnerResRazon = document.getElementById('winnerResRazon');
+  var winnerResRazonWrap = document.getElementById('winnerResRazonWrap');
+
+  function toggleWinnerResRazonVisibility(){
+    var esNoCalifica = winnerResTipo.value === 'No califica';
+    winnerResRazonWrap.style.display = esNoCalifica ? 'block' : 'none';
+    if (!esNoCalifica) winnerResRazon.value = ''; // no tiene sentido guardar una razón si sí calificó
+  }
+  winnerResTipo.addEventListener('change', toggleWinnerResRazonVisibility);
 
   function abrirResolucionGanador(id){
     var w = winners.find(function(x){ return x.id === id; });
     if (!w) return;
     winnerResolucionForm.dataset.winnerId = id;
     document.getElementById('winnerResolucionParaTexto').textContent = 'Registrar resultado para: ' + w.editedName;
-    winnerResTipo.value = w.resultado || 'Ganador';
+    winnerResTipo.value = w.resultado || 'Califica';
     winnerResRazon.value = w.razon || '';
+    toggleWinnerResRazonVisibility();
     winnerResolucionForm.style.display = 'block';
     winnerResolucionForm.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
@@ -1161,7 +1193,7 @@
     var w = winners.find(function(x){ return x.id === id; });
     if (!w) return;
     w.resultado = winnerResTipo.value;
-    w.razon = winnerResRazon.value.trim();
+    w.razon = w.resultado === 'No califica' ? winnerResRazon.value : '';
     winnerResolucionForm.style.display = 'none';
     renderWinners();
   });
@@ -1234,10 +1266,11 @@
           discarded: discardToggle.checked,
           // FIX (10-sep-2026, punto 5 del consolidado): resultado/razón de
           // la resolución manual sobre este ganador (ver
-          // #winnerResolucionForm más arriba). "Ganador" es el valor por
-          // defecto -- no hace falta abrir el formulario si no hubo
-          // ninguna descalificación ni empate.
-          resultado: 'Ganador',
+          // #winnerResolucionForm más arriba). CORREGIDO (10-sep-2026):
+          // "Califica" es el valor por defecto (Sorteos no tiene concepto
+          // de empate, ver sección 2 del consolidado) -- no hace falta
+          // abrir el formulario si no hubo ninguna descalificación.
+          resultado: 'Califica',
           razon: ''
         };
         winners.push(w);
