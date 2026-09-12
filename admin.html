@@ -2062,6 +2062,7 @@ function mostrarPanel(){
   cargarMisCuentas();
   initMensajesAutomaticos();
   cargarTorneosHoy();
+  cargarSorteosHoy();
   // FASE 7 (Parte B, 06-sep-2026): cargarAscensosEditables() encadenada
   // DESPUÉS de cargarNomMultisAdmins() (en vez de disparada en paralelo,
   // como el resto de esta función) para que nomMultisAdminsCache ya esté
@@ -2076,6 +2077,10 @@ function mostrarPanel(){
   // todavía (ver el docblock grande junto a CLANES_REQUISITOS), pero se
   // deja la llamada acá para que quede lista apenas exista el endpoint.
   cargarRequisitosPorClan();
+  // NUEVO (12-sep-2026, pedido del usuario -- consolidado sección 5.4): ya
+  // existe el endpoint (_webAdminRequisitosClanesSorteo(), 34_Web_API.gs),
+  // mismo criterio que la llamada de Torneos de arriba.
+  cargarRequisitosSorteoPorClan();
 }
 
 /** FASE 4 (26-ago-2026): muestra/oculta las cards de "Registrar miembro
@@ -3699,16 +3704,44 @@ pintarGridRequisitosNumericos('reqTorneosGridSorteo', 'reqTorneosSorteo', 'Ejm: 
 initInputMiles('reqDeltaSorteo');
 
 /**
- * cargarRequisitosSorteoPorClan()
- * PENDIENTE BACKEND, mismo estado que cargarRequisitosPorClan() de Torneos:
- * no existe todavía un endpoint equivalente a webAdminRequisitosClanes para
- * Sorteos. Cuando exista, se completa igual que la versión de Torneos
- * (misma estructura, sumando minTorneosJugados y delta).
+ * cargarRequisitosSorteoPorClan(id)
+ * NUEVO (12-sep-2026, pedido del usuario -- consolidado sección 5.4): gemela
+ * de cargarRequisitosPorClan(id) de arriba, ahora que existe el endpoint
+ * (_webAdminRequisitosClanesSorteo(), 34_Web_API.gs, ya wireado en doPost()
+ * como 'webAdminRequisitosClanesSorteo'). Mismo criterio exacto de `id`
+ * opcional (puntual para "Modificar" con un sorteo ya elegido en
+ * #sSelectHoy, "el más reciente" sin `id` -- llamado inicial desde
+ * mostrarPanel()), y mismo criterio de tolerancia a fallos (deja el
+ * formulario con los defaults del HTML si `data.ok` viene en `false` o si
+ * falla la llamada de red).
+ * Suma sobre la versión de Torneos: `minTorneosJugados` (grid
+ * 'reqTorneosSorteo') y `delta` (input único 'reqDeltaSorteo') -- los 2
+ * campos exclusivos de S_Lista que ya devuelve el endpoint.
+ * @param {string} [id]
  */
-async function cargarRequisitosSorteoPorClan(){
-  // Sin backend todavía -- el formulario arranca con los defaults de arriba
-  // (ver cargarRequisitosPorClan() de Torneos para el patrón exacto que se
-  // usará acá en cuanto exista el endpoint).
+async function cargarRequisitosSorteoPorClan(id){
+  try{
+    const data = await apiGetAuth('webAdminRequisitosClanesSorteo', id ? { id } : {});
+    if(manejarRespuestaAuth(data)) return;
+    if(data.ok && data.requisitos){
+      CLANES_REQUISITOS.forEach(clan => {
+        const r = data.requisitos[clan] || {};
+        const idT = idInputMiles('reqTrofGuerraSorteo', clan);
+        const idA = idInputMiles('reqAtaquesSorteo', clan);
+        const idJ = idInputMiles('reqTorneosSorteo', clan);
+        if(document.getElementById(idT)) document.getElementById(idT).value = formatoMiles(r.minTrofeosGuerra);
+        if(document.getElementById(idA)) document.getElementById(idA).value = formatoMiles(r.minAtaquesSemana);
+        if(document.getElementById(idJ)) document.getElementById(idJ).value = formatoMiles(r.minTorneosJugados);
+      });
+      if(data.requisitos.delta !== undefined) document.getElementById('reqDeltaSorteo').value = formatoMiles(data.requisitos.delta);
+      if(data.requisitos.miembroActivo) document.getElementById('reqMiembroActivoSorteo').value = data.requisitos.miembroActivo;
+      if(data.requisitos.reaccion) document.getElementById('reqReaccionSorteo').value = data.requisitos.reaccion;
+      if(data.requisitos.presenciaWhatsapp) document.getElementById('reqPresenciaWhatsappSorteo').value = data.requisitos.presenciaWhatsapp;
+    }
+  }catch(err){
+    // Error de red/parseo: se deja el formulario con lo que ya tuviera
+    // (defaults del HTML) -- mismo criterio que cargarRequisitosPorClan().
+  }
 }
 
 /**
@@ -4121,6 +4154,46 @@ async function cargarTorneosHoy(){
 }
 
 /**
+ * cargarSorteosHoy()
+ * NUEVO (12-sep-2026, pedido del usuario -- consolidado sección 5.4, tercera
+ * pieza real del panel de Sorteos en el frontend): gemela de
+ * cargarTorneosHoy() de arriba, apuntando a webAdminSorteosHoy
+ * (_webAdminSorteosHoy(), 34_Web_API.gs -- ya wireado en doPost()). Puebla
+ * #sSelectHoy para "Modificar sorteo".
+ * Diferencias deliberadas respecto a Torneos:
+ *   - SIN la opción "Ingresar link" al final: _webAdminSorteoModificar()
+ *     no tiene ninguna rama equivalente a la de Torneos (sin parámetro
+ *     `link`, ver docblock de btnRegistrarSorteo más abajo) -- #sModificarLink
+ *     queda sin usar, mismo caso que #sLink.
+ *   - data-idprincipal queda guardado por si más adelante se construye el
+ *     selector real de "¿cuál es el sorteo principal?" (#camposSorteoPrincipal,
+ *     todavía placeholder) -- no se usa todavía en ningún lado.
+ */
+let sorteosHoyData = [];
+
+async function cargarSorteosHoy(){
+  const sel = document.getElementById('sSelectHoy');
+  try{
+    const data = await apiGetAuth('webAdminSorteosHoy', {});
+    if(manejarRespuestaAuth(data)) return;
+    sorteosHoyData = (data.ok && data.sorteos) ? data.sorteos : [];
+    if(!sorteosHoyData.length){
+      sel.innerHTML = '<option value="">Sin sorteos registrados hoy</option>';
+    }else{
+      sel.innerHTML = '<option value="">Elige un sorteo…</option>' +
+        sorteosHoyData.map(s => {
+          const fechaTxt = new Date(s.fecha).toLocaleString('es-PE', { hour12:false });
+          const semanasCsv = Array.isArray(s.semanas) ? s.semanas.join(',') : '';
+          return `<option value="${esc(s.id)}" data-fecha="${esc(s.fecha)}" data-autor="${esc(s.autor || '')}" data-premios="${esc(s.premios || '')}" data-semanas="${esc(semanasCsv)}" data-idprincipal="${esc(s.idPrincipal || '')}">${esc(s.id)} — ${esc(fechaTxt)}</option>`;
+        }).join('');
+    }
+  }catch(err){
+    sorteosHoyData = [];
+    sel.innerHTML = '<option value="">—</option>';
+  }
+}
+
+/**
  * renderTorneoPrincipalLista()
  * Pinta la lista DESGLOSABLE de "¿Cuál es el torneo principal?": un
  * <details> por cada torneo de hoy que YA tenga Tag_Tor (torneos sin
@@ -4366,6 +4439,18 @@ function actualizarEtiquetaSinCambiosAutor(nombreActual){
   opt.textContent = nombreActual ? `Sin cambios (${nombreActual})` : 'Sin cambios (mantener autor actual)';
 }
 
+/**
+ * actualizarEtiquetaSinCambiosAutorSorteo(nombreActual)
+ * NUEVO (12-sep-2026, pedido del usuario -- consolidado sección 5.4): gemela
+ * de actualizarEtiquetaSinCambiosAutor() de arriba, para #sAutorSelectMod en
+ * vez de #tAutorSelectMod.
+ */
+function actualizarEtiquetaSinCambiosAutorSorteo(nombreActual){
+  const opt = document.querySelector('#sAutorSelectMod option[value=""]');
+  if(!opt) return;
+  opt.textContent = nombreActual ? `Sin cambios (${nombreActual})` : 'Sin cambios (mantener autor actual)';
+}
+
 function initCuentaOrgBox(sufijo){
   const selectAutor = document.getElementById('tAutorSelect' + sufijo);
   const box = document.getElementById('tCuentaOrgBox' + sufijo);
@@ -4549,6 +4634,30 @@ function horaConSegundos(valor){
 function leerCuentaOrgElegida(sufijo){
   const box = document.getElementById('tCuentaOrgBox' + sufijo);
   const selectCuenta = document.getElementById('tCuentaOrgSelect' + sufijo);
+  if(!box || !selectCuenta || box.style.display === 'none'){
+    return { tagOrg: '', clanOrg: '', clanTagOrg: '' };
+  }
+  const opt = selectCuenta.selectedOptions[0];
+  if(!opt || !opt.value) return { tagOrg: '', clanOrg: '', clanTagOrg: '' };
+  return {
+    tagOrg: opt.value,
+    clanOrg: opt.dataset.clan || '',
+    clanTagOrg: opt.dataset.clantag || ''
+  };
+}
+
+/**
+ * leerCuentaOrgElegidaSorteo(sufijo)
+ * NUEVO (12-sep-2026, pedido del usuario -- consolidado sección 5.4, wiring
+ * de btnRegistrarSorteo): gemela de leerCuentaOrgElegida() de arriba, mismo
+ * comportamiento exacto, pero leyendo los ids con prefijo "s" en vez de
+ * "t" (#sCuentaOrgBox*/#sCuentaOrgSelect*), tal como ya lo dejó anotado el
+ * docblock de initCuentaOrgBoxSorteo() como pendiente. Mismo criterio del
+ * proyecto de no unificar en una sola función parametrizada por prefijo.
+ */
+function leerCuentaOrgElegidaSorteo(sufijo){
+  const box = document.getElementById('sCuentaOrgBox' + sufijo);
+  const selectCuenta = document.getElementById('sCuentaOrgSelect' + sufijo);
   if(!box || !selectCuenta || box.style.display === 'none'){
     return { tagOrg: '', clanOrg: '', clanTagOrg: '' };
   }
@@ -4777,6 +4886,61 @@ document.getElementById('sAutorSelectPlan').addEventListener('change', () => {
  * también el de Registrar/Planificar) queda conectado por
  * initCampoFechaAmigable() más arriba (ver "Campos de fecha/hora
  * amigables") — ya no hace falta un listener aparte acá. */
+
+/**
+ * #sSelectHoy 'change'
+ * NUEVO (12-sep-2026, pedido del usuario -- consolidado sección 5.4, cuarta
+ * pieza real del panel de Sorteos en el frontend): mismo patrón que el
+ * listener de #tSelectHoy de abajo, precargando fecha/hora/premios/semanas/
+ * autor del sorteo elegido -- webAdminSorteosHoy ya manda esos 4 campos
+ * (ver cargarSorteosHoy() más arriba).
+ * SIN cuadro de "Ingresar link" (no existe para Sorteos, ver
+ * cargarSorteosHoy()) y SIN recarga de requisitos por sorteo puntual
+ * todavía: no existe un equivalente de cargarRequisitosPorClan()/
+ * _webAdminRequisitosClanes() para la categoría "Sorteo" -- #requisitosSorteoBox
+ * queda como nodo único compartido, sin precarga por ahora (pendiente
+ * aparte, no forma parte de este cambio).
+ */
+document.getElementById('sSelectHoy').addEventListener('change', () => {
+  const opt = document.getElementById('sSelectHoy').selectedOptions[0];
+  const fechaISO = opt && opt.dataset.fecha;
+  const fFecha = document.getElementById('sFechaMod');
+  const fHora = document.getElementById('sHoraMod');
+  if(!fechaISO){
+    fFecha.value = '';
+    fHora.value = '';
+  }else{
+    const d = new Date(fechaISO);
+    fFecha.value = `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
+    fHora.value  = `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+  }
+  fFecha.dispatchEvent(new Event('change'));
+  fHora.dispatchEvent(new Event('change'));
+
+  actualizarEtiquetaSinCambiosAutorSorteo(opt && opt.dataset.autor);
+  document.getElementById('sAutorSelectMod').value = '';
+  document.getElementById('sAutorManualMod').value = '';
+  document.getElementById('sAutorManualMod').style.display = 'none';
+  document.getElementById('sCuentaOrgBoxMod').style.display = 'none';
+  document.getElementById('sCuentaOrgSelectMod').innerHTML = '<option value="">Elige la cuenta…</option>';
+  document.getElementById('sCuentaOrgInfoMod').textContent = '';
+
+  poblarPremiosEditor('premiosEditorSorteoMod', opt && opt.dataset.premios);
+
+  pintarSemanasSelector('semanasSelectorSorteoMod');
+  preseleccionarSemanas('semanasSelectorSorteoMod', opt && opt.dataset.semanas);
+
+  // NUEVO (12-sep-2026, pedido del usuario -- consolidado sección 5.4): con
+  // el endpoint ya existente (_webAdminRequisitosClanesSorteo()), al elegir
+  // un sorteo puntual se recarga #requisitosSorteoBox con SUS requisitos ya
+  // guardados -- mismo criterio exacto que cargarRequisitosPorClan(id) en
+  // el listener de #tSelectHoy, más abajo. Con la opción vacía se deja el
+  // cuadro tal cual (mismo comportamiento que Torneos).
+  const idSorteoSeleccionado = document.getElementById('sSelectHoy').value;
+  if(idSorteoSeleccionado){
+    cargarRequisitosSorteoPorClan(idSorteoSeleccionado);
+  }
+});
 
 document.getElementById('tSelectHoy').addEventListener('change', () => {
   // FIX (10-sep-2026, sección 5.3 -- comportamiento CONFIRMADO del cuadro
@@ -5093,6 +5257,132 @@ document.getElementById('btnPlanificarTorneo').addEventListener('click', async (
   }
 });
 
+/**
+ * btnPlanificarSorteo
+ * NUEVO (12-sep-2026, pedido del usuario -- consolidado sección 5.4,
+ * segunda pieza real del panel de Sorteos en el frontend): mismo patrón
+ * EXACTO que btnPlanificarTorneo de arriba, apuntando a
+ * webAdminSorteoPlanificarGuardar (_webAdminSorteoPlanificarGuardar(),
+ * 34_Web_API.gs -- ya wireado en doPost(), 08_Web_Endpoints.gs). Mismas 2
+ * diferencias deliberadas que btnRegistrarSorteo (ver su docblock más
+ * arriba): sin `link` (no aplica a Planificar tampoco) y "continuación"
+ * bloqueada por falta del selector real de #camposSorteoPrincipal.
+ * A diferencia de btnPlanificarTorneo, usa el id explícito
+ * 'premiosEditorSorteoPlan' en armarPremiosCSV()/reinicio en vez de
+ * apoyarse en el default de la función (ver comentario junto a
+ * armarPremiosCSV() más arriba sobre el default 'premiosEditor').
+ */
+document.getElementById('btnPlanificarSorteo').addEventListener('click', async () => {
+  const msgEl = document.getElementById('planificarSorteoMsg');
+  msgEl.innerHTML = '';
+  const fecha = fechaInputADDMMYYYY(document.getElementById('sFechaPlan').value);
+  const hora  = horaConSegundos(document.getElementById('sHoraPlan').value);
+  const esContinuacion = document.getElementById('sorteoTipo').value === 'continuacion';
+  const autorSelect = document.getElementById('sAutorSelectPlan').value;
+  const autor = autorSelect === '__otro__' ? document.getElementById('sAutorManualPlan').value.trim() : autorSelect;
+  const premios = armarPremiosCSV('premiosEditorSorteoPlan');
+  const { tagOrg, clanOrg, clanTagOrg } = leerCuentaOrgElegidaSorteo('Plan');
+  const requisitos = armarPayloadRequisitosSorteo();
+  const comentario = document.getElementById('sComentario').value.trim();
+  const semanas = obtenerSemanasSeleccionadas('semanasSelectorSorteoPlan');
+  if(!fecha || !hora){ msgEl.innerHTML = '<div class="msg msg-error">Completa fecha y hora.</div>'; return; }
+  if(!premios){ msgEl.innerHTML = '<div class="msg msg-error">Agrega al menos un premio.</div>'; return; }
+  // PENDIENTE (ver docblock de btnRegistrarSorteo más arriba): sin selector
+  // real de "¿cuál es el sorteo principal?" todavía.
+  if(esContinuacion){ msgEl.innerHTML = '<div class="msg msg-error">El selector de "¿cuál es el sorteo principal?" todavía no está construido -- por ahora solo se puede planificar un sorteo principal.</div>'; return; }
+  if(autorSelect === '__otro__' && !autor){ msgEl.innerHTML = '<div class="msg msg-error">Escribe el nombre de quien organiza, o elige otra opción.</div>'; return; }
+  try{
+    const data = await apiPost('webAdminSorteoPlanificarGuardar', {
+      sessionToken: localStorage.getItem(SESSION_KEY),
+      fecha, hora, premios,
+      idSorteoPrincipal: '',
+      autor,
+      tagOrg, clanOrg, clanTagOrg,
+      requisitos, comentario,
+      semanas
+    });
+    if(manejarRespuestaAuth(data)) return;
+    if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
+    msgEl.innerHTML = '<div class="msg msg-ok">Sorteo planificado. Cuando corresponda, regístralo en "Registrar sorteo" con esta MISMA fecha y hora para completarlo (sin perder estos premios).</div>';
+    limpiarCampoFechaAmigable('sFechaPlan', 'sFechaPlanTexto');
+    limpiarCampoHoraAmigable('sHoraPlan', 'sHoraPlanTexto', 'sHoraPlanAmPm');
+    document.getElementById('sAutorSelectPlan').value = '';
+    document.getElementById('sAutorManualPlan').value = '';
+    document.getElementById('sAutorManualPlan').style.display = 'none';
+    document.getElementById('sCuentaOrgBoxPlan').style.display = 'none';
+    document.getElementById('sCuentaOrgSelectPlan').innerHTML = '<option value="">Elige la cuenta…</option>';
+    document.getElementById('sCuentaOrgInfoPlan').textContent = '';
+    document.getElementById('sComentario').value = '';
+    poblarPremiosEditor('premiosEditorSorteoPlan', '');
+    pintarSemanasSelector('semanasSelectorSorteoPlan');
+  }catch(err){
+    msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
+  }
+});
+
+/**
+ * btnModificarSorteo
+ * NUEVO (12-sep-2026, pedido del usuario -- consolidado sección 5.4, quinta
+ * y última pieza real del panel de Sorteos en el frontend): mismo patrón
+ * EXACTO que btnModificarTorneo de arriba, apuntando a
+ * webAdminSorteoModificar (_webAdminSorteoModificar(), 34_Web_API.gs -- ya
+ * wireado en doPost()). Diferencias deliberadas:
+ *   - SIN rama "Ingresar link": _webAdminSorteoModificar() no tiene ningún
+ *     parámetro `link` ni centinela equivalente a `id === '__link__'`
+ *     (ver docblock de cargarSorteosHoy() más arriba) -- #sModificarLink
+ *     queda sin usar.
+ *   - "Continuación" bloqueada, mismo criterio que btnRegistrarSorteo/
+ *     btnPlanificarSorteo (sin selector real de sorteo principal todavía).
+ */
+document.getElementById('btnModificarSorteo').addEventListener('click', async () => {
+  const msgEl = document.getElementById('modificarSorteoMsg');
+  msgEl.innerHTML = '';
+  const id = document.getElementById('sSelectHoy').value;
+  const fecha = fechaInputADDMMYYYY(document.getElementById('sFechaMod').value);
+  const hora  = horaConSegundos(document.getElementById('sHoraMod').value);
+  const esContinuacion = document.getElementById('sorteoTipo').value === 'continuacion';
+  const { tagOrg, clanOrg, clanTagOrg } = leerCuentaOrgElegidaSorteo('Mod');
+  const autorSelect = document.getElementById('sAutorSelectMod').value;
+  const autor = autorSelect === '__otro__' ? document.getElementById('sAutorManualMod').value.trim() : autorSelect;
+  const premios = armarPremiosCSV('premiosEditorSorteoMod');
+  const requisitos = armarPayloadRequisitosSorteo();
+  const comentario = document.getElementById('sComentario').value.trim();
+  const semanas = obtenerSemanasSeleccionadas('semanasSelectorSorteoMod');
+  if(!id){ msgEl.innerHTML = '<div class="msg msg-error">Elige un sorteo de la lista.</div>'; return; }
+  if(!fecha || !hora){ msgEl.innerHTML = '<div class="msg msg-error">Completa la nueva fecha y hora.</div>'; return; }
+  // PENDIENTE (ver docblock de btnRegistrarSorteo más arriba): sin selector
+  // real de "¿cuál es el sorteo principal?" todavía.
+  if(esContinuacion){ msgEl.innerHTML = '<div class="msg msg-error">El selector de "¿cuál es el sorteo principal?" todavía no está construido -- por ahora solo se puede modificar un sorteo principal.</div>'; return; }
+  if(autorSelect === '__otro__' && !autor){ msgEl.innerHTML = '<div class="msg msg-error">Escribe el nombre de quien organizó, o elige otra opción.</div>'; return; }
+  try{
+    const data = await apiPost('webAdminSorteoModificar', {
+      sessionToken: localStorage.getItem(SESSION_KEY),
+      id, fecha, hora,
+      idSorteoPrincipal: '',
+      semanas, comentario, requisitos,
+      autor,   // '' = no cambiar el autor ya registrado
+      premios, // '' = no cambiar los premios ya registrados
+      tagOrg, clanOrg, clanTagOrg // '' = no cambiar Tag_org/Clan/ClanTag ya registrados
+    });
+    if(manejarRespuestaAuth(data)) return;
+    if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
+    msgEl.innerHTML = '<div class="msg msg-ok">Sorteo actualizado.</div>';
+    document.getElementById('sAutorSelectMod').value = '';
+    document.getElementById('sAutorManualMod').value = '';
+    document.getElementById('sAutorManualMod').style.display = 'none';
+    document.getElementById('sCuentaOrgBoxMod').style.display = 'none';
+    document.getElementById('sCuentaOrgSelectMod').innerHTML = '<option value="">Elige la cuenta…</option>';
+    document.getElementById('sCuentaOrgInfoMod').textContent = '';
+    document.getElementById('sComentario').value = '';
+    poblarPremiosEditor('premiosEditorSorteoMod', '');
+    pintarSemanasSelector('semanasSelectorSorteoMod');
+    actualizarEtiquetaSinCambiosAutorSorteo('');
+    cargarSorteosHoy();
+  }catch(err){
+    msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
+  }
+});
+
 initTorneoWizard();
 
 /**
@@ -5182,6 +5472,69 @@ document.getElementById('btnSorteoPaso2').addEventListener('click', () => {
 document.getElementById('sorteoVolverPaso2').addEventListener('click', (ev) => {
   ev.preventDefault();
   document.getElementById('sorteoPaso3').style.display = 'none';
+});
+
+/**
+ * btnRegistrarSorteo
+ * NUEVO (12-sep-2026, pedido del usuario -- consolidado sección 5.4, primera
+ * pieza real del panel de Sorteos en el frontend): mismo patrón EXACTO que
+ * btnRegistrarTorneo de arriba, apuntando a webAdminSorteoRegistrar
+ * (_webAdminSorteoRegistrar(), 34_Web_API.gs -- ya wireado en doPost(),
+ * 08_Web_Endpoints.gs). Diferencias deliberadas respecto a Torneo:
+ *   - Sin `link`: #sLink existe en el HTML pero _registrarSorteoDesdeBot()
+ *     (24_Torneos_Core.gs) no tiene ese parámetro -- no se manda, queda
+ *     pendiente que el usuario decida si ese campo debe eliminarse del HTML
+ *     o si tiene otro uso futuro no definido todavía.
+ *   - `idSorteoPrincipal` en vez de `tagTorneoPrincipal`: #camposSorteoPrincipal
+ *     sigue siendo un placeholder sin selector real (ver HTML) -- por eso,
+ *     a diferencia de Torneos, la opción "continuación" queda bloqueada acá
+ *     con un mensaje explícito en vez de mandar idSorteoPrincipal vacío en
+ *     silencio.
+ */
+document.getElementById('btnRegistrarSorteo').addEventListener('click', async () => {
+  const msgEl = document.getElementById('registrarSorteoMsg');
+  msgEl.innerHTML = '';
+  const fecha = fechaInputADDMMYYYY(document.getElementById('sFecha').value);
+  const hora  = horaConSegundos(document.getElementById('sHora').value);
+  const esContinuacion = document.getElementById('sorteoTipo').value === 'continuacion';
+  const { tagOrg, clanOrg, clanTagOrg } = leerCuentaOrgElegidaSorteo('');
+  const autorSelect = document.getElementById('sAutorSelect').value;
+  const autor = autorSelect === '__otro__' ? document.getElementById('sAutorManual').value.trim() : autorSelect;
+  const requisitos = armarPayloadRequisitosSorteo();
+  const comentario = document.getElementById('sComentario').value.trim();
+  const semanas = obtenerSemanasSeleccionadas('semanasSelectorSorteoReg');
+  if(!fecha || !hora){ msgEl.innerHTML = '<div class="msg msg-error">Completa fecha y hora.</div>'; return; }
+  // PENDIENTE (ver docblock de arriba): sin selector real de "¿cuál es el
+  // sorteo principal?" todavía no se puede resolver idSorteoPrincipal para
+  // la opción "continuación" -- se bloquea acá en vez de mandarlo vacío.
+  if(esContinuacion){ msgEl.innerHTML = '<div class="msg msg-error">El selector de "¿cuál es el sorteo principal?" todavía no está construido -- por ahora solo se puede registrar un sorteo principal.</div>'; return; }
+  if(autorSelect === '__otro__' && !autor){ msgEl.innerHTML = '<div class="msg msg-error">Escribe el nombre de quien organizó, o elige otra opción.</div>'; return; }
+  try{
+    const data = await apiPost('webAdminSorteoRegistrar', {
+      sessionToken: localStorage.getItem(SESSION_KEY),
+      fecha, hora,
+      idSorteoPrincipal: '',
+      autor,
+      tagOrg, clanOrg, clanTagOrg,
+      requisitos, comentario,
+      semanas
+    });
+    if(manejarRespuestaAuth(data)) return;
+    if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
+    msgEl.innerHTML = `<div class="msg msg-ok">Sorteo registrado (ID ${esc(data.id)}).</div>`;
+    limpiarCampoFechaAmigable('sFecha', 'sFechaTexto');
+    limpiarCampoHoraAmigable('sHora', 'sHoraTexto', 'sHoraAmPm');
+    document.getElementById('sAutorSelect').value = '';
+    document.getElementById('sAutorManual').value = '';
+    document.getElementById('sAutorManual').style.display = 'none';
+    document.getElementById('sCuentaOrgBox').style.display = 'none';
+    document.getElementById('sCuentaOrgSelect').innerHTML = '<option value="">Elige la cuenta…</option>';
+    document.getElementById('sCuentaOrgInfo').textContent = '';
+    document.getElementById('sComentario').value = '';
+    pintarSemanasSelector('semanasSelectorSorteoReg');
+  }catch(err){
+    msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
+  }
 });
 
 /** FASE 24 (02-sep-2026, pedido del usuario — descalificaciones y
