@@ -286,10 +286,10 @@
   .campo-hora-wrap input[type="text"]{flex:1; min-width:0;}
   .campo-hora-wrap select{flex-shrink:0; width:78px;}
   /* FIX (09-sep-2026, pedido usuario — selector de semanas en Planificar/
-     Registrar/Modificar torneo, ver docblock grande junto a
-     generarSemanasRecientes() en el <script>): lista con scroll y
-     checkboxes, mismo lenguaje visual que el resto de cuadros (.field,
-     .contenido-item). */
+     Registrar/Modificar torneo; actualizado 11-sep-2026, ver docblock
+     grande junto a cargarSemanasRecientes()/pintarSemanasSelector() en el
+     <script>): lista con scroll y checkboxes, mismo lenguaje visual que
+     el resto de cuadros (.field, .contenido-item). */
   .semana-selector{
     display:flex; flex-direction:column; gap:2px; max-height:220px; overflow-y:auto;
     border:1px solid var(--line); border-radius:var(--radius-sm); padding:6px 10px;
@@ -908,14 +908,15 @@
                 <div id="tCuentaOrgInfo" class="text-dim" style="font-size:12px; margin-top:6px;"></div>
               </div>
 
-              <!-- FIX (09-sep-2026, pedido usuario — selector de semanas):
-                   ver el docblock grande junto a generarSemanasRecientes()
-                   en el <script> para el detalle completo (formato,
-                   preselección, y por qué "Temporada N" es un contador de
-                   marcador de posición pendiente de backend). Esta lista
-                   NO dispara ninguna acción por ahora -- pedido explícito
-                   del usuario ("no importa que no realice ninguna acción
-                   al seleccionar"): solo indica qué semanas se deberían
+              <!-- FIX (09-sep-2026, pedido usuario — selector de semanas;
+                   actualizado 11-sep-2026): ver el docblock grande junto a
+                   cargarSemanasRecientes()/pintarSemanasSelector() en el
+                   <script> para el detalle completo (formato, preselección,
+                   y de dónde sale ahora la Temporada/Semana REAL — ya no es
+                   un contador de marcador de posición). Al enviar el
+                   formulario, obtenerSemanasSeleccionadas() junta lo
+                   marcado acá y viaja como campo `semanas` del payload;
+                   solo indica qué semanas se deberían
                    evaluar (parámetros de guerra de esas semanas) para
                    decidir si un jugador puede participar en este torneo;
                    esa evaluación real queda PENDIENTE BACKEND. -->
@@ -1043,9 +1044,10 @@
                 <div id="tCuentaOrgInfoMod" class="text-dim" style="font-size:12px; margin-top:6px;"></div>
               </div>
 
-              <!-- FIX (09-sep-2026, pedido usuario — selector de semanas):
-                   ver el docblock de #camposRegistrar (arriba) y el
-                   docblock grande de generarSemanasRecientes() en el
+              <!-- FIX (09-sep-2026, pedido usuario — selector de semanas;
+                   actualizado 11-sep-2026): ver el docblock de
+                   #camposRegistrar (arriba) y el docblock grande de
+                   cargarSemanasRecientes()/pintarSemanasSelector() en el
                    <script>. -->
               <div class="field" id="semanaSelectorWrapMod" style="margin-top:14px;">
                 <label>¿Qué semanas se deben evaluar para este torneo?</label>
@@ -1112,9 +1114,10 @@
                 <div id="tCuentaOrgInfoPlan" class="text-dim" style="font-size:12px; margin-top:6px;"></div>
               </div>
 
-              <!-- FIX (09-sep-2026, pedido usuario — selector de semanas):
-                   ver el docblock de #camposRegistrar (arriba) y el
-                   docblock grande de generarSemanasRecientes() en el
+              <!-- FIX (09-sep-2026, pedido usuario — selector de semanas;
+                   actualizado 11-sep-2026): ver el docblock de
+                   #camposRegistrar (arriba) y el docblock grande de
+                   cargarSemanasRecientes()/pintarSemanasSelector() en el
                    <script>. -->
               <div class="field" id="semanaSelectorWrapPlan" style="margin-top:14px;">
                 <label>¿Qué semanas se deben evaluar para este torneo?</label>
@@ -1484,15 +1487,27 @@
                 <!-- CORRECCIÓN (10-sep-2026, aclaración del usuario): el
                      consolidado (sección 5.4) había registrado que Sorteos
                      NO debía tener selector de semanas porque S_Lista no
-                     tiene columna "Semanas" como T_Lista. Esa nota queda
-                     corregida: el usuario aclaró que Sorteos SÍ necesita
-                     este selector -- no para escribir en una columna
-                     "Semanas" de S_Lista (que en efecto no existe), sino
-                     para indicar sobre qué semanas se debe evaluar el
-                     bloque de requisitos Min_S (trofeos de guerra/ataques
-                     por semana, ver #requisitosSorteoBox más abajo), igual
-                     de necesario acá que en Torneos. Reutiliza TAL CUAL
-                     generarSemanasRecientes()/pintarSemanasSelector() (ver
+                     tenía columna "Semanas" como T_Lista. Esa nota quedó
+                     corregida ese mismo día: el usuario aclaró que Sorteos
+                     SÍ necesita este selector, aunque en ese momento fuera
+                     solo para indicar sobre qué semanas evaluar Min_S
+                     (trofeos de guerra/ataques por semana, ver
+                     #requisitosSorteoBox más abajo), sin escribir en
+                     ningún lado.
+                     ACTUALIZACIÓN (11-sep-2026, pedido usuario — "al
+                     marcar y desmarcar semanas, se debe registrar en
+                     T_Lista o S_Lista"): la columna SL.SEMANAS SÍ se
+                     agregó ese mismo día (ver _setupSLista(),
+                     03_Setup_Hojas.gs) y este selector es justo el que
+                     debería alimentarla -- obtenerSemanasSeleccionadas()
+                     (ver <script>) ya funciona igual acá que en Torneos.
+                     Lo único que falta es el backend de Sorteos en sí:
+                     _webAdminSorteoRegistrar/Modificar/PlanificarGuardar
+                     todavía no existen en 34_Web_API.gs (mismo pendiente
+                     que autor/premios, sección 5.2), así que hoy no hay
+                     ningún botón que llame a obtenerSemanasSeleccionadas()
+                     acá ni que escriba en SL.SEMANAS. Reutiliza TAL CUAL
+                     cargarSemanasRecientes()/pintarSemanasSelector() (ver
                      <script>, ya construidas para Torneos) con un
                      contenedor propio de Sorteos, sin duplicar esa lógica
                      -- mismo criterio que el resto de este panel. -->
@@ -3239,7 +3254,7 @@ initCampoHoraAmigable('sHoraMod', 'sHoraModTexto', 'sHoraModAmPm');
 initCampoFechaAmigable('sFechaPlan', 'sFechaPlanTexto', 'btnCalendarioSorteoPlan');
 initCampoHoraAmigable('sHoraPlan', 'sHoraPlanTexto', 'sHoraPlanAmPm');
 
-/* ---------- Selector de semanas (Temporada) para gestión de torneos ----------
+/* ---------- Selector de semanas (Temporada) para gestión de torneos y sorteos ----------
    FIX (09-sep-2026, pedido usuario): dentro del menú "Planificar, registrar
    o modificar torneos" (Registrar/Modificar/Planificar), después del
    bloque de autor, se muestra una lista de las 5 semanas más recientes
@@ -3247,107 +3262,147 @@ initCampoHoraAmigable('sHoraPlan', 'sHoraPlanTexto', 'sHoraPlanAmPm');
    reciente a más antigua, con las 2 más recientes marcadas por defecto.
    Cada fila usa el formato pedido:
      "Temporada N (mes) Semana M (d mmm - d mmm)"
-   Reglas usadas para construir cada semana:
-     - Cada semana va de LUNES a DOMINGO (mismo ciclo de reinicio semanal
-       de Clash Royale).
-     - "Semana M" es la posición de esa semana DENTRO de su mes (1ª, 2ª...
-       semana del mes en que cae su lunes).
-     - "Temporada N" sube en 1 cada vez que, recorriendo la lista de más
-       antigua a más reciente, el mes del lunes cambia respecto a la
-       semana anterior (por eso una semana que cruza fin de mes, como
-       "31 ago - 06 sep", cuenta como perteneciente al mes de su LUNES:
-       agosto).
+   Cada semana va de LUNES a DOMINGO (mismo ciclo de reinicio semanal de
+   Clash Royale).
 
-   ⚠️ PENDIENTE BACKEND: "Temporada N" acá es SOLO un contador relativo
-   para poder mostrar la lista con el formato pedido (arranca en 1 en la
-   semana más antigua visible de esta lista y sube de 1 en 1 en cada
-   cambio de mes) — NO es el número real de temporada/season que use el
-   backend o el juego. No existe hoy un endpoint que entregue ese número
-   real ni la definición exacta de qué semanas debe evaluar cada torneo
-   (mismo patrón "falta conectar backend" que cargarCuentasDelAutor() más
-   abajo). Tampoco existe todavía ninguna acción real al marcar/desmarcar
-   una semana — pedido explícito del usuario ("no importa que no realice
-   ninguna acción al seleccionar"): por ahora solo queda la lista marcada,
-   lista para cuando se conecte la evaluación real de parámetros de guerra
-   por semana (ver participación de guerra / vGuerra / guerraSemana más
-   arriba en este archivo, que hoy solo tienen datos del día actual, no
-   por semana histórica).
+   FIX (11-sep-2026, pedido usuario — conectar el selector a un backend
+   real): "Temporada N" y "Semana M" YA NO se calculan acá con el contador
+   relativo de antes (arrancaba en 1 en la semana más antigua visible y
+   subía 1 en cada cambio de mes calendario — NO era el número real de
+   temporada/season del juego, ver PENDIENTE BACKEND que había acá mismo
+   hasta hoy). Ahora se piden a _webAdminSemanasRecientes() (34_Web_API.gs),
+   que usa la MISMA fuente real que T_Lista.TEMPORADA
+   (_calcularTemporadaParaFecha()/_calcularSemanaTorneo(),
+   24_Torneos_Core.gs) -- por eso "Semana M" cambia de significado: ahora
+   es la semana DENTRO DE LA TEMPORADA real (la misma numeración que usan
+   los IDs de T_Lista, ej. "T_004_2_01"), no la posición dentro del mes
+   calendario como antes. Solo "(mes)" sigue siendo un dato puramente de
+   display, calculado acá mismo a partir del lunes de cada semana (no
+   necesita ir y volver del servidor).
+   Se pide UNA sola vez al cargar el panel (cargarSemanasRecientes() más
+   abajo) y se cachea en _semanasRecientesCache -- pintarSemanasSelector()
+   sigue siendo SÍNCRONA (la llaman handlers de 'change' que no son async,
+   ver el 'change' de #tSelectHoy más abajo) y solo repinta desde ese
+   caché; si todavía no llegó la respuesta, muestra "Cargando semanas…" en
+   vez de una lista vacía o incorrecta.
 
-   pintarSemanasSelector(containerId) pinta la MISMA lista de semanas (se
-   recalcula en cada llamada a partir de la fecha de hoy) en el contenedor
-   indicado; se llama una vez por cada uno de los 3 formularios
-   (#semanasSelectorReg/Mod/Plan) más abajo. */
+   FIX (11-sep-2026, pedido usuario, continuación — "al marcar y desmarcar
+   semanas, se debe registrar en T_Lista o S_Lista"): antes NINGUNA acción
+   real pasaba al tocar un checkbox ("no importa que no realice ninguna
+   acción al seleccionar", pedido explícito anterior). Eso cambia acá: la
+   escritura sigue sin ser en vivo (se decidió que viaje junto con el
+   submit final, no en cada click) -- obtenerSemanasSeleccionadas(), más
+   abajo, junta los data-lunes-iso marcados en un CSV que se manda como
+   campo `semanas` del payload de Registrar/Modificar/Planificar (ver los
+   3 listeners de Torneos más abajo en este mismo <script>). El backend
+   los convierte a "T{temporada}_S{semana},..." y los escribe en
+   TL.SEMANAS/SL.SEMANAS recién ahí (_construirSemanasCsvDesdeIsos(),
+   24_Torneos_Core.gs).
+
+   PENDIENTE (Sorteos): #semanasSelectorSorteoReg/Mod/Plan ya muestran
+   Temporada/Semana reales (mismo fetch que Torneos) y
+   obtenerSemanasSeleccionadas() funciona igual para esos 3 contenedores,
+   pero TODAVÍA no hay ningún btnRegistrarSorteo/btnModificarSorteo/
+   btnPlanificarSorteo real que arme el payload y llame a un endpoint —
+   _webAdminSorteoRegistrar/Modificar/PlanificarGuardar no existen en
+   34_Web_API.gs (mismo pendiente que autor/premios de Sorteo, ver
+   PENDIENTE BACKEND junto a #requisitosTorneoBox más arriba en el HTML).
+   Cuando esos 3 endpoints se creen, alcanza con mandar
+   `semanas: obtenerSemanasSeleccionadas('semanasSelectorSorteoReg')` (etc.)
+   en su payload, igual que se hace acá abajo para Torneos. */
 
 const MESES_ES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 const MESES_ES_ABR = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
 
-function generarSemanasRecientes(cantidad){
-  const hoy = new Date();
-  hoy.setHours(0, 0, 0, 0);
-  const diaSemana = hoy.getDay(); // 0=domingo..6=sábado
-  const offsetLunes = diaSemana === 0 ? -6 : 1 - diaSemana;
-  const lunesActual = new Date(hoy);
-  lunesActual.setDate(hoy.getDate() + offsetLunes);
+// Caché de las 5 semanas más recientes (de más reciente a más antigua),
+// tal cual las devuelve _webAdminSemanasRecientes(): [{lunesIso,
+// domingoIso, temporada, semana}, ...]. null mientras no se haya pedido
+// (o mientras el fetch está en vuelo) — pintarSemanasSelector() lo
+// respeta para no pintar una lista vacía por error.
+let _semanasRecientesCache = null;
+let _semanasRecientesCargando = null; // Promise en vuelo, evita 2 fetch en paralelo si algo llama antes de que termine el primero.
 
-  // Arma las N semanas de más antigua a más reciente para poder calcular
-  // Temporada/Semana-del-mes en orden cronológico.
-  const semanas = [];
-  for(let i = cantidad - 1; i >= 0; i--){
-    const lunes = new Date(lunesActual);
-    lunes.setDate(lunesActual.getDate() - 7 * i);
-    const domingo = new Date(lunes);
-    domingo.setDate(lunes.getDate() + 6);
-    semanas.push({ lunes, domingo });
-  }
-
-  let temporada = 1;
-  let mesClaveAnterior = null;
-  const semanasPorMes = {}; // "yyyy-m" -> cuántas semanas de esta lista ya cayeron en ese mes
-
-  const resultado = semanas.map(({ lunes, domingo }) => {
-    const mesClave = `${lunes.getFullYear()}-${lunes.getMonth()}`;
-    if(mesClaveAnterior !== null && mesClave !== mesClaveAnterior) temporada++;
-    mesClaveAnterior = mesClave;
-    semanasPorMes[mesClave] = (semanasPorMes[mesClave] || 0) + 1;
-    return {
-      lunes, domingo, temporada,
-      mes: MESES_ES[lunes.getMonth()],
-      semanaDelMes: semanasPorMes[mesClave]
-    };
-  });
-
-  return resultado.reverse(); // de más reciente a más antigua, como pide el usuario
+/**
+ * cargarSemanasRecientes()
+ * FIX (11-sep-2026, pedido usuario): pide las 5 semanas recientes con
+ * Temporada/Semana reales a webAdminSemanasRecientes (34_Web_API.gs) y
+ * las deja en _semanasRecientesCache. Se llama UNA vez al cargar el panel
+ * (ver el .then() al final de este bloque); si falla, deja el caché en []
+ * (lista vacía) para que pintarSemanasSelector() muestre "sin semanas"
+ * en vez de quedarse pegado en "Cargando…" para siempre.
+ * @return {Promise<Array>}
+ */
+async function cargarSemanasRecientes(){
+  if(_semanasRecientesCache) return _semanasRecientesCache;
+  if(_semanasRecientesCargando) return _semanasRecientesCargando;
+  _semanasRecientesCargando = (async () => {
+    try{
+      const data = await apiGetAuth('webAdminSemanasRecientes', {});
+      _semanasRecientesCache = (data && data.ok && Array.isArray(data.semanas)) ? data.semanas : [];
+    }catch(err){
+      _semanasRecientesCache = [];
+    }
+    return _semanasRecientesCache;
+  })();
+  return _semanasRecientesCargando;
 }
 
-function fmtRangoSemana(lunes, domingo){
+function fmtRangoSemana(lunesIso, domingoIso){
+  const lunes = new Date(lunesIso + 'T00:00:00');
+  const domingo = new Date(domingoIso + 'T00:00:00');
   return `${pad2(lunes.getDate())} ${MESES_ES_ABR[lunes.getMonth()]} - ${pad2(domingo.getDate())} ${MESES_ES_ABR[domingo.getMonth()]}`;
 }
 
 function pintarSemanasSelector(containerId){
   const cont = document.getElementById(containerId);
   if(!cont) return;
-  const semanas = generarSemanasRecientes(5);
-  cont.innerHTML = semanas.map((s, i) => {
+  if(!_semanasRecientesCache){
+    cont.innerHTML = '<p class="text-dim" style="font-size:13px; margin:0;">Cargando semanas…</p>';
+    return;
+  }
+  cont.innerHTML = _semanasRecientesCache.map((s, i) => {
     const id = `${containerId}_${i}`;
-    const etiqueta = `Temporada ${s.temporada} (${s.mes}) Semana ${s.semanaDelMes} (${fmtRangoSemana(s.lunes, s.domingo)})`;
+    const mes = MESES_ES[new Date(s.lunesIso + 'T00:00:00').getMonth()];
+    const etiqueta = `Temporada ${s.temporada} (${mes}) Semana ${s.semana} (${fmtRangoSemana(s.lunesIso, s.domingoIso)})`;
     return `<label class="semana-item" for="${id}">
-      <input type="checkbox" id="${id}" class="semana-check" data-lunes-iso="${s.lunes.toISOString().slice(0,10)}" ${i < 2 ? 'checked' : ''}>
+      <input type="checkbox" id="${id}" class="semana-check" data-lunes-iso="${s.lunesIso}" ${i < 2 ? 'checked' : ''}>
       <span>${esc(etiqueta)}</span>
     </label>`;
   }).join('');
 }
 
-pintarSemanasSelector('semanasSelectorReg');
-pintarSemanasSelector('semanasSelectorMod');
-pintarSemanasSelector('semanasSelectorPlan');
+/**
+ * obtenerSemanasSeleccionadas(containerId)
+ * FIX (11-sep-2026, pedido usuario): junta los data-lunes-iso de los
+ * checkboxes marcados en `containerId` en un CSV (ej.
+ * "2026-09-08,2026-09-01"), listo para mandar como campo `semanas` del
+ * payload de Registrar/Modificar/Planificar. El backend
+ * (_webAdminTorneoRegistrar()/Modificar()/PlanificarGuardar(),
+ * 34_Web_API.gs) lo reenvía tal cual a _construirSemanasCsvDesdeIsos()
+ * (24_Torneos_Core.gs), que lo convierte a "T{temporada}_S{semana},...".
+ * @param {string} containerId
+ * @return {string} "" si no hay ninguno marcado o el contenedor no existe.
+ */
+function obtenerSemanasSeleccionadas(containerId){
+  const cont = document.getElementById(containerId);
+  if(!cont) return '';
+  return Array.from(cont.querySelectorAll('.semana-check:checked'))
+    .map(chk => chk.dataset.lunesIso)
+    .filter(Boolean)
+    .join(',');
+}
 
-// CORRECCIÓN (10-sep-2026, aclaración del usuario -- ver el comentario
-// junto a #semanaSelectorWrapSorteoReg en el HTML): Sorteos SÍ necesita
-// este selector para saber sobre qué semanas evaluar Min_S, aunque
-// S_Lista no tenga una columna "Semanas" propia como T_Lista.
-pintarSemanasSelector('semanasSelectorSorteoReg');
-pintarSemanasSelector('semanasSelectorSorteoMod');
-pintarSemanasSelector('semanasSelectorSorteoPlan');
+// Carga inicial: un solo fetch para los 6 selectores (3 de Torneos + 3 de
+// Sorteos, ver PENDIENTE de arriba sobre por qué Sorteos todavía no envía
+// esto en ningún submit), luego se pintan todos desde el mismo caché.
+cargarSemanasRecientes().then(() => {
+  pintarSemanasSelector('semanasSelectorReg');
+  pintarSemanasSelector('semanasSelectorMod');
+  pintarSemanasSelector('semanasSelectorPlan');
+  pintarSemanasSelector('semanasSelectorSorteoReg');
+  pintarSemanasSelector('semanasSelectorSorteoMod');
+  pintarSemanasSelector('semanasSelectorSorteoPlan');
+});
 
 /* ============================================================
  * FIX (10-sep-2026, pedido usuario — "cuadros para ingresar el
@@ -4719,6 +4774,10 @@ document.getElementById('btnRegistrarTorneo').addEventListener('click', async ()
   // listos para cuando ese lado se conecte.
   const requisitos = armarPayloadRequisitos();
   const comentario = document.getElementById('tComentario').value.trim();
+  // FIX (11-sep-2026, pedido usuario — "al marcar y desmarcar semanas, se
+  // debe registrar en T_Lista"): junta los lunes marcados en
+  // #semanasSelectorReg, ver obtenerSemanasSeleccionadas() más arriba.
+  const semanas = obtenerSemanasSeleccionadas('semanasSelectorReg');
   if(!link){ msgEl.innerHTML = '<div class="msg msg-error">Pega el link del torneo.</div>'; return; }
   if(!fecha || !hora){ msgEl.innerHTML = '<div class="msg msg-error">Completa fecha y hora.</div>'; return; }
   if(esContinuacion && !torneoTorneoPrincipalTag){ msgEl.innerHTML = '<div class="msg msg-error">Elige de cuál torneo principal es continuación.</div>'; return; }
@@ -4737,7 +4796,8 @@ document.getElementById('btnRegistrarTorneo').addEventListener('click', async ()
       tagTorneoPrincipal: esContinuacion ? torneoTorneoPrincipalTag : '',
       autor,
       tagOrg, clanOrg, clanTagOrg,
-      requisitos, comentario
+      requisitos, comentario,
+      semanas
     });
     if(manejarRespuestaAuth(data)) return;
     if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
@@ -4751,6 +4811,9 @@ document.getElementById('btnRegistrarTorneo').addEventListener('click', async ()
     document.getElementById('tCuentaOrgBox').style.display = 'none';
     document.getElementById('tCuentaOrgSelect').innerHTML = '<option value="">Elige la cuenta…</option>';
     document.getElementById('tCuentaOrgInfo').textContent = '';
+    // FIX (11-sep-2026): vuelve al default (2 más recientes marcadas) tras
+    // un registro exitoso, mismo criterio que premios/autor de arriba.
+    pintarSemanasSelector('semanasSelectorReg');
     cargarTorneosHoy();
     cargarGanadoresTorneo();
   }catch(err){
@@ -4785,6 +4848,9 @@ document.getElementById('btnModificarTorneo').addEventListener('click', async ()
   // que en btnRegistrarTorneo -- ver el comentario FIX de ese listener.
   const requisitos = armarPayloadRequisitos();
   const comentario = document.getElementById('tComentario').value.trim();
+  // FIX (11-sep-2026, pedido usuario): igual que en Registrar, ver el
+  // comentario FIX de ese listener.
+  const semanas = obtenerSemanasSeleccionadas('semanasSelectorMod');
   if(!id){ msgEl.innerHTML = '<div class="msg msg-error">Elige un torneo de la lista.</div>'; return; }
   if(!fecha || !hora){ msgEl.innerHTML = '<div class="msg msg-error">Completa la nueva fecha y hora.</div>'; return; }
   if(esContinuacion && !torneoTorneoPrincipalTag){ msgEl.innerHTML = '<div class="msg msg-error">Elige de cuál torneo principal es continuación.</div>'; return; }
@@ -4797,7 +4863,8 @@ document.getElementById('btnModificarTorneo').addEventListener('click', async ()
       autor,   // '' = no cambiar el autor ya registrado
       premios, // '' = no cambiar los premios ya registrados
       tagOrg, clanOrg, clanTagOrg, // '' = no cambiar Tag_org/Clan/ClanTag ya registrados
-      requisitos, comentario
+      requisitos, comentario,
+      semanas // '' = no cambiar las semanas ya registradas (el backend solo escribe si viene con valor)
     });
     if(manejarRespuestaAuth(data)) return;
     if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
@@ -4851,6 +4918,9 @@ document.getElementById('btnPlanificarTorneo').addEventListener('click', async (
   // que en btnRegistrarTorneo -- ver el comentario FIX de ese listener.
   const requisitos = armarPayloadRequisitos();
   const comentario = document.getElementById('tComentario').value.trim();
+  // FIX (11-sep-2026, pedido usuario): igual que en Registrar, ver el
+  // comentario FIX de ese listener.
+  const semanas = obtenerSemanasSeleccionadas('semanasSelectorPlan');
   if(!fecha || !hora){ msgEl.innerHTML = '<div class="msg msg-error">Completa fecha y hora.</div>'; return; }
   if(!premios){ msgEl.innerHTML = '<div class="msg msg-error">Agrega al menos un premio.</div>'; return; }
   if(esContinuacion && !torneoTorneoPrincipalTag){ msgEl.innerHTML = '<div class="msg msg-error">Elige de cuál torneo principal es continuación.</div>'; return; }
@@ -4874,7 +4944,8 @@ document.getElementById('btnPlanificarTorneo').addEventListener('click', async (
       tagTorneoPrincipal: esContinuacion ? torneoTorneoPrincipalTag : '',
       autor,
       tagOrg, clanOrg, clanTagOrg,
-      requisitos, comentario
+      requisitos, comentario,
+      semanas
     });
     if(manejarRespuestaAuth(data)) return;
     if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
@@ -4888,6 +4959,9 @@ document.getElementById('btnPlanificarTorneo').addEventListener('click', async (
     document.getElementById('tCuentaOrgSelectPlan').innerHTML = '<option value="">Elige la cuenta…</option>';
     document.getElementById('tCuentaOrgInfoPlan').textContent = '';
     reiniciarPremiosEditor();
+    // FIX (11-sep-2026): vuelve al default (2 más recientes marcadas),
+    // mismo criterio que btnRegistrarTorneo de arriba.
+    pintarSemanasSelector('semanasSelectorPlan');
   }catch(err){
     msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
   }
