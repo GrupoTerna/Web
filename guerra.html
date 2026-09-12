@@ -55,7 +55,7 @@
     letter-spacing:.1em; padding:2px 8px; border-radius:999px; box-shadow:0 2px 8px rgba(162,57,255,.4);
   }
   .clan-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:16px;}
-  .clan-card .name{font-family:var(--f-display); font-size:18px; font-weight:800; text-transform:uppercase; color:var(--text);}
+  .clan-card .name{font-family:var(--f-display); font-size:18px; font-weight:800; text-transform:uppercase; color:var(--text); text-align:center;}
   .clan-card .stats{display:flex; gap:18px; margin-top:14px; font-family:var(--f-mono);}
   /* FIX (04-sep-2026, pedido usuario — "no se entiende bien de dónde salen
      los [totales] ... Ataques, fame y barcos deberían estar alineados con
@@ -190,8 +190,6 @@
   #participacionHoySection{display:none;}
   .part-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
   @media (max-width:640px){ .part-grid{grid-template-columns:1fr;} }
-  .part-clan-bloque{padding:14px 0;}
-  .part-clan-bloque + .part-clan-bloque{border-top:1px solid var(--line);}
   .part-clan-nombre{font-weight:700; font-size:14px; margin-bottom:10px;}
   .part-col-header{
     font-family:var(--f-mono); font-size:11px; text-transform:uppercase; letter-spacing:.08em;
@@ -507,7 +505,13 @@
            si no hay sesión de admin o no hay contenido, se queda vacía y
            no ocupa espacio. -->
       <div class="msj-guerra-row" id="msjGuerraWrap"></div>
-      <div id="pendWrap" style="margin-top:20px;"></div>
+      <!-- FIX (12-sep-2026, pedido usuario — "agrega también los botones
+           de clan(es) y Todos"): mismo patrón .tabs-row/.tab-btn que
+           "Valores diarios" (ver gestionarTabsClan() en el <script>).
+           Arranca vacía; se llena en cuanto haya al menos una tarjeta de
+           clan pintada en #pendWrap. -->
+      <div class="tabs-row" id="pendClanTabs" style="margin-top:20px;"></div>
+      <div id="pendWrap" style="margin-top:14px;"></div>
     </section>
 
     <!-- FASE 3 del plan de fases (punto 3 del documento — "cuentas y
@@ -524,9 +528,15 @@
     <section id="participacionHoySection" style="padding:24px 0;">
       <div class="sec-head" style="border-bottom:1px solid var(--line); padding-bottom:12px;">
         <h2 style="font-size:22px;">🔁 Participación de Hoy (Reemplazos)</h2>
-        <p style="margin-top:8px;">Por clan: cuentas que ya usaron al menos 1 de sus 4 ataques hoy (reservadas, no reemplazables) vs. cuentas activas que todavía no atacaron (reemplazables). Solo visible para administradores.</p>
+        <div class="text-faint" style="font-family:var(--f-mono); font-size:12px; margin-top:10px;">Por clan: cuentas que ya usaron al menos 1 de sus 4 ataques hoy (reservadas, no reemplazables) vs. cuentas activas que todavía no atacaron (reemplazables). Solo visible para administradores.</div>
       </div>
-      <div id="participacionHoyWrap" style="margin-top:16px;"></div>
+      <!-- FIX (12-sep-2026, pedido usuario — "agrega también los botones
+           de clan(es) y Todos"): mismo patrón .tabs-row/.tab-btn que
+           "Valores diarios" (ver gestionarTabsClan() en el <script>).
+           Arranca vacía; se llena en cuanto haya al menos una tarjeta de
+           clan pintada en #participacionHoyWrap. -->
+      <div class="tabs-row" id="participacionHoyClanTabs" style="margin-top:20px;"></div>
+      <div id="participacionHoyWrap" style="margin-top:14px;"></div>
     </section>
 
     <!-- FIX (05-sep-2026, pedido usuario — "Se debe agregar un panel, tipo
@@ -722,6 +732,13 @@ let prevValues  = {};
 const TAB_TODOS = '__todos__';
 let clanSeleccionadoActivos = null;
 let clanSeleccionadoTemporada = null;
+// FIX (12-sep-2026, pedido usuario — "en pendientes de atacar y en
+// participación de hoy agrega también los botones de clan(es) y Todos"):
+// mismo patrón/estado que clanSeleccionadoActivos/Temporada de arriba,
+// aplicado a las 2 secciones que todavía no tenían botonera de clan — ver
+// gestionarTabsClan() más abajo, que ya es genérica para cualquier sección.
+let clanSeleccionadoPend = null;
+let clanSeleccionadoParticipacion = null;
 // FIX (09-sep-2026, pedido usuario — selectores de año/temporada(mes)/
 // semana para "Valores diarios"): antes solo existía
 // sectionIndexSeleccionadoActivos (semana dentro de la temporada vigente);
@@ -1457,7 +1474,7 @@ function render(data){
   }).join('');
   const clanGrid = document.getElementById('clanGrid');
   const clanes = Object.entries(data.guerraPorClan || {});
-  document.getElementById('clanCount').textContent = clanes.length + ' clan(es)';
+  document.getElementById('clanCount').textContent = clanes.length + (clanes.length === 1 ? ' clan' : ' clanes');
   clanGrid.innerHTML = clanes.length ? clanes.map(([nombre, g], idx) => {
     const pct = g.totalHoy ? Math.round((g.atacaron / g.totalHoy) * 100) : 0;
     const slug = 'clan' + idx;
@@ -1490,16 +1507,33 @@ function render(data){
   // Miembro/Aspirante) igual que el resto de datos de Directorio que ya
   // trae data.pendientes. Si el backend aún no manda ese campo para algún
   // jugador, se muestra "—" en vez de romper la tabla.
+  // FIX (12-sep-2026, pedido usuario — "agrega también los botones de
+  // clan(es) y Todos"): la tabla única con columna "Clan" se separa en una
+  // tarjeta .ai-clan-card por clan (mismo patrón que "Valores diarios"),
+  // con botonera .tabs-row/.tab-btn arriba (ver gestionarTabsClan() más
+  // abajo) para filtrar sin volver a pedir datos. La columna "Clan" ya no
+  // hace falta dentro de cada tabla — el nombre del clan ahora está en el
+  // encabezado de su propia tarjeta, igual que en "Valores diarios".
   const pend = data.pendientes || [];
   document.getElementById('pendCount').textContent = pend.length + ' jugador(es)';
+  const pendPorClan = {};
+  pend.forEach(p => { const c = p.clan || '—'; (pendPorClan[c] = pendPorClan[c] || []).push(p); });
+  const clanesPend = Object.keys(pendPorClan).sort((a, b) => ordenClanIndex(a) - ordenClanIndex(b));
   const pendWrap = document.getElementById('pendWrap');
-  pendWrap.innerHTML = pend.length ? `
-    <div class="card" style="padding:12px;"><div class="table-scroll"><table class="tbl-pendientes">
-      <thead><tr><th>Nombre</th><th>Clan</th><th>Rango</th><th>Faltantes</th></tr></thead>
-      <tbody>${pend.map(p => `
-          <tr><td class="col-nombre">${p.tag ? enlaceJugador(p.nombre || p.nomMulti || p.tag, p.tag) : esc(p.nombre || p.nomMulti || p.tag)}</td><td>${esc(p.clan)}</td><td>${esc(p.rango || '—')}</td><td class="falt">${fmtNum(p.faltantes)}</td></tr>`).join('')}
-      </tbody>
-    </table></div></div>` : '<div class="empty">Nadie tiene ataques pendientes 🎉</div>';
+  pendWrap.innerHTML = clanesPend.length ? clanesPend.map(clanNombre => {
+    const filas = pendPorClan[clanNombre];
+    return `
+    <div class="card ai-clan-card" data-clan="${esc(clanNombre)}" style="padding:16px;">
+      <h3>${esc(clanNombre)} <span class="text-faint" style="font-family:var(--f-mono); font-size:12px; font-weight:400;">(${filas.length} pendiente${filas.length === 1 ? '' : 's'})</span></h3>
+      <div class="table-scroll"><table class="tbl-pendientes">
+        <thead><tr><th>Nombre</th><th>Rango</th><th>Faltantes</th></tr></thead>
+        <tbody>${filas.map(p => `
+            <tr><td class="col-nombre">${p.tag ? enlaceJugador(p.nombre || p.nomMulti || p.tag, p.tag) : esc(p.nombre || p.nomMulti || p.tag)}</td><td>${esc(p.rango || '—')}</td><td class="falt">${fmtNum(p.faltantes)}</td></tr>`).join('')}
+        </tbody>
+      </table></div>
+    </div>`;
+  }).join('') : '<div class="empty">Nadie tiene ataques pendientes 🎉</div>';
+  gestionarTabsClan('pendClanTabs', 'pendWrap', () => clanSeleccionadoPend, v => clanSeleccionadoPend = v);
   const resumen = Object.entries(data.resumenClanes || {});
   const maxResumen = Math.max(1, ...resumen.map(([,v]) => v));
   const resumenWrap = document.getElementById('resumenWrap');
@@ -1995,13 +2029,18 @@ function pendientesHoy(cta){
 }
 
 function renderParticipacionHoyGuerra(clanes, multiClan){
-  const barraHorizontal = '<hr style="border:none; border-top:1px solid var(--line); margin:0;">';
-
+  // FIX (12-sep-2026, pedido usuario — "agrega también los botones de
+  // clan(es) y Todos"): cada clan pasa a su propia tarjeta .ai-clan-card
+  // con data-clan (mismo patrón que "Valores diarios"), para que
+  // gestionarTabsClan() pueda mostrar/ocultar una por una sin volver a
+  // pedir datos. El aviso de multiClan queda FUERA de esas tarjetas (sin
+  // data-clan) para que se siga viendo sin importar qué pestaña esté
+  // activa — es información agregada, no de un solo clan.
   const clanesHtml = clanes.map(c => {
     const conPendientes = c.reservadas.filter(cta => pendientesHoy(cta) > 0);
     const sinPendientes = c.reservadas.filter(cta => pendientesHoy(cta) === 0);
     return `
-    <div class="part-clan-bloque">
+    <div class="card ai-clan-card" data-clan="${esc(c.clan)}" style="padding:16px;">
       <div class="part-clan-nombre">${esc(c.clan)}</div>
       <div class="part-grid">
         <div>
@@ -2020,14 +2059,14 @@ function renderParticipacionHoyGuerra(clanes, multiClan){
   }).join('');
 
   const multiClanHtml = !multiClan.length ? '' : `
-    <div style="border-top:1px solid var(--line); padding:12px 0;">
+    <div class="card" style="padding:16px;">
       <span class="badge badge-warn">Ataques en más de un clan hoy</span>
       <ul class="part-lista" style="margin-top:8px;">
         ${multiClan.map(m => `<li>${m.tag ? enlaceJugador(m.nombre || m.tag, m.tag) : esc(m.nombre || m.tag)} <span class="text-faint" style="font-family:var(--f-mono);">${esc(m.tag || '')}</span> — ${m.clanes.map(esc).join(' y ')} (${fmtNum(m.totalAtaquesHoy)} ataques hoy)</li>`).join('')}
       </ul>
     </div>`;
 
-  return barraHorizontal + clanesHtml + barraHorizontal + multiClanHtml;
+  return clanesHtml + multiClanHtml;
 }
 
 /**
@@ -2043,20 +2082,23 @@ function renderParticipacionHoyGuerra(clanes, multiClan){
 async function cargarParticipacionHoySiAdmin(ctx){
   const section = document.getElementById('participacionHoySection');
   const wrap = document.getElementById('participacionHoyWrap');
-  if (!ctx.esDiaGuerra || !esAdminLogueado()){ section.style.display = 'none'; wrap.innerHTML = ''; return; }
+  const tabsWrap = document.getElementById('participacionHoyClanTabs');
+  if (!ctx.esDiaGuerra || !esAdminLogueado()){ section.style.display = 'none'; wrap.innerHTML = ''; tabsWrap.innerHTML = ''; return; }
   try{
     const data = await apiGetAuth('webAdminParticipacionHoyGuerra', {});
-    if (!data || data.ok === false){ section.style.display = 'none'; wrap.innerHTML = ''; return; }
+    if (!data || data.ok === false){ section.style.display = 'none'; wrap.innerHTML = ''; tabsWrap.innerHTML = ''; return; }
     const clanes = (data.clanes || []).slice().sort((a, b) => ordenClanIndex(a.clan) - ordenClanIndex(b.clan));
-    if (!clanes.length){ section.style.display = 'none'; wrap.innerHTML = ''; return; }
+    if (!clanes.length){ section.style.display = 'none'; wrap.innerHTML = ''; tabsWrap.innerHTML = ''; return; }
 
     wrap.innerHTML = renderParticipacionHoyGuerra(clanes, data.multiClan || []);
     section.style.display = 'block';
+    gestionarTabsClan('participacionHoyClanTabs', 'participacionHoyWrap', () => clanSeleccionadoParticipacion, v => clanSeleccionadoParticipacion = v);
   }catch(err){
     // Defensivo: sesión vencida u otro fallo — no romper el resto de la
     // página pública por esto, la sección simplemente no aparece.
     section.style.display = 'none';
     wrap.innerHTML = '';
+    tabsWrap.innerHTML = '';
   }
 }
 
