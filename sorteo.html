@@ -781,6 +781,20 @@
             <label for="winnerResPremio" style="display:block; font-size:12px; font-weight:600; color:var(--ink); margin-bottom:4px;">Premio</label>
             <input type="text" id="winnerResPremio" placeholder="Ej: Pass Royale" style="width:100%; border:1px solid var(--panel-line); border-radius:9px; padding:8px 10px; font-size:13px; color:var(--ink); box-sizing:border-box;">
           </div>
+          <!-- FIX (12-sep-2026, pedido del usuario -- consolidado sección 1,
+               punto 10, y Base.md _registrarResolucionSorteo()/
+               actualizarDocGanadoresSorteo()): campo Tickets, prellenado con
+               el peso real (participant.weight) con el que el ganador entró
+               a la ruleta -- mismo criterio que Tag/Premio: viene sugerido
+               pero es editable a mano antes de guardar, por si el admin
+               necesita corregirlo. Opcional: si se deja vacío, se manda
+               `undefined` en el payload (ver guardarResolucionGanador() más
+               abajo) y el backend guarda la celda vacía, igual que antes de
+               este FIX. -->
+          <div style="margin-bottom:8px;">
+            <label for="winnerResTickets" style="display:block; font-size:12px; font-weight:600; color:var(--ink); margin-bottom:4px;">Tickets<span style="font-weight:400; color:var(--ink-soft);"> (con los que entró a la ruleta)</span></label>
+            <input type="number" id="winnerResTickets" min="0" step="1" placeholder="Ej: 3" style="width:100%; border:1px solid var(--panel-line); border-radius:9px; padding:8px 10px; font-size:13px; color:var(--ink); box-sizing:border-box;">
+          </div>
           <div style="margin-bottom:8px;">
             <label for="winnerResTipo" style="display:block; font-size:12px; font-weight:600; color:var(--ink); margin-bottom:4px;">Resultado</label>
             <select id="winnerResTipo" style="width:100%; border:1px solid var(--panel-line); border-radius:9px; padding:8px 10px; font-size:13px; color:var(--ink);">
@@ -1192,6 +1206,7 @@
   var winnerResSinTagWrap = document.getElementById('winnerResSinTagWrap');
   var winnerResSinTagConfirm = document.getElementById('winnerResSinTagConfirm');
   var winnerResPremio = document.getElementById('winnerResPremio');
+  var winnerResTickets = document.getElementById('winnerResTickets');
   var winnerResTipo = document.getElementById('winnerResTipo');
   var winnerResRazon = document.getElementById('winnerResRazon');
   var winnerResRazonWrap = document.getElementById('winnerResRazonWrap');
@@ -1231,6 +1246,7 @@
     document.getElementById('winnerResolucionParaTexto').textContent = 'Registrar resultado para: ' + w.editedName;
     winnerResTag.value = w.tag || '';
     winnerResPremio.value = w.premio || '';
+    winnerResTickets.value = (w.tickets !== null && w.tickets !== undefined) ? w.tickets : '';
     winnerResTipo.value = w.resultado || 'Califica';
     winnerResRazon.value = w.razon || '';
     toggleWinnerResRazonVisibility();
@@ -1285,6 +1301,21 @@
     }
 
     var premio = winnerResPremio.value.trim();
+
+    // Tickets (FIX 12-sep-2026, consolidado sección 1 punto 10): opcional,
+    // igual que valida _registrarResolucionSorteo() del lado del backend --
+    // si se deja vacío no se manda nada (undefined) y la celda queda vacía;
+    // si viene, debe ser numérico y no negativo.
+    var ticketsTexto = winnerResTickets.value.trim();
+    var tickets;
+    if (ticketsTexto !== ''){
+      tickets = Number(ticketsTexto);
+      if (isNaN(tickets) || tickets < 0){
+        showWinnerResGuardarStatus('Tickets inválido (debe ser un número mayor o igual a 0), o dejalo vacío si no aplica.', 'err');
+        return;
+      }
+    }
+
     var token = localStorage.getItem(SESSION_KEY_SORTEO);
     if (!token){
       showWinnerResGuardarStatus('No hay sesión de admin activa. Volvé a entrar desde admin.html.', 'err');
@@ -1313,7 +1344,8 @@
           premio: premio,
           resultado: resultado,
           razon: razon,
-          permitirSinTag: permitirSinTag
+          permitirSinTag: permitirSinTag,
+          tickets: tickets
         }
       })
     })
@@ -1329,6 +1361,7 @@
 
         w.tag = tag || null;
         w.premio = premio;
+        w.tickets = (ticketsTexto !== '') ? tickets : null;
         w.resultado = resultado;
         w.razon = razon;
         w.guardado = true;
@@ -1431,6 +1464,14 @@
           tag: slice.participant.tag || null,
           clan: slice.participant.clan || null,
           premio: '',
+          // FIX (12-sep-2026, consolidado sección 1 punto 10): se propaga
+          // el peso real con el que este participante entró a la ruleta
+          // (mismo `weight` que ya usa pickWeightedIndex() para la
+          // probabilidad) -- sugerido en el campo Tickets del formulario de
+          // resolución (ver abrirResolucionGanador()), pero editable a mano
+          // antes de guardar, igual que Tag/Premio.
+          tickets: (typeof slice.participant.weight === 'number' && slice.participant.weight > 0)
+            ? slice.participant.weight : null,
           guardado: false
         };
         winners.push(w);
