@@ -1820,7 +1820,19 @@
               <label for="resPuestoFinal">Puesto final (tras la partida de desempate)</label>
               <input type="number" id="resPuestoFinal" min="1" step="1">
             </div>
-            <div class="field">
+            <div class="field" id="resMotivoDescalificadoWrap" style="display:none;">
+              <label for="resMotivoDescalificadoSelect">Motivo</label>
+              <select id="resMotivoDescalificadoSelect">
+                <option value="">-- Seleccionar --</option>
+                <option value="No está en el grupo de WhatsApp de ganadores">No está en el grupo de WhatsApp de ganadores</option>
+                <option value="No reaccionó a la publicación">No reaccionó a la publicación</option>
+                <option value="No se encuentra en el clan">No se encuentra en el clan</option>
+                <option value="No alcanzó el mínimo de trofeos de guerra">No alcanzó el mínimo de trofeos de guerra</option>
+                <option value="No realizó la cantidad de ataques requeridos para este torneo">No realizó la cantidad de ataques requeridos para este torneo</option>
+                <option value="__otro__">Otro (especificar)</option>
+              </select>
+            </div>
+            <div class="field" id="resMotivoWrap">
               <label for="resMotivo">Motivo</label>
               <input type="text" id="resMotivo" placeholder="La razón del castigo o el detalle del desempate — queda visible en el Doc y en la web">
             </div>
@@ -5688,16 +5700,57 @@ function abrirResolucionForm(tag, nombre, resolucionActual){
   document.getElementById('resTipo').value = tipoActual;
   document.getElementById('resPuestoFinalWrap').style.display = tipoActual === 'Empate - Partida de desempate' ? 'block' : 'none';
   document.getElementById('resPuestoFinal').value = '';
-  document.getElementById('resMotivo').value = (resolucionActual && resolucionActual.motivoResolucion) || '';
+  const motivoActual = (resolucionActual && resolucionActual.motivoResolucion) || '';
+  document.getElementById('resMotivo').value = motivoActual;
+  // Si el motivo ya trae uno de los valores fijos del dropdown (ej. el
+  // precargado por "Descalificar: no está en el grupo"), lo selecciona
+  // ahí; si no coincide con ninguno, deja el dropdown en "-- Seleccionar
+  // --" para que se vea el texto libre con lo que ya venía escrito.
+  const selDescalificado = document.getElementById('resMotivoDescalificadoSelect');
+  const opcionesFijas = Array.from(selDescalificado.options).map(o => o.value).filter(v => v && v !== '__otro__');
+  selDescalificado.value = opcionesFijas.includes(motivoActual) ? motivoActual : '';
+  actualizarVisibilidadMotivoResolucion();
   document.getElementById('resolucionMsg').innerHTML = '';
   const form = document.getElementById('resolucionForm');
   form.style.display = 'block';
   form.scrollIntoView({ behavior:'smooth', block:'nearest' });
 }
 
+// FASE (12-sep-2026, pedido del usuario -- consolidado punto 2 "dropdown
+// de Motivo en Torneos"): dropdown de motivos específicos SOLO para
+// "Descalificado" (Empate sigue en texto libre -- ver docblock de
+// resMotivo, "el detalle del desempate" es descriptivo, no categorizable
+// en una lista corta, a la espera de que el usuario defina esos valores
+// si los quiere). #resMotivo sigue siendo el campo real que viaja a
+// _webAdminTorneoResolucionGuardar() (backend sin cambios): cuando se
+// elige un motivo fijo del dropdown, se copia tal cual a #resMotivo (oculto
+// mientras tanto); si se elige "Otro" o no se elige nada todavía, se
+// muestra #resMotivo para texto libre, igual que el comportamiento previo
+// a este cambio.
+function actualizarVisibilidadMotivoResolucion(){
+  const tipo = document.getElementById('resTipo').value;
+  const selDescalificado = document.getElementById('resMotivoDescalificadoSelect');
+  const wrapDescalificado = document.getElementById('resMotivoDescalificadoWrap');
+  const wrapMotivo = document.getElementById('resMotivoWrap');
+  const inputMotivo = document.getElementById('resMotivo');
+
+  if (tipo === 'Descalificado'){
+    wrapDescalificado.style.display = 'block';
+    const esOtroOSinElegir = selDescalificado.value === '__otro__' || selDescalificado.value === '';
+    wrapMotivo.style.display = esOtroOSinElegir ? 'block' : 'none';
+    if (!esOtroOSinElegir) inputMotivo.value = selDescalificado.value;
+  } else {
+    wrapDescalificado.style.display = 'none';
+    wrapMotivo.style.display = 'block';
+  }
+}
+
+document.getElementById('resMotivoDescalificadoSelect').addEventListener('change', actualizarVisibilidadMotivoResolucion);
+
 document.getElementById('resTipo').addEventListener('change', () => {
   document.getElementById('resPuestoFinalWrap').style.display =
     document.getElementById('resTipo').value === 'Empate - Partida de desempate' ? 'block' : 'none';
+  actualizarVisibilidadMotivoResolucion();
 });
 
 document.getElementById('btnCancelarResolucion').addEventListener('click', () => {
