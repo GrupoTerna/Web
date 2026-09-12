@@ -51,6 +51,10 @@
   conecte a esa carpeta para leer estos JSON.
   ID de la carpeta de Drive: 1Kqmn7ExFr3cDER_DgKnHwHlWc9lLW9aF
   (https://drive.google.com/drive/u/0/folders/1Kqmn7ExFr3cDER_DgKnHwHlWc9lLW9aF)
+     AVANCE (12-sep-2026): perfil.html ya tiene TODAS las secciones
+     frontend consumiendo jugador.rawClash (categorías con el mismo nombre
+     que el JSON, ver rawClash() y los "PENDIENTE BACKEND" de cada
+     render*() nuevo). Falta solo que webPerfil adjunte ese objeto.
 
   Revisando un ejemplo del JSON, esto es lo que trae y que perfil.html
   todavía NO usa (currentDeck y achievements ya llegan por otra vía, ver
@@ -218,6 +222,40 @@
     font-family:var(--f-mono); font-size:10px; padding:2px 7px; border-radius:999px;
     background:var(--bg-2); color:var(--text-faint);
   }
+  /* ===== FIX (12-sep-2026, pedido usuario — aprovechar TODO el JSON crudo
+   * del export de Drive): estilos de las secciones nuevas del perfil.
+   * Qué falta conectar al backend y con qué nombre de categoría: ver los
+   * comentarios "PENDIENTE BACKEND" junto a cada render*() del script. */
+  .snapshot-info{font-family:var(--f-mono); font-size:11px; color:var(--text-faint); margin-top:4px;}
+  .badge-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(118px,1fr)); gap:10px; margin-top:14px;}
+  .badge-item{background:var(--bg-2); border:1px solid var(--line); border-radius:var(--radius-sm); padding:10px 8px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:4px;}
+  .badge-item img{width:46px; height:46px; object-fit:contain;}
+  .badge-item .b-nombre{font-size:11px; font-weight:700; color:var(--text); line-height:1.2; word-break:break-word;}
+  .badge-item .b-nivel{font-family:var(--f-mono); font-size:10px; color:var(--gold);}
+  .badge-item .b-prog{font-family:var(--f-mono); font-size:10px; color:var(--text-faint);}
+  .badge-item .progress{width:100%; height:5px; margin-top:2px;}
+  .star-level{color:var(--gold); font-size:11px; letter-spacing:1px; white-space:nowrap;}
+  .cc-count{font-family:var(--f-mono); font-size:10px; color:var(--text-faint);}
+  .coleccion-resumen{font-family:var(--f-mono); font-size:12px; color:var(--text-dim); margin-top:10px;}
+  .coleccion-filtros{display:flex; gap:8px; flex-wrap:wrap; margin:14px 0 4px;}
+  .coleccion-filtros button{
+    font-family:var(--f-mono); font-size:11px; font-weight:600; color:var(--text-dim);
+    border:1px solid var(--line); padding:5px 12px; border-radius:999px; background:transparent;
+    cursor:pointer; transition:all .18s ease;
+  }
+  .coleccion-filtros button:hover{border-color:var(--purple); color:var(--purple-light);}
+  .coleccion-filtros button.activo{border-color:var(--purple); background:rgba(162,57,255,.12); color:var(--purple-light);}
+  .coleccion-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(96px,1fr)); gap:10px; margin-top:12px;}
+  .col-card{background:var(--bg-2); border:1px solid var(--line); border-radius:10px; padding:8px 6px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:3px;}
+  .col-card img{width:52px; height:60px; object-fit:contain;}
+  .col-card .col-nombre{font-size:10px; font-weight:700; color:var(--text); line-height:1.15; word-break:break-word;}
+  .col-card.max-level{border-color:var(--gold);}
+  .torre-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:12px; margin-top:14px;}
+  .panel-stats{width:100%; border-collapse:collapse; font-size:13px; margin-top:12px;}
+  .panel-stats td{padding:8px 10px; border-bottom:1px solid var(--line); color:var(--text-dim); vertical-align:top;}
+  .panel-stats td:last-child{text-align:right; color:var(--text); font-family:var(--f-mono); font-size:12px; white-space:nowrap;}
+  .fav-wrap{display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-top:14px;}
+  .fav-wrap img{width:72px; height:84px; object-fit:contain;}
 </style>
 </head>
 <body data-page="perfil">
@@ -257,6 +295,11 @@
           <div>
             <h1 id="mNombre" style="font-size:26px;">—</h1>
             <div class="text-dim" id="mSub" style="margin-top:6px; font-size:14px;">—</div>
+            <!-- FIX (12-sep-2026): fecha/clan del snapshot exportado a Drive
+                 (categorías _fecha y _clan del JSON, campos propios del
+                 exportador — ver renderSnapshotInfo()). Oculto si el
+                 backend todavía no adjunta rawClash. -->
+            <div class="snapshot-info" id="mSnapshotInfo" style="display:none;"></div>
           </div>
           <div class="stats-mini">
             <span><b id="mCopas">0</b>Copas</span>
@@ -367,6 +410,68 @@
         <h2 style="font-size:19px; margin-top:8px;">Barcos por semana</h2>
         <div id="mBarcosChart"></div>
       </div>
+
+      <!-- ===== SECCIONES NUEVAS (12-sep-2026, pedido usuario — aprovechar
+           TODO el JSON crudo del export de Drive) =====
+           Todas leen jugador.rawClash vía rawClash() (ver script).
+           PENDIENTE BACKEND — webPerfil (34_Web_API.gs) debe adjuntar el
+           objeto del snapshot exportado tal cual, conservando los nombres
+           de categoría del JSON de Supercell:
+             currentFavouriteCard · currentDeckSupportCards · cards[] ·
+             supportCards[] ("Cartas de torre") · badges[] · achievements[] ·
+             currentPathOfLegendSeasonResult / lastPathOfLegendSeasonResult /
+             bestPathOfLegendSeasonResult · leagueStatistics ·
+             legacyTrophyRoadHighScore · progress{} · starPoints ·
+             expPoints / totalExpPoints · expLevel · kingTowerLevel ·
+             _fecha / _clan (campos propios del exportador).
+           Mientras rawClash no llegue, cada card se queda oculta sola. -->
+      <div class="card" id="mFavoritaCard" style="padding:28px; margin-top:20px; display:none;">
+        <div class="eyebrow">Personal</div>
+        <h2 style="font-size:19px; margin-top:8px;">Carta favorita</h2>
+        <div id="mFavoritaContenido"></div>
+      </div>
+
+      <div class="card" id="mLeyendasCard" style="padding:28px; margin-top:20px; display:none;">
+        <div class="eyebrow">Competitivo</div>
+        <h2 style="font-size:19px; margin-top:8px;">Camino de Leyendas y ligas</h2>
+        <div id="mLeyendasContenido"></div>
+      </div>
+
+      <div class="card" id="mColeccionCard" style="padding:28px; margin-top:20px; display:none;">
+        <div class="eyebrow">Colección</div>
+        <h2 style="font-size:19px; margin-top:8px;">Colección completa de cartas</h2>
+        <div class="coleccion-resumen" id="mColeccionResumen"></div>
+        <div class="coleccion-filtros" id="mColeccionFiltros"></div>
+        <div class="coleccion-grid" id="mColeccionContenido"></div>
+      </div>
+
+      <div class="card" id="mTorresCard" style="padding:28px; margin-top:20px; display:none;">
+        <div class="eyebrow">Colección</div>
+        <h2 style="font-size:19px; margin-top:8px;">Cartas de torre</h2>
+        <!-- PENDIENTE BACKEND: categoría supportCards[] del JSON (las
+             "Tower Cards" de RoyaleAPI; NO confundir con
+             currentDeckSupportCards, que es la torre equipada en el mazo
+             actual y se pinta dentro de "Mazo actual"). -->
+        <div class="torre-grid" id="mTorresContenido"></div>
+      </div>
+
+      <div class="card" id="mInsigniasCard" style="padding:28px; margin-top:20px; display:none;">
+        <div class="eyebrow">Insignias y logros</div>
+        <h2 style="font-size:19px; margin-top:8px;">Insignias</h2>
+        <div id="mInsigniasContenido"></div>
+      </div>
+
+      <div class="card" id="mLogrosCard" style="padding:28px; margin-top:20px; display:none;">
+        <div class="eyebrow">Insignias y logros</div>
+        <h2 style="font-size:19px; margin-top:8px;">Logros</h2>
+        <div id="mLogrosContenido" style="margin-top:14px;"></div>
+      </div>
+
+      <div class="card" id="mProgresoCard" style="padding:28px; margin-top:20px; display:none;">
+        <div class="eyebrow">Actividad</div>
+        <h2 style="font-size:19px; margin-top:8px;">Progreso de eventos y modos</h2>
+        <div id="mProgresoContenido"></div>
+      </div>
     </div>
   </section>
 
@@ -381,6 +486,23 @@
 
 <script src="assets/common.js"></script>
 <script>
+/** ===== FIX GLOBAL (12-sep-2026, pedido usuario) =====
+ * Aprovechar TODO el JSON crudo que el usuario sube a Drive (carpeta
+ * "JSON", un snapshot por jugador — ver PENDIENTE del comentario grande
+ * de <head>). Convención: el backend adjuntará el objeto del snapshot como
+ * jugador.rawClash = { ... } conservando los nombres de categoría del
+ * JSON de Supercell (badges, achievements, cards, supportCards,
+ * currentDeck, currentDeckSupportCards, currentFavouriteCard,
+ * leagueStatistics, currentPathOfLegendSeasonResult / last... / best...,
+ * legacyTrophyRoadHighScore, progress, starPoints, expPoints,
+ * totalExpPoints, expLevel, kingTowerLevel, tournamentBattleCount,
+ * currentWinLoseStreak, _fecha, _clan, ...). Cada función nueva lleva un
+ * comentario "PENDIENTE BACKEND" con el nombre EXACTO de la categoría que
+ * lee. OJO: no se hardcodeó NINGUNA insignia/carta/logro concreto — cada
+ * miembro desbloquea un subconjunto distinto y el catálogo total es mayor
+ * que el de este ejemplo (#2GG8PJ8GC.json); se renderiza TODO lo que
+ * venga. Mientras el backend no mande rawClash, las secciones nuevas
+ * simplemente se ocultan solas, sin romper nada. */
 const TAG_PERFIL = normalizarTag(new URLSearchParams(location.search).get('tag') || '');
 
 /** Fecha corta con hora (ej. "27 ago 2026, 9:45 a.m.") para "Vigencia".
@@ -437,80 +559,325 @@ function extItem(valor, label, esNumero){
   return `<div class="ext-item"><div class="v">${esc(txt)}</div><div class="k">${esc(label)}</div></div>`;
 }
 /**
- * renderLogros(logros)
- * FIX (11-sep-2026, pedido usuario — punto 26 del docx, "Insignias y
- * logros"): pinta "Logros" y su progreso a partir de `ext.logros`, que el
- * backend arma traduciendo el array `achievements` que YA devuelve el
- * endpoint /players de Supercell (cada logro trae name/value/target/stars/
- * info) -- no se obtiene nada de RoyaleAPI, ese sitio solo se usó como
- * referencia de qué secciones existen en un perfil, ver conversación.
- * Estructura esperada por elemento: {nombre, valor, objetivo, estrellas,
- * info}. Reutiliza barraRequisito() tal cual (mismo componente visual
- * .req-row/.progress que ya usa bloqueRequisitos() más arriba) en vez de
- * crear un componente nuevo -- `activo` se manda siempre true porque, a
- * diferencia de los requisitos de clan, un logro siempre corresponde
- * mostrarse si viene en la lista. Las estrellas (si el logro las tiene) se
- * agregan como sufijo del valor, igual que el 🏆 de "Trofeos guerra" en
- * bloqueRequisitos().
- * PENDIENTE BACKEND: ext.logros todavía no existe -- mientras
- * 07_API_ClashRoyale.gs/08_Web_Endpoints.gs no lo agreguen a la respuesta
- * del jugador, esta función no pinta nada (mismo criterio que el resto de
- * renderExtendido() con campos que el backend todavía no manda).
+ * rawClash(j) → el JSON crudo del snapshot exportado a Drive.
+ * FIX (12-sep-2026): punto de entrada único para TODAS las secciones
+ * nuevas. PENDIENTE BACKEND: webPerfil (34_Web_API.gs) debe adjuntar el
+ * objeto del snapshot tal cual como jugador.rawClash (mismos nombres de
+ * categoría que el JSON de Supercell — ver ejemplo #2GG8PJ8GC.json).
+ * Mientras no llegue, devuelve {} y cada sección se oculta sola.
+ * OJO (revisar duplicados antes de conectar): trophies, bestTrophies,
+ * wins, losses, battleCount, donations, totalDonations, warDayWins,
+ * clanCardsCollected, threeCrownWins, challengeMaxWins,
+ * tournamentCardsWon, expLevel, collectionLevel, arena, role,
+ * currentWinLoseStreak y clan YA se muestran por vías actuales
+ * (llamada en vivo a la API / hojas); esas categorías del JSON crudo se
+ * usan solo donde la vía actual no llega (starLevel, count, evolutionLevel
+ * por carta, Path of Legends, leagueStatistics, progress, etc.).
  */
-function renderLogros(logros){
-  if (!Array.isArray(logros) || !logros.length) return '';
-  const filas = logros.map(l => barraRequisito(l.nombre, l.valor, l.objetivo, true, l.estrellas ? ` · ⭐${fmtNum(l.estrellas)}` : '')).join('');
-  return `<div style="margin-top:16px; padding-top:16px; border-top:1px solid var(--line);">
-      <h3 style="font-size:15px; color:var(--gold); margin:0 0 4px;">Logros</h3>
-      ${filas}
+function rawClash(j){
+  return (j && (j.rawClash || (j.extendido && j.extendido.rawClash))) || {};
+}
+/** Mapa rareza del JSON (inglés, categoría `rarity` de cards[]/
+ * currentDeck[]/supportCards[]/currentFavouriteCard) → clave/etiqueta del
+ * sitio (mismas claves que usa .cc-rareza y DATOS_CARTAS_MAZO). */
+const RAREZA_RAW_A_KEY = { common:'comun', rare:'especial', epic:'epica', legendary:'legendaria', champion:'campeon' };
+function rarezaKey(r){ return RAREZA_RAW_A_KEY[String(r || '').toLowerCase()] || ''; }
+/** Estrellitas del nivel estelar (categoría `starLevel` por carta). */
+function estrellasHtml(starLevel){
+  const n = Number(starLevel) || 0;
+  return n > 0 ? `<span class="star-level" title="Nivel estelar ${n}">${'\u2605'.repeat(Math.min(n, 7))}</span>` : '';
+}
+
+/**
+ * renderLogros(j)
+ * FIX (12-sep-2026, pedido usuario — aprovechar achievements): pinta la
+ * card "Logros" a partir de rawClash(j).achievements, con EL MISMO nombre
+ * de categoría del JSON. Cada logro trae {name, stars, value, target, info,
+ * completionInfo}: value/target alimentan la barra (reutiliza
+ * barraRequisito()), las estrellas van como sufijo y `info` se muestra
+ * como descripción chica debajo (ej. "Donate 2500 cards"). Se renderizan
+ * TODOS los que vengan, sin hardcodear ninguno.
+ * PENDIENTE BACKEND: adjuntar achievements[] dentro de jugador.rawClash.
+ */
+function renderLogros(j){
+  const logros = rawClash(j).achievements;
+  const card = document.getElementById('mLogrosCard');
+  const cont = document.getElementById('mLogrosContenido');
+  if (!Array.isArray(logros) || !logros.length){ card.style.display = 'none'; cont.innerHTML = ''; return; }
+  card.style.display = '';
+  cont.innerHTML = logros.map(l => `
+    <div style="margin-bottom:12px;">
+      ${barraRequisito(l.name, l.value, l.target, true, l.stars ? ` \u00b7 \u2b50${fmtNum(l.stars)}` : '')}
+      ${l.info ? `<div class="text-faint" style="font-family:var(--f-mono); font-size:10px; margin-top:4px;">${esc(String(l.info))}</div>` : ''}
+    </div>`).join('');
+}
+
+/**
+ * renderInsignias(j)
+ * FIX (12-sep-2026, pedido usuario — mitad "Insignias" del punto 26):
+ * pinta la card "Insignias" como GRID de íconos (como "Achievement
+ * Badges" de RoyaleAPI) a partir de rawClash(j).badges, con EL MISMO
+ * nombre de categoría del JSON. Cada insignia trae {name, level,
+ * maxLevel, progress, target, iconUrls.large}.
+ * OJO (aclarado por el usuario): UNA insignia por nombre — el ícono que
+ * manda la API ya corresponde al nivel alcanzado por ESTE jugador, así
+ * que no se duplica ni se arma catálogo por niveles acá. ADEMÁS: el
+ * catálogo total de insignias posibles es GRANDE y cada miembro
+ * desbloquea un subconjunto distinto — este ejemplo (#2GG8PJ8GC.json)
+ * trae ~130, pero pueden existir y venir muchas más (Mastery*,
+ * SeasonalBadge_*, MergeTacticsBadge_*, *LeagueBadge, 20XXYearBadge...).
+ * NO hardcodear nada: se renderiza TODO lo que venga en badges[]; un
+ * miembro puede simplemente no tener insignias que otro sí tiene.
+ * PENDIENTE BACKEND: adjuntar badges[] completo dentro de
+ * jugador.rawClash (hoy 07_API_ClashRoyale.gs descarta casi todas).
+ */
+function renderInsignias(j){
+  const badges = rawClash(j).badges;
+  const card = document.getElementById('mInsigniasCard');
+  const cont = document.getElementById('mInsigniasContenido');
+  if (!Array.isArray(badges) || !badges.length){ card.style.display = 'none'; cont.innerHTML = ''; return; }
+  card.style.display = '';
+  cont.innerHTML = `
+    <div class="badge-grid">${badges.map(b => {
+      const urls = b.iconUrls || {};
+      const icono = urlValida(urls.large) ? urls.large : (urlValida(urls.medium) ? urls.medium : '');
+      const nivelTxt = (b.level != null && b.maxLevel != null) ? `Nv. ${b.level}/${b.maxLevel}` : (b.level != null ? `Nv. ${b.level}` : '');
+      const tieneTarget = b.target != null && b.target > 0;
+      const pct = tieneTarget ? Math.min(100, Math.round((Number(b.progress) || 0) / b.target * 100)) : 100;
+      return `
+      <div class="badge-item" title="${esc(String(b.name))}${tieneTarget ? ` \u2014 ${fmtNum(b.progress)}/${fmtNum(b.target)}` : ''}">
+        ${icono ? `<img src="${esc(icono)}" alt="" loading="lazy" onerror="this.style.visibility='hidden';">` : ''}
+        <div class="b-nombre">${esc(String(b.name))}</div>
+        ${nivelTxt ? `<div class="b-nivel">${esc(nivelTxt)}</div>` : ''}
+        <div class="progress${pct >= 100 ? ' complete' : ''}"><i style="width:${pct}%"></i></div>
+        <div class="b-prog">${tieneTarget ? `${fmtNum(b.progress)} / ${fmtNum(b.target)}` : (b.progress != null ? fmtNum(b.progress) : '')}</div>
+      </div>`;
+    }).join('')}</div>
+    <div class="text-faint" style="font-family:var(--f-mono); font-size:11px; margin-top:12px;">
+      Insignias desbloqueadas: ${badges.length}. Cada jugador desbloquea un subconjunto distinto del catálogo total \u2014 las que no aparecen simplemente no están desbloqueadas todavía.
     </div>`;
+}
+
+/**
+ * renderCartaFavorita(j)
+ * FIX (12-sep-2026, pedido usuario — "no se está mostrando ...
+ * currentfavouritecard que es la carta favorita de esa persona"):
+ * card "Carta favorita" a partir de rawClash(j).currentFavouriteCard
+ * ({name, id, maxLevel, elixirCost, iconUrls, rarity}).
+ * PENDIENTE BACKEND: adjuntar currentFavouriteCard en jugador.rawClash.
+ */
+function renderCartaFavorita(j){
+  const fav = rawClash(j).currentFavouriteCard;
+  const card = document.getElementById('mFavoritaCard');
+  const cont = document.getElementById('mFavoritaContenido');
+  if (!fav || !fav.name){ card.style.display = 'none'; cont.innerHTML = ''; return; }
+  const rk = rarezaKey(fav.rarity);
+  const img = (fav.iconUrls && (fav.iconUrls.medium || fav.iconUrls.large)) || '';
+  card.style.display = '';
+  cont.innerHTML = `
+    <div class="fav-wrap">
+      ${urlValida(img) ? `<img src="${esc(img)}" alt="${esc(String(fav.name))}" loading="lazy">` : ''}
+      <div>
+        <div style="font-size:17px; font-weight:800; font-family:var(--f-display); color:var(--text);">${esc(String(fav.name))}</div>
+        <div class="cc-meta" style="margin-top:6px;">
+          ${rk ? `<span class="cc-rareza" data-rareza="${rk}">${esc(RAREZA_CARTA_TXT[rk])}</span>` : (fav.rarity ? `<span class="cc-rareza">${esc(String(fav.rarity))}</span>` : '')}
+          ${fav.elixirCost != null ? `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">${esc(String(fav.elixirCost))}</span>` : ''}
+          ${fav.maxLevel != null ? `<span class="cc-badge">Nivel m\u00e1x. ${esc(String(fav.maxLevel))}</span>` : ''}
+        </div>
+      </div>
+    </div>`;
+}
+
+/** _polTxt(r) → texto "Liga N · X 🏆 · Rango #R" para un resultado Path of
+ * Legends ({leagueNumber, trophies, rank}); null si no trae nada. */
+function _polTxt(r){
+  if (!r) return null;
+  const partes = [];
+  if (r.leagueNumber != null) partes.push(`Liga ${r.leagueNumber}`);
+  if (r.trophies) partes.push(`${fmtNum(r.trophies)} \ud83c\udfc6`);
+  if (r.rank != null) partes.push(`Rango #${fmtNum(r.rank)}`);
+  return partes.length ? partes.join(' \u00b7 ') : null;
 }
 /**
- * renderInsignias(insignias)
- * FIX (11-sep-2026, pedido usuario — punto 26 del docx, "Insignias y
- * logros", mitad que faltaba): pinta la sección "Insignias" a partir de
- * `ext.insignias`, que el backend armaría traduciendo el array `badges`
- * que YA devuelve el endpoint /players de Supercell (distinto de
- * `achievements`, que es lo que ya pinta renderLogros() de arriba desde
- * el mismo pedido) -- no se obtiene nada de RoyaleAPI.
- * Estructura esperada por elemento: {nombre, nivel, nivelMax, progreso,
- * objetivo, icono}. OJO (aclarado por el usuario en conversación): el
- * `nombre` sí se repite entre jugadores (catálogo fijo de insignias
- * posibles, como `cards`), pero cada jugador solo trae el subconjunto que
- * desbloqueó -- no hay que asumir que faltan las demás por error, un
- * jugador puede simplemente no tenerlas todavía. `nivel`, `nivelMax`,
- * `progreso`, `objetivo` e `icono` sí son propios de cada jugador (cada
- * insignia tiene su propio nivel alcanzado, con su propio ícono según
- * ese nivel).
- * Reutiliza barraRequisito() igual que renderLogros() (mismo componente
- * .req-row/.progress), agregando el ícono a la izquierda envuelto en
- * .insignia-row (ver <style>) -- Logros no necesita ícono porque
- * `achievements` no trae imagen, `badges` sí. El nivel/nivelMax se agrega
- * como sufijo del valor, igual que las estrellas en renderLogros(). Si
- * una insignia no tiene `objetivo` (algunas, como CollectionLevel al
- * tope, no traen `target`), se usa `progreso` como objetivo para no
- * mostrar "undefined" y pintar la barra llena en vez de inventar una
- * meta que la API no da.
- * PENDIENTE BACKEND: ext.insignias todavía no existe -- mientras
- * 07_API_ClashRoyale.gs/08_Web_Endpoints.gs no agreguen `badges[]`
- * completo a la respuesta del jugador (hoy se descartan casi todas, solo
- * se guardan 5 sueltas para otros usos), esta función no pinta nada
- * (mismo criterio que renderLogros() y el resto de renderExtendido()).
+ * renderCaminoLeyendas(j)
+ * FIX (12-sep-2026): panel estilo "Ranked Stats" de RoyaleAPI con:
+ *  - bestPathOfLegendSeasonResult / currentPathOfLegendSeasonResult /
+ *    lastPathOfLegendSeasonResult ({leagueNumber, trophies, rank})
+ *  - legacyTrophyRoadHighScore (mejor del Camino de Trofeos "viejo")
+ *  - leagueStatistics.{bestSeason,currentSeason,previousSeason}
+ *    ({id, trophies, bestTrophies})
+ *  - expLevel, kingTowerLevel, starPoints, expPoints/totalExpPoints
+ * PENDIENTE BACKEND: esas categorías dentro de jugador.rawClash. La card
+ * se oculta sola si ninguna llega.
  */
-function renderInsignias(insignias){
-  if (!Array.isArray(insignias) || !insignias.length) return '';
-  const filas = insignias.map(b => {
-    const objetivo = (b.objetivo != null ? b.objetivo : b.progreso);
-    const sufijo = (b.nivel != null && b.nivelMax != null) ? ` · Nv. ${b.nivel}/${b.nivelMax}` : '';
-    const icono = urlValida(b.icono) ? `<img src="${esc(b.icono)}" alt="" loading="lazy">` : '';
-    return `<div class="insignia-row">${icono}${barraRequisito(b.nombre, b.progreso, objetivo, true, sufijo)}</div>`;
-  }).join('');
-  return `<div style="margin-top:16px; padding-top:16px; border-top:1px solid var(--line);">
-      <h3 style="font-size:15px; color:var(--gold); margin:0 0 4px;">Insignias</h3>
-      ${filas}
-    </div>`;
+function renderCaminoLeyendas(j){
+  const raw = rawClash(j);
+  const ls = raw.leagueStatistics || {};
+  const filas = [];
+  const add = (lbl, val) => { if (val != null && val !== '') filas.push(`<tr><td>${esc(lbl)}</td><td>${esc(String(val))}</td></tr>`); };
+  add('Camino de Leyendas \u00b7 Mejor temporada', _polTxt(raw.bestPathOfLegendSeasonResult));
+  add('Camino de Leyendas \u00b7 Temporada actual', _polTxt(raw.currentPathOfLegendSeasonResult));
+  add('Camino de Leyendas \u00b7 Temporada anterior', _polTxt(raw.lastPathOfLegendSeasonResult));
+  add('Mejor ladder hist\u00f3rico (Camino de Trofeos)', raw.legacyTrophyRoadHighScore != null ? `${fmtNum(raw.legacyTrophyRoadHighScore)} \ud83c\udfc6` : null);
+  const lsTxt = s => (s && (s.trophies != null || s.id)) ? `${s.id ? esc(String(s.id)) + ' \u00b7 ' : ''}${fmtNum(s.trophies)} \ud83c\udfc6${s.bestTrophies ? ` (mejor ${fmtNum(s.bestTrophies)})` : ''}` : null;
+  add('Liga \u00b7 Mejor temporada', lsTxt(ls.bestSeason));
+  add('Liga \u00b7 Temporada actual', lsTxt(ls.currentSeason));
+  add('Liga \u00b7 Temporada anterior', lsTxt(ls.previousSeason));
+  add('Nivel de experiencia', raw.expLevel);
+  add('Nivel de torre del rey', raw.kingTowerLevel);
+  add('Puntos de estrella (star points)', raw.starPoints != null ? fmtNum(raw.starPoints) : null);
+  add('Puntos de experiencia', raw.expPoints != null ? `${fmtNum(raw.expPoints)} / ${fmtNum(raw.totalExpPoints)}` : null);
+  const card = document.getElementById('mLeyendasCard');
+  const cont = document.getElementById('mLeyendasContenido');
+  if (!filas.length){ card.style.display = 'none'; cont.innerHTML = ''; return; }
+  card.style.display = '';
+  cont.innerHTML = `<table class="panel-stats"><tbody>${filas.join('')}</tbody></table>`;
 }
-function renderExtendido(ext){
+
+let _colFiltroActivo = 'todos';
+/**
+ * renderColeccion(j) / pintarColeccion(cartas)
+ * FIX (12-sep-2026, pedido usuario — "cards[]: colección completa ... una
+ * sección 'Colección completa'"): grid de TODAS las cartas del jugador con
+ * filtro por rareza, a partir de rawClash(j).cards (cada carta trae
+ * {name, level, starLevel, evolutionLevel, maxLevel, maxEvolutionLevel,
+ * rarity, count, elixirCost, iconUrls.medium/evolutionMedium/heroMedium}).
+ *  - count se muestra como "×N" (cantidad de cartas disponibles de ese
+ *    nombre, tal como explica el usuario).
+ *  - starLevel se muestra con estrellitas doradas.
+ *  - La carta se dibuja con el ícono de evolución si evolutionLevel > 0.
+ *  - Las de level >= maxLevel se remarcan con borde dorado.
+ * PENDIENTE BACKEND: adjuntar cards[] dentro de jugador.rawClash.
+ */
+function renderColeccion(j){
+  const cartas = rawClash(j).cards;
+  const card = document.getElementById('mColeccionCard');
+  if (!Array.isArray(cartas) || !cartas.length){ card.style.display = 'none'; return; }
+  card.style.display = '';
+  const enMax = cartas.filter(c => c.maxLevel != null && c.level >= c.maxLevel).length;
+  const conEvo = cartas.filter(c => (c.evolutionLevel || 0) > 0).length;
+  document.getElementById('mColeccionResumen').innerHTML =
+    `Colecci\u00f3n: <b>${cartas.length}</b> cartas \u00b7 <b>${enMax}</b> al nivel m\u00e1ximo (${cartas.length ? Math.round(enMax / cartas.length * 100) : 0}%) \u00b7 <b>${conEvo}</b> con evoluci\u00f3n desbloqueada`;
+  const raridades = ['campeon', 'legendaria', 'epica', 'especial', 'comun'];
+  const presentes = raridades.filter(r => cartas.some(c => rarezaKey(c.rarity) === r));
+  const filtros = document.getElementById('mColeccionFiltros');
+  filtros.innerHTML = [`<button type="button" data-f="todos" class="activo">Todas (${cartas.length})</button>`]
+    .concat(presentes.map(r => `<button type="button" data-f="${r}">${RAREZA_CARTA_TXT[r]} (${cartas.filter(c => rarezaKey(c.rarity) === r).length})</button>`))
+    .join('');
+  filtros.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+    _colFiltroActivo = b.dataset.f;
+    filtros.querySelectorAll('button').forEach(x => x.classList.toggle('activo', x === b));
+    pintarColeccion(cartas);
+  }));
+  _colFiltroActivo = 'todos';
+  pintarColeccion(cartas);
+}
+function pintarColeccion(cartas){
+  const cont = document.getElementById('mColeccionContenido');
+  const ordRar = { campeon:0, legendaria:1, epica:2, especial:3, comun:4 };
+  const visibles = cartas.filter(c => _colFiltroActivo === 'todos' || rarezaKey(c.rarity) === _colFiltroActivo);
+  visibles.sort((a, b) =>
+    ((ordRar[rarezaKey(a.rarity)] ?? 9) - (ordRar[rarezaKey(b.rarity)] ?? 9)) ||
+    ((b.level || 0) - (a.level || 0)) ||
+    String(a.name || '').localeCompare(String(b.name || ''), 'es'));
+  cont.innerHTML = visibles.map(c => {
+    const rk = rarezaKey(c.rarity);
+    const urls = c.iconUrls || {};
+    const img = ((c.evolutionLevel || 0) > 0 && urls.evolutionMedium) ? urls.evolutionMedium
+      : (rk === 'campeon' && urls.heroMedium) ? urls.heroMedium
+      : urls.medium || '';
+    return `
+    <div class="col-card${c.maxLevel != null && c.level >= c.maxLevel ? ' max-level' : ''}" title="${esc(String(c.name))}">
+      ${img ? `<img src="${esc(img)}" alt="" loading="lazy" onerror="this.style.visibility='hidden';">` : ''}
+      <div class="col-nombre">${esc(String(c.name))}</div>
+      ${rk ? `<span class="cc-rareza" data-rareza="${rk}">${esc(RAREZA_CARTA_TXT[rk])}</span>` : ''}
+      <div class="text-faint" style="font-family:var(--f-mono); font-size:10px;">Nv. ${esc(String(c.level != null ? c.level : '\u2014'))}/${esc(String(c.maxLevel != null ? c.maxLevel : '\u2014'))}</div>
+      <div class="cc-meta" style="justify-content:center;">
+        ${estrellasHtml(c.starLevel)}
+        ${(c.evolutionLevel || 0) > 0 ? `<span class="cc-badge">\u2728 Evo ${c.evolutionLevel > 1 ? c.evolutionLevel : ''}</span>` : ''}
+      </div>
+      <div class="cc-count" title="Cantidad de cartas disponibles de este nombre">\u00d7${fmtNum(c.count)}</div>
+    </div>`;
+  }).join('');
+}
+
+/**
+ * renderCartasTorre(j)
+ * FIX (12-sep-2026, pedido usuario — "supportCards se conoce como Cartas
+ * de torre"): card "Cartas de torre" a partir de rawClash(j).supportCards
+ * (colección de torres del jugador: {name, level, maxLevel, rarity, count,
+ * iconUrls} — las "Tower Card Collection" 4/4 de RoyaleAPI). Distinto de
+ * currentDeckSupportCards (la torre equipada en el mazo actual, que se
+ * pinta dentro de "Mazo actual").
+ * PENDIENTE BACKEND: adjuntar supportCards[] en jugador.rawClash.
+ */
+function renderCartasTorre(j){
+  const torres = rawClash(j).supportCards;
+  const card = document.getElementById('mTorresCard');
+  const cont = document.getElementById('mTorresContenido');
+  if (!Array.isArray(torres) || !torres.length){ card.style.display = 'none'; cont.innerHTML = ''; return; }
+  card.style.display = '';
+  cont.innerHTML = torres.map(t => {
+    const rk = rarezaKey(t.rarity);
+    const img = (t.iconUrls && (t.iconUrls.medium || t.iconUrls.large)) || '';
+    return `
+    <div class="carta-chip${img ? '' : ' carta-chip--sin-img'}">
+      ${img ? `<img class="cc-img" src="${esc(img)}" alt="${esc(String(t.name))}" loading="lazy" onerror="const p=this.parentElement; this.remove(); if(p) p.classList.add('carta-chip--sin-img');">` : ''}
+      <div class="cc-content">
+        <div class="cc-fila-1"><b>${esc(String(t.name))}</b></div>
+        <div class="cc-meta">${rk ? `<span class="cc-rareza" data-rareza="${rk}">${esc(RAREZA_CARTA_TXT[rk])}</span>` : ''}</div>
+        <div class="text-faint" style="font-size:10px;">Nv. ${esc(String(t.level != null ? t.level : '\u2014'))}/${esc(String(t.maxLevel != null ? t.maxLevel : '\u2014'))} \u00b7 \u00d7${fmtNum(t.count)}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+/**
+ * renderProgresoEventos(j)
+ * FIX (12-sep-2026): tabla genérica con rawClash(j).progress — objeto cuyas
+ * CLAVES CAMBIAN según los eventos/modos activos al momento del snapshot
+ * (ej. "AutoChess_2026_Season_11", "seasonal-trophy-road-202609",
+ * "2v2League_202609"; puede haber una clave vacía "", que se ignora). Cada
+ * valor trae {arena:{name}, trophies, bestTrophies}. Se renderiza todo lo
+ * que venga, sin hardcodear eventos concretos.
+ * PENDIENTE BACKEND: adjuntar progress{} en jugador.rawClash.
+ */
+function renderProgresoEventos(j){
+  const prog = rawClash(j).progress;
+  const card = document.getElementById('mProgresoCard');
+  const cont = document.getElementById('mProgresoContenido');
+  const entries = (prog && typeof prog === 'object')
+    ? Object.entries(prog).filter(([k, v]) => k && v && typeof v === 'object')
+    : [];
+  if (!entries.length){ card.style.display = 'none'; cont.innerHTML = ''; return; }
+  card.style.display = '';
+  cont.innerHTML = `<table class="panel-stats"><tbody>${entries.map(([k, v]) => `
+    <tr>
+      <td>${esc(k)}</td>
+      <td>${v.arena && v.arena.name ? esc(String(v.arena.name)) : '\u2014'}${v.trophies ? ` \u00b7 ${fmtNum(v.trophies)} \ud83c\udfc6` : ''}${v.bestTrophies ? ` (mejor ${fmtNum(v.bestTrophies)})` : ''}</td>
+    </tr>`).join('')}</tbody></table>`;
+}
+
+/**
+ * renderSnapshotInfo(j)
+ * FIX (12-sep-2026): línea chica bajo el subtítulo del perfil con
+ * rawClash(j)._fecha y rawClash(j)._clan — campos PROPIOS del exportador
+ * (no de la API de Supercell) que vienen en cada JSON subido a Drive, y
+ * que abren la puerta al historial propio de snapshots por jugador.
+ * PENDIENTE BACKEND: adjuntar _fecha/_clan en jugador.rawClash.
+ */
+function renderSnapshotInfo(j){
+  const raw = rawClash(j);
+  const el = document.getElementById('mSnapshotInfo');
+  if (raw._fecha || raw._clan){
+    el.textContent = `Snapshot: ${raw._fecha || 'sin fecha'}${raw._clan ? ` \u00b7 Clan en el export: ${raw._clan}` : ''}`;
+    el.style.display = '';
+  } else {
+    el.style.display = 'none';
+  }
+}
+
+function renderExtendido(ext){function renderExtendido(ext){
   const wrap = document.getElementById('mExtWrap');
   if (!ext){ wrap.innerHTML = ''; return; }
   let items = '';
@@ -561,12 +928,12 @@ function renderExtendido(ext){
    * Ver otras cuentas, ver renderMiembro() más abajo), duplicando la fila
    * completa en pantalla. Se quita de acá (renderExtendido solo pinta la
    * grilla de estadísticas, el badge de Camino de Leyendas y, desde el
-   * 11-sep-2026, las secciones de Logros e Insignias vía renderLogros()/
+   * 11-sep-2026, las secciones de Logros e Insignias (desde el 12-sep-2026 viven en sus propias cards, ver renderLogros(j)/renderInsignias(j)) vía renderLogros()/
    * renderInsignias()); los 4 links (RoyaleAPI/CWStats/Mazo/Mazo2) y los
    * botones de acción se pintan juntos, en una sola fila con el formato
    * .ext-links, en renderMiembro().
    */
-  wrap.innerHTML = (items ? `<div class="ext-grid">${items}</div>` : '') + camino + renderLogros(ext.logros) + renderInsignias(ext.insignias);
+  wrap.innerHTML = (items ? `<div class="ext-grid">${items}</div>` : '') + camino;
 }
 
 /**
@@ -740,52 +1107,27 @@ function _ordenarCartasMazo(cartas){
 }
 
 /**
- * renderMazoActual(mazoActual, ext)
- * FASE 10 (06-sep-2026, punto 10 del documento — mazo actual real).
- * Distinto de "Sugerencias de mazo"/"Sugerencias de mazo (2)" (los
- * botones del encabezado de esta misma card, que arman una búsqueda en
- * RoyaleAPI a partir del nivel de las cartas desbloqueadas, ver `ext` más
- * abajo): la sección de cartas muestra mazoActual.cartas tal como viene de
- * pd.currentDeck (currentDeck real de la API de Supercell) — ver
- * _webMazoActualDesdeCards2(), 34_Web_API.gs. mazoActual puede venir null
- * (jugador sin filas de Cards_2 todavía, ej. recién ingresado y aún no
- * escaneado por /players).
- *
- * FIX (08-sep-2026, pedido usuario — "mueve los botones de sugerencia de
- * mazo a la derecha de mazo actual"): los botones "Sugerencias de mazo"/
- * "Sugerencias de mazo (2)" (antes armados junto a RoyaleAPI/CWStats en
- * renderMiembro(), ver el FIX de más abajo en esa función) se arman ACÁ y
- * se pintan en #mMazoActualBtns, la esquina superior derecha del card. Esa
- * data sale de `ext` (ext.deck/ext.deck2, columnas Mazo/Mazo2 de
- * Directorio) — independiente de mazoActual —, así que la card ahora se
- * muestra si hay CUALQUIERA de las dos cosas (cartas reales o botones de
- * sugerencia), no solo cuando hay cartas; si no hay cartas pero sí
- * botones, se avisa con un texto en vez de dejar el bloque de cartas en
- * blanco.
- *
- * FIX (08-sep-2026, pedido usuario — "se debe ordenar el mazo por Héroe,
- * Evolución, Tipo (Tropa, Hechizo y estructura) y Calidad (Campeón,
- * Legendaria, Épica, Especial, Común)... se debe mostrar el tipo de
- * carta, calidad, costo (con su ícono)"): en su momento _webMazoActualDesdeCards2()
- * todavía no mandaba tipo/rareza/costo de elixir por carta (a diferencia
- * de _webEstadisticasCartas(), que sí los manda desde Backup_Cards.csv,
- * ver cargarEstadisticasCartas() en index.html), así que cada carta se
- * ordenaba/etiquetaba con la tabla de referencia estática DATOS_CARTAS_MAZO
- * (ver más abajo) en vez de un dato real del backend. Esa tabla estática
- * se mantiene TAL CUAL (sigue siendo la fuente de rareza/tipo/elixir para
- * el badge y el orden) — lo único que sí llegó de 34_Web_API.gs es
- * hasHero/heroIcon (FIX 09-sep-2026, ver justo abajo), que faltaba para
- * pintar la imagen correcta de la variante Héroe.
- *
- * FIX (09-sep-2026, pedido usuario — "necesita que
- * _webMazoActualDesdeCards2() mande heroIcon/evolutionIcon como ya hace
- * _webEstadisticasCartas()"): evolutionIcon ya llegaba; ahora también
- * llegan hasHero/heroIcon (misma fuente, Backup_Cards.csv, columnas
- * Héroe/Evolución) — la imagen de cada carta ya no es siempre la básica
- * (c.icon), prioriza Héroe > Evolución (si el jugador la desbloqueó) >
- * básica, ver imgSrc más abajo.
+ * renderMazoActual(mazoActual, ext, j)
+ * FASE 10 (06-sep-2026, punto 10 del documento — mazo actual real) +
+ * FIXes 08/09-sep-2026 (botones de sugerencia a la derecha, orden
+ * Héroe/Evolución/Tipo/Calidad, heroIcon/evolutionIcon) +
+ * FIX (12-sep-2026, pedido usuario — "en el mazo actual no se muestra el
+ * nivel estelar (starLevel) ... count es la cantidad de cartas
+ * disponibles ... no se está mostrando la carta de torre actual
+ * (currentDeckSupportCards)"):
+ *  - starLevel → estrellitas doradas (estrellasHtml()).
+ *  - count → "×N" (cantidad de cartas disponibles de ese nombre). Ambos
+ *    campos se cruzan con rawClash(j).currentDeck por nombre cuando el
+ *    backend todavía no los manda en mazoActual.cartas.
+ *    PENDIENTE BACKEND: categorías starLevel/count/evolutionLevel por
+ *    carta (pueden venir en rawClash.currentDeck o directamente en
+ *    j.mazoActual.cartas desde _webMazoActualDesdeCards2()).
+ *  - currentDeckSupportCards → bloque "Carta de torre del mazo" debajo del
+ *    grid (PENDIENTE BACKEND: categoría currentDeckSupportCards).
+ * Distinto de "Sugerencias de mazo"/"Sugerencias de mazo (2)" (botones del
+ * encabezado, búsquedas en RoyaleAPI desde ext.deck/ext.deck2).
  */
-function renderMazoActual(mazoActual, ext){
+function renderMazoActual(mazoActual, ext, j){
   ext = ext || {};
   const card = document.getElementById('mMazoActualCard');
   const cont = document.getElementById('mMazoActualContenido');
@@ -813,22 +1155,28 @@ function renderMazoActual(mazoActual, ext){
     return;
   }
 
-  // FIX (09-sep-2026, pedido usuario — "necesita que
-  // _webMazoActualDesdeCards2() mande heroIcon/evolutionIcon como ya hace
-  // _webEstadisticasCartas()"): 34_Web_API.gs ya manda ambos campos.
-  // Prioridad de imagen por carta: Héroe (variante Campeón real de
-  // Supercell) > Evolución (si el jugador la tiene desbloqueada, evoLevel
-  // > 0) > ícono básico -- mismo orden que _ordenarCartasMazo() usa para
-  // el ORDEN visual (Héroe primero, Evolución después), así que la imagen
-  // que se pinta coincide con el criterio por el que la carta aparece
-  // donde aparece. hasHero es "esta carta TIENE variante Héroe en el
-  // catálogo" (todas las Campeón), no depende del progreso del jugador --
-  // a diferencia de hasEvolution.
+  // FIX (12-sep-2026): cruzar cada carta del mazo con rawClash(j).
+  // currentDeck (PENDIENTE BACKEND: categoría currentDeck) para sumar
+  // starLevel, count y evolutionLevel aunque _webMazoActualDesdeCards2()
+  // todavía no los mande. Clave de cruce: nombre exacto de la carta.
+  const rawDeck = rawClash(j).currentDeck;
+  const rawPorNombre = {};
+  if (Array.isArray(rawDeck)) rawDeck.forEach(rc => { if (rc && rc.name) rawPorNombre[rc.name] = rc; });
+
   const cartasHtml = _ordenarCartasMazo(mazoActual.cartas).map(c => {
+    const rc = rawPorNombre[c.name] || {};
+    const urlsRc = rc.iconUrls || {};
     const d = _datosCarta(c.name);
     const tipoTxt = d ? d.tipo.charAt(0).toUpperCase() + d.tipo.slice(1) : '';
+    const starLevel = c.starLevel != null ? c.starLevel : (rc.starLevel || 0);
+    const count = c.count != null ? c.count : rc.count;
+    const evoLvl = c.evolutionLevel != null ? c.evolutionLevel : (rc.evolutionLevel || 0);
+    const hasEvo = c.hasEvolution || evoLvl > 0;
+    const evoIcon = c.evolutionIcon || urlsRc.evolutionMedium || '';
+    // Prioridad de imagen: Héroe > Evolución (solo si la tiene desbloqueada)
+    // > básica — misma prioridad que usa _ordenarCartasMazo() para el orden.
     const imgSrc = (c.hasHero && c.heroIcon) ? c.heroIcon
-      : (c.hasEvolution && c.evolutionIcon) ? c.evolutionIcon
+      : (hasEvo && evoIcon) ? evoIcon
       : c.icon;
     return `
     <div class="carta-chip${imgSrc ? '' : ' carta-chip--sin-img'}">
@@ -840,21 +1188,48 @@ function renderMazoActual(mazoActual, ext){
           ${tipoTxt ? `<span class="cc-tipo">${esc(tipoTxt)}</span>` : ''}
           ${d && d.elixir != null ? `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">${esc(String(d.elixir))}</span>` : ''}
           ${(c.hasHero || (d && d.rareza === 'campeon')) ? `<span class="cc-badge">🦸 Héroe</span>` : ''}
-          ${c.hasEvolution ? `<span class="cc-badge">✨ Evolución</span>` : ''}
+          ${hasEvo ? `<span class="cc-badge">✨ Evolución</span>` : ''}
         </div>
-        <div class="text-faint" style="font-size:10px;">${c.nivel ? 'Nivel ' + esc(String(c.nivel)) : '—'}</div>
+        <div class="text-faint" style="font-size:10px;">
+          ${c.nivel ? 'Nivel ' + esc(String(c.nivel)) : '—'}
+          ${count != null ? ` · <span class="cc-count" title="Cantidad de cartas disponibles de este nombre">×${fmtNum(count)}</span>` : ''}
+        </div>
+        ${estrellasHtml(starLevel)}
       </div>
     </div>`;
   }).join('');
+
+  // FIX (12-sep-2026): carta(s) de torre equipada con este mazo —
+  // PENDIENTE BACKEND: categoría currentDeckSupportCards del JSON (es la
+  // "Tower Princess"/torre activa del mazo, distinta de supportCards[],
+  // que es la colección completa de torres y se pinta en su propia card).
+  const torresRaw = rawClash(j).currentDeckSupportCards;
+  const torreHtml = (Array.isArray(torresRaw) && torresRaw.length) ? `
+    <div style="margin-top:18px; padding-top:14px; border-top:1px solid var(--line);">
+      <div class="eyebrow" style="margin-bottom:8px;">Carta de torre del mazo</div>
+      <div class="mazo-chips">${torresRaw.map(t => {
+        const rk = rarezaKey(t.rarity);
+        const img = (t.iconUrls && (t.iconUrls.medium || t.iconUrls.large)) || '';
+        return `
+        <div class="carta-chip${img ? '' : ' carta-chip--sin-img'}">
+          ${img ? `<img class="cc-img" src="${esc(img)}" alt="${esc(String(t.name))}" loading="lazy" onerror="const p=this.parentElement; this.remove(); if(p) p.classList.add('carta-chip--sin-img');">` : ''}
+          <div class="cc-content">
+            <div class="cc-fila-1"><b>${esc(String(t.name))}</b></div>
+            <div class="cc-meta">${rk ? `<span class="cc-rareza" data-rareza="${rk}">${esc(RAREZA_CARTA_TXT[rk])}</span>` : ''}</div>
+            <div class="text-faint" style="font-size:10px;">Nv. ${esc(String(t.level != null ? t.level : '—'))}/${esc(String(t.maxLevel != null ? t.maxLevel : '—'))}</div>
+          </div>
+        </div>`;
+      }).join('')}</div>
+    </div>` : '';
 
   const promedioHtml = (mazoActual.elixirPromedio !== null && mazoActual.elixirPromedio !== undefined)
     ? `<div class="text-dim" style="font-size:12px; margin-top:16px;">Coste de elixir promedio: <b>${esc(String(mazoActual.elixirPromedio))}</b></div>`
     : '';
 
-  cont.innerHTML = `<div class="mazo-chips">${cartasHtml}</div>${promedioHtml}`;
+  cont.innerHTML = `<div class="mazo-chips">${cartasHtml}</div>${torreHtml}${promedioHtml}`;
 }
 
-/**
+/**/**
  * renderRankingChart(ext)
  * Gráfica de línea simple con la evolución del ranking en el clan.
  * Necesita `ext.historialRanking` = [{semana, ranking}, ...] (más
@@ -1131,7 +1506,15 @@ function renderMiembro(j){
   renderExtendido(j.extendido);
   renderRankingChart(j.extendido);
   renderMetricasSemanales(j.extendido); // FIX (08-sep-2026)
-  renderMazoActual(j.mazoActual, j.extendido); // FASE 10 (06-sep-2026); FIX 08-sep-2026: botones de sugerencia de mazo se arman acá ahora
+  renderMazoActual(j.mazoActual, j.extendido, j); // FASE 10 (06-sep-2026); FIX 08-sep-2026: botones de sugerencia de mazo se arman acá ahora; FIX 12-sep-2026: se pasa j completo para cruzar con rawClash (starLevel/count/currentDeckSupportCards)
+  renderCartaFavorita(j);        // FIX 12-sep-2026 — currentFavouriteCard
+  renderCaminoLeyendas(j);       // FIX 12-sep-2026 — Path of Legends + leagueStatistics + legacyTrophyRoadHighScore + expLevel/kingTowerLevel/starPoints
+  renderColeccion(j);            // FIX 12-sep-2026 — cards[] (colección completa, con count y starLevel)
+  renderCartasTorre(j);          // FIX 12-sep-2026 — supportCards[] ("Cartas de torre")
+  renderInsignias(j);            // FIX 12-sep-2026 — badges[] (grid, una por nombre)
+  renderLogros(j);               // FIX 12-sep-2026 — achievements[]
+  renderProgresoEventos(j);      // FIX 12-sep-2026 — progress{} (claves variables según temporada)
+  renderSnapshotInfo(j);         // FIX 12-sep-2026 — _fecha/_clan del exportador
 
   // FIX (31-ago-2026, pedido usuario — "en los perfiles de jugadores,
   // antes de ver torneos, agrega el botón con el link al perfil de
