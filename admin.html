@@ -893,13 +893,10 @@
                    clanTagOrg para llenar las columnas Tag_org/Clan/ClanTag
                    de T_Lista.
 
-                   PENDIENTE BACKEND: todo este cuadro depende de un
-                   endpoint que hoy NO existe, webAdminCuentasDeNomMulti.
-                   Ver el bloque de comentarios grande junto a
-                   cargarCuentasDelAutor() (más abajo, en el <script>) para
-                   el detalle exacto de cómo crearlo y conectarlo — mientras
-                   tanto el dropdown se queda con un aviso en vez de datos
-                   inventados. -->
+                   Conectado (12-sep-2026): webAdminCuentasDeNomMulti ya
+                   existe en el backend. Ver el bloque de comentarios grande
+                   junto a cargarCuentasDelAutor() (más abajo, en el
+                   <script>) para el detalle exacto. -->
               <div class="field" id="tCuentaOrgBox" style="display:none; margin-top:10px;">
                 <label for="tCuentaOrgSelect">¿Con cuál cuenta organizó?</label>
                 <select id="tCuentaOrgSelect">
@@ -1441,12 +1438,14 @@
                       llaman a initCampoFechaAmigable()/
                       initCampoHoraAmigable() (ver junto a las llamadas de
                       Torneos en el <script>).
-                   3) #sCuentaOrgBox depende del mismo endpoint pendiente
-                      que #tCuentaOrgBox (webAdminCuentasDeNomMulti, ver el
-                      docblock de cargarCuentasDelAutor() más abajo) --
-                      mientras no exista, este cuadro se queda sin poblarse.
+                   3) HECHO (12-sep-2026): #sCuentaOrgBox/Plan/Mod ya se
+                      pueblan con datos reales -- ver
+                      initCuentaOrgBoxSorteo() junto a initCuentaOrgBox()
+                      más abajo, mismo endpoint webAdminCuentasDeNomMulti.
                    4) btnRegistrarSorteo (más abajo) todavía no lee ninguno
-                      de estos campos para armar su payload. -->
+                      de estos campos para armar su payload -- pendiente
+                      hasta que exista un payload real de Sorteos (no forma
+                      parte de este cambio puntual). -->
               <div id="camposRegistrarSorteo" style="display:none;">
                 <div class="field">
                   <label for="sLink">Link del sorteo</label>
@@ -4254,28 +4253,23 @@ async function cargarNomMultisAdmins(){
  *     que el backend debe escribir en las columnas Tag_org/Clan/ClanTag de
  *     T_Lista.
  *
- * QUÉ FALTA CONECTAR (backend, NO disponible en esta sesión):
- *   1) Un endpoint nuevo, webAdminCuentasDeNomMulti, en 34_Web_API.gs, que
- *      reciba { sessionToken, nomMulti } y devuelva:
- *        { ok:true, cuentas:[ { tag:'#ABC123', nombre:'...', clan:'...',
- *                                clanTag:'#2Y0...' }, ... ] }
- *      Puede envolver una función Core nueva, ej.
- *      _obtenerCuentasDeNomMulti(nomMulti), que recorra Directorio (y
- *      Directorio_Inactivos si corresponde) filtrando por Nom_Multi y arme
- *      esa lista — el Clan de cada fila ya está en Directorio; el ClanTag
- *      probablemente hay que sacarlo de la hoja de Clanes (relacionando
- *      Nombre de clan → Tag de clan) si no está ya en la fila del miembro.
- *   2) Una vez exista el endpoint, DESCOMENTAR el bloque marcado abajo
- *      dentro de cargarCuentasDelAutor() y borrar el aviso de "conectar
- *      backend".
- *   3) _registrarTorneoDesdeBot() / _webAdminTorneoRegistrar() (Registrar),
- *      _planificarTorneoDesdeBot() / _webAdminTorneoPlanificarGuardar()
- *      (Planificar) y _modificarFechaHoraTorneo() / _webAdminTorneoModificar()
- *      (Modificar) — todas en 24_Torneos_Core.gs / 34_Web_API.gs — deben
- *      aceptar los 3 parámetros opcionales tagOrg/clanOrg/clanTagOrg y
- *      escribirlos en las columnas Tag_org/Clan/ClanTag de T_Lista (en
- *      Modificar, igual que autor/premios, solo si llegan no vacíos, para
- *      no borrar lo ya guardado cuando el admin no toca este cuadro).
+ * QUÉ FALTABA CONECTAR (backend) — YA RESUELTO (12-sep-2026):
+ *   1) Endpoint webAdminCuentasDeNomMulti, en 34_Web_API.gs
+ *      (_webAdminCuentasDeNomMulti(token, nomMulti)), que envuelve
+ *      _obtenerCuentasDeNomMulti(nomMulti) (13_Directorio_Inactivos_Vetados.gs).
+ *      Recorre Directorio (y Directorio_Inactivos) filtrando por Nom_Multi y
+ *      devuelve { ok:true, cuentas:[ { tag:'#ABC123', nombre:'...',
+ *      clan:'...', clanTag:'#2Y0...' }, ... ] } — Clan y ClanTag ya son
+ *      columnas propias de la fila en Directorio (IC.CLAN/IC.CLAN_TAG), no
+ *      hizo falta tocar ninguna hoja de Clanes. Ruteado en
+ *      08_Web_Endpoints.gs junto a webAdminNomMultisAdmins.
+ *   2) El bloque dentro de cargarCuentasDelAutor() ya está descomentado y
+ *      llama al endpoint real; el aviso de "conectar backend" ya no
+ *      aparece salvo que la respuesta venga sin cuentas.
+ *   3) _webAdminTorneoRegistrar() / _webAdminTorneoPlanificarGuardar() /
+ *      _webAdminTorneoModificar() (34_Web_API.gs) ya aceptaban
+ *      tagOrg/clanOrg/clanTagOrg desde antes de esta sesión (ver sus propios
+ *      docblocks) y ya los escriben en Tag_org/Clan/ClanTag de T_Lista.
  *
  * SOBRE Fecha Y Hora (mismo pedido):
  *   - Fecha: no cambia nada — ya viaja como `fecha` (ver
@@ -4435,24 +4429,23 @@ async function cargarCuentasDelAutor(nomMulti, selectEl, infoEl){
   }
 
   // --------------------------------------------------------------
-  // PENDIENTE BACKEND: descomentar cuando webAdminCuentasDeNomMulti exista
-  // (ver el comentario grande de arriba para su forma exacta) y borrar el
-  // aviso de "conectar backend" de más abajo.
+  // Conectado (12-sep-2026): webAdminCuentasDeNomMulti ya existe en el
+  // backend (34_Web_API.gs / _webAdminCuentasDeNomMulti(), ruteado en
+  // 08_Web_Endpoints.gs) — ver el comentario grande de arriba para su forma
+  // exacta.
   // --------------------------------------------------------------
-  // try{
-  //   const data = await apiGetAuth('webAdminCuentasDeNomMulti', { nomMulti });
-  //   if(manejarRespuestaAuth(data)) return;
-  //   if(data.ok && data.cuentas){
-  //     cuentasPorNomMultiCache[nomMulti] = data.cuentas;
-  //     pintarCuentasOrg(data.cuentas, selectEl);
-  //     return;
-  //   }
-  //   selectEl.innerHTML = '<option value="">No se encontraron cuentas.</option>';
-  // }catch(err){
-  //   selectEl.innerHTML = '<option value="">Error al cargar cuentas.</option>';
-  // }
-
-  selectEl.innerHTML = '<option value="">(falta conectar el backend — ver comentario en el código)</option>';
+  try{
+    const data = await apiGetAuth('webAdminCuentasDeNomMulti', { nomMulti });
+    if(manejarRespuestaAuth(data)) return;
+    if(data.ok && data.cuentas){
+      cuentasPorNomMultiCache[nomMulti] = data.cuentas;
+      pintarCuentasOrg(data.cuentas, selectEl);
+      return;
+    }
+    selectEl.innerHTML = '<option value="">No se encontraron cuentas.</option>';
+  }catch(err){
+    selectEl.innerHTML = '<option value="">Error al cargar cuentas.</option>';
+  }
 }
 
 function pintarCuentasOrg(cuentas, selectEl){
@@ -4464,6 +4457,69 @@ function pintarCuentasOrg(cuentas, selectEl){
     opt.dataset.clan = c.clan || '';
     opt.dataset.clantag = c.clanTag || '';
     selectEl.appendChild(opt);
+  });
+}
+
+/**
+ * initCuentaOrgBoxSorteo(sufijo)
+ * FIX (12-sep-2026, pedido usuario -- ítem 3 del docblock junto a
+ * #camposRegistrarSorteo): gemela de initCuentaOrgBox() de arriba, mismo
+ * comportamiento exacto, pero para los 3 cuadros de Sorteos (prefijo "s" en
+ * vez de "t": #sAutorSelect*/#sCuentaOrgBox*/#sCuentaOrgSelect*/
+ * #sCuentaOrgInfo*). Reutiliza TAL CUAL cargarCuentasDelAutor() y
+ * nomMultiDelAdminDeSesion() -- ninguna de las dos depende del prefijo.
+ * No se unificó con initCuentaOrgBox() en una sola función parametrizada
+ * por prefijo para no arriesgar el flujo de Torneos ya probado; se
+ * mantienen como funciones gemelas, mismo criterio que ya usa el proyecto
+ * para los listeners de "__otro__" (uno por cada #tAutorSelect*/
+ * #sAutorSelect*, sin generalizar).
+ * OJO: esto SOLO puebla el <select> de cuentas -- todavía no existe
+ * leerCuentaOrgElegidaSorteo() ni ningún caller que lea estos datos hacia
+ * un payload, porque btnRegistrarSorteo/btnModificarSorteo/
+ * btnPlanificarSorteo no arman payload real todavía (ver ítem 4 del mismo
+ * docblock) -- eso queda pendiente para cuando se construya el backend de
+ * Sorteos.
+ */
+function initCuentaOrgBoxSorteo(sufijo){
+  const selectAutor = document.getElementById('sAutorSelect' + sufijo);
+  const box = document.getElementById('sCuentaOrgBox' + sufijo);
+  const selectCuenta = document.getElementById('sCuentaOrgSelect' + sufijo);
+  const info = document.getElementById('sCuentaOrgInfo' + sufijo);
+  if(!selectAutor || !box || !selectCuenta || !info) return;
+
+  selectAutor.addEventListener('change', async () => {
+    const valor = selectAutor.value;
+    if(valor === '__otro__'){
+      box.style.display = 'none';
+      selectCuenta.innerHTML = '<option value="">Elige la cuenta…</option>';
+      info.textContent = '';
+      return;
+    }
+    let nomMulti = valor;
+    // Mismo criterio que initCuentaOrgBox(): '' en Registrar/Planificar
+    // ('' / 'Plan') es "Lo organic(é/o) yo" -- el admin de la sesión; en
+    // Modificar ('Mod') '' es "Sin cambios", no debe mostrar el cuadro.
+    if(!valor){
+      nomMulti = (sufijo === 'Mod') ? '' : nomMultiDelAdminDeSesion();
+      if(!nomMulti){
+        box.style.display = 'none';
+        selectCuenta.innerHTML = '<option value="">Elige la cuenta…</option>';
+        info.textContent = '';
+        return;
+      }
+    }
+    box.style.display = '';
+    await cargarCuentasDelAutor(nomMulti, selectCuenta, info);
+  });
+
+  selectCuenta.addEventListener('change', () => {
+    const opt = selectCuenta.selectedOptions[0];
+    if(!opt || !opt.value){ info.textContent = ''; return; }
+    const clan = opt.dataset.clan || '';
+    const clanTag = opt.dataset.clantag || '';
+    info.textContent = clan
+      ? `Clan detectado: ${clan}${clanTag ? ' (' + clanTag + ')' : ''}`
+      : 'Esta cuenta no tiene clan registrado.';
   });
 }
 
@@ -4502,6 +4558,10 @@ function leerCuentaOrgElegida(sufijo){
 initCuentaOrgBox('');
 initCuentaOrgBox('Plan');
 initCuentaOrgBox('Mod');
+
+initCuentaOrgBoxSorteo('');
+initCuentaOrgBoxSorteo('Plan');
+initCuentaOrgBoxSorteo('Mod');
 
 /**
  * FIX (09-sep-2026 tarde, pedido usuario): dispara el mismo 'change' que
@@ -4799,7 +4859,7 @@ document.getElementById('btnRegistrarTorneo').addEventListener('click', async ()
   const esContinuacion = document.getElementById('torneoTipo').value === 'continuacion';
   // FIX (09-sep-2026): tagOrg/clanOrg/clanTagOrg → columnas Tag_org/Clan/
   // ClanTag de T_Lista, ver leerCuentaOrgElegida() y el comentario grande
-  // junto a cargarCuentasDelAutor() más arriba (PENDIENTE BACKEND).
+  // junto a cargarCuentasDelAutor() más arriba (ya conectado).
   const { tagOrg, clanOrg, clanTagOrg } = leerCuentaOrgElegida('');
   // FIX (05-sep-2026, pedido usuario — "autor del torneo"): valor vacío =
   // "Lo organicé yo" (el backend usa el admin de la sesión); "__otro__" =
@@ -4954,7 +5014,7 @@ document.getElementById('btnPlanificarTorneo').addEventListener('click', async (
   const autor = autorSelect === '__otro__' ? document.getElementById('tAutorManualPlan').value.trim() : autorSelect;
   const premios = armarPremiosCSV();
   // FIX (09-sep-2026): ver comentario grande junto a cargarCuentasDelAutor()
-  // más arriba (PENDIENTE BACKEND) — mismo criterio que en Registrar.
+  // más arriba (ya conectado) — mismo criterio que en Registrar.
   const { tagOrg, clanOrg, clanTagOrg } = leerCuentaOrgElegida('Plan');
   // FIX (11-sep-2026): mismo campo compartido #tComentario/#requisitosTorneoBox
   // que en btnRegistrarTorneo -- ver el comentario FIX de ese listener.
