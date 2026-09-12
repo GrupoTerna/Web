@@ -942,11 +942,17 @@
                      (#sSelectHoy o equivalente) en cuanto exista ese
                      formulario (ver 5.4).
 
-                     PENDIENTE BACKEND (sin tocar en esta sesión, ver 5.3):
-                     _webAdminTorneoModificar() todavía no tiene ninguna rama
-                     que reciba/procese este link -- por ahora el cuadro solo
-                     aparece y se limpia bien, pero btnModificarTorneo no
-                     manda su valor todavía. -->
+                     FIX (12-sep-2026, pedido del usuario -- consolidado
+                     sección 5.2/5.3, "link directo en Modificar torneo"):
+                     ya CONECTADO -- btnModificarTorneo (más abajo) ahora
+                     manda este valor como `link` en el payload cuando
+                     #tSelectHoy queda en "__link__", y
+                     _webAdminTorneoModificar() (34_Web_API.gs) ya tiene la
+                     rama que lo procesa (delega a
+                     _registrarTorneoDesdeBot(), misma lógica que "Registrar
+                     torneo" para completar una fila "Planificado" por
+                     fecha/hora exacta, o crear una nueva si no hay ninguna
+                     así). -->
                 <input type="text" id="tModificarLink" placeholder="https://link.clashroyale.com/..." style="margin-top:8px; display:none;">
               </div>
               <div class="field-row" id="filaFechaHoraMod">
@@ -4927,6 +4933,16 @@ document.getElementById('btnModificarTorneo').addEventListener('click', async ()
   const msgEl = document.getElementById('modificarTorneoMsg');
   msgEl.innerHTML = '';
   const id    = document.getElementById('tSelectHoy').value;
+  // FIX (12-sep-2026, pedido del usuario -- consolidado sección 5.2/5.3,
+  // "link directo en Modificar torneo"): con la opción "Ingresar link"
+  // elegida (id === '__link__'), se manda el valor de #tModificarLink como
+  // `link` en el payload -- _webAdminTorneoModificar() (34_Web_API.gs) ya
+  // tiene la rama que lo detecta y delega a _registrarTorneoDesdeBot() en
+  // vez de buscar por `id` (que acá es el centinela, no un ID real de
+  // T_Lista). Con cualquier otra opción, `link` viaja vacío y no cambia
+  // nada del comportamiento ya existente (búsqueda por `id` real).
+  const esOpcionLink = id === '__link__';
+  const link = esOpcionLink ? document.getElementById('tModificarLink').value.trim() : '';
   const fecha = fechaInputADDMMYYYY(document.getElementById('tFechaMod').value);
   const hora  = horaConSegundos(document.getElementById('tHoraMod').value);
   const esContinuacion = document.getElementById('torneoTipo').value === 'continuacion';
@@ -4954,6 +4970,10 @@ document.getElementById('btnModificarTorneo').addEventListener('click', async ()
   // comentario FIX de ese listener.
   const semanas = obtenerSemanasSeleccionadas('semanasSelectorMod');
   if(!id){ msgEl.innerHTML = '<div class="msg msg-error">Elige un torneo de la lista.</div>'; return; }
+  // FIX (12-sep-2026): con "Ingresar link" elegida, el link es obligatorio
+  // (mismo criterio que #tLink en Registrar) -- se corta acá antes de llamar
+  // al backend, que igual valida esto de nuevo por si acaso.
+  if(esOpcionLink && !link){ msgEl.innerHTML = '<div class="msg msg-error">Pega el link del torneo.</div>'; return; }
   if(!fecha || !hora){ msgEl.innerHTML = '<div class="msg msg-error">Completa la nueva fecha y hora.</div>'; return; }
   if(esContinuacion && !torneoTorneoPrincipalTag){ msgEl.innerHTML = '<div class="msg msg-error">Elige de cuál torneo principal es continuación.</div>'; return; }
   if(autorSelect === '__otro__' && !autor){ msgEl.innerHTML = '<div class="msg msg-error">Escribe el nombre de quien organizó, o elige otra opción.</div>'; return; }
@@ -4961,6 +4981,7 @@ document.getElementById('btnModificarTorneo').addEventListener('click', async ()
     const data = await apiPost('webAdminTorneoModificar', {
       sessionToken: localStorage.getItem(SESSION_KEY),
       id, fecha, hora,
+      link, // '' salvo que se haya elegido "Ingresar link" en #tSelectHoy
       tagTorneoPrincipal: esContinuacion ? torneoTorneoPrincipalTag : '',
       autor,   // '' = no cambiar el autor ya registrado
       premios, // '' = no cambiar los premios ya registrados
@@ -4970,7 +4991,10 @@ document.getElementById('btnModificarTorneo').addEventListener('click', async ()
     });
     if(manejarRespuestaAuth(data)) return;
     if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
-    msgEl.innerHTML = '<div class="msg msg-ok">Torneo actualizado.</div>';
+    msgEl.innerHTML = esOpcionLink
+      ? `<div class="msg msg-ok">Torneo registrado (ID ${esc(data.id)}).</div>`
+      : '<div class="msg msg-ok">Torneo actualizado.</div>';
+    document.getElementById('tModificarLink').value = '';
     document.getElementById('tAutorSelectMod').value = '';
     document.getElementById('tAutorManualMod').value = '';
     document.getElementById('tAutorManualMod').style.display = 'none';
