@@ -820,6 +820,7 @@
 
         <button id="exportBtn" class="export-btn">Descargar acta del sorteo (Word)</button>
         <p class="export-note">Genera un documento .doc listo para abrir en Word (podés guardarlo como .docx desde ahí). Los nombres del documento son los que estén escritos en cada campo de ganador — podés editarlos a mano antes de descargar. Incluye la cantidad de premios configurada, para que se sepa cuántos ganadores debía tener el sorteo.</p>
+        <div id="exportDocRealStatus" style="font-size:12px; margin-top:4px; display:none;"></div>
       </div>
     </div>
 
@@ -1588,6 +1589,53 @@
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+
+    // FASE (12-sep-2026, pedido del usuario -- consolidado de pendientes,
+    // punto 1): además de la descarga local de arriba (que no toca el
+    // backend), "Exportar" ahora también dispara el docx real al instante
+    // -- antes solo se actualizaba 1 vez al día, dentro de la corrida
+    // diaria de runUpdate() (ver docblock de
+    // _webAdminSorteoActualizarDocGanadores(), 34_Web_API.gs). Es un
+    // pedido aparte, en paralelo, que no bloquea ni condiciona la
+    // descarga local de arriba (que ya se disparó igual): si este pedido
+    // falla o no hay sesión activa, el .doc local ya se descargó sin
+    // problema.
+    actualizarDocRealGanadores();
+  }
+
+  function actualizarDocRealGanadores(){
+    var statusEl = document.getElementById('exportDocRealStatus');
+    var token = localStorage.getItem(SESSION_KEY_SORTEO);
+    if (!token){
+      statusEl.textContent = 'Descarga local lista. El documento real de Drive no se actualizó (no hay sesión de admin activa) — se actualizará solo en la próxima corrida diaria.';
+      statusEl.style.color = 'var(--ink-soft)';
+      statusEl.style.display = 'block';
+      return;
+    }
+
+    statusEl.textContent = 'Descarga local lista. Actualizando el documento real en Drive…';
+    statusEl.style.color = 'var(--ink-soft)';
+    statusEl.style.display = 'block';
+
+    var url = WEBAPP_URL + '?accion=webAdminSorteoActualizarDocGanadores';
+    fetch(url, {
+      method: 'POST',
+      body: JSON.stringify({ sessionToken: token })
+    })
+      .then(function(res){ return res.json(); })
+      .then(function(data){
+        if (!data || !data.ok){
+          statusEl.textContent = 'Descarga local lista. No se pudo actualizar el documento real de Drive: ' + ((data && data.error) || 'error desconocido') + ' (se actualizará solo en la próxima corrida diaria).';
+          statusEl.style.color = '#c0392b';
+          return;
+        }
+        statusEl.textContent = 'Descarga local lista y documento real de Drive actualizado ✓';
+        statusEl.style.color = '#2e7d32';
+      })
+      .catch(function(){
+        statusEl.textContent = 'Descarga local lista. Error de conexión al actualizar el documento real de Drive (se actualizará solo en la próxima corrida diaria).';
+        statusEl.style.color = '#c0392b';
+      });
   }
 
   function escapeHtml(str){
