@@ -166,40 +166,46 @@
   .msj-guerra-row .btn-copiar-mg.copiado{color:var(--ok); border-color:var(--ok);}
 
   /* FASE 3 del plan de fases (punto 3 del documento — "cuentas y ataques
-     disponibles por día"): sección NUEVA, solo-admin y solo día de guerra
-     (mismo criterio que Mensajes de Guerra / Aportes de Inactivos de
-     arriba). Backend ya listo desde antes (_getParticipacionHoyGuerra(),
+     disponibles por día"): sección solo-admin y solo día de guerra (mismo
+     criterio que Mensajes de Guerra / Aportes de Inactivos de arriba).
+     Backend ya listo desde antes (_getParticipacionHoyGuerra(),
      17_GuerraSheet.gs — accion=webAdminParticipacionHoyGuerra,
-     34_Web_API.gs): esta sección solo faltaba en el frontend. Por clan,
-     dos columnas de Tags: "Reservadas" (ya atacaron hoy, AtaquesHoy > 0 →
-     NO se pueden reemplazar) y "Disponibles" (sin ataques hoy → SÍ se
-     pueden reemplazar). Debajo, si hay casos de un mismo Tag con
-     AtaquesHoy > 0 en más de un clan Terna el mismo día (multiClan), se
-     avisa aparte — es información útil para el admin, no un error. */
+     34_Web_API.gs). Por clan, dos columnas de Tags: "Reservadas" (ya
+     atacaron hoy, AtaquesHoy > 0 → NO se pueden reemplazar) y
+     "Reemplazables" (sin ataques hoy → SÍ se pueden reemplazar). Debajo,
+     si hay casos de un mismo Tag con AtaquesHoy > 0 en más de un clan
+     Terna el mismo día (multiClan), se avisa aparte — es información útil
+     para el admin, no un error.
+     FIX (12-sep-2026, pedido usuario — por error esta sección había
+     quedado también duplicada en directorio.html; la versión final pedida
+     ("retira lo de cuentas reservadas y reemplazables... que se quede
+     solo en Guerra") es esta de acá: el conteo de cada columna va junto a
+     su encabezado ("Reservadas (26)"), nunca en una línea aparte por
+     clan; cada cuenta reservada muestra sus ataques pendientes hoy (4 -
+     ataques ya usados hoy); y las reservadas se subagrupan, dentro de
+     cada clan, en "Con ataques pendientes" (1-3) y "Sin ataques
+     pendientes" (0) — ver _listaCuentasHtml()/renderParticipacionHoyGuerra()
+     más abajo en el <script>. Reemplaza a las clases .ph-* que tenía esta
+     misma sección antes. */
   #participacionHoySection{display:none;}
-  .ph-clan-card{margin-bottom:18px;}
-  .ph-clan-card h3{font-size:15px; margin:0 0 4px; color:var(--purple-light);}
-  .ph-clan-card .ph-sub{font-family:var(--f-mono); font-size:11px; color:var(--text-faint); margin-bottom:10px;}
-  .ph-cols{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
-  @media (max-width:480px){ .ph-cols{grid-template-columns:1fr;} }
-  .ph-col-title{
-    font-family:var(--f-mono); font-size:11px; font-weight:700; letter-spacing:.08em;
-    text-transform:uppercase; margin:0 0 8px; display:flex; align-items:center; gap:6px;
+  .part-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+  @media (max-width:640px){ .part-grid{grid-template-columns:1fr;} }
+  .part-clan-bloque{padding:14px 0;}
+  .part-clan-bloque + .part-clan-bloque{border-top:1px solid var(--line);}
+  .part-clan-nombre{font-weight:700; font-size:14px; margin-bottom:10px;}
+  .part-col-header{
+    font-family:var(--f-mono); font-size:11px; text-transform:uppercase; letter-spacing:.08em;
+    color:var(--text-dim); display:flex; align-items:center; gap:6px;
   }
-  .ph-col-title.reservadas{color:var(--danger);}
-  .ph-col-title.disponibles{color:var(--ok);}
-  .ph-lista{list-style:none; margin:0; padding:0; font-family:var(--f-mono); font-size:12.5px;}
-  .ph-lista li{padding:4px 0; border-bottom:1px dashed var(--line); color:var(--text-dim);}
-  .ph-lista li:last-child{border-bottom:none;}
-  .ph-lista .ph-tag{color:var(--text-faint); font-size:11px; margin-left:6px;}
-  .ph-empty{font-family:var(--f-mono); font-size:12px; color:var(--text-faint); opacity:.7; padding:4px 0;}
-  .ph-multiclan{
-    margin-top:8px; padding:12px 14px; border:1px solid var(--line-strong); border-radius:var(--radius-sm);
-    background:rgba(243,169,34,.08); font-family:var(--f-mono); font-size:12.5px;
+  .part-subhead{
+    font-family:var(--f-mono); font-size:10px; text-transform:uppercase; letter-spacing:.06em;
+    color:var(--text-faint); margin-top:10px;
   }
-  .ph-multiclan .ph-multiclan-title{font-weight:700; color:var(--gold); text-transform:uppercase; letter-spacing:.06em; font-size:11px; margin-bottom:8px;}
-  .ph-multiclan ul{list-style:none; margin:0; padding:0;}
-  .ph-multiclan li{padding:3px 0; color:var(--text-dim);}
+  .part-subhead:first-of-type{margin-top:8px;}
+  .part-lista{margin:6px 0 0; padding-left:18px; font-size:12px;}
+  .part-lista li{margin-bottom:3px;}
+  .part-pend{font-family:var(--f-mono); font-size:11px; color:var(--text-faint);}
+  .part-pend.part-pend-cero{color:var(--text-faint); opacity:.7;}
 
   /* FIX (05-sep-2026, pedido usuario — "panel tipo hoja Control, con datos
      de Directorio, priorizando las cuadrículas"): sección nueva y PÚBLICA
@@ -510,12 +516,16 @@
          Aportes de Inactivos) — ver cargarParticipacionHoySiAdmin() más
          abajo. Arranca oculta; si no hay sesión de admin, no es día de
          guerra, o la carga falla, se queda oculta sin ocupar espacio ni
-         romper el resto de la página pública. -->
+         romper el resto de la página pública.
+         FIX (12-sep-2026, pedido usuario): versión final de esta sección
+         (antes duplicada por error en directorio.html) — ver comentario
+         completo en el <style> de arriba y en
+         renderParticipacionHoyGuerra() más abajo en el <script>. -->
     <section id="participacionHoySection" style="padding:24px 0;">
       <div class="sec-head" style="border-bottom:1px solid var(--line); padding-bottom:12px;">
         <h2 style="font-size:22px;">🔁 Participación de Hoy (Reemplazos)</h2>
+        <p style="margin-top:8px;">Por clan: cuentas que ya usaron al menos 1 de sus 4 ataques hoy (reservadas, no reemplazables) vs. cuentas activas que todavía no atacaron (reemplazables). Solo visible para administradores.</p>
       </div>
-      <div class="text-faint" style="font-family:var(--f-mono); font-size:12px; margin-top:10px;">Cuentas que ya usaron al menos 1 de sus 4 ataques hoy no se pueden reemplazar. Solo visible para administradores.</div>
       <div id="participacionHoyWrap" style="margin-top:16px;"></div>
     </section>
 
@@ -1940,23 +1950,93 @@ async function cargarAportesInactivosSiAdmin(ctx){
 }
 
 /**
+ * Participación de hoy en guerra (solo admins, solo día de guerra) — FIX
+ * (12-sep-2026, pedido usuario): esta sección había quedado duplicada por
+ * error en directorio.html; la versión final pedida por el usuario queda
+ * acá, en Guerra. Usa el mismo endpoint admin-only de siempre
+ * (webAdminParticipacionHoyGuerra → _getParticipacionHoyGuerra(),
+ * 17_GuerraSheet.gs).
+ *
+ * Cambios de esta versión final sobre la vieja (que usaba las clases
+ * .ph-*):
+ *   1) El conteo de cada columna va SOLO junto a su encabezado
+ *      ("Reservadas (26)"), nunca en una línea aparte por clan.
+ *   2) Cada cuenta reservada muestra sus ataques pendientes hoy
+ *      (4 - ataques ya usados hoy).
+ *   3) Las reservadas se subagrupan, dentro de cada clan, en "Con ataques
+ *      pendientes" (1-3) y "Sin ataques pendientes" (0).
+ *
+ * OJO backend: para que el punto 2/3 funcione, cada cuenta dentro de
+ * c.reservadas/c.disponibles debe traer también su cantidad de ataques
+ * usados hoy (mismo dato que ya se manda para multiClan como
+ * m.totalAtaquesHoy) — se lee acá como cta.ataquesHoy. Si el backend
+ * todavía no manda ese campo, las reservadas quedan todas en "Con ataques
+ * pendientes" sin dato exacto (se asume 1 usado) en vez de romper la
+ * vista.
+ */
+
+/** Arma un <li> con nombre/tag y, si corresponde, sus ataques pendientes
+ *  hoy (pend === null cuando no aplica mostrarlo, ej. columna
+ *  Reemplazables donde siempre es el tope completo). */
+function _liCuentaParticipacion(cta, pend){
+  const pendHtml = (pend === null) ? '' :
+    ` <span class="part-pend${pend === 0 ? ' part-pend-cero' : ''}">— ${pend} pendiente${pend === 1 ? '' : 's'}</span>`;
+  return `<li>${cta.tag ? enlaceJugador(cta.nombre || cta.tag, cta.tag) : esc(cta.nombre || cta.tag)} <span class="text-faint" style="font-family:var(--f-mono);">${esc(cta.tag || '')}</span>${pendHtml}</li>`;
+}
+function _listaCuentasHtml(cuentas, pendFn){
+  if(!cuentas.length) return '<div class="text-faint" style="font-size:12px;">— ninguna —</div>';
+  return `<ul class="part-lista">` + cuentas.map(c => _liCuentaParticipacion(c, pendFn ? pendFn(c) : null)).join('') + `</ul>`;
+}
+
+const ATAQUES_MAX_HOY = 4; // "usaron al menos 1 de sus 4 ataques hoy"
+function pendientesHoy(cta){
+  const usados = Number(cta.ataquesHoy);
+  return Number.isFinite(usados) ? Math.max(0, ATAQUES_MAX_HOY - usados) : 1; // sin dato del backend: se asume 1 usado
+}
+
+function renderParticipacionHoyGuerra(clanes, multiClan){
+  const barraHorizontal = '<hr style="border:none; border-top:1px solid var(--line); margin:0;">';
+
+  const clanesHtml = clanes.map(c => {
+    const conPendientes = c.reservadas.filter(cta => pendientesHoy(cta) > 0);
+    const sinPendientes = c.reservadas.filter(cta => pendientesHoy(cta) === 0);
+    return `
+    <div class="part-clan-bloque">
+      <div class="part-clan-nombre">${esc(c.clan)}</div>
+      <div class="part-grid">
+        <div>
+          <div class="part-col-header">🔒 Reservadas (${c.reservadas.length})</div>
+          <div class="part-subhead">Con ataques pendientes (${conPendientes.length})</div>
+          ${_listaCuentasHtml(conPendientes, pendientesHoy)}
+          <div class="part-subhead">Sin ataques pendientes (${sinPendientes.length})</div>
+          ${_listaCuentasHtml(sinPendientes, pendientesHoy)}
+        </div>
+        <div>
+          <div class="part-col-header">✅ Reemplazables (${c.disponibles.length})</div>
+          ${_listaCuentasHtml(c.disponibles, () => ATAQUES_MAX_HOY)}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  const multiClanHtml = !multiClan.length ? '' : `
+    <div style="border-top:1px solid var(--line); padding:12px 0;">
+      <span class="badge badge-warn">Ataques en más de un clan hoy</span>
+      <ul class="part-lista" style="margin-top:8px;">
+        ${multiClan.map(m => `<li>${m.tag ? enlaceJugador(m.nombre || m.tag, m.tag) : esc(m.nombre || m.tag)} <span class="text-faint" style="font-family:var(--f-mono);">${esc(m.tag || '')}</span> — ${m.clanes.map(esc).join(' y ')} (${fmtNum(m.totalAtaquesHoy)} ataques hoy)</li>`).join('')}
+      </ul>
+    </div>`;
+
+  return barraHorizontal + clanesHtml + barraHorizontal + multiClanHtml;
+}
+
+/**
  * cargarParticipacionHoySiAdmin(ctx)
- * FASE 3 del plan de fases (punto 3 del documento — "cantidad de cuentas y
- * ataques disponibles por día"). Pide 'webAdminParticipacionHoyGuerra'
- * (endpoint autenticado, ver _webAdminParticipacionHoyGuerra(),
- * 34_Web_API.gs -> _getParticipacionHoyGuerra(), 17_GuerraSheet.gs, ambos
- * ya existían en el backend antes de esta fase) y pinta, por clan Terna,
- * dos columnas: Reservadas (AtaquesHoy > 0 hoy -> NO reemplazables) y
- * Disponibles (sin ataques hoy -> SÍ reemplazables). Debajo de las
- * tarjetas de clan, si el backend manda `multiClan` (Tags con AtaquesHoy
- * > 0 en más de un clan Terna el mismo día), se pinta un aviso aparte —
- * no es un error, es información útil para el admin (ej. un miembro
- * prestado que atacó en 2 clanes el mismo día).
  * Mismo criterio de robustez que cargarMensajesGuerraSiAdmin() /
  * cargarAportesInactivosSiAdmin(): no se pide ni se muestra nada si no hay
  * sesión de admin (esAdminLogueado()) o no es día de guerra
- * (ctx.esDiaGuerra) — Reservadas/Disponibles solo tiene sentido en días de
- * guerra (J/V/S/D), en entrenamiento nadie tiene AtaquesHoy. Cualquier
+ * (ctx.esDiaGuerra) — Reservadas/Reemplazables solo tiene sentido en días
+ * de guerra (J/V/S/D), en entrenamiento nadie tiene AtaquesHoy. Cualquier
  * error (token vencido, etc.) se traga en silencio y la sección se oculta
  * por completo, sin romper el resto de la página pública para nadie.
  */
@@ -1970,34 +2050,7 @@ async function cargarParticipacionHoySiAdmin(ctx){
     const clanes = (data.clanes || []).slice().sort((a, b) => ordenClanIndex(a.clan) - ordenClanIndex(b.clan));
     if (!clanes.length){ section.style.display = 'none'; wrap.innerHTML = ''; return; }
 
-    const listaHtml = (cuentas) => cuentas.length
-      ? `<ul class="ph-lista">${cuentas.map(c => `<li>${c.tag ? enlaceJugador(c.nombre || c.tag, c.tag) : esc(c.nombre || c.tag)}<span class="ph-tag">${esc(c.tag || '')}</span></li>`).join('')}</ul>`
-      : '<div class="ph-empty">Ninguna</div>';
-
-    const tarjetasHtml = clanes.map(c => `
-      <div class="card ph-clan-card" style="padding:16px;">
-        <h3>${esc(c.clan)}</h3>
-        <div class="ph-sub">${fmtNum(c.reservadas.length)} reservada(s) · ${fmtNum(c.disponibles.length)} disponible(s)</div>
-        <div class="ph-cols">
-          <div>
-            <p class="ph-col-title reservadas">🔒 Reservadas</p>
-            ${listaHtml(c.reservadas)}
-          </div>
-          <div>
-            <p class="ph-col-title disponibles">✅ Reemplazables</p>
-            ${listaHtml(c.disponibles)}
-          </div>
-        </div>
-      </div>`).join('');
-
-    const multiClan = data.multiClan || [];
-    const multiClanHtml = multiClan.length ? `
-      <div class="ph-multiclan">
-        <div class="ph-multiclan-title">⚠️ Atacaron hoy en más de un clan Terna</div>
-        <ul>${multiClan.map(m => `<li>${m.tag ? enlaceJugador(m.nombre || m.tag, m.tag) : esc(m.nombre || m.tag)} <span class="ph-tag">${esc(m.tag || '')}</span> — ${m.clanes.map(esc).join(', ')} (${fmtNum(m.totalAtaquesHoy)} ataque(s) en total)</li>`).join('')}</ul>
-      </div>` : '';
-
-    wrap.innerHTML = tarjetasHtml + multiClanHtml;
+    wrap.innerHTML = renderParticipacionHoyGuerra(clanes, data.multiClan || []);
     section.style.display = 'block';
   }catch(err){
     // Defensivo: sesión vencida u otro fallo — no romper el resto de la
