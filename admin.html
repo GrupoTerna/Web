@@ -1187,30 +1187,37 @@
                  payload; el backend nunca ve el separador de miles, solo
                  el número.
 
-                 PENDIENTE BACKEND (todo el bloque): no existe hoy ningún
-                 endpoint para LEER esta configuración con antelación
-                 (cargarRequisitosPorClan()). Para GUARDARLA ya no hay un
-                 botón propio -- FIX (10-sep-2026, pedido usuario — "quita
-                 el botón de guardar requisitos, eso ya lo hace el botón
-                 registrar torneo"): se quitó #btnGuardarRequisitos y
-                 #requisitosMsg; estos campos (reqTrofGuerra*/reqAtaques*/
-                 reqMiembroActivo/reqReaccion/reqPresenciaWhatsapp) viajan
-                 junto con el resto del formulario cuando se presiona
-                 "Registrar torneo"/"Guardar cambios"/"Planificar torneo"
-                 (btnRegistrarTorneo/btnModificarTorneo/btnPlanificarTorneo
-                 más abajo), igual que autor/premios/semanas.
+                 RESUELTO (10-sep-2026, "quita el botón de guardar
+                 requisitos, eso ya lo hace el botón registrar torneo"): se
+                 quitó #btnGuardarRequisitos y #requisitosMsg; estos campos
+                 (reqTrofGuerra*/reqAtaques*/reqMiembroActivo/reqReaccion/
+                 reqPresenciaWhatsapp) viajan junto con el resto del
+                 formulario cuando se presiona "Registrar torneo"/"Guardar
+                 cambios"/"Planificar torneo" (btnRegistrarTorneo/
+                 btnModificarTorneo/btnPlanificarTorneo más abajo), igual
+                 que autor/premios/semanas.
 
                  RESUELTO (11-sep-2026): los 3 listeners ya arman y mandan
                  este payload (`requisitos: armarPayloadRequisitos()`) junto
                  con los demás parámetros del torneo -- ver el comentario FIX
-                 junto a cada uno más abajo. Lo que sigue PENDIENTE BACKEND
-                 es que _webAdminTorneoRegistrar()/_webAdminTorneoModificar()/
-                 _webAdminTorneoPlanificarGuardar() (34_Web_API.gs) reciban y
-                 guarden ese campo donde corresponda (webAdminRequisitosClanes
-                 para lectura previa sigue sin existir tampoco). Hasta
-                 entonces: cargarRequisitosPorClan() no hace nada (el
-                 formulario arranca con los defaults de arriba) y `requisitos`
-                 viaja en cada request sin que el backend actual lo use.
+                 junto a cada uno más abajo.
+
+                 RESUELTO (12-sep-2026, consolidado sección 5.1): ya existen
+                 tanto la ESCRITURA (_webAdminTorneoRegistrar()/
+                 _webAdminTorneoPlanificarGuardar(), 34_Web_API.gs, ya
+                 reciben y guardan `requisitos`/`comentario`) como la
+                 LECTURA previa (webAdminRequisitosClanes, ver
+                 cargarRequisitosPorClan() más abajo, ya descomentada).
+                 ÚNICO PENDIENTE BACKEND que queda: _webAdminTorneoModificar()
+                 sigue sin reenviar `requisitos` (solo `comentario`) -- ver
+                 el docblock de _modificarFechaHoraTorneo() (24_Torneos_
+                 Core.gs) y el de cargarRequisitosPorClan() más abajo para
+                 el motivo (el precargado lee el torneo MÁS RECIENTE de
+                 T_Lista, no el que puntualmente se esté Modificando por
+                 ID -- ambigüedad si hay más de un torneo el mismo día).
+                 Hasta que se resuelva esa ambigüedad, `requisitos` sigue
+                 viajando en el payload de "Guardar cambios" sin que el
+                 backend lo use para ese caso puntual.
 
                  RESUELTO (10-sep-2026, sección 5.1.1 del consolidado):
                  los grids #reqTrofeosGuerraGrid/#reqAtaquesSemanaGrid ahora
@@ -3412,16 +3419,16 @@ cargarSemanasRecientes().then(() => {
  * Ver el docblock grande junto al bloque "Requisitos para participar en
  * torneos" (dentro de #torneoPaso3, justo después del autor y los premios
  * de cada rama Registrar/Modificar/Planificar) en el HTML para el
- * contexto completo. Resumen de esta
- * parte (todo lo de acá es SOLO FRONT-END por ahora, pedido explícito del
- * usuario: "no pasa nada si no se logra conectar ahora, solo estoy
- * armando el formulario para conectarlo en otra sesión"):
+ * contexto completo. Resumen de esta parte, ACTUALIZADO (12-sep-2026,
+ * consolidado sección 5.1) -- ya conectado de punta a punta salvo un
+ * punto puntual:
  *
  *   - CLANES_REQUISITOS: los 4 clanes de la Familia, hardcodeados acá
- *     porque no existe todavía un endpoint que los entregue.
+ *     porque no existe todavía un endpoint que los entregue (sigue
+ *     pendiente, sin relación con el resto de este resumen).
  *   - formatoMiles()/valorPlanoInputMiles()/initInputMiles(): dan formato
  *     de miles (1,234) SOLO VISUAL a un <input type="text">, sin tocar el
- *     valor real (siempre números planos, sin comas) que viajaría al
+ *     valor real (siempre números planos, sin comas) que viaja al
  *     backend.
  *   - pintarGridRequisitosNumericos(): pinta un <div class="field"> por
  *     cada clan de CLANES_REQUISITOS dentro del contenedor indicado — se
@@ -3431,21 +3438,17 @@ cargarSemanasRecientes().then(() => {
  *     único, conectado por initMismoValorParaTodos() (ver más abajo) —
  *     puramente de UI/UX, no cambia el payload que arma
  *     armarPayloadRequisitos().
- *   - cargarRequisitosPorClan(): PENDIENTE BACKEND, ver el bloque
- *     comentado adentro — hoy no hace nada (dejaría el formulario en
- *     blanco), listo para descomentar cuando exista
- *     webAdminRequisitosClanes.
- *   - FIX (10-sep-2026, pedido usuario — "quita el botón de guardar
- *     requisitos, eso ya lo hace el botón registrar torneo"): ya no hay un
- *     botón/listener propio para esto. armarPayloadRequisitos() (más abajo)
- *     arma el mismo objeto que antes armaba el listener de
- *     #btnGuardarRequisitos, listo para que btnRegistrarTorneo/
- *     btnModificarTorneo/btnPlanificarTorneo lo incluyan en su payload —
- *     falta sumarlo en esos 3 listeners y que el backend
- *     (_webAdminTorneoRegistrar()/_webAdminTorneoModificar()/
- *     _webAdminTorneoPlanificarGuardar()) lo reciba y guarde (mismo
- *     endpoint pendiente, webAdminRequisitosClanesGuardar ya no aplica como
- *     endpoint aparte).
+ *   - armarPayloadRequisitos(): arma `requisitos`, sumado por
+ *     btnRegistrarTorneo/btnModificarTorneo/btnPlanificarTorneo a su propio
+ *     payload (RESUELTO 11-sep-2026). El backend ya lo recibe y guarda para
+ *     Registrar/Planificar (RESUELTO 12-sep-2026,
+ *     _webAdminTorneoRegistrar()/_webAdminTorneoPlanificarGuardar(),
+ *     34_Web_API.gs) -- Modificar es la ÚNICA excepción a propósito, ver
+ *     docblock de cargarRequisitosPorClan() más abajo para el motivo.
+ *   - cargarRequisitosPorClan(): RESUELTO (12-sep-2026) -- ya existe
+ *     webAdminRequisitosClanes en el backend, así que ya precarga cada
+ *     cuadro con el valor guardado del torneo más reciente. Ver su propio
+ *     docblock para la salvedad sobre Modificar.
  */
 const CLANES_REQUISITOS = ['Grupo乂Terna™', 'GrupoXTerna™2', 'GrupoXTerna™3', 'Mini乂Ternas™'];
 
@@ -3580,17 +3583,29 @@ pintarGridRequisitosNumericos('reqAtaquesSemanaGrid', 'reqAtaques', 'Ejm: 16');
 
 /**
  * cargarRequisitosPorClan()
- * PENDIENTE BACKEND: no existe todavía webAdminRequisitosClanes (ni la
- * función .gs que lo respalde). Cuando exista, descomentar el bloque de
- * abajo -- ya deja cada cuadro con el valor GUARDADO antes de que el admin
- * toque nada (pedido explícito del usuario: "cargar esos valores desde el
- * backend si es que ya hay un registro para ver antes de modificar").
- * Se llama una vez desde mostrarPanel(), igual que cargarNomMultisAdmins();
- * mientras el endpoint no exista, no hace nada y el formulario queda en
- * blanco/"Elige…".
+ * RESUELTO (12-sep-2026, pedido del usuario -- consolidado sección 5.1,
+ * punto "(b)"): ya existe `webAdminRequisitosClanes` en el backend
+ * (34_Web_API.gs/08_Web_Endpoints.gs), así que se descomenta el bloque que
+ * quedaba a la espera -- deja cada cuadro con el valor GUARDADO antes de
+ * que el admin toque nada (pedido explícito del usuario: "cargar esos
+ * valores desde el backend si es que ya hay un registro para ver antes de
+ * modificar").
+ * Se llama una vez desde mostrarPanel(), igual que cargarNomMultisAdmins().
+ *
+ * IMPORTANTE (leer junto con el docblock de `_modificarFechaHoraTorneo()`,
+ * 24_Torneos_Core.gs): el endpoint precarga con los requisitos del torneo
+ * MÁS RECIENTE de T_Lista (misma fuente que ya usa el resto del proyecto,
+ * `_getConfigMasRecienteCategoria()`), no con los del torneo puntual que se
+ * vaya a Modificar por ID -- correcto para "Registrar"/"Planificar" (fila
+ * nueva, no hay ambigüedad), pero si algún día hay más de un torneo el
+ * mismo día (torneo + continuación) y se abre "Modificar" sobre el que NO
+ * es el más reciente de los dos, este precargado mostraría los requisitos
+ * del otro torneo. Por eso, aunque este precargado ya funciona, el backend
+ * de Modificar TODAVÍA NO reenvía `requisitos` (sigue only reenviando
+ * `comentario`) -- ver ese docblock para el detalle completo antes de
+ * habilitarlo ahí también.
  */
 async function cargarRequisitosPorClan(){
-  /*
   try{
     const data = await apiGetAuth('webAdminRequisitosClanes', {});
     if(manejarRespuestaAuth(data)) return;
@@ -3607,10 +3622,10 @@ async function cargarRequisitosPorClan(){
       if(data.requisitos.presenciaWhatsapp) document.getElementById('reqPresenciaWhatsapp').value = data.requisitos.presenciaWhatsapp;
     }
   }catch(err){
-    // Sin backend todavía: se deja el formulario en blanco (ver comentario
-    // grande de arriba).
+    // Error de red/parseo: se deja el formulario con lo que ya tuviera
+    // (defaults del HTML) -- mismo criterio de tolerancia a fallos que el
+    // resto de los `cargarXxx()` de este archivo (ver p.ej. cargarNomMultisAdmins()).
   }
-  */
 }
 
 /**
