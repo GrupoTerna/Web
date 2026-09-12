@@ -3582,7 +3582,7 @@ pintarGridRequisitosNumericos('reqTrofeosGuerraGrid', 'reqTrofGuerra', 'Ejm: 240
 pintarGridRequisitosNumericos('reqAtaquesSemanaGrid', 'reqAtaques', 'Ejm: 16');
 
 /**
- * cargarRequisitosPorClan()
+ * cargarRequisitosPorClan(id)
  * RESUELTO (12-sep-2026, pedido del usuario -- consolidado sección 5.1,
  * punto "(b)"): ya existe `webAdminRequisitosClanes` en el backend
  * (34_Web_API.gs/08_Web_Endpoints.gs), así que se descomenta el bloque que
@@ -3590,24 +3590,33 @@ pintarGridRequisitosNumericos('reqAtaquesSemanaGrid', 'reqAtaques', 'Ejm: 16');
  * que el admin toque nada (pedido explícito del usuario: "cargar esos
  * valores desde el backend si es que ya hay un registro para ver antes de
  * modificar").
- * Se llama una vez desde mostrarPanel(), igual que cargarNomMultisAdmins().
+ * Se llama sin argumentos una vez desde mostrarPanel(), igual que
+ * cargarNomMultisAdmins() -- ese llamado precarga el estado inicial del
+ * Paso 1 (todavía no se eligió "Registrar"/"Modificar"/"Planificar" ni
+ * ningún torneo puntual) con el torneo más reciente de T_Lista.
  *
- * IMPORTANTE (leer junto con el docblock de `_modificarFechaHoraTorneo()`,
- * 24_Torneos_Core.gs): el endpoint precarga con los requisitos del torneo
- * MÁS RECIENTE de T_Lista (misma fuente que ya usa el resto del proyecto,
- * `_getConfigMasRecienteCategoria()`), no con los del torneo puntual que se
- * vaya a Modificar por ID -- correcto para "Registrar"/"Planificar" (fila
- * nueva, no hay ambigüedad), pero si algún día hay más de un torneo el
- * mismo día (torneo + continuación) y se abre "Modificar" sobre el que NO
- * es el más reciente de los dos, este precargado mostraría los requisitos
- * del otro torneo. Por eso, aunque este precargado ya funciona, el backend
- * de Modificar TODAVÍA NO reenvía `requisitos` (sigue only reenviando
- * `comentario`) -- ver ese docblock para el detalle completo antes de
- * habilitarlo ahí también.
+ * FIX (12-sep-2026, mismo día -- pedido del usuario: "se debe leer solo
+ * los valores del torneo seleccionado, porque cada uno puede tener
+ * requisitos, premios, etc, todo diferente"): nuevo parámetro OPCIONAL
+ * `id`. El backend (`_getConfigMasRecienteCategoria('Torneo', id)`,
+ * 24_Torneos_Core.gs) ya sabe leer por ID puntual en vez de "el torneo más
+ * reciente" -- acá solo falta reenviárselo. El listener de 'change' de
+ * #tSelectHoy (más abajo) llama `cargarRequisitosPorClan(idElegido)` apenas
+ * el admin elige un torneo puntual en el paso "Modificar", así que el
+ * cuadro de requisitos ya no muestra "el más reciente" sino los del torneo
+ * que efectivamente se va a editar -- resuelve el caso de dos torneos el
+ * mismo día (torneo + continuación) que motivó este FIX. Sin `id` (llamado
+ * inicial desde mostrarPanel(), o mientras no se eligió ningún torneo en
+ * el <select>), se mantiene el comportamiento de siempre.
+ * Si `data.ok` viene en `false` (ID inexistente -- no debería pasar en uso
+ * normal, ya que `id` siempre sale de una <option> real de #tSelectHoy),
+ * se deja el formulario tal cual estaba, mismo criterio de tolerancia que
+ * el catch de red de abajo.
+ * @param {string} [id]
  */
-async function cargarRequisitosPorClan(){
+async function cargarRequisitosPorClan(id){
   try{
-    const data = await apiGetAuth('webAdminRequisitosClanes', {});
+    const data = await apiGetAuth('webAdminRequisitosClanes', id ? { id } : {});
     if(manejarRespuestaAuth(data)) return;
     if(data.ok && data.requisitos){
       CLANES_REQUISITOS.forEach(clan => {
@@ -3638,11 +3647,15 @@ async function cargarRequisitosPorClan(){
  * btnPlanificarTorneo lo sumen a su propio payload al presionar
  * "Registrar torneo"/"Guardar cambios"/"Planificar torneo".
  * RESUELTO (11-sep-2026): los 3 listeners ya llaman esta función y agregan
- * su resultado al payload que mandan (campo `requisitos`). Sigue PENDIENTE
- * BACKEND que _webAdminTorneoRegistrar()/_webAdminTorneoModificar()/
- * _webAdminTorneoPlanificarGuardar() (34_Web_API.gs) lo reciban y guarden
- * donde corresponda -- webAdminRequisitosClanes sigue sin existir para
- * poder precargar estos valores tampoco (ver cargarRequisitosPorClan()).
+ * su resultado al payload que mandan (campo `requisitos`).
+ * RESUELTO (12-sep-2026): _webAdminTorneoRegistrar()/
+ * _webAdminTorneoPlanificarGuardar() (34_Web_API.gs) ya reciben y guardan
+ * `requisitos` desde el mismo día que se sumó acá; _webAdminTorneoModificar()
+ * se sumó recién ahora, una vez resuelta la precarga por ID puntual (ver
+ * `cargarRequisitosPorClan(id)` y el listener de 'change' de #tSelectHoy,
+ * más abajo) -- antes de eso, escribir `requisitos` en Modificar arriesgaba
+ * sobrescribir en silencio los valores ya guardados de OTRO torneo del
+ * mismo día. Ya no queda ningún pendiente de backend en este punto.
  */
 function armarPayloadRequisitos(){
   const requisitosPorClan = {};
@@ -4761,6 +4774,20 @@ document.getElementById('tSelectHoy').addEventListener('change', () => {
   // registradas, se ajustan los checkboxes para reflejarlas.
   pintarSemanasSelector('semanasSelectorMod');
   preseleccionarSemanas('semanasSelectorMod', opt && opt.dataset.semanas);
+
+  // FIX (12-sep-2026, pedido del usuario -- ver docblock de
+  // cargarRequisitosPorClan() más arriba): al elegir un torneo PUNTUAL en
+  // este <select> (value real, ni "" ni "__link__"), se recarga
+  // #requisitosTorneoBox con los requisitos YA GUARDADOS de ESE torneo
+  // -- ya no "el más reciente". Con la opción vacía o "Ingresar link"
+  // (torneo sin ID conocido todavía, ver PENDIENTE BACKEND junto a
+  // #tModificarLink más arriba en el HTML) se deja el cuadro tal cual
+  // estaba, mismo criterio que premios/semanas de arriba con
+  // `opt && opt.dataset...` en `undefined`.
+  const idTorneoSeleccionado = document.getElementById('tSelectHoy').value;
+  if(idTorneoSeleccionado && idTorneoSeleccionado !== '__link__'){
+    cargarRequisitosPorClan(idTorneoSeleccionado);
+  }
 });
 
 document.getElementById('btnRegistrarTorneo').addEventListener('click', async () => {
