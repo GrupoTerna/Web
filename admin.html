@@ -938,9 +938,9 @@
                      seleccionado. El valor se limpia cada vez que se elige
                      cualquier otra opción del dropdown -- nunca se conserva
                      para la próxima vez que se vuelva a elegir "Ingresar
-                     link". Mismo patrón pendiente de replicar en Sorteos
-                     (#sSelectHoy o equivalente) en cuanto exista ese
-                     formulario (ver 5.4).
+                     link". Sorteos NO replica este patrón (CONFIRMADO por
+                     el usuario, 12-sep-2026: Sorteos no tiene concepto de
+                     link -- #sLink/#sModificarLink se eliminaron del HTML).
 
                      FIX (12-sep-2026, pedido del usuario -- consolidado
                      sección 5.2/5.3, "link directo en Modificar torneo"):
@@ -1298,9 +1298,9 @@
             <!-- FIX (10-sep-2026, pedido usuario — sección 5.4.1 del
                  consolidado: "cuadro de Comentario justo ANTES del botón de
                  acción final, en los 6 formularios de Torneos y Sorteos").
-                 Por ahora solo se agrega para Torneos (los 3 formularios de
-                 Sorteos todavía no existen, ver 5.4 -- se replica este mismo
-                 bloque cuando se construyan).
+                 Este bloque es la versión de Torneos; Sorteos tiene su
+                 propio nodo equivalente, #comentarioSorteoBox (ver más
+                 abajo, junto a #camposSorteoPrincipal).
 
                  Es UN SOLO nodo compartido entre las 3 ramas (Registrar/
                  Modificar/Planificar), mismo criterio que
@@ -1376,12 +1376,13 @@
                vez de "torneo" para no confundir al admin, pero los values
                ("principal"/"continuacion") son los mismos que
                #torneoTipo, listos para que el futuro Paso 3 los lea igual.
-               PASO 3 (campos reales del formulario -- Delta, bloque
-               "Torneos mínimos", ID/ID2 en vez de Tag_Tor/Tag_Tor_2, sin
-               Semanas -- ver sección 5.4 del consolidado) TODAVÍA NO se
-               construye: #sorteoPaso3 es un placeholder explícito que avisa
-               que sigue pendiente, para no dejar "Continuar" sin reacción
-               visible ni fingir un formulario que no existe. -->
+               PASO 3: campos reales del formulario -- fecha/hora, autor,
+               cuenta organizadora, premios (Modificar/Planificar),
+               selector de semanas, requisitos por clan (con Delta y
+               "Torneos mínimos", exclusivos de Sorteos) y selector de
+               sorteo principal (por ID, no por Tag). Ver
+               mostrarPaso3Sorteo() en el <script> para el detalle
+               completo. -->
           <div id="panelSorteosAccion" style="display:none;">
 
             <div id="sorteoPaso1">
@@ -1413,50 +1414,28 @@
             <div id="sorteoPaso3" style="display:none; margin-top:14px;">
               <a href="#" id="sorteoVolverPaso2" class="text-dim" style="font-size:12px; display:inline-block; margin-bottom:10px;">‹ Cambiar</a>
 
-              <!-- FIX (10-sep-2026, sección 5.4 del consolidado — esqueleto
-                   de ruteo del Paso 3 de Sorteos): mismos 3 contenedores que
-                   Torneos (#camposRegistrar/#camposModificar/
-                   #camposPlanificar), mostrados/ocultados por
-                   mostrarPaso3Sorteo() (ver <script>) exactamente con la
-                   misma lógica que mostrarPaso3() de Torneos -- combinación
-                   de #sorteoAccion (Paso 1) y #sorteoTipo (Paso 2).
-                   TODAVÍA NO tienen campos reales adentro (link, fecha/hora,
-                   autor, premios, requisitos C1-C4 + Delta + "Torneos
-                   mínimos", comentario) -- eso es la parte grande de 5.4 que
-                   sigue pendiente. Cada uno queda como placeholder explícito
-                   en vez de fingir un formulario que no existe. -->
-              <!-- FIX (10-sep-2026, sección 5.4 del consolidado — campos
-                   reales de "Registrar sorteo", mismo patrón que
-                   #camposRegistrar de Torneos, prefijo "s" en vez de "t"):
-                   link + fecha/hora amigable + autor + cuenta organizadora.
-                   A diferencia de Torneos, NO lleva selector de semanas
-                   (Sorteos no evalúa parámetros de guerra por semana, ver
-                   5.4) ni editor de premios en Registrar (los premios de un
-                   sorteo ya en curso no se tocan al solo registrarlo — igual
-                   que Torneos, donde #premiosEditor vive únicamente en
-                   Planificar/Modificar).
-
-                   PENDIENTE JS (mismo estado que el resto de este panel):
-                   1) HECHO (10-sep-2026): #sAutorSelect ya tiene su
-                      listener de "__otro__" que revela #sAutorManual (ver
-                      junto al de #tAutorSelect en el <script>).
-                   2) HECHO (10-sep-2026): #sFechaTexto/#sHoraTexto ya
-                      llaman a initCampoFechaAmigable()/
-                      initCampoHoraAmigable() (ver junto a las llamadas de
-                      Torneos en el <script>).
-                   3) HECHO (12-sep-2026): #sCuentaOrgBox/Plan/Mod ya se
-                      pueblan con datos reales -- ver
-                      initCuentaOrgBoxSorteo() junto a initCuentaOrgBox()
-                      más abajo, mismo endpoint webAdminCuentasDeNomMulti.
-                   4) btnRegistrarSorteo (más abajo) todavía no lee ninguno
-                      de estos campos para armar su payload -- pendiente
-                      hasta que exista un payload real de Sorteos (no forma
-                      parte de este cambio puntual). -->
+              <!-- Paso 3 de Sorteos: mismos 3 contenedores que Torneos
+                   (#camposRegistrar/#camposModificar/#camposPlanificar),
+                   mostrados/ocultados por mostrarPaso3Sorteo() (ver
+                   <script>) con la misma lógica que mostrarPaso3() de
+                   Torneos -- combinación de #sorteoAccion (Paso 1) y
+                   #sorteoTipo (Paso 2). Panel completo desde 12-sep-2026
+                   (consolidado sección 5.4): los 3 formularios, los 3
+                   listeners de acción, requisitos por clan y el selector
+                   real de "¿cuál es el sorteo principal?" ya están
+                   conectados de punta a punta a sus endpoints. -->
+              <!-- "Registrar sorteo": mismo patrón que #camposRegistrar de
+                   Torneos, prefijo "s" en vez de "t" -- fecha/hora amigable
+                   + autor + cuenta organizadora. A diferencia de Torneos,
+                   NO lleva selector de semanas (Sorteos no evalúa
+                   parámetros de guerra por semana) ni editor de premios en
+                   Registrar (los premios de un sorteo ya en curso no se
+                   tocan al solo registrarlo — igual que Torneos, donde
+                   #premiosEditor vive únicamente en Planificar/Modificar).
+                   Tampoco lleva campo de link (CONFIRMADO por el usuario,
+                   12-sep-2026: Sorteos no tiene ese concepto — #sLink se
+                   eliminó del HTML). -->
               <div id="camposRegistrarSorteo" style="display:none;">
-                <div class="field">
-                  <label for="sLink">Link del sorteo</label>
-                  <input type="text" id="sLink" placeholder="https://link.clashroyale.com/...">
-                </div>
                 <div class="field-row" id="filaFechaHoraSorteoReg">
                   <div class="field">
                     <label for="sFechaTexto">Fecha</label>
@@ -1496,33 +1475,19 @@
                   <div id="sCuentaOrgInfo" class="text-dim" style="font-size:12px; margin-top:6px;"></div>
                 </div>
 
-                <!-- CORRECCIÓN (10-sep-2026, aclaración del usuario): el
-                     consolidado (sección 5.4) había registrado que Sorteos
-                     NO debía tener selector de semanas porque S_Lista no
-                     tenía columna "Semanas" como T_Lista. Esa nota quedó
-                     corregida ese mismo día: el usuario aclaró que Sorteos
-                     SÍ necesita este selector, aunque en ese momento fuera
-                     solo para indicar sobre qué semanas evaluar Min_S
-                     (trofeos de guerra/ataques por semana, ver
-                     #requisitosSorteoBox más abajo), sin escribir en
-                     ningún lado.
-                     ACTUALIZACIÓN (11-sep-2026, pedido usuario — "al
-                     marcar y desmarcar semanas, se debe registrar en
-                     T_Lista o S_Lista"): la columna SL.SEMANAS SÍ se
-                     agregó ese mismo día (ver _setupSLista(),
-                     03_Setup_Hojas.gs) y este selector es justo el que
-                     debería alimentarla -- obtenerSemanasSeleccionadas()
-                     (ver <script>) ya funciona igual acá que en Torneos.
-                     Lo único que falta es el backend de Sorteos en sí:
-                     _webAdminSorteoRegistrar/Modificar/PlanificarGuardar
-                     todavía no existen en 34_Web_API.gs (mismo pendiente
-                     que autor/premios, sección 5.2), así que hoy no hay
-                     ningún botón que llame a obtenerSemanasSeleccionadas()
-                     acá ni que escriba en SL.SEMANAS. Reutiliza TAL CUAL
-                     cargarSemanasRecientes()/pintarSemanasSelector() (ver
-                     <script>, ya construidas para Torneos) con un
-                     contenedor propio de Sorteos, sin duplicar esa lógica
-                     -- mismo criterio que el resto de este panel. -->
+                <!-- El consolidado (sección 5.4) llegó a registrar que
+                     Sorteos NO debía tener selector de semanas porque
+                     S_Lista no tenía columna "Semanas" como T_Lista -- eso
+                     se corrigió el mismo día (el usuario aclaró que sí lo
+                     necesita, para indicar sobre qué semanas evaluar Min_S
+                     — trofeos de guerra/ataques por semana, ver
+                     #requisitosSorteoBox más abajo). La columna SL.SEMANAS
+                     se agregó (_setupSLista(), 03_Setup_Hojas.gs) y este
+                     selector la alimenta vía obtenerSemanasSeleccionadas()
+                     (ver <script>), reutilizando TAL CUAL
+                     cargarSemanasRecientes()/pintarSemanasSelector() (ya
+                     construidas para Torneos) con un contenedor propio de
+                     Sorteos, sin duplicar esa lógica. -->
                 <div class="field" id="semanaSelectorWrapSorteoReg" style="margin-top:14px;">
                   <label>¿Qué semanas se deben evaluar para este sorteo?</label>
                   <p class="text-dim" style="font-size:12px; margin:0 0 8px;">Se marcan las 2 más recientes por defecto — usualmente son las que definen si un jugador puede participar.</p>
@@ -1530,28 +1495,15 @@
                 </div>
               </div>
               <div id="camposModificarSorteo" style="display:none;">
-                <!-- FIX (10-sep-2026, sección 5.4 del consolidado, mismo
-                     mecanismo CONFIRMADO que #tSelectHoy de Torneos):
-                     "Ingresar link" es una opción MÁS dentro de este mismo
-                     #sSelectHoy (no un control separado), agregada por una
-                     futura cargarSorteosHoy() como última <option>
-                     (value="__link__"). Todavía no existe esa función --
-                     ver PENDIENTE BACKEND más abajo -- así que por ahora el
-                     select se queda con el mensaje de "cargando" y nunca se
-                     puebla realmente; el input de link ya está listo para
-                     cuando el listener de 'change' (pendiente, mismo patrón
-                     que el de #tSelectHoy) lo muestre/oculte.
-
-                     PENDIENTE BACKEND: no existe todavía un
-                     webAdminSorteosHoy (equivalente a webAdminTorneosHoy)
-                     que traiga los sorteos de hoy con su ID -- por eso
-                     tampoco existe cargarSorteosHoy() todavía (ver
-                     comentario junto a #camposSorteoPrincipal más abajo,
-                     mismo pendiente). -->
+                <!-- "Modificar sorteo": #sSelectHoy se puebla con
+                     cargarSorteosHoy() (ver <script>), mismo patrón que
+                     #tSelectHoy de Torneos. Sin opción "Ingresar link" (a
+                     diferencia de Torneos): Sorteos no tiene ese concepto
+                     (CONFIRMADO por el usuario, 12-sep-2026 — #sModificarLink
+                     se eliminó del HTML). -->
                 <div class="field" style="margin-bottom:12px;">
                   <label for="sSelectHoy">Sorteo</label>
                   <select id="sSelectHoy"><option value="">Cargando sorteos de hoy…</option></select>
-                  <input type="text" id="sModificarLink" placeholder="https://link.clashroyale.com/..." style="margin-top:8px; display:none;">
                 </div>
                 <div class="field-row" id="filaFechaHoraSorteoMod">
                   <div class="field">
@@ -1606,16 +1558,12 @@
                      contenedor propio de Sorteos -- sin duplicar esa
                      lógica, mismo criterio que el resto de este panel.
 
-                     PENDIENTE: a diferencia de #premiosEditorMod, este
-                     editor todavía no se puebla con los premios YA
-                     registrados del sorteo elegido en #sSelectHoy (ese
-                     listener de 'change' no existe todavía, ver PENDIENTE
-                     junto a #sSelectHoy más arriba) -- por ahora
-                     mostrarPaso3Sorteo() (ver <script>) ya lo puebla con 3
-                     filas en blanco tipo "Pass Royale" al entrar a esta
-                     rama (mismo criterio que #premiosEditorMod), lista
-                     para reemplazarlas por los datos reales en cuanto se
-                     conecte ese listener. -->
+                     RESUELTO (12-sep-2026): el listener de 'change' de
+                     #sSelectHoy (ver <script>) ya puebla este editor con
+                     los premios YA registrados del sorteo elegido (mismo
+                     patrón que #premiosEditorMod de Torneos), reemplazando
+                     las 3 filas en blanco que mostrarPaso3Sorteo() pinta
+                     por defecto al entrar a esta rama. -->
                 <div style="margin-top:14px; padding-top:14px; border-top:1px solid var(--line);">
                   <label style="display:block; margin-bottom:4px;">Premios</label>
                   <p class="text-dim" style="font-size:12px; margin:0 0 10px;">Se muestran los premios ya registrados para este sorteo (o 3 filas en blanco si todavía no tiene). Déjalos tal cual si no quieres cambiarlos, o edítalos — usualmente son 3, pero puedes agregar más o quitar los que no necesites.</p>
@@ -1623,12 +1571,8 @@
                   <button type="button" class="btn btn-ghost btn-block" id="btnAgregarPremioSorteoMod" style="margin-top:10px;">+ Agregar premio</button>
                 </div>
 
-                <!-- FIX (10-sep-2026, mismo pedido que en Registrar sorteo):
-                     selector de semanas real, ya funcional, aunque el resto
-                     del formulario de "Modificar sorteo" siga pendiente
-                     (ver arriba). Reutiliza pintarSemanasSelector()
-                     con contenedor propio, mismo patrón que Torneos
-                     (#semanasSelectorMod). -->
+                <!-- Selector de semanas de "Modificar sorteo", mismo patrón
+                     que Torneos (#semanasSelectorMod). -->
                 <div class="field" id="semanaSelectorWrapSorteoMod" style="margin-top:14px;">
                   <label>¿Qué semanas se deben evaluar para este sorteo?</label>
                   <p class="text-dim" style="font-size:12px; margin:0 0 8px;">Se marcan las 2 más recientes por defecto — usualmente son las que definen si un jugador puede participar.</p>
@@ -1813,28 +1757,16 @@
                 <div id="sorteoPrincipalElegidoMsg"></div>
               </div>
 
-              <!-- FIX (10-sep-2026, sección 5.4.1 del consolidado —
-                   "cuadro de Comentario justo ANTES del botón de acción
-                   final, en los 6 formularios de Torneos y Sorteos"): este
-                   bloque replica #comentarioTorneoBox para Sorteos, mismo
-                   criterio -- UN SOLO nodo compartido entre las 3 ramas,
-                   sin necesidad de reubicarlo con JS porque el lugar
-                   pedido ("justo antes del botón final") ya se cumple
-                   quieto acá, dado que solo uno de los 3 botones de abajo
-                   está visible a la vez.
-
-                   PENDIENTE BACKEND / conexión (mismo estado que
-                   #comentarioTorneoBox):
-                     1) btnRegistrarSorteo/btnModificarSorteo/
-                        btnPlanificarSorteo (más abajo) todavía no leen
-                        este campo para sumarlo a ningún payload -- no
-                        existe todavía ningún payload real para Sorteos.
-                     2) Precarga en Modificar: pendiente del mismo endpoint
-                        de sorteos de hoy que #sSelectHoy (todavía no
-                        existe, ver #camposModificarSorteo más arriba).
-                     3) Misma regla de sobrescritura que Torneos (CONFIRMADO
-                        en el consolidado): reemplaza siempre al Comentario
-                        anterior, sin lógica especial en el frontend. -->
+              <!-- Cuadro de Comentario, mismo criterio que
+                   #comentarioTorneoBox de Torneos -- UN SOLO nodo
+                   compartido entre las 3 ramas, sin necesidad de
+                   reubicarlo con JS porque el lugar pedido ("justo antes
+                   del botón final") ya se cumple quieto acá, dado que solo
+                   uno de los 3 botones de abajo está visible a la vez.
+                   Los 3 listeners (más abajo en el <script>) ya lo leen y
+                   lo suman a su payload como `comentario`; mismo criterio
+                   de sobrescritura que Torneos (reemplaza siempre al
+                   Comentario anterior, sin lógica especial). -->
               <div id="comentarioSorteoBox" style="margin-top:14px; padding-top:14px; border-top:1px solid var(--line);">
                 <div class="field">
                   <label for="sComentario">Comentario</label>
@@ -1842,17 +1774,11 @@
                 </div>
               </div>
 
-              <!-- FIX (10-sep-2026, sección 5.4 del consolidado): los 3
-                   botones de acción de Sorteos, mismo patrón que
+              <!-- Los 3 botones de acción de Sorteos, mismo patrón que
                    btnRegistrarTorneo/btnModificarTorneo/btnPlanificarTorneo
-                   -- mostrarPaso3Sorteo() (ver <script>) debe encargarse de
+                   -- mostrarPaso3Sorteo() (ver <script>) se encarga de
                    mostrar/ocultar cada uno según la rama activa, igual que
-                   mostrarPaso3() hace con los de Torneos. PENDIENTE: todavía
-                   no tienen ningún listener de 'click' ni arman ningún
-                   payload -- no existe todavía ningún endpoint
-                   webAdminSorteo* para llamar (ver los 3 listeners de
-                   Torneos, btnRegistrarTorneo etc., como referencia del
-                   patrón a seguir cuando se construyan). -->
+                   mostrarPaso3() hace con los de Torneos. -->
               <button class="btn btn-primary btn-block" id="btnRegistrarSorteo" style="margin-top:14px; display:none;">Registrar sorteo</button>
               <button class="btn btn-primary btn-block" id="btnModificarSorteo" style="margin-top:14px; display:none;">Guardar cambios</button>
               <button class="btn btn-primary btn-block" id="btnPlanificarSorteo" style="margin-top:14px; display:none;">Planificar sorteo</button>
@@ -1861,24 +1787,6 @@
               <div id="planificarSorteoMsg"></div>
             </div>
 
-            <!-- ACTUALIZACIÓN (10-sep-2026): este aviso quedó parcialmente
-                 obsoleto. "Registrar sorteo" (#camposRegistrarSorteo, más
-                 arriba) ya tiene su propio campo de fecha/hora amigable +
-                 calendario (#sFecha/#sFechaTexto/#btnCalendarioSorteoReg +
-                 #sHora/#sHoraTexto/#sHoraAmPm, ya inicializados con
-                 initCampoFechaAmigable()/initCampoHoraAmigable() en el
-                 <script>). Lo que SIGUE pendiente es el mismo campo para
-                 "Modificar sorteo" y "Planificar sorteo"
-                 (#camposModificarSorteo/#camposPlanificarSorteo son todavía
-                 placeholders sin fecha/hora propia, solo tienen ya su
-                 selector de semanas) -- cuando se construyan sus campos
-                 reales, copiar ahí el mismo bloque
-                 (.campo-fecha-wrap + .campo-hora-wrap) con ids nuevos
-                 (ej. sFechaMod/sHoraMod, sFechaPlan/sHoraPlan, mismo patrón
-                 que tFechaMod/tFechaPlan de Torneos) y llamar a
-                 initCampoFechaAmigable()/initCampoHoraAmigable() con esos
-                 ids -- ver la sección "Campos de fecha/hora amigables" en
-                 el <script> para el patrón exacto usado en Torneos. -->
 
           </div>
 
@@ -3320,17 +3228,11 @@ initCampoHoraAmigable('sHoraPlan', 'sHoraPlanTexto', 'sHoraPlanAmPm');
    TL.SEMANAS/SL.SEMANAS recién ahí (_construirSemanasCsvDesdeIsos(),
    24_Torneos_Core.gs).
 
-   PENDIENTE (Sorteos): #semanasSelectorSorteoReg/Mod/Plan ya muestran
-   Temporada/Semana reales (mismo fetch que Torneos) y
-   obtenerSemanasSeleccionadas() funciona igual para esos 3 contenedores,
-   pero TODAVÍA no hay ningún btnRegistrarSorteo/btnModificarSorteo/
-   btnPlanificarSorteo real que arme el payload y llame a un endpoint —
-   _webAdminSorteoRegistrar/Modificar/PlanificarGuardar no existen en
-   34_Web_API.gs (mismo pendiente que autor/premios de Sorteo, ver
-   PENDIENTE BACKEND junto a #requisitosTorneoBox más arriba en el HTML).
-   Cuando esos 3 endpoints se creen, alcanza con mandar
-   `semanas: obtenerSemanasSeleccionadas('semanasSelectorSorteoReg')` (etc.)
-   en su payload, igual que se hace acá abajo para Torneos. */
+   RESUELTO (12-sep-2026): #semanasSelectorSorteoReg/Mod/Plan ya muestran
+   Temporada/Semana reales (mismo fetch que Torneos), y los 3 listeners
+   (btnRegistrarSorteo/btnModificarSorteo/btnPlanificarSorteo, más abajo en
+   este mismo <script>) ya llaman a obtenerSemanasSeleccionadas() y lo
+   mandan como `semanas` en su payload, igual que Torneos. */
 
 const MESES_ES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 const MESES_ES_ABR = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
@@ -3414,8 +3316,7 @@ function obtenerSemanasSeleccionadas(containerId){
 }
 
 // Carga inicial: un solo fetch para los 6 selectores (3 de Torneos + 3 de
-// Sorteos, ver PENDIENTE de arriba sobre por qué Sorteos todavía no envía
-// esto en ningún submit), luego se pintan todos desde el mismo caché.
+// Sorteos), luego se pintan todos desde el mismo caché.
 cargarSemanasRecientes().then(() => {
   pintarSemanasSelector('semanasSelectorReg');
   pintarSemanasSelector('semanasSelectorMod');
@@ -3752,11 +3653,8 @@ async function cargarRequisitosSorteoPorClan(id){
  * armarPayloadRequisitosSorteo()
  * Misma función que armarPayloadRequisitos() de Torneos, pero leyendo
  * #requisitosSorteoBox y sumando minTorneosJugados y delta (exclusivos de
- * S_Lista). PENDIENTE: todavía no hay ningún listener de Sorteos que la
- * llame (los 3 formularios reales de #camposRegistrarSorteo/
- * #camposModificarSorteo/#camposPlanificarSorteo siguen siendo
- * placeholders, ver HTML) -- queda lista para sumarse a esos payloads en
- * cuanto se construyan.
+ * S_Lista). Usada por los 3 listeners de acción de Sorteos
+ * (btnRegistrarSorteo/btnModificarSorteo/btnPlanificarSorteo, más abajo).
  */
 function armarPayloadRequisitosSorteo(){
   const requisitosPorClan = {};
@@ -4006,10 +3904,8 @@ function reiniciarPremiosEditor(containerId = 'premiosEditor'){
  *  el caso normal de "Modificar torneo" sin querer tocar los premios).
  *  FIX (10-sep-2026, pedido usuario): el texto que devuelve (separado por
  *  ", ") es exactamente lo que debe guardarse tal cual en la columna
- *  "Premios" del sheet — T_Lista para torneos (Registrar/Modificar/
- *  Planificar, ya conectado) y S_Lista para sorteos (Planificar/Registrar/
- *  Modificar, #panelSorteosAccion más arriba, todavía sin editor de
- *  premios propio — cuando se arme, debe reusar este mismo formato). */
+ *  "Premios" del sheet — T_Lista para torneos y S_Lista para sorteos
+ *  (#premiosEditorSorteoMod/#premiosEditorSorteoPlan, ya conectados). */
 function armarPremiosCSV(containerId = 'premiosEditor'){
   const filas = document.querySelectorAll(`#${containerId} .premio-fila`);
   const partes = [];
@@ -4166,9 +4062,9 @@ async function cargarTorneosHoy(){
  * #sSelectHoy para "Modificar sorteo".
  * Diferencias deliberadas respecto a Torneos:
  *   - SIN la opción "Ingresar link" al final: _webAdminSorteoModificar()
- *     no tiene ninguna rama equivalente a la de Torneos (sin parámetro
- *     `link`, ver docblock de btnRegistrarSorteo más abajo) -- #sModificarLink
- *     queda sin usar, mismo caso que #sLink.
+ *     no tiene ninguna rama equivalente a la de Torneos (Sorteos no tiene
+ *     parámetro `link` -- los campos #sLink/#sModificarLink se eliminaron
+ *     del HTML, 12-sep-2026, CONFIRMADO por el usuario).
  *   - data-idprincipal queda guardado para uso futuro (por si algún día se
  *     necesita saber de cuál sorteo es continuación un sorteo YA guardado
  *     de hoy) -- renderSorteoPrincipalLista() (ver más abajo) usa el `id`
@@ -4572,12 +4468,9 @@ function pintarCuentasOrg(cuentas, selectEl){
  * mantienen como funciones gemelas, mismo criterio que ya usa el proyecto
  * para los listeners de "__otro__" (uno por cada #tAutorSelect*/
  * #sAutorSelect*, sin generalizar).
- * OJO: esto SOLO puebla el <select> de cuentas -- todavía no existe
- * leerCuentaOrgElegidaSorteo() ni ningún caller que lea estos datos hacia
- * un payload, porque btnRegistrarSorteo/btnModificarSorteo/
- * btnPlanificarSorteo no arman payload real todavía (ver ítem 4 del mismo
- * docblock) -- eso queda pendiente para cuando se construya el backend de
- * Sorteos.
+ * OJO: leerCuentaOrgElegidaSorteo() (más abajo) ya lee estos datos hacia el
+ * payload de los 3 listeners de acción de Sorteos
+ * (btnRegistrarSorteo/btnModificarSorteo/btnPlanificarSorteo).
  */
 function initCuentaOrgBoxSorteo(sufijo){
   const selectAutor = document.getElementById('sAutorSelect' + sufijo);
@@ -4659,9 +4552,8 @@ function leerCuentaOrgElegida(sufijo){
  * NUEVO (12-sep-2026, pedido del usuario -- consolidado sección 5.4, wiring
  * de btnRegistrarSorteo): gemela de leerCuentaOrgElegida() de arriba, mismo
  * comportamiento exacto, pero leyendo los ids con prefijo "s" en vez de
- * "t" (#sCuentaOrgBox*/#sCuentaOrgSelect*), tal como ya lo dejó anotado el
- * docblock de initCuentaOrgBoxSorteo() como pendiente. Mismo criterio del
- * proyecto de no unificar en una sola función parametrizada por prefijo.
+ * "t" (#sCuentaOrgBox*/#sCuentaOrgSelect*). Mismo criterio del proyecto de
+ * no unificar en una sola función parametrizada por prefijo.
  */
 function leerCuentaOrgElegidaSorteo(sufijo){
   const box = document.getElementById('sCuentaOrgBox' + sufijo);
@@ -4860,11 +4752,9 @@ document.getElementById('tAutorSelectMod').addEventListener('change', () => {
   if(!esOtro) input.value = '';
 });
 
-// FIX (10-sep-2026, sección 5.4 del consolidado): mismo listener que
-// #tAutorSelect de arriba, pero para el autor de "Registrar sorteo"
-// (#sAutorSelect/#sAutorManual). Cuando se construyan los autores de
-// Modificar/Planificar sorteo (#sAutorSelectMod/#sAutorSelectPlan, todavía
-// no existen), agregar acá sus listeners equivalentes.
+// Mismo listener que #tAutorSelect de arriba, pero para el autor de
+// "Registrar sorteo" (#sAutorSelect/#sAutorManual). Los de Modificar/
+// Planificar (#sAutorSelectMod/#sAutorSelectPlan) están justo debajo.
 document.getElementById('sAutorSelect').addEventListener('change', () => {
   const esOtro = document.getElementById('sAutorSelect').value === '__otro__';
   const input = document.getElementById('sAutorManual');
@@ -5345,8 +5235,8 @@ document.getElementById('btnPlanificarSorteo').addEventListener('click', async (
  * wireado en doPost()). Diferencias deliberadas:
  *   - SIN rama "Ingresar link": _webAdminSorteoModificar() no tiene ningún
  *     parámetro `link` ni centinela equivalente a `id === '__link__'`
- *     (ver docblock de cargarSorteosHoy() más arriba) -- #sModificarLink
- *     queda sin usar.
+ *     (#sLink/#sModificarLink se eliminaron del HTML, ver docblock de
+ *     cargarSorteosHoy() más arriba).
  *   - "Continuación" ya NO está bloqueada, mismo criterio que
  *     btnRegistrarSorteo/btnPlanificarSorteo (usa sorteoSorteoPrincipalId).
  */
@@ -5568,10 +5458,9 @@ document.getElementById('sorteoVolverPaso2').addEventListener('click', (ev) => {
  * btnRegistrarTorneo de arriba, apuntando a webAdminSorteoRegistrar
  * (_webAdminSorteoRegistrar(), 34_Web_API.gs -- ya wireado en doPost(),
  * 08_Web_Endpoints.gs). Diferencias deliberadas respecto a Torneo:
- *   - Sin `link`: #sLink existe en el HTML pero _registrarSorteoDesdeBot()
- *     (24_Torneos_Core.gs) no tiene ese parámetro -- no se manda, queda
- *     pendiente que el usuario decida si ese campo debe eliminarse del HTML
- *     o si tiene otro uso futuro no definido todavía.
+ *   - Sin `link`: _registrarSorteoDesdeBot() (24_Torneos_Core.gs) no tiene
+ *     ese parámetro -- CONFIRMADO por el usuario (12-sep-2026): Sorteos no
+ *     tiene ese concepto, #sLink se eliminó del HTML.
  *   - `idSorteoPrincipal` en vez de `tagTorneoPrincipal`: RESUELTO
  *     (12-sep-2026) -- #camposSorteoPrincipal ya tiene el selector real
  *     (renderSorteoPrincipalLista(), más abajo), mismo patrón que Torneos.
