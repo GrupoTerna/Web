@@ -1239,6 +1239,31 @@
               <p class="text-dim" style="font-size:13px; margin:0 0 4px;">Cantidad mínima de ataques de guerra por semana requerida en cada clan.</p>
               <div id="reqAtaquesSemanaGrid"></div>
 
+              <h3 style="font-size:15px; color:var(--gold); margin:20px 0 4px;">Ataques a barcos permitidos por semana</h3>
+              <p class="text-dim" style="font-size:13px; margin:0 0 4px;">Es un promedio semanal, no la cantidad acumulada. Si no se desea excluir a nadie por ataques a barcos, selecciona 16. Si no se desea permitir ningún ataque a barcos, selecciona 0.</p>
+              <div class="field">
+                <label for="reqAtaquesBarcos">Ataques a barcos permitidos por semana</label>
+                <select id="reqAtaquesBarcos">
+                  <option value="0" selected>0</option>
+                  <option value="1">1</option>
+                  <option value="2">2</option>
+                  <option value="3">3</option>
+                  <option value="4">4</option>
+                  <option value="5">5</option>
+                  <option value="6">6</option>
+                  <option value="7">7</option>
+                  <option value="8">8</option>
+                  <option value="9">9</option>
+                  <option value="10">10</option>
+                  <option value="11">11</option>
+                  <option value="12">12</option>
+                  <option value="13">13</option>
+                  <option value="14">14</option>
+                  <option value="15">15</option>
+                  <option value="16">16</option>
+                </select>
+              </div>
+
               <!-- FIX (10-sep-2026, pedido usuario — "Miembro activo y wsp
                    deben cargarse por defecto como 'Sí' y reacción debe
                    guardarse por defecto como 'No'"): se quitó la opción
@@ -1707,6 +1732,31 @@
                 <h3 style="font-size:15px; color:var(--gold); margin:20px 0 4px;">Ataques mínimos por semana por clan</h3>
                 <p class="text-dim" style="font-size:13px; margin:0 0 4px;">Cantidad mínima de ataques de guerra por semana requerida en cada clan.</p>
                 <div id="reqAtaquesSemanaGridSorteo"></div>
+
+                <h3 style="font-size:15px; color:var(--gold); margin:20px 0 4px;">Ataques a barcos permitidos por semana</h3>
+                <p class="text-dim" style="font-size:13px; margin:0 0 4px;">Es un promedio semanal, no la cantidad acumulada. Si no se desea excluir a nadie por ataques a barcos, selecciona 16. Si no se desea permitir ningún ataque a barcos, selecciona 0.</p>
+                <div class="field">
+                  <label for="reqAtaquesBarcosSorteo">Ataques a barcos permitidos por semana</label>
+                  <select id="reqAtaquesBarcosSorteo">
+                    <option value="0" selected>0</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                    <option value="7">7</option>
+                    <option value="8">8</option>
+                    <option value="9">9</option>
+                    <option value="10">10</option>
+                    <option value="11">11</option>
+                    <option value="12">12</option>
+                    <option value="13">13</option>
+                    <option value="14">14</option>
+                    <option value="15">15</option>
+                    <option value="16">16</option>
+                  </select>
+                </div>
 
                 <h3 style="font-size:15px; color:var(--gold); margin:20px 0 4px;">Torneos jugados mínimos por clan</h3>
                 <p class="text-dim" style="font-size:13px; margin:0 0 4px;">Cantidad mínima de torneos jugados requerida en cada clan — este requisito es exclusivo de Sorteos, Torneos no lo tiene.</p>
@@ -3553,6 +3603,7 @@ async function cargarRequisitosPorClan(id){
         if(document.getElementById(idT)) document.getElementById(idT).value = formatoMiles(r.minTrofeosGuerra);
         if(document.getElementById(idA)) document.getElementById(idA).value = formatoMiles(r.minAtaquesSemana);
       });
+      if(data.requisitos.ataquesBarcosSemana !== undefined) document.getElementById('reqAtaquesBarcos').value = data.requisitos.ataquesBarcosSemana;
       if(data.requisitos.miembroActivo) document.getElementById('reqMiembroActivo').value = data.requisitos.miembroActivo;
       if(data.requisitos.reaccion) document.getElementById('reqReaccion').value = data.requisitos.reaccion;
       if(data.requisitos.presenciaWhatsapp) document.getElementById('reqPresenciaWhatsapp').value = data.requisitos.presenciaWhatsapp;
@@ -3594,6 +3645,7 @@ function armarPayloadRequisitos(){
   });
   return {
     requisitosPorClan,
+    ataquesBarcosSemana: document.getElementById('reqAtaquesBarcos').value,
     miembroActivo: document.getElementById('reqMiembroActivo').value,
     reaccion: document.getElementById('reqReaccion').value,
     presenciaWhatsapp: document.getElementById('reqPresenciaWhatsapp').value
@@ -3651,6 +3703,7 @@ async function cargarRequisitosSorteoPorClan(id){
         if(document.getElementById(idJ)) document.getElementById(idJ).value = formatoMiles(r.minTorneosJugados);
       });
       if(data.requisitos.delta !== undefined) document.getElementById('reqDeltaSorteo').value = formatoMiles(data.requisitos.delta);
+      if(data.requisitos.ataquesBarcosSemana !== undefined) document.getElementById('reqAtaquesBarcosSorteo').value = data.requisitos.ataquesBarcosSemana;
       if(data.requisitos.miembroActivo) document.getElementById('reqMiembroActivoSorteo').value = data.requisitos.miembroActivo;
       if(data.requisitos.reaccion) document.getElementById('reqReaccionSorteo').value = data.requisitos.reaccion;
       if(data.requisitos.presenciaWhatsapp) document.getElementById('reqPresenciaWhatsappSorteo').value = data.requisitos.presenciaWhatsapp;
@@ -3680,6 +3733,7 @@ function armarPayloadRequisitosSorteo(){
   return {
     requisitosPorClan,
     delta: valorPlanoInputMiles('reqDeltaSorteo'),
+    ataquesBarcosSemana: document.getElementById('reqAtaquesBarcosSorteo').value,
     miembroActivo: document.getElementById('reqMiembroActivoSorteo').value,
     reaccion: document.getElementById('reqReaccionSorteo').value,
     presenciaWhatsapp: document.getElementById('reqPresenciaWhatsappSorteo').value
