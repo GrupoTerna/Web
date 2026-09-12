@@ -442,6 +442,35 @@
     box-shadow:var(--glow); white-space:nowrap;
   }
   .chart-tooltip b{color:var(--gold);}
+
+  /* FIX (12-sep-2026, pedido usuario — "retira lo de cuentas reservadas y
+     reemplazables del panel de admin... que se quede solo en directorio
+     pero visible solo para admins"): esta sección reemplaza a la tarjeta
+     "Participación de hoy en guerra" que antes vivía en admin.html (ver
+     el comentario que quedó ahí). Antes admin.html mostraba el conteo de
+     cada columna una sola vez, junto al encabezado ("Reservadas (26)");
+     ahora, además, cada cuenta reservada muestra sus ataques pendientes y
+     se subagrupa en "con pendientes" (1-3) y "sin pendientes" (0) dentro
+     de cada clan — ver _listaCuentasHtml()/renderParticipacionHoyGuerra()
+     más abajo en el <script>. */
+  .part-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
+  @media (max-width:640px){ .part-grid{grid-template-columns:1fr;} }
+  .part-clan-bloque{padding:14px 0;}
+  .part-clan-bloque + .part-clan-bloque{border-top:1px solid var(--line);}
+  .part-clan-nombre{font-weight:700; font-size:14px; margin-bottom:10px;}
+  .part-col-header{
+    font-family:var(--f-mono); font-size:11px; text-transform:uppercase; letter-spacing:.08em;
+    color:var(--text-dim); display:flex; align-items:center; gap:6px;
+  }
+  .part-subhead{
+    font-family:var(--f-mono); font-size:10px; text-transform:uppercase; letter-spacing:.06em;
+    color:var(--text-faint); margin-top:10px;
+  }
+  .part-subhead:first-of-type{margin-top:8px;}
+  .part-lista{margin:6px 0 0; padding-left:18px; font-size:12px;}
+  .part-lista li{margin-bottom:3px;}
+  .part-pend{font-family:var(--f-mono); font-size:11px; color:var(--text-faint);}
+  .part-pend.part-pend-cero{color:var(--text-faint); opacity:.7;}
 </style>
 </head>
 <body data-page="directorio">
@@ -549,6 +578,27 @@
     <div class="clan-tabs" id="clanTabs"></div>
     <div id="rosterWrap">
       <div class="loading-block"><div class="spinner"></div></div>
+    </div>
+  </section>
+
+  <!-- FIX (12-sep-2026, pedido usuario — "retira lo de cuentas reservadas
+       y reemplazables del panel de admin... que se quede solo en
+       directorio pero visible solo para admins"): sección movida desde
+       admin.html (ver comentario ahí). Oculta por defecto (display:none)
+       — solo se muestra si hay una sesión de admin guardada en este
+       navegador, ver aplicarVisibilidadParticipacionHoy() más abajo en el
+       <script>. Nunca depende de ninguna "Función" puntual del admin
+       (mismo criterio que Infiltrados en admin.html): cualquier admin
+       logueado la puede ver. -->
+  <section id="cardParticipacionHoyDirectorio" style="padding:32px 0 0; display:none;">
+    <div class="sec-head" style="margin-bottom:20px;">
+      <div class="eyebrow">Solo administradores</div>
+      <h2 style="font-size:24px; margin-top:10px;">Participación de hoy en guerra</h2>
+      <p style="margin-top:8px;">Por clan: cuentas que ya usaron al menos 1 de sus 4 ataques hoy (reservadas, no reemplazables) vs. cuentas activas que todavía no atacaron (reemplazables).</p>
+    </div>
+    <div class="card">
+      <div id="participacionHoyMsg"></div>
+      <div id="participacionHoyResultado" style="margin-top:4px;"></div>
     </div>
   </section>
 
@@ -2285,6 +2335,134 @@ async function cargarIngresosRecientes(){
 
 cargarRoster();
 cargarIngresosRecientes();
+
+/* =========================================================================
+ * Participación de hoy en guerra (solo admins) — FIX (12-sep-2026, pedido
+ * usuario): movida desde admin.html porque ambos paneles mostraban lo
+ * mismo. Usa el mismo endpoint admin-only de siempre
+ * (webAdminParticipacionHoyGuerra → _getParticipacionHoyGuerra(),
+ * 17_GuerraSheet.gs) y esAdminLogueado()/apiGetAuth() de common.js, que ya
+ * leen el token directo de localStorage['terna_admin_token'] (no hace
+ * falta declarar ninguna constante SESSION_KEY acá — ver esAdminLogueado()
+ * y apiGetAuth() en common.js).
+ *
+ * Cambios pedidos sobre la versión vieja de admin.html:
+ *   1) El conteo de cada columna va SOLO junto a su encabezado
+ *      ("Reservadas (26)"), nunca en una línea aparte por clan.
+ *   2) Cada cuenta reservada muestra sus ataques pendientes hoy
+ *      (4 - ataques ya usados hoy).
+ *   3) Las reservadas se subagrupan, dentro de cada clan, en "Con ataques
+ *      pendientes" (1-3) y "Sin ataques pendientes" (0).
+ *
+ * OJO backend: para que el punto 2/3 funcione, cada cuenta dentro de
+ * c.reservadas/c.disponibles debe traer también su cantidad de ataques
+ * usados hoy (mismo dato que ya se manda para multiClan como
+ * m.totalAtaquesHoy) — se lee acá como cta.ataquesHoy. Si el backend
+ * todavía no manda ese campo, las reservadas quedan todas en "Con ataques
+ * pendientes" sin dato exacto (se asume 1 usado) en vez de romper la
+ * vista.
+ */
+
+/** Versión local de manejarRespuestaAuth() (admin.html tiene la suya, que
+ *  redirige a su formulario de login — acá no hay login, así que ante una
+ *  sesión vencida/inválida se limpia el token guardado y se oculta la
+ *  sección entera, como si nunca hubiera habido sesión de admin). */
+function manejarRespuestaAuth(data){
+  if(data && data.ok === false && /sesión|sesion/i.test(String(data.error||''))){
+    localStorage.removeItem('terna_admin_token');
+    document.getElementById('cardParticipacionHoyDirectorio').style.display = 'none';
+    return true;
+  }
+  return false;
+}
+
+/** Arma un <li> con nombre/tag y, si corresponde, sus ataques pendientes
+ *  hoy (pend === null cuando no aplica mostrarlo, ej. columna
+ *  Reemplazables donde siempre es el tope completo). */
+function _liCuentaParticipacion(cta, pend){
+  const pendHtml = (pend === null) ? '' :
+    ` <span class="part-pend${pend === 0 ? ' part-pend-cero' : ''}">— ${pend} pendiente${pend === 1 ? '' : 's'}</span>`;
+  return `<li>${enlaceJugador(cta.nombre, cta.tag)} <span class="text-faint" style="font-family:var(--f-mono);">${esc(cta.tag)}</span>${pendHtml}</li>`;
+}
+function _listaCuentasHtml(cuentas, pendFn){
+  if(!cuentas.length) return '<div class="text-faint" style="font-size:12px;">— ninguna —</div>';
+  return `<ul class="part-lista">` + cuentas.map(c => _liCuentaParticipacion(c, pendFn ? pendFn(c) : null)).join('') + `</ul>`;
+}
+
+const ATAQUES_MAX_HOY = 4; // "usaron al menos 1 de sus 4 ataques hoy"
+function pendientesHoy(cta){
+  const usados = Number(cta.ataquesHoy);
+  return Number.isFinite(usados) ? Math.max(0, ATAQUES_MAX_HOY - usados) : 1; // sin dato del backend: se asume 1 usado
+}
+
+function renderParticipacionHoyGuerra(data){
+  const cont = document.getElementById('participacionHoyResultado');
+  const clanes = data.clanes || [];
+  if(!clanes.length){ cont.innerHTML = '<div class="empty">Sin datos de guerra para hoy todavía.</div>'; return; }
+
+  const barraHorizontal = '<hr style="border:none; border-top:1px solid var(--line); margin:0;">';
+
+  const clanesHtml = clanes.map(c => {
+    const conPendientes = c.reservadas.filter(cta => pendientesHoy(cta) > 0);
+    const sinPendientes = c.reservadas.filter(cta => pendientesHoy(cta) === 0);
+    return `
+    <div class="part-clan-bloque">
+      <div class="part-clan-nombre">${esc(c.clan)}</div>
+      <div class="part-grid">
+        <div>
+          <div class="part-col-header">🔒 Reservadas (${c.reservadas.length})</div>
+          <div class="part-subhead">Con ataques pendientes (${conPendientes.length})</div>
+          ${_listaCuentasHtml(conPendientes, pendientesHoy)}
+          <div class="part-subhead">Sin ataques pendientes (${sinPendientes.length})</div>
+          ${_listaCuentasHtml(sinPendientes, pendientesHoy)}
+        </div>
+        <div>
+          <div class="part-col-header">✅ Reemplazables (${c.disponibles.length})</div>
+          ${_listaCuentasHtml(c.disponibles, () => ATAQUES_MAX_HOY)}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  const multiClan = data.multiClan || [];
+  const multiClanHtml = !multiClan.length ? '' : `
+    <div style="border-top:1px solid var(--line); padding:12px 0;">
+      <span class="badge badge-warn">Ataques en más de un clan hoy</span>
+      <ul class="part-lista" style="margin-top:8px;">
+        ${multiClan.map(m => `<li>${enlaceJugador(m.nombre, m.tag)} <span class="text-faint" style="font-family:var(--f-mono);">${esc(m.tag)}</span> — ${m.clanes.map(esc).join(' y ')} (${m.totalAtaquesHoy} ataques hoy)</li>`).join('')}
+      </ul>
+    </div>`;
+
+  cont.innerHTML = barraHorizontal + clanesHtml + barraHorizontal + multiClanHtml;
+}
+
+async function cargarParticipacionHoyGuerra(){
+  const msgEl = document.getElementById('participacionHoyMsg');
+  const cont = document.getElementById('participacionHoyResultado');
+  msgEl.innerHTML = '';
+  cont.innerHTML = '<div class="empty">Cargando…</div>';
+  try{
+    const data = await apiGetAuth('webAdminParticipacionHoyGuerra', {});
+    if(manejarRespuestaAuth(data)) return;
+    if(!data.ok){
+      cont.innerHTML = '';
+      msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error || 'No se pudo cargar la participación de hoy.')}</div>`;
+      return;
+    }
+    renderParticipacionHoyGuerra(data);
+  }catch(err){
+    cont.innerHTML = '';
+    msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
+  }
+}
+
+function aplicarVisibilidadParticipacionHoy(){
+  const sec = document.getElementById('cardParticipacionHoyDirectorio');
+  if(!esAdminLogueado()){ sec.style.display = 'none'; return; }
+  sec.style.display = '';
+  cargarParticipacionHoyGuerra();
+}
+aplicarVisibilidadParticipacionHoy();
 </script>
 </body>
 </html>
