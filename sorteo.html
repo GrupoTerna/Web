@@ -1619,14 +1619,16 @@
             // más abajo) sigue siendo editable a mano por si el admin
             // quiere ajustar el peso de alguien puntual después de cargar.
             //
-            // PENDIENTE BACKEND (puntos 1 y 2 del consolidado, todavía no
-            // existen): _webSorteoCalificados() (34_Web_API.gs) hoy solo
-            // devuelve `puntaje: trofeos` por participante, no tickets --
-            // el nombre exacto del campo nuevo todavía no está confirmado
-            // (¿`tickets`? ¿`peso`?), así que se leen ambos nombres acá
-            // por si se define cualquiera de los dos, con `1` como
-            // respaldo mientras ninguno llegue (deja el comportamiento de
-            // hoy intacto hasta que se conecte).
+            // CONECTADO (11-sep-2026, confirmado contra Base.md y el
+            // consolidado, sección 1 PASO 2): _webSorteoCalificados()
+            // (34_Web_API.gs) ya devuelve `tickets` por participante
+            // calificado, calculado como 1 + floor((trofeos - Min_S) /
+            // Delta) -- ver el docblock de esa función para el detalle
+            // completo (caso especial Delta=0 → 1 ticket fijo para todo el
+            // que llegue a Min_S, sin tope máximo). `p.peso` NUNCA llega a
+            // existir -- ese nombre alternativo se deja como fallback
+            // inofensivo por si algún día se renombra el campo, no porque
+            // esté en uso hoy.
             var pesoBackend = (typeof p.tickets === 'number' && p.tickets > 0) ? p.tickets
               : (typeof p.peso === 'number' && p.peso > 0) ? p.peso
               : 1;
