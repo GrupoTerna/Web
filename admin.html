@@ -72,6 +72,18 @@
     transition:all .18s ease; min-height:110px; resize:vertical;
   }
   .field textarea:focus{border-color:var(--purple); box-shadow:0 0 0 3px rgba(162,57,255,.2); outline:none;}
+  /* NUEVO (13-sep-2026, pedido del usuario -- Fase 7 del plan de Cambio de
+     Rango, PASO 4): inputs numéricos de la grilla Min_CR/Ataques por Clan y
+     Rol (#crGridAscenso/#crGridDescenso) -- viven sueltos dentro de <td>,
+     no dentro de .field, así que necesitan su propio estilo chico en vez de
+     depender de .field input (que además es demasiado ancho para una
+     celda de tabla). */
+  .cr-grid-input{
+    width:64px; background:var(--bg-2); border:1px solid var(--line); color:var(--text);
+    padding:6px 8px; border-radius:var(--radius-sm); font-family:var(--f-mono); font-size:13px;
+    text-align:center;
+  }
+  .cr-grid-input:focus{border-color:var(--purple); box-shadow:0 0 0 3px rgba(162,57,255,.2); outline:none;}
   /* Fase 2 (24-ago-2026): visor de contenido, solo lectura */
   .contenido-item{border:1px solid var(--line); border-radius:var(--radius-sm); padding:14px 16px; margin-top:12px;}
   .contenido-item .cab{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px; flex-wrap:wrap;}
@@ -1913,10 +1925,94 @@
                 </div>
               </div>
 
-              <!-- Placeholder -- el formulario real (modo Registrar, o modo
-                   Editar tras elegir una corrida en #crSelectPar) se agrega
-                   en el próximo paso de esta implementación. -->
               <div id="crPaso2Msg" class="text-dim" style="font-size:13px; margin-top:10px;"></div>
+
+              <!-- PASO 3 de la implementación del frontend (13-sep-2026,
+                   pedido del usuario -- Fase 7 del plan de Cambio de Rango):
+                   formulario de campos COMUNES a Ascenso y Descenso (Fecha,
+                   Hora, Semanas, Organizador, Comentario) -- ver el docblock
+                   de _webCRListaGuardar() (34_Web_API.gs) para el shape
+                   exacto de `datos`.
+                   `Semanas` es un campo de texto simple ("T4_S1,T4_S2", mismo
+                   formato que ya usa _parseSemanasSorteo()) en vez del
+                   selector visual de checkboxes que usan Torneos/Sorteos --
+                   ese selector marca por fecha-lunes-ISO
+                   (ver preseleccionarSemanas()), y _getFilaCRListaPorId() acá
+                   devuelve Semanas ya parseada como {temporada,semana}, no
+                   como fecha -- reusarlo tal cual pediría un mapeo nuevo que
+                   no corresponde a este paso chico.
+
+                   PASO 4 (13-sep-2026, mismo pedido): se suma la grilla de
+                   Min_CR/Ataques por Clan y Rol (datos.ascenso.porClan /
+                   datos.descenso.porClan, ver _construirFilaCRLista()) --
+                   #crGridAscenso/#crGridDescenso, pintadas por
+                   pintarGridCR() una vez que se conocen los 4 clanes de la
+                   Familia (cargarClanesFamilia(), ya usado por Torneos/
+                   Sorteos más arriba en este mismo <script>). A propósito
+                   AFUERA de este paso: Barcos, Miembro activo, WhatsApp y
+                   Estado (datos.ascenso.barcos/miembroActivo/whatsapp/estado)
+                   -- quedan para un paso aparte. -->
+              <div id="crPaso3" style="display:none; margin-top:14px; padding-top:14px; border-top:1px solid var(--line);">
+                <div class="field">
+                  <label for="crFecha">Fecha</label>
+                  <input type="date" id="crFecha">
+                </div>
+                <div class="field">
+                  <label for="crHora">Hora</label>
+                  <input type="time" id="crHora">
+                </div>
+                <div class="field">
+                  <label for="crSemanas">Semanas a evaluar</label>
+                  <input type="text" id="crSemanas" placeholder="ej. T4_S1,T4_S2" autocomplete="off">
+                </div>
+                <div class="field">
+                  <label for="crOrganizador">Organizador (Nom_Multi, opcional)</label>
+                  <input type="text" id="crOrganizador" placeholder="Nombre tal como figura en Directorio" autocomplete="off">
+                </div>
+                <div class="field">
+                  <label for="crComentario">Comentario</label>
+                  <textarea id="crComentario" rows="3" placeholder="Opcional -- cualquier nota sobre esta corrida"></textarea>
+                </div>
+
+                <!-- PASO 4: una tabla por Tipo -- filas = clanes de la
+                     Familia, columnas = Min CR/Ataques por cada Rol
+                     (Miembro/Veterano/Colíder). pintarGridCR() arma las
+                     filas en JS apenas se conocen los clanes; 0 (o vacío) =
+                     sin requisito activo para ese clan/rol, mismo criterio
+                     que _getFilaCRListaPorId()/_construirFilaCRLista()
+                     (34_Web_API.gs / 24_Torneos_Core.gs). -->
+                <details class="admin-subseccion" style="margin-top:14px;" open>
+                  <summary><span class="cat-titulo">Requisitos de Ascenso</span></summary>
+                  <div class="admin-subseccion-body">
+                    <div style="overflow-x:auto;">
+                      <table>
+                        <thead>
+                          <tr><th>Clan</th><th colspan="2">Miembro</th><th colspan="2">Veterano</th><th colspan="2">Colíder</th></tr>
+                          <tr><th></th><th>Min CR</th><th>Ataques</th><th>Min CR</th><th>Ataques</th><th>Min CR</th><th>Ataques</th></tr>
+                        </thead>
+                        <tbody id="crGridAscenso"></tbody>
+                      </table>
+                    </div>
+                  </div>
+                </details>
+                <details class="admin-subseccion" style="margin-top:10px;">
+                  <summary><span class="cat-titulo">Requisitos de Descenso</span></summary>
+                  <div class="admin-subseccion-body">
+                    <div style="overflow-x:auto;">
+                      <table>
+                        <thead>
+                          <tr><th>Clan</th><th colspan="2">Miembro</th><th colspan="2">Veterano</th><th colspan="2">Colíder</th></tr>
+                          <tr><th></th><th>Min CR</th><th>Ataques</th><th>Min CR</th><th>Ataques</th><th>Min CR</th><th>Ataques</th></tr>
+                        </thead>
+                        <tbody id="crGridDescenso"></tbody>
+                      </table>
+                    </div>
+                  </div>
+                </details>
+
+                <button type="button" class="btn btn-primary btn-block" id="btnCrGuardar" style="margin-top:14px;">Guardar corrida</button>
+                <div id="crGuardarMsg"></div>
+              </div>
             </div>
 
           </div>
@@ -5442,12 +5538,88 @@ initTorneoWizard();
  * completo de un par (fecha ISO, semanas, organizador) sin volver a pedirlo
  * al backend.
  *
- * El formulario real (Registrar / Editar ya con un par elegido) es el
- * PASO 3 de esta implementación, todavía no existe -- por ahora
- * #crPaso2Msg solo confirma la elección para poder probar el wizard antes
- * de sumarle el formulario.
+ * El formulario real (Registrar / Editar ya con un par elegido) se agrega
+ * en el PASO 3, justo abajo (limpiarFormularioCR()/precargarFormularioCR()/
+ * el listener de #btnCrGuardar) -- campos comunes (Fecha/Hora/Semanas/
+ * Organizador/Comentario) más, desde el PASO 4, la grilla de Min_CR/Ataques
+ * por Clan y Rol (pintarGridCR()/leerGridCR()/precargarGridCR() más abajo).
  */
 let cambioRangoParesData = [];
+let crIdExistenteActual = ''; // '' = modo Registrar; con valor = modo Editar (idAscenso del par)
+
+/**
+ * pintarGridCR(tipo) / leerGridCR(tipo) / precargarGridCR(tipo, porClan)
+ * PASO 4 (13-sep-2026, pedido del usuario -- Fase 7 del plan de Cambio de
+ * Rango): grilla de Min_CR/Ataques por Clan y Rol para UN tipo
+ * ('ascenso'|'descenso') -- reusa cargarClanesFamilia()/CLANES_REQUISITOS
+ * (ya usado por Torneos/Sorteos más arriba en este mismo <script>) para
+ * saber qué 4 clanes pintar, en el MISMO ORDEN que espera
+ * `datos.ascenso.porClan`/`datos.descenso.porClan` en _webCRListaGuardar()
+ * (ver el docblock de _construirFilaCRLista(), 34_Web_API.gs: "mismo orden
+ * que CFG.TERNA_TAGS", que es el mismo orden que ya devuelve
+ * _webAdminClanesFamilia()).
+ *
+ * idCeldaCR() arma un id estable por celda: `cr_{tipo}_{idx clan}_{min|ataq}_{rol}`.
+ * pintarGridCR() pinta la tabla vacía (0/sin requisito); precargarGridCR()
+ * la rellena a partir de `fila.porClan` (shape de _getFilaCRListaPorId(),
+ * con {activo,qty} anidado por rol -- acá solo hace falta `qty`); y
+ * leerGridCR() arma de vuelta el array `porClan` que _webCRListaGuardar()
+ * espera (celda vacía = 0 = sin requisito, mismo criterio que
+ * _construirFilaCRLista()).
+ */
+function idCeldaCR(tipo, idx, campo, rol){
+  return `cr_${tipo}_${idx}_${campo}_${rol}`;
+}
+
+async function pintarGridCR(tipo){
+  const clanes = await cargarClanesFamilia();
+  const tbody = document.getElementById(tipo === 'ascenso' ? 'crGridAscenso' : 'crGridDescenso');
+  if(!tbody) return;
+  const inp = (idx, campo, rol) =>
+    `<td><input type="number" min="0" class="cr-grid-input" id="${idCeldaCR(tipo, idx, campo, rol)}" placeholder="0"></td>`;
+  tbody.innerHTML = clanes.map((clan, idx) => `
+    <tr>
+      <td>${esc(clan)}</td>
+      ${inp(idx, 'min', 'miembro')}${inp(idx, 'ataq', 'miembro')}
+      ${inp(idx, 'min', 'veterano')}${inp(idx, 'ataq', 'veterano')}
+      ${inp(idx, 'min', 'colider')}${inp(idx, 'ataq', 'colider')}
+    </tr>`).join('');
+}
+
+function leerGridCR(tipo){
+  const leerCelda = (idx, campo, rol) => {
+    const el = document.getElementById(idCeldaCR(tipo, idx, campo, rol));
+    const v = el ? String(el.value || '').trim() : '';
+    return v === '' ? 0 : (Number(v) || 0);
+  };
+  return CLANES_REQUISITOS.map((clan, idx) => ({
+    minCR: {
+      miembro:  leerCelda(idx, 'min', 'miembro'),
+      veterano: leerCelda(idx, 'min', 'veterano'),
+      colider:  leerCelda(idx, 'min', 'colider')
+    },
+    ataques: {
+      miembro:  leerCelda(idx, 'ataq', 'miembro'),
+      veterano: leerCelda(idx, 'ataq', 'veterano'),
+      colider:  leerCelda(idx, 'ataq', 'colider')
+    }
+  }));
+}
+
+function precargarGridCR(tipo, porClan){
+  const setCelda = (idx, campo, rol, qty) => {
+    const el = document.getElementById(idCeldaCR(tipo, idx, campo, rol));
+    if(el) el.value = qty ? qty : '';
+  };
+  (porClan || []).forEach((bloque, idx) => {
+    setCelda(idx, 'min',  'miembro',  bloque.minCR.miembro.qty);
+    setCelda(idx, 'min',  'veterano', bloque.minCR.veterano.qty);
+    setCelda(idx, 'min',  'colider',  bloque.minCR.colider.qty);
+    setCelda(idx, 'ataq', 'miembro',  bloque.ataques.miembro.qty);
+    setCelda(idx, 'ataq', 'veterano', bloque.ataques.veterano.qty);
+    setCelda(idx, 'ataq', 'colider',  bloque.ataques.colider.qty);
+  });
+}
 
 async function cargarCRListaPares(){
   const sel = document.getElementById('crSelectPar');
@@ -5472,7 +5644,96 @@ async function cargarCRListaPares(){
   }
 }
 
-document.getElementById('btnCrPaso1').addEventListener('click', () => {
+/**
+ * limpiarFormularioCR()
+ * PASO 3: deja #crPaso3 listo para modo Registrar (corrida nueva, sin nada
+ * que precargar) -- mismo criterio que los formularios de Torneos/Sorteos
+ * al elegir "Registrar": todo vacío, `crIdExistenteActual` en '' para que
+ * btnCrGuardar sepa que debe mandar `idExistente` vacío (CREA un par
+ * nuevo, ver _webCRListaGuardar()).
+ */
+async function limpiarFormularioCR(){
+  crIdExistenteActual = '';
+  document.getElementById('crFecha').value = '';
+  document.getElementById('crHora').value = '';
+  document.getElementById('crSemanas').value = '';
+  document.getElementById('crOrganizador').value = '';
+  document.getElementById('crComentario').value = '';
+  document.getElementById('crGuardarMsg').innerHTML = '';
+  await Promise.all([pintarGridCR('ascenso'), pintarGridCR('descenso')]); // PASO 4 -- grilla vacía (sin requisitos)
+  document.getElementById('crPaso3').style.display = '';
+}
+
+/**
+ * precargarFormularioCR(idAscenso)
+ * PASO 3, modo Editar: pide la mitad Ascenso del par elegido con
+ * _webCRListaFilaPorId() (34_Web_API.gs) y precarga los campos comunes --
+ * Fecha/Hora/Organizador/Comentario/Semanas son iguales para las dos
+ * mitades del par (ver `comunes` en _construirFilaCRLista(),
+ * 34_Web_API.gs), así que alcanza con leer una sola.
+ * Fecha/Hora: mismo criterio que el precargado de #tFechaMod/#tHoraMod al
+ * elegir un torneo de hoy (ver el listener de #tSelectHoy más arriba en
+ * este mismo <script>) -- `new Date(fila.fecha)` y se arman los campos
+ * 'YYYY-MM-DD'/'HH:mm' con los componentes LOCALES del Date resultante.
+ * Semanas: `fila.semanas` llega ya parseada como
+ * [{temporada,semana}, ...] (_getFilaCRListaPorId(), 24_Torneos_Core.gs) --
+ * se arma de vuelta el texto "T{temporada}_S{semana}" separado por comas,
+ * mismo formato que espera `datos.semanas` en _webCRListaGuardar().
+ *
+ * PASO 4: además de la mitad Ascenso (campos comunes), pide TAMBIÉN la
+ * mitad Descenso -- ahí sí hacen falta las dos, porque cada una trae su
+ * propio `porClan` para la grilla de Min_CR/Ataques. El idDescenso sale de
+ * `cambioRangoParesData` (ya cargado por cargarCRListaPares() al entrar a
+ * este modo); si por algún motivo no está, se deriva cambiando la letra
+ * inicial (mismo criterio que _getParCRListaPorId(), 24_Torneos_Core.gs).
+ * Si el par está incompleto (existeDescenso=false, ver _webCRListaListar()),
+ * la grilla de Descenso queda vacía en vez de romper.
+ */
+async function precargarFormularioCR(idAscenso){
+  document.getElementById('crPaso3').style.display = 'none';
+  document.getElementById('crPaso2Msg').innerHTML = '<div class="text-dim">Cargando corrida…</div>';
+  try{
+    const par = cambioRangoParesData.find(p => p.idAscenso === idAscenso);
+    const idDescenso = par ? par.idDescenso : idAscenso.replace(/^A_/, 'D_');
+
+    const [dataAsc, dataDesc] = await Promise.all([
+      apiGetAuth('webCRListaFilaPorId', { id: idAscenso }),
+      apiGetAuth('webCRListaFilaPorId', { id: idDescenso })
+    ]);
+    if(manejarRespuestaAuth(dataAsc)) return;
+    if(!dataAsc.ok || !dataAsc.fila){
+      document.getElementById('crPaso2Msg').innerHTML = `<div class="msg msg-error">${esc(dataAsc.error || 'No encontré esa corrida.')}</div>`;
+      return;
+    }
+    const filaAsc = dataAsc.fila;
+    const filaDesc = (dataDesc && dataDesc.ok) ? dataDesc.fila : null;
+    crIdExistenteActual = idAscenso;
+
+    if(filaAsc.fecha){
+      const d = new Date(filaAsc.fecha);
+      document.getElementById('crFecha').value = `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
+      document.getElementById('crHora').value  = `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+    }else{
+      document.getElementById('crFecha').value = '';
+      document.getElementById('crHora').value = '';
+    }
+    document.getElementById('crSemanas').value = (filaAsc.semanas || [])
+      .map(s => `T${s.temporada}_S${s.semana}`).join(',');
+    document.getElementById('crOrganizador').value = filaAsc.organizador || '';
+    document.getElementById('crComentario').value = filaAsc.comentario || '';
+
+    await Promise.all([pintarGridCR('ascenso'), pintarGridCR('descenso')]);
+    precargarGridCR('ascenso', filaAsc.porClan);
+    if(filaDesc) precargarGridCR('descenso', filaDesc.porClan);
+
+    document.getElementById('crPaso2Msg').innerHTML = '';
+    document.getElementById('crPaso3').style.display = '';
+  }catch(err){
+    document.getElementById('crPaso2Msg').innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
+  }
+}
+
+document.getElementById('btnCrPaso1').addEventListener('click', async () => {
   const accion = document.getElementById('crAccion').value;
   if(!accion){
     document.getElementById('crPaso2Msg').innerHTML = '<div class="msg msg-error">Elige qué quieres hacer.</div>';
@@ -5481,13 +5742,14 @@ document.getElementById('btnCrPaso1').addEventListener('click', () => {
   document.getElementById('crPaso1').style.display = 'none';
   document.getElementById('crPaso2').style.display = '';
   document.getElementById('crPaso2Msg').innerHTML = '';
+  document.getElementById('crPaso3').style.display = 'none';
 
   if(accion === 'modificar'){
     document.getElementById('crSelectorParBox').style.display = '';
     cargarCRListaPares();
   }else{
     document.getElementById('crSelectorParBox').style.display = 'none';
-    document.getElementById('crPaso2Msg').innerHTML = '<div class="text-dim">Registrar nueva corrida — el formulario se agrega en el próximo paso.</div>';
+    await limpiarFormularioCR();
   }
 });
 
@@ -5496,14 +5758,59 @@ document.getElementById('crVolverPaso1').addEventListener('click', (e) => {
   document.getElementById('crPaso2').style.display = 'none';
   document.getElementById('crPaso1').style.display = '';
   document.getElementById('crSelectorParBox').style.display = 'none';
+  document.getElementById('crPaso3').style.display = 'none';
   document.getElementById('crPaso2Msg').innerHTML = '';
 });
 
 document.getElementById('crSelectPar').addEventListener('change', () => {
   const idAscenso = document.getElementById('crSelectPar').value;
-  document.getElementById('crPaso2Msg').innerHTML = idAscenso
-    ? '<div class="text-dim">Corrida elegida: ' + esc(idAscenso) + ' — el formulario de edición se agrega en el próximo paso.</div>'
-    : '';
+  if(idAscenso){
+    precargarFormularioCR(idAscenso);
+  }else{
+    document.getElementById('crPaso3').style.display = 'none';
+    document.getElementById('crPaso2Msg').innerHTML = '';
+  }
+});
+
+/**
+ * btnCrGuardar -- llama a _webCRListaGuardar() (34_Web_API.gs) con los
+ * campos comunes ya cargados en #crPaso3 MÁS (PASO 4) la grilla de
+ * Min_CR/Ataques por Clan y Rol, leída con leerGridCR() para cada tipo.
+ * Fecha es obligatoria, mismo chequeo que hace el propio backend.
+ */
+document.getElementById('btnCrGuardar').addEventListener('click', async () => {
+  const msgEl = document.getElementById('crGuardarMsg');
+  const fecha = document.getElementById('crFecha').value;
+  if(!fecha){
+    msgEl.innerHTML = '<div class="msg msg-error">Falta la fecha de la corrida.</div>';
+    return;
+  }
+  const hora = document.getElementById('crHora').value;
+  const semanas = document.getElementById('crSemanas').value.trim();
+  const organizador = document.getElementById('crOrganizador').value.trim();
+  const comentario = document.getElementById('crComentario').value.trim();
+
+  msgEl.innerHTML = '<div class="text-dim">Guardando…</div>';
+  try{
+    const data = await apiPost('webCRListaGuardar', {
+      sessionToken: localStorage.getItem(SESSION_KEY),
+      datos: {
+        idExistente: crIdExistenteActual,
+        fecha, hora, semanas, organizador, comentario,
+        ascenso:  { porClan: leerGridCR('ascenso') },
+        descenso: { porClan: leerGridCR('descenso') }
+      }
+    });
+    if(manejarRespuestaAuth(data)) return;
+    if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
+    msgEl.innerHTML = `<div class="msg msg-success">Corrida guardada (${esc(data.idAscenso)} / ${esc(data.idDescenso)}).</div>`;
+    crIdExistenteActual = data.idAscenso;
+    if(document.getElementById('crSelectorParBox').style.display !== 'none'){
+      cargarCRListaPares();
+    }
+  }catch(err){
+    msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
+  }
 });
 
 /**
