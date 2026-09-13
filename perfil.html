@@ -1338,12 +1338,19 @@ function renderRankingChart(ext){
   // abajo (H+46 → H+62) SIN tocar ninguna de las coordenadas ya calculadas
   // arriba (PAD_L, stepX, escalaY, etc.) — el gráfico existente queda
   // intacto y los títulos se dibujan en el espacio nuevo alrededor.
-  const ejeXTitle = `<text x="${PAD_L + anchoUtil/2}" y="${H+58}" font-size="11" font-weight="700" letter-spacing=".04em" fill="var(--text-dim,#94a3b8)" text-anchor="middle" font-family="var(--f-mono)">Fecha</text>`;
+  // FIX (13-sep-2026, pedido usuario — "hay que bajar un poco el nombre
+  // del eje x para que no se superponga con las fechas"): las etiquetas
+  // de fecha van rotadas -45° ancladas en y=H+18, así que su extremo
+  // inferior cae varios px por debajo de esa línea base (no son texto
+  // horizontal plano). Con el título en H+58 quedaban pisándose. Se baja
+  // el título a H+74 y se agranda el viewBox (antes H+62) para que siga
+  // entrando completo dentro del SVG.
+  const ejeXTitle = `<text x="${PAD_L + anchoUtil/2}" y="${H+74}" font-size="11" font-weight="700" letter-spacing=".04em" fill="var(--text-dim,#94a3b8)" text-anchor="middle" font-family="var(--f-mono)">Fecha</text>`;
   const centroY = PAD_TOP + (H - PAD_TOP - PAD_BOTTOM) / 2;
   const ejeYTitle = `<text x="-8" y="${centroY}" font-size="11" font-weight="700" letter-spacing=".04em" fill="var(--text-dim,#94a3b8)" text-anchor="middle" font-family="var(--f-mono)" transform="rotate(-90 -8 ${centroY})">Ranking</text>`;
 
   wrap.innerHTML = `
-    <svg viewBox="-16 0 ${W+16} ${H+62}" style="width:100%; height:auto; margin-top:8px; overflow:visible;">
+    <svg viewBox="-16 0 ${W+16} ${H+80}" style="width:100%; height:auto; margin-top:8px; overflow:visible;">
       ${lineasTemporales}
       <line x1="${PAD_L}" y1="${yMedio}" x2="${W-PAD_R}" y2="${yMedio}" class="grid-line-medio"/>
       <line x1="${PAD_L}" y1="${yMin}" x2="${W-PAD_R}" y2="${yMin}" stroke="var(--border,#333)" stroke-width="1" stroke-dasharray="3,4"/>
@@ -1427,12 +1434,19 @@ function renderMetricaSemanal(elId, historial, campo, opts){
   });
   const lineasTemporales = lineasTemporalesSvg(fechasEje, i => PAD_L + i*stepX, PAD_TOP, H - PAD_BOTTOM, { granularidadDiaria: false });
 
-  const ejeXTitle = `<text x="${PAD_L + anchoUtil/2}" y="${H+58}" font-size="11" font-weight="700" letter-spacing=".04em" fill="var(--text-dim,#94a3b8)" text-anchor="middle" font-family="var(--f-mono)">Fecha</text>`;
+  // FIX (13-sep-2026, pedido usuario — "hay que bajar un poco el nombre
+  // del eje x para que no se superponga con las fechas", mismo fix que
+  // renderRankingChart() de arriba): las etiquetas de fecha van rotadas
+  // -45° ancladas en y=H+18, así que su extremo inferior cae varios px
+  // por debajo de esa línea base. Con el título en H+58 quedaban
+  // pisándose. Se baja el título a H+74 y se agranda el viewBox (antes
+  // H+62) para que siga entrando completo dentro del SVG.
+  const ejeXTitle = `<text x="${PAD_L + anchoUtil/2}" y="${H+74}" font-size="11" font-weight="700" letter-spacing=".04em" fill="var(--text-dim,#94a3b8)" text-anchor="middle" font-family="var(--f-mono)">Fecha</text>`;
   const centroY = PAD_TOP + (H - PAD_TOP - PAD_BOTTOM) / 2;
   const ejeYTitle = `<text x="-8" y="${centroY}" font-size="11" font-weight="700" letter-spacing=".04em" fill="var(--text-dim,#94a3b8)" text-anchor="middle" font-family="var(--f-mono)" transform="rotate(-90 -8 ${centroY})">${esc(opts.tituloEje || '')}</text>`;
 
   wrap.innerHTML = `
-    <svg viewBox="-16 0 ${W+16} ${H+62}" style="width:100%; height:auto; margin-top:8px; overflow:visible;">
+    <svg viewBox="-16 0 ${W+16} ${H+80}" style="width:100%; height:auto; margin-top:8px; overflow:visible;">
       ${lineasTemporales}
       <line x1="${PAD_L}" y1="${yMedio}" x2="${W-PAD_R}" y2="${yMedio}" class="grid-line-medio"/>
       <line x1="${PAD_L}" y1="${pixelAbajo}" x2="${W-PAD_R}" y2="${pixelAbajo}" stroke="var(--border,#333)" stroke-width="1" stroke-dasharray="3,4"/>
