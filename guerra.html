@@ -644,6 +644,12 @@
            Arranca vacío; gestionarTabsClan() (más abajo) la llena en cuanto
            hay al menos una tarjeta de clan pintada en #controlActivosWrap. -->
       <div class="tabs-row" id="controlActivosClanTabs" style="margin-top:20px;"></div>
+      <!-- FIX (13-sep-2026, pedido usuario — "agrega los botones de letras
+           en Valores diarios y Valores semanales"): mismo patrón A-Z/# que
+           "Pendientes de Atacar" (ver pintarFiltroLetraGrid() en el
+           <script>), aplicado sobre las varias tablas (una por clan) de
+           esta cuadrícula a la vez. -->
+      <div class="tabs-row" id="controlActivosLetraFilter" style="margin-top:10px;"></div>
       <div id="controlActivosWrap" style="margin-top:14px;"></div>
     </section>
 
@@ -691,6 +697,10 @@
       <!-- Pestañas de clan -- mismo patrón y misma función
            gestionarTabsClan() que la Cuadrícula de Activos de arriba. -->
       <div class="tabs-row" id="controlTemporadaClanTabs" style="margin-top:20px;"></div>
+      <!-- FIX (13-sep-2026, pedido usuario — "agrega los botones de letras
+           en Valores diarios y Valores semanales"): mismo patrón que
+           Valores diarios de arriba (ver pintarFiltroLetraGrid()). -->
+      <div class="tabs-row" id="controlTemporadaLetraFilter" style="margin-top:10px;"></div>
       <div id="controlTemporadaWrap" style="margin-top:14px;"></div>
     </section>
 
@@ -786,6 +796,15 @@ let clanSeleccionadoParticipacion = null;
 // (sin filtrar). Ver pintarFiltroLetraPendientes()/aplicarFiltroLetraPendientes()
 // más abajo.
 let letraSeleccionadaPend = null;
+// FIX (13-sep-2026, pedido usuario — "agrega los botones de letras en
+// 🗂️ Valores diarios y 🗓️ Valores semanales"): mismo patrón/estado que
+// letraSeleccionadaPend de arriba, uno por sección (cada cuadrícula tiene
+// su propia tabla por clan, así que el filtro es independiente entre
+// Activos y Temporada). Ver pintarFiltroLetraGrid()/letraFiltroDeGridId()
+// más abajo, que generalizan pintarFiltroLetraPendientes() para poder
+// aplicarse sobre varias tablas (una por clan) a la vez.
+let letraSeleccionadaActivos = null;
+let letraSeleccionadaTemporada = null;
 // FIX (09-sep-2026, pedido usuario — selectores de año/temporada(mes)/
 // semana para "Valores diarios"): antes solo existía
 // sectionIndexSeleccionadoActivos (semana dentro de la temporada vigente);
@@ -1059,11 +1078,31 @@ function gridRepintar(gridId, tabla, columnas, filasBase, renderFila){
   gridActualizarIconos(gridId, tabla);
 }
 
+/**
+ * letraFiltroDeGridId(gridId) → letra seleccionada (o null) para la
+ * sección a la que pertenece esta tabla, según el prefijo de gridId
+ * ("activos:<clan>" o "temporada:<clan>", ver renderFilaActivos/
+ * renderFilaTemporada más abajo). FIX (13-sep-2026, pedido usuario —
+ * "agrega los botones de letras en Valores diarios y Valores semanales").
+ */
+function letraFiltroDeGridId(gridId){
+  if (gridId.startsWith('activos:')) return letraSeleccionadaActivos;
+  if (gridId.startsWith('temporada:')) return letraSeleccionadaTemporada;
+  return null;
+}
+
 function gridAplicarFiltros(gridId, tabla){
   const estado = gridEstadoDe(gridId);
   const cols = Object.keys(estado.filtros);
+  // FIX (13-sep-2026, pedido usuario): además de los filtros numéricos por
+  // columna (estado.filtros), cada fila también debe pasar el filtro por
+  // letra de la sección (si hay alguno elegido) para que ambos filtros se
+  // puedan combinar sin pisarse -- ver letraFiltroDeGridId() arriba y
+  // pintarFiltroLetraGrid() más abajo, que dispara este mismo chequeo al
+  // hacer clic en una letra (sin volver a pedir nada al backend).
+  const letraSel = letraFiltroDeGridId(gridId);
   tabla.querySelectorAll('tbody tr').forEach(fila => {
-    const pasa = cols.every(colKey => {
+    const pasaCols = cols.every(colKey => {
       const celda = fila.querySelector(`[data-col="${colKey}"]`);
       const filtro = estado.filtros[colKey];
       const raw = celda && celda.dataset.raw !== undefined && celda.dataset.raw !== '' ? Number(celda.dataset.raw) : null;
@@ -1078,7 +1117,8 @@ function gridAplicarFiltros(gridId, tabla){
         default:    return true;
       }
     });
-    fila.style.display = pasa ? '' : 'none';
+    const pasaLetra = !letraSel || fila.dataset.letra === letraSel;
+    fila.style.display = (pasaCols && pasaLetra) ? '' : 'none';
   });
 }
 
@@ -1400,6 +1440,52 @@ function aplicarFiltroLetraPendientes(){
 }
 
 /**
+ * pintarFiltroLetraGrid(filtroWrapId, tablasWrapId, obtenerSel, fijarSel)
+ * FIX (13-sep-2026, pedido usuario — "agrega los botones de letras en
+ * 🗂️ Valores diarios y 🗓️ Valores semanales"): versión generalizada de
+ * pintarFiltroLetraPendientes()/aplicarFiltroLetraPendientes() de arriba,
+ * para secciones que pintan VARIAS tablas (una por clan, ver
+ * renderFilaActivos/renderFilaTemporada más abajo, que ya marcan cada
+ * <tr> con data-letra) en vez de una sola. Se pinta una sola vez por
+ * sección (guardia por dataset.pintado, igual que la de Pendientes) y,
+ * al hacer clic, no oculta/muestra los <tr> directamente -- en su lugar
+ * llama a gridAplicarFiltros() de cada tabla visible dentro de
+ * `tablasWrapId`, que ya combina este filtro por letra con el filtro/
+ * orden numérico por columna que esas cuadrículas ya traían (ver
+ * letraFiltroDeGridId() más arriba), para que ninguno de los dos filtros
+ * se pise con el otro.
+ */
+function pintarFiltroLetraGrid(filtroWrapId, tablasWrapId, obtenerSel, fijarSel){
+  const wrap = document.getElementById(filtroWrapId);
+  if (!wrap || wrap.dataset.pintado) return;
+  wrap.dataset.pintado = '1';
+  wrap.innerHTML = LETRAS_FILTRO_PEND.map(l => `
+    <button type="button" class="tab-btn letra-btn" data-letra="${esc(l)}">${esc(l)}</button>`).join('');
+  wrap.querySelectorAll('.letra-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const l = btn.dataset.letra;
+      const nuevo = (obtenerSel() === l) ? null : l;
+      fijarSel(nuevo);
+      wrap.querySelectorAll('.letra-btn').forEach(b => b.classList.toggle('active', b.dataset.letra === nuevo));
+      aplicarFiltroLetraGrid(tablasWrapId);
+    });
+  });
+}
+
+/** aplicarFiltroLetraGrid(tablasWrapId) → reaplica, en cada tabla ya
+ * pintada dentro de `tablasWrapId`, el filtro combinado (letra + columna)
+ * vía gridAplicarFiltros(). Se llama tras cada clic en una letra; el
+ * filtro/orden numérico ya vigente de cada tabla no se pierde porque
+ * gridAplicarFiltros() lee ambos estados. */
+function aplicarFiltroLetraGrid(tablasWrapId){
+  const wrap = document.getElementById(tablasWrapId);
+  if (!wrap) return;
+  wrap.querySelectorAll('table[data-grid-id]').forEach(tabla => {
+    gridAplicarFiltros(tabla.dataset.gridId, tabla);
+  });
+}
+
+/**
  * pintarSelectoresValoresDiarios(data)
  * FIX (09-sep-2026, pedido usuario — "añade un selector de año [...]
  * selector de temporada [...] y el tercero es el selector de semana [...]
@@ -1592,7 +1678,11 @@ function render(data){
         <div class="stat"><b id="${slug}-barc">${fmtNum(g.barcos)}</b><span>Barcos</span></div>
       </div>
       <div class="bar"><i style="width:${pct}%"></i></div>
-      <div style="margin-top:10px;font-size:12px;color:var(--text-dim);font-family:var(--f-mono);">
+      <!-- FIX (13-sep-2026, pedido usuario — "en guerra también centra la
+           fila debajo de la barrita de progreso en guerra de hoy"): se
+           agrega text-align:center a este renglón (antes quedaba pegado a
+           la izquierda por default). -->
+      <div style="margin-top:10px;font-size:12px;color:var(--text-dim);font-family:var(--f-mono);text-align:center;">
         ${fmtNum(g.atacaron)}/${fmtNum(g.totalHoy)} atacaron hoy (${pct}%)
       </div>
     </div>`;
@@ -1783,7 +1873,7 @@ function render(data){
     // DOM) es quien lo llena, aplicando cualquier filtro/orden que ya
     // hubiera quedado guardado en un refresco anterior.
     const renderFilaActivos = f => `
-              <tr>
+              <tr data-letra="${esc(primeraLetraFiltro(f.nombre || f.tag))}">
                 <td class="col-jugador">${f.tag ? enlaceJugador(f.nombre || f.tag, f.tag) : esc(f.nombre || f.tag)}</td>
                 ${celdasMegacategoria({j:f.j, v:f.v, s:f.s, d:f.d, total:f.total}, 'ai-grp-atq', true, 'atq')}
                 ${celdasMegacategoria(f.puntaje, 'ai-grp-pje', false, 'pje')}
@@ -1832,6 +1922,7 @@ function render(data){
     controlActivosSection.style.display = 'block';
     enlazarScrollsHorizontales('controlActivosWrap');
     gestionarTabsClan('controlActivosClanTabs', 'controlActivosWrap', () => clanSeleccionadoActivos, v => clanSeleccionadoActivos = v);
+    pintarFiltroLetraGrid('controlActivosLetraFilter', 'controlActivosWrap', () => letraSeleccionadaActivos, v => letraSeleccionadaActivos = v);
   } else {
     controlActivosSection.style.display = 'none';
     document.getElementById('controlActivosClanTabs').innerHTML = '';
@@ -1873,7 +1964,7 @@ function render(data){
     // filaSubEncabezadosSemanas() (ver más arriba). Igual que en Activos,
     // el <tbody> arranca vacío y lo llena inicializarGridFiltro() más abajo.
     const renderFilaTemporada = f => `
-              <tr>
+              <tr data-letra="${esc(primeraLetraFiltro(f.nombre || f.tag))}">
                 <td class="col-jugador">${f.tag ? enlaceJugador(f.nombre || f.tag, f.tag) : esc(f.nombre || f.tag)}</td>
                 ${celdasSemanas(f.ataques, 'ai-grp-atq', true, 'atq')}
                 ${celdasSemanas(f.puntaje, 'ai-grp-pje', false, 'pje')}
@@ -1914,6 +2005,7 @@ function render(data){
     controlTemporadaSection.style.display = 'block';
     enlazarScrollsHorizontales('controlTemporadaWrap');
     gestionarTabsClan('controlTemporadaClanTabs', 'controlTemporadaWrap', () => clanSeleccionadoTemporada, v => clanSeleccionadoTemporada = v);
+    pintarFiltroLetraGrid('controlTemporadaLetraFilter', 'controlTemporadaWrap', () => letraSeleccionadaTemporada, v => letraSeleccionadaTemporada = v);
   } else {
     controlTemporadaSection.style.display = 'none';
     document.getElementById('controlTemporadaClanTabs').innerHTML = '';

@@ -89,6 +89,11 @@
     cursor:pointer; background:transparent; transition:all .18s ease;
   }
   .tab-btn.active{color:#fff; border-color:var(--purple); background:rgba(162,57,255,.15);}
+  /* FIX (13-sep-2026, pedido usuario — "agrega los botones de letras en
+     directorio por clan"): botones A-Z/# más angostos que un .tab-btn de
+     clan normal (mismo criterio de tamaño ya usado para este mismo botón
+     en guerra.html), para que quepan los ~27 juntos en la fila. */
+  .letra-btn{padding:6px 10px; min-width:30px;}
   .ext-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:14px; margin-top:16px;}
   /* FIX (03-sep-2026, pedido usuario — "se deben centrar el texto en los
      cuadritos del cara a cara"): antes el texto (valor + etiqueta) quedaba
@@ -547,6 +552,14 @@
       <p style="margin-top:8px;">Elige un clan y toca un nombre para ver su progreso al instante.</p>
     </div>
     <div class="clan-tabs" id="clanTabs"></div>
+    <!-- FIX (13-sep-2026, pedido usuario — "agrega los botones de letras en
+         directorio por clan"): fila A-Z/# para filtrar por primera letra
+         del nombre, mismo patrón visual que en guerra.html — se pinta una
+         sola vez (ver pintarFiltroLetraRoster() en el <script>) y persiste
+         fuera de #rosterWrap para no perderse al cambiar de clan (cada
+         cambio de clan sí resetea CUÁL letra está elegida, igual que ya
+         hacía con los demás filtros — ver renderRosterClanActivo()). -->
+    <div class="tabs-row" id="rosterLetraFilter" style="margin-top:12px;"></div>
     <div id="rosterWrap">
       <div class="loading-block"><div class="spinner"></div></div>
     </div>
@@ -1438,6 +1451,55 @@ let rosterFiltrosSeleccion = {};
 let rosterOrden = null;
 let rosterFiltroPopEl = null; // popover de filtro abierto actualmente (o null)
 let rosterMiembrosBase = []; // miembros del clan activo, en el orden original del backend (sin ordenar)
+// FIX (13-sep-2026, pedido usuario — "agrega los botones de letras en
+// directorio por clan"): letra A-Z/# elegida en #rosterLetraFilter (null =
+// todas). Igual que rosterFiltrosSeleccion/rosterOrden de arriba, se
+// reinicia cada vez que se cambia de pestaña de clan (ver
+// renderRosterClanActivo()) y se combina con esos filtros dentro de
+// aplicarFiltrosRoster() sin pisarse entre sí. Ver pintarFiltroLetraRoster()
+// y primeraLetraFiltro()/LETRAS_FILTRO más abajo.
+let rosterLetraSeleccionada = null;
+
+/**
+ * primeraLetraFiltro(nombre) → 'A'..'Z'/'Ñ' o '#' (números/símbolos/vacío).
+ * Mismo criterio que el homónimo de guerra.html (Pendientes de Atacar):
+ * clasifica cada fila del roster según el primer carácter de su nombre
+ * visible, para que el filtro por letra sepa qué botón le corresponde.
+ */
+function primeraLetraFiltro(nombre){
+  const t = String(nombre || '').trim();
+  if (!t) return '#';
+  const c = t.charAt(0).toUpperCase();
+  return /^[A-ZÑ]$/.test(c) ? c : '#';
+}
+const LETRAS_FILTRO = ['#','A','B','C','D','E','F','G','H','I','J','K','L','M','N','Ñ','O','P','Q','R','S','T','U','V','W','X','Y','Z'];
+
+/**
+ * pintarFiltroLetraRoster()
+ * Pinta la fila de botones A-Z/# de #rosterLetraFilter UNA SOLA VEZ (guardia
+ * por dataset.pintado — esta fila vive fuera de #rosterWrap para no
+ * perderse cuando renderRosterClanActivo() reconstruye la tabla al cambiar
+ * de clan). Cada clic alterna (toggle) rosterLetraSeleccionada y reaplica
+ * el filtro sobre la tabla activa vía aplicarFiltrosRoster() (que ya
+ * combina esta letra con rosterFiltrosSeleccion), sin volver a pedir nada
+ * al backend.
+ */
+function pintarFiltroLetraRoster(){
+  const wrap = document.getElementById('rosterLetraFilter');
+  if (!wrap || wrap.dataset.pintado) return;
+  wrap.dataset.pintado = '1';
+  wrap.innerHTML = LETRAS_FILTRO.map(l => `
+    <button type="button" class="tab-btn letra-btn" data-letra="${esc(l)}">${esc(l)}</button>`).join('');
+  wrap.querySelectorAll('.letra-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const l = btn.dataset.letra;
+      rosterLetraSeleccionada = (rosterLetraSeleccionada === l) ? null : l;
+      wrap.querySelectorAll('.letra-btn').forEach(b => b.classList.toggle('active', b.dataset.letra === rosterLetraSeleccionada));
+      const rosterWrap = document.getElementById('rosterWrap');
+      if (rosterWrap) aplicarFiltrosRoster(rosterWrap);
+    });
+  });
+}
 
 /** Todos los valores distintos (ya formateados como texto de celda, "—"
  * incluido si aplica) que puede tomar una columna en la lista de
@@ -1714,7 +1776,7 @@ function aplicarFiltrosRoster(wrap){
   const cols = Object.keys(rosterFiltrosSeleccion);
   const filas = wrap.querySelectorAll('tbody tr.js-miembro');
   filas.forEach(fila => {
-    const pasa = cols.every(colKey => {
+    const pasaCols = cols.every(colKey => {
       const col = ROSTER_COLUMNAS.find(c => c.key === colKey);
       const celda = fila.querySelector(`.${col.cls}`);
       const filtro = rosterFiltrosSeleccion[colKey];
@@ -1735,7 +1797,13 @@ function aplicarFiltrosRoster(wrap){
         default:    return true;
       }
     });
-    fila.style.display = pasa ? '' : 'none';
+    // FIX (13-sep-2026, pedido usuario — "agrega los botones de letras en
+    // directorio por clan"): además de los filtros por columna de arriba,
+    // la fila también debe pasar el filtro por letra elegido en
+    // #rosterLetraFilter (si hay alguno) — ver data-letra en
+    // filasHtmlRoster() más abajo.
+    const pasaLetra = !rosterLetraSeleccionada || fila.dataset.letra === rosterLetraSeleccionada;
+    fila.style.display = (pasaCols && pasaLetra) ? '' : 'none';
   });
 }
 
@@ -1753,7 +1821,7 @@ function celdaHtmlRoster(col, m, i){
 function filasHtmlRoster(miembros){
   return miembros.map((m, i) => {
     const celdas = ROSTER_COLUMNAS.map(c => celdaHtmlRoster(c, m, i)).join('');
-    return `<tr class="js-miembro" data-tag="${esc(m.tag)}">${celdas}</tr>`;
+    return `<tr class="js-miembro" data-tag="${esc(m.tag)}" data-letra="${esc(primeraLetraFiltro(m.nombre))}">${celdas}</tr>`;
   }).join('');
 }
 
@@ -1799,7 +1867,18 @@ function renderRosterClanActivo(){
   cerrarFiltroPopover();
   rosterFiltrosSeleccion = {}; // cambiar de clan resetea los filtros — cada clan tiene sus propios valores
   rosterOrden = null;          // ...y también el orden — cada clan arranca de nuevo en el orden del backend (por Rango)
+  rosterLetraSeleccionada = null; // ...y también la letra elegida (mismo criterio, ver docblock de arriba)
   rosterMiembrosBase = miembros;
+
+  // FIX (13-sep-2026, pedido usuario — "agrega los botones de letras en
+  // directorio por clan"): pintarFiltroLetraRoster() solo pinta de verdad
+  // la primera vez (guardia por dataset.pintado); en cada cambio de clan
+  // solo hace falta quitar el estado "active" de cualquier letra que
+  // hubiera quedado marcada del clan anterior, ya que rosterLetraSeleccionada
+  // se acaba de resetear arriba.
+  pintarFiltroLetraRoster();
+  const letraFilterWrap = document.getElementById('rosterLetraFilter');
+  if (letraFilterWrap) letraFilterWrap.querySelectorAll('.letra-btn').forEach(b => b.classList.remove('active'));
 
   const encabezado = ROSTER_COLUMNAS.map(c => `
     <th><div class="rt-th-inner"><span>${esc(c.label)}</span>${c.sortable === false ? '' : `<span class="rt-orden-indicador" data-col="${c.key}"></span>`}${c.filtrable === false ? '' :
