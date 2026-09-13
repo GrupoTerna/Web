@@ -207,10 +207,21 @@ function _encolarPeticion(tarea){
 }
 
 /**
- * _REINTENTO_ESPERA_MS
- * Espera antes del segundo intento de _fetchYParsear() — ver docblock ahí.
+ * _REINTENTO_ESPERA_MS / _MAX_INTENTOS_FETCH
+ * FIX (13-sep-2026, pedido usuario — "echo?user_content_key=...&lib=...
+ * 404" al pedir Historial de guerra): con MAX_INTENTOS=2 y espera fija de
+ * 1200ms alcanzaba para respuestas chicas (webPerfil, etc.) pero no para
+ * respuestas grandes como webHistorialGuerraJugador (muchas semanas de
+ * registros) — la entrega de Apps Script (redirect a
+ * script.googleusercontent.com/macros/echo) falla ahí con más frecuencia,
+ * y con un solo reintento no siempre alcanzaba a acertar. Se sube a 4
+ * intentos en total y la espera crece en cada uno (1.2s, 2.4s, 3.6s) en
+ * vez de ser siempre la misma, para no encimar reintentos innecesarios en
+ * el caso común (donde el primer reintento ya alcanza) ni rendirse
+ * demasiado rápido en el caso grande.
  */
 const _REINTENTO_ESPERA_MS = 1200;
+const _MAX_INTENTOS_FETCH = 4;
 
 /**
  * _fetchYParsear(url, fetchOpts)
@@ -242,8 +253,7 @@ async function _fetchYParsear(url, fetchOpts){
 }
 
 async function _fetchYParsearInterno(url, fetchOpts){
-  const MAX_INTENTOS = 2;
-  for (let intento = 1; intento <= MAX_INTENTOS; intento++){
+  for (let intento = 1; intento <= _MAX_INTENTOS_FETCH; intento++){
     let res;
     try{
       res = await fetch(url, fetchOpts);
@@ -253,8 +263,8 @@ async function _fetchYParsearInterno(url, fetchOpts){
     try{
       return await res.json();
     }catch(parseErr){
-      if (intento >= MAX_INTENTOS) throw new Error(_mensajeErrorRed());
-      await new Promise(function(r){ setTimeout(r, _REINTENTO_ESPERA_MS); });
+      if (intento >= _MAX_INTENTOS_FETCH) throw new Error(_mensajeErrorRed());
+      await new Promise(function(r){ setTimeout(r, _REINTENTO_ESPERA_MS * intento); });
     }
   }
 }
