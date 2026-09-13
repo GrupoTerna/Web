@@ -4292,6 +4292,15 @@ function nomMultiDelAdminDeSesion(){
  * nomMultiDelAdminDeSesion()/mostrarPanel() para el "Hola, <nombre>").
  * Si el admin no tiene Nom_Multi guardado (cuenta única, o sesión sin ese
  * dato todavía), se deja el texto genérico tal como estaba.
+ *
+ * FIX (12-sep-2026, pedido usuario — "en planificar y registrar sorteos no
+ * se detecta el admin, solo dice 'yo (el admin de esta sesión)', mientras
+ * que sus análogos en torneos sí lo hacen"): esta función nunca tocaba
+ * #sAutorSelect/#sAutorSelectPlan (Sorteo), solo los de Torneo — por eso el
+ * texto se quedaba siempre genérico en Sorteo aunque hubiera Nom_Multi. Se
+ * agregan las mismas 2 líneas para Sorteo, mismo criterio ya usado en
+ * actualizarEtiquetaSinCambiosAutorSorteo() (gemela de este fix pero para
+ * el caso "Modificar").
  */
 function actualizarEtiquetaAutorPropio(){
   const nm = nomMultiDelAdminDeSesion();
@@ -4300,6 +4309,11 @@ function actualizarEtiquetaAutorPropio(){
   const optPlan = document.querySelector('#tAutorSelectPlan option[value=""]');
   if(optReg) optReg.textContent = `Lo organicé yo (${nm})`;
   if(optPlan) optPlan.textContent = `Lo organizo yo (${nm})`;
+
+  const optRegSorteo = document.querySelector('#sAutorSelect option[value=""]');
+  const optPlanSorteo = document.querySelector('#sAutorSelectPlan option[value=""]');
+  if(optRegSorteo) optRegSorteo.textContent = `Lo organicé yo (${nm})`;
+  if(optPlanSorteo) optPlanSorteo.textContent = `Lo organizo yo (${nm})`;
 }
 
 /**
