@@ -187,8 +187,18 @@ function _mensajeErrorRed(){
  * para que el mecanismo de entrega la dé por perdida. Se aplica en
  * _fetchYParsear() (ver más abajo), así que cubre apiGet()/apiPost()/
  * apiGetAuth() sin tocar cada llamada de cada página una por una.
+ *
+ * FIX (13-sep-2026, pedido usuario — seguía fallando de forma intermitente
+ * con 2 simultáneas: primero Historial de guerra, después Mis cuentas, en
+ * llamadas distintas de la misma tanda de mostrarPanel()): se baja a 1
+ * (100% en serie) para sacar del todo la competencia entre peticiones —
+ * mostrarPanel() sigue disparando las mismas 6-7 llamadas de una, pero
+ * ahora le llegan a Apps Script una por una en vez de de a 2, que es lo
+ * que el propio diagnóstico de más arriba identifica como la causa real
+ * del 404 en la entrega. El panel tarda un poco más en terminar de cargar
+ * todas sus secciones, pero deja de competir consigo mismo.
  */
-const _MAX_PETICIONES_SIMULTANEAS = 2;
+const _MAX_PETICIONES_SIMULTANEAS = 1;
 let _peticionesActivas = 0;
 const _colaPeticiones = [];
 
@@ -214,14 +224,16 @@ function _encolarPeticion(tarea){
  * respuestas grandes como webHistorialGuerraJugador (muchas semanas de
  * registros) — la entrega de Apps Script (redirect a
  * script.googleusercontent.com/macros/echo) falla ahí con más frecuencia,
- * y con un solo reintento no siempre alcanzaba a acertar. Se sube a 4
- * intentos en total y la espera crece en cada uno (1.2s, 2.4s, 3.6s) en
- * vez de ser siempre la misma, para no encimar reintentos innecesarios en
- * el caso común (donde el primer reintento ya alcanza) ni rendirse
- * demasiado rápido en el caso grande.
+ * y con un solo reintento no siempre alcanzaba a acertar. Se sube a 5
+ * intentos en total (antes 4) y la espera crece en cada uno (1.2s, 2.4s,
+ * 3.6s, 4.8s) en vez de ser siempre la misma, para no encimar reintentos
+ * innecesarios en el caso común (donde el primer reintento ya alcanza) ni
+ * rendirse demasiado rápido en el caso grande. Combinado con bajar
+ * _MAX_PETICIONES_SIMULTANEAS a 1 (ver arriba), que ataca la causa de
+ * fondo en vez de solo compensarla con más reintentos.
  */
 const _REINTENTO_ESPERA_MS = 1200;
-const _MAX_INTENTOS_FETCH = 4;
+const _MAX_INTENTOS_FETCH = 5;
 
 /**
  * _fetchYParsear(url, fetchOpts)
