@@ -1006,6 +1006,15 @@ cargarClanes();
  *   (campo 'barcos' agregado 03-sep-2026, pedido del usuario, para la
  *   tercera gráfica comparativa "Barcos por semana"; si el backend
  *   todavía no lo manda, esa gráfica se dibuja en 0 para todos.)
+ * CONTRATO PENDIENTE (09-sep-2026): además, la respuesta de
+ * 'webIngresosRecientes' debería traer, al mismo nivel que 'ingresos', un
+ * array aparte 'semanasGuerra' con TODAS las semanas de guerra
+ * transcurridas (mismo formato de fecha que 'semana' en historialSemanal),
+ * incluidas las que nadie registró todavía. Sin este campo,
+ * construirSemanasMaestras() no puede reconstruir esa columna vacía en el
+ * eje X — ver el comentario junto a esa función más abajo. Ya está listo
+ * el front-end para consumirlo (se pasa como segundo parámetro a
+ * construirSemanasMaestras()); falta que el backend lo exponga.
  * Si el backend todavía no manda alguno de estos campos, esta función no
  * rompe: los campos faltantes se muestran como "—" y, si nadie trae
  * historialSemanal, las dos gráficas simplemente no se dibujan.
@@ -1126,21 +1135,26 @@ const MIN_SEMANAS_POR_MIEMBRO = 5;
  * entre todos hay 10 semanas... se debería mostrar los datos disponibles
  * de todos para esas 10 semanas").
  */
-/* NOTA (03-sep-2026, pedido usuario — "si hay una semana donde nadie tuvo
- * datos, no la omitas, así se puede tener el rango completo entre la
- * semana más reciente y más antigua"): esta función solo puede armar el
- * eje X a partir de las semanas que YA aparecen en el historialSemanal de
- * al menos un miembro — si una semana no tiene NINGÚN registro de NADIE,
- * no hay forma de saber que esa semana existió con datos solo desde el
- * front-end (no llega ningún string de esa semana a comparar). Para poder
- * mostrarla igual (como columna vacía) el backend tendría que mandar
- * también la lista completa de semanas de guerra transcurridas (p. ej.
- * un array 'semanasGuerra' aparte, no derivado de historialSemanal), y
- * esta función tendría que usar esa lista como base del eje en vez de
- * derivarla de los propios registros. Queda pendiente hasta que el
- * backend exponga ese campo. */
-function construirSemanasMaestras(miembros){
+/* FIX (09-sep-2026, pedido usuario — "si una semana de guerra no tiene
+ * ningún registro de nadie, el frontend no puede reconstruir esa columna
+ * vacía"): esta función solo podía armar el eje X a partir de las semanas
+ * que YA aparecían en el historialSemanal de al menos un miembro — si una
+ * semana no tenía NINGÚN registro de NADIE, no había forma de saber que
+ * esa semana existió con datos solo desde el front-end. Ahora recibe un
+ * segundo parámetro opcional 'semanasGuerra' (array plano de semanas, e.g.
+ * ["17/08/2026", "24/08/2026", ...] — mismo formato que 'semana' en
+ * historialSemanal) que el backend debería exponer aparte, con TODAS las
+ * semanas de guerra transcurridas, y lo usa para sembrar el eje ANTES de
+ * agregar lo que traiga historialSemanal, así una semana sin ningún
+ * registro igual aparece como columna vacía. Si 'semanasGuerra' no llega
+ * (contrato pendiente en el backend), el comportamiento es exactamente el
+ * de antes: el eje se deriva solo de historialSemanal. */
+function construirSemanasMaestras(miembros, semanasGuerra){
   const ordenes = new Map(); // etiqueta -> valor temporal (o null si no se pudo interpretar)
+  (semanasGuerra || []).forEach(s => {
+    const lbl = semanaLabel(s);
+    if (!ordenes.has(lbl)) ordenes.set(lbl, semanaOrden(s));
+  });
   miembros.forEach(m => (m.historialSemanal || []).forEach(h => {
     const lbl = semanaLabel(h.semana);
     if (!ordenes.has(lbl)) ordenes.set(lbl, semanaOrden(h.semana));
@@ -1477,10 +1491,10 @@ function activarTooltipsGraficas(){
  *   de historialSemanal (ver comentario de contrato más arriba), esta
  *   gráfica simplemente se dibuja en 0 para todos — no rompe, pero para
  *   que muestre datos reales el backend debe agregar ese campo. */
-function renderComparativaSemanal(container, miembrosTodos){
+function renderComparativaSemanal(container, miembrosTodos, semanasGuerra){
   const miembros = miembrosTodos.filter(m => (m.historialSemanal || []).length);
   if (!miembros.length){ container.innerHTML = ''; return; }
-  const semanas = construirSemanasMaestras(miembros);
+  const semanas = construirSemanasMaestras(miembros, semanasGuerra);
   // FIX (04-sep-2026, pedido usuario — "todo debe venir con fecha"): si el
   // eje trae alguna etiqueta vieja "Semana N" (convertida a fecha estimada
   // "≈dd/MM" por semanaLabelCorta), se agrega una nota una sola vez debajo
@@ -1629,7 +1643,10 @@ async function cargarIngresos(){
     // llegó del backend, así el orden de colores/leyenda de las gráficas
     // coincide exactamente con el de las tarjetas de arriba.
     const ingresosOrdenados = grupos.flatMap(g => g.items);
-    renderComparativaSemanal(chartsWrap, ingresosOrdenados);
+    // CONTRATO PENDIENTE: 'data.semanasGuerra' (ver comentario de contrato
+    // más arriba) — si el backend todavía no lo manda, queda undefined y
+    // construirSemanasMaestras() se comporta como antes.
+    renderComparativaSemanal(chartsWrap, ingresosOrdenados, data.semanasGuerra);
   }catch(err){
     wrap.innerHTML = `<div class="card" style="text-align:center; padding:32px;">
       <p class="text-dim">No se pudo cargar los ingresos recientes: ${esc(err.message)}</p>
