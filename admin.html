@@ -2022,6 +2022,22 @@ let miembroActual = null; // guarda el tag actualmente cargado, para el guardado
 // torneo como en el de "Editar autor de ascenso".
 let nomMultisAdminsCache = [];
 
+// FIX (13-sep-2026, pedido usuario -- "ReferenceError: Cannot access
+// '_clanesFamiliaCache' before initialization"): estas 3 declaraciones
+// vivían junto a cargarClanesFamilia() (línea ~3369 antes de este fix),
+// muy por debajo del `if(localStorage.getItem(SESSION_KEY)) mostrarPanel();`
+// de más abajo en este mismo <script>. Como ese `if` corre de inmediato si
+// ya había sesión guardada, disparaba mostrarPanel() -> cargarClanesFamilia()
+// mientras `_clanesFamiliaCache` (let) seguía en zona muerta temporal (TDZ),
+// porque su línea de declaración todavía no se había ejecutado. Se adelantan
+// acá arriba, junto a las demás variables tempranas del script, por el mismo
+// motivo por el que cuentasPorNomMultiCache NO se puede llamar desde ese
+// `if` (ver comentario junto a btnLogin más abajo). El resto de
+// cargarClanesFamilia() se deja donde estaba.
+let CLANES_REQUISITOS = ['Grupo乂Terna™', 'GrupoXTerna™2', 'GrupoXTerna™3', 'Mini乂Ternas™']; // fallback si cargarClanesFamilia() falla
+let _clanesFamiliaCache = null;
+let _clanesFamiliaCargando = null; // Promise en vuelo, evita 2 fetch en paralelo si algo llama antes de que termine el primero.
+
 function mostrarPanel(){
   document.getElementById('loginSec').style.display = 'none';
   document.getElementById('panelSec').style.display = 'block';
@@ -3366,11 +3382,6 @@ cargarSemanasRecientes().then(() => {
  *     cuadro con el valor guardado (el torneo puntual si se pasa `id`, o el
  *     más reciente si no).
  */
-let CLANES_REQUISITOS = ['Grupo乂Terna™', 'GrupoXTerna™2', 'GrupoXTerna™3', 'Mini乂Ternas™']; // fallback si cargarClanesFamilia() falla
-
-let _clanesFamiliaCache = null;
-let _clanesFamiliaCargando = null; // Promise en vuelo, evita 2 fetch en paralelo si algo llama antes de que termine el primero.
-
 /**
  * cargarClanesFamilia()
  * RESUELTO (12-sep-2026, pedido del usuario -- consolidado sección 5.1,
