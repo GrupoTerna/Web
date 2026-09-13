@@ -56,7 +56,16 @@
   }
   .clan-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:16px;}
   .clan-card .name{font-family:var(--f-display); font-size:18px; font-weight:800; text-transform:uppercase; color:var(--text); text-align:center;}
-  .clan-card .stats{display:flex; gap:18px; margin-top:14px; font-family:var(--f-mono);}
+  /* FIX (13-sep-2026, pedido usuario — "los márgenes de guerra de hoy son
+     disparejos"): .stats no tenía justify-content, así que la fila de
+     números quedaba pegada a la izquierda (flex-start por defecto). Como
+     cada clan tiene una cantidad distinta de dígitos en Ataques/Fame/
+     Barcos (ej. "174/85.900/0" vs "25/15.050/0"), el ancho total de esa
+     fila variaba de tarjeta a tarjeta y dejaba un margen derecho de
+     tamaño distinto en cada una — de ahí lo "disparejo". Centrando la
+     fila dentro de la tarjeta, el margen queda simétrico (y visualmente
+     parejo entre tarjetas) sin importar cuántos dígitos tenga cada valor. */
+  .clan-card .stats{display:flex; justify-content:center; gap:18px; margin-top:14px; font-family:var(--f-mono);}
   /* FIX (04-sep-2026, pedido usuario — "no se entiende bien de dónde salen
      los [totales] ... Ataques, fame y barcos deberían estar alineados con
      los centros de sus números"): .stat no tenía text-align, así que el
@@ -130,6 +139,30 @@
   .tbl-pendientes th{text-align:center;}
   .tbl-pendientes td{text-align:center;}
   .tbl-pendientes td.col-nombre{text-align:left;}
+  /* FIX (13-sep-2026, pedido usuario — "agregar N° y el tag del jugador a
+     la izquierda del nombre" / "columna Jugador (Nom_Multi) y Préstamo,
+     visibles solo para admins" / "íconos de royaleapi y cwstats a la
+     derecha de faltantes"): columnas nuevas de la tabla de Pendientes.
+     .col-n queda centrada (mismo criterio que Rango/Faltantes, es un
+     número de fila); .col-tag va a la izquierda, en mono y algo apagado
+     (mismo estilo que el tag junto al nombre en "Participación de Hoy",
+     ver _liCuenta() más abajo) porque es un dato secundario de
+     identificación, no el foco de la fila. .col-perfil-icons alinea sus
+     2 íconos en fila, centrados, sin texto (mismo SVG ICONO_ROYALEAPI/
+     ICONO_CWSTATS que ya usa perfil.html). */
+  .tbl-pendientes td.col-n{color:var(--text-faint);}
+  .tbl-pendientes td.col-tag{text-align:left; font-family:var(--f-mono); font-size:12px; color:var(--text-faint);}
+  .tbl-pendientes td.col-perfil-icons{white-space:nowrap;}
+  .tbl-pendientes td.col-perfil-icons a{display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; margin:0 2px; color:var(--text-dim); vertical-align:middle; transition:color .18s ease;}
+  .tbl-pendientes td.col-perfil-icons a:hover{color:var(--purple-light);}
+  .tbl-pendientes td.col-perfil-icons svg{width:16px; height:16px; fill:currentColor;}
+  /* Fila de botones A-Z/# para filtrar por primera letra del nombre —
+     mismo patrón visual .tabs-row/.tab-btn que la botonera de clanes de
+     arriba, pero cada botón es de 1 carácter así que se angosta el
+     padding lateral para que no queden ovalados de más. Toggle: tocar la
+     letra ya activa vuelve a mostrar todas (ver pintarFiltroLetraPendientes()
+     en el <script>). */
+  .letra-btn{padding:6px 10px; min-width:30px;}
   /* FASE 13 punto 1 del plan de cambios web (07-sep-2026, vista (a) del
      "Log" de guerra de RoyaleAPI): pestañas por clan para la sección
      "Log de Guerra (Histórico)" -- mismo patrón visual .tabs-row/.tab-btn
@@ -511,6 +544,13 @@
            Arranca vacía; se llena en cuanto haya al menos una tarjeta de
            clan pintada en #pendWrap. -->
       <div class="tabs-row" id="pendClanTabs" style="margin-top:20px;"></div>
+      <!-- FIX (13-sep-2026, pedido usuario — "botones clickeables de letras
+           para filtrar el nombre por cada letra o # para números y
+           cualquier otro carácter"): fila A-Z + # debajo de las pestañas de
+           clan, se pinta una sola vez (ver pintarFiltroLetraPendientes()) y
+           solo oculta/muestra filas ya pintadas en #pendWrap -- no vuelve a
+           pedir nada al backend, mismo criterio que gestionarTabsClan(). -->
+      <div class="tabs-row" id="pendLetraFilter" style="margin-top:10px;"></div>
       <div id="pendWrap" style="margin-top:14px;"></div>
     </section>
 
@@ -739,6 +779,13 @@ let clanSeleccionadoTemporada = null;
 // gestionarTabsClan() más abajo, que ya es genérica para cualquier sección.
 let clanSeleccionadoPend = null;
 let clanSeleccionadoParticipacion = null;
+// FIX (13-sep-2026, pedido usuario — "botones clickeables de letras para
+// filtrar el nombre"): estado del filtro por letra de Pendientes, a nivel
+// de módulo para que sobreviva a cada repintado de render() (mismo
+// criterio que clanSeleccionadoPend de arriba). null = "todas las letras"
+// (sin filtrar). Ver pintarFiltroLetraPendientes()/aplicarFiltroLetraPendientes()
+// más abajo.
+let letraSeleccionadaPend = null;
 // FIX (09-sep-2026, pedido usuario — selectores de año/temporada(mes)/
 // semana para "Valores diarios"): antes solo existía
 // sectionIndexSeleccionadoActivos (semana dentro de la temporada vigente);
@@ -1295,6 +1342,64 @@ function gestionarTabsClan(tabsWrapId, wrapId, obtenerSel, fijarSel){
 }
 
 /**
+ * primeraLetraFiltro(nombre) → 'A'..'Z'/'Ñ' o '#' (números/símbolos/vacío).
+ * FIX (13-sep-2026, pedido usuario — "botones clickeables de letras para
+ * filtrar el nombre por cada letra o # para números y cualquier otro
+ * carácter"): clasifica cada fila de Pendientes según el primer carácter
+ * de su nombre visible, para que el filtro por letra (ver
+ * pintarFiltroLetraPendientes()/aplicarFiltroLetraPendientes() abajo)
+ * sepa qué botón le corresponde a cada <tr>. Cualquier carácter que no
+ * sea letra A-Z/Ñ (dígito, símbolo, emoji, o nombre vacío) cae en '#'.
+ */
+function primeraLetraFiltro(nombre){
+  const t = String(nombre || '').trim();
+  if (!t) return '#';
+  const c = t.charAt(0).toUpperCase();
+  return /^[A-ZÑ]$/.test(c) ? c : '#';
+}
+
+const LETRAS_FILTRO_PEND = ['#','A','B','C','D','E','F','G','H','I','J','K','L','M','N','Ñ','O','P','Q','R','S','T','U','V','W','X','Y','Z'];
+
+/**
+ * pintarFiltroLetraPendientes()
+ * Pinta la fila de botones A-Z/# UNA SOLA VEZ (guardia por dataset.pintado
+ * — a diferencia de gestionarTabsClan(), esta fila no depende de qué
+ * clanes trajo el backend, así que no hace falta reconstruirla en cada
+ * render()/REFRESH_INTERVAL_MS). Cada clic alterna (toggle): tocar la
+ * letra ya activa vuelve a mostrar todas las filas. Solo oculta/muestra
+ * <tr> ya pintados dentro de #pendWrap (ver aplicarFiltroLetraPendientes())
+ * -- no vuelve a pedir nada al backend, mismo criterio que
+ * gestionarTabsClan().
+ */
+function pintarFiltroLetraPendientes(){
+  const wrap = document.getElementById('pendLetraFilter');
+  if (!wrap || wrap.dataset.pintado) return;
+  wrap.dataset.pintado = '1';
+  wrap.innerHTML = LETRAS_FILTRO_PEND.map(l => `
+    <button type="button" class="tab-btn letra-btn" data-letra="${esc(l)}">${esc(l)}</button>`).join('');
+  wrap.querySelectorAll('.letra-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const l = btn.dataset.letra;
+      letraSeleccionadaPend = (letraSeleccionadaPend === l) ? null : l;
+      wrap.querySelectorAll('.letra-btn').forEach(b => b.classList.toggle('active', b.dataset.letra === letraSeleccionadaPend));
+      aplicarFiltroLetraPendientes();
+    });
+  });
+}
+
+/** aplicarFiltroLetraPendientes() → oculta/muestra filas de #pendWrap según
+ * letraSeleccionadaPend (null = todas). Se llama después de cada repintado
+ * de la tabla (cada render()) para no perder el filtro vigente al
+ * refrescar datos. */
+function aplicarFiltroLetraPendientes(){
+  const wrap = document.getElementById('pendWrap');
+  if (!wrap) return;
+  wrap.querySelectorAll('tr[data-letra]').forEach(tr => {
+    tr.style.display = (!letraSeleccionadaPend || tr.dataset.letra === letraSeleccionadaPend) ? '' : 'none';
+  });
+}
+
+/**
  * pintarSelectoresValoresDiarios(data)
  * FIX (09-sep-2026, pedido usuario — "añade un selector de año [...]
  * selector de temporada [...] y el tercero es el selector de semana [...]
@@ -1514,26 +1619,64 @@ function render(data){
   // abajo) para filtrar sin volver a pedir datos. La columna "Clan" ya no
   // hace falta dentro de cada tabla — el nombre del clan ahora está en el
   // encabezado de su propia tarjeta, igual que en "Valores diarios".
+  // FIX (13-sep-2026, pedido usuario — "agrega N° y el tag a la izquierda
+  // del nombre / columna Jugador (Nom_Multi) y Préstamo solo para admins /
+  // íconos de royaleapi y cwstats a la derecha de faltantes / botones de
+  // letra para filtrar"): columnas nuevas, en orden:
+  //   N° · Tag · Nombre · [Jugador · Préstamo, solo-admin] · Rango ·
+  //   Faltantes · Perfil (íconos)
+  // "Jugador" muestra p.nomMulti (Nom_Multi), NUNCA p.nombre -- son 2
+  // campos distintos en el backend (ver mismo criterio ya documentado para
+  // .col-jugador en Activos/Temporada, más arriba en este archivo: ahí es
+  // al revés, .col-jugador trae el nombre crudo y Nom_Multi quedó afuera).
+  // "Préstamo" usa el mismo nombre de campo que ya trae Directorio para esa
+  // columna (p.prestamo). Los íconos de perfil reusan ICONO_ROYALEAPI/
+  // ICONO_CWSTATS + urlValida() (mismo patrón que perfil.html,
+  // #mRoyaleCwstatsBtns) sobre p.royaleApi/p.cwStats.
+  // PENDIENTE BACKEND: confirmar que data.pendientes ya manda nomMulti,
+  // prestamo, royaleApi y cwStats por jugador (nomMulti ya se usaba como
+  // fallback del nombre desde antes; los otros 3 son nuevos para esta
+  // tabla). Mientras no lleguen, cada celda muestra "—" y los íconos de
+  // perfil simplemente no se pintan para esa fila, sin romper el resto.
   const pend = data.pendientes || [];
   document.getElementById('pendCount').textContent = pend.length + ' jugador(es)';
   const pendPorClan = {};
   pend.forEach(p => { const c = p.clan || '—'; (pendPorClan[c] = pendPorClan[c] || []).push(p); });
   const clanesPend = Object.keys(pendPorClan).sort((a, b) => ordenClanIndex(a) - ordenClanIndex(b));
   const pendWrap = document.getElementById('pendWrap');
+  const pendEsAdmin = esAdminLogueado();
   pendWrap.innerHTML = clanesPend.length ? clanesPend.map(clanNombre => {
     const filas = pendPorClan[clanNombre];
     return `
     <div class="card ai-clan-card" data-clan="${esc(clanNombre)}" style="padding:16px;">
       <h3>${esc(clanNombre)} <span class="text-faint" style="font-family:var(--f-mono); font-size:12px; font-weight:400;">(${filas.length} pendiente${filas.length === 1 ? '' : 's'})</span></h3>
       <div class="table-scroll"><table class="tbl-pendientes">
-        <thead><tr><th>Nombre</th><th>Rango</th><th>Faltantes</th></tr></thead>
-        <tbody>${filas.map(p => `
-            <tr><td class="col-nombre">${p.tag ? enlaceJugador(p.nombre || p.nomMulti || p.tag, p.tag) : esc(p.nombre || p.nomMulti || p.tag)}</td><td>${esc(p.rango || '—')}</td><td class="falt">${fmtNum(p.faltantes)}</td></tr>`).join('')}
+        <thead><tr>
+          <th>N°</th><th>Tag</th><th>Nombre</th>${pendEsAdmin ? '<th>Jugador</th><th>Préstamo</th>' : ''}<th>Rango</th><th>Faltantes</th><th>Perfil</th>
+        </tr></thead>
+        <tbody>${filas.map((p, i) => {
+          const nombreMostrado = p.nombre || p.nomMulti || p.tag;
+          const letra = primeraLetraFiltro(nombreMostrado);
+          const royaleOk = urlValida(p.royaleApi);
+          const cwOk = urlValida(p.cwStats);
+          return `
+            <tr data-letra="${esc(letra)}">
+              <td class="col-n">${i + 1}</td>
+              <td class="col-tag">${esc(p.tag || '—')}</td>
+              <td class="col-nombre">${p.tag ? enlaceJugador(nombreMostrado, p.tag) : esc(nombreMostrado)}</td>
+              ${pendEsAdmin ? `<td>${esc(p.nomMulti || '—')}</td><td>${esc(p.prestamo || '—')}</td>` : ''}
+              <td>${esc(p.rango || '—')}</td>
+              <td class="falt">${fmtNum(p.faltantes)}</td>
+              <td class="col-perfil-icons">${royaleOk ? `<a href="${esc(p.royaleApi)}" target="_blank" rel="noopener" aria-label="RoyaleAPI" title="RoyaleAPI">${ICONO_ROYALEAPI}</a>` : ''}${cwOk ? `<a href="${esc(p.cwStats)}" target="_blank" rel="noopener" aria-label="CWStats" title="CWStats">${ICONO_CWSTATS}</a>` : ''}</td>
+            </tr>`;
+        }).join('')}
         </tbody>
       </table></div>
     </div>`;
   }).join('') : '<div class="empty">Nadie tiene ataques pendientes 🎉</div>';
   gestionarTabsClan('pendClanTabs', 'pendWrap', () => clanSeleccionadoPend, v => clanSeleccionadoPend = v);
+  pintarFiltroLetraPendientes();
+  aplicarFiltroLetraPendientes();
   const resumen = Object.entries(data.resumenClanes || {});
   const maxResumen = Math.max(1, ...resumen.map(([,v]) => v));
   const resumenWrap = document.getElementById('resumenWrap');
