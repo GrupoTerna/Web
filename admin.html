@@ -784,6 +784,16 @@
           <div class="contenido-tabs" style="margin-bottom:14px;">
             <button type="button" class="tab-clan btn-toggle-torsor activo" data-panel="torneos">Torneos</button>
             <button type="button" class="tab-clan btn-toggle-torsor" data-panel="sorteos">Sorteos</button>
+            <!-- NUEVO (13-sep-2026, pedido del usuario -- Fase 7 del plan de
+                 Cambio de Rango, PASO 1 de la implementación del frontend):
+                 tercer tab, mismo mecanismo EXACTO que Torneos/Sorteos
+                 (.btn-toggle-torsor + data-panel) -- el listener genérico de
+                 más abajo en el <script> ya recorre TODOS los
+                 .btn-toggle-torsor, así que agregar este botón no rompe el
+                 switcher existente. Todavía no tiene contenido real (eso es
+                 el PASO 2 en adelante) -- por ahora solo agrega el tab y su
+                 panel vacío (#panelCambioRangoAccion, ver más abajo). -->
+            <button type="button" class="tab-clan btn-toggle-torsor" data-panel="cambiorango">Cambio de rango</button>
           </div>
 
           <div id="panelTorneosAccion">
@@ -1844,6 +1854,70 @@
               <div id="planificarSorteoMsg"></div>
             </div>
 
+
+          </div>
+
+          <!-- NUEVO (13-sep-2026, pedido del usuario -- Fase 7 del plan de
+               Cambio de Rango, PASO 1): panel del tercer tab, mismo patrón
+               que #panelTorneosAccion/#panelSorteosAccion (oculto por
+               defecto, el switcher de más abajo en el <script> lo
+               muestra/oculta junto con los otros dos). Placeholder por
+               ahora -- el contenido real (listado de pares vía
+               _webCRListaListar, formulario de alta/edición vía
+               _webCRListaGuardar, tabla de propuestas vía
+               _webCRListaPropuestas/_webCRListaGenerarPropuestas) se agrega
+               en los próximos pasos, uno por uno, siguiendo el mismo plan
+               consolidado. -->
+          <div id="panelCambioRangoAccion" style="display:none;">
+
+            <!-- PASO 2 de la implementación del frontend (13-sep-2026,
+                 pedido del usuario -- Fase 7 del plan de Cambio de Rango):
+                 mismo patrón EXACTO que #torneoPaso1/#torneoPaso2
+                 (torneoAccion/btnTorneoPaso1) -- ver esos bloques más
+                 arriba para el criterio general del wizard por pasos.
+                 Acá solo hay 2 opciones (no hace falta un tercer paso de
+                 "tipo" como Torneos): Registrar (corrida nueva, sin nada
+                 que precargar) o Editar (corrida existente, requiere
+                 elegir CUÁL antes de poder mostrar el formulario). El
+                 formulario real de campos (Fecha/Hora/Semanas/Organizador
+                 + Min_CR/Ataques por Clan y Rol) es un paso siguiente,
+                 todavía no existe -- ver #crPaso2Msg más abajo. -->
+            <div id="crPaso1">
+              <div class="field">
+                <label for="crAccion">¿Qué quieres hacer?</label>
+                <select id="crAccion">
+                  <option value="">Elige una opción…</option>
+                  <option value="registrar">Registrar nueva corrida</option>
+                  <option value="modificar">Editar corrida existente</option>
+                </select>
+              </div>
+              <button type="button" class="btn btn-primary btn-block" id="btnCrPaso1" style="margin-top:6px;">Continuar</button>
+            </div>
+
+            <div id="crPaso2" style="display:none;">
+              <a href="#" id="crVolverPaso1" class="text-dim" style="font-size:12px; display:inline-block; margin-bottom:10px;">‹ Cambiar</a>
+
+              <!-- Solo se muestra en modo "modificar" -- cargarCRListaPares()
+                   (ver <script>) puebla #crSelectPar llamando a
+                   _webCRListaListar() (34_Web_API.gs), mismo patrón que
+                   cargarTorneosHoy()/cargarSorteosHoy() pueblan
+                   #tSelectHoy/#sSelectHoy. El valor de cada <option> es el
+                   idAscenso del par (alcanza para derivar el idDescenso
+                   hermano en el backend, ver _getParCRListaPorId()). -->
+              <div id="crSelectorParBox" style="display:none;">
+                <div class="field">
+                  <label for="crSelectPar">¿Cuál corrida?</label>
+                  <select id="crSelectPar">
+                    <option value="">Elige una opción…</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Placeholder -- el formulario real (modo Registrar, o modo
+                   Editar tras elegir una corrida en #crSelectPar) se agrega
+                   en el próximo paso de esta implementación. -->
+              <div id="crPaso2Msg" class="text-dim" style="font-size:13px; margin-top:10px;"></div>
+            </div>
 
           </div>
 
@@ -5354,6 +5428,85 @@ document.getElementById('btnModificarSorteo').addEventListener('click', async ()
 initTorneoWizard();
 
 /**
+ * initCambioRangoWizard()
+ * NUEVO (13-sep-2026, pedido del usuario -- Fase 7 del plan de Cambio de
+ * Rango, PASO 2 de la implementación del frontend): wizard de 2 pasos para
+ * #panelCambioRangoAccion, mismo mecanismo general que initTorneoWizard()/
+ * los listeners de Sorteos (btnTorneoPaso1/btnSorteoPaso1, etc.) -- "Elegir
+ * qué hacer" primero, revelar el paso siguiente recién después.
+ *
+ * cargarCRListaPares() envuelve _webCRListaListar() (34_Web_API.gs, Fase 7
+ * del backend) -- misma forma que cargarTorneosHoy()/cargarSorteosHoy()
+ * envuelven webAdminTorneosHoy/webAdminSorteosHoy. Guarda la respuesta en
+ * `cambioRangoParesData` por si un paso futuro necesita el detalle
+ * completo de un par (fecha ISO, semanas, organizador) sin volver a pedirlo
+ * al backend.
+ *
+ * El formulario real (Registrar / Editar ya con un par elegido) es el
+ * PASO 3 de esta implementación, todavía no existe -- por ahora
+ * #crPaso2Msg solo confirma la elección para poder probar el wizard antes
+ * de sumarle el formulario.
+ */
+let cambioRangoParesData = [];
+
+async function cargarCRListaPares(){
+  const sel = document.getElementById('crSelectPar');
+  sel.innerHTML = '<option value="">Cargando…</option>';
+  try{
+    const data = await apiGetAuth('webCRListaListar', {});
+    if(manejarRespuestaAuth(data)) return;
+    cambioRangoParesData = (data.ok && data.pares) ? data.pares : [];
+    if(!cambioRangoParesData.length){
+      sel.innerHTML = '<option value="">Sin corridas registradas todavía</option>';
+    }else{
+      sel.innerHTML = '<option value="">Elige una opción…</option>' +
+        cambioRangoParesData.map(p => {
+          const etiquetaFecha = p.fechaTxt || 'sin fecha';
+          const etiquetaSemanas = p.semanas ? (' — semanas ' + p.semanas) : '';
+          return `<option value="${esc(p.idAscenso)}">${esc(p.idAscenso)} / ${esc(p.idDescenso)} — ${esc(etiquetaFecha)}${esc(etiquetaSemanas)}</option>`;
+        }).join('');
+    }
+  }catch(err){
+    cambioRangoParesData = [];
+    sel.innerHTML = '<option value="">Error al cargar — reintenta</option>';
+  }
+}
+
+document.getElementById('btnCrPaso1').addEventListener('click', () => {
+  const accion = document.getElementById('crAccion').value;
+  if(!accion){
+    document.getElementById('crPaso2Msg').innerHTML = '<div class="msg msg-error">Elige qué quieres hacer.</div>';
+    return;
+  }
+  document.getElementById('crPaso1').style.display = 'none';
+  document.getElementById('crPaso2').style.display = '';
+  document.getElementById('crPaso2Msg').innerHTML = '';
+
+  if(accion === 'modificar'){
+    document.getElementById('crSelectorParBox').style.display = '';
+    cargarCRListaPares();
+  }else{
+    document.getElementById('crSelectorParBox').style.display = 'none';
+    document.getElementById('crPaso2Msg').innerHTML = '<div class="text-dim">Registrar nueva corrida — el formulario se agrega en el próximo paso.</div>';
+  }
+});
+
+document.getElementById('crVolverPaso1').addEventListener('click', (e) => {
+  e.preventDefault();
+  document.getElementById('crPaso2').style.display = 'none';
+  document.getElementById('crPaso1').style.display = '';
+  document.getElementById('crSelectorParBox').style.display = 'none';
+  document.getElementById('crPaso2Msg').innerHTML = '';
+});
+
+document.getElementById('crSelectPar').addEventListener('change', () => {
+  const idAscenso = document.getElementById('crSelectPar').value;
+  document.getElementById('crPaso2Msg').innerHTML = idAscenso
+    ? '<div class="text-dim">Corrida elegida: ' + esc(idAscenso) + ' — el formulario de edición se agrega en el próximo paso.</div>'
+    : '';
+});
+
+/**
  * FIX (08-sep-2026, pedido usuario): toggle horizontal Torneos/Sorteos de
  * "Planificar, registrar o modificar torneos o sorteos". Solo
  * muestra/oculta los dos paneles ya pintados en el HTML (#panelTorneosAccion/
@@ -5364,6 +5517,11 @@ initTorneoWizard();
  * btnSorteoPaso1/btnSorteoPaso2 más abajo) -- el Paso 3 (campos del
  * formulario) todavía no existe, así que el segundo "Continuar" solo
  * revela el aviso de #sorteoPaso3.
+ * FIX (13-sep-2026, pedido del usuario -- Fase 7 del plan de Cambio de
+ * Rango, PASO 1): se suma el tercer panel (#panelCambioRangoAccion) al
+ * mismo switcher -- ver el nuevo botón data-panel="cambiorango" en el
+ * HTML. Todavía es un placeholder (ver ese div), el contenido real se
+ * agrega en los próximos pasos.
  */
 document.querySelectorAll('.btn-toggle-torsor').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -5371,6 +5529,7 @@ document.querySelectorAll('.btn-toggle-torsor').forEach(btn => {
     document.querySelectorAll('.btn-toggle-torsor').forEach(b => b.classList.toggle('activo', b === btn));
     document.getElementById('panelTorneosAccion').style.display = (btn.dataset.panel === 'torneos') ? '' : 'none';
     document.getElementById('panelSorteosAccion').style.display = (btn.dataset.panel === 'sorteos') ? '' : 'none';
+    document.getElementById('panelCambioRangoAccion').style.display = (btn.dataset.panel === 'cambiorango') ? '' : 'none';
   });
 });
 
