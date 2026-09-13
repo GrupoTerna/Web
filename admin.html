@@ -1165,10 +1165,13 @@
                  explícito del usuario).
 
                  Los 4 clanes (Grupo乂Terna™, GrupoXTerna™2, GrupoXTerna™3,
-                 Mini乂Ternas™) están hardcodeados en CLANES_REQUISITOS (ver
-                 <script>) porque hoy no existe un endpoint que entregue la
-                 lista de clanes de la Familia -- ver PENDIENTE BACKEND más
-                 abajo. Los cuadros de trofeos/ataques se pintan
+                 Mini乂Ternas™) se piden a CLANES_REQUISITOS (ver <script>)
+                 -- RESUELTO (12-sep-2026, consolidado sección 5.1): ya
+                 existe webAdminClanesFamilia (_webAdminClanesFamilia(),
+                 34_Web_API.gs) y cargarClanesFamilia() (ver <script>) lo
+                 llama una vez al mostrar el panel; el array hardcodeado que
+                 tenía CLANES_REQUISITOS antes queda solo como fallback si
+                 la llamada falla. Los cuadros de trofeos/ataques se pintan
                  dinámicamente desde ese mismo array
                  (pintarGridRequisitosNumericos()) para no repetir 4
                  bloques de HTML iguales a mano.
@@ -1204,16 +1207,19 @@
                  reciben y guardan `requisitos`/`comentario`) como la
                  LECTURA previa (webAdminRequisitosClanes, ver
                  cargarRequisitosPorClan() más abajo, ya descomentada).
-                 ÚNICO PENDIENTE BACKEND que queda: _webAdminTorneoModificar()
-                 sigue sin reenviar `requisitos` (solo `comentario`) -- ver
-                 el docblock de _modificarFechaHoraTorneo() (24_Torneos_
-                 Core.gs) y el de cargarRequisitosPorClan() más abajo para
-                 el motivo (el precargado lee el torneo MÁS RECIENTE de
-                 T_Lista, no el que puntualmente se esté Modificando por
-                 ID -- ambigüedad si hay más de un torneo el mismo día).
-                 Hasta que se resuelva esa ambigüedad, `requisitos` sigue
-                 viajando en el payload de "Guardar cambios" sin que el
-                 backend lo use para ese caso puntual.
+
+                 RESUELTO (12-sep-2026, mismo día -- "una vez con eso,
+                 habilitar requisitos en Modificar sin riesgo"):
+                 _webAdminTorneoModificar() (34_Web_API.gs) ya reenvía
+                 `requisitos` TAL CUAL a _modificarFechaHoraTorneo()
+                 (24_Torneos_Core.gs) -- la ambigüedad de "torneo más
+                 reciente vs. torneo puntual" que lo bloqueaba ya no aplica,
+                 porque `_webAdminRequisitosClanes(token, id)` precarga por
+                 `id` puntual (no "el más reciente") desde que existe ese
+                 parámetro, así que Modificar ya edita los requisitos del
+                 torneo correcto sin riesgo de pisar los de otro torneo del
+                 mismo día. No queda ningún pendiente de backend en este
+                 punto.
 
                  RESUELTO (10-sep-2026, sección 5.1.1 del consolidado):
                  los grids #reqTrofeosGuerraGrid/#reqAtaquesSemanaGrid ahora
@@ -1680,7 +1686,8 @@
 
                    Reutiliza TAL CUAL pintarGridRequisitosNumericos() /
                    initInputMiles() / CLANES_REQUISITOS (ver <script>, ya
-                   construidas para Torneos) con contenedores/prefijos
+                   construidas para Torneos y ya cargada dinámicamente vía
+                   cargarClanesFamilia()) con contenedores/prefijos
                    propios de Sorteos -- así el checkbox "mismo valor para
                    los 4 clanes" (sección 5.1.1, initMismoValorParaTodos())
                    viene incluido gratis, sin duplicar esa lógica.
@@ -1711,12 +1718,19 @@
                    5.1.1 ("No aplica a Delta... el campo de Delta ya es uno
                    solo").
 
-                   PENDIENTE BACKEND (mismo estado que #requisitosTorneoBox
-                   en 5.1): no existe todavía un endpoint para precargar
-                   esto (equivalente a cargarRequisitosPorClan()) ni para
-                   guardarlo -- por ahora solo se arma el formulario, listo
-                   para conectar en otra sesión (mismo criterio ya usado en
-                   todo el resto de este panel). -->
+                   RESUELTO (12-sep-2026, consolidado sección 5.4 -- estaba
+                   "PENDIENTE BACKEND, mismo estado que #requisitosTorneoBox
+                   en 5.1"): ya existen tanto la LECTURA
+                   (_webAdminRequisitosClanesSorteo(), 34_Web_API.gs, ver
+                   cargarRequisitosSorteoPorClan() en el <script>) como la
+                   ESCRITURA (_webAdminSorteoRegistrar()/
+                   _webAdminSorteoPlanificarGuardar()/
+                   _webAdminSorteoModificar(), 34_Web_API.gs, ya reciben y
+                   guardan `requisitos` en las 3 ramas -- ver
+                   armarPayloadRequisitosSorteo() y los 3 listeners
+                   btnRegistrarSorteo/btnModificarSorteo/btnPlanificarSorteo
+                   en el <script>). No queda ningún pendiente de backend en
+                   este punto. -->
               <div id="requisitosSorteoBox" style="margin-top:14px; padding-top:14px; border-top:1px solid var(--line);">
                 <h3 style="font-size:15px; color:var(--gold); margin:0 0 4px;">Requisitos para participar en sorteos</h3>
                 <p class="text-dim" style="font-size:13px; margin:0 0 4px;">Requerimiento mínimo de trofeos de guerra para mantenerse en cada clan.</p>
@@ -2039,14 +2053,27 @@ function mostrarPanel(){
   // fijas hasta el próximo repintado (ej. al escribir en el filtro).
   cargarNomMultisAdmins().then(cargarAscensosEditables);
   cargarGanadoresTorneo();
-  // FIX (10-sep-2026, pedido usuario — requisitos por clan): no hace nada
-  // todavía (ver el docblock grande junto a CLANES_REQUISITOS), pero se
-  // deja la llamada acá para que quede lista apenas exista el endpoint.
-  cargarRequisitosPorClan();
-  // NUEVO (12-sep-2026, pedido del usuario -- consolidado sección 5.4): ya
-  // existe el endpoint (_webAdminRequisitosClanesSorteo(), 34_Web_API.gs),
-  // mismo criterio que la llamada de Torneos de arriba.
-  cargarRequisitosSorteoPorClan();
+  // RESUELTO (12-sep-2026, consolidado sección 5.1 -- "CLANES_REQUISITOS
+  // sigue hardcodeado porque no existe el endpoint"): ya existe
+  // webAdminClanesFamilia (_webAdminClanesFamilia(), 34_Web_API.gs). Se pide
+  // acá (recién en mostrarPanel(), no antes, porque el endpoint requiere
+  // sessionToken válido -- ver _webAuthValidar() en el backend), se pinta
+  // cada grid con los clanes que devuelva (cae al array hardcodeado de
+  // siempre si la llamada falla, ver cargarClanesFamilia() más abajo) y
+  // RECIÉN DESPUÉS se dispara la precarga de valores guardados
+  // (cargarRequisitosPorClan()/cargarRequisitosSorteoPorClan()), para que
+  // ya existan los <input> de cada clan cuando esos dos intenten llenarlos.
+  cargarClanesFamilia().then(function (clanes) {
+    CLANES_REQUISITOS = clanes;
+    pintarGridRequisitosNumericos('reqTrofeosGuerraGrid', 'reqTrofGuerra', 'Ejm: 2400');
+    pintarGridRequisitosNumericos('reqAtaquesSemanaGrid', 'reqAtaques', 'Ejm: 16');
+    pintarGridRequisitosNumericos('reqTrofeosGuerraGridSorteo', 'reqTrofGuerraSorteo', 'Ejm: 2400');
+    pintarGridRequisitosNumericos('reqAtaquesSemanaGridSorteo', 'reqAtaquesSorteo', 'Ejm: 16');
+    pintarGridRequisitosNumericos('reqTorneosGridSorteo', 'reqTorneosSorteo', 'Ejm: 2');
+  }).then(function () {
+    cargarRequisitosPorClan();
+    cargarRequisitosSorteoPorClan();
+  });
 }
 
 /** FASE 4 (26-ago-2026): muestra/oculta las cards de "Registrar miembro
@@ -3310,9 +3337,11 @@ cargarSemanasRecientes().then(() => {
  * consolidado sección 5.1) -- ya conectado de punta a punta salvo un
  * punto puntual:
  *
- *   - CLANES_REQUISITOS: los 4 clanes de la Familia, hardcodeados acá
- *     porque no existe todavía un endpoint que los entregue (sigue
- *     pendiente, sin relación con el resto de este resumen).
+ *   - CLANES_REQUISITOS: los 4 clanes de la Familia. RESUELTO (12-sep-2026,
+ *     mismo día -- "sigue hardcodeado porque no existe un endpoint que los
+ *     entregue"): ahora se piden a webAdminClanesFamilia
+ *     (cargarClanesFamilia(), llamada desde mostrarPanel()) y solo se cae
+ *     al array hardcodeado de acá abajo como fallback si esa llamada falla.
  *   - formatoMiles()/valorPlanoInputMiles()/initInputMiles(): dan formato
  *     de miles (1,234) SOLO VISUAL a un <input type="text">, sin tocar el
  *     valor real (siempre números planos, sin comas) que viaja al
@@ -3328,16 +3357,46 @@ cargarSemanasRecientes().then(() => {
  *   - armarPayloadRequisitos(): arma `requisitos`, sumado por
  *     btnRegistrarTorneo/btnModificarTorneo/btnPlanificarTorneo a su propio
  *     payload (RESUELTO 11-sep-2026). El backend ya lo recibe y guarda para
- *     Registrar/Planificar (RESUELTO 12-sep-2026,
- *     _webAdminTorneoRegistrar()/_webAdminTorneoPlanificarGuardar(),
- *     34_Web_API.gs) -- Modificar es la ÚNICA excepción a propósito, ver
- *     docblock de cargarRequisitosPorClan() más abajo para el motivo.
+ *     Registrar/Planificar/Modificar (RESUELTO 12-sep-2026,
+ *     _webAdminTorneoRegistrar()/_webAdminTorneoPlanificarGuardar()/
+ *     _webAdminTorneoModificar(), 34_Web_API.gs) -- ya no queda ninguna
+ *     excepción entre las 3 ramas.
  *   - cargarRequisitosPorClan(): RESUELTO (12-sep-2026) -- ya existe
  *     webAdminRequisitosClanes en el backend, así que ya precarga cada
- *     cuadro con el valor guardado del torneo más reciente. Ver su propio
- *     docblock para la salvedad sobre Modificar.
+ *     cuadro con el valor guardado (el torneo puntual si se pasa `id`, o el
+ *     más reciente si no).
  */
-const CLANES_REQUISITOS = ['Grupo乂Terna™', 'GrupoXTerna™2', 'GrupoXTerna™3', 'Mini乂Ternas™'];
+let CLANES_REQUISITOS = ['Grupo乂Terna™', 'GrupoXTerna™2', 'GrupoXTerna™3', 'Mini乂Ternas™']; // fallback si cargarClanesFamilia() falla
+
+let _clanesFamiliaCache = null;
+let _clanesFamiliaCargando = null; // Promise en vuelo, evita 2 fetch en paralelo si algo llama antes de que termine el primero.
+
+/**
+ * cargarClanesFamilia()
+ * RESUELTO (12-sep-2026, pedido del usuario -- consolidado sección 5.1,
+ * "CLANES_REQUISITOS hardcodeado en admin.html porque no existe todavía un
+ * endpoint que los entregue dinámicamente"): pide los 4 clanes de la
+ * Familia a webAdminClanesFamilia (_webAdminClanesFamilia(), 34_Web_API.gs)
+ * y los deja en _clanesFamiliaCache. Se llama UNA vez desde mostrarPanel()
+ * (ya con sessionToken válido, que el endpoint requiere); si falla, se
+ * mantiene el array hardcodeado con el que arrancó CLANES_REQUISITOS en vez
+ * de dejar los grids sin ningún clan.
+ * @return {Promise<string[]>}
+ */
+async function cargarClanesFamilia(){
+  if(_clanesFamiliaCache) return _clanesFamiliaCache;
+  if(_clanesFamiliaCargando) return _clanesFamiliaCargando;
+  _clanesFamiliaCargando = (async () => {
+    try{
+      const data = await apiGetAuth('webAdminClanesFamilia', {});
+      _clanesFamiliaCache = (data && data.ok && Array.isArray(data.clanes) && data.clanes.length) ? data.clanes : CLANES_REQUISITOS;
+    }catch(err){
+      _clanesFamiliaCache = CLANES_REQUISITOS;
+    }
+    return _clanesFamiliaCache;
+  })();
+  return _clanesFamiliaCargando;
+}
 
 /** Da formato de miles a un valor (limpia todo lo que no sea dígito antes
  *  de formatear) -- ej. "2000" o "2,000" o "2.000abc" → "2,000". Devuelve
@@ -3465,8 +3524,10 @@ function initMismoValorParaTodos(prefijo, idMismo, idMismoValor){
 // el placeholder ya no lleva coma (initInputMiles() se encarga de mostrarla
 // solo quitando el foco, ver el input real). "Ejm: 16" para ataques, mismo
 // motivo.
-pintarGridRequisitosNumericos('reqTrofeosGuerraGrid', 'reqTrofGuerra', 'Ejm: 2400');
-pintarGridRequisitosNumericos('reqAtaquesSemanaGrid', 'reqAtaques', 'Ejm: 16');
+// RESUELTO (12-sep-2026, mismo día -- CLANES_REQUISITOS ya no hardcodeado):
+// estas dos llamadas ya no se disparan acá al cargar el script, sino desde
+// mostrarPanel() una vez resuelto cargarClanesFamilia() (ver ese bloque),
+// para que ya exista un sessionToken válido al pedir los clanes reales.
 
 /**
  * cargarRequisitosPorClan(id)
@@ -3571,10 +3632,11 @@ function armarPayloadRequisitos(){
  * mismo). Como pintarGridRequisitosNumericos() ya trae el checkbox "mismo
  * valor para los 4 clanes" (sección 5.1.1), los 3 grids de Sorteos lo
  * heredan gratis, sin duplicar esa lógica.
+ * RESUELTO (12-sep-2026, mismo día -- CLANES_REQUISITOS ya no hardcodeado):
+ * estas tres llamadas ya no se disparan acá al cargar el script, sino desde
+ * mostrarPanel() una vez resuelto cargarClanesFamilia() (ver ese bloque),
+ * mismo motivo que las gemelas de Torneos de arriba.
  */
-pintarGridRequisitosNumericos('reqTrofeosGuerraGridSorteo', 'reqTrofGuerraSorteo', 'Ejm: 2400');
-pintarGridRequisitosNumericos('reqAtaquesSemanaGridSorteo', 'reqAtaquesSorteo', 'Ejm: 16');
-pintarGridRequisitosNumericos('reqTorneosGridSorteo', 'reqTorneosSorteo', 'Ejm: 2');
 
 // Delta (columna P de S_Lista): un solo valor para los 4 clanes por diseño
 // de la hoja (ver comentario grande junto a #requisitosSorteoBox en el
