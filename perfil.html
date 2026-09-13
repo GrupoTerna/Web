@@ -1632,6 +1632,163 @@ document.getElementById('btnVerOtrasCuentas').addEventListener('click', function
 });
 
 /**
+ * MESES_ES / parsearFechaHistorial(fecha) / construirSelectoresHistorialGuerra()
+ * FIX (13-sep-2026, pedido usuario — "el perfil de miembro [...] agrégale
+ * un selector de año, temporada y semana, tal como el de 🗂️ Valores
+ * diarios en el panel de guerra"): a diferencia de guerra.html (donde el
+ * backend ya manda data.valoresDiariosSelectores armado), acá no hay un
+ * endpoint dedicado — webHistorialGuerraJugador solo manda `registros`
+ * (uno por Temporada+Semana jugada, con `fecha` ya formateada "dd/MM/yyyy"
+ * por _obtenerFechaCierrePorTemporadaSemana()). Estas 3 funciones arman
+ * el mismo árbol año → temporada → semana a partir de esos registros, en
+ * vez de pedirle esa forma al backend.
+ * Un registro sin `fecha` parseable (historial muy viejo, ver docblock de
+ * verHistorialGuerra() más abajo) cae en el año 'sin-fecha' en vez de
+ * perderse — así igual queda accesible desde el selector.
+ */
+const MESES_ES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+
+function parsearFechaHistorial(fecha){
+  const m = String(fecha || '').match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+  if (m) return { dia:+m[1], mes:+m[2], anio:+m[3] };
+  const d = new Date(fecha);
+  if (!isNaN(d.getTime())) return { dia:d.getDate(), mes:d.getMonth()+1, anio:d.getFullYear() };
+  return null;
+}
+
+function construirSelectoresHistorialGuerra(registros){
+  const porAnio = {};
+  registros.forEach(r => {
+    const f = parsearFechaHistorial(r.fecha);
+    const anioKey = f ? String(f.anio) : 'sin-fecha';
+    const tempKey = String(r.temporadaInterna ?? '—');
+    const semKey  = String(r.semana ?? '—');
+    if (!porAnio[anioKey]) porAnio[anioKey] = {};
+    if (!porAnio[anioKey][tempKey]) porAnio[anioKey][tempKey] = { mes: f ? f.mes : null, semanas: {} };
+    if (!porAnio[anioKey][tempKey].semanas[semKey]) porAnio[anioKey][tempKey].semanas[semKey] = f;
+  });
+  return porAnio;
+}
+
+// Estado de los 3 selectores + los registros completos de la cuenta cuyo
+// historial está abierto ahora mismo — se reinician cada vez que se abre
+// el historial de OTRA cuenta (ver verHistorialGuerra()), igual que
+// anioSeleccionadoActivos/etc. en guerra.html se reinician por sección.
+let histGuerraRegistrosBase = [];
+let histGuerraAnioSeleccionado = null;
+let histGuerraTemporadaSeleccionada = null;
+let histGuerraSemanaSeleccionada = null;
+
+/**
+ * pintarSelectoresHistorialGuerra()
+ * Mismo patrón que pintarSelectoresValoresDiarios() de guerra.html: 3
+ * <select> encadenados (año → temporada → semana), año/temporada/semana
+ * más recientes como default la primera vez, y cambiar de año/temporada
+ * cae a la más reciente del nivel siguiente. Al terminar, deja los 3
+ * <select> ya pintados y sus onchange enganchados; el llamador
+ * (verHistorialGuerra() o los propios onchange) es quien decide cuándo
+ * repintar la tabla filtrada (pintarTablaHistorialGuerraFiltrada()).
+ */
+function pintarSelectoresHistorialGuerra(){
+  const selAnio = document.getElementById('histGuerraAnioSelect');
+  const selTemp = document.getElementById('histGuerraTemporadaSelect');
+  const selSem  = document.getElementById('histGuerraSemanaSelect');
+  if (!selAnio || !selTemp || !selSem) return;
+  const porAnio = construirSelectoresHistorialGuerra(histGuerraRegistrosBase);
+  const anios = Object.keys(porAnio).sort((a, b) => {
+    if (a === 'sin-fecha') return 1;
+    if (b === 'sin-fecha') return -1;
+    return Number(b) - Number(a); // año más reciente primero
+  });
+  if (!anios.length){
+    [selAnio, selTemp, selSem].forEach(s => { s.innerHTML = ''; s.onchange = null; });
+    return;
+  }
+  if (histGuerraAnioSeleccionado === null || !porAnio[histGuerraAnioSeleccionado]){
+    histGuerraAnioSeleccionado = anios[0];
+  }
+  const temporadasAnio = Object.keys(porAnio[histGuerraAnioSeleccionado])
+    .sort((a, b) => Number(b) - Number(a)); // temporada más reciente primero
+  if (histGuerraTemporadaSeleccionada === null || !porAnio[histGuerraAnioSeleccionado][histGuerraTemporadaSeleccionada]){
+    histGuerraTemporadaSeleccionada = temporadasAnio[0] || null;
+  }
+  const infoTemp = porAnio[histGuerraAnioSeleccionado][histGuerraTemporadaSeleccionada] || { mes:null, semanas:{} };
+  const semanasTemp = Object.keys(infoTemp.semanas).sort((a, b) => Number(b) - Number(a)); // semana más reciente primero
+  if (histGuerraSemanaSeleccionada === null || !(histGuerraSemanaSeleccionada in infoTemp.semanas)){
+    histGuerraSemanaSeleccionada = semanasTemp[0] || null;
+  }
+
+  selAnio.innerHTML = anios.map(a =>
+    `<option value="${esc(a)}"${a === histGuerraAnioSeleccionado ? ' selected' : ''}>${a === 'sin-fecha' ? 'Sin fecha' : esc(a)}</option>`).join('');
+
+  selTemp.innerHTML = temporadasAnio.map(t => {
+    const mes = porAnio[histGuerraAnioSeleccionado][t].mes;
+    const nombreMes = mes ? MESES_ES[mes - 1] : null;
+    const label = 'Temporada ' + t + (nombreMes ? ` (${nombreMes[0].toUpperCase()}${nombreMes.slice(1)})` : '');
+    return `<option value="${esc(t)}"${t === histGuerraTemporadaSeleccionada ? ' selected' : ''}>${esc(label)}</option>`;
+  }).join('');
+
+  selSem.innerHTML = semanasTemp.map(s => {
+    const f = infoTemp.semanas[s];
+    const label = 'Semana ' + s + (f ? ` (${String(f.dia).padStart(2, '0')} ${MESES_ES[f.mes - 1].slice(0, 3).toUpperCase()})` : '');
+    return `<option value="${esc(s)}"${s === histGuerraSemanaSeleccionada ? ' selected' : ''}>${esc(label)}</option>`;
+  }).join('');
+
+  selAnio.onchange = () => {
+    histGuerraAnioSeleccionado = selAnio.value;
+    histGuerraTemporadaSeleccionada = null;
+    histGuerraSemanaSeleccionada = null;
+    pintarSelectoresHistorialGuerra();
+    pintarTablaHistorialGuerraFiltrada();
+  };
+  selTemp.onchange = () => {
+    histGuerraTemporadaSeleccionada = selTemp.value;
+    histGuerraSemanaSeleccionada = null;
+    pintarSelectoresHistorialGuerra();
+    pintarTablaHistorialGuerraFiltrada();
+  };
+  selSem.onchange = () => {
+    histGuerraSemanaSeleccionada = selSem.value;
+    pintarTablaHistorialGuerraFiltrada();
+  };
+}
+
+/** Registros de histGuerraRegistrosBase que calzan con el año/temporada/
+ * semana elegidos ahora mismo en los 3 <select> (normalmente 1 solo, salvo
+ * que el jugador haya estado en más de un clan esa misma semana). */
+function filasFiltradasHistorialGuerra(){
+  return histGuerraRegistrosBase.filter(r => {
+    const f = parsearFechaHistorial(r.fecha);
+    const anioKey = f ? String(f.anio) : 'sin-fecha';
+    const tempKey = String(r.temporadaInterna ?? '—');
+    const semKey  = String(r.semana ?? '—');
+    return anioKey === histGuerraAnioSeleccionado && tempKey === histGuerraTemporadaSeleccionada && semKey === histGuerraSemanaSeleccionada;
+  });
+}
+
+/** Repinta SOLO el <tbody> de la tabla de historial con las filas que
+ * calzan con la selección vigente de año/temporada/semana — se llama tras
+ * el primer pintado y desde cada onchange de pintarSelectoresHistorialGuerra(),
+ * sin volver a pedir nada al backend (histGuerraRegistrosBase ya tiene el
+ * historial completo de la cuenta). */
+function pintarTablaHistorialGuerraFiltrada(){
+  const tbody = document.getElementById('histGuerraTbody');
+  if (!tbody) return;
+  const filas = filasFiltradasHistorialGuerra();
+  tbody.innerHTML = filas.length ? filas.map(r => `
+    <tr style="border-top:1px solid var(--border);">
+      <td style="padding:6px 8px;">${esc(r.fecha || '—')}</td>
+      <td style="padding:6px 8px;">${esc(String(r.temporadaInterna ?? '—'))}</td>
+      <td style="padding:6px 8px;">${esc(String(r.semana ?? '—'))}</td>
+      <td style="padding:6px 8px;">${esc(r.clan || '—')}</td>
+      <td style="padding:6px 8px;">${r.ataques == null ? '—' : fmtNum(r.ataques)}</td>
+      <td style="padding:6px 8px;">${r.fame == null ? '—' : fmtNum(r.fame)}</td>
+      <td style="padding:6px 8px;">${r.barcos == null ? '—' : fmtNum(r.barcos)}</td>
+      <td style="padding:6px 8px; color:var(--text-dim);">${esc(r.comentario || '—')}</td>
+    </tr>`).join('') : `<tr><td colspan="8" style="padding:10px 8px; color:var(--text-dim);">Sin registros para la semana elegida.</td></tr>`;
+}
+
+/**
  * verHistorialGuerra(tag)
  * FASE 2 (04-sep-2026, pedido del usuario, punto 1 del documento de
  * cambios): tabla con el historial COMPLETO de guerra del jugador (todas
@@ -1644,6 +1801,15 @@ document.getElementById('btnVerOtrasCuentas').addEventListener('click', function
  * _obtenerFechaCierrePorTemporadaSemana() (21_HistorialGuerraJugador.gs).
  * Puede salir vacía si esa semana no tiene ninguna fila registrada para
  * este tag en ese CSV (ej. temporadas muy viejas ya purgadas).
+ *
+ * FIX (13-sep-2026, pedido usuario — "agrégale un selector de año,
+ * temporada y semana, tal como el de 🗂️ Valores diarios en el panel de
+ * guerra"): antes se pintaba una sola tabla con TODOS los registros a la
+ * vez. Ahora se pide igual el historial completo en una sola llamada
+ * (histGuerraRegistrosBase se queda con todo, sin pedir de nuevo al
+ * backend al cambiar de selector) pero la tabla solo muestra la semana
+ * elegida en los 3 <select> — ver pintarSelectoresHistorialGuerra()/
+ * pintarTablaHistorialGuerraFiltrada() arriba.
  */
 async function verHistorialGuerra(tag){
   const wrap = document.getElementById('mHistorialGuerraWrap');
@@ -1660,35 +1826,39 @@ async function verHistorialGuerra(tag){
       wrap.innerHTML = '<div class="text-faint" style="font-family:var(--f-mono); font-size:12px;">Todavía no hay historial de guerra guardado para esta cuenta.</div>';
       return;
     }
-    wrap.innerHTML = `<div class="card" style="padding:8px 4px; overflow-x:auto;">
-      <table style="width:100%; border-collapse:collapse; font-family:var(--f-mono); font-size:12px;">
-        <thead>
-          <tr style="text-align:left; color:var(--text-dim);">
-            <th style="padding:6px 8px;">Fecha</th>
-            <th style="padding:6px 8px;">Temporada</th>
-            <th style="padding:6px 8px;">Semana</th>
-            <th style="padding:6px 8px;">Clan</th>
-            <th style="padding:6px 8px;">Ataques</th>
-            <th style="padding:6px 8px;">Puntaje</th>
-            <th style="padding:6px 8px;">Barcos</th>
-            <th style="padding:6px 8px;">Comentario</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${registros.map(r => `
-          <tr style="border-top:1px solid var(--border);">
-            <td style="padding:6px 8px;">${esc(r.fecha || '—')}</td>
-            <td style="padding:6px 8px;">${esc(String(r.temporadaInterna ?? '—'))}</td>
-            <td style="padding:6px 8px;">${esc(String(r.semana ?? '—'))}</td>
-            <td style="padding:6px 8px;">${esc(r.clan || '—')}</td>
-            <td style="padding:6px 8px;">${r.ataques == null ? '—' : fmtNum(r.ataques)}</td>
-            <td style="padding:6px 8px;">${r.fame == null ? '—' : fmtNum(r.fame)}</td>
-            <td style="padding:6px 8px;">${r.barcos == null ? '—' : fmtNum(r.barcos)}</td>
-            <td style="padding:6px 8px; color:var(--text-dim);">${esc(r.comentario || '—')}</td>
-          </tr>`).join('')}
-        </tbody>
-      </table>
-    </div>`;
+    // Reinicia la selección de año/temporada/semana cada vez que se abre
+    // el historial de una cuenta -- evita arrastrar la semana elegida
+    // para otro jugador visto antes en la misma sesión.
+    histGuerraRegistrosBase = registros;
+    histGuerraAnioSeleccionado = null;
+    histGuerraTemporadaSeleccionada = null;
+    histGuerraSemanaSeleccionada = null;
+    const selEstilo = 'font-family:var(--f-mono); font-size:12px; background:var(--surface-card); color:var(--text); border:1px solid var(--line-strong); border-radius:var(--radius-sm); padding:5px 10px;';
+    wrap.innerHTML = `
+      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
+        <select id="histGuerraAnioSelect" style="${selEstilo}"></select>
+        <select id="histGuerraTemporadaSelect" style="${selEstilo}"></select>
+        <select id="histGuerraSemanaSelect" style="${selEstilo}"></select>
+      </div>
+      <div class="card" style="padding:8px 4px; overflow-x:auto;">
+        <table style="width:100%; border-collapse:collapse; font-family:var(--f-mono); font-size:12px;">
+          <thead>
+            <tr style="text-align:left; color:var(--text-dim);">
+              <th style="padding:6px 8px;">Fecha</th>
+              <th style="padding:6px 8px;">Temporada</th>
+              <th style="padding:6px 8px;">Semana</th>
+              <th style="padding:6px 8px;">Clan</th>
+              <th style="padding:6px 8px;">Ataques</th>
+              <th style="padding:6px 8px;">Puntaje</th>
+              <th style="padding:6px 8px;">Barcos</th>
+              <th style="padding:6px 8px;">Comentario</th>
+            </tr>
+          </thead>
+          <tbody id="histGuerraTbody"></tbody>
+        </table>
+      </div>`;
+    pintarSelectoresHistorialGuerra();
+    pintarTablaHistorialGuerraFiltrada();
   }catch(err){
     wrap.innerHTML = `<div class="empty">No se pudo cargar el historial de guerra: ${esc(err.message)}</div>`;
   }
