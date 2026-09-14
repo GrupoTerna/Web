@@ -810,6 +810,37 @@
 
           <div id="panelTorneosAccion">
 
+          <!-- NUEVO (13-sep-2026, pedido del usuario -- "fase nueva y chica"
+               que la propia Fase 0 del plan de corrección Torneo/Sorteo
+               dejaba anotada para más adelante): control web para
+               Extra!Torneo_Vigente_ID, que hasta ahora solo se editaba a
+               mano directo en la hoja Extra (ver _getIdVigenteExtra(),
+               24_Torneos_Core.gs). Lista TODOS los torneos existentes (no
+               solo los de hoy, a diferencia de #tSelectHoy más abajo, que
+               es para "Modificar") vía _webAdminVigenteListar()
+               (34_Web_API.gs) y guarda la elección con
+               _webAdminVigenteGuardar(). Dejar el selector en "Ninguno"
+               (valor vacío) y guardar limpia la celda -- el sistema vuelve
+               a usar su respaldo de "más reciente por Fecha" para Torneo,
+               mismo criterio que documenta _getConfigMasRecienteCategoria()
+               (24_Torneos_Core.gs). Colapsado por defecto (`<details>` sin
+               `open`) porque es de uso ocasional, no parte del flujo
+               habitual de Registrar/Modificar/Planificar. -->
+          <details class="admin-subseccion" style="margin-bottom:14px;">
+            <summary><span class="cat-titulo">Torneo vigente</span></summary>
+            <div class="admin-subseccion-body">
+              <p class="text-dim" style="font-size:13px; margin:0 0 14px;">Define cuál torneo usan los cálculos automáticos (Barcos, requisitos, calificados) que no reciben un torneo puntual elegido en su propio formulario. "Ninguno" = usar el más reciente por fecha (comportamiento de respaldo).</p>
+              <div class="field">
+                <label for="vigenteTorneoSelect">Torneo vigente</label>
+                <select id="vigenteTorneoSelect">
+                  <option value="">Cargando…</option>
+                </select>
+              </div>
+              <button type="button" class="btn btn-primary" id="btnGuardarVigenteTorneo" style="margin-top:6px;">Guardar</button>
+              <div id="vigenteTorneoMsg" style="margin-top:8px;"></div>
+            </div>
+          </details>
+
           <div id="torneoPaso1">
             <div class="field">
               <label for="torneoAccion">¿Qué quieres hacer?</label>
@@ -1430,6 +1461,28 @@
                mostrarPaso3Sorteo() en el <script> para el detalle
                completo. -->
           <div id="panelSorteosAccion" style="display:none;">
+
+            <!-- NUEVO (13-sep-2026, pedido del usuario -- "fase nueva y
+                 chica" que la propia Fase 0 del plan de corrección
+                 Torneo/Sorteo dejaba anotada para más adelante): gemelo
+                 EXACTO del control "Torneo vigente" de más arriba (mismo
+                 patrón, ver ese comentario grande para el detalle
+                 completo), apuntando a Extra!Sorteo_Vigente_ID en vez de
+                 Torneo_Vigente_ID. -->
+            <details class="admin-subseccion" style="margin-bottom:14px;">
+              <summary><span class="cat-titulo">Sorteo vigente</span></summary>
+              <div class="admin-subseccion-body">
+                <p class="text-dim" style="font-size:13px; margin:0 0 14px;">Define cuál sorteo usan los cálculos automáticos que no reciben un sorteo puntual elegido en su propio formulario. "Ninguno" = usar el más reciente por fecha (comportamiento de respaldo).</p>
+                <div class="field">
+                  <label for="vigenteSorteoSelect">Sorteo vigente</label>
+                  <select id="vigenteSorteoSelect">
+                    <option value="">Cargando…</option>
+                  </select>
+                </div>
+                <button type="button" class="btn btn-primary" id="btnGuardarVigenteSorteo" style="margin-top:6px;">Guardar</button>
+                <div id="vigenteSorteoMsg" style="margin-top:8px;"></div>
+              </div>
+            </details>
 
             <div id="sorteoPaso1">
               <div class="field">
@@ -6141,6 +6194,100 @@ document.getElementById('btnCrGenerarPropuestas').addEventListener('click', asyn
     msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
   }
 });
+
+/**
+ * cargarVigente(categoria) / guardarVigente(categoria)
+ * NUEVO (13-sep-2026, pedido del usuario -- "fase nueva y chica" que la
+ * propia Fase 0 del plan de corrección Torneo/Sorteo dejaba anotada para
+ * más adelante): control web de Extra!Torneo_Vigente_ID/Sorteo_Vigente_ID
+ * (#vigenteTorneoSelect/#vigenteSorteoSelect en el HTML) -- una sola
+ * función por acción, parametrizada por `categoria` ('Torneo'|'Sorteo'),
+ * ya que el backend (_webAdminVigenteListar()/_webAdminVigenteGuardar(),
+ * 34_Web_API.gs) también toma `categoria` como parámetro en vez de tener
+ * un endpoint separado por cada una.
+ *
+ * `idSel`/`msgSel` resuelven los ids de HTML según `categoria` -- así no
+ * hace falta duplicar el cuerpo de ninguna de las dos funciones para
+ * Torneo vs. Sorteo.
+ *
+ * cargarVigente(): SOLO se llama una vez por `<details>` (al abrirlo la
+ * primera vez, ver el listener 'toggle' más abajo) -- puebla el <select>
+ * con TODOS los registros (_webAdminVigenteListar) y deja preseleccionado
+ * el que ya esté guardado (`data.vigenteActual`), agregando siempre la
+ * opción "Ninguno" (value vacío) al principio para poder limpiar la celda.
+ */
+function idsVigente(categoria){
+  return categoria === 'Torneo'
+    ? { sel: 'vigenteTorneoSelect', msg: 'vigenteTorneoMsg' }
+    : { sel: 'vigenteSorteoSelect', msg: 'vigenteSorteoMsg' };
+}
+
+async function cargarVigente(categoria){
+  const ids = idsVigente(categoria);
+  const sel = document.getElementById(ids.sel);
+  sel.innerHTML = '<option value="">Cargando…</option>';
+  try{
+    const data = await apiGetAuth('webAdminVigenteListar', { categoria });
+    if(manejarRespuestaAuth(data)) return;
+    if(!data.ok){
+      sel.innerHTML = '<option value="">Error al cargar — reintenta</option>';
+      return;
+    }
+    const registros = data.registros || [];
+    const opciones = ['<option value="">Ninguno (usar el más reciente por fecha)</option>']
+      .concat(registros.map(r => {
+        const etiquetaOrg = r.organizador ? (' — ' + r.organizador) : '';
+        return `<option value="${esc(r.id)}">${esc(r.fechaTxt)} — ${esc(r.id)}${esc(etiquetaOrg)}</option>`;
+      }));
+    sel.innerHTML = opciones.join('');
+    sel.value = data.vigenteActual || '';
+  }catch(err){
+    sel.innerHTML = '<option value="">Error al cargar — reintenta</option>';
+  }
+}
+
+/**
+ * guardarVigente(): llama a webAdminVigenteGuardar (POST, sí escribe) con
+ * el valor actual del <select> -- vacío = limpiar la celda (ver docblock
+ * de _webAdminVigenteGuardar(), 34_Web_API.gs, para el criterio completo
+ * de "vacío = volver al automatismo de más reciente").
+ */
+async function guardarVigente(categoria){
+  const ids = idsVigente(categoria);
+  const sel = document.getElementById(ids.sel);
+  const msgEl = document.getElementById(ids.msg);
+  const id = sel.value;
+  msgEl.innerHTML = '<div class="text-dim">Guardando…</div>';
+  try{
+    const data = await apiPost('webAdminVigenteGuardar', {
+      sessionToken: localStorage.getItem(SESSION_KEY),
+      categoria, id
+    });
+    if(manejarRespuestaAuth(data)) return;
+    if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
+    msgEl.innerHTML = id
+      ? '<div class="msg msg-success">Guardado.</div>'
+      : '<div class="msg msg-success">Limpiado — vuelve a usarse el más reciente por fecha.</div>';
+  }catch(err){
+    msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
+  }
+}
+
+// Carga perezosa (una sola vez por `<details>`, mismo criterio que
+// initMensajesAutomaticos() más arriba en este mismo <script>): recién al
+// abrir el desplegable la primera vez se pide la lista al backend, no en
+// cada carga del panel.
+let vigenteTorneoCargado = false;
+document.getElementById('vigenteTorneoSelect').closest('details').addEventListener('toggle', function(){
+  if(this.open && !vigenteTorneoCargado){ vigenteTorneoCargado = true; cargarVigente('Torneo'); }
+});
+document.getElementById('btnGuardarVigenteTorneo').addEventListener('click', () => guardarVigente('Torneo'));
+
+let vigenteSorteoCargado = false;
+document.getElementById('vigenteSorteoSelect').closest('details').addEventListener('toggle', function(){
+  if(this.open && !vigenteSorteoCargado){ vigenteSorteoCargado = true; cargarVigente('Sorteo'); }
+});
+document.getElementById('btnGuardarVigenteSorteo').addEventListener('click', () => guardarVigente('Sorteo'));
 
 /**
  * FIX (08-sep-2026, pedido usuario): toggle horizontal Torneos/Sorteos de
