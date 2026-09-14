@@ -530,6 +530,16 @@ function campoMinTSegunRango(rango){
   if(r.includes('vet')) return 'minTVeterano';
   return 'minTMiembro';
 }
+/** MIGRADO (Fase 9, backend — 34_Web_API.gs/_webProgresoRequisitos()):
+ * `ataques` pasó de un valor único por clan a tres por rol
+ * (ataquesMiembro/ataquesVeterano/ataquesColider), igual que ya pasaba con
+ * Min_T/campoMinTSegunRango(). Mismo criterio de detección de rango. */
+function campoAtaquesSegunRango(rango){
+  const r = String(rango||'').toLowerCase();
+  if(r.includes('col')) return 'ataquesColider';
+  if(r.includes('vet')) return 'ataquesVeterano';
+  return 'ataquesMiembro';
+}
 function barraRequisito(lbl, actual, requerido, activo, sufijo){
   if(!activo) return '';
   const pct = requerido > 0 ? Math.min(100, Math.round((actual/requerido)*100)) : 100;
@@ -541,16 +551,20 @@ function barraRequisito(lbl, actual, requerido, activo, sufijo){
       <div class="val">${fmtNum(actual)} / ${fmtNum(requerido)}${sufijo||''}</div>
     </div>`;
 }
+/** MIGRADO (Fase 9, backend — 34_Web_API.gs/_webProgresoRequisitos()):
+ * `torneos` y `reaccion` se quitaron del objeto que manda el backend (nunca
+ * fueron requisitos reales de Ascensos/Descensos) — se dejan de leer acá.
+ * `ataques` ahora se lee por rol, igual que Trofeos guerra (minT). */
 function bloqueRequisitos(j, key){
   const req = j.progreso ? j.progreso[key] : null;
   if (!req) return '';
   const campoMinT = campoMinTSegunRango(j.rango);
   const minT = req[campoMinT];
+  const campoAtaques = campoAtaquesSegunRango(j.rango);
+  const ataques = req[campoAtaques];
   let html = '';
   if (minT) html += barraRequisito('Trofeos guerra', minT.actual, minT.requerido, minT.activo, '🏆');
-  if (req.ataques) html += barraRequisito('Ataques/semana', req.ataques.actual, req.ataques.requerido, req.ataques.activo, '');
-  if (req.torneos) html += barraRequisito('Torneos', req.torneos.actual, req.torneos.requerido, req.torneos.activo, '');
-  if (req.reaccion && req.reaccion.activo) html += `<div style="margin-top:8px;"><span class="badge badge-purple">Requiere reaccionar a la publicación</span></div>`;
+  if (ataques) html += barraRequisito('Ataques/semana', ataques.actual, ataques.requerido, ataques.activo, '');
   return html;
 }
 function extItem(valor, label, esNumero){
