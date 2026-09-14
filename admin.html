@@ -84,6 +84,16 @@
     text-align:center;
   }
   .cr-grid-input:focus{border-color:var(--purple); box-shadow:0 0 0 3px rgba(162,57,255,.2); outline:none;}
+  /* FIX (13-sep-2026, pedido usuario -- "centra las categorías con
+     respecto a sus valores y Clan debe ocupar el espacio de las dos
+     filas, centrado vertical y horizontalmente"): Clan usa rowspan="2" en
+     vez de un <th></th> vacío debajo (ver #crGridAscenso/#crGridDescenso
+     en el HTML) -- con vertical-align:middle queda centrado en las DOS
+     filas de encabezado, no solo la primera. Miembro/Veterano/Colíder
+     (colspan="2") ya quedaban centrados horizontalmente sobre sus 2
+     columnas por herencia de text-align:center, pero se deja explícito acá
+     para no depender de eso. */
+  .cr-grid-table th{text-align:center; vertical-align:middle;}
   /* Fase 2 (24-ago-2026): visor de contenido, solo lectura */
   .contenido-item{border:1px solid var(--line); border-radius:var(--radius-sm); padding:14px 16px; margin-top:12px;}
   .contenido-item .cab{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px; flex-wrap:wrap;}
@@ -2111,11 +2121,21 @@
                 <details class="admin-subseccion" style="margin-top:14px;" open>
                   <summary><span class="cat-titulo">Requisitos de Ascenso</span></summary>
                   <div class="admin-subseccion-body">
+                    <!-- FIX (13-sep-2026, pedido usuario -- "revisa si hay
+                         campos en común con torneos o sorteos y copia las
+                         descripciones de sus secciones (o adáptalas)"):
+                         mismo estilo/tono que la intro de
+                         #requisitosTorneoBox ("Requerimiento mínimo de
+                         trofeos de guerra para mantenerse en cada clan."),
+                         adaptada acá a Min CR (trofeos mínimos) + Ataques,
+                         los dos por Clan Y Rol en vez de un valor único por
+                         clan. -->
+                    <p class="text-dim" style="font-size:13px; margin:0 0 10px;">Trofeos mínimos (Min CR) y ataques mínimos de guerra requeridos por clan y por rol (Miembro/Veterano/Colíder) para calificar en esta corrida.</p>
                     <div style="overflow-x:auto;">
-                      <table>
+                      <table class="cr-grid-table">
                         <thead>
-                          <tr><th>Clan</th><th colspan="2">Miembro</th><th colspan="2">Veterano</th><th colspan="2">Colíder</th></tr>
-                          <tr><th></th><th>Min CR</th><th>Ataques</th><th>Min CR</th><th>Ataques</th><th>Min CR</th><th>Ataques</th></tr>
+                          <tr><th rowspan="2">Clan</th><th colspan="2">Miembro</th><th colspan="2">Veterano</th><th colspan="2">Colíder</th></tr>
+                          <tr><th>Min CR</th><th>Ataques</th><th>Min CR</th><th>Ataques</th><th>Min CR</th><th>Ataques</th></tr>
                         </thead>
                         <tbody id="crGridAscenso"></tbody>
                       </table>
@@ -2123,14 +2143,15 @@
 
                     <!-- PASO 6 de la implementación del frontend (13-sep-2026,
                          pedido del usuario -- Fase 7 del plan de Cambio de
-                         Rango): los 4 campos que el comentario de PASO 4/5
-                         dejaba a propósito afuera. A diferencia de Min_CR/
-                         Ataques (por Clan Y Rol), estos 4 son UN solo valor
-                         por MITAD del par (ver _construirFilaCRLista(),
-                         34_Web_API.gs: `bloque.barcos`/`bloque.miembroActivo`/
-                         `bloque.whatsapp`/`bloque.estado`, donde `bloque` es
-                         TODO `datos.ascenso` o TODO `datos.descenso`, no algo
-                         por clan) -- por eso van UNA vez acá, no dentro de la
+                         Rango): los 3 campos (Barcos/Miembro activo/WhatsApp)
+                         que el comentario de PASO 4/5 dejaba a propósito
+                         afuera. A diferencia de Min_CR/Ataques (por Clan Y
+                         Rol), estos son UN solo valor por MITAD del par (ver
+                         _construirFilaCRLista(), 34_Web_API.gs:
+                         `bloque.barcos`/`bloque.miembroActivo`/
+                         `bloque.whatsapp`, donde `bloque` es TODO
+                         `datos.ascenso` o TODO `datos.descenso`, no algo por
+                         clan) -- por eso van UNA vez acá, no dentro de la
                          grilla de arriba.
                          Miembro activo / WhatsApp: mismo patrón EXACTO que
                          #reqMiembroActivo/#reqPresenciaWhatsapp de Torneos
@@ -2143,13 +2164,21 @@
                          docblock de _getFilaCRListaPorId(): `barcos.activo`
                          viene en `false` cuando la celda está vacía, no
                          cuando vale 0) -- por eso el <select> arranca en
-                         "Sin configurar" en vez de "0".
-                         Estado: a diferencia de los otros 3, en el backend es
-                         texto libre (`String(fila[CR.ESTADO-1])`, sin
-                         dropdown de valores fijos en ningún otro archivo de
-                         Base.md) -- por eso es un <input type="text">, no un
-                         <select>. -->
-                    <div class="field" style="margin-top:14px;">
+                         "Sin configurar" en vez de "0". La descripción de
+                         abajo es la misma de #reqAtaquesBarcos (Torneos),
+                         adaptada a que acá "Sin configurar" reemplaza al
+                         "selecciona 16" de allá como forma de no excluir a
+                         nadie por este criterio.
+                         Estado: FIX (13-sep-2026, pedido usuario -- "el
+                         estado no se pregunta al usuario, se manda siempre
+                         como 'Planificado'"): el <input type="text"> que
+                         había acá se quita del formulario -- ya no se le
+                         pregunta nada al admin sobre esto. Ver
+                         leerOtrosCriteriosCR() en el <script>, que ahora
+                         manda 'Planificado' fijo en vez de leer un campo. -->
+                    <h3 style="font-size:15px; color:var(--gold); margin:20px 0 4px;">Otros criterios</h3>
+                    <p class="text-dim" style="font-size:13px; margin:0 0 10px;">Es un promedio semanal, no la cantidad acumulada. Deja "Sin configurar" si este criterio no aplica para esta corrida. Si no se desea permitir ningún ataque a barcos, selecciona 0.</p>
+                    <div class="field">
                       <label for="crBarcosAscenso">Ataques a barcos permitidos por semana</label>
                       <select id="crBarcosAscenso">
                         <option value="" selected>Sin configurar</option>
@@ -2186,28 +2215,27 @@
                         <option value="No">No</option>
                       </select>
                     </div>
-                    <div class="field" style="margin-top:10px;">
-                      <label for="crEstadoAscenso">Estado (texto libre, opcional)</label>
-                      <input type="text" id="crEstadoAscenso" placeholder="ej. En curso, Cerrado…" autocomplete="off">
-                    </div>
                   </div>
                 </details>
                 <details class="admin-subseccion" style="margin-top:10px;">
                   <summary><span class="cat-titulo">Requisitos de Descenso</span></summary>
                   <div class="admin-subseccion-body">
+                    <p class="text-dim" style="font-size:13px; margin:0 0 10px;">Trofeos mínimos (Min CR) y ataques mínimos de guerra requeridos por clan y por rol (Miembro/Veterano/Colíder) para calificar en esta corrida.</p>
                     <div style="overflow-x:auto;">
-                      <table>
+                      <table class="cr-grid-table">
                         <thead>
-                          <tr><th>Clan</th><th colspan="2">Miembro</th><th colspan="2">Veterano</th><th colspan="2">Colíder</th></tr>
-                          <tr><th></th><th>Min CR</th><th>Ataques</th><th>Min CR</th><th>Ataques</th><th>Min CR</th><th>Ataques</th></tr>
+                          <tr><th rowspan="2">Clan</th><th colspan="2">Miembro</th><th colspan="2">Veterano</th><th colspan="2">Colíder</th></tr>
+                          <tr><th>Min CR</th><th>Ataques</th><th>Min CR</th><th>Ataques</th><th>Min CR</th><th>Ataques</th></tr>
                         </thead>
                         <tbody id="crGridDescenso"></tbody>
                       </table>
                     </div>
 
-                    <!-- Mismos 4 campos, mitad Descenso -- ver el comentario
+                    <!-- Mismos 3 campos, mitad Descenso -- ver el comentario
                          grande junto a los de Ascenso arriba. -->
-                    <div class="field" style="margin-top:14px;">
+                    <h3 style="font-size:15px; color:var(--gold); margin:20px 0 4px;">Otros criterios</h3>
+                    <p class="text-dim" style="font-size:13px; margin:0 0 10px;">Es un promedio semanal, no la cantidad acumulada. Deja "Sin configurar" si este criterio no aplica para esta corrida. Si no se desea permitir ningún ataque a barcos, selecciona 0.</p>
+                    <div class="field">
                       <label for="crBarcosDescenso">Ataques a barcos permitidos por semana</label>
                       <select id="crBarcosDescenso">
                         <option value="" selected>Sin configurar</option>
@@ -2243,10 +2271,6 @@
                         <option value="Sí" selected>Sí</option>
                         <option value="No">No</option>
                       </select>
-                    </div>
-                    <div class="field" style="margin-top:10px;">
-                      <label for="crEstadoDescenso">Estado (texto libre, opcional)</label>
-                      <input type="text" id="crEstadoDescenso" placeholder="ej. En curso, Cerrado…" autocomplete="off">
                     </div>
                   </div>
                 </details>
@@ -5898,8 +5922,15 @@ async function pintarGridCR(tipo){
   const clanes = await cargarClanesFamilia();
   const tbody = document.getElementById(tipo === 'ascenso' ? 'crGridAscenso' : 'crGridDescenso');
   if(!tbody) return;
+  // FIX (13-sep-2026, pedido usuario -- "debe haber coma para separar
+  // miles, aunque es solo visual, no se agrega al valor real"): mismo
+  // patrón que los cuadros de Trofeos de guerra/Ataques por semana de
+  // Torneos (formatoMiles()/valorPlanoInputMiles()/initInputMiles(), ver
+  // esos docblocks más arriba en este <script>) -- type="text" en vez de
+  // type="number" porque un <input type="number"> nativo rechaza las
+  // comas, e initInputMiles() se encarga de mostrarlas/quitarlas solo.
   const inp = (idx, campo, rol) =>
-    `<td><input type="number" min="0" class="cr-grid-input" id="${idCeldaCR(tipo, idx, campo, rol)}" placeholder="0"></td>`;
+    `<td><input type="text" inputmode="numeric" class="cr-grid-input" id="${idCeldaCR(tipo, idx, campo, rol)}" placeholder="0"></td>`;
   tbody.innerHTML = clanes.map((clan, idx) => `
     <tr>
       <td>${esc(clan)}</td>
@@ -5907,12 +5938,17 @@ async function pintarGridCR(tipo){
       ${inp(idx, 'min', 'veterano')}${inp(idx, 'ataq', 'veterano')}
       ${inp(idx, 'min', 'colider')}${inp(idx, 'ataq', 'colider')}
     </tr>`).join('');
+  clanes.forEach((clan, idx) => {
+    ['miembro', 'veterano', 'colider'].forEach(rol => {
+      initInputMiles(idCeldaCR(tipo, idx, 'min', rol));
+      initInputMiles(idCeldaCR(tipo, idx, 'ataq', rol));
+    });
+  });
 }
 
 function leerGridCR(tipo){
   const leerCelda = (idx, campo, rol) => {
-    const el = document.getElementById(idCeldaCR(tipo, idx, campo, rol));
-    const v = el ? String(el.value || '').trim() : '';
+    const v = valorPlanoInputMiles(idCeldaCR(tipo, idx, campo, rol));
     return v === '' ? 0 : (Number(v) || 0);
   };
   return CLANES_REQUISITOS.map((clan, idx) => ({
@@ -5930,9 +5966,12 @@ function leerGridCR(tipo){
 }
 
 function precargarGridCR(tipo, porClan){
+  // FIX (13-sep-2026): igual que precargarFormularioCR() de Torneos con
+  // formatoMiles(), se precarga YA con las comas puestas (no hace falta
+  // esperar a un blur para que se vea bien).
   const setCelda = (idx, campo, rol, qty) => {
     const el = document.getElementById(idCeldaCR(tipo, idx, campo, rol));
-    if(el) el.value = qty ? qty : '';
+    if(el) el.value = qty ? formatoMiles(qty) : '';
   };
   (porClan || []).forEach((bloque, idx) => {
     setCelda(idx, 'min',  'miembro',  bloque.minCR.miembro.qty);
@@ -5979,12 +6018,19 @@ async function cargarCRListaPares(){
  * leerOtrosCriteriosCR(tipo) / limpiarOtrosCriteriosCR(tipo) / precargarOtrosCriteriosCR(tipo, fila)
  * PASO 6 (13-sep-2026, pedido del usuario -- Fase 7 del plan de Cambio de
  * Rango): mismo patrón que pintarGridCR()/leerGridCR()/precargarGridCR()
- * de más arriba, pero para los 4 campos que NO son por Clan/Rol (Barcos/
- * Miembro activo/WhatsApp/Estado, ver el comentario grande junto a
+ * de más arriba, pero para los campos que NO son por Clan/Rol (Barcos/
+ * Miembro activo/WhatsApp, ver el comentario grande junto a
  * #crBarcosAscenso en el HTML). leerOtrosCriteriosCR() arma el shape que
  * _construirFilaCRLista() (34_Web_API.gs) espera dentro de `bloque` --
  * `barcos` viaja como '' (Sin configurar) o el número elegido, tal cual el
  * <select>; `miembroActivo`/`whatsapp` viajan literalmente 'Sí'/'No'.
+ *
+ * FIX (13-sep-2026, pedido usuario -- "el estado no se pregunta al
+ * usuario, se manda siempre como 'Planificado'"): `estado` ya NO sale de
+ * ningún campo del formulario (se quitó #crEstadoAscenso/#crEstadoDescenso
+ * del HTML) -- leerOtrosCriteriosCR() lo manda fijo como 'Planificado'
+ * siempre, para las dos mitades (Ascenso y Descenso) y sin importar si es
+ * una corrida nueva o una que se está editando.
  */
 function leerOtrosCriteriosCR(tipo){
   const suf = tipo === 'ascenso' ? 'Ascenso' : 'Descenso';
@@ -5992,7 +6038,7 @@ function leerOtrosCriteriosCR(tipo){
     barcos: document.getElementById('crBarcos' + suf).value,
     miembroActivo: document.getElementById('crMiembroActivo' + suf).value,
     whatsapp: document.getElementById('crWhatsapp' + suf).value,
-    estado: document.getElementById('crEstado' + suf).value.trim()
+    estado: 'Planificado'
   };
 }
 
@@ -6001,7 +6047,6 @@ function limpiarOtrosCriteriosCR(tipo){
   document.getElementById('crBarcos' + suf).value = '';
   document.getElementById('crMiembroActivo' + suf).value = 'Sí';
   document.getElementById('crWhatsapp' + suf).value = 'Sí';
-  document.getElementById('crEstado' + suf).value = '';
 }
 
 function precargarOtrosCriteriosCR(tipo, fila){
@@ -6010,7 +6055,9 @@ function precargarOtrosCriteriosCR(tipo, fila){
   document.getElementById('crBarcos' + suf).value = fila.barcos.activo ? String(fila.barcos.qty) : '';
   document.getElementById('crMiembroActivo' + suf).value = fila.miembroActivo.activo ? 'Sí' : 'No';
   document.getElementById('crWhatsapp' + suf).value = fila.whatsapp.activo ? 'Sí' : 'No';
-  document.getElementById('crEstado' + suf).value = fila.estado || '';
+  // Estado NO se precarga -- ya no hay campo en el formulario, y
+  // leerOtrosCriteriosCR() lo va a mandar como 'Planificado' de todas
+  // formas al guardar, sin importar qué tenía antes esta corrida.
 }
 
 async function limpiarFormularioCR(){
