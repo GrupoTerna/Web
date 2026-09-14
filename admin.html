@@ -1993,6 +1993,76 @@
                         <tbody id="crGridAscenso"></tbody>
                       </table>
                     </div>
+
+                    <!-- PASO 6 de la implementación del frontend (13-sep-2026,
+                         pedido del usuario -- Fase 7 del plan de Cambio de
+                         Rango): los 4 campos que el comentario de PASO 4/5
+                         dejaba a propósito afuera. A diferencia de Min_CR/
+                         Ataques (por Clan Y Rol), estos 4 son UN solo valor
+                         por MITAD del par (ver _construirFilaCRLista(),
+                         34_Web_API.gs: `bloque.barcos`/`bloque.miembroActivo`/
+                         `bloque.whatsapp`/`bloque.estado`, donde `bloque` es
+                         TODO `datos.ascenso` o TODO `datos.descenso`, no algo
+                         por clan) -- por eso van UNA vez acá, no dentro de la
+                         grilla de arriba.
+                         Miembro activo / WhatsApp: mismo patrón EXACTO que
+                         #reqMiembroActivo/#reqPresenciaWhatsapp de Torneos
+                         (más arriba en este mismo archivo) -- "Sí" por
+                         defecto, sin opción "Elige…" (mismo FIX del
+                         10-sep-2026 que ya aplica ahí).
+                         Barcos: a diferencia de Torneos (#reqAtaquesBarcos,
+                         que siempre fuerza un tope 0-16), CR_Lista sí
+                         distingue "sin configurar" de "0 permitidos" (ver
+                         docblock de _getFilaCRListaPorId(): `barcos.activo`
+                         viene en `false` cuando la celda está vacía, no
+                         cuando vale 0) -- por eso el <select> arranca en
+                         "Sin configurar" en vez de "0".
+                         Estado: a diferencia de los otros 3, en el backend es
+                         texto libre (`String(fila[CR.ESTADO-1])`, sin
+                         dropdown de valores fijos en ningún otro archivo de
+                         Base.md) -- por eso es un <input type="text">, no un
+                         <select>. -->
+                    <div class="field" style="margin-top:14px;">
+                      <label for="crBarcosAscenso">Ataques a barcos permitidos por semana</label>
+                      <select id="crBarcosAscenso">
+                        <option value="" selected>Sin configurar</option>
+                        <option value="0">0</option>
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4">4</option>
+                        <option value="5">5</option>
+                        <option value="6">6</option>
+                        <option value="7">7</option>
+                        <option value="8">8</option>
+                        <option value="9">9</option>
+                        <option value="10">10</option>
+                        <option value="11">11</option>
+                        <option value="12">12</option>
+                        <option value="13">13</option>
+                        <option value="14">14</option>
+                        <option value="15">15</option>
+                        <option value="16">16</option>
+                      </select>
+                    </div>
+                    <div class="field" style="margin-top:10px;">
+                      <label for="crMiembroActivoAscenso">Miembro activo</label>
+                      <select id="crMiembroActivoAscenso">
+                        <option value="Sí" selected>Sí</option>
+                        <option value="No">No</option>
+                      </select>
+                    </div>
+                    <div class="field" style="margin-top:10px;">
+                      <label for="crWhatsappAscenso">Presencia en el grupo de WhatsApp</label>
+                      <select id="crWhatsappAscenso">
+                        <option value="Sí" selected>Sí</option>
+                        <option value="No">No</option>
+                      </select>
+                    </div>
+                    <div class="field" style="margin-top:10px;">
+                      <label for="crEstadoAscenso">Estado (texto libre, opcional)</label>
+                      <input type="text" id="crEstadoAscenso" placeholder="ej. En curso, Cerrado…" autocomplete="off">
+                    </div>
                   </div>
                 </details>
                 <details class="admin-subseccion" style="margin-top:10px;">
@@ -2007,11 +2077,87 @@
                         <tbody id="crGridDescenso"></tbody>
                       </table>
                     </div>
+
+                    <!-- Mismos 4 campos, mitad Descenso -- ver el comentario
+                         grande junto a los de Ascenso arriba. -->
+                    <div class="field" style="margin-top:14px;">
+                      <label for="crBarcosDescenso">Ataques a barcos permitidos por semana</label>
+                      <select id="crBarcosDescenso">
+                        <option value="" selected>Sin configurar</option>
+                        <option value="0">0</option>
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4">4</option>
+                        <option value="5">5</option>
+                        <option value="6">6</option>
+                        <option value="7">7</option>
+                        <option value="8">8</option>
+                        <option value="9">9</option>
+                        <option value="10">10</option>
+                        <option value="11">11</option>
+                        <option value="12">12</option>
+                        <option value="13">13</option>
+                        <option value="14">14</option>
+                        <option value="15">15</option>
+                        <option value="16">16</option>
+                      </select>
+                    </div>
+                    <div class="field" style="margin-top:10px;">
+                      <label for="crMiembroActivoDescenso">Miembro activo</label>
+                      <select id="crMiembroActivoDescenso">
+                        <option value="Sí" selected>Sí</option>
+                        <option value="No">No</option>
+                      </select>
+                    </div>
+                    <div class="field" style="margin-top:10px;">
+                      <label for="crWhatsappDescenso">Presencia en el grupo de WhatsApp</label>
+                      <select id="crWhatsappDescenso">
+                        <option value="Sí" selected>Sí</option>
+                        <option value="No">No</option>
+                      </select>
+                    </div>
+                    <div class="field" style="margin-top:10px;">
+                      <label for="crEstadoDescenso">Estado (texto libre, opcional)</label>
+                      <input type="text" id="crEstadoDescenso" placeholder="ej. En curso, Cerrado…" autocomplete="off">
+                    </div>
                   </div>
                 </details>
 
                 <button type="button" class="btn btn-primary btn-block" id="btnCrGuardar" style="margin-top:14px;">Guardar corrida</button>
                 <div id="crGuardarMsg"></div>
+
+                <!-- PASO 5 de la implementación del frontend (13-sep-2026,
+                     pedido del usuario -- Fase 7 del plan de Cambio de
+                     Rango): última pieza que faltaba del plan original --
+                     "botón Ver propuestas (_webCRListaPropuestas) que pinte
+                     la tabla antes de confirmar, y botón Generar propuestas
+                     (_webCRListaGenerarPropuestas) que dispare la escritura
+                     real en Historial_A/D". Solo tiene sentido una vez que
+                     la corrida YA existe en CR_Lista (ambos endpoints leen
+                     por ID desde la hoja, ver _getFilaCRListaPorId()), así
+                     que #crPropuestasBox arranca oculto y recién se muestra
+                     cuando `crIdExistenteActual` queda seteado -- ya sea al
+                     entrar en modo Editar (precargarFormularioCR()) o justo
+                     después de un Guardar exitoso en modo Registrar (ver el
+                     listener de #btnCrGuardar más abajo en el <script>). -->
+                <details class="admin-subseccion" style="margin-top:14px;">
+                  <summary><span class="cat-titulo">Propuestas de cambio de rango</span></summary>
+                  <div class="admin-subseccion-body">
+                    <div id="crPropuestasBox" style="display:none;">
+                      <div class="text-dim" style="font-size:13px; margin-bottom:10px;">
+                        Calcula, a partir del roster activo y los requisitos de arriba, quién asciende, quién desciende o queda elegible para administración manual. "Ver propuestas" solo calcula (no escribe nada); "Generar propuestas" las agrega a Historial_A/D como "Planificado", sin duplicar las que ya estén pendientes.
+                      </div>
+                      <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                        <button type="button" class="btn btn-ghost" id="btnCrVerPropuestas">Ver propuestas</button>
+                        <button type="button" class="btn btn-primary" id="btnCrGenerarPropuestas">Generar propuestas</button>
+                      </div>
+                      <div id="crPropuestasMsg" style="margin-top:10px;"></div>
+                      <div id="crPropuestasTablaWrap" style="margin-top:10px;"></div>
+                    </div>
+                    <div id="crPropuestasSinGuardar" class="text-dim" style="font-size:13px;">Guarda la corrida primero -- las propuestas se calculan sobre la corrida ya guardada en CR_Lista.</div>
+                  </div>
+                </details>
               </div>
             </div>
 
@@ -5546,6 +5692,12 @@ initTorneoWizard();
  */
 let cambioRangoParesData = [];
 let crIdExistenteActual = ''; // '' = modo Registrar; con valor = modo Editar (idAscenso del par)
+// PASO 5: idDescenso hermano del par actual -- se necesita junto con
+// crIdExistenteActual (idAscenso) para llamar a webCRListaPropuestas/
+// webCRListaGenerarPropuestas, que piden AMBOS ids. Se setea en los mismos
+// puntos que crIdExistenteActual (precargarFormularioCR() y el listener de
+// #btnCrGuardar) -- ver actualizarVisibilidadPropuestasCR() más abajo.
+let crIdDescensoActual = '';
 
 /**
  * pintarGridCR(tipo) / leerGridCR(tipo) / precargarGridCR(tipo, porClan)
@@ -5652,8 +5804,47 @@ async function cargarCRListaPares(){
  * btnCrGuardar sepa que debe mandar `idExistente` vacío (CREA un par
  * nuevo, ver _webCRListaGuardar()).
  */
+/**
+ * leerOtrosCriteriosCR(tipo) / limpiarOtrosCriteriosCR(tipo) / precargarOtrosCriteriosCR(tipo, fila)
+ * PASO 6 (13-sep-2026, pedido del usuario -- Fase 7 del plan de Cambio de
+ * Rango): mismo patrón que pintarGridCR()/leerGridCR()/precargarGridCR()
+ * de más arriba, pero para los 4 campos que NO son por Clan/Rol (Barcos/
+ * Miembro activo/WhatsApp/Estado, ver el comentario grande junto a
+ * #crBarcosAscenso en el HTML). leerOtrosCriteriosCR() arma el shape que
+ * _construirFilaCRLista() (34_Web_API.gs) espera dentro de `bloque` --
+ * `barcos` viaja como '' (Sin configurar) o el número elegido, tal cual el
+ * <select>; `miembroActivo`/`whatsapp` viajan literalmente 'Sí'/'No'.
+ */
+function leerOtrosCriteriosCR(tipo){
+  const suf = tipo === 'ascenso' ? 'Ascenso' : 'Descenso';
+  return {
+    barcos: document.getElementById('crBarcos' + suf).value,
+    miembroActivo: document.getElementById('crMiembroActivo' + suf).value,
+    whatsapp: document.getElementById('crWhatsapp' + suf).value,
+    estado: document.getElementById('crEstado' + suf).value.trim()
+  };
+}
+
+function limpiarOtrosCriteriosCR(tipo){
+  const suf = tipo === 'ascenso' ? 'Ascenso' : 'Descenso';
+  document.getElementById('crBarcos' + suf).value = '';
+  document.getElementById('crMiembroActivo' + suf).value = 'Sí';
+  document.getElementById('crWhatsapp' + suf).value = 'Sí';
+  document.getElementById('crEstado' + suf).value = '';
+}
+
+function precargarOtrosCriteriosCR(tipo, fila){
+  const suf = tipo === 'ascenso' ? 'Ascenso' : 'Descenso';
+  if(!fila){ limpiarOtrosCriteriosCR(tipo); return; }
+  document.getElementById('crBarcos' + suf).value = fila.barcos.activo ? String(fila.barcos.qty) : '';
+  document.getElementById('crMiembroActivo' + suf).value = fila.miembroActivo.activo ? 'Sí' : 'No';
+  document.getElementById('crWhatsapp' + suf).value = fila.whatsapp.activo ? 'Sí' : 'No';
+  document.getElementById('crEstado' + suf).value = fila.estado || '';
+}
+
 async function limpiarFormularioCR(){
   crIdExistenteActual = '';
+  crIdDescensoActual = '';
   document.getElementById('crFecha').value = '';
   document.getElementById('crHora').value = '';
   document.getElementById('crSemanas').value = '';
@@ -5661,7 +5852,30 @@ async function limpiarFormularioCR(){
   document.getElementById('crComentario').value = '';
   document.getElementById('crGuardarMsg').innerHTML = '';
   await Promise.all([pintarGridCR('ascenso'), pintarGridCR('descenso')]); // PASO 4 -- grilla vacía (sin requisitos)
+  limpiarOtrosCriteriosCR('ascenso'); // PASO 6 -- Barcos/Miembro activo/WhatsApp/Estado a sus valores por defecto
+  limpiarOtrosCriteriosCR('descenso');
   document.getElementById('crPaso3').style.display = '';
+  actualizarVisibilidadPropuestasCR(); // PASO 5 -- corrida todavía sin guardar, sin propuestas
+}
+
+/**
+ * actualizarVisibilidadPropuestasCR()
+ * PASO 5 (13-sep-2026, pedido del usuario -- Fase 7 del plan de Cambio de
+ * Rango): muestra #crPropuestasBox (botones Ver/Generar propuestas + tabla)
+ * SOLO cuando ya hay una corrida guardada en CR_Lista (`crIdExistenteActual`
+ * con valor) -- webCRListaPropuestas/webCRListaGenerarPropuestas leen por ID
+ * desde la hoja, así que no tiene sentido ofrecerlos antes de Guardar. Se
+ * llama al entrar/salir de cada modo (limpiarFormularioCR(),
+ * precargarFormularioCR()) y después de un Guardar exitoso. Limpia también
+ * el mensaje y la tabla de una corrida anterior, para no dejar restos de
+ * otro par al cambiar de corrida.
+ */
+function actualizarVisibilidadPropuestasCR(){
+  const hayCorrida = !!crIdExistenteActual;
+  document.getElementById('crPropuestasBox').style.display = hayCorrida ? '' : 'none';
+  document.getElementById('crPropuestasSinGuardar').style.display = hayCorrida ? 'none' : '';
+  document.getElementById('crPropuestasMsg').innerHTML = '';
+  document.getElementById('crPropuestasTablaWrap').innerHTML = '';
 }
 
 /**
@@ -5708,6 +5922,7 @@ async function precargarFormularioCR(idAscenso){
     const filaAsc = dataAsc.fila;
     const filaDesc = (dataDesc && dataDesc.ok) ? dataDesc.fila : null;
     crIdExistenteActual = idAscenso;
+    crIdDescensoActual = idDescenso; // PASO 5 -- idDescenso ya resuelto más arriba en esta función
 
     if(filaAsc.fecha){
       const d = new Date(filaAsc.fecha);
@@ -5725,9 +5940,12 @@ async function precargarFormularioCR(idAscenso){
     await Promise.all([pintarGridCR('ascenso'), pintarGridCR('descenso')]);
     precargarGridCR('ascenso', filaAsc.porClan);
     if(filaDesc) precargarGridCR('descenso', filaDesc.porClan);
+    precargarOtrosCriteriosCR('ascenso', filaAsc);   // PASO 6
+    precargarOtrosCriteriosCR('descenso', filaDesc); // filaDesc puede ser null (par incompleto) -- ver docblock de la función
 
     document.getElementById('crPaso2Msg').innerHTML = '';
     document.getElementById('crPaso3').style.display = '';
+    actualizarVisibilidadPropuestasCR(); // PASO 5 -- ya hay corrida guardada, mostrar Ver/Generar propuestas
   }catch(err){
     document.getElementById('crPaso2Msg').innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
   }
@@ -5797,17 +6015,128 @@ document.getElementById('btnCrGuardar').addEventListener('click', async () => {
       datos: {
         idExistente: crIdExistenteActual,
         fecha, hora, semanas, organizador, comentario,
-        ascenso:  { porClan: leerGridCR('ascenso') },
-        descenso: { porClan: leerGridCR('descenso') }
+        // PASO 6: porClan (Min_CR/Ataques) + los 4 campos que van una sola
+        // vez por mitad (Barcos/Miembro activo/WhatsApp/Estado), leídos con
+        // leerOtrosCriteriosCR() -- ver su docblock más arriba en este
+        // mismo <script> para el shape exacto que espera
+        // _construirFilaCRLista() (34_Web_API.gs).
+        ascenso:  { porClan: leerGridCR('ascenso'),  ...leerOtrosCriteriosCR('ascenso') },
+        descenso: { porClan: leerGridCR('descenso'), ...leerOtrosCriteriosCR('descenso') }
       }
     });
     if(manejarRespuestaAuth(data)) return;
     if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
     msgEl.innerHTML = `<div class="msg msg-success">Corrida guardada (${esc(data.idAscenso)} / ${esc(data.idDescenso)}).</div>`;
     crIdExistenteActual = data.idAscenso;
+    crIdDescensoActual = data.idDescenso; // PASO 5 -- ya se puede calcular/generar propuestas
+    actualizarVisibilidadPropuestasCR();
     if(document.getElementById('crSelectorParBox').style.display !== 'none'){
       cargarCRListaPares();
     }
+  }catch(err){
+    msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
+  }
+});
+
+/**
+ * _filaPropuestaCR(p) / _tablaPropuestasCR(propuestas)
+ * PASO 5: pinta la tabla de propuestas devuelta por webCRListaPropuestas/
+ * webCRListaGenerarPropuestas -- mismo patrón de tabla que _tablaCoincidencias()
+ * más arriba en este mismo <script> (Detección de infiltrados): función
+ * `_fila...()` por registro + wrapper que arma `<table>` completa o el
+ * estado vacío. `p.tag` siempre viene (roster activo del Directorio, ver
+ * _calcularPropuestasCambioRango()), así que el nombre es SIEMPRE
+ * clickeable con enlaceJugador() -- a diferencia de _tablaCoincidencias(),
+ * acá no hace falta el chequeo de f.origen === 'Directorio'.
+ * Tipo de propuesta como badge (mismas clases que ya usa el resto de
+ * admin.html): Ascenso = badge-ok, Descenso = badge-warn, EligibleAdmin
+ * (Colíder que cumple pero no asciende de rango, ver docblock de
+ * _calcularPropuestasCambioRango(), 24_Torneos_Core.gs) = badge-purple.
+ */
+function _filaPropuestaCR(p){
+  const badgeClase = p.tipoPropuesta === 'Ascenso' ? 'badge-ok'
+    : p.tipoPropuesta === 'Descenso' ? 'badge-warn'
+    : 'badge-purple';
+  const etiquetaTipo = p.tipoPropuesta === 'EligibleAdmin' ? 'Elegible Admin' : esc(p.tipoPropuesta);
+  return `
+    <tr>
+      <td>${enlaceJugador(p.nombre, p.tag)} <span class="text-faint">(${esc(p.tag)})</span></td>
+      <td>${esc(p.clan)}</td>
+      <td>${esc(p.rangoActual)}</td>
+      <td><span class="badge ${badgeClase}">${etiquetaTipo}</span></td>
+      <td>${esc(p.detalle)}</td>
+    </tr>`;
+}
+
+function _tablaPropuestasCR(propuestas){
+  if(!propuestas || !propuestas.length){
+    return '<div class="empty">Sin propuestas -- nadie del roster activo cumple ni deja de cumplir los requisitos de arriba.</div>';
+  }
+  return `<div style="overflow-x:auto;"><table>
+    <thead><tr><th>Jugador</th><th>Clan</th><th>Rango actual</th><th>Tipo</th><th>Detalle</th></tr></thead>
+    <tbody>${propuestas.map(_filaPropuestaCR).join('')}</tbody>
+  </table></div>`;
+}
+
+/**
+ * btnCrVerPropuestas -- llama a webCRListaPropuestas (GET, no escribe nada)
+ * con el par actual (crIdExistenteActual/crIdDescensoActual, ver
+ * actualizarVisibilidadPropuestasCR()) y pinta la tabla. Se puede llamar
+ * tantas veces como haga falta, ej. después de editar los requisitos y
+ * volver a Guardar -- mismo criterio que su docblock en 34_Web_API.gs.
+ */
+document.getElementById('btnCrVerPropuestas').addEventListener('click', async () => {
+  const msgEl = document.getElementById('crPropuestasMsg');
+  const tablaEl = document.getElementById('crPropuestasTablaWrap');
+  if(!crIdExistenteActual || !crIdDescensoActual){
+    msgEl.innerHTML = '<div class="msg msg-error">Guarda la corrida primero.</div>';
+    return;
+  }
+  msgEl.innerHTML = '<div class="text-dim">Calculando propuestas…</div>';
+  tablaEl.innerHTML = '';
+  try{
+    const data = await apiGetAuth('webCRListaPropuestas', { idAscenso: crIdExistenteActual, idDescenso: crIdDescensoActual });
+    if(manejarRespuestaAuth(data)) return;
+    if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
+    msgEl.innerHTML = `<div class="text-dim" style="font-size:12px;">${data.propuestas.length} propuesta(s) -- todavía no se escribió nada en Historial_A/D.</div>`;
+    tablaEl.innerHTML = _tablaPropuestasCR(data.propuestas);
+  }catch(err){
+    msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
+  }
+});
+
+/**
+ * btnCrGenerarPropuestas -- llama a webCRListaGenerarPropuestas (POST, sí
+ * escribe en Historial_A/D como 'Planificado') con el mismo par. Pide
+ * confirmación antes (escritura real, mismo criterio que btnVetar/otras
+ * acciones irreversibles del panel) y, si el admin no llamó antes a "Ver
+ * propuestas" en esta sesión de edición, igual pinta la tabla resultante
+ * al terminar -- así siempre queda a la vista qué se generó.
+ */
+document.getElementById('btnCrGenerarPropuestas').addEventListener('click', async () => {
+  const msgEl = document.getElementById('crPropuestasMsg');
+  const tablaEl = document.getElementById('crPropuestasTablaWrap');
+  if(!crIdExistenteActual || !crIdDescensoActual){
+    msgEl.innerHTML = '<div class="msg msg-error">Guarda la corrida primero.</div>';
+    return;
+  }
+  if(!confirm('¿Generar las propuestas de esta corrida en Historial_A/D como "Planificado"? Las que ya estén pendientes no se duplican.')) return;
+
+  msgEl.innerHTML = '<div class="text-dim">Generando…</div>';
+  try{
+    const data = await apiPost('webCRListaGenerarPropuestas', {
+      sessionToken: localStorage.getItem(SESSION_KEY),
+      idAscenso: crIdExistenteActual,
+      idDescenso: crIdDescensoActual
+    });
+    if(manejarRespuestaAuth(data)) return;
+    if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
+    msgEl.innerHTML = `<div class="msg msg-success">${esc(data.agregadas)} propuesta(s) nueva(s) agregada(s) como Planificado` +
+      (data.saltadas ? `, ${esc(data.saltadas)} ya estaban pendientes (sin duplicar).` : '.') + '</div>';
+    // Repinta la tabla con el estado recalculado, para que quede a la vista
+    // qué se generó (mismo cálculo que Ver propuestas -- ver su docblock).
+    const dataVer = await apiGetAuth('webCRListaPropuestas', { idAscenso: crIdExistenteActual, idDescenso: crIdDescensoActual });
+    if(dataVer && dataVer.ok) tablaEl.innerHTML = _tablaPropuestasCR(dataVer.propuestas);
   }catch(err){
     msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
   }
