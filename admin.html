@@ -313,6 +313,28 @@
   }
   .semana-item:last-child{border-bottom:none;}
   .semana-item input[type="checkbox"]{flex-shrink:0; width:16px; height:16px; cursor:pointer; accent-color:var(--purple-light);}
+  /* FIX (13-sep-2026, pedido usuario -- formulario de Cambio de rango:
+     "en la sección de semanas a evaluar debe haber un selector de
+     temporada y a la derecha checkboxes con las semanas que tenga esa
+     temporada, y un botón para añadir otra temporada"): un bloque por
+     temporada agregada, con el <select> de temporada a la izquierda y su
+     .semana-selector (mismas checkboxes que Torneos/Sorteos) a la derecha.
+     Ver #crTemporadasContainer/.cr-temporada-bloque en el <script>
+     (agregarBloqueTemporadaCR() y compañía). En pantallas angostas se
+     apilan (select arriba, checkboxes abajo) en vez de quedar
+     amontonados. */
+  .cr-temporada-bloque{display:flex; gap:10px; align-items:flex-start; margin-top:10px;}
+  .cr-temporada-bloque .cr-temporada-select{flex:0 0 180px; width:180px;}
+  .cr-temporada-bloque .semana-selector{flex:1; min-width:0; max-height:160px;}
+  .cr-temporada-quitar{
+    flex-shrink:0; background:none; border:none; color:var(--text-dim); font-size:18px;
+    cursor:pointer; padding:4px 6px; line-height:1; border-radius:var(--radius-sm);
+  }
+  .cr-temporada-quitar:hover{color:#ff6b6b; background:rgba(255,107,107,.12);}
+  @media (max-width: 560px){
+    .cr-temporada-bloque{flex-direction:column;}
+    .cr-temporada-bloque .cr-temporada-select{width:100%;}
+  }
 </style>
 </head>
 <body data-page="admin">
@@ -2006,21 +2028,73 @@
                    Estado (datos.ascenso.barcos/miembroActivo/whatsapp/estado)
                    -- quedan para un paso aparte. -->
               <div id="crPaso3" style="display:none; margin-top:14px; padding-top:14px; border-top:1px solid var(--line);">
-                <div class="field">
-                  <label for="crFecha">Fecha</label>
-                  <input type="date" id="crFecha">
+                <!-- FIX (13-sep-2026, pedido usuario -- "en el formulario de
+                     cambio de rango se debe cambiar el formato de fecha y
+                     hora, debe mostrarse como sale en torneos"): mismo
+                     patrón campo-fecha-wrap/campo-hora-wrap que
+                     #tFechaTexto/#tHoraTexto (Torneos) -- #crFecha/#crHora
+                     siguen siendo la fuente real (ISO/24h) que ya lee
+                     btnCrGuardar y precarga precargarFormularioCR(), solo
+                     cambia cómo se ven. Ver initCampoFechaAmigable('crFecha',
+                     'crFechaTexto', 'btnCalendarioCR') e
+                     initCampoHoraAmigable('crHora', 'crHoraTexto',
+                     'crHoraAmPm') más abajo en el <script>. -->
+                <div class="field-row">
+                  <div class="field">
+                    <label for="crFechaTexto">Fecha</label>
+                    <div class="campo-fecha-wrap">
+                      <input type="text" id="crFechaTexto" placeholder="dd/mm/aaaa" inputmode="numeric" maxlength="10" autocomplete="off">
+                      <input type="date" id="crFecha" class="campo-oculto-visual" tabindex="-1" aria-hidden="true">
+                      <button type="button" class="btn-calendario" id="btnCalendarioCR" title="Abrir calendario" aria-label="Abrir calendario">📅</button>
+                    </div>
+                  </div>
+                  <div class="field">
+                    <label for="crHoraTexto">Hora</label>
+                    <div class="campo-hora-wrap">
+                      <input type="text" id="crHoraTexto" placeholder="hh:mm" inputmode="numeric" maxlength="5" autocomplete="off">
+                      <select id="crHoraAmPm">
+                        <option value="AM">AM</option>
+                        <option value="PM">PM</option>
+                      </select>
+                      <input type="time" id="crHora" class="campo-oculto-visual" tabindex="-1" aria-hidden="true">
+                    </div>
+                  </div>
                 </div>
-                <div class="field">
-                  <label for="crHora">Hora</label>
-                  <input type="time" id="crHora">
+
+                <!-- FIX (13-sep-2026, pedido usuario -- "en la sección de
+                     semanas a evaluar debe haber un selector de temporada y
+                     a la derecha checkboxes con las semanas que tenga esa
+                     temporada, también un botón para añadir otra
+                     temporada"): reemplaza el <input type="text"> libre
+                     ("T4_S1,T4_S2") de antes por bloques armados en JS --
+                     ver agregarBloqueTemporadaCR()/obtenerSemanasCR() junto
+                     a mapaTemporadasCR() en el <script>. El string
+                     final que viaja a _webCRListaGuardar() sigue siendo
+                     EXACTAMENTE el mismo formato "T{temporada}_S{semana},..."
+                     de siempre -- armado ahora a partir de los checkboxes
+                     marcados en vez de tipeado a mano. -->
+                <div class="field" id="crSemanasWrap" style="margin-top:14px;">
+                  <label>¿Qué semanas se deben evaluar para esta corrida?</label>
+                  <div id="crTemporadasContainer"></div>
+                  <button type="button" class="btn" id="btnCrAgregarTemporada" style="margin-top:8px;">+ Añadir otra temporada</button>
                 </div>
+
+                <!-- FIX (13-sep-2026, pedido usuario -- "el organizador debe
+                     ser dropdown con los Nom_Multi de los admin, no debe
+                     mostrarse el texto 'Nom_Multi', los usuarios finales no
+                     saben qué es eso"): mismo patrón que #tAutorSelect
+                     (Torneos) -- se puebla desde cargarNomMultisAdmins() con
+                     los mismos Nom_Multi, sin exponer esa palabra en
+                     ninguna etiqueta visible. "Ninguna de las anteriores"
+                     revela #crOrganizadorManual para escribirlo a mano (por
+                     si quien organizó no es un admin). -->
                 <div class="field">
-                  <label for="crSemanas">Semanas a evaluar</label>
-                  <input type="text" id="crSemanas" placeholder="ej. T4_S1,T4_S2" autocomplete="off">
-                </div>
-                <div class="field">
-                  <label for="crOrganizador">Organizador (Nom_Multi, opcional)</label>
-                  <input type="text" id="crOrganizador" placeholder="Nombre tal como figura en Directorio" autocomplete="off">
+                  <label for="crOrganizadorSelect">¿Quién organizó esta corrida?</label>
+                  <select id="crOrganizadorSelect">
+                    <option value="">Sin especificar</option>
+                    <option value="__otro__">Ninguna de las anteriores</option>
+                  </select>
+                  <input type="text" id="crOrganizadorManual" placeholder="Nombre de quien organizó" style="margin-top:8px; display:none;">
                 </div>
                 <div class="field">
                   <label for="crComentario">Comentario</label>
@@ -3592,6 +3666,12 @@ initCampoHoraAmigable('sHoraMod', 'sHoraModTexto', 'sHoraModAmPm');
 initCampoFechaAmigable('sFechaPlan', 'sFechaPlanTexto', 'btnCalendarioSorteoPlan');
 initCampoHoraAmigable('sHoraPlan', 'sHoraPlanTexto', 'sHoraPlanAmPm');
 
+// FIX (13-sep-2026, pedido usuario): mismo mecanismo, ahora para el
+// formulario de Cambio de rango (#crFecha/#crFechaTexto/#btnCalendarioCR y
+// #crHora/#crHoraTexto/#crHoraAmPm).
+initCampoFechaAmigable('crFecha', 'crFechaTexto', 'btnCalendarioCR');
+initCampoHoraAmigable('crHora', 'crHoraTexto', 'crHoraAmPm');
+
 /* ---------- Selector de semanas (Temporada) para gestión de torneos y sorteos ----------
    FIX (09-sep-2026, pedido usuario): dentro del menú "Planificar, registrar
    o modificar torneos" (Registrar/Modificar/Planificar), después del
@@ -4613,6 +4693,14 @@ async function cargarNomMultisAdmins(){
   // igual que en las otras dos.
   const selMod = document.getElementById('tAutorSelectMod');
   const optOtroMod = selMod.querySelector('option[value="__otro__"]');
+  // FIX (13-sep-2026, pedido usuario -- "el organizador [de Cambio de
+  // rango] debe ser dropdown con los Nom_Multi de los admin"): mismo
+  // select nuevo, mismo criterio de "insertar antes de __otro__" que los
+  // tres de Torneos de arriba -- ver docblock junto a
+  // precargarOrganizadorCR()/obtenerOrganizadorCR() (más abajo en este
+  // <script>) para el resto del mecanismo.
+  const selCR = document.getElementById('crOrganizadorSelect');
+  const optOtroCR = selCR.querySelector('option[value="__otro__"]');
   // FIX (09-sep-2026 tarde, pedido usuario — "al marcar que lo organizo yo,
   // ya no debería aparecer mi nom_multi [en la lista]"): el Nom_Multi del
   // admin de la sesión ya está cubierto por la opción "Lo organic(é/o) yo
@@ -4652,6 +4740,11 @@ async function cargarNomMultisAdmins(){
         optMod.value = nm;
         optMod.textContent = nm;
         selMod.insertBefore(optMod, optOtroMod);
+
+        const optCR = document.createElement('option');
+        optCR.value = nm;
+        optCR.textContent = nm;
+        selCR.insertBefore(optCR, optOtroCR);
       });
     }
   }catch(err){
@@ -5923,10 +6016,12 @@ function precargarOtrosCriteriosCR(tipo, fila){
 async function limpiarFormularioCR(){
   crIdExistenteActual = '';
   crIdDescensoActual = '';
-  document.getElementById('crFecha').value = '';
-  document.getElementById('crHora').value = '';
-  document.getElementById('crSemanas').value = '';
-  document.getElementById('crOrganizador').value = '';
+  limpiarCampoFechaAmigable('crFecha', 'crFechaTexto');
+  limpiarCampoHoraAmigable('crHora', 'crHoraTexto', 'crHoraAmPm');
+  await reiniciarTemporadasCR(); // deja un solo bloque de temporada, sin nada marcado
+  document.getElementById('crOrganizadorSelect').value = '';
+  document.getElementById('crOrganizadorManual').value = '';
+  document.getElementById('crOrganizadorManual').style.display = 'none';
   document.getElementById('crComentario').value = '';
   document.getElementById('crGuardarMsg').innerHTML = '';
   await Promise.all([pintarGridCR('ascenso'), pintarGridCR('descenso')]); // PASO 4 -- grilla vacía (sin requisitos)
@@ -6002,17 +6097,26 @@ async function precargarFormularioCR(idAscenso){
     crIdExistenteActual = idAscenso;
     crIdDescensoActual = idDescenso; // PASO 5 -- idDescenso ya resuelto más arriba en esta función
 
+    const fFecha = document.getElementById('crFecha');
+    const fHora = document.getElementById('crHora');
     if(filaAsc.fecha){
       const d = new Date(filaAsc.fecha);
-      document.getElementById('crFecha').value = `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
-      document.getElementById('crHora').value  = `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+      fFecha.value = `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
+      fHora.value  = `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
     }else{
-      document.getElementById('crFecha').value = '';
-      document.getElementById('crHora').value = '';
+      fFecha.value = '';
+      fHora.value = '';
     }
-    document.getElementById('crSemanas').value = (filaAsc.semanas || [])
-      .map(s => `T${s.temporada}_S${s.semana}`).join(',');
-    document.getElementById('crOrganizador').value = filaAsc.organizador || '';
+    // FIX (13-sep-2026): #crFecha/#crHora ahora son los inputs OCULTOS del
+    // campo amigable (mismo patrón que #tFechaMod/#tHoraMod) -- hay que
+    // disparar 'change' para que #crFechaTexto/#crHoraTexto se actualicen
+    // solos (ver initCampoFechaAmigable()/initCampoHoraAmigable()).
+    fFecha.dispatchEvent(new Event('change'));
+    fHora.dispatchEvent(new Event('change'));
+
+    await precargarTemporadasCR(filaAsc.semanas || []);
+
+    precargarOrganizadorCR(filaAsc.organizador || '');
     document.getElementById('crComentario').value = filaAsc.comentario || '';
 
     await Promise.all([pintarGridCR('ascenso'), pintarGridCR('descenso')]);
@@ -6028,6 +6132,187 @@ async function precargarFormularioCR(idAscenso){
     document.getElementById('crPaso2Msg').innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
   }
 }
+
+/* ============================================================
+ * FIX (13-sep-2026, pedido usuario -- Cambio de rango: "en la sección de
+ * semanas a evaluar debe haber un selector de temporada y a la derecha
+ * checkboxes con las semanas que tenga esa temporada, también un botón
+ * para añadir otra temporada")
+ * ============================================================
+ * Reusa el mismo caché de las 5 semanas más recientes que ya usan
+ * Torneos/Sorteos (cargarSemanasRecientes(), más arriba en este mismo
+ * <script>) -- por eso el <select> de temporada normalmente solo ofrece 1
+ * o 2 temporadas (las que caen dentro de esas 5 semanas). Al editar una
+ * corrida vieja que apunta a una temporada fuera de ese rango, esa
+ * temporada igual se agrega como opción del <select> (ver
+ * mapaTemporadasCR()), pero sus checkboxes se pintan solo con las semanas
+ * puntuales que esa corrida ya tenía marcadas -- sin rango de fechas,
+ * porque ese dato no está fuera del caché de recientes.
+ * PENDIENTE BACKEND (mismo criterio que otros puntos marcados así en este
+ * archivo): si más adelante hace falta elegir semanas de CUALQUIER
+ * temporada pasada con su rango de fechas completo, se necesita un
+ * endpoint nuevo tipo webAdminSemanasDeTemporada(temporada) -- por ahora
+ * alcanza con lo de acá para el caso normal (corridas recientes).
+ *
+ * obtenerSemanasCR() arma el mismo string "T{temporada}_S{semana},..."
+ * que antes tipeaba el admin a mano en el viejo #crSemanas -- el resto de
+ * btnCrGuardar no cambia en nada.
+ */
+let _crTemporadaBloqueSeq = 0;
+
+async function mapaTemporadasCR(extra){
+  const cache = await cargarSemanasRecientes();
+  const map = new Map();
+  cache.forEach(s => {
+    if(!map.has(s.temporada)) map.set(s.temporada, []);
+    map.get(s.temporada).push({ lunesIso: s.lunesIso, domingoIso: s.domingoIso, semana: s.semana });
+  });
+  (extra || []).forEach(t => { if(!map.has(t)) map.set(t, []); });
+  return map;
+}
+
+function temporadasOrdenadasCR(map){
+  return Array.from(map.keys()).sort((a, b) => Number(b) - Number(a));
+}
+
+function pintarChecksTemporadaCR(bloqueEl, map, temporada, semanasPreseleccionadas){
+  const cont = bloqueEl.querySelector('.semana-selector');
+  const semanas = map.get(temporada) || [];
+  const pre = semanasPreseleccionadas || new Set();
+  if(!semanas.length){
+    cont.innerHTML = '<p class="text-dim" style="font-size:12px; margin:0; padding:4px 2px;">No hay semanas recientes para esta temporada.</p>';
+    return;
+  }
+  cont.innerHTML = semanas.map((s, i) => {
+    const id = `${bloqueEl.id}_s${i}`;
+    const rango = s.lunesIso ? ` (${fmtRangoSemana(s.lunesIso, s.domingoIso)})` : '';
+    const marcado = pre.has(s.semana) ? 'checked' : '';
+    return `<label class="semana-item" for="${id}">
+      <input type="checkbox" id="${id}" class="semana-check" data-temporada="${esc(String(temporada))}" data-semana="${esc(String(s.semana))}" ${marcado}>
+      <span>${esc(`Semana ${s.semana}${rango}`)}</span>
+    </label>`;
+  }).join('');
+}
+
+async function agregarBloqueTemporadaCR(temporadaPreseleccionada, semanasPreseleccionadas, mapaPrevio){
+  const cont = document.getElementById('crTemporadasContainer');
+  const map = mapaPrevio || await mapaTemporadasCR();
+  const opciones = temporadasOrdenadasCR(map);
+  if(!opciones.length){
+    cont.innerHTML = '<p class="text-dim" style="font-size:13px; margin:0;">No hay semanas recientes disponibles todavía.</p>';
+    return;
+  }
+  const temporada = (temporadaPreseleccionada != null && map.has(temporadaPreseleccionada)) ? temporadaPreseleccionada : opciones[0];
+
+  const id = `crTempBloque${_crTemporadaBloqueSeq++}`;
+  const bloque = document.createElement('div');
+  bloque.className = 'cr-temporada-bloque';
+  bloque.id = id;
+  bloque.innerHTML = `
+    <select class="cr-temporada-select">
+      ${opciones.map(t => `<option value="${esc(String(t))}" ${t === temporada ? 'selected' : ''}>Temporada ${esc(String(t))}</option>`).join('')}
+    </select>
+    <div class="semana-selector"></div>
+    <button type="button" class="cr-temporada-quitar" title="Quitar esta temporada" aria-label="Quitar esta temporada">✕</button>
+  `;
+  cont.appendChild(bloque);
+
+  pintarChecksTemporadaCR(bloque, map, temporada, semanasPreseleccionadas);
+
+  bloque.querySelector('.cr-temporada-select').addEventListener('change', (ev) => {
+    // Se cambió de temporada dentro del mismo bloque: repinta desde cero,
+    // sin nada preseleccionado (la selección de antes correspondía a la
+    // temporada anterior).
+    pintarChecksTemporadaCR(bloque, map, ev.target.value, null);
+  });
+  bloque.querySelector('.cr-temporada-quitar').addEventListener('click', () => {
+    bloque.remove();
+  });
+}
+
+async function reiniciarTemporadasCR(){
+  document.getElementById('crTemporadasContainer').innerHTML = '';
+  _crTemporadaBloqueSeq = 0;
+  await agregarBloqueTemporadaCR();
+}
+
+async function precargarTemporadasCR(semanas){
+  document.getElementById('crTemporadasContainer').innerHTML = '';
+  _crTemporadaBloqueSeq = 0;
+  if(!semanas || !semanas.length){
+    await agregarBloqueTemporadaCR();
+    return;
+  }
+  const porTemporada = new Map(); // temporada -> Set(semana)
+  semanas.forEach(s => {
+    if(!porTemporada.has(s.temporada)) porTemporada.set(s.temporada, new Set());
+    porTemporada.get(s.temporada).add(s.semana);
+  });
+  const map = await mapaTemporadasCR(Array.from(porTemporada.keys()));
+  for(const [temporada, semanaSet] of porTemporada){
+    await agregarBloqueTemporadaCR(temporada, semanaSet, map);
+  }
+}
+
+/** Junta los checkboxes marcados de TODOS los bloques de temporada en el
+ * mismo string "T{temporada}_S{semana},..." que antes tipeaba el admin a
+ * mano -- viaja tal cual como campo `semanas` a _webCRListaGuardar(). */
+function obtenerSemanasCR(){
+  const partes = [];
+  document.querySelectorAll('#crTemporadasContainer .semana-check:checked').forEach(chk => {
+    partes.push(`T${chk.dataset.temporada}_S${chk.dataset.semana}`);
+  });
+  return partes.join(',');
+}
+
+document.getElementById('btnCrAgregarTemporada').addEventListener('click', () => {
+  agregarBloqueTemporadaCR();
+});
+
+/* ============================================================
+ * FIX (13-sep-2026, pedido usuario -- Cambio de rango: "el organizador
+ * debe ser dropdown con los Nom_Multi de los admin, no debe mostrarse el
+ * texto 'Nom_Multi', los usuarios finales no saben qué es eso")
+ * ============================================================
+ * Mismo patrón que #tAutorSelect/#tAutorSelectMod (Torneos): el <select>
+ * se puebla en cargarNomMultisAdmins() (ver más arriba en este mismo
+ * <script>) con los Nom_Multi de los admins, sin exponer esa palabra en
+ * ninguna etiqueta visible. "Ninguna de las anteriores" revela
+ * #crOrganizadorManual para escribirlo a mano. A diferencia de
+ * #tAutorSelect, acá SÍ se incluye el propio Nom_Multi del admin de la
+ * sesión en la lista (mismo criterio que #tAutorSelectMod): el campo
+ * Organizador de una corrida de Cambio de Rango es informativo y opcional,
+ * no asume que quien registra es quien organizó. */
+function obtenerOrganizadorCR(){
+  const sel = document.getElementById('crOrganizadorSelect');
+  if(sel.value === '__otro__') return document.getElementById('crOrganizadorManual').value.trim();
+  return sel.value;
+}
+
+function precargarOrganizadorCR(organizador){
+  const sel = document.getElementById('crOrganizadorSelect');
+  const manual = document.getElementById('crOrganizadorManual');
+  const yaExiste = organizador && Array.from(sel.options).some(o => o.value === organizador);
+  if(!organizador){
+    sel.value = '';
+    manual.style.display = 'none';
+    manual.value = '';
+  }else if(yaExiste){
+    sel.value = organizador;
+    manual.style.display = 'none';
+    manual.value = '';
+  }else{
+    sel.value = '__otro__';
+    manual.style.display = '';
+    manual.value = organizador;
+  }
+}
+
+document.getElementById('crOrganizadorSelect').addEventListener('change', () => {
+  const esOtro = document.getElementById('crOrganizadorSelect').value === '__otro__';
+  document.getElementById('crOrganizadorManual').style.display = esOtro ? '' : 'none';
+  if(!esOtro) document.getElementById('crOrganizadorManual').value = '';
+});
 
 document.getElementById('btnCrPaso1').addEventListener('click', async () => {
   const accion = document.getElementById('crAccion').value;
@@ -6082,8 +6367,8 @@ document.getElementById('btnCrGuardar').addEventListener('click', async () => {
     return;
   }
   const hora = document.getElementById('crHora').value;
-  const semanas = document.getElementById('crSemanas').value.trim();
-  const organizador = document.getElementById('crOrganizador').value.trim();
+  const semanas = obtenerSemanasCR();
+  const organizador = obtenerOrganizadorCR();
   const comentario = document.getElementById('crComentario').value.trim();
 
   msgEl.innerHTML = '<div class="text-dim">Guardando…</div>';
