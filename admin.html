@@ -2258,6 +2258,31 @@
                 <option value="__otro__">Otro (especificar)</option>
               </select>
             </div>
+            <!-- FASE (13-sep-2026, pedido del usuario -- consolidado punto 2
+                 "dropdown de Motivo en Torneos", cierre de Empate que había
+                 quedado sin decidir): mismo patrón que
+                 #resMotivoDescalificadoWrap de arriba, uno por cada variante
+                 de Empate -- ver actualizarVisibilidadMotivoResolucion() más
+                 abajo en el <script> para el criterio de cuál se muestra. -->
+            <div class="field" id="resMotivoRepartoWrap" style="display:none;">
+              <label for="resMotivoRepartoSelect">Motivo</label>
+              <select id="resMotivoRepartoSelect">
+                <option value="">-- Seleccionar --</option>
+                <option value="Premio se reparte en partes iguales entre los empatados">Premio se reparte en partes iguales entre los empatados</option>
+                <option value="Premio se reparte proporcional al puntaje">Premio se reparte proporcional al puntaje</option>
+                <option value="__otro__">Otro (especificar)</option>
+              </select>
+            </div>
+            <div class="field" id="resMotivoDesempateWrap" style="display:none;">
+              <label for="resMotivoDesempateSelect">Motivo</label>
+              <select id="resMotivoDesempateSelect">
+                <option value="">-- Seleccionar --</option>
+                <option value="Ganó la partida de desempate">Ganó la partida de desempate</option>
+                <option value="Perdió la partida de desempate">Perdió la partida de desempate</option>
+                <option value="No se presentó a la partida de desempate">No se presentó a la partida de desempate</option>
+                <option value="__otro__">Otro (especificar)</option>
+              </select>
+            </div>
             <div class="field" id="resMotivoWrap">
               <label for="resMotivo">Motivo</label>
               <input type="text" id="resMotivo" placeholder="La razón del castigo o el detalle del desempate — queda visible en el Doc y en la web">
@@ -6540,10 +6565,7 @@ document.getElementById('btnRegistrarSorteo').addEventListener('click', async ()
  *     a verificación manual del admin, con o sin número).
  *   - "Marcar visto en el grupo (manual)": para el caso "sí está en el
  *     grupo pero se nos olvidó registrar su número" — el admin lo
- *     confirma a ojo. Todavía es SOLO DE ESTA SESIÓN (_grupoVerificadoTags,
- *     un Set en memoria) — ver CONTRATO PENDIENTE, falta que el backend
- *     tenga dónde guardar esta confirmación para que sobreviva a recargar
- *     la página o a que otro admin la vea.
+ *     confirma a ojo.
  *   - "Descalificar: no está en el grupo" reutiliza el mismo formulario de
  *     resolución de siempre (abrirResolucionForm, tipoResolucion ya
  *     existente "Descalificado") con el motivo pre-rellenado, en vez de
@@ -6559,13 +6581,33 @@ document.getElementById('btnRegistrarSorteo').addEventListener('click', async ()
  *      ninguna de esas dos hojas, el campo simplemente no llega y se sigue
  *      mostrando el badge "Sin número registrado" con sus dos acciones
  *      manuales, tal como antes.
- *   2) "Marcar visto en el grupo" TODAVÍA sigue siendo solo-sesión — sigue
- *      pendiente de conectar (falta un lugar en el backend donde persistir
- *      esa confirmación). _marcarVistoEnGrupo() de abajo ya está aislada
- *      en una sola función para que, cuando exista esa acción, sea el
- *      único lugar a tocar. */
+ *
+ * CONECTADO (14-sep-2026): "Marcar visto en el grupo" deja de ser
+ * solo-sesión — ahora persiste en la hoja Grupo_Verificado (ver
+ * _setupGrupoVerificado(), 03_Setup_Hojas.gs) vía el endpoint
+ * webAdminMarcarVistoEnGrupo (_webAdminMarcarVistoEnGrupo(), 34_Web_API.gs
+ * → _marcarVistoEnGrupoVerificado(), 24_Torneos_Core.gs). La confirmación
+ * es GLOBAL por Tag (no por torneo): una vez marcado, queda verificado
+ * para siempre, así que otro admin (o el mismo, en otra sesión/recarga) ya
+ * lo ve pintado sin tener que volver a confirmarlo. La respuesta de
+ * webAdminGanadoresTorneoDetalle ahora trae `verificadoGrupo:true` por
+ * participante cuando corresponde (ver _webMapearParticipanteAdminResolucion(),
+ * 34_Web_API.gs) — reemplaza por completo al Set en memoria que había
+ * antes. marcarVistoEnGrupo() de abajo queda como el único lugar que llama
+ * a ese endpoint. */
 let ganadoresIdTorneoActual = null;
-const _grupoVerificadoTags = new Set(); // solo-sesión, ver CONTRATO PENDIENTE punto 2
+
+/** Llama a webAdminMarcarVistoEnGrupo y devuelve la respuesta cruda — el
+ * llamador decide qué hacer con data.ok/data.error (ver el listener de
+ * #ganadoresLista más abajo). Única función que toca este endpoint, para
+ * que si el día de mañana hace falta cambiar algo del llamado (headers,
+ * reintentos, lo que sea) sea un solo lugar a tocar. */
+async function marcarVistoEnGrupo(tag, nombre){
+  return apiPost('webAdminMarcarVistoEnGrupo', {
+    sessionToken: localStorage.getItem(SESSION_KEY),
+    tag, nombre
+  });
+}
 
 /** Arma el link de WhatsApp de un ganador si hay celular disponible.
  * Acepta p.celular ya completo (con prefijo) o p.celular + p.prefijo por
@@ -6593,7 +6635,7 @@ function filaParticipanteResolucion(p){
   }
 
   const waLink = _waLinkGanador(p);
-  const verificadoManual = _grupoVerificadoTags.has(p.tag);
+  const verificadoManual = !!p.verificadoGrupo;
   let grupoHtml;
   if(waLink){
     grupoHtml = `
@@ -6605,7 +6647,7 @@ function filaParticipanteResolucion(p){
         <span class="badge">Sin número registrado</span>
         ${verificadoManual
           ? '<span class="badge badge-ok">Visto en el grupo (manual)</span>'
-          : `<button type="button" class="btn-icono btnMarcarGrupoManual" data-tag="${esc(p.tag)}">Marcar visto en el grupo</button>`}
+          : `<button type="button" class="btn-icono btnMarcarGrupoManual" data-tag="${esc(p.tag)}" data-nombre="${esc(p.nombre)}">Marcar visto en el grupo</button>`}
         <button type="button" class="btn-icono btnDescalificarSinGrupo" data-tag="${esc(p.tag)}" data-nombre="${esc(p.nombre)}" style="border-color:var(--danger); color:var(--danger);">Descalificar: no está en el grupo</button>
       </div>`;
   }
@@ -6658,20 +6700,36 @@ async function cargarGanadoresTorneo(){
 
 // Delegación de clics: los botones "Gestionar" se regeneran cada vez que
 // se repinta #ganadoresLista, así que el listener va en el contenedor fijo.
-document.getElementById('ganadoresLista').addEventListener('click', (ev) => {
+document.getElementById('ganadoresLista').addEventListener('click', async (ev) => {
   const btnGestionar = ev.target.closest('.btnGestionarResolucion');
   if(btnGestionar){
     abrirResolucionForm(btnGestionar.dataset.tag, btnGestionar.dataset.nombre, { tipoResolucion: btnGestionar.dataset.tipo, motivoResolucion: btnGestionar.dataset.motivo });
     return;
   }
-  // FIX (08-sep-2026, pedido usuario): "Marcar visto en el grupo" — ver
-  // CONTRATO PENDIENTE junto a _grupoVerificadoTags más arriba (todavía
-  // solo-sesión, no persiste en el backend). Repinta la lista completa
-  // para no tener que tocar el DOM de esa fila a mano.
+  // FIX (08-sep-2026, pedido usuario) / CONECTADO (14-sep-2026): "Marcar
+  // visto en el grupo" — ver docblock junto a marcarVistoEnGrupo() más
+  // arriba. Repinta la lista completa tras confirmar en el backend, para
+  // no tener que tocar el DOM de esa fila a mano (mismo criterio que ya
+  // usaban las otras acciones de este panel tras un guardado exitoso).
   const btnMarcar = ev.target.closest('.btnMarcarGrupoManual');
   if(btnMarcar){
-    _grupoVerificadoTags.add(btnMarcar.dataset.tag);
-    cargarGanadoresTorneo();
+    btnMarcar.disabled = true;
+    btnMarcar.textContent = 'Guardando…';
+    try{
+      const data = await marcarVistoEnGrupo(btnMarcar.dataset.tag, btnMarcar.dataset.nombre);
+      if(manejarRespuestaAuth(data)) return;
+      if(!data.ok){
+        document.getElementById('ganadoresMsg').innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`;
+        btnMarcar.disabled = false;
+        btnMarcar.textContent = 'Marcar visto en el grupo';
+        return;
+      }
+      cargarGanadoresTorneo();
+    }catch(err){
+      document.getElementById('ganadoresMsg').innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
+      btnMarcar.disabled = false;
+      btnMarcar.textContent = 'Marcar visto en el grupo';
+    }
     return;
   }
   // "Descalificar: no está en el grupo" — reutiliza el formulario de
@@ -6695,13 +6753,17 @@ function abrirResolucionForm(tag, nombre, resolucionActual){
   document.getElementById('resPuestoFinal').value = '';
   const motivoActual = (resolucionActual && resolucionActual.motivoResolucion) || '';
   document.getElementById('resMotivo').value = motivoActual;
-  // Si el motivo ya trae uno de los valores fijos del dropdown (ej. el
-  // precargado por "Descalificar: no está en el grupo"), lo selecciona
-  // ahí; si no coincide con ninguno, deja el dropdown en "-- Seleccionar
-  // --" para que se vea el texto libre con lo que ya venía escrito.
-  const selDescalificado = document.getElementById('resMotivoDescalificadoSelect');
-  const opcionesFijas = Array.from(selDescalificado.options).map(o => o.value).filter(v => v && v !== '__otro__');
-  selDescalificado.value = opcionesFijas.includes(motivoActual) ? motivoActual : '';
+  // Si el motivo ya trae uno de los valores fijos del dropdown de SU tipo
+  // (ej. el precargado por "Descalificar: no está en el grupo"), lo
+  // selecciona ahí; si no coincide con ninguno, deja el dropdown en
+  // "-- Seleccionar --" para que se vea el texto libre con lo que ya venía
+  // escrito. Se resetean los otros dropdowns para no arrastrar una
+  // selección vieja de otro tipo entre una apertura y la siguiente.
+  Object.values(TIPO_A_DROPDOWN_MOTIVO).forEach(cfg => {
+    const sel = document.getElementById(cfg.selectId);
+    const opcionesFijas = Array.from(sel.options).map(o => o.value).filter(v => v && v !== '__otro__');
+    sel.value = opcionesFijas.includes(motivoActual) ? motivoActual : '';
+  });
   actualizarVisibilidadMotivoResolucion();
   document.getElementById('resolucionMsg').innerHTML = '';
   const form = document.getElementById('resolucionForm');
@@ -6710,35 +6772,52 @@ function abrirResolucionForm(tag, nombre, resolucionActual){
 }
 
 // FASE (12-sep-2026, pedido del usuario -- consolidado punto 2 "dropdown
-// de Motivo en Torneos"): dropdown de motivos específicos SOLO para
-// "Descalificado" (Empate sigue en texto libre -- ver docblock de
-// resMotivo, "el detalle del desempate" es descriptivo, no categorizable
-// en una lista corta, a la espera de que el usuario defina esos valores
-// si los quiere). #resMotivo sigue siendo el campo real que viaja a
+// de Motivo en Torneos"): dropdown de motivos específicos para
+// "Descalificado". #resMotivo sigue siendo el campo real que viaja a
 // _webAdminTorneoResolucionGuardar() (backend sin cambios): cuando se
 // elige un motivo fijo del dropdown, se copia tal cual a #resMotivo (oculto
 // mientras tanto); si se elige "Otro" o no se elige nada todavía, se
 // muestra #resMotivo para texto libre, igual que el comportamiento previo
 // a este cambio.
+//
+// FASE (13-sep-2026, pedido del usuario -- cierre del punto de Empate que
+// había quedado sin decidir): mismo patrón, ahora también para las dos
+// variantes de Empate, cada una con su propia lista fija
+// (#resMotivoRepartoSelect / #resMotivoDesempateSelect) -- ver el mapa
+// TIPO_A_DROPDOWN_MOTIVO más abajo, que generaliza el criterio en vez de
+// repetir el mismo bloque if/else por cada tipo nuevo.
+const TIPO_A_DROPDOWN_MOTIVO = {
+  'Descalificado': { wrapId: 'resMotivoDescalificadoWrap', selectId: 'resMotivoDescalificadoSelect' },
+  'Empate - Reparto de premio': { wrapId: 'resMotivoRepartoWrap', selectId: 'resMotivoRepartoSelect' },
+  'Empate - Partida de desempate': { wrapId: 'resMotivoDesempateWrap', selectId: 'resMotivoDesempateSelect' }
+};
+
 function actualizarVisibilidadMotivoResolucion(){
   const tipo = document.getElementById('resTipo').value;
-  const selDescalificado = document.getElementById('resMotivoDescalificadoSelect');
-  const wrapDescalificado = document.getElementById('resMotivoDescalificadoWrap');
   const wrapMotivo = document.getElementById('resMotivoWrap');
   const inputMotivo = document.getElementById('resMotivo');
+  const dropdownActual = TIPO_A_DROPDOWN_MOTIVO[tipo];
 
-  if (tipo === 'Descalificado'){
-    wrapDescalificado.style.display = 'block';
-    const esOtroOSinElegir = selDescalificado.value === '__otro__' || selDescalificado.value === '';
+  Object.values(TIPO_A_DROPDOWN_MOTIVO).forEach(cfg => {
+    if (!dropdownActual || cfg.wrapId !== dropdownActual.wrapId){
+      document.getElementById(cfg.wrapId).style.display = 'none';
+    }
+  });
+
+  if (dropdownActual){
+    const sel = document.getElementById(dropdownActual.selectId);
+    document.getElementById(dropdownActual.wrapId).style.display = 'block';
+    const esOtroOSinElegir = sel.value === '__otro__' || sel.value === '';
     wrapMotivo.style.display = esOtroOSinElegir ? 'block' : 'none';
-    if (!esOtroOSinElegir) inputMotivo.value = selDescalificado.value;
+    if (!esOtroOSinElegir) inputMotivo.value = sel.value;
   } else {
-    wrapDescalificado.style.display = 'none';
     wrapMotivo.style.display = 'block';
   }
 }
 
-document.getElementById('resMotivoDescalificadoSelect').addEventListener('change', actualizarVisibilidadMotivoResolucion);
+Object.values(TIPO_A_DROPDOWN_MOTIVO).forEach(cfg => {
+  document.getElementById(cfg.selectId).addEventListener('change', actualizarVisibilidadMotivoResolucion);
+});
 
 document.getElementById('resTipo').addEventListener('change', () => {
   document.getElementById('resPuestoFinalWrap').style.display =
