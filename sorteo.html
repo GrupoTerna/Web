@@ -714,6 +714,26 @@
           <span>Descartar intentos de prueba<span class="hint">Si el 3° es el ganador, saca de la ruleta también al 1° y 2° (no ganaron, pero ya "salieron")</span></span>
           <label class="switch"><input id="discardTrialsToggle" type="checkbox"><span class="slider"></span></label>
         </div>
+        <!-- NUEVO (14-sep-2026, pedido usuario -- "en la ruleta agrega una
+             opción para quitar un ticket por cada giro que hace la
+             ruleta. reitero que debe ser opcional"): #removeTicketPerSpinToggle,
+             DESMARCADO por defecto (como pidió el usuario, es opcional, no
+             cambia el comportamiento actual si no se activa). Con esto
+             activado, cada giro (gane o no el premio ese intento) le resta
+             1 ticket al participante que salió en ESE giro -- ver el
+             bloque que hace `slice.participant.weight -= 1` dentro de
+             spin(), justo después de conocer `slice`, antes de separar en
+             isFinal/no-final (aplica a los dos casos por igual, tal cual
+             "por cada giro" y no solo "por cada premio"). Un participante
+             que llega a 0 tickets no necesita marcarse `active:false` a
+             mano -- computeSlices() ya le arma una porción de ancho 0 en
+             la ruleta (ver ese bloque, `w = Number(p.weight) > 0 ? ... :
+             0`), así que en la práctica deja de poder salir sorteado sin
+             tocar ningún otro mecanismo de descarte. -->
+        <div class="setting-row">
+          <span>Quitar un ticket por cada giro<span class="hint">Cada vez que gira la ruleta, resta 1 ticket a quien salió en ese giro (gane o no el premio) — reduce su probabilidad en los próximos giros, como al ir sacando boletos de una tómbola</span></span>
+          <label class="switch"><input id="removeTicketPerSpinToggle" type="checkbox"><span class="slider"></span></label>
+        </div>
       </div>
     </div>
 
@@ -877,6 +897,7 @@
   var winCount          = document.getElementById('winCount');
   var discardToggle    = document.getElementById('discardToggle');
   var discardTrialsToggle = document.getElementById('discardTrialsToggle');
+  var removeTicketPerSpinToggle = document.getElementById('removeTicketPerSpinToggle');
   var prizeCountInput  = document.getElementById('prizeCountInput');
   var prizeProgress    = document.getElementById('prizeProgress');
   var loadQualifiedBtn = document.getElementById('loadQualifiedBtn');
@@ -1429,10 +1450,21 @@
       spinning = false;
       spinBtn.disabled = false;
       var name = slice.participant.name;
+      var pesoOriginalGiro = slice.participant.weight; // antes de restar el ticket de este giro (ver más abajo)
 
       resultName.textContent = name;
       resultName.classList.add('show');
       resultName.classList.toggle('final', isFinal);
+
+      // NUEVO (14-sep-2026, pedido usuario -- opción "Quitar un ticket por
+      // cada giro"): se aplica ACÁ, antes de separar en isFinal/no-final,
+      // porque el pedido fue "por cada giro que hace la ruleta" (no solo
+      // por cada premio entregado). Clamp a 0 -- nunca queda negativo.
+      // Ver docblock junto a #removeTicketPerSpinToggle (arriba, en el
+      // <div class="setting-row">) para el resto del mecanismo.
+      if (removeTicketPerSpinToggle.checked && Number(slice.participant.weight) > 0){
+        slice.participant.weight = Math.max(0, Number(slice.participant.weight) - 1);
+      }
 
       if (isFinal){
         resultSub.textContent = '¡Ganador confirmado del premio #' + (winners.length+1) + '!';
@@ -1471,8 +1503,8 @@
           // probabilidad) -- sugerido en el campo Tickets del formulario de
           // resolución (ver abrirResolucionGanador()), pero editable a mano
           // antes de guardar, igual que Tag/Premio.
-          tickets: (typeof slice.participant.weight === 'number' && slice.participant.weight > 0)
-            ? slice.participant.weight : null,
+          tickets: (typeof pesoOriginalGiro === 'number' && pesoOriginalGiro > 0)
+            ? pesoOriginalGiro : null,
           guardado: false
         };
         winners.push(w);
@@ -1488,14 +1520,24 @@
         renderWheel();
       } else {
         resultSub.textContent = 'Intento ' + attempt + ' de ' + target + ' — seguí girando…';
+        var seDescartoIntento = false;
         if (discardTrialsToggle.checked){
           var trialP = participants.find(function(x){ return x.name === name; });
           if (trialP && trialP.active){
             trialP.active = false;
             roundTrialDiscards.push(trialP.id);
-            renderParticipants();
-            renderWheel();
+            seDescartoIntento = true;
           }
+        }
+        // FIX (14-sep-2026, junto con "Quitar un ticket por cada giro"):
+        // sin este `||`, si el toggle de tickets está activo pero
+        // "Descartar intentos de prueba" no, el peso bajaba en el dato
+        // pero el <input> de tickets y la rueda quedaban con el valor
+        // viejo hasta el próximo giro -- ahora se refresca apenas
+        // cualquiera de los dos cambió algo sobre el participante.
+        if (seDescartoIntento || removeTicketPerSpinToggle.checked){
+          renderParticipants();
+          renderWheel();
         }
         attempt += 1;
       }
