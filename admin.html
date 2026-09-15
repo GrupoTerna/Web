@@ -55,9 +55,14 @@
      flujo, no flota sobre el resto del formulario). .mr-celular es un
      badge chico para saber de un vistazo si el miembro ya tiene celular
      registrado. */
-  .nm-modo-selector{display:flex; gap:20px; flex-wrap:wrap;}
-  .nm-modo-selector label{display:flex; align-items:center; gap:7px; font-size:14px; font-weight:normal; cursor:pointer;}
-  .nm-modo-selector input[type="radio"]{width:16px; height:16px; margin:0; cursor:pointer; accent-color:var(--purple-light);}
+  /* FIX (15-sep-2026, pedido usuario -- los 2 radios "están feos"): ahora
+     .nm-modo-selector es una fila de pastillas .tab-clan, exactamente el
+     mismo control que Torneos/Sorteos/Cambio de rango (.btn-toggle-torsor)
+     en el panel de planificar/registrar/modificar. Mismo gap de 6px que
+     .contenido-tabs para que las dos filas se vean idénticas; el color,
+     borde, radio y tipografía los pone .tab-clan/.tab-clan.activo, no hace
+     falta repetirlos acá. */
+  .nm-modo-selector{display:flex; align-items:center; gap:6px; flex-wrap:wrap;}
   .nm-dir-lista{
     max-height:320px; overflow-y:auto; border:1px solid var(--line); border-radius:var(--radius-sm);
     background:var(--bg-2);
@@ -619,9 +624,21 @@
                #nmPaso2, sin cambios). -->
           <div class="field">
             <label>¿Cómo quieres identificar al miembro?</label>
-            <div class="nm-modo-selector">
-              <label><input type="radio" name="nmModo" id="nmModoTagRadio" value="tag" checked> Ingresar tag</label>
-              <label><input type="radio" name="nmModo" id="nmModoDirRadio" value="directorio"> Buscar en Directorio</label>
+            <!-- FIX (15-sep-2026, pedido usuario -- "en el panel admin
+                 (registrar miembro nuevo) se debe cambiar esas opciones de
+                 ingresar tag y buscar directorio (no los datos, sino el
+                 formato porque están feos) y cambialo por el estilo que
+                 tienen los botones de torneo, sorteo y cambio de rango"):
+                 los 2 <input type="radio"> se reemplazan por botones
+                 .tab-clan (mismas pastillas que #panelTorSorAccion usa para
+                 Torneos/Sorteos/Cambio de rango, ver .btn-toggle-torsor más
+                 abajo en este mismo archivo). Los DATOS y el flujo no
+                 cambian: siguen siendo los mismos 2 modos, el activo se
+                 marca con .activo y se lee de data-modo (ver
+                 actualizarModoRegistrarNuevo() en el <script>). -->
+            <div class="nm-modo-selector" id="nmModoSelector">
+              <button type="button" class="tab-clan btn-toggle-nmmodo activo" data-modo="tag">Ingresar tag</button>
+              <button type="button" class="tab-clan btn-toggle-nmmodo" data-modo="directorio">Buscar en Directorio</button>
             </div>
           </div>
 
@@ -7566,7 +7583,12 @@ document.getElementById('nmNomMultiSelect').addEventListener('change', () => {
  * miembro nuevo agrega la opción de 'Buscar en Directorio'. ahora serían
  * dos opciones: 'Buscar en Directorio' o 'Ingresar tag'")
  * ============================================================
- * #nmModoTagRadio/#nmModoDirRadio alternan #nmModoTagBox/#nmModoDirBox.
+ * Los 2 botones .btn-toggle-nmmodo (#nmModoSelector) alternan
+ * #nmModoTagBox/#nmModoDirBox. (Hasta el 14-sep-2026 esto eran 2
+ * <input type="radio"> #nmModoTagRadio/#nmModoDirRadio; el 15-sep-2026 se
+ * cambiaron por pastillas .tab-clan a pedido del usuario -- mismo estilo
+ * que Torneos/Sorteos/Cambio de rango. Solo cambió el control visual, no
+ * el flujo ni los datos.)
  * "Ingresar tag" es el flujo YA EXISTENTE (Tag escrito a mano + botón
  * Verificar -- ver verificarTagNuevoMiembro() más abajo, sin cambios) y
  * queda marcado por defecto al abrir la subsección.
@@ -7606,11 +7628,28 @@ document.getElementById('nmNomMultiSelect').addEventListener('change', () => {
 let _nmDirCacheClan = null; // clan cuyos miembros están en _nmDirMiembrosCache
 let _nmDirMiembrosCache = [];
 
-document.getElementById('nmModoTagRadio').addEventListener('change', actualizarModoRegistrarNuevo);
-document.getElementById('nmModoDirRadio').addEventListener('change', actualizarModoRegistrarNuevo);
+/* FIX (15-sep-2026): el modo ya no vive en un <input type="radio"> sino en
+   cuál de los 2 botones .btn-toggle-nmmodo tiene la clase .activo -- mismo
+   patrón que el switcher .btn-toggle-torsor (Torneos/Sorteos/Cambio de
+   rango) más abajo. El comportamiento no cambia: se sigue llamando a
+   actualizarModoRegistrarNuevo() en cada cambio, y "Ingresar tag" sigue
+   siendo el modo por defecto (es el que trae .activo en el HTML). */
+document.querySelectorAll('.btn-toggle-nmmodo').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if(btn.classList.contains('activo')) return; // ya estaba en ese modo: nada que hacer
+    document.querySelectorAll('.btn-toggle-nmmodo').forEach(b => b.classList.toggle('activo', b === btn));
+    actualizarModoRegistrarNuevo();
+  });
+});
+
+/** Modo elegido hoy: 'tag' | 'directorio' (se lee del botón .activo). */
+function modoRegistrarNuevoActual(){
+  const activo = document.querySelector('.btn-toggle-nmmodo.activo');
+  return activo ? activo.dataset.modo : 'tag';
+}
 
 function actualizarModoRegistrarNuevo(){
-  const esDirectorio = document.getElementById('nmModoDirRadio').checked;
+  const esDirectorio = modoRegistrarNuevoActual() === 'directorio';
   document.getElementById('nmModoTagBox').style.display = esDirectorio ? 'none' : '';
   document.getElementById('nmModoDirBox').style.display = esDirectorio ? '' : 'none';
   document.getElementById('nmVerificarMsg').innerHTML = '';
