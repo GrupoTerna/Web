@@ -2470,6 +2470,20 @@
                 <option value="Descalificado">Descalificado</option>
                 <option value="Empate - Reparto de premio">Empate - Reparto de premio</option>
                 <option value="Empate - Partida de desempate">Empate - Partida de desempate</option>
+                <!-- FASE (15-sep-2026, pedido del usuario — "cuentas
+                     prestadas en torneos"): tipo nuevo que NO castiga ni
+                     mueve el puesto; solo deja constancia de que la cuenta
+                     estaba prestada y de a quién se le entrega el premio.
+                     Se pre-selecciona automáticamente desde el bloque
+                     "¿Quién jugó con esta cuenta?" de cada fila de
+                     #ganadoresLista (ver filaParticipanteResolucion() y
+                     PRESTAMO_TIPO_RESOLUCION más abajo); también queda
+                     disponible a mano por si hay que corregirlo después.
+                     No tiene dropdown de Motivo propio (no está en
+                     TIPO_A_DROPDOWN_MOTIVO) porque el motivo se arma solo
+                     con el Nom_Multi de quien jugó — cae en el #resMotivo
+                     de texto libre, editable antes de guardar. -->
+                <option value="Cuenta prestada">Cuenta prestada — premio a quien jugó</option>
               </select>
             </div>
             <div class="field" id="resPuestoFinalWrap" style="display:none;">
@@ -7121,6 +7135,9 @@ document.getElementById('btnRegistrarSorteo').addEventListener('click', async ()
  * a ese endpoint. */
 let ganadoresIdTorneoActual = null;
 
+/** Participantes del torneo cargado, por Tag — ver cargarGanadoresTorneo(). */
+let ganadoresPorTag = new Map();
+
 /** Llama a webAdminMarcarVistoEnGrupo y devuelve la respuesta cruda — el
  * llamador decide qué hacer con data.ok/data.error (ver el listener de
  * #ganadoresLista más abajo). Única función que toca este endpoint, para
@@ -7148,13 +7165,111 @@ function _waLinkGanador(p){
   return `https://wa.me/${prefijo}${celular}`;
 }
 
+/* ============================================================
+ * FASE (15-sep-2026, pedido del usuario — cuentas prestadas en torneos)
+ * ============================================================
+ * "en los torneos, si la cuenta tiene un valor registrado en la columna
+ * Préstamo de Directorio, debes preguntar quién jugó, dando a elegir entre
+ * el Nom_Multi (o Nombre en caso de no tener Nom_Multi) o el Nom_Multi que
+ * aparece en Préstamo. (...) Si se selecciona la columna Préstamo, se deja
+ * un comentario mencionando que la cuenta había sido prestada a "" y se le
+ * entrega el premio a esa persona. Si gana el dueño de la cuenta se sigue
+ * normal. Si el ganador no tiene nada en la columna Préstamo se omite la
+ * pregunta."
+ *
+ * Cómo queda implementado acá:
+ *   - Cada fila de #ganadoresLista con `p.prestamo` no vacío pinta el
+ *     bloque "¿Quién jugó con esta cuenta?" con DOS botones: el dueño
+ *     (p.nomMulti || p.nombre) y el prestatario (p.prestamo, que ya es un
+ *     Nom_Multi porque así se llena esa columna del Directorio).
+ *   - Dueño → no se registra nada en el backend (es el caso normal, igual
+ *     que cualquier ganador sin préstamo); solo se marca la pregunta como
+ *     respondida en PRESTAMO_RESPONDIDO_DUENO para que no vuelva a
+ *     preguntar mientras dure la sesión. Mismo criterio que tenía "visto
+ *     en el grupo" antes de persistirse: si se recarga, vuelve a
+ *     preguntar, que es inofensivo (la respuesta correcta sigue siendo
+ *     "dueño" y no hay nada que corregir).
+ *   - Prestatario → NO guarda solo: abre el formulario de resolución de
+ *     siempre (abrirResolucionForm()) con tipo "Cuenta prestada" y el
+ *     motivo/comentario ya redactado, exactamente el mismo patrón que ya
+ *     usaba "Descalificar: no está en el grupo". Así el admin ve el texto
+ *     antes de que quede escrito y puede ajustarlo. Al guardar viaja por
+ *     webAdminTorneoResolucionGuardar, sin endpoint nuevo.
+ *   - Sin `p.prestamo` → no se pinta nada (pregunta omitida).
+ *
+ * PENDIENTE DE BACKEND (Google Apps Script, no está en este archivo):
+ *   1) _webMapearParticipanteAdminResolucion() (34_Web_API.gs) debe
+ *      agregar al participante los campos `prestamo` (columna Préstamo de
+ *      Directorio) y `nomMulti` (columna Nom_Multi). Mientras no lleguen,
+ *      este bloque simplemente no se pinta nunca y el panel se comporta
+ *      igual que antes — no rompe nada.
+ *   2) _registrarResolucionTorneo() (24_Torneos_Core.gs) debe aceptar
+ *      tipoResolucion "Cuenta prestada" como resolución de SOLO
+ *      comentario: no descalifica, no reparte premio y no toca el puesto;
+ *      únicamente guarda el motivo para que se vea en el Doc y en la web.
+ */
+const PRESTAMO_TIPO_RESOLUCION = 'Cuenta prestada';
+
+/** Respuestas "jugó el dueño" de esta sesión, clave `idTorneo|tag`. Ver el
+ * docblock de arriba para por qué no se persisten. */
+const PRESTAMO_RESPONDIDO_DUENO = new Set();
+
+function _prestamoClave(tag){ return `${ganadoresIdTorneoActual}|${tag}`; }
+
+/** Nombre con el que se identifica al DUEÑO de la cuenta en la pregunta:
+ * su Nom_Multi si tiene, y si no el Nombre (pedido textual del usuario). */
+function _nombreDuenoCuenta(p){
+  return String(p.nomMulti || '').trim() || String(p.nombre || '').trim();
+}
+
+/** Texto del comentario que queda registrado cuando jugó el prestatario.
+ * Se arma en un solo lugar para que el wording sea idéntico en todos lados
+ * (y para poder cambiarlo de una sola vez si el usuario lo pide). */
+function _comentarioCuentaPrestada(p){
+  return `La cuenta había sido prestada a "${_prestatarioDe(p)}" — el premio se entrega a esa persona, no al dueño de la cuenta (${_nombreDuenoCuenta(p)}).`;
+}
+
+function _prestatarioDe(p){ return String(p.prestamo || '').trim(); }
+
+/** Bloque "¿Quién jugó con esta cuenta?" de una fila. Devuelve '' cuando
+ * la cuenta no está prestada (pregunta omitida) y un estado ya cerrado
+ * cuando la pregunta ya fue respondida en esta sesión o en el backend. */
+function _bloquePrestamo(p){
+  const prestatario = _prestatarioDe(p);
+  if(!prestatario) return '';
+
+  if(p.tipoResolucion === PRESTAMO_TIPO_RESOLUCION){
+    return `<div class="msg msg-ok" style="margin-top:6px; padding:8px 10px; font-size:13px;">Jugó ${esc(prestatario)} (cuenta prestada) — el premio va para esa persona.</div>`;
+  }
+  if(PRESTAMO_RESPONDIDO_DUENO.has(_prestamoClave(p.tag))){
+    return `<div class="text-dim" style="font-size:12px; margin-top:6px;">Jugó el dueño de la cuenta (${esc(_nombreDuenoCuenta(p))}) — se sigue el flujo normal.</div>`;
+  }
+
+  return `
+    <div style="margin-top:8px; padding:10px; border:1px solid var(--line); border-radius:8px;">
+      <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
+        <span class="badge badge-warn">Cuenta prestada</span>
+        <span class="text-dim" style="font-size:13px;">¿Quién jugó con esta cuenta?</span>
+      </div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+        <button type="button" class="btn-icono btnPrestamoDueno"
+          data-tag="${esc(p.tag)}">${esc(_nombreDuenoCuenta(p))} <span class="text-faint">(dueño)</span></button>
+        <button type="button" class="btn-icono btnPrestamoPrestatario"
+          data-tag="${esc(p.tag)}">${esc(prestatario)} <span class="text-faint">(préstamo)</span></button>
+      </div>
+    </div>`;
+}
+
 function filaParticipanteResolucion(p){
   let estadoHtml = '';
   if(p.descalificado){
     estadoHtml = `<div class="msg msg-error" style="margin-top:6px; padding:8px 10px; font-size:13px;">Descalificado — ${esc(p.motivoResolucion)}</div>`;
   } else if(p.premioRepartido){
     estadoHtml = `<div class="msg msg-ok" style="margin-top:6px; padding:8px 10px; font-size:13px;">Premio repartido — ${esc(p.motivoResolucion)}</div>`;
-  } else if(p.tipoResolucion){
+  } else if(p.tipoResolucion && p.tipoResolucion !== PRESTAMO_TIPO_RESOLUCION){
+    // "Cuenta prestada" queda fuera a propósito: no mueve el puesto, así
+    // que la línea "Puesto original: …" no aplica. Su estado lo pinta
+    // _bloquePrestamo() más abajo, junto a la pregunta que lo originó.
     estadoHtml = `<div class="text-dim" style="font-size:12px; margin-top:6px;">Puesto original: ${esc(p.puestoOriginal)} — ${esc(p.motivoResolucion)}</div>`;
   }
 
@@ -7184,6 +7299,7 @@ function filaParticipanteResolucion(p){
       </div>
       <div class="ganador-victorias">${fmtNum(p.victorias)} victorias</div>
       ${estadoHtml}
+      ${_bloquePrestamo(p)}
       ${grupoHtml}
       <button type="button" class="btn btnGestionarResolucion" style="margin-top:8px;"
         data-tag="${esc(p.tag)}" data-nombre="${esc(p.nombre)}"
@@ -7202,6 +7318,13 @@ async function cargarGanadoresTorneo(){
     if(manejarRespuestaAuth(data)) return;
     if(!data.ok){ lista.innerHTML = ''; msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
     ganadoresIdTorneoActual = data.idTorneo;
+    // FASE (15-sep-2026, cuentas prestadas): los botones de "¿Quién jugó
+    // con esta cuenta?" solo llevan el Tag en el dataset (igual que el
+    // resto de botones de este panel), así que el participante completo se
+    // cachea acá por Tag para poder leer prestamo/nomMulti al hacer clic
+    // sin volver a pegarle al endpoint. Se rearma en cada carga.
+    ganadoresPorTag = new Map(
+      [].concat(data.participantes || [], data.top3 || []).map(p => [String(p.tag), p]));
     if(!data.idTorneo || !data.top3 || !data.top3.length){
       lista.innerHTML = '<div class="empty">Todavía no hay resultados para el torneo más reciente.</div>';
       return;
@@ -7254,6 +7377,27 @@ document.getElementById('ganadoresLista').addEventListener('click', async (ev) =
       btnMarcar.disabled = false;
       btnMarcar.textContent = 'Marcar visto en el grupo';
     }
+    return;
+  }
+  // FASE (15-sep-2026, cuentas prestadas): "jugó el dueño" = caso normal,
+  // no se registra nada; solo se cierra la pregunta y se repinta la lista.
+  const btnDueno = ev.target.closest('.btnPrestamoDueno');
+  if(btnDueno){
+    PRESTAMO_RESPONDIDO_DUENO.add(_prestamoClave(btnDueno.dataset.tag));
+    cargarGanadoresTorneo();
+    return;
+  }
+  // "jugó el prestatario" = abre el formulario de resolución de siempre
+  // con el tipo y el comentario ya armados, para que el admin los revise
+  // antes de guardar (mismo patrón que el botón de abajo).
+  const btnPrestatario = ev.target.closest('.btnPrestamoPrestatario');
+  if(btnPrestatario){
+    const p = ganadoresPorTag.get(String(btnPrestatario.dataset.tag));
+    if(!p) return;
+    abrirResolucionForm(p.tag, p.nombre, {
+      tipoResolucion: PRESTAMO_TIPO_RESOLUCION,
+      motivoResolucion: _comentarioCuentaPrestada(p)
+    });
     return;
   }
   // "Descalificar: no está en el grupo" — reutiliza el formulario de
