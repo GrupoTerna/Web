@@ -94,6 +94,15 @@
      columnas por herencia de text-align:center, pero se deja explícito acá
      para no depender de eso. */
   .cr-grid-table th{text-align:center; vertical-align:middle;}
+  /* FIX (14-sep-2026, pedido usuario -- "los encabezados siguen
+     desalineados con respecto a sus cuadros de datos"): los <th> ya tenían
+     text-align:center, pero los <td> no -- con el <input> de ancho fijo
+     (.cr-grid-input, 64px) más angosto que la celda, el input quedaba
+     pegado al borde izquierdo (alineación por defecto) mientras el
+     encabezado de arriba se veía centrado. Centrando también el <td> el
+     input queda debajo de su encabezado. */
+  .cr-grid-table td{text-align:center; padding:4px 6px;}
+  .cr-grid-table th{padding:6px 6px;}
   /* Fase 2 (24-ago-2026): visor de contenido, solo lectura */
   .contenido-item{border:1px solid var(--line); border-radius:var(--radius-sm); padding:14px 16px; margin-top:12px;}
   .contenido-item .cab{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px; flex-wrap:wrap;}
@@ -319,10 +328,20 @@
   }
   .semana-item{
     display:flex; align-items:center; gap:10px; padding:7px 2px; font-size:13px;
-    cursor:pointer; border-bottom:1px solid var(--line);
+    cursor:pointer; border-bottom:1px solid var(--line); line-height:1.3;
   }
   .semana-item:last-child{border-bottom:none;}
-  .semana-item input[type="checkbox"]{flex-shrink:0; width:16px; height:16px; cursor:pointer; accent-color:var(--purple-light);}
+  /* FIX (14-sep-2026, pedido usuario -- "el checkbox de semana y el texto
+     están desalineados"): el checkbox no tenía margin:0 explícito, así que
+     heredaba el margen por defecto del navegador (distinto en cada uno) y
+     quedaba corrido respecto al centro vertical del <span> de texto pese a
+     align-items:center del contenedor. También se fuerza vertical-align en
+     el propio input por si el navegador lo trata como inline-block. */
+  .semana-item input[type="checkbox"]{
+    flex-shrink:0; width:16px; height:16px; margin:0; padding:0; cursor:pointer;
+    accent-color:var(--purple-light); vertical-align:middle;
+  }
+  .semana-item span{line-height:16px;}
   /* FIX (13-sep-2026, pedido usuario -- formulario de Cambio de rango:
      "en la sección de semanas a evaluar debe haber un selector de
      temporada y a la derecha checkboxes con las semanas que tenga esa
@@ -341,6 +360,27 @@
     cursor:pointer; padding:4px 6px; line-height:1; border-radius:var(--radius-sm);
   }
   .cr-temporada-quitar:hover{color:#ff6b6b; background:rgba(255,107,107,.12);}
+  /* FIX (14-sep-2026, pedido usuario -- "el botón de añadir temporada debe
+     estar a la derecha del título de semanas y está demasiado grande"):
+     #btnCrAgregarTemporada pasa de <button class="btn"> (ancho por defecto
+     de styles.css, pensado para botones de acción principales) a esta
+     variante chica, y su <div> padre (#crSemanasWrap) pasa a flex
+     space-between para ponerlo a la derecha de la label en vez de debajo. */
+  .btn-compacto{padding:5px 12px; font-size:12px; flex-shrink:0;}
+  .cr-semanas-cabecera{display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:8px;}
+  .cr-semanas-cabecera label{margin:0;}
+  /* FIX (14-sep-2026, pedido usuario -- "los requisitos de descenso puestos
+     así parecen algo opcional"): Requisitos de Ascenso/Descenso dejan de
+     ser <details> colapsables (ese patrón visual, usado para secciones
+     realmente opcionales en el resto de la página, es lo que los hacía
+     parecer opcionales) y pasan a bloques fijos con este encabezado
+     estático -- mismo look que .admin-subseccion > summary pero sin el
+     ícono +/- ni el cursor de "click para abrir". Ver
+     #crRequisitosAscenso/#crRequisitosDescenso en el HTML y
+     mostrarRequisitosAscensoCR()/mostrarRequisitosDescensoCR() en el
+     <script>. */
+  .cr-requisitos-bloque{border-top:1px solid var(--line); margin-top:14px; padding-top:2px;}
+  .cr-requisitos-header{padding:10px 2px; font-size:15px; color:var(--gold); font-family:var(--f-display,inherit); font-weight:600;}
   @media (max-width: 560px){
     .cr-temporada-bloque{flex-direction:column;}
     .cr-temporada-bloque .cr-temporada-select{width:100%;}
@@ -2084,9 +2124,11 @@
                      de siempre -- armado ahora a partir de los checkboxes
                      marcados en vez de tipeado a mano. -->
                 <div class="field" id="crSemanasWrap" style="margin-top:14px;">
-                  <label>¿Qué semanas se deben evaluar para esta corrida?</label>
+                  <div class="cr-semanas-cabecera">
+                    <label>¿Qué semanas se deben evaluar para esta corrida?</label>
+                    <button type="button" class="btn btn-ghost btn-compacto" id="btnCrAgregarTemporada">+ Añadir temporada</button>
+                  </div>
                   <div id="crTemporadasContainer"></div>
-                  <button type="button" class="btn" id="btnCrAgregarTemporada" style="margin-top:8px;">+ Añadir otra temporada</button>
                 </div>
 
                 <!-- FIX (13-sep-2026, pedido usuario -- "el organizador debe
@@ -2101,7 +2143,7 @@
                 <div class="field">
                   <label for="crOrganizadorSelect">¿Quién organizó esta corrida?</label>
                   <select id="crOrganizadorSelect">
-                    <option value="">Sin especificar</option>
+                    <option value="">Yo (el admin de esta sesión)</option>
                     <option value="__otro__">Ninguna de las anteriores</option>
                   </select>
                   <input type="text" id="crOrganizadorManual" placeholder="Nombre de quien organizó" style="margin-top:8px; display:none;">
@@ -2112,30 +2154,37 @@
                 </div>
 
                 <!-- PASO 4: una tabla por Tipo -- filas = clanes de la
-                     Familia, columnas = Min CR/Ataques por cada Rol
+                     Familia, columnas = Trofeos/Ataques por cada Rol
                      (Miembro/Veterano/Colíder). pintarGridCR() arma las
                      filas en JS apenas se conocen los clanes; 0 (o vacío) =
                      sin requisito activo para ese clan/rol, mismo criterio
                      que _getFilaCRListaPorId()/_construirFilaCRLista()
-                     (34_Web_API.gs / 24_Torneos_Core.gs). -->
-                <details class="admin-subseccion" style="margin-top:14px;" open>
-                  <summary><span class="cat-titulo">Requisitos de Ascenso</span></summary>
+                     (34_Web_API.gs / 24_Torneos_Core.gs).
+
+                     FIX (14-sep-2026, pedido usuario):
+                       1) "Min CR" no se le muestra al usuario (no sabe qué
+                          es) -- se renombra a "Trofeos" en encabezados y
+                          textos. El backend sigue hablando de Min_CR/minCR
+                          puertas adentro, esto es solo de cara al admin.
+                       2) Ascenso/Descenso en <details> colapsables, uno al
+                          lado del otro, hacían parecer el segundo bloque
+                          "opcional" -- ahora son bloques fijos (no
+                          colapsables, ver .cr-requisitos-bloque en el
+                          <style>) y Descenso arranca oculto: recién
+                          aparece al apretar "Continuar" al final de
+                          Ascenso. Ver #crRequisitosAscenso/
+                          #crRequisitosDescenso acá y
+                          mostrarRequisitosAscensoCR()/
+                          mostrarRequisitosDescensoCR() en el <script>. -->
+                <div class="cr-requisitos-bloque" id="crRequisitosAscenso">
+                  <div class="cr-requisitos-header"><span class="cat-titulo">Requisitos de Ascenso</span></div>
                   <div class="admin-subseccion-body">
-                    <!-- FIX (13-sep-2026, pedido usuario -- "revisa si hay
-                         campos en común con torneos o sorteos y copia las
-                         descripciones de sus secciones (o adáptalas)"):
-                         mismo estilo/tono que la intro de
-                         #requisitosTorneoBox ("Requerimiento mínimo de
-                         trofeos de guerra para mantenerse en cada clan."),
-                         adaptada acá a Min CR (trofeos mínimos) + Ataques,
-                         los dos por Clan Y Rol en vez de un valor único por
-                         clan. -->
-                    <p class="text-dim" style="font-size:13px; margin:0 0 10px;">Trofeos mínimos (Min CR) y ataques mínimos de guerra requeridos por clan y por rol (Miembro/Veterano/Colíder) para calificar en esta corrida.</p>
+                    <p class="text-dim" style="font-size:13px; margin:0 0 10px;">Trofeos mínimos y ataques mínimos de guerra requeridos por clan y por rol (Miembro/Veterano/Colíder) para calificar en esta corrida.</p>
                     <div style="overflow-x:auto;">
                       <table class="cr-grid-table">
                         <thead>
                           <tr><th rowspan="2">Clan</th><th colspan="2">Miembro</th><th colspan="2">Veterano</th><th colspan="2">Colíder</th></tr>
-                          <tr><th>Min CR</th><th>Ataques</th><th>Min CR</th><th>Ataques</th><th>Min CR</th><th>Ataques</th></tr>
+                          <tr><th>Trofeos</th><th>Ataques</th><th>Trofeos</th><th>Ataques</th><th>Trofeos</th><th>Ataques</th></tr>
                         </thead>
                         <tbody id="crGridAscenso"></tbody>
                       </table>
@@ -2158,17 +2207,18 @@
                          (más arriba en este mismo archivo) -- "Sí" por
                          defecto, sin opción "Elige…" (mismo FIX del
                          10-sep-2026 que ya aplica ahí).
-                         Barcos: a diferencia de Torneos (#reqAtaquesBarcos,
-                         que siempre fuerza un tope 0-16), CR_Lista sí
-                         distingue "sin configurar" de "0 permitidos" (ver
-                         docblock de _getFilaCRListaPorId(): `barcos.activo`
-                         viene en `false` cuando la celda está vacía, no
-                         cuando vale 0) -- por eso el <select> arranca en
-                         "Sin configurar" en vez de "0". La descripción de
-                         abajo es la misma de #reqAtaquesBarcos (Torneos),
-                         adaptada a que acá "Sin configurar" reemplaza al
-                         "selecciona 16" de allá como forma de no excluir a
-                         nadie por este criterio.
+                         Barcos: FIX (14-sep-2026, pedido usuario -- "desde
+                         la web no se debe dejar sin definir la cantidad de
+                         barcos, es de 0 a 16, cargado por defecto en 0 y
+                         con la descripción de que si no quiere activar ese
+                         criterio, debe seleccionar 16"): se quita la opción
+                         "Sin configurar" -- ahora es el MISMO patrón 0-16
+                         que #reqAtaquesBarcos (Torneos), con "0"
+                         seleccionado por defecto y 16 = no excluir a nadie.
+                         precargarOtrosCriteriosCR() mapea `barcos.activo:
+                         false` (celda vacía en la hoja) a "16" para
+                         mantener ese mismo significado al editar una
+                         corrida ya guardada sin este criterio configurado.
                          Estado: FIX (13-sep-2026, pedido usuario -- "el
                          estado no se pregunta al usuario, se manda siempre
                          como 'Planificado'"): el <input type="text"> que
@@ -2177,12 +2227,11 @@
                          leerOtrosCriteriosCR() en el <script>, que ahora
                          manda 'Planificado' fijo en vez de leer un campo. -->
                     <h3 style="font-size:15px; color:var(--gold); margin:20px 0 4px;">Otros criterios</h3>
-                    <p class="text-dim" style="font-size:13px; margin:0 0 10px;">Es un promedio semanal, no la cantidad acumulada. Deja "Sin configurar" si este criterio no aplica para esta corrida. Si no se desea permitir ningún ataque a barcos, selecciona 0.</p>
+                    <p class="text-dim" style="font-size:13px; margin:0 0 10px;">Es un promedio semanal, no la cantidad acumulada. Si no se desea excluir a nadie por ataques a barcos, selecciona 16. Si no se desea permitir ningún ataque a barcos, selecciona 0.</p>
                     <div class="field">
                       <label for="crBarcosAscenso">Ataques a barcos permitidos por semana</label>
                       <select id="crBarcosAscenso">
-                        <option value="" selected>Sin configurar</option>
-                        <option value="0">0</option>
+                        <option value="0" selected>0</option>
                         <option value="1">1</option>
                         <option value="2">2</option>
                         <option value="3">3</option>
@@ -2215,17 +2264,25 @@
                         <option value="No">No</option>
                       </select>
                     </div>
+
+                    <!-- FIX (14-sep-2026, pedido usuario -- "al terminar de
+                         llenar los requisitos de ascenso debes poner un
+                         botón Continuar, ahí ocultas los valores de
+                         ascensos y recién muestras el panel de descensos"):
+                         ver mostrarRequisitosDescensoCR() en el <script>. -->
+                    <button type="button" class="btn btn-primary btn-block" id="btnCrContinuarAscenso" style="margin-top:16px;">Continuar</button>
                   </div>
-                </details>
-                <details class="admin-subseccion" style="margin-top:10px;">
-                  <summary><span class="cat-titulo">Requisitos de Descenso</span></summary>
+                </div>
+                <div class="cr-requisitos-bloque" id="crRequisitosDescenso" style="display:none;">
+                  <div class="cr-requisitos-header"><span class="cat-titulo">Requisitos de Descenso</span></div>
                   <div class="admin-subseccion-body">
-                    <p class="text-dim" style="font-size:13px; margin:0 0 10px;">Trofeos mínimos (Min CR) y ataques mínimos de guerra requeridos por clan y por rol (Miembro/Veterano/Colíder) para calificar en esta corrida.</p>
+                    <a href="#" id="crVolverAscenso" class="text-dim" style="font-size:12px; display:inline-block; margin-bottom:10px;">‹ Volver a Requisitos de Ascenso</a>
+                    <p class="text-dim" style="font-size:13px; margin:0 0 10px;">Trofeos mínimos y ataques mínimos de guerra requeridos por clan y por rol (Miembro/Veterano/Colíder) para calificar en esta corrida.</p>
                     <div style="overflow-x:auto;">
                       <table class="cr-grid-table">
                         <thead>
                           <tr><th rowspan="2">Clan</th><th colspan="2">Miembro</th><th colspan="2">Veterano</th><th colspan="2">Colíder</th></tr>
-                          <tr><th>Min CR</th><th>Ataques</th><th>Min CR</th><th>Ataques</th><th>Min CR</th><th>Ataques</th></tr>
+                          <tr><th>Trofeos</th><th>Ataques</th><th>Trofeos</th><th>Ataques</th><th>Trofeos</th><th>Ataques</th></tr>
                         </thead>
                         <tbody id="crGridDescenso"></tbody>
                       </table>
@@ -2234,12 +2291,11 @@
                     <!-- Mismos 3 campos, mitad Descenso -- ver el comentario
                          grande junto a los de Ascenso arriba. -->
                     <h3 style="font-size:15px; color:var(--gold); margin:20px 0 4px;">Otros criterios</h3>
-                    <p class="text-dim" style="font-size:13px; margin:0 0 10px;">Es un promedio semanal, no la cantidad acumulada. Deja "Sin configurar" si este criterio no aplica para esta corrida. Si no se desea permitir ningún ataque a barcos, selecciona 0.</p>
+                    <p class="text-dim" style="font-size:13px; margin:0 0 10px;">Es un promedio semanal, no la cantidad acumulada. Si no se desea excluir a nadie por ataques a barcos, selecciona 16. Si no se desea permitir ningún ataque a barcos, selecciona 0.</p>
                     <div class="field">
                       <label for="crBarcosDescenso">Ataques a barcos permitidos por semana</label>
                       <select id="crBarcosDescenso">
-                        <option value="" selected>Sin configurar</option>
-                        <option value="0">0</option>
+                        <option value="0" selected>0</option>
                         <option value="1">1</option>
                         <option value="2">2</option>
                         <option value="3">3</option>
@@ -2273,7 +2329,7 @@
                       </select>
                     </div>
                   </div>
-                </details>
+                </div>
 
                 <button type="button" class="btn btn-primary btn-block" id="btnCrGuardar" style="margin-top:14px;">Guardar corrida</button>
                 <div id="crGuardarMsg"></div>
@@ -4723,6 +4779,14 @@ async function cargarNomMultisAdmins(){
   // tres de Torneos de arriba -- ver docblock junto a
   // precargarOrganizadorCR()/obtenerOrganizadorCR() (más abajo en este
   // <script>) para el resto del mecanismo.
+  // FIX (14-sep-2026, pedido usuario -- "el sistema debe reconocer el
+  // usuario logueado, cargando por defecto 'Yo (Diana)'"): #crOrganizadorSelect
+  // ya no incluye el propio Nom_Multi del admin en la lista -- ahora el
+  // valor "" (por defecto) es exactamente eso, "Yo (<nombre>)" (ver
+  // actualizarEtiquetaAutorPropio() más abajo), mismo criterio que
+  // #tAutorSelect/#tAutorSelectPlan (Torneos) en vez del anterior (donde
+  // el admin podía aparecer dos veces: una como "Sin especificar" y otra
+  // en la lista con su propio nombre).
   const selCR = document.getElementById('crOrganizadorSelect');
   const optOtroCR = selCR.querySelector('option[value="__otro__"]');
   // FIX (09-sep-2026 tarde, pedido usuario — "al marcar que lo organizo yo,
@@ -4765,10 +4829,12 @@ async function cargarNomMultisAdmins(){
         optMod.textContent = nm;
         selMod.insertBefore(optMod, optOtroMod);
 
-        const optCR = document.createElement('option');
-        optCR.value = nm;
-        optCR.textContent = nm;
-        selCR.insertBefore(optCR, optOtroCR);
+        if(!esUnoMismo){
+          const optCR = document.createElement('option');
+          optCR.value = nm;
+          optCR.textContent = nm;
+          selCR.insertBefore(optCR, optOtroCR);
+        }
       });
     }
   }catch(err){
@@ -4898,6 +4964,12 @@ function actualizarEtiquetaAutorPropio(){
   const optPlanSorteo = document.querySelector('#sAutorSelectPlan option[value=""]');
   if(optRegSorteo) optRegSorteo.textContent = `Lo organicé yo (${nm})`;
   if(optPlanSorteo) optPlanSorteo.textContent = `Lo organizo yo (${nm})`;
+
+  // FIX (14-sep-2026, pedido usuario -- "el sistema debe reconocer el
+  // usuario logueado, cargando por defecto 'Yo (Diana)'"): mismo mecanismo
+  // que los de arriba, para #crOrganizadorSelect (Cambio de rango).
+  const optCR = document.querySelector('#crOrganizadorSelect option[value=""]');
+  if(optCR) optCR.textContent = `Yo (${nm})`;
 }
 
 /**
@@ -6044,7 +6116,10 @@ function leerOtrosCriteriosCR(tipo){
 
 function limpiarOtrosCriteriosCR(tipo){
   const suf = tipo === 'ascenso' ? 'Ascenso' : 'Descenso';
-  document.getElementById('crBarcos' + suf).value = '';
+  // FIX (14-sep-2026, pedido usuario -- "no se debe dejar sin definir la
+  // cantidad de barcos, cargado por defecto en 0"): antes quedaba en ''
+  // ("Sin configurar"), que ya no existe como opción.
+  document.getElementById('crBarcos' + suf).value = '0';
   document.getElementById('crMiembroActivo' + suf).value = 'Sí';
   document.getElementById('crWhatsapp' + suf).value = 'Sí';
 }
@@ -6052,13 +6127,42 @@ function limpiarOtrosCriteriosCR(tipo){
 function precargarOtrosCriteriosCR(tipo, fila){
   const suf = tipo === 'ascenso' ? 'Ascenso' : 'Descenso';
   if(!fila){ limpiarOtrosCriteriosCR(tipo); return; }
-  document.getElementById('crBarcos' + suf).value = fila.barcos.activo ? String(fila.barcos.qty) : '';
+  // FIX (14-sep-2026, pedido usuario -- Barcos ya no tiene "Sin
+  // configurar"): una corrida guardada con `barcos.activo:false` (celda
+  // vacía en la hoja, criterio no configurado) se muestra como "16" -- el
+  // mismo significado de "no excluir a nadie" que tenía antes "Sin
+  // configurar", ahora expresado dentro del rango 0-16.
+  document.getElementById('crBarcos' + suf).value = fila.barcos.activo ? String(fila.barcos.qty) : '16';
   document.getElementById('crMiembroActivo' + suf).value = fila.miembroActivo.activo ? 'Sí' : 'No';
   document.getElementById('crWhatsapp' + suf).value = fila.whatsapp.activo ? 'Sí' : 'No';
   // Estado NO se precarga -- ya no hay campo en el formulario, y
   // leerOtrosCriteriosCR() lo va a mandar como 'Planificado' de todas
   // formas al guardar, sin importar qué tenía antes esta corrida.
 }
+
+/**
+ * mostrarRequisitosAscensoCR() / mostrarRequisitosDescensoCR()
+ * FIX (14-sep-2026, pedido usuario -- "al terminar de llenar los
+ * requisitos de ascenso debes poner un botón Continuar, ahí ocultas los
+ * valores de ascensos y recién muestras el panel de descensos"): alternan
+ * la visibilidad de #crRequisitosAscenso/#crRequisitosDescenso -- nunca
+ * los dos a la vez. No tocan ningún dato de los campos, solo qué bloque se
+ * ve; #btnCrGuardar sigue leyendo AMBOS con leerGridCR()/
+ * leerOtrosCriteriosCR() sin importar cuál esté visible en pantalla.
+ */
+function mostrarRequisitosAscensoCR(){
+  document.getElementById('crRequisitosAscenso').style.display = '';
+  document.getElementById('crRequisitosDescenso').style.display = 'none';
+}
+function mostrarRequisitosDescensoCR(){
+  document.getElementById('crRequisitosAscenso').style.display = 'none';
+  document.getElementById('crRequisitosDescenso').style.display = '';
+}
+document.getElementById('btnCrContinuarAscenso').addEventListener('click', mostrarRequisitosDescensoCR);
+document.getElementById('crVolverAscenso').addEventListener('click', (e) => {
+  e.preventDefault();
+  mostrarRequisitosAscensoCR();
+});
 
 async function limpiarFormularioCR(){
   crIdExistenteActual = '';
@@ -6074,6 +6178,7 @@ async function limpiarFormularioCR(){
   await Promise.all([pintarGridCR('ascenso'), pintarGridCR('descenso')]); // PASO 4 -- grilla vacía (sin requisitos)
   limpiarOtrosCriteriosCR('ascenso'); // PASO 6 -- Barcos/Miembro activo/WhatsApp/Estado a sus valores por defecto
   limpiarOtrosCriteriosCR('descenso');
+  mostrarRequisitosAscensoCR(); // arranca siempre por Ascenso, ver docblock arriba
   document.getElementById('crPaso3').style.display = '';
   actualizarVisibilidadPropuestasCR(); // PASO 5 -- corrida todavía sin guardar, sin propuestas
 }
@@ -6173,6 +6278,7 @@ async function precargarFormularioCR(idAscenso){
     precargarOtrosCriteriosCR('descenso', filaDesc); // filaDesc puede ser null (par incompleto) -- ver docblock de la función
 
     document.getElementById('crPaso2Msg').innerHTML = '';
+    mostrarRequisitosAscensoCR(); // arranca siempre por Ascenso, aunque ya existan ambas mitades cargadas
     document.getElementById('crPaso3').style.display = '';
     actualizarVisibilidadPropuestasCR(); // PASO 5 -- ya hay corrida guardada, mostrar Ver/Generar propuestas
   }catch(err){
@@ -6325,22 +6431,32 @@ document.getElementById('btnCrAgregarTemporada').addEventListener('click', () =>
  * se puebla en cargarNomMultisAdmins() (ver más arriba en este mismo
  * <script>) con los Nom_Multi de los admins, sin exponer esa palabra en
  * ninguna etiqueta visible. "Ninguna de las anteriores" revela
- * #crOrganizadorManual para escribirlo a mano. A diferencia de
- * #tAutorSelect, acá SÍ se incluye el propio Nom_Multi del admin de la
- * sesión en la lista (mismo criterio que #tAutorSelectMod): el campo
- * Organizador de una corrida de Cambio de Rango es informativo y opcional,
- * no asume que quien registra es quien organizó. */
+ * #crOrganizadorManual para escribirlo a mano.
+ *
+ * FIX (14-sep-2026, pedido usuario -- "el sistema debe reconocer el
+ * usuario logueado, cargando por defecto 'Yo (Diana)'"): el propio
+ * Nom_Multi del admin de la sesión YA NO se lista como una opción más
+ * (cargarNomMultisAdmins() lo excluye) -- el valor "" pasa a significar
+ * "Yo (<nombre>)" y se resuelve acá mismo con nomMultiDelAdminDeSesion(),
+ * igual que ya hacía Torneos con #tAutorSelect/#tAutorSelectPlan. Si el
+ * admin no tiene Nom_Multi guardado (cuenta única), value="" simplemente
+ * viaja como '' (organizador sin especificar), tal como antes. */
 function obtenerOrganizadorCR(){
   const sel = document.getElementById('crOrganizadorSelect');
   if(sel.value === '__otro__') return document.getElementById('crOrganizadorManual').value.trim();
+  if(sel.value === '') return nomMultiDelAdminDeSesion();
   return sel.value;
 }
 
 function precargarOrganizadorCR(organizador){
   const sel = document.getElementById('crOrganizadorSelect');
   const manual = document.getElementById('crOrganizadorManual');
+  const nomMultiPropio = nomMultiDelAdminDeSesion();
   const yaExiste = organizador && Array.from(sel.options).some(o => o.value === organizador);
-  if(!organizador){
+  if(!organizador || (nomMultiPropio && organizador === nomMultiPropio)){
+    // Sin organizador guardado, o coincide con el admin de la sesión: en
+    // los dos casos el <select> vuelve a "" ("Yo (<nombre>)"), ver
+    // docblock arriba.
     sel.value = '';
     manual.style.display = 'none';
     manual.value = '';
