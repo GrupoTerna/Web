@@ -46,6 +46,26 @@
   .miembro-row .mr-tag{font-family:var(--f-mono); font-size:11px; color:var(--text-faint); margin-top:2px;}
   .miembro-row .mr-rango{font-family:var(--f-mono); font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.04em; text-align:right;}
   .miembro-row .mr-right{text-align:right;}
+  /* NUEVO (14-sep-2026, pedido usuario -- Registrar miembro nuevo: opción
+     "Buscar en Directorio"): .nm-modo-selector son los 2 radios ("Ingresar
+     tag" / "Buscar en Directorio"); .nm-dir-lista envuelve los
+     .miembro-row resultantes del clan elegido, mismo look con scroll que
+     .semana-selector (borde + fondo + max-height) en vez del dropdown
+     flotante de .sugerencias-dropdown (acá la lista queda fija en el
+     flujo, no flota sobre el resto del formulario). .mr-celular es un
+     badge chico para saber de un vistazo si el miembro ya tiene celular
+     registrado. */
+  .nm-modo-selector{display:flex; gap:20px; flex-wrap:wrap;}
+  .nm-modo-selector label{display:flex; align-items:center; gap:7px; font-size:14px; font-weight:normal; cursor:pointer;}
+  .nm-modo-selector input[type="radio"]{width:16px; height:16px; margin:0; cursor:pointer; accent-color:var(--purple-light);}
+  .nm-dir-lista{
+    max-height:320px; overflow-y:auto; border:1px solid var(--line); border-radius:var(--radius-sm);
+    background:var(--bg-2);
+  }
+  .nm-dir-lista .miembro-row{padding:10px 12px;}
+  .mr-celular{font-family:var(--f-mono); font-size:10px; letter-spacing:.04em; text-transform:uppercase; margin-top:4px; display:inline-block;}
+  .mr-celular.si{color:var(--ok, #10b981);}
+  .mr-celular.no{color:var(--text-faint);}
   .perfil-cabecera{display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px;}
   .perfil-cabecera .stats-mini{display:flex; gap:18px; font-family:var(--f-mono); font-size:12px; color:var(--text-dim);}
   .perfil-cabecera .stats-mini b{color:var(--text); font-size:15px; display:block;}
@@ -581,11 +601,67 @@
       <details class="admin-subseccion" id="cardRegistrarNuevo" open>
         <summary><span class="cat-titulo">Registrar miembro nuevo</span></summary>
         <div class="admin-subseccion-body">
+          <!-- NUEVO (14-sep-2026, pedido usuario -- "agrega la opción de
+               'Buscar en Directorio', ahora serían dos opciones: 'Buscar
+               en Directorio' o 'Ingresar tag'"): #nmModoTagBox es el flujo
+               ya existente (Tag escrito a mano + Verificar), sin ningún
+               cambio de comportamiento. #nmModoDirectorioBox es el nuevo:
+               elegir un Clan (por defecto el clan principal, ver
+               initModoRegistrarNuevo() en el <script>), ver la lista de
+               miembros de ESE clan (mismo orden que ya devuelve el
+               backend para la hoja Directorio -- el frontend NO reordena,
+               solo filtra) y poder filtrar esa lista por Rango y por si
+               tienen o no Celular registrado. Al hacer click en un
+               miembro de la lista se llena #nmTag con su Tag y se
+               dispara EXACTAMENTE el mismo verificarTagNuevoMiembro() que
+               dispara "Verificar" en el flujo de Tag -- de ahí en
+               adelante es un solo flujo para los dos modos (Paso 2 en
+               #nmPaso2, sin cambios). -->
           <div class="field">
-            <label for="nmTag">Tag</label>
-            <input type="text" id="nmTag" placeholder="Ej: #ABC123XYZ" autocapitalize="characters">
+            <label>¿Cómo quieres identificar al miembro?</label>
+            <div class="nm-modo-selector">
+              <label><input type="radio" name="nmModo" id="nmModoTagRadio" value="tag" checked> Ingresar tag</label>
+              <label><input type="radio" name="nmModo" id="nmModoDirRadio" value="directorio"> Buscar en Directorio</label>
+            </div>
           </div>
-          <button class="btn btn-primary" id="btnNmVerificar" type="button">Verificar</button>
+
+          <div id="nmModoTagBox">
+            <div class="field">
+              <label for="nmTag">Tag</label>
+              <input type="text" id="nmTag" placeholder="Ej: #ABC123XYZ" autocapitalize="characters">
+            </div>
+            <button class="btn btn-primary" id="btnNmVerificar" type="button">Verificar</button>
+          </div>
+
+          <div id="nmModoDirBox" style="display:none;">
+            <div class="field">
+              <label for="nmDirClanSelect">Clan</label>
+              <select id="nmDirClanSelect"></select>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="nmDirRangoFiltro">Filtrar por Rango</label>
+                <select id="nmDirRangoFiltro">
+                  <option value="">Todos los rangos</option>
+                  <option value="Líder">Líder</option>
+                  <option value="Colíder">Colíder</option>
+                  <option value="Veterano">Veterano</option>
+                  <option value="Miembro">Miembro</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="nmDirCelularFiltro">Filtrar por celular</label>
+                <select id="nmDirCelularFiltro">
+                  <option value="">Todos</option>
+                  <option value="con">Con celular registrado</option>
+                  <option value="sin">Sin celular registrado</option>
+                </select>
+              </div>
+            </div>
+            <div id="nmDirListaMsg"></div>
+            <div id="nmDirLista" class="nm-dir-lista"></div>
+          </div>
+
           <div id="nmVerificarMsg"></div>
 
           <div id="nmPaso2" style="display:none; margin-top:18px; padding-top:18px; border-top:1px solid var(--line);">
@@ -7332,6 +7408,145 @@ document.getElementById('nmNomMultiSelect').addEventListener('change', () => {
   const esNueva = document.getElementById('nmNomMultiSelect').value === '__nuevo__';
   document.getElementById('nmNomMultiNuevo').style.display = esNueva ? 'block' : 'none';
   if(!esNueva) document.getElementById('nmNomMultiNuevo').value = '';
+});
+
+/* ============================================================
+ * NUEVO (14-sep-2026, pedido usuario -- "en la sección de registrar
+ * miembro nuevo agrega la opción de 'Buscar en Directorio'. ahora serían
+ * dos opciones: 'Buscar en Directorio' o 'Ingresar tag'")
+ * ============================================================
+ * #nmModoTagRadio/#nmModoDirRadio alternan #nmModoTagBox/#nmModoDirBox.
+ * "Ingresar tag" es el flujo YA EXISTENTE (Tag escrito a mano + botón
+ * Verificar -- ver verificarTagNuevoMiembro() más abajo, sin cambios) y
+ * queda marcado por defecto al abrir la subsección.
+ *
+ * "Buscar en Directorio":
+ *   1) Selector de Clan (#nmDirClanSelect), poblado con
+ *      cargarClanesFamilia() (mismos 4 clanes de la Familia que ya usan
+ *      Torneos/Sorteos/Cambio de Rango) -- por defecto el CLAN PRINCIPAL,
+ *      que acá se toma como el primero de esa lista (mismo orden que ya
+ *      usa el resto del panel para "el clan insignia" de la Familia).
+ *   2) Al elegir un clan, se pide su lista de miembros con la acción
+ *      NUEVA `webAdminListaMiembrosClan` (pendiente de conectar en el
+ *      backend, mismo criterio que otras acciones nuevas de este archivo
+ *      -- ver p.ej. buscarSugerenciasMiembro() más arriba):
+ *        GET autenticado (apiGetAuth), parámetros: { clan: <nombre> }
+ *        Respuesta esperada: { ok:true, miembros: [
+ *          { tag, nombre, rango, celular }, ... ] }
+ *        - `rango`: "Líder"/"Colíder"/"Veterano"/"Miembro" (mismos 4
+ *          valores que ya usa el resto del panel, ver campoMinTSegunRango()
+ *          más arriba).
+ *        - `celular`: string con el celular si el miembro YA tiene uno
+ *          registrado en Directorio, o '' / null si no.
+ *        - El array debe llegar YA ordenado igual que la hoja Directorio
+ *          (pedido explícito del usuario) -- este frontend NO reordena
+ *          nada, _renderListaMiembrosClanNM() solo FILTRA sobre el orden
+ *          que mande el backend.
+ *   3) Los <select> de Rango/Celular (#nmDirRangoFiltro/
+ *      #nmDirCelularFiltro) filtran en memoria sobre _nmDirMiembrosCache
+ *      (una sola carga por clan, cacheada en _nmDirCacheClan) sin volver
+ *      a pedir nada al backend.
+ *   4) Click en un miembro de la lista: llena #nmTag con su Tag y llama a
+ *      verificarTagNuevoMiembro() -- "cuando se elija al jugador, se
+ *      retoma el flujo donde se quedó 'Ingresar tag'", es decir, de ahí
+ *      en adelante es EXACTAMENTE el mismo Paso 2 (#nmPaso2) sin importar
+ *      por cuál de los dos modos se llegó al Tag.
+ */
+let _nmDirCacheClan = null; // clan cuyos miembros están en _nmDirMiembrosCache
+let _nmDirMiembrosCache = [];
+
+document.getElementById('nmModoTagRadio').addEventListener('change', actualizarModoRegistrarNuevo);
+document.getElementById('nmModoDirRadio').addEventListener('change', actualizarModoRegistrarNuevo);
+
+function actualizarModoRegistrarNuevo(){
+  const esDirectorio = document.getElementById('nmModoDirRadio').checked;
+  document.getElementById('nmModoTagBox').style.display = esDirectorio ? 'none' : '';
+  document.getElementById('nmModoDirBox').style.display = esDirectorio ? '' : 'none';
+  document.getElementById('nmVerificarMsg').innerHTML = '';
+  if(esDirectorio) initModoDirectorioNM();
+}
+
+/** Puebla #nmDirClanSelect (una sola vez) con cargarClanesFamilia() -- por
+ *  defecto el clan principal (primero de la lista) -- y carga sus
+ *  miembros. Si ya estaba poblado, no vuelve a tocar el <select> (solo
+ *  entra la primera vez que se elige "Buscar en Directorio"). */
+async function initModoDirectorioNM(){
+  const sel = document.getElementById('nmDirClanSelect');
+  if(sel.options.length) return; // ya poblado en una vuelta anterior
+  const clanes = await cargarClanesFamilia();
+  sel.innerHTML = clanes.map(c => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
+  await cargarMiembrosClanNM(sel.value);
+}
+
+document.getElementById('nmDirClanSelect').addEventListener('change', (e) => cargarMiembrosClanNM(e.target.value));
+document.getElementById('nmDirRangoFiltro').addEventListener('change', _renderListaMiembrosClanNM);
+document.getElementById('nmDirCelularFiltro').addEventListener('change', _renderListaMiembrosClanNM);
+
+async function cargarMiembrosClanNM(clan){
+  const msgEl = document.getElementById('nmDirListaMsg');
+  document.getElementById('nmDirLista').innerHTML = '';
+  if(!clan) return;
+  msgEl.innerHTML = '<div class="empty">Cargando miembros…</div>';
+  try{
+    const data = await apiGetAuth('webAdminListaMiembrosClan', { clan: clan });
+    if(manejarRespuestaAuth(data)) return;
+    if(!data.ok || !Array.isArray(data.miembros)){
+      msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error || 'No se pudo cargar la lista de este clan.')}</div>`;
+      return;
+    }
+    _nmDirCacheClan = clan;
+    _nmDirMiembrosCache = data.miembros;
+    msgEl.innerHTML = '';
+    _renderListaMiembrosClanNM();
+  }catch(err){
+    msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
+  }
+}
+
+function _renderListaMiembrosClanNM(){
+  const cont = document.getElementById('nmDirLista');
+  const msgEl = document.getElementById('nmDirListaMsg');
+  const rangoFiltro = document.getElementById('nmDirRangoFiltro').value;
+  const celularFiltro = document.getElementById('nmDirCelularFiltro').value; // '' | 'con' | 'sin'
+  // El orden NO se toca acá -- solo se filtra sobre el orden que ya llegó
+  // del backend (pedido usuario: "ordenados igual que en la hoja
+  // directorio").
+  const filtrados = _nmDirMiembrosCache.filter(m => {
+    if(rangoFiltro && String(m.rango||'') !== rangoFiltro) return false;
+    const tieneCelular = !!String(m.celular||'').trim();
+    if(celularFiltro === 'con' && !tieneCelular) return false;
+    if(celularFiltro === 'sin' && tieneCelular) return false;
+    return true;
+  });
+  if(!filtrados.length){
+    cont.innerHTML = '';
+    msgEl.innerHTML = _nmDirMiembrosCache.length
+      ? '<div class="empty">Ningún miembro coincide con esos filtros.</div>'
+      : '<div class="empty">Este clan no tiene miembros para mostrar.</div>';
+    return;
+  }
+  msgEl.innerHTML = '';
+  cont.innerHTML = filtrados.map(m => {
+    const tieneCelular = !!String(m.celular||'').trim();
+    return `
+      <div class="miembro-row js-nm-dir-miembro" data-tag="${esc(m.tag)}">
+        <div>
+          <div class="mr-name">${esc(m.nombre)}</div>
+          <div class="mr-tag">${esc(m.tag)}</div>
+        </div>
+        <div class="mr-right">
+          <div class="mr-rango">${esc(m.rango || '—')}</div>
+          <span class="mr-celular ${tieneCelular ? 'si' : 'no'}">${tieneCelular ? 'Con celular' : 'Sin celular'}</span>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+document.getElementById('nmDirLista').addEventListener('click', (e) => {
+  const fila = e.target.closest('.js-nm-dir-miembro');
+  if(!fila) return;
+  document.getElementById('nmTag').value = fila.dataset.tag;
+  verificarTagNuevoMiembro(); // "se retoma el flujo donde se quedó Ingresar tag"
 });
 
 async function verificarTagNuevoMiembro(){
