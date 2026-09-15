@@ -7197,16 +7197,23 @@ function _waLinkGanador(p){
  *     webAdminTorneoResolucionGuardar, sin endpoint nuevo.
  *   - Sin `p.prestamo` → no se pinta nada (pregunta omitida).
  *
- * PENDIENTE DE BACKEND (Google Apps Script, no está en este archivo):
- *   1) _webMapearParticipanteAdminResolucion() (34_Web_API.gs) debe
- *      agregar al participante los campos `prestamo` (columna Préstamo de
- *      Directorio) y `nomMulti` (columna Nom_Multi). Mientras no lleguen,
- *      este bloque simplemente no se pinta nunca y el panel se comporta
- *      igual que antes — no rompe nada.
- *   2) _registrarResolucionTorneo() (24_Torneos_Core.gs) debe aceptar
- *      tipoResolucion "Cuenta prestada" como resolución de SOLO
- *      comentario: no descalifica, no reparte premio y no toca el puesto;
- *      únicamente guarda el motivo para que se vea en el Doc y en la web.
+ * CONECTADO CON EL BACKEND (15-sep-2026, mismo pedido):
+ *   1) `prestamo`/`nomMulti`/`cuentaPrestada` los entrega ahora
+ *      _webMapearParticipanteAdminResolucion() (34_Web_API.gs), que los
+ *      toma de _getParticipantesFusionadosPorTorneo() (24_Torneos_Core.gs)
+ *      — propagados desde las columnas TA.NOM_MULTI/TA.PRESTAMO de
+ *      T_Asistencia (la FOTO del Directorio al procesar ese torneo), con
+ *      respaldo al Directorio actual para torneos viejos sin esos datos.
+ *      `prestamo` llega siempre, aunque sea '' — eso es justamente lo que
+ *      este bloque lee como "cuenta no prestada, no preguntes nada".
+ *   2) "Cuenta prestada" es un tipo real de
+ *      CFG.TORNEOS_RESOLUCION_TIPOS (01_Config_Global.gs), aceptado por
+ *      _registrarResolucionTorneo() (24_Torneos_Core.gs) como resolución
+ *      de SOLO comentario: no descalifica, no reparte premio y no toca el
+ *      puesto. _aplicarResolucionesTorneo() marca `cuentaPrestada:true` y
+ *      el Doc de ganadores agrega "(cuenta prestada — premio para X)" en
+ *      la línea de ese puesto (ver _escribirDocGanadores(),
+ *      25_Torneos_Docs.gs).
  */
 const PRESTAMO_TIPO_RESOLUCION = 'Cuenta prestada';
 
@@ -7238,7 +7245,7 @@ function _bloquePrestamo(p){
   const prestatario = _prestatarioDe(p);
   if(!prestatario) return '';
 
-  if(p.tipoResolucion === PRESTAMO_TIPO_RESOLUCION){
+  if(p.cuentaPrestada || p.tipoResolucion === PRESTAMO_TIPO_RESOLUCION){
     return `<div class="msg msg-ok" style="margin-top:6px; padding:8px 10px; font-size:13px;">Jugó ${esc(prestatario)} (cuenta prestada) — el premio va para esa persona.</div>`;
   }
   if(PRESTAMO_RESPONDIDO_DUENO.has(_prestamoClave(p.tag))){
