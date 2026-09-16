@@ -3314,16 +3314,15 @@ async function cargarMisCuentas(){
                  Copas/V.Guerra/Torneos deben seguir alineadas ENTRE SÍ a la
                  izquierda (icono+número a la izquierda, barra a la derecha) -- solo
                  el BLOQUE completo de las 3 filas se centra como una unidad dentro
-                 de la tarjeta. Para eso, cada barra ahora vive en un <span> de
-                 ancho fijo (90px, en vez del ancho variable de antes) para que el
-                 bloque tenga un ancho total determinado, y el contenedor de las 3
-                 filas pasa de "display:flex" a ancho completo, a "width:fit-content"
-                 + "margin:9px auto 0" para centrarse sin perder la alineación
-                 interna izquierda de cada fila. -->
+                 de la tarjeta, sin tocar la barra en sí (sigue igual que antes).
+                 El contenedor de las 3 filas pasa de ancho completo a
+                 "width:fit-content" + "margin:9px auto 0" para que sus márgenes
+                 izquierdo/derecho queden iguales y el bloque quede centrado, sin
+                 perder la alineación interna izquierda de cada fila. -->
             <div style="display:flex; flex-direction:column; gap:5px; margin:9px auto 0; width:fit-content;">
-              <div style="display:flex; align-items:center; gap:6px; font-family:var(--f-mono); font-size:11px; color:var(--text-dim);"><span style="width:64px; flex-shrink:0;">🏆 ${fmtNum(m.copas)}</span><span style="width:90px; flex-shrink:0;">${barra(m.copas, m._maxCopas, 'var(--gold)')}</span></div>
-              <div style="display:flex; align-items:center; gap:6px; font-family:var(--f-mono); font-size:11px; color:var(--text-dim);"><span style="width:64px; flex-shrink:0;">🎖️ ${fmtNum(m.vGuerra)}</span><span style="width:90px; flex-shrink:0;">${barra(m.vGuerra, m._maxVGuerra, 'var(--purple-light)')}</span></div>
-              <div style="display:flex; align-items:center; gap:6px; font-family:var(--f-mono); font-size:11px; color:var(--text-dim);"><span style="width:64px; flex-shrink:0;">🏅 ${fmtNum(m.torneos)}</span><span style="width:90px; flex-shrink:0;">${barra(m.torneos, m._maxTorneos, 'var(--silver)')}</span></div>
+              <div style="display:flex; align-items:center; gap:6px; font-family:var(--f-mono); font-size:11px; color:var(--text-dim);"><span style="width:64px; flex-shrink:0;">🏆 ${fmtNum(m.copas)}</span>${barra(m.copas, m._maxCopas, 'var(--gold)')}</div>
+              <div style="display:flex; align-items:center; gap:6px; font-family:var(--f-mono); font-size:11px; color:var(--text-dim);"><span style="width:64px; flex-shrink:0;">🎖️ ${fmtNum(m.vGuerra)}</span>${barra(m.vGuerra, m._maxVGuerra, 'var(--purple-light)')}</div>
+              <div style="display:flex; align-items:center; gap:6px; font-family:var(--f-mono); font-size:11px; color:var(--text-dim);"><span style="width:64px; flex-shrink:0;">🏅 ${fmtNum(m.torneos)}</span>${barra(m.torneos, m._maxTorneos, 'var(--silver)')}</div>
             </div>
             ${m.vigencia ? `<div style="font-family:var(--f-mono); font-size:10px; color:var(--text-faint); margin-top:6px; text-align:center;">Vigencia: ${esc(fmtFechaVigenciaAdmin(m.vigencia))}</div>` : ''}
           </div>`).join('')}
@@ -6543,11 +6542,49 @@ async function precargarFormularioCR(idAscenso){
  * obtenerSemanasCR() arma el mismo string "T{temporada}_S{semana},..."
  * que antes tipeaba el admin a mano en el viejo #crSemanas -- el resto de
  * btnCrGuardar no cambia en nada.
+ *
+ * FIX (16-sep-2026, pedido usuario -- "el selector de semanas por
+ * temporada me ofrece solo hasta la semana 1 porque es la semana
+ * terminada, pero para establecer min_G se tiene que planificar la
+ * corrida por adelantado"): CR_Lista dejó de reusar `cargarSemanasRecientes()`
+ * (el caché compartido de Torneos/Sorteos, que SIEMPRE pide la temporada
+ * vigente "hasta hoy" -- correcto para ellos, que evalúan participación ya
+ * ocurrida). CR_Lista evalúa recién al CERRAR la temporada (la corrida se
+ * planifica para el 5 de octubre, primer día de la SIGUIENTE temporada),
+ * así que necesita TODAS las semanas de la vigente desde ya, no solo la(s)
+ * jugada(s). Ahora usa su PROPIO caché (`cargarSemanasParaCR()`, justo
+ * abajo), que pide lo mismo a `webAdminSemanasRecientes` pero con
+ * `todasSemanasVigente:'1'` (ver _webAdminSemanasRecientes(),
+ * 34_Web_API.gs) -- Torneos/Sorteos siguen llamando
+ * `cargarSemanasRecientes()` sin ese parámetro, sin cambios.
  */
 let _crTemporadaBloqueSeq = 0;
 
+// Caché de CR_Lista, separado del de Torneos/Sorteos (_semanasRecientesCache,
+// más arriba en este mismo <script>) -- mismo shape ([{lunesIso, domingoIso,
+// temporada, semana}, ...]), pero la temporada vigente viene COMPLETA (todas
+// sus semanas), no solo "hasta hoy". Ver docblock de mapaTemporadasCR() de
+// arriba para el porqué.
+let _semanasCRCache = null;
+let _semanasCRCargando = null;
+
+async function cargarSemanasParaCR(){
+  if(_semanasCRCache) return _semanasCRCache;
+  if(_semanasCRCargando) return _semanasCRCargando;
+  _semanasCRCargando = (async () => {
+    try{
+      const data = await apiGetAuth('webAdminSemanasRecientes', { todasSemanasVigente: '1' });
+      _semanasCRCache = (data && data.ok && Array.isArray(data.semanas)) ? data.semanas : [];
+    }catch(err){
+      _semanasCRCache = [];
+    }
+    return _semanasCRCache;
+  })();
+  return _semanasCRCargando;
+}
+
 async function mapaTemporadasCR(extra){
-  const cache = await cargarSemanasRecientes();
+  const cache = await cargarSemanasParaCR();
   const map = new Map();
   cache.forEach(s => {
     if(!map.has(s.temporada)) map.set(s.temporada, []);
