@@ -461,9 +461,21 @@ function clanCardHtml(c, i, opts){
       </div>
       <h3 style="font-size:20px; text-align:center;">${esc(nombre)}</h3>
       <div class="text-faint" style="font-family:var(--f-mono); font-size:12px; margin-top:4px; text-align:center;">${esc(c.clanTag||'')}</div>
-      <div style="display:flex; flex-direction:column; gap:4px; margin-top:12px; font-size:13px;">
-        <span class="text-dim">👑 Líder: <b style="color:var(--text);">${esc(lider)}</b></span>
-        <span class="text-dim">🛡️ Liga: <b style="color:var(--text);">${esc(liga)}</b></span>
+      <!-- FIX (16-sep-2026 v3, pedido usuario — "mantén líder y liga
+           alineados a la izquierda entre sí pero trátalos como un pequeño
+           bloque y centra eso dentro de su recuadro de clan"): el
+           contenedor externo ahora es un flex-row que centra un único
+           hijo (el bloque interno); el bloque interno sigue siendo
+           flex-column con align-items:flex-start, así Líder y Liga
+           quedan alineados entre sí por su borde izquierdo (mismo
+           criterio de antes) pero el bloque completo queda centrado
+           horizontalmente en la tarjeta en vez de pegado al borde
+           izquierdo. */
+      <div style="display:flex; justify-content:center; margin-top:12px;">
+        <div style="display:flex; flex-direction:column; align-items:flex-start; gap:4px; font-size:13px;">
+          <span class="text-dim">👑 Líder: <b style="color:var(--text);">${esc(lider)}</b></span>
+          <span class="text-dim">🛡️ Liga: <b style="color:var(--text);">${esc(liga)}</b></span>
+        </div>
       </div>
       <div style="flex:1; min-height:8px;"></div>
       <div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px; font-family:var(--f-mono); font-size:13px; border-top:1px solid var(--line); padding-top:12px;">
@@ -789,9 +801,14 @@ async function agregarTarjetaCuentasInactivasSiAdmin(grid){
           <span class="badge badge-purple">${icono} ${esc(label)}</span>
         </div>
         <h3 style="font-size:20px; text-align:center;">${esc(label)}</h3>
-        <div class="text-faint" style="font-family:var(--f-mono); font-size:12px; margin-top:4px;">Solo visible para administradores</div>
+        <!-- FIX (16-sep-2026 v3, pedido usuario — "centra la parte de
+             inactivos (admin y no admin) que dice 'Solo visible para
+             administradores'"): faltaba text-align:center (el resto del
+             bloque — insignia y título — ya estaba centrado desde el FIX
+             del 16-sep-2026 anterior, esta línea quedó afuera por error). -->
+        <div class="text-faint" style="font-family:var(--f-mono); font-size:12px; margin-top:4px; text-align:center;">Solo visible para administradores</div>
         <div style="flex:1; min-height:8px;"></div>
-        <div style="font-family:var(--f-mono); font-size:13px; border-top:1px solid var(--line); padding-top:12px; color:var(--text-dim);">
+        <div style="font-family:var(--f-mono); font-size:13px; border-top:1px solid var(--line); padding-top:12px; color:var(--text-dim); text-align:center;">
           ${fmtNum(cuentas.length)} cuenta(s) inactiva(s)
         </div>`;
       div.addEventListener('click', () => {
