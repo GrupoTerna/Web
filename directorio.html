@@ -28,9 +28,15 @@
   /* ---------- Gráficos de clan (Miembros/Donaciones/Trofeos/Copas) ---------- */
   .charts-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:16px; margin-bottom:32px;}
   .chart-card{padding:20px;}
+  /* FIX (16-sep-2026 v5, pedido usuario — "en la sección de los 4 clanes
+     terna, falta centrar los subtítulos (miembros, donaciones, trofeos y
+     copas)"): faltaba justify-content:center (esta clase es específica
+     de .chart-card, no toca .chart-title en otras tarjetas de gráfica
+     como el comparador de guerra, que se ven bien alineadas a la
+     izquierda). */
   .chart-card .chart-title{
     font-family:var(--f-display); font-weight:700; font-size:13px; text-transform:uppercase;
-    letter-spacing:.05em; color:var(--text-dim); margin-bottom:16px; display:flex; align-items:center; gap:8px;
+    letter-spacing:.05em; color:var(--text-dim); margin-bottom:16px; display:flex; align-items:center; justify-content:center; gap:8px;
   }
   .chart-row{display:flex; align-items:center; gap:10px; margin-bottom:11px;}
   .chart-row:last-child{margin-bottom:0;}
@@ -158,15 +164,22 @@
   .linechart-svg .axis-title{font-family:var(--f-mono); font-size:11px; font-weight:700; letter-spacing:.03em; fill:var(--text-dim);}
 
   /* ---------- Directorio: tabs horizontales de clan + lista de miembros ---------- */
-  .clan-tabs{display:flex; gap:10px; flex-wrap:wrap; margin-bottom:20px;}
+  /* FIX (16-sep-2026 v5, pedido usuario — "a la sección directorio por
+     clan agrégale el mismo estilo de pastillas que a ingresos
+     recientes"): antes eran recuadros rectangulares (border-radius
+     var(--radius-sm), tipografía display en mayúsculas); ahora son
+     pastillas redondeadas con la misma tipografía/tamaño/paddings que
+     .ing-pill (line ~433) para que ambos filtros de clan de la página se
+     vean como el mismo componente. */
+  .clan-tabs{display:flex; gap:9px; flex-wrap:wrap; margin-bottom:20px;}
   .clan-tab-btn{
-    font-family:var(--f-display); font-weight:700; font-size:13px; text-transform:uppercase; letter-spacing:.03em;
-    padding:11px 18px; border-radius:var(--radius-sm); border:1px solid var(--line); color:var(--text-dim);
-    cursor:pointer; background:var(--surface-card); transition:all .18s ease; display:flex; align-items:center; gap:8px;
+    font-family:var(--f-mono); font-weight:700; font-size:12px; letter-spacing:.03em;
+    padding:8px 15px; border-radius:999px; border:1px solid var(--line); color:var(--text-dim);
+    cursor:pointer; background:var(--surface-card); transition:all .18s ease; display:inline-flex; align-items:center; gap:7px;
   }
-  .clan-tab-btn .ct-count{font-family:var(--f-mono); font-size:11px; color:var(--text-faint); font-weight:400;}
-  .clan-tab-btn:hover{border-color:var(--line-strong); transform:translateY(-2px);}
-  .clan-tab-btn.active{color:#fff; border-color:var(--purple); background:rgba(162,57,255,.16); box-shadow:0 0 14px rgba(162,57,255,.2);}
+  .clan-tab-btn .ct-count{font-family:var(--f-mono); font-size:10.5px; color:var(--text-faint); font-weight:400;}
+  .clan-tab-btn:hover{border-color:var(--line-strong); color:var(--text);}
+  .clan-tab-btn.active{color:#fff; border-color:var(--purple); background:rgba(162,57,255,.18); box-shadow:0 0 12px rgba(162,57,255,.18);}
   .clan-tab-btn.active .ct-count{color:var(--purple-light);}
   .miembro-row{
     display:flex; align-items:center; justify-content:space-between; gap:10px;
@@ -446,13 +459,18 @@
   .ing-pill.active .ing-pill-count{color:var(--purple-light);}
   .ing-pill[data-clan="__todos__"]{border-color:var(--gold); color:var(--gold);}
   .ing-pill[data-clan="__todos__"].active{background:rgba(255,193,68,.16); border-color:var(--gold); color:var(--gold); box-shadow:0 0 12px rgba(255,193,68,.18);}
-  /* Checkbox a la derecha del nombre, dentro de la tarjeta (nuevoCardHtml).
-     Se agrupa con .name en .nc-name-row (inline-flex) para que el par
-     "nombre + checkbox" se centre como un solo bloque dentro de la
-     tarjeta, en vez de que el checkbox quede pegado al borde derecho de
-     toda la card. */
-  .nc-name-row{display:inline-flex; align-items:center; gap:9px;}
-  .js-ingreso-check{width:16px; height:16px; accent-color:var(--purple); cursor:pointer; flex-shrink:0;}
+  /* Checkbox de cada tarjeta de miembro (nuevoCardHtml). FIX (16-sep-2026
+     v5, pedido usuario — "alinea los checkboxes de los nombres de
+     ingresos recientes a la derecha, pegado a la pared de su recuadro
+     porque ahora se confunden como parte del nombre"): antes iba pegado
+     al nombre dentro de .nc-name-row (inline-flex, centrado junto con el
+     texto), por eso se leía como si fuera parte del nombre. Ahora es un
+     elemento posicionado absoluto en la esquina superior derecha de la
+     tarjeta (.nuevo-card necesita position:relative para que esto quede
+     relativo a la tarjeta y no a la página), separado del nombre —
+     .nuevo-card ya centra el nombre por su cuenta (text-align:center),
+     así que no hace falta tocar esa regla. */
+  .nuevo-card .js-ingreso-check{position:absolute; top:18px; right:18px; width:16px; height:16px; accent-color:var(--purple); cursor:pointer; flex-shrink:0;}
 
   /* ---------- Ingresos Recientes: gráficas comparativas (Ataques/Puntaje/
      Barcos por semana), pedido del usuario (07-sep-2026): "que la sección
@@ -474,8 +492,22 @@
   .ing-linechart-card{padding:26px 28px 20px;}
   .ing-linechart-card .chart-title{
     font-family:var(--f-display); font-weight:700; font-size:18px; text-transform:uppercase;
-    letter-spacing:.05em; color:var(--text); margin-bottom:18px;
+    letter-spacing:.05em; color:var(--text); margin-bottom:6px;
   }
+  /* FIX (16-sep-2026 v5, pedido usuario — "al inicio de cada gráfica añade
+     una pequeña descripción indicando que los puntos pintados son de
+     valores existentes y los que solo tienen los bordes del círculo es
+     para valores inexistentes"): mini-leyenda con dos círculos de muestra
+     (uno relleno, uno solo con borde) replicando exactamente el estilo de
+     .ing-serie-pt/.serie-pt-vacio (ver lineChartSvg() más abajo), para que
+     se entienda de un vistazo qué significa cada tipo de punto ANTES de
+     llegar a la gráfica en sí — no hace falta pasar el mouse por un punto
+     para descubrirlo. */
+  .ing-chart-leyenda{
+    display:flex; align-items:center; flex-wrap:wrap; gap:6px 8px; margin:0 0 18px;
+    font-family:var(--f-mono); font-size:11.5px; color:var(--text-faint);
+  }
+  .ing-chart-leyenda svg{flex-shrink:0;}
   .ing-linechart-svg{width:100%; height:auto; aspect-ratio:960/460; display:block; overflow:visible;}
   .ing-linechart-svg .ing-grid-line{stroke:var(--line-strong); stroke-width:1; opacity:.4;}
   .ing-linechart-svg .ing-serie-line-dashed{stroke-dasharray:5 4; opacity:.55;}
@@ -2325,6 +2357,12 @@ function renderComparativaSemanal(container, miembrosTodos){
   const chartCard = (icono, titulo, campo, unidad) => `
       <div class="card ing-linechart-card">
         <div class="chart-title">${icono} ${titulo}</div>
+        <p class="ing-chart-leyenda">
+          <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><circle cx="5" cy="5" r="4" fill="var(--text-dim)"></circle></svg>
+          Punto relleno = valor real registrado
+          <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><circle cx="5" cy="5" r="3.4" fill="none" stroke="var(--text-dim)" stroke-width="1.6"></circle></svg>
+          Punto solo con borde = sin dato esa semana
+        </p>
         ${lineChartLegendHtml(miembros)}
         ${lineChartSvg(miembros, campo, semanas, { unidad, ejeY: titulo.split(' ')[0] })}
       </div>`;
@@ -2380,11 +2418,9 @@ function nuevoCardHtml(n){
   const royaleOk = urlValida(n.royaleApi);
   const cwOk = urlValida(n.cwstats);
   return `
-      <div class="card nuevo-card js-nuevo-card" data-tag="${esc(n.tag || '')}" style="cursor:pointer;">
-        <div class="nc-name-row">
-          <div class="name">${esc(n.nombre)}</div>
-          <input type="checkbox" class="js-ingreso-check" data-tag="${esc(n.tag || '')}" checked aria-label="Incluir a ${esc(n.nombre)} en la vista y las gráficas">
-        </div>
+      <div class="card nuevo-card js-nuevo-card" data-tag="${esc(n.tag || '')}" style="cursor:pointer; position:relative;">
+        <input type="checkbox" class="js-ingreso-check" data-tag="${esc(n.tag || '')}" checked aria-label="Incluir a ${esc(n.nombre)} en la vista y las gráficas">
+        <div class="name">${esc(n.nombre)}</div>
         <div class="tag">${esc(n.tag)} · ${fmtFecha(n.fechaIngresoISO)}</div>
         <div class="clan">${esc(n.clan)}</div>
         <div class="nc-stats">
