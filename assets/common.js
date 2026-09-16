@@ -470,7 +470,7 @@ function clanCardHtml(c, i, opts){
            quedan alineados entre sí por su borde izquierdo (mismo
            criterio de antes) pero el bloque completo queda centrado
            horizontalmente en la tarjeta en vez de pegado al borde
-           izquierdo. */
+           izquierdo. -->
       <div style="display:flex; justify-content:center; margin-top:12px;">
         <div style="display:flex; flex-direction:column; align-items:flex-start; gap:4px; font-size:13px;">
           <span class="text-dim">👑 Líder: <b style="color:var(--text);">${esc(lider)}</b></span>
