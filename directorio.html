@@ -403,47 +403,44 @@
   .nuevo-card .nc-stats span{font-family:var(--f-mono); font-size:13.5px; color:var(--text-dim);}
   .nuevo-card .nc-stats b{color:var(--text); font-weight:700;}
 
-  /* ---------- Ingresos Recientes: filtro por clan/miembro (16-sep-2026,
-     pedido usuario — "en las gráficas de ingresos recientes añade la
-     opción de filtrar por clan [...] que muestre solo los clanes
-     deseados y de preferencia que también se pueda marcar o desmarcar
-     cada miembro. se debe poder seleccionar a todos o ninguno de cierto
-     clan y también por miembro"): panel plegable debajo del encabezado
-     de la sección (toggle con #ingFiltroToggle, mismo estilo de botón
-     que .rt-limpiar-filtros de la tabla de arriba), con una columna por
-     clan — cada una con un checklist de miembros y atajos "Todos"/
-     "Ninguno" propios — más un atajo global arriba que aplica a todos
-     los clanes a la vez. El filtro afecta tanto las tarjetas (#nuevoGrid)
-     como las tres gráficas comparativas (ver aplicarFiltroIngresos() /
-     construirFiltroIngresos() más abajo). Reusa .rt-filtro-item y
-     .rt-filtro-todos-btn (mismas clases que el popover de filtros de
-     columna de la tabla de arriba) para que se vea igual sin duplicar
-     estilos. */
-  .ing-filtro-panel{
-    margin-top:16px; padding:18px 20px; border:1px solid var(--line); border-radius:var(--radius-sm);
-    background:var(--surface-card);
+  /* ---------- Ingresos Recientes: pastillas de clan + checkbox por
+     tarjeta (16-sep-2026 v2, pedido usuario — "el botón de filtrar por
+     clan [...] no corresponde al estilo de la web [...] pon pastillas
+     por clanes cargando por defecto la pastilla 'Todos', que debe
+     permitir marcado múltiple, así se puede seleccionar qué clanes se
+     quiere ver u ocultar y dentro de la tarjetita de cada miembro debe
+     haber un checkbox a la derecha del nombre"). Reemplaza el panel
+     plegable con checklist por columnas (#ingFiltroToggle/#ingFiltroPanel,
+     ya no existen en el markup) por:
+       - una fila de pastillas (#ingClanPills, una por clan + "Todos"),
+         cada una activa/inactiva de forma independiente (selección
+         múltiple real, no radio): togglea qué clanes se muestran.
+       - un checkbox propio dentro de cada .nuevo-card (ver
+         .nc-name-row/.js-ingreso-check en nuevoCardHtml()) para
+         incluir/excluir miembros puntuales sin salir de la tarjeta.
+     Misma pastilla visual que .clan-tab-btn (line 162) pero más compacta,
+     así se ve consistente con el resto del sitio en vez del botón
+     genérico + panel gris que había antes. Ver construirFiltroIngresos()/
+     aplicarFiltroIngresos() más abajo para la lógica. */
+  .ing-pill-row{display:flex; flex-wrap:wrap; gap:9px; margin-top:14px;}
+  .ing-pill{
+    font-family:var(--f-mono); font-weight:700; font-size:12px; letter-spacing:.03em;
+    padding:8px 15px; border-radius:999px; border:1px solid var(--line); color:var(--text-dim);
+    cursor:pointer; background:var(--surface-card); transition:all .18s ease; display:inline-flex; align-items:center; gap:7px;
   }
-  .ing-filtro-panel[hidden]{display:none;}
-  .ing-filtro-global{
-    display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-bottom:14px;
-    padding-bottom:14px; border-bottom:1px solid var(--line);
-  }
-  .ing-filtro-global-label{
-    font-family:var(--f-mono); font-size:11.5px; font-weight:700; letter-spacing:.04em;
-    text-transform:uppercase; color:var(--text-faint);
-  }
-  .ing-filtro-clanes{display:grid; grid-template-columns:repeat(auto-fit,minmax(190px,1fr)); gap:20px;}
-  .ing-filtro-clan-col{min-width:0;}
-  .ing-filtro-clan-head{
-    display:flex; align-items:baseline; justify-content:space-between; gap:8px; flex-wrap:wrap;
-    margin-bottom:6px; padding-bottom:6px; border-bottom:1px dashed var(--line);
-  }
-  .ing-filtro-clan-nombre{
-    font-family:var(--f-mono); font-size:12px; font-weight:700; letter-spacing:.04em;
-    text-transform:uppercase; color:var(--gold);
-  }
-  .ing-filtro-clan-acciones{display:flex; gap:10px;}
-  .ing-filtro-miembros{max-height:230px; overflow-y:auto;}
+  .ing-pill:hover{border-color:var(--line-strong); color:var(--text);}
+  .ing-pill.active{color:#fff; border-color:var(--purple); background:rgba(162,57,255,.18); box-shadow:0 0 12px rgba(162,57,255,.18);}
+  .ing-pill-count{font-size:10.5px; color:var(--text-faint);}
+  .ing-pill.active .ing-pill-count{color:var(--purple-light);}
+  .ing-pill[data-clan="__todos__"]{border-color:var(--gold); color:var(--gold);}
+  .ing-pill[data-clan="__todos__"].active{background:rgba(255,193,68,.16); border-color:var(--gold); color:var(--gold); box-shadow:0 0 12px rgba(255,193,68,.18);}
+  /* Checkbox a la derecha del nombre, dentro de la tarjeta (nuevoCardHtml).
+     Se agrupa con .name en .nc-name-row (inline-flex) para que el par
+     "nombre + checkbox" se centre como un solo bloque dentro de la
+     tarjeta, en vez de que el checkbox quede pegado al borde derecho de
+     toda la card. */
+  .nc-name-row{display:inline-flex; align-items:center; gap:9px;}
+  .js-ingreso-check{width:16px; height:16px; accent-color:var(--purple); cursor:pointer; flex-shrink:0;}
 
   /* ---------- Ingresos Recientes: gráficas comparativas (Ataques/Puntaje/
      Barcos por semana), pedido del usuario (07-sep-2026): "que la sección
@@ -620,15 +617,12 @@
   <section id="ingresosRecientes" style="padding:32px 0 0;">
     <div class="sec-head" style="display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:10px; border-bottom:1px solid var(--line); padding-bottom:12px;">
       <h2 style="font-size:22px;">🆕 Ingresos Recientes</h2>
-      <div style="display:flex; align-items:center; gap:14px;">
-        <!-- FIX (16-sep-2026, pedido usuario — filtro por clan/miembro):
-             abre/cierra #ingFiltroPanel, armado por construirFiltroIngresos()
-             más abajo en cuanto llega la data. -->
-        <button type="button" class="rt-limpiar-filtros" id="ingFiltroToggle" aria-expanded="false" aria-controls="ingFiltroPanel">🔎 Filtrar por clan / miembro</button>
-        <span class="text-faint" id="nuevosCount" style="font-family:var(--f-mono); font-size:13px;"></span>
-      </div>
+      <span class="text-faint" id="nuevosCount" style="font-family:var(--f-mono); font-size:13px;"></span>
     </div>
-    <div class="ing-filtro-panel" id="ingFiltroPanel" hidden></div>
+    <!-- FIX (16-sep-2026 v2, pedido usuario — pastillas de clan en vez del
+         botón "Filtrar por clan / miembro" + panel plegable): pintado por
+         construirFiltroIngresos() en cuanto llega la data. -->
+    <div class="ing-pill-row" id="ingClanPills"></div>
     <div class="nuevo-grid" id="nuevoGrid" style="margin-top:20px;"></div>
     <div id="ingresosChartsWrap"></div>
   </section>
@@ -2375,7 +2369,10 @@ function nuevoCardHtml(n){
   const cwOk = urlValida(n.cwstats);
   return `
       <div class="card nuevo-card js-nuevo-card" data-tag="${esc(n.tag || '')}" style="cursor:pointer;">
-        <div class="name">${esc(n.nombre)}</div>
+        <div class="nc-name-row">
+          <div class="name">${esc(n.nombre)}</div>
+          <input type="checkbox" class="js-ingreso-check" data-tag="${esc(n.tag || '')}" checked aria-label="Incluir a ${esc(n.nombre)} en la vista y las gráficas">
+        </div>
         <div class="tag">${esc(n.tag)} · ${fmtFecha(n.fechaIngresoISO)}</div>
         <div class="clan">${esc(n.clan)}</div>
         <div class="nc-stats">
@@ -2415,6 +2412,15 @@ function renderNuevoGrid(lista){
   nuevoGrid.querySelectorAll('.js-nuevo-card').forEach(card => {
     const linksBox = card.querySelector('.links');
     if (linksBox) linksBox.addEventListener('click', e => e.stopPropagation());
+    const check = card.querySelector('.js-ingreso-check');
+    if (check){
+      check.addEventListener('click', e => e.stopPropagation());
+      check.addEventListener('change', () => {
+        if (check.checked) ingresosSeleccionados.add(check.dataset.tag);
+        else ingresosSeleccionados.delete(check.dataset.tag);
+        aplicarFiltroIngresos();
+      });
+    }
     card.addEventListener('click', () => {
       if (!card.dataset.tag) return;
       window.open('perfil.html?tag=' + encodeURIComponent(card.dataset.tag), '_blank');
@@ -2455,100 +2461,72 @@ function agruparPorClanEnOrden(nuevos){
   return grupos;
 }
 
-/** Arma el panel de checkboxes (una columna por clan) y reinicia la
- * selección a "todos marcados". Se llama una sola vez por carga de datos
- * (no en cada toggle de checkbox — eso lo maneja aplicarFiltroIngresos()
- * sin reconstruir el panel). */
-function construirFiltroIngresos(nuevos){
-  const panel = document.getElementById('ingFiltroPanel');
-  if (!panel) return;
+/** Pinta la fila de pastillas de clan ("Todos" + una por clan) y reinicia
+ * la selección a "todos visibles". Se llama una sola vez por carga de
+ * datos (no en cada click de pastilla — eso lo maneja pintarPills() sin
+ * reconstruir el resto de la página).
+ * FIX (16-sep-2026 v2, pedido usuario — reemplaza el panel de checkboxes
+ * por columna anterior): cada pastilla de clan es un toggle independiente
+ * (selección múltiple real, no radio) que muestra/oculta TODAS las
+ * tarjetas de ese clan a la vez; "Todos" siempre reactiva los clanes y
+ * miembros completos de un solo click (no es un toggle, es un "reset").
+ * El filtro fino por miembro individual ahora vive directo en la tarjeta
+ * (checkbox de .js-ingreso-check, ver nuevoCardHtml()/renderNuevoGrid()),
+ * así que acá ya no hace falta un checklist de nombres. */
+let ingresosClanesActivos = null;
 
-  ingresosSeleccionados = new Set(nuevos.map(n => n.tag));
+function construirFiltroIngresos(nuevos){
+  const wrap = document.getElementById('ingClanPills');
+  if (!wrap) return;
 
   const grupos = agruparPorClanEnOrden(nuevos);
+  ingresosSeleccionados = new Set(nuevos.map(n => n.tag));
+  ingresosClanesActivos = new Set(grupos.map(g => g.clan));
+
   if (!grupos.length){
-    panel.innerHTML = '<div class="rt-filtro-vacio">No hay ingresos recientes para filtrar.</div>';
+    wrap.innerHTML = '';
     return;
   }
 
-  panel.innerHTML = `
-    <div class="ing-filtro-global">
-      <span class="ing-filtro-global-label">Todos los clanes</span>
-      <button type="button" class="rt-filtro-todos-btn" data-accion="todos">Seleccionar todos</button>
-      <button type="button" class="rt-filtro-todos-btn" data-accion="ninguno">Ninguno</button>
-    </div>
-    <div class="ing-filtro-clanes">
-      ${grupos.map((g, gi) => `
-        <div class="ing-filtro-clan-col" data-clan-idx="${gi}">
-          <div class="ing-filtro-clan-head">
-            <span class="ing-filtro-clan-nombre">${esc(g.clan)}</span>
-            <span class="ing-filtro-clan-acciones">
-              <button type="button" class="rt-filtro-todos-btn" data-accion="clan-todos">Todos</button>
-              <button type="button" class="rt-filtro-todos-btn" data-accion="clan-ninguno">Ninguno</button>
-            </span>
-          </div>
-          <div class="ing-filtro-miembros">
-            ${g.miembros.map(m => `
-              <label class="rt-filtro-item">
-                <input type="checkbox" class="js-ing-filtro-miembro" data-tag="${esc(m.tag || '')}" checked>
-                <span>${esc(m.nombre)}</span>
-              </label>`).join('')}
-          </div>
-        </div>`).join('')}
-    </div>`;
+  const pintarPills = () => {
+    const todosActivos = grupos.every(g => ingresosClanesActivos.has(g.clan));
+    wrap.innerHTML = `
+      <button type="button" class="ing-pill${todosActivos ? ' active' : ''}" data-clan="__todos__">Todos</button>
+      ${grupos.map(g => `
+        <button type="button" class="ing-pill${ingresosClanesActivos.has(g.clan) ? ' active' : ''}" data-clan="${esc(g.clan)}">
+          ${esc(g.clan)} <span class="ing-pill-count">${g.miembros.length}</span>
+        </button>`).join('')}`;
 
-  panel.querySelectorAll('.js-ing-filtro-miembro').forEach(cb => {
-    cb.addEventListener('change', () => {
-      if (cb.checked) ingresosSeleccionados.add(cb.dataset.tag);
-      else ingresosSeleccionados.delete(cb.dataset.tag);
-      aplicarFiltroIngresos();
-    });
-  });
-
-  panel.querySelectorAll('[data-accion="clan-todos"], [data-accion="clan-ninguno"]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const marcar = btn.dataset.accion === 'clan-todos';
-      const col = btn.closest('.ing-filtro-clan-col');
-      if (!col) return;
-      col.querySelectorAll('.js-ing-filtro-miembro').forEach(cb => {
-        cb.checked = marcar;
-        if (marcar) ingresosSeleccionados.add(cb.dataset.tag);
-        else ingresosSeleccionados.delete(cb.dataset.tag);
+    wrap.querySelectorAll('.ing-pill').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const clan = btn.dataset.clan;
+        if (clan === '__todos__'){
+          ingresosClanesActivos = new Set(grupos.map(g => g.clan));
+          ingresosSeleccionados = new Set(nuevos.map(n => n.tag));
+        } else {
+          const grupo = grupos.find(g => g.clan === clan);
+          if (!grupo) return;
+          if (ingresosClanesActivos.has(clan)){
+            ingresosClanesActivos.delete(clan);
+            grupo.miembros.forEach(m => ingresosSeleccionados.delete(m.tag));
+          } else {
+            ingresosClanesActivos.add(clan);
+            grupo.miembros.forEach(m => ingresosSeleccionados.add(m.tag));
+          }
+        }
+        pintarPills();
+        aplicarFiltroIngresos();
       });
-      aplicarFiltroIngresos();
     });
-  });
+  };
 
-  panel.querySelectorAll('[data-accion="todos"], [data-accion="ninguno"]').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const marcar = btn.dataset.accion === 'todos';
-      panel.querySelectorAll('.js-ing-filtro-miembro').forEach(cb => {
-        cb.checked = marcar;
-        if (marcar) ingresosSeleccionados.add(cb.dataset.tag);
-        else ingresosSeleccionados.delete(cb.dataset.tag);
-      });
-      aplicarFiltroIngresos();
-    });
-  });
-}
-
-/** Muestra/oculta el panel de filtro. Se registra una sola vez (el botón
- * ya existe en el markup estático, no depende de la data cargada). */
-function inicializarToggleFiltroIngresos(){
-  const toggle = document.getElementById('ingFiltroToggle');
-  const panel = document.getElementById('ingFiltroPanel');
-  if (!toggle || !panel) return;
-  toggle.addEventListener('click', () => {
-    const estabaAbierto = !panel.hidden;
-    panel.hidden = estabaAbierto;
-    toggle.setAttribute('aria-expanded', String(!estabaAbierto));
-  });
+  pintarPills();
 }
 
 async function cargarIngresosRecientes(){
   const nuevoGrid = document.getElementById('nuevoGrid');
   const chartsWrap = document.getElementById('ingresosChartsWrap');
-  const panel = document.getElementById('ingFiltroPanel');
+  const pillsWrap = document.getElementById('ingClanPills');
   try{
     const data = await apiGet('webIngresosRecientes');
     const nuevos = (data.ingresos || []).slice().sort((a, b) => {
@@ -2562,15 +2540,15 @@ async function cargarIngresosRecientes(){
   }catch(err){
     ingresosTodosCache = [];
     ingresosSeleccionados = null;
+    ingresosClanesActivos = null;
     if (nuevoGrid) nuevoGrid.innerHTML = `<div class="empty">No se pudo cargar los ingresos recientes: ${esc(err.message)}</div>`;
     if (chartsWrap) chartsWrap.innerHTML = '';
-    if (panel) panel.innerHTML = '';
+    if (pillsWrap) pillsWrap.innerHTML = '';
     const countEl = document.getElementById('nuevosCount');
     if (countEl) countEl.textContent = '';
   }
 }
 
-inicializarToggleFiltroIngresos();
 cargarRoster();
 cargarIngresosRecientes();
 </script>
