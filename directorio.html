@@ -507,10 +507,19 @@
      se entienda de un vistazo qué significa cada tipo de punto ANTES de
      llegar a la gráfica en sí — no hace falta pasar el mouse por un punto
      para descubrirlo. */
+  /* FIX (16-sep-2026 v7, pedido usuario — "la del punto solo con borde
+     ponlo en otra fila, se confunden al estar pegados y el texto está muy
+     oscuro"): antes las dos leyendas (relleno / solo borde) iban en la
+     misma línea con flex-wrap, se pegaban una a la otra sin quiebre claro.
+     Ahora cada una es su propia fila (.ing-chart-leyenda-fila) dentro del
+     contenedor en columna; el color sube de var(--text-faint) (muy tenue)
+     a var(--text-dim) para que se lea sin esfuerzo sobre el fondo oscuro
+     de la tarjeta. */
   .ing-chart-leyenda{
-    display:flex; align-items:center; flex-wrap:wrap; gap:6px 8px; margin:0 0 18px;
-    font-family:var(--f-mono); font-size:11.5px; color:var(--text-faint);
+    display:flex; flex-direction:column; gap:5px; margin:0 0 18px;
+    font-family:var(--f-mono); font-size:11.5px; color:var(--text-dim);
   }
+  .ing-chart-leyenda-fila{display:flex; align-items:center; gap:8px;}
   .ing-chart-leyenda svg{flex-shrink:0;}
   .ing-linechart-svg{width:100%; height:auto; aspect-ratio:960/460; display:block; overflow:visible;}
   .ing-linechart-svg .ing-grid-line{stroke:var(--line-strong); stroke-width:1; opacity:.4;}
@@ -2361,12 +2370,16 @@ function renderComparativaSemanal(container, miembrosTodos){
   const chartCard = (icono, titulo, campo, unidad) => `
       <div class="card ing-linechart-card">
         <div class="chart-title">${icono} ${titulo}</div>
-        <p class="ing-chart-leyenda">
-          <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><circle cx="5" cy="5" r="4" fill="var(--text-dim)"></circle></svg>
-          Punto relleno = valor real registrado
-          <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><circle cx="5" cy="5" r="3.4" fill="none" stroke="var(--text-dim)" stroke-width="1.6"></circle></svg>
-          Punto solo con borde = sin dato esa semana
-        </p>
+        <div class="ing-chart-leyenda">
+          <div class="ing-chart-leyenda-fila">
+            <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><circle cx="5" cy="5" r="4" fill="var(--text-dim)"></circle></svg>
+            Punto relleno = valor real registrado
+          </div>
+          <div class="ing-chart-leyenda-fila">
+            <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><circle cx="5" cy="5" r="3.4" fill="none" stroke="var(--text-dim)" stroke-width="1.6"></circle></svg>
+            Punto solo con borde = sin dato esa semana
+          </div>
+        </div>
         ${lineChartLegendHtml(miembros)}
         ${lineChartSvg(miembros, campo, semanas, { unidad, ejeY: titulo.split(' ')[0] })}
       </div>`;
