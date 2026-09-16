@@ -337,9 +337,28 @@
      segundos ocultos): campo de texto (12h) + <select> AM/PM al lado,
      mismo patrón que .campo-fecha-wrap: el <input type="time"> real queda
      oculto (.campo-oculto-visual) y sigue siendo la fuente del valor en
-     24h para horaConSegundos() y el resto del código, que no cambian. */
-  .campo-hora-wrap{display:flex; align-items:center; gap:8px;}
-  .campo-hora-wrap input[type="text"]{flex:1; min-width:0;}
+     24h para horaConSegundos() y el resto del código, que no cambian.
+
+     FIX (16-sep-2026, pedido usuario — "en el cuadro de hora, divídelo en
+     dos, uno de hora y uno de minutos"): el <input type="text"> único
+     "hh:mm" se separa en DOS cuadros chicos (#...HH y #...MM, maxlength=2
+     cada uno) con un ":" fijo en el medio (span .campo-hora-separador, no
+     es parte de ningún input). Aplica a los 3 formularios (Torneos,
+     Sorteos, Cambio de rango) en TODAS sus modalidades (Registrar/
+     Modificar/Planificar según corresponda) -- las 7 instancias de
+     .campo-hora-wrap del HTML. El <select> AM/PM y el <input type="time">
+     oculto no cambian de rol: el oculto sigue siendo la fuente real 24h
+     que detecta la hora/minutos ya cargados desde el backend y los
+     precarga en HH/MM al editar una corrida existente -- ver
+     initCampoHoraAmigable()/limpiarCampoHoraAmigable() en el <script>. */
+  .campo-hora-wrap{display:flex; align-items:center; gap:6px;}
+  .campo-hora-wrap input[type="text"].campo-hora-hh,
+  .campo-hora-wrap input[type="text"].campo-hora-mm{
+    flex:0 0 44px; width:44px; text-align:center; padding-left:4px; padding-right:4px;
+  }
+  .campo-hora-wrap .campo-hora-separador{
+    flex-shrink:0; font-weight:600; color:var(--text-dim);
+  }
   .campo-hora-wrap select{flex-shrink:0; width:78px;}
   /* FIX (09-sep-2026, pedido usuario — selector de semanas en Planificar/
      Registrar/Modificar torneo; actualizado 11-sep-2026, ver docblock
@@ -935,9 +954,11 @@
                   </div>
                 </div>
                 <div class="field">
-                  <label for="tHoraTexto">Hora</label>
+                  <label for="tHoraHH">Hora</label>
                   <div class="campo-hora-wrap">
-                    <input type="text" id="tHoraTexto" placeholder="hh:mm" inputmode="numeric" maxlength="5" autocomplete="off">
+                    <input type="text" id="tHoraHH" class="campo-hora-hh" placeholder="hh" inputmode="numeric" maxlength="2" autocomplete="off">
+                    <span class="campo-hora-separador">:</span>
+                    <input type="text" id="tHoraMM" class="campo-hora-mm" placeholder="mm" inputmode="numeric" maxlength="2" autocomplete="off">
                     <select id="tHoraAmPm">
                       <option value="AM">AM</option>
                       <option value="PM">PM</option>
@@ -1061,9 +1082,11 @@
                   </div>
                 </div>
                 <div class="field">
-                  <label for="tHoraModTexto">Nueva hora</label>
+                  <label for="tHoraModHH">Nueva hora</label>
                   <div class="campo-hora-wrap">
-                    <input type="text" id="tHoraModTexto" placeholder="hh:mm" inputmode="numeric" maxlength="5" autocomplete="off">
+                    <input type="text" id="tHoraModHH" class="campo-hora-hh" placeholder="hh" inputmode="numeric" maxlength="2" autocomplete="off">
+                    <span class="campo-hora-separador">:</span>
+                    <input type="text" id="tHoraModMM" class="campo-hora-mm" placeholder="mm" inputmode="numeric" maxlength="2" autocomplete="off">
                     <select id="tHoraModAmPm">
                       <option value="AM">AM</option>
                       <option value="PM">PM</option>
@@ -1175,9 +1198,11 @@
                   </div>
                 </div>
                 <div class="field">
-                  <label for="tHoraPlanTexto">Hora</label>
+                  <label for="tHoraPlanHH">Hora</label>
                   <div class="campo-hora-wrap">
-                    <input type="text" id="tHoraPlanTexto" placeholder="hh:mm" inputmode="numeric" maxlength="5" autocomplete="off">
+                    <input type="text" id="tHoraPlanHH" class="campo-hora-hh" placeholder="hh" inputmode="numeric" maxlength="2" autocomplete="off">
+                    <span class="campo-hora-separador">:</span>
+                    <input type="text" id="tHoraPlanMM" class="campo-hora-mm" placeholder="mm" inputmode="numeric" maxlength="2" autocomplete="off">
                     <select id="tHoraPlanAmPm">
                       <option value="AM">AM</option>
                       <option value="PM">PM</option>
@@ -1589,9 +1614,11 @@
                     </div>
                   </div>
                   <div class="field">
-                    <label for="sHoraTexto">Hora</label>
+                    <label for="sHoraHH">Hora</label>
                     <div class="campo-hora-wrap">
-                      <input type="text" id="sHoraTexto" placeholder="hh:mm" inputmode="numeric" maxlength="5" autocomplete="off">
+                      <input type="text" id="sHoraHH" class="campo-hora-hh" placeholder="hh" inputmode="numeric" maxlength="2" autocomplete="off">
+                      <span class="campo-hora-separador">:</span>
+                      <input type="text" id="sHoraMM" class="campo-hora-mm" placeholder="mm" inputmode="numeric" maxlength="2" autocomplete="off">
                       <select id="sHoraAmPm">
                         <option value="AM">AM</option>
                         <option value="PM">PM</option>
@@ -1658,9 +1685,11 @@
                     </div>
                   </div>
                   <div class="field">
-                    <label for="sHoraModTexto">Nueva hora</label>
+                    <label for="sHoraModHH">Nueva hora</label>
                     <div class="campo-hora-wrap">
-                      <input type="text" id="sHoraModTexto" placeholder="hh:mm" inputmode="numeric" maxlength="5" autocomplete="off">
+                      <input type="text" id="sHoraModHH" class="campo-hora-hh" placeholder="hh" inputmode="numeric" maxlength="2" autocomplete="off">
+                      <span class="campo-hora-separador">:</span>
+                      <input type="text" id="sHoraModMM" class="campo-hora-mm" placeholder="mm" inputmode="numeric" maxlength="2" autocomplete="off">
                       <select id="sHoraModAmPm">
                         <option value="AM">AM</option>
                         <option value="PM">PM</option>
@@ -1740,9 +1769,11 @@
                     </div>
                   </div>
                   <div class="field">
-                    <label for="sHoraPlanTexto">Hora</label>
+                    <label for="sHoraPlanHH">Hora</label>
                     <div class="campo-hora-wrap">
-                      <input type="text" id="sHoraPlanTexto" placeholder="hh:mm" inputmode="numeric" maxlength="5" autocomplete="off">
+                      <input type="text" id="sHoraPlanHH" class="campo-hora-hh" placeholder="hh" inputmode="numeric" maxlength="2" autocomplete="off">
+                      <span class="campo-hora-separador">:</span>
+                      <input type="text" id="sHoraPlanMM" class="campo-hora-mm" placeholder="mm" inputmode="numeric" maxlength="2" autocomplete="off">
                       <select id="sHoraPlanAmPm">
                         <option value="AM">AM</option>
                         <option value="PM">PM</option>
@@ -2054,12 +2085,12 @@
                      cambio de rango se debe cambiar el formato de fecha y
                      hora, debe mostrarse como sale en torneos"): mismo
                      patrón campo-fecha-wrap/campo-hora-wrap que
-                     #tFechaTexto/#tHoraTexto (Torneos) -- #crFecha/#crHora
-                     siguen siendo la fuente real (ISO/24h) que ya lee
-                     btnCrGuardar y precarga precargarFormularioCR(), solo
-                     cambia cómo se ven. Ver initCampoFechaAmigable('crFecha',
-                     'crFechaTexto', 'btnCalendarioCR') e
-                     initCampoHoraAmigable('crHora', 'crHoraTexto',
+                     #tFechaTexto/#tHoraHH+#tHoraMM (Torneos) -- #crFecha/
+                     #crHora siguen siendo la fuente real (ISO/24h) que ya
+                     lee btnCrGuardar y precarga precargarFormularioCR(),
+                     solo cambia cómo se ven. Ver initCampoFechaAmigable(
+                     'crFecha', 'crFechaTexto', 'btnCalendarioCR') e
+                     initCampoHoraAmigable('crHora', 'crHoraHH', 'crHoraMM',
                      'crHoraAmPm') más abajo en el <script>. -->
                 <div class="field-row">
                   <div class="field">
@@ -2071,9 +2102,11 @@
                     </div>
                   </div>
                   <div class="field">
-                    <label for="crHoraTexto">Hora</label>
+                    <label for="crHoraHH">Hora</label>
                     <div class="campo-hora-wrap">
-                      <input type="text" id="crHoraTexto" placeholder="hh:mm" inputmode="numeric" maxlength="5" autocomplete="off">
+                      <input type="text" id="crHoraHH" class="campo-hora-hh" placeholder="hh" inputmode="numeric" maxlength="2" autocomplete="off">
+                      <span class="campo-hora-separador">:</span>
+                      <input type="text" id="crHoraMM" class="campo-hora-mm" placeholder="mm" inputmode="numeric" maxlength="2" autocomplete="off">
                       <select id="crHoraAmPm">
                         <option value="AM">AM</option>
                         <option value="PM">PM</option>
@@ -3727,14 +3760,15 @@ function fechaInputADDMMYYYY(v){
    (.campo-oculto-visual) pero sin cambiar de tipo ni de id — sigue siendo
    la fuente real del valor ISO ("yyyy-mm-dd") que ya usan
    fechaInputADDMMYYYY(), los botones Registrar/Modificar/Planificar, etc.
-   Mismo patrón para hora: texto "hh:mm" (12h) + <select> AM/PM visibles,
-   más el <input type="time"> de siempre (24h) oculto, que sigue siendo lo
-   que lee horaConSegundos(). Los segundos NO se piden en la interfaz: se
-   asumen "00" siempre (ver horaConSegundos(), más abajo).
+   Mismo patrón para hora: dos cuadros chicos "hh" y "mm" (12h, con un ":"
+   fijo entre ambos) + <select> AM/PM visibles, más el <input type="time">
+   de siempre (24h) oculto, que sigue siendo lo que lee horaConSegundos().
+   Los segundos NO se piden en la interfaz: se asumen "00" siempre (ver
+   horaConSegundos(), más abajo).
 
    initCampoFechaAmigable(idOculto, idVisible, idBtnCalendario)　e
-   initCampoHoraAmigable(idOculto, idVisible, idAmPm) dejan la
-   sincronización en los dos sentidos:
+   initCampoHoraAmigable(idOculto, idVisibleHH, idVisibleMM, idAmPm) dejan
+   la sincronización en los dos sentidos:
      - si el admin escribe en el campo visible, se valida y se vuelca al
        campo oculto (formato ISO / 24h);
      - si el campo oculto cambia por código (p.ej. el autocompletado de
@@ -3804,81 +3838,137 @@ function limpiarCampoFechaAmigable(idOculto, idVisible){
   if(visible) visible.value = '';
 }
 
-function initCampoHoraAmigable(idOculto, idVisible, idAmPm){
+/* FIX (16-sep-2026, pedido usuario -- "en el cuadro de hora, divídelo en
+ * dos, uno de hora y uno de minutos... seguido de otro cuadro de minutos
+ * que indique mm y detecte la hora desde el backend, detectando también
+ * los minutos y precargándolos en caso de que sea una corrida existente"):
+ * el <input type="text"> único "hh:mm" (idVisible) se reemplaza por DOS
+ * cuadros chicos, uno de horas (idVisibleHH) y uno de minutos
+ * (idVisibleMM), con un ":" fijo en el HTML entre ambos (no es parte de
+ * ningún input, ver .campo-hora-separador en el <style>). Aplica a las 7
+ * instancias de .campo-hora-wrap (Torneos Registrar/Modificar/Planificar,
+ * Sorteos Registrar/Modificar/Planificar, Cambio de rango).
+ *
+ * El resto del mecanismo NO cambia: #idOculto (<input type="time">) sigue
+ * siendo la fuente real 24h que lee/escribe todo el resto del código
+ * (horaConSegundos(), btnCrGuardar, precargarFormularioCR(), los listeners
+ * de #tSelectHoy/#sSelectHoy, etc.) — esas partes ya trabajan poniendo
+ * .value en el oculto y disparando 'change', así que la detección de
+ * hora/minutos ya guardados en el backend y su precarga al editar una
+ * corrida existente sigue funcionando igual, solo que ahora
+ * sincronizarDesdeOculto() reparte los dos dígitos de hora y los dos de
+ * minutos en HH/MM por separado en vez de armar un solo "hh:mm". */
+function initCampoHoraAmigable(idOculto, idVisibleHH, idVisibleMM, idAmPm){
   const oculto = document.getElementById(idOculto);
-  const visible = document.getElementById(idVisible);
+  const hh = document.getElementById(idVisibleHH);
+  const mm = document.getElementById(idVisibleMM);
   const selAmPm = document.getElementById(idAmPm);
-  if(!oculto || !visible || !selAmPm) return;
+  if(!oculto || !hh || !mm || !selAmPm) return;
 
   const sincronizarDesdeOculto = () => {
-    if(!oculto.value){ visible.value = ''; selAmPm.value = 'AM'; return; }
+    if(!oculto.value){ hh.value = ''; mm.value = ''; selAmPm.value = 'AM'; return; }
     const [h, m] = oculto.value.split(':').map(Number);
     selAmPm.value = h >= 12 ? 'PM' : 'AM';
     let h12 = h % 12; if(h12 === 0) h12 = 12;
-    visible.value = `${pad2(h12)}:${pad2(m)}`;
+    hh.value = pad2(h12);
+    mm.value = pad2(m);
   };
   oculto.addEventListener('change', sincronizarDesdeOculto);
-  sincronizarDesdeOculto();
+  sincronizarDesdeOculto(); // por si ya trae un valor precargado
 
   const sincronizarHaciaOculto = () => {
-    const m = (visible.value || '').trim().match(/^(\d{1,2}):(\d{2})$/);
-    if(!m){ oculto.value = ''; return; }
-    let h = Number(m[1]);
-    const min = Number(m[2]);
-    if(h < 1 || h > 12 || min > 59){ oculto.value = ''; return; }
+    const hTxt = (hh.value || '').trim();
+    const mTxt = (mm.value || '').trim();
+    if(!hTxt || !mTxt){ oculto.value = ''; return; }
+    let h = Number(hTxt);
+    const min = Number(mTxt);
+    if(!Number.isInteger(h) || !Number.isInteger(min) || h < 1 || h > 12 || min < 0 || min > 59){
+      oculto.value = '';
+      return;
+    }
     if(selAmPm.value === 'PM' && h !== 12) h += 12;
     if(selAmPm.value === 'AM' && h === 12) h = 0;
     oculto.value = `${pad2(h)}:${pad2(min)}`;
   };
-  visible.addEventListener('input', (ev) => {
-    const soloDigitos = ev.target.value.replace(/\D/g, '').slice(0, 4);
-    ev.target.value = soloDigitos.length > 2 ? `${soloDigitos.slice(0,2)}:${soloDigitos.slice(2)}` : soloDigitos;
+
+  // Solo dígitos mientras se escribe (máx. 2 en cada cuadro), y al llenar
+  // el de horas salta el foco a minutos (comodidad, mismo espíritu que el
+  // "/" automático de autoformatearFechaEscritura()).
+  hh.addEventListener('input', (ev) => {
+    ev.target.value = ev.target.value.replace(/\D/g, '').slice(0, 2);
+    if(ev.target.value.length === 2) mm.focus();
   });
-  visible.addEventListener('change', sincronizarHaciaOculto);
+  mm.addEventListener('input', (ev) => {
+    ev.target.value = ev.target.value.replace(/\D/g, '').slice(0, 2);
+  });
+  // Al retroceder con el cuadro de minutos vacío, vuelve el foco a horas.
+  mm.addEventListener('keydown', (ev) => {
+    if(ev.key === 'Backspace' && mm.value === '') hh.focus();
+  });
+
+  // Al salir de cada cuadro: si el número es válido se completa con cero a
+  // la izquierda (p.ej. "5" -> "05"); si no, se deja vacío (igual que
+  // texto inválido/incompleto se trataba como "sin hora" antes).
+  hh.addEventListener('change', () => {
+    if(hh.value !== ''){
+      const h = Number(hh.value);
+      hh.value = (Number.isInteger(h) && h >= 1 && h <= 12) ? pad2(h) : '';
+    }
+    sincronizarHaciaOculto();
+  });
+  mm.addEventListener('change', () => {
+    if(mm.value !== ''){
+      const m = Number(mm.value);
+      mm.value = (Number.isInteger(m) && m >= 0 && m <= 59) ? pad2(m) : '';
+    }
+    sincronizarHaciaOculto();
+  });
   selAmPm.addEventListener('change', sincronizarHaciaOculto);
 }
 
-function limpiarCampoHoraAmigable(idOculto, idVisible, idAmPm){
+function limpiarCampoHoraAmigable(idOculto, idVisibleHH, idVisibleMM, idAmPm){
   const oculto = document.getElementById(idOculto);
-  const visible = document.getElementById(idVisible);
+  const hh = document.getElementById(idVisibleHH);
+  const mm = document.getElementById(idVisibleMM);
   const selAmPm = document.getElementById(idAmPm);
   if(oculto) oculto.value = '';
-  if(visible) visible.value = '';
+  if(hh) hh.value = '';
+  if(mm) mm.value = '';
   if(selAmPm) selAmPm.value = 'AM';
 }
 
 initCampoFechaAmigable('tFecha', 'tFechaTexto', 'btnCalendarioReg');
-initCampoHoraAmigable('tHora', 'tHoraTexto', 'tHoraAmPm');
+initCampoHoraAmigable('tHora', 'tHoraHH', 'tHoraMM', 'tHoraAmPm');
 initCampoFechaAmigable('tFechaMod', 'tFechaModTexto', 'btnCalendarioMod');
-initCampoHoraAmigable('tHoraMod', 'tHoraModTexto', 'tHoraModAmPm');
+initCampoHoraAmigable('tHoraMod', 'tHoraModHH', 'tHoraModMM', 'tHoraModAmPm');
 initCampoFechaAmigable('tFechaPlan', 'tFechaPlanTexto', 'btnCalendarioPlan');
-initCampoHoraAmigable('tHoraPlan', 'tHoraPlanTexto', 'tHoraPlanAmPm');
+initCampoHoraAmigable('tHoraPlan', 'tHoraPlanHH', 'tHoraPlanMM', 'tHoraPlanAmPm');
 
 // FIX (10-sep-2026, sección 5.4 del consolidado): mismo mecanismo que las
 // 6 líneas de arriba, ahora para el fecha/hora de "Registrar sorteo"
-// (#sFecha/#sFechaTexto/#btnCalendarioSorteoReg y #sHora/#sHoraTexto/
+// (#sFecha/#sFechaTexto/#btnCalendarioSorteoReg y #sHora/#sHoraHH+#sHoraMM/
 // #sHoraAmPm). Cuando se construyan Modificar/Planificar sorteo, agregar
 // acá sus pares equivalentes (mismo patrón que Mod/Plan de Torneos).
 initCampoFechaAmigable('sFecha', 'sFechaTexto', 'btnCalendarioSorteoReg');
-initCampoHoraAmigable('sHora', 'sHoraTexto', 'sHoraAmPm');
+initCampoHoraAmigable('sHora', 'sHoraHH', 'sHoraMM', 'sHoraAmPm');
 
 // FIX (10-sep-2026): mismo mecanismo, ahora para "Modificar sorteo"
 // (#sFechaMod/#sFechaModTexto/#btnCalendarioSorteoMod y
 // #sHoraMod/#sHoraModTexto/#sHoraModAmPm).
 initCampoFechaAmigable('sFechaMod', 'sFechaModTexto', 'btnCalendarioSorteoMod');
-initCampoHoraAmigable('sHoraMod', 'sHoraModTexto', 'sHoraModAmPm');
+initCampoHoraAmigable('sHoraMod', 'sHoraModHH', 'sHoraModMM', 'sHoraModAmPm');
 
 // FIX (10-sep-2026): mismo mecanismo, ahora para "Planificar sorteo"
 // (#sFechaPlan/#sFechaPlanTexto/#btnCalendarioSorteoPlan y
 // #sHoraPlan/#sHoraPlanTexto/#sHoraPlanAmPm).
 initCampoFechaAmigable('sFechaPlan', 'sFechaPlanTexto', 'btnCalendarioSorteoPlan');
-initCampoHoraAmigable('sHoraPlan', 'sHoraPlanTexto', 'sHoraPlanAmPm');
+initCampoHoraAmigable('sHoraPlan', 'sHoraPlanHH', 'sHoraPlanMM', 'sHoraPlanAmPm');
 
 // FIX (13-sep-2026, pedido usuario): mismo mecanismo, ahora para el
 // formulario de Cambio de rango (#crFecha/#crFechaTexto/#btnCalendarioCR y
-// #crHora/#crHoraTexto/#crHoraAmPm).
+// #crHora/#crHoraHH+#crHoraMM/#crHoraAmPm).
 initCampoFechaAmigable('crFecha', 'crFechaTexto', 'btnCalendarioCR');
-initCampoHoraAmigable('crHora', 'crHoraTexto', 'crHoraAmPm');
+initCampoHoraAmigable('crHora', 'crHoraHH', 'crHoraMM', 'crHoraAmPm');
 
 /* ---------- Selector de semanas (Temporada) para gestión de torneos y sorteos ----------
    FIX (09-sep-2026, pedido usuario): dentro del menú "Planificar, registrar
@@ -5779,7 +5869,7 @@ document.getElementById('btnRegistrarTorneo').addEventListener('click', async ()
     msgEl.innerHTML = `<div class="msg msg-ok">Torneo registrado (ID ${esc(data.id)}).</div>`;
     document.getElementById('tLink').value = '';
     limpiarCampoFechaAmigable('tFecha', 'tFechaTexto');
-    limpiarCampoHoraAmigable('tHora', 'tHoraTexto', 'tHoraAmPm');
+    limpiarCampoHoraAmigable('tHora', 'tHoraHH', 'tHoraMM', 'tHoraAmPm');
     document.getElementById('tAutorSelect').value = '';
     document.getElementById('tAutorManual').value = '';
     document.getElementById('tAutorManual').style.display = 'none';
@@ -5944,7 +6034,7 @@ document.getElementById('btnPlanificarTorneo').addEventListener('click', async (
     if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
     msgEl.innerHTML = '<div class="msg msg-ok">Torneo planificado. Cuando tengas el link, regístralo en "Registrar nuevo torneo" con esta MISMA fecha y hora para completarlo (sin perder estos premios).</div>';
     limpiarCampoFechaAmigable('tFechaPlan', 'tFechaPlanTexto');
-    limpiarCampoHoraAmigable('tHoraPlan', 'tHoraPlanTexto', 'tHoraPlanAmPm');
+    limpiarCampoHoraAmigable('tHoraPlan', 'tHoraPlanHH', 'tHoraPlanMM', 'tHoraPlanAmPm');
     document.getElementById('tAutorSelectPlan').value = '';
     document.getElementById('tAutorManualPlan').value = '';
     document.getElementById('tAutorManualPlan').style.display = 'none';
@@ -6008,7 +6098,7 @@ document.getElementById('btnPlanificarSorteo').addEventListener('click', async (
     if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
     msgEl.innerHTML = '<div class="msg msg-ok">Sorteo planificado. Cuando corresponda, regístralo en "Registrar sorteo" con esta MISMA fecha y hora para completarlo (sin perder estos premios).</div>';
     limpiarCampoFechaAmigable('sFechaPlan', 'sFechaPlanTexto');
-    limpiarCampoHoraAmigable('sHoraPlan', 'sHoraPlanTexto', 'sHoraPlanAmPm');
+    limpiarCampoHoraAmigable('sHoraPlan', 'sHoraPlanHH', 'sHoraPlanMM', 'sHoraPlanAmPm');
     document.getElementById('sAutorSelectPlan').value = '';
     document.getElementById('sAutorManualPlan').value = '';
     document.getElementById('sAutorManualPlan').style.display = 'none';
@@ -6384,7 +6474,7 @@ async function limpiarFormularioCR(){
   crIdExistenteActual = '';
   crIdDescensoActual = '';
   limpiarCampoFechaAmigable('crFecha', 'crFechaTexto');
-  limpiarCampoHoraAmigable('crHora', 'crHoraTexto', 'crHoraAmPm');
+  limpiarCampoHoraAmigable('crHora', 'crHoraHH', 'crHoraMM', 'crHoraAmPm');
   await reiniciarTemporadasCR(); // deja un solo bloque de temporada, sin nada marcado
   document.getElementById('crOrganizadorSelect').value = '';
   document.getElementById('crOrganizadorManual').value = '';
@@ -6493,8 +6583,9 @@ async function precargarFormularioCR(idAscenso){
     }
     // FIX (13-sep-2026): #crFecha/#crHora ahora son los inputs OCULTOS del
     // campo amigable (mismo patrón que #tFechaMod/#tHoraMod) -- hay que
-    // disparar 'change' para que #crFechaTexto/#crHoraTexto se actualicen
-    // solos (ver initCampoFechaAmigable()/initCampoHoraAmigable()).
+    // disparar 'change' para que #crFechaTexto y #crHoraHH/#crHoraMM (más
+    // el AM/PM) se actualicen solos (ver initCampoFechaAmigable()/
+    // initCampoHoraAmigable()).
     fFecha.dispatchEvent(new Event('change'));
     fHora.dispatchEvent(new Event('change'));
 
@@ -7244,7 +7335,7 @@ document.getElementById('btnRegistrarSorteo').addEventListener('click', async ()
     if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
     msgEl.innerHTML = `<div class="msg msg-ok">Sorteo registrado (ID ${esc(data.id)}).</div>`;
     limpiarCampoFechaAmigable('sFecha', 'sFechaTexto');
-    limpiarCampoHoraAmigable('sHora', 'sHoraTexto', 'sHoraAmPm');
+    limpiarCampoHoraAmigable('sHora', 'sHoraHH', 'sHoraMM', 'sHoraAmPm');
     document.getElementById('sAutorSelect').value = '';
     document.getElementById('sAutorManual').value = '';
     document.getElementById('sAutorManual').style.display = 'none';
