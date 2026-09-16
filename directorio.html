@@ -245,6 +245,19 @@
   .roster-table-wrap::-webkit-scrollbar{height:10px;}
   .roster-table-wrap::-webkit-scrollbar-track{background:rgba(255,255,255,.06); border-radius:6px;}
   .roster-table-wrap::-webkit-scrollbar-thumb{background:var(--purple-light); border-radius:6px;}
+  /* FIX (16-sep-2026, pedido usuario — "agrega esa parte donde indica el
+     clan que se está mostrando (no reemplaza a las pastillas por clan),
+     se ve bonito", refiriéndose al <h3>Clan (N activos)</h3> que ya usa
+     cada tarjeta de guerra.html, ver .ai-clan-card h3 más abajo en ese
+     archivo): mismo criterio visual acá arriba de la tabla — las
+     pastillas .clan-tab-btn (#clanTabs) siguen siendo las que cambian de
+     clan, este título es solo un rótulo de qué clan se está mostrando
+     AHORA MISMO dentro de la tarjeta. Como esta tarjeta usa padding:0
+     (el padding real lo maneja .roster-topbar/.roster-table-wrap por
+     separado, para que la tabla y su scroll lleguen hasta el borde), el
+     título necesita su propio padding — mismo padding horizontal que
+     .roster-topbar (13px) para que ambas filas queden alineadas. */
+  .roster-clan-title{font-size:15px; margin:0; padding:14px 13px 4px; color:var(--purple-light);}
   .roster-table{width:100%; border-collapse:collapse; min-width:1100px;}
   /* FIX (10-sep-2026, pedido usuario — "en directorio también falta
      centrar": el texto/valores de cada columna deberían estar
@@ -2044,6 +2057,7 @@ function renderRosterClanActivo(){
 
   wrap.innerHTML = `
     <div class="card" style="padding:0;">
+      <h3 class="roster-clan-title">${esc(clan.nombre)} <span class="text-faint" style="font-family:var(--f-mono); font-size:12px; font-weight:400;">(${fmtNum(miembros.length)} miembro${miembros.length === 1 ? '' : 's'})</span></h3>
       <div class="roster-topbar">
         <div class="roster-top-scroll" id="rosterTopScroll"><div class="roster-top-scroll-inner" id="rosterTopScrollInner"></div></div>
         <button type="button" class="rt-limpiar-filtros" id="rosterLimpiarFiltros" title="Desmarcar todos los filtros" aria-label="Desmarcar todos los filtros" disabled>✕ Quitar filtros</button>
