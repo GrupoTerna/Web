@@ -681,7 +681,17 @@
          construirFiltroIngresos() en cuanto llega la data. -->
     <div class="ing-pill-row" id="ingClanPills"></div>
     <div class="nuevo-grid" id="nuevoGrid" style="margin-top:20px;"></div>
-    <div id="ingresosChartsWrap"></div>
+    <!-- FIX (16-sep-2026 v8, pedido usuario — "poner un botón de
+         Mostrar/Ocultar gráficas para no precargar todo de golpe [...]
+         que al inicio aparezcan solo las tarjetas de nombres y las
+         gráficas que sean a pedido"): las gráficas comparativas
+         (renderComparativaSemanal) ya no se construyen al cargar la
+         página — arrancan cerradas y solo se pintan cuando el usuario
+         toca este botón (ver inicializarToggleGraficasIngresos()). -->
+    <div style="display:flex; justify-content:center; margin-top:28px;">
+      <button type="button" class="ing-pill" id="ingGraficasToggle" data-clan="__graficas__" aria-pressed="false">📊 Mostrar gráficas</button>
+    </div>
+    <div id="ingresosChartsWrap" style="margin-top:20px;"></div>
   </section>
 
 </div>
@@ -752,6 +762,19 @@
   .vetar-form-titulo{font-family:var(--f-mono); font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--danger); margin-bottom:14px;}
 </style>
 <script>
+/* FIX (16-sep-2026 v8, pedido usuario — rendimiento, sugerencia propia
+ * aceptada): helper genérico de debounce, usado por el buscador del
+ * popover de filtro de columna (.rt-filtro-buscar) para no reconstruir
+ * el checklist en cada tecla — cualquier otro input que lo necesite a
+ * futuro puede reusarlo igual. */
+function debounce(fn, espera){
+  let temporizador;
+  return function(...args){
+    clearTimeout(temporizador);
+    temporizador = setTimeout(() => fn.apply(this, args), espera);
+  };
+}
+
 /* =========================================================================
  * Gráficos + tarjetas de clan (parte superior de la página)
  * ========================================================================= */
@@ -1442,7 +1465,7 @@ function fmtFechaConHoraVigencia(v){
 function renderClanTabs(){
   const tabsWrap = document.getElementById('clanTabs');
   tabsWrap.innerHTML = rosterData.map((c, i) => `
-    <button type="button" class="clan-tab-btn${i===clanActivoIdx?' active':''}" data-idx="${i}">
+    <button type="button" class="clan-tab-btn${i===clanActivoIdx?' active':''}" data-idx="${i}" aria-pressed="${i===clanActivoIdx}">
       ${esc(c.nombre)} <span class="ct-count">${fmtNum(c.miembros.length)}</span>
     </button>`).join('');
   tabsWrap.querySelectorAll('.clan-tab-btn').forEach(btn => {
@@ -1791,7 +1814,13 @@ function abrirFiltroColumna(col, btnEl, wrap){
   };
   pintarLista('');
 
-  pop.querySelector('.rt-filtro-buscar').addEventListener('input', e => pintarLista(e.target.value));
+  // FIX (16-sep-2026 v8, pedido usuario — rendimiento, sugerencia propia
+  // aceptada: "el buscador del popover no tiene debounce"): antes
+  // pintarLista() se disparaba en CADA tecla, reconstruyendo el checklist
+  // completo de la columna. Con ~50 valores no se nota, pero es gratis
+  // esperar 180ms de pausa en el tipeo antes de repintar (debounce()
+  // helper reusable, ver definición al inicio del <script>).
+  pop.querySelector('.rt-filtro-buscar').addEventListener('input', debounce(e => pintarLista(e.target.value), 180));
 
   // "Seleccionar todo"/"Desmarcar todo" (pedido usuario 08-sep-2026):
   // actúan sobre TODOS los valores de la columna, no solo los que
@@ -2463,6 +2492,19 @@ function nuevoCardHtml(n){
  * aplicarFiltroIngresos(). */
 let ingresosTodosCache = [];
 let ingresosSeleccionados = null;
+// FIX (16-sep-2026 v8, pedido usuario — "poner un botón de Mostrar/Ocultar
+// gráficas para no precargar todo de golpe [...] que al inicio aparezcan
+// solo las tarjetas de nombres y las gráficas que sean a pedido"): las 3
+// gráficas comparativas (renderComparativaSemanal) son lo más caro de
+// pintar de toda la sección — un <svg> con un <path>+<circle> por cada
+// semana de CADA miembro nuevo — así que ya no se construyen solas al
+// cargar la página. ingresosGraficasVisibles controla si están abiertas
+// (arranca en false: solo se ve el botón, ver #ingGraficasToggle más
+// abajo) e ingresosUltimosFiltrados guarda el último subconjunto filtrado
+// aunque las gráficas estén ocultas, para poder pintarlas al instante
+// apenas el usuario las abre, sin tener que recalcular el filtro.
+let ingresosGraficasVisibles = false;
+let ingresosUltimosFiltrados = [];
 
 function renderNuevoGrid(lista){
   const nuevoGrid = document.getElementById('nuevoGrid');
@@ -2498,6 +2540,7 @@ function aplicarFiltroIngresos(){
   const filtrados = ingresosSeleccionados
     ? ingresosTodosCache.filter(n => ingresosSeleccionados.has(n.tag))
     : ingresosTodosCache.slice();
+  ingresosUltimosFiltrados = filtrados;
 
   const countEl = document.getElementById('nuevosCount');
   if (countEl){
@@ -2508,8 +2551,40 @@ function aplicarFiltroIngresos(){
 
   renderNuevoGrid(filtrados);
 
+  // Las gráficas solo se recalculan si el usuario las tiene abiertas (ver
+  // ingresosGraficasVisibles / #ingGraficasToggle) — si están ocultas, ya
+  // quedó guardado en ingresosUltimosFiltrados y se pintan recién cuando
+  // las abra, para no gastar tiempo de render en algo que nadie está viendo.
+  if (ingresosGraficasVisibles){
+    const chartsWrap = document.getElementById('ingresosChartsWrap');
+    if (chartsWrap) renderComparativaSemanal(chartsWrap, filtrados);
+  }
+}
+
+/** Botón "Mostrar gráficas" / "Ocultar gráficas" sobre #ingresosChartsWrap.
+ * Al abrir, pinta con el último subconjunto filtrado ya calculado
+ * (ingresosUltimosFiltrados) sin tocar el filtro; al cerrar, vacía el
+ * contenedor (libera el DOM de los <svg>, no solo lo esconde con CSS —
+ * ese es justamente el ahorro de rendimiento que se pidió). */
+function inicializarToggleGraficasIngresos(){
+  const btn = document.getElementById('ingGraficasToggle');
   const chartsWrap = document.getElementById('ingresosChartsWrap');
-  if (chartsWrap) renderComparativaSemanal(chartsWrap, filtrados);
+  if (!btn || !chartsWrap) return;
+  const pintarBoton = () => {
+    btn.textContent = ingresosGraficasVisibles ? '📊 Ocultar gráficas' : '📊 Mostrar gráficas';
+    btn.classList.toggle('active', ingresosGraficasVisibles);
+    btn.setAttribute('aria-pressed', String(ingresosGraficasVisibles));
+  };
+  pintarBoton();
+  btn.addEventListener('click', () => {
+    ingresosGraficasVisibles = !ingresosGraficasVisibles;
+    pintarBoton();
+    if (ingresosGraficasVisibles){
+      renderComparativaSemanal(chartsWrap, ingresosUltimosFiltrados);
+    }else{
+      chartsWrap.innerHTML = '';
+    }
+  });
 }
 
 /** Agrupa `nuevos` por clan preservando el orden en que ya vienen (clan
@@ -2556,9 +2631,9 @@ function construirFiltroIngresos(nuevos){
   const pintarPills = () => {
     const todosActivos = grupos.every(g => ingresosClanesActivos.has(g.clan));
     wrap.innerHTML = `
-      <button type="button" class="ing-pill${todosActivos ? ' active' : ''}" data-clan="__todos__">Todos</button>
+      <button type="button" class="ing-pill${todosActivos ? ' active' : ''}" data-clan="__todos__" aria-pressed="${todosActivos}">Todos</button>
       ${grupos.map(g => `
-        <button type="button" class="ing-pill${ingresosClanesActivos.has(g.clan) ? ' active' : ''}" data-clan="${esc(g.clan)}">
+        <button type="button" class="ing-pill${ingresosClanesActivos.has(g.clan) ? ' active' : ''}" data-clan="${esc(g.clan)}" aria-pressed="${ingresosClanesActivos.has(g.clan)}">
           ${esc(g.clan)} <span class="ing-pill-count">${g.miembros.length}</span>
         </button>`).join('')}`;
 
@@ -2614,6 +2689,7 @@ async function cargarIngresosRecientes(){
   }
 }
 
+inicializarToggleGraficasIngresos();
 cargarRoster();
 cargarIngresosRecientes();
 </script>

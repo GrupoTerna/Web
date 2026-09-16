@@ -389,8 +389,15 @@ function traducirNombreCarta(nombreEn){
  * perfil del jugador) por el logo oficial de cada servicio. URLs dadas
  * directamente por el usuario en el PDF de diseño.
  */
-const ICONO_ROYALEAPI = '<img src="https://cdn.royaleapi.com/static/img/branding/royaleapi-logo-128.png?t=feb800c3c" alt="" width="14" height="14" style="vertical-align:-2px; margin-right:5px; border-radius:3px;">';
-const ICONO_CWSTATS = '<img src="https://assets.cwstats.com/icons/logo.webp" alt="" width="14" height="14" style="vertical-align:-2px; margin-right:5px; border-radius:3px;">';
+/* FIX (16-sep-2026 v8, pedido usuario — rendimiento, sugerencia propia
+   aceptada: "los íconos de RoyaleAPI/CWStats no tienen loading=lazy"):
+   estos <img> se repiten en cada tarjeta con esos links (cada miembro de
+   Ingresos Recientes, cada tarjeta de clan) — sin loading="lazy" el
+   navegador dispara la petición de red de TODAS de una, aunque estén
+   fuera de la pantalla visible. decoding="async" además evita que decodificar
+   cada imagen bloquee el hilo principal durante el pintado inicial. */
+const ICONO_ROYALEAPI = '<img src="https://cdn.royaleapi.com/static/img/branding/royaleapi-logo-128.png?t=feb800c3c" alt="" width="14" height="14" loading="lazy" decoding="async" style="vertical-align:-2px; margin-right:5px; border-radius:3px;">';
+const ICONO_CWSTATS = '<img src="https://assets.cwstats.com/icons/logo.webp" alt="" width="14" height="14" loading="lazy" decoding="async" style="vertical-align:-2px; margin-right:5px; border-radius:3px;">';
 
 /* =========================================================================
  * Tarjetas y gráficos de clan — compartidos por index.html y directorio.html
