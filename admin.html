@@ -2209,9 +2209,17 @@
                          grilla de arriba.
                          Miembro activo / WhatsApp: mismo patrón EXACTO que
                          #reqMiembroActivo/#reqPresenciaWhatsapp de Torneos
-                         (más arriba en este mismo archivo) -- "Sí" por
-                         defecto, sin opción "Elige…" (mismo FIX del
-                         10-sep-2026 que ya aplica ahí).
+                         (más arriba en este mismo archivo) -- sin opción
+                         "Elige…" (mismo FIX del 10-sep-2026 que ya aplica
+                         ahí). Miembro activo mantiene "Sí" por defecto,
+                         igual que en Torneos.
+                         FIX (16-sep-2026, pedido usuario -- "los botones de
+                         presencia en el grupo de wsp de cambio de rango se
+                         deben precargar en la opción 'No'"): a diferencia
+                         de Miembro activo, WhatsApp en Cambio de Rango
+                         ahora arranca en "No" por defecto (Torneos/Sorteos
+                         no cambian, siguen en "Sí" -- el usuario pidió esto
+                         solo para Cambio de Rango).
                          Barcos: FIX (14-sep-2026, pedido usuario -- "desde
                          la web no se debe dejar sin definir la cantidad de
                          barcos, es de 0 a 16, cargado por defecto en 0 y
@@ -2265,8 +2273,8 @@
                     <div class="field" style="margin-top:10px;">
                       <label for="crWhatsappAscenso">Presencia en el grupo de WhatsApp</label>
                       <select id="crWhatsappAscenso">
-                        <option value="Sí" selected>Sí</option>
-                        <option value="No">No</option>
+                        <option value="Sí">Sí</option>
+                        <option value="No" selected>No</option>
                       </select>
                     </div>
 
@@ -2329,8 +2337,8 @@
                     <div class="field" style="margin-top:10px;">
                       <label for="crWhatsappDescenso">Presencia en el grupo de WhatsApp</label>
                       <select id="crWhatsappDescenso">
-                        <option value="Sí" selected>Sí</option>
-                        <option value="No">No</option>
+                        <option value="Sí">Sí</option>
+                        <option value="No" selected>No</option>
                       </select>
                     </div>
                   </div>
@@ -6427,7 +6435,14 @@ function limpiarOtrosCriteriosCR(tipo){
   // ("Sin configurar"), que ya no existe como opción.
   document.getElementById('crBarcos' + suf).value = '0';
   document.getElementById('crMiembroActivo' + suf).value = 'Sí';
-  document.getElementById('crWhatsapp' + suf).value = 'Sí';
+  // FIX (16-sep-2026, pedido usuario -- "los botones de presencia en el
+  // grupo de wsp de cambio de rango se deben precargar en la opción
+  // 'No'"): a diferencia de Miembro activo (que sigue en 'Sí'), WhatsApp
+  // en Cambio de Rango arranca en 'No' -- ver también el <option selected>
+  // del HTML (#crWhatsappAscenso/#crWhatsappDescenso), que se actualizó
+  // igual para que el estado inicial del formulario ya cargado (antes de
+  // que corra este JS) coincida.
+  document.getElementById('crWhatsapp' + suf).value = 'No';
 }
 
 function precargarOtrosCriteriosCR(tipo, fila){
