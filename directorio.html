@@ -28,15 +28,19 @@
   /* ---------- Gráficos de clan (Miembros/Donaciones/Trofeos/Copas) ---------- */
   .charts-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:16px; margin-bottom:32px;}
   .chart-card{padding:20px;}
-  /* FIX (16-sep-2026 v5, pedido usuario — "en la sección de los 4 clanes
-     terna, falta centrar los subtítulos (miembros, donaciones, trofeos y
-     copas)"): faltaba justify-content:center (esta clase es específica
-     de .chart-card, no toca .chart-title en otras tarjetas de gráfica
-     como el comparador de guerra, que se ven bien alineadas a la
-     izquierda). */
+  /* FIX (16-sep-2026 v6, pedido usuario — "me parece que los nombres y
+     valores resaltan más que el título, no se ve correcto"): el título
+     usaba var(--text-dim) (gris) mientras que .chart-label-fuerte y
+     .chart-val usaban var(--text) (blanco) con el mismo peso 700, así que
+     el título perdía la jerarquía frente a los datos. Ahora el título va
+     en var(--text) + una línea divisoria debajo (se lee como encabezado
+     real de la tarjeta) y .chart-label-fuerte baja a weight:600 (ver más
+     abajo) para no competir en "grosor" con él — los valores (.chart-val)
+     se dejan igual, son el dato principal de cada fila. */
   .chart-card .chart-title{
     font-family:var(--f-display); font-weight:700; font-size:13px; text-transform:uppercase;
-    letter-spacing:.05em; color:var(--text-dim); margin-bottom:16px; display:flex; align-items:center; justify-content:center; gap:8px;
+    letter-spacing:.05em; color:var(--text); margin-bottom:16px; padding-bottom:12px;
+    border-bottom:1px solid var(--line); display:flex; align-items:center; justify-content:center; gap:8px;
   }
   .chart-row{display:flex; align-items:center; gap:10px; margin-bottom:11px;}
   .chart-row:last-child{margin-bottom:0;}
@@ -63,7 +67,7 @@
   .chart-row-clan .chart-track{margin-top:3px;}
   .chart-row-clan .chart-val{margin-top:1px;}
   .chart-row .chart-label-fuerte{
-    width:110px; font-size:13px; font-weight:700; color:var(--text);
+    width:110px; font-size:13px; font-weight:600; color:var(--text);
     text-align:left; text-transform:none; letter-spacing:normal;
     white-space:normal; overflow-wrap:break-word; line-height:1.3;
   }
