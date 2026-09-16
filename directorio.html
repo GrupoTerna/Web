@@ -358,14 +358,26 @@
   .roster-top-scroll::-webkit-scrollbar-track{background:rgba(255,255,255,.06); border-radius:6px;}
   .roster-top-scroll::-webkit-scrollbar-thumb{background:var(--purple-light); border-radius:6px;}
   .roster-top-scroll-inner{height:1px;}
+  /* FIX (16-sep-2026 v4, pedido usuario — "no llegaste a cambiar ese
+     botón que se ve feo", ver captura: el botón "✕ Quitar filtros" de la
+     tabla del roster se ve gris/blanco genérico, no como el resto del
+     sitio): faltaba appearance:none. Sin eso, Chrome/Edge (Windows)
+     ignoran el background:transparent que ya tenía este botón en su
+     estado disabled (arranca disabled hasta que se marca algún filtro de
+     columna) y pintan el gris nativo "ButtonFace" del sistema por debajo
+     — appearance:none saca ese estilo nativo de raíz. De paso se refuerza
+     el estado :disabled con sus propios background/border/color (en vez
+     de heredarlos solo del selector base) para que nunca dependa de que
+     el navegador respete el CSS del padre en ese estado. */
   .rt-limpiar-filtros{
+    appearance:none; -webkit-appearance:none; -moz-appearance:none;
     flex-shrink:0; display:inline-flex; align-items:center; gap:6px;
     font-family:var(--f-mono); font-size:12px; font-weight:700; color:var(--text-dim);
     background:transparent; border:1px solid var(--line); border-radius:6px; padding:7px 12px;
     cursor:pointer; transition:all .15s ease; white-space:nowrap;
   }
   .rt-limpiar-filtros:hover:not(:disabled){border-color:var(--purple-light); color:var(--text); background:rgba(162,57,255,.12);}
-  .rt-limpiar-filtros:disabled{opacity:.4; cursor:default;}
+  .rt-limpiar-filtros:disabled{opacity:.4; cursor:default; background:transparent; border-color:var(--line); color:var(--text-dim);}
 
   /* FIX (04-sep-2026, pedido usuario — "Los ingresos recientes deben
      moverse a Directorio (al final)"): sección + estilos traídos tal cual

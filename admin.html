@@ -6179,6 +6179,75 @@ function precargarGridCR(tipo, porClan){
   });
 }
 
+/**
+ * etiquetaParCR(p)
+ * FIX (16-sep-2026, pedido usuario -- "para seleccionar la corrida no se
+ * debe mostrar las semanas e id tal cual el backend. si el código es
+ * 'A_005_1_01' significa en orden ascensos, temporada 5, semana 1,
+ * registro semanal número 1. Como el sufijo del id debe coincidir, no es
+ * necesario mencionar los dos id. debería ser solo 'Temporada 5 - Semana
+ * 1 - Registro 1 (Evaluación de Temporada 4 - Semanas (1-5))' en caso de
+ * que se evalúe más de una temporada se puede concatenar dentro del
+ * paréntesis"): arma la etiqueta amigable del <option> de #crSelectPar a
+ * partir de:
+ *   - el ID del par (p.idAscenso, formato "A_{temporada 3 dígitos}_
+ *     {semana}_{registro 2 dígitos}", ej. "A_005_1_01" = Temporada 5,
+ *     Semana 1, Registro 1) -- identifica CUÁNDO se registró/corrió esta
+ *     evaluación, no qué semanas evaluó. Como idDescenso comparte el
+ *     mismo sufijo (solo cambia la letra inicial A/D), no hace falta
+ *     mostrar los dos IDs por separado (pedido explícito del usuario).
+ *   - p.semanas -- las semanas que esta corrida EVALUÓ para decidir
+ *     ascensos/descensos, agrupadas por temporada y resumidas como rango
+ *     "Semanas (min-max)". Acepta tanto un array [{temporada,semana}, ...]
+ *     (mismo shape que ya usa fila.semanas en precargarFormularioCR())
+ *     como el string plano "T5_S1,T5_S2,..." que ya mandaba
+ *     webCRListaListar antes de este fix -- en ambos casos se normaliza
+ *     al mismo Map temporada -> [semanas], por si el backend todavía
+ *     manda cualquiera de los dos formatos en este endpoint.
+ * Nunca toca el backend: esto es puramente cosmético para el <select>,
+ * las columnas Semanas/ID de CR_Lista se siguen guardando tal cual (ver
+ * pedido explícito: "la modificación que indiqué para las semanas es
+ * solo para visualizar en la web, no debe afectar al backend").
+ */
+function etiquetaParCR(p){
+  const idTxt = p.idAscenso || p.idDescenso || '';
+  const m = idTxt.match(/^[AD]_(\d+)_(\d+)_(\d+)$/);
+  const cabecera = m
+    ? `Temporada ${Number(m[1])} - Semana ${Number(m[2])} - Registro ${Number(m[3])}`
+    : (idTxt || 'Corrida sin identificar');
+
+  const porTemporada = new Map();
+  const agregar = (t, s) => {
+    t = Number(t); s = Number(s);
+    if(!t || !s) return;
+    if(!porTemporada.has(t)) porTemporada.set(t, []);
+    porTemporada.get(t).push(s);
+  };
+  if(Array.isArray(p.semanas)){
+    p.semanas.forEach(item => agregar(item.temporada, item.semana));
+  }else if(typeof p.semanas === 'string' && p.semanas.trim()){
+    p.semanas.split(',').forEach(par => {
+      const mm = par.trim().match(/^T(\d+)_S(\d+)$/i);
+      if(mm) agregar(mm[1], mm[2]);
+    });
+  }
+  if(!porTemporada.size) return cabecera;
+
+  const bloques = Array.from(porTemporada.keys())
+    .sort((a, b) => b - a) // temporada más reciente primero, mismo orden del ejemplo del pedido
+    .map(t => {
+      const semanas = porTemporada.get(t).sort((a, b) => a - b);
+      const rango = semanas.length > 1 ? `${semanas[0]}-${semanas[semanas.length - 1]}` : `${semanas[0]}`;
+      return `Temporada ${t} - Semanas (${rango})`;
+    });
+
+  const evaluacion = bloques.length === 1
+    ? bloques[0]
+    : bloques.slice(0, -1).join(', ') + ' y ' + bloques[bloques.length - 1];
+
+  return `${cabecera} (Evaluación de ${evaluacion})`;
+}
+
 async function cargarCRListaPares(){
   const sel = document.getElementById('crSelectPar');
   sel.innerHTML = '<option value="">Cargando…</option>';
@@ -6190,11 +6259,7 @@ async function cargarCRListaPares(){
       sel.innerHTML = '<option value="">Sin corridas registradas todavía</option>';
     }else{
       sel.innerHTML = '<option value="">Elige una opción…</option>' +
-        cambioRangoParesData.map(p => {
-          const etiquetaFecha = p.fechaTxt || 'sin fecha';
-          const etiquetaSemanas = p.semanas ? (' — semanas ' + p.semanas) : '';
-          return `<option value="${esc(p.idAscenso)}">${esc(p.idAscenso)} / ${esc(p.idDescenso)} — ${esc(etiquetaFecha)}${esc(etiquetaSemanas)}</option>`;
-        }).join('');
+        cambioRangoParesData.map(p => `<option value="${esc(p.idAscenso)}">${esc(etiquetaParCR(p))}</option>`).join('');
     }
   }catch(err){
     cambioRangoParesData = [];
@@ -6375,12 +6440,28 @@ async function precargarFormularioCR(idAscenso){
 
     const fFecha = document.getElementById('crFecha');
     const fHora = document.getElementById('crHora');
+    // FIX (16-sep-2026, pedido usuario -- "la hora y el selector de am/pm
+    // también se debe precargar con el estado actual de la corrida
+    // seleccionada para modificar desde la web"): antes fHora.value salía
+    // de filaAsc.fecha, pero en CR_Lista Fecha y Hora son DOS columnas
+    // independientes (CR.FECHA / CR.HORA -- ver _horaStringADate()/
+    // _getFilaCRListaPorId() en 24_Torneos_Core.gs, que ahora guarda/lee
+    // CR.HORA como su propio Date real en vez de texto crudo de celda).
+    // filaAsc.fecha nunca trae la hora real (siempre queda en medianoche),
+    // así que esto terminaba precargando siempre "00:00" / AM sin importar
+    // la hora guardada. Ahora la fecha sale de filaAsc.fecha y la hora sale
+    // de filaAsc.hora, cada una con su propio Date -- mismo criterio de
+    // extraer componentes LOCALES que ya usaba esta función.
     if(filaAsc.fecha){
       const d = new Date(filaAsc.fecha);
       fFecha.value = `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
-      fHora.value  = `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
     }else{
       fFecha.value = '';
+    }
+    if(filaAsc.hora){
+      const h = new Date(filaAsc.hora);
+      fHora.value = `${pad2(h.getHours())}:${pad2(h.getMinutes())}`;
+    }else{
       fHora.value = '';
     }
     // FIX (13-sep-2026): #crFecha/#crHora ahora son los inputs OCULTOS del
