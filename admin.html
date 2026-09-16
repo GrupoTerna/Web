@@ -3306,15 +3306,26 @@ async function cargarMisCuentas(){
       <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px;">
         ${todas.map(m => `
           <div style="background:var(--bg-2); border:1px solid var(--line); border-radius:var(--radius-sm); padding:10px 12px;">
-            <div style="font-family:var(--f-display); font-weight:700; font-size:10px; color:var(--gold); text-transform:uppercase; letter-spacing:.04em; margin-bottom:6px;">🍀 ${esc(m._clan)}</div>
-            <div style="font-weight:600; font-size:14px;">${enlaceJugador(m.nombre, m.tag)}</div>
-            <div style="font-family:var(--f-mono); font-size:11px; color:var(--text-faint); margin-top:2px;">${esc(m.tag)} · ${esc(m.rango)}</div>
-            <div style="display:flex; flex-direction:column; gap:5px; margin-top:9px;">
-              <div style="display:flex; align-items:center; gap:6px; font-family:var(--f-mono); font-size:11px; color:var(--text-dim);"><span style="width:64px; flex-shrink:0;">🏆 ${fmtNum(m.copas)}</span>${barra(m.copas, m._maxCopas, 'var(--gold)')}</div>
-              <div style="display:flex; align-items:center; gap:6px; font-family:var(--f-mono); font-size:11px; color:var(--text-dim);"><span style="width:64px; flex-shrink:0;">🎖️ ${fmtNum(m.vGuerra)}</span>${barra(m.vGuerra, m._maxVGuerra, 'var(--purple-light)')}</div>
-              <div style="display:flex; align-items:center; gap:6px; font-family:var(--f-mono); font-size:11px; color:var(--text-dim);"><span style="width:64px; flex-shrink:0;">🏅 ${fmtNum(m.torneos)}</span>${barra(m.torneos, m._maxTorneos, 'var(--silver)')}</div>
+            <div style="font-family:var(--f-display); font-weight:700; font-size:10px; color:var(--gold); text-transform:uppercase; letter-spacing:.04em; margin-bottom:6px; text-align:center;">🍀 ${esc(m._clan)}</div>
+            <div style="font-weight:600; font-size:14px; text-align:center;">${enlaceJugador(m.nombre, m.tag)}</div>
+            <div style="font-family:var(--f-mono); font-size:11px; color:var(--text-faint); margin-top:2px; text-align:center;">${esc(m.tag)} · ${esc(m.rango)}</div>
+            <!-- FIX (16-sep-2026, pedido usuario): clan/nombre/tag-rango/vigencia
+                 ahora centrados (text-align:center), pero las 3 filas de
+                 Copas/V.Guerra/Torneos deben seguir alineadas ENTRE SÍ a la
+                 izquierda (icono+número a la izquierda, barra a la derecha) -- solo
+                 el BLOQUE completo de las 3 filas se centra como una unidad dentro
+                 de la tarjeta. Para eso, cada barra ahora vive en un <span> de
+                 ancho fijo (90px, en vez del ancho variable de antes) para que el
+                 bloque tenga un ancho total determinado, y el contenedor de las 3
+                 filas pasa de "display:flex" a ancho completo, a "width:fit-content"
+                 + "margin:9px auto 0" para centrarse sin perder la alineación
+                 interna izquierda de cada fila. -->
+            <div style="display:flex; flex-direction:column; gap:5px; margin:9px auto 0; width:fit-content;">
+              <div style="display:flex; align-items:center; gap:6px; font-family:var(--f-mono); font-size:11px; color:var(--text-dim);"><span style="width:64px; flex-shrink:0;">🏆 ${fmtNum(m.copas)}</span><span style="width:90px; flex-shrink:0;">${barra(m.copas, m._maxCopas, 'var(--gold)')}</span></div>
+              <div style="display:flex; align-items:center; gap:6px; font-family:var(--f-mono); font-size:11px; color:var(--text-dim);"><span style="width:64px; flex-shrink:0;">🎖️ ${fmtNum(m.vGuerra)}</span><span style="width:90px; flex-shrink:0;">${barra(m.vGuerra, m._maxVGuerra, 'var(--purple-light)')}</span></div>
+              <div style="display:flex; align-items:center; gap:6px; font-family:var(--f-mono); font-size:11px; color:var(--text-dim);"><span style="width:64px; flex-shrink:0;">🏅 ${fmtNum(m.torneos)}</span><span style="width:90px; flex-shrink:0;">${barra(m.torneos, m._maxTorneos, 'var(--silver)')}</span></div>
             </div>
-            ${m.vigencia ? `<div style="font-family:var(--f-mono); font-size:10px; color:var(--text-faint); margin-top:6px;">Vigencia: ${esc(fmtFechaVigenciaAdmin(m.vigencia))}</div>` : ''}
+            ${m.vigencia ? `<div style="font-family:var(--f-mono); font-size:10px; color:var(--text-faint); margin-top:6px; text-align:center;">Vigencia: ${esc(fmtFechaVigenciaAdmin(m.vigencia))}</div>` : ''}
           </div>`).join('')}
       </div>`;
   }catch(err){
