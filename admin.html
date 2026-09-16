@@ -758,121 +758,6 @@
            (webAdminParticipacionHoyGuerra) no cambió. -->
     </div>
 
-    <!-- FIX (05-sep-2026, pedido usuario): las 3 tarjetas "Mensajes
-         automáticos" se fusionan en UNA sola sección llamada "Mensajes",
-         con las mismas 3 agrupaciones de antes pero ahora como
-         subsecciones (h3) dentro de un único card admin-grupo, en vez de
-         3 cards sueltos repitiendo el mismo eyebrow:
-           1) "Guerra, entrenamiento y mazos" — preparación estándar que
-              se comparte igual para todos los clanes.
-           2) "Torneos, sorteos y ascensos" — con botones horizontales
-              Participantes/Ganadores para Torneos y, por separado, para
-              Sorteos (mismo patrón de pestañas .tab-clan que ya usa
-              renderContenidoHtml() para las opciones por clan dentro de
-              cada categoría, ver cargarGrupoToggle() más abajo).
-           3) "Mensajes que no suelen enviarse" — bienvenida/iniciales (una
-              sola vez por persona), etiqueta/celular (esporádico) y
-              descripción de grupos (nunca se envía, es solo para
-              actualizar los grupos).
-         También corrige el pedido "'Día de guerra' debe ser una sola
-         categoría con 'Entrenamiento' y tener sus botoncitos para cambiar
-         entre guerra o entrenamiento. No veo el mensaje de entrenamiento":
-         antes 'Defensas de barcos' (el mensaje real de "Entrenamiento") se
-         ocultaba solo por ser día de guerra hoy — no era un problema de
-         sync, ver FIX correspondiente en _webAdminCategorias()
-         (34_Web_API.gs). Ahora ambos quedan siempre disponibles y el
-         admin alterna con los botones "Guerra"/"Entrenamiento", sin
-         depender de qué día sea. Pedido usuario: la web no debe mencionar
-         al bot en ningún texto visible, así que las 3 bajadas ya NO dicen
-         de dónde sale el contenido, solo qué es y para qué sirve. Ver
-         initMensajesAutomaticos()/cargarGrupoToggle() más abajo;
-         cargarContenidoCategoria()/renderContenidoHtml()/
-         _activarAccionesContenido() (ya existentes) se reutilizan tal
-         cual para pintar cada categoría — ninguno de esos selectores
-         depende de que cada grupo esté en su propio card, así que fusionar
-         los 3 cards en uno no rompe nada del JS. -->
-    <div class="card admin-grupo" style="margin-top:24px;">
-      <div class="eyebrow">Mensajes</div>
-
-      <h3 style="font-size:15px; color:var(--gold); margin:10px 0 4px;">Guerra, entrenamiento y mazos</h3>
-      <p class="text-dim" style="font-size:13px; margin:0 0 4px;">Preparación de guerra, estándar para todos los clanes: en Entrenamiento se piden las defensas de barcos, en Mazos se pide revisar RoyaleAPI para actualizar el mazo, y los ataques pendientes son el mensaje clásico de guerra. Ábrelo para copiarlo o descargarlo.</p>
-
-      <details class="admin-subseccion admin-toggle-grupo">
-        <summary><span class="cat-titulo">Día de guerra, entrenamiento y mazos</span><button type="button" class="btn-refrescar-categoria" title="Actualizar contenido">↻</button></summary>
-        <div class="admin-subseccion-body">
-          <div class="contenido-tabs admin-toggle-botones">
-            <button type="button" class="tab-clan btn-toggle-cat activo" data-categoria="Día de guerra">Guerra</button>
-            <button type="button" class="tab-clan btn-toggle-cat" data-categoria="Defensas de barcos">Entrenamiento</button>
-            <button type="button" class="tab-clan btn-toggle-cat" data-categoria="Mazos">Mazos</button>
-          </div>
-          <div class="admin-toggle-body" style="margin-top:10px;"><div class="empty">Cargando…</div></div>
-        </div>
-      </details>
-
-      <details class="admin-subseccion categoria-contenido-simple" data-categoria="Mensaje de Guerra">
-        <summary><span class="cat-titulo">Mensaje de ataques pendientes</span><button type="button" class="btn-refrescar-categoria" title="Actualizar contenido">↻</button></summary>
-        <div class="admin-subseccion-body categoria-contenido-body"></div>
-      </details>
-
-      <h3 style="font-size:15px; color:var(--gold); margin:24px 0 4px;">Torneos, sorteos y ascensos</h3>
-      <p class="text-dim" style="font-size:13px; margin:0 0 4px;">Mensajes de torneos, sorteos y cambios de rango. Ábrelo para copiarlo o descargarlo.</p>
-
-      <details class="admin-subseccion admin-toggle-grupo">
-        <summary><span class="cat-titulo">Torneos</span><button type="button" class="btn-refrescar-categoria" title="Actualizar contenido">↻</button></summary>
-        <div class="admin-subseccion-body">
-          <div class="contenido-tabs admin-toggle-botones">
-            <button type="button" class="tab-clan btn-toggle-cat activo" data-categoria="Participantes calificados (torneo)">Participantes</button>
-            <button type="button" class="tab-clan btn-toggle-cat" data-categoria="Ganadores (torneo)">Ganadores</button>
-          </div>
-          <div class="admin-toggle-body" style="margin-top:10px;"><div class="empty">Cargando…</div></div>
-        </div>
-      </details>
-
-      <details class="admin-subseccion admin-toggle-grupo">
-        <summary><span class="cat-titulo">Sorteos</span><button type="button" class="btn-refrescar-categoria" title="Actualizar contenido">↻</button></summary>
-        <div class="admin-subseccion-body">
-          <div class="contenido-tabs admin-toggle-botones">
-            <button type="button" class="tab-clan btn-toggle-cat activo" data-categoria="Participantes calificados (sorteo)">Participantes</button>
-            <button type="button" class="tab-clan btn-toggle-cat" data-categoria="Ganadores (sorteo)">Ganadores</button>
-          </div>
-          <div class="admin-toggle-body" style="margin-top:10px;"><div class="empty">Cargando…</div></div>
-        </div>
-      </details>
-
-      <details class="admin-subseccion categoria-contenido-simple" data-categoria="Ascensos y descensos">
-        <summary><span class="cat-titulo">Cambio de rango</span><button type="button" class="btn-refrescar-categoria" title="Actualizar contenido">↻</button></summary>
-        <div class="admin-subseccion-body categoria-contenido-body"></div>
-      </details>
-
-      <h3 style="font-size:15px; color:var(--gold); margin:24px 0 4px;">Mensajes que no suelen enviarse</h3>
-      <p class="text-dim" style="font-size:13px; margin:0 0 4px;">Bienvenida e iniciales se envían una sola vez a cada persona; etiqueta y número de teléfono se piden esporádicamente; la descripción de grupos no se le envía a nadie, es solo para actualizar los grupos de WhatsApp.</p>
-
-      <details class="admin-subseccion categoria-contenido-simple" data-categoria="Bienvenida">
-        <summary><span class="cat-titulo">Bienvenida de miembros</span><button type="button" class="btn-refrescar-categoria" title="Actualizar contenido">↻</button></summary>
-        <div class="admin-subseccion-body categoria-contenido-body"></div>
-      </details>
-
-      <details class="admin-subseccion categoria-contenido-simple" data-categoria="iPhone">
-        <summary><span class="cat-titulo">Aplicación de iniciales en iPhone</span><button type="button" class="btn-refrescar-categoria" title="Actualizar contenido">↻</button></summary>
-        <div class="admin-subseccion-body categoria-contenido-body"></div>
-      </details>
-
-      <details class="admin-subseccion categoria-contenido-simple" data-categoria="Etiqueta de miembro">
-        <summary><span class="cat-titulo">Etiqueta de miembro en grupos de WhatsApp</span><button type="button" class="btn-refrescar-categoria" title="Actualizar contenido">↻</button></summary>
-        <div class="admin-subseccion-body categoria-contenido-body"></div>
-      </details>
-
-      <details class="admin-subseccion categoria-contenido-simple" data-categoria="Celular">
-        <summary><span class="cat-titulo">Solicitud de número de teléfono</span><button type="button" class="btn-refrescar-categoria" title="Actualizar contenido">↻</button></summary>
-        <div class="admin-subseccion-body categoria-contenido-body"></div>
-      </details>
-
-      <details class="admin-subseccion categoria-contenido-simple" data-categoria="Descripción">
-        <summary><span class="cat-titulo">Descripción de grupos de WSP</span><button type="button" class="btn-refrescar-categoria" title="Actualizar contenido">↻</button></summary>
-        <div class="admin-subseccion-body categoria-contenido-body"></div>
-      </details>
-    </div>
-
     <!-- FASE 25 (03-sep-2026, pedido usuario): "Torneos" y "Ruleta de
          sorteos" también quedan en UN solo contenedor con subsecciones,
          mismo criterio que Directorio arriba. La ruleta de sorteos pasa a
@@ -2596,6 +2481,127 @@
       </details>
     </div>
 
+    <!-- FIX (05-sep-2026, pedido usuario): las 3 tarjetas "Mensajes
+         automáticos" se fusionan en UNA sola sección llamada "Mensajes",
+         con las mismas 3 agrupaciones de antes pero ahora como
+         subsecciones (h3) dentro de un único card admin-grupo, en vez de
+         3 cards sueltos repitiendo el mismo eyebrow:
+           1) "Guerra, entrenamiento y mazos" — preparación estándar que
+              se comparte igual para todos los clanes.
+           2) "Torneos, sorteos y ascensos" — con botones horizontales
+              Participantes/Ganadores para Torneos y, por separado, para
+              Sorteos (mismo patrón de pestañas .tab-clan que ya usa
+              renderContenidoHtml() para las opciones por clan dentro de
+              cada categoría, ver cargarGrupoToggle() más abajo).
+           3) "Mensajes que no suelen enviarse" — bienvenida/iniciales (una
+              sola vez por persona), etiqueta/celular (esporádico) y
+              descripción de grupos (nunca se envía, es solo para
+              actualizar los grupos).
+         También corrige el pedido "'Día de guerra' debe ser una sola
+         categoría con 'Entrenamiento' y tener sus botoncitos para cambiar
+         entre guerra o entrenamiento. No veo el mensaje de entrenamiento":
+         antes 'Defensas de barcos' (el mensaje real de "Entrenamiento") se
+         ocultaba solo por ser día de guerra hoy — no era un problema de
+         sync, ver FIX correspondiente en _webAdminCategorias()
+         (34_Web_API.gs). Ahora ambos quedan siempre disponibles y el
+         admin alterna con los botones "Guerra"/"Entrenamiento", sin
+         depender de qué día sea. Pedido usuario: la web no debe mencionar
+         al bot en ningún texto visible, así que las 3 bajadas ya NO dicen
+         de dónde sale el contenido, solo qué es y para qué sirve. Ver
+         initMensajesAutomaticos()/cargarGrupoToggle() más abajo;
+         cargarContenidoCategoria()/renderContenidoHtml()/
+         _activarAccionesContenido() (ya existentes) se reutilizan tal
+         cual para pintar cada categoría — ninguno de esos selectores
+         depende de que cada grupo esté en su propio card, así que fusionar
+         los 3 cards en uno no rompe nada del JS.
+      FIX (16-sep-2026, pedido usuario): esta card "Mensajes" pasa de ir
+      ANTES de "Torneos y sorteos" a ir DESPUÉS. Es solo un cambio de
+      orden en el HTML (se mueve el bloque completo tal cual, comentario
+      incluido); no se tocó nada del contenido, de los ids ni del JS
+      (initMensajesAutomaticos()/cargarGrupoToggle() siguen funcionando
+      igual, no dependen del orden de las cards en el DOM). -->
+    <div class="card admin-grupo" style="margin-top:24px;">
+      <div class="eyebrow">Mensajes</div>
+
+      <h3 style="font-size:15px; color:var(--gold); margin:10px 0 4px;">Guerra, entrenamiento y mazos</h3>
+      <p class="text-dim" style="font-size:13px; margin:0 0 4px;">Preparación de guerra, estándar para todos los clanes: en Entrenamiento se piden las defensas de barcos, en Mazos se pide revisar RoyaleAPI para actualizar el mazo, y los ataques pendientes son el mensaje clásico de guerra. Ábrelo para copiarlo o descargarlo.</p>
+
+      <details class="admin-subseccion admin-toggle-grupo">
+        <summary><span class="cat-titulo">Día de guerra, entrenamiento y mazos</span><button type="button" class="btn-refrescar-categoria" title="Actualizar contenido">↻</button></summary>
+        <div class="admin-subseccion-body">
+          <div class="contenido-tabs admin-toggle-botones">
+            <button type="button" class="tab-clan btn-toggle-cat activo" data-categoria="Día de guerra">Guerra</button>
+            <button type="button" class="tab-clan btn-toggle-cat" data-categoria="Defensas de barcos">Entrenamiento</button>
+            <button type="button" class="tab-clan btn-toggle-cat" data-categoria="Mazos">Mazos</button>
+          </div>
+          <div class="admin-toggle-body" style="margin-top:10px;"><div class="empty">Cargando…</div></div>
+        </div>
+      </details>
+
+      <details class="admin-subseccion categoria-contenido-simple" data-categoria="Mensaje de Guerra">
+        <summary><span class="cat-titulo">Mensaje de ataques pendientes</span><button type="button" class="btn-refrescar-categoria" title="Actualizar contenido">↻</button></summary>
+        <div class="admin-subseccion-body categoria-contenido-body"></div>
+      </details>
+
+      <h3 style="font-size:15px; color:var(--gold); margin:24px 0 4px;">Torneos, sorteos y ascensos</h3>
+      <p class="text-dim" style="font-size:13px; margin:0 0 4px;">Mensajes de torneos, sorteos y cambios de rango. Ábrelo para copiarlo o descargarlo.</p>
+
+      <details class="admin-subseccion admin-toggle-grupo">
+        <summary><span class="cat-titulo">Torneos</span><button type="button" class="btn-refrescar-categoria" title="Actualizar contenido">↻</button></summary>
+        <div class="admin-subseccion-body">
+          <div class="contenido-tabs admin-toggle-botones">
+            <button type="button" class="tab-clan btn-toggle-cat activo" data-categoria="Participantes calificados (torneo)">Participantes</button>
+            <button type="button" class="tab-clan btn-toggle-cat" data-categoria="Ganadores (torneo)">Ganadores</button>
+          </div>
+          <div class="admin-toggle-body" style="margin-top:10px;"><div class="empty">Cargando…</div></div>
+        </div>
+      </details>
+
+      <details class="admin-subseccion admin-toggle-grupo">
+        <summary><span class="cat-titulo">Sorteos</span><button type="button" class="btn-refrescar-categoria" title="Actualizar contenido">↻</button></summary>
+        <div class="admin-subseccion-body">
+          <div class="contenido-tabs admin-toggle-botones">
+            <button type="button" class="tab-clan btn-toggle-cat activo" data-categoria="Participantes calificados (sorteo)">Participantes</button>
+            <button type="button" class="tab-clan btn-toggle-cat" data-categoria="Ganadores (sorteo)">Ganadores</button>
+          </div>
+          <div class="admin-toggle-body" style="margin-top:10px;"><div class="empty">Cargando…</div></div>
+        </div>
+      </details>
+
+      <details class="admin-subseccion categoria-contenido-simple" data-categoria="Ascensos y descensos">
+        <summary><span class="cat-titulo">Cambio de rango</span><button type="button" class="btn-refrescar-categoria" title="Actualizar contenido">↻</button></summary>
+        <div class="admin-subseccion-body categoria-contenido-body"></div>
+      </details>
+
+      <h3 style="font-size:15px; color:var(--gold); margin:24px 0 4px;">Mensajes que no suelen enviarse</h3>
+      <p class="text-dim" style="font-size:13px; margin:0 0 4px;">Bienvenida e iniciales se envían una sola vez a cada persona; etiqueta y número de teléfono se piden esporádicamente; la descripción de grupos no se le envía a nadie, es solo para actualizar los grupos de WhatsApp.</p>
+
+      <details class="admin-subseccion categoria-contenido-simple" data-categoria="Bienvenida">
+        <summary><span class="cat-titulo">Bienvenida de miembros</span><button type="button" class="btn-refrescar-categoria" title="Actualizar contenido">↻</button></summary>
+        <div class="admin-subseccion-body categoria-contenido-body"></div>
+      </details>
+
+      <details class="admin-subseccion categoria-contenido-simple" data-categoria="iPhone">
+        <summary><span class="cat-titulo">Aplicación de iniciales en iPhone</span><button type="button" class="btn-refrescar-categoria" title="Actualizar contenido">↻</button></summary>
+        <div class="admin-subseccion-body categoria-contenido-body"></div>
+      </details>
+
+      <details class="admin-subseccion categoria-contenido-simple" data-categoria="Etiqueta de miembro">
+        <summary><span class="cat-titulo">Etiqueta de miembro en grupos de WhatsApp</span><button type="button" class="btn-refrescar-categoria" title="Actualizar contenido">↻</button></summary>
+        <div class="admin-subseccion-body categoria-contenido-body"></div>
+      </details>
+
+      <details class="admin-subseccion categoria-contenido-simple" data-categoria="Celular">
+        <summary><span class="cat-titulo">Solicitud de número de teléfono</span><button type="button" class="btn-refrescar-categoria" title="Actualizar contenido">↻</button></summary>
+        <div class="admin-subseccion-body categoria-contenido-body"></div>
+      </details>
+
+      <details class="admin-subseccion categoria-contenido-simple" data-categoria="Descripción">
+        <summary><span class="cat-titulo">Descripción de grupos de WSP</span><button type="button" class="btn-refrescar-categoria" title="Actualizar contenido">↻</button></summary>
+        <div class="admin-subseccion-body categoria-contenido-body"></div>
+      </details>
+    </div>
+
     <div id="miembroSec" style="display:none; margin-top:24px;">
       <div class="grid-2">
 
@@ -3252,6 +3258,26 @@ document.getElementById('btnGuardar').addEventListener('click', async () => {
  * que el saludo del bot, con Copas/V.Guerra/Torneos/Vigencia por cuenta.
  * Falla en silencio hacia un mensaje corto (no bloquea el resto del
  * panel) si el admin no tiene ninguna cuenta detectable por celular.
+ * FIX (16-sep-2026, pedido usuario — "dinamizar y si no hay más cuentas
+ * en el mismo clan, se debe subir las cuentas del siguiente clan para
+ * no desperdiciar espacio"): antes cada clan tenía su PROPIO grid
+ * separado (un <div style="display:grid"> por clan, con el nombre del
+ * clan como encabezado de fila completa). Eso significaba que un clan
+ * con pocas cuentas terminaba su fila a medias y el siguiente clan
+ * recién empezaba en una fila nueva, dejando espacio sin aprovechar.
+ * Ahora es UN solo grid con TODAS las cuentas de TODOS los clanes
+ * seguidas, en el mismo orden que ya arma _webMisCuentas() (clan por
+ * clan, líder primero dentro de cada uno) — apenas se acaban las
+ * cuentas de un clan, las del siguiente suben solas a ocupar lo que
+ * quede libre en esa misma fila, sin lógica adicional de "relleno": es
+ * el propio flujo del grid el que lo resuelve. El nombre del clan, que
+ * antes era un encabezado aparte, ahora es una etiqueta pequeña dentro
+ * de cada tarjeta (así se sigue viendo de qué clan es cada cuenta sin
+ * forzar un salto de fila). Las barras de Copas/V.Guerra/Torneos se
+ * siguen normalizando contra el máximo DEL MISMO CLAN (mismo criterio
+ * que el FIX de 04-sep-2026, sin cambios), solo que ese cálculo ahora
+ * se hace antes de aplanar la lista, guardando el máximo de cada clan
+ * en cada cuenta (_maxCopas/_maxVGuerra/_maxTorneos).
  */
 async function cargarMisCuentas(){
   const wrap = document.getElementById('misCuentasWrap');
@@ -3264,42 +3290,33 @@ async function cargarMisCuentas(){
       wrap.innerHTML = '<div class="empty">No se encontró ninguna cuenta asociada a tu número.</div>';
       return;
     }
-    wrap.innerHTML = clanes.map(c => {
-      // FIX (04-sep-2026, pedido usuario, punto 34 — "pueda ver su
-      // desempeño, sus estadísticas y gráficas"): la versión anterior
-      // (03-sep-2026, punto 17) ya mostraba Copas/V.Guerra/Torneos/
-      // Vigencia como texto plano, pero eso es "estadísticas", no
-      // "gráficas". Se agrega una mini barra por estadística, normalizada
-      // contra el MÁXIMO de ese mismo clan (no hay endpoint de histórico
-      // por cuenta, así que la comparación es entre cuentas del clan, no
-      // en el tiempo) — alcanza para ver de un vistazo qué cuenta destaca
-      // o se está quedando atrás sin agregar un endpoint nuevo.
+    const barra = (valor, max, color) => {
+      const v = Number(valor) || 0;
+      const pct = Math.max(2, Math.round((v / max) * 100));
+      return `<div style="height:4px; border-radius:2px; background:var(--surface); overflow:hidden;"><div style="height:100%; width:${pct}%; background:${color};"></div></div>`;
+    };
+    const todas = [];
+    clanes.forEach(c => {
       const maxCopas = Math.max(1, ...c.cuentas.map(m => Number(m.copas) || 0));
       const maxVGuerra = Math.max(1, ...c.cuentas.map(m => Number(m.vGuerra) || 0));
       const maxTorneos = Math.max(1, ...c.cuentas.map(m => Number(m.torneos) || 0));
-      const barra = (valor, max, color) => {
-        const v = Number(valor) || 0;
-        const pct = Math.max(2, Math.round((v / max) * 100));
-        return `<div style="height:4px; border-radius:2px; background:var(--surface); overflow:hidden;"><div style="height:100%; width:${pct}%; background:${color};"></div></div>`;
-      };
-      return `
-      <div style="margin-bottom:16px;">
-        <div style="font-family:var(--f-display); font-weight:700; font-size:13px; color:var(--gold); text-transform:uppercase; letter-spacing:.04em; margin-bottom:8px;">🍀 ${esc(c.nombre)}</div>
-        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px;">
-          ${c.cuentas.map(m => `
-            <div style="background:var(--bg-2); border:1px solid var(--line); border-radius:var(--radius-sm); padding:10px 12px;">
-              <div style="font-weight:600; font-size:14px;">${enlaceJugador(m.nombre, m.tag)}</div>
-              <div style="font-family:var(--f-mono); font-size:11px; color:var(--text-faint); margin-top:2px;">${esc(m.tag)} · ${esc(m.rango)}</div>
-              <div style="display:flex; flex-direction:column; gap:5px; margin-top:9px;">
-                <div style="display:flex; align-items:center; gap:6px; font-family:var(--f-mono); font-size:11px; color:var(--text-dim);"><span style="width:64px; flex-shrink:0;">🏆 ${fmtNum(m.copas)}</span>${barra(m.copas, maxCopas, 'var(--gold)')}</div>
-                <div style="display:flex; align-items:center; gap:6px; font-family:var(--f-mono); font-size:11px; color:var(--text-dim);"><span style="width:64px; flex-shrink:0;">🎖️ ${fmtNum(m.vGuerra)}</span>${barra(m.vGuerra, maxVGuerra, 'var(--purple-light)')}</div>
-                <div style="display:flex; align-items:center; gap:6px; font-family:var(--f-mono); font-size:11px; color:var(--text-dim);"><span style="width:64px; flex-shrink:0;">🏅 ${fmtNum(m.torneos)}</span>${barra(m.torneos, maxTorneos, 'var(--silver)')}</div>
-              </div>
-              ${m.vigencia ? `<div style="font-family:var(--f-mono); font-size:10px; color:var(--text-faint); margin-top:6px;">Vigencia: ${esc(fmtFechaVigenciaAdmin(m.vigencia))}</div>` : ''}
-            </div>`).join('')}
-        </div>
+      c.cuentas.forEach(m => todas.push({ ...m, _clan: c.nombre, _maxCopas: maxCopas, _maxVGuerra: maxVGuerra, _maxTorneos: maxTorneos }));
+    });
+    wrap.innerHTML = `
+      <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px;">
+        ${todas.map(m => `
+          <div style="background:var(--bg-2); border:1px solid var(--line); border-radius:var(--radius-sm); padding:10px 12px;">
+            <div style="font-family:var(--f-display); font-weight:700; font-size:10px; color:var(--gold); text-transform:uppercase; letter-spacing:.04em; margin-bottom:6px;">🍀 ${esc(m._clan)}</div>
+            <div style="font-weight:600; font-size:14px;">${enlaceJugador(m.nombre, m.tag)}</div>
+            <div style="font-family:var(--f-mono); font-size:11px; color:var(--text-faint); margin-top:2px;">${esc(m.tag)} · ${esc(m.rango)}</div>
+            <div style="display:flex; flex-direction:column; gap:5px; margin-top:9px;">
+              <div style="display:flex; align-items:center; gap:6px; font-family:var(--f-mono); font-size:11px; color:var(--text-dim);"><span style="width:64px; flex-shrink:0;">🏆 ${fmtNum(m.copas)}</span>${barra(m.copas, m._maxCopas, 'var(--gold)')}</div>
+              <div style="display:flex; align-items:center; gap:6px; font-family:var(--f-mono); font-size:11px; color:var(--text-dim);"><span style="width:64px; flex-shrink:0;">🎖️ ${fmtNum(m.vGuerra)}</span>${barra(m.vGuerra, m._maxVGuerra, 'var(--purple-light)')}</div>
+              <div style="display:flex; align-items:center; gap:6px; font-family:var(--f-mono); font-size:11px; color:var(--text-dim);"><span style="width:64px; flex-shrink:0;">🏅 ${fmtNum(m.torneos)}</span>${barra(m.torneos, m._maxTorneos, 'var(--silver)')}</div>
+            </div>
+            ${m.vigencia ? `<div style="font-family:var(--f-mono); font-size:10px; color:var(--text-faint); margin-top:6px;">Vigencia: ${esc(fmtFechaVigenciaAdmin(m.vigencia))}</div>` : ''}
+          </div>`).join('')}
       </div>`;
-    }).join('');
   }catch(err){
     wrap.innerHTML = '<div class="empty">No se pudieron cargar tus cuentas.</div>';
   }
