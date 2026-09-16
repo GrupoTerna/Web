@@ -432,6 +432,14 @@ const CLAN_LABELS_CORTOS = ['Principal', 'Terna 2', 'Terna 3', 'Mini'];
  *     roster de directorio.html).
  * Ya NO incluye la descripción del clan (retirada a pedido del usuario) —
  * solo RoyaleAPI/CWStats + (opcional) Ver clan + (opcional) Unirse.
+ *
+ * FIX (16-sep-2026, pedido usuario — "centra los datos señalados" en las
+ * tarjetas de clan de directorio.html, ver captura): la insignia
+ * (badge), el nombre (h3) y el tag quedan centrados horizontalmente —
+ * antes colgaban del borde izquierdo de la tarjeta. Líder/Liga (más
+ * abajo) NO se tocan, no estaban marcados en la captura. Esta función es
+ * compartida por index.html y directorio.html, así que el cambio se ve
+ * en ambas páginas.
  */
 function clanCardHtml(c, i, opts){
   opts = opts || {};
@@ -448,11 +456,11 @@ function clanCardHtml(c, i, opts){
   const cwStatsOk   = urlValida(c.cwStats);
   return `
     <div class="card card-hover clan-card" style="display:flex; flex-direction:column;">
-      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px;">
+      <div style="display:flex; justify-content:center; gap:8px; flex-wrap:wrap; margin-bottom:14px;">
         <span class="badge ${badge.cls}">${esc(badge.label)}</span>
       </div>
-      <h3 style="font-size:20px;">${esc(nombre)}</h3>
-      <div class="text-faint" style="font-family:var(--f-mono); font-size:12px; margin-top:4px;">${esc(c.clanTag||'')}</div>
+      <h3 style="font-size:20px; text-align:center;">${esc(nombre)}</h3>
+      <div class="text-faint" style="font-family:var(--f-mono); font-size:12px; margin-top:4px; text-align:center;">${esc(c.clanTag||'')}</div>
       <div style="display:flex; flex-direction:column; gap:4px; margin-top:12px; font-size:13px;">
         <span class="text-dim">👑 Líder: <b style="color:var(--text);">${esc(lider)}</b></span>
         <span class="text-dim">🛡️ Liga: <b style="color:var(--text);">${esc(liga)}</b></span>
@@ -749,6 +757,16 @@ function _renderVistaInactivos(section, titulo, cuentas){
  * inline (_renderVistaInactivos) — nunca muestra Celular ni ningún otro
  * dato sensible, solo nombre/tag/clan (+ RoyaleAPI/CWStats/Vetar cuando
  * corresponda, ver _filaInactivoHtml).
+ *
+ * FIX (16-sep-2026, pedido usuario — "centra los datos señalados" +
+ * "quita la parte de 'ver directorio'" en las tarjetas Inactivos (Admins)/
+ * Inactivos (General), ver captura): insignia y título quedan centrados
+ * (mismo criterio que clanCardHtml() de arriba); "Solo visible para
+ * administradores" no estaba marcado, se deja igual. El pie de la
+ * tarjeta ya no dice "· ver directorio →" (esa acción de click siempre
+ * existió — la tarjeta entera es clicable y abre la vista inline, ver el
+ * listener más abajo — el texto era solo una pista visual redundante,
+ * pedido quitarla).
  */
 async function agregarTarjetaCuentasInactivasSiAdmin(grid){
   if (!grid || !esAdminLogueado()) return;
@@ -767,14 +785,14 @@ async function agregarTarjetaCuentasInactivasSiAdmin(grid){
       div.style.flexDirection = 'column';
       div.style.cursor = 'pointer';
       div.innerHTML = `
-        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:14px;">
+        <div style="display:flex; justify-content:center; gap:8px; flex-wrap:wrap; margin-bottom:14px;">
           <span class="badge badge-purple">${icono} ${esc(label)}</span>
         </div>
-        <h3 style="font-size:20px;">${esc(label)}</h3>
+        <h3 style="font-size:20px; text-align:center;">${esc(label)}</h3>
         <div class="text-faint" style="font-family:var(--f-mono); font-size:12px; margin-top:4px;">Solo visible para administradores</div>
         <div style="flex:1; min-height:8px;"></div>
         <div style="font-family:var(--f-mono); font-size:13px; border-top:1px solid var(--line); padding-top:12px; color:var(--text-dim);">
-          ${fmtNum(cuentas.length)} cuenta(s) inactiva(s) · ver directorio →
+          ${fmtNum(cuentas.length)} cuenta(s) inactiva(s)
         </div>`;
       div.addEventListener('click', () => {
         const yaAbiertaEnEsteGrupo = vista.style.display !== 'none' && vista.dataset.grupo === tituloVista;
