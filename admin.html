@@ -6970,8 +6970,25 @@ function _filaPropuestaCR(p){
     </tr>`;
 }
 
-function _tablaPropuestasCR(propuestas){
+// FIX (16-sep-2026, pedido usuario -- "Sin propuestas" al elegir una
+// temporada cerrada, sin ningún aviso visible): antes esta función solo
+// recibía `propuestas` y, si venía vacío, siempre mostraba el mismo
+// mensaje genérico ("nadie cumple los requisitos"), sin distinguir ese
+// caso real de un problema leyendo Backup_Guerra.csv para esa temporada
+// histórica (ver _ULTIMO_DIAGNOSTICO_GUERRA_CSV / _calcularPropuestasCambioRango(),
+// 19_ControlCalendario.gs / 24_Torneos_Core.gs). Ahora recibe también
+// `diagnostico` (campo aditivo `data.diagnostico` de webCRListaPropuestas/
+// webCRListaGenerarPropuestas, solo presente cuando el backend detectó un
+// motivo concreto) y, si está presente, lo muestra en vez del mensaje
+// genérico.
+function _tablaPropuestasCR(propuestas, diagnostico){
   if(!propuestas || !propuestas.length){
+    if(diagnostico){
+      return `<div class="empty msg-error" style="text-align:left;">
+        <strong>Sin propuestas -- posible problema leyendo el histórico de guerra:</strong><br>
+        ${esc(diagnostico)}
+      </div>`;
+    }
     return '<div class="empty">Sin propuestas -- nadie del roster activo cumple ni deja de cumplir los requisitos de arriba.</div>';
   }
   return `<div style="overflow-x:auto;"><table>
@@ -7001,7 +7018,7 @@ document.getElementById('btnCrVerPropuestas').addEventListener('click', async ()
     if(manejarRespuestaAuth(data)) return;
     if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
     msgEl.innerHTML = `<div class="text-dim" style="font-size:12px;">${data.propuestas.length} propuesta(s) -- todavía no se escribió nada en Historial_A/D.</div>`;
-    tablaEl.innerHTML = _tablaPropuestasCR(data.propuestas);
+    tablaEl.innerHTML = _tablaPropuestasCR(data.propuestas, data.diagnostico);
   }catch(err){
     msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
   }
@@ -7038,7 +7055,7 @@ document.getElementById('btnCrGenerarPropuestas').addEventListener('click', asyn
     // Repinta la tabla con el estado recalculado, para que quede a la vista
     // qué se generó (mismo cálculo que Ver propuestas -- ver su docblock).
     const dataVer = await apiGetAuth('webCRListaPropuestas', { idAscenso: crIdExistenteActual, idDescenso: crIdDescensoActual });
-    if(dataVer && dataVer.ok) tablaEl.innerHTML = _tablaPropuestasCR(dataVer.propuestas);
+    if(dataVer && dataVer.ok) tablaEl.innerHTML = _tablaPropuestasCR(dataVer.propuestas, dataVer.diagnostico);
   }catch(err){
     msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
   }
