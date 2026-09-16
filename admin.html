@@ -1217,24 +1217,18 @@
                    cuando el select se deja en "Sin cambios" (el backend no
                    debe tocar esa columna en ese caso), y `premios` con lo
                    que haya en el editor en ese momento.
-                   PENDIENTE BACKEND: _webAdminTorneoModificar()/
-                   webAdminTorneoModificar (34_Web_API.gs) y
-                   _modificarFechaHoraTorneo() (24_Torneos_Core.gs) deben
-                   aceptar los parámetros opcionales `autor` y `premios`, y
-                   solo actualizar esas columnas de T_Lista cuando lleguen
-                   no vacíos — hoy esos archivos .gs no están disponibles
-                   en esta sesión, así que este front-end ya los envía pero
-                   el guardado real depende de esa actualización. Para que
-                   "Sin cambios (Diana)"/el editor de premios/el selector de
-                   semanas reflejen el valor REAL ya guardado (y no solo el
-                   default), _listarTorneosDeHoy() (24_Torneos_Core.gs) y
-                   webAdminTorneosHoy (34_Web_API.gs) deben devolver también
+                   RESUELTO (14-sep-2026, cierre de conexión pendiente):
+                   _webAdminTorneoModificar()/_modificarFechaHoraTorneo()
+                   (34_Web_API.gs / 24_Torneos_Core.gs) ya aceptan los
+                   parámetros opcionales `autor` y `premios`, y solo
+                   actualizan esas columnas de T_Lista cuando llegan no
+                   vacíos. _listarTorneosDeHoy() (24_Torneos_Core.gs) y
+                   webAdminTorneosHoy (34_Web_API.gs) también devuelven ya
                    `autor`, `premios` (mismo formato CSV que arma
                    armarPremiosCSV()) y `semanas` (array de fechas ISO de
                    los lunes ya evaluados) por torneo — ver
                    data-autor/data-premios/data-semanas en cargarTorneosHoy()
-                   más abajo, ya listos para consumir esos campos en cuanto
-                   existan. -->
+                   más abajo, que ya los consume. -->
               <div class="field" style="margin-top:14px;">
                 <label for="tAutorSelectMod">¿Quién organizó el torneo?</label>
                 <select id="tAutorSelectMod">
@@ -1556,26 +1550,26 @@
                  dejarlo acá quieto ya cumple la posición pedida sin importar
                  cuál rama esté activa.
 
-                 PENDIENTE BACKEND / conexión (mismo estado que
-                 #requisitosTorneoBox en 5.1):
+                 RESUELTO / conexión (mismo estado que #requisitosTorneoBox
+                 en 5.1):
                    1) RESUELTO (11-sep-2026): los 3 listeners
                       (btnRegistrarTorneo/btnModificarTorneo/
                       btnPlanificarTorneo) ya leen este campo
                       (`document.getElementById('tComentario').value.trim()`)
                       y lo suman al payload como `comentario`, junto con
                       `requisitos` de armarPayloadRequisitos() -- ver el
-                      comentario FIX junto a cada listener más abajo. Falta
-                      que el backend (_webAdminTorneoRegistrar()/
-                      _webAdminTorneoModificar()/
-                      _webAdminTorneoPlanificarGuardar(), 34_Web_API.gs) lo
-                      reciba y lo escriba en la columna Comentario de
-                      T_Lista.
-                   2) Precarga en Modificar: cuando `webAdminTorneosHoy()`
-                      devuelva también el Comentario existente de cada fila
-                      (ver 5.2, mismo pendiente que autor/premios/semanas),
-                      falta que el listener de #tSelectHoy escriba ese valor
-                      acá antes de que el admin edite. Hasta entonces el
-                      cuadro arranca siempre vacío, también en Modificar.
+                      comentario FIX junto a cada listener más abajo. El
+                      backend (_registrarTorneoDesdeBot()/
+                      _modificarFechaHoraTorneo()/_planificarTorneoDesdeBot(),
+                      24_Torneos_Core.gs) ya lo recibe y lo escribe en la
+                      columna Comentario (TL.COMENTARIO) de T_Lista.
+                   2) RESUELTO (15-sep-2026, cierre de conexión pendiente):
+                      `webAdminTorneosHoy()`/`_listarTorneosDeHoy()` ya
+                      devuelven también el Comentario existente de cada fila
+                      (mismo criterio que autor/premios/semanas de 5.2), y
+                      el listener de #tSelectHoy ya lo precarga en
+                      #tComentario al elegir un torneo en "Modificar" (ver
+                      data-comentario en cargarTorneosHoy() más abajo).
                    3) Regla de sobrescritura ya definida (CONFIRMADO en el
                       consolidado): a diferencia de Premios, lo que se vea en
                       este cuadro al guardar reemplaza siempre al Comentario
@@ -4740,15 +4734,20 @@ async function cargarTorneosHoy(){
           const fechaTxt = new Date(t.fecha).toLocaleString('es-PE', { hour12:false });
           // FIX (09-sep-2026 tarde, pedido usuario — "indicar el valor
           // actual" al modificar): data-autor/data-premios/data-semanas
-          // quedan listos para cuando _listarTorneosDeHoy()/
-          // webAdminTorneosHoy devuelvan esos campos (ver PENDIENTE
-          // BACKEND junto a #camposModificar, arriba en el HTML). Mientras
-          // no existan, `t.autor`/`t.premios`/`t.semanas` llegan undefined
-          // y los ?? '' de abajo dejan los atributos vacíos — el resto del
-          // código ya sabe tratar eso como "sin dato" y usa los defaults
-          // genéricos (ver tSelectHoy 'change' más abajo).
+          // ya llegan de _listarTorneosDeHoy()/webAdminTorneosHoy (RESUELTO,
+          // 24_Torneos_Core.gs / 34_Web_API.gs). Si algún torneo puntual no
+          // trajera alguno de estos campos, `t.autor`/`t.premios`/
+          // `t.semanas` llegarían undefined y los ?? '' de abajo dejan los
+          // atributos vacíos — el resto del código ya sabe tratar eso como
+          // "sin dato" y usa los defaults genéricos (ver tSelectHoy 'change'
+          // más abajo).
+          // AMPLIADO (15-sep-2026, cierre de conexión pendiente -- punto 2
+          // del comentario junto a #comentarioTorneoBox en el HTML):
+          // data-comentario, mismo criterio que autor/premios/semanas, para
+          // precargar #tComentario con lo ya guardado (ver _listarTorneosDeHoy(),
+          // 24_Torneos_Core.gs).
           const semanasCsv = Array.isArray(t.semanas) ? t.semanas.join(',') : '';
-          return `<option value="${esc(t.id)}" data-fecha="${esc(t.fecha)}" data-autor="${esc(t.autor || '')}" data-premios="${esc(t.premios || '')}" data-semanas="${esc(semanasCsv)}">${esc(t.id)} — ${esc(fechaTxt)}</option>`;
+          return `<option value="${esc(t.id)}" data-fecha="${esc(t.fecha)}" data-autor="${esc(t.autor || '')}" data-premios="${esc(t.premios || '')}" data-semanas="${esc(semanasCsv)}" data-comentario="${esc(t.comentario || '')}">${esc(t.id)} — ${esc(fechaTxt)}</option>`;
         }).join('') + OPCION_INGRESAR_LINK;
     }
   }catch(err){
@@ -4795,7 +4794,11 @@ async function cargarSorteosHoy(){
         sorteosHoyData.map(s => {
           const fechaTxt = new Date(s.fecha).toLocaleString('es-PE', { hour12:false });
           const semanasCsv = Array.isArray(s.semanas) ? s.semanas.join(',') : '';
-          return `<option value="${esc(s.id)}" data-fecha="${esc(s.fecha)}" data-autor="${esc(s.autor || '')}" data-premios="${esc(s.premios || '')}" data-semanas="${esc(semanasCsv)}" data-idprincipal="${esc(s.idPrincipal || '')}">${esc(s.id)} — ${esc(fechaTxt)}</option>`;
+          // AMPLIADO (15-sep-2026, cierre de conexión pendiente): data-comentario,
+          // mismo criterio que data-autor/data-premios/data-semanas, para
+          // precargar #sComentario con lo ya guardado (ver _listarSorteosDeHoy(),
+          // 24_Torneos_Core.gs).
+          return `<option value="${esc(s.id)}" data-fecha="${esc(s.fecha)}" data-autor="${esc(s.autor || '')}" data-premios="${esc(s.premios || '')}" data-semanas="${esc(semanasCsv)}" data-idprincipal="${esc(s.idPrincipal || '')}" data-comentario="${esc(s.comentario || '')}">${esc(s.id)} — ${esc(fechaTxt)}</option>`;
         }).join('');
     }
   }catch(err){
@@ -5589,6 +5592,12 @@ document.getElementById('sSelectHoy').addEventListener('change', () => {
   pintarSemanasSelector('semanasSelectorSorteoMod');
   preseleccionarSemanas('semanasSelectorSorteoMod', opt && opt.dataset.semanas);
 
+  // AMPLIADO (15-sep-2026, cierre de conexión pendiente): mismo criterio
+  // que #tComentario en el listener de #tSelectHoy más abajo -- precarga
+  // #sComentario con el Comentario ya guardado del sorteo elegido (o vacío
+  // si no hay sorteo elegido o no tiene comentario).
+  document.getElementById('sComentario').value = (opt && opt.dataset.comentario) || '';
+
   // NUEVO (12-sep-2026, pedido del usuario -- consolidado sección 5.4): con
   // el endpoint ya existente (_webAdminRequisitosClanesSorteo()), al elegir
   // un sorteo puntual se recarga #requisitosSorteoBox con SUS requisitos ya
@@ -5642,12 +5651,11 @@ document.getElementById('tSelectHoy').addEventListener('change', () => {
   // FIX (09-sep-2026 tarde, pedido usuario — "si hay que modificar algo, se
   // debe indicar el valor actual"): al elegir (o quitar) un torneo, se
   // refresca la etiqueta de "Sin cambios", el editor de premios y el
-  // selector de semanas con lo YA registrado para ESE torneo (si el
-  // backend lo manda — ver data-autor/data-premios/data-semanas en
-  // cargarTorneosHoy() y el PENDIENTE BACKEND junto a #camposModificar en
-  // el HTML). Se deja el select de autor en "Sin cambios" (no se fuerza un
-  // Nom_Multi elegido) y se limpia lo que hubiera quedado tipeado a mano de
-  // un torneo anterior.
+  // selector de semanas con lo YA registrado para ESE torneo (ver
+  // data-autor/data-premios/data-semanas en cargarTorneosHoy(), RESUELTO).
+  // Se deja el select de autor en "Sin cambios" (no se fuerza un Nom_Multi
+  // elegido) y se limpia lo que hubiera quedado tipeado a mano de un
+  // torneo anterior.
   actualizarEtiquetaSinCambiosAutor(opt && opt.dataset.autor);
   document.getElementById('tAutorSelectMod').value = '';
   document.getElementById('tAutorManualMod').value = '';
@@ -5663,6 +5671,15 @@ document.getElementById('tSelectHoy').addEventListener('change', () => {
   // registradas, se ajustan los checkboxes para reflejarlas.
   pintarSemanasSelector('semanasSelectorMod');
   preseleccionarSemanas('semanasSelectorMod', opt && opt.dataset.semanas);
+
+  // AMPLIADO (15-sep-2026, cierre de conexión pendiente -- punto 2 del
+  // comentario junto a #comentarioTorneoBox en el HTML): #tComentario es
+  // un cuadro COMPARTIDO entre Registrar/Modificar/Planificar, así que al
+  // elegir (o quitar) un torneo en "Modificar" se precarga con su
+  // Comentario ya guardado (data-comentario, ver cargarTorneosHoy() más
+  // arriba) -- o se deja vacío si no hay torneo elegido o el torneo no
+  // tiene comentario.
+  document.getElementById('tComentario').value = (opt && opt.dataset.comentario) || '';
 
   // FIX (12-sep-2026, pedido del usuario -- ver docblock de
   // cargarRequisitosPorClan() más arriba): al elegir un torneo PUNTUAL en

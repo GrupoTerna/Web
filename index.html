@@ -1006,15 +1006,14 @@ cargarClanes();
  *   (campo 'barcos' agregado 03-sep-2026, pedido del usuario, para la
  *   tercera gráfica comparativa "Barcos por semana"; si el backend
  *   todavía no lo manda, esa gráfica se dibuja en 0 para todos.)
- * CONTRATO PENDIENTE (09-sep-2026): además, la respuesta de
- * 'webIngresosRecientes' debería traer, al mismo nivel que 'ingresos', un
- * array aparte 'semanasGuerra' con TODAS las semanas de guerra
- * transcurridas (mismo formato de fecha que 'semana' en historialSemanal),
- * incluidas las que nadie registró todavía. Sin este campo,
- * construirSemanasMaestras() no puede reconstruir esa columna vacía en el
- * eje X — ver el comentario junto a esa función más abajo. Ya está listo
- * el front-end para consumirlo (se pasa como segundo parámetro a
- * construirSemanasMaestras()); falta que el backend lo exponga.
+ * RESUELTO (14-sep-2026, cierre de conexión pendiente): la respuesta de
+ * 'webIngresosRecientes' ya trae, al mismo nivel que 'ingresos', el array
+ * 'semanasGuerra' con TODAS las semanas de guerra transcurridas (mismo
+ * formato de fecha que 'semana' en historialSemanal), incluidas las que
+ * nadie registró todavía (ver _webIngresosRecientesCalcular(),
+ * 34_Web_API.gs). construirSemanasMaestras() ya lo recibe como segundo
+ * parámetro (ver el comentario junto a esa función más abajo) para
+ * reconstruir esa columna vacía en el eje X.
  * Si el backend todavía no manda alguno de estos campos, esta función no
  * rompe: los campos faltantes se muestran como "—" y, si nadie trae
  * historialSemanal, las dos gráficas simplemente no se dibujan.
@@ -1143,12 +1142,13 @@ const MIN_SEMANAS_POR_MIEMBRO = 5;
  * esa semana existió con datos solo desde el front-end. Ahora recibe un
  * segundo parámetro opcional 'semanasGuerra' (array plano de semanas, e.g.
  * ["17/08/2026", "24/08/2026", ...] — mismo formato que 'semana' en
- * historialSemanal) que el backend debería exponer aparte, con TODAS las
- * semanas de guerra transcurridas, y lo usa para sembrar el eje ANTES de
- * agregar lo que traiga historialSemanal, así una semana sin ningún
- * registro igual aparece como columna vacía. Si 'semanasGuerra' no llega
- * (contrato pendiente en el backend), el comportamiento es exactamente el
- * de antes: el eje se deriva solo de historialSemanal. */
+ * historialSemanal) que el backend ya expone aparte (RESUELTO, ver
+ * _webIngresosRecientesCalcular(), 34_Web_API.gs), con TODAS las semanas
+ * de guerra transcurridas, y lo usa para sembrar el eje ANTES de agregar
+ * lo que traiga historialSemanal, así una semana sin ningún registro
+ * igual aparece como columna vacía. Si 'semanasGuerra' no llegara para
+ * algún caso puntual, el comportamiento cae de vuelta al de antes: el eje
+ * se deriva solo de historialSemanal. */
 function construirSemanasMaestras(miembros, semanasGuerra){
   const ordenes = new Map(); // etiqueta -> valor temporal (o null si no se pudo interpretar)
   (semanasGuerra || []).forEach(s => {
@@ -1643,9 +1643,8 @@ async function cargarIngresos(){
     // llegó del backend, así el orden de colores/leyenda de las gráficas
     // coincide exactamente con el de las tarjetas de arriba.
     const ingresosOrdenados = grupos.flatMap(g => g.items);
-    // CONTRATO PENDIENTE: 'data.semanasGuerra' (ver comentario de contrato
-    // más arriba) — si el backend todavía no lo manda, queda undefined y
-    // construirSemanasMaestras() se comporta como antes.
+    // RESUELTO: 'data.semanasGuerra' (ver comentario de contrato más
+    // arriba) ya llega desde el backend.
     renderComparativaSemanal(chartsWrap, ingresosOrdenados, data.semanasGuerra);
   }catch(err){
     wrap.innerHTML = `<div class="card" style="text-align:center; padding:32px;">
