@@ -253,11 +253,26 @@
      pastillas .clan-tab-btn (#clanTabs) siguen siendo las que cambian de
      clan, este título es solo un rótulo de qué clan se está mostrando
      AHORA MISMO dentro de la tarjeta. Como esta tarjeta usa padding:0
-     (el padding real lo maneja .roster-topbar/.roster-table-wrap por
-     separado, para que la tabla y su scroll lleguen hasta el borde), el
-     título necesita su propio padding — mismo padding horizontal que
-     .roster-topbar (13px) para que ambas filas queden alineadas. */
-  .roster-clan-title{font-size:15px; margin:0; padding:14px 13px 4px; color:var(--purple-light);}
+     (el padding real lo maneja .roster-clan-header/.roster-topbar/
+     .roster-table-wrap por separado, para que la tabla y su scroll
+     lleguen hasta el borde), el título necesita su propio padding —
+     mismo padding horizontal que .roster-topbar (13px) para que todas
+     las filas queden alineadas. Ese padding se movió después a
+     .roster-clan-header (ver FIX de abajo, 16-sep-2026, botón "Quitar
+     filtros"). */
+  /* FIX (16-sep-2026, pedido usuario — "mueve el botón de quitar filtros
+     a la derecha, a la misma altura del nombre del clan en morado"): el
+     botón "✕ Quitar filtros" vivía dentro de .roster-topbar, compartiendo
+     fila con la barra de scroll superior (ver .roster-topbar más abajo).
+     Ahora esa fila queda SOLO para la barra de scroll, y el botón sube a
+     una fila propia junto al <h3 class="roster-clan-title">, en los
+     extremos opuestos de un mismo flex row — así el botón queda alineado
+     verticalmente con el nombre del clan (en vez de con la barra de
+     scroll). .roster-clan-title ya no lleva su propio padding: ahora lo
+     hereda del contenedor .roster-clan-header, que es quien reparte el
+     espacio entre el título y el botón. */
+  .roster-clan-header{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 13px 4px;}
+  .roster-clan-title{font-size:15px; margin:0; color:var(--purple-light);}
   .roster-table{width:100%; border-collapse:collapse; min-width:1100px;}
   /* FIX (10-sep-2026, pedido usuario — "en directorio también falta
      centrar": el texto/valores de cada columna deberían estar
@@ -382,21 +397,18 @@
   }
   .rt-filtro-todos-btn:hover{color:var(--gold);}
 
-  /* ---------- Barra de scroll horizontal ARRIBA de la tabla + botón
-     "Quitar filtros" (08-sep-2026, pedido usuario): la tabla ya tenía
-     scroll horizontal nativo (.roster-table-wrap, overflow-x:auto), pero
-     esa barra de scroll queda pegada ABAJO de la tabla — con muchas filas
-     hay que bajar hasta el final para encontrarla. .roster-topbar agrega
-     una segunda barra de desplazamiento arriba, sincronizada por JS con
-     el scroll real de la tabla (ver sincronizarScrollSuperiorRoster() y
-     actualizarAnchoScrollSuperior() más abajo): .roster-top-scroll es un
-     div angosto (14px de alto) con overflow-x:auto y un div interno
-     (.roster-top-scroll-inner) cuyo ancho se fija por JS igual al
-     scrollWidth real de la tabla, así el navegador dibuja una barra de
-     scroll con el mismo tamaño/proporción que la de abajo. Al extremo
-     derecho, fuera del área con scroll (flex-shrink:0, siempre visible
-     sin importar cuánto se haya desplazado la tabla), va el botón para
-     desmarcar todos los filtros de un toque.
+  /* ---------- Barra de scroll horizontal ARRIBA de la tabla (08-sep-2026,
+     pedido usuario): la tabla ya tenía scroll horizontal nativo
+     (.roster-table-wrap, overflow-x:auto), pero esa barra de scroll queda
+     pegada ABAJO de la tabla — con muchas filas hay que bajar hasta el
+     final para encontrarla. .roster-topbar agrega una segunda barra de
+     desplazamiento arriba, sincronizada por JS con el scroll real de la
+     tabla (ver actualizarAnchoScrollSuperior() más abajo):
+     .roster-top-scroll es un div angosto (14px de alto) con
+     overflow-x:auto y un div interno (.roster-top-scroll-inner) cuyo
+     ancho se fija por JS igual al scrollWidth real de la tabla, así el
+     navegador dibuja una barra de scroll con el mismo tamaño/proporción
+     que la de abajo.
      FIX (10-sep-2026, pedido usuario — "esa barra de desplazamiento está
      fea, usa el mismo formato de barra que se usa en las cuadrículas de
      la hoja Guerra"): sin estas reglas, .roster-top-scroll dibujaba la
@@ -404,9 +416,24 @@
      relación con el tema oscuro del sitio). Se agregan las mismas reglas
      que .grid-hscroll de guerra.html (franja fina, thumb morado
      var(--purple-light) sobre track translúcido) para que ambas barras
-     de scroll "sintéticas" del sitio se vean igual. -->
-  .roster-topbar{display:flex; align-items:center; gap:12px; padding:10px 13px; border-bottom:1px solid var(--line);}
-  .roster-top-scroll{flex:1; min-width:0; overflow-x:auto; overflow-y:hidden; height:14px; -webkit-overflow-scrolling:touch;
+     de scroll "sintéticas" del sitio se vean igual.
+     FIX (16-sep-2026, pedido usuario — "ya se añadió la barra superior de
+     desplazamiento pero no se ve, la de abajo sí se ve bien"): hasta acá
+     .roster-topbar era un flex row que repartía el espacio entre
+     .roster-top-scroll (flex:1) Y el botón "✕ Quitar filtros" — ese
+     reparto de ancho entre dos hermanos flex es justo lo que hacía que el
+     ancho real disponible para la barra (y por lo tanto el umbral de
+     overflow que dispara el scrollbar) dependiera del ancho del botón,
+     además de complicar innecesariamente el cálculo de
+     actualizarAnchoScrollSuperior(). Ahora que el botón se movió a su
+     propia fila junto al título del clan (ver .roster-clan-header más
+     arriba), .roster-topbar vuelve a tener un solo hijo: ya no necesita
+     ser flex, y .roster-top-scroll pasa de flex:1/min-width:0 a
+     width:100%, ocupando todo el ancho de la fila sin depender de ningún
+     hermano. Menos piezas moviéndose, mismo resultado visual que
+     .roster-table-wrap de abajo. -->
+  .roster-topbar{padding:10px 13px; border-bottom:1px solid var(--line);}
+  .roster-top-scroll{width:100%; overflow-x:auto; overflow-y:hidden; height:14px; -webkit-overflow-scrolling:touch;
     scrollbar-width:thin; scrollbar-color:var(--purple-light) rgba(255,255,255,.06);}
   .roster-top-scroll::-webkit-scrollbar{height:10px;}
   .roster-top-scroll::-webkit-scrollbar-track{background:rgba(255,255,255,.06); border-radius:6px;}
@@ -2057,10 +2084,12 @@ function renderRosterClanActivo(){
 
   wrap.innerHTML = `
     <div class="card" style="padding:0;">
-      <h3 class="roster-clan-title">${esc(clan.nombre)} <span class="text-faint" style="font-family:var(--f-mono); font-size:12px; font-weight:400;">(${fmtNum(miembros.length)} miembro${miembros.length === 1 ? '' : 's'})</span></h3>
+      <div class="roster-clan-header">
+        <h3 class="roster-clan-title">${esc(clan.nombre)} <span class="text-faint" style="font-family:var(--f-mono); font-size:12px; font-weight:400;">(${fmtNum(miembros.length)} miembro${miembros.length === 1 ? '' : 's'})</span></h3>
+        <button type="button" class="rt-limpiar-filtros" id="rosterLimpiarFiltros" title="Desmarcar todos los filtros" aria-label="Desmarcar todos los filtros" disabled>✕ Quitar filtros</button>
+      </div>
       <div class="roster-topbar">
         <div class="roster-top-scroll" id="rosterTopScroll"><div class="roster-top-scroll-inner" id="rosterTopScrollInner"></div></div>
-        <button type="button" class="rt-limpiar-filtros" id="rosterLimpiarFiltros" title="Desmarcar todos los filtros" aria-label="Desmarcar todos los filtros" disabled>✕ Quitar filtros</button>
       </div>
       <div class="roster-table-wrap" id="rosterTableWrap">
         <table class="roster-table">
