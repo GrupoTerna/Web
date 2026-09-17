@@ -7392,17 +7392,106 @@ document.getElementById('btnCrGuardar').addEventListener('click', async () => {
  * necesitan el propio badgeClase de abajo y _registrarPropuestasCRListaEnHistorial(),
  * 14_Directorio_HistorialAscensos.gs) -- solo cambia la ETIQUETA visible.
  */
-function _filaPropuestaCR(p){
+/**
+ * _celdaUmbralCR(prom, umbral)
+ * NUEVO (16-sep-2026, pedido del usuario -- tercer paso chico hacia la
+ * tabla tipo propuestas.xlsx): arma el texto "valor/umbral" de UNA celda
+ * de Ataques/Puntaje/Barcos a partir de los campos aditivos que ya
+ * devuelve el backend (ataquesProm/fameProm/barcosProm + umbralAtaques/
+ * umbralPuntaje/umbralBarcos, ver _calcularPropuestasCambioRango(),
+ * 24_Torneos_Core.gs). Si ese requisito no estaba activo para el Rol/Clan
+ * de esta propuesta puntual, se pinta "--" en vez de un número que no
+ * aplicó a la comparación -- mismo criterio de "no bloquea" que ya usa
+ * _detalleRequisitoCR() para decidir qué partes de `detalle` armar.
+ *
+ * A diferencia de propuestas.xlsx (que tiene una grilla M/V/C porque
+ * junta TODOS los roles en una sola fila de umbrales), acá cada fila de
+ * la tabla ya es de un jugador con un rol puntual -- así que el umbral
+ * mostrado es directamente el de SU rol, sin necesidad de la grilla M/V/C
+ * completa (sería redundante repetir las 2 columnas de los otros roles
+ * que no le aplican a este jugador).
+ */
+function _celdaUmbralCR(prom, umbral){
+  if(!umbral || !umbral.activo) return '<span class="text-faint">--</span>';
+  return esc(_round1CR(prom)) + '<span class="text-faint">/' + esc(umbral.qty) + '</span>';
+}
+
+// Redondeo a 1 decimal solo para mostrar en la tabla -- mismo criterio
+// (y mismo nombre de función, solo con sufijo CR para no chocar con otro
+// _round1 que pueda existir en el resto de admin.html) que _round1() de
+// 24_Torneos_Core.gs, que es donde se calculan estos mismos números.
+function _round1CR(n){
+  return Math.round((Number(n) || 0) * 10) / 10;
+}
+
+/**
+ * _filaPropuestaCR(p, i)
+ * PASO 5 (ampliado 16-sep-2026, pedido usuario -- N°/Tag separados +
+ * desglose Ataques/Puntaje/Barcos): pinta la tabla de propuestas devuelta
+ * por webCRListaPropuestas/webCRListaGenerarPropuestas -- mismo patrón de
+ * tabla que _tablaCoincidencias() más arriba en este mismo <script>
+ * (Detección de infiltrados): función `_fila...()` por registro + wrapper
+ * que arma `<table>` completa o el estado vacío. `p.tag` siempre viene
+ * (roster activo del Directorio, ver _calcularPropuestasCambioRango()),
+ * así que el nombre es SIEMPRE clickeable con enlaceJugador() -- a
+ * diferencia de _tablaCoincidencias(), acá no hace falta el chequeo de
+ * f.origen === 'Directorio'.
+ * Tipo de propuesta como badge (mismas clases que ya usa el resto de
+ * admin.html): Ascenso = badge-ok, Descenso = badge-warn, EligibleAdmin
+ * (Colíder que cumple pero no asciende de rango, ver docblock de
+ * _calcularPropuestasCambioRango(), 24_Torneos_Core.gs) = badge-purple.
+ *
+ * `i` es el índice (0-based) dentro del array YA ORDENADO
+ * (_ordenarPropuestasCR()) -- lo pasa _tablaPropuestasCR() vía
+ * `.map((p, i) => ...)`, mismo patrón que numeran otras tablas de
+ * admin.html. Es un N° de PRESENTACIÓN (1, 2, 3...), no un ID real -- se
+ * recalcula cada vez que se repinta la tabla, no se guarda en ningún
+ * lado.
+ *
+ * Tag ahora es columna propia (antes iba entre paréntesis pegado al
+ * nombre) para calzar con la estructura de propuestas.xlsx (columnas
+ * N°/Jugador/Tag/Clan/... separadas).
+ *
+ * FIX (16-sep-2026, pedido usuario -- columna "Jugador" renombrada a
+ * "Nombre"): convención del panel -- "Nombre" se usa cuando se muestra el
+ * nombre real de LA CUENTA (p.nombre, tal como aparece en el clan, que es
+ * lo que esta tabla siempre pinta); "Jugador" queda reservado para cuando
+ * lo que se muestra es el nombre real del DUEÑO de la cuenta (Nom_Multi),
+ * porque Nom_Multi es un concepto técnico interno (identifica a una
+ * persona a través de sus multicuentas) y no es amigable mostrarlo como si
+ * fuera "el jugador" sin más contexto. Esta tabla nunca mostró Nom_Multi
+ * (solo p.nombre + p.tag), así que el encabezado correcto siempre fue
+ * "Nombre" -- estaba mal etiquetado como "Jugador".
+ *
+ * FIX (16-sep-2026, pedido usuario -- ya no se etiqueta "Elegible Admin" en
+ * la tabla): el propio texto de la sección ("... queda elegible para
+ * administración manual") ya deja claro que ningún tipo de esta tabla
+ * ascienden/descienden solos -- todo pasa por "Generar propuestas" y una
+ * decisión humana después. Para EligibleAdmin en particular, el sistema
+ * NUNCA convierte a nadie en admin solo por cumplir la métrica: es
+ * candidatura, no un hecho. Repetir la palabra "Elegible" en cada fila no
+ * agrega información nueva, así que el badge se simplifica a "Admin" --
+ * la razón completa queda documentada acá, no hace falta repetirla en la
+ * UI. El valor interno `p.tipoPropuesta` SIGUE siendo 'EligibleAdmin' (lo
+ * necesitan el propio badgeClase de abajo y _registrarPropuestasCRListaEnHistorial(),
+ * 14_Directorio_HistorialAscensos.gs) -- solo cambia la ETIQUETA visible.
+ */
+function _filaPropuestaCR(p, i){
   const badgeClase = p.tipoPropuesta === 'Ascenso' ? 'badge-ok'
     : p.tipoPropuesta === 'Descenso' ? 'badge-warn'
     : 'badge-purple';
   const etiquetaTipo = p.tipoPropuesta === 'EligibleAdmin' ? 'Admin' : esc(p.tipoPropuesta);
   return `
     <tr>
-      <td>${enlaceJugador(p.nombre, p.tag)} <span class="text-faint">(${esc(p.tag)})</span></td>
+      <td>${i + 1}</td>
+      <td>${enlaceJugador(p.nombre, p.tag)}</td>
+      <td>${esc(p.tag)}</td>
       <td>${esc(p.clan)}</td>
       <td>${esc(p.rangoActual)}</td>
       <td><span class="badge ${badgeClase}">${etiquetaTipo}</span></td>
+      <td>${_celdaUmbralCR(p.ataquesProm, p.umbralAtaques)}</td>
+      <td>${_celdaUmbralCR(p.fameProm, p.umbralPuntaje)}</td>
+      <td>${_celdaUmbralCR(p.barcosProm, p.umbralBarcos)}</td>
       <td>${esc(p.detalle)}</td>
     </tr>`;
 }
@@ -7470,8 +7559,8 @@ function _tablaPropuestasCR(propuestas, diagnostico){
   }
   const propuestasOrdenadas = _ordenarPropuestasCR(propuestas);
   return `<div style="overflow-x:auto;"><table>
-    <thead><tr><th>Nombre</th><th>Clan</th><th>Rango actual</th><th>Tipo</th><th>Detalle</th></tr></thead>
-    <tbody>${propuestasOrdenadas.map(_filaPropuestaCR).join('')}</tbody>
+    <thead><tr><th>N°</th><th>Nombre</th><th>Tag</th><th>Clan</th><th>Rango actual</th><th>Tipo</th><th>Ataques</th><th>Puntaje</th><th>Barcos</th><th>Detalle</th></tr></thead>
+    <tbody>${propuestasOrdenadas.map((p, i) => _filaPropuestaCR(p, i)).join('')}</tbody>
   </table></div>`;
 }
 
