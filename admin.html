@@ -7519,8 +7519,12 @@ function _filaPropuestaCR(p, i){
 // ya usado por _ordenarSugerenciasMiembro() más arriba en este <script>:
 //   1) Clan -- ordenClanIndex() de common.js (mismo helper que ya usa
 //      _ordenarSugerenciasMiembro()), NO alfabético.
-//   2) Rango actual -- RANGO_ORDEN_CR de abajo, mismo orden jerárquico que
-//      ya usa el backend (var RANGO_ORDEN, 14_Directorio_HistorialAscensos.gs),
+//   2) Rango actual -- RANGO_ORDEN_CR de abajo, mismo orden de presentación
+//      que ya usa el backend (CFG.RANGO_ORDEN, 01_Config_Global.gs: Líder,
+//      Colíder, Veterano, Miembro). OJO: no confundir con `var RANGO_ORDEN`
+//      de 14_Directorio_HistorialAscensos.gs -- esa es una lista ASCENDENTE
+//      (Miembro..Líder) que se usa solo para detectar si un cambio es
+//      ascenso o descenso (comparando índices), no para ordenar tablas.
 //      NO alfabético.
 //   3) Tipo -- TIPO_ORDEN_CR de abajo: Ascenso y Descenso (cambios de rango
 //      reales) antes que Admin (solo candidatura, ver docblock de
@@ -7528,7 +7532,7 @@ function _filaPropuestaCR(p, i){
 //      el ternario de badgeClase en _filaPropuestaCR().
 //   4) Nombre -- alfabético, como desempate final entre filas que coinciden
 //      en los tres criterios anteriores.
-const RANGO_ORDEN_CR = ['Miembro', 'Veterano', 'Colíder', 'Líder'];
+const RANGO_ORDEN_CR = ['Líder', 'Colíder', 'Veterano', 'Miembro'];
 const TIPO_ORDEN_CR = { 'Ascenso': 0, 'Descenso': 1, 'EligibleAdmin': 2 };
 
 function _idxRangoCR(rango){

@@ -961,10 +961,11 @@ function celdasMegacategoria(m, gpClase, conColor, keyPrefix){
  * Equivalente a celdasMegacategoria() pero para el "Tipo Control_2"
  * (Cuadrícula de Temporada): en vez de 4 columnas fijas J/V/S/D, pinta una
  * columna por cada semana ya jugada de la temporada (megacat.semanas,
- * array), más las 2 columnas de Resumen al final (megacat.resumen +
- * megacat.pct — "Resumen" ya trae el criterio correcto según la
- * megacategoría, Total para Ataques/Barcos o Prom para Puntaje, decidido
- * del lado del backend, no acá). conColor=true aplica el mismo semáforo
+ * array), más las 2 columnas de Resumen al final. FIX (17-sep-2026): el
+ * backend NUNCA manda un campo `resumen` -- manda `megacat.total`
+ * (Ataques/Barcos) o `megacat.prom` (Puntaje), más `megacat.pct`. Esta
+ * función normaliza ambos nombres a una sola variable local `resumen`
+ * para pintar la columna, sin importar cuál mandó el backend. conColor=true aplica el mismo semáforo
  * ai-cell-zero/part/full que usa Ataques en la Cuadrícula de Activos
  * (0/parcial/16); Puntaje y Barcos van sin semáforo, igual que en esa
  * tabla.
@@ -978,7 +979,15 @@ function celdasMegacategoria(m, gpClase, conColor, keyPrefix){
  */
 function celdasSemanas(megacat, gpClase, conColor, keyPrefix){
   const semanas = Array.isArray(megacat?.semanas) ? megacat.semanas : [];
-  const resumen = Number(megacat?.resumen) || 0;
+  // FIX (17-sep-2026, pedido usuario -- Total/Prom siempre en 0 en
+  // "Valores semanales"): _getControlTemporadaPorClan() (20_Control2_
+  // GuerraSemanal.gs) nunca devuelve un campo `resumen` -- devuelve
+  // `total` para Ataques/Barcos y `prom` para Puntaje (ver docblock de esa
+  // función). Esta celda leía `megacat.resumen`, que siempre es
+  // `undefined`, así que la columna Total/Prom quedaba en 0 sin importar
+  // los datos reales. Se usa `??` (no `||`) para no pisar un total/prom
+  // que legítimamente sea 0.
+  const resumen = Number(megacat?.resumen ?? megacat?.total ?? megacat?.prom) || 0;
   const pct = Number(megacat?.pct) || 0;
   const claseSemana = (n) => `${gpClase} ${conColor ? claseCeldaCA(n) : 'ai-num'}`;
   const claseResumen = `${gpClase} ai-resumen ai-total ${conColor && resumen >= (semanas.length * 16) ? 'ai-total-full' : ''}`;
@@ -1972,8 +1981,9 @@ function render(data){
   // trae las etiquetas de columna (ej. ['Sem 1','Sem 2',...], una por
   // semana de guerra ya jugada en la temporada actual) compartidas por
   // todos los clanes; data.controlTemporadaPorClan trae, por clan, un
-  // array de filas { nombre, tag, ataques:{semanas,resumen,pct},
-  // puntaje:{...}, barcos:{...} }.
+  // array de filas { nombre, tag, ataques:{semanas,total,pct},
+  // puntaje:{semanas,prom,pct}, barcos:{semanas,total} } -- ver
+  // _getControlTemporadaPorClan(), 20_Control2_GuerraSemanal.gs.
   // FIX (09-sep-2026, pedido usuario — selectores de año/mes en "Valores
   // semanales"): si el año/temporada elegidos en los 2 <select> de arriba
   // (pintarSelectoresControlTemporada(), que además fija el default --
