@@ -2029,6 +2029,16 @@
                   <option value="">Elige una opción…</option>
                   <option value="registrar">Registrar nueva corrida</option>
                   <option value="modificar">Editar corrida existente</option>
+                  <!-- NUEVO (16-sep-2026, pedido del usuario -- "haz que las
+                       propuestas aparezcan dentro del selector de cambio de
+                       rango, junto a registrar y editar corrida"): tercera
+                       opción del wizard. Reusa el mismo #crSelectPar que ya
+                       usa "Editar corrida existente" (ver btnCrPaso1 y el
+                       listener de #crSelectPar más abajo en el <script>),
+                       pero en vez de precargar el formulario completo
+                       (Fecha/Hora/Semanas/grillas) solo muestra directo la
+                       tabla de propuestas -- ver seleccionarCorridaParaVerPropuestas(). -->
+                  <option value="ver">Ver propuestas de una corrida</option>
                 </select>
               </div>
               <button type="button" class="btn btn-primary btn-block" id="btnCrPaso1" style="margin-top:6px;">Continuar</button>
@@ -2346,39 +2356,60 @@
 
                 <button type="button" class="btn btn-primary btn-block" id="btnCrGuardar" style="margin-top:14px;">Guardar corrida</button>
                 <div id="crGuardarMsg"></div>
-
-                <!-- PASO 5 de la implementación del frontend (13-sep-2026,
-                     pedido del usuario -- Fase 7 del plan de Cambio de
-                     Rango): última pieza que faltaba del plan original --
-                     "botón Ver propuestas (_webCRListaPropuestas) que pinte
-                     la tabla antes de confirmar, y botón Generar propuestas
-                     (_webCRListaGenerarPropuestas) que dispare la escritura
-                     real en Historial_A/D". Solo tiene sentido una vez que
-                     la corrida YA existe en CR_Lista (ambos endpoints leen
-                     por ID desde la hoja, ver _getFilaCRListaPorId()), así
-                     que #crPropuestasBox arranca oculto y recién se muestra
-                     cuando `crIdExistenteActual` queda seteado -- ya sea al
-                     entrar en modo Editar (precargarFormularioCR()) o justo
-                     después de un Guardar exitoso en modo Registrar (ver el
-                     listener de #btnCrGuardar más abajo en el <script>). -->
-                <details class="admin-subseccion" style="margin-top:14px;">
-                  <summary><span class="cat-titulo">Propuestas de cambio de rango</span></summary>
-                  <div class="admin-subseccion-body">
-                    <div id="crPropuestasBox" style="display:none;">
-                      <div class="text-dim" style="font-size:13px; margin-bottom:10px;">
-                        Calcula, a partir del roster activo y los requisitos de arriba, quién asciende, quién desciende o queda elegible para administración manual. "Ver propuestas" solo calcula (no escribe nada); "Generar propuestas" las agrega a Historial_A/D como "Planificado", sin duplicar las que ya estén pendientes.
-                      </div>
-                      <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                        <button type="button" class="btn btn-ghost" id="btnCrVerPropuestas">Ver propuestas</button>
-                        <button type="button" class="btn btn-primary" id="btnCrGenerarPropuestas">Generar propuestas</button>
-                      </div>
-                      <div id="crPropuestasMsg" style="margin-top:10px;"></div>
-                      <div id="crPropuestasTablaWrap" style="margin-top:10px;"></div>
-                    </div>
-                    <div id="crPropuestasSinGuardar" class="text-dim" style="font-size:13px;">Guarda la corrida primero -- las propuestas se calculan sobre la corrida ya guardada en CR_Lista.</div>
-                  </div>
-                </details>
               </div>
+
+              <!-- PASO 5 de la implementación del frontend (13-sep-2026,
+                   pedido del usuario -- Fase 7 del plan de Cambio de
+                   Rango): última pieza que faltaba del plan original --
+                   "botón Ver propuestas (_webCRListaPropuestas) que pinte
+                   la tabla antes de confirmar, y botón Generar propuestas
+                   (_webCRListaGenerarPropuestas) que dispare la escritura
+                   real en Historial_A/D". Solo tiene sentido una vez que
+                   la corrida YA existe en CR_Lista (ambos endpoints leen
+                   por ID desde la hoja, ver _getFilaCRListaPorId()), así
+                   que #crPropuestasBox arranca oculto y recién se muestra
+                   cuando `crIdExistenteActual` queda seteado -- ya sea al
+                   entrar en modo Editar (precargarFormularioCR()), justo
+                   después de un Guardar exitoso en modo Registrar (ver el
+                   listener de #btnCrGuardar más abajo en el <script>), o
+                   directo en modo "Ver propuestas de una corrida" (ver
+                   seleccionarCorridaParaVerPropuestas() más abajo).
+
+                   REUBICADO (16-sep-2026, pedido del usuario -- "haz que
+                   las propuestas aparezcan dentro del selector de cambio
+                   de rango, junto a registrar y editar corrida"): antes
+                   este bloque vivía DENTRO de #crPaso3 (después del botón
+                   Guardar corrida), lo que obligaba a abrir todo el
+                   formulario completo (Fecha/Hora/Semanas/grillas) solo
+                   para llegar a la tabla de propuestas. Ahora es HERMANO
+                   de #crPaso3 (mismo padre #crPaso2), así que puede
+                   mostrarse solo -- sin el formulario -- cuando el modo
+                   elegido en #crAccion es "ver". En los modos Registrar/
+                   Editar sigue apareciendo exactamente en el mismo lugar
+                   visual de siempre (justo debajo del formulario), porque
+                   #crPaso3 y este bloque quedan uno a continuación del
+                   otro de todas formas. -->
+              <details class="admin-subseccion" id="crPropuestasDetails" style="margin-top:14px;">
+                <summary><span class="cat-titulo">Propuestas de cambio de rango</span></summary>
+                <div class="admin-subseccion-body">
+                  <div id="crPropuestasBox" style="display:none;">
+                    <div class="text-dim" style="font-size:13px; margin-bottom:10px;">
+                      Calcula, a partir del roster activo y los requisitos de esa corrida, quién asciende, quién desciende o queda elegible para administración manual. "Ver propuestas" solo calcula (no escribe nada); "Generar propuestas" las agrega a Historial_A/D como "Planificado", sin duplicar las que ya estén pendientes.
+                    </div>
+                    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                      <button type="button" class="btn btn-ghost" id="btnCrVerPropuestas">Ver propuestas</button>
+                      <button type="button" class="btn btn-primary" id="btnCrGenerarPropuestas">Generar propuestas</button>
+                    </div>
+                    <div id="crPropuestasMsg" style="margin-top:10px;"></div>
+                    <div id="crPropuestasTablaWrap" style="margin-top:10px;"></div>
+                  </div>
+                  <!-- Texto varía según el modo -- ver actualizarTextoPropuestasSinGuardar()
+                       en el <script>: en Registrar/Editar pide guardar la
+                       corrida primero; en "Ver propuestas" pide elegir una
+                       corrida arriba (no hay nada que guardar en ese modo). -->
+                  <div id="crPropuestasSinGuardar" class="text-dim" style="font-size:13px;">Guarda la corrida primero -- las propuestas se calculan sobre la corrida ya guardada en CR_Lista.</div>
+                </div>
+              </details>
             </div>
 
           </div>
@@ -6853,6 +6884,24 @@ document.getElementById('crOrganizadorSelect').addEventListener('change', () => 
   if(!esOtro) document.getElementById('crOrganizadorManual').value = '';
 });
 
+/**
+ * actualizarTextoPropuestasSinGuardar()
+ * NUEVO (16-sep-2026, pedido del usuario -- tercera opción "Ver propuestas
+ * de una corrida" en #crAccion): el texto de #crPropuestasSinGuardar (se ve
+ * cuando todavía no hay una corrida elegida/guardada) pide "guarda la
+ * corrida primero", que tiene sentido en Registrar/Editar pero es confuso
+ * en modo "ver" (ahí no se guarda nada, solo se elige una corrida ya
+ * existente del selector de arriba). Se llama cada vez que cambia el modo
+ * (btnCrPaso1) para que el texto siempre sea el correcto para lo que el
+ * admin está haciendo.
+ */
+function actualizarTextoPropuestasSinGuardar(){
+  const accion = document.getElementById('crAccion').value;
+  document.getElementById('crPropuestasSinGuardar').textContent = (accion === 'ver')
+    ? 'Elige una corrida arriba para ver sus propuestas.'
+    : 'Guarda la corrida primero -- las propuestas se calculan sobre la corrida ya guardada en CR_Lista.';
+}
+
 document.getElementById('btnCrPaso1').addEventListener('click', async () => {
   const accion = document.getElementById('crAccion').value;
   if(!accion){
@@ -6863,12 +6912,29 @@ document.getElementById('btnCrPaso1').addEventListener('click', async () => {
   document.getElementById('crPaso2').style.display = '';
   document.getElementById('crPaso2Msg').innerHTML = '';
   document.getElementById('crPaso3').style.display = 'none';
+  actualizarTextoPropuestasSinGuardar();
 
-  if(accion === 'modificar'){
+  if(accion === 'modificar' || accion === 'ver'){
+    // NUEVO (16-sep-2026): "ver" reusa el MISMO selector de pares que
+    // "modificar" (mismo cargarCRListaPares(), mismo #crSelectPar) -- lo
+    // único que cambia es qué pasa al elegir una corrida, ver el listener
+    // de #crSelectPar más abajo.
     document.getElementById('crSelectorParBox').style.display = '';
     cargarCRListaPares();
+    // Sin corrida elegida todavía: limpia cualquier estado de una corrida
+    // anterior (ej. si el admin ya había entrado a Editar/Ver antes) y
+    // oculta la tabla de propuestas hasta que se elija una.
+    crIdExistenteActual = '';
+    crIdDescensoActual = '';
+    actualizarVisibilidadPropuestasCR();
+    // En modo "ver" el <details> de Propuestas es lo único que importa en
+    // esta pantalla -- se abre solo, para no obligar a un click extra en
+    // un summary colapsado. En Registrar/Editar sigue colapsado por
+    // defecto (comportamiento de siempre, no molesta con el formulario).
+    document.getElementById('crPropuestasDetails').open = (accion === 'ver');
   }else{
     document.getElementById('crSelectorParBox').style.display = 'none';
+    document.getElementById('crPropuestasDetails').open = false;
     await limpiarFormularioCR();
   }
 });
@@ -6880,15 +6946,51 @@ document.getElementById('crVolverPaso1').addEventListener('click', (e) => {
   document.getElementById('crSelectorParBox').style.display = 'none';
   document.getElementById('crPaso3').style.display = 'none';
   document.getElementById('crPaso2Msg').innerHTML = '';
+  document.getElementById('crSelectPar').value = '';
+  crIdExistenteActual = '';
+  crIdDescensoActual = '';
+  actualizarVisibilidadPropuestasCR();
 });
+
+/**
+ * seleccionarCorridaParaVerPropuestas(idAscenso)
+ * NUEVO (16-sep-2026, pedido del usuario -- tercera opción "Ver propuestas
+ * de una corrida"): a diferencia de precargarFormularioCR() (modo Editar),
+ * NO pide Fecha/Hora/Semanas/grillas -- webCRListaPropuestas solo necesita
+ * el par de IDs (ver su docblock en 34_Web_API.gs), así que alcanza con
+ * resolver idDescenso desde `cambioRangoParesData` (ya cargado por
+ * cargarCRListaPares(), mismo criterio que precargarFormularioCR()) y
+ * mostrar directo la tabla -- sin tocar #crPaso3 para nada.
+ */
+async function seleccionarCorridaParaVerPropuestas(idAscenso){
+  const par = cambioRangoParesData.find(p => p.idAscenso === idAscenso);
+  const idDescenso = par ? par.idDescenso : idAscenso.replace(/^A_/, 'D_');
+  crIdExistenteActual = idAscenso;
+  crIdDescensoActual = idDescenso;
+  document.getElementById('crPaso2Msg').innerHTML = '';
+  actualizarVisibilidadPropuestasCR();
+  // Carga la tabla de una vez -- el admin ya expresó su intención al elegir
+  // "Ver propuestas de una corrida", no hace falta un click extra sobre el
+  // botón "Ver propuestas" (que sigue ahí para volver a recalcular cuando
+  // quiera, ej. después de generar o de algún cambio en el roster).
+  document.getElementById('btnCrVerPropuestas').click();
+}
 
 document.getElementById('crSelectPar').addEventListener('change', () => {
   const idAscenso = document.getElementById('crSelectPar').value;
-  if(idAscenso){
-    precargarFormularioCR(idAscenso);
-  }else{
+  const accion = document.getElementById('crAccion').value;
+  if(!idAscenso){
     document.getElementById('crPaso3').style.display = 'none';
     document.getElementById('crPaso2Msg').innerHTML = '';
+    crIdExistenteActual = '';
+    crIdDescensoActual = '';
+    actualizarVisibilidadPropuestasCR();
+    return;
+  }
+  if(accion === 'ver'){
+    seleccionarCorridaParaVerPropuestas(idAscenso);
+  }else{
+    precargarFormularioCR(idAscenso);
   }
 });
 
@@ -6954,12 +7056,36 @@ document.getElementById('btnCrGuardar').addEventListener('click', async () => {
  * admin.html): Ascenso = badge-ok, Descenso = badge-warn, EligibleAdmin
  * (Colíder que cumple pero no asciende de rango, ver docblock de
  * _calcularPropuestasCambioRango(), 24_Torneos_Core.gs) = badge-purple.
+ *
+ * FIX (16-sep-2026, pedido usuario -- columna "Jugador" renombrada a
+ * "Nombre"): convención del panel -- "Nombre" se usa cuando se muestra el
+ * nombre real de LA CUENTA (p.nombre, tal como aparece en el clan, que es
+ * lo que esta tabla siempre pinta); "Jugador" queda reservado para cuando
+ * lo que se muestra es el nombre real del DUEÑO de la cuenta (Nom_Multi),
+ * porque Nom_Multi es un concepto técnico interno (identifica a una
+ * persona a través de sus multicuentas) y no es amigable mostrarlo como si
+ * fuera "el jugador" sin más contexto. Esta tabla nunca mostró Nom_Multi
+ * (solo p.nombre + p.tag), así que el encabezado correcto siempre fue
+ * "Nombre" -- estaba mal etiquetado como "Jugador".
+ *
+ * FIX (16-sep-2026, pedido usuario -- ya no se etiqueta "Elegible Admin" en
+ * la tabla): el propio texto de la sección ("... queda elegible para
+ * administración manual") ya deja claro que ningún tipo de esta tabla
+ * ascienden/descienden solos -- todo pasa por "Generar propuestas" y una
+ * decisión humana después. Para EligibleAdmin en particular, el sistema
+ * NUNCA convierte a nadie en admin solo por cumplir la métrica: es
+ * candidatura, no un hecho. Repetir la palabra "Elegible" en cada fila no
+ * agrega información nueva, así que el badge se simplifica a "Admin" --
+ * la razón completa queda documentada acá, no hace falta repetirla en la
+ * UI. El valor interno `p.tipoPropuesta` SIGUE siendo 'EligibleAdmin' (lo
+ * necesitan el propio badgeClase de abajo y _registrarPropuestasCRListaEnHistorial(),
+ * 14_Directorio_HistorialAscensos.gs) -- solo cambia la ETIQUETA visible.
  */
 function _filaPropuestaCR(p){
   const badgeClase = p.tipoPropuesta === 'Ascenso' ? 'badge-ok'
     : p.tipoPropuesta === 'Descenso' ? 'badge-warn'
     : 'badge-purple';
-  const etiquetaTipo = p.tipoPropuesta === 'EligibleAdmin' ? 'Elegible Admin' : esc(p.tipoPropuesta);
+  const etiquetaTipo = p.tipoPropuesta === 'EligibleAdmin' ? 'Admin' : esc(p.tipoPropuesta);
   return `
     <tr>
       <td>${enlaceJugador(p.nombre, p.tag)} <span class="text-faint">(${esc(p.tag)})</span></td>
@@ -6968,6 +7094,46 @@ function _filaPropuestaCR(p){
       <td><span class="badge ${badgeClase}">${etiquetaTipo}</span></td>
       <td>${esc(p.detalle)}</td>
     </tr>`;
+}
+
+// FIX (16-sep-2026, pedido usuario -- orden de la tabla de propuestas de
+// Cambio de Rango): _calcularPropuestasCambioRango() (24_Torneos_Core.gs)
+// devuelve `propuestas` en el orden en que recorre el padrón (Directorio
+// físico), sin ningún criterio de presentación -- no tiene por qué saber
+// cómo se muestra en la web. El reordenamiento se hace acá, mismo patrón
+// ya usado por _ordenarSugerenciasMiembro() más arriba en este <script>:
+//   1) Clan -- ordenClanIndex() de common.js (mismo helper que ya usa
+//      _ordenarSugerenciasMiembro()), NO alfabético.
+//   2) Rango actual -- RANGO_ORDEN_CR de abajo, mismo orden jerárquico que
+//      ya usa el backend (var RANGO_ORDEN, 14_Directorio_HistorialAscensos.gs),
+//      NO alfabético.
+//   3) Tipo -- TIPO_ORDEN_CR de abajo: Ascenso y Descenso (cambios de rango
+//      reales) antes que Admin (solo candidatura, ver docblock de
+//      _filaPropuestaCR() arriba) -- mismo orden de prioridad que ya refleja
+//      el ternario de badgeClase en _filaPropuestaCR().
+//   4) Nombre -- alfabético, como desempate final entre filas que coinciden
+//      en los tres criterios anteriores.
+const RANGO_ORDEN_CR = ['Miembro', 'Veterano', 'Colíder', 'Líder'];
+const TIPO_ORDEN_CR = { 'Ascenso': 0, 'Descenso': 1, 'EligibleAdmin': 2 };
+
+function _idxRangoCR(rango){
+  const i = RANGO_ORDEN_CR.indexOf(rango);
+  return i === -1 ? RANGO_ORDEN_CR.length : i; // rango desconocido: al final, no primero
+}
+function _idxTipoCR(tipo){
+  return (tipo in TIPO_ORDEN_CR) ? TIPO_ORDEN_CR[tipo] : 99; // tipo desconocido: al final
+}
+
+function _ordenarPropuestasCR(propuestas){
+  return (propuestas || []).slice().sort((a, b) => {
+    const clanA = ordenClanIndex(a.clan), clanB = ordenClanIndex(b.clan);
+    if(clanA !== clanB) return clanA - clanB;
+    const rangoA = _idxRangoCR(a.rangoActual), rangoB = _idxRangoCR(b.rangoActual);
+    if(rangoA !== rangoB) return rangoA - rangoB;
+    const tipoA = _idxTipoCR(a.tipoPropuesta), tipoB = _idxTipoCR(b.tipoPropuesta);
+    if(tipoA !== tipoB) return tipoA - tipoB;
+    return String(a.nombre||'').localeCompare(String(b.nombre||''), 'es');
+  });
 }
 
 // FIX (16-sep-2026, pedido usuario -- "Sin propuestas" al elegir una
@@ -6991,9 +7157,10 @@ function _tablaPropuestasCR(propuestas, diagnostico){
     }
     return '<div class="empty">Sin propuestas -- nadie del roster activo cumple ni deja de cumplir los requisitos de arriba.</div>';
   }
+  const propuestasOrdenadas = _ordenarPropuestasCR(propuestas);
   return `<div style="overflow-x:auto;"><table>
-    <thead><tr><th>Jugador</th><th>Clan</th><th>Rango actual</th><th>Tipo</th><th>Detalle</th></tr></thead>
-    <tbody>${propuestas.map(_filaPropuestaCR).join('')}</tbody>
+    <thead><tr><th>Nombre</th><th>Clan</th><th>Rango actual</th><th>Tipo</th><th>Detalle</th></tr></thead>
+    <tbody>${propuestasOrdenadas.map(_filaPropuestaCR).join('')}</tbody>
   </table></div>`;
 }
 
