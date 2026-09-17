@@ -556,7 +556,7 @@ function clanCardHtml(c, i, opts){
   // layout de antes, sin ícono).
   const iconoBadgeHtml = c.badgeId ? iconoBadgeClanHtml(c.badgeId, { size: 26 }) : '';
   return `
-    <div class="card card-hover clan-card" style="display:flex; flex-direction:column;">
+    <div class="card card-hover clan-card" data-reveal style="display:flex; flex-direction:column;">
       <div style="display:flex; justify-content:center; gap:8px; flex-wrap:wrap; margin-bottom:14px;">
         <span class="badge ${badge.cls}">${esc(badge.label)}</span>
       </div>
@@ -1195,6 +1195,73 @@ function fitOneLine(el){
 function fitOneLineAll(){
   document.querySelectorAll('.sec-head p, [data-fit-line]').forEach(fitOneLine);
 }
+/* =========================================================================
+ * Scroll-reveal (17-sep-2026, pedido usuario — "que la web sea más
+ * interactiva"): fade + slide-up genérico para cualquier elemento con el
+ * atributo data-reveal, disparado por IntersectionObserver la primera vez
+ * que entra en pantalla. No hace falta JS por página: solo agregar
+ * data-reveal="" al elemento en el HTML (ver index.html para el primer
+ * uso). data-reveal-stagger en un contenedor padre escalona la entrada de
+ * sus hijos directos con data-reveal (80ms de diferencia entre cada uno).
+ *
+ * Fallback sin JS / sin IntersectionObserver: el contenido se queda
+ * visible de entrada. La clase .js-reveal en <html> es la que activa el
+ * estado oculto en CSS (ver assets/styles.css) — si este script no corre,
+ * esa clase nunca se agrega y nada se oculta.
+ *
+ * Soporta contenido inyectado después de cargar la página (tarjetas de
+ * clan, rankings, etc. que llegan por fetch vía apiGet()): un
+ * MutationObserver sobre <body> detecta nodos nuevos con data-reveal y los
+ * empieza a observar también, no hace falta re-lanzar nada manualmente
+ * desde cada página.
+ *
+ * Respeta prefers-reduced-motion automáticamente: cae dentro del reset
+ * global `*:not([data-essential-motion])` de styles.css que ya fuerza
+ * transition-duration:0.001ms, así que para quien tenga activado "reducir
+ * movimiento" el contenido aparece de golpe, sin animación perceptible.
+ * ========================================================================= */
+(function initScrollReveal(){
+  if (!('IntersectionObserver' in window)) return;
+  document.documentElement.classList.add('js-reveal');
+
+  const io = new IntersectionObserver((entradas) => {
+    entradas.forEach(entrada => {
+      if (entrada.isIntersecting){
+        entrada.target.classList.add('is-revealed');
+        io.unobserve(entrada.target);
+      }
+    });
+  }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+
+  function escalonar(el){
+    const grupo = el.closest('[data-reveal-stagger]');
+    if (!grupo) return;
+    const hermanos = Array.from(grupo.querySelectorAll(':scope > [data-reveal]'));
+    const i = hermanos.indexOf(el);
+    if (i > -1) el.style.transitionDelay = (i * 80) + 'ms';
+  }
+
+  function observar(el){
+    if (el.dataset.revealObservado) return;
+    el.dataset.revealObservado = '1';
+    escalonar(el);
+    io.observe(el);
+  }
+
+  function escanear(raiz){
+    if (raiz.nodeType !== 1) return;
+    if (raiz.matches('[data-reveal]')) observar(raiz);
+    raiz.querySelectorAll('[data-reveal]').forEach(observar);
+  }
+
+  document.querySelectorAll('[data-reveal]').forEach(observar);
+
+  const mo = new MutationObserver((mutaciones) => {
+    mutaciones.forEach(m => m.addedNodes.forEach(escanear));
+  });
+  mo.observe(document.body, { childList: true, subtree: true });
+})();
+
 document.addEventListener('DOMContentLoaded', () => {
   marcarNavActiva();
   actualizarNavCta();
