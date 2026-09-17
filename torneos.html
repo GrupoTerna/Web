@@ -162,19 +162,19 @@
   </div>
 </nav>
 
-<div class="wrap" id="main-content" style="padding-top:36px; padding-bottom:80px;">
+<div class="wrap" id="main-content" data-reveal-stagger style="padding-top:36px; padding-bottom:80px;">
 
-  <div class="eyebrow">Torneos</div>
-  <h1 style="font-size:clamp(28px,4.5vw,42px); margin-top:14px;">Torneos Familia Terna</h1>
-  <p class="text-dim" data-fit-line style="margin-top:10px; font-size:16px; max-width:100%;">
+  <div class="eyebrow" data-reveal>Torneos</div>
+  <h1 data-reveal style="font-size:clamp(28px,4.5vw,42px); margin-top:14px;">Torneos Familia Terna</h1>
+  <p class="text-dim" data-fit-line data-reveal style="margin-top:10px; font-size:16px; max-width:100%;">
     Calendario, resultados y ganadores de cada edición — todo en un
     mismo lugar.
   </p>
 
   <!-- Ganadores del torneo más reciente -->
-  <section class="torneos-sec">
+  <section class="torneos-sec" data-reveal>
     <div class="eyebrow">🏆 Ganadores del torneo más reciente</div>
-    <div id="ganadoresWrap" class="ganadores-grid">
+    <div id="ganadoresWrap" class="ganadores-grid" data-reveal-stagger>
       <div class="card" style="grid-column:1/-1;"><div class="empty">Cargando ganadores…</div></div>
     </div>
     <!-- FIX (02-sep-2026, pedido usuario, punto 12: resultados de
@@ -184,26 +184,26 @@
   </section>
 
   <!-- Torneos recientes -->
-  <section class="torneos-sec">
+  <section class="torneos-sec" data-reveal>
     <div class="eyebrow">Torneos recientes</div>
     <div class="card" style="margin-top:20px; padding:8px 24px;">
-      <div id="torneosWrap"><div class="empty">Cargando torneos…</div></div>
+      <div id="torneosWrap" data-reveal-stagger><div class="empty">Cargando torneos…</div></div>
     </div>
   </section>
   <!-- Salón de la fama: top 3 de cada torneo, no solo el más reciente -->
-  <section class="torneos-sec">
+  <section class="torneos-sec" data-reveal>
     <div class="eyebrow">🏛️ Salón de la fama</div>
     <p class="text-dim" style="margin-top:8px; font-size:14px;">
       Resultado real de cada torneo, tal como quedó registrado.
     </p>
-    <div id="salonWrap" style="margin-top:20px;">
+    <div id="salonWrap" data-reveal-stagger style="margin-top:20px;">
       <div class="card"><div class="empty">Cargando salón de la fama…</div></div>
     </div>
   </section>
 
   <!-- Ranking de más victorias en todos los torneos (calculado en el
        cliente a partir del mismo historial de arriba, sin backend nuevo). -->
-  <section class="torneos-sec">
+  <section class="torneos-sec" data-reveal>
     <div class="eyebrow">🏆 Ranking de victorias en torneos</div>
     <p class="text-dim" style="margin-top:8px; font-size:14px;">
       Suma de victorias de cada miembro en todos los torneos jugados — cuentan todas las partidas ganadas, no solo quien llegó al podio, para incentivar la participación.
@@ -342,7 +342,7 @@ async function cargarTorneos(){
       </div>`;
     } else {
       ganadoresWrap.innerHTML = g.top3.map(p => `
-        <div class="card ganador-card">
+        <div class="card ganador-card" data-reveal>
           <div class="medalla">${medallaPuesto(p.puesto)}</div>
           <div class="g-nombre">${esc(p.nombre)}</div>
           <div class="g-clan">${esc(p.clan)}</div>
@@ -420,7 +420,7 @@ async function cargarTorneos(){
           ${top3.map(p => `<div class="tg-fila">${medallaPuesto(p.puesto)} <b>${esc(p.nombre)}</b> · ${fmtNum(p.victorias)} victorias${p.premioRepartido ? ' · 🤝 repartido' : ''}</div>`).join('')}
         </div>` : '<div class="t-ganadores"><span class="tg-vacio">Sin ganadores registrados</span></div>';
       return `
-      <div class="torneo-row">
+      <div class="torneo-row" data-reveal>
         <div class="t-fecha">${esc(fechaTxt)}</div>
         <div class="t-detalle">
           <div class="t-clan">${esc(t.clan || '—')}</div>
@@ -548,7 +548,7 @@ async function cargarSalonDeLaFama(){
       const hayExtra = t.participantes && t.participantes.length > t.top3.length;
       const resultadosHtml = hayExtra ? todosResultadosHtml(t.idTorneo, t.participantes) : '';
       return `
-      <div class="card salon-card">
+      <div class="card salon-card" data-reveal>
         <div class="salon-head">
           <span class="salon-clan">${esc(t.clan || '—')}</span>
           <span class="salon-fecha">${esc(fechaTxt)}</span>

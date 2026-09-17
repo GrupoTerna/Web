@@ -968,7 +968,7 @@ function chartCardHtml(titulo, icono, clanes, campo, formatFn){
       </div>`;
   }).join('');
   return `
-    <div class="card chart-card">
+    <div class="card chart-card" data-reveal>
       <div class="chart-title">${icono} ${esc(titulo)}</div>
       ${filas}
     </div>`;
@@ -1238,7 +1238,10 @@ function fitOneLineAll(){
     if (!grupo) return;
     const hermanos = Array.from(grupo.querySelectorAll(':scope > [data-reveal]'));
     const i = hermanos.indexOf(el);
-    if (i > -1) el.style.transitionDelay = (i * 80) + 'ms';
+    // Tope de 6 pasos: en listas largas generadas dinámicamente (filas de
+    // torneos, roster, etc.) evita que el último elemento tarde varios
+    // segundos en aparecer.
+    if (i > -1) el.style.transitionDelay = (Math.min(i, 6) * 80) + 'ms';
   }
 
   function observar(el){
