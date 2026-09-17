@@ -940,6 +940,29 @@
             <a href="#" id="torneoVolverPaso2" class="text-dim" style="font-size:12px; display:inline-block; margin-bottom:10px;">‹ Cambiar</a>
 
             <div id="camposRegistrar" style="display:none;">
+              <!-- NUEVO (16-sep-2026, pedido usuario -- "en torneos, sorteos
+                   y cambio de rango, agrega la opción de precargar los datos
+                   del registro más reciente (anterior a ese). no aplica
+                   para semanas"): botón que trae Organizador/Cuenta
+                   organizadora y Comentario del ÚLTIMO torneo ya registrado
+                   en T_Lista (el anterior a este que se está armando ahora)
+                   para no reescribirlos a mano cuando se repiten de un
+                   torneo a otro. Deliberadamente NO toca #semanasSelectorReg
+                   (pedido explícito del usuario: cada torneo nuevo elige sus
+                   propias semanas). Tampoco toca Link/Fecha/Hora (datos
+                   propios de ESTE torneo, no del anterior) ni Requisitos
+                   (#requisitosTorneoBox ya se precarga solo con "el más
+                   reciente" vía cargarRequisitosPorClan() sin id, desde
+                   mostrarPanel()). Ver precargarUltimoRegistroTorneo() más
+                   abajo en el <script>.
+                   PENDIENTE BACKEND: falta `_getUltimoRegistroTorneoOSorteo`
+                   (24_Torneos_Core.gs), su wrapper
+                   `_webAdminUltimoRegistroTorneoOSorteo` (34_Web_API.gs) y el
+                   caso `webAdminUltimoRegistro` en doGet (08_Web_Endpoints.gs)
+                   -- este botón queda listo del lado del frontend, pendiente
+                   de esas 3 piezas para funcionar de punta a punta. -->
+              <button type="button" class="btn btn-ghost btn-block" id="btnPrecargarUltimoTorneo" style="margin-bottom:14px;">↻ Precargar datos del último torneo registrado</button>
+
               <div class="field">
                 <label for="tLink">Link del torneo</label>
                 <input type="text" id="tLink" placeholder="https://link.clashroyale.com/...">
@@ -1604,6 +1627,23 @@
                    12-sep-2026: Sorteos no tiene ese concepto — #sLink se
                    eliminó del HTML). -->
               <div id="camposRegistrarSorteo" style="display:none;">
+                <!-- NUEVO (16-sep-2026, pedido usuario -- ver el docblock
+                     grande junto a #btnPrecargarUltimoTorneo en
+                     #camposRegistrar, arriba: mismo botón, ahora para el
+                     último SORTEO ya registrado en S_Lista. Trae
+                     Organizador/Cuenta organizadora y Comentario; no toca
+                     Fecha/Hora ni #semanasSelectorSorteoReg (cada sorteo
+                     elige sus propias semanas). Ver
+                     precargarUltimoRegistroSorteo() en el <script>, gemela
+                     de precargarUltimoRegistroTorneo() reutilizando
+                     aplicarAutorYCuentaPrecargados() con prefijo 's'.
+                     PENDIENTE BACKEND: mismo trío pendiente que en
+                     Torneos (`_getUltimoRegistroTorneoOSorteo`,
+                     `_webAdminUltimoRegistroTorneoOSorteo`,
+                     `webAdminUltimoRegistro` en doGet), esta vez llamado
+                     con categoria:'Sorteo'. -->
+                <button type="button" class="btn btn-ghost btn-block" id="btnPrecargarUltimoSorteo" style="margin-bottom:14px;">↻ Precargar datos del último sorteo registrado</button>
+
                 <div class="field-row" id="filaFechaHoraSorteoReg">
                   <div class="field">
                     <label for="sFechaTexto">Fecha</label>
@@ -2091,6 +2131,39 @@
                    Estado (datos.ascenso.barcos/miembroActivo/whatsapp/estado)
                    -- quedan para un paso aparte. -->
               <div id="crPaso3" style="display:none; margin-top:14px; padding-top:14px; border-top:1px solid var(--line);">
+                <!-- NUEVO (16-sep-2026, pedido usuario -- ver el docblock
+                     grande junto a #btnPrecargarUltimoTorneo en
+                     #camposRegistrar, arriba: mismo botón, ahora para la
+                     ÚLTIMA CORRIDA de Cambio de Rango ya registrada en
+                     CR_Lista (la anterior a esta que se está armando ahora).
+                     A diferencia de Torneos/Sorteos (que solo traen
+                     Organizador/Cuenta organizadora/Comentario), acá
+                     también trae las 2 grillas (Ascenso/Descenso) y "Otros
+                     criterios" (Barcos/Miembro activo/WhatsApp) -- mismo
+                     contenido que ya sabe precargar precargarFormularioCR(),
+                     MENOS Fecha/Hora (son de ESTA corrida nueva) y MENOS
+                     Semanas (pedido explícito del usuario: "no aplica para
+                     semanas", cada corrida nueva elige las suyas). Tampoco
+                     marca esta corrida como "existente": crIdExistenteActual
+                     queda en '' (modo Registrar), así que Guardar CREA una
+                     corrida nueva en vez de sobreescribir la que se acaba de
+                     usar como plantilla. Ver precargarUltimoRegistroCR() en
+                     el <script>.
+                     Solo visible en modo "Registrar" (oculto en
+                     Editar/Ver, donde precargar significa otra cosa: elegir
+                     la corrida en #crSelectPar) -- el toggle vive en el
+                     listener de #btnCrPaso1 y en #crVolverPaso1, más abajo.
+                     PENDIENTE BACKEND: mismo trío pendiente que en
+                     Torneos/Sorteos (`_getUltimoRegistroTorneoOSorteo`,
+                     `_webAdminUltimoRegistroTorneoOSorteo`,
+                     `webAdminUltimoRegistro` en doGet) -- CR además necesita
+                     que ese `_getUltimoRegistroTorneoOSorteo` sepa buscar en
+                     CR_Lista, no solo en T_Lista/S_Lista (nombre de la
+                     función a confirmar en el mensaje del backend). -->
+                <div id="crPrecargarUltimoBox" style="display:none; margin-bottom:14px;">
+                  <button type="button" class="btn btn-ghost btn-block" id="btnCrPrecargarUltimo">↻ Precargar datos de la última corrida registrada</button>
+                </div>
+
                 <!-- FIX (13-sep-2026, pedido usuario -- "en el formulario de
                      cambio de rango se debe cambiar el formato de fecha y
                      hora, debe mostrarse como sale en torneos"): mismo
@@ -5395,6 +5468,146 @@ function pintarCuentasOrg(cuentas, selectEl){
 }
 
 /**
+ * aplicarAutorYCuentaPrecargados(datos, sufijo, prefijo)
+ * NUEVO (16-sep-2026, pedido usuario -- botón "↻ Precargar datos del último
+ * torneo/sorteo registrado", ver docblock grande junto a
+ * #btnPrecargarUltimoTorneo en el HTML). Deja #tAutorSelect (o su gemelo de
+ * Sorteos, #sAutorSelect) y su cuadro de cuenta (#tCuentaOrgBox / #sCuentaOrgBox) con los datos del
+ * registro anterior, mismo criterio de resolución que ya usa
+ * precargarOrganizadorCR() para Cambio de Rango (si `datos.autor` coincide
+ * con una <option> real, se elige esa opción; si coincide con el propio
+ * admin de la sesión, o viene vacío, se deja en "" -- "Lo organicé yo"; si
+ * no coincide con ninguna opción, se manda a "__otro__" y se escribe tal
+ * cual en el campo manual), sumando además la selección de la CUENTA
+ * puntual (tagOrg) dentro del Nom_Multi elegido -- eso no lo maneja
+ * precargarOrganizadorCR() porque Cambio de Rango no tiene ese cuadro
+ * intermedio.
+ * `prefijo` es 't' (Torneos) o 's' (Sorteos); `sufijo` siempre '' en este
+ * botón porque solo existe en la rama "Registrar" (#tAutorSelect/
+ * #sAutorSelect, sin Mod/Plan).
+ * No dispara el 'change' de #tAutorSelect/#sAutorSelect (eso deja la
+ * carga de cuentas sin esperar, ver initCuentaOrgBox()/initCuentaOrgBoxSorteo()
+ * más arriba) -- en vez de eso llama directo a cargarCuentasDelAutor() y
+ * espera su resultado, para poder elegir la cuenta puntual (tagOrg) recién
+ * cuando el <select> de cuentas ya está poblado.
+ * @param {{autor?:string, tagOrg?:string, clanOrg?:string, clanTagOrg?:string}} datos
+ * @param {string} sufijo
+ * @param {'t'|'s'} prefijo
+ */
+async function aplicarAutorYCuentaPrecargados(datos, sufijo, prefijo){
+  const selectAutor = document.getElementById(prefijo + 'AutorSelect' + sufijo);
+  const manual = document.getElementById(prefijo + 'AutorManual' + sufijo);
+  const box = document.getElementById(prefijo + 'CuentaOrgBox' + sufijo);
+  const selectCuenta = document.getElementById(prefijo + 'CuentaOrgSelect' + sufijo);
+  const info = document.getElementById(prefijo + 'CuentaOrgInfo' + sufijo);
+  if(!selectAutor) return;
+
+  const autor = (datos && datos.autor) || '';
+  const nomMultiPropio = nomMultiDelAdminDeSesion();
+  const yaExiste = autor && Array.from(selectAutor.options).some(o => o.value === autor);
+
+  if(!autor || (nomMultiPropio && autor === nomMultiPropio)){
+    selectAutor.value = '';
+    if(manual){ manual.style.display = 'none'; manual.value = ''; }
+  }else if(yaExiste){
+    selectAutor.value = autor;
+    if(manual){ manual.style.display = 'none'; manual.value = ''; }
+  }else{
+    selectAutor.value = '__otro__';
+    if(manual){ manual.style.display = ''; manual.value = autor; }
+  }
+
+  // '__otro__' no tiene cuentas propias que buscar (mismo criterio que el
+  // listener de 'change' en initCuentaOrgBox()/initCuentaOrgBoxSorteo()).
+  if(!box || !selectCuenta || !info) return;
+  if(selectAutor.value === '__otro__'){
+    box.style.display = 'none';
+    selectCuenta.innerHTML = '<option value="">Elige la cuenta…</option>';
+    info.textContent = '';
+    return;
+  }
+
+  const nomMultiParaCuentas = selectAutor.value || nomMultiPropio;
+  if(!nomMultiParaCuentas){
+    box.style.display = 'none';
+    return;
+  }
+
+  box.style.display = '';
+  await cargarCuentasDelAutor(nomMultiParaCuentas, selectCuenta, info);
+
+  const tagOrg = datos && datos.tagOrg;
+  if(tagOrg && Array.from(selectCuenta.options).some(o => o.value === tagOrg)){
+    selectCuenta.value = tagOrg;
+    const opt = selectCuenta.selectedOptions[0];
+    const clan = (opt && opt.dataset.clan) || '';
+    const clanTag = (opt && opt.dataset.clantag) || '';
+    info.textContent = clan
+      ? `Clan detectado: ${clan}${clanTag ? ' (' + clanTag + ')' : ''}`
+      : 'Esta cuenta no tiene clan registrado.';
+  }
+}
+
+/**
+ * precargarUltimoRegistroTorneo()
+ * NUEVO (16-sep-2026, pedido usuario). Listener de #btnPrecargarUltimoTorneo
+ * (ver #camposRegistrar en el HTML). Trae Organizador/Cuenta organizadora
+ * (autor/tagOrg/clanOrg/clanTagOrg) y Comentario del último torneo ya
+ * registrado en T_Lista, y los deja escritos en #tAutorSelect/#tCuentaOrgBox/
+ * #tComentario -- NO toca Link/Fecha/Hora ni #semanasSelectorReg (pedido
+ * explícito: cada torneo elige sus propias semanas).
+ * PENDIENTE BACKEND: `webAdminUltimoRegistro` todavía no existe en el
+ * backend (ver PENDIENTE BACKEND junto a #btnPrecargarUltimoTorneo en el
+ * HTML) -- mientras tanto esta llamada falla y el catch de abajo la deja
+ * pasar en silencio, mismo criterio de tolerancia a fallos que
+ * cargarRequisitosPorClan().
+ */
+async function precargarUltimoRegistroTorneo(){
+  try{
+    const data = await apiGetAuth('webAdminUltimoRegistro', { categoria: 'Torneo' });
+    if(manejarRespuestaAuth(data)) return;
+    if(!data.ok || !data.registro) return;
+    const r = data.registro;
+    await aplicarAutorYCuentaPrecargados(r, '', 't');
+    if(r.comentario !== undefined) document.getElementById('tComentario').value = r.comentario || '';
+  }catch(err){
+    // Error de red/parseo, o endpoint todavía no conectado: se deja el
+    // formulario tal cual estaba -- mismo criterio de tolerancia a fallos
+    // que el resto de los `cargarXxx()`/`precargarXxx()` de este archivo.
+  }
+}
+document.getElementById('btnPrecargarUltimoTorneo').addEventListener('click', precargarUltimoRegistroTorneo);
+
+/**
+ * precargarUltimoRegistroSorteo()
+ * NUEVO (16-sep-2026, pedido usuario). Gemela de
+ * precargarUltimoRegistroTorneo() de arriba, para #btnPrecargarUltimoSorteo
+ * (ver #camposRegistrarSorteo en el HTML): trae Organizador/Cuenta
+ * organizadora y Comentario del último SORTEO ya registrado en S_Lista y
+ * los deja escritos en #sAutorSelect/#sCuentaOrgBox/#sComentario -- NO toca
+ * Fecha/Hora ni #semanasSelectorSorteoReg (cada sorteo elige sus propias
+ * semanas). Reutiliza aplicarAutorYCuentaPrecargados() TAL CUAL, con
+ * prefijo 's' en vez de 't'.
+ * PENDIENTE BACKEND: mismo `webAdminUltimoRegistro` pendiente de
+ * precargarUltimoRegistroTorneo(), esta vez con categoria:'Sorteo' -- mismo
+ * criterio de tolerancia a fallos mientras no exista.
+ */
+async function precargarUltimoRegistroSorteo(){
+  try{
+    const data = await apiGetAuth('webAdminUltimoRegistro', { categoria: 'Sorteo' });
+    if(manejarRespuestaAuth(data)) return;
+    if(!data.ok || !data.registro) return;
+    const r = data.registro;
+    await aplicarAutorYCuentaPrecargados(r, '', 's');
+    if(r.comentario !== undefined) document.getElementById('sComentario').value = r.comentario || '';
+  }catch(err){
+    // Error de red/parseo, o endpoint todavía no conectado: mismo criterio
+    // de tolerancia a fallos que precargarUltimoRegistroTorneo().
+  }
+}
+document.getElementById('btnPrecargarUltimoSorteo').addEventListener('click', precargarUltimoRegistroSorteo);
+
+/**
  * initCuentaOrgBoxSorteo(sufijo)
  * FIX (12-sep-2026, pedido usuario -- ítem 3 del docblock junto a
  * #camposRegistrarSorteo): gemela de initCuentaOrgBox() de arriba, mismo
@@ -6682,6 +6895,80 @@ async function precargarFormularioCR(idAscenso){
   }
 }
 
+/**
+ * precargarUltimoRegistroCR()
+ * NUEVO (16-sep-2026, pedido usuario). Listener de #btnCrPrecargarUltimo
+ * (ver #crPrecargarUltimoBox en el HTML, dentro de #crPaso3). Trae la
+ * ÚLTIMA corrida ya registrada en CR_Lista (`cambioRangoParesData[0]`,
+ * que ya viene ordenada del más reciente al más antiguo por
+ * cargarCRListaPares()/_webCRListaListar()) y precarga:
+ *   - Organizador (precargarOrganizadorCR(), igual que
+ *     precargarFormularioCR());
+ *   - Comentario (#crComentario);
+ *   - las 2 grillas de Ascenso/Descenso (pintarGridCR()+precargarGridCR());
+ *   - "Otros criterios" -- Barcos/Miembro activo/WhatsApp
+ *     (precargarOtrosCriteriosCR()).
+ * A propósito NO toca:
+ *   - Fecha/Hora (#crFecha/#crHora) -- son de ESTA corrida nueva, no de la
+ *     anterior;
+ *   - Semanas (#crTemporadasContainer) -- pedido explícito del usuario ("no
+ *     aplica para semanas"), cada corrida nueva elige las suyas;
+ *   - `crIdExistenteActual`/`crIdDescensoActual` -- se dejan tal cual
+ *     estaban (vacíos, modo Registrar) para que btnCrGuardar CREE una
+ *     corrida nueva en vez de sobreescribir la que se acaba de usar como
+ *     plantilla.
+ * Si `cambioRangoParesData` todavía no se cargó en esta vuelta por el
+ * wizard (normal en modo Registrar, que no llama cargarCRListaPares()),
+ * se pide una vez acá mismo.
+ * PENDIENTE BACKEND: `webCRListaFilaPorId` ya existe y ya lo usa
+ * precargarFormularioCR() -- lo único pendiente es que
+ * `_webCRListaListar()` siga devolviendo el más reciente primero (ya
+ * CONFIRMADO por el usuario que así es), sin pieza nueva de backend
+ * exclusiva para este botón (a diferencia de Torneos/Sorteos).
+ */
+async function precargarUltimoRegistroCR(){
+  document.getElementById('crPaso2Msg').innerHTML = '<div class="text-dim">Buscando la última corrida registrada…</div>';
+  try{
+    if(!cambioRangoParesData.length){
+      await cargarCRListaPares();
+    }
+    if(!cambioRangoParesData.length){
+      document.getElementById('crPaso2Msg').innerHTML = '';
+      return;
+    }
+    const parMasReciente = cambioRangoParesData[0];
+    const idAscensoUltimo = parMasReciente.idAscenso;
+    const idDescensoUltimo = parMasReciente.idDescenso || idAscensoUltimo.replace(/^A_/, 'D_');
+
+    const [dataAsc, dataDesc] = await Promise.all([
+      apiGetAuth('webCRListaFilaPorId', { id: idAscensoUltimo }),
+      apiGetAuth('webCRListaFilaPorId', { id: idDescensoUltimo })
+    ]);
+    if(manejarRespuestaAuth(dataAsc)) return;
+    if(!dataAsc.ok || !dataAsc.fila){
+      document.getElementById('crPaso2Msg').innerHTML = `<div class="msg msg-error">${esc(dataAsc.error || 'No encontré una corrida anterior.')}</div>`;
+      return;
+    }
+    const filaAsc = dataAsc.fila;
+    const filaDesc = (dataDesc && dataDesc.ok) ? dataDesc.fila : null;
+
+    precargarOrganizadorCR(filaAsc.organizador || '');
+    document.getElementById('crComentario').value = filaAsc.comentario || '';
+
+    await Promise.all([pintarGridCR('ascenso'), pintarGridCR('descenso')]);
+    precargarGridCR('ascenso', filaAsc.porClan);
+    if(filaDesc) precargarGridCR('descenso', filaDesc.porClan);
+    precargarOtrosCriteriosCR('ascenso', filaAsc);
+    precargarOtrosCriteriosCR('descenso', filaDesc);
+
+    mostrarRequisitosAscensoCR(); // arranca siempre por Ascenso, mismo criterio que precargarFormularioCR()
+    document.getElementById('crPaso2Msg').innerHTML = '';
+  }catch(err){
+    document.getElementById('crPaso2Msg').innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
+  }
+}
+document.getElementById('btnCrPrecargarUltimo').addEventListener('click', precargarUltimoRegistroCR);
+
 /* ============================================================
  * FIX (13-sep-2026, pedido usuario -- Cambio de rango: "en la sección de
  * semanas a evaluar debe haber un selector de temporada y a la derecha
@@ -6947,6 +7234,7 @@ document.getElementById('btnCrPaso1').addEventListener('click', async () => {
     // único que cambia es qué pasa al elegir una corrida, ver el listener
     // de #crSelectPar más abajo.
     document.getElementById('crSelectorParBox').style.display = '';
+    document.getElementById('crPrecargarUltimoBox').style.display = 'none';
     cargarCRListaPares();
     // Sin corrida elegida todavía: limpia cualquier estado de una corrida
     // anterior (ej. si el admin ya había entrado a Editar/Ver antes) y
@@ -6956,6 +7244,7 @@ document.getElementById('btnCrPaso1').addEventListener('click', async () => {
     actualizarVisibilidadPropuestasCR();
   }else{
     document.getElementById('crSelectorParBox').style.display = 'none';
+    document.getElementById('crPrecargarUltimoBox').style.display = '';
     await limpiarFormularioCR();
   }
 });
@@ -6965,6 +7254,7 @@ document.getElementById('crVolverPaso1').addEventListener('click', (e) => {
   document.getElementById('crPaso2').style.display = 'none';
   document.getElementById('crPaso1').style.display = '';
   document.getElementById('crSelectorParBox').style.display = 'none';
+  document.getElementById('crPrecargarUltimoBox').style.display = 'none';
   document.getElementById('crPaso3').style.display = 'none';
   document.getElementById('crPaso2Msg').innerHTML = '';
   document.getElementById('crSelectPar').value = '';
