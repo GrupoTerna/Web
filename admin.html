@@ -7587,17 +7587,27 @@ function _resumenPropuestasCR(propuestas){
 // motivo concreto) y, si está presente, lo muestra en vez del mensaje
 // genérico.
 function _tablaPropuestasCR(propuestas, diagnostico){
+  // FIX (17-sep-2026, pedido del usuario -- "generó 1 fila y no avisó nada
+  // del histórico de guerra"): antes `diagnostico` SOLO se leía dentro de
+  // la rama "sin propuestas" (!propuestas.length). El backend (ver FIX del
+  // 17-sep-2026 en _calcularPropuestasCambioRango(), 24_Torneos_Core.gs) ya
+  // manda `diagnostico` aunque haya 1+ propuestas -- pero esta función lo
+  // seguía ignorando por completo en cuanto había AL MENOS una fila,
+  // aunque esa fila (con promedios en 0 por el mismo problema de
+  // Backup_Guerra.csv) fuera exactamente el síntoma del problema. Ahora el
+  // aviso se pinta SIEMPRE que `diagnostico` venga presente, como banner
+  // arriba de la tabla (o del mensaje "sin propuestas"), sin importar
+  // cuántas propuestas haya.
+  var avisoDiagnostico = diagnostico ? `<div class="empty msg-error" style="text-align:left; margin-bottom:12px;">
+    <strong>Posible problema leyendo el histórico de guerra para esta corrida:</strong><br>
+    ${esc(diagnostico)}
+  </div>` : '';
+
   if(!propuestas || !propuestas.length){
-    if(diagnostico){
-      return `<div class="empty msg-error" style="text-align:left;">
-        <strong>Sin propuestas -- posible problema leyendo el histórico de guerra:</strong><br>
-        ${esc(diagnostico)}
-      </div>`;
-    }
-    return '<div class="empty">Sin propuestas -- nadie del roster activo cumple ni deja de cumplir los requisitos de arriba.</div>';
+    return avisoDiagnostico || '<div class="empty">Sin propuestas -- nadie del roster activo cumple ni deja de cumplir los requisitos de arriba.</div>';
   }
   const propuestasOrdenadas = _ordenarPropuestasCR(propuestas);
-  return `${_resumenPropuestasCR(propuestasOrdenadas)}<div style="overflow-x:auto;"><table>
+  return `${avisoDiagnostico}${_resumenPropuestasCR(propuestasOrdenadas)}<div style="overflow-x:auto;"><table>
     <thead><tr><th>N°</th><th>Nombre</th><th>Tag</th><th>Clan</th><th>Rango actual</th><th>Tipo</th><th>Ataques</th><th>Puntaje</th><th>Barcos</th><th>Detalle</th></tr></thead>
     <tbody>${propuestasOrdenadas.map((p, i) => _filaPropuestaCR(p, i)).join('')}</tbody>
   </table></div>`;
