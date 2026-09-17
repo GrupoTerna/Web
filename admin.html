@@ -7393,7 +7393,7 @@ document.getElementById('btnCrGuardar').addEventListener('click', async () => {
  * 14_Directorio_HistorialAscensos.gs) -- solo cambia la ETIQUETA visible.
  */
 /**
- * _celdaUmbralCR(prom, umbral)
+ * _celdaUmbralCR(prom, umbral, cumple)
  * NUEVO (16-sep-2026, pedido del usuario -- tercer paso chico hacia la
  * tabla tipo propuestas.xlsx): arma el texto "valor/umbral" de UNA celda
  * de Ataques/Puntaje/Barcos a partir de los campos aditivos que ya
@@ -7410,10 +7410,19 @@ document.getElementById('btnCrGuardar').addEventListener('click', async () => {
  * mostrado es directamente el de SU rol, sin necesidad de la grilla M/V/C
  * completa (sería redundante repetir las 2 columnas de los otros roles
  * que no le aplican a este jugador).
+ *
+ * NUEVO (16-sep-2026, pedido del usuario -- cuarto paso chico): `cumple`
+ * es el booleano aditivo (cumpleAtaques/cumplePuntaje/cumpleBarcos) que
+ * ahora también devuelve el backend -- si viene `true`/`false` (no
+ * `null`), se pinta el número con var(--ok)/var(--danger), mismo par de
+ * variables CSS que ya usa el resto de admin.html (ver
+ * .mr-celular.si{color:var(--ok...)} / btnDescalificarSinGrupo{...
+ * color:var(--danger)}) para no introducir un color nuevo.
  */
-function _celdaUmbralCR(prom, umbral){
+function _celdaUmbralCR(prom, umbral, cumple){
   if(!umbral || !umbral.activo) return '<span class="text-faint">--</span>';
-  return esc(_round1CR(prom)) + '<span class="text-faint">/' + esc(umbral.qty) + '</span>';
+  const color = cumple === true ? 'var(--ok, #10b981)' : cumple === false ? 'var(--danger)' : 'inherit';
+  return `<span style="color:${color};">${esc(_round1CR(prom))}</span><span class="text-faint">/${esc(umbral.qty)}</span>`;
 }
 
 // Redondeo a 1 decimal solo para mostrar en la tabla -- mismo criterio
@@ -7452,6 +7461,12 @@ function _round1CR(n){
  * nombre) para calzar con la estructura de propuestas.xlsx (columnas
  * N°/Jugador/Tag/Clan/... separadas).
  *
+ * NUEVO (16-sep-2026, pedido del usuario -- cuarto paso chico): las
+ * celdas de Ataques/Puntaje/Barcos ahora se pintan en verde/rojo según
+ * cumpleAtaques/cumplePuntaje/cumpleBarcos (campos aditivos del backend,
+ * ver _celdaUmbralCR() más arriba) -- sin color cuando ese requisito no
+ * estaba activo para el Rol/Clan de la fila (celda "--").
+ *
  * FIX (16-sep-2026, pedido usuario -- columna "Jugador" renombrada a
  * "Nombre"): convención del panel -- "Nombre" se usa cuando se muestra el
  * nombre real de LA CUENTA (p.nombre, tal como aparece en el clan, que es
@@ -7489,9 +7504,9 @@ function _filaPropuestaCR(p, i){
       <td>${esc(p.clan)}</td>
       <td>${esc(p.rangoActual)}</td>
       <td><span class="badge ${badgeClase}">${etiquetaTipo}</span></td>
-      <td>${_celdaUmbralCR(p.ataquesProm, p.umbralAtaques)}</td>
-      <td>${_celdaUmbralCR(p.fameProm, p.umbralPuntaje)}</td>
-      <td>${_celdaUmbralCR(p.barcosProm, p.umbralBarcos)}</td>
+      <td>${_celdaUmbralCR(p.ataquesProm, p.umbralAtaques, p.cumpleAtaques)}</td>
+      <td>${_celdaUmbralCR(p.fameProm, p.umbralPuntaje, p.cumplePuntaje)}</td>
+      <td>${_celdaUmbralCR(p.barcosProm, p.umbralBarcos, p.cumpleBarcos)}</td>
       <td>${esc(p.detalle)}</td>
     </tr>`;
 }
@@ -7536,6 +7551,26 @@ function _ordenarPropuestasCR(propuestas){
   });
 }
 
+/**
+ * _resumenPropuestasCR(propuestas)
+ * NUEVO (16-sep-2026, pedido del usuario -- séptimo paso chico): cuenta
+ * cuántas propuestas hay de cada categoría (Ascenso/Descenso/Admin, mismo
+ * agrupamiento que ya usa _idxTipoCR()/TIPO_ORDEN_CR de arriba -- Admin
+ * es la etiqueta visible de 'EligibleAdmin') para pintar una línea de
+ * resumen arriba de la tabla, antes de que el admin tenga que contar
+ * fila por fila.
+ */
+function _resumenPropuestasCR(propuestas){
+  const conteo = { Ascenso: 0, Descenso: 0, Admin: 0 };
+  propuestas.forEach(p => {
+    const cat = p.tipoPropuesta === 'EligibleAdmin' ? 'Admin' : p.tipoPropuesta;
+    if(cat in conteo) conteo[cat]++;
+  });
+  return `<div class="text-dim" style="font-size:12px; margin-bottom:8px;">
+    ${propuestas.length} propuesta(s) en total -- ${conteo.Ascenso} Ascenso, ${conteo.Descenso} Descenso, ${conteo.Admin} Admin.
+  </div>`;
+}
+
 // FIX (16-sep-2026, pedido usuario -- "Sin propuestas" al elegir una
 // temporada cerrada, sin ningún aviso visible): antes esta función solo
 // recibía `propuestas` y, si venía vacío, siempre mostraba el mismo
@@ -7558,7 +7593,7 @@ function _tablaPropuestasCR(propuestas, diagnostico){
     return '<div class="empty">Sin propuestas -- nadie del roster activo cumple ni deja de cumplir los requisitos de arriba.</div>';
   }
   const propuestasOrdenadas = _ordenarPropuestasCR(propuestas);
-  return `<div style="overflow-x:auto;"><table>
+  return `${_resumenPropuestasCR(propuestasOrdenadas)}<div style="overflow-x:auto;"><table>
     <thead><tr><th>N°</th><th>Nombre</th><th>Tag</th><th>Clan</th><th>Rango actual</th><th>Tipo</th><th>Ataques</th><th>Puntaje</th><th>Barcos</th><th>Detalle</th></tr></thead>
     <tbody>${propuestasOrdenadas.map((p, i) => _filaPropuestaCR(p, i)).join('')}</tbody>
   </table></div>`;
@@ -7617,7 +7652,16 @@ document.getElementById('btnCrGenerarPropuestas').addEventListener('click', asyn
     });
     if(manejarRespuestaAuth(data)) return;
     if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
-    msgEl.innerHTML = `<div class="msg msg-success">${esc(data.agregadas)} propuesta(s) nueva(s) agregada(s) como Planificado` +
+    // NUEVO (16-sep-2026, pedido del usuario -- octavo paso chico): el
+    // mensaje ahora desglosa `agregadas` en Ascenso/Descenso/Admin usando
+    // `agregadasPorTipo` (campo aditivo de _registrarPropuestasCRListaEnHistorial(),
+    // 14_Directorio_HistorialAscensos.gs) -- si por lo que sea no viene
+    // (ej. sesión con backend viejo sin este campo), se cae al mensaje
+    // simple de antes en vez de mostrar "undefined".
+    const desglose = data.agregadasPorTipo
+      ? ` (${esc(data.agregadasPorTipo.Ascenso)} Ascenso, ${esc(data.agregadasPorTipo.Descenso)} Descenso, ${esc(data.agregadasPorTipo.Admin)} Admin)`
+      : '';
+    msgEl.innerHTML = `<div class="msg msg-success">${esc(data.agregadas)} propuesta(s) nueva(s) agregada(s) como Planificado${desglose}` +
       (data.saltadas ? `, ${esc(data.saltadas)} ya estaban pendientes (sin duplicar).` : '.') + '</div>';
     // Repinta la tabla con el estado recalculado, para que quede a la vista
     // qué se generó (mismo cálculo que Ver propuestas -- ver su docblock).
