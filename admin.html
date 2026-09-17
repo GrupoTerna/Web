@@ -2388,14 +2388,41 @@
                    Editar sigue apareciendo exactamente en el mismo lugar
                    visual de siempre (justo debajo del formulario), porque
                    #crPaso3 y este bloque quedan uno a continuación del
-                   otro de todas formas. -->
-              <details class="admin-subseccion" id="crPropuestasDetails" style="margin-top:14px;">
-                <summary><span class="cat-titulo">Propuestas de cambio de rango</span></summary>
+                   otro de todas formas.
+
+                   FIX (16-sep-2026, pedido usuario -- "no se debe ver como
+                   algo aparte, sino parte del flujo... se ve al nivel de la
+                   sección de Planificar, registrar... pero es parte de
+                   ella"): antes era un <details class="admin-subseccion">,
+                   la MISMA clase que arma el título grande naranja con el
+                   ícono +/- de las secciones de nivel superior ("Planificar,
+                   registrar o modificar torneos o sorteos", "Ganadores del
+                   torneo más reciente") -- por eso, aunque estaba anidado
+                   varios niveles adentro de Cambio de rango, se VEÍA como un
+                   módulo independiente del mismo peso que esas secciones
+                   grandes. Mismo cambio ya hecho antes para Requisitos de
+                   Ascenso/Descenso por el mismo motivo exacto (ver el
+                   comentario de .cr-requisitos-bloque en el <style>, arriba
+                   del todo): se reemplaza por cr-requisitos-bloque/
+                   cr-requisitos-header, el mismo look de encabezado pero
+                   FIJO -- sin ícono de colapso, sin "click para abrir" --
+                   que dejó claro que esta sección es parte del wizard, no
+                   algo opcional aparte. -->
+              <div class="cr-requisitos-bloque" id="crPropuestasBloque">
+                <div class="cr-requisitos-header"><span class="cat-titulo">Propuestas de cambio de rango</span></div>
                 <div class="admin-subseccion-body">
                   <div id="crPropuestasBox" style="display:none;">
-                    <div class="text-dim" style="font-size:13px; margin-bottom:10px;">
-                      Calcula, a partir del roster activo y los requisitos de esa corrida, quién asciende, quién desciende o queda elegible para administración manual. "Ver propuestas" solo calcula (no escribe nada); "Generar propuestas" las agrega a Historial_A/D como "Planificado", sin duplicar las que ya estén pendientes.
-                    </div>
+                    <!-- FIX (16-sep-2026, pedido usuario -- aclarar la
+                         diferencia entre los dos botones, que quedaba
+                         perdida en un párrafo largo): dos líneas cortas en
+                         vez de un párrafo, una por botón, mismo texto de
+                         fondo que ya explicaba _webCRListaPropuestas/
+                         _webCRListaGenerarPropuestas (34_Web_API.gs) pero
+                         más fácil de escanear de un vistazo. -->
+                    <ul class="text-dim" style="font-size:13px; margin:0 0 10px; padding-left:18px;">
+                      <li><strong>Ver propuestas:</strong> solo calcula y muestra la tabla -- no escribe nada en la hoja. Se puede repetir tantas veces como haga falta.</li>
+                      <li><strong>Generar propuestas:</strong> agrega lo que muestre la tabla a Historial_A/D como "Planificado" -- ahí sí queda guardado. No duplica las que ya estén pendientes.</li>
+                    </ul>
                     <div style="display:flex; gap:10px; flex-wrap:wrap;">
                       <button type="button" class="btn btn-ghost" id="btnCrVerPropuestas">Ver propuestas</button>
                       <button type="button" class="btn btn-primary" id="btnCrGenerarPropuestas">Generar propuestas</button>
@@ -2409,7 +2436,7 @@
                        corrida arriba (no hay nada que guardar en ese modo). -->
                   <div id="crPropuestasSinGuardar" class="text-dim" style="font-size:13px;">Guarda la corrida primero -- las propuestas se calculan sobre la corrida ya guardada en CR_Lista.</div>
                 </div>
-              </details>
+              </div>
             </div>
 
           </div>
@@ -6927,14 +6954,8 @@ document.getElementById('btnCrPaso1').addEventListener('click', async () => {
     crIdExistenteActual = '';
     crIdDescensoActual = '';
     actualizarVisibilidadPropuestasCR();
-    // En modo "ver" el <details> de Propuestas es lo único que importa en
-    // esta pantalla -- se abre solo, para no obligar a un click extra en
-    // un summary colapsado. En Registrar/Editar sigue colapsado por
-    // defecto (comportamiento de siempre, no molesta con el formulario).
-    document.getElementById('crPropuestasDetails').open = (accion === 'ver');
   }else{
     document.getElementById('crSelectorParBox').style.display = 'none';
-    document.getElementById('crPropuestasDetails').open = false;
     await limpiarFormularioCR();
   }
 });
