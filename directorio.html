@@ -1294,6 +1294,8 @@ async function compararJugadores(){
       data.a && data.a.tag,
       data.b && data.b.tag
     );
+    // Teclado y lectores de pantalla (un Tab por gráfica); cada jugador es una serie (se distinguen por su color de relleno).
+    guerraChartWrap.querySelectorAll('svg.linechart-svg').forEach(svg => activarTecladoPuntosGrafica(svg, { serieDe: pt => pt.getAttribute('fill') }));
   }catch(err){
     msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
   }
@@ -2188,15 +2190,21 @@ function activarTooltipsGraficasIngresos(){
   if (!tip) return;
   document.querySelectorAll('.ing-linechart-svg .ing-serie-pt').forEach(pt => {
     pt.addEventListener('mousemove', e => {
-      const { nombre, tag, valor, clan, semana, unidad } = pt.dataset;
-      // Mismo orden que index.html: nombre+tag arriba en negrita, cantidad+clan+fecha abajo. Historial en CHANGELOG.md.
-      tip.innerHTML = `<b>${esc(nombre)}${tag ? ' (' + esc(tag) + ')' : ''}</b><br><span style="color:var(--text-faint);">${esc(fmtNum(valor))} ${esc(unidad)} — ${esc(clan)} · ${esc(semana)}</span>`;
+      // Mismo orden que index.html (htmlTooltipPuntoSerie, en timeline-svg.js, compartido con el foco de teclado). Historial en CHANGELOG.md.
+      tip.innerHTML = htmlTooltipPuntoSerie(pt);
       tip.style.display = 'block';
       tip.style.left = (e.clientX + 14) + 'px';
       tip.style.top  = (e.clientY + 14) + 'px';
     });
     pt.addEventListener('mouseleave', () => { tip.style.display = 'none'; });
   });
+  // Teclado y lectores de pantalla: un Tab entra a cada gráfica, flechas recorren los puntos.
+  document.querySelectorAll('.ing-linechart-svg').forEach(svg => activarTecladoPuntosGrafica(svg, {
+    selector: '.ing-serie-pt',
+    serieDe: pt => pt.dataset.tag || pt.dataset.nombre,
+    etiqueta: etiquetaPuntoSerie,
+    htmlTooltip: htmlTooltipPuntoSerie
+  }));
 }
 
 /** Arma las tres gráficas comparativas (Ataques, Puntaje y Barcos por

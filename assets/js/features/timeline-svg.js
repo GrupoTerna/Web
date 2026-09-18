@@ -111,3 +111,135 @@ function gridHorizontalMediosSvg(pasos, techo, yPos, xIni, xFin, prefijoClase){
   }
   return out.join('');
 }
+
+
+/* =========================================================================
+ * Gráficas operables por teclado y lectores de pantalla (plan B-12).
+ * Antes los puntos <circle> solo mostraban su valor al pasar el mouse
+ * (tooltip flotante o <title> nativo): con teclado no había forma de
+ * llegar a ellos. Un solo Tab entra a la gráfica (tabindex "móvil": solo
+ * un punto a la vez tiene tabindex=0, así 20 series x 15 semanas no son
+ * 300 paradas de Tab). Dentro: ←/→ recorren la serie, Inicio/Fin saltan a
+ * su primer/último punto, ↑/↓ pasan a la serie anterior/siguiente en la
+ * misma posición horizontal (semana), y Esc oculta el tooltip.
+ * ========================================================================= */
+
+/** Texto plano de un punto de serie (aria-label) — mismo contenido que el tooltip. */
+function etiquetaPuntoSerie(pt){
+  const { nombre, tag, valor, clan, semana, unidad } = pt.dataset;
+  return `${nombre || ''}${tag ? ' (' + tag + ')' : ''}: ${fmtNum(valor)} ${unidad || ''} — ${clan || ''} · ${semana || ''}`;
+}
+
+/** HTML del tooltip de un punto de serie: lo usan el mouse y el foco de teclado. */
+function htmlTooltipPuntoSerie(pt){
+  const { nombre, tag, valor, clan, semana, unidad } = pt.dataset;
+  return `<b>${esc(nombre)}${tag ? ' (' + esc(tag) + ')' : ''}</b><br><span style="color:var(--text-faint);">${esc(fmtNum(valor))} ${esc(unidad)} — ${esc(clan)} · ${esc(semana)}</span>`;
+}
+
+/** Tooltip flotante compartido (#chartTooltip); si la página no lo trae, se crea (mismo estilo, viene de styles.css). */
+function obtenerTooltipGrafica(){
+  let tip = document.getElementById('chartTooltip');
+  if (!tip){
+    tip = document.createElement('div');
+    tip.id = 'chartTooltip';
+    tip.className = 'chart-tooltip';
+    document.body.appendChild(tip);
+  }
+  return tip;
+}
+
+/**
+ * activarTecladoPuntosGrafica(svg, opts)
+ * opts.selector     selector CSS de los puntos dentro del svg (por defecto 'circle').
+ * opts.serieDe(pt)  clave de la serie a la que pertenece el punto (por defecto pt.dataset.serie).
+ *                   Los puntos de una misma serie deben ir en el DOM en orden de izquierda a derecha.
+ * opts.etiqueta(pt) texto del aria-label (por defecto: el <title> del círculo, o etiquetaPuntoSerie).
+ * opts.htmlTooltip(pt) HTML del tooltip al enfocar (por defecto: el texto del <title>).
+ * opts.titulo       nombre de la gráfica para lectores (por defecto: el .chart-title de su tarjeta).
+ */
+function activarTecladoPuntosGrafica(svg, opts){
+  opts = opts || {};
+  if (!svg || svg.dataset.tecladoActivo === '1') return;
+  const puntos = Array.from(svg.querySelectorAll(opts.selector || 'circle'));
+  if (!puntos.length) return;
+  svg.dataset.tecladoActivo = '1';
+
+  const tituloDe = pt => { const t = pt.querySelector('title'); return t ? t.textContent : ''; };
+  const serieDe = opts.serieDe || (pt => pt.dataset.serie || '');
+  const etiquetaDe = opts.etiqueta || (pt => tituloDe(pt).replace(/\s*\n\s*/g, '. ') || etiquetaPuntoSerie(pt));
+  const htmlDe = opts.htmlTooltip || (pt => esc(tituloDe(pt) || etiquetaDe(pt)).replace(/\n/g, '<br>'));
+
+  // Series en el orden en que aparecen en el DOM; posDe recuerda serie/posición de cada punto.
+  const series = [], claves = new Map(), posDe = new Map();
+  puntos.forEach(pt => {
+    const k = serieDe(pt);
+    if (!claves.has(k)){ claves.set(k, series.length); series.push([]); }
+    const s = claves.get(k);
+    posDe.set(pt, { s, i: series[s].length });
+    series[s].push(pt);
+  });
+
+  const tip = obtenerTooltipGrafica();
+  tip.style.display = 'none'; // por si un SVG anterior con foco fue reemplazado sin disparar 'blur'
+  const ocultar = () => { tip.style.display = 'none'; };
+  const mostrar = pt => {
+    tip.innerHTML = htmlDe(pt);
+    tip.style.display = 'block';
+    const r = pt.getBoundingClientRect();
+    let x = r.right + 10, y = r.bottom + 10;
+    if (x + tip.offsetWidth > window.innerWidth - 8) x = r.left - tip.offsetWidth - 10;
+    if (y + tip.offsetHeight > window.innerHeight - 8) y = r.top - tip.offsetHeight - 10;
+    tip.style.left = Math.max(8, x) + 'px';
+    tip.style.top  = Math.max(8, y) + 'px';
+  };
+
+  // Nombre de la gráfica y modo de uso para lectores de pantalla.
+  const tarjetaTitulo = svg.closest('.card') && svg.closest('.card').querySelector('.chart-title');
+  const titulo = opts.titulo || (tarjetaTitulo ? tarjetaTitulo.textContent.replace(/[\p{Extended_Pictographic}\uFE0F]/gu, '').trim() : 'Gráfica');
+  svg.setAttribute('role', 'group');
+  svg.setAttribute('aria-label', `${titulo}. Usa las flechas izquierda y derecha para recorrer los puntos${series.length > 1 ? ' y arriba y abajo para cambiar de serie' : ''}.`);
+
+  // El foco que llega por un clic de mouse no abre el tooltip de teclado (el de hover ya está visible).
+  // El foco de un clic ocurre en la misma tarea que el 'pointerdown', antes de este setTimeout.
+  let clicReciente = false;
+  svg.addEventListener('pointerdown', () => { clicReciente = true; setTimeout(() => { clicReciente = false; }, 0); }, true);
+
+  let activo = series[0][0];
+  puntos.forEach(pt => {
+    pt.setAttribute('role', 'img');
+    pt.setAttribute('aria-label', etiquetaDe(pt));
+    pt.setAttribute('tabindex', pt === activo ? '0' : '-1');
+    pt.setAttribute('data-kb', '1');
+    pt.addEventListener('focus', () => {
+      activo.setAttribute('tabindex', '-1');
+      pt.setAttribute('tabindex', '0');
+      activo = pt;
+      if (!clicReciente) mostrar(pt); // con un clic de mouse ya se ve el tooltip de hover
+    });
+    pt.addEventListener('blur', ocultar);
+  });
+
+  const masCercanoEnX = (serie, ref) => {
+    const x0 = Number(ref.getAttribute('cx'));
+    return serie.reduce((mejor, pt) => Math.abs(Number(pt.getAttribute('cx')) - x0) < Math.abs(Number(mejor.getAttribute('cx')) - x0) ? pt : mejor, serie[0]);
+  };
+
+  svg.addEventListener('keydown', e => {
+    const pos = posDe.get(e.target);
+    if (!pos) return;
+    const serie = series[pos.s];
+    let destino = null;
+    switch (e.key){
+      case 'ArrowRight': destino = serie[pos.i + 1]; break;
+      case 'ArrowLeft':  destino = serie[pos.i - 1]; break;
+      case 'Home':       destino = serie[0]; break;
+      case 'End':        destino = serie[serie.length - 1]; break;
+      case 'ArrowDown':  if (series[pos.s + 1]) destino = masCercanoEnX(series[pos.s + 1], e.target); break;
+      case 'ArrowUp':    if (series[pos.s - 1]) destino = masCercanoEnX(series[pos.s - 1], e.target); break;
+      case 'Escape':     ocultar(); return;
+      default: return;
+    }
+    e.preventDefault(); // evita que las flechas desplacen la página
+    if (destino) destino.focus();
+  });
+}
