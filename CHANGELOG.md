@@ -4899,3 +4899,35 @@ para probar cada caso.
         // resoluciones ya guardadas siguen atadas al ID viejo (correcto:
         // pertenecen a ESE sorteo) y solo las nuevas usan el ID recargado.
 ```
+
+---
+
+## assets/styles.css — consolidación CSS (refactor, sesión 18-sep-2026)
+
+### 18-sep-2026 — `.join-modal-*` y `.rt-filtro-vacio` centralizados
+Fase 1 de un refactor de CSS disperso (auditoría previa mostró que el
+verdadero problema de duplicación no era volumen general de `<style>` por
+página, sino un puñado de componentes copiados carácter por carácter entre
+páginas). Dos casos confirmados como duplicación literal, no solo mismo
+nombre de clase:
+
+- **`.join-modal-*`** (overlay, modal, botón cerrar, opciones — el modal
+  "Cómo unirte" de los botones "Unirse a este clan"): vivía idéntico,
+  byte a byte, en el `<style>` de `index.html` y en un segundo `<style>`
+  de `directorio.html` (el propio comentario ahí decía "mismo estilo que
+  index.html"). Se movió a `styles.css`; se eliminó de ambas páginas.
+- **`.rt-filtro-vacio`** (mensaje "Sin coincidencias." del filtro A-Z de
+  las tablas): idéntico en `directorio.html` y `guerra.html`. Se movió a
+  `styles.css`; se eliminó de ambas.
+
+De paso, el segundo `<style>` de `directorio.html` tenía `.field textarea`,
+`.vetar-form` y `.vetar-form-titulo` — código muerto: ya estaban
+centralizados en `styles.css` desde el 1-sep-2026 (ver comentario ahí
+mismo) y esta copia era una réplica exacta sin usar. Se eliminó sin mover
+nada (ya existía el destino).
+
+Ningún cambio visual esperado — es movimiento de definiciones idénticas,
+no reescritura de estilos. Pendiente para próximas sesiones: consolidar
+tablas (`.inactivos-table`/`.roster-table`/`.cr-grid-table`/`.table-scroll`)
+y auditar los 49 candidatos a compartir de `directorio.html` (ver plan de
+refactor CSS para el detalle completo por página).
