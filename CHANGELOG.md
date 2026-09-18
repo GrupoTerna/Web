@@ -4941,6 +4941,68 @@ para probar cada caso.
 
 ## assets/styles.css — consolidación CSS (refactor, sesión 18-sep-2026)
 
+### 18-sep-2026 (séptimo lote) — Fase 3: `.carta-chip`/`.cc-*` y 5 duplicados chicos más
+Continuación del refactor con el mismo criterio milimétrico de los lotes
+anteriores (solo fusionar duplicación literal, carácter por carácter).
+Auditoría automatizada (comparando cada selector local contra sí mismo en
+las demás páginas, no solo contra `styles.css`) encontró un caso grande no
+detectado en los lotes previos y 5 chicos:
+
+- **`.carta-chip` / `.cc-*`** (17 reglas: base, `--sin-img`, `cc-img`,
+  `cc-content`, `cc-fila-1`, `b`, `cc-elixir`(+`img`), `cc-meta`,
+  `cc-rareza`(+4 variantes `data-rareza`), `cc-tipo`, `cc-badge`): idéntico
+  carácter por carácter entre `index.html` ("Cartas más usadas en la
+  Familia") y `perfil.html` ("Mazo actual") — el propio comentario de
+  `perfil.html` ya lo admitía ("copiadas tal cual acá"). Se centraliza en
+  `styles.css`. Quedan en `index.html`, por ser exclusivos de ahí:
+  `.cc-usos` y `.cc-badge-btn`(+`:hover`/`.is-activa`, el botón de editar
+  variante de carta, que `perfil.html` no tiene).
+- **`.miembro-row:hover` / `:last-child`**: idénticos entre `admin.html` y
+  `directorio.html` (la base `.miembro-row` y `.mr-rango` siguen sin
+  fusionar porque sí difieren, ver cuarto lote).
+- **`.letra-btn`**: idéntico entre `directorio.html` y `guerra.html`. Se
+  declara en `styles.css` DESPUÉS de `.tab-btn`/`.tab-btn.active` a
+  propósito — `assets/js/ui/filters.js` genera los botones A-Z/# con
+  `class="tab-btn letra-btn"`, y con la misma especificidad (una clase
+  cada una) el orden de declaración decide; el padding angosto de
+  `.letra-btn` necesita seguir ganando.
+- **`.ext-links`** (el contenedor, no `.ext-links a`/`button`, que sí
+  difieren): idéntico entre `directorio.html` y `perfil.html`.
+- **`.ingreso-row:last-child`** y **`.ingreso-links`** (el contenedor):
+  idénticos entre `index.html` y `perfil.html`. La base `.ingreso-row`,
+  `:hover` y `.ingreso-info .ing-*` difieren entre las dos y no se tocan.
+- **Código muerto** (idéntico a algo que ya existía en `styles.css` desde
+  antes, sin necesidad de mover nada): `.field textarea:focus` en
+  `admin.html` y `perfil.html`; `.vetar-form`/`.vetar-form-titulo` en
+  `perfil.html` (mismo caso que la copia de `directorio.html` eliminada en
+  el Fase 1 revisada).
+
+Se revisó también, y se descartó por no ser deuda técnica, la aparente
+duplicación de `*{box-sizing:border-box;}`/`html,body{margin:0;padding:0;}`
+entre `sorteo.html` y `styles.css`: `sorteo.html` no enlaza `styles.css`
+(es un overlay independiente para la transmisión del sorteo), así que sí
+necesita su propio reset.
+
+**Efecto colateral — 3 bugs de sintaxis preexistentes encontrados y
+corregidos** (verificación de balance de `{}`/`/* */` en los 5 `<style>`
+tocados esta sesión, no relacionados con el trabajo de arriba): un
+comentario de `directorio.html` (bloque de `.roster-topbar`, "Barra de
+scroll horizontal ARRIBA de la tabla") se cerraba con `-->` (sintaxis de
+comentario HTML) en vez de `*/` (CSS) — typo de una sesión anterior. Y dos
+comentarios (uno en `styles.css`, línea ~381, sobre el widget
+`.rt-*`/`.rt-orden-*`; otro en `guerra.html`, línea ~96, sobre
+`.grid-hscroll-*`/`.table-scroll-*`) tenían el patrón `*/` pegado dentro
+del propio texto del comentario (describiendo selectores con wildcard),
+lo que cerraba el comentario antes de tiempo. Se corrige separando el `*`
+del `/` con un espacio en la prosa (`.rt-* / .rt-orden-*`), sin cambiar el
+significado. Los navegadores son tolerantes a esto (descartan el CSS
+inválido resultante hasta la siguiente regla válida) así que es poco
+probable que causara un cambio visual real, pero quedaba mal formado.
+
+Ningún cambio visual esperado en lo fusionado — es movimiento de
+definiciones idénticas, eliminación de código muerto y corrección de
+comentarios mal cerrados, no reescritura de estilos.
+
 ### 18-sep-2026 (sexto lote) — `.table-scroll` (guerra.html) al selector compartido de scroll
 Cierra el cabo suelto que había quedado del "tercer lote" (`.inactivos-table`
 / `.roster-table`): `.table-scroll{overflow-x:auto;

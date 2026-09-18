@@ -378,7 +378,7 @@ section{padding:72px 0;}
    les quitaría esa identidad visual sin ganar nada a cambio. */
 .chart-empty{font-family:var(--f-mono); font-size:12px; color:var(--text-faint); padding:18px 4px;}
 /* FIX (18-sep-2026): .tabs-row/.tab-btn y el widget completo de filtro de
-   columna (.rt-*/.rt-orden-*) — antes vivían duplicados carácter por
+   columna (.rt-* / .rt-orden-*) — antes vivían duplicados carácter por
    carácter en directorio.html y guerra.html (el propio código lo admitía:
    "mismo widget... CSS traído tal cual de ahí para que ambas páginas se
    vean y se sientan igual"). Se centralizan acá. */
@@ -389,6 +389,11 @@ section{padding:72px 0;}
   cursor:pointer; background:transparent; transition:all .18s ease;
 }
 .tab-btn.active{color:#fff; border-color:var(--purple); background:rgba(162,57,255,.15);}
+/* FIX (18-sep-2026, refactor CSS — Fase 3, séptimo lote): .letra-btn (los
+ * botones A-Z/# más angostos que un .tab-btn normal) era idéntico
+ * carácter por carácter entre directorio.html y guerra.html — mismo
+ * criterio que ya llevó a .tabs-row/.tab-btn acá arriba. */
+.letra-btn{padding:6px 10px; min-width:30px;}
 .rt-th-inner{display:flex; align-items:center; justify-content:center; gap:6px;}
 .rt-filtro-btn{
   background:transparent; border:none; cursor:pointer; padding:4px; border-radius:5px;
@@ -467,6 +472,13 @@ section{padding:72px 0;}
 .miembro-row .mr-name{font-weight:600; font-size:14px;}
 .miembro-row .mr-tag{font-family:var(--f-mono); font-size:11px; color:var(--text-faint); margin-top:2px;}
 .miembro-row .mr-right{text-align:right;}
+/* FIX (18-sep-2026, refactor CSS — Fase 3, séptimo lote): :hover y
+ * :last-child de .miembro-row eran idénticos carácter por carácter entre
+ * admin.html y directorio.html (la base .miembro-row y .mr-rango siguen
+ * sin fusionar porque SÍ difieren entre ambas, ver notas del cuarto
+ * lote). */
+.miembro-row:last-child{border-bottom:none;}
+.miembro-row:hover{background:rgba(162,57,255,.1);}
 .req-row{display:flex; align-items:center; gap:12px; margin-bottom:12px; flex-wrap:wrap;}
 .req-row .lbl{width:140px; font-size:13px; color:var(--text-dim); flex-shrink:0;}
 .req-row .progress{flex:1; min-width:120px;}
@@ -474,6 +486,20 @@ section{padding:72px 0;}
 .ext-item{background:var(--bg-2); border:1px solid var(--line); border-radius:var(--radius-sm); padding:12px 14px; text-align:center;}
 .ext-item .v{font-family:var(--f-display); font-weight:800; font-size:19px; color:var(--text);}
 .ext-item .k{font-family:var(--f-mono); font-size:10px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.06em; margin-top:2px;}
+/* FIX (18-sep-2026, refactor CSS — Fase 3, séptimo lote): el contenedor
+ * .ext-links (display:flex; gap; margin-top; flex-wrap) era idéntico
+ * carácter por carácter entre directorio.html y perfil.html — mismo caso
+ * que .ext-grid/.ext-item, fusionados en el cuarto lote. .ext-links a NO
+ * se toca: difiere entre las dos páginas. */
+.ext-links{display:flex; gap:14px; margin-top:18px; flex-wrap:wrap;}
+/* FIX (18-sep-2026, refactor CSS — Fase 3, séptimo lote): dentro de la
+ * sección "Últimos ingresos" (index.html) y su equivalente de
+ * perfil.html, .ingreso-row:last-child y .ingreso-links eran idénticos
+ * carácter por carácter. .ingreso-row (la base), .ingreso-row:hover y
+ * .ingreso-info .ing-fecha/.ing-nombre difieren entre las dos páginas —
+ * no se tocan. */
+.ingreso-row:last-child{margin-bottom:0;}
+.ingreso-links{display:flex; gap:8px; flex-wrap:wrap;}
 .comparativa-grid{display:grid; grid-template-columns:1fr; gap:28px; margin-top:24px;}
 .chart-tooltip{
   position:fixed; z-index:300; pointer-events:none; display:none;
@@ -482,6 +508,56 @@ section{padding:72px 0;}
   box-shadow:var(--glow); white-space:nowrap;
 }
 .chart-tooltip b{color:var(--gold);}
+/* FIX (18-sep-2026, refactor CSS — Fase 3, séptimo lote): .carta-chip (+
+ * todos sus .cc-*) vivía idéntico carácter por carácter en index.html
+ * ("Cartas más usadas en la Familia") y perfil.html ("Mazo actual") — el
+ * propio comentario de perfil.html ya lo admitía ("mismas clases
+ * .carta-chip/.cc-*, copiadas tal cual acá"). Se centraliza acá; queda
+ * fuera lo que NO era compartido: .cc-usos y .cc-badge-btn(+:hover/
+ * .is-activa) son exclusivos de index.html (el modal de editar variante
+ * de carta ahí no existe en perfil.html) y se quedan en su <style>. */
+.carta-chip{
+  display:grid; grid-template-columns:auto 1fr; align-items:stretch; gap:5px 12px; padding:8px 14px 8px 8px;
+  border:1px solid var(--line); border-radius:14px; font-size:12px; color:var(--text-dim);
+}
+.carta-chip.carta-chip--sin-img{grid-template-columns:1fr;}
+.carta-chip .cc-img{
+  width:52px; height:100%; min-height:62px; object-fit:cover; border-radius:8px;
+  background:var(--bg-2); align-self:stretch;
+}
+.carta-chip .cc-content{display:flex; flex-direction:column; justify-content:center; gap:5px; min-width:0;}
+.carta-chip .cc-fila-1{display:flex; flex-wrap:wrap; align-items:center; gap:5px 10px;}
+.carta-chip b{color:var(--text);}
+.carta-chip .cc-elixir{display:inline-flex; align-items:center; gap:3px; color:var(--purple-light); font-family:var(--f-mono);}
+.carta-chip .cc-elixir img{width:13px; height:13px; vertical-align:-2px;}
+.carta-chip .cc-meta{display:flex; align-items:center; gap:6px; flex-wrap:wrap;}
+.carta-chip .cc-rareza{
+  font-family:var(--f-mono); font-size:10px; text-transform:uppercase; letter-spacing:.03em;
+  padding:2px 7px; border-radius:999px; border:1px solid currentColor;
+}
+/* CORRECCIÓN (05-sep-2026, pedido usuario — colores reales de cada calidad
+   en Clash Royale): Común = azul, Especial = naranja, Épica = rosa (color
+   del elixir), Legendaria = degradado verde-rosa, Campeón = letras
+   doradas. */
+.carta-chip .cc-rareza[data-rareza="comun"]{color:#4da6ff;}
+.carta-chip .cc-rareza[data-rareza="especial"]{color:#ff9a3d;}
+.carta-chip .cc-rareza[data-rareza="epica"]{color:#e64bd1;}
+.carta-chip .cc-rareza[data-rareza="legendaria"]{
+  /* Degradado verde-rosa: el borde (currentColor) no puede heredar un
+     degradado, así que se fija aparte con border-color. */
+  background:linear-gradient(90deg, #6ee7a0, #ff7cf0);
+  -webkit-background-clip:text; background-clip:text; color:transparent;
+  border-color:#ff7cf0;
+}
+.carta-chip .cc-rareza[data-rareza="campeon"]{color:var(--gold);}
+.carta-chip .cc-tipo{
+  font-family:var(--f-mono); font-size:10px; text-transform:uppercase; letter-spacing:.03em;
+  padding:2px 7px; border-radius:999px; border:1px solid var(--line); color:var(--text-faint);
+}
+.carta-chip .cc-badge{
+  font-family:var(--f-mono); font-size:10px; padding:2px 7px; border-radius:999px;
+  background:var(--bg-2); color:var(--text-faint);
+}
 .perfil-cabecera{display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px;}
 .msg{padding:14px 16px; border-radius:var(--radius-sm); font-size:14px; margin-top:14px;}
 .msg-error{background:rgba(244,63,94,.12); border:1px solid rgba(244,63,94,.4); color:#fda4af;}
@@ -577,7 +653,7 @@ footer .wrap span{text-align:justify; text-justify:inter-word;}
  * a ser una tabla real (.inactivos-table, armada por _renderVistaInactivos()/
  * _filaInactivoHtml() en common.js) — mismo espíritu que .roster-table de
  * directorio.html. Cada <th> usa el MISMO text-align que su <td>
- * correspondiente (ver .ia-th-*/.ia-td-* abajo), así el encabezado queda
+ * correspondiente (ver .ia-th-* / .ia-td-* abajo), así el encabezado queda
  * siempre centrado/alineado exactamente sobre sus propios valores, columna
  * por columna. Nombre/Tag/Clan usan white-space:nowrap (en vez de dejar
  * que el nombre se parta en dos líneas dentro de su celda) y la tabla vive

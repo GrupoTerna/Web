@@ -80,7 +80,11 @@
    * con clase .btn.btn-ghost, el formato "feo" que había que quitar) —
    * ver renderMiembro() más abajo, donde se arma toda la fila junta.
    */
-  .ext-links{display:flex; gap:14px; margin-top:18px; flex-wrap:wrap;}
+  /* .ext-links (el contenedor): centralizado en assets/styles.css
+     (18-sep-2026, Fase 3, séptimo lote) — idéntico carácter por carácter
+     al de directorio.html. .ext-links a/button se quedan acá: esta página
+     además tiene botones dentro de la misma fila (ver comentario arriba),
+     algo que directorio.html no tiene. */
   .ext-links a, .ext-links button{
     font-family:var(--f-mono); font-size:12px; font-weight:600; color:var(--purple-light);
     border:1px solid var(--line); padding:8px 14px; border-radius:var(--radius-sm); text-decoration:none;
@@ -92,19 +96,20 @@
     padding:14px 18px; border-radius:var(--radius-sm); border:1px solid var(--line);
     background:var(--surface-card); margin-bottom:10px; transition:all .18s ease;
   }
-  .ingreso-row:last-child{margin-bottom:0;}
+  /* :last-child (arriba) y .ingreso-links (abajo) centralizados en
+     assets/styles.css (18-sep-2026, Fase 3, séptimo lote) — idénticos
+     carácter por carácter a los de index.html. */
   .ingreso-row:hover{border-color:var(--line-strong); transform:translateY(-2px); cursor:pointer;}
   .ingreso-info .ing-nombre{font-weight:700; font-size:14px; color:var(--text);}
   .ingreso-info .ing-fecha{font-family:var(--f-mono); font-size:11px; color:var(--text-faint); margin-top:3px;}
-  .ingreso-links{display:flex; gap:8px; flex-wrap:wrap;}
   .field textarea{
     width:100%; background:var(--bg-2); border:1px solid var(--line); color:var(--text);
     padding:13px 16px; border-radius:var(--radius-sm); font-family:var(--f-body); font-size:15px;
     transition:all .18s ease; min-height:90px; resize:vertical;
   }
-  .field textarea:focus{border-color:var(--purple); box-shadow:0 0 0 3px rgba(162,57,255,.2); outline:none;}
-  .vetar-form{border:1px solid var(--line); border-radius:var(--radius-sm); padding:16px; background:var(--surface);}
-  .vetar-form-titulo{font-family:var(--f-mono); font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--danger); margin-bottom:14px;}
+  /* :focus, .vetar-form y .vetar-form-titulo: código muerto, ya cubiertos
+     idénticos por styles.css (el <link> va antes de este <style>). Se
+     elimina la copia (18-sep-2026, Fase 3, séptimo lote). */
   /* FIX (18-sep-2026, Fase 4): el placeholder de "sin datos" del ranking
      (antes .ranking-chart-empty acá mismo) se consolidó en styles.css como
      .chart-empty — era idéntico carácter por carácter al de directorio.html
@@ -113,48 +118,15 @@
    * calidad, costo (con su ícono)"): el grid de cartas de "Mazo actual"
    * pasa del layout simple anterior (ícono+nombre+nivel en columna) a la
    * misma ficha "carta-chip" ya usada en index.html para "Cartas más
-   * usadas en la Familia" (ver <style>/cargarEstadisticasCartas() ahí) —
-   * mismas clases .carta-chip/.cc-*, copiadas tal cual acá porque viven en
-   * el <style> de cada página (no en assets/styles.css), para que ambas
-   * secciones se vean consistentes. Ver renderMazoActual() y
-   * _ordenarCartasMazo()/_datosCarta() más abajo en el script. */
+   * usadas en la Familia". Ver renderMazoActual() y
+   * _ordenarCartasMazo()/_datosCarta() más abajo en el script.
+   *
+   * FIX (18-sep-2026, refactor CSS — Fase 3, séptimo lote): .carta-chip/
+   * .cc-* vivía acá copiado tal cual desde index.html (carácter por
+   * carácter, el comentario original ya lo admitía). Se centraliza en
+   * assets/styles.css; se elimina la copia de acá. .mazo-chips es
+   * específico de esta página (el grid contenedor) y se queda. */
   .mazo-chips{display:grid; grid-template-columns:repeat(auto-fill, minmax(230px, 1fr)); gap:12px;}
-  .carta-chip{
-    display:grid; grid-template-columns:auto 1fr; align-items:stretch; gap:5px 12px; padding:8px 14px 8px 8px;
-    border:1px solid var(--line); border-radius:14px; font-size:12px; color:var(--text-dim);
-  }
-  .carta-chip.carta-chip--sin-img{grid-template-columns:1fr;}
-  .carta-chip .cc-img{
-    width:52px; height:100%; min-height:62px; object-fit:cover; border-radius:8px;
-    background:var(--bg-2); align-self:stretch;
-  }
-  .carta-chip .cc-content{display:flex; flex-direction:column; justify-content:center; gap:5px; min-width:0;}
-  .carta-chip .cc-fila-1{display:flex; flex-wrap:wrap; align-items:center; gap:5px 10px;}
-  .carta-chip b{color:var(--text);}
-  .carta-chip .cc-elixir{display:inline-flex; align-items:center; gap:3px; color:var(--purple-light); font-family:var(--f-mono);}
-  .carta-chip .cc-elixir img{width:13px; height:13px; vertical-align:-2px;}
-  .carta-chip .cc-meta{display:flex; align-items:center; gap:6px; flex-wrap:wrap;}
-  .carta-chip .cc-rareza{
-    font-family:var(--f-mono); font-size:10px; text-transform:uppercase; letter-spacing:.03em;
-    padding:2px 7px; border-radius:999px; border:1px solid currentColor;
-  }
-  .carta-chip .cc-rareza[data-rareza="comun"]{color:#4da6ff;}
-  .carta-chip .cc-rareza[data-rareza="especial"]{color:#ff9a3d;}
-  .carta-chip .cc-rareza[data-rareza="epica"]{color:#e64bd1;}
-  .carta-chip .cc-rareza[data-rareza="legendaria"]{
-    background:linear-gradient(90deg, #6ee7a0, #ff7cf0);
-    -webkit-background-clip:text; background-clip:text; color:transparent;
-    border-color:#ff7cf0;
-  }
-  .carta-chip .cc-rareza[data-rareza="campeon"]{color:var(--gold);}
-  .carta-chip .cc-tipo{
-    font-family:var(--f-mono); font-size:10px; text-transform:uppercase; letter-spacing:.03em;
-    padding:2px 7px; border-radius:999px; border:1px solid var(--line); color:var(--text-faint);
-  }
-  .carta-chip .cc-badge{
-    font-family:var(--f-mono); font-size:10px; padding:2px 7px; border-radius:999px;
-    background:var(--bg-2); color:var(--text-faint);
-  }
   /* ===== FIX (12-sep-2026, pedido usuario — aprovechar TODO el JSON crudo
    * del export de Drive): estilos de las secciones nuevas del perfil.
    * Qué falta conectar al backend y con qué nombre de categoría: ver los

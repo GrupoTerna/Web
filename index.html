@@ -235,8 +235,11 @@
     padding:14px 18px; border-radius:var(--radius-sm); border:1px solid var(--line);
     background:var(--surface-card); margin-bottom:10px; transition:all .18s ease;
   }
-  .ingreso-row:last-child{margin-bottom:0;}
   .ingreso-row:hover{border-color:var(--line-strong); transform:translateY(-2px);}
+  /* :last-child (arriba de .ingreso-row) y .ingreso-links (abajo, el
+     contenedor) centralizados en assets/styles.css (18-sep-2026, Fase 3,
+     séptimo lote) — idénticos carácter por carácter a los de perfil.html.
+     .ingreso-links a se queda: difiere entre las dos páginas. */
   /* FIX (08-sep-2026, pedido usuario — "los datos de las tablas de
    * Ingresos recientes también tienen un tamaño de letra muy bajo"):
    * nombre, fecha, tag, links y las mini-estadísticas de cada tarjeta
@@ -245,7 +248,6 @@
    * los colores, solo la letra. */
   .ingreso-info .ing-nombre{font-weight:700; font-size:16px; color:var(--text);}
   .ingreso-info .ing-fecha{font-family:var(--f-mono); font-size:12.5px; color:var(--text-faint); margin-top:3px;}
-  .ingreso-links{display:flex; gap:8px; flex-wrap:wrap;}
   .ingreso-links a{
     font-family:var(--f-mono); font-size:12.5px; font-weight:600; color:var(--purple-light);
     border:1px solid var(--line); padding:7px 13px; border-radius:var(--radius-sm); text-decoration:none;
@@ -499,54 +501,15 @@
    * la derecha" las píldoras: ya no comparten fila con la imagen, quedan
    * apiladas debajo del nombre pero recortadas al ancho de la columna de
    * texto, no al ancho completo del chip. */
-  .carta-chip{
-    display:grid; grid-template-columns:auto 1fr; align-items:stretch; gap:5px 12px; padding:8px 14px 8px 8px;
-    border:1px solid var(--line); border-radius:14px; font-size:12px; color:var(--text-dim);
-  }
-  .carta-chip.carta-chip--sin-img{grid-template-columns:1fr;}
-  .carta-chip .cc-img{
-    width:52px; height:100%; min-height:62px; object-fit:cover; border-radius:8px;
-    background:var(--bg-2); align-self:stretch;
-  }
-  .carta-chip .cc-content{display:flex; flex-direction:column; justify-content:center; gap:5px; min-width:0;}
-  .carta-chip .cc-fila-1{display:flex; flex-wrap:wrap; align-items:center; gap:5px 10px;}
-  .carta-chip b{color:var(--text);}
+  /* FIX (18-sep-2026, refactor CSS — Fase 3, séptimo lote): el resto de
+   * .carta-chip/.cc-* (base, sin-img, cc-img, cc-content, cc-fila-1, b,
+   * cc-elixir, cc-meta, cc-rareza + sus 4 variantes, cc-tipo, cc-badge)
+   * era idéntico carácter por carácter a la copia de perfil.html
+   * ("Mazo actual"). Se centraliza en assets/styles.css; se elimina la
+   * copia de acá. Quedan SOLO .cc-usos y .cc-badge-btn(+:hover/
+   * .is-activa) porque son exclusivos de esta página (perfil.html no
+   * tiene el botón de editar variante de carta). */
   .carta-chip .cc-usos{color:var(--gold); font-family:var(--f-mono);}
-  .carta-chip .cc-elixir{display:inline-flex; align-items:center; gap:3px; color:var(--purple-light); font-family:var(--f-mono);}
-  .carta-chip .cc-elixir img{width:13px; height:13px; vertical-align:-2px;}
-  .carta-chip .cc-meta{display:flex; align-items:center; gap:6px; flex-wrap:wrap;}
-  .carta-chip .cc-rareza{
-    font-family:var(--f-mono); font-size:10px; text-transform:uppercase; letter-spacing:.03em;
-    padding:2px 7px; border-radius:999px; border:1px solid currentColor;
-  }
-  /* CORRECCIÓN (05-sep-2026, pedido usuario — colores reales de cada
-     calidad en Clash Royale): Común = azul, Especial = naranja, Épica =
-     rosa (color del elixir), Legendaria = degradado verde-rosa, Campeón =
-     letras doradas. Antes "rara"/"campeona" no correspondían a ninguna
-     calidad real del juego (ver RAREZA_ES más abajo en el <script>). */
-  .carta-chip .cc-rareza[data-rareza="comun"]{color:#4da6ff;}
-  .carta-chip .cc-rareza[data-rareza="especial"]{color:#ff9a3d;}
-  .carta-chip .cc-rareza[data-rareza="epica"]{color:#e64bd1;}
-  .carta-chip .cc-rareza[data-rareza="legendaria"]{
-    /* Degradado verde-rosa: el borde (currentColor) no puede heredar un
-       degradado, así que se fija aparte con border-color. */
-    background:linear-gradient(90deg, #6ee7a0, #ff7cf0);
-    -webkit-background-clip:text; background-clip:text; color:transparent;
-    border-color:#ff7cf0;
-  }
-  .carta-chip .cc-rareza[data-rareza="campeon"]{color:var(--gold);}
-  /* FASE (05-sep-2026, pedido del usuario): badge del tipo real de carta
-     (Tropa/Hechizo/Estructura, columna "Tipo" de Backup_Cards.csv). Mismo
-     formato de píldora que cc-rareza pero neutro, ya que el tipo no tiene
-     un color propio como las calidades. */
-  .carta-chip .cc-tipo{
-    font-family:var(--f-mono); font-size:10px; text-transform:uppercase; letter-spacing:.03em;
-    padding:2px 7px; border-radius:999px; border:1px solid var(--line); color:var(--text-faint);
-  }
-  .carta-chip .cc-badge{
-    font-family:var(--f-mono); font-size:10px; padding:2px 7px; border-radius:999px;
-    background:var(--bg-2); color:var(--text-faint);
-  }
   /* FASE (05-sep-2026, pedido usuario — "falta alinear y que las cartas
    * con héroe/evolución, al tocar los botones, cambien la imagen"):
    * cc-badge-btn reutiliza la píldora de cc-badge pero como <button> real
@@ -561,6 +524,8 @@
   .carta-chip .cc-badge-btn:hover{ background:rgba(162,57,255,.14); color:var(--text); }
   .carta-chip .cc-badge-btn.is-activa{
     background:var(--purple); border-color:var(--purple); color:#fff;
+  }
+</style>
   }
 </style>
 <!-- Datos estructurados (schema.org, Organization) en index.html para resultados enriquecidos en Google; sameAs enlaza los mismos canales de "Canales Verificados". Historial en CHANGELOG.md. -->
