@@ -682,11 +682,7 @@
     </div>
   </section>
 
-  <!-- ---------- COMPARADOR DE JUGADORES ----------
-       Ver _webCompararJugadores() en 34_Web_API.gs — envuelve dos
-       llamadas a webPerfil en un solo pedido. FIX (02-sep-2026, punto 9):
-       ahora también consume _webHistorialGuerraComparador() para pintar
-       el desempeño diario de guerra (ver compGuerraChartWrap más abajo). -->
+  <!-- Comparador de jugadores: _webCompararJugadores() envuelve dos llamadas a webPerfil; también consume _webHistorialGuerraComparador() para el desempeño diario de guerra. Historial en CHANGELOG.md. -->
   <section style="padding:32px 0 0;" data-reveal>
     <div class="sec-head" style="margin-bottom:20px;">
       <div class="eyebrow">Cara a cara</div>
@@ -703,18 +699,11 @@
     </div>
     <div id="compWrap" class="comp-grid" style="margin-top:16px;"></div>
     <div id="compBarrasWrap" style="margin-top:16px;"></div>
-    <!-- FIX (02-sep-2026, pedido usuario, punto 9: "Cara a cara debería
-         mostrar el desempeño de guerra con gráficas, sacadas de la hoja
-         Guerra/CSV, valores diarios, eje X solo por mes"). Ver
-         _webHistorialGuerraComparador() en 34_Web_API.gs y
-         renderComparadorGuerraChart() más abajo. -->
+    <!-- El desempeño de guerra del comparador se grafica con datos diarios de la hoja Guerra/CSV, eje X solo por mes. Historial en CHANGELOG.md. -->
     <div id="compGuerraChartWrap" style="margin-top:16px;"></div>
   </section>
 
-  <!-- ---------- DIRECTORIO COMPLETO ----------
-       Sin barra de filtro propia: la barra de búsqueda de arriba ("Busca
-       tu perfil por nombre o tag") ya cumple esa función — no hace falta
-       una segunda barra buscadora acá (pedido del PDF de diseño). -->
+  <!-- "Directorio completo" no tiene barra de filtro propia: reusa la de búsqueda de arriba. Historial en CHANGELOG.md. -->
   <section id="roster" style="padding:32px 0 0;" data-reveal>
     <div class="sec-head" style="margin-bottom:20px;">
       <div class="eyebrow">Directorio</div>
@@ -722,42 +711,23 @@
       <p style="margin-top:8px;">Elige un clan y toca un nombre para ver su progreso al instante.</p>
     </div>
     <div class="clan-tabs" id="clanTabs"></div>
-    <!-- FIX (13-sep-2026, pedido usuario — "agrega los botones de letras en
-         directorio por clan"): fila A-Z/# para filtrar por primera letra
-         del nombre, mismo patrón visual que en guerra.html — se pinta una
-         sola vez (ver pintarFiltroLetraRoster() en el <script>) y persiste
-         fuera de #rosterWrap para no perderse al cambiar de clan (cada
-         cambio de clan sí resetea CUÁL letra está elegida, igual que ya
-         hacía con los demás filtros — ver renderRosterClanActivo()). -->
+    <!-- Fila A-Z/# para filtrar por primera letra del nombre, mismo patrón que guerra.html; persiste fuera de #rosterWrap y se resetea al cambiar de clan. Historial en CHANGELOG.md. -->
     <div class="tabs-row" id="rosterLetraFilter" style="margin-top:12px;"></div>
     <div id="rosterWrap">
       <div class="loading-block"><div class="spinner"></div></div>
     </div>
   </section>
 
-  <!-- FIX (04-sep-2026, pedido usuario — "Los ingresos recientes deben
-       moverse a Directorio (al final)"): antes vivía en guerra.html; se
-       trae completa (markup + JS, ver cargarIngresosRecientes()) al final
-       del Directorio, después de la lista de miembros por clan. Sigue
-       consumiendo 'webGuerraEnVivo' (mismo endpoint público, campo
-       'nuevos') — no hizo falta ningún cambio de backend. -->
+  <!-- "Ingresos recientes" se movió acá desde guerra.html (markup + JS); sigue consumiendo webGuerraEnVivo. Historial en CHANGELOG.md. -->
   <section id="ingresosRecientes" style="padding:32px 0 0;" data-reveal>
     <div class="sec-head" style="display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:10px; border-bottom:1px solid var(--line); padding-bottom:12px;">
       <h2 style="font-size:22px;">🆕 Ingresos Recientes</h2>
       <span class="text-faint" id="nuevosCount" style="font-family:var(--f-mono); font-size:13px;"></span>
     </div>
-    <!-- FIX (16-sep-2026 v2, pedido usuario — pastillas de clan en vez del
-         botón "Filtrar por clan / miembro" + panel plegable): pintado por
-         construirFiltroIngresos() en cuanto llega la data. -->
+    <!-- Pastillas de clan en vez de un botón con panel plegable, pintadas por construirFiltroIngresos(). Historial en CHANGELOG.md. -->
     <div class="ing-pill-row" id="ingClanPills"></div>
     <div class="nuevo-grid" id="nuevoGrid" style="margin-top:20px;"></div>
-    <!-- FIX (16-sep-2026 v8, pedido usuario — "poner un botón de
-         Mostrar/Ocultar gráficas para no precargar todo de golpe [...]
-         que al inicio aparezcan solo las tarjetas de nombres y las
-         gráficas que sean a pedido"): las gráficas comparativas
-         (renderComparativaSemanal) ya no se construyen al cargar la
-         página — arrancan cerradas y solo se pintan cuando el usuario
-         toca este botón (ver inicializarToggleGraficasIngresos()). -->
+    <!-- Botón Mostrar/Ocultar gráficas evita precargar todo de golpe; las gráficas comparativas arrancan cerradas. Historial en CHANGELOG.md. -->
     <div style="display:flex; justify-content:center; margin-top:28px;">
       <button type="button" class="ing-pill" id="ingGraficasToggle" data-clan="__graficas__" aria-pressed="false">📊 Mostrar gráficas</button>
     </div>
@@ -853,10 +823,7 @@ async function cargarClanInfoYCharts(){
   const clanGrid   = document.getElementById('clanGrid');
   try{
     const data = await apiGet('webClanInfo');
-    // Orden fijo de la Familia, no alfabético — ver ordenClanIndex() en
-    // common.js. Se ordena antes de usar el índice "i" para que la
-    // insignia de rol (Cantera/Semillero) siempre le toque al clan
-    // correcto, sin importar el orden que mande el backend.
+    // Orden fijo de la Familia (no alfabético), se ordena antes de asignar la insignia de rol al clan correcto. Historial en CHANGELOG.md.
     const clanes = ordenarClanes(data.clanes || []);
 
     chartsGrid.innerHTML = [
@@ -1053,21 +1020,14 @@ async function buscarMiembro(tagDirecto){
       msgEl.innerHTML = '<div class="msg msg-error">No se encontró ningún miembro con ese nombre o Tag.</div>';
       return;
     }
-    // FIX (31-ago-2026, pedido usuario — "debería mostrarme las 5
-    // coincidencias (ya sea en tag o nombre) y darme a elegir el que
-    // quiero ver"): con UNA sola coincidencia se sigue resolviendo directo
-    // (eso "se reemplaza bien", según el propio pedido); con 2 o más ya no
-    // se elige la primera en automático — se muestra la lista y se espera
-    // el clic del usuario.
+    // Con una sola coincidencia se resuelve directo; con 2+ se muestra la lista y se espera el clic del usuario. Historial en CHANGELOG.md.
     if (candidatos.length > 1){
       msgEl.innerHTML = renderListaCoincidencias(candidatos, 'buscarMiembro');
       return;
     }
     tagFinal = candidatos[0].tag;
   } else {
-    // El directorio todavía no terminó de cargar: si lo escrito ya parece
-    // un Tag completo, se prueba directo contra la API en vez de obligar
-    // a esperar a que cargue el directorio.
+    // Si el directorio no terminó de cargar y el texto parece un Tag completo, se prueba directo contra la API. Historial en CHANGELOG.md.
     const sinEspacios = rawTrim.replace(/\s+/g, '');
     const pareceTag = /^#?[A-Za-z0-9]{4,}$/.test(sinEspacios);
     if (!pareceTag){
@@ -1098,32 +1058,16 @@ function renderComparadorLado(jugador){
     extItem(jugador.copas, 'Copas', true),
     extItem(jugador.vGuerra, 'V. Guerra', true),
     extItem(jugador.torneos, 'Torneos', true),
-    // FIX (03-sep-2026, pedido usuario — "reemplazar 'ataques/sem' por
-    // 'Ataques en la semana actual', contando solo lo que se hizo en
-    // días de guerra"): el valor (jugador.guerraSemana.ataques) ya vale
-    // eso — sale de GC.ATAQUES_SEM, que el juego mismo solo permite
-    // acumular en días de guerra (no hay "ataques" que registrar en
-    // entrenamiento), así que no hacía falta tocar el número, solo la
-    // etiqueta, que sí era ambigua sobre qué contaba.
-    // FIX (05-sep-2026, pedido usuario): ahora usa extItemAtaques() en vez
-    // de extItem() para agregar "/tope" (ver docblock de esa función).
+    // "Ataques en la semana actual" cuenta solo días de guerra (GC.ATAQUES_SEM); usa extItemAtaques() para agregar "/tope". Historial en CHANGELOG.md.
     extItemAtaques(jugador.guerraSemana, 'Ataques en la semana actual'),
     extItem(ext.racha, 'Racha', true),
-    // FIX (03-sep-2026, pedido usuario — "incluir 'Donaciones hechas' y
-    // 'Donaciones recibidas' en vez de cortar el texto"): antes solo
-    // estaba 'Donac. hechas' (abreviado) y faltaba el recibidas.
+    // Se incluyen "Donaciones hechas" y "Donaciones recibidas" completas, sin abreviar. Historial en CHANGELOG.md.
     extItem(ext.donacionesRealizadas, 'Donaciones hechas', true),
     extItem(ext.donacionesRecibidas, 'Donaciones recibidas', true),
     extItem(ext.victorias3Coronas, '3 coronas', true),
     extItem(ext.rankingClan, 'Ranking en el clan', true)
   ].join('');
-  // FIX (05-sep-2026, pedido usuario — "la vigencia del cara a cara debe
-  // tener el formato que tiene en el perfil de miembro y debe ir a la
-  // derecha del nombre... con hora incluida"): antes la Vigencia salía
-  // como un cuadrito más del ext-grid (fecha sin hora); ahora se pinta
-  // junto al nombre con .perfil-cabecera/.stats-mini (mismo patrón visual
-  // que usa perfil.html para su Vigencia) y con fmtFechaConHoraVigencia()
-  // (fecha + hora) en vez de fmtFechaCortaVigencia() (solo fecha).
+  // La Vigencia del comparador se pinta junto al nombre (mismo patrón visual que perfil.html) con fecha y hora. Historial en CHANGELOG.md.
   const vigenciaHtml = jugador.vigencia
     ? `<div class="stats-mini"><span><b>${esc(fmtFechaConHoraVigencia(jugador.vigencia))}</b>Vigencia</span></div>`
     : '';
@@ -1183,12 +1127,7 @@ function renderComparadorBarras(a, b){
     { icono:'🏆', label:'Copas',        va: a.copas, vb: b.copas },
     { icono:'🎖️', label:'V. Guerra',    va: a.vGuerra, vb: b.vGuerra },
     { icono:'🏅', label:'Torneos',      va: a.torneos, vb: b.torneos },
-    // FIX (03-sep-2026, pedido usuario): mismo cambio de etiqueta y de
-    // items de donaciones que renderComparadorLado() más arriba.
-    // FIX (05-sep-2026, pedido usuario — "en los ataques, agrega '/' y la
-    // cantidad de ataques que debería tener"): tope (Number(a.guerraSemana.ataquesMax) ||
-    // b.guerraSemana.ataquesMax) — cualquiera de los dos lados alcanza,
-    // ambos jugadores comparten el mismo tope de la semana en curso.
+    // Mismo cambio de etiquetas/donaciones que arriba; el tope de ataques sale de cualquiera de los dos lados (comparten la semana). Historial en CHANGELOG.md.
     { icono:'⚔️', label:'Ataques en la semana actual',
       va: a.guerraSemana && a.guerraSemana.ataques, vb: b.guerraSemana && b.guerraSemana.ataques,
       maxAtaques: (a.guerraSemana && a.guerraSemana.ataquesMax) || (b.guerraSemana && b.guerraSemana.ataquesMax) || 0 },
@@ -1206,10 +1145,7 @@ function renderComparadorBarras(a, b){
     const maxBarra = Math.max(1, va, vb);
     const pctA = Math.max(2, Math.round((va / maxBarra) * 100));
     const pctB = Math.max(2, Math.round((vb / maxBarra) * 100));
-    // FIX (05-sep-2026, pedido usuario — "en los ataques, agrega '/' y la
-    // cantidad de ataques que debería tener"): f.maxAtaques solo viene con
-    // dato (>0) en la fila de "Ataques en la semana actual"; en el resto de
-    // filas queda undefined/0 y el texto se comporta igual que antes.
+    // f.maxAtaques solo trae dato en la fila de "Ataques en la semana actual"; en el resto queda sin efecto. Historial en CHANGELOG.md.
     const tope = Number(f.maxAtaques) || 0;
     const txtA = tope > 0 ? (fmtNum(va) + '/' + fmtNum(tope)) : fmtNum(va);
     const txtB = tope > 0 ? (fmtNum(vb) + '/' + fmtNum(tope)) : fmtNum(vb);
@@ -1254,11 +1190,7 @@ function guerraComparadorMetricaSvg(a, b, campo, tituloMetrica, fechas, indicePo
   const todos = valoresA.concat(valoresB);
   const minCrudo = Math.min(...todos), maxCrudo = Math.max(...todos);
 
-  // Redondea el rango a un "paso" agradable (1/2/5 x 10^n) y le agrega
-  // ~10% de margen arriba/abajo para que ningún punto quede pegado al
-  // borde del gráfico — en vez de forzar el piso a 0, que aplastaba la
-  // variación real cuando los dos jugadores se mueven en un rango angosto
-  // y alto (ej. Fame entre 2800 y 3200).
+  // El rango del eje se redondea a un paso agradable (1/2/5 x 10^n) con ~10% de margen, en vez de forzar el piso a 0. Historial en CHANGELOG.md.
   function pasoAgradable(rango){
     if (rango <= 0) return 1;
     const exp = Math.pow(10, Math.floor(Math.log10(rango)));
@@ -1271,9 +1203,7 @@ function guerraComparadorMetricaSvg(a, b, campo, tituloMetrica, fechas, indicePo
   const min = Math.max(0, Math.floor((minCrudo - margen) / paso) * paso);
   const max = Math.ceil((maxCrudo + margen) / paso) * paso || paso;
 
-  // FIX (07-sep-2026, pedido usuario): PAD_B pasó de 32 a 40 porque la
-  // etiqueta de fecha ahora va rotada 45° (ver más abajo) y necesita más
-  // alto para no recortarse contra el borde inferior del SVG.
+  // PAD_B se agrandó porque la etiqueta de fecha va rotada 45°. Historial en CHANGELOG.md.
   const W = 640, H = 220, PAD_L = 50, PAD_R = 16, PAD_T = 16, PAD_B = 40;
   const plotW = W - PAD_L - PAD_R, plotH = H - PAD_T - PAD_B;
   const stepX = fechas.length > 1 ? plotW / (fechas.length - 1) : 0;
@@ -1290,16 +1220,7 @@ function guerraComparadorMetricaSvg(a, b, campo, tituloMetrica, fechas, indicePo
   // 07-sep-2026) — mismo criterio que el resto de gráficas del sitio.
   const gridMedios = gridHorizontalMediosSvg(pasosGrid, max - min, v => escalaY(min + v), PAD_L, W - PAD_R);
 
-  // FIX (07-sep-2026, pedido usuario — "agrega líneas... que permitan
-  // identificar el primer registro de cada semana y unas más notorias
-  // para el inicio de cada mes"), ACTUALIZADO el mismo día (pedido más
-  // amplio, ver docblock de lineasTemporalesSvg en common.js): esta
-  // gráfica es de granularidad DIARIA, así que las 3 líneas de
-  // referencia (año/temporada/semana) aplican todas — reemplaza el
-  // detector de "cambio de mes calendario" que había antes (una
-  // temporada de Clash Royale NO siempre coincide con el mes calendario:
-  // empieza el PRIMER LUNES de cada mes, ver esInicioTemporada() en
-  // común.js) por el mismo criterio que usa el backend.
+  // Gráfica diaria: aplican las 3 líneas de referencia (año/temporada/semana), mismo criterio de inicio de temporada que el backend. Historial en CHANGELOG.md.
   const MESES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
   const etiquetas = [];
   const fechasEje = [];
@@ -1318,12 +1239,7 @@ function guerraComparadorMetricaSvg(a, b, campo, tituloMetrica, fechas, indicePo
     .filter(r => indicePorFecha.has(r.fecha))
     .map(r => `${(PAD_L + indicePorFecha.get(r.fecha)*stepX).toFixed(1)},${escalaY(Number(r[campo]) || 0).toFixed(1)}`)
     .join(' ');
-  // FIX (07-sep-2026, pedido usuario, Fase 15 punto 1 — "tooltip con
-  // Nombre, Clan, Puntaje, Día"): cada círculo pasa de auto-cerrarse
-  // (<circle ... />) a envolver un <title>, que es el tooltip nativo del
-  // navegador (sin JS/CSS extra, funciona en desktop y con tap sostenido
-  // en mobile) — mismo patrón que el resto de la página, sin dependencias
-  // nuevas. Texto: "Nombre — Clan\n<Título de la métrica>: valor\nFecha".
+  // Cada punto usa <title> como tooltip nativo (sin JS/CSS extra), con Nombre/Clan/métrica/Fecha. Historial en CHANGELOG.md.
   const circulosDe = (serie, color, nombre, clan) => serie
     .filter(r => indicePorFecha.has(r.fecha))
     .map(r => {
@@ -1338,13 +1254,7 @@ function guerraComparadorMetricaSvg(a, b, campo, tituloMetrica, fechas, indicePo
   const colorA = 'var(--purple-light, #c084fc)';
   const colorB = 'var(--gold, #f3a922)';
 
-  // FIX (07-sep-2026, pedido usuario): rota 45° a la izquierda la fecha.
-  // FIX (08-sep-2026, pedido usuario — "todas las gráficas deben indicar
-  // el nombre de los ejes"): se agrega un gutter de 16 a la izquierda y
-  // 16 abajo (vía el offset negativo del viewBox), sin tocar PAD_L/PAD_B
-  // ni ninguna coordenada ya calculada arriba, y ahí se dibujan los dos
-  // títulos fijos ("Fecha" en X; en Y, el nombre de la métrica — Ataques,
-  // Puntaje (Fame) o Barcos según 'campo').
+  // Fecha rotada 45°; títulos fijos de los ejes con gutter extra, sin tocar las coordenadas ya calculadas. Historial en CHANGELOG.md.
   const ejeYLabel = campo === 'fame' ? 'Puntaje (Fame)' : (campo.charAt(0).toUpperCase() + campo.slice(1));
   const ejeXTitle = `<text class="axis-title" x="${PAD_L + plotW / 2}" y="${H + 12}" text-anchor="middle">Fecha</text>`;
   const ejeYTitle = `<text class="axis-title" x="-8" y="${PAD_T + plotH / 2}" text-anchor="middle" transform="rotate(-90 -8 ${PAD_T + plotH / 2})">${esc(ejeYLabel)}</text>`;
@@ -1404,14 +1314,7 @@ function renderComparadorGuerraChart(histA, histB, nombreA, nombreB, clanA, clan
       ${guerraComparadorMetricaSvg(a, b, campo, titulo, fechas, indicePorFecha, nombreA, clanA, nombreB, clanB)}
     </div>`;
 
-  // FIX (05-sep-2026, pedido usuario — "las gráficas del cara a cara son
-  // muy pequeñas, no es necesario que vayan las 3 en una sola línea. Con
-  // ese tamaño no se ve nada"): antes usaba
-  // "repeat(auto-fit,minmax(280px,1fr))", que en pantallas anchas metía
-  // las 3 cards en una sola fila, comprimiendo cada gráfica (viewBox
-  // 640x220) a ~280px de ancho. Ahora una sola columna (1fr): cada
-  // gráfica ocupa el ancho completo del contenedor, apiladas de arriba
-  // hacia abajo — se lee bien sin importar el tamaño de pantalla.
+  // Las 3 gráficas del comparador van en una sola columna en vez de compartir una fila, para que se vean bien. Historial en CHANGELOG.md.
   return `
     <div class="comparativa-grid" style="display:grid; grid-template-columns:1fr; gap:16px;">
       ${metricCard('⚔️', 'Ataques por día de guerra', 'ataques')}
@@ -1441,12 +1344,7 @@ async function compararJugadores(){
     return;
   }
 
-  // FIX (31-ago-2026, pedido usuario): antes se mandaban los textos crudos
-  // directo al backend, eligiendo a ciegas la primera coincidencia posible
-  // del lado del servidor. Ahora se resuelve cada lado por separado contra
-  // el directorio ya cargado; si algún lado es ambiguo, se muestran sus
-  // coincidencias (nombre, tag, clan) y se espera el clic antes de
-  // comparar.
+  // Cada lado del comparador se resuelve por separado contra el directorio ya cargado; si es ambiguo, se muestran las coincidencias antes de comparar. Historial en CHANGELOG.md.
   const ambiguas1 = [], ambiguas2 = [];
   const tag1 = resolverLadoComparador(raw1, ambiguas1);
   const tag2 = resolverLadoComparador(raw2, ambiguas2);
@@ -1460,11 +1358,7 @@ async function compararJugadores(){
 
   msgEl.innerHTML = '<div class="text-faint" style="font-size:13px;">Buscando…</div>';
   try{
-    // FIX (02-sep-2026, punto 9): el historial de guerra se pide en
-    // paralelo al perfil, no en cascada — y con su propio .catch() para
-    // que si ese endpoint falla (o es una versión vieja del backend sin
-    // 'webHistorialGuerraComparador' todavía), el resto del comparador
-    // (perfiles + barras) igual se pinte con normalidad.
+    // El historial de guerra del comparador se pide en paralelo al perfil, con su propio catch, para no romper el resto si ese endpoint falla. Historial en CHANGELOG.md.
     const [data, histData] = await Promise.all([
       apiGet('webCompararJugadores', { tag1, tag2 }),
       apiGet('webHistorialGuerraComparador', { tag1, tag2 }).catch(() => null)
@@ -1648,13 +1542,7 @@ let rosterFiltrosSeleccion = {};
 let rosterOrden = null;
 let rosterFiltroPopEl = null; // popover de filtro abierto actualmente (o null)
 let rosterMiembrosBase = []; // miembros del clan activo, en el orden original del backend (sin ordenar)
-// FIX (13-sep-2026, pedido usuario — "agrega los botones de letras en
-// directorio por clan"): letra A-Z/# elegida en #rosterLetraFilter (null =
-// todas). Igual que rosterFiltrosSeleccion/rosterOrden de arriba, se
-// reinicia cada vez que se cambia de pestaña de clan (ver
-// renderRosterClanActivo()) y se combina con esos filtros dentro de
-// aplicarFiltrosRoster() sin pisarse entre sí. Ver pintarFiltroLetraRoster()
-// y primeraLetraFiltro()/LETRAS_FILTRO más abajo.
+// Letra A-Z/# elegida en #rosterLetraFilter; se reinicia al cambiar de clan y se combina con los demás filtros sin pisarse. Historial en CHANGELOG.md.
 let rosterLetraSeleccionada = null;
 
 /**
@@ -1884,18 +1772,10 @@ function abrirFiltroColumna(col, btnEl, wrap){
   };
   pintarLista('');
 
-  // FIX (16-sep-2026 v8, pedido usuario — rendimiento, sugerencia propia
-  // aceptada: "el buscador del popover no tiene debounce"): antes
-  // pintarLista() se disparaba en CADA tecla, reconstruyendo el checklist
-  // completo de la columna. Con ~50 valores no se nota, pero es gratis
-  // esperar 180ms de pausa en el tipeo antes de repintar (debounce()
-  // helper reusable, ver definición al inicio del <script>).
+  // El buscador del popover tiene debounce de 180ms antes de repintar la lista. Historial en CHANGELOG.md.
   pop.querySelector('.rt-filtro-buscar').addEventListener('input', debounce(e => pintarLista(e.target.value), 180));
 
-  // "Seleccionar todo"/"Desmarcar todo" (pedido usuario 08-sep-2026):
-  // actúan sobre TODOS los valores de la columna, no solo los que
-  // queden visibles tras el buscador — así se puede buscar "Líder",
-  // desmarcar todo, y el resto de valores queda intacto (sin tildar).
+  // "Seleccionar todo"/"Desmarcar todo" actúan sobre todos los valores de la columna, no solo los visibles tras el buscador. Historial en CHANGELOG.md.
   pop.querySelector('[data-modo="todo"]').addEventListener('click', () => {
     valores.forEach(v => temp.add(v));
     pintarLista(pop.querySelector('.rt-filtro-buscar').value);
@@ -1927,9 +1807,7 @@ function abrirFiltroColumna(col, btnEl, wrap){
     actualizarIconosFiltro(wrap);
   });
 
-  // Posición: colgado del ícono clickeado, como position:fixed (así no lo
-  // recorta el overflow-x:auto de .roster-table-wrap). Se ajusta para no
-  // salirse por la derecha ni por abajo de la ventana.
+  // El popover cuelga del ícono clickeado (position:fixed) y se ajusta para no salirse de la ventana. Historial en CHANGELOG.md.
   const r = btnEl.getBoundingClientRect();
   const popAncho = 250;
   let left = Math.min(r.left, window.innerWidth - popAncho - 12);
@@ -2000,11 +1878,7 @@ function aplicarFiltrosRoster(wrap){
         default:    return true;
       }
     });
-    // FIX (13-sep-2026, pedido usuario — "agrega los botones de letras en
-    // directorio por clan"): además de los filtros por columna de arriba,
-    // la fila también debe pasar el filtro por letra elegido en
-    // #rosterLetraFilter (si hay alguno) — ver data-letra en
-    // filasHtmlRoster() más abajo.
+    // La fila también debe pasar el filtro por letra elegido, además de los filtros por columna. Historial en CHANGELOG.md.
     const pasaLetra = !rosterLetraSeleccionada || fila.dataset.letra === rosterLetraSeleccionada;
     fila.style.display = (pasaCols && pasaLetra) ? '' : 'none';
   });
@@ -2073,12 +1947,7 @@ function renderRosterClanActivo(){
   rosterLetraSeleccionada = null; // ...y también la letra elegida (mismo criterio, ver docblock de arriba)
   rosterMiembrosBase = miembros;
 
-  // FIX (13-sep-2026, pedido usuario — "agrega los botones de letras en
-  // directorio por clan"): pintarFiltroLetraRoster() solo pinta de verdad
-  // la primera vez (guardia por dataset.pintado); en cada cambio de clan
-  // solo hace falta quitar el estado "active" de cualquier letra que
-  // hubiera quedado marcada del clan anterior, ya que rosterLetraSeleccionada
-  // se acaba de resetear arriba.
+  // pintarFiltroLetraRoster() solo pinta la primera vez; en cada cambio de clan solo se limpia el estado "active" de la letra anterior. Historial en CHANGELOG.md.
   pintarFiltroLetraRoster();
   const letraFilterWrap = document.getElementById('rosterLetraFilter');
   if (letraFilterWrap) letraFilterWrap.querySelectorAll('.letra-btn').forEach(b => b.classList.remove('active'));
@@ -2107,21 +1976,14 @@ function renderRosterClanActivo(){
 
   pintarFilasRoster(wrap, rosterMiembrosBase);
 
-  // Barra de scroll superior sincronizada con la real (ver docblock de
-  // .roster-topbar más arriba, en el <style>): el div interno se estira al
-  // ancho real de la tabla, y ambos contenedores se copian el scrollLeft
-  // uno al otro (con una bandera para no entrar en loop infinito de
-  // eventos "scroll" disparándose mutuamente).
+  // Barra de scroll superior sincronizada con la real, con una bandera para no entrar en loop de eventos "scroll". Historial en CHANGELOG.md.
   const tableWrap = document.getElementById('rosterTableWrap');
   const topScroll = document.getElementById('rosterTopScroll');
   const topScrollInner = document.getElementById('rosterTopScrollInner');
   const tabla = tableWrap.querySelector('.roster-table');
   const actualizarAnchoScrollSuperior = () => { topScrollInner.style.width = tabla.scrollWidth + 'px'; };
   actualizarAnchoScrollSuperior();
-  // Recalcula si la ventana cambia de tamaño (ej. rotar el celular) — no
-  // hace falta quitar este listener al re-pintar la tabla (cambio de
-  // clan): vuelve a buscar los elementos por su id cada vez que se
-  // dispara, y esos ids siempre existen mientras la página esté abierta.
+  // Se recalcula al cambiar el tamaño de ventana; no hace falta quitar el listener al re-pintar la tabla. Historial en CHANGELOG.md.
   window.addEventListener('resize', actualizarAnchoScrollSuperior);
   let sincronizando = false;
   topScroll.addEventListener('scroll', () => {
@@ -2137,13 +1999,7 @@ function renderRosterClanActivo(){
     sincronizando = false;
   });
 
-  // Botón "Quitar filtros" (pedido usuario 08-sep-2026): borra TODAS las
-  // entradas de rosterFiltrosSeleccion de un toque, en vez de tener que
-  // abrir columna por columna y tildar todo de nuevo. Arranca deshabilitado
-  // (no hay filtros recién pintada la tabla — ver "disabled" en el HTML de
-  // arriba) y actualizarBotonLimpiarFiltros() lo habilita/deshabilita cada
-  // vez que cambia algún filtro (ver esa función y actualizarIconosFiltro()
-  // más abajo).
+  // Botón "Quitar filtros" borra todas las columnas filtradas de un toque; se habilita/deshabilita según haya filtros activos. Historial en CHANGELOG.md.
   document.getElementById('rosterLimpiarFiltros').addEventListener('click', () => {
     rosterFiltrosSeleccion = {};
     aplicarFiltrosRoster(wrap);
@@ -2184,11 +2040,7 @@ async function cargarRoster(){
       document.getElementById('roster').scrollIntoView({ behavior:'smooth', block:'start' });
     }
 
-    // FIX (31-ago-2026): un link directo a directorio.html?tag=TAG (de
-    // antes de que existiera perfil.html) ahora redirige a la página de
-    // perfil correspondiente EN LA MISMA pestaña — un window.open() acá
-    // sería un popup disparado sin gesto del usuario y la mayoría de
-    // navegadores lo bloquearía.
+    // Un link directo con ?tag=TAG redirige a perfil.html en la misma pestaña (un popup se bloquearía sin gesto del usuario). Historial en CHANGELOG.md.
     const tagParam = new URLSearchParams(location.search).get('tag');
     if (tagParam){ location.replace('perfil.html?tag=' + encodeURIComponent(tagParam)); return; }
   }catch(err){
@@ -2330,11 +2182,7 @@ function construirFechasEstimadasSemanasViejas(semanas){
  */
 function lineChartSvg(miembros, campo, semanas, opts){
   opts = opts || {};
-  // FIX (08-sep-2026, pedido usuario — "todas las gráficas deben indicar
-  // el nombre de los ejes"): PAD_L (56→74) y PAD_B (68→84) suben para dejar
-  // espacio a los títulos fijos de los ejes ("Fecha" en X, opts.ejeY en Y
-  // — ver los <text class="ing-axis-title"> al final de esta función),
-  // mismo cambio que su gemela en index.html.
+  // PAD_L/PAD_B suben para los títulos fijos de los ejes, mismo cambio que su gemela en index.html. Historial en CHANGELOG.md.
   const W = 960, H = 460, PAD_L = 74, PAD_R = 20, PAD_T = 20, PAD_B = 84;
   const plotW = W - PAD_L - PAD_R, plotH = H - PAD_T - PAD_B;
 
@@ -2444,11 +2292,7 @@ function activarTooltipsGraficasIngresos(){
   document.querySelectorAll('.ing-linechart-svg .ing-serie-pt').forEach(pt => {
     pt.addEventListener('mousemove', e => {
       const { nombre, tag, valor, clan, semana, unidad } = pt.dataset;
-      // FIX (10-sep-2026, pedido usuario — "arriba debe decir el nombre de
-      // la cuenta y su tag, abajo el clan y la cantidad de ataques, barcos
-      // o fame, igual que en index"): mismo orden que activarTooltipsGraficas()
-      // en index.html — nombre+tag arriba en negrita, cantidad+clan+fecha
-      // abajo tenue (antes estaba al revés en ambos archivos).
+      // Mismo orden que index.html: nombre+tag arriba en negrita, cantidad+clan+fecha abajo. Historial en CHANGELOG.md.
       tip.innerHTML = `<b>${esc(nombre)}${tag ? ' (' + esc(tag) + ')' : ''}</b><br><span style="color:var(--text-faint);">${esc(fmtNum(valor))} ${esc(unidad)} — ${esc(clan)} · ${esc(semana)}</span>`;
       tip.style.display = 'block';
       tip.style.left = (e.clientX + 14) + 'px';
@@ -2466,9 +2310,7 @@ function renderComparativaSemanal(container, miembrosTodos){
   if (!miembros.length){ container.innerHTML = ''; return; }
   const semanas = construirSemanasMaestras(miembros);
   const hayEstimadas = semanas.some(s => numeroSemanaVieja(s) !== null);
-  // FIX (08-sep-2026, pedido usuario — "las gráficas deben indicar el
-  // nombre de los ejes"): mismo criterio que index.html — ejeY es la
-  // primera palabra del título de la tarjeta.
+  // Mismo criterio que index.html: ejeY es la primera palabra del título de la tarjeta. Historial en CHANGELOG.md.
   const chartCard = (icono, titulo, campo, unidad) => `
       <div class="card ing-linechart-card">
         <div class="chart-title">${icono} ${titulo}</div>
@@ -2565,17 +2407,7 @@ function nuevoCardHtml(n){
  * aplicarFiltroIngresos(). */
 let ingresosTodosCache = [];
 let ingresosSeleccionados = null;
-// FIX (16-sep-2026 v8, pedido usuario — "poner un botón de Mostrar/Ocultar
-// gráficas para no precargar todo de golpe [...] que al inicio aparezcan
-// solo las tarjetas de nombres y las gráficas que sean a pedido"): las 3
-// gráficas comparativas (renderComparativaSemanal) son lo más caro de
-// pintar de toda la sección — un <svg> con un <path>+<circle> por cada
-// semana de CADA miembro nuevo — así que ya no se construyen solas al
-// cargar la página. ingresosGraficasVisibles controla si están abiertas
-// (arranca en false: solo se ve el botón, ver #ingGraficasToggle más
-// abajo) e ingresosUltimosFiltrados guarda el último subconjunto filtrado
-// aunque las gráficas estén ocultas, para poder pintarlas al instante
-// apenas el usuario las abre, sin tener que recalcular el filtro.
+// Las 3 gráficas comparativas no se pintan al cargar (lo más caro de renderizar); arrancan cerradas y se muestran al abrir el botón, con el último filtro ya guardado. Historial en CHANGELOG.md.
 let ingresosGraficasVisibles = false;
 let ingresosUltimosFiltrados = [];
 
@@ -2624,10 +2456,7 @@ function aplicarFiltroIngresos(){
 
   renderNuevoGrid(filtrados);
 
-  // Las gráficas solo se recalculan si el usuario las tiene abiertas (ver
-  // ingresosGraficasVisibles / #ingGraficasToggle) — si están ocultas, ya
-  // quedó guardado en ingresosUltimosFiltrados y se pintan recién cuando
-  // las abra, para no gastar tiempo de render en algo que nadie está viendo.
+  // Las gráficas solo se recalculan si están visibles; si están ocultas, se pintan recién al abrirlas. Historial en CHANGELOG.md.
   if (ingresosGraficasVisibles){
     const chartsWrap = document.getElementById('ingresosChartsWrap');
     if (chartsWrap) renderComparativaSemanal(chartsWrap, filtrados);

@@ -589,14 +589,7 @@
     background:var(--purple); border-color:var(--purple); color:#fff;
   }
 </style>
-<!-- Datos estructurados (schema.org, Organization): ayuda a que Google
-     muestre el logo, el nombre y los canales oficiales de la Familia
-     Terna como resultado enriquecido en búsquedas y en el panel lateral
-     de conocimiento. Se coloca solo en index.html (página principal del
-     sitio), que es donde Google espera encontrar el marcado de
-     organización. sameAs enlaza los mismos canales oficiales ya listados
-     en la sección "Canales Verificados" (#redes) más abajo en esta misma
-     página, para que Google los asocie a esta organización. -->
+<!-- Datos estructurados (schema.org, Organization) en index.html para resultados enriquecidos en Google; sameAs enlaza los mismos canales de "Canales Verificados". Historial en CHANGELOG.md. -->
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -632,13 +625,7 @@
     </a>
     <button id="navToggle" class="nav-toggle" aria-label="Abrir menú">☰</button>
     <div class="links">
-      <!-- FIX (07-sep-2026, pedido usuario — "Agrega un botón llamado
-           'Inicio' que lleve a index, haciendo lo mismo que hace el botón
-           de familia Terna. Este botón debe estar a la izquierda de
-           Directorio"): mismo destino que el link .brand de arriba
-           (href="index.html") — se usa data-page="inicio" para que
-           marcarNavActiva() (assets/common.js) lo resalte como activo acá,
-           mismo valor que ya tiene <body data-page="inicio">. -->
+      <!-- Botón "Inicio" con mismo destino que .brand; usa data-page="inicio" para que marcarNavActiva() lo resalte. Historial en CHANGELOG.md. -->
       <a href="index.html" data-page="inicio">Inicio</a>
       <a href="directorio.html" data-page="directorio">Directorio</a>
       <a href="guerra.html" data-page="guerra">Guerra</a>
@@ -649,12 +636,7 @@
   </div>
 </nav>
 
-<!-- <main id="main-content"> envuelve TODO el contenido central (desde el
-     hero hasta antes del footer): antes el id="main-content" del
-     skip-link vivía en un <div>/<section> genérico, que un lector de
-     pantalla no anuncia como landmark principal. Se usa <main> real por
-     accesibilidad; el id se mueve aquí desde la sección .hero-banner de
-     abajo para no duplicarlo. -->
+<!-- <main id="main-content"> envuelve todo el contenido central, por accesibilidad (antes era un <div>/<section> genérico). Historial en CHANGELOG.md. -->
 <main id="main-content">
 
 <!-- ---------- HERO ---------- -->
@@ -667,18 +649,7 @@
   <div class="wrap hero-banner-content" data-reveal-stagger>
     <div class="eyebrow" data-reveal>Comunidad Competitiva · Clash Royale</div>
     <h1 data-reveal style="font-size:clamp(38px,6.5vw,68px); line-height:1.05; margin-top:16px; max-width:860px;">
-      <!-- FIX (05-sep-2026, pedido usuario — "en móvil la frase del
-           cuartel queda pegada, sin espacios"): antes las palabras solo
-           quedaban separadas por el propio salto de línea del <br
-           class="hero-title-break">, sin ningún espacio real en el texto.
-           En escritorio eso no se notaba porque el <br> sí genera el
-           corte visual, pero en móvil ese <br> se oculta (display:none,
-           ver breakpoint @media max-width:768px más arriba) y, al no
-           haber ningún espacio de por medio, las palabras quedaban
-           pegadas ("cuartelgeneralde laFamilia Terna"). Se agrega un
-           espacio real antes de cada <br> — en escritorio no cambia nada
-           (un espacio antes de un salto de línea no se ve), y en móvil
-           ese espacio queda y separa las palabras correctamente. -->
+      <!-- Espacio real antes de cada <br class="hero-title-break"> para que las palabras no queden pegadas en móvil (el <br> se oculta ahí). Historial en CHANGELOG.md. -->
       El cuartel <br class="hero-title-break">general <br class="hero-title-break">de la <br class="hero-title-break"><span class="text-gradient-purple">Familia Terna</span>.
     </h1>
     <p class="text-dim" data-fit-line data-reveal style="font-size:18px; margin-top:20px; line-height:1.6; max-width:100%;">
@@ -687,16 +658,7 @@
     </p>
     <div class="hero-cta-row" data-reveal style="display:flex; gap:16px; margin-top:32px; flex-wrap:wrap;">
       <a href="directorio.html" class="btn btn-primary">🏆 Buscar mi progreso</a>
-      <!-- FIX (10-sep-2026, pedido usuario — "el botón de unirse por
-           discord debe ser solo unirse y dar las mismas opciones de
-           'Unirse a este clan' (wsp, discord, formulario)"): antes era un
-           <a> con link directo a Discord (bypaseaba el resto de canales
-           oficiales). Ahora es un botón que abre el MISMO modal
-           "¿Cómo unirte?" que ya usan las tarjetas de clan
-           (.js-solicitar-unirme -> abrirModalUnirse(), más abajo), sin
-           pasarle un clan puntual -- abrirModalUnirse() ya cae sola al
-           texto genérico "Postular a un clan" cuando no recibe argumento
-           (ver `nombreClan || 'un clan'` dentro de la función). -->
+      <!-- El botón de Discord abre el mismo modal "¿Cómo unirte?" que las tarjetas de clan, en vez de linkear directo. Historial en CHANGELOG.md. -->
       <button type="button" id="heroJoinBtn" class="btn btn-ghost" onclick="abrirModalUnirse()">🤝 Unirse</button>
     </div>
 
@@ -748,41 +710,9 @@
 <!-- ---------- GRID DE CLANES ---------- -->
 <section id="clanes">
   <div class="wrap">
-    <!-- FIX (31-ago-2026, pedido usuario):
-         - Escritorio: "el escudo podría situarse un poco más a la
-           izquierda, un poco más grande tal vez, que no esté tan lejos
-           del texto" — justify-content:space-between empujaba el escudo
-           hasta el borde derecho del contenedor sin importar el ancho del
-           texto; se cambia a flex-start (los dos quedan juntos, separados
-           solo por el gap) y se agranda el escudo (150px→176px).
-         - Móvil: "el escudo debe estar al medio en la versión de celular"
-           — con flex-wrap:wrap y solo 2 ítems, al pasar el escudo a su
-           propia línea quedaba pegado al borde izquierdo (una sola línea
-           con un ítem no se centra con justify-content). Se centra
-           explícito por media query sin tocar el layout de escritorio. -->
-    <!-- FIX (01-sep-2026, pedido usuario — "en la sección de clanes aún
-         sale ese espacio mal puesto" / "el escudo... que no esté tan
-         lejos del texto"): el cambio del 31-ago de arriba puso
-         justify-content:flex-start pero dejó flex:1 en el div de texto
-         de abajo — flex:1 hace que ESE div (invisible, sin fondo) crezca
-         para ocupar todo el ancho sobrante de la fila, lo que en la
-         práctica empuja al escudo hasta el borde derecho exactamente
-         igual que space-between (el hueco vacío que se veía en el PDF de
-         diseño era ese div estirado). Se cambia a flex:0 1 auto con
-         max-width, para que el div de texto solo ocupe el ancho que su
-         contenido necesita y el escudo quede pegado justo después, con
-         el gap de 28px como única separación. -->
-    <!-- FIX (03-sep-2026, pedido usuario — "el escudo debería estar en el
-         centro del espacio de las barras rojas [el hueco vacío a la
-         derecha del texto], aproximadamente donde está el punto rojo"):
-         el fix del 01-sep (comentario de arriba) dejó el escudo pegado
-         justo después del texto (separado solo por el gap de 28px), no
-         centrado en el espacio libre restante. Se envuelve el escudo en
-         un elemento que crece para ocupar ese espacio libre
-         (.clanes-escudo-fill, ver CSS) y centra su contenido dentro — así
-         el escudo queda centrado en el hueco, ni pegado al texto ni
-         pegado al borde derecho (que era el problema del space-between
-         original). -->
+    <!-- El escudo de la sección de clanes se agrandó y se acomodó más cerca del texto en escritorio (flex-start); en móvil se centra por separado. Historial en CHANGELOG.md. -->
+    <!-- El div de texto pasa a flex:0 1 auto con max-width para que no empuje al escudo hasta el borde derecho. Historial en CHANGELOG.md. -->
+    <!-- El escudo se envuelve en .clanes-escudo-fill para quedar centrado en el espacio libre, en vez de pegado al texto o al borde. Historial en CHANGELOG.md. -->
     <div class="sec-head clanes-sec-head" data-reveal style="display:flex; align-items:center; justify-content:flex-start; gap:0 28px; flex-wrap:wrap;">
       <div style="flex:0 1 auto; min-width:260px; max-width:640px;">
         <a class="eyebrow" href="directorio.html#roster" style="text-decoration:none;">Nuestros Clanes</a>
@@ -833,16 +763,7 @@
 <div id="chartTooltip" class="chart-tooltip"></div>
 
 <!-- ---------- RANKINGS DE LA FAMILIA ---------- -->
-<!-- FIX (04-sep-2026, pedido usuario, punto 28 — "en la sección Rankings
-     de la Familia (tops y cartas) me parece que habría que moverla a la
-     sección Index"): esta sección vivía en comunidad.html (ver historial
-     de esa página) y se MUEVE acá completa — markup, CSS (.rankings-grid/
-     .ranking-card/.ranking-row/.cartas-list/.carta-chip, ver <style> de
-     arriba) y JS (renderRankingRow/pintarRanking/cargarRankings/
-     cargarEstadisticasCartas, más abajo antes de </script>). Ya no está
-     duplicada en comunidad.html. Consume webRankings()/
-     webEstadisticasCartas() (34_Web_API.gs), igual que antes — no hace
-     falta ningún cambio de backend para que siga funcionando acá. -->
+<!-- "Rankings de la Familia" se movió acá completa desde comunidad.html (markup+CSS+JS); ya no está duplicada, mismos endpoints. Historial en CHANGELOG.md. -->
 <section id="rankings-familia">
   <div class="wrap">
     <div class="sec-head" data-reveal>
@@ -861,15 +782,7 @@
         <div id="rkRacha"><div class="text-faint" style="font-size:12px; margin-top:10px;">Cargando…</div></div>
       </div>
       <div class="card ranking-card" data-reveal>
-        <!-- FIX (04-sep-2026, pedido usuario — "no estoy segura del
-             significado de 6682 en torneos, ¿significa que ha ganado esa
-             cantidad de torneos?"): NO — DC.TORNEOS es
-             playerData.tournamentBattleCount de la API de Clash Royale
-             (ver 08_Web_Endpoints.gs/13_Sync_...), es decir BATALLAS
-             jugadas dentro de torneos, no torneos ganados ni torneos
-             distintos en los que participó. Se renombra el título y se
-             agrega el sufijo "batallas" al valor (ver cargarRankings()
-             más abajo) para que no vuelva a prestarse a esa confusión. -->
+        <!-- DC.TORNEOS son batallas jugadas en torneos, no torneos ganados; se agrega el sufijo "batallas" para evitar la confusión. Historial en CHANGELOG.md. -->
         <div class="ranking-title">🏅 Batallas de torneo</div>
         <div id="rkTorneos"><div class="text-faint" style="font-size:12px; margin-top:10px;">Cargando…</div></div>
       </div>
@@ -889,9 +802,7 @@
 </section>
 
 <!-- ---------- ANIVERSARIOS EN LA FAMILIA ---------- -->
-<!-- Ver webAniversarios() en 34_Web_API.gs. Solo aparece cuando hay algún
-     miembro por cumplir un hito de antigüedad en los próximos 14 días —
-     si no hay ninguno, la sección se oculta entera (ver cargarAniversarios()). -->
+<!-- La sección de aniversarios solo aparece si hay algún hito de antigüedad en los próximos 14 días. Historial en CHANGELOG.md. -->
 <section id="aniversarios" style="display:none;">
   <div class="wrap">
     <div class="sec-head">
@@ -904,9 +815,7 @@
 </section>
 
 <!-- ---------- REDES OFICIALES ---------- -->
-<!-- Reordenada como penúltima sección (pedido del usuario, 29-ago-2026:
-     "justo antes de la frase sobre la élite"), después de Ingresos
-     recientes y antes del tagline de cierre. -->
+<!-- Sección reordenada como penúltima, después de Ingresos recientes y antes del tagline de cierre. Historial en CHANGELOG.md. -->
 <section id="redes">
   <div class="wrap">
     <div class="sec-head" data-reveal>
@@ -943,15 +852,7 @@
         <span class="social-icon"><svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true"><path d="M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z"/></svg></span>
         <span class="social-text"><span class="social-label">TikTok</span><span class="social-sub">@grupoternaoficial</span></span>
       </a>
-      <!-- FIX (31-ago-2026, pedido usuario — "el logo de RoyaleAPI no se
-           muestra, los otros logos están bien"): el PNG que se hotlinkeaba
-           directo desde royaleapi.com dejó de resolver (¿ruta cambiada o
-           bloqueo de hotlink?). Se reemplaza por el servicio de favicons
-           de Google (s2/favicons), que resuelve el ícono real del sitio de
-           forma estable y no depende de una ruta interna de RoyaleAPI que
-           puede volver a cambiar. Si en el futuro se consigue el logo
-           oficial en SVG, puede reemplazar este <img> igual que los demás
-           íconos monocromo. -->
+      <!-- El logo de RoyaleAPI usa el servicio de favicons de Google en vez de hotlinkear el PNG de royaleapi.com, que dejó de resolver. Historial en CHANGELOG.md. -->
       <a class="social-card" href="https://royaleapi.com/clan/family/grupoterna/clans" target="_blank" rel="noopener">
         <span class="social-icon social-icon-img"><img src="https://www.google.com/s2/favicons?sz=64&domain=royaleapi.com" alt="" width="24" height="24" loading="lazy"></span>
         <span class="social-text"><span class="social-label">RoyaleAPI</span><span class="social-sub">grupoterna</span></span>
@@ -987,11 +888,7 @@ async function cargarClanes(){
   const grid = document.getElementById('clanGrid');
   try{
     const data = await apiGet('webClanInfo');
-    // Orden fijo de la Familia (Principal, Terna 2, Terna 3, Mini), NUNCA
-    // alfabético — ver ordenClanIndex() en common.js. Se ordena ACÁ, antes
-    // de asignar el índice "i" que decide qué insignia/rol le toca a cada
-    // tarjeta, para que ambas cosas queden siempre sincronizadas aunque el
-    // backend entregue los clanes en otro orden.
+    // Orden fijo de la Familia (no alfabético), asignado antes del índice para que insignia/rol queden sincronizados con el backend. Historial en CHANGELOG.md.
     const clanes = ordenarClanes(data.clanes || []);
     grid.innerHTML = clanes.map((c, i) => clanCardHtml(c, i, { mostrarVerClan: true, mostrarUnirse: true })).join('');
     grid.querySelectorAll('.js-solicitar-unirme').forEach(btn => {
@@ -1330,18 +1227,7 @@ function construirFechasEstimadasSemanasViejas(semanas){
 
 function lineChartSvg(miembros, campo, semanas, opts){
   opts = opts || {};
-  // FIX (03-sep-2026, pedido usuario — "las semanas se superponían [las
-  // etiquetas de eje]... rotar 90° el texto a la izquierda del eje x, o
-  // 45°, tú decide"): con muchos miembros nuevos hay muchas semanas en el
-  // eje X y las etiquetas ("dd/MM") chocaban entre sí en horizontal. Se
-  // rotan -45° (ancladas por su extremo derecho, bajando hacia la
-  // izquierda) y se sube PAD_B (44→68) para que quepan sin cortarse.
-  // FIX (08-sep-2026, pedido usuario — "todas las gráficas deben indicar
-  // el nombre de los ejes"): PAD_L (56→74) y PAD_B (68→84) suben de nuevo
-  // para dejar espacio a los títulos fijos de los ejes ("Fecha" en X,
-  // opts.ejeY en Y — ver los dos <text class="axis-title"> agregados al
-  // final de esta función), sin invadir ni las etiquetas numéricas del
-  // eje Y ni las fechas rotadas del eje X que ya vivían en ese margen.
+  // Etiquetas del eje X rotadas -45° y márgenes ajustados para los títulos fijos de los ejes. Historial en CHANGELOG.md.
   const W = 960, H = 460, PAD_L = 74, PAD_R = 20, PAD_T = 20, PAD_B = 84;
   const plotW = W - PAD_L - PAD_R, plotH = H - PAD_T - PAD_B;
 
@@ -1359,20 +1245,10 @@ function lineChartSvg(miembros, campo, semanas, opts){
     gridLines.push(`<line class="grid-line" x1="${PAD_L}" y1="${y}" x2="${W - PAD_R}" y2="${y}"></line>`);
     gridLines.push(`<text class="axis-label" x="${PAD_L - 10}" y="${y + 4}" text-anchor="end">${fmtNum(Math.round(v))}</text>`);
   }
-  // FIX (04-sep-2026, pedido usuario — "todo debe venir con fecha, no
-  // debería haber algo en formato S1/S2"): se calcula UNA vez por gráfica
-  // el Map de fechas estimadas para las etiquetas viejas "Semana N" (ver
-  // construirFechasEstimadasSemanasViejas más arriba) y se usa tanto en
-  // las etiquetas del eje como en el tooltip de cada punto (más abajo).
+  // El Map de fechas estimadas para etiquetas viejas "Semana N" se calcula una vez y se reusa en eje y tooltip. Historial en CHANGELOG.md.
   const fechasEstimadas = construirFechasEstimadasSemanasViejas(semanas);
 
-  // Líneas verticales de referencia (inicio de año/temporada — pedido
-  // usuario 07-sep-2026): esta gráfica es de granularidad SEMANAL (un
-  // punto = una semana), así que NO se agrega línea de inicio de semana
-  // (ver lineasTemporalesSvg() en common.js). La fecha de cada punto del
-  // eje se obtiene de la propia etiqueta ("dd/MM/yyyy" real, o su fecha
-  // estimada si es una etiqueta vieja "Semana N" — mismo Map ya calculado
-  // arriba para las etiquetas del eje y el tooltip).
+  // Gráfica semanal: no lleva línea de inicio de semana; la fecha de cada punto sale de su propia etiqueta o de la fecha estimada. Historial en CHANGELOG.md.
   const fechasEje = semanas.map(s => {
     const mfecha = String(s ?? '').match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
     if (mfecha) return new Date(Number(mfecha[3]), Number(mfecha[2]) - 1, Number(mfecha[1]));
@@ -1396,21 +1272,7 @@ function lineChartSvg(miembros, campo, semanas, opts){
       .sort((a, b) => a.idx - b.idx);
     if (!puntos.length) return '';
 
-    // FIX (03-sep-2026, pedido usuario — "en las fechas que no haya
-    // datos, baja con líneas punteadas a cero, así se evitan cortes en
-    // las líneas y se puede distinguir si está ahí porque hizo 0 puntos
-    // (con presencia en el clan) o estaba sin clan y no participó...
-    // en los puntos donde no haya dato, no colorees el centro del
-    // círculo, solo colorea los bordes"): antes, si faltaba una semana
-    // intermedia, la línea simplemente se cortaba (sin trazo entre un
-    // tramo y el siguiente), lo que en la práctica es indistinguible de
-    // "no hay datos ahí" a simple vista y deja huecos raros en el
-    // gráfico. Ahora, por cada hueco entre dos semanas con dato real, se
-    // insertan puntos sintéticos en 0 (uno por semana faltante) y se
-    // conecta todo con trazo punteado (.serie-line-dashed) en vez de
-    // trazo sólido — el punto sintético se dibuja hueco (fill:none, solo
-    // borde de color) para diferenciarlo de un 0 real reportado por el
-    // backend (que si se dibuja sólido, como cualquier otro dato real).
+    // Los huecos entre semanas con dato se rellenan con puntos sintéticos en 0 y trazo punteado, con el punto hueco para distinguirlo de un 0 real. Historial en CHANGELOG.md.
     const secuencia = [];
     puntos.forEach((p, i) => {
       secuencia.push(Object.assign({ real: true }, p));
@@ -1428,9 +1290,7 @@ function lineChartSvg(miembros, campo, semanas, opts){
       const dashed = !(a.real && b.real);
       path += `<path class="serie-line${dashed ? ' serie-line-dashed' : ''}" d="M ${xPos(a.idx).toFixed(1)} ${yPos(a.valor).toFixed(1)} L ${xPos(b.idx).toFixed(1)} ${yPos(b.valor).toFixed(1)}" stroke="${color}"></path>`;
     }
-    // FIX (04-sep-2026, mismo pedido — "todo debe venir con fecha"): el
-    // tooltip también reemplaza "Semana N" por la fecha estimada (con
-    // "≈" y una nota aparte), en vez de mostrar la etiqueta vieja sola.
+    // El tooltip también reemplaza "Semana N" por la fecha estimada, con "≈" y una nota aparte. Historial en CHANGELOG.md.
     const circles = secuencia.map(p => {
       const fEst = fechasEstimadas.get(p.semana);
       const semanaTooltip = fEst ? `≈ ${fmtFechaLargaDDMMYYYY(fEst)} (estimada)` : p.semana;
@@ -1443,10 +1303,7 @@ function lineChartSvg(miembros, campo, semanas, opts){
     return `${path}${circles}`;
   }).join('');
 
-  // Títulos de los ejes (pedido usuario 08-sep-2026): "Fecha" centrado
-  // debajo de las etiquetas rotadas del eje X, y opts.ejeY (p.ej.
-  // "Ataques"/"Puntaje"/"Barcos" — lo arma renderComparativaSemanal a
-  // partir del título de cada tarjeta) girado -90° a la izquierda del eje Y.
+  // Títulos fijos de los ejes: "Fecha" centrado en X, el nombre de la métrica girado -90° en Y. Historial en CHANGELOG.md.
   const ejeXTitle = `<text class="axis-title" x="${PAD_L + plotW / 2}" y="${H - 8}" text-anchor="middle">Fecha</text>`;
   const ejeYTitle = opts.ejeY
     ? `<text class="axis-title" x="18" y="${PAD_T + plotH / 2}" text-anchor="middle" transform="rotate(-90 18 ${PAD_T + plotH / 2})">${esc(opts.ejeY)}</text>`
@@ -1501,15 +1358,7 @@ function activarTooltipsGraficas(){
   document.querySelectorAll('.linechart-svg .serie-pt').forEach(pt => {
     pt.addEventListener('mousemove', e => {
       const { nombre, tag, valor, clan, semana, unidad } = pt.dataset;
-      // Mismos campos que la tarjeta de "Ingresos recientes" (nombre, tag,
-      // clan, fecha) — pedido usuario 07-sep-2026: "al acercar el mouse
-      // debe verse información de ese registro según la información que
-      // esté mostrando la tabla".
-      // FIX (10-sep-2026, pedido usuario — "arriba debe decir el nombre de
-      // la cuenta y su tag, abajo el clan y la cantidad de ataques, barcos
-      // o fame"): orden invertido a como estaba (antes la cantidad iba
-      // arriba en negrita y el nombre abajo tenue) — así primero se
-      // identifica DE QUIÉN es el punto y después el dato en sí.
+      // El tooltip muestra nombre+tag arriba en negrita y clan+cantidad abajo, mismo orden que directorio.html. Historial en CHANGELOG.md.
       tip.innerHTML = `<b>${esc(nombre)}${tag ? ' (' + esc(tag) + ')' : ''}</b><br><span style="color:var(--text-faint);">${esc(fmtNum(valor))} ${esc(unidad)} — ${esc(clan)} · ${esc(semana)}</span>`;
       tip.style.display = 'block';
       tip.style.left = (e.clientX + 14) + 'px';
@@ -1541,17 +1390,9 @@ function renderComparativaSemanal(container, miembrosTodos, semanasGuerra){
   const miembros = miembrosTodos.filter(m => (m.historialSemanal || []).length);
   if (!miembros.length){ container.innerHTML = ''; return; }
   const semanas = construirSemanasMaestras(miembros, semanasGuerra);
-  // FIX (04-sep-2026, pedido usuario — "todo debe venir con fecha"): si el
-  // eje trae alguna etiqueta vieja "Semana N" (convertida a fecha estimada
-  // "≈dd/MM" por semanaLabelCorta), se agrega una nota una sola vez debajo
-  // de las tres gráficas explicando el "≈" — mismo criterio que ya usan
-  // otras notas al pie de esta página (no repetirla en cada tarjeta).
+  // Si el eje trae alguna fecha estimada ("≈"), se agrega una nota aparte una sola vez debajo de las tres gráficas. Historial en CHANGELOG.md.
   const hayEstimadas = semanas.some(s => numeroSemanaVieja(s) !== null);
-  // FIX (08-sep-2026, pedido usuario — "las gráficas deben indicar el
-  // nombre de los ejes"): ejeY se arma tomando la primera palabra del
-  // título de la tarjeta ("Ataques por semana" → "Ataques", "Puntaje por
-  // semana" → "Puntaje", "Barcos por semana" → "Barcos"), así no hace
-  // falta agregar un parámetro nuevo en cada llamado de más abajo.
+  // ejeY se arma tomando la primera palabra del título de la tarjeta, sin parámetro nuevo por llamado. Historial en CHANGELOG.md.
   const chartCard = (icono, titulo, campo, unidad) => `
       <div class="card linechart-card">
         <div class="chart-title">${icono} ${titulo}</div>
@@ -1572,9 +1413,7 @@ async function cargarIngresos(){
   const wrap = document.getElementById('ingresosWrap');
   const chartsWrap = document.getElementById('ingresosChartsWrap');
   try{
-    // webRoster = directorio actual de la Familia (misma fuente que usa
-    // directorio.html), pedido en paralelo para cruzarlo contra
-    // webIngresosRecientes — ver comentario del bloque de arriba.
+    // webRoster (mismo directorio que usa directorio.html) se pide en paralelo para cruzarlo con webIngresosRecientes. Historial en CHANGELOG.md.
     const [data, dataRoster] = await Promise.all([
       apiGet('webIngresosRecientes'),
       apiGet('webRoster').catch(() => null) // defensivo: si falla, no filtra en vez de romper la sección
@@ -1594,13 +1433,7 @@ async function cargarIngresos(){
       return;
     }
 
-    // Agrupar por clan y ordenar cada grupo alfabéticamente por nombre — el
-    // PDF exige "por clan y luego por nombre". Los GRUPOS en sí NO se
-    // ordenan alfabéticamente: usan el orden fijo de la Familia (Principal,
-    // Terna 2, Terna 3, Mini) vía ordenClanIndex(), sin importar en qué
-    // orden los haya mandado el backend (bug reportado: "el clan 2 sigue
-    // apareciendo primero, mientras que el clan principal está apareciendo
-    // tercero").
+    // Se agrupa por clan (orden fijo de la Familia) y dentro de cada clan por nombre alfabético. Historial en CHANGELOG.md.
     const grupos = [];
     ingresos.forEach(ing => {
       let g = grupos.find(x => x.clan === ing.clan);
@@ -1618,29 +1451,14 @@ async function cargarIngresos(){
           const cwOk = urlValida(ing.cwstats);
           const sem = ing.guerraSemana || {};
           return `
-          <!-- FIX (03-sep-2026, pedido usuario — "hacer que cada tarjeta
-               lleve al perfil del jugador al hacer clic (hoy no son
-               clicables)"): mismo patrón ya aplicado en guerra.html
-               (js-nuevo-card) — data-tag + listener con window.open,
-               deteniendo la propagación en los links de RoyaleAPI/CWStats
-               para que no abran el perfil también. -->
+          <!-- Cada tarjeta de "Ingresos recientes" abre el perfil del jugador al hacer clic (mismo patrón que guerra.html). Historial en CHANGELOG.md. -->
           <div class="ingreso-row js-ingreso-row" data-tag="${esc(ing.tag || '')}" style="cursor:pointer;">
             <div class="ingreso-top">
               <div class="ingreso-info">
                 <div class="ing-nombre">${esc(ing.nombre)}</div>
                 <div class="ing-tag">${esc(ing.tag || '—')}</div>
                 <div class="ing-fecha">${ing.fechaIngreso ? 'Ingresó el ' + esc(ing.fechaIngreso) : 'Fecha de ingreso no registrada'}</div>
-                <!-- FASE 7 (Parte A, 06-sep-2026, punto 7 del documento —
-                     avisos de competencia en Ingresos recientes): el
-                     backend ya manda ing.esRivalTemporada/
-                     ing.clanRivalDetectado (ver
-                     _construirIngresosRecientesUnificado(), Base.md) cuando
-                     alguna semana del historial de este ingreso lo muestra
-                     en un clan que hoy es rival de esta temporada o está en
-                     la lista manual de conflicto. Se reusa .badge-warn
-                     (mismo estilo que "Rival de esta temporada" en el
-                     panel de Detección de infiltrados de admin.html, Fase
-                     6) para no introducir un color de alerta nuevo. -->
+                <!-- Aviso de "Rival de esta temporada" en Ingresos recientes; reusa el mismo badge que Detección de infiltrados de admin.html. Historial en CHANGELOG.md. -->
                 ${ingBadgeRivalHtml(ing.esRivalTemporada, ing.clanRivalDetectado)}
               </div>
               ${(royaleOk || cwOk) ? `<div class="ingreso-links">
@@ -1655,14 +1473,7 @@ async function cargarIngresos(){
               ${ingStatHtml(sem.ataques, '⚔️ Ataques (sem.)', { semana: true })}
               ${ingStatHtml(sem.puntaje, '⭐ Puntaje (sem.)', { semana: true })}
               ${ingStatHtml(sem.barcos, '🚢 Barcos (sem.)', { semana: true })}
-              <!-- FIX (03-sep-2026, pedido usuario — "Vigencia [última
-                   conexión] debe mostrarse acá también"): el backend ya
-                   manda ing.vigencia (ver _construirIngresosRecientesUnificado,
-                   Base.md) — se pinta solo si viene con valor. No se usa
-                   ingStatHtml() para esto porque esa función pasa el
-                   valor por fmtNum() (numérico); acá el valor ya es texto
-                   de fecha formateado.
-              -->
+              <!-- Vigencia (última conexión) se pinta en Ingresos recientes cuando el backend la manda, ya como texto de fecha formateado. Historial en CHANGELOG.md. -->
               ${ing.vigencia ? `<div class="ing-stat"><b>${esc(fmtFechaVigenciaCorta(ing.vigencia))}</b><span>🕒 Vigencia</span></div>` : ''}
             </div>
             ${desgloseDiasHtml(ing.guerraSemanaDias)}
@@ -1681,13 +1492,7 @@ async function cargarIngresos(){
       });
     });
 
-    // FIX (03-sep-2026, pedido usuario — "las etiquetas de los nombres
-    // deben estar agrupadas por clan y luego orden alfabético de nombre
-    // de jugador"): se reusa 'grupos' (ya agrupado por clan en el orden
-    // fijo de la Familia y ordenado alfabéticamente dentro de cada clan,
-    // ver comentario más arriba) en vez de pasar 'ingresos' tal cual
-    // llegó del backend, así el orden de colores/leyenda de las gráficas
-    // coincide exactamente con el de las tarjetas de arriba.
+    // Las gráficas reusan el mismo 'grupos' ya ordenado, para que colores/leyenda coincidan con las tarjetas de arriba. Historial en CHANGELOG.md.
     const ingresosOrdenados = grupos.flatMap(g => g.items);
     // RESUELTO: 'data.semanasGuerra' (ver comentario de contrato más
     // arriba) ya llega desde el backend.

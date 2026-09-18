@@ -2243,3 +2243,1131 @@ FIX (03-sep-2026, pedido usuario, punto 19 — "agregar un
                btn-ver-pdf (solo si la opción tiene o.docId).
 ```
 
+
+## perfil.html — historial trasladado
+
+### Línea original 18 (HTML)
+
+```
+PERFIL.HTML (31-ago-2026, pedido usuario)
+  "Cuando abro el perfil de un jugador, no basta con cambiar el link,
+  también debe verse un menú dedicado para eso. Actualmente es solo una
+  sección que se despliega dentro del mismo panel de clanes, pero debe
+  mostrarse en otra pestaña el perfil, con mayor detalle."
+
+  Página nueva, independiente de directorio.html: todo lo que antes se
+  desplegaba inline dentro de la sección #miembroSec de directorio.html
+  (cabecera, progreso de ascenso/descenso, estadísticas extendidas,
+  torneos del jugador, "ver otras cuentas" y "vetar", todo admin-only
+  donde corresponde) vive ahora acá, en su propia pestaña, a partir de
+  ?tag=TAG en la URL. directorio.html ya NO renderiza el perfil inline:
+  simplemente resuelve el tag (directo, o por selección entre
+  coincidencias) y abre esta página con window.open(...,'_blank').
+
+  Además se agrega una sección nueva que no existía: "Ranking en el clan"
+  a lo largo del tiempo (pedido: "se puede hacer una gráfica de ranking en
+  el clan, porque eso se guarda en la hoja Guerra").
+  RESUELTO (04-sep-2026, pedido usuario — "en el sector de Ranking del
+  clan, falta corregir porque la información diaria sí está en Sheets,
+  hoja Guerra"): 'webPerfil' (_webPerfilJugador(), 34_Web_API.gs) ya manda
+  ext.historialRanking = [{semana, ranking}, ...], leído fila por fila de
+  la hoja Guerra (columna Ranking, GC.RANKING) para el Tag del jugador.
+  Como Guerra solo retiene la temporada actual (el resto se purga a
+  Backup_Guerra.csv), el historial cubre los días ya jugados de la
+  temporada en curso, no temporadas completas anteriores. Si un jugador
+  todavía no tiene ningún día con Ranking registrado (recién ingresado, o
+  ninguna guerra jugada todavía esta temporada), esta sección sigue
+  mostrando el mensaje de "todavía no hay historial" en vez de una gráfica
+  vacía (ver renderRankingChart() más abajo).
+
+  PENDIENTE (11-sep-2026, pedido usuario): el usuario ahora sube a Drive,
+  carpeta "JSON", un export crudo por jugador de la API de Clash Royale
+  (nombre de archivo tipo "DD-MM-AAAA_HH_MM_-_<clan>_-_<TAG>.json", uno
+  por snapshot). Falta que el backend (34_Web_API.gs / webPerfil) se
+  conecte a esa carpeta para leer estos JSON.
+  ID de la carpeta de Drive: 1Kqmn7ExFr3cDER_DgKnHwHlWc9lLW9aF
+  (https://drive.google.com/drive/u/0/folders/1Kqmn7ExFr3cDER_DgKnHwHlWc9lLW9aF)
+     AVANCE (12-sep-2026): perfil.html ya tiene TODAS las secciones
+     frontend consumiendo jugador.rawClash (categorías con el mismo nombre
+     que el JSON, ver rawClash() y los "PENDIENTE BACKEND" de cada
+     render*() nuevo). Falta solo que webPerfil adjunte ese objeto.
+
+  Revisando un ejemplo del JSON, esto es lo que trae y que perfil.html
+  todavía NO usa (currentDeck y achievements ya llegan por otra vía, ver
+  comentarios de pd.currentDeck y bloqueRequisitos() más abajo):
+    - badges[]: {name, level, maxLevel, progress, target, iconUrls.large}
+      — insignias del jugador (ej. ClanWarsVeteran, BattleWins, etc.).
+      El `name` sí se repite entre jugadores (es como `cards`: hay un
+      catálogo fijo de insignias posibles), PERO no todos los jugadores
+      tienen las mismas: cada uno desbloquea un subconjunto distinto
+      (ej. si existen A/B/C/D, un jugador puede tener A y B, otro A y C,
+      otro B y D...). Además level/maxLevel/progress/target/iconUrls
+      SÍ varían persona por persona, porque cada insignia tiene su propio
+      nivel alcanzado por jugador (y el ícono cambia según ese nivel).
+      Para armar un catálogo real de insignias (nombre + su ícono por
+      cada nivel posible) haría falta un CSV aparte en Drive con esa
+      relación nombre↔ícono-por-nivel; eso queda para evaluar al momento
+      de conectar el backend, no viene resuelto en el JSON de cada
+      jugador.
+    - cards[]: colección completa (122 cartas típico) con nivel/estrellas
+      por carta — permitiría una sección "Colección completa", más allá
+      del "Mazo actual" (que ya usa currentDeck).
+    - supportCards[] / currentDeckSupportCards[]: cartas de soporte
+      (torres/campeón de apoyo) — no confundir con currentFavouriteCard.
+    - currentFavouriteCard: {name, id, maxLevel, elixirCost, iconUrls,
+      rarity} — carta favorita marcada por el jugador en el juego.
+    - starPoints / expPoints / totalExpPoints: puntos de estrella y
+      experiencia acumulada.
+    - legacyTrophyRoadHighScore: mejor puntaje histórico del Camino de
+      Trofeos "viejo" (pre Path of Legends).
+    - currentPathOfLegendSeasonResult / lastPathOfLegendSeasonResult /
+      bestPathOfLegendSeasonResult: {leagueNumber, trophies, rank} del
+      modo competitivo Path of Legends (actual, anterior y mejor).
+    - leagueStatistics.{currentSeason,previousSeason,bestSeason}:
+      trofeos por temporada de liga.
+    - progress{}: objeto con progreso en eventos/modos puntuales activos
+      al momento del snapshot (ej. "ChaosDraftLeague",
+      "AutoChess_2026_Season_10", "seasonal-trophy-road-202608") — las
+      claves cambian según qué eventos estén corriendo esa temporada.
+    - _fecha / _clan: campos propios del exportador (no de la API de
+      Supercell), con la fecha del snapshot y el nombre del clan en ese
+      momento — al haber un JSON por snapshot y por jugador, esto abre la
+      puerta a un historial propio de estadísticas del jugador (trofeos,
+      donaciones, etc. a través del tiempo), similar en espíritu al
+      historialRanking que ya se arma desde la hoja Guerra.
+  El resto de campos del JSON (trophies, bestTrophies, wins, losses,
+  battleCount, donations, totalDonations, warDayWins,
+  clanCardsCollected, threeCrownWins, challengeMaxWins,
+  tournamentCardsWon, expLevel, collectionLevel, clan, arena, role,
+  currentWinLoseStreak) coinciden con datos que el perfil probablemente
+  ya recibe por otra vía (llamada en vivo a la API); revisar duplicados
+  antes de que el backend empiece a leer también desde estos JSON.
+```
+
+### Línea original 304 (HTML)
+
+```
+FIX (12-sep-2026): fecha/clan del snapshot exportado a Drive
+                 (categorías _fecha y _clan del JSON, campos propios del
+                 exportador — ver renderSnapshotInfo()). Oculto si el
+                 backend todavía no adjunta rawClash.
+```
+
+### Línea original 315 (HTML)
+
+```
+FIX (03-sep-2026, pedido usuario — "Vigencia" (Última
+                 conexión), dato de la hoja Directorio: "eso se debe
+                 incluir también en el perfil de los jugadores"): oculto
+                 por defecto — webPerfil (34_Web_API.gs) todavía no manda
+                 j.vigencia, así que no se pinta nada en vez de mostrar
+                 "—" vacío; se muestra automáticamente en cuanto el
+                 backend agregue ese campo (ver renderMiembro() más
+                 abajo).
+```
+
+### Línea original 330 (HTML)
+
+```
+FIX (02-sep-2026): una sola fila de acciones, formato "primera
+             fila" (.ext-links, pill chico) — ver comentario junto a
+             .ext-links en el <style> y a renderMiembro() más abajo.
+```
+
+### Línea original 338 (HTML)
+
+```
+FASE 2 (04-sep-2026, pedido del usuario, punto 1 del documento
+               de cambios): historial completo de guerra del jugador, solo
+               admin — mismo patrón visible/oculto que btnVerOtrasCuentas.
+```
+
+### Línea original 349 (HTML)
+
+```
+---------- MAZO ACTUAL (FASE 10, 06-sep-2026) ----------
+           Distinto de "Sugerencias de mazo"/"Sugerencias de mazo (2)" (los
+           botones de la derecha de este mismo encabezado, que arman una
+           búsqueda en RoyaleAPI a partir del nivel de cartas
+           desbloqueadas): esto es pd.currentDeck real, tal como lo manda
+           la API de Supercell — ver _webMazoActualDesdeCards2(),
+           34_Web_API.gs. Oculto por defecto: j.mazoActual puede venir null
+           (jugador sin datos de Cards_2 todavía), ver renderMazoActual()
+           más abajo.
+           FIX (08-sep-2026, pedido usuario — "mueve los botones de
+           sugerencia de mazo a la derecha de mazo actual"): "Sugerencias
+           de mazo"/"Sugerencias de mazo (2)" vivían en #mRoyaleCwstatsBtns
+           (la fila de acciones de la cabecera del perfil, junto a
+           RoyaleAPI/CWStats/Vetar/Ver torneos/etc — se veían amontonados
+           ahí, ver la captura del pedido). Se mudan a #mMazoActualBtns,
+           en la esquina superior derecha de ESTE card (mismo renglón que
+           el eyebrow/título, alineados con flex space-between) — tiene más
+           sentido ahí porque ambos hablan de mazos de esta cuenta.
+           RoyaleAPI/CWStats se quedan donde estaban; ver renderMiembro()
+           para el reparto exacto. Como esos botones ya no dependen de
+           mazoActual (son datos de ext.deck/ext.deck2, columnas Mazo/Mazo2
+           de Directorio), la card ahora también se muestra si HAY botones
+           de sugerencia aunque el jugador todavía no tenga mazoActual
+           real (ver renderMazoActual()).
+```
+
+### Línea original 391 (HTML)
+
+```
+---------- ATAQUES / PUNTAJE / BARCOS POR SEMANA (FIX 08-sep-2026,
+           pedido usuario — "solo se está mostrando evolución de ranking,
+           falta de ataques, puntaje y barcos") ----------
+           Mismo array que el ranking de arriba (j.extendido.historialRanking,
+           una fila por semana), graficando otros 3 campos de esa misma
+           fila en vez de `ranking`. Cada tarjeta arranca oculta y solo se
+           muestra si ese campo puntual (ataques/puntaje/barcos) viene con
+           datos en al menos una semana del historial — ver
+           renderMetricaSemanal()/renderMetricasSemanales() más abajo. Si
+           el backend todavía no manda esos 3 campos en historialRanking
+           (con exactamente esos nombres), estas 3 tarjetas simplemente se
+           quedan ocultas — no rompen nada — y empiezan a mostrarse solas
+           en cuanto el backend los agregue, sin tocar este HTML de nuevo.
+```
+
+### Línea original 420 (HTML)
+
+```
+===== SECCIONES NUEVAS (12-sep-2026, pedido usuario — aprovechar
+           TODO el JSON crudo del export de Drive) =====
+           Todas leen jugador.rawClash vía rawClash() (ver script).
+           PENDIENTE BACKEND — webPerfil (34_Web_API.gs) debe adjuntar el
+           objeto del snapshot exportado tal cual, conservando los nombres
+           de categoría del JSON de Supercell:
+             currentFavouriteCard · currentDeckSupportCards · cards[] ·
+             supportCards[] ("Cartas de torre") · badges[] · achievements[] ·
+             currentPathOfLegendSeasonResult / lastPathOfLegendSeasonResult /
+             bestPathOfLegendSeasonResult · leagueStatistics ·
+             legacyTrophyRoadHighScore · progress{} · starPoints ·
+             expPoints / totalExpPoints · expLevel · kingTowerLevel ·
+             _fecha / _clan (campos propios del exportador).
+           Mientras rawClash no llegue, cada card se queda oculta sola.
+```
+
+### Línea original 457 (HTML)
+
+```
+PENDIENTE BACKEND: categoría supportCards[] del JSON (las
+             "Tower Cards" de RoyaleAPI; NO confundir con
+             currentDeckSupportCards, que es la torre equipada en el mazo
+             actual y se pinta dentro de "Mazo actual").
+```
+
+
+### Bloques // (script)
+
+#### Línea original 945 (script)
+
+```
+    // 1) Héroe (Campeón) primero. FIX (09-sep-2026, pedido usuario): ahora
+    // que 34_Web_API.gs manda a.hasHero/b.hasHero (dato real del catálogo,
+    // ver renderMazoActual() más abajo), se prioriza sobre la tabla
+    // estática DATOS_CARTAS_MAZO -- por si una carta Campeón nueva todavía
+    // no está agregada ahí, sigue ordenándose bien.
+```
+
+#### Línea original 996 (script)
+
+```
+  // Mismos títulos/tooltips que ya explicaban la diferencia entre ambos
+  // botones cuando vivían junto a RoyaleAPI/CWStats (ver FIX 04-sep-2026
+  // en renderMiembro()) — se mudan acá tal cual, sin reescribir el texto.
+```
+
+#### Línea original 1019 (script)
+
+```
+  // FIX (12-sep-2026): cruzar cada carta del mazo con rawClash(j).
+  // currentDeck (PENDIENTE BACKEND: categoría currentDeck) para sumar
+  // starLevel, count y evolutionLevel aunque _webMazoActualDesdeCards2()
+  // todavía no los mande. Clave de cruce: nombre exacto de la carta.
+```
+
+#### Línea original 1063 (script)
+
+```
+  // FIX (12-sep-2026): carta(s) de torre equipada con este mazo —
+  // PENDIENTE BACKEND: categoría currentDeckSupportCards del JSON (es la
+  // "Tower Princess"/torre activa del mazo, distinta de supportCards[],
+  // que es la colección completa de torres y se pinta en su propia card).
+```
+
+#### Línea original 1179 (script)
+
+```
+  // Línea horizontal secundaria a mitad de camino entre las dos líneas
+  // principales del eje Y (pedido usuario 07-sep-2026 — mismo criterio
+  // que el resto de gráficas del sitio, ver gridHorizontalMediosSvg() en
+  // común.js; acá se calcula directo porque esta gráfica solo tiene 2
+  // líneas de referencia, no una grilla de varios pasos).
+```
+
+#### Línea original 1186 (script)
+
+```
+  // Líneas verticales de referencia (inicio de año/temporada — pedido
+  // usuario 07-sep-2026): esta gráfica es de granularidad SEMANAL, así
+  // que no se agrega línea de inicio de semana (ver lineasTemporalesSvg()
+  // en común.js). Reusa el mismo parser de fecha ya definido arriba.
+```
+
+#### Línea original 1196 (script)
+
+```
+  // Títulos de los ejes (pedido usuario 08-sep-2026 — "todas las gráficas
+  // deben indicar el nombre de los ejes"): se agrega un margen extra a la
+  // izquierda (gutter de 16, vía el offset negativo del viewBox) y otro
+  // abajo (H+46 → H+62) SIN tocar ninguna de las coordenadas ya calculadas
+  // arriba (PAD_L, stepX, escalaY, etc.) — el gráfico existente queda
+  // intacto y los títulos se dibujan en el espacio nuevo alrededor.
+  // FIX (13-sep-2026, pedido usuario — "hay que bajar un poco el nombre
+  // del eje x para que no se superponga con las fechas"): las etiquetas
+  // de fecha van rotadas -45° ancladas en y=H+18, así que su extremo
+  // inferior cae varios px por debajo de esa línea base (no son texto
+  // horizontal plano). Con el título en H+58 quedaban pisándose. Se baja
+  // el título a H+74 y se agranda el viewBox (antes H+62) para que siga
+  // entrando completo dentro del SVG.
+```
+
+#### Línea original 1298 (script)
+
+```
+  // FIX (13-sep-2026, pedido usuario — "hay que bajar un poco el nombre
+  // del eje x para que no se superponga con las fechas", mismo fix que
+  // renderRankingChart() de arriba): las etiquetas de fecha van rotadas
+  // -45° ancladas en y=H+18, así que su extremo inferior cae varios px
+  // por debajo de esa línea base. Con el título en H+58 quedaban
+  // pisándose. Se baja el título a H+74 y se agranda el viewBox (antes
+  // H+62) para que siga entrando completo dentro del SVG.
+```
+
+#### Línea original 1351 (script)
+
+```
+  // FIX (03-sep-2026, pedido usuario — "Vigencia" / Última conexión, dato
+  // de la hoja Directorio): se acepta tanto `j.vigencia` como
+  // `j.extendido.vigencia`/`j.extendido.ultimaConexion` — se usa el primero
+  // que venga con valor. Si ninguno viene, el <span> se queda oculto
+  // (display:none puesto en el HTML) en vez de mostrar un campo vacío.
+  // CONFIRMADO (04-sep-2026): el backend (`_webPerfilJugador()`,
+  // 34_Web_API.gs) ya manda `j.vigencia` (columna DC.VIGENCIA de
+  // Directorio), así que este bloque ya no depende de una futura conexión.
+```
+
+#### Línea original 1368 (script)
+
+```
+  // FIX (04-sep-2026, pedido usuario — "los espacios son desiguales" entre
+  // las barras de Ascensos/Descensos): antes se unían los bloques con un
+  // separador extra de 14px (`<div style="height:14px;">`), que se SUMABA
+  // al margin-bottom:12px que ya trae cada .req-row (ver <style>), dejando
+  // 26px entre el último renglón de un bloque y el primero del siguiente,
+  // contra 12px entre renglones de un mismo bloque. Se quita el separador
+  // extra: el margin-bottom:12px de .req-row ya es uniforme para TODOS los
+  // renglones, sean del mismo bloque o no.
+```
+
+#### Línea original 1394 (script)
+
+```
+  // FIX (31-ago-2026, pedido usuario — "en los perfiles de jugadores,
+  // antes de ver torneos, agrega el botón con el link al perfil de
+  // royaleapi y otro a cwstats"): botones dedicados en la fila de
+  // acciones, con los íconos oficiales.
+  // FIX (02-sep-2026, pedido usuario — "se debía quitar la segunda fila,
+  // no la primera; mover los nuevos botones a la primera fila, siguiendo
+  // el formato que tenía la primera fila"): estos links ya NO usan las
+  // clases .btn.btn-ghost (la fila "grande" que había que quitar) — ahora
+  // son <a> simples dentro de #mAccionesRow (clase .ext-links, ver <style>
+  // y el HTML de esta sección), así que heredan el estilo de la fila
+  // "chica" original, junto con Vetar/Ver torneos/Ver otras cuentas.
+  // FIX (08-sep-2026, pedido usuario — "mueve los botones de sugerencia de
+  // mazo a la derecha de mazo actual"): "Sugerencias de mazo"/"Sugerencias
+  // de mazo (2)" (ext.deck/ext.deck2) ya NO se arman acá — se mudaron al
+  // encabezado de la card "Mazo actual" (ver renderMazoActual() más
+  // arriba). Esta fila ahora solo trae RoyaleAPI/CWStats.
+```
+
+
+## directorio.html — historial trasladado
+
+### Línea original 685 (HTML)
+
+```
+---------- COMPARADOR DE JUGADORES ----------
+       Ver _webCompararJugadores() en 34_Web_API.gs — envuelve dos
+       llamadas a webPerfil en un solo pedido. FIX (02-sep-2026, punto 9):
+       ahora también consume _webHistorialGuerraComparador() para pintar
+       el desempeño diario de guerra (ver compGuerraChartWrap más abajo).
+```
+
+### Línea original 702 (HTML)
+
+```
+FIX (02-sep-2026, pedido usuario, punto 9: "Cara a cara debería
+         mostrar el desempeño de guerra con gráficas, sacadas de la hoja
+         Guerra/CSV, valores diarios, eje X solo por mes"). Ver
+         _webHistorialGuerraComparador() en 34_Web_API.gs y
+         renderComparadorGuerraChart() más abajo.
+```
+
+### Línea original 706 (HTML)
+
+```
+---------- DIRECTORIO COMPLETO ----------
+       Sin barra de filtro propia: la barra de búsqueda de arriba ("Busca
+       tu perfil por nombre o tag") ya cumple esa función — no hace falta
+       una segunda barra buscadora acá (pedido del PDF de diseño).
+```
+
+### Línea original 714 (HTML)
+
+```
+FIX (13-sep-2026, pedido usuario — "agrega los botones de letras en
+         directorio por clan"): fila A-Z/# para filtrar por primera letra
+         del nombre, mismo patrón visual que en guerra.html — se pinta una
+         sola vez (ver pintarFiltroLetraRoster() en el <script>) y persiste
+         fuera de #rosterWrap para no perderse al cambiar de clan (cada
+         cambio de clan sí resetea CUÁL letra está elegida, igual que ya
+         hacía con los demás filtros — ver renderRosterClanActivo()).
+```
+
+### Línea original 721 (HTML)
+
+```
+FIX (04-sep-2026, pedido usuario — "Los ingresos recientes deben
+       moverse a Directorio (al final)"): antes vivía en guerra.html; se
+       trae completa (markup + JS, ver cargarIngresosRecientes()) al final
+       del Directorio, después de la lista de miembros por clan. Sigue
+       consumiendo 'webGuerraEnVivo' (mismo endpoint público, campo
+       'nuevos') — no hizo falta ningún cambio de backend.
+```
+
+### Línea original 727 (HTML)
+
+```
+FIX (16-sep-2026 v2, pedido usuario — pastillas de clan en vez del
+         botón "Filtrar por clan / miembro" + panel plegable): pintado por
+         construirFiltroIngresos() en cuanto llega la data.
+```
+
+### Línea original 730 (HTML)
+
+```
+FIX (16-sep-2026 v8, pedido usuario — "poner un botón de
+         Mostrar/Ocultar gráficas para no precargar todo de golpe [...]
+         que al inicio aparezcan solo las tarjetas de nombres y las
+         gráficas que sean a pedido"): las gráficas comparativas
+         (renderComparativaSemanal) ya no se construyen al cargar la
+         página — arrancan cerradas y solo se pintan cuando el usuario
+         toca este botón (ver inicializarToggleGraficasIngresos()).
+```
+
+
+### Bloques // (script)
+
+#### Línea original 826 (script)
+
+```
+    // Orden fijo de la Familia, no alfabético — ver ordenClanIndex() en
+    // common.js. Se ordena antes de usar el índice "i" para que la
+    // insignia de rol (Cantera/Semillero) siempre le toque al clan
+    // correcto, sin importar el orden que mande el backend.
+```
+
+#### Línea original 1038 (script)
+
+```
+    // El directorio todavía no terminó de cargar: si lo escrito ya parece
+    // un Tag completo, se prueba directo contra la API en vez de obligar
+    // a esperar a que cargue el directorio.
+```
+
+#### Línea original 1071 (script)
+
+```
+    // FIX (03-sep-2026, pedido usuario — "reemplazar 'ataques/sem' por
+    // 'Ataques en la semana actual', contando solo lo que se hizo en
+    // días de guerra"): el valor (jugador.guerraSemana.ataques) ya vale
+    // eso — sale de GC.ATAQUES_SEM, que el juego mismo solo permite
+    // acumular en días de guerra (no hay "ataques" que registrar en
+    // entrenamiento), así que no hacía falta tocar el número, solo la
+    // etiqueta, que sí era ambigua sobre qué contaba.
+    // FIX (05-sep-2026, pedido usuario): ahora usa extItemAtaques() en vez
+    // de extItem() para agregar "/tope" (ver docblock de esa función).
+```
+
+#### Línea original 1082 (script)
+
+```
+    // FIX (03-sep-2026, pedido usuario — "incluir 'Donaciones hechas' y
+    // 'Donaciones recibidas' en vez de cortar el texto"): antes solo
+    // estaba 'Donac. hechas' (abreviado) y faltaba el recibidas.
+```
+
+#### Línea original 1090 (script)
+
+```
+  // FIX (05-sep-2026, pedido usuario — "la vigencia del cara a cara debe
+  // tener el formato que tiene en el perfil de miembro y debe ir a la
+  // derecha del nombre... con hora incluida"): antes la Vigencia salía
+  // como un cuadrito más del ext-grid (fecha sin hora); ahora se pinta
+  // junto al nombre con .perfil-cabecera/.stats-mini (mismo patrón visual
+  // que usa perfil.html para su Vigencia) y con fmtFechaConHoraVigencia()
+  // (fecha + hora) en vez de fmtFechaCortaVigencia() (solo fecha).
+```
+
+#### Línea original 1156 (script)
+
+```
+    // FIX (03-sep-2026, pedido usuario): mismo cambio de etiqueta y de
+    // items de donaciones que renderComparadorLado() más arriba.
+    // FIX (05-sep-2026, pedido usuario — "en los ataques, agrega '/' y la
+    // cantidad de ataques que debería tener"): tope (Number(a.guerraSemana.ataquesMax) ||
+    // b.guerraSemana.ataquesMax) — cualquiera de los dos lados alcanza,
+    // ambos jugadores comparten el mismo tope de la semana en curso.
+```
+
+#### Línea original 1179 (script)
+
+```
+    // FIX (05-sep-2026, pedido usuario — "en los ataques, agrega '/' y la
+    // cantidad de ataques que debería tener"): f.maxAtaques solo viene con
+    // dato (>0) en la fila de "Ataques en la semana actual"; en el resto de
+    // filas queda undefined/0 y el texto se comporta igual que antes.
+```
+
+#### Línea original 1227 (script)
+
+```
+  // Redondea el rango a un "paso" agradable (1/2/5 x 10^n) y le agrega
+  // ~10% de margen arriba/abajo para que ningún punto quede pegado al
+  // borde del gráfico — en vez de forzar el piso a 0, que aplastaba la
+  // variación real cuando los dos jugadores se mueven en un rango angosto
+  // y alto (ej. Fame entre 2800 y 3200).
+```
+
+#### Línea original 1244 (script)
+
+```
+  // FIX (07-sep-2026, pedido usuario): PAD_B pasó de 32 a 40 porque la
+  // etiqueta de fecha ahora va rotada 45° (ver más abajo) y necesita más
+  // alto para no recortarse contra el borde inferior del SVG.
+```
+
+#### Línea original 1263 (script)
+
+```
+  // FIX (07-sep-2026, pedido usuario — "agrega líneas... que permitan
+  // identificar el primer registro de cada semana y unas más notorias
+  // para el inicio de cada mes"), ACTUALIZADO el mismo día (pedido más
+  // amplio, ver docblock de lineasTemporalesSvg en common.js): esta
+  // gráfica es de granularidad DIARIA, así que las 3 líneas de
+  // referencia (año/temporada/semana) aplican todas — reemplaza el
+  // detector de "cambio de mes calendario" que había antes (una
+  // temporada de Clash Royale NO siempre coincide con el mes calendario:
+  // empieza el PRIMER LUNES de cada mes, ver esInicioTemporada() en
+  // común.js) por el mismo criterio que usa el backend.
+```
+
+#### Línea original 1291 (script)
+
+```
+  // FIX (07-sep-2026, pedido usuario, Fase 15 punto 1 — "tooltip con
+  // Nombre, Clan, Puntaje, Día"): cada círculo pasa de auto-cerrarse
+  // (<circle ... />) a envolver un <title>, que es el tooltip nativo del
+  // navegador (sin JS/CSS extra, funciona en desktop y con tap sostenido
+  // en mobile) — mismo patrón que el resto de la página, sin dependencias
+  // nuevas. Texto: "Nombre — Clan\n<Título de la métrica>: valor\nFecha".
+```
+
+#### Línea original 1311 (script)
+
+```
+  // FIX (07-sep-2026, pedido usuario): rota 45° a la izquierda la fecha.
+  // FIX (08-sep-2026, pedido usuario — "todas las gráficas deben indicar
+  // el nombre de los ejes"): se agrega un gutter de 16 a la izquierda y
+  // 16 abajo (vía el offset negativo del viewBox), sin tocar PAD_L/PAD_B
+  // ni ninguna coordenada ya calculada arriba, y ahí se dibujan los dos
+  // títulos fijos ("Fecha" en X; en Y, el nombre de la métrica — Ataques,
+  // Puntaje (Fame) o Barcos según 'campo').
+```
+
+#### Línea original 1377 (script)
+
+```
+  // FIX (05-sep-2026, pedido usuario — "las gráficas del cara a cara son
+  // muy pequeñas, no es necesario que vayan las 3 en una sola línea. Con
+  // ese tamaño no se ve nada"): antes usaba
+  // "repeat(auto-fit,minmax(280px,1fr))", que en pantallas anchas metía
+  // las 3 cards en una sola fila, comprimiendo cada gráfica (viewBox
+  // 640x220) a ~280px de ancho. Ahora una sola columna (1fr): cada
+  // gráfica ocupa el ancho completo del contenedor, apiladas de arriba
+  // hacia abajo — se lee bien sin importar el tamaño de pantalla.
+```
+
+#### Línea original 1414 (script)
+
+```
+  // FIX (31-ago-2026, pedido usuario): antes se mandaban los textos crudos
+  // directo al backend, eligiendo a ciegas la primera coincidencia posible
+  // del lado del servidor. Ahora se resuelve cada lado por separado contra
+  // el directorio ya cargado; si algún lado es ambiguo, se muestran sus
+  // coincidencias (nombre, tag, clan) y se espera el clic antes de
+  // comparar.
+```
+
+#### Línea original 1433 (script)
+
+```
+    // FIX (02-sep-2026, punto 9): el historial de guerra se pide en
+    // paralelo al perfil, no en cascada — y con su propio .catch() para
+    // que si ese endpoint falla (o es una versión vieja del backend sin
+    // 'webHistorialGuerraComparador' todavía), el resto del comparador
+    // (perfiles + barras) igual se pinte con normalidad.
+```
+
+#### Línea original 1621 (script)
+
+```
+// FIX (13-sep-2026, pedido usuario — "agrega los botones de letras en
+// directorio por clan"): letra A-Z/# elegida en #rosterLetraFilter (null =
+// todas). Igual que rosterFiltrosSeleccion/rosterOrden de arriba, se
+// reinicia cada vez que se cambia de pestaña de clan (ver
+// renderRosterClanActivo()) y se combina con esos filtros dentro de
+// aplicarFiltrosRoster() sin pisarse entre sí. Ver pintarFiltroLetraRoster()
+// y primeraLetraFiltro()/LETRAS_FILTRO más abajo.
+```
+
+#### Línea original 1857 (script)
+
+```
+  // FIX (16-sep-2026 v8, pedido usuario — rendimiento, sugerencia propia
+  // aceptada: "el buscador del popover no tiene debounce"): antes
+  // pintarLista() se disparaba en CADA tecla, reconstruyendo el checklist
+  // completo de la columna. Con ~50 valores no se nota, pero es gratis
+  // esperar 180ms de pausa en el tipeo antes de repintar (debounce()
+  // helper reusable, ver definición al inicio del <script>).
+```
+
+#### Línea original 1865 (script)
+
+```
+  // "Seleccionar todo"/"Desmarcar todo" (pedido usuario 08-sep-2026):
+  // actúan sobre TODOS los valores de la columna, no solo los que
+  // queden visibles tras el buscador — así se puede buscar "Líder",
+  // desmarcar todo, y el resto de valores queda intacto (sin tildar).
+```
+
+#### Línea original 1900 (script)
+
+```
+  // Posición: colgado del ícono clickeado, como position:fixed (así no lo
+  // recorta el overflow-x:auto de .roster-table-wrap). Se ajusta para no
+  // salirse por la derecha ni por abajo de la ventana.
+```
+
+#### Línea original 1973 (script)
+
+```
+    // FIX (13-sep-2026, pedido usuario — "agrega los botones de letras en
+    // directorio por clan"): además de los filtros por columna de arriba,
+    // la fila también debe pasar el filtro por letra elegido en
+    // #rosterLetraFilter (si hay alguno) — ver data-letra en
+    // filasHtmlRoster() más abajo.
+```
+
+#### Línea original 2046 (script)
+
+```
+  // FIX (13-sep-2026, pedido usuario — "agrega los botones de letras en
+  // directorio por clan"): pintarFiltroLetraRoster() solo pinta de verdad
+  // la primera vez (guardia por dataset.pintado); en cada cambio de clan
+  // solo hace falta quitar el estado "active" de cualquier letra que
+  // hubiera quedado marcada del clan anterior, ya que rosterLetraSeleccionada
+  // se acaba de resetear arriba.
+```
+
+#### Línea original 2080 (script)
+
+```
+  // Barra de scroll superior sincronizada con la real (ver docblock de
+  // .roster-topbar más arriba, en el <style>): el div interno se estira al
+  // ancho real de la tabla, y ambos contenedores se copian el scrollLeft
+  // uno al otro (con una bandera para no entrar en loop infinito de
+  // eventos "scroll" disparándose mutuamente).
+```
+
+#### Línea original 2091 (script)
+
+```
+  // Recalcula si la ventana cambia de tamaño (ej. rotar el celular) — no
+  // hace falta quitar este listener al re-pintar la tabla (cambio de
+  // clan): vuelve a buscar los elementos por su id cada vez que se
+  // dispara, y esos ids siempre existen mientras la página esté abierta.
+```
+
+#### Línea original 2110 (script)
+
+```
+  // Botón "Quitar filtros" (pedido usuario 08-sep-2026): borra TODAS las
+  // entradas de rosterFiltrosSeleccion de un toque, en vez de tener que
+  // abrir columna por columna y tildar todo de nuevo. Arranca deshabilitado
+  // (no hay filtros recién pintada la tabla — ver "disabled" en el HTML de
+  // arriba) y actualizarBotonLimpiarFiltros() lo habilita/deshabilita cada
+  // vez que cambia algún filtro (ver esa función y actualizarIconosFiltro()
+  // más abajo).
+```
+
+#### Línea original 2157 (script)
+
+```
+    // FIX (31-ago-2026): un link directo a directorio.html?tag=TAG (de
+    // antes de que existiera perfil.html) ahora redirige a la página de
+    // perfil correspondiente EN LA MISMA pestaña — un window.open() acá
+    // sería un popup disparado sin gesto del usuario y la mayoría de
+    // navegadores lo bloquearía.
+```
+
+#### Línea original 2303 (script)
+
+```
+  // FIX (08-sep-2026, pedido usuario — "todas las gráficas deben indicar
+  // el nombre de los ejes"): PAD_L (56→74) y PAD_B (68→84) suben para dejar
+  // espacio a los títulos fijos de los ejes ("Fecha" en X, opts.ejeY en Y
+  // — ver los <text class="ing-axis-title"> al final de esta función),
+  // mismo cambio que su gemela en index.html.
+```
+
+#### Línea original 2417 (script)
+
+```
+      // FIX (10-sep-2026, pedido usuario — "arriba debe decir el nombre de
+      // la cuenta y su tag, abajo el clan y la cantidad de ataques, barcos
+      // o fame, igual que en index"): mismo orden que activarTooltipsGraficas()
+      // en index.html — nombre+tag arriba en negrita, cantidad+clan+fecha
+      // abajo tenue (antes estaba al revés en ambos archivos).
+```
+
+#### Línea original 2439 (script)
+
+```
+  // FIX (08-sep-2026, pedido usuario — "las gráficas deben indicar el
+  // nombre de los ejes"): mismo criterio que index.html — ejeY es la
+  // primera palabra del título de la tarjeta.
+```
+
+#### Línea original 2538 (script)
+
+```
+// FIX (16-sep-2026 v8, pedido usuario — "poner un botón de Mostrar/Ocultar
+// gráficas para no precargar todo de golpe [...] que al inicio aparezcan
+// solo las tarjetas de nombres y las gráficas que sean a pedido"): las 3
+// gráficas comparativas (renderComparativaSemanal) son lo más caro de
+// pintar de toda la sección — un <svg> con un <path>+<circle> por cada
+// semana de CADA miembro nuevo — así que ya no se construyen solas al
+// cargar la página. ingresosGraficasVisibles controla si están abiertas
+// (arranca en false: solo se ve el botón, ver #ingGraficasToggle más
+// abajo) e ingresosUltimosFiltrados guarda el último subconjunto filtrado
+// aunque las gráficas estén ocultas, para poder pintarlas al instante
+// apenas el usuario las abre, sin tener que recalcular el filtro.
+```
+
+#### Línea original 2597 (script)
+
+```
+  // Las gráficas solo se recalculan si el usuario las tiene abiertas (ver
+  // ingresosGraficasVisibles / #ingGraficasToggle) — si están ocultas, ya
+  // quedó guardado en ingresosUltimosFiltrados y se pintan recién cuando
+  // las abra, para no gastar tiempo de render en algo que nadie está viendo.
+```
+
+#### Línea original 1023 (script)
+
+```
+FIX (31-ago-2026, pedido usuario — "debería mostrarme las 5
+coincidencias (ya sea en tag o nombre) y darme a elegir el que
+quiero ver"): con UNA sola coincidencia se sigue resolviendo directo
+(eso "se reemplaza bien", según el propio pedido); con 2 o más ya no
+se elige la primera en automático — se muestra la lista y se espera
+el clic del usuario.
+```
+
+
+## index.html — historial trasladado
+
+### Línea original 592 (HTML)
+
+```
+Datos estructurados (schema.org, Organization): ayuda a que Google
+     muestre el logo, el nombre y los canales oficiales de la Familia
+     Terna como resultado enriquecido en búsquedas y en el panel lateral
+     de conocimiento. Se coloca solo en index.html (página principal del
+     sitio), que es donde Google espera encontrar el marcado de
+     organización. sameAs enlaza los mismos canales oficiales ya listados
+     en la sección "Canales Verificados" (#redes) más abajo en esta misma
+     página, para que Google los asocie a esta organización.
+```
+
+### Línea original 628 (HTML)
+
+```
+FIX (07-sep-2026, pedido usuario — "Agrega un botón llamado
+           'Inicio' que lleve a index, haciendo lo mismo que hace el botón
+           de familia Terna. Este botón debe estar a la izquierda de
+           Directorio"): mismo destino que el link .brand de arriba
+           (href="index.html") — se usa data-page="inicio" para que
+           marcarNavActiva() (assets/common.js) lo resalte como activo acá,
+           mismo valor que ya tiene <body data-page="inicio">.
+```
+
+### Línea original 639 (HTML)
+
+```
+<main id="main-content"> envuelve TODO el contenido central (desde el
+     hero hasta antes del footer): antes el id="main-content" del
+     skip-link vivía en un <div>/<section> genérico, que un lector de
+     pantalla no anuncia como landmark principal. Se usa <main> real por
+     accesibilidad; el id se mueve aquí desde la sección .hero-banner de
+     abajo para no duplicarlo.
+```
+
+### Línea original 652 (HTML)
+
+```
+FIX (05-sep-2026, pedido usuario — "en móvil la frase del
+           cuartel queda pegada, sin espacios"): antes las palabras solo
+           quedaban separadas por el propio salto de línea del <br
+           class="hero-title-break">, sin ningún espacio real en el texto.
+           En escritorio eso no se notaba porque el <br> sí genera el
+           corte visual, pero en móvil ese <br> se oculta (display:none,
+           ver breakpoint @media max-width:768px más arriba) y, al no
+           haber ningún espacio de por medio, las palabras quedaban
+           pegadas ("cuartelgeneralde laFamilia Terna"). Se agrega un
+           espacio real antes de cada <br> — en escritorio no cambia nada
+           (un espacio antes de un salto de línea no se ve), y en móvil
+           ese espacio queda y separa las palabras correctamente.
+```
+
+### Línea original 661 (HTML)
+
+```
+FIX (10-sep-2026, pedido usuario — "el botón de unirse por
+           discord debe ser solo unirse y dar las mismas opciones de
+           'Unirse a este clan' (wsp, discord, formulario)"): antes era un
+           <a> con link directo a Discord (bypaseaba el resto de canales
+           oficiales). Ahora es un botón que abre el MISMO modal
+           "¿Cómo unirte?" que ya usan las tarjetas de clan
+           (.js-solicitar-unirme -> abrirModalUnirse(), más abajo), sin
+           pasarle un clan puntual -- abrirModalUnirse() ya cae sola al
+           texto genérico "Postular a un clan" cuando no recibe argumento
+           (ver `nombreClan || 'un clan'` dentro de la función).
+```
+
+### Línea original 713 (HTML)
+
+```
+FIX (31-ago-2026, pedido usuario):
+         - Escritorio: "el escudo podría situarse un poco más a la
+           izquierda, un poco más grande tal vez, que no esté tan lejos
+           del texto" — justify-content:space-between empujaba el escudo
+           hasta el borde derecho del contenedor sin importar el ancho del
+           texto; se cambia a flex-start (los dos quedan juntos, separados
+           solo por el gap) y se agranda el escudo (150px→176px).
+         - Móvil: "el escudo debe estar al medio en la versión de celular"
+           — con flex-wrap:wrap y solo 2 ítems, al pasar el escudo a su
+           propia línea quedaba pegado al borde izquierdo (una sola línea
+           con un ítem no se centra con justify-content). Se centra
+           explícito por media query sin tocar el layout de escritorio.
+```
+
+### Línea original 714 (HTML)
+
+```
+FIX (01-sep-2026, pedido usuario — "en la sección de clanes aún
+         sale ese espacio mal puesto" / "el escudo... que no esté tan
+         lejos del texto"): el cambio del 31-ago de arriba puso
+         justify-content:flex-start pero dejó flex:1 en el div de texto
+         de abajo — flex:1 hace que ESE div (invisible, sin fondo) crezca
+         para ocupar todo el ancho sobrante de la fila, lo que en la
+         práctica empuja al escudo hasta el borde derecho exactamente
+         igual que space-between (el hueco vacío que se veía en el PDF de
+         diseño era ese div estirado). Se cambia a flex:0 1 auto con
+         max-width, para que el div de texto solo ocupe el ancho que su
+         contenido necesita y el escudo quede pegado justo después, con
+         el gap de 28px como única separación.
+```
+
+### Línea original 715 (HTML)
+
+```
+FIX (03-sep-2026, pedido usuario — "el escudo debería estar en el
+         centro del espacio de las barras rojas [el hueco vacío a la
+         derecha del texto], aproximadamente donde está el punto rojo"):
+         el fix del 01-sep (comentario de arriba) dejó el escudo pegado
+         justo después del texto (separado solo por el gap de 28px), no
+         centrado en el espacio libre restante. Se envuelve el escudo en
+         un elemento que crece para ocupar ese espacio libre
+         (.clanes-escudo-fill, ver CSS) y centra su contenido dentro — así
+         el escudo queda centrado en el hueco, ni pegado al texto ni
+         pegado al borde derecho (que era el problema del space-between
+         original).
+```
+
+### Línea original 766 (HTML)
+
+```
+FIX (04-sep-2026, pedido usuario, punto 28 — "en la sección Rankings
+     de la Familia (tops y cartas) me parece que habría que moverla a la
+     sección Index"): esta sección vivía en comunidad.html (ver historial
+     de esa página) y se MUEVE acá completa — markup, CSS (.rankings-grid/
+     .ranking-card/.ranking-row/.cartas-list/.carta-chip, ver <style> de
+     arriba) y JS (renderRankingRow/pintarRanking/cargarRankings/
+     cargarEstadisticasCartas, más abajo antes de </script>). Ya no está
+     duplicada en comunidad.html. Consume webRankings()/
+     webEstadisticasCartas() (34_Web_API.gs), igual que antes — no hace
+     falta ningún cambio de backend para que siga funcionando acá.
+```
+
+### Línea original 785 (HTML)
+
+```
+FIX (04-sep-2026, pedido usuario — "no estoy segura del
+             significado de 6682 en torneos, ¿significa que ha ganado esa
+             cantidad de torneos?"): NO — DC.TORNEOS es
+             playerData.tournamentBattleCount de la API de Clash Royale
+             (ver 08_Web_Endpoints.gs/13_Sync_...), es decir BATALLAS
+             jugadas dentro de torneos, no torneos ganados ni torneos
+             distintos en los que participó. Se renombra el título y se
+             agrega el sufijo "batallas" al valor (ver cargarRankings()
+             más abajo) para que no vuelva a prestarse a esa confusión.
+```
+
+### Línea original 805 (HTML)
+
+```
+Ver webAniversarios() en 34_Web_API.gs. Solo aparece cuando hay algún
+     miembro por cumplir un hito de antigüedad en los próximos 14 días —
+     si no hay ninguno, la sección se oculta entera (ver cargarAniversarios()).
+```
+
+### Línea original 818 (HTML)
+
+```
+Reordenada como penúltima sección (pedido del usuario, 29-ago-2026:
+     "justo antes de la frase sobre la élite"), después de Ingresos
+     recientes y antes del tagline de cierre.
+```
+
+### Línea original 855 (HTML)
+
+```
+FIX (31-ago-2026, pedido usuario — "el logo de RoyaleAPI no se
+           muestra, los otros logos están bien"): el PNG que se hotlinkeaba
+           directo desde royaleapi.com dejó de resolver (¿ruta cambiada o
+           bloqueo de hotlink?). Se reemplaza por el servicio de favicons
+           de Google (s2/favicons), que resuelve el ícono real del sitio de
+           forma estable y no depende de una ruta interna de RoyaleAPI que
+           puede volver a cambiar. Si en el futuro se consigue el logo
+           oficial en SVG, puede reemplazar este <img> igual que los demás
+           íconos monocromo.
+```
+
+### Línea original 1522 (HTML)
+
+```
+FIX (03-sep-2026, pedido usuario — "hacer que cada tarjeta
+               lleve al perfil del jugador al hacer clic (hoy no son
+               clicables)"): mismo patrón ya aplicado en guerra.html
+               (js-nuevo-card) — data-tag + listener con window.open,
+               deteniendo la propagación en los links de RoyaleAPI/CWStats
+               para que no abran el perfil también.
+```
+
+### Línea original 1529 (HTML)
+
+```
+FASE 7 (Parte A, 06-sep-2026, punto 7 del documento —
+                     avisos de competencia en Ingresos recientes): el
+                     backend ya manda ing.esRivalTemporada/
+                     ing.clanRivalDetectado (ver
+                     _construirIngresosRecientesUnificado(), Base.md) cuando
+                     alguna semana del historial de este ingreso lo muestra
+                     en un clan que hoy es rival de esta temporada o está en
+                     la lista manual de conflicto. Se reusa .badge-warn
+                     (mismo estilo que "Rival de esta temporada" en el
+                     panel de Detección de infiltrados de admin.html, Fase
+                     6) para no introducir un color de alerta nuevo.
+```
+
+### Línea original 1544 (HTML)
+
+```
+FIX (03-sep-2026, pedido usuario — "Vigencia [última
+                   conexión] debe mostrarse acá también"): el backend ya
+                   manda ing.vigencia (ver _construirIngresosRecientesUnificado,
+                   Base.md) — se pinta solo si viene con valor. No se usa
+                   ingStatHtml() para esto porque esa función pasa el
+                   valor por fmtNum() (numérico); acá el valor ya es texto
+                   de fecha formateado.
+```
+
+
+### Bloques // (script)
+
+#### Línea original 891 (script)
+
+```
+    // Orden fijo de la Familia (Principal, Terna 2, Terna 3, Mini), NUNCA
+    // alfabético — ver ordenClanIndex() en common.js. Se ordena ACÁ, antes
+    // de asignar el índice "i" que decide qué insignia/rol le toca a cada
+    // tarjeta, para que ambas cosas queden siempre sincronizadas aunque el
+    // backend entregue los clanes en otro orden.
+```
+
+#### Línea original 1234 (script)
+
+```
+  // FIX (03-sep-2026, pedido usuario — "las semanas se superponían [las
+  // etiquetas de eje]... rotar 90° el texto a la izquierda del eje x, o
+  // 45°, tú decide"): con muchos miembros nuevos hay muchas semanas en el
+  // eje X y las etiquetas ("dd/MM") chocaban entre sí en horizontal. Se
+  // rotan -45° (ancladas por su extremo derecho, bajando hacia la
+  // izquierda) y se sube PAD_B (44→68) para que quepan sin cortarse.
+  // FIX (08-sep-2026, pedido usuario — "todas las gráficas deben indicar
+  // el nombre de los ejes"): PAD_L (56→74) y PAD_B (68→84) suben de nuevo
+  // para dejar espacio a los títulos fijos de los ejes ("Fecha" en X,
+  // opts.ejeY en Y — ver los dos <text class="axis-title"> agregados al
+  // final de esta función), sin invadir ni las etiquetas numéricas del
+  // eje Y ni las fechas rotadas del eje X que ya vivían en ese margen.
+```
+
+#### Línea original 1263 (script)
+
+```
+  // FIX (04-sep-2026, pedido usuario — "todo debe venir con fecha, no
+  // debería haber algo en formato S1/S2"): se calcula UNA vez por gráfica
+  // el Map de fechas estimadas para las etiquetas viejas "Semana N" (ver
+  // construirFechasEstimadasSemanasViejas más arriba) y se usa tanto en
+  // las etiquetas del eje como en el tooltip de cada punto (más abajo).
+```
+
+#### Línea original 1270 (script)
+
+```
+  // Líneas verticales de referencia (inicio de año/temporada — pedido
+  // usuario 07-sep-2026): esta gráfica es de granularidad SEMANAL (un
+  // punto = una semana), así que NO se agrega línea de inicio de semana
+  // (ver lineasTemporalesSvg() en common.js). La fecha de cada punto del
+  // eje se obtiene de la propia etiqueta ("dd/MM/yyyy" real, o su fecha
+  // estimada si es una etiqueta vieja "Semana N" — mismo Map ya calculado
+  // arriba para las etiquetas del eje y el tooltip).
+```
+
+#### Línea original 1300 (script)
+
+```
+    // FIX (03-sep-2026, pedido usuario — "en las fechas que no haya
+    // datos, baja con líneas punteadas a cero, así se evitan cortes en
+    // las líneas y se puede distinguir si está ahí porque hizo 0 puntos
+    // (con presencia en el clan) o estaba sin clan y no participó...
+    // en los puntos donde no haya dato, no colorees el centro del
+    // círculo, solo colorea los bordes"): antes, si faltaba una semana
+    // intermedia, la línea simplemente se cortaba (sin trazo entre un
+    // tramo y el siguiente), lo que en la práctica es indistinguible de
+    // "no hay datos ahí" a simple vista y deja huecos raros en el
+    // gráfico. Ahora, por cada hueco entre dos semanas con dato real, se
+    // insertan puntos sintéticos en 0 (uno por semana faltante) y se
+    // conecta todo con trazo punteado (.serie-line-dashed) en vez de
+    // trazo sólido — el punto sintético se dibuja hueco (fill:none, solo
+    // borde de color) para diferenciarlo de un 0 real reportado por el
+    // backend (que si se dibuja sólido, como cualquier otro dato real).
+```
+
+#### Línea original 1332 (script)
+
+```
+    // FIX (04-sep-2026, mismo pedido — "todo debe venir con fecha"): el
+    // tooltip también reemplaza "Semana N" por la fecha estimada (con
+    // "≈" y una nota aparte), en vez de mostrar la etiqueta vieja sola.
+```
+
+#### Línea original 1347 (script)
+
+```
+  // Títulos de los ejes (pedido usuario 08-sep-2026): "Fecha" centrado
+  // debajo de las etiquetas rotadas del eje X, y opts.ejeY (p.ej.
+  // "Ataques"/"Puntaje"/"Barcos" — lo arma renderComparativaSemanal a
+  // partir del título de cada tarjeta) girado -90° a la izquierda del eje Y.
+```
+
+#### Línea original 1405 (script)
+
+```
+      // Mismos campos que la tarjeta de "Ingresos recientes" (nombre, tag,
+      // clan, fecha) — pedido usuario 07-sep-2026: "al acercar el mouse
+      // debe verse información de ese registro según la información que
+      // esté mostrando la tabla".
+      // FIX (10-sep-2026, pedido usuario — "arriba debe decir el nombre de
+      // la cuenta y su tag, abajo el clan y la cantidad de ataques, barcos
+      // o fame"): orden invertido a como estaba (antes la cantidad iba
+      // arriba en negrita y el nombre abajo tenue) — así primero se
+      // identifica DE QUIÉN es el punto y después el dato en sí.
+```
+
+#### Línea original 1445 (script)
+
+```
+  // FIX (04-sep-2026, pedido usuario — "todo debe venir con fecha"): si el
+  // eje trae alguna etiqueta vieja "Semana N" (convertida a fecha estimada
+  // "≈dd/MM" por semanaLabelCorta), se agrega una nota una sola vez debajo
+  // de las tres gráficas explicando el "≈" — mismo criterio que ya usan
+  // otras notas al pie de esta página (no repetirla en cada tarjeta).
+```
+
+#### Línea original 1451 (script)
+
+```
+  // FIX (08-sep-2026, pedido usuario — "las gráficas deben indicar el
+  // nombre de los ejes"): ejeY se arma tomando la primera palabra del
+  // título de la tarjeta ("Ataques por semana" → "Ataques", "Puntaje por
+  // semana" → "Puntaje", "Barcos por semana" → "Barcos"), así no hace
+  // falta agregar un parámetro nuevo en cada llamado de más abajo.
+```
+
+#### Línea original 1476 (script)
+
+```
+    // webRoster = directorio actual de la Familia (misma fuente que usa
+    // directorio.html), pedido en paralelo para cruzarlo contra
+    // webIngresosRecientes — ver comentario del bloque de arriba.
+```
+
+#### Línea original 1498 (script)
+
+```
+    // Agrupar por clan y ordenar cada grupo alfabéticamente por nombre — el
+    // PDF exige "por clan y luego por nombre". Los GRUPOS en sí NO se
+    // ordenan alfabéticamente: usan el orden fijo de la Familia (Principal,
+    // Terna 2, Terna 3, Mini) vía ordenClanIndex(), sin importar en qué
+    // orden los haya mandado el backend (bug reportado: "el clan 2 sigue
+    // apareciendo primero, mientras que el clan principal está apareciendo
+    // tercero").
+```
+
+#### Línea original 1563 (script)
+
+```
+    // FIX (03-sep-2026, pedido usuario — "las etiquetas de los nombres
+    // deben estar agrupadas por clan y luego orden alfabético de nombre
+    // de jugador"): se reusa 'grupos' (ya agrupado por clan en el orden
+    // fijo de la Familia y ordenado alfabéticamente dentro de cada clan,
+    // ver comentario más arriba) en vez de pasar 'ingresos' tal cual
+    // llegó del backend, así el orden de colores/leyenda de las gráficas
+    // coincide exactamente con el de las tarjetas de arriba.
+```
+
