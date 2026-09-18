@@ -323,6 +323,13 @@
   }
   .roster-table td.rt-tag, .roster-table td.rt-rango{text-transform:uppercase; letter-spacing:.03em;}
   .roster-table tbody .empty{white-space:normal;}
+  /* FIX (17-sep-2026, pedido usuario — columna "Perfil" con íconos de
+     RoyaleAPI/CWStats entre Rango y V.Guerra): mismo criterio visual que
+     .col-perfil-icons de guerra.html (tabla de Pendientes) — 2 íconos en
+     fila, centrados, sin texto, con el mismo tamaño/hover que ahí. */
+  .roster-table td.rt-perfil a{display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; margin:0 2px; color:var(--text-dim); vertical-align:middle; transition:color .18s ease;}
+  .roster-table td.rt-perfil a:hover{color:var(--purple-light);}
+  .roster-table td.rt-perfil svg{width:16px; height:16px; fill:currentColor;}
 
   /* ---------- Filtro por columna estilo "hoja de cálculo" (07-sep-2026,
      pedido usuario — "el filtro se puede ver así?" + captura de Sheets:
@@ -1506,6 +1513,23 @@ const ROSTER_COLUMNAS = [
   { key:'nombre',      label:'Nombre',        cls:'rt-nombre',      tipo:'texto',  get:m => m.nombre },
   { key:'tag',         label:'Tag',           cls:'rt-tag',         tipo:'texto',  get:m => m.tag },
   { key:'rango',       label:'Rango',         cls:'rt-rango',       tipo:'texto',  get:m => m.rango },
+  // FIX (17-sep-2026, pedido usuario — "agrega la columna perfil (de
+  // guerra.html, que trae los íconos con link al perfil en royaleapi y
+  // cwstats) e insértalo entre la columna Rango y V.Guerra"): mismo
+  // patrón visual que .col-perfil-icons de guerra.html (ICONO_ROYALEAPI/
+  // ICONO_CWSTATS + urlValida()), pero acá sale de ROSTER_COLUMNAS como
+  // cualquier otra columna de la tabla. Sin `tipo` (no es numérica ni de
+  // fecha) y con `filtrable:false, sortable:false` porque son solo
+  // enlaces, no un valor por el que tenga sentido ordenar/filtrar (mismo
+  // criterio que la columna 'num'). `html:true` le dice a
+  // celdaHtmlRoster() (más abajo) que el resultado de `get` ya es HTML
+  // armado y no debe pasar por esc() como el resto de columnas de texto.
+  { key:'perfil',      label:'Perfil',        cls:'rt-perfil',      filtrable:false, sortable:false, html:true, get:m => {
+      const royaleOk = urlValida(m.royaleApi);
+      const cwOk = urlValida(m.cwStats);
+      if (!royaleOk && !cwOk) return '';
+      return `${royaleOk ? `<a href="${esc(m.royaleApi)}" target="_blank" rel="noopener" aria-label="RoyaleAPI" title="RoyaleAPI">${ICONO_ROYALEAPI}</a>` : ''}${cwOk ? `<a href="${esc(m.cwStats)}" target="_blank" rel="noopener" aria-label="CWStats" title="CWStats">${ICONO_CWSTATS}</a>` : ''}`;
+    } },
   { key:'vGuerra',     label:'V. Guerra',     cls:'rt-vguerra',     tipo:'numero', get:m => { const v = m.vGuerra != null ? m.vGuerra : m.victoriasGuerra; return v != null ? fmtNum(v) : null; }, raw:m => (m.vGuerra != null ? m.vGuerra : m.victoriasGuerra) },
   { key:'copas',       label:'Copas',         cls:'rt-copas',       tipo:'numero', get:m => (m.copas != null ? fmtNum(m.copas) : null), raw:m => m.copas },
   { key:'arena',       label:'Arena',         cls:'rt-arena',       tipo:'texto',  get:m => m.arena },
@@ -1887,12 +1911,21 @@ function aplicarFiltrosRoster(wrap){
 /** Arma el <td> de una celda, agregando data-raw (el valor crudo, sin
  * formatear) cuando la columna es numérica o de fecha — lo usa el
  * filtro de comparación (aplicarFiltrosRoster()) sin tener que volver a
- * calcularlo a partir del arreglo de miembros. */
+ * calcularlo a partir del arreglo de miembros.
+ * FIX (17-sep-2026, pedido usuario — columna "Perfil" con íconos de
+ * RoyaleAPI/CWStats): columnas con `html:true` (ver ROSTER_COLUMNAS) ya
+ * devuelven su propio HTML armado (enlaces + SVG) desde `get` — a
+ * diferencia del resto de columnas (texto plano), NO deben pasar por
+ * esc(), o los <a> quedarían escapados como texto literal en vez de
+ * renderizarse como enlaces. */
 function celdaHtmlRoster(col, m, i){
   const val = col.get(m, i);
   const raw = rawColumna(col, m, i);
   const dataRaw = (col.tipo === 'numero' || col.tipo === 'fecha') && raw !== null ? ` data-raw="${esc(String(raw))}"` : '';
-  return `<td class="${col.cls}"${dataRaw}>${val === null || val === undefined || val === '' ? '—' : esc(val)}</td>`;
+  const contenido = col.html
+    ? (val || '—')
+    : (val === null || val === undefined || val === '' ? '—' : esc(val));
+  return `<td class="${col.cls}"${dataRaw}>${contenido}</td>`;
 }
 
 function filasHtmlRoster(miembros){
