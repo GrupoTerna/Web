@@ -4941,6 +4941,34 @@ para probar cada caso.
 
 ## assets/styles.css — consolidación CSS (refactor, sesión 18-sep-2026)
 
+### 18-sep-2026 (quinto lote) — `.perfil-cabecera`, y por qué `.stats-mini`/`.stats-mini b` NO se tocan
+Sigue pendiente de la nota del cuarto lote: `.perfil-cabecera`/`.stats-mini`
+había quedado descrito como "3 variantes chicas de tamaño de fuente" sin
+más detalle. Revisando propiedad por propiedad en admin.html,
+directorio.html y perfil.html:
+
+- **`.perfil-cabecera`** (la base, sin anidar): idéntica carácter por
+  carácter en las 3 páginas. Se centraliza en `styles.css`.
+- **`.perfil-cabecera .stats-mini`**: difiere en las 3 (admin sin
+  `flex-wrap`; directorio con `flex-wrap`; perfil con `flex-wrap` +
+  `text-align:center`). No se toca.
+- **`.perfil-cabecera .stats-mini b`**: idéntica entre directorio.html y
+  perfil.html (`font-size:16px` + `font-family:var(--f-display)`), pero
+  admin.html trae una tercera variante que es un SUBCONJUNTO de
+  propiedades (`font-size:15px`, sin `font-family`). Esto importa porque
+  en las 3 páginas el `<link rel="stylesheet" href="assets/styles.css">`
+  va ANTES del `<style>` local: si se centralizara la versión de
+  directorio+perfil en `styles.css` y se dejara la regla de admin.html tal
+  cual (sin `font-family`), la cascada NO fusiona por bloque sino por
+  propiedad — el `font-family:var(--f-display)` del selector global
+  quedaría ganando en admin.html igual, porque la regla local de admin no
+  vuelve a declarar esa propiedad para pisarla. El resultado sería un
+  cambio visual real y no pedido (el número de esa cabecera en admin.html
+  pasaría de tipografía mono/heredada a `--f-display`). Se descarta la
+  fusión de este selector por esa razón, documentado en las 3 páginas.
+
+Ningún cambio visual esperado en lo que sí se movió.
+
 ### 18-sep-2026 (cuarto lote) — Fase 3: `.buscador`, `.mr-*`, `.req-row`, `.ext-*`, `.comparativa-grid`, `.chart-tooltip`
 Fase 3 del plan (ver Plan_Fases.md, "mover a styles.css lo identificado en
 la Fase 0"), reordenada como ya indicaba el propio plan: en vez de partir
