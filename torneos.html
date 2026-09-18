@@ -62,7 +62,10 @@
     font-size:12px; color:var(--text-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
   }
   .torneo-row .t-ganadores .tg-fila b{color:var(--text); font-weight:600;}
-  .torneo-row .t-ganadores .tg-vacio{font-size:11px; color:var(--text-faint); font-style:italic;}
+  /* FIX (18-sep-2026, Fase 4): .tg-vacio se elimina de acá — migrado a la
+     convención existente .empty (mismo color e itálica por defecto; solo
+     hace falta ajustar tamaño y quitar el padding para que quepa dentro
+     de la fila de .t-ganadores). */
   @media (max-width:560px){
     .torneo-row{flex-direction:column; align-items:flex-start; gap:8px;}
     .torneo-row .t-ganadores{text-align:left; width:100%;}
@@ -387,7 +390,7 @@ async function cargarTorneos(){
       const ganadoresHtml = top3.length ? `
         <div class="t-ganadores">
           ${top3.map(p => `<div class="tg-fila">${medallaPuesto(p.puesto)} <b>${esc(p.nombre)}</b> · ${fmtNum(p.victorias)} victorias${p.premioRepartido ? ' · 🤝 repartido' : ''}</div>`).join('')}
-        </div>` : '<div class="t-ganadores"><span class="tg-vacio">Sin ganadores registrados</span></div>';
+        </div>` : '<div class="t-ganadores"><span class="empty" style="padding:0; font-size:11px;">Sin ganadores registrados</span></div>';
       return `
       <div class="torneo-row" data-reveal>
         <div class="t-fecha">${esc(fechaTxt)}</div>
