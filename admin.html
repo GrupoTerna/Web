@@ -26,13 +26,9 @@
   #logoutBtn:hover{border-color:var(--danger); color:var(--danger);}
   .buscador{display:flex; gap:10px; flex-wrap:wrap;}
   .buscador input{flex:1; min-width:200px;}
-  /* FIX (08-sep-2026, pedido usuario — buscador de "Buscar miembro" más
-     potente, con sugerencias mientras se escribe, ver
-     buscarSugerenciasMiembro()/renderSugerenciasMiembro() en el JS).
-     .buscador-wrap envuelve el .buscador para poder anclar el dropdown de
-     sugerencias justo debajo del input con position:absolute. Reutiliza el
-     look de .miembro-row de directorio.html (nombre + tag/nomMulti + chip
-     de la derecha) en vez de inventar un estilo nuevo. */
+  /* .buscador-wrap ancla el dropdown de sugerencias (ver
+     buscarSugerenciasMiembro()/renderSugerenciasMiembro() en el JS) justo
+     debajo del input. Reutiliza el look de .miembro-row de directorio.html. */
   .buscador-wrap{position:relative;}
   .sugerencias-dropdown{
     position:absolute; left:0; right:0; top:calc(100% + 4px); z-index:20;
@@ -49,22 +45,12 @@
   .miembro-row .mr-tag{font-family:var(--f-mono); font-size:11px; color:var(--text-faint); margin-top:2px;}
   .miembro-row .mr-rango{font-family:var(--f-mono); font-size:11px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.04em; text-align:right;}
   .miembro-row .mr-right{text-align:right;}
-  /* NUEVO (14-sep-2026, pedido usuario -- Registrar miembro nuevo: opción
-     "Buscar en Directorio"): .nm-modo-selector son los 2 radios ("Ingresar
-     tag" / "Buscar en Directorio"); .nm-dir-lista envuelve los
-     .miembro-row resultantes del clan elegido, mismo look con scroll que
-     .semana-selector (borde + fondo + max-height) en vez del dropdown
-     flotante de .sugerencias-dropdown (acá la lista queda fija en el
-     flujo, no flota sobre el resto del formulario). .mr-celular es un
-     badge chico para saber de un vistazo si el miembro ya tiene celular
-     registrado. */
-  /* FIX (15-sep-2026, pedido usuario -- los 2 radios "están feos"): ahora
-     .nm-modo-selector es una fila de pastillas .tab-clan, exactamente el
-     mismo control que Torneos/Sorteos/Cambio de rango (.btn-toggle-torsor)
-     en el panel de planificar/registrar/modificar. Mismo gap de 6px que
-     .contenido-tabs para que las dos filas se vean idénticas; el color,
-     borde, radio y tipografía los pone .tab-clan/.tab-clan.activo, no hace
-     falta repetirlos acá. */
+  /* .nm-modo-selector alterna "Ingresar tag" / "Buscar en Directorio" al
+     registrar un miembro nuevo; .nm-dir-lista muestra los .miembro-row del
+     clan elegido con scroll fijo (no flotante como .sugerencias-dropdown).
+     .mr-celular indica de un vistazo si el miembro ya tiene celular. */
+  /* .nm-modo-selector reutiliza la pastilla .tab-clan (mismo control que
+     Torneos/Sorteos/Cambio de rango), no define su propio look. */
   .nm-modo-selector{display:flex; align-items:center; gap:6px; flex-wrap:wrap;}
   .nm-dir-lista{
     max-height:320px; overflow-y:auto; border:1px solid var(--line); border-radius:var(--radius-sm);
@@ -77,58 +63,38 @@
   .perfil-cabecera{display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px;}
   .perfil-cabecera .stats-mini{display:flex; gap:18px; font-family:var(--f-mono); font-size:12px; color:var(--text-dim);}
   .perfil-cabecera .stats-mini b{color:var(--text); font-size:15px; display:block;}
-  /* RESPONSIVE (pedido usuario, 31-ago-2026 — "haz que la web sea
-     responsive"): a esta .req-row le faltaba el flex-wrap que sí tiene la
-     misma clase en directorio.html — sin él, .lbl (140px) + .val (90px)
-     fijos dejaban casi sin espacio a la barra de progreso en pantallas
-     angostas. */
+  /* .req-row necesita flex-wrap (igual que su equivalente en
+     directorio.html) para no dejar sin espacio a la barra de progreso en
+     pantallas angostas. */
   .req-row{display:flex; align-items:center; gap:12px; margin-bottom:12px; flex-wrap:wrap;}
   .req-row .lbl{width:140px; font-size:13px; color:var(--text-dim); flex-shrink:0;}
   .req-row .progress{flex:1; min-width:120px;}
   .req-row .val{width:90px; text-align:right; font-family:var(--f-mono); font-size:12px; flex-shrink:0;}
   .field-row{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
   @media (max-width:560px){ .field-row{grid-template-columns:1fr;} }
-  /* FIX (30-ago-2026, pedido usuario — "el cuadrito de comentario para
-     vetar es muy pequeño"): .field input/.field select ya tenían estilo
-     propio en styles.css, pero nunca existió una regla para
-     .field textarea — por eso vComentario se veía con el textarea por
-     defecto del navegador (chico, blanco, fuera del tema oscuro). Se
-     replica el mismo estilo de input/select y se agranda el alto mínimo. */
+  /* .field textarea replica el estilo de .field input/select de
+     styles.css (que no cubre textarea) y agranda el alto mínimo. */
   .field textarea{
     width:100%; background:var(--bg-2); border:1px solid var(--line); color:var(--text);
     padding:13px 16px; border-radius:var(--radius-sm); font-family:var(--f-body); font-size:15px;
     transition:all .18s ease; min-height:110px; resize:vertical;
   }
   .field textarea:focus{border-color:var(--purple); box-shadow:0 0 0 3px rgba(162,57,255,.2); outline:none;}
-  /* NUEVO (13-sep-2026, pedido del usuario -- Fase 7 del plan de Cambio de
-     Rango, PASO 4): inputs numéricos de la grilla Min_CR/Ataques por Clan y
-     Rol (#crGridAscenso/#crGridDescenso) -- viven sueltos dentro de <td>,
-     no dentro de .field, así que necesitan su propio estilo chico en vez de
-     depender de .field input (que además es demasiado ancho para una
-     celda de tabla). */
+  /* Inputs numéricos de la grilla Min_CR/Ataques (#crGridAscenso/
+     #crGridDescenso) viven sueltos dentro de <td>, no de .field, por eso
+     tienen su propio estilo chico en vez de .field input. */
   .cr-grid-input{
     width:64px; background:var(--bg-2); border:1px solid var(--line); color:var(--text);
     padding:6px 8px; border-radius:var(--radius-sm); font-family:var(--f-mono); font-size:13px;
     text-align:center;
   }
   .cr-grid-input:focus{border-color:var(--purple); box-shadow:0 0 0 3px rgba(162,57,255,.2); outline:none;}
-  /* FIX (13-sep-2026, pedido usuario -- "centra las categorías con
-     respecto a sus valores y Clan debe ocupar el espacio de las dos
-     filas, centrado vertical y horizontalmente"): Clan usa rowspan="2" en
-     vez de un <th></th> vacío debajo (ver #crGridAscenso/#crGridDescenso
-     en el HTML) -- con vertical-align:middle queda centrado en las DOS
-     filas de encabezado, no solo la primera. Miembro/Veterano/Colíder
-     (colspan="2") ya quedaban centrados horizontalmente sobre sus 2
-     columnas por herencia de text-align:center, pero se deja explícito acá
-     para no depender de eso. */
+  /* Clan usa rowspan="2" (ver #crGridAscenso/#crGridDescenso en el HTML);
+     vertical-align:middle lo centra en las dos filas de encabezado. */
   .cr-grid-table th{text-align:center; vertical-align:middle;}
-  /* FIX (14-sep-2026, pedido usuario -- "los encabezados siguen
-     desalineados con respecto a sus cuadros de datos"): los <th> ya tenían
-     text-align:center, pero los <td> no -- con el <input> de ancho fijo
-     (.cr-grid-input, 64px) más angosto que la celda, el input quedaba
-     pegado al borde izquierdo (alineación por defecto) mientras el
-     encabezado de arriba se veía centrado. Centrando también el <td> el
-     input queda debajo de su encabezado. */
+  /* Los <td> también se centran (no solo los <th>) para que el
+     .cr-grid-input de 64px quede debajo de su encabezado, no pegado a la
+     izquierda de la celda. */
   .cr-grid-table td{text-align:center; padding:4px 6px;}
   .cr-grid-table th{padding:6px 6px;}
   /* Fase 2 (24-ago-2026): visor de contenido, solo lectura */
@@ -137,23 +103,14 @@
   .contenido-item .cab-info{display:flex; align-items:center; gap:10px; flex-wrap:wrap;}
   .contenido-item .etiqueta{font-family:var(--f-mono); font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--gold);}
   .contenido-item .clan-chip{font-family:var(--f-mono); font-size:11px; color:var(--text-dim); background:var(--surface); border:1px solid var(--line); padding:2px 8px; border-radius:999px;}
-  /* FIX (30-ago-2026, pedido usuario — "los mensajes deben tener un
-     cuadrito de visualización donde se pueda apreciar mejor el formato y
-     un botón para copiar al portapapeles, también una flechita para
-     desplegar o colapsar el texto"): cada opción de contenido pasa de un
-     <pre> suelto a una caja con fondo propio (más legible para textos con
-     saltos de línea/emojis de WhatsApp), más botones de acción a la
-     derecha del encabezado. */
+  /* Cada opción de contenido usa una caja con fondo propio (más legible
+     para saltos de línea/emojis de WhatsApp) más botones de acción
+     (copiar, colapsar) a la derecha del encabezado. */
   .contenido-acciones{display:flex; align-items:center; gap:6px; margin-left:auto;}
-  /* FIX (31-ago-2026, pedido usuario — "botones para los otros clanes"):
-     cuando una categoría tiene varias opciones (una por clan, o la general
-     de Familia Terna), antes se apilaban TODAS a la vez como
-     .contenido-item uno debajo del otro — con 4-5 clanes era mucho scroll
-     para comparar o revisar uno solo. Ahora se dibuja un solo
-     .contenido-item "en escena" y estos botones (uno por opción, con su
-     .etiqueta) lo hacen cambiar de contenido al clickear, como pestañas.
-     Van en la misma fila que los chips de cabecera (junto al clan actual),
-     antes de los botones de acción (Ver original/Copiar/Colapsar). */
+  /* Cuando una categoría tiene varias opciones (una por clan), se pinta
+     un solo .contenido-item "en escena" y estos botones (.contenido-tabs)
+     cambian de opción al clickear, como pestañas — en vez de apilar todas
+     las opciones una debajo de otra. */
   .contenido-tabs{display:flex; align-items:center; gap:6px; flex-wrap:wrap;}
   .tab-clan{
     background:var(--surface); border:1px solid var(--line); color:var(--text-dim);
@@ -175,25 +132,15 @@
     padding:12px 14px; margin-top:2px;
   }
   .contenido-item.colapsado .contenido-caja{display:none;}
-  /* FIX (05-sep-2026, pedido usuario — reemplaza por completo el
-     acordeón dinámico de "Mensajes automáticos" (sección>categoría, luego
-     lista plana alfabética) por 3 tarjetas .admin-grupo con estructura
-     fija — ver el comentario FIX junto a esas tarjetas en el HTML y junto
-     a initMensajesAutomaticos()/cargarGrupoToggle() en el JS. Las reglas
-     .seccion-contenido/.categoria-contenido/.mensajes-flat-wrap de ese
-     acordeón (que ya no se genera) se retiraron; .categoria-contenido-body
-     sigue, la reutilizan las tarjetas nuevas vía
-     .categoria-contenido-simple (ver abajo). */
-  /* FIX (30-ago-2026, pedido usuario — "los mensajes de guerra... no están
-     actualizados"): Menú/Mensajes se reconstruyen enteros en cada corrida
-     automática (ver docblock de _webAdminContenido, 34_Web_API.gs), pero
-     antes esta categoría solo se pedía al backend la PRIMERA vez que se
-     abría en la página (data-cargado) y quedaba fija en pantalla después
-     de eso — si el admin la dejaba abierta o volvía a abrirla más tarde en
-     la misma sesión, seguía viendo el contenido de la primera carga aunque
-     el bot ya hubiera generado uno nuevo. Este botón fuerza un refetch
-     puntual (ver btnRefrescarCategoria más abajo), sin depender de recargar
-     toda la página. */
+  /* "Mensajes automáticos" usa 3 tarjetas .admin-grupo de estructura fija
+     (ver initMensajesAutomaticos()/cargarGrupoToggle() en el JS), no el
+     acordeón dinámico anterior. .categoria-contenido-body sigue en uso vía
+     .categoria-contenido-simple. */
+  /* Botón que fuerza un refetch puntual de la categoría (ver
+     btnRefrescarCategoria más abajo) sin recargar toda la página, ya que
+     Menú/Mensajes se reconstruyen enteros en cada corrida automática del
+     bot (_webAdminContenido, 34_Web_API.gs) y antes solo se pedían una
+     vez por sesión. */
   .btn-refrescar-categoria{
     flex-shrink:0; background:none; border:1px solid var(--line); color:var(--text-dim);
     font-family:var(--f-mono); font-size:13px; line-height:1; padding:5px 8px; border-radius:var(--radius-sm);
@@ -202,23 +149,16 @@
   .btn-refrescar-categoria:hover{border-color:var(--purple); color:var(--text);}
   .btn-refrescar-categoria.girando{transform:rotate(180deg);}
   .categoria-contenido-body{padding:0 2px 14px 26px;}
-  /* FIX (05-sep-2026): tarjetas de toggle horizontal (Guerra/Entrenamiento/
-     Mazos, Participantes/Ganadores de Torneos y de Sorteos) — ver
-     cargarGrupoToggle() en el JS. Los botones en sí reutilizan .tab-clan
-     (misma pastilla que ya usan las pestañas por clan dentro de una
-     categoría) vía la clase doble tab-clan+btn-toggle-cat en el HTML, así
-     que no hace falta redefinir su estilo acá. */
+  /* Tarjetas de toggle horizontal (Guerra/Entrenamiento/Mazos,
+     Participantes/Ganadores) — ver cargarGrupoToggle() en el JS. Los
+     botones reutilizan la pastilla .tab-clan, no definen estilo propio. */
   .admin-toggle-body{min-height:1px;}
   .admin-toggle-panel .contenido-item{margin-top:0;}
-  /* FASE 25 (03-sep-2026, pedido usuario — "en vez de mencionar Directorio
-     2 veces, debería estar en un mismo contenedor. Igual que torneos y
-     sorteos, un contenedor y luego sus subcategorías"): mismo look de
-     acordeón +/- que .categoria-contenido de arriba, reutilizado para
-     agrupar varias cards sueltas (que antes repetían el mismo eyebrow)
-     dentro de un único .card con un solo eyebrow y una subsección
-     plegable por formulario. A diferencia de .categoria-contenido esto NO
-     va anidado dentro de una .seccion-contenido, así que no lleva el
-     padding-left extra de esa (26px) — acá cuelga directo del .card. */
+  /* .admin-subseccion agrupa varias cards sueltas (que antes repetían el
+     mismo eyebrow) en un único .card con un eyebrow y una subsección
+     plegable por formulario. A diferencia de .categoria-contenido no va
+     anidado en una .seccion-contenido, así que no lleva su padding-left
+     extra. */
   .admin-grupo > .eyebrow{margin-bottom:2px;}
   .admin-subseccion{border-top:1px solid var(--line); margin-top:10px; padding-top:2px;}
   .admin-subseccion > summary{
@@ -233,53 +173,19 @@
   .admin-subseccion > summary .cat-titulo{flex:1;}
   .admin-subseccion-body{padding:2px 2px 14px;}
   .contenido-item pre{white-space:pre-wrap; word-break:break-word; font-family:var(--f-body,inherit); font-size:14px; color:var(--text); margin:0; line-height:1.5;}
-  /* FIX (30-ago-2026, pedido usuario — "exportar a PDF dinámicamente"):
-     cuando la opción trae o.docId (el ID del Google Doc de origen en
-     Drive), suma un botón para ver el documento REAL tal cual está
-     formateado, dentro de un <iframe> — nada se descarga ni se duplica en
-     el backend. El iframe recién se arma la primera vez que el admin lo
-     pide (misma carga perezosa que ya usa data-cargado en las
-     categorías), y no si o.docId no viene en la respuesta del backend.
-     FIX (31-ago-2026, pedido usuario — "no se aprecia bien, reemplazar por
-     un visor en fondo blanco más fácil de leer"): se cambió el endpoint de
-     .../export?format=pdf a .../preview, el modo de incrustado que Google
-     ofrece para documentos (a diferencia de export, que en algunos
-     navegadores dispara el visor de PDF nativo con su propia barra de
-     herramientas gris en vez de mostrar la hoja blanca del doc). /preview
-     conserva color, fuente y tamaño de letra reales del Doc y siempre
-     queda sobre fondo blanco, sin cuadro de descarga. Se sube el alto
-     mínimo para que se lea cómodo sin tener que hacer scroll adentro del
-     iframe en pantallas chicas.
-     FIX (03-sep-2026, pedido usuario — "se ve feo que primero muestre el
-     texto plano, luego si presiono ver original, muestra uno debajo del
-     otro y ambos se ven mal"): antes .contenido-caja (el texto plano) y
-     .contenido-pdf-wrap (el iframe) podían quedar visibles A LA VEZ,
-     apilados — .contenido-pdf-wrap se mostraba/ocultaba con estilo inline
-     (pdfWrap.style.display) pero nada ocultaba la caja de texto al
-     abrirlo. Ahora es un toggle real entre los dos: la clase
-     .viendo-original en el .contenido-item (ver btnVerPdf en
-     _activarAccionesContenido/_pintarOpcionContenido) decide cuál de los
-     dos se ve, nunca ambos. Los botones (pestañas de clan, copiar,
-     colapsar) no cambian de lugar ni de comportamiento. */
+  /* Cuando la opción trae o.docId, un botón muestra el Doc de origen
+     (carga perezosa, vía /preview) dentro de un <iframe>. La clase
+     .viendo-original en el .contenido-item decide si se ve el texto plano
+     o el original, nunca ambos a la vez (ver btnVerPdf en
+     _activarAccionesContenido/_pintarOpcionContenido). */
   .contenido-item.viendo-original .contenido-caja{display:none;}
   .contenido-item:not(.viendo-original) .contenido-pdf-wrap{display:none;}
   .contenido-item.colapsado .contenido-pdf-wrap{display:none;}
-  /* FIX (03-sep-2026, pedido usuario — "no me gusta que se vean esos
-     márgenes, debería verse como cuando en Word se escoge el modo de
-     diseño web"): el <iframe src=".../preview"> incrustaba el propio
-     visor de Google Docs, que SIEMPRE pagina con márgenes de impresión —
-     y por ser contenido de otro dominio (docs.google.com), el CSS de acá
-     no podía tocar nada adentro (el navegador bloquea estilar el DOM
-     interno de un iframe cross-origin). Se reemplaza por
-     _webAdminContenidoDocHtml() (34_Web_API.gs) — SOLO LECTURA, ver
-     docblock ahí para el detalle de por qué no toca el Doc original —
-     que devuelve el HTML del cuerpo del Doc para pintarlo en este MISMO
-     documento, dentro de .doc-original: ahora sí es nuestro CSS, así que
-     se ve corrido/ancho completo, como "Diseño web" en Word, en vez de
-     paginado. Se conservan negritas/colores/listas del Doc (vienen con
-     estilo inline en el HTML que exporta Google), solo se descarta el
-     contenedor de página (ancho fijo + márgenes) que traía el <body> del
-     export — ver la función del backend. */
+  /* .doc-original pinta el HTML del cuerpo del Doc (vía
+     _webAdminContenidoDocHtml(), 34_Web_API.gs, solo lectura) directo en
+     esta página, con nuestro propio CSS — ancho completo, sin la
+     paginación con márgenes que imponía el <iframe> de Google Docs. Se
+     conservan negritas/colores/listas del Doc. */
   .contenido-pdf-wrap{margin-top:10px;}
   .doc-original{
     background:#fff; color:#1a1a1a; border:1px solid var(--line); border-radius:var(--radius-sm);
@@ -293,31 +199,14 @@
   }
   /* Fase 3 (25-ago-2026): gestión de torneos */
   .ganador-victorias{font-family:var(--f-mono); font-size:13px; color:var(--text-dim);}
-  /* FIX (09-sep-2026, pedido usuario — "a la parte de la fecha, agrégale
-     ese cuadrito de fecha"): input[type="date"] ya abre el selector nativo
-     del navegador al hacer clic en cualquier parte del campo, pero eso no
-     siempre se nota a simple vista. Se agrega un icono de calendario
-     visible dentro del campo (.btn-calendario) que llama a
-     input.showPicker() — el mismo "cuadrito" del selector nativo, pero con
-     un botón explícito para abrirlo en vez de depender de que el usuario
-     sepa que el campo entero es clickeable. Ver #camposModificar en el
-     HTML y btnCalendarioMod en el JS.
-
-     FIX (09-sep-2026, pedido usuario — "las fechas no son muy amigables
-     para el usuario, debería decir algo como dd/mm/aaaa"): el formato de
-     un <input type="date"> nativo (qué segmento va primero, con qué
-     separador) depende del idioma/región configurados en el navegador del
-     admin, por eso a veces se veía raro (p.ej. "dd----aaaa" en vez de
-     "dd/mm/aaaa"). Se arma un campo propio por cada fecha: un
-     <input type="text"> VISIBLE con placeholder fijo "dd/mm/aaaa" (se
-     puede escribir a mano, con "/" automáticos) y, oculto detrás (mismo
-     <div class="campo-fecha-wrap">), el <input type="date"> de siempre,
-     que sigue siendo la fuente real del valor en formato ISO para todo el
-     resto del código (fechaInputADDMMYYYY(), armarPremiosCSV(), etc. NO
-     cambian). El icono de calendario sigue abriendo el selector nativo,
-     ahora sobre ese input oculto. Ver initCampoFechaAmigable() en el
-     <script> (sección "Campos de fecha/hora amigables"). La misma idea
-     aplica a la hora: ver .campo-hora-wrap más abajo. */
+  /* Cada fecha usa un <input type="text"> visible con placeholder fijo
+     "dd/mm/aaaa" (evita el formato variable del <input type="date"> nativo
+     según idioma/región del navegador) y, oculto detrás en el mismo
+     .campo-fecha-wrap, el <input type="date"> real, que sigue siendo la
+     fuente del valor ISO para el resto del código (fechaInputADDMMYYYY(),
+     armarPremiosCSV(), etc.). El icono .btn-calendario abre el selector
+     nativo sobre ese input oculto. Ver initCampoFechaAmigable() en el
+     <script>. Misma idea para la hora, ver .campo-hora-wrap más abajo. */
   .campo-fecha-wrap{position:relative; display:flex; align-items:center;}
   .campo-fecha-wrap input[type="text"]{padding-right:40px; width:100%;}
   .btn-calendario{
@@ -327,33 +216,21 @@
     transition:color .15s, background .15s;
   }
   .btn-calendario:hover{color:var(--purple-light); background:rgba(162,57,255,.12);}
-  /* Input real (type="date"/type="time") que queda detrás del campo de
-     texto amigable: NO se usa display:none porque showPicker() necesita
-     que el elemento siga "renderizado" para poder abrirse -- se saca de la
-     vista con tamaño 1x1px y overflow oculto en su lugar (patrón estándar
-     para inputs nativos ocultos visualmente pero funcionales). */
+  /* Input real oculto (type="date"/type="time") detrás del campo de texto
+     amigable: no usa display:none porque showPicker() necesita que el
+     elemento siga renderizado; se oculta con tamaño 1x1px en su lugar. */
   .campo-oculto-visual{
     position:absolute; width:1px; height:1px; padding:0; margin:-1px;
     overflow:hidden; opacity:0; pointer-events:none; border:0;
   }
-  /* FIX (09-sep-2026, pedido usuario — hora en formato "hh:mm" + AM/PM,
-     segundos ocultos): campo de texto (12h) + <select> AM/PM al lado,
-     mismo patrón que .campo-fecha-wrap: el <input type="time"> real queda
-     oculto (.campo-oculto-visual) y sigue siendo la fuente del valor en
-     24h para horaConSegundos() y el resto del código, que no cambian.
-
-     FIX (16-sep-2026, pedido usuario — "en el cuadro de hora, divídelo en
-     dos, uno de hora y uno de minutos"): el <input type="text"> único
-     "hh:mm" se separa en DOS cuadros chicos (#...HH y #...MM, maxlength=2
-     cada uno) con un ":" fijo en el medio (span .campo-hora-separador, no
-     es parte de ningún input). Aplica a los 3 formularios (Torneos,
-     Sorteos, Cambio de rango) en TODAS sus modalidades (Registrar/
-     Modificar/Planificar según corresponda) -- las 7 instancias de
-     .campo-hora-wrap del HTML. El <select> AM/PM y el <input type="time">
-     oculto no cambian de rol: el oculto sigue siendo la fuente real 24h
-     que detecta la hora/minutos ya cargados desde el backend y los
-     precarga en HH/MM al editar una corrida existente -- ver
-     initCampoHoraAmigable()/limpiarCampoHoraAmigable() en el <script>. */
+  /* Hora en formato 12h: dos cuadros chicos HH/MM (con ":" fijo entre
+     ambos, span .campo-hora-separador) + <select> AM/PM. El
+     <input type="time"> real queda oculto (.campo-oculto-visual) y sigue
+     siendo la fuente 24h para horaConSegundos() y el resto del código —
+     también precarga HH/MM al editar una corrida existente. Aplica a las
+     7 instancias de .campo-hora-wrap (Torneos/Sorteos/Cambio de rango).
+     Ver initCampoHoraAmigable()/limpiarCampoHoraAmigable() en el
+     <script>. */
   .campo-hora-wrap{display:flex; align-items:center; gap:6px;}
   .campo-hora-wrap input[type="text"].campo-hora-hh,
   .campo-hora-wrap input[type="text"].campo-hora-mm{
@@ -363,11 +240,9 @@
     flex-shrink:0; font-weight:600; color:var(--text-dim);
   }
   .campo-hora-wrap select{flex-shrink:0; width:78px;}
-  /* FIX (09-sep-2026, pedido usuario — selector de semanas en Planificar/
-     Registrar/Modificar torneo; actualizado 11-sep-2026, ver docblock
-     grande junto a cargarSemanasRecientes()/pintarSemanasSelector() en el
-     <script>): lista con scroll y checkboxes, mismo lenguaje visual que
-     el resto de cuadros (.field, .contenido-item). */
+  /* Selector de semanas (Planificar/Registrar/Modificar torneo): lista
+     con scroll y checkboxes, ver cargarSemanasRecientes()/
+     pintarSemanasSelector() en el <script>. */
   .semana-selector{
     display:flex; flex-direction:column; gap:2px; max-height:220px; overflow-y:auto;
     border:1px solid var(--line); border-radius:var(--radius-sm); padding:6px 10px;
@@ -378,27 +253,17 @@
     cursor:pointer; border-bottom:1px solid var(--line); line-height:1.3;
   }
   .semana-item:last-child{border-bottom:none;}
-  /* FIX (14-sep-2026, pedido usuario -- "el checkbox de semana y el texto
-     están desalineados"): el checkbox no tenía margin:0 explícito, así que
-     heredaba el margen por defecto del navegador (distinto en cada uno) y
-     quedaba corrido respecto al centro vertical del <span> de texto pese a
-     align-items:center del contenedor. También se fuerza vertical-align en
-     el propio input por si el navegador lo trata como inline-block. */
+  /* margin:0 explícito en el checkbox (evita el margen por defecto del
+     navegador, que lo desalineaba del texto pese a align-items:center). */
   .semana-item input[type="checkbox"]{
     flex-shrink:0; width:16px; height:16px; margin:0; padding:0; cursor:pointer;
     accent-color:var(--purple-light); vertical-align:middle;
   }
   .semana-item span{line-height:16px;}
-  /* FIX (13-sep-2026, pedido usuario -- formulario de Cambio de rango:
-     "en la sección de semanas a evaluar debe haber un selector de
-     temporada y a la derecha checkboxes con las semanas que tenga esa
-     temporada, y un botón para añadir otra temporada"): un bloque por
-     temporada agregada, con el <select> de temporada a la izquierda y su
-     .semana-selector (mismas checkboxes que Torneos/Sorteos) a la derecha.
-     Ver #crTemporadasContainer/.cr-temporada-bloque en el <script>
-     (agregarBloqueTemporadaCR() y compañía). En pantallas angostas se
-     apilan (select arriba, checkboxes abajo) en vez de quedar
-     amontonados. */
+  /* Un .cr-temporada-bloque por temporada agregada en Cambio de rango:
+     <select> de temporada a la izquierda y su .semana-selector a la
+     derecha (se apilan en pantallas angostas). Ver
+     #crTemporadasContainer/agregarBloqueTemporadaCR() en el <script>. */
   .cr-temporada-bloque{display:flex; gap:10px; align-items:flex-start; margin-top:10px;}
   .cr-temporada-bloque .cr-temporada-select{flex:0 0 180px; width:180px;}
   .cr-temporada-bloque .semana-selector{flex:1; min-width:0; max-height:160px;}
@@ -407,23 +272,15 @@
     cursor:pointer; padding:4px 6px; line-height:1; border-radius:var(--radius-sm);
   }
   .cr-temporada-quitar:hover{color:#ff6b6b; background:rgba(255,107,107,.12);}
-  /* FIX (14-sep-2026, pedido usuario -- "el botón de añadir temporada debe
-     estar a la derecha del título de semanas y está demasiado grande"):
-     #btnCrAgregarTemporada pasa de <button class="btn"> (ancho por defecto
-     de styles.css, pensado para botones de acción principales) a esta
-     variante chica, y su <div> padre (#crSemanasWrap) pasa a flex
-     space-between para ponerlo a la derecha de la label en vez de debajo. */
+  /* .btn-compacto: variante chica para #btnCrAgregarTemporada, a la
+     derecha de la label vía flex space-between en su <div> padre. */
   .btn-compacto{padding:5px 12px; font-size:12px; flex-shrink:0;}
   .cr-semanas-cabecera{display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:8px;}
   .cr-semanas-cabecera label{margin:0;}
-  /* FIX (14-sep-2026, pedido usuario -- "los requisitos de descenso puestos
-     así parecen algo opcional"): Requisitos de Ascenso/Descenso dejan de
-     ser <details> colapsables (ese patrón visual, usado para secciones
-     realmente opcionales en el resto de la página, es lo que los hacía
-     parecer opcionales) y pasan a bloques fijos con este encabezado
-     estático -- mismo look que .admin-subseccion > summary pero sin el
-     ícono +/- ni el cursor de "click para abrir". Ver
-     #crRequisitosAscenso/#crRequisitosDescenso en el HTML y
+  /* Requisitos de Ascenso/Descenso son bloques fijos (no <details>
+     colapsables, que los hacía parecer opcionales), con el mismo look que
+     .admin-subseccion > summary pero sin el ícono +/-. Ver
+     #crRequisitosAscenso/#crRequisitosDescenso y
      mostrarRequisitosAscensoCR()/mostrarRequisitosDescensoCR() en el
      <script>. */
   .cr-requisitos-bloque{border-top:1px solid var(--line); margin-top:14px; padding-top:2px;}
@@ -485,34 +342,12 @@
       <button id="logoutBtn" type="button">Cerrar sesión</button>
     </div>
 
-    <!-- FIX (03-sep-2026, pedido usuario, punto 17 — "mostrar primero la
-         lista de cuentas del admin, por clan y rol, con desempeño/
-         estadísticas"): mismo agrupamiento que ya usa el saludo del bot
-         de WhatsApp para admins (_msgBienvenidaAdmin, 29_BotWhatsApp.gs
-         — "Actualmente tienes a tu cargo: 🍀 [Clan] • [Cuenta] — [Rango]"),
-         reutilizado acá vía _webMisCuentas() (34_Web_API.gs), agregando
-         estadísticas por cuenta que el mensaje de WhatsApp no incluye
-         (Copas, V. Guerra, Torneos, Vigencia). Va PRIMERO en el panel,
-         antes que "Buscar miembro", tal como pidió el usuario.
-         FIX (09-sep-2026, pedido usuario — "'Agrupadas por clan, líder
-         primero.' No va, revisa el saludo del bot, creo que ese estaba
-         mejor"): confirmado contra Base.md (29_BotWhatsApp.gs/
-         34_Web_API.gs) — "líder primero" SÍ era correcto. Tanto
-         _msgBienvenidaAdmin() como _webMisCuentas() (la función que
-         realmente alimenta esta tarjeta) ordenan las cuentas DENTRO de
-         cada clan por CFG.RANGO_ORDEN (líder, luego colíder, veterano,
-         miembro) y recién ahí alfabético por nombre — no es una
-         suposición del frontend, es el mismo criterio que ya usa el bot.
-         Se restaura el texto con ambos criterios (clan y rango) en vez de
-         solo el de clan.
-         FIX (09-sep-2026, pedido usuario — "'Agrupadas por clan, líder
-         primero.' No va, no es atractivo ni útil ese comentario para el
-         usuario final, se debe cambiar"): el texto anterior era correcto
-         (ver FIX de arriba) pero describía la MECÁNICA de orden interna,
-         que no le aporta nada al admin que lee la tarjeta. Se cambia por
-         una línea que dice qué información útil va a encontrar (mismos
-         datos que ya renderiza cargarMisCuentas() más abajo: Copas, V.
-         Guerra, Torneos, Vigencia), no cómo está ordenada. -->
+    <!-- "Tus cuentas" va primero en el panel, antes que "Buscar miembro".
+         Mismo agrupamiento por clan y rango (líder primero) que ya usa el
+         saludo del bot (_msgBienvenidaAdmin, 29_BotWhatsApp.gs), vía
+         _webMisCuentas() (34_Web_API.gs), con estadísticas por cuenta que
+         el mensaje de WhatsApp no incluye (Copas, V. Guerra, Torneos,
+         Vigencia). -->
     <div class="card" style="margin-top:24px;">
       <div class="eyebrow">Tus cuentas</div>
       <h3 style="font-size:15px; color:var(--gold); margin:10px 0 4px;">Cuentas a tu cargo</h3>
@@ -520,38 +355,17 @@
       <div id="misCuentasWrap"><div class="empty">Cargando tus cuentas…</div></div>
     </div>
 
-    <!-- FIX (08-sep-2026, pedido usuario):
-         (a) esta card no tenía nombre (era solo el input + botón, sin
-         eyebrow) — se le agrega "Buscar miembro".
-         (b) el input solo admitía Tag exacto (buscarMiembro() de abajo
-         llamaba a webAdminBuscarMiembro con normalizarTag() directo, sin
-         pasar por ningún candidato). Ahora reutiliza el mismo patrón de
-         "sugerencias mientras se escribe" que ya usa el buscador público
-         de directorio.html (coincidenciasDirectorio/renderListaCoincidencias
-         ahí, ver docblock de esas funciones) pero más potente, como pidió
-         el usuario:
-           - Busca por Nombre, Nom_Multi O Tag (directorio.html público
-             solo compara nombre/tag, no nom_Multi).
-           - Cubre TODO miembro con registro en nuestra base — activo o
-             inactivo — no solo el roster en vivo de cada clan (que es lo
-             único que carga rosterData en directorio.html vía el roster de
-             la API de Supercell). Requiere que el backend exponga esa
-             lista completa (ver contrato documentado junto a
-             buscarSugerenciasMiembro() en el JS, acción NUEVA
-             webAdminBuscarMiembroSugerencias — todavía no existe,
-             pendiente de conectar).
-           - Si el texto no da ninguna coincidencia en nuestra base y
-             "parece" un Tag, se prueba igual como Tag directo contra
-             webAdminBuscarMiembro (existente) al hacer clic/Enter — ese
-             endpoint ya consulta el perfil público (endpoint `players`)
-             aunque el Tag no tenga ningún registro en Directorio, así que
-             cualquier jugador de Clash Royale se puede buscar por Tag
-             aunque nunca haya sido parte de la Familia.
-         Las sugerencias se ordenan en el propio navegador (estado activo
-         primero, luego clan según ordenClanIndex() de common.js — NO
-         alfabético, y por último nombre alfabético) vía
-         _ordenarSugerenciasMiembro() más abajo, así que el orden es
-         correcto sin importar en qué orden responda el backend. -->
+    <!-- "Buscar miembro" busca por Nombre, Nom_Multi o Tag, en TODO
+         miembro con registro en nuestra base (activo o inactivo), con
+         sugerencias mientras se escribe (patrón similar al buscador
+         público de directorio.html, pero más completo — ver
+         buscarSugerenciasMiembro()/_ordenarSugerenciasMiembro() en el
+         JS). Requiere que el backend exponga
+         webAdminBuscarMiembroSugerencias (pendiente de conectar). Si el
+         texto no da coincidencias y "parece" un Tag, se prueba igual como
+         Tag directo contra webAdminBuscarMiembro (existente), que
+         consulta el perfil público aunque el jugador nunca haya sido
+         parte de la Familia. -->
     <div class="card" style="margin-top:24px;">
       <div class="eyebrow">Buscar miembro</div>
       <p class="text-dim" style="font-size:13px; margin:10px 0 14px;">Busca por nombre, Nom_Multi o Tag — cualquier miembro con registro en la Familia (activo o inactivo), en cualquier clan. Si el jugador no tiene ningún registro con nosotros, igual se puede buscar directo por su Tag.</p>
@@ -564,14 +378,11 @@
       </div>
       <div id="buscarMsg"></div>
 
-      <!-- FIX (08-sep-2026, pedido usuario — "la detección de infiltrados
-           va justo debajo de buscar miembros pero en la misma sección"):
-           reubicada acá (antes vivía dentro de #directorioGrupo, ver el
-           comentario FASE 25/punto 38 más abajo, que ya no aplica a esta
-           subsección puntual). Mismo <details id="cardInfiltrados">, mismo
-           comportamiento y mismo backend — solo cambió DÓNDE vive en el
-           HTML; aplicarVisibilidadPorFunciones() lo sigue mostrando/
-           ocultando por id sin que le importe su nuevo contenedor. -->
+      <!-- "Detección de infiltrados" vive junto a "Buscar miembro" (antes
+           estaba dentro de #directorioGrupo). Mismo <details
+           id="cardInfiltrados">, comportamiento y backend — solo cambió
+           dónde vive en el HTML; aplicarVisibilidadPorFunciones() lo sigue
+           mostrando/ocultando por id. -->
       <div style="margin-top:22px; padding-top:18px; border-top:1px solid var(--line);">
         <details class="admin-subseccion" id="cardInfiltrados">
           <summary><span class="cat-titulo">Detección de infiltrados</span></summary>
@@ -588,76 +399,42 @@
       </div>
     </div>
 
-    <!-- FASE 25 (03-sep-2026, pedido usuario — reordenar panel admin):
-         antes "Registrar miembro nuevo" y "Vetar miembro" eran dos <div
-         class="card"> separadas, cada una con su propio eyebrow
-         "Directorio" repetido — se veía como si "Directorio" apareciera
-         2 veces en el panel. Ahora es UN solo contenedor "Directorio" con
-         ambos formularios como subsecciones plegables (mismo patrón
-         <details>/<summary> que ya usa el Visor de contenido más abajo).
-         FIX (04-sep-2026, pedido usuario, punto 38 — "la sección de
-         Directorio va antes del visor de contenido, la detección de
-         infiltrados debe ser parte de directorio (después de vetar)"):
-         todo este contenedor se movió ANTES de "Visor de contenido" (antes
-         iba después, solo delante de "Torneos y sorteos").
-         FIX (08-sep-2026, pedido usuario — "la detección de infiltrados va
-         en la sección de buscar miembros, no en Directorio"): la
-         subsección "Detección de infiltrados" que vivía ACÁ (después de
-         "Vetar miembro", ver FIX anterior) se movió a la card "Buscar
-         miembro" de arriba — este contenedor ahora solo agrupa Registrar/
-         Vetar. Los ids de cada card (cardRegistrarNuevo/cardVetar) NO
-         cambiaron — aplicarVisibilidadPorFunciones() sigue ocultando cada
-         subsección por separado según Funciones del admin logueado, y
-         además ahora oculta el contenedor completo si ninguna de las dos
-         aplica (ver esa función más abajo). -->
+    <!-- "Directorio" agrupa "Registrar miembro nuevo" y "Vetar miembro"
+         como subsecciones plegables de un solo contenedor (antes eran dos
+         <div class="card"> separadas, cada una repitiendo el eyebrow
+         "Directorio"), ubicado antes de "Visor de contenido". Los ids de
+         cada card (cardRegistrarNuevo/cardVetar) no cambiaron —
+         aplicarVisibilidadPorFunciones() oculta cada subsección por
+         separado según Funciones del admin, y el contenedor completo si
+         ninguna de las dos aplica. -->
     <div class="card admin-grupo" id="directorioGrupo" style="margin-top:24px;">
       <div class="eyebrow">Directorio</div>
 
-      <!-- FASE 4 (26-ago-2026): registrar miembro nuevo, en dos pasos —
-           Paso 1 verifica el Tag contra la API (webAdminVerificarTag) antes
-           de dejar completar nada; Paso 2 se habilita solo tras un
-           "Verificar" exitoso. Reutiliza _guardarRegistroNuevoMiembro()
-           (11_DirectorioSheet.gs) vía webAdminRegistrarNuevo — mismo backend
-           que "Datos de gestión" arriba, para un miembro que todavía no
-           existe en Directorio. Subsección oculta si el admin logueado no
-           tiene "Registrar miembro nuevo" en Funciones (ver
-           aplicarVisibilidadPorFunciones() más abajo) — el backend igual
-           vuelve a validar esto en cada request, esto es solo para no
-           mostrar un formulario que de todos modos va a rechazar.
-           Ver arquitectura-web-familia-terna.md, Sección 7.4. -->
+      <!-- Registrar miembro nuevo, en dos pasos: Paso 1 verifica el Tag
+           contra la API (webAdminVerificarTag); Paso 2 se habilita solo
+           tras un "Verificar" exitoso. Reutiliza
+           _guardarRegistroNuevoMiembro() (11_DirectorioSheet.gs) vía
+           webAdminRegistrarNuevo. Subsección oculta si el admin no tiene
+           "Registrar miembro nuevo" en Funciones (el backend igual
+           revalida esto en cada request). Ver
+           arquitectura-web-familia-terna.md, Sección 7.4. -->
       <details class="admin-subseccion" id="cardRegistrarNuevo" open>
         <summary><span class="cat-titulo">Registrar miembro nuevo</span></summary>
         <div class="admin-subseccion-body">
-          <!-- NUEVO (14-sep-2026, pedido usuario -- "agrega la opción de
-               'Buscar en Directorio', ahora serían dos opciones: 'Buscar
-               en Directorio' o 'Ingresar tag'"): #nmModoTagBox es el flujo
-               ya existente (Tag escrito a mano + Verificar), sin ningún
-               cambio de comportamiento. #nmModoDirectorioBox es el nuevo:
-               elegir un Clan (por defecto el clan principal, ver
-               initModoRegistrarNuevo() en el <script>), ver la lista de
-               miembros de ESE clan (mismo orden que ya devuelve el
-               backend para la hoja Directorio -- el frontend NO reordena,
-               solo filtra) y poder filtrar esa lista por Rango y por si
-               tienen o no Celular registrado. Al hacer click en un
-               miembro de la lista se llena #nmTag con su Tag y se
-               dispara EXACTAMENTE el mismo verificarTagNuevoMiembro() que
-               dispara "Verificar" en el flujo de Tag -- de ahí en
-               adelante es un solo flujo para los dos modos (Paso 2 en
-               #nmPaso2, sin cambios). -->
+          <!-- #nmModoTagBox es el flujo de Tag escrito a mano + Verificar.
+               #nmModoDirBox deja elegir un Clan, ver su lista de miembros
+               (filtrable por Rango y por celular registrado) y clickear
+               uno para llenar #nmTag con su Tag y disparar
+               verificarTagNuevoMiembro() — de ahí en adelante es el mismo
+               flujo para ambos modos (Paso 2 en #nmPaso2, sin cambios).
+               Ver initModoRegistrarNuevo() en el <script>. -->
           <div class="field">
             <label>¿Cómo quieres identificar al miembro?</label>
-            <!-- FIX (15-sep-2026, pedido usuario -- "en el panel admin
-                 (registrar miembro nuevo) se debe cambiar esas opciones de
-                 ingresar tag y buscar directorio (no los datos, sino el
-                 formato porque están feos) y cambialo por el estilo que
-                 tienen los botones de torneo, sorteo y cambio de rango"):
-                 los 2 <input type="radio"> se reemplazan por botones
-                 .tab-clan (mismas pastillas que #panelTorSorAccion usa para
-                 Torneos/Sorteos/Cambio de rango, ver .btn-toggle-torsor más
-                 abajo en este mismo archivo). Los DATOS y el flujo no
-                 cambian: siguen siendo los mismos 2 modos, el activo se
-                 marca con .activo y se lee de data-modo (ver
-                 actualizarModoRegistrarNuevo() en el <script>). -->
+            <!-- Botones .tab-clan (mismas pastillas de
+                 Torneos/Sorteos/Cambio de rango, ver .btn-toggle-torsor)
+                 en vez de radios. El activo se marca con .activo y se lee
+                 de data-modo — ver actualizarModoRegistrarNuevo() en el
+                 <script>. -->
             <div class="nm-modo-selector" id="nmModoSelector">
               <button type="button" class="tab-clan btn-toggle-nmmodo activo" data-modo="tag">Ingresar tag</button>
               <button type="button" class="tab-clan btn-toggle-nmmodo" data-modo="directorio">Buscar en Directorio</button>
@@ -727,17 +504,14 @@
         </div>
       </details>
 
-      <!-- FASE 4: vetar a un miembro — de un solo sentido, sin opción de
-           deshacer desde la web (ver Sección 7.6 del documento de
-           arquitectura: no hay endpoint de "desvetar"). El backend
+      <!-- Vetar a un miembro es de un solo sentido, sin opción de
+           deshacer desde la web (no hay endpoint de "desvetar", ver
+           Sección 7.6 de arquitectura-web-familia-terna.md). El backend
            (_webAdminVetar, 34_Web_API.gs) revalida "Vetar" en Funciones y
-           que el Clan del tag esté en Clanes_Admin del admin logueado —acá
-           solo se oculta la subsección si no tiene "Vetar" en Funciones,
-           como arriba. La lista de Razón es la MISMA que
-           CFG.RAZON_VALORES_VALIDOS (01_Config_Global.gs) — si esa lista
-           cambia en el backend, hay que actualizarla acá también a mano
-           (no hay endpoint que la exponga, ver Sección 7.7 del documento
-           de arquitectura). -->
+           el Clan del admin logueado. La lista de Razón es la misma que
+           CFG.RAZON_VALORES_VALIDOS (01_Config_Global.gs) — si cambia en
+           el backend, hay que actualizarla acá a mano también (no hay
+           endpoint que la exponga, Sección 7.7). -->
       <details class="admin-subseccion" id="cardVetar">
         <summary><span class="cat-titulo">Vetar miembro</span></summary>
         <div class="admin-subseccion-body">
@@ -766,101 +540,55 @@
         </div>
       </details>
 
-      <!-- FIX (12-sep-2026, pedido usuario — "el panel de admin y de
-           directorio muestran lo mismo [para Participación de hoy en
-           guerra], que se quede solo en el panel de directorio"): la
-           tarjeta "Participación de hoy en guerra" (reservadas/
-           reemplazables por clan) se retira de acá. Vive ahora solo en
-           directorio.html, dentro de #cardParticipacionHoyDirectorio,
-           visible únicamente si hay una sesión de admin guardada en este
-           navegador (mismo SESSION_KEY que acá) — ver el bloque
-           "Participación de hoy en guerra (solo admins)" en ese archivo
-           para el HTML/CSS/JS completo (renderParticipacionHoyGuerra() /
-           cargarParticipacionHoyGuerra()). El endpoint del backend
-           (webAdminParticipacionHoyGuerra) no cambió. -->
+      <!-- "Participación de hoy en guerra" ya no vive acá — se retiró
+           porque duplicaba lo que muestra directorio.html. Vive solo en
+           #cardParticipacionHoyDirectorio de ese archivo (visible con
+           sesión de admin guardada, mismo SESSION_KEY), ver
+           renderParticipacionHoyGuerra()/cargarParticipacionHoyGuerra()
+           ahí. El endpoint del backend no cambió. -->
     </div>
 
-    <!-- FASE 25 (03-sep-2026, pedido usuario): "Torneos" y "Ruleta de
-         sorteos" también quedan en UN solo contenedor con subsecciones,
-         mismo criterio que Directorio arriba. La ruleta de sorteos pasa a
-         ser la ÚLTIMA subsección (antes estaba primera y suelta arriba de
-         todo el panel) — pedido explícito: "la ruleta de sorteos va
-         después de torneos". Fase 3 (25-ago-2026): gestión de torneos —
-         registrar link nuevo, modificar fecha/hora del de hoy, y ver
-         ganadores del más reciente. Reutiliza _registrarTorneoDesdeBot /
-         _listarTorneosDeHoy / _modificarFechaHoraTorneo
-         (24_Torneos_Core.gs) — los mismos 3 pasos que ya existen en el bot
-         de WhatsApp para admins. "Ver ganadores" no tiene endpoint nuevo:
-         usa el mismo webTorneos público que index.html. Ver 34_Web_API.gs
-         / 08_Web_Endpoints.gs. -->
+    <!-- "Torneos y sorteos" agrupa ambos en un solo contenedor con
+         subsecciones (mismo criterio que "Directorio"); la ruleta de
+         sorteos va después de torneos, no suelta arriba de todo el panel.
+         Gestión de torneos: registrar link nuevo, modificar fecha/hora
+         del de hoy, ver ganadores del más reciente — reutiliza
+         _registrarTorneoDesdeBot/_listarTorneosDeHoy/
+         _modificarFechaHoraTorneo (24_Torneos_Core.gs), los mismos 3
+         pasos que ya usa el bot de WhatsApp para admins. "Ver ganadores"
+         usa el mismo webTorneos público de index.html. -->
     <div class="card admin-grupo" style="margin-top:24px;">
       <div class="eyebrow">Torneos y sorteos</div>
 
-      <!-- FIX (05-sep-2026, pedido usuario): "Registrar torneo nuevo" y
-           "Modificar torneo de hoy" se fusionan en un wizard de 3 pasos,
-           cada uno con un <select> (dropdown) + botón "Continuar" en vez
-           de botones laterales tipo pestaña:
-             Paso 1 (#torneoPaso1): "Registrar nuevo torneo", "Modificar
-               torneo registrado" o "Planificar torneo" (#torneoAccion).
-             Paso 2 (#torneoPaso2): "Torneo principal" o "Torneo de
-               continuación" (#torneoTipo) — independiente de cuál de las
-               tres opciones del Paso 1 se haya elegido.
-             Paso 3 (#torneoPaso3): combina ambas respuestas:
-               - Registrar + Principal: #camposRegistrar (link+fecha+hora).
-               - Registrar + Continuación: #camposRegistrar + además
-                 #camposTorneoPrincipal (lista desglosable).
-               - Modificar + Principal: #camposModificar (torneo de
-                 hoy a elegir + fecha/hora nueva).
-               - Modificar + Continuación: #camposModificar + además
-                 #camposTorneoPrincipal.
-               - Planificar (+ Principal o Continuación): #camposPlanificar
-                 (fecha+hora+autor+editor de premios) [+ #camposTorneoPrincipal
-                 si es continuación].
-           #camposTorneoPrincipal es la única parte que distingue
-           "principal" de "continuación": una lista DESGLOSABLE
-           (<details> por torneo, con hora y link para poder identificarlo
-           bien) de los torneos de hoy, para elegir de cuál es continuación
-           — a diferencia del <select> plano de #camposModificar. Esa
-           elección viaja al backend como tagTorneoPrincipal (el Tag_Tor
-           del torneo elegido, que es lo que la columna Tag_Tor_2 de
-           T_Lista espera -- ver _registrarTorneoDesdeBot()/
-           _modificarFechaHoraTorneo()/_planificarTorneoDesdeBot() en
-           24_Torneos_Core.gs y _webAdminTorneoRegistrar()/
-           _webAdminTorneoModificar()/_webAdminTorneoPlanificarGuardar() en
-           34_Web_API.gs). Los ids btnRegistrarTorneo/btnModificarTorneo/
-           tSelectHoy/tLink/tFecha/tHora/tFechaMod/tHoraMod y sus listeners
-           de siempre se mantienen tal cual; ver initTorneoWizard() más
-           abajo para toda la lógica nueva de pasos.
+      <!-- Wizard de 3 pasos para Torneos: Paso 1 (#torneoPaso1) elige
+           Registrar/Modificar/Planificar (#torneoAccion); Paso 2
+           (#torneoPaso2) elige Principal o Continuación (#torneoTipo);
+           Paso 3 (#torneoPaso3) combina ambas respuestas y muestra los
+           campos correspondientes (#camposRegistrar/#camposModificar/
+           #camposPlanificar, más #camposTorneoPrincipal si es
+           continuación). #camposTorneoPrincipal es una lista desglosable
+           de los torneos de hoy para elegir de cuál es continuación; esa
+           elección viaja como tagTorneoPrincipal (columna Tag_Tor_2 de
+           T_Lista — ver _registrarTorneoDesdeBot()/
+           _modificarFechaHoraTorneo()/_planificarTorneoDesdeBot(),
+           24_Torneos_Core.gs). Ver initTorneoWizard() más abajo para la
+           lógica de pasos.
 
-           FIX (05-sep-2026, pedido usuario — "Planificar torneo" + premios):
-           se agrega "Planificar torneo" como tercer camino del Paso 1,
-           SEPARADO de "Registrar nuevo torneo", porque el link real de
-           RoyaleAPI recién se puede generar con pocas horas de
-           anticipación, mientras que los premios (y el doc "Participantes
-           calificados") tienen que quedar listos con mucha más
-           anticipación que eso. #camposPlanificar guarda Fecha + Premios
-           en una fila de T_Lista SIN link todavía (ver
-           _planificarTorneoDesdeBot()); cuando después se registra el
-           link real de ese mismo torneo (misma fecha y hora exactas) por
-           el camino normal "Registrar nuevo torneo", esa fila se completa
-           sola en vez de duplicarse (ver el FIX correspondiente en
-           _registrarTorneoDesdeBot()). Editor de premios: arranca con 3
-           filas (lo usual), botón "+ Agregar premio" para sumar más y
-           "Quitar" en cada fila (mínimo 1); cada premio es Pass Royale,
-           Dinero (con monto) o texto libre — ver
-           armarPremiosCSV()/agregarFilaPremio() más abajo. -->
-      <!-- FIX (08-sep-2026, pedido usuario): "Registrar o modificar
-           torneo" pasa a llamarse "Planificar, registrar o modificar
-           torneos o sorteos", con dos botones horizontales (mismo patrón
-           .tab-clan que ya usan las demás pestañas de este panel) para
-           alternar entre "Torneos" (el wizard de 3 pasos de siempre,
-           reubicado dentro de #panelTorneosAccion sin cambios de lógica)
-           y "Sorteos" (nuevo, #panelSorteosAccion): las 3 opciones
-           equivalentes de sorteo se muestran igual que las de torneo
-           aunque todavía no tengan una acción real detrás — se
-           implementará más adelante, ver el listener de #sorteoAccion
-           (junto al toggle .btn-toggle-torsor) más abajo, después de
-           initTorneoWizard(). -->
+           "Planificar torneo" es un tercer camino separado de
+           "Registrar", porque el link real de RoyaleAPI recién se genera
+           con pocas horas de anticipación, mientras que los premios
+           necesitan quedar listos con más tiempo. #camposPlanificar
+           guarda Fecha + Premios sin link todavía; cuando después se
+           registra el link real de ese mismo torneo, la fila se completa
+           sola en vez de duplicarse. Editor de premios: arranca con 3
+           filas, "+ Agregar premio" para sumar más y "Quitar" en cada una
+           (mínimo 1) — ver armarPremiosCSV()/agregarFilaPremio() más
+           abajo. -->
+      <!-- "Planificar, registrar o modificar torneos o sorteos": dos
+           botones .tab-clan alternan entre "Torneos" (el wizard de 3
+           pasos, dentro de #panelTorneosAccion) y "Sorteos"
+           (#panelSorteosAccion). Ver el listener de #sorteoAccion junto
+           al toggle .btn-toggle-torsor, después de initTorneoWizard(). -->
       <details class="admin-subseccion" open>
         <summary><span class="cat-titulo">Planificar, registrar o modificar torneos o sorteos</span></summary>
         <div class="admin-subseccion-body">
@@ -868,36 +596,23 @@
           <div class="contenido-tabs" style="margin-bottom:14px;">
             <button type="button" class="tab-clan btn-toggle-torsor activo" data-panel="torneos">Torneos</button>
             <button type="button" class="tab-clan btn-toggle-torsor" data-panel="sorteos">Sorteos</button>
-            <!-- NUEVO (13-sep-2026, pedido del usuario -- Fase 7 del plan de
-                 Cambio de Rango, PASO 1 de la implementación del frontend):
-                 tercer tab, mismo mecanismo EXACTO que Torneos/Sorteos
-                 (.btn-toggle-torsor + data-panel) -- el listener genérico de
-                 más abajo en el <script> ya recorre TODOS los
-                 .btn-toggle-torsor, así que agregar este botón no rompe el
-                 switcher existente. Todavía no tiene contenido real (eso es
-                 el PASO 2 en adelante) -- por ahora solo agrega el tab y su
-                 panel vacío (#panelCambioRangoAccion, ver más abajo). -->
+            <!-- Tercer tab "Cambio de rango", mismo mecanismo que
+                 Torneos/Sorteos (.btn-toggle-torsor + data-panel) — el
+                 listener genérico del <script> recorre todos los
+                 .btn-toggle-torsor. -->
             <button type="button" class="tab-clan btn-toggle-torsor" data-panel="cambiorango">Cambio de rango</button>
           </div>
 
           <div id="panelTorneosAccion">
 
-          <!-- NUEVO (13-sep-2026, pedido del usuario -- "fase nueva y chica"
-               que la propia Fase 0 del plan de corrección Torneo/Sorteo
-               dejaba anotada para más adelante): control web para
-               Extra!Torneo_Vigente_ID, que hasta ahora solo se editaba a
-               mano directo en la hoja Extra (ver _getIdVigenteExtra(),
-               24_Torneos_Core.gs). Lista TODOS los torneos existentes (no
-               solo los de hoy, a diferencia de #tSelectHoy más abajo, que
-               es para "Modificar") vía _webAdminVigenteListar()
-               (34_Web_API.gs) y guarda la elección con
-               _webAdminVigenteGuardar(). Dejar el selector en "Ninguno"
-               (valor vacío) y guardar limpia la celda -- el sistema vuelve
-               a usar su respaldo de "más reciente por Fecha" para Torneo,
-               mismo criterio que documenta _getConfigMasRecienteCategoria()
-               (24_Torneos_Core.gs). Colapsado por defecto (`<details>` sin
-               `open`) porque es de uso ocasional, no parte del flujo
-               habitual de Registrar/Modificar/Planificar. -->
+          <!-- "Torneo vigente" es el control web para
+               Extra!Torneo_Vigente_ID (antes se editaba a mano en la hoja
+               Extra, ver _getIdVigenteExtra(), 24_Torneos_Core.gs). Lista
+               TODOS los torneos existentes (no solo los de hoy, a
+               diferencia de #tSelectHoy) vía _webAdminVigenteListar() y
+               guarda con _webAdminVigenteGuardar(). "Ninguno" limpia la
+               celda y el sistema usa su respaldo de "más reciente por
+               Fecha". Colapsado por defecto por ser de uso ocasional. -->
           <details class="admin-subseccion" style="margin-bottom:14px;">
             <summary><span class="cat-titulo">Torneo vigente</span></summary>
             <div class="admin-subseccion-body">
@@ -943,27 +658,17 @@
             <a href="#" id="torneoVolverPaso2" class="text-dim" style="font-size:12px; display:inline-block; margin-bottom:10px;">‹ Cambiar</a>
 
             <div id="camposRegistrar" style="display:none;">
-              <!-- NUEVO (16-sep-2026, pedido usuario -- "en torneos, sorteos
-                   y cambio de rango, agrega la opción de precargar los datos
-                   del registro más reciente (anterior a ese). no aplica
-                   para semanas"): botón que trae Organizador/Cuenta
-                   organizadora y Comentario del ÚLTIMO torneo ya registrado
-                   en T_Lista (el anterior a este que se está armando ahora)
-                   para no reescribirlos a mano cuando se repiten de un
-                   torneo a otro. Deliberadamente NO toca #semanasSelectorReg
-                   (pedido explícito del usuario: cada torneo nuevo elige sus
-                   propias semanas). Tampoco toca Link/Fecha/Hora (datos
-                   propios de ESTE torneo, no del anterior) ni Requisitos
-                   (#requisitosTorneoBox ya se precarga solo con "el más
-                   reciente" vía cargarRequisitosPorClan() sin id, desde
-                   mostrarPanel()). Ver precargarUltimoRegistroTorneo() más
-                   abajo en el <script>.
+              <!-- Botón que trae Organizador/Cuenta organizadora y
+                   Comentario del último torneo ya registrado en T_Lista,
+                   para no reescribirlos a mano. No toca
+                   #semanasSelectorReg, Link/Fecha/Hora ni Requisitos. Ver
+                   precargarUltimoRegistroTorneo() en el <script>.
                    PENDIENTE BACKEND: falta `_getUltimoRegistroTorneoOSorteo`
                    (24_Torneos_Core.gs), su wrapper
-                   `_webAdminUltimoRegistroTorneoOSorteo` (34_Web_API.gs) y el
-                   caso `webAdminUltimoRegistro` en doGet (08_Web_Endpoints.gs)
-                   -- este botón queda listo del lado del frontend, pendiente
-                   de esas 3 piezas para funcionar de punta a punta. -->
+                   `_webAdminUltimoRegistroTorneoOSorteo` (34_Web_API.gs) y
+                   el caso `webAdminUltimoRegistro` en doGet
+                   (08_Web_Endpoints.gs) -- el botón está listo en el
+                   frontend, pendiente de esas 3 piezas. -->
               <button type="button" class="btn btn-ghost btn-block" id="btnPrecargarUltimoTorneo" style="margin-bottom:14px;">↻ Precargar datos del último torneo registrado</button>
 
               <div class="field">
@@ -994,19 +699,13 @@
                 </div>
               </div>
 
-              <!-- FIX (05-sep-2026, pedido usuario — "dar la opción de
-                   registrar al autor del torneo, ya que puede ser que
-                   alguien organice pero otra persona se encargue de
-                   registrar en la web"): campo OPCIONAL. Si se deja en
-                   "Lo organicé yo" (valor vacío), el backend usa el admin
-                   de la sesión como organizador -- no hace falta elegir
-                   nada acá para el caso normal. Las opciones desglosan los
-                   Nom_Multi de los ADMINS (cargarNomMultisAdmins(),
-                   webAdminNomMultisAdmins) más "Ninguna de las anteriores",
-                   que revela #tAutorManual para escribirlo a mano (por si
-                   quien organizó no es un admin). Ver btnRegistrarTorneo
-                   más abajo para cómo se arma el valor final que viaja
-                   como `autor` a webAdminTorneoRegistrar. -->
+              <!-- Campo opcional: "Lo organicé yo" deja que el backend use
+                   el admin de la sesión como organizador. Las opciones
+                   desglosan los Nom_Multi de los admins
+                   (cargarNomMultisAdmins(), webAdminNomMultisAdmins) más
+                   "Ninguna de las anteriores", que revela #tAutorManual
+                   para escribirlo a mano. Ver btnRegistrarTorneo para cómo
+                   se arma el valor `autor` final. -->
               <div class="field" style="margin-top:14px;">
                 <label for="tAutorSelect">¿Quién organizó el torneo?</label>
                 <select id="tAutorSelect">
@@ -1016,30 +715,15 @@
                 <input type="text" id="tAutorManual" placeholder="Nombre de quien organizó" style="margin-top:8px; display:none;">
               </div>
 
-              <!-- FIX (09-sep-2026, pedido usuario — "luego de ingresar al
-                   organizador del torneo, agrega un cuadro con dropdown que
-                   permita elegir entre todas las cuentas que tenga el autor
-                   elegido, se debe detectar su clan y así se puede llenar
-                   Tag_org, Clan y ClanTag"): cuadro que aparece SOLO cuando
-                   #tAutorSelect tiene un Nom_Multi real elegido (no "Lo
-                   organicé yo" ni "Ninguna de las anteriores" — esos dos
-                   casos no tienen cuentas propias que buscar: el primero es
-                   el admin de la sesión, sin cuenta de CR asociada
-                   necesariamente conocida aquí, y el segundo ya deja
-                   escribir el nombre a mano en #tAutorManual). Al elegir una
-                   cuenta del dropdown, su clan se detecta solo (viene ya
-                   resuelto del backend junto con la lista de cuentas) y
-                   queda guardado en los atributos data-clan/data-clantag de
-                   la opción elegida — ver pintarCuentasOrg() más abajo.
-                   Estos 3 datos (tag/clan/clanTag de la cuenta) son los que
-                   btnRegistrarTorneo debe mandar como tagOrg/clanOrg/
-                   clanTagOrg para llenar las columnas Tag_org/Clan/ClanTag
-                   de T_Lista.
-
-                   Conectado (12-sep-2026): webAdminCuentasDeNomMulti ya
-                   existe en el backend. Ver el bloque de comentarios grande
-                   junto a cargarCuentasDelAutor() (más abajo, en el
-                   <script>) para el detalle exacto. -->
+              <!-- Aparece solo cuando #tAutorSelect tiene un Nom_Multi real
+                   elegido. Al elegir una cuenta del dropdown, su clan se
+                   detecta solo (viene resuelto del backend) y queda en
+                   data-clan/data-clantag de la opción — ver
+                   pintarCuentasOrg() más abajo. btnRegistrarTorneo manda
+                   esos 3 datos como tagOrg/clanOrg/clanTagOrg (columnas
+                   Tag_org/Clan/ClanTag de T_Lista). Conectado vía
+                   webAdminCuentasDeNomMulti — ver cargarCuentasDelAutor()
+                   en el <script>. -->
               <div class="field" id="tCuentaOrgBox" style="display:none; margin-top:10px;">
                 <label for="tCuentaOrgSelect">¿Con cuál cuenta organizó?</label>
                 <select id="tCuentaOrgSelect">
