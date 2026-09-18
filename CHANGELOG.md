@@ -3371,3 +3371,1451 @@ FIX (03-sep-2026, pedido usuario — "Vigencia [última
     // coincide exactamente con el de las tarjetas de arriba.
 ```
 
+
+## guerra.html
+
+### Línea original 62 (estilo)
+
+```
+ FIX (13-sep-2026, pedido usuario — "los márgenes de guerra de hoy son
+     disparejos"): .stats no tenía justify-content, así que la fila de
+     números quedaba pegada a la izquierda (flex-start por defecto). Como
+     cada clan tiene una cantidad distinta de dígitos en Ataques/Fame/
+     Barcos (ej. "174/85.900/0" vs "25/15.050/0"), el ancho total de esa
+     fila variaba de tarjeta a tarjeta y dejaba un margen derecho de
+     tamaño distinto en cada una — de ahí lo "disparejo". Centrando la
+     fila dentro de la tarjeta, el margen queda simétrico (y visualmente
+     parejo entre tarjetas) sin importar cuántos dígitos tenga cada valor. 
+```
+
+### Línea original 72 (estilo)
+
+```
+ FIX (04-sep-2026, pedido usuario — "no se entiende bien de dónde salen
+     los [totales] ... Ataques, fame y barcos deberían estar alineados con
+     los centros de sus números"): .stat no tenía text-align, así que el
+     número grande (<b>) y su etiqueta (<span>) quedaban alineados a la
+     izquierda del ancho del flex item (que toma el ancho del más largo de
+     los dos) — con "FAME"/"703,900" o "ATAQUES"/"822" el más corto quedaba
+     visualmente descentrado respecto al otro. text-align:center centra
+     ambos sobre el mismo eje sin depender de cuál de los dos sea más
+     largo, para los 3 (ataques/fame/barcos).
+  
+```
+
+### Línea original 108 (estilo)
+
+```
+ FIX (09-sep-2026, pedido usuario — "barra de navegación al inicio y
+     final de cada cuadrícula si hay que desplazarse horizontalmente"):
+     mismo problema que ya se había resuelto para el roster de Directorio
+     (ver .roster-topbar/.roster-top-scroll en directorio.html) — el
+     scroll horizontal nativo de .table-scroll funciona, pero no hay
+     ninguna pista visual de que existe (la barra de scroll del sistema
+     puede ser invisible hasta que se pasa el mouse, sobre todo en temas
+     oscuros), y con tablas que pueden crecer en ancho con el tiempo
+     (Cuadrícula de Temporada suma una columna por cada semana jugada) esa
+     pista visual importa cada vez más. .grid-hscroll es una franja fina
+     y siempre visible, con su propio overflow-x:auto sincronizado por JS
+     con el scroll real de la tabla (ver enlazarScrollsHorizontales() más
+     abajo); se coloca UNA arriba Y OTRA abajo de cada tabla (a diferencia
+     del roster, que solo la tiene arriba) para que quede a mano sin
+     importar desde dónde se empiece a leer la cuadrícula. Siempre se
+     renderiza, incluso si hoy la tabla entra sin necesitar scroll, para
+     que ya esté lista el día que la cuadrícula crezca. 
+```
+
+### Línea original 133 (estilo)
+
+```
+ FIX (08-sep-2026, pedido usuario — "La cuadrícula de ataques
+     pendientes también se debe centrar [...] los nombres no se centran,
+     se alinean a la izquierda pero el encabezado sí"): esta tabla venía
+     usando el th{text-align:left} genérico de styles.css (pensado para
+     el resto de tablas del sitio) para las 3 columnas por igual; ahora
+     se centran los 3 encabezados Y los valores de Clan/Faltantes, y solo
+     el nombre de cada fila (.col-nombre) queda a la izquierda — mismo
+     criterio que .col-jugador en las cuadrículas de Activos/Temporada
+     de más abajo. 
+```
+
+### Línea original 142 (estilo)
+
+```
+ FIX (16-sep-2026, pedido usuario — "un solo tamaño de encabezado para
+     todas las columnas y un solo tamaño de letra, revisa en todos los
+     paneles" y luego "baja el tamaño de letra de las filas de valores a
+     13 para todos, un solo tamaño para filas de valores y un solo tamaño
+     para encabezados"): sin estos font-size, el <th> heredaba el 11px
+     genérico de table th y el <td> el 14px genérico de table{} (ambos en
+     styles.css) — se fijan acá en 13px/13px para igualar exactamente a
+     .roster-table (directorio.html) e .inactivos-table (styles.css). 
+```
+
+### Línea original 153 (estilo)
+
+```
+ FIX (13-sep-2026, pedido usuario — "agregar N° y el tag del jugador a
+     la izquierda del nombre" / "columna Jugador (Nom_Multi) y Préstamo,
+     visibles solo para admins" / "íconos de royaleapi y cwstats a la
+     derecha de faltantes"): columnas nuevas de la tabla de Pendientes.
+     .col-n queda centrada (mismo criterio que Rango/Faltantes, es un
+     número de fila); .col-tag va a la izquierda, en mono y algo apagado
+     (mismo estilo que el tag junto al nombre en "Participación de Hoy",
+     ver _liCuenta() más abajo) porque es un dato secundario de
+     identificación, no el foco de la fila. .col-perfil-icons alinea sus
+     2 íconos en fila, centrados, sin texto (mismo SVG ICONO_ROYALEAPI/
+     ICONO_CWSTATS que ya usa perfil.html). 
+```
+
+### Línea original 188 (estilo)
+
+```
+ FIX (16-sep-2026, pedido usuario — "ajusta el tamaño de los botones
+     selectores por letra, en Directorio aparecen en una fila y en guerra
+     en dos, debe ser una"): esta regla vivía ANTES que .tab-btn en el
+     CSS — con la misma especificidad (una sola clase cada una), el
+     padding:7px 14px de .tab-btn (declarado después) le ganaba al
+     padding:6px 10px, más angosto, de acá, así los botones A-Z/# salían
+     igual de anchos que un .tab-btn de clan normal y no cabían los ~28 en
+     una sola fila. En directorio.html .letra-btn SÍ va después de
+     .tab-btn (por eso ahí se ve bien) — se mueve esta regla al mismo
+     lugar, después de .tab-btn.active, para igualar el orden y que el
+     padding angosto se aplique de verdad. 
+```
+
+### Línea original 202 (estilo)
+
+```
+ FIX (04-sep-2026, pedido usuario — "se debe agregar botones para
+     copiar los mensajes de guerra pero visibles solo para los admin").
+     FIX (05-sep-2026, pedido usuario — "en Guerra (lista de pendientes)
+     solo hay que poner el mismo botón, pero ya no se va a mostrar todo el
+     texto, solo el botón de copiar, así que debería agregar información
+     sobre el clan"): ya no es una sección aparte con tarjetas (label +
+     botón genérico "Copiar"); ahora es una fila compacta de botones
+     integrada arriba de la tabla de "Pendientes de Atacar" (ver
+     #msjGuerraWrap dentro de #pendSection más abajo), y el nombre del clan
+     va DENTRO del texto de cada botón (no hay tarjeta/label aparte donde
+     mostrarlo). Sigue sin pintarse nada si no hay sesión de admin activa
+     (esAdminLogueado()) — ver cargarMensajesGuerraSiAdmin(). 
+```
+
+### Línea original 223 (estilo)
+
+```
+     FIX (12-sep-2026, pedido usuario — por error esta sección había
+     quedado también duplicada en directorio.html; la versión final pedida
+     ("retira lo de cuentas reservadas y reemplazables... que se quede
+     solo en Guerra") es esta de acá: el conteo de cada columna va junto a
+     su encabezado ("Reservadas (26)"), nunca en una línea aparte por
+     clan; cada cuenta reservada muestra sus ataques pendientes hoy (4 -
+     ataques ya usados hoy); y las reservadas se subagrupan, dentro de
+     cada clan, en "Con ataques pendientes" (1-3) y "Sin ataques
+     pendientes" (0) — ver _listaCuentasHtml()/renderParticipacionHoyGuerra()
+     más abajo en el <script>. Reemplaza a las clases .ph-* que tenía esta
+     misma sección antes. 
+```
+
+### Línea original 263 (estilo)
+
+```
+ FIX (05-sep-2026, pedido usuario — "panel tipo hoja Control, con datos
+     de Directorio, priorizando las cuadrículas"): sección nueva y PÚBLICA
+     (no requiere sesión de admin). Reutiliza las mismas clases .ai-cell y
+     .ai-total de abajo para no duplicar estilos — mismo criterio visual
+     que Control (0 = tenue, 1-3 = dorado, 4 = verde). Arranca oculta y
+     solo se muestra si el backend manda al menos un clan con Activos (ver
+     render()).
+     FIX (05-sep-2026, pedido usuario — "falta Puntaje (fame) y barcos, que
+     también está en la hoja Control [...] los clanes no están en el orden
+     establecido [...] falta centrar los encabezados con sus datos [...]
+     Mejor dentro del primer cuadro, en cada clan, primero escribe las
+     filas de los activos y luego una sección para inactivos"): esta MISMA
+     tarjeta por clan ahora también recibe, al final, el bloque de
+     Inactivos (antes era la sección aparte #aportesInactivosSection,
+     debajo de "Pendientes de Atacar" — ELIMINADA, ver
+     cargarAportesInactivosSiAdmin() más abajo). El bloque de Inactivos
+     sigue siendo solo-admin (mismo esAdminLogueado() de antes); si no hay
+     sesión de admin, ".ai-inactivos-wrap" simplemente queda vacío dentro
+     de la tarjeta (ver regla ":empty" más abajo) y nadie nota que existe. 
+```
+
+### Línea original 297 (estilo)
+
+```
+ FIX (05-sep-2026, pedido usuario — "Puntaje y Barcos son megacategorías
+     igual que Ataques"): Puntaje y Barcos NO son una columna con un único
+     valor por jugador — son, igual que Ataques, un grupo de columnas
+     J/V/S/D + Total (ver la captura de la Hoja Control: "Puntaje" tiene su
+     propio Sem 1/Sem 2/Sem 3 con J/V/S/D/T.1/T.2/T.3). Por eso el <thead>
+     de la tabla de Activos ahora tiene 2 filas: una fila superior con las
+     3 megacategorías (Ataques/Puntaje/Barcos, colspan=5 cada una) y una
+     fila inferior con J/V/S/D/Total repetido bajo cada una. Estas clases
+     dan un tinte de fondo sutil a cada grupo de columnas (encabezado Y
+     celdas) para que se puedan distinguir de un vistazo con tantas
+     columnas juntas — mismos colores que ya usa el resto del sitio
+     (violeta=tema base, dorado=Puntaje/Fame, plata=Barcos). 
+```
+
+### Línea original 313 (estilo)
+
+```
+ FIX (09-sep-2026, pedido usuario — "falta centrar bien las cuadrículas"):
+     el <th colspan> de cada megacategoría (Ataques/Puntaje/Barcos) se
+     centraba con el text-align:center genérico de más abajo, pero ESE
+     centrado es respecto al ancho TOTAL de la celda combinada (colspan),
+     no respecto a lo que realmente se ve en pantalla. Con muchas columnas
+     (sobre todo en la Cuadrícula de Temporada, que suma una columna por
+     cada semana jugada) esa celda combinada es mucho más ancha que la
+     tarjeta, así que "ATAQUES"/"PUNTAJE"/"BARCOS" terminaba centrado muy
+     lejos hacia la derecha, fuera del área visible sin hacer scroll hasta
+     ahí — la fila de arriba se veía en blanco. .ai-grp-label envuelve el
+     texto y usa position:sticky con left/right en 0 + margin:auto: eso lo
+     mantiene centrado dentro de la porción de la celda que esté visible
+     en cada momento del scroll horizontal (nunca se sale de los límites
+     de su propia columna combinada), en vez de centrarse una sola vez
+     sobre el ancho total invisible. 
+```
+
+### Línea original 329 (estilo)
+
+```
+ FIX (05-sep-2026): encabezados centrados sobre sus datos. El <th>
+     global de styles.css es text-align:left (para el resto de tablas del
+     sitio, ej. "Pendientes de Atacar"); acá se centra todo salvo la
+     columna "Jugador" (marcada con .col-jugador) — con el <thead> de 2
+     filas de arriba, ":not(:first-child)" ya no alcanza (la fila inferior
+     de J/V/S/D/Total no tiene la celda "Jugador" porque esta usa
+     rowspan="2", así que su primer <th> real SÍ sería :first-child de esa
+     fila y quedaría descentrado sin esta clase explícita).
+     FIX (08-sep-2026, pedido usuario — "Se debe centrar solo los valores
+     de las cuadrículas y todos los encabezados, los nombres no se
+     centran, se alinean a la izquierda pero el encabezado sí"): antes
+     ".col-jugador" dejaba el encabezado "Jugador" TAMBIÉN a la
+     izquierda, junto con los nombres; ahora el <th> "Jugador" se centra
+     igual que el resto de encabezados (ya no tiene excepción propia) y
+     SOLO el <td> con el nombre de cada fila queda a la izquierda.
+     FIX (09-sep-2026, pedido usuario — "solo las columnas que traigan
+     Nom_Multi usan el encabezado Jugador, si el valor es el nombre de la
+     cuenta, el encabezado debe ser 'Nombre'"): esta columna (clase
+     .col-jugador, nombre de clase sin cambios para no tocar el resto de
+     este CSS) trae el nombre de cuenta crudo (DC.NOMBRE/GC.NOMBRE en el
+     backend), NUNCA Nom_Multi -- su encabezado visible pasa de "Jugador" a
+     "Nombre" en las 3 tablas que la usan (Activos, Temporada, Inactivos)
+     para reflejar correctamente el dato que realmente muestra. 
+```
+
+### Línea original 352 (estilo)
+
+```
+ FIX (08-sep-2026, pedido usuario — "SEM y los número no deben estar
+     partidos"): con tantas columnas semanales (Sem 1...Sem 5 x 3
+     megacategorías + Resumen), cada columna queda angosta y el navegador
+     partía "Sem 1" en dos líneas ("Sem" arriba, "1" abajo) al llegar al
+     espacio entre palabra y número. nowrap fuerza que cada encabezado
+     quede en una sola línea — si no entra, ya existe scroll horizontal
+     propio de la tabla (.table-scroll) para eso, en vez de partir texto. 
+```
+
+### Línea original 360 (estilo)
+
+```
+ FIX (16-sep-2026, pedido usuario — "un solo tamaño de encabezado para
+     todas las columnas y un solo tamaño de letra, revisa en todos los
+     paneles" y luego "baja el tamaño de letra de las filas de valores a
+     13 para todos, un solo tamaño para filas de valores y un solo tamaño
+     para encabezados"): sin estos font-size, el <th> quedaba en el 11px
+     genérico y el <td> en el 14px genérico (ambos de table/th en
+     styles.css) — se fijan acá en 13px/13px para igualar exactamente a
+     .roster-table (directorio.html) e .inactivos-table (styles.css). 
+```
+
+### Línea original 385 (estilo)
+
+```
+ FIX (05-sep-2026, pedido usuario — "haz una sección como la hoja
+     Control_2... 'Tipo Control_2' muestra valores SEMANALES de TODA la
+     temporada, mientras que 'Tipo Control' es de valores DIARIOS para la
+     semana actual"): sección NUEVA #controlTemporadaSection, debajo de
+     Cuadrícula de Activos — mismo criterio visual (tarjeta por clan,
+     3 megacategorías Ataques/Puntaje/Barcos con .ai-grp-atq/pje/brc) pero
+     con una columna POR SEMANA de guerra ya jugada en la temporada (en
+     vez de las 4 fijas J/V/S/D) + 2 columnas de Resumen (valor + %) por
+     megacategoría al final. Arranca oculta, igual que
+     #controlActivosSection, hasta que el backend mande
+     data.controlTemporadaPorClan (ver render() más abajo). 
+```
+
+### Línea original 413 (estilo)
+
+```
+ ---------- Filtro/orden por columna estilo "hoja de cálculo" (10-sep-2026,
+     pedido usuario — "a las cuadrículas de valores semanales y diarios
+     agregales botones de filtro, con las mismas funciones que la hoja
+     directorio pero en la segunda fila de encabezados, para no afectar a
+     las megacategorías Ataques/Puntaje/Barcos"): mismo widget (ícono de
+     embudo + desplegable con orden/comparación/checklist) ya usado en la
+     tabla "Directorio por clan" de directorio.html — CSS traído tal cual
+     de ahí (mismas clases rt-*) para que ambas páginas se vean y se
+     sientan igual. Los botones solo se agregan a los <th> de la SEGUNDA
+     fila del <thead> (J/V/S/D/Total en Valores diarios, Sem 1..N/Total o
+     Prom/% en Valores semanales) — los <th colspan> de la primera fila
+     (Ataques/Puntaje/Barcos) no llevan botón, ver thFiltroGrid()/
+     filaSubEncabezadosMega()/filaSubEncabezadosSemanas() más abajo. 
+```
+
+### Línea original 553 (HTML)
+
+```
+ FIX (03-sep-2026, pedido usuario — "Pendientes de Atacar: ocultar
+         la sección cuando no es día de guerra (hoy igual se muestra con
+         '1 jugador(es)' y la fila 'No es día de guerra')"): la sección
+         siempre se pintaba sin importar ctx.esDiaGuerra, así que en día de
+         entrenamiento se veía una tabla con una fila "placeholder" que
+         confunde en vez de información real de ataques pendientes. Ahora
+         esta sección se oculta cuando no es día de guerra — ver
+         toggle en render() (id="pendSection").
+         FIX (04-sep-2026, pedido usuario — orden del Panel de Guerra):
+         "Miembros Activos por Clan" pasa a mostrarse ANTES que "Pendientes
+         de Atacar" (orden pedido: Guerra de hoy / Miembros activos /
+         Pendientes de atacar) — antes iba al revés.
+         FIX (10-sep-2026, pedido usuario — orden del Panel de Guerra):
+         "Pendientes de Atacar" y "Participación de Hoy (Reemplazos)" pasan
+         a mostrarse ENTRE "Miembros Activos por Clan" y "Valores diarios"
+         (antes iban después de "Log de Guerra"). 
+```
+
+### Línea original 574 (HTML)
+
+```
+ FIX (04-sep-2026 / 05-sep-2026, pedido usuario — ver comentario
+           completo en el <style> de arriba y en cargarMensajesGuerraSiAdmin()
+           más abajo): fila de botones "Copiar" por clan (+ Chat General),
+           visible solo para admins logueados, integrada acá mismo (antes
+           era una sección aparte más arriba en la página). Arranca vacía;
+           si no hay sesión de admin o no hay contenido, se queda vacía y
+           no ocupa espacio. 
+```
+
+### Línea original 588 (HTML)
+
+```
+ FIX (13-sep-2026, pedido usuario — "botones clickeables de letras
+           para filtrar el nombre por cada letra o # para números y
+           cualquier otro carácter"): fila A-Z + # debajo de las pestañas de
+           clan, se pinta una sola vez (ver pintarFiltroLetraPendientes()) y
+           solo oculta/muestra filas ya pintadas en #pendWrap -- no vuelve a
+           pedir nada al backend, mismo criterio que gestionarTabsClan(). 
+```
+
+### Línea original 598 (HTML)
+
+```
+         FIX (12-sep-2026, pedido usuario): versión final de esta sección
+         (antes duplicada por error en directorio.html) — ver comentario
+         completo en el <style> de arriba y en
+         renderParticipacionHoyGuerra() más abajo en el <script>. 
+```
+
+### Línea original 623 (HTML)
+
+```
+ FIX (05-sep-2026, pedido usuario — "Se debe agregar un panel, tipo
+         hoja Control, con algunos datos de la sección que viene de la hoja
+         Directorio pero debe priorizar las cuadrículas"): sección NUEVA y
+         aparte de "Miembros Activos por Clan" de arriba (esa solo muestra
+         un conteo/barra por clan) — acá se pinta la cuadrícula completa
+         Jugador/J/V/S/D/Total/Puntaje/Barcos de CADA miembro Activo de
+         Directorio, agrupado por su clan. PÚBLICA (visible para todos, sin
+         gate de admin, igual que el resto del contenido de esta sección de
+         la página) y se listan TODOS los Activos aunque tengan 0/0/0/0 —
+         mismo criterio que la cuadrícula real de la hoja Control. Ver
+         render() más abajo y _getControlActivosGridPorTemporada()
+         (08_Web_Endpoints.gs).
+         FIX (05-sep-2026, pedido usuario — "solo consideró ataques, falta
+         Puntaje (fame) y barcos [...] los clanes no están en el orden
+         establecido [...] Mejor dentro del primer cuadro, en cada clan,
+         primero escribe las filas de los activos y luego una sección para
+         inactivos"): 1) la tabla de cada tarjeta suma las columnas Puntaje
+         y Barcos (además de J/V/S/D/Total de ataques, que ya existían);
+         2) las tarjetas se ordenan con ordenClanIndex() (assets/common.js)
+         en vez de alfabético; 3) cada tarjeta de clan ahora también carga,
+         debajo de la tabla de Activos, el bloque de Inactivos (solo-admin
+         — ver cargarAportesInactivosSiAdmin() más abajo), en vez de vivir
+         en una sección aparte debajo de "Pendientes de Atacar".
+         FIX (09-sep-2026, pedido usuario — "reestructurar, ya no es solo
+         semana actual, sino 'Valores diarios' [...] añade un selector de
+         año [...] selector de temporada [...] y el tercero es el selector
+         de semana [...] por defecto se debe seleccionar el año, temporada
+         y semana más recientes disponibles"): la sección se renombra de
+         "Cuadrícula de Activos (Semana Actual)" a "Valores diarios" y el
+         único <select> de semana (limitado a la temporada vigente) se
+         reemplaza por 3 selectores encadenados -- año, temporada (mes) y
+         semana -- que cubren CUALQUIER combinación con datos, no solo la
+         temporada en curso. Base.md ya manda data.valoresDiariosSelectores
+         ({anios, temporadasPorAnio, semanasPorTemporada, porDefecto}) y
+         data.valoresDiariosPorSemana ({[temporada]:{[sectionIndex]: mismo
+         shape que antes traía controlActivosSemanaActual}}) -- ver
+         pintarSelectoresValoresDiarios() más abajo, que ya los consume.
+         Los 3 <select> arrancan ocultos por CSS y solo cuando esos 2
+         campos no llegan (ej. Web App vieja) se quedan así en vez de
+         romper. 
+```
+
+### Línea original 672 (HTML)
+
+```
+ FIX (07-sep-2026, pedido usuario — "que se siga mostrando los
+           valores de la última guerra mientras se esté en entrenamiento
+           [...] hasta el cambio de periodIndex [...] y se debe actualizar
+           recién cuando empiece la guerra del jueves"): aviso visible solo
+           cuando esta cuadrícula está mostrando la foto guardada de la
+           última guerra en vez de datos en vivo de entrenamiento, Y el
+           usuario no eligió manualmente otra semana -- ver rama `else`
+           dentro de render() más abajo. 
+```
+
+### Línea original 681 (HTML)
+
+```
+ FIX (07-sep-2026, pedido usuario — "botones horizontales para
+           seleccionar el clan"): pestañas tipo .tabs-row/.tab-btn (mismo
+           patrón ya usado en "Log de Guerra") que filtran, sin volver a
+           pedir datos, cuál(es) tarjeta(s) .ai-clan-card se muestran.
+           Arranca vacío; gestionarTabsClan() (más abajo) la llena en cuanto
+           hay al menos una tarjeta de clan pintada en #controlActivosWrap. 
+```
+
+### Línea original 698 (HTML)
+
+```
+ FIX (05-sep-2026, pedido usuario — "haz una sección como la hoja
+         Control_2, solo por referencia visual, ya que la hoja Control_2
+         trae datos de otra parte y debes basarte en los csv, igual que en
+         la sección tipo hoja Control... 'Tipo Control_2' muestra valores
+         semanales de toda la temporada, mientras que 'Tipo Control' es de
+         valores diarios para la semana actual. Va debajo de 🗂️ Cuadrícula
+         de Activos"): sección PÚBLICA (sin gate de admin, mismo criterio
+         que la de arriba), una tarjeta por clan con Jugador +
+         Ataques/Puntaje/Barcos, pero cada megacategoría trae una columna
+         por SEMANA de guerra ya jugada en la temporada actual (sacadas de
+         la hoja Guerra/Backup_Guerra.csv — misma fuente que ya usa
+         _webHistorialGuerraComparador() para el Cara a cara, NO la hoja
+         Control_2 real de la Sheet, que arma sus semanas con datos de otra
+         parte fuera del alcance de este sitio) + Resumen (Total para
+         Ataques/Barcos, Prom para Puntaje) y % al final de cada una.
+         FIX (09-sep-2026, pedido usuario — "🗓️ Cuadrícula de Temporada
+         (Semanal) también puede cambiar de nombre si es apropiado, se le
+         debe añadir el selector de año y reemplazar el selector de
+         temporada por el de mes, tal como se definió para la otra
+         cuadrícula"): la sección se renombra a "Valores semanales"
+         (pareja de "Valores diarios" de arriba) y el único <select> de
+         temporada se reemplaza por 2 selectores encadenados -- año y
+         temporada (mostrada como mes) -- mismo patrón visual y de datos
+         que "Valores diarios" (año/temporada de
+         data.controlTemporadaSelectores, ver
+         _getControlTemporadaSelectores(), 08_Web_Endpoints.gs), sin nivel
+         de semana porque esta cuadrícula siempre muestra las 5 semanas de
+         la temporada elegida juntas. Ver render() más abajo —
+         data.controlTemporadaPorClan/data.controlTemporadaSemanas siguen
+         siendo la temporada vigente, y data.controlTemporadaPorTemporada
+         sigue trayendo el resto de temporadas (sin cambios en esos 3
+         campos, solo en cómo se eligen). 
+```
+
+### Línea original 748 (HTML)
+
+```
+ FASE 13 punto 1 del plan de cambios web (07-sep-2026) -- vista (a)
+         del tab "Log" de guerra de RoyaleAPI (royaleapi.com/clan/<TAG>/war/log),
+         recreada con datos propios: histórico Temporada -> Semana ->
+         Rank/Boat/Trophy de cada clan Terna, leído de la hoja Guerra_Logs
+         (acumulativa, nunca se purga -- cubre TODAS las temporadas, no
+         solo la actual). Sección PÚBLICA (sin gate de admin, mismo
+         criterio que "Cuadrícula de Activos"/"Cuadrícula de Temporada" de
+         arriba: son datos de guerra de los propios clanes Terna, no
+         información sensible). Se carga UNA sola vez al entrar a la
+         página (ver cargarGuerraLog() más abajo) -- es histórico
+         acumulado, no un dato en vivo, así que no necesita refrescarse
+         cada REFRESH_INTERVAL_MS como el resto del dashboard. Arranca
+         oculta; si el backend no devuelve ningún clan con historial (o la
+         carga falla), se queda oculta sin ocupar espacio ni romper el
+         resto de la página pública. 
+```
+
+### Línea original 781 (HTML)
+
+```
+ FIX (31-ago-2026, pedido usuario — "la sección negra tiene el
+         texto muy pegado al contenedor, debe tener cierto margen"): este
+         footer traía style="padding:0" que anulaba el padding:0 24px de
+         .wrap (única página del sitio que lo hacía), pegando el texto al
+         borde izquierdo/derecho. Se quita el override y queda igual que
+         el footer de todas las demás páginas. 
+```
+
+### Línea original 810 (script)
+
+```
+// FIX (07-sep-2026, pedido usuario — filtros de clan/semana/temporada de
+// las cuadrículas "Activos" y "Temporada"): estado de los selectores,
+// a nivel de módulo para que sobrevivan a cada repintado de render()
+// (cada REFRESH_INTERVAL_MS). null = "vigente" (semana/temporada). Ver
+// pintarSelectoresValoresDiarios() y pintarSelectoresControlTemporada() más abajo.
+// FIX (07-sep-2026, pedido usuario — "mueve el botón de Todos a la
+// derecha de Mini Ternas para que cargue por defecto el clan principal en
+// las dos secciones"): clanSeleccionadoActivos/Temporada ya NO usan null
+// para representar "Todos" — null ahora significa exclusivamente "sin
+// elegir todavía" y gestionarTabsClan() lo resuelve cayendo al primer clan
+// (Principal) en vez de a Todos. "Todos" pasa a ser un valor propio y
+// explícito, TAB_TODOS, que solo se fija cuando el usuario hace clic en
+// ese botón. Ver gestionarTabsClan() más abajo para el detalle completo.
+```
+
+### Línea original 833 (script)
+
+```
+// FIX (13-sep-2026, pedido usuario — "botones clickeables de letras para
+// filtrar el nombre"): estado del filtro por letra de Pendientes, a nivel
+// de módulo para que sobreviva a cada repintado de render() (mismo
+// criterio que clanSeleccionadoPend de arriba). null = "todas las letras"
+// (sin filtrar). Ver pintarFiltroLetraPendientes()/aplicarFiltroLetraPendientes()
+// más abajo.
+```
+
+### Línea original 840 (script)
+
+```
+// FIX (13-sep-2026, pedido usuario — "agrega los botones de letras en
+// 🗂️ Valores diarios y 🗓️ Valores semanales"): mismo patrón/estado que
+// letraSeleccionadaPend de arriba, uno por sección (cada cuadrícula tiene
+// su propia tabla por clan, así que el filtro es independiente entre
+// Activos y Temporada). Ver pintarFiltroLetraGrid()/letraFiltroDeGridId()
+// más abajo, que generalizan pintarFiltroLetraPendientes() para poder
+// aplicarse sobre varias tablas (una por clan) a la vez.
+```
+
+### Línea original 849 (script)
+
+```
+// FIX (09-sep-2026, pedido usuario — selectores de año/temporada(mes)/
+// semana para "Valores diarios"): antes solo existía
+// sectionIndexSeleccionadoActivos (semana dentro de la temporada vigente);
+// ahora se agregan anioSeleccionadoActivos/temporadaSeleccionadaActivos
+// para poder elegir CUALQUIER combinación con datos. Los 3 arrancan en
+// null ("todavía no se aplicó ningún default") y pintarSelectoresValoresDiarios()
+// (más abajo) los fija al año/temporada/semana más recientes disponibles
+// la primera vez que llegan data.valoresDiariosSelectores.
+```
+
+### Línea original 907 (script)
+
+```
+    // FIX (30-ago-2026, pedido usuario — revisión de seguridad): antes esto
+    // pegaba directo a ?dashboard=json con un token de administradores
+    // (fm7qterna9x) hardcodeado acá mismo, visible para cualquiera con "Ver
+    // código fuente" de esta página PÚBLICA. Ahora usa apiGet() (mismo
+    // WEB_MEMBER_TOKEN de solo-lectura que ya usan index.html/directorio.html/
+    // etc., ver assets/common.js) contra el nuevo endpoint webGuerraEnVivo
+    // (34_Web_API.gs), que devuelve exactamente los mismos datos.
+```
+
+### Línea original 930 (script)
+
+```
+ * FIX (05-sep-2026, pedido usuario — "los inactivos estaban trayendo solo
+ * la categoría ataques, faltaba puntaje y barcos"): antes vivían como
+ * const LOCALES dentro de render() (solo para la Cuadrícula de Activos).
+ * Se hoistean a nivel de módulo para que cargarAportesInactivosSiAdmin()
+ * (más abajo) pueda pintar el mismo bloque de 3 megacategorías
+ * (Ataques/Puntaje/Barcos) para Inactivos sin duplicar esta lógica.
+ 
+```
+
+### Línea original 940 (script)
+
+```
+ * FIX (10-sep-2026, pedido usuario — filtro/orden por columna en la
+ * segunda fila de encabezados): se agrega el 4° parámetro `keyPrefix`
+ * (opcional, ej. 'atq'/'pje'/'brc') SOLO para que cada <td> lleve
+ * data-col="{keyPrefix}-j|v|s|d|total" + data-raw="{valor crudo}" — así
+ * el widget genérico de filtro (gridFiltroAplicar()/gridFiltroColumnas()
+ * más abajo) puede encontrar la celda de cada columna y su valor sin
+ * volver a tocar los datos originales. Si no se pasa keyPrefix (llamadas
+ * ya existentes, ej. el bloque de Inactivos) el comportamiento no cambia
+ * en nada: ningún data-col/data-raw, mismo HTML de siempre.
+ 
+```
+
+### Línea original 965 (script)
+
+```
+ * array), más las 2 columnas de Resumen al final. FIX (17-sep-2026): el
+ * backend NUNCA manda un campo `resumen` -- manda `megacat.total`
+ * (Ataques/Barcos) o `megacat.prom` (Puntaje), más `megacat.pct`. Esta
+ * función normaliza ambos nombres a una sola variable local `resumen`
+ * para pintar la columna, sin importar cuál mandó el backend. conColor=true aplica el mismo semáforo
+ * ai-cell-zero/part/full que usa Ataques en la Cuadrícula de Activos
+ * (0/parcial/16); Puntaje y Barcos van sin semáforo, igual que en esa
+ * tabla.
+ 
+```
+
+### Línea original 988 (script)
+
+```
+  // FIX (17-sep-2026, pedido usuario -- Total/Prom siempre en 0 en
+  // "Valores semanales"): _getControlTemporadaPorClan() (20_Control2_
+  // GuerraSemanal.gs) nunca devuelve un campo `resumen` -- devuelve
+  // `total` para Ataques/Barcos y `prom` para Puntaje (ver docblock de esa
+  // función). Esta celda leía `megacat.resumen`, que siempre es
+  // `undefined`, así que la columna Total/Prom quedaba en 0 sin importar
+  // los datos reales. Se usa `??` (no `||`) para no pisar un total/prom
+  // que legítimamente sea 0.
+```
+
+### Línea original 1010 (script)
+
+```
+ =========================================================================
+ * FIX (10-sep-2026, pedido usuario — "a las cuadrículas de valores
+ * semanales y diarios agregales botones de filtro, con las mismas
+ * funciones que la hoja directorio pero en la segunda fila de
+ * encabezados"): widget genérico de filtro/orden por columna, calcado del
+ * de "Directorio por clan" (directorio.html, ver ROSTER_COLUMNAS/
+ * abrirFiltroColumna() ahí) pero generalizado para poder colgarse de
+ * CUALQUIER tabla de esta página (hay una tabla POR CLAN, tanto en
+ * Valores diarios como en Valores semanales) en vez de una sola tabla
+ * global. Cada tabla se identifica con un `gridId` propio (ej.
+ * "activos:Terna 2", "temporada:Mini Ternas") — el estado de filtro/orden
+ * de cada una vive aparte en `gridEstados[gridId]` y SOBREVIVE a los
+ * refrescos automáticos (REFRESH_INTERVAL_MS, ver cargar()) porque
+ * inicializarGridFiltro() se llama de nuevo en cada render() y reusa el
+ * estado ya guardado en vez de reiniciarlo.
+ *
+ * Cada "columna" de este widget es un objeto { key, raw(fila) } — `raw`
+ * es una función que, dado el objeto de datos de una fila (el mismo `f`
+ * que ya arma celdasMegacategoria()/celdasSemanas()), devuelve el valor
+ * numérico crudo de esa columna. columnasActivosDef()/columnasTemporadaDef()
+ * más abajo arman esa lista para cada tabla; los <td> ya traen ese mismo
+ * valor en data-raw (ver dc() dentro de celdasMegacategoria/celdasSemanas)
+ * así que no hace falta volver a calcularlo al filtrar.
+ * ========================================================================= 
+```
+
+### Línea original 1131 (script)
+
+```
+ * renderFilaTemporada más abajo). FIX (13-sep-2026, pedido usuario —
+ * "agrega los botones de letras en Valores diarios y Valores semanales").
+ 
+```
+
+### Línea original 1147 (script)
+
+```
+  // FIX (13-sep-2026, pedido usuario): además de los filtros numéricos por
+  // columna (estado.filtros), cada fila también debe pasar el filtro por
+  // letra de la sección (si hay alguno elegido) para que ambos filtros se
+  // puedan combinar sin pisarse -- ver letraFiltroDeGridId() arriba y
+  // pintarFiltroLetraGrid() más abajo, que dispara este mismo chequeo al
+  // hacer clic en una letra (sin volver a pedir nada al backend).
+```
+
+### Línea original 1326 (script)
+
+```
+ * FIX (07-sep-2026, pedido usuario — "botones horizontales para
+ * seleccionar el clan" en Activos y en Temporada): botonera .tabs-row/
+ * .tab-btn (mismo patrón visual ya usado en "Log de Guerra") que agrega un
+ * botón por cada clan que YA tiene una tarjeta .ai-clan-card pintada
+ * dentro de `wrapId` (data-clan de cada tarjeta) + "Todos" y, al hacer
+ * clic, solo oculta/muestra tarjetas ya existentes en el DOM -- no vuelve
+ * a pedir nada al backend. Se reconstruye cada vez que cambia el set de
+ * tarjetas visibles (cada render() y, en Activos, también cuando
+ * cargarAportesInactivosSiAdmin() agrega una tarjeta nueva para un clan
+ * sin Activos) para no dejar afuera ningún clan nuevo, y conserva la
+ * selección vigente entre repintados -- si el clan seleccionado deja de
+ * tener tarjeta (ej. cambia el orden o ya no tiene datos esta semana),
+ * cae al default de abajo (clan Principal) en vez de dejar la cuadrícula
+ * vacía por error.
+ *
+ * FIX (07-sep-2026, pedido usuario — "mueve el botón de Todos a la
+ * derecha de Mini Ternas para que cargue por defecto el clan principal en
+ * las dos secciones"): dos cambios sobre la versión anterior:
+ *   1) El botón "Todos" ahora se pinta AL FINAL de la fila (después del
+ *      último clan, ej. Mini Ternas), no al principio -- `clanes` ya
+ *      llega ordenado con ordenClanIndex() (mismo orden oficial Principal/
+ *      Terna 2/Terna 3/Mini Ternas, ver render() más arriba), así que solo
+ *      se movió TAB_TODOS al final del array antes de mapear los <button>.
+ *   2) "Todos" deja de ser el default de carga: si `obtenerSel()` todavía
+ *      no tiene nada elegido (null, primera carga de la página), se cae
+ *      al primer clan de `clanes` -- el Principal -- en vez de a Todos.
+ *      Esto requirió separar "sin elegir todavía" (null) de "Todos
+ *      elegido a propósito" (ahora el valor propio TAB_TODOS, ver arriba)
+ *      -- antes ambos casos compartían `null` y por eso la carga inicial
+ *      siempre arrancaba mostrando todos los clanes.
+ 
+```
+
+### Línea original 1359 (script)
+
+```
+ * FIX (09-sep-2026, pedido usuario — "barra de navegación al inicio y
+ * final de cada cuadrícula si hay que desplazarse horizontalmente"):
+ * recorre cada .ai-clan-card dentro de `wrapId` y, si trae las franjas
+ * .grid-hscroll-top/.grid-hscroll-bottom (ver plantilla en render() y el
+ * <style> .grid-hscroll de más arriba), las sincroniza con el scroll
+ * real de la tabla (.table-scroll): mover cualquiera de las 3 — la
+ * franja de arriba, la de abajo, o la propia tabla — mueve a las otras
+ * dos. `.grid-hscroll-inner` no tiene contenido propio; su único trabajo
+ * es fijar el ancho del "carrete" de scroll (igual a tabla.scrollWidth)
+ * para que la franja fina se sienta como una barra de scroll de verdad.
+ * IMPORTANTE: se llama ANTES de gestionarTabsClan() (que oculta con
+ * display:none las tarjetas de clan no seleccionadas) — un elemento
+ * oculto mide scrollWidth 0, así que medir después dejaría las barras de
+ * las tarjetas no visibles en el primer render rotas para cuando el
+ * usuario cambie de pestaña.
+ 
+```
+
+### Línea original 1434 (script)
+
+```
+ * FIX (13-sep-2026, pedido usuario — "botones clickeables de letras para
+ * filtrar el nombre por cada letra o # para números y cualquier otro
+ * carácter"): clasifica cada fila de Pendientes según el primer carácter
+ * de su nombre visible, para que el filtro por letra (ver
+ * pintarFiltroLetraPendientes()/aplicarFiltroLetraPendientes() abajo)
+ * sepa qué botón le corresponde a cada <tr>. Cualquier carácter que no
+ * sea letra A-Z/Ñ (dígito, símbolo, emoji, o nombre vacío) cae en '#'.
+ 
+```
+
+### Línea original 1492 (script)
+
+```
+ * FIX (13-sep-2026, pedido usuario — "agrega los botones de letras en
+ * 🗂️ Valores diarios y 🗓️ Valores semanales"): versión generalizada de
+ * pintarFiltroLetraPendientes()/aplicarFiltroLetraPendientes() de arriba,
+ * para secciones que pintan VARIAS tablas (una por clan, ver
+ * renderFilaActivos/renderFilaTemporada más abajo, que ya marcan cada
+ * <tr> con data-letra) en vez de una sola. Se pinta una sola vez por
+ * sección (guardia por dataset.pintado, igual que la de Pendientes) y,
+ * al hacer clic, no oculta/muestra los <tr> directamente -- en su lugar
+ * llama a gridAplicarFiltros() de cada tabla visible dentro de
+ * `tablasWrapId`, que ya combina este filtro por letra con el filtro/
+ * orden numérico por columna que esas cuadrículas ya traían (ver
+ * letraFiltroDeGridId() más arriba), para que ninguno de los dos filtros
+ * se pise con el otro.
+ 
+```
+
+### Línea original 1538 (script)
+
+```
+ * FIX (09-sep-2026, pedido usuario — "añade un selector de año [...]
+ * selector de temporada [...] y el tercero es el selector de semana [...]
+ * ya no se muestran solo semanas de la temporada actual, sino cualquiera
+ * disponible según el año y la temporada seleccionada [...] por defecto se
+ * debe seleccionar el año, temporada y semana más recientes disponibles"):
+ * reemplaza a la vieja pintarSelectorSemanaActivos() (un solo <select> de
+ * semana, acotado a la temporada vigente) por 3 <select> encadenados —
+ * año -> temporada (mes) -> semana — a partir de
+ * data.valoresDiariosSelectores ({anios, temporadasPorAnio,
+ * semanasPorTemporada, porDefecto}, ver _getValoresDiariosSelectores(),
+ * 08_Web_Endpoints.gs) y data.valoresDiariosPorSemana ({[temporada]:
+ * {[sectionIndex]: mismo shape que antes traía controlActivosSemanaActual}}).
+ * Si esos 2 campos todavía no llegan (ej. Web App vieja), los 3 <select>
+ * se quedan ocultos y todo sigue funcionando igual que antes (última
+ * guerra cacheada de la temporada/semana vigente).
+ *
+ * El año/temporada/semana más recientes disponibles se fijan como default
+ * SOLO la primera vez que llegan datos (anioSeleccionadoActivos === null);
+ * si el usuario ya elegía algo, se respeta su elección en cada repintado
+ * de render() (cada REFRESH_INTERVAL_MS). Cambiar de año cae a la
+ * temporada más reciente de ese año; cambiar de temporada cae a su semana
+ * más reciente — mismo criterio de "más reciente por defecto" que el
+ * default inicial.
+ 
+```
+
+### Línea original 1591 (script)
+
+```
+  // FIX (09-sep-2026, pedido usuario — "en el selector de semana debe ir
+  // de más reciente a más antiguo"): `semanasTemp` viene de
+  // _getSemanasTemporada() (08_Web_Endpoints.gs) en orden ascendente
+  // (S1, S2, S3...) porque ese orden es el que necesita el resto de la
+  // lógica de esta función (semanas[semanas.length-1] = la más reciente,
+  // usado como default arriba y en los onchange de año/temporada más
+  // abajo) -- .slice().reverse() invierte SOLO para pintar las <option>,
+  // sin tocar `semanasTemp`/`sel` en sí.
+```
+
+### Línea original 1622 (script)
+
+```
+ * FIX (09-sep-2026, pedido usuario — "🗓️ Cuadrícula de Temporada
+ * (Semanal) [...] añádele el selector de año y reemplaza el selector de
+ * temporada por el de mes, tal como se definió para la otra cuadrícula"):
+ * reemplaza a la vieja pintarSelectorTemporada() (un solo <select> de
+ * temporada, con etiqueta plana "Temporada N") por 2 <select> encadenados
+ * -- año y temporada (mostrada como mes, "Temporada N (Mes)") -- a partir
+ * de data.controlTemporadaSelectores ({anios, temporadasPorAnio,
+ * porDefecto}, ver _getControlTemporadaSelectores(), 08_Web_Endpoints.gs).
+ * Mismo patrón visual y de código que pintarSelectoresValoresDiarios() de
+ * arriba, sin el tercer nivel de semana (esta cuadrícula siempre muestra
+ * las 5 semanas de la temporada elegida juntas, nunca una semana suelta).
+ *
+ * data.temporadasDisponibles/data.controlTemporadaPorTemporada (los datos
+ * pesados en sí) NO cambian con este fix, solo cómo se elige entre ellos
+ * -- ver render() más abajo, que sigue leyendo esos mismos 2 campos con
+ * `temporadaSeleccionadaTemporada` como clave.
+ *
+ * El año/temporada por defecto (año/temporada VIGENTE) se fija SOLO la
+ * primera vez que llegan datos (anioSeleccionadoTemporada === null); si el
+ * usuario ya elegía algo, se respeta su elección en cada repintado de
+ * render(). Cambiar de año cae a la temporada más reciente de ese año.
+ 
+```
+
+### Línea original 1749 (script)
+
+```
+  // FIX (10-sep-2026, pedido usuario — "se debe mostrar el rango a la
+  // derecha de la columna Clan"): columna nueva "Rango" entre Clan y
+  // Faltantes; espera p.rango por jugador (ej. Líder/Colíder/Veterano/
+  // Miembro/Aspirante) igual que el resto de datos de Directorio que ya
+  // trae data.pendientes. Si el backend aún no manda ese campo para algún
+  // jugador, se muestra "—" en vez de romper la tabla.
+  // FIX (12-sep-2026, pedido usuario — "agrega también los botones de
+  // clan(es) y Todos"): la tabla única con columna "Clan" se separa en una
+  // tarjeta .ai-clan-card por clan (mismo patrón que "Valores diarios"),
+  // con botonera .tabs-row/.tab-btn arriba (ver gestionarTabsClan() más
+  // abajo) para filtrar sin volver a pedir datos. La columna "Clan" ya no
+  // hace falta dentro de cada tabla — el nombre del clan ahora está en el
+  // encabezado de su propia tarjeta, igual que en "Valores diarios".
+  // FIX (13-sep-2026, pedido usuario — "agrega N° y el tag a la izquierda
+  // del nombre / columna Jugador (Nom_Multi) y Préstamo solo para admins /
+  // íconos de royaleapi y cwstats a la derecha de faltantes / botones de
+  // letra para filtrar"): columnas nuevas, en orden:
+  //   N° · Tag · Nombre · [Jugador · Préstamo, solo-admin] · Rango ·
+  //   Faltantes · Perfil (íconos)
+  // "Jugador" muestra p.nomMulti (Nom_Multi), NUNCA p.nombre -- son 2
+  // campos distintos en el backend (ver mismo criterio ya documentado para
+  // .col-jugador en Activos/Temporada, más arriba en este archivo: ahí es
+  // al revés, .col-jugador trae el nombre crudo y Nom_Multi quedó afuera).
+  // "Préstamo" usa el mismo nombre de campo que ya trae Directorio para esa
+  // columna (p.prestamo). Los íconos de perfil reusan ICONO_ROYALEAPI/
+  // ICONO_CWSTATS + urlValida() (mismo patrón que perfil.html,
+  // #mRoyaleCwstatsBtns) sobre p.royaleApi/p.cwStats.
+  // RESUELTO (15-sep-2026, cierre de conexión pendiente): data.pendientes
+  // ya manda nomMulti, prestamo, rango, royaleApi y cwStats por jugador
+  // (ver _getDatosDashboard(), 08_Web_Endpoints.gs). Si algún tag puntual
+  // no tuviera alguno de estos datos en Directorio, la celda igual muestra
+  // "—" y los íconos de perfil simplemente no se pintan para esa fila, sin
+  // romper el resto.
+```
+
+### Línea original 1830 (script)
+
+```
+  // FIX (05-sep-2026, pedido usuario — "panel tipo hoja Control con datos
+  // de Directorio, priorizando las cuadrículas"): a diferencia del bloque
+  // de arriba (solo conteo por clan), acá se pinta la cuadrícula J/V/S/D
+  // por cada Activo de Directorio. Pública — no pasa por
+  // cargarAportesInactivosSiAdmin()/esAdminLogueado(), se pinta para
+  // cualquier visitante igual que el resto de esta sección de la página.
+  // Reutiliza las clases .ai-cell*/.ai-total* del bloque de Inactivos
+  // (más abajo) para el mismo criterio visual de color.
+  // FIX (05-sep-2026, pedido usuario — "solo consideró ataques, falta
+  // Puntaje (fame) y barcos [...] Puntaje y Barcos son megacategorías
+  // igual que Ataques [...] los clanes no están en el orden establecido"):
+  // 1) Puntaje y Barcos NO son un valor único por jugador — son, igual
+  // que Ataques, un grupo J/V/S/D + Total (ver captura de la Hoja
+  // Control: "Puntaje" trae su propio Sem 1/Sem 2/Sem 3 con J/V/S/D/
+  // T.1/T.2/T.3). Acá se pinta solo la SEMANA ACTUAL de cada megacategoría
+  // (mismo alcance que ya tenía Ataques en esta cuadrícula), por eso cada
+  // fila espera f.puntaje = {j,v,s,d,total} y f.barcos = {j,v,s,d,total}
+  // (mismo shape que los campos planos j/v/s/d/total que Ataques ya usa,
+  // solo que agrupados bajo esas 2 llaves para no chocar de nombre). A
+  // diferencia de Ataques (0-4 intentos/día, con semáforo de color), los
+  // valores diarios de Puntaje/Barcos son puntos/unidades ganadas ese día
+  // (pueden ser cualquier número), así que sus celdas J/V/S/D/Total van
+  // con .ai-num, sin semáforo ni resaltado de Total=16. 2) las tarjetas ya
+  // no se ordenan alfabético (.sort() plano) sino con ordenClanIndex()
+  // (assets/common.js), el mismo orden fijo de la Familia que usa el
+  // resto del sitio.
+  // FIX (09-sep-2026, pedido usuario -- selectores de año/temporada/semana
+  // en "Valores diarios"): fuente de datos de esta cuadrícula, resuelta a
+  // partir de la combinación año/temporada/semana elegida en los 3
+  // <select> de arriba (pintarSelectoresValoresDiarios(), que además fija
+  // el default -- año/temporada/semana más recientes -- la primera vez que
+  // llegan datos). data.valoresDiariosPorSemana ya trae, precalculada, la
+  // cuadrícula de CUALQUIER combinación con datos -- ver
+  // _getValoresDiariosPorSemana() (08_Web_Endpoints.gs).
+  //
+  // Sigue existiendo un caso especial (heredado del comportamiento pedido
+  // el 07-sep-2026, "que se siga mostrando los valores de la última guerra
+  // mientras se esté en entrenamiento [...] hasta el cambio de periodIndex
+  // [...] y se debe actualizar recién cuando empiece la guerra del
+  // jueves"): CUANDO la combinación elegida es justo la semana VIGENTE
+  // (temporada/sectionIndex == ctx.temporada/ctx.sectionIndex) Y hoy no es
+  // día de guerra todavía, el backend reporta esa semana en ceros (recién
+  // arrancando el periodIndex de Supercell, ~4-5am, sin esperar al jueves)
+  // -- en ese caso puntual se recupera del navegador la última foto
+  // guardada en localStorage (guardada cada vez que SÍ es día de guerra) y
+  // se muestra esa en su lugar. Cualquier OTRA combinación (semana pasada,
+  // temporada pasada) ya es un dato final/histórico -- se muestra tal cual
+  // llega, sin pasar por localStorage.
+```
+
+### Línea original 1916 (script)
+
+```
+    // FIX (10-sep-2026, pedido usuario — botones de filtro/orden en la 2ª
+    // fila de encabezados): la 1ª fila (Ataques/Puntaje/Barcos, colspan=5)
+    // se sigue pintando plana, sin botón; la 2ª (J/V/S/D/Total) ahora sale
+    // de filaSubEncabezadosMega() (ver más arriba), que sí agrega el
+    // ícono de embudo + flechita de orden a cada una. El <tbody> arranca
+    // vacío — inicializarGridFiltro() (después de insertar el HTML en el
+    // DOM) es quien lo llena, aplicando cualquier filtro/orden que ya
+    // hubiera quedado guardado en un refresco anterior.
+```
+
+### Línea original 1956 (script)
+
+```
+ FIX (05-sep-2026, pedido usuario — "Mejor dentro del primer
+               cuadro, en cada clan, primero escribe las filas de los
+               activos y luego una sección para inactivos"): wrap vacío,
+               solo-admin, llenado por cargarAportesInactivosSiAdmin() más
+               abajo. Colapsa solo por completo (":empty" en el <style>)
+               cuando no hay sesión de admin o el clan no tiene inactivos
+               esta semana. 
+```
+
+### Línea original 1982 (script)
+
+```
+  // FIX (05-sep-2026, pedido usuario — "haz una sección como la hoja
+  // Control_2... valores semanales de toda la temporada"): mismo patrón
+  // que controlActivos de arriba, pero con Sem 1..Sem N dinámicas en vez
+  // de J/V/S/D fijos (celdasSemanas() en vez de celdasMegacategoria(),
+  // ver docblock de esa función más arriba). data.controlTemporadaSemanas
+  // trae las etiquetas de columna (ej. ['Sem 1','Sem 2',...], una por
+  // semana de guerra ya jugada en la temporada actual) compartidas por
+  // todos los clanes; data.controlTemporadaPorClan trae, por clan, un
+  // array de filas { nombre, tag, ataques:{semanas,total,pct},
+  // puntaje:{semanas,prom,pct}, barcos:{semanas,total} } -- ver
+  // _getControlTemporadaPorClan(), 20_Control2_GuerraSemanal.gs.
+  // FIX (09-sep-2026, pedido usuario — selectores de año/mes en "Valores
+  // semanales"): si el año/temporada elegidos en los 2 <select> de arriba
+  // (pintarSelectoresControlTemporada(), que además fija el default --
+  // año/temporada VIGENTE -- la primera vez que llegan datos) NO son la
+  // temporada vigente Y el backend manda esa temporada en
+  // data.controlTemporadaPorTemporada, se usa esa en vez de la vigente
+  // (data.controlTemporadaPorClan/data.controlTemporadaSemanas).
+```
+
+### Línea original 2076 (script)
+
+```
+ * FIX (04-sep-2026, pedido usuario — "se debe agregar botones para copiar
+ * los mensajes de guerra pero visibles solo para los admin"): reusa
+ * 'webAdminContenido' (mismo endpoint autenticado que ya usa admin.html,
+ * ver renderContenidoHtml()/_activarAccionesContenido() ahí) con
+ * categoria='Mensaje de Guerra' — el backend ya arma un item por clan
+ * (subcategoria 'Particular') más uno de 'Chat General' (ver
+ * generarTodosMensajes(), Base.md).
+ * FIX (05-sep-2026, pedido usuario — "en Guerra (lista de pendientes) solo
+ * hay que poner el mismo botón, pero ya no se va a mostrar todo el texto,
+ * solo el botón de copiar, así que debería agregar información sobre el
+ * clan"): antes esto vivía en una sección aparte (#mensajesGuerraAdmin,
+ * ya eliminada), con una tarjeta por clan: un <span> con el nombre del
+ * clan al lado de un botón genérico "⧉ Copiar". Ahora se integra
+ * directamente arriba de la tabla de "Pendientes de Atacar" (#msjGuerraWrap
+ * dentro de #pendSection) como una fila compacta de botones sueltos, SIN
+ * tarjeta ni label aparte — por eso cada botón lleva el nombre del clan
+ * metido en su propio texto ("⧉ Copiar — <Clan>"), para poder identificar
+ * cuál es cuál sin el label que ya no existe.
+ * No se pide nada ni se muestra nada si:
+ *   - no hay sesión de admin en este navegador (esAdminLogueado()), o
+ *   - no es día de guerra (ctx.esDiaGuerra) — 'Mensaje de Guerra' solo
+ *     existe en días de guerra, pedirlo en día de entrenamiento solo
+ *     devolvería vacío.
+ * Cualquier error (token vencido, etc.) se traga en silencio: esta fila de
+ * botones es un plus para admins, nunca debe romper la carga de la página
+ * pública para nadie. Al quedar vacía (wrap.innerHTML = '') no deja hueco
+ * ni espacio de más para quien no es admin.
+ 
+```
+
+### Línea original 2138 (script)
+
+```
+ * FIX (05-sep-2026, pedido usuario — "Debajo de Pendientes, se debe
+ * agregar una sección de aportes a Guerra de miembros inactivos, por
+ * clan [...] esto sería solo para la semana actual [...] la referencia es
+ * la cuadrícula de la Hoja Control en Sheets"): pide 'webAportesInactivos'
+ * (endpoint autenticado aparte, NO viaja en webGuerraEnVivo — ver
+ * _webAportesInactivos()/_getAportesInactivosSemanaActual() en
+ * 08_Web_Endpoints.gs) y arma, por clan, una mini-cuadrícula con las
+ * mismas 3 megacategorías que la Cuadrícula de Activos (Ataques/Puntaje/
+ * Barcos, cada una J/V/S/D/Total) — mismo criterio visual de columnas que
+ * la hoja Control, pero acotada a un jugador pudiendo aparecer en MÁS DE
+ * UN clan (un inactivo puede aportar a 2+ clanes el mismo día), cosa que
+ * la cuadrícula de Control no contempla porque ahí cada Activo tiene un
+ * solo clan asignado.
+ * FIX (05-sep-2026, pedido usuario — "los inactivos estaban trayendo solo
+ * la categoría ataques, faltaba puntaje y barcos"): antes esta tabla solo
+ * traía Ataques (J/V/S/D/Total) — el pedido original había sido "así se
+ * puede ver cuáles son los aportes EXTRA de ataques con los que ha
+ * contado el clan", pero no cubría Puntaje/Barcos. Ahora sí trae las 3,
+ * igual que Activos (ver _getAportesInactivosSemanaActual() en
+ * 08_Web_Endpoints.gs y bloqueHtml() más abajo). El criterio de "quién
+ * aparece" (filtro por total de ATAQUES > 0, no de Puntaje/Barcos) no
+ * cambió — sigue siendo "aportó al menos 1 ataque esta semana".
+ * FIX (05-sep-2026, pedido usuario — "Mejor dentro del primer cuadro, en
+ * cada clan, primero escribe las filas de los activos y luego una sección
+ * para inactivos [...] así el mismo clan tiene su sección de activos y
+ * otra de inactivos"): antes esto pintaba una sección aparte
+ * (#aportesInactivosSection, ELIMINADA) debajo de "Pendientes de Atacar".
+ * Ahora inyecta el bloque de Inactivos de cada clan DENTRO de la misma
+ * tarjeta que ya pintó ese clan en "Cuadrícula de Activos" (buscando
+ * `.ai-inactivos-wrap[data-clan-inactivos="<clan>"]`, ver render() más
+ * arriba). Si un clan tiene inactivos pero ningún Activo (no tiene
+ * tarjeta propia todavía), se crea una tarjeta nueva para ese clan al
+ * final de #controlActivosWrap, respetando el mismo ordenClanIndex().
+ * Sigue sin pintarse nada si no hay sesión de admin (esAdminLogueado()) o
+ * no es día de guerra: en ese caso se limpian los wraps existentes (por si
+ * un admin cierra sesión sin recargar la página) y no se toca nada más.
+ * Cualquier error se traga en silencio, igual que
+ * cargarMensajesGuerraSiAdmin().
+ 
+```
+
+### Línea original 2190 (script)
+
+```
+    // FIX (05-sep-2026, pedido usuario — "los inactivos estaban trayendo
+    // solo la categoría ataques, faltaba puntaje y barcos"): antes esta
+    // tabla solo tenía Jugador/J/V/S/D/Total (Ataques). Ahora pinta las
+    // mismas 3 megacategorías (Ataques/Puntaje/Barcos) que ya tiene la
+    // Cuadrícula de Activos de arriba — mismo <thead> de 2 filas y mismos
+    // helpers globales claseCeldaCA()/celdasMegacategoria() (hoisteados
+    // arriba de render(), ver comentario ahí), para no duplicar el criterio
+    // visual entre Activos e Inactivos. Requiere que cada fila `f` traiga
+    // f.puntaje/f.barcos como {j,v,s,d,total} — ver
+    // _getAportesInactivosSemanaActual() (08_Web_Endpoints.gs).
+```
+
+### Línea original 2273 (script)
+
+```
+ * (12-sep-2026, pedido usuario): esta sección había quedado duplicada por
+ * error en directorio.html; la versión final pedida por el usuario queda
+ * acá, en Guerra. Usa el mismo endpoint admin-only de siempre
+ * (webAdminParticipacionHoyGuerra → _getParticipacionHoyGuerra(),
+ * 17_GuerraSheet.gs).
+ *
+ * Cambios de esta versión final sobre la vieja (que usaba las clases
+ * .ph-*):
+ *   1) El conteo de cada columna va SOLO junto a su encabezado
+ *      ("Reservadas (26)"), nunca en una línea aparte por clan.
+ *   2) Cada cuenta reservada muestra sus ataques pendientes hoy
+ *      (4 - ataques ya usados hoy).
+ *   3) Las reservadas se subagrupan, dentro de cada clan, en "Con ataques
+ *      pendientes" (1-3) y "Sin ataques pendientes" (0).
+ *
+ * OJO backend: para que el punto 2/3 funcione, cada cuenta dentro de
+ * c.reservadas/c.disponibles debe traer también su cantidad de ataques
+ * usados hoy (mismo dato que ya se manda para multiClan como
+ * m.totalAtaquesHoy) — se lee acá como cta.ataquesHoy. Si el backend
+ * todavía no manda ese campo, las reservadas quedan todas en "Con ataques
+ * pendientes" sin dato exacto (se asume 1 usado) en vez de romper la
+ * vista.
+ 
+```
+
+### Línea original 2319 (script)
+
+```
+  // FIX (12-sep-2026, pedido usuario — "agrega también los botones de
+  // clan(es) y Todos"): cada clan pasa a su propia tarjeta .ai-clan-card
+  // con data-clan (mismo patrón que "Valores diarios"), para que
+  // gestionarTabsClan() pueda mostrar/ocultar una por una sin volver a
+  // pedir datos. El aviso de multiClan queda FUERA de esas tarjetas (sin
+  // data-clan) para que se siga viendo sin importar qué pestaña esté
+  // activa — es información agregada, no de un solo clan.
+```
+
+### Línea original 2392 (script)
+
+```
+ * FASE 13 punto 1 del plan de cambios web (07-sep-2026) -- vista (a) del
+ * "Log" de guerra de RoyaleAPI, recreada con datos propios. Pide
+ * 'webGuerraLog' (mismo WEB_MEMBER_TOKEN público de solo lectura que
+ * apiGet() ya usa para webGuerraEnVivo, ver _webGuerraLog(),
+ * 17_GuerraSheet.gs) SIN `tag` -- así el backend devuelve los
+ * CFG.TERNA_TAGS.length clanes Terna juntos, en su mismo orden, sin
+ * necesitar tags de clanes propios hardcodeados acá.
+ *
+ * A diferencia del resto de esta página (dashboard en vivo, refrescado
+ * cada REFRESH_INTERVAL_MS), esto es un histórico acumulado que no
+ * cambia salvo cuando corre el batch del backend -- se pide UNA sola vez
+ * al cargar la página (ver la llamada al final de este script), no en el
+ * setInterval de arriba.
+ *
+ * Pinta una pestaña por clan (data.clanes, mismo patrón visual
+ * .tabs-row/.tab-btn que directorio.html) y, debajo, una tabla Temporada/
+ * Semana/Rank/Boat/Trophy de la pestaña activa, con el delta de Trophy
+ * contra la semana anterior (verde si subió, rojo si bajó) y las semanas
+ * ya ordenadas de más reciente a más antigua (mismo orden que ya manda
+ * el backend). Un clan sin ninguna fila registrada todavía en Guerra_Logs
+ * (`clan` vacío) se descarta de las pestañas en vez de mostrar una vacía.
+ *
+ * Cualquier error (backend caído, token vencido, etc.) se traga en
+ * silencio y la sección se oculta por completo -- mismo criterio de
+ * robustez que el resto de secciones de esta página pública.
+ 
+```
+
+## sorteo.html
+
+### Línea original 12 (HTML)
+
+```
+ Acceso restringido: incorporada al portal admin (28-ago-2026). Esta
+     herramienta se desarrolló antes de la web y funciona 100% del lado del
+     cliente (sin backend propio), por eso la validación de acceso también
+     es del lado del cliente: si no hay sesión de admin activa (mismo
+     terna_admin_token que usa admin.html tras un login exitoso vía
+     webLogin), se redirige de inmediato al login. Es el mismo nivel de
+     protección que ya usa el resto del sitio para gating de UI (ver
+     aplicarVisibilidadPorFunciones() en admin.html) — no sustituye una
+     validación de servidor, pero esta página no llama a ningún endpoint
+     que exponga datos, así que no la necesita.
+     NOTA (29-ago-2026): sessionStorage NO se copia de forma confiable entre
+     pestañas. Se pasa el token por query string (?tk=) desde el botón
+     "Abrir Ruleta de Sorteos" en admin.html; este script lo guarda en
+     sessionStorage y limpia la URL antes de que se pinte nada.
+     ACTUALIZACIÓN (04-sep-2026): la sesión de admin migró de sessionStorage
+     a localStorage en todo el sitio (ver actualizarNavCta() en common.js),
+     que sí se comparte entre pestañas del mismo origen — así que este paso
+     de token por ?tk= ya no es indispensable para que esta página vea la
+     sesión abierta en otra pestaña. Se deja el mecanismo tal cual (ahora
+     escribe/lee en localStorage, ver script de abajo) porque sigue siendo
+     inofensivo y cubre además el caso de un link ?tk= compartido/abierto
+     directamente sin sesión previa en esa pestaña.
+     FIX (30-ago-2026): se retira el bloque de diagnóstico en pantalla que
+     hubo acá (29-ago-2026, para depurar un loop de redirección) — el fix
+     real fue pasar el token por ?tk= (arriba), ya confirmado funcionando,
+     así que el diagnóstico ya cumplió su función y solo quedaba como
+     ruido/riesgo (mostraba detalles internos de sesión en pantalla ante
+     cualquier falla). 
+```
+
+### Línea original 441 (estilo)
+
+```
+ FASE 9 (30-ago-2026): la lista de participantes se muestra siempre
+   * agrupada por clan. Cada grupo tiene un header con checkbox propio que
+   * marca/desmarca a TODOS sus miembros de un tiro (p.ej. un sorteo que es
+   * solo para 2 de los 4 clanes), en vez de sacar a cada persona a mano —
+   * ver buildClanGroupHeader(). Los participantes sin clan (agregados a
+   * mano) van en un grupo "Sin clan asignado" al final. 
+```
+
+### Línea original 633 (HTML)
+
+```
+ data-essential-motion (30-ago-2026): excluye este disco del
+               reset global de prefers-reduced-motion (ver styles.css) — el
+               giro de la ruleta NO es decorativo, es la mecánica misma del
+               sorteo (la suspensión del giro es parte de la transmisión en
+               vivo), así que debe seguir animándose aunque el sistema
+               operativo de quien mira tenga "reducir movimiento" activado. 
+```
+
+### Línea original 720 (HTML)
+
+```
+ NUEVO (14-sep-2026, pedido usuario -- "en la ruleta agrega una
+             opción para quitar un ticket por cada giro que hace la
+             ruleta. reitero que debe ser opcional"): #removeTicketPerSpinToggle,
+             DESMARCADO por defecto (como pidió el usuario, es opcional, no
+             cambia el comportamiento actual si no se activa). Con esto
+             activado, cada giro (gane o no el premio ese intento) le resta
+             1 ticket al participante que salió en ESE giro -- ver el
+             bloque que hace `slice.participant.weight -= 1` dentro de
+             spin(), justo después de conocer `slice`, antes de separar en
+             isFinal/no-final (aplica a los dos casos por igual, tal cual
+             "por cada giro" y no solo "por cada premio"). Un participante
+             que llega a 0 tickets no necesita marcarse `active:false` a
+             mano -- computeSlices() ya le arma una porción de ancho 0 en
+             la ruleta (ver ese bloque, `w = Number(p.weight) > 0 ? ... :
+             0`), así que en la práctica deja de poder salir sorteado sin
+             tocar ningún otro mecanismo de descarte. 
+```
+
+### Línea original 753 (HTML)
+
+```
+ FIX (10-sep-2026, punto 5 del consolidado -- "Frontend
+             (sorteo.html): un formulario de resolución sobre cada ganador
+             de la lista (renderWinners()), similar a #resolucionForm de
+             admin.html"): mismo patrón que #resolucionForm -- UN SOLO
+             formulario compartido, se abre desde el botón "Gestionar" de
+             cada fila de ganador (ver abrirResolucionForm() más abajo) y
+             cambia según a cuál ganador corresponda. A diferencia de
+             Torneos, acá no hay una hoja de resoluciones aparte que
+             fusionar (Resultado/Razón viven en la misma fila de
+             S_Asistencia, ver sección 1 del consolidado) -- por eso el
+             resultado se guarda directo en el objeto `winner` en memoria
+             (ver guardarResolucionGanador() más abajo), sin necesidad de
+             re-fusionar nada al repintar.
+
+             CORREGIDO (10-sep-2026, sección 1 y sección 2 del consolidado):
+             esta primera versión copiaba el dropdown de 4 opciones de
+             Torneos (Ganador/Descalificado/2 tipos de empate) y dejaba
+             "Razón" como texto libre -- pero Sorteos NO tiene concepto de
+             empate, así que Resultado es un dropdown cerrado de 2 valores
+             (Califica/No califica, CFG.SORTEOS_RESULTADO_TIPOS) y Razón es
+             otro dropdown cerrado con los 3 motivos ligados a los
+             requisitos de S_Lista, visible solo cuando Resultado = "No
+             califica" (ver toggleWinnerResRazonVisibility() más abajo).
+
+             CONECTADO (10-sep-2026, puntos 4 y 6 del consolidado ya
+             resueltos en el backend): btnGuardarResolucionGanador ahora
+             llama a webAdminSorteoResolucionGuardar (guardarResolucionGanador()
+             más abajo) -- ver ese comentario para el detalle de Tag/Premio
+             y el caso "sin tag". 
+```
+
+### Línea original 788 (HTML)
+
+```
+ RESUELTO (10-sep-2026, sección "Cómo se resuelve el Tag" del
+               consolidado): si el ganador vino de "Cargar participantes
+               calificados" el Tag ya llega prellenado (ver
+               abrirResolucionGanador() más abajo) y normalmente no hace
+               falta tocarlo. Si el ganador se agregó a mano y no se
+               conoce el Tag, este aviso se muestra solo (ver
+               toggleWinnerResSinTagVisibility()) cuando el campo de Tag
+               está vacío -- no deja guardar sin tag "en silencio": exige
+               que el admin confirme explícitamente que es intencional. 
+```
+
+### Línea original 807 (HTML)
+
+```
+ FIX (12-sep-2026, pedido del usuario -- consolidado sección 1,
+               punto 10, y Base.md _registrarResolucionSorteo()/
+               actualizarDocGanadoresSorteo()): campo Tickets, prellenado con
+               el peso real (participant.weight) con el que el ganador entró
+               a la ruleta -- mismo criterio que Tag/Premio: viene sugerido
+               pero es editable a mano antes de guardar, por si el admin
+               necesita corregirlo. Opcional: si se deja vacío, se manda
+               `undefined` en el payload (ver guardarResolucionGanador() más
+               abajo) y el backend guarda la celda vacía, igual que antes de
+               este FIX. 
+```
+
+### Línea original 875 (script)
+
+```
+  // FASE (10-sep-2026, consolidado sección 1 puntos 4 y 6): ID (SL.ID) del
+  // sorteo al que se le atan las resoluciones que se guarden en
+  // S_Asistencia. Se completa al cargar participantes calificados (ver
+  // loadQualifiedParticipants() más abajo, data.idSorteo) -- por eso el
+  // flujo esperado es: primero "Cargar participantes calificados" (aunque
+  // sea solo para tomar el ID, incluso si después se termina sorteando a
+  // mano), después girar, después guardar resoluciones/exportar.
+```
+
+### Línea original 1166 (script)
+
+```
+      // FIX (10-sep-2026): la etiqueta ahora también refleja el resultado
+      // de la resolución manual (ver #winnerResolucionForm), no solo si
+      // sigue participando o quedó excluido de la ruleta -- son dos cosas
+      // distintas: "discarded" es sobre la ruleta (¿puede volver a salir
+      // sorteado?), "resultado" es sobre el premio (¿se queda con él?).
+      // CORREGIDO (10-sep-2026): "Ganador" ya no es un valor posible de
+      // w.resultado (Sorteos solo usa Califica/No califica) -- ahora se
+      // compara contra "No califica" y, si aplica, se agrega también la
+      // razón elegida.
+```
+
+### Línea original 1218 (script)
+
+```
+  // FIX (10-sep-2026, punto 5 del consolidado): mismo mecanismo que
+  // abrirResolucionForm() de admin.html, pero UN SOLO formulario
+  // compartido para todos los ganadores en vez de uno triplicado por fila
+  // -- se abre con abrirResolucionGanador(id), que recuerda a cuál
+  // ganador corresponde en winnerResolucionForm.dataset.winnerId.
+  //
+  // CORREGIDO (10-sep-2026, sección 1 y sección 2 del consolidado): el
+  // valor por defecto/"sin problemas" ya no es "Ganador" (copiado de
+  // Torneos) sino "Califica" (CFG.SORTEOS_RESULTADO_TIPOS) -- Sorteos no
+  // tiene concepto de empate, y "Razón" solo tiene sentido (y solo se
+  // muestra) cuando el Resultado es "No califica".
+```
+
+### Línea original 1248 (script)
+
+```
+  // FASE (10-sep-2026, consolidado -- "Cómo se resuelve el Tag"): el
+  // aviso + checkbox de "sin tag" solo se muestra cuando el campo de Tag
+  // está vacío -- si el admin lo completa (a mano, o porque ya venía
+  // prellenado desde "Cargar participantes calificados"), el aviso se
+  // oculta y el check se desmarca solo (no tiene sentido dejarlo marcado
+  // si al final sí hay un tag).
+```
+
+### Línea original 1288 (script)
+
+```
+  // FASE (10-sep-2026, consolidado sección 1 puntos 4 y 6 -- CONECTADO):
+  // guarda/actualiza la resolución de UN ganador en S_Asistencia vía
+  // webAdminSorteoResolucionGuardar (mismo patrón que btnGuardarResolucion
+  // de admin.html → webAdminTorneoResolucionGuardar). Antes de mandar
+  // nada valida, en este orden:
+  //   1. Que haya un sorteoActualId (viene de "Cargar participantes
+  //      calificados", ver loadQualifiedParticipants()) -- sin eso no hay
+  //      forma de saber a qué fila de S_Lista atar la resolución.
+  //   2. Si Resultado = "No califica", que venga una Razón elegida.
+  //   3. Que haya Tag, SALVO que el admin haya marcado explícitamente el
+  //      checkbox de "sin tag intencional" (ver toggleWinnerResSinTagVisibility()
+  //      más arriba) -- ver "Cómo se resuelve el Tag" en el consolidado.
+  // El estado local (`winners`) se actualiza recién cuando el backend
+  // confirma ok:true -- si falla, el formulario queda abierto con el
+  // error visible y nada se pierde (el admin puede corregir y reintentar).
+```
+
+### Línea original 1462 (script)
+
+```
+      // NUEVO (14-sep-2026, pedido usuario -- opción "Quitar un ticket por
+      // cada giro"): se aplica ACÁ, antes de separar en isFinal/no-final,
+      // porque el pedido fue "por cada giro que hace la ruleta" (no solo
+      // por cada premio entregado). Clamp a 0 -- nunca queda negativo.
+      // Ver docblock junto a #removeTicketPerSpinToggle (arriba, en el
+      // <div class="setting-row">) para el resto del mecanismo.
+```
+
+### Línea original 1481 (script)
+
+```
+          // FIX (10-sep-2026, punto 5 del consolidado): resultado/razón de
+          // la resolución manual sobre este ganador (ver
+          // #winnerResolucionForm más arriba). CORREGIDO (10-sep-2026):
+          // "Califica" es el valor por defecto (Sorteos no tiene concepto
+          // de empate, ver sección 2 del consolidado) -- no hace falta
+          // abrir el formulario si no hubo ninguna descalificación.
+```
+
+### Línea original 1489 (script)
+
+```
+          // FASE (10-sep-2026, consolidado sección 1 puntos 4 y 6): se
+          // propaga el tag/clan del participante calificado (si vino de
+          // "Cargar participantes calificados") -- ver
+          // loadQualifiedParticipants() más arriba. Si el ganador salió
+          // de un participante agregado a mano, ambos quedan en null y
+          // guardarResolucionGanador() exige la confirmación explícita de
+          // "sin tag" antes de guardar. `premio` arranca vacío -- se
+          // completa a mano en el formulario de resolución (todavía no
+          // hay ninguna fuente automática de premios por puesto).
+          // `guardado` refleja si esta resolución YA se guardó en
+          // S_Asistencia (ver renderWinners() para el indicador visual).
+```
+
+### Línea original 1503 (script)
+
+```
+          // FIX (12-sep-2026, consolidado sección 1 punto 10): se propaga
+          // el peso real con el que este participante entró a la ruleta
+          // (mismo `weight` que ya usa pickWeightedIndex() para la
+          // probabilidad) -- sugerido en el campo Tickets del formulario de
+          // resolución (ver abrirResolucionGanador()), pero editable a mano
+          // antes de guardar, igual que Tag/Premio.
+```
+
+### Línea original 1535 (script)
+
+```
+        // FIX (14-sep-2026, junto con "Quitar un ticket por cada giro"):
+        // sin este `||`, si el toggle de tickets está activo pero
+        // "Descartar intentos de prueba" no, el peso bajaba en el dato
+        // pero el <input> de tickets y la rueda quedaban con el valor
+        // viejo hasta el próximo giro -- ahora se refresca apenas
+        // cualquiera de los dos cambió algo sobre el participante.
+```
+
+### Línea original 1638 (script)
+
+```
+    // FASE (12-sep-2026, pedido del usuario -- consolidado de pendientes,
+    // punto 1): además de la descarga local de arriba (que no toca el
+    // backend), "Exportar" ahora también dispara el docx real al instante
+    // -- antes solo se actualizaba 1 vez al día, dentro de la corrida
+    // diaria de runUpdate() (ver docblock de
+    // _webAdminSorteoActualizarDocGanadores(), 34_Web_API.gs). Es un
+    // pedido aparte, en paralelo, que no bloquea ni condiciona la
+    // descarga local de arriba (que ya se disparó igual): si este pedido
+    // falla o no hay sesión activa, el .doc local ya se descargó sin
+    // problema.
+```
+
+### Línea original 1747 (script)
+
+```
+            // FIX (10-sep-2026, punto 3 del consolidado): usar el ticket
+            // real (peso en la ruleta) que calcule el backend en vez del
+            // `weight: 1` fijo de siempre -- computeSlices()/
+            // pickWeightedIndex() ya usan `p.weight` para la probabilidad,
+            // así que no hace falta tocar nada más ahí, solo poblarlo bien
+            // acá. El campo `.p-weight` de cada fila (ver renderParticipants()
+            // más abajo) sigue siendo editable a mano por si el admin
+            // quiere ajustar el peso de alguien puntual después de cargar.
+            //
+            // CONECTADO (11-sep-2026, confirmado contra Base.md y el
+            // consolidado, sección 1 PASO 2): _webSorteoCalificados()
+            // (34_Web_API.gs) ya devuelve `tickets` por participante
+            // calificado, calculado como 1 + floor((trofeos - Min_S) /
+            // Delta) -- ver el docblock de esa función para el detalle
+            // completo (caso especial Delta=0 → 1 ticket fijo para todo el
+            // que llegue a Min_S, sin tope máximo). `p.peso` NUNCA llega a
+            // existir -- ese nombre alternativo se deja como fallback
+            // inofensivo por si algún día se renombra el campo, no porque
+            // esté en uso hoy.
+```
+
+### Línea original 1775 (script)
+
+```
+              // FASE (10-sep-2026, consolidado sección 1 puntos 4 y 6,
+              // "Cómo se resuelve el Tag"): se guarda el tag real del
+              // participante calificado -- cuando salga sorteado, spin()
+              // lo propaga al objeto winner, y de ahí
+              // guardarResolucionGanador() lo manda tal cual a
+              // S_Asistencia sin pedirle nada al admin.
+```
+
+### Línea original 1793 (script)
+
+```
+        // FASE (10-sep-2026, consolidado sección 1 puntos 4 y 6): se
+        // guarda el ID del sorteo (S_Lista) que devolvió el backend --
+        // hace falta para poder guardar después cualquier resolución de
+        // ganador en S_Asistencia (ver guardarResolucionGanador() más
+        // abajo). Se sobreescribe cada vez que se recarga la lista, así
+        // que si el admin recarga a mitad de un sorteo real, las
+        // resoluciones ya guardadas siguen atadas al ID viejo (correcto:
+        // pertenecen a ESE sorteo) y solo las nuevas usan el ID recargado.
+```

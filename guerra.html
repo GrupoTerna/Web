@@ -59,26 +59,9 @@
   }
   .clan-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:16px;}
   .clan-card .name{font-family:var(--f-display); font-size:18px; font-weight:800; text-transform:uppercase; color:var(--text); text-align:center;}
-  /* FIX (13-sep-2026, pedido usuario — "los márgenes de guerra de hoy son
-     disparejos"): .stats no tenía justify-content, así que la fila de
-     números quedaba pegada a la izquierda (flex-start por defecto). Como
-     cada clan tiene una cantidad distinta de dígitos en Ataques/Fame/
-     Barcos (ej. "174/85.900/0" vs "25/15.050/0"), el ancho total de esa
-     fila variaba de tarjeta a tarjeta y dejaba un margen derecho de
-     tamaño distinto en cada una — de ahí lo "disparejo". Centrando la
-     fila dentro de la tarjeta, el margen queda simétrico (y visualmente
-     parejo entre tarjetas) sin importar cuántos dígitos tenga cada valor. */
+  /* .stats no tenía justify-content, así que la fila de números quedaba pegada a la izquierda (flex-start por defecto). Historial en CHANGELOG.md. */
   .clan-card .stats{display:flex; justify-content:center; gap:18px; margin-top:14px; font-family:var(--f-mono);}
-  /* FIX (04-sep-2026, pedido usuario — "no se entiende bien de dónde salen
-     los [totales] ... Ataques, fame y barcos deberían estar alineados con
-     los centros de sus números"): .stat no tenía text-align, así que el
-     número grande (<b>) y su etiqueta (<span>) quedaban alineados a la
-     izquierda del ancho del flex item (que toma el ancho del más largo de
-     los dos) — con "FAME"/"703,900" o "ATAQUES"/"822" el más corto quedaba
-     visualmente descentrado respecto al otro. text-align:center centra
-     ambos sobre el mismo eje sin depender de cuál de los dos sea más
-     largo, para los 3 (ataques/fame/barcos).
-  */
+  /* .stat no tenía text-align, así que el número grande (<b>) y su etiqueta (<span>) quedaban alineados a la izquierda del ancho del flex item (que toma el ancho del más largo de los dos) — con "FAME"/"703,900" o "ATAQUES"/"822" el más corto quedaba visualmente… Historial en CHANGELOG.md. */
   .clan-card .stat{text-align:center;}
   .clan-card .stat b{display:block; font-size:22px; color:var(--text); font-family:var(--f-display);}
   .clan-card .stat span{font-size:10px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.08em;}
@@ -90,13 +73,7 @@
   .resumen-row .track{flex:1; min-width:80px; height:16px; background:var(--bg-2); border-radius:4px; position:relative; overflow:hidden; border:1px solid var(--line);}
   .resumen-row .fill{height:100%; background:linear-gradient(90deg, var(--violet), var(--purple));}
   .resumen-row .val{width:40px; text-align:right; font-family:var(--f-mono); font-size:13px; color:var(--gold); font-weight:700;}
-  /* RESPONSIVE (pedido usuario, 31-ago-2026 — "haz que la web sea
-     responsive"): en pantallas angostas .clan-n (160px fijo) + .val (40px
-     fijo) dejaban muy poco espacio para .track, que quedaba casi
-     invisible. flex-wrap arriba ya permite que .track baje a su propia
-     línea si no entra; acá se fuerza ese salto de línea siempre por debajo
-     de los ~380px, y el nombre del clan pasa a ocupar el ancho completo
-     para que la barra de progreso tenga espacio real para leerse. */
+  /* RESPONSIVE (pedido usuario, 31-ago-2026 — "haz que la web sea responsive"): en pantallas angostas .clan-n (160px fijo) + .val (40px fijo) dejaban muy poco espacio para .track, que quedaba casi invisible. flex-wrap arriba ya permite que .track baje a su propia… */
   @media (max-width:380px){
     .resumen-row .clan-n{width:100%;}
   }
@@ -105,23 +82,7 @@
      vez de forzar overflow en toda la página. */
   .table-scroll{overflow-x:auto; -webkit-overflow-scrolling:touch;}
   .table-scroll table{min-width:420px;}
-  /* FIX (09-sep-2026, pedido usuario — "barra de navegación al inicio y
-     final de cada cuadrícula si hay que desplazarse horizontalmente"):
-     mismo problema que ya se había resuelto para el roster de Directorio
-     (ver .roster-topbar/.roster-top-scroll en directorio.html) — el
-     scroll horizontal nativo de .table-scroll funciona, pero no hay
-     ninguna pista visual de que existe (la barra de scroll del sistema
-     puede ser invisible hasta que se pasa el mouse, sobre todo en temas
-     oscuros), y con tablas que pueden crecer en ancho con el tiempo
-     (Cuadrícula de Temporada suma una columna por cada semana jugada) esa
-     pista visual importa cada vez más. .grid-hscroll es una franja fina
-     y siempre visible, con su propio overflow-x:auto sincronizado por JS
-     con el scroll real de la tabla (ver enlazarScrollsHorizontales() más
-     abajo); se coloca UNA arriba Y OTRA abajo de cada tabla (a diferencia
-     del roster, que solo la tiene arriba) para que quede a mano sin
-     importar desde dónde se empiece a leer la cuadrícula. Siempre se
-     renderiza, incluso si hoy la tabla entra sin necesitar scroll, para
-     que ya esté lista el día que la cuadrícula crezca. */
+  /* mismo problema que ya se había resuelto para el roster de Directorio (ver .roster-topbar/.roster-top-scroll en directorio.html) — el scroll horizontal nativo de .table-scroll funciona, pero no hay ninguna pista visual de que existe (la barra de scroll del… Historial en CHANGELOG.md. */
   .grid-hscroll{overflow-x:auto; overflow-y:hidden; height:14px; -webkit-overflow-scrolling:touch; border-radius:var(--radius-sm);
     scrollbar-width:thin; scrollbar-color:var(--purple-light) rgba(255,255,255,.06);}
   .grid-hscroll::-webkit-scrollbar{height:10px;}
@@ -130,49 +91,19 @@
   .grid-hscroll-inner{height:1px;}
   .grid-hscroll-top{margin-bottom:6px;}
   .grid-hscroll-bottom{margin-top:6px;}
-  /* FIX (08-sep-2026, pedido usuario — "La cuadrícula de ataques
-     pendientes también se debe centrar [...] los nombres no se centran,
-     se alinean a la izquierda pero el encabezado sí"): esta tabla venía
-     usando el th{text-align:left} genérico de styles.css (pensado para
-     el resto de tablas del sitio) para las 3 columnas por igual; ahora
-     se centran los 3 encabezados Y los valores de Clan/Faltantes, y solo
-     el nombre de cada fila (.col-nombre) queda a la izquierda — mismo
-     criterio que .col-jugador en las cuadrículas de Activos/Temporada
-     de más abajo. */
-  /* FIX (16-sep-2026, pedido usuario — "un solo tamaño de encabezado para
-     todas las columnas y un solo tamaño de letra, revisa en todos los
-     paneles" y luego "baja el tamaño de letra de las filas de valores a
-     13 para todos, un solo tamaño para filas de valores y un solo tamaño
-     para encabezados"): sin estos font-size, el <th> heredaba el 11px
-     genérico de table th y el <td> el 14px genérico de table{} (ambos en
-     styles.css) — se fijan acá en 13px/13px para igualar exactamente a
-     .roster-table (directorio.html) e .inactivos-table (styles.css). */
+  /* esta tabla venía usando el th{text-align:left} genérico de styles.css (pensado para el resto de tablas del sitio) para las 3 columnas por igual; ahora se centran los 3 encabezados Y los valores de Clan/Faltantes, y solo el nombre de cada fila (.col-nombre)… Historial en CHANGELOG.md. */
+  /* sin estos font-size, el <th> heredaba el 11px genérico de table th y el <td> el 14px genérico de table{} (ambos en styles.css) — se fijan acá en 13px/13px para igualar exactamente a .roster-table (directorio.html) e .inactivos-table (styles.css). Historial en CHANGELOG.md. */
   .tbl-pendientes th{text-align:center; font-size:13px;}
   .tbl-pendientes td{text-align:center; font-size:13px;}
   .tbl-pendientes td.col-nombre{text-align:left;}
-  /* FIX (13-sep-2026, pedido usuario — "agregar N° y el tag del jugador a
-     la izquierda del nombre" / "columna Jugador (Nom_Multi) y Préstamo,
-     visibles solo para admins" / "íconos de royaleapi y cwstats a la
-     derecha de faltantes"): columnas nuevas de la tabla de Pendientes.
-     .col-n queda centrada (mismo criterio que Rango/Faltantes, es un
-     número de fila); .col-tag va a la izquierda, en mono y algo apagado
-     (mismo estilo que el tag junto al nombre en "Participación de Hoy",
-     ver _liCuenta() más abajo) porque es un dato secundario de
-     identificación, no el foco de la fila. .col-perfil-icons alinea sus
-     2 íconos en fila, centrados, sin texto (mismo SVG ICONO_ROYALEAPI/
-     ICONO_CWSTATS que ya usa perfil.html). */
+  /* columnas nuevas de la tabla de Pendientes. .col-n queda centrada (mismo criterio que Rango/Faltantes, es un número de fila); .col-tag va a la izquierda, en mono y algo apagado (mismo estilo que el tag junto al nombre en "Participación de Hoy", ver _liCuenta()… Historial en CHANGELOG.md. */
   .tbl-pendientes td.col-n{color:var(--text-faint);}
   .tbl-pendientes td.col-tag{text-align:left; font-family:var(--f-mono); font-size:13px; color:var(--text-faint);}
   .tbl-pendientes td.col-perfil-icons{white-space:nowrap;}
   .tbl-pendientes td.col-perfil-icons a{display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; margin:0 2px; color:var(--text-dim); vertical-align:middle; transition:color .18s ease;}
   .tbl-pendientes td.col-perfil-icons a:hover{color:var(--purple-light);}
   .tbl-pendientes td.col-perfil-icons svg{width:16px; height:16px; fill:currentColor;}
-  /* Fila de botones A-Z/# para filtrar por primera letra del nombre —
-     mismo patrón visual .tabs-row/.tab-btn que la botonera de clanes de
-     arriba, pero cada botón es de 1 carácter así que se angosta el
-     padding lateral para que no queden ovalados de más. Toggle: tocar la
-     letra ya activa vuelve a mostrar todas (ver pintarFiltroLetraPendientes()
-     en el <script>). */
+  /* Fila de botones A-Z/# para filtrar por primera letra del nombre — mismo patrón visual .tabs-row/.tab-btn que la botonera de clanes de arriba, pero cada botón es de 1 carácter así que se angosta el padding lateral para que no queden ovalados de más. Toggle:… */
   /* FASE 13 punto 1 del plan de cambios web (07-sep-2026, vista (a) del
      "Log" de guerra de RoyaleAPI): pestañas por clan para la sección
      "Log de Guerra (Histórico)" -- mismo patrón visual .tabs-row/.tab-btn
@@ -185,32 +116,11 @@
     cursor:pointer; background:transparent; transition:all .18s ease;
   }
   .tab-btn.active{color:#fff; border-color:var(--purple); background:rgba(162,57,255,.15);}
-  /* FIX (16-sep-2026, pedido usuario — "ajusta el tamaño de los botones
-     selectores por letra, en Directorio aparecen en una fila y en guerra
-     en dos, debe ser una"): esta regla vivía ANTES que .tab-btn en el
-     CSS — con la misma especificidad (una sola clase cada una), el
-     padding:7px 14px de .tab-btn (declarado después) le ganaba al
-     padding:6px 10px, más angosto, de acá, así los botones A-Z/# salían
-     igual de anchos que un .tab-btn de clan normal y no cabían los ~28 en
-     una sola fila. En directorio.html .letra-btn SÍ va después de
-     .tab-btn (por eso ahí se ve bien) — se mueve esta regla al mismo
-     lugar, después de .tab-btn.active, para igualar el orden y que el
-     padding angosto se aplique de verdad. */
+  /* esta regla vivía ANTES que .tab-btn en el CSS — con la misma especificidad (una sola clase cada una), el padding:7px 14px de .tab-btn (declarado después) le ganaba al padding:6px 10px, más angosto, de acá, así los botones A-Z/# salían igual de anchos que un… Historial en CHANGELOG.md. */
   .letra-btn{padding:6px 10px; min-width:30px;}
   #status{font-family:var(--f-mono); font-size:14px; color:var(--text-dim); padding:64px 20px; text-align:center;}
   #status.err{color:var(--danger);}
-  /* FIX (04-sep-2026, pedido usuario — "se debe agregar botones para
-     copiar los mensajes de guerra pero visibles solo para los admin").
-     FIX (05-sep-2026, pedido usuario — "en Guerra (lista de pendientes)
-     solo hay que poner el mismo botón, pero ya no se va a mostrar todo el
-     texto, solo el botón de copiar, así que debería agregar información
-     sobre el clan"): ya no es una sección aparte con tarjetas (label +
-     botón genérico "Copiar"); ahora es una fila compacta de botones
-     integrada arriba de la tabla de "Pendientes de Atacar" (ver
-     #msjGuerraWrap dentro de #pendSection más abajo), y el nombre del clan
-     va DENTRO del texto de cada botón (no hay tarjeta/label aparte donde
-     mostrarlo). Sigue sin pintarse nada si no hay sesión de admin activa
-     (esAdminLogueado()) — ver cargarMensajesGuerraSiAdmin(). */
+  /* ya no es una sección aparte con tarjetas (label + botón genérico "Copiar"); ahora es una fila compacta de botones integrada arriba de la tabla de "Pendientes de Atacar" (ver #msjGuerraWrap dentro de #pendSection más abajo), y el nombre del clan va DENTRO del… Historial en CHANGELOG.md. */
   .msj-guerra-row{display:flex; flex-wrap:wrap; gap:8px; margin-top:14px;}
   .msj-guerra-row .btn-copiar-mg{
     background:rgba(162,57,255,.1); border:1px solid var(--line-strong); color:var(--text);
@@ -220,28 +130,7 @@
   .msj-guerra-row .btn-copiar-mg:hover{border-color:var(--purple); color:var(--purple-light); background:rgba(162,57,255,.2);}
   .msj-guerra-row .btn-copiar-mg.copiado{color:var(--ok); border-color:var(--ok);}
 
-  /* FASE 3 del plan de fases (punto 3 del documento — "cuentas y ataques
-     disponibles por día"): sección solo-admin y solo día de guerra (mismo
-     criterio que Mensajes de Guerra / Aportes de Inactivos de arriba).
-     Backend ya listo desde antes (_getParticipacionHoyGuerra(),
-     17_GuerraSheet.gs — accion=webAdminParticipacionHoyGuerra,
-     34_Web_API.gs). Por clan, dos columnas de Tags: "Reservadas" (ya
-     atacaron hoy, AtaquesHoy > 0 → NO se pueden reemplazar) y
-     "Reemplazables" (sin ataques hoy → SÍ se pueden reemplazar). Debajo,
-     si hay casos de un mismo Tag con AtaquesHoy > 0 en más de un clan
-     Terna el mismo día (multiClan), se avisa aparte — es información útil
-     para el admin, no un error.
-     FIX (12-sep-2026, pedido usuario — por error esta sección había
-     quedado también duplicada en directorio.html; la versión final pedida
-     ("retira lo de cuentas reservadas y reemplazables... que se quede
-     solo en Guerra") es esta de acá: el conteo de cada columna va junto a
-     su encabezado ("Reservadas (26)"), nunca en una línea aparte por
-     clan; cada cuenta reservada muestra sus ataques pendientes hoy (4 -
-     ataques ya usados hoy); y las reservadas se subagrupan, dentro de
-     cada clan, en "Con ataques pendientes" (1-3) y "Sin ataques
-     pendientes" (0) — ver _listaCuentasHtml()/renderParticipacionHoyGuerra()
-     más abajo en el <script>. Reemplaza a las clases .ph-* que tenía esta
-     misma sección antes. */
+  /* FASE 3 del plan de fases (punto 3 del documento — "cuentas y ataques disponibles por día"): sección solo-admin y solo día de guerra (mismo criterio que Mensajes de Guerra / Aportes de Inactivos de arriba). Backend ya listo desde antes… Historial en CHANGELOG.md. */
   #participacionHoySection{display:none;}
   .part-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
   @media (max-width:640px){ .part-grid{grid-template-columns:1fr;} }
@@ -260,25 +149,7 @@
   .part-pend{font-family:var(--f-mono); font-size:11px; color:var(--text-faint);}
   .part-pend.part-pend-cero{color:var(--text-faint); opacity:.7;}
 
-  /* FIX (05-sep-2026, pedido usuario — "panel tipo hoja Control, con datos
-     de Directorio, priorizando las cuadrículas"): sección nueva y PÚBLICA
-     (no requiere sesión de admin). Reutiliza las mismas clases .ai-cell y
-     .ai-total de abajo para no duplicar estilos — mismo criterio visual
-     que Control (0 = tenue, 1-3 = dorado, 4 = verde). Arranca oculta y
-     solo se muestra si el backend manda al menos un clan con Activos (ver
-     render()).
-     FIX (05-sep-2026, pedido usuario — "falta Puntaje (fame) y barcos, que
-     también está en la hoja Control [...] los clanes no están en el orden
-     establecido [...] falta centrar los encabezados con sus datos [...]
-     Mejor dentro del primer cuadro, en cada clan, primero escribe las
-     filas de los activos y luego una sección para inactivos"): esta MISMA
-     tarjeta por clan ahora también recibe, al final, el bloque de
-     Inactivos (antes era la sección aparte #aportesInactivosSection,
-     debajo de "Pendientes de Atacar" — ELIMINADA, ver
-     cargarAportesInactivosSiAdmin() más abajo). El bloque de Inactivos
-     sigue siendo solo-admin (mismo esAdminLogueado() de antes); si no hay
-     sesión de admin, ".ai-inactivos-wrap" simplemente queda vacío dentro
-     de la tarjeta (ver regla ":empty" más abajo) y nadie nota que existe. */
+  /* sección nueva y PÚBLICA (no requiere sesión de admin). Historial en CHANGELOG.md. */
   #controlActivosSection{display:none;}
   .ai-clan-card{margin-bottom:18px;}
   .ai-clan-card h3{font-size:15px; margin:0 0 10px; color:var(--purple-light);}
@@ -294,77 +165,17 @@
      Puntaje trae "500 400 700 600"), así que van sin el semáforo de color
      0/parcial/completo de .ai-cell — solo centrados con .ai-num. */
   .ai-num{text-align:center; font-family:var(--f-mono);}
-  /* FIX (05-sep-2026, pedido usuario — "Puntaje y Barcos son megacategorías
-     igual que Ataques"): Puntaje y Barcos NO son una columna con un único
-     valor por jugador — son, igual que Ataques, un grupo de columnas
-     J/V/S/D + Total (ver la captura de la Hoja Control: "Puntaje" tiene su
-     propio Sem 1/Sem 2/Sem 3 con J/V/S/D/T.1/T.2/T.3). Por eso el <thead>
-     de la tabla de Activos ahora tiene 2 filas: una fila superior con las
-     3 megacategorías (Ataques/Puntaje/Barcos, colspan=5 cada una) y una
-     fila inferior con J/V/S/D/Total repetido bajo cada una. Estas clases
-     dan un tinte de fondo sutil a cada grupo de columnas (encabezado Y
-     celdas) para que se puedan distinguir de un vistazo con tantas
-     columnas juntas — mismos colores que ya usa el resto del sitio
-     (violeta=tema base, dorado=Puntaje/Fame, plata=Barcos). */
+  /* Puntaje y Barcos NO son una columna con un único valor por jugador — son, igual que Ataques, un grupo de columnas J/V/S/D + Total (ver la captura de la Hoja Control: "Puntaje" tiene su propio Sem 1/Sem 2/Sem 3 con J/V/S/D/T.1/T.2/T.3). Historial en CHANGELOG.md. */
   .ai-grp-atq{background:rgba(162,57,255,.07);}
   .ai-grp-pje{background:rgba(243,169,34,.07);}
   .ai-grp-brc{background:rgba(203,213,225,.07);}
   th.ai-grp-atq, th.ai-grp-pje, th.ai-grp-brc{color:var(--text-dim); font-weight:700;}
-  /* FIX (09-sep-2026, pedido usuario — "falta centrar bien las cuadrículas"):
-     el <th colspan> de cada megacategoría (Ataques/Puntaje/Barcos) se
-     centraba con el text-align:center genérico de más abajo, pero ESE
-     centrado es respecto al ancho TOTAL de la celda combinada (colspan),
-     no respecto a lo que realmente se ve en pantalla. Con muchas columnas
-     (sobre todo en la Cuadrícula de Temporada, que suma una columna por
-     cada semana jugada) esa celda combinada es mucho más ancha que la
-     tarjeta, así que "ATAQUES"/"PUNTAJE"/"BARCOS" terminaba centrado muy
-     lejos hacia la derecha, fuera del área visible sin hacer scroll hasta
-     ahí — la fila de arriba se veía en blanco. .ai-grp-label envuelve el
-     texto y usa position:sticky con left/right en 0 + margin:auto: eso lo
-     mantiene centrado dentro de la porción de la celda que esté visible
-     en cada momento del scroll horizontal (nunca se sale de los límites
-     de su propia columna combinada), en vez de centrarse una sola vez
-     sobre el ancho total invisible. */
+  /* el <th colspan> de cada megacategoría (Ataques/Puntaje/Barcos) se centraba con el text-align:center genérico de más abajo, pero ESE centrado es respecto al ancho TOTAL de la celda combinada (colspan), no respecto a lo que realmente se ve en pantalla. Historial en CHANGELOG.md. */
   .ai-grp-label{position:sticky; left:0; right:0; margin:0 auto; width:max-content; display:block;}
-  /* FIX (05-sep-2026): encabezados centrados sobre sus datos. El <th>
-     global de styles.css es text-align:left (para el resto de tablas del
-     sitio, ej. "Pendientes de Atacar"); acá se centra todo salvo la
-     columna "Jugador" (marcada con .col-jugador) — con el <thead> de 2
-     filas de arriba, ":not(:first-child)" ya no alcanza (la fila inferior
-     de J/V/S/D/Total no tiene la celda "Jugador" porque esta usa
-     rowspan="2", así que su primer <th> real SÍ sería :first-child de esa
-     fila y quedaría descentrado sin esta clase explícita).
-     FIX (08-sep-2026, pedido usuario — "Se debe centrar solo los valores
-     de las cuadrículas y todos los encabezados, los nombres no se
-     centran, se alinean a la izquierda pero el encabezado sí"): antes
-     ".col-jugador" dejaba el encabezado "Jugador" TAMBIÉN a la
-     izquierda, junto con los nombres; ahora el <th> "Jugador" se centra
-     igual que el resto de encabezados (ya no tiene excepción propia) y
-     SOLO el <td> con el nombre de cada fila queda a la izquierda.
-     FIX (09-sep-2026, pedido usuario — "solo las columnas que traigan
-     Nom_Multi usan el encabezado Jugador, si el valor es el nombre de la
-     cuenta, el encabezado debe ser 'Nombre'"): esta columna (clase
-     .col-jugador, nombre de clase sin cambios para no tocar el resto de
-     este CSS) trae el nombre de cuenta crudo (DC.NOMBRE/GC.NOMBRE en el
-     backend), NUNCA Nom_Multi -- su encabezado visible pasa de "Jugador" a
-     "Nombre" en las 3 tablas que la usan (Activos, Temporada, Inactivos)
-     para reflejar correctamente el dato que realmente muestra. */
-  /* FIX (08-sep-2026, pedido usuario — "SEM y los número no deben estar
-     partidos"): con tantas columnas semanales (Sem 1...Sem 5 x 3
-     megacategorías + Resumen), cada columna queda angosta y el navegador
-     partía "Sem 1" en dos líneas ("Sem" arriba, "1" abajo) al llegar al
-     espacio entre palabra y número. nowrap fuerza que cada encabezado
-     quede en una sola línea — si no entra, ya existe scroll horizontal
-     propio de la tabla (.table-scroll) para eso, en vez de partir texto. */
+  /* encabezados centrados sobre sus datos. Historial en CHANGELOG.md. */
+  /* con tantas columnas semanales (Sem 1...Sem 5 x 3 megacategorías + Resumen), cada columna queda angosta y el navegador partía "Sem 1" en dos líneas ("Sem" arriba, "1" abajo) al llegar al espacio entre palabra y número. nowrap fuerza que cada encabezado quede… Historial en CHANGELOG.md. */
   .ai-clan-card table th, .ai-clan-card table td{text-align:center; white-space:nowrap;}
-  /* FIX (16-sep-2026, pedido usuario — "un solo tamaño de encabezado para
-     todas las columnas y un solo tamaño de letra, revisa en todos los
-     paneles" y luego "baja el tamaño de letra de las filas de valores a
-     13 para todos, un solo tamaño para filas de valores y un solo tamaño
-     para encabezados"): sin estos font-size, el <th> quedaba en el 11px
-     genérico y el <td> en el 14px genérico (ambos de table/th en
-     styles.css) — se fijan acá en 13px/13px para igualar exactamente a
-     .roster-table (directorio.html) e .inactivos-table (styles.css). */
+  /* sin estos font-size, el <th> quedaba en el 11px genérico y el <td> en el 14px genérico (ambos de table/th en styles.css) — se fijan acá en 13px/13px para igualar exactamente a .roster-table (directorio.html) e .inactivos-table (styles.css). Historial en CHANGELOG.md. */
   .ai-clan-card table th{font-size:13px;}
   .ai-clan-card table td{font-size:13px;}
   /* La tabla del Log de Guerra (Temporada/Semana/Rank/Boat/Trophy, pintada
@@ -374,25 +185,9 @@
   #guerraLogWrap table th{font-size:13px;}
   #guerraLogWrap table td{font-size:13px;}
   .ai-clan-card table td.col-jugador{text-align:left;}
-  /* La tabla de Activos pasó de 6 a 16 columnas (Jugador + 3 megacategorías
-     de 5 columnas c/u) — el min-width:420px genérico de .table-scroll
-     (pensado para tablas angostas como "Pendientes de Atacar" y también
-     usado por la tabla, más chica, de Inactivos de abajo) dejaría esas 16
-     columnas demasiado apretadas; se le pide más ancho mínimo antes de
-     que entre el scroll horizontal, sin tocar el resto de tablas (por eso
-     el selector va por .tbl-activos-grid y no por .ai-clan-card table). */
+  /* La tabla de Activos pasó de 6 a 16 columnas (Jugador + 3 megacategorías de 5 columnas c/u) — el min-width:420px genérico de .table-scroll (pensado para tablas angostas como "Pendientes de Atacar" y también usado por la tabla, más chica, de Inactivos de abajo)… */
   .ai-clan-card .tbl-activos-grid{min-width:760px;}
-  /* FIX (05-sep-2026, pedido usuario — "haz una sección como la hoja
-     Control_2... 'Tipo Control_2' muestra valores SEMANALES de TODA la
-     temporada, mientras que 'Tipo Control' es de valores DIARIOS para la
-     semana actual"): sección NUEVA #controlTemporadaSection, debajo de
-     Cuadrícula de Activos — mismo criterio visual (tarjeta por clan,
-     3 megacategorías Ataques/Puntaje/Barcos con .ai-grp-atq/pje/brc) pero
-     con una columna POR SEMANA de guerra ya jugada en la temporada (en
-     vez de las 4 fijas J/V/S/D) + 2 columnas de Resumen (valor + %) por
-     megacategoría al final. Arranca oculta, igual que
-     #controlActivosSection, hasta que el backend mande
-     data.controlTemporadaPorClan (ver render() más abajo). */
+  /* sección NUEVA #controlTemporadaSection, debajo de Cuadrícula de Activos — mismo criterio visual (tarjeta por clan, 3 megacategorías Ataques/Puntaje/Barcos con .ai-grp-atq/pje/brc) pero con una columna POR SEMANA de guerra ya jugada en la temporada (en vez de… Historial en CHANGELOG.md. */
   #controlTemporadaSection{display:none;}
   /* Columnas de Resumen (Total/Prom + %) al final de cada megacategoría:
      mismo tinte del grupo pero un poco más marcado, para que se note que
@@ -410,19 +205,7 @@
     text-transform:uppercase; color:var(--text-faint); margin:0 0 8px;
   }
 
-  /* ---------- Filtro/orden por columna estilo "hoja de cálculo" (10-sep-2026,
-     pedido usuario — "a las cuadrículas de valores semanales y diarios
-     agregales botones de filtro, con las mismas funciones que la hoja
-     directorio pero en la segunda fila de encabezados, para no afectar a
-     las megacategorías Ataques/Puntaje/Barcos"): mismo widget (ícono de
-     embudo + desplegable con orden/comparación/checklist) ya usado en la
-     tabla "Directorio por clan" de directorio.html — CSS traído tal cual
-     de ahí (mismas clases rt-*) para que ambas páginas se vean y se
-     sientan igual. Los botones solo se agregan a los <th> de la SEGUNDA
-     fila del <thead> (J/V/S/D/Total en Valores diarios, Sem 1..N/Total o
-     Prom/% en Valores semanales) — los <th colspan> de la primera fila
-     (Ataques/Puntaje/Barcos) no llevan botón, ver thFiltroGrid()/
-     filaSubEncabezadosMega()/filaSubEncabezadosSemanas() más abajo. */
+  /* mismo widget (ícono de embudo + desplegable con orden/comparación/checklist) ya usado en la tabla "Directorio por clan" de directorio.html — CSS traído tal cual de ahí (mismas clases rt-*) para que ambas páginas se vean y se sientan igual. Historial en CHANGELOG.md. */
   .rt-th-inner{display:flex; align-items:center; justify-content:center; gap:6px;}
   .rt-filtro-btn{
     background:transparent; border:none; cursor:pointer; padding:4px; border-radius:5px;
@@ -550,34 +333,13 @@
       <div id="resumenWrap" style="margin-top:20px;"></div>
     </section>
 
-    <!-- FIX (03-sep-2026, pedido usuario — "Pendientes de Atacar: ocultar
-         la sección cuando no es día de guerra (hoy igual se muestra con
-         '1 jugador(es)' y la fila 'No es día de guerra')"): la sección
-         siempre se pintaba sin importar ctx.esDiaGuerra, así que en día de
-         entrenamiento se veía una tabla con una fila "placeholder" que
-         confunde en vez de información real de ataques pendientes. Ahora
-         esta sección se oculta cuando no es día de guerra — ver
-         toggle en render() (id="pendSection").
-         FIX (04-sep-2026, pedido usuario — orden del Panel de Guerra):
-         "Miembros Activos por Clan" pasa a mostrarse ANTES que "Pendientes
-         de Atacar" (orden pedido: Guerra de hoy / Miembros activos /
-         Pendientes de atacar) — antes iba al revés.
-         FIX (10-sep-2026, pedido usuario — orden del Panel de Guerra):
-         "Pendientes de Atacar" y "Participación de Hoy (Reemplazos)" pasan
-         a mostrarse ENTRE "Miembros Activos por Clan" y "Valores diarios"
-         (antes iban después de "Log de Guerra"). -->
+    <!-- la sección siempre se pintaba sin importar ctx.esDiaGuerra, así que en día de entrenamiento se veía una tabla con una fila "placeholder" que confunde en vez de información real de ataques pendientes. Historial en CHANGELOG.md. -->
     <section id="pendSection" style="padding:24px 0;">
       <div class="sec-head" style="display:flex; align-items:baseline; justify-content:space-between; border-bottom:1px solid var(--line); padding-bottom:12px;">
         <h2 style="font-size:22px;">⚠️ Pendientes de Atacar</h2>
         <span class="text-faint" id="pendCount" style="font-family:var(--f-mono); font-size:13px;"></span>
       </div>
-      <!-- FIX (04-sep-2026 / 05-sep-2026, pedido usuario — ver comentario
-           completo en el <style> de arriba y en cargarMensajesGuerraSiAdmin()
-           más abajo): fila de botones "Copiar" por clan (+ Chat General),
-           visible solo para admins logueados, integrada acá mismo (antes
-           era una sección aparte más arriba en la página). Arranca vacía;
-           si no hay sesión de admin o no hay contenido, se queda vacía y
-           no ocupa espacio. -->
+      <!-- fila de botones "Copiar" por clan (+ Chat General), visible solo para admins logueados, integrada acá mismo (antes era una sección aparte más arriba en la página). Historial en CHANGELOG.md. -->
       <div class="msj-guerra-row" id="msjGuerraWrap"></div>
       <!-- FIX (12-sep-2026, pedido usuario — "agrega también los botones
            de clan(es) y Todos"): mismo patrón .tabs-row/.tab-btn que
@@ -585,27 +347,12 @@
            Arranca vacía; se llena en cuanto haya al menos una tarjeta de
            clan pintada en #pendWrap. -->
       <div class="tabs-row" id="pendClanTabs" style="margin-top:20px;"></div>
-      <!-- FIX (13-sep-2026, pedido usuario — "botones clickeables de letras
-           para filtrar el nombre por cada letra o # para números y
-           cualquier otro carácter"): fila A-Z + # debajo de las pestañas de
-           clan, se pinta una sola vez (ver pintarFiltroLetraPendientes()) y
-           solo oculta/muestra filas ya pintadas en #pendWrap -- no vuelve a
-           pedir nada al backend, mismo criterio que gestionarTabsClan(). -->
+      <!-- fila A-Z + # debajo de las pestañas de clan, se pinta una sola vez (ver pintarFiltroLetraPendientes()) y solo oculta/muestra filas ya pintadas en #pendWrap -- no vuelve a pedir nada al backend, mismo criterio que gestionarTabsClan(). Historial en CHANGELOG.md. -->
       <div class="tabs-row" id="pendLetraFilter" style="margin-top:10px;"></div>
       <div id="pendWrap" style="margin-top:14px;"></div>
     </section>
 
-    <!-- FASE 3 del plan de fases (punto 3 del documento — "cuentas y
-         ataques disponibles por día, detección de reemplazo"). Solo-admin
-         y solo día de guerra (mismo criterio que Mensajes de Guerra y
-         Aportes de Inactivos) — ver cargarParticipacionHoySiAdmin() más
-         abajo. Arranca oculta; si no hay sesión de admin, no es día de
-         guerra, o la carga falla, se queda oculta sin ocupar espacio ni
-         romper el resto de la página pública.
-         FIX (12-sep-2026, pedido usuario): versión final de esta sección
-         (antes duplicada por error en directorio.html) — ver comentario
-         completo en el <style> de arriba y en
-         renderParticipacionHoyGuerra() más abajo en el <script>. -->
+    <!-- FASE 3 del plan de fases (punto 3 del documento — "cuentas y ataques disponibles por día, detección de reemplazo"). Solo-admin y solo día de guerra (mismo criterio que Mensajes de Guerra y Aportes de Inactivos) — ver cargarParticipacionHoySiAdmin() más abajo.… Historial en CHANGELOG.md. -->
     <section id="participacionHoySection" style="padding:24px 0;">
       <div class="sec-head" style="border-bottom:1px solid var(--line); padding-bottom:12px;">
         <h2 style="font-size:22px;">🔁 Participación de Hoy (Reemplazos)</h2>
@@ -620,46 +367,7 @@
       <div id="participacionHoyWrap" style="margin-top:14px;"></div>
     </section>
 
-    <!-- FIX (05-sep-2026, pedido usuario — "Se debe agregar un panel, tipo
-         hoja Control, con algunos datos de la sección que viene de la hoja
-         Directorio pero debe priorizar las cuadrículas"): sección NUEVA y
-         aparte de "Miembros Activos por Clan" de arriba (esa solo muestra
-         un conteo/barra por clan) — acá se pinta la cuadrícula completa
-         Jugador/J/V/S/D/Total/Puntaje/Barcos de CADA miembro Activo de
-         Directorio, agrupado por su clan. PÚBLICA (visible para todos, sin
-         gate de admin, igual que el resto del contenido de esta sección de
-         la página) y se listan TODOS los Activos aunque tengan 0/0/0/0 —
-         mismo criterio que la cuadrícula real de la hoja Control. Ver
-         render() más abajo y _getControlActivosGridPorTemporada()
-         (08_Web_Endpoints.gs).
-         FIX (05-sep-2026, pedido usuario — "solo consideró ataques, falta
-         Puntaje (fame) y barcos [...] los clanes no están en el orden
-         establecido [...] Mejor dentro del primer cuadro, en cada clan,
-         primero escribe las filas de los activos y luego una sección para
-         inactivos"): 1) la tabla de cada tarjeta suma las columnas Puntaje
-         y Barcos (además de J/V/S/D/Total de ataques, que ya existían);
-         2) las tarjetas se ordenan con ordenClanIndex() (assets/common.js)
-         en vez de alfabético; 3) cada tarjeta de clan ahora también carga,
-         debajo de la tabla de Activos, el bloque de Inactivos (solo-admin
-         — ver cargarAportesInactivosSiAdmin() más abajo), en vez de vivir
-         en una sección aparte debajo de "Pendientes de Atacar".
-         FIX (09-sep-2026, pedido usuario — "reestructurar, ya no es solo
-         semana actual, sino 'Valores diarios' [...] añade un selector de
-         año [...] selector de temporada [...] y el tercero es el selector
-         de semana [...] por defecto se debe seleccionar el año, temporada
-         y semana más recientes disponibles"): la sección se renombra de
-         "Cuadrícula de Activos (Semana Actual)" a "Valores diarios" y el
-         único <select> de semana (limitado a la temporada vigente) se
-         reemplaza por 3 selectores encadenados -- año, temporada (mes) y
-         semana -- que cubren CUALQUIER combinación con datos, no solo la
-         temporada en curso. Base.md ya manda data.valoresDiariosSelectores
-         ({anios, temporadasPorAnio, semanasPorTemporada, porDefecto}) y
-         data.valoresDiariosPorSemana ({[temporada]:{[sectionIndex]: mismo
-         shape que antes traía controlActivosSemanaActual}}) -- ver
-         pintarSelectoresValoresDiarios() más abajo, que ya los consume.
-         Los 3 <select> arrancan ocultos por CSS y solo cuando esos 2
-         campos no llegan (ej. Web App vieja) se quedan así en vez de
-         romper. -->
+    <!-- sección NUEVA y aparte de "Miembros Activos por Clan" de arriba (esa solo muestra un conteo/barra por clan) — acá se pinta la cuadrícula completa Jugador/J/V/S/D/Total/Puntaje/Barcos de CADA miembro Activo de Directorio, agrupado por su clan. Historial en CHANGELOG.md. -->
     <section id="controlActivosSection" style="padding:24px 0;">
       <div class="sec-head" style="display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:10px; border-bottom:1px solid var(--line); padding-bottom:12px;">
         <h2 style="font-size:22px;">🗂️ Valores diarios</h2>
@@ -669,21 +377,9 @@
           <select id="semanaActivosSelect" style="display:none; font-family:var(--f-mono); font-size:12px; background:var(--surface-card); color:var(--text); border:1px solid var(--line-strong); border-radius:var(--radius-sm); padding:5px 10px;"></select>
         </div>
       </div>
-      <!-- FIX (07-sep-2026, pedido usuario — "que se siga mostrando los
-           valores de la última guerra mientras se esté en entrenamiento
-           [...] hasta el cambio de periodIndex [...] y se debe actualizar
-           recién cuando empiece la guerra del jueves"): aviso visible solo
-           cuando esta cuadrícula está mostrando la foto guardada de la
-           última guerra en vez de datos en vivo de entrenamiento, Y el
-           usuario no eligió manualmente otra semana -- ver rama `else`
-           dentro de render() más abajo. -->
+      <!-- aviso visible solo cuando esta cuadrícula está mostrando la foto guardada de la última guerra en vez de datos en vivo de entrenamiento, Y el usuario no eligió manualmente otra semana -- ver rama `else` dentro de render() más abajo. Historial en CHANGELOG.md. -->
       <div id="controlActivosCacheAviso" class="text-faint" style="display:none; font-family:var(--f-mono); font-size:11px; margin-top:10px;"></div>
-      <!-- FIX (07-sep-2026, pedido usuario — "botones horizontales para
-           seleccionar el clan"): pestañas tipo .tabs-row/.tab-btn (mismo
-           patrón ya usado en "Log de Guerra") que filtran, sin volver a
-           pedir datos, cuál(es) tarjeta(s) .ai-clan-card se muestran.
-           Arranca vacío; gestionarTabsClan() (más abajo) la llena en cuanto
-           hay al menos una tarjeta de clan pintada en #controlActivosWrap. -->
+      <!-- pestañas tipo .tabs-row/.tab-btn (mismo patrón ya usado en "Log de Guerra") que filtran, sin volver a pedir datos, cuál(es) tarjeta(s) .ai-clan-card se muestran. Historial en CHANGELOG.md. -->
       <div class="tabs-row" id="controlActivosClanTabs" style="margin-top:20px;"></div>
       <!-- FIX (13-sep-2026, pedido usuario — "agrega los botones de letras
            en Valores diarios y Valores semanales"): mismo patrón A-Z/# que
@@ -695,38 +391,7 @@
     </section>
 
 
-    <!-- FIX (05-sep-2026, pedido usuario — "haz una sección como la hoja
-         Control_2, solo por referencia visual, ya que la hoja Control_2
-         trae datos de otra parte y debes basarte en los csv, igual que en
-         la sección tipo hoja Control... 'Tipo Control_2' muestra valores
-         semanales de toda la temporada, mientras que 'Tipo Control' es de
-         valores diarios para la semana actual. Va debajo de 🗂️ Cuadrícula
-         de Activos"): sección PÚBLICA (sin gate de admin, mismo criterio
-         que la de arriba), una tarjeta por clan con Jugador +
-         Ataques/Puntaje/Barcos, pero cada megacategoría trae una columna
-         por SEMANA de guerra ya jugada en la temporada actual (sacadas de
-         la hoja Guerra/Backup_Guerra.csv — misma fuente que ya usa
-         _webHistorialGuerraComparador() para el Cara a cara, NO la hoja
-         Control_2 real de la Sheet, que arma sus semanas con datos de otra
-         parte fuera del alcance de este sitio) + Resumen (Total para
-         Ataques/Barcos, Prom para Puntaje) y % al final de cada una.
-         FIX (09-sep-2026, pedido usuario — "🗓️ Cuadrícula de Temporada
-         (Semanal) también puede cambiar de nombre si es apropiado, se le
-         debe añadir el selector de año y reemplazar el selector de
-         temporada por el de mes, tal como se definió para la otra
-         cuadrícula"): la sección se renombra a "Valores semanales"
-         (pareja de "Valores diarios" de arriba) y el único <select> de
-         temporada se reemplaza por 2 selectores encadenados -- año y
-         temporada (mostrada como mes) -- mismo patrón visual y de datos
-         que "Valores diarios" (año/temporada de
-         data.controlTemporadaSelectores, ver
-         _getControlTemporadaSelectores(), 08_Web_Endpoints.gs), sin nivel
-         de semana porque esta cuadrícula siempre muestra las 5 semanas de
-         la temporada elegida juntas. Ver render() más abajo —
-         data.controlTemporadaPorClan/data.controlTemporadaSemanas siguen
-         siendo la temporada vigente, y data.controlTemporadaPorTemporada
-         sigue trayendo el resto de temporadas (sin cambios en esos 3
-         campos, solo en cómo se eligen). -->
+    <!-- sección PÚBLICA (sin gate de admin, mismo criterio que la de arriba), una tarjeta por clan con Jugador + Ataques/Puntaje/Barcos, pero cada megacategoría trae una columna por SEMANA de guerra ya jugada en la temporada actual (sacadas de la hoja… Historial en CHANGELOG.md. -->
     <section id="controlTemporadaSection" style="padding:24px 0;">
       <div class="sec-head" style="display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:10px; border-bottom:1px solid var(--line); padding-bottom:12px;">
         <h2 style="font-size:22px;">🗓️ Valores semanales</h2>
@@ -745,21 +410,7 @@
       <div id="controlTemporadaWrap" style="margin-top:14px;"></div>
     </section>
 
-    <!-- FASE 13 punto 1 del plan de cambios web (07-sep-2026) -- vista (a)
-         del tab "Log" de guerra de RoyaleAPI (royaleapi.com/clan/<TAG>/war/log),
-         recreada con datos propios: histórico Temporada -> Semana ->
-         Rank/Boat/Trophy de cada clan Terna, leído de la hoja Guerra_Logs
-         (acumulativa, nunca se purga -- cubre TODAS las temporadas, no
-         solo la actual). Sección PÚBLICA (sin gate de admin, mismo
-         criterio que "Cuadrícula de Activos"/"Cuadrícula de Temporada" de
-         arriba: son datos de guerra de los propios clanes Terna, no
-         información sensible). Se carga UNA sola vez al entrar a la
-         página (ver cargarGuerraLog() más abajo) -- es histórico
-         acumulado, no un dato en vivo, así que no necesita refrescarse
-         cada REFRESH_INTERVAL_MS como el resto del dashboard. Arranca
-         oculta; si el backend no devuelve ningún clan con historial (o la
-         carga falla), se queda oculta sin ocupar espacio ni romper el
-         resto de la página pública. -->
+    <!-- Log de Guerra: histórico por clan (Temporada → Semana → Rank/Boat/Trophy), sección pública que se carga una sola vez al entrar a la página. Historial en CHANGELOG.md. -->
     <section id="guerraLogSection" style="padding:24px 0; display:none;">
       <div class="sec-head" style="border-bottom:1px solid var(--line); padding-bottom:12px;">
         <h2 style="font-size:22px;">📜 Log de Guerra (Histórico)</h2>
@@ -768,22 +419,12 @@
       <div id="guerraLogWrap"></div>
     </section>
 
-    <!-- "Ingresos Recientes" (nuevo-grid): MOVIDO a directorio.html, al
-         final de Directorio (pedido usuario, 04-sep-2026 — "Los ingresos
-         recientes deben moverse a Directorio (al final)"). Ver
-         cargarIngresosRecientes() en directorio.html — sigue consumiendo el
-         mismo 'data.nuevos' de webGuerraEnVivo, solo que ahora esa página
-         hace su propio fetch en vez de reusar el de acá. -->
+    <!-- "Ingresos Recientes" (nuevo-grid): MOVIDO a directorio.html, al final de Directorio (pedido usuario, 04-sep-2026 — "Los ingresos recientes deben moverse a Directorio (al final)"). Ver cargarIngresosRecientes() en directorio.html — sigue consumiendo el mismo… -->
 
   </div>
 
   <footer>
-    <!-- FIX (31-ago-2026, pedido usuario — "la sección negra tiene el
-         texto muy pegado al contenedor, debe tener cierto margen"): este
-         footer traía style="padding:0" que anulaba el padding:0 24px de
-         .wrap (única página del sitio que lo hacía), pegando el texto al
-         borde izquierdo/derecho. Se quita el override y queda igual que
-         el footer de todas las demás páginas. -->
+    <!-- este footer traía style="padding:0" que anulaba el padding:0 24px de .wrap (única página del sitio que lo hacía), pegando el texto al borde izquierdo/derecho. Historial en CHANGELOG.md. -->
     <div class="wrap">
       <span>Familia Terna · Portal de la comunidad</span>
       <span id="updatedAt"></span>
@@ -794,32 +435,14 @@
 <script src="assets/common.js"></script>
 <script>
 const REFRESH_INTERVAL_MS = 60000;
-// Los días de guerra son siempre Jueves→Domingo. El backend manda la letra
-// real de cada uno en ctx.diaLetra / data.diasSemanaGuerra[].letra: 'J','V',
-// 'S','D' (Jueves/Viernes/Sábado/Domingo — ver CFG.DIA_LETRAS en
-// 02_Formato_Comun.gs), NO 'A'/'B'/'C'/'D'. Antes este arreglo usaba
-// 'A'/'B'/'C'/'D' para saber cuál día resaltar como "HOY", por lo que la
-// comparación con ctx.diaLetra nunca coincidía salvo por casualidad en
-// domingo (pedido del PDF de diseño, 28-ago-2026 — corregido acá).
+// Los días de guerra son siempre Jueves→Domingo. El backend manda la letra real de cada uno en ctx.diaLetra / data.diasSemanaGuerra[].letra: 'J','V', 'S','D' (Jueves/Viernes/Sábado/Domingo — ver CFG.DIA_LETRAS en 02_Formato_Comun.gs), NO 'A'/'B'/'C'/'D'. Antes…
 const DIAS = [
   {letra:'J', label:'Jue'}, {letra:'V', label:'Vie'},
   {letra:'S', label:'Sáb'}, {letra:'D', label:'Dom'}
 ];
 let lastFetchAt = null;
 let prevValues  = {};
-// FIX (07-sep-2026, pedido usuario — filtros de clan/semana/temporada de
-// las cuadrículas "Activos" y "Temporada"): estado de los selectores,
-// a nivel de módulo para que sobrevivan a cada repintado de render()
-// (cada REFRESH_INTERVAL_MS). null = "vigente" (semana/temporada). Ver
-// pintarSelectoresValoresDiarios() y pintarSelectoresControlTemporada() más abajo.
-// FIX (07-sep-2026, pedido usuario — "mueve el botón de Todos a la
-// derecha de Mini Ternas para que cargue por defecto el clan principal en
-// las dos secciones"): clanSeleccionadoActivos/Temporada ya NO usan null
-// para representar "Todos" — null ahora significa exclusivamente "sin
-// elegir todavía" y gestionarTabsClan() lo resuelve cayendo al primer clan
-// (Principal) en vez de a Todos. "Todos" pasa a ser un valor propio y
-// explícito, TAB_TODOS, que solo se fija cuando el usuario hace clic en
-// ese botón. Ver gestionarTabsClan() más abajo para el detalle completo.
+// estado de los selectores, a nivel de módulo para que sobrevivan a cada repintado de render() (cada REFRESH_INTERVAL_MS). null = "vigente" (semana/temporada). Historial en CHANGELOG.md.
 const TAB_TODOS = '__todos__';
 let clanSeleccionadoActivos = null;
 let clanSeleccionadoTemporada = null;
@@ -830,30 +453,12 @@ let clanSeleccionadoTemporada = null;
 // gestionarTabsClan() más abajo, que ya es genérica para cualquier sección.
 let clanSeleccionadoPend = null;
 let clanSeleccionadoParticipacion = null;
-// FIX (13-sep-2026, pedido usuario — "botones clickeables de letras para
-// filtrar el nombre"): estado del filtro por letra de Pendientes, a nivel
-// de módulo para que sobreviva a cada repintado de render() (mismo
-// criterio que clanSeleccionadoPend de arriba). null = "todas las letras"
-// (sin filtrar). Ver pintarFiltroLetraPendientes()/aplicarFiltroLetraPendientes()
-// más abajo.
+// estado del filtro por letra de Pendientes, a nivel de módulo para que sobreviva a cada repintado de render() (mismo criterio que clanSeleccionadoPend de arriba). null = "todas las letras" (sin filtrar). Historial en CHANGELOG.md.
 let letraSeleccionadaPend = null;
-// FIX (13-sep-2026, pedido usuario — "agrega los botones de letras en
-// 🗂️ Valores diarios y 🗓️ Valores semanales"): mismo patrón/estado que
-// letraSeleccionadaPend de arriba, uno por sección (cada cuadrícula tiene
-// su propia tabla por clan, así que el filtro es independiente entre
-// Activos y Temporada). Ver pintarFiltroLetraGrid()/letraFiltroDeGridId()
-// más abajo, que generalizan pintarFiltroLetraPendientes() para poder
-// aplicarse sobre varias tablas (una por clan) a la vez.
+// mismo patrón/estado que letraSeleccionadaPend de arriba, uno por sección (cada cuadrícula tiene su propia tabla por clan, así que el filtro es independiente entre Activos y Temporada). Historial en CHANGELOG.md.
 let letraSeleccionadaActivos = null;
 let letraSeleccionadaTemporada = null;
-// FIX (09-sep-2026, pedido usuario — selectores de año/temporada(mes)/
-// semana para "Valores diarios"): antes solo existía
-// sectionIndexSeleccionadoActivos (semana dentro de la temporada vigente);
-// ahora se agregan anioSeleccionadoActivos/temporadaSeleccionadaActivos
-// para poder elegir CUALQUIER combinación con datos. Los 3 arrancan en
-// null ("todavía no se aplicó ningún default") y pintarSelectoresValoresDiarios()
-// (más abajo) los fija al año/temporada/semana más recientes disponibles
-// la primera vez que llegan data.valoresDiariosSelectores.
+// antes solo existía sectionIndexSeleccionadoActivos (semana dentro de la temporada vigente); ahora se agregan anioSeleccionadoActivos/temporadaSeleccionadaActivos para poder elegir CUALQUIER combinación con datos. Historial en CHANGELOG.md.
 let anioSeleccionadoActivos = null;
 let temporadaSeleccionadaActivos = null;
 let sectionIndexSeleccionadoActivos = null;
@@ -904,13 +509,7 @@ async function cargar(manual){
   const refreshBtn = document.getElementById('refreshBtn');
   if(refreshBtn){ refreshBtn.classList.add('spinning'); refreshBtn.disabled = true; }
   try{
-    // FIX (30-ago-2026, pedido usuario — revisión de seguridad): antes esto
-    // pegaba directo a ?dashboard=json con un token de administradores
-    // (fm7qterna9x) hardcodeado acá mismo, visible para cualquiera con "Ver
-    // código fuente" de esta página PÚBLICA. Ahora usa apiGet() (mismo
-    // WEB_MEMBER_TOKEN de solo-lectura que ya usan index.html/directorio.html/
-    // etc., ver assets/common.js) contra el nuevo endpoint webGuerraEnVivo
-    // (34_Web_API.gs), que devuelve exactamente los mismos datos.
+// antes esto pegaba directo a ?dashboard=json con un token de administradores (fm7qterna9x) hardcodeado acá mismo, visible para cualquiera con "Ver código fuente" de esta página PÚBLICA. Historial en CHANGELOG.md.
     const data = await apiGet('webGuerraEnVivo', null, { sinCache: true });
     render(data);
     lastFetchAt = new Date();
@@ -927,28 +526,9 @@ async function cargar(manual){
     if(refreshBtn){ refreshBtn.classList.remove('spinning'); refreshBtn.disabled = false; }
   }
 }
-/**
- * claseCeldaCA(n) / celdasMegacategoria(m, gpClase, conColor)
- * FIX (05-sep-2026, pedido usuario — "los inactivos estaban trayendo solo
- * la categoría ataques, faltaba puntaje y barcos"): antes vivían como
- * const LOCALES dentro de render() (solo para la Cuadrícula de Activos).
- * Se hoistean a nivel de módulo para que cargarAportesInactivosSiAdmin()
- * (más abajo) pueda pintar el mismo bloque de 3 megacategorías
- * (Ataques/Puntaje/Barcos) para Inactivos sin duplicar esta lógica.
- */
+/* claseCeldaCA(n) / celdasMegacategoria(m, gpClase, conColor) Historial en CHANGELOG.md. */
 function claseCeldaCA(n){ return n >= 4 ? 'ai-cell ai-cell-full' : (n > 0 ? 'ai-cell ai-cell-part' : 'ai-cell ai-cell-zero'); }
-/**
- * celdasMegacategoria(m, gpClase, conColor, keyPrefix)
- * FIX (10-sep-2026, pedido usuario — filtro/orden por columna en la
- * segunda fila de encabezados): se agrega el 4° parámetro `keyPrefix`
- * (opcional, ej. 'atq'/'pje'/'brc') SOLO para que cada <td> lleve
- * data-col="{keyPrefix}-j|v|s|d|total" + data-raw="{valor crudo}" — así
- * el widget genérico de filtro (gridFiltroAplicar()/gridFiltroColumnas()
- * más abajo) puede encontrar la celda de cada columna y su valor sin
- * volver a tocar los datos originales. Si no se pasa keyPrefix (llamadas
- * ya existentes, ej. el bloque de Inactivos) el comportamiento no cambia
- * en nada: ningún data-col/data-raw, mismo HTML de siempre.
- */
+/* celdasMegacategoria(m, gpClase, conColor, keyPrefix) Historial en CHANGELOG.md. */
 function celdasMegacategoria(m, gpClase, conColor, keyPrefix){
   const j = m?.j ?? 0, v = m?.v ?? 0, s = m?.s ?? 0, d = m?.d ?? 0, total = m?.total ?? 0;
   const claseDia = (n) => `${gpClase} ${conColor ? claseCeldaCA(n) : 'ai-num'}`;
@@ -962,37 +542,11 @@ function celdasMegacategoria(m, gpClase, conColor, keyPrefix){
                 <td class="${claseTotal}"${dc('total', total)}>${fmtNum(total)}</td>`;
 }
 
-/**
- * celdasSemanas(megacat, gpClase, conColor)
- * Equivalente a celdasMegacategoria() pero para el "Tipo Control_2"
- * (Cuadrícula de Temporada): en vez de 4 columnas fijas J/V/S/D, pinta una
- * columna por cada semana ya jugada de la temporada (megacat.semanas,
- * array), más las 2 columnas de Resumen al final. FIX (17-sep-2026): el
- * backend NUNCA manda un campo `resumen` -- manda `megacat.total`
- * (Ataques/Barcos) o `megacat.prom` (Puntaje), más `megacat.pct`. Esta
- * función normaliza ambos nombres a una sola variable local `resumen`
- * para pintar la columna, sin importar cuál mandó el backend. conColor=true aplica el mismo semáforo
- * ai-cell-zero/part/full que usa Ataques en la Cuadrícula de Activos
- * (0/parcial/16); Puntaje y Barcos van sin semáforo, igual que en esa
- * tabla.
- */
-/**
- * celdasSemanas(megacat, gpClase, conColor, keyPrefix)
- * Mismo criterio y mismo 4° parámetro `keyPrefix` (opcional) que
- * celdasMegacategoria() de arriba — ver ese docblock. Acá las claves de
- * columna son "{keyPrefix}-sem{i}" (una por semana), "{keyPrefix}-resumen"
- * y "{keyPrefix}-pct".
- */
+/* celdasSemanas(megacat, gpClase, conColor) Equivalente a celdasMegacategoria() pero para el "Tipo Control_2" (Cuadrícula de Temporada): en vez de 4 columnas fijas J/V/S/D, pinta una columna por cada semana ya jugada de la temporada (megacat.semanas, Historial en CHANGELOG.md. */
+/* celdasSemanas(megacat, gpClase, conColor, keyPrefix) Mismo criterio y mismo 4° parámetro `keyPrefix` (opcional) que celdasMegacategoria() de arriba — ver ese docblock. Acá las claves de columna son "{keyPrefix}-sem{i}" (una por semana), "{keyPrefix}-resumen"… */
 function celdasSemanas(megacat, gpClase, conColor, keyPrefix){
   const semanas = Array.isArray(megacat?.semanas) ? megacat.semanas : [];
-  // FIX (17-sep-2026, pedido usuario -- Total/Prom siempre en 0 en
-  // "Valores semanales"): _getControlTemporadaPorClan() (20_Control2_
-  // GuerraSemanal.gs) nunca devuelve un campo `resumen` -- devuelve
-  // `total` para Ataques/Barcos y `prom` para Puntaje (ver docblock de esa
-  // función). Esta celda leía `megacat.resumen`, que siempre es
-  // `undefined`, así que la columna Total/Prom quedaba en 0 sin importar
-  // los datos reales. Se usa `??` (no `||`) para no pisar un total/prom
-  // que legítimamente sea 0.
+// _getControlTemporadaPorClan() (20_Control2_ GuerraSemanal.gs) nunca devuelve un campo `resumen` -- devuelve `total` para Ataques/Barcos y `prom` para Puntaje (ver docblock de esa función). Historial en CHANGELOG.md.
   const resumen = Number(megacat?.resumen ?? megacat?.total ?? megacat?.prom) || 0;
   const pct = Number(megacat?.pct) || 0;
   const claseSemana = (n) => `${gpClase} ${conColor ? claseCeldaCA(n) : 'ai-num'}`;
@@ -1007,30 +561,7 @@ function celdasSemanas(megacat, gpClase, conColor, keyPrefix){
                 <td class="${claseResumen}"${dc('pct', pct)}>${pct}%</td>`;
 }
 
-/* =========================================================================
- * FIX (10-sep-2026, pedido usuario — "a las cuadrículas de valores
- * semanales y diarios agregales botones de filtro, con las mismas
- * funciones que la hoja directorio pero en la segunda fila de
- * encabezados"): widget genérico de filtro/orden por columna, calcado del
- * de "Directorio por clan" (directorio.html, ver ROSTER_COLUMNAS/
- * abrirFiltroColumna() ahí) pero generalizado para poder colgarse de
- * CUALQUIER tabla de esta página (hay una tabla POR CLAN, tanto en
- * Valores diarios como en Valores semanales) en vez de una sola tabla
- * global. Cada tabla se identifica con un `gridId` propio (ej.
- * "activos:Terna 2", "temporada:Mini Ternas") — el estado de filtro/orden
- * de cada una vive aparte en `gridEstados[gridId]` y SOBREVIVE a los
- * refrescos automáticos (REFRESH_INTERVAL_MS, ver cargar()) porque
- * inicializarGridFiltro() se llama de nuevo en cada render() y reusa el
- * estado ya guardado en vez de reiniciarlo.
- *
- * Cada "columna" de este widget es un objeto { key, raw(fila) } — `raw`
- * es una función que, dado el objeto de datos de una fila (el mismo `f`
- * que ya arma celdasMegacategoria()/celdasSemanas()), devuelve el valor
- * numérico crudo de esa columna. columnasActivosDef()/columnasTemporadaDef()
- * más abajo arman esa lista para cada tabla; los <td> ya traen ese mismo
- * valor en data-raw (ver dc() dentro de celdasMegacategoria/celdasSemanas)
- * así que no hace falta volver a calcularlo al filtrar.
- * ========================================================================= */
+/* widget genérico de filtro/orden por columna, calcado del de "Directorio por clan" (directorio.html, ver ROSTER_COLUMNAS/ abrirFiltroColumna() ahí) pero generalizado para poder colgarse de CUALQUIER tabla de esta página (hay una tabla POR CLAN, tanto en… Historial en CHANGELOG.md. */
 const ICONO_FILTRO_GRID = '<svg viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M1 2.5A.5.5 0 0 1 1.5 2h13a.5.5 0 0 1 .4.8L10 9.4V13a.5.5 0 0 1-.2.4l-2 1.5A.5.5 0 0 1 7 14.5v-5.1L1.1 2.8A.5.5 0 0 1 1 2.5z"/></svg>';
 const gridEstados = {}; // gridId -> { filtros:{colKey: Set|{{operador,valor}}}, orden:{colKey,dir}|null }
 let gridFiltroPopEl = null;
@@ -1128,13 +659,7 @@ function gridRepintar(gridId, tabla, columnas, filasBase, renderFila){
   gridActualizarIconos(gridId, tabla);
 }
 
-/**
- * letraFiltroDeGridId(gridId) → letra seleccionada (o null) para la
- * sección a la que pertenece esta tabla, según el prefijo de gridId
- * ("activos:<clan>" o "temporada:<clan>", ver renderFilaActivos/
- * renderFilaTemporada más abajo). FIX (13-sep-2026, pedido usuario —
- * "agrega los botones de letras en Valores diarios y Valores semanales").
- */
+/* letraFiltroDeGridId(gridId) → letra seleccionada (o null) para la sección a la que pertenece esta tabla, según el prefijo de gridId ("activos:<clan>" o "temporada:<clan>", ver renderFilaActivos/ Historial en CHANGELOG.md. */
 function letraFiltroDeGridId(gridId){
   if (gridId.startsWith('activos:')) return letraSeleccionadaActivos;
   if (gridId.startsWith('temporada:')) return letraSeleccionadaTemporada;
@@ -1144,12 +669,7 @@ function letraFiltroDeGridId(gridId){
 function gridAplicarFiltros(gridId, tabla){
   const estado = gridEstadoDe(gridId);
   const cols = Object.keys(estado.filtros);
-  // FIX (13-sep-2026, pedido usuario): además de los filtros numéricos por
-  // columna (estado.filtros), cada fila también debe pasar el filtro por
-  // letra de la sección (si hay alguno elegido) para que ambos filtros se
-  // puedan combinar sin pisarse -- ver letraFiltroDeGridId() arriba y
-  // pintarFiltroLetraGrid() más abajo, que dispara este mismo chequeo al
-  // hacer clic en una letra (sin volver a pedir nada al backend).
+// además de los filtros numéricos por columna (estado.filtros), cada fila también debe pasar el filtro por letra de la sección (si hay alguno elegido) para que ambos filtros se puedan combinar sin pisarse -- ver letraFiltroDeGridId() arriba y… Historial en CHANGELOG.md.
   const letraSel = letraFiltroDeGridId(gridId);
   tabla.querySelectorAll('tbody tr').forEach(fila => {
     const pasaCols = cols.every(colKey => {
@@ -1323,57 +843,8 @@ function inicializarGridFiltro(gridId, tabla, columnas, filasBase, renderFila){
   });
 }
 
-/**
- * gestionarTabsClan(tabsWrapId, wrapId, obtenerSel, fijarSel)
- * FIX (07-sep-2026, pedido usuario — "botones horizontales para
- * seleccionar el clan" en Activos y en Temporada): botonera .tabs-row/
- * .tab-btn (mismo patrón visual ya usado en "Log de Guerra") que agrega un
- * botón por cada clan que YA tiene una tarjeta .ai-clan-card pintada
- * dentro de `wrapId` (data-clan de cada tarjeta) + "Todos" y, al hacer
- * clic, solo oculta/muestra tarjetas ya existentes en el DOM -- no vuelve
- * a pedir nada al backend. Se reconstruye cada vez que cambia el set de
- * tarjetas visibles (cada render() y, en Activos, también cuando
- * cargarAportesInactivosSiAdmin() agrega una tarjeta nueva para un clan
- * sin Activos) para no dejar afuera ningún clan nuevo, y conserva la
- * selección vigente entre repintados -- si el clan seleccionado deja de
- * tener tarjeta (ej. cambia el orden o ya no tiene datos esta semana),
- * cae al default de abajo (clan Principal) en vez de dejar la cuadrícula
- * vacía por error.
- *
- * FIX (07-sep-2026, pedido usuario — "mueve el botón de Todos a la
- * derecha de Mini Ternas para que cargue por defecto el clan principal en
- * las dos secciones"): dos cambios sobre la versión anterior:
- *   1) El botón "Todos" ahora se pinta AL FINAL de la fila (después del
- *      último clan, ej. Mini Ternas), no al principio -- `clanes` ya
- *      llega ordenado con ordenClanIndex() (mismo orden oficial Principal/
- *      Terna 2/Terna 3/Mini Ternas, ver render() más arriba), así que solo
- *      se movió TAB_TODOS al final del array antes de mapear los <button>.
- *   2) "Todos" deja de ser el default de carga: si `obtenerSel()` todavía
- *      no tiene nada elegido (null, primera carga de la página), se cae
- *      al primer clan de `clanes` -- el Principal -- en vez de a Todos.
- *      Esto requirió separar "sin elegir todavía" (null) de "Todos
- *      elegido a propósito" (ahora el valor propio TAB_TODOS, ver arriba)
- *      -- antes ambos casos compartían `null` y por eso la carga inicial
- *      siempre arrancaba mostrando todos los clanes.
- */
-/**
- * enlazarScrollsHorizontales(wrapId)
- * FIX (09-sep-2026, pedido usuario — "barra de navegación al inicio y
- * final de cada cuadrícula si hay que desplazarse horizontalmente"):
- * recorre cada .ai-clan-card dentro de `wrapId` y, si trae las franjas
- * .grid-hscroll-top/.grid-hscroll-bottom (ver plantilla en render() y el
- * <style> .grid-hscroll de más arriba), las sincroniza con el scroll
- * real de la tabla (.table-scroll): mover cualquiera de las 3 — la
- * franja de arriba, la de abajo, o la propia tabla — mueve a las otras
- * dos. `.grid-hscroll-inner` no tiene contenido propio; su único trabajo
- * es fijar el ancho del "carrete" de scroll (igual a tabla.scrollWidth)
- * para que la franja fina se sienta como una barra de scroll de verdad.
- * IMPORTANTE: se llama ANTES de gestionarTabsClan() (que oculta con
- * display:none las tarjetas de clan no seleccionadas) — un elemento
- * oculto mide scrollWidth 0, así que medir después dejaría las barras de
- * las tarjetas no visibles en el primer render rotas para cuando el
- * usuario cambie de pestaña.
- */
+/* gestionarTabsClan(tabsWrapId, wrapId, obtenerSel, fijarSel) Historial en CHANGELOG.md. */
+/* enlazarScrollsHorizontales(wrapId) Historial en CHANGELOG.md. */
 function enlazarScrollsHorizontales(wrapId){
   const wrap = document.getElementById(wrapId);
   if (!wrap) return;
@@ -1395,13 +866,7 @@ function enlazarScrollsHorizontales(wrapId){
         sincronizando = false;
       });
     });
-    // El ancho de la tabla puede cambiar si la ventana cambia de tamaño
-    // (columnas que se comprimen/expanden con el layout responsive).
-    // offsetParent === null cuando la tarjeta está oculta por una pestaña
-    // de clan distinta (gestionarTabsClan le pone display:none): en ese
-    // caso scrollWidth daría 0 y arruinaría el ancho de las barras para
-    // cuando se vuelva a esa pestaña, así que el resize se ignora hasta
-    // que la tarjeta esté visible de nuevo.
+// El ancho de la tabla puede cambiar si la ventana cambia de tamaño (columnas que se comprimen/expanden con el layout responsive). offsetParent === null cuando la tarjeta está oculta por una pestaña de clan distinta (gestionarTabsClan le pone display:none): en…
     window.addEventListener('resize', () => { if (tabla.offsetParent !== null) fijarAncho(); });
   });
 }
@@ -1431,16 +896,7 @@ function gestionarTabsClan(tabsWrapId, wrapId, obtenerSel, fijarSel){
   aplicarFiltro();
 }
 
-/**
- * primeraLetraFiltro(nombre) → 'A'..'Z'/'Ñ' o '#' (números/símbolos/vacío).
- * FIX (13-sep-2026, pedido usuario — "botones clickeables de letras para
- * filtrar el nombre por cada letra o # para números y cualquier otro
- * carácter"): clasifica cada fila de Pendientes según el primer carácter
- * de su nombre visible, para que el filtro por letra (ver
- * pintarFiltroLetraPendientes()/aplicarFiltroLetraPendientes() abajo)
- * sepa qué botón le corresponde a cada <tr>. Cualquier carácter que no
- * sea letra A-Z/Ñ (dígito, símbolo, emoji, o nombre vacío) cae en '#'.
- */
+/* primeraLetraFiltro(nombre) → 'A'..'Z'/'Ñ' o '#' (números/símbolos/vacío). Historial en CHANGELOG.md. */
 function primeraLetraFiltro(nombre){
   const t = String(nombre || '').trim();
   if (!t) return '#';
@@ -1450,17 +906,7 @@ function primeraLetraFiltro(nombre){
 
 const LETRAS_FILTRO_PEND = ['#','A','B','C','D','E','F','G','H','I','J','K','L','M','N','Ñ','O','P','Q','R','S','T','U','V','W','X','Y','Z'];
 
-/**
- * pintarFiltroLetraPendientes()
- * Pinta la fila de botones A-Z/# UNA SOLA VEZ (guardia por dataset.pintado
- * — a diferencia de gestionarTabsClan(), esta fila no depende de qué
- * clanes trajo el backend, así que no hace falta reconstruirla en cada
- * render()/REFRESH_INTERVAL_MS). Cada clic alterna (toggle): tocar la
- * letra ya activa vuelve a mostrar todas las filas. Solo oculta/muestra
- * <tr> ya pintados dentro de #pendWrap (ver aplicarFiltroLetraPendientes())
- * -- no vuelve a pedir nada al backend, mismo criterio que
- * gestionarTabsClan().
- */
+/* pintarFiltroLetraPendientes() Pinta la fila de botones A-Z/# UNA SOLA VEZ (guardia por dataset.pintado — a diferencia de gestionarTabsClan(), esta fila no depende de qué clanes trajo el backend, así que no hace falta reconstruirla en cada… */
 function pintarFiltroLetraPendientes(){
   const wrap = document.getElementById('pendLetraFilter');
   if (!wrap || wrap.dataset.pintado) return;
@@ -1489,22 +935,7 @@ function aplicarFiltroLetraPendientes(){
   });
 }
 
-/**
- * pintarFiltroLetraGrid(filtroWrapId, tablasWrapId, obtenerSel, fijarSel)
- * FIX (13-sep-2026, pedido usuario — "agrega los botones de letras en
- * 🗂️ Valores diarios y 🗓️ Valores semanales"): versión generalizada de
- * pintarFiltroLetraPendientes()/aplicarFiltroLetraPendientes() de arriba,
- * para secciones que pintan VARIAS tablas (una por clan, ver
- * renderFilaActivos/renderFilaTemporada más abajo, que ya marcan cada
- * <tr> con data-letra) en vez de una sola. Se pinta una sola vez por
- * sección (guardia por dataset.pintado, igual que la de Pendientes) y,
- * al hacer clic, no oculta/muestra los <tr> directamente -- en su lugar
- * llama a gridAplicarFiltros() de cada tabla visible dentro de
- * `tablasWrapId`, que ya combina este filtro por letra con el filtro/
- * orden numérico por columna que esas cuadrículas ya traían (ver
- * letraFiltroDeGridId() más arriba), para que ninguno de los dos filtros
- * se pise con el otro.
- */
+/* pintarFiltroLetraGrid(filtroWrapId, tablasWrapId, obtenerSel, fijarSel) Historial en CHANGELOG.md. */
 function pintarFiltroLetraGrid(filtroWrapId, tablasWrapId, obtenerSel, fijarSel){
   const wrap = document.getElementById(filtroWrapId);
   if (!wrap || wrap.dataset.pintado) return;
@@ -1535,32 +966,7 @@ function aplicarFiltroLetraGrid(tablasWrapId){
   });
 }
 
-/**
- * pintarSelectoresValoresDiarios(data)
- * FIX (09-sep-2026, pedido usuario — "añade un selector de año [...]
- * selector de temporada [...] y el tercero es el selector de semana [...]
- * ya no se muestran solo semanas de la temporada actual, sino cualquiera
- * disponible según el año y la temporada seleccionada [...] por defecto se
- * debe seleccionar el año, temporada y semana más recientes disponibles"):
- * reemplaza a la vieja pintarSelectorSemanaActivos() (un solo <select> de
- * semana, acotado a la temporada vigente) por 3 <select> encadenados —
- * año -> temporada (mes) -> semana — a partir de
- * data.valoresDiariosSelectores ({anios, temporadasPorAnio,
- * semanasPorTemporada, porDefecto}, ver _getValoresDiariosSelectores(),
- * 08_Web_Endpoints.gs) y data.valoresDiariosPorSemana ({[temporada]:
- * {[sectionIndex]: mismo shape que antes traía controlActivosSemanaActual}}).
- * Si esos 2 campos todavía no llegan (ej. Web App vieja), los 3 <select>
- * se quedan ocultos y todo sigue funcionando igual que antes (última
- * guerra cacheada de la temporada/semana vigente).
- *
- * El año/temporada/semana más recientes disponibles se fijan como default
- * SOLO la primera vez que llegan datos (anioSeleccionadoActivos === null);
- * si el usuario ya elegía algo, se respeta su elección en cada repintado
- * de render() (cada REFRESH_INTERVAL_MS). Cambiar de año cae a la
- * temporada más reciente de ese año; cambiar de temporada cae a su semana
- * más reciente — mismo criterio de "más reciente por defecto" que el
- * default inicial.
- */
+/* pintarSelectoresValoresDiarios(data) Historial en CHANGELOG.md. */
 function pintarSelectoresValoresDiarios(data){
   const selAnio = document.getElementById('anioActivosSelect');
   const selTemp = document.getElementById('temporadaActivosSelect');
@@ -1588,14 +994,7 @@ function pintarSelectoresValoresDiarios(data){
     `<option value="${esc(t.temporada)}"${String(t.temporada) === String(temporadaSeleccionadaActivos) ? ' selected' : ''}>${esc(t.label)}</option>`).join('');
 
   selSem.style.display = '';
-  // FIX (09-sep-2026, pedido usuario — "en el selector de semana debe ir
-  // de más reciente a más antiguo"): `semanasTemp` viene de
-  // _getSemanasTemporada() (08_Web_Endpoints.gs) en orden ascendente
-  // (S1, S2, S3...) porque ese orden es el que necesita el resto de la
-  // lógica de esta función (semanas[semanas.length-1] = la más reciente,
-  // usado como default arriba y en los onchange de año/temporada más
-  // abajo) -- .slice().reverse() invierte SOLO para pintar las <option>,
-  // sin tocar `semanasTemp`/`sel` en sí.
+// `semanasTemp` viene de _getSemanasTemporada() (08_Web_Endpoints.gs) en orden ascendente (S1, S2, S3...) porque ese orden es el que necesita el resto de la lógica de esta función (semanas[semanas.length-1] = la más reciente, usado como default arriba y en los… Historial en CHANGELOG.md.
   selSem.innerHTML = semanasTemp.slice().reverse().map(s =>
     `<option value="${esc(s.sectionIndex)}"${String(s.sectionIndex) === String(sectionIndexSeleccionadoActivos) ? ' selected' : ''}>${esc(s.label)}</option>`).join('');
 
@@ -1619,30 +1018,7 @@ function pintarSelectoresValoresDiarios(data){
   };
 }
 
-/**
- * pintarSelectoresControlTemporada(data)
- * FIX (09-sep-2026, pedido usuario — "🗓️ Cuadrícula de Temporada
- * (Semanal) [...] añádele el selector de año y reemplaza el selector de
- * temporada por el de mes, tal como se definió para la otra cuadrícula"):
- * reemplaza a la vieja pintarSelectorTemporada() (un solo <select> de
- * temporada, con etiqueta plana "Temporada N") por 2 <select> encadenados
- * -- año y temporada (mostrada como mes, "Temporada N (Mes)") -- a partir
- * de data.controlTemporadaSelectores ({anios, temporadasPorAnio,
- * porDefecto}, ver _getControlTemporadaSelectores(), 08_Web_Endpoints.gs).
- * Mismo patrón visual y de código que pintarSelectoresValoresDiarios() de
- * arriba, sin el tercer nivel de semana (esta cuadrícula siempre muestra
- * las 5 semanas de la temporada elegida juntas, nunca una semana suelta).
- *
- * data.temporadasDisponibles/data.controlTemporadaPorTemporada (los datos
- * pesados en sí) NO cambian con este fix, solo cómo se elige entre ellos
- * -- ver render() más abajo, que sigue leyendo esos mismos 2 campos con
- * `temporadaSeleccionadaTemporada` como clave.
- *
- * El año/temporada por defecto (año/temporada VIGENTE) se fija SOLO la
- * primera vez que llegan datos (anioSeleccionadoTemporada === null); si el
- * usuario ya elegía algo, se respeta su elección en cada repintado de
- * render(). Cambiar de año cae a la temporada más reciente de ese año.
- */
+/* pintarSelectoresControlTemporada(data) Historial en CHANGELOG.md. */
 function pintarSelectoresControlTemporada(data){
   const selAnio = document.getElementById('anioTemporadaSelect');
   const selMes  = document.getElementById('temporadaSelect');
@@ -1686,13 +1062,7 @@ function render(data){
   document.getElementById('content').style.display = 'block';
   const ctx = data.ctx || {};
   const subEl = document.getElementById('sub');
-  // Nombre del día EN TEXTO COMPLETO (ej. "SÁBADO"), no la letra abreviada
-  // J/V/S/D que usa ctx.diaLetra (esa solo cubre los 4 días de guerra). Se
-  // toma del día real de hoy para que también funcione en día de
-  // entrenamiento (lunes a miércoles), que no tiene letra asignada.
-  // Formato exacto pedido: "TEMPORADA 4 - SEMANA 4 - DÍA SÁBADO (DÍA DE GUERRA)"
-  // o "... (ENTRENAMIENTO)" si no es día de guerra — todo en mayúsculas y
-  // separado por guiones en vez de "·".
+// Nombre del día EN TEXTO COMPLETO (ej. "SÁBADO"), no la letra abreviada J/V/S/D que usa ctx.diaLetra (esa solo cubre los 4 días de guerra). Se toma del día real de hoy para que también funcione en día de entrenamiento (lunes a miércoles), que no tiene letra…
   const diaNombre = new Date().toLocaleDateString('es-PE', { weekday: 'long' }).toUpperCase();
   subEl.textContent =
     `TEMPORADA ${ctx.temporada ?? '—'} - SEMANA ${(Number(ctx.sectionIndex)||0) + 1} - DÍA ${diaNombre} ` +
@@ -1746,39 +1116,7 @@ function render(data){
   // data.pendientes (a veces una fila "placeholder" tipo "No es día de
   // guerra" con 1 jugador), lo cual no es información real de pendientes.
   document.getElementById('pendSection').style.display = ctx.esDiaGuerra ? '' : 'none';
-  // FIX (10-sep-2026, pedido usuario — "se debe mostrar el rango a la
-  // derecha de la columna Clan"): columna nueva "Rango" entre Clan y
-  // Faltantes; espera p.rango por jugador (ej. Líder/Colíder/Veterano/
-  // Miembro/Aspirante) igual que el resto de datos de Directorio que ya
-  // trae data.pendientes. Si el backend aún no manda ese campo para algún
-  // jugador, se muestra "—" en vez de romper la tabla.
-  // FIX (12-sep-2026, pedido usuario — "agrega también los botones de
-  // clan(es) y Todos"): la tabla única con columna "Clan" se separa en una
-  // tarjeta .ai-clan-card por clan (mismo patrón que "Valores diarios"),
-  // con botonera .tabs-row/.tab-btn arriba (ver gestionarTabsClan() más
-  // abajo) para filtrar sin volver a pedir datos. La columna "Clan" ya no
-  // hace falta dentro de cada tabla — el nombre del clan ahora está en el
-  // encabezado de su propia tarjeta, igual que en "Valores diarios".
-  // FIX (13-sep-2026, pedido usuario — "agrega N° y el tag a la izquierda
-  // del nombre / columna Jugador (Nom_Multi) y Préstamo solo para admins /
-  // íconos de royaleapi y cwstats a la derecha de faltantes / botones de
-  // letra para filtrar"): columnas nuevas, en orden:
-  //   N° · Tag · Nombre · [Jugador · Préstamo, solo-admin] · Rango ·
-  //   Faltantes · Perfil (íconos)
-  // "Jugador" muestra p.nomMulti (Nom_Multi), NUNCA p.nombre -- son 2
-  // campos distintos en el backend (ver mismo criterio ya documentado para
-  // .col-jugador en Activos/Temporada, más arriba en este archivo: ahí es
-  // al revés, .col-jugador trae el nombre crudo y Nom_Multi quedó afuera).
-  // "Préstamo" usa el mismo nombre de campo que ya trae Directorio para esa
-  // columna (p.prestamo). Los íconos de perfil reusan ICONO_ROYALEAPI/
-  // ICONO_CWSTATS + urlValida() (mismo patrón que perfil.html,
-  // #mRoyaleCwstatsBtns) sobre p.royaleApi/p.cwStats.
-  // RESUELTO (15-sep-2026, cierre de conexión pendiente): data.pendientes
-  // ya manda nomMulti, prestamo, rango, royaleApi y cwStats por jugador
-  // (ver _getDatosDashboard(), 08_Web_Endpoints.gs). Si algún tag puntual
-  // no tuviera alguno de estos datos en Directorio, la celda igual muestra
-  // "—" y los íconos de perfil simplemente no se pintan para esa fila, sin
-  // romper el resto.
+// columna nueva "Rango" entre Clan y Faltantes; espera p.rango por jugador (ej. Historial en CHANGELOG.md.
   const pend = data.pendientes || [];
   document.getElementById('pendCount').textContent = pend.length + ' jugador(es)';
   const pendPorClan = {};
@@ -1827,54 +1165,7 @@ function render(data){
       <div class="track"><div class="fill" style="width:${(count/maxResumen)*100}%"></div></div>
       <div class="val">${fmtNum(count)}</div>
     </div>`).join('') + `</div>` : '<div class="empty">Sin datos de directorio.</div>';
-  // FIX (05-sep-2026, pedido usuario — "panel tipo hoja Control con datos
-  // de Directorio, priorizando las cuadrículas"): a diferencia del bloque
-  // de arriba (solo conteo por clan), acá se pinta la cuadrícula J/V/S/D
-  // por cada Activo de Directorio. Pública — no pasa por
-  // cargarAportesInactivosSiAdmin()/esAdminLogueado(), se pinta para
-  // cualquier visitante igual que el resto de esta sección de la página.
-  // Reutiliza las clases .ai-cell*/.ai-total* del bloque de Inactivos
-  // (más abajo) para el mismo criterio visual de color.
-  // FIX (05-sep-2026, pedido usuario — "solo consideró ataques, falta
-  // Puntaje (fame) y barcos [...] Puntaje y Barcos son megacategorías
-  // igual que Ataques [...] los clanes no están en el orden establecido"):
-  // 1) Puntaje y Barcos NO son un valor único por jugador — son, igual
-  // que Ataques, un grupo J/V/S/D + Total (ver captura de la Hoja
-  // Control: "Puntaje" trae su propio Sem 1/Sem 2/Sem 3 con J/V/S/D/
-  // T.1/T.2/T.3). Acá se pinta solo la SEMANA ACTUAL de cada megacategoría
-  // (mismo alcance que ya tenía Ataques en esta cuadrícula), por eso cada
-  // fila espera f.puntaje = {j,v,s,d,total} y f.barcos = {j,v,s,d,total}
-  // (mismo shape que los campos planos j/v/s/d/total que Ataques ya usa,
-  // solo que agrupados bajo esas 2 llaves para no chocar de nombre). A
-  // diferencia de Ataques (0-4 intentos/día, con semáforo de color), los
-  // valores diarios de Puntaje/Barcos son puntos/unidades ganadas ese día
-  // (pueden ser cualquier número), así que sus celdas J/V/S/D/Total van
-  // con .ai-num, sin semáforo ni resaltado de Total=16. 2) las tarjetas ya
-  // no se ordenan alfabético (.sort() plano) sino con ordenClanIndex()
-  // (assets/common.js), el mismo orden fijo de la Familia que usa el
-  // resto del sitio.
-  // FIX (09-sep-2026, pedido usuario -- selectores de año/temporada/semana
-  // en "Valores diarios"): fuente de datos de esta cuadrícula, resuelta a
-  // partir de la combinación año/temporada/semana elegida en los 3
-  // <select> de arriba (pintarSelectoresValoresDiarios(), que además fija
-  // el default -- año/temporada/semana más recientes -- la primera vez que
-  // llegan datos). data.valoresDiariosPorSemana ya trae, precalculada, la
-  // cuadrícula de CUALQUIER combinación con datos -- ver
-  // _getValoresDiariosPorSemana() (08_Web_Endpoints.gs).
-  //
-  // Sigue existiendo un caso especial (heredado del comportamiento pedido
-  // el 07-sep-2026, "que se siga mostrando los valores de la última guerra
-  // mientras se esté en entrenamiento [...] hasta el cambio de periodIndex
-  // [...] y se debe actualizar recién cuando empiece la guerra del
-  // jueves"): CUANDO la combinación elegida es justo la semana VIGENTE
-  // (temporada/sectionIndex == ctx.temporada/ctx.sectionIndex) Y hoy no es
-  // día de guerra todavía, el backend reporta esa semana en ceros (recién
-  // arrancando el periodIndex de Supercell, ~4-5am, sin esperar al jueves)
-  // -- en ese caso puntual se recupera del navegador la última foto
-  // guardada en localStorage (guardada cada vez que SÍ es día de guerra) y
-  // se muestra esa en su lugar. Cualquier OTRA combinación (semana pasada,
-  // temporada pasada) ya es un dato final/histórico -- se muestra tal cual
-  // llega, sin pasar por localStorage.
+// a diferencia del bloque de arriba (solo conteo por clan), acá se pinta la cuadrícula J/V/S/D por cada Activo de Directorio. Historial en CHANGELOG.md.
   pintarSelectoresValoresDiarios(data);
   let controlActivos = {};
   let mostrandoUltimaGuerraCacheada = false;
@@ -1913,16 +1204,7 @@ function render(data){
     .sort((a, b) => ordenClanIndex(a) - ordenClanIndex(b));
   const controlActivosSection = document.getElementById('controlActivosSection');
   if (clanesControlActivos.length){
-    // claseCeldaCA()/celdasMegacategoria() ahora son helpers globales (ver
-    // arriba de render(), hoisteados para que Inactivos también los use).
-    // FIX (10-sep-2026, pedido usuario — botones de filtro/orden en la 2ª
-    // fila de encabezados): la 1ª fila (Ataques/Puntaje/Barcos, colspan=5)
-    // se sigue pintando plana, sin botón; la 2ª (J/V/S/D/Total) ahora sale
-    // de filaSubEncabezadosMega() (ver más arriba), que sí agrega el
-    // ícono de embudo + flechita de orden a cada una. El <tbody> arranca
-    // vacío — inicializarGridFiltro() (después de insertar el HTML en el
-    // DOM) es quien lo llena, aplicando cualquier filtro/orden que ya
-    // hubiera quedado guardado en un refresco anterior.
+// claseCeldaCA()/celdasMegacategoria() ahora son helpers globales (ver arriba de render(), hoisteados para que Inactivos también los use). Historial en CHANGELOG.md.
     const renderFilaActivos = f => `
               <tr data-letra="${esc(primeraLetraFiltro(f.nombre || f.tag))}">
                 <td class="col-jugador">${f.tag ? enlaceJugador(f.nombre || f.tag, f.tag) : esc(f.nombre || f.tag)}</td>
@@ -1953,13 +1235,7 @@ function render(data){
             <tbody></tbody>
           </table></div>
           <div class="grid-hscroll grid-hscroll-bottom" aria-hidden="true"><div class="grid-hscroll-inner"></div></div>
-          <!-- FIX (05-sep-2026, pedido usuario — "Mejor dentro del primer
-               cuadro, en cada clan, primero escribe las filas de los
-               activos y luego una sección para inactivos"): wrap vacío,
-               solo-admin, llenado por cargarAportesInactivosSiAdmin() más
-               abajo. Colapsa solo por completo (":empty" en el <style>)
-               cuando no hay sesión de admin o el clan no tiene inactivos
-               esta semana. -->
+          <!-- wrap vacío, solo-admin, llenado por cargarAportesInactivosSiAdmin() más abajo. Historial en CHANGELOG.md. -->
           <div class="ai-inactivos-wrap" data-clan-inactivos="${esc(clanNombre)}"></div>
         </div>`;
     }).join('');
@@ -1979,24 +1255,7 @@ function render(data){
     document.getElementById('controlActivosClanTabs').innerHTML = '';
   }
 
-  // FIX (05-sep-2026, pedido usuario — "haz una sección como la hoja
-  // Control_2... valores semanales de toda la temporada"): mismo patrón
-  // que controlActivos de arriba, pero con Sem 1..Sem N dinámicas en vez
-  // de J/V/S/D fijos (celdasSemanas() en vez de celdasMegacategoria(),
-  // ver docblock de esa función más arriba). data.controlTemporadaSemanas
-  // trae las etiquetas de columna (ej. ['Sem 1','Sem 2',...], una por
-  // semana de guerra ya jugada en la temporada actual) compartidas por
-  // todos los clanes; data.controlTemporadaPorClan trae, por clan, un
-  // array de filas { nombre, tag, ataques:{semanas,total,pct},
-  // puntaje:{semanas,prom,pct}, barcos:{semanas,total} } -- ver
-  // _getControlTemporadaPorClan(), 20_Control2_GuerraSemanal.gs.
-  // FIX (09-sep-2026, pedido usuario — selectores de año/mes en "Valores
-  // semanales"): si el año/temporada elegidos en los 2 <select> de arriba
-  // (pintarSelectoresControlTemporada(), que además fija el default --
-  // año/temporada VIGENTE -- la primera vez que llegan datos) NO son la
-  // temporada vigente Y el backend manda esa temporada en
-  // data.controlTemporadaPorTemporada, se usa esa en vez de la vigente
-  // (data.controlTemporadaPorClan/data.controlTemporadaSemanas).
+// mismo patrón que controlActivos de arriba, pero con Sem 1..Sem N dinámicas en vez de J/V/S/D fijos (celdasSemanas() en vez de celdasMegacategoria(), ver docblock de esa función más arriba). data.controlTemporadaSemanas trae las etiquetas de columna (ej. ['Sem… Historial en CHANGELOG.md.
   pintarSelectoresControlTemporada(data);
   let controlTemporada = data.controlTemporadaPorClan || {};
   let semanasTemporada = data.controlTemporadaSemanas || [];
@@ -2073,36 +1332,7 @@ function render(data){
     'Última carga completa: ' + new Date().toLocaleString('es-PE');
 }
 
-/**
- * cargarMensajesGuerraSiAdmin(ctx)
- * FIX (04-sep-2026, pedido usuario — "se debe agregar botones para copiar
- * los mensajes de guerra pero visibles solo para los admin"): reusa
- * 'webAdminContenido' (mismo endpoint autenticado que ya usa admin.html,
- * ver renderContenidoHtml()/_activarAccionesContenido() ahí) con
- * categoria='Mensaje de Guerra' — el backend ya arma un item por clan
- * (subcategoria 'Particular') más uno de 'Chat General' (ver
- * generarTodosMensajes(), Base.md).
- * FIX (05-sep-2026, pedido usuario — "en Guerra (lista de pendientes) solo
- * hay que poner el mismo botón, pero ya no se va a mostrar todo el texto,
- * solo el botón de copiar, así que debería agregar información sobre el
- * clan"): antes esto vivía en una sección aparte (#mensajesGuerraAdmin,
- * ya eliminada), con una tarjeta por clan: un <span> con el nombre del
- * clan al lado de un botón genérico "⧉ Copiar". Ahora se integra
- * directamente arriba de la tabla de "Pendientes de Atacar" (#msjGuerraWrap
- * dentro de #pendSection) como una fila compacta de botones sueltos, SIN
- * tarjeta ni label aparte — por eso cada botón lleva el nombre del clan
- * metido en su propio texto ("⧉ Copiar — <Clan>"), para poder identificar
- * cuál es cuál sin el label que ya no existe.
- * No se pide nada ni se muestra nada si:
- *   - no hay sesión de admin en este navegador (esAdminLogueado()), o
- *   - no es día de guerra (ctx.esDiaGuerra) — 'Mensaje de Guerra' solo
- *     existe en días de guerra, pedirlo en día de entrenamiento solo
- *     devolvería vacío.
- * Cualquier error (token vencido, etc.) se traga en silencio: esta fila de
- * botones es un plus para admins, nunca debe romper la carga de la página
- * pública para nadie. Al quedar vacía (wrap.innerHTML = '') no deja hueco
- * ni espacio de más para quien no es admin.
- */
+/* cargarMensajesGuerraSiAdmin(ctx) Historial en CHANGELOG.md. */
 async function cargarMensajesGuerraSiAdmin(ctx){
   const wrap = document.getElementById('msjGuerraWrap');
   if (!ctx.esDiaGuerra || !esAdminLogueado()){ wrap.innerHTML = ''; return; }
@@ -2135,47 +1365,7 @@ async function cargarMensajesGuerraSiAdmin(ctx){
   }
 }
 
-/**
- * cargarAportesInactivosSiAdmin(ctx)
- * FIX (05-sep-2026, pedido usuario — "Debajo de Pendientes, se debe
- * agregar una sección de aportes a Guerra de miembros inactivos, por
- * clan [...] esto sería solo para la semana actual [...] la referencia es
- * la cuadrícula de la Hoja Control en Sheets"): pide 'webAportesInactivos'
- * (endpoint autenticado aparte, NO viaja en webGuerraEnVivo — ver
- * _webAportesInactivos()/_getAportesInactivosSemanaActual() en
- * 08_Web_Endpoints.gs) y arma, por clan, una mini-cuadrícula con las
- * mismas 3 megacategorías que la Cuadrícula de Activos (Ataques/Puntaje/
- * Barcos, cada una J/V/S/D/Total) — mismo criterio visual de columnas que
- * la hoja Control, pero acotada a un jugador pudiendo aparecer en MÁS DE
- * UN clan (un inactivo puede aportar a 2+ clanes el mismo día), cosa que
- * la cuadrícula de Control no contempla porque ahí cada Activo tiene un
- * solo clan asignado.
- * FIX (05-sep-2026, pedido usuario — "los inactivos estaban trayendo solo
- * la categoría ataques, faltaba puntaje y barcos"): antes esta tabla solo
- * traía Ataques (J/V/S/D/Total) — el pedido original había sido "así se
- * puede ver cuáles son los aportes EXTRA de ataques con los que ha
- * contado el clan", pero no cubría Puntaje/Barcos. Ahora sí trae las 3,
- * igual que Activos (ver _getAportesInactivosSemanaActual() en
- * 08_Web_Endpoints.gs y bloqueHtml() más abajo). El criterio de "quién
- * aparece" (filtro por total de ATAQUES > 0, no de Puntaje/Barcos) no
- * cambió — sigue siendo "aportó al menos 1 ataque esta semana".
- * FIX (05-sep-2026, pedido usuario — "Mejor dentro del primer cuadro, en
- * cada clan, primero escribe las filas de los activos y luego una sección
- * para inactivos [...] así el mismo clan tiene su sección de activos y
- * otra de inactivos"): antes esto pintaba una sección aparte
- * (#aportesInactivosSection, ELIMINADA) debajo de "Pendientes de Atacar".
- * Ahora inyecta el bloque de Inactivos de cada clan DENTRO de la misma
- * tarjeta que ya pintó ese clan en "Cuadrícula de Activos" (buscando
- * `.ai-inactivos-wrap[data-clan-inactivos="<clan>"]`, ver render() más
- * arriba). Si un clan tiene inactivos pero ningún Activo (no tiene
- * tarjeta propia todavía), se crea una tarjeta nueva para ese clan al
- * final de #controlActivosWrap, respetando el mismo ordenClanIndex().
- * Sigue sin pintarse nada si no hay sesión de admin (esAdminLogueado()) o
- * no es día de guerra: en ese caso se limpian los wraps existentes (por si
- * un admin cierra sesión sin recargar la página) y no se toca nada más.
- * Cualquier error se traga en silencio, igual que
- * cargarMensajesGuerraSiAdmin().
- */
+/* cargarAportesInactivosSiAdmin(ctx) Historial en CHANGELOG.md. */
 async function cargarAportesInactivosSiAdmin(ctx){
   const limpiarWraps = () => {
     document.querySelectorAll('.ai-inactivos-wrap').forEach(w => { w.innerHTML = ''; });
@@ -2187,16 +1377,7 @@ async function cargarAportesInactivosSiAdmin(ctx){
     const clanes = Object.keys(aportes).sort((a, b) => ordenClanIndex(a) - ordenClanIndex(b));
     if (!clanes.length){ limpiarWraps(); return; }
 
-    // FIX (05-sep-2026, pedido usuario — "los inactivos estaban trayendo
-    // solo la categoría ataques, faltaba puntaje y barcos"): antes esta
-    // tabla solo tenía Jugador/J/V/S/D/Total (Ataques). Ahora pinta las
-    // mismas 3 megacategorías (Ataques/Puntaje/Barcos) que ya tiene la
-    // Cuadrícula de Activos de arriba — mismo <thead> de 2 filas y mismos
-    // helpers globales claseCeldaCA()/celdasMegacategoria() (hoisteados
-    // arriba de render(), ver comentario ahí), para no duplicar el criterio
-    // visual entre Activos e Inactivos. Requiere que cada fila `f` traiga
-    // f.puntaje/f.barcos como {j,v,s,d,total} — ver
-    // _getAportesInactivosSemanaActual() (08_Web_Endpoints.gs).
+// antes esta tabla solo tenía Jugador/J/V/S/D/Total (Ataques). Historial en CHANGELOG.md.
     const bloqueHtml = (filas) => `
       <div class="ai-inactivos-block">
         <p class="ai-sub-label">🧟 Inactivos (${filas.length})</p>
@@ -2270,31 +1451,7 @@ async function cargarAportesInactivosSiAdmin(ctx){
   }
 }
 
-/**
- * Participación de hoy en guerra (solo admins, solo día de guerra) — FIX
- * (12-sep-2026, pedido usuario): esta sección había quedado duplicada por
- * error en directorio.html; la versión final pedida por el usuario queda
- * acá, en Guerra. Usa el mismo endpoint admin-only de siempre
- * (webAdminParticipacionHoyGuerra → _getParticipacionHoyGuerra(),
- * 17_GuerraSheet.gs).
- *
- * Cambios de esta versión final sobre la vieja (que usaba las clases
- * .ph-*):
- *   1) El conteo de cada columna va SOLO junto a su encabezado
- *      ("Reservadas (26)"), nunca en una línea aparte por clan.
- *   2) Cada cuenta reservada muestra sus ataques pendientes hoy
- *      (4 - ataques ya usados hoy).
- *   3) Las reservadas se subagrupan, dentro de cada clan, en "Con ataques
- *      pendientes" (1-3) y "Sin ataques pendientes" (0).
- *
- * OJO backend: para que el punto 2/3 funcione, cada cuenta dentro de
- * c.reservadas/c.disponibles debe traer también su cantidad de ataques
- * usados hoy (mismo dato que ya se manda para multiClan como
- * m.totalAtaquesHoy) — se lee acá como cta.ataquesHoy. Si el backend
- * todavía no manda ese campo, las reservadas quedan todas en "Con ataques
- * pendientes" sin dato exacto (se asume 1 usado) en vez de romper la
- * vista.
- */
+/* Participación de hoy en guerra (solo admins, solo día de guerra) — FIX Historial en CHANGELOG.md. */
 
 /** Arma un <li> con nombre/tag y, si corresponde, sus ataques pendientes
  *  hoy (pend === null cuando no aplica mostrarlo, ej. columna
@@ -2316,13 +1473,7 @@ function pendientesHoy(cta){
 }
 
 function renderParticipacionHoyGuerra(clanes, multiClan){
-  // FIX (12-sep-2026, pedido usuario — "agrega también los botones de
-  // clan(es) y Todos"): cada clan pasa a su propia tarjeta .ai-clan-card
-  // con data-clan (mismo patrón que "Valores diarios"), para que
-  // gestionarTabsClan() pueda mostrar/ocultar una por una sin volver a
-  // pedir datos. El aviso de multiClan queda FUERA de esas tarjetas (sin
-  // data-clan) para que se siga viendo sin importar qué pestaña esté
-  // activa — es información agregada, no de un solo clan.
+// cada clan pasa a su propia tarjeta .ai-clan-card con data-clan (mismo patrón que "Valores diarios"), para que gestionarTabsClan() pueda mostrar/ocultar una por una sin volver a pedir datos. Historial en CHANGELOG.md.
   const clanesHtml = clanes.map(c => {
     const conPendientes = c.reservadas.filter(cta => pendientesHoy(cta) > 0);
     const sinPendientes = c.reservadas.filter(cta => pendientesHoy(cta) === 0);
@@ -2356,16 +1507,7 @@ function renderParticipacionHoyGuerra(clanes, multiClan){
   return clanesHtml + multiClanHtml;
 }
 
-/**
- * cargarParticipacionHoySiAdmin(ctx)
- * Mismo criterio de robustez que cargarMensajesGuerraSiAdmin() /
- * cargarAportesInactivosSiAdmin(): no se pide ni se muestra nada si no hay
- * sesión de admin (esAdminLogueado()) o no es día de guerra
- * (ctx.esDiaGuerra) — Reservadas/Reemplazables solo tiene sentido en días
- * de guerra (J/V/S/D), en entrenamiento nadie tiene AtaquesHoy. Cualquier
- * error (token vencido, etc.) se traga en silencio y la sección se oculta
- * por completo, sin romper el resto de la página pública para nadie.
- */
+/* cargarParticipacionHoySiAdmin(ctx) Mismo criterio de robustez que cargarMensajesGuerraSiAdmin() / cargarAportesInactivosSiAdmin(): no se pide ni se muestra nada si no hay sesión de admin (esAdminLogueado()) o no es día de guerra (ctx.esDiaGuerra) —… */
 async function cargarParticipacionHoySiAdmin(ctx){
   const section = document.getElementById('participacionHoySection');
   const wrap = document.getElementById('participacionHoyWrap');
@@ -2389,34 +1531,7 @@ async function cargarParticipacionHoySiAdmin(ctx){
   }
 }
 
-/**
- * cargarGuerraLog()
- * FASE 13 punto 1 del plan de cambios web (07-sep-2026) -- vista (a) del
- * "Log" de guerra de RoyaleAPI, recreada con datos propios. Pide
- * 'webGuerraLog' (mismo WEB_MEMBER_TOKEN público de solo lectura que
- * apiGet() ya usa para webGuerraEnVivo, ver _webGuerraLog(),
- * 17_GuerraSheet.gs) SIN `tag` -- así el backend devuelve los
- * CFG.TERNA_TAGS.length clanes Terna juntos, en su mismo orden, sin
- * necesitar tags de clanes propios hardcodeados acá.
- *
- * A diferencia del resto de esta página (dashboard en vivo, refrescado
- * cada REFRESH_INTERVAL_MS), esto es un histórico acumulado que no
- * cambia salvo cuando corre el batch del backend -- se pide UNA sola vez
- * al cargar la página (ver la llamada al final de este script), no en el
- * setInterval de arriba.
- *
- * Pinta una pestaña por clan (data.clanes, mismo patrón visual
- * .tabs-row/.tab-btn que directorio.html) y, debajo, una tabla Temporada/
- * Semana/Rank/Boat/Trophy de la pestaña activa, con el delta de Trophy
- * contra la semana anterior (verde si subió, rojo si bajó) y las semanas
- * ya ordenadas de más reciente a más antigua (mismo orden que ya manda
- * el backend). Un clan sin ninguna fila registrada todavía en Guerra_Logs
- * (`clan` vacío) se descarta de las pestañas en vez de mostrar una vacía.
- *
- * Cualquier error (backend caído, token vencido, etc.) se traga en
- * silencio y la sección se oculta por completo -- mismo criterio de
- * robustez que el resto de secciones de esta página pública.
- */
+/* cargarGuerraLog() Historial en CHANGELOG.md. */
 async function cargarGuerraLog(){
   const section  = document.getElementById('guerraLogSection');
   const tabsWrap = document.getElementById('guerraLogTabs');
