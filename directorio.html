@@ -227,22 +227,16 @@
      arena, vGuerra, fechaIngreso, antiguedad. Si el backend todavía no
      manda alguno, esta tabla no rompe: la celda se pinta "—" (ver
      ROSTER_COLUMNAS). */
-  /* FIX (16-sep-2026, pedido usuario — "el estilo de la barra de
-     desplazamiento de directorio es feo, imita el estilo de las barras
-     de la hoja guerra, debe estar arriba y abajo y solo tiene abajo"):
-     .roster-topbar (más abajo en este mismo <style>) ya dibuja una barra
-     morada arriba, pero esta — la barra de ABAJO, que es el scroll
-     horizontal nativo real de .roster-table-wrap — nunca se había
-     restyleado y seguía siendo la barra gris/gruesa con flechas del
-     navegador/sistema (ver captura). Se le aplican las mismas reglas que
-     ya usan .roster-top-scroll (abajo) y .grid-hscroll de guerra.html
-     (franja fina, thumb morado var(--purple-light) sobre track
-     translúcido) para que arriba y abajo se vean exactamente igual. */
-  .roster-table-wrap{overflow-x:auto; -webkit-overflow-scrolling:touch;
-    scrollbar-width:thin; scrollbar-color:var(--purple-light) rgba(255,255,255,.06);}
-  .roster-table-wrap::-webkit-scrollbar{height:10px;}
-  .roster-table-wrap::-webkit-scrollbar-track{background:rgba(255,255,255,.06); border-radius:6px;}
-  .roster-table-wrap::-webkit-scrollbar-thumb{background:var(--purple-light); border-radius:6px;}
+  /* FIX (18-sep-2026, refactor): el restyle morado de esta barra (thumb
+     var(--purple-light), track translúcido) que se agregó a mano el
+     16-sep-2026 quedó duplicado byte a byte de .scroll-morado
+     (assets/styles.css) desde que activarBarraScrollTabla() empezó a
+     agregarle esa clase a #rosterTableWrap en runtime (ver más abajo,
+     "arranque de la tabla"). Se elimina el duplicado; overflow-x:auto se
+     mantiene como base funcional (para que la tabla scrollee igual si
+     JS no llega a correr, aunque sin restylear en ese caso). Historial
+     en CHANGELOG.md. */
+  .roster-table-wrap{overflow-x:auto; -webkit-overflow-scrolling:touch;}
   /* FIX (16-sep-2026, pedido usuario — "agrega esa parte donde indica el
      clan que se está mostrando (no reemplaza a las pastillas por clan),
      se ve bonito", refiriéndose al <h3>Clan (N activos)</h3> que ya usa

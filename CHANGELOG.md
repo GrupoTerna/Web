@@ -2595,6 +2595,17 @@ PENDIENTE BACKEND: categoría supportCards[] del JSON (las
 
 ## directorio.html — historial trasladado
 
+### 18-sep-2026 (refactor CSS, Fase 2 — tablas) — Restyle manual de `.roster-table-wrap` eliminado por duplicado
+El restyle morado de la barra de scroll (thumb `var(--purple-light)`,
+track translúcido) agregado a mano el 16-sep-2026 quedó duplicado byte a
+byte de `.scroll-morado` (`assets/styles.css`) desde que
+`activarBarraScrollTabla()` empezó a agregarle esa misma clase a
+`#rosterTableWrap` en runtime (mismo día, sesión de unificación de
+scroll — ver entrada de guerra.html más abajo). Se elimina el duplicado
+de `<style>`; `overflow-x:auto` se mantiene como base funcional (para
+que la tabla siga siendo scrolleable si JS no llega a correr, aunque en
+ese caso sin restylear).
+
 ### 18-sep-2026 — Filtro por letra, debounce y scroll sincronizado subidos a common.js
 `pintarFiltroLetraRoster()` estaba duplicada, con exactamente la misma
 lógica, en guerra.html (dos veces: `pintarFiltroLetraPendientes()` y
@@ -3407,6 +3418,32 @@ FIX (03-sep-2026, pedido usuario — "Vigencia [última
 
 
 ## guerra.html
+
+### 18-sep-2026 (refactor CSS, Fase 2 — tablas) — `.grid-hscroll-*`/`.table-scroll-oculta-nativa` unificados con `activarBarraScrollTabla()`
+Pedido usuario, confirmando el criterio ya usado en el resto del sitio:
+la barra de scroll de toda tabla debe ser la morada (arriba, abajo y
+derecha), nunca la nativa gris del navegador. Las grillas de "Valores
+diarios" y "Valores por temporada" (`.tbl-activos-grid`/
+`.tbl-temporada-grid`) tenían su propia implementación hecha a mano —
+`.grid-hscroll-top`/`.grid-hscroll-bottom` (barras sintéticas propias) +
+`.table-scroll-oculta-nativa` (oculta la barra nativa) + la función
+`enlazarScrollsHorizontales()` — construida el mismo día, en paralelo,
+sin enterarse de que `activarBarraScrollTabla()` (assets/js/ui/tables.js)
+ya resolvía exactamente lo mismo (barra superior sintética + inferior y
+derecha nativas restyleadas en morado, vía `.scroll-morado`/
+`.tabla-scroll-wrap` en `assets/styles.css`) para el resto de tablas del
+sitio (Pendientes de Atacar, Inactivos, roster de Directorio, cuadros de
+CR en admin.html, historial de perfil.html).
+
+Se elimina el sistema propio: las tarjetas de clan de Activos/Temporada
+pasan a usar el `<div class="table-scroll">` simple (sin
+`table-scroll-oculta-nativa`, sin los divs `.grid-hscroll-top`/`-bottom`
+en el HTML) y se les llama `activarBarraScrollTabla()` igual que a las
+demás tablas de la página — se quitan `enlazarScrollsHorizontales()` y
+las ~40 líneas de CSS de `.grid-hscroll-*`/`.table-scroll-oculta-nativa`,
+sin comportamiento nuevo: mismo alto máximo (480px, mismo
+`--tabla-scroll-alto` que ya usaban), misma barra morada en los 3 lados,
+solo que ahora por el único camino que ya usa el resto del sitio.
 
 ### 18-sep-2026 — Helpers de filtro por letra y de scroll sincronizado consolidados en common.js
 Revisión de código repetido entre páginas: `pintarFiltroLetraPendientes()`,

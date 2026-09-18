@@ -82,49 +82,16 @@
      vez de forzar overflow en toda la página. */
   .table-scroll{overflow-x:auto; -webkit-overflow-scrolling:touch;}
   .table-scroll table{min-width:420px;}
-  /* mismo problema que ya se había resuelto para el roster de Directorio (ver .roster-topbar/.roster-top-scroll en directorio.html) — el scroll horizontal nativo de .table-scroll funciona, pero no hay ninguna pista visual de que existe (la barra de scroll del… Historial en CHANGELOG.md. */
-  .grid-hscroll{overflow-x:auto; overflow-y:hidden; height:14px; -webkit-overflow-scrolling:touch; border-radius:var(--radius-sm);
-    scrollbar-width:thin; scrollbar-color:var(--purple-light) rgba(255,255,255,.06);}
-  .grid-hscroll::-webkit-scrollbar{height:10px;}
-  .grid-hscroll::-webkit-scrollbar-track{background:rgba(255,255,255,.06); border-radius:6px;}
-  .grid-hscroll::-webkit-scrollbar-thumb{background:var(--purple-light); border-radius:6px;}
-  .grid-hscroll-inner{height:1px;}
-  .grid-hscroll-top{margin-bottom:6px;}
-  .grid-hscroll-bottom{margin-top:6px;}
-  /* FIX (18-sep-2026, pedido usuario — captura de pantalla: "se muestra
-     doble barra de desplazamiento, la barra blanca con gris no debe
-     estar"): .table-scroll usa scroll nativo del navegador, que en
-     algunos sistemas/navegadores dibuja su propia barra visible (blanca/
-     gris, con flechas) ADEMÁS de .grid-hscroll-top/.grid-hscroll-bottom
-     (ya sincronizadas arriba y abajo de la tabla, ver
-     sincronizarScrollHorizontal() más abajo) — se veían las dos a la vez.
-     Se oculta la nativa SOLO en las cuadrículas que ya tienen su propia
-     barra sincronizada (Valores diarios/semanales, ver
-     .table-scroll-oculta-nativa más abajo); las demás tablas de esta
-     página (Pendientes de Atacar, Inactivos, Historial de guerra) NO
-     llevan esta clase a propósito, porque ahí la barra nativa es la
-     ÚNICA pista visual de que existe scroll horizontal. */
-  /* FIX (18-sep-2026, pedido usuario — "incluye también una de
-     desplazamiento vertical a la derecha, de la barrita morada, no
-     nativa"): estas cuadrículas (Valores diarios/semanales) no tenían
-     límite de alto, así que crecían sin scroll vertical propio. Se les da
-     el mismo --tabla-scroll-alto de .tabla-scroll-wrap (assets/styles.css)
-     y se restylea en morado (scrollbar-width:thin/scrollbar-color, igual
-     que .scroll-morado ahí mismo). El eje horizontal se mantiene oculto
-     -SOLO en webkit, vía height:0 en el pseudo-elemento- porque acá la
-     pista visual de scroll horizontal ya la dan .grid-hscroll-top/-bottom
-     (sincronizadas, ver enlazarScrollsHorizontales() en common.js); en
-     Firefox no hay forma de ocultar un solo eje (scrollbar-width es por
-     elemento, no por eje) así que ahí se ve fino y morado en ambos, nunca
-     gris nativo -- sigue cumpliendo el pedido igual. */
-  .table-scroll.table-scroll-oculta-nativa{
-    scrollbar-width:thin; scrollbar-color:var(--purple-light) rgba(255,255,255,.06);
-    max-height:var(--tabla-scroll-alto, 480px); overflow-y:auto;
-  }
-  .table-scroll.table-scroll-oculta-nativa::-webkit-scrollbar{width:10px; height:0;}
-  .table-scroll.table-scroll-oculta-nativa::-webkit-scrollbar-track{background:rgba(255,255,255,.06); border-radius:6px;}
-  .table-scroll.table-scroll-oculta-nativa::-webkit-scrollbar-thumb{background:var(--purple-light); border-radius:6px;}
-  .table-scroll.table-scroll-oculta-nativa::-webkit-scrollbar-thumb:hover{background:var(--purple);}
+  /* FIX (18-sep-2026, refactor): las grillas de Valores diarios/semanales
+     tenían su propio sistema de barra morada hecho a mano (.grid-hscroll-*
+     + enlazarScrollsHorizontales()), separado de activarBarraScrollTabla()
+     que ya usan Pendientes/Inactivos/Historial y el resto del sitio —
+     ambos hacían lo mismo (arriba+abajo+derecha, morado, sin nativa gris)
+     por dos caminos distintos. Se unifica: estas grillas pasan a usar
+     activarBarraScrollTabla() igual que las demás tablas de esta página
+     (ver .ai-inactivos-wrap más abajo); .grid-hscroll-*/.table-scroll-
+     oculta-nativa y enlazarScrollsHorizontales() quedan eliminados.
+     Historial en CHANGELOG.md. */
   /* esta tabla venía usando el th{text-align:left} genérico de styles.css (pensado para el resto de tablas del sitio) para las 3 columnas por igual; ahora se centran los 3 encabezados Y los valores de Clan/Faltantes, y solo el nombre de cada fila (.col-nombre)… Historial en CHANGELOG.md. */
   /* sin estos font-size, el <th> heredaba el 11px genérico de table th y el <td> el 14px genérico de table{} (ambos en styles.css) — se fijan acá en 13px/13px para igualar exactamente a .roster-table (directorio.html) e .inactivos-table (styles.css). Historial en CHANGELOG.md. */
   .tbl-pendientes th{text-align:center; font-size:13px;}
@@ -833,27 +800,6 @@ function inicializarGridFiltro(gridId, tabla, columnas, filasBase, renderFila){
 }
 
 /* gestionarTabsClan(tabsWrapId, wrapId, obtenerSel, fijarSel) Historial en CHANGELOG.md. */
-/* enlazarScrollsHorizontales(wrapId) Historial en CHANGELOG.md. */
-function enlazarScrollsHorizontales(wrapId){
-  const wrap = document.getElementById(wrapId);
-  if (!wrap) return;
-  wrap.querySelectorAll(':scope > .ai-clan-card').forEach(card => {
-    const scroll = card.querySelector(':scope > .table-scroll');
-    const tabla = scroll && scroll.querySelector('table');
-    const barras = Array.from(card.querySelectorAll(':scope > .grid-hscroll'));
-    if (!scroll || !tabla || !barras.length) return;
-    const inners = barras.map(b => b.querySelector('.grid-hscroll-inner'));
-    const fijarAncho = () => { inners.forEach(inn => { inn.style.width = tabla.scrollWidth + 'px'; }); };
-    fijarAncho();
-    // Sincronización de scroll (bandera anti-loop) subida a
-    // sincronizarScrollHorizontal() en assets/common.js — reusada también
-    // en directorio.html, que tenía el mismo patrón escrito a mano para su
-    // propio par topScroll/tableWrap. Historial en CHANGELOG.md.
-    sincronizarScrollHorizontal([scroll, ...barras]);
-// El ancho de la tabla puede cambiar si la ventana cambia de tamaño (columnas que se comprimen/expanden con el layout responsive). offsetParent === null cuando la tarjeta está oculta por una pestaña de clan distinta (gestionarTabsClan le pone display:none): en…
-    window.addEventListener('resize', () => { if (tabla.offsetParent !== null) fijarAncho(); });
-  });
-}
 
 function gestionarTabsClan(tabsWrapId, wrapId, obtenerSel, fijarSel){
   const tabsWrap = document.getElementById(tabsWrapId);
@@ -1099,12 +1045,10 @@ function render(data){
   }).join('') : '<div class="empty">Nadie tiene ataques pendientes 🎉</div>';
   // FIX (18-sep-2026, pedido usuario — "ninguna tabla debe tener la barra
   // nativa, todas deben tener barra superior, inferior y vertical, todas
-  // moradas"): esta tabla (.tbl-pendientes) es una de las 3 que el propio
-  // .table-scroll-oculta-nativa (ver <style> arriba) documentaba a
-  // propósito SIN ninguna barra restyleada — ahora se le agrega el mismo
-  // trío (arriba sintética + abajo/derecha restyleadas) que ya tenían las
-  // grillas de Valores diarios/semanales, vía activarBarraScrollTabla()
-  // (assets/common.js). Historial en CHANGELOG.md.
+  // moradas"): misma barra morada (arriba sintética + abajo/derecha
+  // restyleadas) que el resto de tablas del sitio, vía
+  // activarBarraScrollTabla() (assets/js/ui/tables.js). Historial en
+  // CHANGELOG.md.
   pendWrap.querySelectorAll('.table-scroll').forEach(w => activarBarraScrollTabla(w));
   gestionarTabsClan('pendClanTabs', 'pendWrap', () => clanSeleccionadoPend, v => clanSeleccionadoPend = v);
   pintarFiltroLetra('pendLetraFilter', LETRAS_FILTRO, () => letraSeleccionadaPend, v => letraSeleccionadaPend = v, aplicarFiltroLetraPendientes);
@@ -1170,8 +1114,7 @@ function render(data){
       return `
         <div class="card ai-clan-card" data-clan="${esc(clanNombre)}" style="padding:16px;">
           <h3>${esc(clanNombre)} <span class="text-faint" style="font-family:var(--f-mono); font-size:12px; font-weight:400;">(${filas.length} activo${filas.length === 1 ? '' : 's'})</span></h3>
-          <div class="grid-hscroll grid-hscroll-top" aria-hidden="true"><div class="grid-hscroll-inner"></div></div>
-          <div class="table-scroll table-scroll-oculta-nativa"><table class="tbl-activos-grid" data-grid-id="activos:${esc(clanNombre)}">
+          <div class="table-scroll"><table class="tbl-activos-grid" data-grid-id="activos:${esc(clanNombre)}">
             <thead>
               <tr>
                 <th class="col-jugador" rowspan="2">Nombre</th>
@@ -1187,7 +1130,6 @@ function render(data){
             </thead>
             <tbody></tbody>
           </table></div>
-          <div class="grid-hscroll grid-hscroll-bottom" aria-hidden="true"><div class="grid-hscroll-inner"></div></div>
           <!-- wrap vacío, solo-admin, llenado por cargarAportesInactivosSiAdmin() más abajo. Historial en CHANGELOG.md. -->
           <div class="ai-inactivos-wrap" data-clan-inactivos="${esc(clanNombre)}"></div>
         </div>`;
@@ -1200,7 +1142,10 @@ function render(data){
       if (tabla) inicializarGridFiltro(gridId, tabla, columnasActivos, controlActivos[clanNombre], renderFilaActivos);
     });
     controlActivosSection.style.display = 'block';
-    enlazarScrollsHorizontales('controlActivosWrap');
+    // FIX (18-sep-2026, refactor): misma barra morada arriba/abajo/derecha
+    // que el resto de tablas del sitio, ver activarBarraScrollTabla() en
+    // assets/js/ui/tables.js. Historial en CHANGELOG.md.
+    wrapActivos.querySelectorAll('.table-scroll').forEach(w => activarBarraScrollTabla(w));
     gestionarTabsClan('controlActivosClanTabs', 'controlActivosWrap', () => clanSeleccionadoActivos, v => clanSeleccionadoActivos = v);
     pintarFiltroLetra('controlActivosLetraFilter', LETRAS_FILTRO, () => letraSeleccionadaActivos, v => letraSeleccionadaActivos = v, () => aplicarFiltroLetraGrid('controlActivosWrap'));
   } else {
@@ -1239,8 +1184,7 @@ function render(data){
       return `
         <div class="card ai-clan-card" data-clan="${esc(clanNombre)}" style="padding:16px;">
           <h3>${esc(clanNombre)} <span class="text-faint" style="font-family:var(--f-mono); font-size:12px; font-weight:400;">(${filas.length} activo${filas.length === 1 ? '' : 's'})</span></h3>
-          <div class="grid-hscroll grid-hscroll-top" aria-hidden="true"><div class="grid-hscroll-inner"></div></div>
-          <div class="table-scroll table-scroll-oculta-nativa"><table class="tbl-activos-grid tbl-temporada-grid" data-grid-id="temporada:${esc(clanNombre)}">
+          <div class="table-scroll"><table class="tbl-activos-grid tbl-temporada-grid" data-grid-id="temporada:${esc(clanNombre)}">
             <thead>
               <tr>
                 <th class="col-jugador" rowspan="2">Nombre</th>
@@ -1256,7 +1200,6 @@ function render(data){
             </thead>
             <tbody></tbody>
           </table></div>
-          <div class="grid-hscroll grid-hscroll-bottom" aria-hidden="true"><div class="grid-hscroll-inner"></div></div>
         </div>`;
     }).join('');
     const wrapTemporada = document.getElementById('controlTemporadaWrap');
@@ -1267,7 +1210,10 @@ function render(data){
       if (tabla) inicializarGridFiltro(gridId, tabla, columnasTemporada, controlTemporada[clanNombre], renderFilaTemporada);
     });
     controlTemporadaSection.style.display = 'block';
-    enlazarScrollsHorizontales('controlTemporadaWrap');
+    // FIX (18-sep-2026, refactor): misma barra morada arriba/abajo/derecha
+    // que el resto de tablas del sitio, ver activarBarraScrollTabla() en
+    // assets/js/ui/tables.js. Historial en CHANGELOG.md.
+    wrapTemporada.querySelectorAll('.table-scroll').forEach(w => activarBarraScrollTabla(w));
     gestionarTabsClan('controlTemporadaClanTabs', 'controlTemporadaWrap', () => clanSeleccionadoTemporada, v => clanSeleccionadoTemporada = v);
     pintarFiltroLetra('controlTemporadaLetraFilter', LETRAS_FILTRO, () => letraSeleccionadaTemporada, v => letraSeleccionadaTemporada = v, () => aplicarFiltroLetraGrid('controlTemporadaWrap'));
   } else {
