@@ -4927,7 +4927,39 @@ mismo) y esta copia era una réplica exacta sin usar. Se eliminó sin mover
 nada (ya existía el destino).
 
 Ningún cambio visual esperado — es movimiento de definiciones idénticas,
-no reescritura de estilos. Pendiente para próximas sesiones: consolidar
-tablas (`.inactivos-table`/`.roster-table`/`.cr-grid-table`/`.table-scroll`)
-y auditar los 49 candidatos a compartir de `directorio.html` (ver plan de
-refactor CSS para el detalle completo por página).
+no reescritura de estilos.
+
+### 18-sep-2026 (mismo día, segundo lote) — widget de filtro de columna y `.tabs-row`/`.tab-btn`
+Auditoría completa de los 49 candidatos a compartir de `directorio.html`
+(comparando selector por selector contra `styles.css` y contra el uso de
+la misma clase en otras páginas). Este lote cubre los casos confirmados
+como duplicación literal, byte a byte:
+
+- **`.tabs-row`/`.tab-btn`(`.active`)**: idéntico en `directorio.html` y
+  `guerra.html`.
+- **Widget completo de filtro de columna** (`.rt-th-inner`, `.rt-filtro-btn`,
+  `.rt-filtro-pop`, `.rt-filtro-lista`, `.rt-filtro-item`,
+  `.rt-filtro-acciones`, `.rt-filtro-cancelar`, `.rt-filtro-aceptar`,
+  `.rt-filtro-divisor`, `.rt-filtro-orden`, `.rt-orden-btn`/`.rt-orden-quitar`,
+  `.rt-orden-indicador`, `.rt-filtro-comparar`, `.rt-filtro-todos`,
+  `.rt-filtro-todos-btn` — 15 clases en total): idéntico entre
+  `directorio.html` y `guerra.html`. El propio comentario de guerra.html ya
+  lo admitía ("mismo widget... CSS traído tal cual de ahí para que ambas
+  páginas se vean y se sientan igual") — esto solo mueve esa admisión de
+  intención a la realidad del código: una sola definición en vez de dos
+  copias a mantener sincronizadas a mano.
+
+**Quedan pendientes y ya identificados** (no exactamente idénticos, requieren
+una decisión chica antes de fusionar — ver plan de refactor CSS):
+- `.buscador`, `.ext-grid`/`.ext-item`(+`.v`/`.k`), `.mr-name`/`.mr-tag`/`.mr-right`,
+  `.grid-line`, `.comparativa-grid`, `.chart-tooltip` — duplicados exactos,
+  listos para mover en la próxima sesión.
+- `.req-row`/`.lbl`/`.progress` (exactos) + `.val` (3 anchos distintos:
+  100px/90px/110px — confirmar si es a propósito antes de unificar).
+- `.perfil-cabecera`/`.stats-mini` (3 variantes chicas de tamaño de fuente).
+- `.miembro-row` (padding/borde levemente distintos entre directorio y admin,
+  más `.mr-vigencia` que solo existe en directorio).
+- `.lbl`, `.val`, `.activo`, `.name`, `.chart-title`, `.axis-label`/`.axis-title`:
+  mismo nombre de clase pero componentes distintos (timeline, resumen,
+  varios estados "activo", gráficos de tamaño intencionalmente distinto) —
+  coincidencia de nombre, no duplicación real, no tocar.
