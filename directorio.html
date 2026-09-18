@@ -1310,27 +1310,17 @@ document.getElementById('compTag2').addEventListener('keydown', e => { if (e.key
  * por nombre desde el backend). Sin barra de filtro propia — la barra de
  * búsqueda de arriba ya cumple esa función.
  * ========================================================================= */
-/* FIX (03-sep-2026, pedido usuario — "Vigencia" en el Directorio): mismo
- * patrón que fmtFechaCorta() de perfil.html (no se comparte código entre
- * páginas en este proyecto — cada página trae sus propios helpers). Si el
- * valor no es una fecha parseable, se muestra tal cual en vez de nada. */
-function fmtFechaCortaVigencia(v){
-  if (!v) return '—';
-  const d = v instanceof Date ? v : new Date(v);
-  if (isNaN(d.getTime())) return String(v);
-  const fecha = d.toLocaleDateString('es-PE', { day:'2-digit', month:'short', year:'numeric', timeZone:'America/Lima' });
-  const hora  = d.toLocaleTimeString('es-PE', { hour:'numeric', minute:'2-digit', hour12:true, timeZone:'America/Lima' });
-  return `${fecha}, ${hora}`;
-}
+/* La fecha de vigencia del Directorio usa fmtFechaVigenciaCorta() de assets/js/util.js
+ * (antes fmtFechaCortaVigencia(), copia idéntica de la de index.html). */
 
 /** Fecha corta CON hora (ej. "05 set. 2026, 4:46 a. m."), mismo formato que
  * fmtFechaCorta() de perfil.html.
  * FIX (05-sep-2026, pedido usuario — "la vigencia del cara a cara debe
  * tener el formato que tiene en el perfil de miembro... con hora
- * incluida"): fmtFechaCortaVigencia() de arriba (la que usa el Directorio)
+ * incluida"): fmtFechaVigenciaCorta() de util.js (la que usa el Directorio)
  * solo pinta día/mes/año sin hora — para el cara a cara se necesita el
  * mismo formato completo que ya usa perfil.html, así que se agrega este
- * helper aparte en vez de tocar fmtFechaCortaVigencia() y así no afectar
+ * helper aparte en vez de tocar fmtFechaVigenciaCorta() y así no afectar
  * el formato que ya se ve en el Directorio. */
 function fmtFechaConHoraVigencia(v){
   if (!v) return '—';
@@ -1444,7 +1434,7 @@ const ROSTER_COLUMNAS = [
   { key:'nivelXp',     label:'Nivel (XP)',    cls:'rt-nivelxp',     tipo:'numero', get:m => (m.nivelXp != null ? fmtNum(m.nivelXp) : null), raw:m => m.nivelXp },
   { key:'nivelCartas', label:'Nivel (cartas)',cls:'rt-nivelcartas', tipo:'numero', get:m => (m.nivelCartas != null ? fmtNum(m.nivelCartas) : null), raw:m => m.nivelCartas },
   { key:'antiguedad',  label:'Antigüedad',    cls:'rt-antiguedad',  tipo:'numero', get:m => formatearAntiguedad(m.antiguedad), raw:m => (m.antiguedad === '' ? null : m.antiguedad) },
-  { key:'vigencia',    label:'Vigencia',      cls:'rt-vigencia',    tipo:'fecha',  get:m => (m.vigencia ? fmtFechaCortaVigencia(m.vigencia) : null), raw:m => m.vigencia },
+  { key:'vigencia',    label:'Vigencia',      cls:'rt-vigencia',    tipo:'fecha',  get:m => (m.vigencia ? fmtFechaVigenciaCorta(m.vigencia) : null), raw:m => m.vigencia },
 ];
 
 const ICONO_FILTRO = '<svg viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M1 2.5A.5.5 0 0 1 1.5 2h13a.5.5 0 0 1 .4.8L10 9.4V13a.5.5 0 0 1-.2.4l-2 1.5A.5.5 0 0 1 7 14.5v-5.1L1.1 2.8A.5.5 0 0 1 1 2.5z"/></svg>';
@@ -1734,6 +1724,8 @@ function actualizarIconosFiltro(wrap){
   wrap.querySelectorAll('.rt-orden-indicador').forEach(sp => {
     const activo = rosterOrden && rosterOrden.colKey === sp.dataset.col;
     sp.textContent = activo ? (rosterOrden.dir === 'desc' ? '↓' : '↑') : '';
+    const th = sp.closest('th');
+    if (th) th.setAttribute('aria-sort', activo ? (rosterOrden.dir === 'desc' ? 'descending' : 'ascending') : 'none');
   });
   actualizarBotonLimpiarFiltros(wrap);
 }
@@ -1866,7 +1858,7 @@ function renderRosterClanActivo(){
   if (letraFilterWrap) letraFilterWrap.querySelectorAll('.letra-btn').forEach(b => b.classList.remove('active'));
 
   const encabezado = ROSTER_COLUMNAS.map(c => `
-    <th><div class="rt-th-inner"><span>${esc(c.label)}</span>${c.sortable === false ? '' : `<span class="rt-orden-indicador" data-col="${c.key}"></span>`}${c.filtrable === false ? '' :
+    <th scope="col"><div class="rt-th-inner"><span>${esc(c.label)}</span>${c.sortable === false ? '' : `<span class="rt-orden-indicador" data-col="${c.key}"></span>`}${c.filtrable === false ? '' :
       `<button type="button" class="rt-filtro-btn" data-col="${c.key}" title="Ordenar o filtrar por ${esc(c.label)}" aria-label="Ordenar o filtrar por ${esc(c.label)}">${ICONO_FILTRO}</button>`
     }</div></th>`).join('');
 
@@ -1975,8 +1967,8 @@ function fmtFecha(iso){
  * index.html (mismas funciones, mismo criterio — ver ese archivo para el
  * detalle histórico de cada FIX) — mismo patrón que el resto de este
  * proyecto, donde cada página trae su propia copia de estos helpers en
- * vez de compartir un módulo (ver fmtFechaCortaVigencia() más arriba /
- * fmtFechaVigenciaCorta() de index.html). Solo las clases CSS que emite
+ * vez de compartir un módulo (salvo fmtFechaVigenciaCorta(), que ya vive
+ * en util.js). Solo las clases CSS que emite
  * lineChartSvg/lineChartLegendHtml llevan el prefijo "ing-" (ver <style>
  * de arriba) para no chocar con .linechart-svg/.grid-line/.axis-label,
  * que esta página ya usaba para el comparador "Cara a cara" con otra

@@ -119,3 +119,20 @@ function enlaceJugador(nombre, tag, opts){
   const target = opts.mismaVentana ? '' : ' target="_blank" rel="noopener"';
   return `<a class="${clase}" href="perfil.html?tag=${encodeURIComponent(tag)}"${target}>${nombreEsc}</a>`;
 }
+
+
+/**
+ * fmtFechaVigenciaCorta(v)
+ * Fecha corta CON hora en zona Lima (ej. "05 set 2026, 4:46 a. m."). Antes
+ * había dos copias idénticas: fmtFechaVigenciaCorta() en index.html y
+ * fmtFechaCortaVigencia() en directorio.html. Si el valor no es una fecha
+ * parseable se muestra tal cual, en vez de perder información.
+ */
+function fmtFechaVigenciaCorta(v){
+  if (!v) return '—';
+  const d = v instanceof Date ? v : new Date(v);
+  if (isNaN(d.getTime())) return String(v);
+  const fecha = d.toLocaleDateString('es-PE', { day:'2-digit', month:'short', year:'numeric', timeZone:'America/Lima' });
+  const hora  = d.toLocaleTimeString('es-PE', { hour:'numeric', minute:'2-digit', hour12:true, timeZone:'America/Lima' });
+  return `${fecha}, ${hora}`;
+}

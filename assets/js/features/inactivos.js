@@ -228,7 +228,7 @@ function _renderVistaInactivos(section, titulo, cuentas){
       <table class="inactivos-table">
         <thead>
           <tr>
-            <th class="ia-th-nombre">Nombre</th>
+            <th class="ia-th-nombre" scope="col">Nombre</th>
             <!-- FIX (07-sep-2026, pedido usuario — "en cualquier lugar que
                  la web requiera mostrar algo de Nom_Multi y tenga que
                  mostrar el encabezado, no se debe mostrar como Nom_Multi,
@@ -241,10 +241,10 @@ function _renderVistaInactivos(section, titulo, cuentas){
                  renombrar esas referencias internas a "jugador", porque en
                  el backend (hoja Directorio/columna DC.JUGADOR) "Jugador"
                  ya identifica otra cosa distinta de Nom_Multi. -->
-            <th class="ia-th-nommulti">Jugador</th>
-            <th class="ia-th-nivel">Nivel</th>
-            <th class="ia-th-copas">Copas</th>
-            <th class="ia-th-acciones"></th>
+            <th class="ia-th-nommulti" scope="col">Jugador</th>
+            <th class="ia-th-nivel" scope="col">Nivel</th>
+            <th class="ia-th-copas" scope="col">Copas</th>
+            <th class="ia-th-acciones" scope="col" aria-label="Acciones"></th>
           </tr>
         </thead>
         <tbody>

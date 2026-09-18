@@ -4,22 +4,20 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Ruleta de Sorteo — Familia Terna</title>
-<!-- MEJORA (18-sep-2026, propuesta y pedida por el usuario): faltaba meta description. Página noindex así que no afecta SEO, pero sí a la vista previa si el link se comparte (ej. al enlace ?tk= entre admins) para coordinar un sorteo en vivo. -->
+<!-- MEJORA (18-sep-2026, propuesta y pedida por el usuario): faltaba meta description. Página noindex así que no afecta SEO, pero sí a la vista previa si el link se comparte entre admins para coordinar un sorteo en vivo. -->
 <meta name="description" content="Ruleta de sorteo en vivo de la Familia Terna — herramienta interna para administradores.">
 <meta name="robots" content="noindex, nofollow">
 <link rel="icon" type="image/jpeg" href="assets/img/logo-cuadrado.jpg">
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#040508">
 <link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png">
-<!-- sessionStorage NO se copia de forma confiable entre pestañas. Historial en CHANGELOG.md. -->
+<!-- La sesión vive en localStorage (compartido entre pestañas): ya no se acepta el token por ?tk=. Historial en CHANGELOG.md. -->
 <script>
 (function(){
   var SESSION_KEY = 'terna_admin_token';
-  var params = new URLSearchParams(window.location.search);
-  var tk = params.get('tk');
 
-  if(tk){
-    localStorage.setItem(SESSION_KEY, tk);
+  // Enlaces viejos con ?tk=: el valor se ignora (no se guarda) y se limpia la barra de direcciones.
+  if(new URLSearchParams(window.location.search).has('tk')){
     history.replaceState({}, '', window.location.pathname);
   }
 

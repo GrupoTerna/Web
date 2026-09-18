@@ -541,7 +541,7 @@ function gridEstadoDe(gridId){
  * directorio.html. Los <th colspan> de la 1ª fila (Ataques/Puntaje/
  * Barcos) NUNCA pasan por acá — se siguen pintando planos, sin botón. */
 function thFiltroGrid(claseTh, label, colKey){
-  return `<th class="${claseTh}"><div class="rt-th-inner"><span>${esc(label)}</span><span class="rt-orden-indicador" data-col="${colKey}"></span><button type="button" class="rt-filtro-btn" data-col="${colKey}" title="Ordenar o filtrar por ${esc(label)}" aria-label="Ordenar o filtrar por ${esc(label)}">${ICONO_FILTRO_GRID}</button></div></th>`;
+  return `<th class="${claseTh}" scope="col"><div class="rt-th-inner"><span>${esc(label)}</span><span class="rt-orden-indicador" data-col="${colKey}"></span><button type="button" class="rt-filtro-btn" data-col="${colKey}" title="Ordenar o filtrar por ${esc(label)}" aria-label="Ordenar o filtrar por ${esc(label)}">${ICONO_FILTRO_GRID}</button></div></th>`;
 }
 /** 5 columnas fijas J/V/S/D/Total de una megacategoría (Valores diarios). */
 function filaSubEncabezadosMega(gpClase, prefijo){
@@ -665,6 +665,8 @@ function gridActualizarIconos(gridId, tabla){
   tabla.querySelectorAll('.rt-orden-indicador').forEach(sp => {
     const activo = estado.orden && estado.orden.colKey === sp.dataset.col;
     sp.textContent = activo ? (estado.orden.dir === 'desc' ? '↓' : '↑') : '';
+    const th = sp.closest('th');
+    if (th) th.setAttribute('aria-sort', activo ? (estado.orden.dir === 'desc' ? 'descending' : 'ascending') : 'none');
   });
 }
 
@@ -1030,7 +1032,7 @@ function render(data){
       <h3>${esc(clanNombre)} <span class="text-faint" style="font-family:var(--f-mono); font-size:12px; font-weight:400;">(${filas.length} pendiente${filas.length === 1 ? '' : 's'})</span></h3>
       <div class="table-scroll"><table class="tbl-pendientes">
         <thead><tr>
-          <th>N°</th><th>Tag</th><th>Nombre</th>${pendEsAdmin ? '<th>Jugador</th><th>Préstamo</th>' : ''}<th>Rango</th><th>Faltantes</th><th>Perfil</th>
+          <th scope="col">N°</th><th scope="col">Tag</th><th scope="col">Nombre</th>${pendEsAdmin ? '<th scope="col">Jugador</th><th scope="col">Préstamo</th>' : ''}<th scope="col">Rango</th><th scope="col">Faltantes</th><th scope="col">Perfil</th>
         </tr></thead>
         <tbody>${filas.map((p, i) => {
           const nombreMostrado = p.nombre || p.nomMulti || p.tag;
@@ -1126,10 +1128,10 @@ function render(data){
           <div class="table-scroll"><table class="tbl-activos-grid" data-grid-id="activos:${esc(clanNombre)}">
             <thead>
               <tr>
-                <th class="col-jugador" rowspan="2">Nombre</th>
-                <th class="ai-grp-atq" colspan="5"><span class="ai-grp-label">Ataques</span></th>
-                <th class="ai-grp-pje" colspan="5"><span class="ai-grp-label">Puntaje</span></th>
-                <th class="ai-grp-brc" colspan="5"><span class="ai-grp-label">Barcos</span></th>
+                <th class="col-jugador" rowspan="2" scope="col">Nombre</th>
+                <th class="ai-grp-atq" colspan="5" scope="colgroup"><span class="ai-grp-label">Ataques</span></th>
+                <th class="ai-grp-pje" colspan="5" scope="colgroup"><span class="ai-grp-label">Puntaje</span></th>
+                <th class="ai-grp-brc" colspan="5" scope="colgroup"><span class="ai-grp-label">Barcos</span></th>
               </tr>
               <tr>
                 ${filaSubEncabezadosMega('ai-grp-atq', 'atq')}
@@ -1196,10 +1198,10 @@ function render(data){
           <div class="table-scroll"><table class="tbl-activos-grid tbl-temporada-grid" data-grid-id="temporada:${esc(clanNombre)}">
             <thead>
               <tr>
-                <th class="col-jugador" rowspan="2">Nombre</th>
-                <th class="ai-grp-atq" colspan="${nSem + 2}"><span class="ai-grp-label">Ataques</span></th>
-                <th class="ai-grp-pje" colspan="${nSem + 2}"><span class="ai-grp-label">Puntaje</span></th>
-                <th class="ai-grp-brc" colspan="${nSem + 2}"><span class="ai-grp-label">Barcos</span></th>
+                <th class="col-jugador" rowspan="2" scope="col">Nombre</th>
+                <th class="ai-grp-atq" colspan="${nSem + 2}" scope="colgroup"><span class="ai-grp-label">Ataques</span></th>
+                <th class="ai-grp-pje" colspan="${nSem + 2}" scope="colgroup"><span class="ai-grp-label">Puntaje</span></th>
+                <th class="ai-grp-brc" colspan="${nSem + 2}" scope="colgroup"><span class="ai-grp-label">Barcos</span></th>
               </tr>
               <tr>
                 ${filaSubEncabezadosSemanas('ai-grp-atq', 'atq', semanasTemporada, 'Total')}
@@ -1292,15 +1294,15 @@ async function cargarAportesInactivosSiAdmin(ctx){
         <div class="table-scroll"><table class="tbl-activos-grid">
           <thead>
             <tr>
-              <th class="col-jugador" rowspan="2">Nombre</th>
-              <th class="ai-grp-atq" colspan="5"><span class="ai-grp-label">Ataques</span></th>
-              <th class="ai-grp-pje" colspan="5"><span class="ai-grp-label">Puntaje</span></th>
-              <th class="ai-grp-brc" colspan="5"><span class="ai-grp-label">Barcos</span></th>
+              <th class="col-jugador" rowspan="2" scope="col">Nombre</th>
+              <th class="ai-grp-atq" colspan="5" scope="colgroup"><span class="ai-grp-label">Ataques</span></th>
+              <th class="ai-grp-pje" colspan="5" scope="colgroup"><span class="ai-grp-label">Puntaje</span></th>
+              <th class="ai-grp-brc" colspan="5" scope="colgroup"><span class="ai-grp-label">Barcos</span></th>
             </tr>
             <tr>
-              <th class="ai-grp-atq">J</th><th class="ai-grp-atq">V</th><th class="ai-grp-atq">S</th><th class="ai-grp-atq">D</th><th class="ai-grp-atq">Total</th>
-              <th class="ai-grp-pje">J</th><th class="ai-grp-pje">V</th><th class="ai-grp-pje">S</th><th class="ai-grp-pje">D</th><th class="ai-grp-pje">Total</th>
-              <th class="ai-grp-brc">J</th><th class="ai-grp-brc">V</th><th class="ai-grp-brc">S</th><th class="ai-grp-brc">D</th><th class="ai-grp-brc">Total</th>
+              <th class="ai-grp-atq" scope="col">J</th><th class="ai-grp-atq" scope="col">V</th><th class="ai-grp-atq" scope="col">S</th><th class="ai-grp-atq" scope="col">D</th><th class="ai-grp-atq" scope="col">Total</th>
+              <th class="ai-grp-pje" scope="col">J</th><th class="ai-grp-pje" scope="col">V</th><th class="ai-grp-pje" scope="col">S</th><th class="ai-grp-pje" scope="col">D</th><th class="ai-grp-pje" scope="col">Total</th>
+              <th class="ai-grp-brc" scope="col">J</th><th class="ai-grp-brc" scope="col">V</th><th class="ai-grp-brc" scope="col">S</th><th class="ai-grp-brc" scope="col">D</th><th class="ai-grp-brc" scope="col">Total</th>
             </tr>
           </thead>
           <tbody>${filas.map(f => `
@@ -1461,7 +1463,7 @@ async function cargarGuerraLog(){
       const semanas = c.semanas || [];
       tableWrap.innerHTML = semanas.length ? `
         <div class="card" style="padding:12px;"><div class="table-scroll"><table>
-          <thead><tr><th>Temporada</th><th>Semana</th><th>Rank</th><th>Boat</th><th>Trophy</th></tr></thead>
+          <thead><tr><th scope="col">Temporada</th><th scope="col">Semana</th><th scope="col">Rank</th><th scope="col">Boat</th><th scope="col">Trophy</th></tr></thead>
           <tbody>${semanas.map(s => {
             const delta = Number(s.trophyDelta) || 0;
             const deltaHtml = delta

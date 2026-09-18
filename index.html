@@ -954,17 +954,7 @@ function tagsActivosDesdeRoster(dataRoster){
   return set;
 }
 
-/* FIX (03-sep-2026, pedido usuario — "Vigencia" en Ingresos recientes):
- * mismo patrón que fmtFechaCortaVigencia() de directorio.html / fmtFechaCorta()
- * de perfil.html (cada página trae su propio helper en este proyecto). */
-function fmtFechaVigenciaCorta(v){
-  if (!v) return '—';
-  const d = v instanceof Date ? v : new Date(v);
-  if (isNaN(d.getTime())) return String(v);
-  const fecha = d.toLocaleDateString('es-PE', { day:'2-digit', month:'short', year:'numeric', timeZone:'America/Lima' });
-  const hora  = d.toLocaleTimeString('es-PE', { hour:'numeric', minute:'2-digit', hour12:true, timeZone:'America/Lima' });
-  return `${fecha}, ${hora}`;
-}
+/* fmtFechaVigenciaCorta() vive en assets/js/util.js (compartida con directorio.html). */
 
 function ingStatHtml(valor, label, opts){
   const txt = (valor === undefined || valor === null || valor === '') ? '—' : fmtNum(valor);
@@ -1428,7 +1418,7 @@ async function cargarIngresos(){
           <div class="ingreso-row js-ingreso-row" data-tag="${esc(ing.tag || '')}" style="cursor:pointer;">
             <div class="ingreso-top">
               <div class="ingreso-info">
-                <div class="ing-nombre">${esc(ing.nombre)}</div>
+                <div class="ing-nombre">${enlaceJugador(ing.nombre, ing.tag)}</div>
                 <div class="ing-tag">${esc(ing.tag || '—')}</div>
                 <div class="ing-fecha">${ing.fechaIngreso ? 'Ingresó el ' + esc(ing.fechaIngreso) : 'Fecha de ingreso no registrada'}</div>
                 <!-- Aviso de "Rival de esta temporada" en Ingresos recientes; reusa el mismo badge que Detección de infiltrados de admin.html. Historial en CHANGELOG.md. -->
@@ -1454,12 +1444,13 @@ async function cargarIngresos(){
         }).join('')}
       </div>`).join('');
 
-    // FIX (03-sep-2026, pedido usuario): click en la tarjeta -> perfil,
-    // salvo que el clic haya sido sobre un link de RoyaleAPI/CWStats.
+    // Click en la tarjeta -> perfil (mouse). Para teclado, el nombre es un
+    // enlace real (enlaceJugador). Si el clic cae sobre CUALQUIER <a> de la
+    // tarjeta (nombre, RoyaleAPI, CWStats) se deja actuar al enlace y no se
+    // abre una segunda pestaña.
     wrap.querySelectorAll('.js-ingreso-row').forEach(row => {
-      const linksBox = row.querySelector('.ingreso-links');
-      if (linksBox) linksBox.addEventListener('click', e => e.stopPropagation());
-      row.addEventListener('click', () => {
+      row.addEventListener('click', e => {
+        if (e.target.closest('a, .ingreso-links')) return;
         if (!row.dataset.tag) return;
         window.open('perfil.html?tag=' + encodeURIComponent(row.dataset.tag), '_blank');
       });

@@ -12,7 +12,8 @@
  *    fuentes externas (Google Fonts, favicons de Google, etc.) — esos
  *    siguen yendo a la red tal cual, tal como ya lo esperan common.js y
  *    cada página (loaders/errores propios si el backend no responde).
- *  - Navegación entre páginas (mode:'navigate'): red primero, caché como
+ *  - Navegación entre páginas (mode:'navigate'): red primero (solo se
+ *    guardan en caché las respuestas OK), caché como
  *    respaldo si no hay conexión, y como último recurso index.html (para
  *    no dejar una pantalla en blanco si se pide una página nunca visitada
  *    estando offline).
@@ -22,7 +23,9 @@
  *    versión vieja indefinidamente.
  * ========================================================================= */
 
-const CACHE_NAME = 'terna-static-v1';
+// v2 (18-sep-2026): cambió CORE_ASSETS (se añadieron los módulos de assets/js/**),
+// así que se sube la versión para que 'activate' borre el caché v1.
+const CACHE_NAME = 'terna-static-v2';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
@@ -39,6 +42,19 @@ const CORE_ASSETS = [
   'manifest.json',
   'assets/styles.css',
   'assets/common.js',
+  // Módulos que cargan todas las páginas (mismo orden que sus <script src>).
+  'assets/js/core/config.js',
+  'assets/js/util.js',
+  'assets/js/core/api.js',
+  'assets/js/core/auth.js',
+  'assets/js/ui/tables.js',
+  'assets/js/ui/filters.js',
+  'assets/js/ui/effects.js',
+  'assets/js/data/cards-es.js',
+  'assets/js/data/clan-badges.js',
+  'assets/js/features/clan-card.js',
+  'assets/js/features/inactivos.js',
+  'assets/js/features/timeline-svg.js',
   'assets/img/logo-cuadrado.jpg',
   'assets/img/icon-192.png',
   'assets/img/icon-512.png'
@@ -74,8 +90,11 @@ self.addEventListener('fetch', event => {
     event.respondWith(
       fetch(req)
         .then(res => {
-          const copia = res.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(req, copia));
+          // Solo se guardan respuestas correctas: un 404/5xx cacheado se serviría después estando offline.
+          if (res && res.ok) {
+            const copia = res.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put(req, copia));
+          }
           return res;
         })
         .catch(() => caches.match(req).then(cacheado => cacheado || caches.match('index.html')))

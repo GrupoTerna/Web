@@ -1774,12 +1774,11 @@ document.getElementById('claveInput').addEventListener('keydown', e => {
 
 document.getElementById('logoutBtn').addEventListener('click', () => mostrarLogin());
 
-// El token viaja por query string (?tk=) a la pestaña de sorteo.html porque sessionStorage no se comparte entre pestañas; ya no se loguea el token en consola. Historial en CHANGELOG.md.
+// sorteo.html lee el mismo token de localStorage (se comparte entre pestañas), así que ya no viaja por la URL. Historial en CHANGELOG.md.
 document.getElementById('btnAbrirSorteo').addEventListener('click', () => {
   const token = localStorage.getItem(SESSION_KEY);
   if(!token) return mostrarLogin('Tu sesión expiró, vuelve a iniciar sesión.');
-  const url = 'sorteo.html?tk=' + encodeURIComponent(token);
-  window.open(url, '_blank');
+  window.open('sorteo.html', '_blank');
 });
 
 // Si la sesión vino vencida/inválida, cualquier respuesta con ok:false y
