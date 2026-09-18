@@ -28,19 +28,16 @@
 <meta name="theme-color" content="#040508">
 <link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png">
 <style>
-  /* FIX (31-ago-2026, pedido usuario — "mientras el texto no tenga
-     viñetas, se debe justificar el texto para lograr mayor armonía
-     visual"): solo afecta a <p>, nunca a las listas (<li>) de la misma
-     tarjeta, tal como se pidió. */
+  /* Justificado (text-align) solo en <p>, nunca en <li> de la misma
+     tarjeta — a propósito. Historial: CHANGELOG.md. */
   .historia-card p{font-size:16px; line-height:1.75; color:var(--text-dim); margin:0 0 18px; text-align:justify;}
   .historia-card p:last-child{margin-bottom:0;}
   .historia-card b{color:var(--text); font-weight:700;}
 
-  /* Ascensos recientes (30-ago-2026, pedido del usuario): lista pública de
-     reconocimiento — solo Ascensos, nunca Descensos ni cambios de rango de
-     administradores (eso ya lo filtra el backend, ver webAscensosRecientes()
-     en 34_Web_API.gs). Se agrega debajo de la explicación de "Ascensos y
-     Descensos" de esta misma página. */
+  /* .ascenso-row: lista pública de reconocimiento — solo Ascensos, nunca
+     Descensos ni cambios de rango de administradores (ya filtrado en el
+     backend, ver webAscensosRecientes() en 34_Web_API.gs). Historial:
+     CHANGELOG.md. */
   .ascenso-row{
     display:flex; align-items:center; justify-content:space-between; gap:14px;
     padding:14px 0; border-bottom:1px solid var(--line);
@@ -53,24 +50,13 @@
     .ascenso-row{flex-direction:column; align-items:flex-start; gap:4px;}
   }
 
-  /* FIX (04-sep-2026, pedido usuario, punto 28 — "Rankings de la Familia
-     (tops y cartas)... habría que moverla a la sección Index"): esta
-     sección (markup + CSS + JS) se movió completa a index.html — ver el
-     mismo comentario ahí (<section id="rankings-familia">). Ya NO vive
-     acá, así se evita duplicar la llamada a webRankings()/
-     webEstadisticasCartas() en dos páginas a la vez. */
+  /* Rankings de la Familia (tops y cartas): vive en index.html
+     (<section id="rankings-familia">), no acá — evita duplicar la llamada
+     a webRankings()/webEstadisticasCartas(). Historial: CHANGELOG.md. */
 
-  /* FIX (08-sep-2026, pedido usuario, punto 2 — "Comunidad: inserta los
-     íconos de las redes sociales con su respectivo link al hacer clic"):
-     fila de íconos circulares junto al título "La Familia Terna", mismos
-     SVG/links oficiales que ya usa index.html en su sección "Redes
-     Oficiales" (#redes) — así no se duplican URLs distintas para la
-     misma red en dos páginas.
-     FIX (13-sep-2026, pedido usuario — "falta el icono de wsp" / "el de
-     discord también agregalo"): se agregan WhatsApp y Discord, primeros
-     en la fila (izquierda de Facebook), mismos links/SVG que sus
-     respectivos .social-card en index.html#redes. Ya no aplica lo de
-     "WhatsApp/Discord no son parte de este bloque" de la nota anterior. */
+  /* Íconos de redes junto al título "La Familia Terna": mismos SVG/links
+     oficiales que index.html#redes, para no duplicar URLs distintas de la
+     misma red en dos páginas. Historial: CHANGELOG.md. */
   .comunidad-header{
     display:flex; align-items:flex-start; justify-content:space-between;
     gap:20px; flex-wrap:wrap;
@@ -431,9 +417,8 @@ async function cargarAscensos(){
 cargarAscensos();
 
 /* Rankings de la Familia + Estadísticas de cartas: renderRankingRow /
-   pintarRanking / cargarRankings / cargarEstadisticasCartas y sus
-   llamadas se MOVIERON a index.html (pedido usuario, punto 28,
-   04-sep-2026) — ver comentario junto al <style> de arriba. */
+   pintarRanking / cargarRankings / cargarEstadisticasCartas viven en
+   index.html, no acá — ver comentario junto al <style> de arriba. */
 </script>
 </body>
 </html>
