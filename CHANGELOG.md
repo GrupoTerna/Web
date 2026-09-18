@@ -4941,6 +4941,36 @@ para probar cada caso.
 
 ## assets/styles.css — consolidación CSS (refactor, sesión 18-sep-2026)
 
+### 18-sep-2026 (sexto lote) — `.table-scroll` (guerra.html) al selector compartido de scroll
+Cierra el cabo suelto que había quedado del "tercer lote" (`.inactivos-table`
+/ `.roster-table`): `.table-scroll{overflow-x:auto;
+-webkit-overflow-scrolling:touch;}` de `guerra.html` tenía exactamente esa
+misma declaración, carácter por carácter, ya presente en el selector
+compartido `.inactivos-table-wrap, .roster-table-wrap` de `styles.css`. Se
+suma `.table-scroll` a ese selector; se elimina la copia de `guerra.html`.
+`.table-scroll table{min-width:420px;}` es específico de esa página (no
+tiene equivalente en las otras dos) y se queda donde estaba.
+
+Se revisó de nuevo, con el mismo criterio milimétrico de los lotes
+anteriores, si `.cr-grid-table` (admin.html) — la cuarta tabla del sitio
+que trata `activarBarraScrollTabla()` como una unidad — tenía algo
+fusionable con las otras tres: su único CSS es `text-align:center`/
+`vertical-align:middle` en `th` y `padding:4px 6px` en `td`, ninguno
+idéntico a los paddings/alineaciones de `.inactivos-table`/`.roster-table`/
+`.table-scroll`. Se confirma que no hay nada seguro para mover ahí; queda
+tal cual, como ya anticipaba el plan original (Fase 2: "modificadores
+puntuales donde una tabla necesite algo distinto").
+
+También se intentó, en un primer paso de esta sesión, extraer la parte
+compartida de `thead th`/`tbody td` entre `.inactivos-table` y
+`.roster-table` separando la propiedad que sí difiere (`text-align`,
+`font-size`) del resto. El análisis de especificidad indicaba que era
+seguro, pero se revirtió: no es una fusión byte-a-byte del bloque completo
+(el criterio que ya usa el resto de esta sección desde el "tercer lote"),
+y esa fase ya había quedado documentada ahí como "revisada y descartada a
+propósito". Se prefiere no introducir un criterio distinto sin poder
+verificar visualmente el resultado en esta sesión.
+
 ### 18-sep-2026 (quinto lote) — `.perfil-cabecera`, y por qué `.stats-mini`/`.stats-mini b` NO se tocan
 Sigue pendiente de la nota del cuarto lote: `.perfil-cabecera`/`.stats-mini`
 había quedado descrito como "3 variantes chicas de tamaño de fuente" sin
