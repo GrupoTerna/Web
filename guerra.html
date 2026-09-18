@@ -91,6 +91,21 @@
   .grid-hscroll-inner{height:1px;}
   .grid-hscroll-top{margin-bottom:6px;}
   .grid-hscroll-bottom{margin-top:6px;}
+  /* FIX (18-sep-2026, pedido usuario — captura de pantalla: "se muestra
+     doble barra de desplazamiento, la barra blanca con gris no debe
+     estar"): .table-scroll usa scroll nativo del navegador, que en
+     algunos sistemas/navegadores dibuja su propia barra visible (blanca/
+     gris, con flechas) ADEMÁS de .grid-hscroll-top/.grid-hscroll-bottom
+     (ya sincronizadas arriba y abajo de la tabla, ver
+     sincronizarScrollHorizontal() más abajo) — se veían las dos a la vez.
+     Se oculta la nativa SOLO en las cuadrículas que ya tienen su propia
+     barra sincronizada (Valores diarios/semanales, ver
+     .table-scroll-oculta-nativa más abajo); las demás tablas de esta
+     página (Pendientes de Atacar, Inactivos, Historial de guerra) NO
+     llevan esta clase a propósito, porque ahí la barra nativa es la
+     ÚNICA pista visual de que existe scroll horizontal. */
+  .table-scroll.table-scroll-oculta-nativa{scrollbar-width:none;}
+  .table-scroll.table-scroll-oculta-nativa::-webkit-scrollbar{display:none;}
   /* esta tabla venía usando el th{text-align:left} genérico de styles.css (pensado para el resto de tablas del sitio) para las 3 columnas por igual; ahora se centran los 3 encabezados Y los valores de Clan/Faltantes, y solo el nombre de cada fila (.col-nombre)… Historial en CHANGELOG.md. */
   /* sin estos font-size, el <th> heredaba el 11px genérico de table th y el <td> el 14px genérico de table{} (ambos en styles.css) — se fijan acá en 13px/13px para igualar exactamente a .roster-table (directorio.html) e .inactivos-table (styles.css). Historial en CHANGELOG.md. */
   .tbl-pendientes th{text-align:center; font-size:13px;}
@@ -283,8 +298,8 @@
       </picture>
       <span>ᴳ乂ᵀ <span class="crown">⚜️</span> Familia Terna</span>
     </a>
-    <button id="navToggle" class="nav-toggle" aria-label="Abrir menú">☰</button>
-    <div class="links">
+    <button id="navToggle" class="nav-toggle" aria-label="Abrir menú" aria-expanded="false" aria-controls="navLinks">☰</button>
+    <div class="links" id="navLinks">
       <a href="index.html" data-page="inicio">Inicio</a>
       <a href="directorio.html" data-page="directorio">Directorio</a>
       <a href="guerra.html" data-page="guerra">Guerra</a>
@@ -1175,7 +1190,7 @@ function render(data){
         <div class="card ai-clan-card" data-clan="${esc(clanNombre)}" style="padding:16px;">
           <h3>${esc(clanNombre)} <span class="text-faint" style="font-family:var(--f-mono); font-size:12px; font-weight:400;">(${filas.length} activo${filas.length === 1 ? '' : 's'})</span></h3>
           <div class="grid-hscroll grid-hscroll-top" aria-hidden="true"><div class="grid-hscroll-inner"></div></div>
-          <div class="table-scroll"><table class="tbl-activos-grid" data-grid-id="activos:${esc(clanNombre)}">
+          <div class="table-scroll table-scroll-oculta-nativa"><table class="tbl-activos-grid" data-grid-id="activos:${esc(clanNombre)}">
             <thead>
               <tr>
                 <th class="col-jugador" rowspan="2">Nombre</th>
@@ -1244,7 +1259,7 @@ function render(data){
         <div class="card ai-clan-card" data-clan="${esc(clanNombre)}" style="padding:16px;">
           <h3>${esc(clanNombre)} <span class="text-faint" style="font-family:var(--f-mono); font-size:12px; font-weight:400;">(${filas.length} activo${filas.length === 1 ? '' : 's'})</span></h3>
           <div class="grid-hscroll grid-hscroll-top" aria-hidden="true"><div class="grid-hscroll-inner"></div></div>
-          <div class="table-scroll"><table class="tbl-activos-grid tbl-temporada-grid" data-grid-id="temporada:${esc(clanNombre)}">
+          <div class="table-scroll table-scroll-oculta-nativa"><table class="tbl-activos-grid tbl-temporada-grid" data-grid-id="temporada:${esc(clanNombre)}">
             <thead>
               <tr>
                 <th class="col-jugador" rowspan="2">Nombre</th>

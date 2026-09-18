@@ -1209,7 +1209,16 @@ function marcarNavActiva(){
   const toggle = document.getElementById('navToggle');
   const links  = document.querySelector('.nav .links');
   if(toggle && links){
-    toggle.addEventListener('click', () => links.classList.toggle('open'));
+    // MEJORA (18-sep-2026, accesibilidad — propuesta y pedida por el
+    // usuario): antes solo se alternaba la clase CSS 'open'; un lector de
+    // pantalla no tenía forma de saber si el menú estaba desplegado.
+    // Ahora también se refleja aria-expanded y el aria-label cambia entre
+    // "Abrir menú"/"Cerrar menú" según el estado real.
+    toggle.addEventListener('click', () => {
+      const abierto = links.classList.toggle('open');
+      toggle.setAttribute('aria-expanded', abierto ? 'true' : 'false');
+      toggle.setAttribute('aria-label', abierto ? 'Cerrar menú' : 'Abrir menú');
+    });
   }
 }
 
