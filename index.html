@@ -734,11 +734,12 @@
 </section>
 
 <!-- ---------- MODAL "CÓMO UNIRTE" ---------- -->
-<div class="join-modal-overlay" id="joinModalOverlay">
-  <div class="join-modal">
+<!-- MEJORA (18-sep-2026, accesibilidad — propuesta y pedida por el usuario): role="dialog"+aria-modal+aria-labelledby, más trampa de foco y devolución de foco al cerrar (ver el script más abajo). Antes el modal era invisible para lectores de pantalla como diálogo y el foco se podía escapar hacia el fondo con Tab. Historial en CHANGELOG.md. -->
+<div class="join-modal-overlay" id="joinModalOverlay" role="dialog" aria-modal="true" aria-labelledby="joinModalTitle" aria-hidden="true">
+  <div class="join-modal" id="joinModal">
     <button type="button" class="join-modal-close" id="joinModalClose" aria-label="Cerrar">&times;</button>
     <div class="eyebrow">Postular a <span id="joinModalClan">un clan</span></div>
-    <h3 style="margin-top:10px;">¿Cómo unirte?</h3>
+    <h3 style="margin-top:10px;" id="joinModalTitle">¿Cómo unirte?</h3>
     <p class="text-dim" style="font-size:14px; margin-top:8px; line-height:1.5;">
       Los enlaces de invitación directa caducan rápidamente. Postula a través de nuestros canales oficiales:
     </p>
@@ -892,7 +893,8 @@ async function cargarClanes(){
     const clanes = ordenarClanes(data.clanes || []);
     grid.innerHTML = clanes.map((c, i) => clanCardHtml(c, i, { mostrarVerClan: true, mostrarUnirse: true })).join('');
     grid.querySelectorAll('.js-solicitar-unirme').forEach(btn => {
-      btn.addEventListener('click', () => abrirModalUnirse(btn.dataset.clan));
+      // Se pasa el propio botón como disparador (ver abrirModalUnirse) para poder devolverle el foco al cerrar el modal.
+      btn.addEventListener('click', () => abrirModalUnirse(btn.dataset.clan, btn));
     });
     // Tarjeta adicional (5ª) con cuentas inactivas — SOLO si hay un admin
     // con sesión iniciada en este navegador. Ver agregarTarjetaCuentasInactivasSiAdmin() en common.js.
@@ -904,7 +906,9 @@ async function cargarClanes(){
   }
 }
 
-function abrirModalUnirse(nombreClan){
+// MEJORA (18-sep-2026, accesibilidad): guarda qué elemento tenía el foco antes de abrir el modal, para devolvérselo al cerrar (si no se pasa uno explícito, se usa document.activeElement — ej. al abrirse por teclado).
+let joinModalTriggerEl = null;
+function abrirModalUnirse(nombreClan, triggerEl){
   document.getElementById('joinModalClan').textContent = nombreClan || 'un clan';
   const opciones = [
     { href: WSP_GRUPO_URL, icon: '📱', label: 'WhatsApp', sub: 'Canal principal — Grupo informativo', primary: true },
@@ -918,16 +922,34 @@ function abrirModalUnirse(nombreClan){
       <span class="opt-icon">${o.icon}</span>
       <span><span class="opt-label">${esc(o.label)}</span><span class="opt-sub">${esc(o.sub)}</span></span>
     </a>`).join('');
-  document.getElementById('joinModalOverlay').classList.add('open');
+  joinModalTriggerEl = triggerEl || document.activeElement;
+  const overlay = document.getElementById('joinModalOverlay');
+  overlay.classList.add('open');
+  overlay.setAttribute('aria-hidden', 'false');
+  document.getElementById('joinModalClose').focus();
 }
 function cerrarModalUnirse(){
-  document.getElementById('joinModalOverlay').classList.remove('open');
+  const overlay = document.getElementById('joinModalOverlay');
+  overlay.classList.remove('open');
+  overlay.setAttribute('aria-hidden', 'true');
+  if (joinModalTriggerEl && typeof joinModalTriggerEl.focus === 'function') joinModalTriggerEl.focus();
+  joinModalTriggerEl = null;
 }
 document.getElementById('joinModalClose').addEventListener('click', cerrarModalUnirse);
 document.getElementById('joinModalOverlay').addEventListener('click', e => {
   if (e.target.id === 'joinModalOverlay') cerrarModalUnirse();
 });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarModalUnirse(); });
+// MEJORA (18-sep-2026, accesibilidad — trampa de foco): mientras el modal está abierto, Tab/Shift+Tab circula solo entre sus elementos enfocables (botón cerrar + links de opciones) en vez de escaparse hacia el contenido de fondo.
+document.getElementById('joinModalOverlay').addEventListener('keydown', e => {
+  if (e.key !== 'Tab') return;
+  const focosables = document.getElementById('joinModal').querySelectorAll('button, a[href]');
+  if (!focosables.length) return;
+  const primero = focosables[0];
+  const ultimo = focosables[focosables.length - 1];
+  if (e.shiftKey && document.activeElement === primero) { e.preventDefault(); ultimo.focus(); }
+  else if (!e.shiftKey && document.activeElement === ultimo) { e.preventDefault(); primero.focus(); }
+});
 
 cargarClanes();
 
