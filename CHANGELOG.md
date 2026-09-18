@@ -4941,6 +4941,83 @@ para probar cada caso.
 
 ## assets/styles.css — consolidación CSS (refactor, sesión 18-sep-2026)
 
+### 18-sep-2026 (cuarto lote) — Fase 3: `.buscador`, `.mr-*`, `.req-row`, `.ext-*`, `.comparativa-grid`, `.chart-tooltip`
+Fase 3 del plan (ver Plan_Fases.md, "mover a styles.css lo identificado en
+la Fase 0"), reordenada como ya indicaba el propio plan: en vez de partir
+de admin.html (que resultó tener el menor volumen de candidatos, 11, de
+las 6 páginas auditadas), se ejecuta primero sobre directorio.html/
+perfil.html/admin.html/index.html, que sí tenían duplicación exacta
+confirmada. Iguales criterio y método que los lotes anteriores: solo se
+mueve lo que es idéntico carácter por carácter, comparando propiedad por
+propiedad, no por parecido de nombre.
+
+**Movido a `styles.css`** (idéntico en todas las páginas donde vivía):
+- `.buscador` / `.buscador input` — admin.html y directorio.html.
+- `.miembro-row .mr-name` / `.mr-tag` / `.mr-right` — admin.html y
+  directorio.html.
+- `.req-row` / `.req-row .lbl` / `.req-row .progress` — admin.html,
+  directorio.html y perfil.html (las 3 copias, letra por letra iguales).
+- `.ext-grid` / `.ext-item` (+ `.v` / `.k`) — directorio.html y
+  perfil.html.
+- `.comparativa-grid` — directorio.html e index.html. El propio comentario
+  de directorio.html ya decía que "se REUSA .comparativa-grid tal cual"
+  desde el 07-sep-2026; esto solo mueve esa reutilización de intención a
+  hecho.
+- `.chart-tooltip` (+ `.chart-tooltip b`) — directorio.html e index.html.
+  Mismo caso: el comentario ya decía "ese sí se reusa tal cual".
+
+**Revisado y descartado por NO ser idéntico** (se queda donde estaba, sin
+tocar, cada uno con su propia nota en el `<style>` de origen):
+- `.req-row .val` — 3 anchos distintos (admin 90px, directorio 100px,
+  perfil 110px con `min-width`+`width:auto`+`white-space:nowrap`).
+- `.miembro-row` (la base) — padding y borde distintos entre admin y
+  directorio.
+- `.miembro-row .mr-rango` — admin.html agrega `text-align:right` que
+  directorio.html no tiene.
+- `.linechart-svg`/`.grid-line`/`.axis-label` de directorio.html (sección
+  "Cara a cara") vs. los mismos nombres en index.html (sección
+  "Comparativa semanal"): coincide únicamente `.grid-line` (mismo
+  `stroke`/`opacity`) por casualidad; el resto de la familia difiere a
+  propósito (aspect-ratio 656/236 vs 960/460, `.axis-label` en 10px/
+  `text-faint` vs 15px/`text-dim`) porque son dos gráficos de escala
+  distinta — el propio comentario del código ya lo explicaba como una
+  copia adaptada, no una reutilización literal. Fusionar solo la línea de
+  `.grid-line` que sí coincide habría acoplado dos componentes que el
+  propio proyecto mantiene separados a propósito, así que se deja intacto.
+
+Ningún cambio visual esperado — es movimiento de definiciones idénticas y
+descarte razonado de las que no lo son, no reescritura de estilos.
+
+### 18-sep-2026 (tercer lote) — `.inactivos-table` / `.roster-table`: solo lo idéntico
+Fase 2 original (tablas) había quedado pendiente en dos partes: la
+estructura de scroll (ya resuelta antes, `activarBarraScrollTabla()` trata
+a las 4 tablas como una unidad) y el contenido visual (bordes, tamaño de
+encabezado, hover), que seguía repetido entre `.inactivos-table`
+(`styles.css`) y `.roster-table` (`directorio.html`). En vez de forzar una
+base común `.data-table` para las 4 (que ya no aplica igual de bien a las
+4, según lo visto en la Fase 0), se aplica el mismo criterio milimétrico
+usado en los lotes anteriores: fusionar solo lo que es duplicación literal,
+carácter por carácter, dejando todo lo demás intacto porque ya no es
+idéntico (paddings, tamaños de fuente y alineaciones fueron divergiendo con
+los FIX de cada tabla). Comparando regla por regla:
+
+- **Contenedor de scroll**: `.inactivos-table-wrap` y `.roster-table-wrap`
+  tenían la misma declaración exacta (`overflow-x:auto;
+  -webkit-overflow-scrolling:touch;`). Se fusiona en un selector
+  compartido en `styles.css`; se elimina la copia de `directorio.html`.
+- **Última fila sin borde**: `.inactivos-table tbody tr:last-child td` y
+  `.roster-table tbody tr:last-child td` tenían la misma declaración exacta
+  (`border-bottom:none;`). Mismo tratamiento.
+
+Se revisó también el resto de reglas de ambas tablas (padding de celda,
+`thead th`, `tbody td`, hover de fila) y **no** son idénticas — difieren en
+padding (14px 16px vs 11px 13px), en si `tbody td` trae `font-size` propio
+o no, y en el selector exacto del hover (`tr.inactivo-row:hover td` vs
+`tbody tr:hover`, mismo valor de color pero atado a nombres de fila
+distintos que usa cada JS). Esas diferencias no se tocan — no son
+duplicación, son cada tabla con su propio ajuste histórico. Ningún cambio
+visual esperado en lo fusionado.
+
 ### 18-sep-2026 — `.join-modal-*` y `.rt-filtro-vacio` centralizados
 Fase 1 de un refactor de CSS disperso (auditoría previa mostró que el
 verdadero problema de duplicación no era volumen general de `<style>` por
