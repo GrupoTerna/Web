@@ -104,8 +104,27 @@
      página (Pendientes de Atacar, Inactivos, Historial de guerra) NO
      llevan esta clase a propósito, porque ahí la barra nativa es la
      ÚNICA pista visual de que existe scroll horizontal. */
-  .table-scroll.table-scroll-oculta-nativa{scrollbar-width:none;}
-  .table-scroll.table-scroll-oculta-nativa::-webkit-scrollbar{display:none;}
+  /* FIX (18-sep-2026, pedido usuario — "incluye también una de
+     desplazamiento vertical a la derecha, de la barrita morada, no
+     nativa"): estas cuadrículas (Valores diarios/semanales) no tenían
+     límite de alto, así que crecían sin scroll vertical propio. Se les da
+     el mismo --tabla-scroll-alto de .tabla-scroll-wrap (assets/styles.css)
+     y se restylea en morado (scrollbar-width:thin/scrollbar-color, igual
+     que .scroll-morado ahí mismo). El eje horizontal se mantiene oculto
+     -SOLO en webkit, vía height:0 en el pseudo-elemento- porque acá la
+     pista visual de scroll horizontal ya la dan .grid-hscroll-top/-bottom
+     (sincronizadas, ver enlazarScrollsHorizontales() en common.js); en
+     Firefox no hay forma de ocultar un solo eje (scrollbar-width es por
+     elemento, no por eje) así que ahí se ve fino y morado en ambos, nunca
+     gris nativo -- sigue cumpliendo el pedido igual. */
+  .table-scroll.table-scroll-oculta-nativa{
+    scrollbar-width:thin; scrollbar-color:var(--purple-light) rgba(255,255,255,.06);
+    max-height:var(--tabla-scroll-alto, 480px); overflow-y:auto;
+  }
+  .table-scroll.table-scroll-oculta-nativa::-webkit-scrollbar{width:10px; height:0;}
+  .table-scroll.table-scroll-oculta-nativa::-webkit-scrollbar-track{background:rgba(255,255,255,.06); border-radius:6px;}
+  .table-scroll.table-scroll-oculta-nativa::-webkit-scrollbar-thumb{background:var(--purple-light); border-radius:6px;}
+  .table-scroll.table-scroll-oculta-nativa::-webkit-scrollbar-thumb:hover{background:var(--purple);}
   /* esta tabla venía usando el th{text-align:left} genérico de styles.css (pensado para el resto de tablas del sitio) para las 3 columnas por igual; ahora se centran los 3 encabezados Y los valores de Clan/Faltantes, y solo el nombre de cada fila (.col-nombre)… Historial en CHANGELOG.md. */
   /* sin estos font-size, el <th> heredaba el 11px genérico de table th y el <td> el 14px genérico de table{} (ambos en styles.css) — se fijan acá en 13px/13px para igualar exactamente a .roster-table (directorio.html) e .inactivos-table (styles.css). Historial en CHANGELOG.md. */
   .tbl-pendientes th{text-align:center; font-size:13px;}
@@ -1551,6 +1570,12 @@ async function cargarGuerraLog(){
           }).join('')}
           </tbody>
         </table></div></div>` : '<div class="empty">Sin historial registrado todavía para este clan.</div>';
+      // FIX (18-sep-2026, pedido usuario): esta era la 3ra tabla pendiente
+      // de la tanda de "ninguna tabla debe tener la barra nativa" -- las
+      // otras dos de esta misma página (Pendientes de Atacar e Inactivos)
+      // ya llaman a activarBarraScrollTabla() más abajo/arriba.
+      const twrap = tableWrap.querySelector('.table-scroll');
+      if (twrap) activarBarraScrollTabla(twrap);
     }
 
     tabsWrap.innerHTML = clanes.map((c, i) => `

@@ -1241,7 +1241,12 @@
                   <div class="cr-requisitos-header"><span class="cat-titulo">Requisitos de Ascenso</span></div>
                   <div class="admin-subseccion-body">
                     <p class="text-dim" style="font-size:13px; margin:0 0 10px;">Trofeos mínimos y ataques mínimos de guerra requeridos por clan y por rol (Miembro/Veterano/Colíder) para calificar en esta corrida.</p>
-                    <div style="overflow-x:auto;">
+                    <!-- FIX (18-sep-2026, pedido usuario -- "ninguna de las
+                         tablas debe tener la barra nativa"): id agregado
+                         para que pintarGridCR() pueda llamar a
+                         activarBarraScrollTabla() sobre este wrap después
+                         de llenar el tbody. -->
+                    <div id="crAscensoTablaWrap" style="overflow-x:auto;">
                       <table class="cr-grid-table">
                         <thead>
                           <tr><th rowspan="2">Clan</th><th colspan="2">Miembro</th><th colspan="2">Veterano</th><th colspan="2">Colíder</th></tr>
@@ -1300,7 +1305,7 @@
                   <div class="admin-subseccion-body">
                     <a href="#" id="crVolverAscenso" class="text-dim" style="font-size:12px; display:inline-block; margin-bottom:10px;">‹ Volver a Requisitos de Ascenso</a>
                     <p class="text-dim" style="font-size:13px; margin:0 0 10px;">Trofeos mínimos y ataques mínimos de guerra requeridos por clan y por rol (Miembro/Veterano/Colíder) para calificar en esta corrida.</p>
-                    <div style="overflow-x:auto;">
+                    <div id="crDescensoTablaWrap" style="overflow-x:auto;">
                       <table class="cr-grid-table">
                         <thead>
                           <tr><th rowspan="2">Clan</th><th colspan="2">Miembro</th><th colspan="2">Veterano</th><th colspan="2">Colíder</th></tr>
@@ -2030,7 +2035,7 @@ function _tablaCoincidencias(filas, conColumnaOrigenClan){
       <td>${esc(f.clan)}</td>
       <td>${esc(f.razon || '—')}</td>
     </tr>`).join('');
-  return `<div style="overflow-x:auto;"><table>
+  return `<div class="tabla-coincidencias-wrap" style="overflow-x:auto;"><table>
     <thead><tr>${colExtra}<th>Origen</th><th>Nuestro roster</th><th>Clan</th><th>Razón</th></tr></thead>
     <tbody>${filasHtml}</tbody>
   </table></div>`;
@@ -2065,6 +2070,10 @@ function renderInfiltrado(data){
       </div>
       <div style="margin-top:14px;">${_tablaCoincidencias(data.historialTerna || [], false)}</div>`;
   }
+  // FIX (18-sep-2026, pedido usuario -- "ninguna de las tablas debe tener
+  // la barra nativa"): _tablaCoincidencias() tenía overflow-x:auto sin
+  // ninguna barra restyleada; ver activarBarraScrollTabla() en common.js.
+  cont.querySelectorAll('.tabla-coincidencias-wrap').forEach(w => activarBarraScrollTabla(w));
 }
 
 async function buscarInfiltrado(){
@@ -5068,6 +5077,10 @@ async function pintarGridCR(tipo){
       initInputMiles(idCeldaCR(tipo, idx, 'ataq', rol));
     });
   });
+  // FIX (18-sep-2026, pedido usuario -- "ninguna de las tablas debe tener
+  // la barra nativa"): esta grilla vivía con overflow-x:auto sin barra
+  // restyleada; ver activarBarraScrollTabla() en assets/common.js.
+  activarBarraScrollTabla(document.getElementById(tipo === 'ascenso' ? 'crAscensoTablaWrap' : 'crDescensoTablaWrap'));
 }
 
 function leerGridCR(tipo){
@@ -6082,7 +6095,7 @@ function _tablaPropuestasCR(propuestas, diagnostico){
     return avisoDiagnostico || '<div class="empty">Sin propuestas -- nadie del roster activo cumple ni deja de cumplir los requisitos de arriba.</div>';
   }
   const propuestasOrdenadas = _ordenarPropuestasCR(propuestas);
-  return `${avisoDiagnostico}${_resumenPropuestasCR(propuestasOrdenadas)}<div style="overflow-x:auto;"><table>
+  return `${avisoDiagnostico}${_resumenPropuestasCR(propuestasOrdenadas)}<div class="tabla-propuestas-cr-wrap" style="overflow-x:auto;"><table>
     <thead><tr><th>N°</th><th>Nombre</th><th>Tag</th><th>Clan</th><th>Rango actual</th><th>Tipo</th><th>Ataques</th><th>Puntaje</th><th>Barcos</th><th>Detalle</th></tr></thead>
     <tbody>${propuestasOrdenadas.map((p, i) => _filaPropuestaCR(p, i)).join('')}</tbody>
   </table></div>`;
@@ -6110,6 +6123,10 @@ document.getElementById('btnCrVerPropuestas').addEventListener('click', async ()
     if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
     msgEl.innerHTML = `<div class="text-dim" style="font-size:12px;">${data.propuestas.length} propuesta(s) -- todavía no se escribió nada en Historial_A/D.</div>`;
     tablaEl.innerHTML = _tablaPropuestasCR(data.propuestas, data.diagnostico);
+    // FIX (18-sep-2026, pedido usuario -- "ninguna de las tablas debe tener
+    // la barra nativa"): ver activarBarraScrollTabla() en assets/common.js.
+    const wrapPropuestasCR = tablaEl.querySelector('.tabla-propuestas-cr-wrap');
+    if(wrapPropuestasCR) activarBarraScrollTabla(wrapPropuestasCR);
   }catch(err){
     msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
   }

@@ -1649,7 +1649,7 @@ async function verHistorialGuerra(tag){
         <select id="histGuerraTemporadaSelect" style="${selEstilo}"></select>
         <select id="histGuerraSemanaSelect" style="${selEstilo}"></select>
       </div>
-      <div class="card" style="padding:8px 4px; overflow-x:auto;">
+      <div class="card" id="histGuerraTablaWrap" style="padding:8px 4px; overflow-x:auto;">
         <table style="width:100%; border-collapse:collapse; font-family:var(--f-mono); font-size:12px;">
           <thead>
             <tr style="text-align:left; color:var(--text-dim);">
@@ -1668,6 +1668,12 @@ async function verHistorialGuerra(tag){
       </div>`;
     pintarSelectoresHistorialGuerra();
     pintarTablaHistorialGuerraFiltrada();
+    // FIX (18-sep-2026, pedido usuario -- "ninguna de las tablas debe
+    // tener la barra nativa"): esta tabla tenía overflow-x:auto nativo sin
+    // ninguna barra restyleada; ver activarBarraScrollTabla() en
+    // assets/common.js. Se llama después de pintar la tabla filtrada
+    // porque el ancho real depende de cuántas columnas trae esa semana.
+    activarBarraScrollTabla(document.getElementById('histGuerraTablaWrap'));
   }catch(err){
     wrap.innerHTML = `<div class="empty">No se pudo cargar el historial de guerra: ${esc(err.message)}</div>`;
   }

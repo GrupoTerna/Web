@@ -1010,6 +1010,12 @@ function _renderVistaInactivos(section, titulo, cuentas){
         </tbody>
       </table>
     </div>`;
+  // FIX (18-sep-2026, pedido usuario -- "ninguna de las tablas debe tener
+  // la barra nativa"): .inactivos-table-wrap usaba scroll nativo sin
+  // ninguna barra restyleada -- ver activarBarraScrollTabla() más arriba
+  // en este mismo archivo.
+  const inactivosWrap = listaEl.querySelector('.inactivos-table-wrap');
+  if (inactivosWrap) activarBarraScrollTabla(inactivosWrap);
   listaEl.querySelectorAll('.js-inactivo-vetar-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const row = btn.closest('.inactivo-row');
