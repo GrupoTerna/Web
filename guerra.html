@@ -1125,6 +1125,15 @@ function render(data){
       </table></div>
     </div>`;
   }).join('') : '<div class="empty">Nadie tiene ataques pendientes 🎉</div>';
+  // FIX (18-sep-2026, pedido usuario — "ninguna tabla debe tener la barra
+  // nativa, todas deben tener barra superior, inferior y vertical, todas
+  // moradas"): esta tabla (.tbl-pendientes) es una de las 3 que el propio
+  // .table-scroll-oculta-nativa (ver <style> arriba) documentaba a
+  // propósito SIN ninguna barra restyleada — ahora se le agrega el mismo
+  // trío (arriba sintética + abajo/derecha restyleadas) que ya tenían las
+  // grillas de Valores diarios/semanales, vía activarBarraScrollTabla()
+  // (assets/common.js). Historial en CHANGELOG.md.
+  pendWrap.querySelectorAll('.table-scroll').forEach(w => activarBarraScrollTabla(w));
   gestionarTabsClan('pendClanTabs', 'pendWrap', () => clanSeleccionadoPend, v => clanSeleccionadoPend = v);
   pintarFiltroLetra('pendLetraFilter', LETRAS_FILTRO, () => letraSeleccionadaPend, v => letraSeleccionadaPend = v, aplicarFiltroLetraPendientes);
   aplicarFiltroLetraPendientes();
@@ -1386,6 +1395,10 @@ async function cargarAportesInactivosSiAdmin(ctx){
       const wrap = controlActivosWrap.querySelector(`.ai-inactivos-wrap[data-clan-inactivos="${CSS.escape(clanNombre)}"]`);
       if (wrap){
         wrap.innerHTML = bloqueHtml(filas);
+        // FIX (18-sep-2026, misma barra morada arriba/abajo/derecha para
+        // TODAS las tablas del sitio, ver activarBarraScrollTabla() en
+        // assets/common.js). Historial en CHANGELOG.md.
+        wrap.querySelectorAll('.table-scroll').forEach(w => activarBarraScrollTabla(w));
         return;
       }
       // Clan sin Activos esta semana (sin tarjeta propia todavía en la
@@ -1399,6 +1412,7 @@ async function cargarAportesInactivosSiAdmin(ctx){
           <div class="ai-inactivos-wrap" data-clan-inactivos="${esc(clanNombre)}">${bloqueHtml(filas)}</div>
         </div>`;
       const tarjetaNueva = div.firstElementChild;
+      tarjetaNueva.querySelectorAll('.table-scroll').forEach(w => activarBarraScrollTabla(w));
       // Insertar en la posición correcta según ordenClanIndex, no siempre
       // al final — busca la primera tarjeta existente que deba ir DESPUÉS
       // de esta y la inserta justo antes; si ninguna calza, va al final.

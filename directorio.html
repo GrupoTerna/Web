@@ -1960,7 +1960,7 @@ function renderRosterClanActivo(){
         <button type="button" class="rt-limpiar-filtros" id="rosterLimpiarFiltros" title="Desmarcar todos los filtros" aria-label="Desmarcar todos los filtros" disabled>✕ Quitar filtros</button>
       </div>
       <div class="roster-topbar">
-        <div class="roster-top-scroll" id="rosterTopScroll"><div class="roster-top-scroll-inner" id="rosterTopScrollInner"></div></div>
+        <div class="roster-top-scroll scroll-morado" id="rosterTopScroll"><div class="roster-top-scroll-inner tabla-scroll-top-inner" id="rosterTopScrollInner"></div></div>
       </div>
       <div class="roster-table-wrap" id="rosterTableWrap">
         <table class="roster-table">
@@ -1972,21 +1972,20 @@ function renderRosterClanActivo(){
 
   pintarFilasRoster(wrap, rosterMiembrosBase);
 
-  // Barra de scroll superior sincronizada con la real, con una bandera para no entrar en loop de eventos "scroll". Historial en CHANGELOG.md.
+  // FIX (18-sep-2026, pedido usuario — "en directorio por clan no se ve la
+  // barra superior, la inferior sí" + "todas las tablas deben tener barra
+  // superior, inferior y vertical, todas moradas, ninguna nativa"): el
+  // armado manual de acá (que solo fijaba el ancho de la barra superior
+  // UNA vez, justo al pintar, sin esperar a que las fuentes web terminaran
+  // de cargar) se reemplaza por activarBarraScrollTabla() —ver
+  // assets/common.js—, que hace lo mismo pero recalculando también tras
+  // el swap de fuentes y ante cualquier cambio de tamaño real de la tabla
+  // (ResizeObserver), y de paso agrega el límite de alto + scroll vertical
+  // morado a la derecha que esta tabla no tenía. Se le pasa la franja
+  // superior que ya existe en el HTML (#rosterTopScroll) para no crear una
+  // segunda de más. Historial en CHANGELOG.md.
   const tableWrap = document.getElementById('rosterTableWrap');
-  const topScroll = document.getElementById('rosterTopScroll');
-  const topScrollInner = document.getElementById('rosterTopScrollInner');
-  const tabla = tableWrap.querySelector('.roster-table');
-  const actualizarAnchoScrollSuperior = () => { topScrollInner.style.width = tabla.scrollWidth + 'px'; };
-  actualizarAnchoScrollSuperior();
-  // Se recalcula al cambiar el tamaño de ventana; no hace falta quitar el listener al re-pintar la tabla. Historial en CHANGELOG.md.
-  window.addEventListener('resize', actualizarAnchoScrollSuperior);
-  // Sincronización de scroll (bandera anti-loop) subida a
-  // sincronizarScrollHorizontal() en assets/common.js — mismo patrón que
-  // ya usaba guerra.html (enlazarScrollsHorizontales()) para N barras por
-  // tarjeta de clan, acá aplicado a este único par. Historial en
-  // CHANGELOG.md.
-  sincronizarScrollHorizontal([topScroll, tableWrap]);
+  activarBarraScrollTabla(tableWrap, { barraSuperior: document.getElementById('rosterTopScroll') });
 
   // Botón "Quitar filtros" borra todas las columnas filtradas de un toque; se habilita/deshabilita según haya filtros activos. Historial en CHANGELOG.md.
   document.getElementById('rosterLimpiarFiltros').addEventListener('click', () => {

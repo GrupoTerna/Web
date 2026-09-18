@@ -534,3 +534,57 @@ footer .wrap span{text-align:justify; text-justify:inter-word;}
     scroll-behavior:auto !important;
   }
 }
+
+/* =========================================================================
+ * Barra de scroll morada reutilizable — SITEWIDE (18-sep-2026, pedido
+ * usuario: "ninguna de las tablas debe tener la barra nativa, todo debe
+ * tener el estilo de la página, todas las tablas que se muestren deben
+ * tener la barra superior e inferior con el estilo de la web, incluye
+ * también una de desplazamiento vertical a la derecha (de la barrita
+ * morada, no nativa)").
+ *
+ * Antes cada tabla con scroll horizontal (roster de Directorio, grillas de
+ * Guerra) repetía a mano el mismo bloque ::-webkit-scrollbar. Se consolida
+ * acá en clases combinables para no seguir duplicando ese bloque por cada
+ * tabla nueva, y se suma la variante VERTICAL (con "width" además de
+ * "height") que hasta ahora no existía en NINGUNA tabla del sitio — todas
+ * las que tenían muchas filas simplemente crecían sin límite de alto.
+ *
+ *   .scroll-morado    → pinta la barra de scroll (horizontal y/o vertical,
+ *                        según el overflow que tenga el elemento) con el
+ *                        thumb morado var(--purple-light) sobre track
+ *                        translúcido, en vez de la barra gris del sistema.
+ *   .tabla-scroll-top → la franja angosta y sincronizada por JS que va
+ *                        ARRIBA de la tabla (mismo rol que ya cumplían
+ *                        .roster-top-scroll de directorio.html y
+ *                        .grid-hscroll de guerra.html, ahora consolidadas
+ *                        acá para que activarBarraScrollTabla() —ver
+ *                        assets/common.js— la pueda crear en cualquier
+ *                        página sin depender de CSS local por archivo).
+ *   .tabla-scroll-wrap → el contenedor REAL de la tabla: limita el alto
+ *                        (--tabla-scroll-alto, 480px por defecto) para que
+ *                        active su propio scroll VERTICAL —restyleado en
+ *                        morado vía .scroll-morado, igual que las
+ *                        horizontales— en vez de estirar la página
+ *                        indefinidamente con rosters/listados muy largos.
+ *                        Su barra horizontal (la de ABAJO, real/nativa)
+ *                        NO se apaga: sigue siendo la pareja de la barra
+ *                        sintética de ARRIBA, ambas restyleadas en morado
+ *                        vía .scroll-morado — el pedido es que se VEAN las
+ *                        dos, no que se oculte ninguna de las dos.
+ * ========================================================================= */
+.scroll-morado{
+  scrollbar-width:thin; scrollbar-color:var(--purple-light) rgba(255,255,255,.06);
+}
+.scroll-morado::-webkit-scrollbar{width:10px; height:10px;}
+.scroll-morado::-webkit-scrollbar-track{background:rgba(255,255,255,.06); border-radius:6px;}
+.scroll-morado::-webkit-scrollbar-thumb{background:var(--purple-light); border-radius:6px;}
+.scroll-morado::-webkit-scrollbar-thumb:hover{background:var(--purple);}
+
+.tabla-scroll-top{overflow-x:auto; overflow-y:hidden; height:14px; -webkit-overflow-scrolling:touch;}
+.tabla-scroll-top-inner{height:1px;}
+
+.tabla-scroll-wrap{
+  overflow:auto; -webkit-overflow-scrolling:touch;
+  max-height:var(--tabla-scroll-alto, 480px);
+}
