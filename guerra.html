@@ -347,7 +347,7 @@
            Arranca vacía; se llena en cuanto haya al menos una tarjeta de
            clan pintada en #pendWrap. -->
       <div class="tabs-row" id="pendClanTabs" style="margin-top:20px;"></div>
-      <!-- fila A-Z + # debajo de las pestañas de clan, se pinta una sola vez (ver pintarFiltroLetraPendientes()) y solo oculta/muestra filas ya pintadas en #pendWrap -- no vuelve a pedir nada al backend, mismo criterio que gestionarTabsClan(). Historial en CHANGELOG.md. -->
+      <!-- fila A-Z + # debajo de las pestañas de clan, se pinta una sola vez (ver pintarFiltroLetra() en assets/common.js) y solo oculta/muestra filas ya pintadas en #pendWrap -- no vuelve a pedir nada al backend, mismo criterio que gestionarTabsClan(). Historial en CHANGELOG.md. -->
       <div class="tabs-row" id="pendLetraFilter" style="margin-top:10px;"></div>
       <div id="pendWrap" style="margin-top:14px;"></div>
     </section>
@@ -383,9 +383,10 @@
       <div class="tabs-row" id="controlActivosClanTabs" style="margin-top:20px;"></div>
       <!-- FIX (13-sep-2026, pedido usuario — "agrega los botones de letras
            en Valores diarios y Valores semanales"): mismo patrón A-Z/# que
-           "Pendientes de Atacar" (ver pintarFiltroLetraGrid() en el
-           <script>), aplicado sobre las varias tablas (una por clan) de
-           esta cuadrícula a la vez. -->
+           "Pendientes de Atacar" (ver pintarFiltroLetra() en
+           assets/common.js), aplicado sobre las varias tablas (una por
+           clan) de esta cuadrícula a la vez, vía aplicarFiltroLetraGrid()
+           como callback. -->
       <div class="tabs-row" id="controlActivosLetraFilter" style="margin-top:10px;"></div>
       <div id="controlActivosWrap" style="margin-top:14px;"></div>
     </section>
@@ -405,7 +406,8 @@
       <div class="tabs-row" id="controlTemporadaClanTabs" style="margin-top:20px;"></div>
       <!-- FIX (13-sep-2026, pedido usuario — "agrega los botones de letras
            en Valores diarios y Valores semanales"): mismo patrón que
-           Valores diarios de arriba (ver pintarFiltroLetraGrid()). -->
+           Valores diarios de arriba (ver pintarFiltroLetra() en
+           assets/common.js). -->
       <div class="tabs-row" id="controlTemporadaLetraFilter" style="margin-top:10px;"></div>
       <div id="controlTemporadaWrap" style="margin-top:14px;"></div>
     </section>
@@ -856,16 +858,11 @@ function enlazarScrollsHorizontales(wrapId){
     const inners = barras.map(b => b.querySelector('.grid-hscroll-inner'));
     const fijarAncho = () => { inners.forEach(inn => { inn.style.width = tabla.scrollWidth + 'px'; }); };
     fijarAncho();
-    const todos = [scroll, ...barras];
-    let sincronizando = false;
-    todos.forEach(el => {
-      el.addEventListener('scroll', () => {
-        if (sincronizando) return;
-        sincronizando = true;
-        todos.forEach(otro => { if (otro !== el) otro.scrollLeft = el.scrollLeft; });
-        sincronizando = false;
-      });
-    });
+    // Sincronización de scroll (bandera anti-loop) subida a
+    // sincronizarScrollHorizontal() en assets/common.js — reusada también
+    // en directorio.html, que tenía el mismo patrón escrito a mano para su
+    // propio par topScroll/tableWrap. Historial en CHANGELOG.md.
+    sincronizarScrollHorizontal([scroll, ...barras]);
 // El ancho de la tabla puede cambiar si la ventana cambia de tamaño (columnas que se comprimen/expanden con el layout responsive). offsetParent === null cuando la tarjeta está oculta por una pestaña de clan distinta (gestionarTabsClan le pone display:none): en…
     window.addEventListener('resize', () => { if (tabla.offsetParent !== null) fijarAncho(); });
   });
@@ -896,32 +893,10 @@ function gestionarTabsClan(tabsWrapId, wrapId, obtenerSel, fijarSel){
   aplicarFiltro();
 }
 
-/* primeraLetraFiltro(nombre) → 'A'..'Z'/'Ñ' o '#' (números/símbolos/vacío). Historial en CHANGELOG.md. */
-function primeraLetraFiltro(nombre){
-  const t = String(nombre || '').trim();
-  if (!t) return '#';
-  const c = t.charAt(0).toUpperCase();
-  return /^[A-ZÑ]$/.test(c) ? c : '#';
-}
-
-const LETRAS_FILTRO_PEND = ['#','A','B','C','D','E','F','G','H','I','J','K','L','M','N','Ñ','O','P','Q','R','S','T','U','V','W','X','Y','Z'];
-
-/* pintarFiltroLetraPendientes() Pinta la fila de botones A-Z/# UNA SOLA VEZ (guardia por dataset.pintado — a diferencia de gestionarTabsClan(), esta fila no depende de qué clanes trajo el backend, así que no hace falta reconstruirla en cada… */
-function pintarFiltroLetraPendientes(){
-  const wrap = document.getElementById('pendLetraFilter');
-  if (!wrap || wrap.dataset.pintado) return;
-  wrap.dataset.pintado = '1';
-  wrap.innerHTML = LETRAS_FILTRO_PEND.map(l => `
-    <button type="button" class="tab-btn letra-btn" data-letra="${esc(l)}">${esc(l)}</button>`).join('');
-  wrap.querySelectorAll('.letra-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const l = btn.dataset.letra;
-      letraSeleccionadaPend = (letraSeleccionadaPend === l) ? null : l;
-      wrap.querySelectorAll('.letra-btn').forEach(b => b.classList.toggle('active', b.dataset.letra === letraSeleccionadaPend));
-      aplicarFiltroLetraPendientes();
-    });
-  });
-}
+/* primeraLetraFiltro(nombre), LETRAS_FILTRO y pintarFiltroLetra() se
+ * consolidaron en assets/common.js (18-sep-2026, código repetido entre
+ * páginas) — antes estaban duplicadas acá (como LETRAS_FILTRO_PEND) y en
+ * directorio.html. Historial en CHANGELOG.md. */
 
 /** aplicarFiltroLetraPendientes() → oculta/muestra filas de #pendWrap según
  * letraSeleccionadaPend (null = todas). Se llama después de cada repintado
@@ -932,24 +907,6 @@ function aplicarFiltroLetraPendientes(){
   if (!wrap) return;
   wrap.querySelectorAll('tr[data-letra]').forEach(tr => {
     tr.style.display = (!letraSeleccionadaPend || tr.dataset.letra === letraSeleccionadaPend) ? '' : 'none';
-  });
-}
-
-/* pintarFiltroLetraGrid(filtroWrapId, tablasWrapId, obtenerSel, fijarSel) Historial en CHANGELOG.md. */
-function pintarFiltroLetraGrid(filtroWrapId, tablasWrapId, obtenerSel, fijarSel){
-  const wrap = document.getElementById(filtroWrapId);
-  if (!wrap || wrap.dataset.pintado) return;
-  wrap.dataset.pintado = '1';
-  wrap.innerHTML = LETRAS_FILTRO_PEND.map(l => `
-    <button type="button" class="tab-btn letra-btn" data-letra="${esc(l)}">${esc(l)}</button>`).join('');
-  wrap.querySelectorAll('.letra-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const l = btn.dataset.letra;
-      const nuevo = (obtenerSel() === l) ? null : l;
-      fijarSel(nuevo);
-      wrap.querySelectorAll('.letra-btn').forEach(b => b.classList.toggle('active', b.dataset.letra === nuevo));
-      aplicarFiltroLetraGrid(tablasWrapId);
-    });
   });
 }
 
@@ -1154,7 +1111,7 @@ function render(data){
     </div>`;
   }).join('') : '<div class="empty">Nadie tiene ataques pendientes 🎉</div>';
   gestionarTabsClan('pendClanTabs', 'pendWrap', () => clanSeleccionadoPend, v => clanSeleccionadoPend = v);
-  pintarFiltroLetraPendientes();
+  pintarFiltroLetra('pendLetraFilter', LETRAS_FILTRO, () => letraSeleccionadaPend, v => letraSeleccionadaPend = v, aplicarFiltroLetraPendientes);
   aplicarFiltroLetraPendientes();
   const resumen = Object.entries(data.resumenClanes || {});
   const maxResumen = Math.max(1, ...resumen.map(([,v]) => v));
@@ -1249,7 +1206,7 @@ function render(data){
     controlActivosSection.style.display = 'block';
     enlazarScrollsHorizontales('controlActivosWrap');
     gestionarTabsClan('controlActivosClanTabs', 'controlActivosWrap', () => clanSeleccionadoActivos, v => clanSeleccionadoActivos = v);
-    pintarFiltroLetraGrid('controlActivosLetraFilter', 'controlActivosWrap', () => letraSeleccionadaActivos, v => letraSeleccionadaActivos = v);
+    pintarFiltroLetra('controlActivosLetraFilter', LETRAS_FILTRO, () => letraSeleccionadaActivos, v => letraSeleccionadaActivos = v, () => aplicarFiltroLetraGrid('controlActivosWrap'));
   } else {
     controlActivosSection.style.display = 'none';
     document.getElementById('controlActivosClanTabs').innerHTML = '';
@@ -1316,7 +1273,7 @@ function render(data){
     controlTemporadaSection.style.display = 'block';
     enlazarScrollsHorizontales('controlTemporadaWrap');
     gestionarTabsClan('controlTemporadaClanTabs', 'controlTemporadaWrap', () => clanSeleccionadoTemporada, v => clanSeleccionadoTemporada = v);
-    pintarFiltroLetraGrid('controlTemporadaLetraFilter', 'controlTemporadaWrap', () => letraSeleccionadaTemporada, v => letraSeleccionadaTemporada = v);
+    pintarFiltroLetra('controlTemporadaLetraFilter', LETRAS_FILTRO, () => letraSeleccionadaTemporada, v => letraSeleccionadaTemporada = v, () => aplicarFiltroLetraGrid('controlTemporadaWrap'));
   } else {
     controlTemporadaSection.style.display = 'none';
     document.getElementById('controlTemporadaClanTabs').innerHTML = '';
@@ -1589,7 +1546,25 @@ async function cargarGuerraLog(){
 
 cargar();
 cargarGuerraLog();
-setInterval(() => cargar(false), REFRESH_INTERVAL_MS);
+
+/* FIX (18-sep-2026, revisión de código): el setInterval de cargar(false)
+ * antes disparaba cada REFRESH_INTERVAL_MS sin importar si la pestaña
+ * estaba en segundo plano o el celular bloqueado, pegándole al backend de
+ * más. Se pausa mientras document.visibilityState es 'hidden' y se
+ * reanuda (con una carga inmediata para no esperar el intervalo completo)
+ * al volver a foco. actualizarAgoText() no golpea el backend (solo
+ * refresca un texto relativo tipo "hace 3 min"), así que se deja corriendo
+ * siempre, sin pausarlo. */
+let intervaloRefresh = setInterval(() => cargar(false), REFRESH_INTERVAL_MS);
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden'){
+    clearInterval(intervaloRefresh);
+  } else {
+    cargar(false);
+    intervaloRefresh = setInterval(() => cargar(false), REFRESH_INTERVAL_MS);
+  }
+});
+
 setInterval(actualizarAgoText, 1000);
 </script>
 </body>

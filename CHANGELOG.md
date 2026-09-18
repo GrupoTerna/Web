@@ -2595,6 +2595,40 @@ PENDIENTE BACKEND: categoría supportCards[] del JSON (las
 
 ## directorio.html — historial trasladado
 
+### 18-sep-2026 — Filtro por letra, debounce y scroll sincronizado subidos a common.js
+`pintarFiltroLetraRoster()` estaba duplicada, con exactamente la misma
+lógica, en guerra.html (dos veces: `pintarFiltroLetraPendientes()` y
+`pintarFiltroLetraGrid()`) — la única diferencia real entre las tres era
+el id del wrap, la variable de la letra elegida y el callback de
+re-filtrado. Se reemplaza por `pintarFiltroLetra(wrapId, letras,
+obtenerSel, fijarSel, onCambio)` en `assets/common.js`; acá se llama
+pasando `'rosterLetraFilter'`, el getter/setter de `rosterLetraSeleccionada`
+y `aplicarFiltrosRoster(rosterWrap)` como callback. `LETRAS_FILTRO` y
+`primeraLetraFiltro()` (idénticos, letra por letra, a los que tenía
+guerra.html) también se unifican ahí. Se agrega `aria-label` a cada botón
+A-Z/#, que antes solo llevaba el texto visual de la letra.
+
+`debounce()` (usada por el buscador del popover de filtro de columna,
+`.rt-filtro-buscar`) vivía solo acá; se sube tal cual a `common.js` para
+que cualquier otra página pueda reusarla sin duplicarla.
+
+El scroll horizontal sincronizado entre `#rosterTopScroll` y
+`#rosterTableWrap` (bandera `sincronizando` para no entrar en loop de
+`scroll`) estaba escrito a mano acá; es el mismo patrón que ya tenía
+`enlazarScrollsHorizontales()` en guerra.html (ahí para N barras por
+tarjeta de clan, acá para un solo par). Se extrae a
+`sincronizarScrollHorizontal(elementos)` en `common.js`, que ambas
+páginas usan ahora.
+
+No se tocó el popover de filtro/orden por columna (`abrirFiltroColumna()`
+acá vs `abrirGridFiltroColumna()` de guerra.html): comparte HTML/clases
+`rt-*` y buena parte de la lógica del checklist, pero está atado a un
+modelo de estado distinto en cada página (variables sueltas de una sola
+tabla acá; `gridEstados[gridId]` con varias tablas en guerra.html) y esta
+versión tiene funcionalidad de más (tipo fecha, columnas no ordenables,
+el debounce del buscador) que no es 1:1 con la otra. Fusionarlos ahora
+tenía más riesgo que beneficio; queda para una revisión aparte.
+
 ### Línea original 685 (HTML)
 
 ```
@@ -3373,6 +3407,52 @@ FIX (03-sep-2026, pedido usuario — "Vigencia [última
 
 
 ## guerra.html
+
+### 18-sep-2026 — Helpers de filtro por letra y de scroll sincronizado consolidados en common.js
+Revisión de código repetido entre páginas: `pintarFiltroLetraPendientes()`,
+`pintarFiltroLetraGrid()` (acá) y `pintarFiltroLetraRoster()` de
+directorio.html eran, en la práctica, la misma función tres veces — la
+única diferencia real era el id del wrap, la variable de módulo de la
+letra elegida y el callback de re-filtrado. Se reemplazan por
+`pintarFiltroLetra(wrapId, letras, obtenerSel, fijarSel, onCambio)` en
+`assets/common.js`, ya parametrizada igual que lo estaba
+`pintarFiltroLetraGrid()` acá mismo (reusada para "Activos" y
+"Temporada"). De paso se agrega `aria-label="Filtrar por letra X"` a cada
+botón A-Z/#, que antes solo llevaba el texto visual de la letra.
+`LETRAS_FILTRO_PEND` (acá) y `LETRAS_FILTRO` (directorio.html) eran
+además el mismo array letra por letra, igual que `primeraLetraFiltro()`
+— ambos se unifican también en `common.js`.
+
+`enlazarScrollsHorizontales()` seguía acá (es específica de la estructura
+`.ai-clan-card`/`.grid-hscroll` de esta página, con N barras por tarjeta),
+pero su núcleo — sincronizar `scrollLeft` entre varios elementos con una
+bandera para no entrar en loop de eventos `scroll` — es el mismo patrón
+que directorio.html tenía escrito a mano para su propio par
+topScroll/tableWrap. Se extrae ese núcleo a
+`sincronizarScrollHorizontal(elementos)` en `common.js`, que ahora usan
+ambas páginas.
+
+También se agrega: el `setInterval(() => cargar(false), REFRESH_INTERVAL_MS)`
+(cada 60s) seguía disparando aunque la pestaña estuviera en segundo plano
+o el celular bloqueado. Se pausa con un listener de `visibilitychange`
+mientras `document.visibilityState === 'hidden'` y se reanuda (con una
+carga inmediata, sin esperar el intervalo completo) al volver a foco.
+`setInterval(actualizarAgoText, 1000)` no golpea el backend (solo
+refresca un texto relativo tipo "hace 3 min"), así que se deja corriendo
+siempre.
+
+No se tocaron, por ahora: `gestionarTabsClan()` (no tiene un duplicado
+real en directorio.html — `renderClanTabs()` ahí es una función distinta,
+más simple, sin la opción "Todos") ni el popover de filtro/orden por
+columna (`abrirGridFiltroColumna()` acá vs `abrirFiltroColumna()` de
+directorio.html) — comparten el mismo HTML/clases `rt-*` y buena parte de
+la lógica, pero cada uno está entrelazado con un modelo de estado
+distinto (`gridEstados[gridId]`, con varias tablas, acá; variables sueltas
+de una sola tabla en directorio.html) y con funcionalidad que no es 1:1
+(tipo fecha, columnas no ordenables, debounce del buscador). Fusionarlos
+de un tirón tenía más riesgo de introducir un bug sutil que beneficio en
+esta pasada; queda pendiente para una revisión aparte, con más tiempo
+para probar cada caso.
 
 ### Línea original 62 (estilo)
 

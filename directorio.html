@@ -809,18 +809,9 @@
   .vetar-form-titulo{font-family:var(--f-mono); font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--danger); margin-bottom:14px;}
 </style>
 <script>
-/* FIX (16-sep-2026 v8, pedido usuario — rendimiento, sugerencia propia
- * aceptada): helper genérico de debounce, usado por el buscador del
- * popover de filtro de columna (.rt-filtro-buscar) para no reconstruir
- * el checklist en cada tecla — cualquier otro input que lo necesite a
- * futuro puede reusarlo igual. */
-function debounce(fn, espera){
-  let temporizador;
-  return function(...args){
-    clearTimeout(temporizador);
-    temporizador = setTimeout(() => fn.apply(this, args), espera);
-  };
-}
+/* debounce() se subió a assets/common.js (18-sep-2026, código repetido
+ * entre páginas) — vivía solo acá, usada por el buscador del popover de
+ * filtro de columna (.rt-filtro-buscar). Historial en CHANGELOG.md. */
 
 /* =========================================================================
  * Gráficos + tarjetas de clan (parte superior de la página)
@@ -1569,46 +1560,15 @@ let rosterMiembrosBase = []; // miembros del clan activo, en el orden original d
 // Letra A-Z/# elegida en #rosterLetraFilter; se reinicia al cambiar de clan y se combina con los demás filtros sin pisarse. Historial en CHANGELOG.md.
 let rosterLetraSeleccionada = null;
 
-/**
- * primeraLetraFiltro(nombre) → 'A'..'Z'/'Ñ' o '#' (números/símbolos/vacío).
- * Mismo criterio que el homónimo de guerra.html (Pendientes de Atacar):
- * clasifica cada fila del roster según el primer carácter de su nombre
- * visible, para que el filtro por letra sepa qué botón le corresponde.
- */
-function primeraLetraFiltro(nombre){
-  const t = String(nombre || '').trim();
-  if (!t) return '#';
-  const c = t.charAt(0).toUpperCase();
-  return /^[A-ZÑ]$/.test(c) ? c : '#';
-}
-const LETRAS_FILTRO = ['#','A','B','C','D','E','F','G','H','I','J','K','L','M','N','Ñ','O','P','Q','R','S','T','U','V','W','X','Y','Z'];
-
-/**
- * pintarFiltroLetraRoster()
- * Pinta la fila de botones A-Z/# de #rosterLetraFilter UNA SOLA VEZ (guardia
- * por dataset.pintado — esta fila vive fuera de #rosterWrap para no
- * perderse cuando renderRosterClanActivo() reconstruye la tabla al cambiar
- * de clan). Cada clic alterna (toggle) rosterLetraSeleccionada y reaplica
- * el filtro sobre la tabla activa vía aplicarFiltrosRoster() (que ya
- * combina esta letra con rosterFiltrosSeleccion), sin volver a pedir nada
- * al backend.
- */
-function pintarFiltroLetraRoster(){
-  const wrap = document.getElementById('rosterLetraFilter');
-  if (!wrap || wrap.dataset.pintado) return;
-  wrap.dataset.pintado = '1';
-  wrap.innerHTML = LETRAS_FILTRO.map(l => `
-    <button type="button" class="tab-btn letra-btn" data-letra="${esc(l)}">${esc(l)}</button>`).join('');
-  wrap.querySelectorAll('.letra-btn').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const l = btn.dataset.letra;
-      rosterLetraSeleccionada = (rosterLetraSeleccionada === l) ? null : l;
-      wrap.querySelectorAll('.letra-btn').forEach(b => b.classList.toggle('active', b.dataset.letra === rosterLetraSeleccionada));
-      const rosterWrap = document.getElementById('rosterWrap');
-      if (rosterWrap) aplicarFiltrosRoster(rosterWrap);
-    });
-  });
-}
+/* primeraLetraFiltro(nombre), LETRAS_FILTRO y pintarFiltroLetra() se
+ * consolidaron en assets/common.js (18-sep-2026, código repetido entre
+ * páginas) — antes pintarFiltroLetraRoster() estaba duplicada acá (y en
+ * guerra.html, dos veces) con exactamente la misma lógica salvo el id del
+ * wrap, la variable de letra elegida y el callback de re-filtrado. La
+ * llamada de más abajo (dentro de renderRosterClanActivo()) pasa esos tres
+ * datos: 'rosterLetraFilter', el getter/setter de rosterLetraSeleccionada,
+ * y aplicarFiltrosRoster(rosterWrap) como callback. Historial en
+ * CHANGELOG.md. */
 
 /** Todos los valores distintos (ya formateados como texto de celda, "—"
  * incluido si aplica) que puede tomar una columna en la lista de
@@ -1980,8 +1940,11 @@ function renderRosterClanActivo(){
   rosterLetraSeleccionada = null; // ...y también la letra elegida (mismo criterio, ver docblock de arriba)
   rosterMiembrosBase = miembros;
 
-  // pintarFiltroLetraRoster() solo pinta la primera vez; en cada cambio de clan solo se limpia el estado "active" de la letra anterior. Historial en CHANGELOG.md.
-  pintarFiltroLetraRoster();
+  // pintarFiltroLetra() solo pinta la primera vez; en cada cambio de clan solo se limpia el estado "active" de la letra anterior. Historial en CHANGELOG.md.
+  pintarFiltroLetra('rosterLetraFilter', LETRAS_FILTRO, () => rosterLetraSeleccionada, v => rosterLetraSeleccionada = v, () => {
+    const rosterWrap = document.getElementById('rosterWrap');
+    if (rosterWrap) aplicarFiltrosRoster(rosterWrap);
+  });
   const letraFilterWrap = document.getElementById('rosterLetraFilter');
   if (letraFilterWrap) letraFilterWrap.querySelectorAll('.letra-btn').forEach(b => b.classList.remove('active'));
 
@@ -2018,19 +1981,12 @@ function renderRosterClanActivo(){
   actualizarAnchoScrollSuperior();
   // Se recalcula al cambiar el tamaño de ventana; no hace falta quitar el listener al re-pintar la tabla. Historial en CHANGELOG.md.
   window.addEventListener('resize', actualizarAnchoScrollSuperior);
-  let sincronizando = false;
-  topScroll.addEventListener('scroll', () => {
-    if (sincronizando) return;
-    sincronizando = true;
-    tableWrap.scrollLeft = topScroll.scrollLeft;
-    sincronizando = false;
-  });
-  tableWrap.addEventListener('scroll', () => {
-    if (sincronizando) return;
-    sincronizando = true;
-    topScroll.scrollLeft = tableWrap.scrollLeft;
-    sincronizando = false;
-  });
+  // Sincronización de scroll (bandera anti-loop) subida a
+  // sincronizarScrollHorizontal() en assets/common.js — mismo patrón que
+  // ya usaba guerra.html (enlazarScrollsHorizontales()) para N barras por
+  // tarjeta de clan, acá aplicado a este único par. Historial en
+  // CHANGELOG.md.
+  sincronizarScrollHorizontal([topScroll, tableWrap]);
 
   // Botón "Quitar filtros" borra todas las columnas filtradas de un toque; se habilita/deshabilita según haya filtros activos. Historial en CHANGELOG.md.
   document.getElementById('rosterLimpiarFiltros').addEventListener('click', () => {
