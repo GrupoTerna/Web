@@ -1,0 +1,31 @@
+# Dependabot (B-15, extensión). Abre PRs solo cuando sale una versión nueva
+# de las dependencias de CI (ESLint, html-validate, globals) o de las
+# GitHub Actions fijadas por SHA en .github/workflows/*.yml (Dependabot
+# reescribe el SHA y el comentario "# vX.Y.Z" juntos).
+# Los PR pasan por ci.yml antes de poder fusionarse, así que una versión
+# que rompa la validación se ve en rojo antes de llegar a main.
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "08:00"
+      timezone: "America/Lima"
+    open-pull-requests-limit: 5
+    groups:
+      npm-menores-y-parches:
+        update-types: ["minor", "patch"]
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "08:00"
+      timezone: "America/Lima"
+    open-pull-requests-limit: 5
+    groups:
+      actions-menores-y-parches:
+        update-types: ["minor", "patch"]

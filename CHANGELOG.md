@@ -11,6 +11,32 @@ el código hoy) cuando hace falta para mantenerlo; el "por qué histórico"
 
 ---
 
+## CI y herramientas (raíz del repo: `.github/`, `package.json`, `.htmlvalidate.js`)
+
+### 19-sep-2026 — B-15 completo: CI en Node 22, Lighthouse semanal, `type="button"` y Dependabot
+El job de CI fallaba en `npm run validate-html` con un error dentro de
+`expandFiles()` de html-validate. Causa: desde html-validate 11.1.0 el CLI
+usa `fs.globSync` nativo de Node (existe desde Node 22) en lugar del paquete
+`glob`, y `ci.yml` corría en Node 20. Se sube a Node 22, `package.json`
+declara `"engines": {"node": ">=22.16"}` y las Actions (`checkout`,
+`setup-node`, `lighthouse-ci-action`) quedan fijadas por commit SHA con
+`permissions: contents: read`. El glob `*.html` no era el problema.
+
+Pendientes que quedaban de B-15, resueltos en la misma tanda:
+- **Lighthouse**: workflow aparte (`lighthouse.yml`, lunes 13:00 UTC y
+  `workflow_dispatch`) sobre `https://grupoterna.github.io/Web/`, no en
+  `ci.yml`, porque necesita el sitio ya publicado. Umbrales en
+  `lighthouserc.json` como `warn` (Rendimiento 0.7; Accesibilidad, Buenas
+  prácticas y SEO 0.9) hasta tener línea base.
+- **34 `<button>` sin `type`**: agregado `type="button"` en las 9 páginas
+  (`admin` 14, `sorteo` 11, `directorio` 3, y 1 en `404`, `comunidad`,
+  `guerra`, `index`, `perfil` y `torneos`). No hay ningún `<form>` en el
+  sitio, así que no cambia el comportamiento. `no-implicit-button-type`
+  salió de `.htmlvalidate.js` y vuelve a error, para que un botón nuevo sin
+  `type` rompa el CI.
+- **Dependabot**: `.github/dependabot.yml`, revisión semanal de `npm` y de
+  `github-actions`, PRs agrupados por menores/parches.
+
 ## torneos.html
 
 ### 08-sep-2026 — Torneos de continuación no se listan aparte

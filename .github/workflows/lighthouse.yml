@@ -1,0 +1,37 @@
+# Lighthouse CI (B-15) — semanal y manual, NO en cada push.
+# Audita el sitio YA PUBLICADO en GitHub Pages (una URL real), por eso no
+# puede vivir en ci.yml: en un push todavía no se hizo el deploy de ese
+# commit. Los umbrales están en lighthouserc.json y arrancan como "warn"
+# (se ven en el resumen del job, no lo ponen en rojo), igual que
+# html-validate en ci.yml; se endurecen después, cuando haya línea base.
+#
+# Ejecución manual: pestaña Actions > "Lighthouse semanal" > Run workflow.
+# Ojo: GitHub desactiva los workflows programados de un repo público tras
+# 60 días sin actividad; si pasa, se reactiva a mano desde la pestaña Actions.
+
+name: Lighthouse semanal
+
+on:
+  schedule:
+    - cron: '0 13 * * 1'   # lunes 13:00 UTC = 08:00 hora de Lima
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lighthouse:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+      - name: Comprobar que el sitio está publicado
+        run: curl --fail --silent --show-error --location --head https://grupoterna.github.io/Web/ > /dev/null
+      - name: Lighthouse CI
+        uses: treosh/lighthouse-ci-action@3e7e23fb74242897f95c0ba9cabad3d0227b9b18 # v12
+        with:
+          configPath: ./lighthouserc.json
+          uploadArtifacts: true
+          temporaryPublicStorage: true

@@ -8,8 +8,17 @@
  * (una <style> vacía e inválida en pleno <body> de directorio.html, un
  * "}"+"</style>" sueltos que sobraban en index.html, un "&" crudo sin
  * codificar, dos <input> sin type explícito en sorteo.html y un espacio
- * final en comunidad.html). Quedan 3 reglas que SÍ hay que silenciar o
- * bajar de nivel a propósito:
+ * final en comunidad.html). Quedaron 3 reglas para silenciar a propósito
+ * (detalle debajo, en cada una) y una cuarta, no-implicit-button-type,
+ * que se dejó en "warn" hasta limpiarla.
+ *
+ * FIX (B-15, 19-sep-2026): se endureció. Los 34 <button> sin type (repartidos
+ * en las 9 páginas, sobre todo admin.html y sorteo.html) ya tienen
+ * type="button", así que no-implicit-button-type salió de la lista y vuelve
+ * a su nivel por defecto de html-validate:recommended (error): un botón
+ * nuevo sin type ahora hace fallar el CI en vez de solo avisar. No hay
+ * ningún <form> en el sitio, por lo que type="button" no cambia el
+ * comportamiento de ninguno. Quedan solo las 3 reglas silenciadas:
  */
 module.exports = {
   extends: ['html-validate:recommended'],
@@ -32,12 +41,6 @@ module.exports = {
     // teclado pese al aria-hidden="true" mientras está cerrado. El propio
     // aria-hidden es intencional y necesario (B-5): esconde el modal de
     // lectores de pantalla cuando está cerrado.
-    'hidden-focusable': 'off',
-    // 34 casos. A diferencia de no-inline-style, esto sí es mecánico y
-    // barato de arreglar (agregar type="button"), pero son 34 lugares en
-    // varios archivos — más que un solo "cambio pequeño". Queda en "warn"
-    // (se ve en el log de CI, no rompe el build) hasta que se limpie en
-    // una rebanada aparte.
-    'no-implicit-button-type': 'warn'
+    'hidden-focusable': 'off'
   }
 };
