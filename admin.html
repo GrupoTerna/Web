@@ -1772,7 +1772,28 @@ document.getElementById('claveInput').addEventListener('keydown', e => {
   if(e.key === 'Enter') document.getElementById('btnLogin').click();
 });
 
-document.getElementById('logoutBtn').addEventListener('click', () => mostrarLogin());
+// FIX B-27 (auditoría backend, 18-sep-2026): antes este botón solo hacía
+// mostrarLogin(), que se limita a borrar el token de localStorage — el
+// token seguía siendo válido en el servidor (CacheService) hasta cumplir
+// las 6 h de sesión. Ahora primero se llama a webAuthLogout (ver
+// _webAuthLogout(), 34_Web_API.gs) para invalidarlo también ahí, y recién
+// después se limpia la pantalla con mostrarLogin(). Deliberadamente NO se
+// mete esta llamada dentro de mostrarLogin(): esa función también se usa
+// cuando la sesión vence sola (ver manejarRespuestaAuth() y
+// btnAbrirSorteo más abajo) y en ese caso el token ya está vencido del
+// lado del servidor, así que no tiene sentido depender de una llamada de
+// red para poder mostrar el login. Si la llamada a webAuthLogout fallara
+// (sin conexión, etc.) se muestra el login igual: el resultado que le
+// importa al usuario ("salí de mi cuenta en este dispositivo") ya se
+// cumple solo con borrar el token local.
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  const token = localStorage.getItem(SESSION_KEY);
+  if(token){
+    try{ await apiPost('webAuthLogout', { sessionToken: token }); }
+    catch(err){ /* se ignora: igual se cierra la sesión del lado del cliente */ }
+  }
+  mostrarLogin();
+});
 
 // sorteo.html lee el mismo token de localStorage (se comparte entre pestañas), así que ya no viaja por la URL. Historial en CHANGELOG.md.
 document.getElementById('btnAbrirSorteo').addEventListener('click', () => {
