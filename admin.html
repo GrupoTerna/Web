@@ -1615,11 +1615,26 @@ document.getElementById('btnLogin').addEventListener('click', async () => {
   const celular = document.getElementById('loginCelular').value;
   const clave = document.getElementById('claveInput').value;
   const msgEl = document.getElementById('loginMsg');
+  const btn = document.getElementById('btnLogin');
   msgEl.innerHTML = '';
   if(!celular || !clave){ msgEl.innerHTML = '<div class="msg msg-error">Escribe tu Celular y tu Clave.</div>'; return; }
+  // FIX (19-sep-2026, "no hay mensaje de que esté cargando ni nada"): antes el
+  // botón no reaccionaba al clic hasta que el servidor respondía. Con la cola
+  // en serie de api.js y hasta 5 reintentos silenciosos (~12 s si Apps Script
+  // devuelve algo que no es JSON) eso podía durar mucho sin ninguna señal.
+  // Ahora el botón se bloquea (también evita doble envío por Enter) y se avisa
+  // que se está conectando; si pasan 6 s se aclara que el servidor tarda.
+  const textoBtn = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = 'Ingresando…';
+  msgEl.innerHTML = '<div class="msg">Conectando con el servidor…</div>';
+  const avisoLento = setTimeout(() => {
+    msgEl.innerHTML = '<div class="msg">El servidor está tardando en responder. Sigue intentando, no cierres esta página…</div>';
+  }, 6000);
   try{
     const data = await apiPost('webLogin', { celular, clave });
     if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error || 'No se pudo iniciar sesión.')}</div>`; return; }
+    msgEl.innerHTML = '';
     localStorage.setItem(SESSION_KEY, data.token);
     if(data.admin) localStorage.setItem(SESSION_ADMIN_KEY, JSON.stringify(data.admin));
     cerrandoSesion = false;
@@ -1637,6 +1652,10 @@ document.getElementById('btnLogin').addEventListener('click', async () => {
     refrescarCuentaOrgPropia();
   }catch(err){
     msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
+  }finally{
+    clearTimeout(avisoLento);
+    btn.disabled = false;
+    btn.textContent = textoBtn;
   }
 });
 document.getElementById('loginCelular').addEventListener('keydown', e => {
@@ -1669,7 +1688,8 @@ document.getElementById('logoutBtn').addEventListener('click', () => {
   // respuesta de webAuthLogout — esa petición se formaba detrás de las 7-8 del
   // mostrarPanel() en la cola en serie de api.js y el botón parecía muerto.
   // cerrarSesionAdmin() (auth.js) borra el token en el acto y avisa al servidor
-  // sin cola ni espera. La bandera evita que las peticiones del panel que aún
+  // por la cola de siempre pero sin esperarlo (así un login inmediato sale
+  // después del logout, nunca a la vez). La bandera evita que las peticiones del panel que aún
   // estén en vuelo, al recibir "sesión inválida" porque el servidor ya
   // invalidó el token, pinten un error rojo sobre la pantalla de login.
   cerrandoSesion = true;

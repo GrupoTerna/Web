@@ -310,11 +310,21 @@ function mostrarPanel(){
   initMensajesAutomaticos();
 }
 
-// Cerrar sesión: al instante (ver cerrarSesionAdmin() en auth.js, por qué ya no
-// se espera la respuesta del servidor). Se va a admin.html SIN ?volver=, porque
-// cerrar sesión a propósito no es "me pidieron iniciar sesión para ver Mensajes".
-document.getElementById('logoutBtn').addEventListener('click', () => {
-  cerrarSesionAdmin();
+// Cerrar sesión: el token local se borra en el acto (ver cerrarSesionAdmin() en
+// auth.js) y se espera hasta 3 s a que el servidor confirme la invalidación
+// antes de cambiar de página (si la navegación cortara la petición, el token
+// quedaría vivo en el servidor hasta vencer solo). Pasado ese tiempo se sale
+// igual: la sesión local ya está cerrada. Se va a admin.html SIN ?volver=,
+// porque cerrar sesión a propósito no es "me pidieron iniciar sesión para ver
+// Mensajes".
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('logoutBtn');
+  btn.disabled = true;
+  btn.textContent = 'Cerrando sesión…';
+  await Promise.race([
+    cerrarSesionAdmin(),
+    new Promise(resolve => setTimeout(resolve, 3000))
+  ]);
   window.location.replace('admin.html');
 });
 

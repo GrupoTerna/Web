@@ -94,26 +94,28 @@ function actualizarNavCta(){
  *
  * Ahora la sesión se cierra en el acto del lado del cliente (se borra el
  * token, síncrono) y el aviso al servidor, para que invalide el token en su
- * CacheService (FIX B-27, 18-sep-2026), sale por su cuenta: fuera de la cola,
- * sin esperar la respuesta, y con `keepalive` para que el navegador lo envíe
- * aunque justo después la página navegue a otra (mensajes.html → admin.html).
- * Va fuera de la cola a propósito: la cola existe para no saturar a Apps
- * Script con peticiones que sí importan, y esta es la única que no necesita
- * respuesta. Si falla (sin conexión, etc.) no pasa nada: el token local ya
- * no existe y el del servidor vence solo a las 6 h. Misma forma de petición
- * que apiPost() (POST con el JSON como texto, sin cabeceras propias).
+ * CacheService (FIX B-27, 18-sep-2026), se manda SIN esperarlo: la función
+ * devuelve la promesa por si quien llama quiere esperarla un tiempo acotado
+ * (mensajes.html la espera hasta 3 s antes de cambiar de página), pero nunca
+ * rechaza.
+ *
+ * FIX (19-sep-2026, segunda vuelta — "ya me deja cerrar sesión, ahora no me
+ * deja entrar"): la primera versión mandaba este aviso con un fetch propio
+ * FUERA de la cola de api.js. Eso rompía la garantía de _encolarPeticion()
+ * (que Apps Script nunca reciba dos peticiones a la vez): si el usuario
+ * volvía a iniciar sesión enseguida, el webLogin coincidía con el
+ * webAuthLogout todavía en curso. Ahora vuelve a pasar por apiPost(), o sea
+ * por la misma cola en serie, así que el siguiente login siempre sale
+ * después del logout.
  */
 function cerrarSesionAdmin(){
   const token = localStorage.getItem(SESSION_KEY_ADMIN);
   localStorage.removeItem(SESSION_KEY_ADMIN);
   localStorage.removeItem('terna_admin_info');
-  if(!token) return;
+  if(!token) return Promise.resolve();
   try{
-    fetch(`${WEBAPP_URL}?accion=webAuthLogout`, {
-      method: 'POST',
-      cache: 'no-store',
-      keepalive: true,
-      body: JSON.stringify({ sessionToken: token })
-    }).catch(() => { /* se ignora: el cierre local ya se hizo */ });
-  }catch(err){ /* idem */ }
+    return apiPost('webAuthLogout', { sessionToken: token }).then(() => {}, () => { /* se ignora: el cierre local ya se hizo */ });
+  }catch(err){
+    return Promise.resolve();
+  }
 }

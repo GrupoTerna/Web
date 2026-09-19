@@ -182,12 +182,22 @@ de tocar código:
   y `fetch` no tiene tiempo límite (hasta 5 reintentos), así que el aviso de
   logout quedaba detrás de todas las peticiones pendientes del panel y la
   pantalla no cambiaba. Nuevo `cerrarSesionAdmin()` en `auth.js`: borra el
-  token en el acto y avisa al servidor con un `fetch` con `keepalive`, fuera de
-  la cola y sin esperar respuesta. Lo usan `mensajes.html` (que va a
-  `admin.html` sin `?volver=`) y `admin.html`; en admin, la bandera
-  `cerrandoSesion` evita que las peticiones aún en vuelo muestren un error de
-  "sesión" sobre la pantalla de login. Afectaba también a `admin.html` desde
-  antes de esta migración.
+  token en el acto y manda `webAuthLogout` SIN esperarlo (devuelve la promesa,
+  que nunca rechaza). `admin.html` no la espera; `mensajes.html` la espera
+  hasta 3 s antes de ir a `admin.html` (sin `?volver=`), para que la
+  navegación no corte el aviso. En admin, la bandera `cerrandoSesion` evita
+  que respuestas aún en vuelo muestren un error de "sesión" sobre el login.
+  Afectaba también a `admin.html` desde antes de esta migración.
+  Una primera versión mandaba el aviso con un `fetch` propio `keepalive` FUERA
+  de la cola de `api.js`; se descartó porque rompe la garantía de
+  `_encolarPeticion()` (Apps Script nunca recibe 2 peticiones a la vez) y un
+  login inmediato podía coincidir con el logout en curso.
+- **Login con indicador de carga** (19-sep-2026, "no hay mensaje de que esté
+  cargando ni nada"): `btnLogin` ahora se bloquea, muestra "Ingresando…" y
+  "Conectando con el servidor…", y a los 6 s avisa que el servidor tarda. El
+  silencio venía de que el login nunca tuvo feedback y, con la cola en serie
+  y hasta 5 reintentos silenciosos (~12 s si Apps Script devuelve algo que no
+  es JSON), la espera podía ser larga sin señal alguna.
 - **Se elimina de `admin.html`** (no queda respaldo duplicado): la tarjeta
   HTML, la llamada `initMensajesAutomaticos()` de `mostrarPanel()` y las 6
   funciones (`initMensajesAutomaticos`, `cargarGrupoToggle`,
