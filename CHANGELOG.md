@@ -176,6 +176,18 @@ de tocar código:
   copia restaurada desde caché del navegador (`pageshow`). El backend
   (`webAdminContenido`/`webAdminCategorias`) sigue exigiendo el token en cada
   petición: ocultar el link es solo UX.
+- **Cerrar sesión instantáneo** (19-sep-2026, "no me deja cerrar sesión"):
+  el botón esperaba `await apiPost('webAuthLogout')` antes de borrar el token,
+  pero `api.js` manda las peticiones en serie (`_MAX_PETICIONES_SIMULTANEAS = 1`)
+  y `fetch` no tiene tiempo límite (hasta 5 reintentos), así que el aviso de
+  logout quedaba detrás de todas las peticiones pendientes del panel y la
+  pantalla no cambiaba. Nuevo `cerrarSesionAdmin()` en `auth.js`: borra el
+  token en el acto y avisa al servidor con un `fetch` con `keepalive`, fuera de
+  la cola y sin esperar respuesta. Lo usan `mensajes.html` (que va a
+  `admin.html` sin `?volver=`) y `admin.html`; en admin, la bandera
+  `cerrandoSesion` evita que las peticiones aún en vuelo muestren un error de
+  "sesión" sobre la pantalla de login. Afectaba también a `admin.html` desde
+  antes de esta migración.
 - **Se elimina de `admin.html`** (no queda respaldo duplicado): la tarjeta
   HTML, la llamada `initMensajesAutomaticos()` de `mostrarPanel()` y las 6
   funciones (`initMensajesAutomaticos`, `cargarGrupoToggle`,

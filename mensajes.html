@@ -310,16 +310,12 @@ function mostrarPanel(){
   initMensajesAutomaticos();
 }
 
-// Mismo criterio que admin.html para cerrar sesión: primero se invalida el
-// token en el servidor (webAuthLogout) y, falle o no la red, se cierra la
-// sesión local y se regresa al login.
-document.getElementById('logoutBtn').addEventListener('click', async () => {
-  const token = localStorage.getItem(SESSION_KEY);
-  if(token){
-    try{ await apiPost('webAuthLogout', { sessionToken: token }); }
-    catch(err){ /* se ignora: igual se cierra la sesión del lado del cliente */ }
-  }
-  irALogin();
+// Cerrar sesión: al instante (ver cerrarSesionAdmin() en auth.js, por qué ya no
+// se espera la respuesta del servidor). Se va a admin.html SIN ?volver=, porque
+// cerrar sesión a propósito no es "me pidieron iniciar sesión para ver Mensajes".
+document.getElementById('logoutBtn').addEventListener('click', () => {
+  cerrarSesionAdmin();
+  window.location.replace('admin.html');
 });
 
 /* ---------- Fase 2: visor de contenido por categoría (solo lectura) ---------- */

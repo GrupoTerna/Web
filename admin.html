@@ -1526,6 +1526,7 @@ const SESSION_KEY = 'terna_admin_token';
 // cada recarga de la página. Ver 34_Web_API.gs / _webAuthLogin().
 const SESSION_ADMIN_KEY = 'terna_admin_info';
 let miembroActual = null; // guarda el tag actualmente cargado, para el guardado
+let cerrandoSesion = false; // true entre "Cerrar sesión" y el siguiente login exitoso (ver logoutBtn / manejarRespuestaAuth)
 // FASE 7 (Parte B, 06-sep-2026): Nom_Multi de admins, cacheados por
 // cargarNomMultisAdmins() para reusarlos tanto en el <select> de autor de
 // torneo como en el de "Editar autor de ascenso".
@@ -1621,6 +1622,7 @@ document.getElementById('btnLogin').addEventListener('click', async () => {
     if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error || 'No se pudo iniciar sesión.')}</div>`; return; }
     localStorage.setItem(SESSION_KEY, data.token);
     if(data.admin) localStorage.setItem(SESSION_ADMIN_KEY, JSON.stringify(data.admin));
+    cerrandoSesion = false;
     document.getElementById('loginCelular').value = '';
     document.getElementById('claveInput').value = '';
     // Si el admin llegó desde mensajes.html (sin sesión o con sesión vencida),
@@ -1658,12 +1660,20 @@ document.getElementById('claveInput').addEventListener('keydown', e => {
 // (sin conexión, etc.) se muestra el login igual: el resultado que le
 // importa al usuario ("salí de mi cuenta en este dispositivo") ya se
 // cumple solo con borrar el token local.
-document.getElementById('logoutBtn').addEventListener('click', async () => {
-  const token = localStorage.getItem(SESSION_KEY);
-  if(token){
-    try{ await apiPost('webAuthLogout', { sessionToken: token }); }
-    catch(err){ /* se ignora: igual se cierra la sesión del lado del cliente */ }
-  }
+// ACTUALIZADO (19-sep-2026): ya no se espera la respuesta de webAuthLogout
+// (se formaba en la cola en serie de api.js y el botón parecía muerto); ahora
+// cerrarSesionAdmin() (auth.js) borra el token al instante y avisa al servidor
+// sin esperar. El invalidado en servidor de B-27 se mantiene.
+document.getElementById('logoutBtn').addEventListener('click', () => {
+  // FIX (19-sep-2026, "no me deja cerrar sesión"): ya no se espera la
+  // respuesta de webAuthLogout — esa petición se formaba detrás de las 7-8 del
+  // mostrarPanel() en la cola en serie de api.js y el botón parecía muerto.
+  // cerrarSesionAdmin() (auth.js) borra el token en el acto y avisa al servidor
+  // sin cola ni espera. La bandera evita que las peticiones del panel que aún
+  // estén en vuelo, al recibir "sesión inválida" porque el servidor ya
+  // invalidó el token, pinten un error rojo sobre la pantalla de login.
+  cerrandoSesion = true;
+  cerrarSesionAdmin();
   mostrarLogin();
 });
 
@@ -1678,6 +1688,7 @@ document.getElementById('btnAbrirSorteo').addEventListener('click', () => {
 // error de sesión nos regresa al login en vez de mostrar el mensaje suelto.
 function manejarRespuestaAuth(data){
   if(data && data.ok === false && /sesión|sesion/i.test(String(data.error||''))){
+    if(cerrandoSesion) return true; // el propio cierre de sesión invalidó el token; no mostrar el error
     mostrarLogin(data.error);
     return true;
   }

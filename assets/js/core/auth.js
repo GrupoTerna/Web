@@ -78,3 +78,42 @@ function actualizarNavCta(){
     a.style.display = haySesion ? '' : 'none';
   });
 }
+
+
+/**
+ * cerrarSesionAdmin()
+ * FIX (19-sep-2026, pedido usuario — "no me deja cerrar sesión"): antes el
+ * botón "Cerrar sesión" (admin.html y mensajes.html) hacía
+ * `await apiPost('webAuthLogout')` ANTES de borrar el token local. Pero
+ * apiPost() pasa por _encolarPeticion() con _MAX_PETICIONES_SIMULTANEAS = 1
+ * (todas las peticiones a Apps Script salen en serie, ver api.js) y
+ * _fetchYParsear() no tiene tiempo límite, con hasta 5 reintentos: el aviso
+ * de logout se formaba detrás de TODAS las peticiones ya pendientes del
+ * panel (mostrarPanel() dispara 7-8 de golpe) y, mientras tanto, la pantalla
+ * no cambiaba, así que el botón parecía muerto.
+ *
+ * Ahora la sesión se cierra en el acto del lado del cliente (se borra el
+ * token, síncrono) y el aviso al servidor, para que invalide el token en su
+ * CacheService (FIX B-27, 18-sep-2026), sale por su cuenta: fuera de la cola,
+ * sin esperar la respuesta, y con `keepalive` para que el navegador lo envíe
+ * aunque justo después la página navegue a otra (mensajes.html → admin.html).
+ * Va fuera de la cola a propósito: la cola existe para no saturar a Apps
+ * Script con peticiones que sí importan, y esta es la única que no necesita
+ * respuesta. Si falla (sin conexión, etc.) no pasa nada: el token local ya
+ * no existe y el del servidor vence solo a las 6 h. Misma forma de petición
+ * que apiPost() (POST con el JSON como texto, sin cabeceras propias).
+ */
+function cerrarSesionAdmin(){
+  const token = localStorage.getItem(SESSION_KEY_ADMIN);
+  localStorage.removeItem(SESSION_KEY_ADMIN);
+  localStorage.removeItem('terna_admin_info');
+  if(!token) return;
+  try{
+    fetch(`${WEBAPP_URL}?accion=webAuthLogout`, {
+      method: 'POST',
+      cache: 'no-store',
+      keepalive: true,
+      body: JSON.stringify({ sessionToken: token })
+    }).catch(() => { /* se ignora: el cierre local ya se hizo */ });
+  }catch(err){ /* idem */ }
+}
