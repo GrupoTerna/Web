@@ -202,6 +202,8 @@
   <!-- Ganadores del torneo más reciente -->
   <section class="torneos-sec" data-reveal>
     <div class="eyebrow">🏆 Ganadores del torneo más reciente</div>
+    <!-- B4/B-10: apiGetUltimaActualizacion() lee el respaldo en localStorage, no dispara ninguna petición. Cubre ambas secciones (Ganadores y Torneos recientes), que comparten el mismo endpoint webTorneos. -->
+    <div class="text-faint" id="torneosActualizadoTxt" style="font-size:12px; margin-top:4px;"></div>
     <div id="ganadoresWrap" class="ganadores-grid" data-reveal-stagger>
       <div class="card" style="grid-column:1/-1;"><div class="empty">Cargando ganadores…</div></div>
     </div>
@@ -359,6 +361,8 @@ async function cargarTorneos(){
       apiGetTorneosCompartido('webTorneos'),
       apiGetTorneosCompartido('webHistorialTorneos').catch(() => null)
     ]);
+    document.getElementById('torneosActualizadoTxt').textContent =
+      fmtTiempoRelativo(apiGetUltimaActualizacion('webTorneos', null));
 
     // ---- Ganadores del torneo más reciente ----
     const g = data.ganadores;

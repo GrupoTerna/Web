@@ -661,6 +661,8 @@
         <img src="assets/img/escudo.png" alt="Escudo Familia Terna" width="176" height="176" style="width:176px; height:176px; flex-shrink:0; filter:drop-shadow(0 0 20px rgba(162,57,255,.35));">
       </picture>
     </div>
+    <!-- B4/B-10: apiGetUltimaActualizacion() lee el respaldo en localStorage, no dispara ninguna petición. -->
+    <div class="text-faint" id="clanInfoActualizadoTxt" style="font-size:12px; margin-bottom:8px;"></div>
     <!-- FIX (B-7, 18-sep-2026): aria-live="polite" en contenedores de carga
          inicial que pasan de "Cargando…" a contenido real, para que un
          lector de pantalla anuncie el cambio sin que el usuario tenga que
@@ -847,6 +849,8 @@ async function cargarClanes(){
   const grid = document.getElementById('clanGrid');
   try{
     const data = await apiGet('webClanInfo', null, { ttlMs: 300000, staleIfError: true }); // B-11: 5 min; B4/B-10: si falla la red, usar el último dato guardado
+    document.getElementById('clanInfoActualizadoTxt').textContent =
+      fmtTiempoRelativo(apiGetUltimaActualizacion('webClanInfo', null));
     // Orden fijo de la Familia (no alfabético), asignado antes del índice para que insignia/rol queden sincronizados con el backend. Historial en CHANGELOG.md.
     const clanes = ordenarClanes(data.clanes || []);
     grid.innerHTML = clanes.map((c, i) => clanCardHtml(c, i, { mostrarVerClan: true, mostrarUnirse: true })).join('');

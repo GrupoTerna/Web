@@ -645,6 +645,8 @@
        cada tecla — ahí anunciar cada cambio saturaría a un lector de
        pantalla; ver el buscador de perfil más abajo para ese caso. -->
   <!-- ---------- GRÁFICOS DE CLAN ---------- -->
+  <!-- B4/B-10: mismo patrón que perfil.html — apiGetUltimaActualizacion() lee el respaldo en localStorage, no dispara ninguna petición. -->
+  <div class="text-faint" id="clanInfoActualizadoTxt" style="font-size:12px; margin-bottom:8px;"></div>
   <div class="charts-grid" id="chartsGrid" data-reveal-stagger style="margin-top:28px;" aria-live="polite">
     <div class="card chart-card clan-card-skel"><div class="chart-title">Cargando estadísticas…</div></div>
     <div class="card chart-card clan-card-skel"><div class="chart-title">Cargando estadísticas…</div></div>
@@ -703,6 +705,8 @@
       <div class="eyebrow">Directorio</div>
       <h2 style="font-size:24px; margin-top:10px;">Directorio por clan</h2>
       <p style="margin-top:8px;">Elige un clan y toca un nombre para ver su progreso al instante.</p>
+      <!-- B4/B-10: ídem clanInfoActualizadoTxt de arriba, pero para webRoster. -->
+      <div class="text-faint" id="rosterActualizadoTxt" style="font-size:12px; margin-top:6px;"></div>
     </div>
     <div class="clan-tabs" id="clanTabs"></div>
     <!-- Fila A-Z/# para filtrar por primera letra del nombre, mismo patrón que guerra.html; persiste fuera de #rosterWrap y se resetea al cambiar de clan. Historial en CHANGELOG.md. -->
@@ -795,6 +799,8 @@ async function cargarClanInfoYCharts(){
   const clanGrid   = document.getElementById('clanGrid');
   try{
     const data = await apiGet('webClanInfo', null, { ttlMs: 300000, staleIfError: true }); // B-11: 5 min; B4/B-10: si falla la red, usar el último dato guardado
+    document.getElementById('clanInfoActualizadoTxt').textContent =
+      fmtTiempoRelativo(apiGetUltimaActualizacion('webClanInfo', null));
     // Orden fijo de la Familia (no alfabético), se ordena antes de asignar la insignia de rol al clan correcto. Historial en CHANGELOG.md.
     const clanes = ordenarClanes(data.clanes || []);
 
@@ -1964,6 +1970,8 @@ async function cargarRoster(){
   const wrap = document.getElementById('rosterWrap');
   try{
     const data = await apiGet('webRoster', null, { ttlMs: 300000, staleIfError: true }); // B-11: 5 min; B4/B-10: si falla la red, usar el último dato guardado
+    document.getElementById('rosterActualizadoTxt').textContent =
+      fmtTiempoRelativo(apiGetUltimaActualizacion('webRoster', null));
     rosterData = ordenarClanes(data.clanes || []);
     const idxDesdeQuery = clanIdxDesdeQuery();
     clanActivoIdx = idxDesdeQuery >= 0 ? idxDesdeQuery : 0;
