@@ -21,7 +21,9 @@
 <meta name="twitter:image" content="https://grupoterna.github.io/Web/assets/img/og-image.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap"></noscript>
 <link rel="stylesheet" href="assets/styles.css">
 <link rel="icon" type="image/jpeg" href="assets/img/logo-cuadrado.jpg">
 <link rel="manifest" href="manifest.json">
@@ -337,7 +339,7 @@ function idTorneoPrincipalDe(t){
 const _torneosEnVuelo = {};
 function apiGetTorneosCompartido(accion){
   if (!_torneosEnVuelo[accion]){
-    const p = apiGet(accion);
+    const p = apiGet(accion, null, { ttlMs: 300000, staleIfError: true }); // B-11: 5 min; B4/B-10: si falla la red, usar el último dato guardado
     _torneosEnVuelo[accion] = p;
     const limpiar = () => { delete _torneosEnVuelo[accion]; };
     p.then(limpiar, limpiar);

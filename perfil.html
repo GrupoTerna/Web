@@ -23,7 +23,9 @@
 <meta name="twitter:image" content="https://grupoterna.github.io/Web/assets/img/og-image.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap"></noscript>
 <link rel="stylesheet" href="assets/styles.css">
 <link rel="icon" type="image/jpeg" href="assets/img/logo-cuadrado.jpg">
 <link rel="manifest" href="manifest.json">
@@ -200,6 +202,8 @@
 
     <div id="perfilContenido" style="display:none;">
       <div class="eyebrow">Perfil del jugador</div>
+      <!-- B4/B-10: indicador de última actualización — usa apiGetUltimaActualizacion() de api.js sobre el respaldo en localStorage, sin disparar ninguna petición nueva. -->
+      <div class="text-faint" id="perfilActualizadoTxt" style="font-size:12px; margin-top:2px;"></div>
       <div class="card" style="padding:28px; margin-top:16px;">
         <div class="perfil-cabecera">
           <div>
@@ -1391,7 +1395,7 @@ async function verTorneosJugador(tag){
   wrap.style.display = 'block';
   wrap.innerHTML = '<div class="text-faint" style="font-family:var(--f-mono); font-size:12px;">Cargando torneos…</div>';
   try{
-    const data = await apiGet('webTorneosJugador', { tag });
+    const data = await apiGet('webTorneosJugador', { tag }, { ttlMs: 300000, staleIfError: true }); // B-11: 5 min; B4/B-10: si falla la red, usar el último dato guardado
     const torneos = (data && data.torneos) || [];
     if (!torneos.length){
       wrap.innerHTML = '<div class="empty">Este jugador no tiene participación registrada en torneos.</div>';
@@ -1763,7 +1767,7 @@ async function cargarPerfil(){
     return;
   }
   try{
-    const data = await apiGet('webPerfil', { tag: TAG_PERFIL });
+    const data = await apiGet('webPerfil', { tag: TAG_PERFIL }, { ttlMs: 300000, staleIfError: true }); // B-11: 5 min; B4/B-10: si falla la red, usar el último dato guardado
     if (!data.ok){
       document.getElementById('perfilCargando').style.display = 'none';
       document.getElementById('perfilError').style.display = 'block';
@@ -1771,6 +1775,9 @@ async function cargarPerfil(){
       return;
     }
     renderMiembro(data.jugador);
+    // B4/B-10: no dispara ninguna petición — lee el mismo respaldo que apiGet() ya guardó en localStorage al resolver la llamada de arriba (ya sea fresca o por staleIfError).
+    document.getElementById('perfilActualizadoTxt').textContent =
+      fmtTiempoRelativo(apiGetUltimaActualizacion('webPerfil', { tag: TAG_PERFIL }));
   }catch(err){
     document.getElementById('perfilCargando').style.display = 'none';
     document.getElementById('perfilError').style.display = 'block';

@@ -122,6 +122,32 @@ function enlaceJugador(nombre, tag, opts){
 
 
 /**
+ * fmtTiempoRelativo(fecha)
+ * Texto tipo "actualizado hace X" a partir de una Date (o null). Mismo
+ * estilo de texto que ya usaba guerra.html (actualizarAgoText(), inline
+ * en esa página) para su indicador de refresco automático, pero
+ * generalizado con horas/días — guerra.html nunca necesitaba pasar de
+ * minutos porque se auto-refresca cada 60s; un respaldo de localStorage
+ * (ver apiGetUltimaActualizacion() en api.js, FIX B4/B-10) puede ser
+ * bastante más viejo si el visitante estuvo sin conexión un buen rato.
+ * @param {Date|null} fecha
+ * @returns {string} p.ej. "actualizado hace 3 min", "sin datos guardados"
+ */
+function fmtTiempoRelativo(fecha){
+  if (!fecha) return 'sin datos guardados';
+  const segs = Math.floor((Date.now() - fecha.getTime()) / 1000);
+  if (segs < 5) return 'actualizado ahora mismo';
+  if (segs < 60) return `actualizado hace ${segs}s`;
+  const mins = Math.floor(segs / 60);
+  if (mins < 60) return `actualizado hace ${mins} min`;
+  const horas = Math.floor(mins / 60);
+  if (horas < 24) return `actualizado hace ${horas} h`;
+  const dias = Math.floor(horas / 24);
+  return `actualizado hace ${dias} d`;
+}
+
+
+/**
  * fmtFechaVigenciaCorta(v)
  * Fecha corta CON hora en zona Lima (ej. "05 set 2026, 4:46 a. m."). Antes
  * había dos copias idénticas: fmtFechaVigenciaCorta() en index.html y
