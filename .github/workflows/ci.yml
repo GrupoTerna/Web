@@ -1,0 +1,33 @@
+# CI gratuito (B-15). Tres pasos por ahora:
+#   1. check-links: rutas locales rotas (script propio, sin dependencias).
+#   2. lint: ESLint sobre assets/**/*.js, con los globals compartidos entre
+#      archivos declarados en eslint.config.js (ver el comentario ahí).
+#   3. validate-html: html-validate sobre las 9 páginas. Arranca en modo
+#      permisivo a propósito (ver .htmlvalidate.js): la deuda conocida de
+#      style="" inline (Fase 3) y dos falsos positivos quedan apagados, y
+#      no-implicit-button-type queda en "warn" (se ve en el log, no rompe
+#      el build) hasta limpiar los 34 casos en una rebanada aparte.
+# A propósito NO se agrega todavía Lighthouse CI: depende de que el
+# deploy ya esté publicado, tiene más sentido como job semanal/manual
+# separado que en cada push.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  ci:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run check-links
+      - run: npm run lint
+      - run: npm run validate-html

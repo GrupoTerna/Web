@@ -164,12 +164,16 @@ async function _fetchYParsearInterno(url, fetchOpts){
     try{
       res = await fetch(url, fetchOpts);
     }catch(err){
-      throw new Error(_esErrorDeRed(err) ? _mensajeErrorRed() : err.message);
+      // FIX (B-15, 18-sep-2026): se adjunta `cause` al relanzar — antes se
+      // perdía el error original (stack/mensaje real de fetch), quedaba
+      // solo el mensaje genérico de _mensajeErrorRed(). Mismo mensaje al
+      // usuario, mejor información para depurar.
+      throw new Error(_esErrorDeRed(err) ? _mensajeErrorRed() : err.message, { cause: err });
     }
     try{
       return await res.json();
     }catch(parseErr){
-      if (intento >= _MAX_INTENTOS_FETCH) throw new Error(_mensajeErrorRed());
+      if (intento >= _MAX_INTENTOS_FETCH) throw new Error(_mensajeErrorRed(), { cause: parseErr });
       await new Promise(function(r){ setTimeout(r, _REINTENTO_ESPERA_MS * intento); });
     }
   }
