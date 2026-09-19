@@ -663,7 +663,12 @@
         <img src="assets/img/escudo.png" alt="Escudo Familia Terna" width="176" height="176" style="width:176px; height:176px; flex-shrink:0; filter:drop-shadow(0 0 20px rgba(162,57,255,.35));">
       </picture>
     </div>
-    <div class="grid-4" id="clanGrid" data-reveal-stagger>
+    <!-- FIX (B-7, 18-sep-2026): aria-live="polite" en contenedores de carga
+         inicial que pasan de "Cargando…" a contenido real, para que un
+         lector de pantalla anuncie el cambio sin que el usuario tenga que
+         ir a buscarlo. No se usa en filtros muy reactivos (ver directorio.html/
+         guerra.html), solo en cargas de una sola vez como esta. -->
+    <div class="grid-4" id="clanGrid" data-reveal-stagger aria-live="polite">
       <div class="card clan-card-skel"><h3 style="font-size:19px;">Cargando clan…</h3></div>
       <div class="card clan-card-skel"><h3 style="font-size:19px;">Cargando clan…</h3></div>
       <div class="card clan-card-skel"><h3 style="font-size:19px;">Cargando clan…</h3></div>
@@ -673,7 +678,7 @@
 </section>
 
 <!-- ---------- MODAL "CÓMO UNIRTE" ---------- -->
-<!-- MEJORA (18-sep-2026, accesibilidad — propuesta y pedida por el usuario): role="dialog"+aria-modal+aria-labelledby, más trampa de foco y devolución de foco al cerrar (ver el script más abajo). Antes el modal era invisible para lectores de pantalla como diálogo y el foco se podía escapar hacia el fondo con Tab. Historial en CHANGELOG.md. -->
+<!-- MEJORA (18-sep-2026, accesibilidad — propuesta y pedida por el usuario): role="dialog"+aria-modal+aria-labelledby, más trampa de foco y devolución de foco al cerrar. Antes el modal era invisible para lectores de pantalla como diálogo y el foco se podía escapar hacia el fondo con Tab. FIX (B-5, 18-sep-2026): la lógica se movió a assets/js/features/join-modal.js, compartida con directorio.html. Historial en CHANGELOG.md. -->
 <div class="join-modal-overlay" id="joinModalOverlay" role="dialog" aria-modal="true" aria-labelledby="joinModalTitle" aria-hidden="true">
   <div class="join-modal" id="joinModal">
     <button type="button" class="join-modal-close" id="joinModalClose" aria-label="Cerrar">&times;</button>
@@ -694,7 +699,7 @@
       <h2>Ingresos recientes</h2>
       <p>Los miembros más nuevos de cada clan, ordenados por clan y luego por nombre.</p>
     </div>
-    <div id="ingresosWrap">
+    <div id="ingresosWrap" aria-live="polite">
       <div class="card clan-card-skel"><h3 style="font-size:16px;">Cargando ingresos…</h3></div>
     </div>
     <div id="ingresosChartsWrap"></div>
@@ -715,26 +720,26 @@
     <div class="rankings-grid" data-reveal-stagger>
       <div class="card ranking-card" data-reveal>
         <div class="ranking-title">🎁 Top donadores</div>
-        <div id="rkDonadores"><div class="text-faint" style="font-size:12px; margin-top:10px;">Cargando…</div></div>
+        <div id="rkDonadores" aria-live="polite"><div class="text-faint" style="font-size:12px; margin-top:10px;">Cargando…</div></div>
       </div>
       <div class="card ranking-card" data-reveal>
         <div class="ranking-title">🔥 Racha de guerra</div>
-        <div id="rkRacha"><div class="text-faint" style="font-size:12px; margin-top:10px;">Cargando…</div></div>
+        <div id="rkRacha" aria-live="polite"><div class="text-faint" style="font-size:12px; margin-top:10px;">Cargando…</div></div>
       </div>
       <div class="card ranking-card" data-reveal>
         <!-- DC.TORNEOS son batallas jugadas en torneos, no torneos ganados; se agrega el sufijo "batallas" para evitar la confusión. Historial en CHANGELOG.md. -->
         <div class="ranking-title">🏅 Batallas de torneo</div>
-        <div id="rkTorneos"><div class="text-faint" style="font-size:12px; margin-top:10px;">Cargando…</div></div>
+        <div id="rkTorneos" aria-live="polite"><div class="text-faint" style="font-size:12px; margin-top:10px;">Cargando…</div></div>
       </div>
       <div class="card ranking-card" data-reveal>
         <div class="ranking-title">👑 Victorias con 3 coronas</div>
-        <div id="rkVictorias3c"><div class="text-faint" style="font-size:12px; margin-top:10px;">Cargando…</div></div>
+        <div id="rkVictorias3c" aria-live="polite"><div class="text-faint" style="font-size:12px; margin-top:10px;">Cargando…</div></div>
       </div>
     </div>
 
     <div class="card" data-reveal style="margin-top:16px; padding:24px;">
       <div class="ranking-title">🃏 Cartas más usadas en la Familia</div>
-      <div id="cartasWrap" class="cartas-list">
+      <div id="cartasWrap" class="cartas-list" aria-live="polite">
         <div class="text-faint" style="font-size:12px;">Cargando…</div>
       </div>
     </div>
@@ -834,6 +839,10 @@
 <script src="assets/js/features/clan-card.js"></script>
 <script src="assets/js/features/inactivos.js"></script>
 <script src="assets/js/features/timeline-svg.js"></script>
+<!-- FIX (B-5, 18-sep-2026): join-modal.js reemplaza la lógica que antes vivía
+     acá mismo (abrirModalUnirse/cerrarModalUnirse + trampa de foco), ahora
+     compartida con directorio.html. Ver assets/js/features/join-modal.js. -->
+<script src="assets/js/features/join-modal.js"></script>
 <script src="assets/common.js"></script>
 <script>
 async function cargarClanes(){
@@ -856,51 +865,6 @@ async function cargarClanes(){
     </div>`;
   }
 }
-
-// MEJORA (18-sep-2026, accesibilidad): guarda qué elemento tenía el foco antes de abrir el modal, para devolvérselo al cerrar (si no se pasa uno explícito, se usa document.activeElement — ej. al abrirse por teclado).
-let joinModalTriggerEl = null;
-function abrirModalUnirse(nombreClan, triggerEl){
-  document.getElementById('joinModalClan').textContent = nombreClan || 'un clan';
-  const opciones = [
-    { href: WSP_GRUPO_URL, icon: '📱', label: 'WhatsApp', sub: 'Canal principal — Grupo informativo', primary: true },
-    { href: DISCORD_URL,   icon: '🎧', label: 'Discord',  sub: 'Canal de comunidad y voz' }
-  ];
-  if (FORM_POSTULACION_URL) {
-    opciones.push({ href: FORM_POSTULACION_URL, icon: '📝', label: 'Formulario', sub: 'Postulación formal' });
-  }
-  document.getElementById('joinModalOptions').innerHTML = opciones.map(o => `
-    <a class="join-modal-option${o.primary ? ' primary' : ''}" href="${esc(o.href)}" target="_blank" rel="noopener">
-      <span class="opt-icon">${o.icon}</span>
-      <span><span class="opt-label">${esc(o.label)}</span><span class="opt-sub">${esc(o.sub)}</span></span>
-    </a>`).join('');
-  joinModalTriggerEl = triggerEl || document.activeElement;
-  const overlay = document.getElementById('joinModalOverlay');
-  overlay.classList.add('open');
-  overlay.setAttribute('aria-hidden', 'false');
-  document.getElementById('joinModalClose').focus();
-}
-function cerrarModalUnirse(){
-  const overlay = document.getElementById('joinModalOverlay');
-  overlay.classList.remove('open');
-  overlay.setAttribute('aria-hidden', 'true');
-  if (joinModalTriggerEl && typeof joinModalTriggerEl.focus === 'function') joinModalTriggerEl.focus();
-  joinModalTriggerEl = null;
-}
-document.getElementById('joinModalClose').addEventListener('click', cerrarModalUnirse);
-document.getElementById('joinModalOverlay').addEventListener('click', e => {
-  if (e.target.id === 'joinModalOverlay') cerrarModalUnirse();
-});
-document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarModalUnirse(); });
-// MEJORA (18-sep-2026, accesibilidad — trampa de foco): mientras el modal está abierto, Tab/Shift+Tab circula solo entre sus elementos enfocables (botón cerrar + links de opciones) en vez de escaparse hacia el contenido de fondo.
-document.getElementById('joinModalOverlay').addEventListener('keydown', e => {
-  if (e.key !== 'Tab') return;
-  const focosables = document.getElementById('joinModal').querySelectorAll('button, a[href]');
-  if (!focosables.length) return;
-  const primero = focosables[0];
-  const ultimo = focosables[focosables.length - 1];
-  if (e.shiftKey && document.activeElement === primero) { e.preventDefault(); ultimo.focus(); }
-  else if (!e.shiftKey && document.activeElement === ultimo) { e.preventDefault(); primero.focus(); }
-});
 
 cargarClanes();
 
@@ -1420,8 +1384,14 @@ async function cargarIngresos(){
           const cwOk = urlValida(ing.cwstats);
           const sem = ing.guerraSemana || {};
           return `
-          <!-- Cada tarjeta de "Ingresos recientes" abre el perfil del jugador al hacer clic (mismo patrón que guerra.html). Historial en CHANGELOG.md. -->
-          <div class="ingreso-row js-ingreso-row" data-tag="${esc(ing.tag || '')}" style="cursor:pointer;">
+          <!-- Cada tarjeta de "Ingresos recientes" abre el perfil del jugador al hacer clic (mismo patrón que guerra.html). Historial en CHANGELOG.md.
+               FIX (B-6, 18-sep-2026): antes solo el nombre (enlaceJugador) era
+               alcanzable por teclado; la tarjeta completa no lo era pese a
+               tener su propio comportamiento de clic. Se agrega
+               tabindex="0" + role="link" + aria-label a la tarjeta para que
+               Tab la enfoque y un lector de pantalla anuncie el destino;
+               Enter/Espacio se manejan más abajo, junto al listener de clic. -->
+          <div class="ingreso-row js-ingreso-row" data-tag="${esc(ing.tag || '')}" style="cursor:pointer;" tabindex="0" role="link" aria-label="Ver perfil de ${esc(ing.nombre || ing.tag || '')}">
             <div class="ingreso-top">
               <div class="ingreso-info">
                 <div class="ing-nombre">${enlaceJugador(ing.nombre, ing.tag)}</div>
@@ -1455,10 +1425,23 @@ async function cargarIngresos(){
     // tarjeta (nombre, RoyaleAPI, CWStats) se deja actuar al enlace y no se
     // abre una segunda pestaña.
     wrap.querySelectorAll('.js-ingreso-row').forEach(row => {
-      row.addEventListener('click', e => {
-        if (e.target.closest('a, .ingreso-links')) return;
+      const abrirPerfil = () => {
         if (!row.dataset.tag) return;
         window.open('perfil.html?tag=' + encodeURIComponent(row.dataset.tag), '_blank');
+      };
+      row.addEventListener('click', e => {
+        if (e.target.closest('a, .ingreso-links')) return;
+        abrirPerfil();
+      });
+      // FIX (B-6, 18-sep-2026): Enter/Espacio replican el clic para quien
+      // navega con teclado (ver tabindex/role agregados arriba). Espacio se
+      // previene por defecto porque, al ser un <div>, el navegador no le
+      // aplica el scroll-de-página que sí le daría a un botón/checkbox real.
+      row.addEventListener('keydown', e => {
+        if (e.target.closest('a, .ingreso-links')) return;
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        e.preventDefault();
+        abrirPerfil();
       });
     });
 

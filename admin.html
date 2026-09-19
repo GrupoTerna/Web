@@ -207,6 +207,16 @@
   }
   .doc-original img{max-width:100%; height:auto;}
   .doc-original table{border-collapse:collapse; max-width:100%;}
+  /* FIX (18-sep-2026, Fase 4): .doc-original-cargando — se evalúa y se decide
+     NO migrarla a .empty ni a .loading-block. No es un estado "sin datos"
+     (.empty: cursiva, centrado, padding 32px, pensado para listas/filtros
+     vacíos) ni un placeholder de carga con spinner (.loading-block: padding
+     60px 20px, siempre acompañado de <div class="spinner">). Es un texto de
+     carga transitorio y compacto dentro de un panel chico (.contenido-pdf-wrap),
+     sin spinner, con tipografía monoespaciada a propósito para leerse como
+     parte del visor de documento, no como mensaje genérico de página.
+     Forzarla a cualquiera de las dos convenciones existentes le cambiaría el
+     tamaño/tono sin ganar nada a cambio, así que se queda como clase propia. */
   .doc-original-cargando{
     padding:16px; text-align:center; color:var(--text-dim); font-family:var(--f-mono); font-size:13px;
   }
@@ -1260,10 +1270,17 @@
                          activarBarraScrollTabla() sobre este wrap después
                          de llenar el tbody. -->
                     <div id="crAscensoTablaWrap" style="overflow-x:auto;">
+                      <!-- FIX (B-8, 18-sep-2026): scope="col"/"colgroup" en
+                           esta tabla y las otras 3 de admin.html que no lo
+                           tenían (Descenso, coincidencias de infiltrados,
+                           propuestas de corrección de guerra). Son tablas
+                           estáticas sin ordenamiento, así que no aplica
+                           aria-sort acá (eso ya está hecho donde sí hay
+                           columnas ordenables: roster y log de guerra). -->
                       <table class="cr-grid-table">
                         <thead>
-                          <tr><th rowspan="2">Clan</th><th colspan="2">Miembro</th><th colspan="2">Veterano</th><th colspan="2">Colíder</th></tr>
-                          <tr><th>Trofeos</th><th>Ataques</th><th>Trofeos</th><th>Ataques</th><th>Trofeos</th><th>Ataques</th></tr>
+                          <tr><th scope="col" rowspan="2">Clan</th><th scope="colgroup" colspan="2">Miembro</th><th scope="colgroup" colspan="2">Veterano</th><th scope="colgroup" colspan="2">Colíder</th></tr>
+                          <tr><th scope="col">Trofeos</th><th scope="col">Ataques</th><th scope="col">Trofeos</th><th scope="col">Ataques</th><th scope="col">Trofeos</th><th scope="col">Ataques</th></tr>
                         </thead>
                         <tbody id="crGridAscenso"></tbody>
                       </table>
@@ -1321,8 +1338,8 @@
                     <div id="crDescensoTablaWrap" style="overflow-x:auto;">
                       <table class="cr-grid-table">
                         <thead>
-                          <tr><th rowspan="2">Clan</th><th colspan="2">Miembro</th><th colspan="2">Veterano</th><th colspan="2">Colíder</th></tr>
-                          <tr><th>Trofeos</th><th>Ataques</th><th>Trofeos</th><th>Ataques</th><th>Trofeos</th><th>Ataques</th></tr>
+                          <tr><th scope="col" rowspan="2">Clan</th><th scope="colgroup" colspan="2">Miembro</th><th scope="colgroup" colspan="2">Veterano</th><th scope="colgroup" colspan="2">Colíder</th></tr>
+                          <tr><th scope="col">Trofeos</th><th scope="col">Ataques</th><th scope="col">Trofeos</th><th scope="col">Ataques</th><th scope="col">Trofeos</th><th scope="col">Ataques</th></tr>
                         </thead>
                         <tbody id="crGridDescenso"></tbody>
                       </table>
@@ -2070,7 +2087,7 @@ function _badgeRival(infoRival){
  *  en el caso CLAN, o directamente historialTerna en el caso JUGADOR. */
 function _tablaCoincidencias(filas, conColumnaOrigenClan){
   if(!filas.length) return '<div class="empty">Sin coincidencias con nuestro propio roster.</div>';
-  const colExtra = conColumnaOrigenClan ? '<th>En clan rival</th><th>Rol</th>' : '';
+  const colExtra = conColumnaOrigenClan ? '<th scope="col">En clan rival</th><th scope="col">Rol</th>' : '';
   // El link al perfil solo se agrega cuando f.origen === "Directorio" (perfil.html no busca en Inactivos/Vetados); el clan rival nunca se linkea. Historial en CHANGELOG.md.
   const filasHtml = filas.map(f => `
     <tr>
@@ -2081,7 +2098,7 @@ function _tablaCoincidencias(filas, conColumnaOrigenClan){
       <td>${esc(f.razon || '—')}</td>
     </tr>`).join('');
   return `<div class="tabla-coincidencias-wrap" style="overflow-x:auto;"><table>
-    <thead><tr>${colExtra}<th>Origen</th><th>Nuestro roster</th><th>Clan</th><th>Razón</th></tr></thead>
+    <thead><tr>${colExtra}<th scope="col">Origen</th><th scope="col">Nuestro roster</th><th scope="col">Clan</th><th scope="col">Razón</th></tr></thead>
     <tbody>${filasHtml}</tbody>
   </table></div>`;
 }
@@ -6141,7 +6158,7 @@ function _tablaPropuestasCR(propuestas, diagnostico){
   }
   const propuestasOrdenadas = _ordenarPropuestasCR(propuestas);
   return `${avisoDiagnostico}${_resumenPropuestasCR(propuestasOrdenadas)}<div class="tabla-propuestas-cr-wrap" style="overflow-x:auto;"><table>
-    <thead><tr><th>N°</th><th>Nombre</th><th>Tag</th><th>Clan</th><th>Rango actual</th><th>Tipo</th><th>Ataques</th><th>Puntaje</th><th>Barcos</th><th>Detalle</th></tr></thead>
+    <thead><tr><th scope="col">N°</th><th scope="col">Nombre</th><th scope="col">Tag</th><th scope="col">Clan</th><th scope="col">Rango actual</th><th scope="col">Tipo</th><th scope="col">Ataques</th><th scope="col">Puntaje</th><th scope="col">Barcos</th><th scope="col">Detalle</th></tr></thead>
     <tbody>${propuestasOrdenadas.map((p, i) => _filaPropuestaCR(p, i)).join('')}</tbody>
   </table></div>`;
 }

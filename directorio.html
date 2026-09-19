@@ -597,8 +597,14 @@
     hacia el siguiente ascenso — todo en un mismo lugar.
   </p>
 
+  <!-- FIX (B-7, 18-sep-2026): aria-live="polite" en los dos contenedores de
+       carga inicial de esta sección (chartsGrid/clanGrid se llenan una sola
+       vez desde cargarClanInfoYCharts()). No se usa en el roster de más
+       abajo ni en los filtros de columna (.rt-*), que son reactivos por
+       cada tecla — ahí anunciar cada cambio saturaría a un lector de
+       pantalla; ver el buscador de perfil más abajo para ese caso. -->
   <!-- ---------- GRÁFICOS DE CLAN ---------- -->
-  <div class="charts-grid" id="chartsGrid" data-reveal-stagger style="margin-top:28px;">
+  <div class="charts-grid" id="chartsGrid" data-reveal-stagger style="margin-top:28px;" aria-live="polite">
     <div class="card chart-card clan-card-skel"><div class="chart-title">Cargando estadísticas…</div></div>
     <div class="card chart-card clan-card-skel"><div class="chart-title">Cargando estadísticas…</div></div>
     <div class="card chart-card clan-card-skel"><div class="chart-title">Cargando estadísticas…</div></div>
@@ -606,7 +612,7 @@
   </div>
 
   <!-- ---------- TARJETAS DE CLAN ---------- -->
-  <div class="grid-4" id="clanGrid" data-reveal-stagger>
+  <div class="grid-4" id="clanGrid" data-reveal-stagger aria-live="polite">
     <div class="card clan-card-skel"><h3 style="font-size:19px;">Cargando clan…</h3></div>
     <div class="card clan-card-skel"><h3 style="font-size:19px;">Cargando clan…</h3></div>
     <div class="card clan-card-skel"><h3 style="font-size:19px;">Cargando clan…</h3></div>
@@ -685,11 +691,16 @@
 <div id="chartTooltip" class="chart-tooltip"></div>
 
 <!-- ---------- MODAL "CÓMO UNIRTE" ---------- -->
-<div class="join-modal-overlay" id="joinModalOverlay">
-  <div class="join-modal">
+<!-- FIX (B-5, 18-sep-2026): antes este modal no tenía role="dialog", aria-modal
+     ni trampa de foco (la mejora de accesibilidad del 18-sep solo se había
+     aplicado en index.html, ver hallazgo 5 del Bloque B). Se alinea acá con
+     el mismo markup accesible; la lógica vive ahora en
+     assets/js/features/join-modal.js, compartida con index.html. -->
+<div class="join-modal-overlay" id="joinModalOverlay" role="dialog" aria-modal="true" aria-labelledby="joinModalTitle" aria-hidden="true">
+  <div class="join-modal" id="joinModal">
     <button type="button" class="join-modal-close" id="joinModalClose" aria-label="Cerrar">&times;</button>
     <div class="eyebrow">Postular a <span id="joinModalClan">un clan</span></div>
-    <h3 style="margin-top:10px;">¿Cómo unirte?</h3>
+    <h3 style="margin-top:10px;" id="joinModalTitle">¿Cómo unirte?</h3>
     <p class="text-dim" style="font-size:14px; margin-top:8px; line-height:1.5;">
       Los enlaces de invitación directa caducan rápidamente. Postula a través de nuestros canales oficiales:
     </p>
@@ -716,6 +727,11 @@
 <script src="assets/js/features/clan-card.js"></script>
 <script src="assets/js/features/inactivos.js"></script>
 <script src="assets/js/features/timeline-svg.js"></script>
+<!-- FIX (B-5, 18-sep-2026): join-modal.js reemplaza la lógica que antes
+     vivía acá mismo (abrirModalUnirse/cerrarModalUnirse sin trampa de foco
+     ni devolución de foco), ahora compartida con index.html y ya con las
+     mejoras de accesibilidad. Ver assets/js/features/join-modal.js. -->
+<script src="assets/js/features/join-modal.js"></script>
 <script src="assets/common.js"></script>
 <style>
   /* Modal "Cómo unirte" y mini-formulario "Vetar" — FIX (18-sep-2026):
@@ -752,7 +768,9 @@ async function cargarClanInfoYCharts(){
     // (Cantera/Semillero) y SIN botón "Ver clan" (nunca existió acá).
     clanGrid.innerHTML = clanes.map((c, i) => clanCardHtml(c, i, { mostrarRol: true, mostrarUnirse: true })).join('');
     clanGrid.querySelectorAll('.js-solicitar-unirme').forEach(btn => {
-      btn.addEventListener('click', () => abrirModalUnirse(btn.dataset.clan));
+      // Se pasa el propio botón como disparador (ver abrirModalUnirse en
+      // join-modal.js) para poder devolverle el foco al cerrar el modal.
+      btn.addEventListener('click', () => abrirModalUnirse(btn.dataset.clan, btn));
     });
     // Tarjeta adicional (5ª) con cuentas inactivas — SOLO si hay un admin
     // con sesión iniciada en este navegador.
@@ -766,31 +784,6 @@ async function cargarClanInfoYCharts(){
     </div>`;
   }
 }
-
-function abrirModalUnirse(nombreClan){
-  document.getElementById('joinModalClan').textContent = nombreClan || 'un clan';
-  const opciones = [
-    { href: WSP_GRUPO_URL, icon: '📱', label: 'WhatsApp', sub: 'Canal principal — Grupo informativo', primary: true },
-    { href: DISCORD_URL,   icon: '🎧', label: 'Discord',  sub: 'Canal de comunidad y voz' }
-  ];
-  if (FORM_POSTULACION_URL) {
-    opciones.push({ href: FORM_POSTULACION_URL, icon: '📝', label: 'Formulario', sub: 'Postulación formal' });
-  }
-  document.getElementById('joinModalOptions').innerHTML = opciones.map(o => `
-    <a class="join-modal-option${o.primary ? ' primary' : ''}" href="${esc(o.href)}" target="_blank" rel="noopener">
-      <span class="opt-icon">${o.icon}</span>
-      <span><span class="opt-label">${esc(o.label)}</span><span class="opt-sub">${esc(o.sub)}</span></span>
-    </a>`).join('');
-  document.getElementById('joinModalOverlay').classList.add('open');
-}
-function cerrarModalUnirse(){
-  document.getElementById('joinModalOverlay').classList.remove('open');
-}
-document.getElementById('joinModalClose').addEventListener('click', cerrarModalUnirse);
-document.getElementById('joinModalOverlay').addEventListener('click', e => {
-  if (e.target.id === 'joinModalOverlay') cerrarModalUnirse();
-});
-document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarModalUnirse(); });
 
 cargarClanInfoYCharts();
 
