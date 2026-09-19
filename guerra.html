@@ -323,6 +323,15 @@
       <div class="clan-grid" id="clanGrid" style="margin-top:20px;"></div>
     </section>
 
+    <!-- Pronóstico de Hoy: pública, solo en día de guerra; oculta si el backend no responde. Sin aria-live (se refresca sola). Historial en CHANGELOG.md. -->
+    <section id="pronosticoSection" style="padding:24px 0; display:none;">
+      <div class="sec-head" style="border-bottom:1px solid var(--line); padding-bottom:12px;">
+        <h2 style="font-size:22px;">📈 Pronóstico de Hoy</h2>
+        <div class="text-faint" style="font-family:var(--f-mono); font-size:12px; margin-top:10px;">Techo de fama que cada clan todavía puede alcanzar hoy con los ataques que le quedan: una cota máxima, no una predicción. «Solo roster» supone que juegan únicamente las cuentas que ya están en la carrera; «Techo máximo» supone además que las cuentas sin atacar se reemplazan por cuentas de apoyo.</div>
+      </div>
+      <div id="pronosticoWrap" style="margin-top:20px;"></div>
+    </section>
+
     <section style="padding:24px 0;">
       <div class="sec-head" style="border-bottom:1px solid var(--line); padding-bottom:12px;">
         <h2 style="font-size:22px;">📊 Miembros Activos por Clan</h2>
@@ -523,6 +532,7 @@ async function cargar(manual){
 // antes esto pegaba directo a ?dashboard=json con un token de administradores (fm7qterna9x) hardcodeado acá mismo, visible para cualquiera con "Ver código fuente" de esta página PÚBLICA. Historial en CHANGELOG.md.
     const data = await apiGet('webGuerraEnVivo', null, { sinCache: true });
     render(data);
+    cargarPronosticoGuerra(data.ctx || {}, manual); // sin await: no retrasa ni rompe el resto de la página
     lastFetchAt = new Date();
     actualizarAgoText();
     iniciarProgreso();
@@ -1498,6 +1508,45 @@ async function cargarParticipacionHoySiAdmin(ctx){
     section.style.display = 'none';
     wrap.innerHTML = '';
     tabsWrap.innerHTML = '';
+  }
+}
+
+/* cargarPronosticoGuerra(ctx, manual): tabla pública de webPronosticoGuerra (techo de fama por clan, ver 38_Pronostico_Guerra.gs). Solo en día de guerra. Caché de apiGet de 2 min (el backend cachea igual); "Actualizar" fuerza dato fresco. Si falla, se oculta o se deja lo último pintado. Historial en CHANGELOG.md. */
+const PRONOSTICO_ATAQUES_MAX_CLAN = 200;
+let ultimoPronosticoHtml = '';
+async function cargarPronosticoGuerra(ctx, manual){
+  const section = document.getElementById('pronosticoSection');
+  const wrap    = document.getElementById('pronosticoWrap');
+  if(!section || !wrap) return;
+  const ocultar = () => { section.style.display = 'none'; wrap.innerHTML = ''; ultimoPronosticoHtml = ''; };
+  if(!ctx.esDiaGuerra){ ocultar(); return; }
+  try{
+    const data = await apiGet('webPronosticoGuerra', null, manual ? { sinCache: true } : { ttlMs: 120000 });
+    const clanes = (data.clanes || []).filter(c => c && c.nombre);
+    if(!clanes.length){ ocultar(); return; }
+    const html = `
+      <div class="card" style="padding:12px;"><div class="table-scroll"><table>
+        <thead><tr><th scope="col">Clan</th><th scope="col">Fama actual</th><th scope="col">Techo (solo roster)</th><th scope="col">Techo máximo</th><th scope="col">Ataques hoy</th></tr></thead>
+        <tbody>${clanes.map(c => `
+          <tr>
+            <td>${esc(c.nombre)}${c.esRival ? ' <span class="text-faint" style="font-family:var(--f-mono); font-size:11px;">(rival)</span>' : ''}</td>
+            <td>${fmtNum(c.fameActual)}</td>
+            <td>${fmtNum(c.fameTechoRoster)}</td>
+            <td>${fmtNum(c.fameTecho)}</td>
+            <td>${fmtNum(c.ataquesUsados)}/${PRONOSTICO_ATAQUES_MAX_CLAN}</td>
+          </tr>`).join('')}
+        </tbody>
+      </table></div></div>`;
+    if(html !== ultimoPronosticoHtml){ // no repintar (ni recrear la barra de scroll) si nada cambió
+      wrap.innerHTML = html;
+      const twrap = wrap.querySelector('.table-scroll');
+      if(twrap) activarBarraScrollTabla(twrap);
+      ultimoPronosticoHtml = html;
+    }
+    section.style.display = '';
+  }catch(err){
+    // Defensivo, igual que cargarGuerraLog(): sin datos frescos y sin nada pintado, la sección no aparece.
+    if(!ultimoPronosticoHtml) ocultar();
   }
 }
 

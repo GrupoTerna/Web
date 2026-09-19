@@ -3549,6 +3549,22 @@ FIX (03-sep-2026, pedido usuario — "Vigencia [última
 
 ## guerra.html
 
+### 19-sep-2026 — Sección "Pronóstico de Hoy" conectada a `webPronosticoGuerra`
+El backend ya tenía la acción `webPronosticoGuerra` (`38_Pronostico_Guerra.gs`,
+ruta en `doGet` de `08_Web_Endpoints.gs`) pero ninguna página la consumía, y
+además devolvía siempre "No hay datos de currentriverrace en caché": en una
+ejecución web `CACHE_CLAN_DATA` está vacío. El backend ahora lee el checkpoint
+de clanes que deja el bot en Drive (tope 70 min) y cachea 120 s. Esta página
+pinta una tabla por clan (propios y rivales): fama actual, techo solo con el
+roster, techo máximo (con cuentas de apoyo) y ataques usados de 200.
+- Solo se pide en día de guerra (`ctx.esDiaGuerra`), sin `await` dentro de
+  `cargar()`, con caché de `apiGet` de 2 min; el botón "Actualizar" fuerza dato
+  fresco. No usa `staleIfError` a propósito: un pronóstico de "hoy" de otro día
+  sería engañoso.
+- Si el backend no responde o no hay checkpoint vigente, la sección queda
+  oculta (o conserva lo último pintado); nunca rompe el resto de la página.
+- Sin `aria-live`: la página se auto-refresca (ver B-7).
+
 ### 18-sep-2026 (refactor CSS, Fase 2 — tablas) — `.grid-hscroll-*`/`.table-scroll-oculta-nativa` unificados con `activarBarraScrollTabla()`
 Pedido usuario, confirmando el criterio ya usado en el resto del sitio:
 la barra de scroll de toda tabla debe ser la morada (arriba, abajo y
