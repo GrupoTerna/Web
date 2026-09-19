@@ -37,6 +37,43 @@ Pendientes que quedaban de B-15, resueltos en la misma tanda:
 - **Dependabot**: `.github/dependabot.yml`, revisión semanal de `npm` y de
   `github-actions`, PRs agrupados por menores/parches.
 
+---
+
+## Rendimiento (Lighthouse)
+
+### 19-sep-2026 — Peticiones duplicadas en torneos y reserva de alto en guerra
+Primera corrida de `lighthouse.yml` (móvil simulado): `guerra.html` y
+`torneos.html` sacaron 0.66-0.67 en Rendimiento (mínimo 0.7, en `warn`).
+Ver detalle y pendientes en `Plan_Fases.md` › B5.5.
+- **`torneos.html`**: `cargarTorneos()` y `cargarSalonDeLaFama()` se
+  disparaban a la vez y ambas pedían `webTorneos` y `webHistorialTorneos`;
+  como `apiGet` no comparte peticiones en curso, se hacían 4 llamadas y la
+  cola las procesaba de a una (~40 s en el laboratorio en vez de ~20 s).
+  Nuevo `apiGetTorneosCompartido(accion)`: reutiliza la petición en vuelo y
+  la descarta al terminar, así un reintento posterior sí vuelve a pedir.
+  El manejo de errores de cada función quedó igual (`historial` sigue
+  siendo opcional en `cargarTorneos`).
+- **`guerra.html`**: `#status:not(.err){min-height:80vh}`. Mientras llegaba
+  `webGuerraEnVivo` (28-39 s en el laboratorio) el `footer` estaba a la
+  vista junto al "Conectando…" y saltaba al aparecer el contenido
+  (CLS 0.141). El estado de error no reserva alto.
+
+---
+
+## SEO (sitemap y datos estructurados)
+
+### 19-sep-2026 — JSON-LD en directorio, guerra y torneos; `lastmod` del sitemap (B-23)
+`index.html` ya tenía JSON-LD de `Organization`. Se agrega a `directorio.html`,
+`guerra.html` y `torneos.html` un bloque `WebPage` con `breadcrumb`
+(`BreadcrumbList`: Inicio › página) e `isPartOf` hacia el `WebSite`, con
+`name`/`url`/`description` iguales al `<title>`, al canonical y a la meta
+description de cada página. No se repite la `Organization` (vive solo en
+`index.html`) y `comunidad.html` se deja fuera a propósito (prioridad baja).
+En `sitemap.xml` el `lastmod` de las 5 URLs pasa a 2026-09-19; hay que
+actualizarlo a mano cuando cambie una página pública.
+
+---
+
 ## torneos.html
 
 ### 08-sep-2026 — Torneos de continuación no se listan aparte

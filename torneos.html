@@ -127,6 +127,40 @@
   .torneos-sec:first-of-type{padding-top:0;}
   .torneos-sec:last-of-type{padding-bottom:0;}
 </style>
+<!-- Datos estructurados (schema.org, WebPage + BreadcrumbList) para resultados enriquecidos en Google;
+     la Organization vive solo en index.html. B-23. -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "WebPage",
+  "name": "Torneos — Familia Terna",
+  "url": "https://grupoterna.github.io/Web/torneos.html",
+  "description": "Torneos de la Familia Terna: calendario, resultados y ganadores de cada edición. Las inscripciones se comparten solo en nuestros grupos de WhatsApp.",
+  "inLanguage": "es",
+  "isPartOf": {
+    "@type": "WebSite",
+    "name": "Familia Terna",
+    "url": "https://grupoterna.github.io/Web/"
+  },
+  "breadcrumb": {
+    "@type": "BreadcrumbList",
+    "itemListElement": [
+      {
+        "@type": "ListItem",
+        "position": 1,
+        "name": "Inicio",
+        "item": "https://grupoterna.github.io/Web/"
+      },
+      {
+        "@type": "ListItem",
+        "position": 2,
+        "name": "Torneos",
+        "item": "https://grupoterna.github.io/Web/torneos.html"
+      }
+    ]
+  }
+}
+</script>
 </head>
 <body data-page="torneos">
 
@@ -294,6 +328,22 @@ function idTorneoPrincipalDe(t){
   return t.idTorneoPrincipal ?? t.tagTorneoPrincipal ?? t.torneoPrincipalId ?? t.principalId ?? null;
 }
 
+// Rendimiento (Lighthouse 19-sep): cargarTorneos() y cargarSalonDeLaFama()
+// arrancan a la vez y piden los mismos 2 endpoints; como apiGet no
+// comparte las peticiones en curso, se hacían 4 llamadas en vez de 2
+// (encoladas de a una, el doble de espera). Aquí se comparte la petición
+// en vuelo; al terminar se descarta, así "reintentar" vuelve a pedir.
+const _torneosEnVuelo = {};
+function apiGetTorneosCompartido(accion){
+  if (!_torneosEnVuelo[accion]){
+    const p = apiGet(accion);
+    _torneosEnVuelo[accion] = p;
+    const limpiar = () => { delete _torneosEnVuelo[accion]; };
+    p.then(limpiar, limpiar);
+  }
+  return _torneosEnVuelo[accion];
+}
+
 async function cargarTorneos(){
   const ganadoresWrap = document.getElementById('ganadoresWrap');
   const ganadoresResultadosWrap = document.getElementById('ganadoresResultadosWrap');
@@ -303,8 +353,8 @@ async function cargarTorneos(){
     // la fama) para el top 3 de cada fila. Si falla, la lista igual se
     // pinta, solo sin el detalle de ganadores.
     const [data, historialData] = await Promise.all([
-      apiGet('webTorneos'),
-      apiGet('webHistorialTorneos').catch(() => null)
+      apiGetTorneosCompartido('webTorneos'),
+      apiGetTorneosCompartido('webHistorialTorneos').catch(() => null)
     ]);
 
     // ---- Ganadores del torneo más reciente ----
@@ -476,8 +526,8 @@ async function cargarSalonDeLaFama(){
   const rankingWrap = document.getElementById('rankingVictoriasWrap');
   try{
     const [torneosData, historialData] = await Promise.all([
-      apiGet('webTorneos'),
-      apiGet('webHistorialTorneos')
+      apiGetTorneosCompartido('webTorneos'),
+      apiGetTorneosCompartido('webHistorialTorneos')
     ]);
     const historialCompleto = historialData.historial || [];
     renderRankingVictoriasTorneos(rankingWrap, historialCompleto);
