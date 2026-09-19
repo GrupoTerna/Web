@@ -314,9 +314,12 @@ function mostrarPanel(){
 // auth.js) y se espera hasta 3 s a que el servidor confirme la invalidación
 // antes de cambiar de página (si la navegación cortara la petición, el token
 // quedaría vivo en el servidor hasta vencer solo). Pasado ese tiempo se sale
-// igual: la sesión local ya está cerrada. Se va a admin.html SIN ?volver=,
-// porque cerrar sesión a propósito no es "me pidieron iniciar sesión para ver
-// Mensajes".
+// igual: la sesión local ya está cerrada. CAMBIO (19-sep-2026, pedido del
+// usuario): se va a admin.html CON ?volver=mensajes, para que al iniciar sesión
+// de nuevo regrese aquí (antes iba sin el parámetro y se quedaba en el panel).
+// Solo aplica a quien cierra sesión desde esta página o entra a mensajes.html
+// sin sesión (irALogin()): quien entra a admin.html por su cuenta no trae
+// ?volver= y se queda en el panel como siempre.
 document.getElementById('logoutBtn').addEventListener('click', async () => {
   const btn = document.getElementById('logoutBtn');
   btn.disabled = true;
@@ -325,7 +328,7 @@ document.getElementById('logoutBtn').addEventListener('click', async () => {
     cerrarSesionAdmin(),
     new Promise(resolve => setTimeout(resolve, 3000))
   ]);
-  window.location.replace('admin.html');
+  window.location.replace('admin.html?volver=mensajes');
 });
 
 /* ---------- Fase 2: visor de contenido por categoría (solo lectura) ---------- */
