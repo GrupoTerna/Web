@@ -1048,7 +1048,8 @@ function render(data){
     const slug = 'clan' + idx;
     return `
     <div class="card clan-card">
-      <div class="name">${esc(nombre)}</div>
+      <div class="clan-cab" data-clan="${esc(nombre)}">${cabeceraClanGuerraHtml(nombre)}</div>
+      <div class="clan-puesto" data-clan="${esc(nombre)}" style="display:none; margin-top:10px; font-family:var(--f-mono); font-size:12px; color:var(--text-dim); text-align:center;"></div>
       <div class="stats">
         <div class="stat"><b id="${slug}-atq">${fmtNum(g.ataques)}</b><span>Ataques</span></div>
         <div class="stat"><b id="${slug}-fame">${fmtNum(g.fame)}</b><span>Fame</span></div>
@@ -1068,6 +1069,7 @@ function render(data){
     const slug = 'clan' + idx;
     setNum(slug + '-atq', g.ataques); setNum(slug + '-fame', g.fame); setNum(slug + '-barc', g.barcos);
   });
+  actualizarPuestosClanes(); // las tarjetas se recrean en cada render(): se vuelve a pintar el puesto en el mismo ciclo, sin parpadeo
   // FIX (03-sep-2026, pedido usuario): la sección completa se oculta en
   // día de entrenamiento — antes se pintaba igual con lo que mandara
   // data.pendientes (a veces una fila "placeholder" tipo "No es día de
@@ -1511,19 +1513,75 @@ async function cargarParticipacionHoySiAdmin(ctx){
   }
 }
 
+/* Cabecera de las tarjetas de "Guerra de Hoy": la misma de Directorio (insignia de rol + escudo + nombre + tag, clanCardCabeceraHtml() en clan-card.js), con datos de webClanInfo. Sin esos datos queda solo el nombre. El puesto sale de webPronosticoGuerra (fame acumulada en currentriverrace). Historial en CHANGELOG.md. */
+let clanInfoGuerra = null; // clanes de webClanInfo, en el orden fijo de la Familia
+function _normNombreClanGuerra(s){
+  let t = String(s || '').trim().toLowerCase();
+  try{ t = t.normalize('NFC'); }catch(e){ /* sin normalize: se compara tal cual */ }
+  return t;
+}
+function _normTagGuerra(t){ return String(t || '').replace('#', '').trim().toUpperCase(); }
+function infoClanGuerraPorNombre(nombre){
+  if(!clanInfoGuerra || !clanInfoGuerra.length) return null;
+  const n = _normNombreClanGuerra(nombre);
+  let idx = clanInfoGuerra.findIndex(c => c && _normNombreClanGuerra(c.nombre) === n);
+  if(idx < 0) idx = ordenClanIndex(nombre); // mismo criterio de orden que el resto del sitio
+  const c = clanInfoGuerra[idx];
+  return c ? { c, i: idx } : null;
+}
+function cabeceraClanGuerraHtml(nombre){
+  const info = infoClanGuerraPorNombre(nombre);
+  if(!info) return `<div class="name">${esc(nombre)}</div>`;
+  return clanCardCabeceraHtml({ ...info.c, nombre: info.c.nombre || nombre }, info.i, { mostrarRol: true });
+}
+function actualizarPuestosClanes(){
+  document.querySelectorAll('#clanGrid .clan-puesto').forEach(el => {
+    const info = infoClanGuerraPorNombre(el.dataset.clan);
+    const tag  = info ? _normTagGuerra(info.c.clanTag) : '';
+    const p = (ultimoPronosticoData && tag)
+      ? (ultimoPronosticoData.clanes || []).find(x => x && !x.esRival && _normTagGuerra(x.clanTag) === tag)
+      : null;
+    if(p && Number(p.puesto) > 0){
+      const color = Number(p.puesto) === 1 ? 'var(--gold)' : 'var(--text)';
+      el.title = 'Según la fame acumulada de la semana en la carrera de guerra';
+      el.innerHTML = `🏁 Puesto <b style="color:${color};">#${fmtNum(p.puesto)}</b> de ${fmtNum(p.clanesEnCarrera)}`;
+      el.style.display = '';
+    }else{
+      el.innerHTML = '';
+      el.style.display = 'none';
+    }
+  });
+}
+function actualizarCabecerasClanes(){
+  document.querySelectorAll('#clanGrid .clan-cab').forEach(el => { el.innerHTML = cabeceraClanGuerraHtml(el.dataset.clan); });
+  actualizarPuestosClanes();
+}
+async function cargarClanInfoGuerra(){
+  try{
+    const data = await apiGet('webClanInfo', null, { ttlMs: 300000, staleIfError: true }); // misma llamada (y misma caché de 5 min) que index/directorio
+    clanInfoGuerra = (data.clanes || []).filter(c => c);
+    actualizarCabecerasClanes();
+  }catch(err){
+    // Sin datos de clan: las tarjetas conservan solo el nombre, como antes.
+  }
+}
+
 /* cargarPronosticoGuerra(ctx, manual): tabla pública de webPronosticoGuerra (techo de fama por clan, ver 38_Pronostico_Guerra.gs). Solo en día de guerra. Caché de apiGet de 2 min (el backend cachea igual); "Actualizar" fuerza dato fresco. Si falla, se oculta o se deja lo último pintado. Historial en CHANGELOG.md. */
 const PRONOSTICO_ATAQUES_MAX_CLAN = 200;
 let ultimoPronosticoHtml = '';
+let ultimoPronosticoData = null; // última respuesta válida de webPronosticoGuerra (la usan también las tarjetas de Guerra de Hoy para el puesto)
 async function cargarPronosticoGuerra(ctx, manual){
   const section = document.getElementById('pronosticoSection');
   const wrap    = document.getElementById('pronosticoWrap');
   if(!section || !wrap) return;
-  const ocultar = () => { section.style.display = 'none'; wrap.innerHTML = ''; ultimoPronosticoHtml = ''; };
+  const ocultar = () => { section.style.display = 'none'; wrap.innerHTML = ''; ultimoPronosticoHtml = ''; ultimoPronosticoData = null; actualizarPuestosClanes(); };
   if(!ctx.esDiaGuerra){ ocultar(); return; }
   try{
     const data = await apiGet('webPronosticoGuerra', null, manual ? { sinCache: true } : { ttlMs: 120000 });
     const clanes = (data.clanes || []).filter(c => c && c.nombre);
     if(!clanes.length){ ocultar(); return; }
+    ultimoPronosticoData = data;
+    actualizarPuestosClanes();
     const html = `
       <div class="card" style="padding:12px;"><div class="table-scroll"><table>
         <thead><tr><th scope="col">Clan</th><th scope="col">Fama actual</th><th scope="col">Techo (solo roster)</th><th scope="col">Techo máximo</th><th scope="col">Ataques hoy</th></tr></thead>
@@ -1612,6 +1670,7 @@ async function cargarGuerraLog(){
   }
 }
 
+cargarClanInfoGuerra(); // antes que cargar(): así la cabecera ya está lista cuando se pintan las tarjetas y no hay salto de layout
 cargar();
 cargarGuerraLog();
 

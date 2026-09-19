@@ -3549,6 +3549,28 @@ FIX (03-sep-2026, pedido usuario — "Vigencia [última
 
 ## guerra.html
 
+### 19-sep-2026 — "Guerra de Hoy": cabecera de Directorio y puesto actual en la carrera
+Pedido usuario: las tarjetas de "Guerra de Hoy" ya no muestran solo el nombre
+del clan, sino la misma cabecera de las tarjetas de Directorio (insignia de
+rol, escudo real, nombre y tag debajo). Solo cambia esa parte: los números,
+la barra y el resto de la tarjeta siguen igual.
+- `assets/js/features/clan-card.js`: la cabecera se separó de `clanCardHtml()`
+  en `clanCardCabeceraHtml()`, que reutilizan Inicio, Directorio y esta
+  página. La salida de `clanCardHtml()` es idéntica a la de antes (comparada
+  carácter por carácter en 4 casos).
+- `guerra.html` pide `webClanInfo` con la misma llamada y caché de 5 min que
+  index/directorio, y la pide antes que `webGuerraEnVivo` para que las
+  tarjetas nazcan ya con la cabecera y no salten de tamaño. Une cada tarjeta
+  con su clan por nombre normalizado (NFC) y, si no coincide, por
+  `ordenClanIndex()`. Si `webClanInfo` falla, queda solo el nombre.
+- Puesto actual ("🏁 Puesto #2 de 5"): sale de `webPronosticoGuerra`
+  (`puesto`/`clanesEnCarrera`, solo clanes propios). Ordena los clanes de
+  `currentriverrace` por fame acumulada de la semana; los empates comparten
+  puesto. No cuenta `repairPoints` ni la posición de los barcos. Solo en día
+  de guerra; si el endpoint no responde, no se muestra.
+- Pendiente (siguiente tanda): botones Jue–Dom con el puesto que cerró cada
+  clan en cada día (`EndOfDayRank` de `Guerra_Logs`).
+
 ### 19-sep-2026 — Sección "Pronóstico de Hoy" conectada a `webPronosticoGuerra`
 El backend ya tenía la acción `webPronosticoGuerra` (`38_Pronostico_Guerra.gs`,
 ruta en `doGet` de `08_Web_Endpoints.gs`) pero ninguna página la consumía, y

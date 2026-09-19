@@ -3,6 +3,28 @@
 
 
 /**
+ * clanCardCabeceraHtml(c, i, opts)
+ * Cabecera de una tarjeta de clan: insignia de rol (o la normal), escudo real
+ * (badgeId), nombre y tag debajo, todo centrado. Es EXACTAMENTE el bloque que
+ * clanCardHtml() pinta arriba de cada tarjeta (Directorio/Inicio), separado
+ * para reutilizarlo tal cual en otras páginas (guerra.html, "Guerra de Hoy")
+ * sin duplicar el HTML. `opts.mostrarRol` igual que en clanCardHtml().
+ */
+function clanCardCabeceraHtml(c, i, opts){
+  opts = opts || {};
+  const badge  = (opts.mostrarRol ? CLAN_BADGES_ROL[i] : CLAN_BADGES[i]) || { cls: 'badge-purple', label: 'Clan Terna' };
+  const nombre = c.nombre || badge.label;
+  const iconoBadgeHtml = c.badgeId ? iconoBadgeClanHtml(c.badgeId, { size: 26 }) : '';
+  return `
+      <div style="display:flex; justify-content:center; gap:8px; flex-wrap:wrap; margin-bottom:14px;">
+        <span class="badge ${badge.cls}">${esc(badge.label)}</span>
+      </div>
+      <h3 style="font-size:20px; text-align:center;">${iconoBadgeHtml}${esc(nombre)}</h3>
+      <div class="text-faint" style="font-family:var(--f-mono); font-size:12px; margin-top:4px; text-align:center;">${esc(c.clanTag||'')}</div>`;
+}
+
+
+/**
  * clanCardHtml(c, i, opts)
  * Arma el HTML de una tarjeta de clan a partir de un objeto de webClanInfo.
  *   opts.mostrarRol:    usa la insignia única CLAN_BADGES_ROL ("Cantera
@@ -37,19 +59,10 @@ function clanCardHtml(c, i, opts){
   const verClanHref = `directorio.html?clan=${encodeURIComponent(nombre)}#roster`;
   const royaleApiOk = urlValida(c.royaleApi);
   const cwStatsOk   = urlValida(c.cwStats);
-  // FIX (16-sep-2026, pedido usuario — ícono real del clan a partir del
-  // badgeId de Supercell): c.badgeId todavía no lo manda el backend (ver
-  // docblock de iconoBadgeClanHtml() más arriba) — hasta que lo agregue,
-  // iconoBadgeHtml queda como '' y esta línea no se nota en nada (mismo
-  // layout de antes, sin ícono).
-  const iconoBadgeHtml = c.badgeId ? iconoBadgeClanHtml(c.badgeId, { size: 26 }) : '';
+  // La cabecera (insignia + escudo + nombre + tag) vive en clanCardCabeceraHtml(),
+  // compartida con guerra.html. Historial en CHANGELOG.md (16-sep: badgeId).
   return `
-    <div class="card card-hover clan-card" data-reveal style="display:flex; flex-direction:column;">
-      <div style="display:flex; justify-content:center; gap:8px; flex-wrap:wrap; margin-bottom:14px;">
-        <span class="badge ${badge.cls}">${esc(badge.label)}</span>
-      </div>
-      <h3 style="font-size:20px; text-align:center;">${iconoBadgeHtml}${esc(nombre)}</h3>
-      <div class="text-faint" style="font-family:var(--f-mono); font-size:12px; margin-top:4px; text-align:center;">${esc(c.clanTag||'')}</div>
+    <div class="card card-hover clan-card" data-reveal style="display:flex; flex-direction:column;">${clanCardCabeceraHtml(c, i, opts)}
       <div style="display:flex; justify-content:center; margin-top:12px;">
         <div style="display:flex; flex-direction:column; align-items:flex-start; gap:4px; font-size:13px;">
           <span class="text-dim">👑 Líder: <b style="color:var(--text);">${esc(lider)}</b></span>
