@@ -56,6 +56,16 @@ function adminPuedeVetar(){
  * la sesión ahora persiste más tiempo — sobrevive a cerrar la pestaña/
  * el navegador, hasta que se cierre sesión explícitamente o venza el
  * token en el backend — en vez de borrarse sola al cerrar la pestaña.
+ *
+ * FEATURE (19-sep-2026, pedido usuario — "migra la sección de mensajes a
+ * su propio botón entre comunidad y 'acceder' o 'mi panel'"): la sección
+ * "Mensajes" salió de admin.html a mensajes.html, con su propio link en el
+ * nav (<a data-page="mensajes">, entre Comunidad y Acceder/Mi panel). Es
+ * contenido solo-admin, así que el link nace oculto (style="display:none")
+ * en cada página y esta misma función lo muestra únicamente cuando hay
+ * sesión de admin. Es solo UX: mensajes.html vuelve a validar la sesión por
+ * su cuenta (redirige a admin.html si no hay token) y el backend
+ * (webAdminContenido) también exige el token en cada petición.
  */
 const SESSION_KEY_ADMIN = 'terna_admin_token';
 
@@ -63,5 +73,8 @@ function actualizarNavCta(){
   const haySesion = !!localStorage.getItem(SESSION_KEY_ADMIN);
   document.querySelectorAll('.nav .links a.cta[data-page="admin"]').forEach(a => {
     a.textContent = haySesion ? 'Mi panel' : 'Acceder';
+  });
+  document.querySelectorAll('.nav .links a[data-page="mensajes"]').forEach(a => {
+    a.style.display = haySesion ? '' : 'none';
   });
 }

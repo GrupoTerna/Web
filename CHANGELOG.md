@@ -153,6 +153,44 @@ tarjeta "Ver ganadores" del panel.
 
 ---
 
+## mensajes.html
+
+### 19-sep-2026 — La sección "Mensajes" sale de `admin.html` y pasa a su propia página
+Pedido del usuario: "migra la sección de mensajes a su propio botón entre
+comunidad y 'acceder' o 'mi panel'". Decisiones tomadas con el usuario antes
+de tocar código:
+- **Página nueva propia** (`mensajes.html`), no una pestaña dentro de admin.
+- **Solo admin**: el link del nav nace oculto (`style="display:none"`) en las
+  8 páginas con nav (`index`, `comunidad`, `directorio`, `guerra`, `torneos`,
+  `perfil`, `admin`, `404`) y `actualizarNavCta()` (`assets/js/core/auth.js`)
+  lo muestra solo con `terna_admin_token`. `sorteo.html` no tiene nav, no
+  cambia. Si alguien entra por URL sin sesión, `mensajes.html` no pinta nada
+  y hace `location.replace('admin.html')`, que muestra el login. Lo mismo si
+  el token venció (`manejarRespuestaAuth()` de la página nueva). El backend
+  (`webAdminContenido`/`webAdminCategorias`) sigue exigiendo el token en cada
+  petición: ocultar el link es solo UX.
+- **Se elimina de `admin.html`** (no queda respaldo duplicado): la tarjeta
+  HTML, la llamada `initMensajesAutomaticos()` de `mostrarPanel()` y las 6
+  funciones (`initMensajesAutomaticos`, `cargarGrupoToggle`,
+  `cargarContenidoCategoria`, `renderContenidoHtml`, `_pintarOpcionContenido`,
+  `_activarAccionesContenido`), movidas tal cual a `mensajes.html`.
+
+CSS: en `admin.html` se quitaron solo las reglas que ya nadie usa allá
+(`.btn-refrescar-categoria`, `.categoria-contenido-body`, `.admin-toggle-*`,
+`.contenido-caja`, `.contenido-acciones`, `.contenido-item pre`, el visor de
+Doc original `.contenido-pdf-wrap`/`.doc-original*`/`.viendo-original`, y
+`.contenido-item .cab-info`/`.btn-icono.copiado`). Se conservan `.contenido-item`,
+`.cab`, `.etiqueta`, `.clan-chip`, `.contenido-tabs`, `.tab-clan`, `.btn-icono`,
+`.admin-subseccion*`, `.admin-grupo` y `.cat-titulo` porque Torneos, Sorteos,
+Cambio de rango y Ganadores las siguen usando; en `mensajes.html` se
+duplican (copia, no movimiento).
+
+`robots.txt`: se agrega `Disallow: /mensajes.html` junto a `admin.html` y
+`sorteo.html`. `sw.js` y `sitemap.xml` no cambian: igual que `admin.html`, es
+una página interna `noindex` que no se precachea.
+
+---
+
 ## admin.html
 
 > Esta página es la más grande del sitio (~8,760 líneas). El historial se
