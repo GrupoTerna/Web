@@ -1732,18 +1732,27 @@ function barraRequisito(lbl, actual, requerido, activo, sufijo){
       <div class="val">${fmtNum(actual)}${sufijo||''} / ${fmtNum(requerido)}${sufijo||''}</div>
     </div>`;
 }
+/** Ataques por rol (ataquesMiembro/ataquesVeterano/ataquesColider): mismo criterio que campoMinTSegunRango() y que perfil.html. */
+function campoAtaquesSegunRango(rango){
+  const r = String(rango||'').toLowerCase();
+  if(r.includes('col')) return 'ataquesColider';
+  if(r.includes('vet')) return 'ataquesVeterano';
+  return 'ataquesMiembro';
+}
+/** CONEXIÓN (19-sep-2026): el backend (_webProgresoRequisitos(), 34_Web_API.gs) ya no manda `ataques`, `torneos` ni `reaccion` planos (Fase 9); esta función seguía leyéndolos y fallaba al buscar un miembro. Ahora lee el bloque por rol, igual que perfil.html. `ataques.exentos` = ataques exonerados por día opcional (ya descontados de `requerido`). */
 function renderRequisitos(j, key){
   const req = j.progreso[key];
   const cont = document.getElementById('mReqContenido');
   if(!req){ cont.innerHTML = '<div class="empty">Sin datos para esta categoría.</div>'; return; }
-  const campoMinT = campoMinTSegunRango(j.rango);
-  const minT = req[campoMinT];
+  const minT = req[campoMinTSegunRango(j.rango)];
+  const ataques = req[campoAtaquesSegunRango(j.rango)];
   let html = '';
-  html += barraRequisito('Trofeos guerra', minT.actual, minT.requerido, minT.activo, '🏆');
-  html += barraRequisito('Ataques/semana', req.ataques.actual, req.ataques.requerido, req.ataques.activo, '');
-  html += barraRequisito('Torneos', req.torneos.actual, req.torneos.requerido, req.torneos.activo, '');
-  if(req.miembroActivo.activo) html += `<div style="margin-top:6px;"><span class="badge badge-purple">Debe ser miembro activo</span></div>`;
-  if(req.reaccion.activo) html += `<div style="margin-top:8px;"><span class="badge badge-purple">Requiere reaccionar a la publicación</span></div>`;
+  if(minT) html += barraRequisito('Trofeos guerra', minT.actual, minT.requerido, minT.activo, '🏆');
+  if(ataques){
+    html += barraRequisito('Ataques/semana', ataques.actual, ataques.requerido, ataques.activo, '');
+    if(ataques.activo && Number(ataques.exentos) > 0) html += `<div class="text-dim" style="font-size:12px; margin:-2px 0 8px;">Se descuentan ${fmtNum(ataques.exentos)} ataques del requisito por día(s) opcional(es) de esta semana.</div>`;
+  }
+  if(req.miembroActivo && req.miembroActivo.activo) html += `<div style="margin-top:6px;"><span class="badge badge-purple">Debe ser miembro activo</span></div>`;
   cont.innerHTML = html || '<div class="empty">Este clan no tiene requisitos activos en esta categoría.</div>';
 }
 
