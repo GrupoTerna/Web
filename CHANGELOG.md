@@ -166,7 +166,14 @@ de tocar código:
   lo muestra solo con `terna_admin_token`. `sorteo.html` no tiene nav, no
   cambia. Si alguien entra por URL sin sesión, `mensajes.html` no pinta nada
   y hace `location.replace('admin.html')`, que muestra el login. Lo mismo si
-  el token venció (`manejarRespuestaAuth()` de la página nueva). El backend
+  el token venció (`manejarRespuestaAuth()` de la página nueva). La redirección
+  va a `admin.html?volver=mensajes`: tras iniciar sesión, `btnLogin` de
+  `admin.html` regresa a `mensajes.html` en vez de quedarse en el panel
+  (comparación exacta con `'mensajes'`; el parámetro nunca se usa como URL, y
+  una primera versión con un objeto de destinos aceptaba claves heredadas como
+  `?volver=constructor`). Además `mensajes.html` se cierra sola si otra
+  pestaña cierra sesión (evento `storage`) o si se vuelve con "Atrás" a una
+  copia restaurada desde caché del navegador (`pageshow`). El backend
   (`webAdminContenido`/`webAdminCategorias`) sigue exigiendo el token en cada
   petición: ocultar el link es solo UX.
 - **Se elimina de `admin.html`** (no queda respaldo duplicado): la tarjeta

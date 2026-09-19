@@ -1623,6 +1623,13 @@ document.getElementById('btnLogin').addEventListener('click', async () => {
     if(data.admin) localStorage.setItem(SESSION_ADMIN_KEY, JSON.stringify(data.admin));
     document.getElementById('loginCelular').value = '';
     document.getElementById('claveInput').value = '';
+    // Si el admin llegó desde mensajes.html (sin sesión o con sesión vencida),
+    // regresa allá en vez de quedarse en el panel. Comparación exacta contra
+    // un valor fijo: el contenido de ?volver= nunca se usa como URL.
+    if(new URLSearchParams(window.location.search).get('volver') === 'mensajes'){
+      window.location.replace('mensajes.html');
+      return;
+    }
     mostrarPanel();
     // refrescarCuentaOrgPropia() recién se llama tras un login fresco, porque el chequeo automático de sesión guardada corre antes de que exista cuentasPorNomMultiCache. Historial en CHANGELOG.md.
     refrescarCuentaOrgPropia();

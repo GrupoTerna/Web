@@ -278,11 +278,13 @@ const SESSION_ADMIN_KEY = 'terna_admin_info';
 
 /** Limpia la sesión local y manda a admin.html, que sin token muestra el
  *  formulario de inicio de sesión. replace() (no assign) para que "Atrás"
- *  no regrese a esta página vacía en bucle. */
+ *  no regrese a esta página vacía en bucle. El parámetro ?volver=mensajes
+ *  le indica a admin.html que, al iniciar sesión, regrese a esta página en
+ *  vez de quedarse en el panel (ver btnLogin en admin.html). */
 function irALogin(){
   localStorage.removeItem(SESSION_KEY);
   localStorage.removeItem(SESSION_ADMIN_KEY);
-  window.location.replace('admin.html');
+  window.location.replace('admin.html?volver=mensajes');
 }
 
 /** Misma detección que admin.html: si el backend responde ok:false con un
@@ -697,6 +699,19 @@ if(!localStorage.getItem(SESSION_KEY)){
 }else{
   mostrarPanel();
 }
+
+// La sesión también puede cerrarse fuera de esta página mientras sigue
+// abierta o guardada en el historial: (1) otra pestaña cierra sesión (evento
+// 'storage', solo se dispara en las OTRAS pestañas del mismo origen) o (2) se
+// vuelve con "Atrás" a una copia de esta página que el navegador restauró
+// desde su caché (pageshow con persisted). En ambos casos, sin token no debe
+// quedar nada visible.
+window.addEventListener('storage', (ev) => {
+  if(ev.key === SESSION_KEY && !ev.newValue) irALogin();
+});
+window.addEventListener('pageshow', (ev) => {
+  if(ev.persisted && !localStorage.getItem(SESSION_KEY)) irALogin();
+});
 </script>
 </body>
 </html>
