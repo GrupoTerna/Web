@@ -150,6 +150,16 @@ function _mensajeErrorRed(){
  * que el propio diagnóstico de más arriba identifica como la causa real
  * del 404 en la entrega. El panel tarda un poco más en terminar de cargar
  * todas sus secciones, pero deja de competir consigo mismo.
+ *
+ * REVISIÓN (pendiente #4 de B5.5, 19-sep-2026): con el dedup de
+ * `_peticionesEnVuelo` ya en pie (ver más abajo), mostrarPanel() y casos
+ * como torneos.html disparan menos peticiones DISTINTAS en paralelo que
+ * antes — pero eso no cambia el diagnóstico de 13-sep de que Apps Script
+ * pierde la entrega cuando compiten 2+ peticiones REALES a la vez contra
+ * la misma Web App. Subir este número necesitaría volver a probar en
+ * caliente contra el backend real (no disponible en este entorno), así
+ * que se deja en 1 tal como estaba: es una decisión que requiere medir,
+ * no un cambio de código que se pueda inferir del código fuente solo.
  */
 const _MAX_PETICIONES_SIMULTANEAS = 1;
 
@@ -246,6 +256,37 @@ async function _fetchYParsearInterno(url, fetchOpts){
 }
 
 
+/**
+ * _peticionesEnVuelo
+ * FIX (pendiente #4 de B5.5, 19-sep-2026): apiGet() no compartía las
+ * peticiones EN VUELO entre llamadas concurrentes con la misma
+ * acción+params+token. Esto ya se había parcheado puntualmente en
+ * torneos.html (apiGetTorneosCompartido/_torneosEnVuelo, ver Lighthouse
+ * 19-sep) porque cargarTorneos() y cargarSalonDeLaFama() arrancan a la vez
+ * y piden los mismos 2 endpoints, duplicando las llamadas. Se generaliza
+ * acá para toda la capa, así cualquier página con dos cargas concurrentes
+ * al mismo endpoint queda cubierta sin tener que repetir el patrón
+ * puntual en cada `.html` (torneos.html ya se simplificó para usar este
+ * mecanismo en vez del suyo propio).
+ *
+ * Se comparte tanto si la respuesta es cacheable como si es
+ * opts.sinCache (ej. dos clics casi simultáneos del botón "Actualizar" de
+ * guerra.html): ahí no se cachea el RESULTADO en sessionStorage/
+ * localStorage, pero sí tiene sentido no disparar dos peticiones
+ * idénticas mientras la primera todavía no responde. La entrada se
+ * limpia (éxito o error) apenas la promesa resuelve, así una llamada
+ * posterior — ya sin nada en vuelo — sí dispara una petición nueva (ej.
+ * un reintento tras un error).
+ *
+ * Límite conocido y aceptado: si dos llamadas concurrentes a la MISMA
+ * acción+params difieren en opts.sinCache u opts.staleIfError, gana el
+ * opts de la primera en llegar (es la que arma la promesa compartida).
+ * Hoy ningún punto de llamada del sitio mezcla ambos modos para el mismo
+ * endpoint al mismo tiempo, así que no es un caso real todavía.
+ */
+const _peticionesEnVuelo = {};
+
+
 async function apiGet(accion, params, opts){
   opts = opts || {};
   const qs = new URLSearchParams({ accion, token: WEB_MEMBER_TOKEN, ...(params||{}) });
@@ -257,24 +298,34 @@ async function apiGet(accion, params, opts){
       if(cached && (Date.now() - cached.t) < ttlMs) return cached.d;
     }catch(e){ /* sessionStorage corrupto/inaccesible: seguir a la red sin romper */ }
   }
-  let data;
-  try{
-    data = await _fetchYParsear(`${WEBAPP_URL}?${qs.toString()}`, { cache:'no-store' });
-  }catch(err){
-    // FIX (B4/B-10): stale-if-error, solo si se pidió explícitamente.
-    if(opts.staleIfError){
-      const backup = _backupLocalLeer(cacheKey);
-      if(backup) return backup.d;
+
+  if (_peticionesEnVuelo[cacheKey]) return _peticionesEnVuelo[cacheKey];
+
+  const promesa = (async function(){
+    let data;
+    try{
+      data = await _fetchYParsear(`${WEBAPP_URL}?${qs.toString()}`, { cache:'no-store' });
+    }catch(err){
+      // FIX (B4/B-10): stale-if-error, solo si se pidió explícitamente.
+      if(opts.staleIfError){
+        const backup = _backupLocalLeer(cacheKey);
+        if(backup) return backup.d;
+      }
+      throw err;
     }
-    throw err;
-  }
-  if(data.error) throw new Error(data.error);
-  if(!opts.sinCache){
-    try{ sessionStorage.setItem(cacheKey, JSON.stringify({ t: Date.now(), d: data })); }
-    catch(e){ /* storage lleno: no debe romper la carga por no poder cachear */ }
-    _backupLocalGuardar(cacheKey, data);
-  }
-  return data;
+    if(data.error) throw new Error(data.error);
+    if(!opts.sinCache){
+      try{ sessionStorage.setItem(cacheKey, JSON.stringify({ t: Date.now(), d: data })); }
+      catch(e){ /* storage lleno: no debe romper la carga por no poder cachear */ }
+      _backupLocalGuardar(cacheKey, data);
+    }
+    return data;
+  })();
+
+  _peticionesEnVuelo[cacheKey] = promesa;
+  const limpiar = function(){ delete _peticionesEnVuelo[cacheKey]; };
+  promesa.then(limpiar, limpiar);
+  return promesa;
 }
 
 

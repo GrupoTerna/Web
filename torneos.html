@@ -44,6 +44,25 @@
     font-family:var(--f-mono); font-size:13px; color:var(--gold); margin-top:12px;
     letter-spacing:.04em;
   }
+  /* FIX (pendiente #1 de B5.5, 19-sep-2026 — CLS 0.467 de torneos.html):
+     el placeholder original de #ganadoresWrap era una sola línea
+     ("Cargando ganadores…"), mucho más bajo que las 3 tarjetas reales del
+     podio — al llegar los datos, el contenido crecía y empujaba hacia
+     abajo "Torneos recientes" y "Salón de la fama". En vez de adivinar un
+     min-height en píxeles (sin navegador real a mano para medir, un
+     número inventado deja huecos o no arregla el salto — ver nota
+     original), se arma un esqueleto con la MISMA estructura/clases que la
+     tarjeta real (.ganador-card > .medalla/.g-nombre/.g-clan/.g-victorias)
+     rellena con barras grises: cada barra hereda el font-size/margin-top
+     real de su elemento, así que el alto del esqueleto ya sale igual al
+     de la tarjeta final sin medir nada a mano. Los anchos son fijos
+     (no dependen del nombre/clan reales) porque solo importa el alto para
+     el CLS, no el ancho de las barras. */
+  .g-skel-bar{
+    display:inline-block; height:1em; border-radius:4px; background:var(--line);
+    animation:gSkelPulse 1.3s ease-in-out infinite;
+  }
+  @keyframes gSkelPulse{ 0%,100%{opacity:.5;} 50%{opacity:1;} }
   .torneo-row{
     display:flex; align-items:center; justify-content:space-between; gap:16px;
     padding:16px 0; border-bottom:1px solid var(--line); flex-wrap:wrap;
@@ -205,7 +224,27 @@
     <!-- B4/B-10: apiGetUltimaActualizacion() lee el respaldo en localStorage, no dispara ninguna petición. Cubre ambas secciones (Ganadores y Torneos recientes), que comparten el mismo endpoint webTorneos. -->
     <div class="text-faint" id="torneosActualizadoTxt" style="font-size:12px; margin-top:4px;"></div>
     <div id="ganadoresWrap" class="ganadores-grid" data-reveal-stagger>
-      <div class="card" style="grid-column:1/-1;"><div class="empty">Cargando ganadores…</div></div>
+      <!-- FIX (pendiente #1 de B5.5, ver <style> arriba): esqueleto con la
+           misma estructura que .ganador-card real, reemplazado por
+           cargarTorneos() apenas llega la respuesta de webTorneos. -->
+      <div class="card ganador-card" aria-hidden="true">
+        <div class="medalla"><span class="g-skel-bar" style="width:34px;"></span></div>
+        <div class="g-nombre"><span class="g-skel-bar" style="width:70%;"></span></div>
+        <div class="g-clan"><span class="g-skel-bar" style="width:45%;"></span></div>
+        <div class="g-victorias"><span class="g-skel-bar" style="width:55%;"></span></div>
+      </div>
+      <div class="card ganador-card" aria-hidden="true">
+        <div class="medalla"><span class="g-skel-bar" style="width:34px;"></span></div>
+        <div class="g-nombre"><span class="g-skel-bar" style="width:70%;"></span></div>
+        <div class="g-clan"><span class="g-skel-bar" style="width:45%;"></span></div>
+        <div class="g-victorias"><span class="g-skel-bar" style="width:55%;"></span></div>
+      </div>
+      <div class="card ganador-card" aria-hidden="true">
+        <div class="medalla"><span class="g-skel-bar" style="width:34px;"></span></div>
+        <div class="g-nombre"><span class="g-skel-bar" style="width:70%;"></span></div>
+        <div class="g-clan"><span class="g-skel-bar" style="width:45%;"></span></div>
+        <div class="g-victorias"><span class="g-skel-bar" style="width:55%;"></span></div>
+      </div>
     </div>
     <!-- Resultados completos del torneo más reciente (T_Control), fuera
          de la grilla de podio para que no se rompa el layout de tarjetas. -->
@@ -334,19 +373,15 @@ function idTorneoPrincipalDe(t){
 }
 
 // Rendimiento (Lighthouse 19-sep): cargarTorneos() y cargarSalonDeLaFama()
-// arrancan a la vez y piden los mismos 2 endpoints; como apiGet no
-// comparte las peticiones en curso, se hacían 4 llamadas en vez de 2
-// (encoladas de a una, el doble de espera). Aquí se comparte la petición
-// en vuelo; al terminar se descarta, así "reintentar" vuelve a pedir.
-const _torneosEnVuelo = {};
+// arrancan a la vez y piden los mismos 2 endpoints. Antes esto se resolvía
+// acá mismo con un wrapper puntual (apiGetTorneosCompartido/
+// _torneosEnVuelo) porque apiGet no compartía peticiones en curso. Ahora
+// que ese dedup vive de forma general dentro de apiGet() (ver
+// assets/js/core/api.js, pendiente #4 de B5.5), esta página vuelve a
+// llamar apiGet() directo — el ahorro de las 4 llamadas a 2 sigue
+// aplicando igual, ya sin el wrapper local.
 function apiGetTorneosCompartido(accion){
-  if (!_torneosEnVuelo[accion]){
-    const p = apiGet(accion, null, { ttlMs: 300000, staleIfError: true }); // B-11: 5 min; B4/B-10: si falla la red, usar el último dato guardado
-    _torneosEnVuelo[accion] = p;
-    const limpiar = () => { delete _torneosEnVuelo[accion]; };
-    p.then(limpiar, limpiar);
-  }
-  return _torneosEnVuelo[accion];
+  return apiGet(accion, null, { ttlMs: 300000, staleIfError: true }); // B-11: 5 min; B4/B-10: si falla la red, usar el último dato guardado
 }
 
 async function cargarTorneos(){

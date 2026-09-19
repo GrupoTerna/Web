@@ -1106,7 +1106,12 @@ function render(data){
   // restyleadas) que el resto de tablas del sitio, vía
   // activarBarraScrollTabla() (assets/js/ui/tables.js). Historial en
   // CHANGELOG.md.
-  pendWrap.querySelectorAll('.table-scroll').forEach(w => activarBarraScrollTabla(w));
+  // FIX (pendiente #5 de B5.5, 19-sep-2026 — TBT): con varios clanes a la
+  // vez esto activa N tablas de un tirón; se usa la versión en lote
+  // (activarBarraScrollTablas) para leer todos los anchos antes de
+  // escribir ninguno y evitar el layout thrashing de llamar
+  // activarBarraScrollTabla() una por una. Ver docblock en tables.js.
+  activarBarraScrollTablas(pendWrap.querySelectorAll('.table-scroll'));
   gestionarTabsClan('pendClanTabs', 'pendWrap', () => clanSeleccionadoPend, v => clanSeleccionadoPend = v);
   pintarFiltroLetra('pendLetraFilter', LETRAS_FILTRO, () => letraSeleccionadaPend, v => letraSeleccionadaPend = v, aplicarFiltroLetraPendientes);
   aplicarFiltroLetraPendientes();
@@ -1202,7 +1207,9 @@ function render(data){
     // FIX (18-sep-2026, refactor): misma barra morada arriba/abajo/derecha
     // que el resto de tablas del sitio, ver activarBarraScrollTabla() en
     // assets/js/ui/tables.js. Historial en CHANGELOG.md.
-    wrapActivos.querySelectorAll('.table-scroll').forEach(w => activarBarraScrollTabla(w));
+    // FIX (pendiente #5 de B5.5, 19-sep-2026 — TBT): versión en lote, ver
+    // el mismo cambio más arriba en Pendientes de Atacar.
+    activarBarraScrollTablas(wrapActivos.querySelectorAll('.table-scroll'));
     gestionarTabsClan('controlActivosClanTabs', 'controlActivosWrap', () => clanSeleccionadoActivos, v => clanSeleccionadoActivos = v);
     pintarFiltroLetra('controlActivosLetraFilter', LETRAS_FILTRO, () => letraSeleccionadaActivos, v => letraSeleccionadaActivos = v, () => aplicarFiltroLetraGrid('controlActivosWrap'));
   } else {
@@ -1270,7 +1277,9 @@ function render(data){
     // FIX (18-sep-2026, refactor): misma barra morada arriba/abajo/derecha
     // que el resto de tablas del sitio, ver activarBarraScrollTabla() en
     // assets/js/ui/tables.js. Historial en CHANGELOG.md.
-    wrapTemporada.querySelectorAll('.table-scroll').forEach(w => activarBarraScrollTabla(w));
+    // FIX (pendiente #5 de B5.5, 19-sep-2026 — TBT): versión en lote, ver
+    // el mismo cambio más arriba en Pendientes de Atacar.
+    activarBarraScrollTablas(wrapTemporada.querySelectorAll('.table-scroll'));
     gestionarTabsClan('controlTemporadaClanTabs', 'controlTemporadaWrap', () => clanSeleccionadoTemporada, v => clanSeleccionadoTemporada = v);
     pintarFiltroLetra('controlTemporadaLetraFilter', LETRAS_FILTRO, () => letraSeleccionadaTemporada, v => letraSeleccionadaTemporada = v, () => aplicarFiltroLetraGrid('controlTemporadaWrap'));
   } else {

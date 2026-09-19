@@ -69,10 +69,21 @@ function sincronizarScrollHorizontal(elementos){
  *   propia franja superior a mano (ej. #rosterTopScroll en directorio.html)
  *   se pasa acá en vez de dejar que esta función cree una nueva.
  */
-function activarBarraScrollTabla(wrap, opciones = {}){
-  if (!wrap) return;
+/**
+ * _prepararBarraScrollTabla(wrap, opciones)
+ * Fase de "estructura" de activarBarraScrollTabla()/activarBarraScrollTablas():
+ * crea/reutiliza la barra superior y le pone las clases/estilos que no
+ * dependen de medir nada (no fuerza layout). Devuelve
+ * { wrap, tabla, barraSup, inner } o null si wrap no tiene tabla adentro.
+ * Separado de la lectura de scrollWidth para poder, en el caso de varias
+ * tablas a la vez (ver activarBarraScrollTablas), preparar TODAS primero y
+ * recién después leer/escribir anchos en dos pasadas — ver docblock de
+ * activarBarraScrollTablas para el motivo.
+ */
+function _prepararBarraScrollTabla(wrap, opciones){
+  if (!wrap) return null;
   const tabla = wrap.querySelector('table');
-  if (!tabla) return;
+  if (!tabla) return null;
   const alto = opciones.alto === undefined ? 480 : opciones.alto;
 
   wrap.classList.add('tabla-scroll-wrap', 'scroll-morado');
@@ -99,15 +110,68 @@ function activarBarraScrollTabla(wrap, opciones = {}){
     barraSup.appendChild(inner);
   }
 
-  const fijarAncho = () => { inner.style.width = tabla.scrollWidth + 'px'; };
-  fijarAncho();
-  requestAnimationFrame(fijarAncho);
-  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fijarAncho).catch(() => {});
-  if (window.ResizeObserver){
-    new ResizeObserver(fijarAncho).observe(tabla);
-  } else {
-    window.addEventListener('resize', fijarAncho);
-  }
+  return { wrap, tabla, barraSup, inner };
+}
 
-  sincronizarScrollHorizontal([barraSup, wrap]);
+
+function activarBarraScrollTabla(wrap, opciones = {}){
+  activarBarraScrollTablas([wrap], opciones);
+}
+
+
+/**
+ * activarBarraScrollTablas(wraps, opciones)
+ * FIX (pendiente #5 de B5.5, 19-sep-2026 — TBT de guerra.html: tarea larga
+ * de 582 ms al pintar la página): guerra.html activa varias tablas de una
+ * sola vez con `.querySelectorAll('.table-scroll').forEach(w =>
+ * activarBarraScrollTabla(w))` (una tarjeta por clan, cada una con su
+ * tabla) en 3 puntos — Pendientes de Atacar, Control de Activos y Control
+ * de Temporada. Llamar activarBarraScrollTabla() una vez por tabla ahí
+ * intercala LECTURA (tabla.scrollWidth, fuerza layout) y ESCRITURA
+ * (inner.style.width) por cada tabla en el mismo bucle — con varios clanes
+ * a la vez eso es exactamente el patrón de "layout thrashing" (leer,
+ * escribir, leer, escribir...) que junta muchos reflows forzados en una
+ * sola tarea larga en vez de uno solo.
+ *
+ * Esta función agrupa el trabajo en 2 pasadas para CUALQUIER cantidad de
+ * tablas: primero prepara+LEE el ancho de todas (sin escribir nada todavía,
+ * así ninguna lectura queda invalidada por una escritura previa de OTRA
+ * tabla del mismo lote) y recién después ESCRIBE todos los anchos. Con eso,
+ * un lote de N tablas fuerza como mucho 1 reflow de lectura en vez de N.
+ * `activarBarraScrollTabla(wrap, opciones)` (una sola tabla) sigue
+ * existiendo tal cual para no tocar los demás puntos de llamada del sitio
+ * (admin.html, directorio.html, perfil.html) — internamente ahora es un
+ * atajo de esta misma función con un lote de 1, mismo orden lectura/
+ * escritura que antes, sin cambio de comportamiento para esos casos.
+ *
+ * @param {ArrayLike<HTMLElement>} wraps - NodeList o array de wraps (ver
+ *   activarBarraScrollTabla para qué es un "wrap" válido).
+ * @param {object} [opciones] - igual que en activarBarraScrollTabla; se
+ *   aplican a TODOS los wraps del lote por igual (no hay hoy ningún caso
+ *   en el sitio que necesite opciones distintas dentro de un mismo lote).
+ */
+function activarBarraScrollTablas(wraps, opciones = {}){
+  const preparados = Array.from(wraps || [])
+    .map(w => _prepararBarraScrollTabla(w, opciones))
+    .filter(Boolean);
+  if (!preparados.length) return;
+
+  // Pasada de LECTURA: todo scrollWidth se lee antes de escribir ningún
+  // ancho, para no invalidar el layout ya leído de una tabla anterior del
+  // mismo lote.
+  preparados.forEach(p => { p._anchoInicial = p.tabla.scrollWidth; });
+  // Pasada de ESCRITURA.
+  preparados.forEach(p => { p.inner.style.width = p._anchoInicial + 'px'; });
+
+  preparados.forEach(p => {
+    const fijarAncho = () => { p.inner.style.width = p.tabla.scrollWidth + 'px'; };
+    requestAnimationFrame(fijarAncho);
+    if (document.fonts && document.fonts.ready) document.fonts.ready.then(fijarAncho).catch(() => {});
+    if (window.ResizeObserver){
+      new ResizeObserver(fijarAncho).observe(p.tabla);
+    } else {
+      window.addEventListener('resize', fijarAncho);
+    }
+    sincronizarScrollHorizontal([p.barraSup, p.wrap]);
+  });
 }
