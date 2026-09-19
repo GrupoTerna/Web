@@ -1,15 +1,21 @@
-# CI gratuito (B-15). Tres pasos por ahora:
-#   1. check-links: rutas locales rotas (script propio, sin dependencias).
-#   2. lint: ESLint sobre assets/**/*.js, con los globals compartidos entre
-#      archivos declarados en eslint.config.js (ver el comentario ahí).
-#   3. validate-html: html-validate sobre las 9 páginas. Arranca en modo
-#      permisivo a propósito (ver .htmlvalidate.js): la deuda conocida de
-#      style="" inline (Fase 3) y dos falsos positivos quedan apagados, y
-#      no-implicit-button-type queda en "warn" (se ve en el log, no rompe
-#      el build) hasta limpiar los 34 casos en una rebanada aparte.
-# A propósito NO se agrega todavía Lighthouse CI: depende de que el
-# deploy ya esté publicado, tiene más sentido como job semanal/manual
-# separado que en cada push.
+# CI gratuito (B-15). Tres pasos, en cada push/PR a main:
+# 1. check-links: rutas locales rotas (script propio, sin dependencias).
+# 2. lint: ESLint sobre assets/**/*.js, con los globals compartidos entre
+#    archivos declarados en eslint.config.js (ver el comentario ahí).
+# 3. validate-html: html-validate sobre las 9 páginas. Arranca en modo
+#    permisivo a propósito (ver .htmlvalidate.js).
+# Lighthouse va aparte, en lighthouse.yml (semanal/manual): necesita el
+# sitio ya publicado en GitHub Pages, no el código crudo del repo.
+#
+# FIX (B-15, 19-sep-2026): el job fallaba en "npm run validate-html" con un
+# error dentro de expandFiles() de html-validate. Causa: desde html-validate
+# 11.1.0 el CLI dejó de usar el paquete "glob" y usa la función nativa de
+# Node (fs.globSync), que solo existe desde Node 22. El workflow corría en
+# Node 20. Se sube a Node 22 (html-validate 11 pide ^22.16 || >=24; ESLint 10
+# también lo cumple). Las Actions quedan fijadas a un commit SHA exacto
+# (el comentario de cada línea indica la versión); Dependabot las actualiza
+# solo (ver .github/dependabot.yml).
+
 name: CI
 
 on:
@@ -18,14 +24,17 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+
 jobs:
   ci:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: '20'
+          node-version: '22'
           cache: 'npm'
       - run: npm ci
       - run: npm run check-links
