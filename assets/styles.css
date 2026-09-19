@@ -495,9 +495,20 @@ section{padding:72px 0;}
 /* FIX (18-sep-2026, refactor CSS — Fase 3, séptimo lote): dentro de la
  * sección "Últimos ingresos" (index.html) y su equivalente de
  * perfil.html, .ingreso-row:last-child y .ingreso-links eran idénticos
- * carácter por carácter. .ingreso-row (la base), .ingreso-row:hover y
- * .ingreso-info .ing-fecha/.ing-nombre difieren entre las dos páginas —
- * no se tocan. */
+ * carácter por carácter. .ingreso-row:hover y .ingreso-info .ing-fecha/
+ * .ing-nombre sí difieren entre las dos páginas — no se tocan. (La base
+ * .ingreso-row también era idéntica pero se pasó por alto acá; corregido
+ * en el octavo lote, ver más abajo.) */
+/* FIX (19-sep-2026, refactor CSS — Fase 3, octavo lote): .ingreso-row (la
+ * base) SÍ era idéntica carácter por carácter entre index.html y
+ * perfil.html — el comentario del séptimo lote decía lo contrario por
+ * error. Se fusiona acá. .ingreso-row:hover sigue sin tocarse: perfil.html
+ * agrega cursor:pointer que index.html no tiene. */
+.ingreso-row{
+  display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;
+  padding:14px 18px; border-radius:var(--radius-sm); border:1px solid var(--line);
+  background:var(--surface-card); margin-bottom:10px; transition:all .18s ease;
+}
 .ingreso-row:last-child{margin-bottom:0;}
 .ingreso-links{display:flex; gap:8px; flex-wrap:wrap;}
 .comparativa-grid{display:grid; grid-template-columns:1fr; gap:28px; margin-top:24px;}
@@ -678,7 +689,18 @@ footer .wrap span{text-align:justify; text-justify:inter-word;}
  * de .table-scroll (min-width:420px en su tabla interna) es específico de
  * esa página y se queda ahí. Ningún cambio visual esperado. */
 .inactivos-table-wrap, .roster-table-wrap, .table-scroll{overflow-x:auto; -webkit-overflow-scrolling:touch;}
-.inactivos-table{width:100%; border-collapse:collapse; min-width:640px;}
+/* FIX (continuación refactor CSS, Fase 2 — tablas, 19-sep-2026):
+   width:100%; border-collapse:collapse; y el bloque completo de thead th
+   (tipografía de encabezado: familia, peso, tamaño, mayúsculas, tracking,
+   color, fondo, borde inferior) vivían duplicados carácter por carácter
+   como .roster-table{...} y .roster-table thead th{...} en el <style> de
+   directorio.html. Se fusionan acá en selectores compartidos; el
+   min-width y el text-align:left del encabezado SÍ son específicos de
+   esta tabla (roster-table usa min-width:1100px y hereda el text-align
+   centrado de .roster-table th, por eso quedan aparte). Se elimina la
+   copia de directorio.html. Ningún cambio visual esperado. */
+.inactivos-table, .roster-table{width:100%; border-collapse:collapse;}
+.inactivos-table{min-width:640px;}
 .inactivos-table th, .inactivos-table td{padding:14px 16px;}
 /* FIX (16-sep-2026, pedido usuario — "un solo tamaño de encabezado para
    todas las columnas y un solo tamaño de letra, revisa en todos los
@@ -687,11 +709,12 @@ footer .wrap span{text-align:justify; text-justify:inter-word;}
    en 14px y las columnas de datos (Nombre/Jugador/Nivel/Copas) variaban
    entre 16px y 14.5px según la columna. Tag/Clan (líneas secundarias
    bajo el nombre, no son columnas propias) se dejan como estaban. */
-.inactivos-table thead th{
+.inactivos-table thead th, .roster-table thead th{
   font-family:var(--f-display); font-weight:700; font-size:13px; text-transform:uppercase;
   letter-spacing:.03em; color:var(--text-dim); background:var(--surface-card);
-  border-bottom:1px solid var(--line); text-align:left;
+  border-bottom:1px solid var(--line);
 }
+.inactivos-table thead th{text-align:left;}
 .inactivos-table th.ia-th-nommulti, .inactivos-table th.ia-th-nivel,
 .inactivos-table th.ia-th-copas, .inactivos-table th.ia-th-acciones{text-align:center;}
 .inactivos-table tbody td{border-bottom:1px solid rgba(162,57,255,.06); color:var(--text);}
