@@ -3549,6 +3549,45 @@ FIX (03-sep-2026, pedido usuario — "Vigencia [última
 
 ## guerra.html
 
+### 19-sep-2026 — "Pronóstico de Hoy" fusionado con "Guerra de Hoy" (continuación de cada tarjeta)
+Pedido usuario: el pronóstico se veía como una lista aparte y no se entendía
+qué clanes enfrentaba cada clan Terna. Ahora cada tarjeta de "Guerra de Hoy"
+continúa (debajo de la línea "X/Y atacaron hoy") con el clan y los rivales de
+SU carrera, ordenados por fame actual, con puesto, fame, techo "Roster",
+techo "Máx" y ataques de 200. La fila del clan propio va resaltada. La nota
+que explicaba "solo roster"/"techo máximo" pasó a un pie bajo la grilla.
+- Une cada rival con su clan Terna por `clanTernaTag` (o `clanTernaNombre`)
+  en cada elemento de `clanes` de `webPronosticoGuerra`. **CONTRATO
+  PENDIENTE (backend, `38_Pronostico_Guerra.gs`)**: si ningún rival trae ese
+  campo, no hay forma de saber en qué carrera está cada uno; en ese caso todo
+  queda como antes (tabla suelta "Pronóstico de Hoy") para no perder
+  información. En cuanto el backend lo mande, la tabla suelta se oculta sola.
+- `pintarPronosticoEnTarjetas()` corre dentro de `actualizarPuestosClanes()`,
+  así que se repinta en cada `render()` (las tarjetas se recrean cada 60 s)
+  y al llegar `webPronosticoGuerra` o `webClanInfo`, sin parpadeo.
+- Observación (sin cambiar): en la captura del pedido "Techo (solo roster)"
+  sale MAYOR que "Techo máximo", al revés de lo que dice la nota. Revisar
+  `fameTechoRoster`/`fameTecho` en `38_Pronostico_Guerra.gs`.
+
+### 19-sep-2026 — Botones Jue–Dom: el panel "Puesto al cierre" se quedaba en "Cargando…"
+Pedido usuario: al pulsar Jue/Vie/Sáb/Dom el panel no terminaba de cargar.
+Con lo que se puede ver en el frontend hay dos causas y una tercera que solo
+se puede descartar mirando el backend:
+- `api.js` atiende las peticiones de a una (`_MAX_PETICIONES_SIMULTANEAS = 1`)
+  y `webGuerraPuestosDia` entraba al FINAL de la cola, detrás de
+  `webGuerraEnVivo` (lenta), sus recargas de cada 60 s y las demás cargas de
+  la página. Se agrega `opts.prioridad` a `apiGet()` (y `prioridad` a
+  `_encolarPeticion()`/`_fetchYParsear()`): el clic en un día pasa al frente
+  de la cola. No interrumpe la petición que ya está en vuelo; sin
+  `prioridad` todo se comporta como antes.
+- `pintarPanelPuestosDia()` mostraba "Cargando…" tanto cuando la petición
+  seguía en curso como cuando ya había respondido pero sin datos de ese día
+  (ej. `dias` vacío o más corto que 4). Ahora distingue: sin respuesta →
+  "Cargando… (puede tardar unos segundos)"; respuesta sin ese día → "Sin
+  puesto registrado para este día."; fallo → "No se pudieron cargar…".
+- Pendiente de verificar en `Base.md`: qué devuelve `webGuerraPuestosDia`
+  para la semana vigente (la revisión de `Guerra_Logs` sigue pendiente).
+
 ### 19-sep-2026 — "Guerra de Hoy": cabecera de Directorio y puesto actual en la carrera
 Pedido usuario: las tarjetas de "Guerra de Hoy" ya no muestran solo el nombre
 del clan, sino la misma cabecera de las tarjetas de Directorio (insignia de

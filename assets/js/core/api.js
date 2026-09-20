@@ -168,7 +168,16 @@ let _peticionesActivas = 0;
 const _colaPeticiones = [];
 
 
-function _encolarPeticion(tarea){
+/* FIX (19-sep-2026, pedido usuario — los botones Jue–Dom de guerra.html se
+ * quedaban en "Cargando…"): con _MAX_PETICIONES_SIMULTANEAS = 1, una
+ * petición que el visitante acaba de pedir con un clic esperaba detrás de
+ * TODO lo que ya estuviera en la cola (webGuerraEnVivo, que hoy es lenta,
+ * más sus recargas automáticas y el resto de cargas de la página). Se agrega
+ * el parámetro opcional `prioridad`: si es true, la tarea se coloca al
+ * FRENTE de la cola (sigue sin saltarse la regla de 1 a la vez: no
+ * interrumpe la que ya está en vuelo, solo pasa delante de las que esperan).
+ * Sin `prioridad` el comportamiento es idéntico al anterior. */
+function _encolarPeticion(tarea, prioridad){
   return new Promise(function(resolve, reject){
     function ejecutar(){
       _peticionesActivas++;
@@ -178,6 +187,7 @@ function _encolarPeticion(tarea){
       });
     }
     if (_peticionesActivas < _MAX_PETICIONES_SIMULTANEAS) ejecutar();
+    else if (prioridad) _colaPeticiones.unshift(ejecutar);
     else _colaPeticiones.push(ejecutar);
   });
 }
@@ -227,10 +237,10 @@ const _MAX_INTENTOS_FETCH = 5;
  * @param {RequestInit} [fetchOpts]
  * @returns {Promise<Object>} JSON ya parseado.
  */
-async function _fetchYParsear(url, fetchOpts){
+async function _fetchYParsear(url, fetchOpts, prioridad){
   return _encolarPeticion(function(){
     return _fetchYParsearInterno(url, fetchOpts);
-  });
+  }, !!prioridad);
 }
 
 
@@ -304,7 +314,7 @@ async function apiGet(accion, params, opts){
   const promesa = (async function(){
     let data;
     try{
-      data = await _fetchYParsear(`${WEBAPP_URL}?${qs.toString()}`, { cache:'no-store' });
+      data = await _fetchYParsear(`${WEBAPP_URL}?${qs.toString()}`, { cache:'no-store' }, !!opts.prioridad); // opts.prioridad: ver _encolarPeticion()
     }catch(err){
       // FIX (B4/B-10): stale-if-error, solo si se pidió explícitamente.
       if(opts.staleIfError){

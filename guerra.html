@@ -78,6 +78,19 @@
   .tlp-list .p small{display:block; font-weight:400; font-size:10px; color:var(--text-faint);}
   .tlp-nota{margin-top:8px; font-family:var(--f-mono); font-size:11px; color:var(--text-faint);}
   .clan-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:16px;}
+  /* Continuación de cada tarjeta de "Guerra de Hoy": pronóstico del clan y de sus rivales en la misma carrera (pronosticoClanHtml()). Historial en CHANGELOG.md. */
+  .clan-pron{margin-top:16px; padding-top:14px; border-top:1px dashed var(--line-strong);}
+  .clan-pron[hidden]{display:none;}
+  .cp-head{font-family:var(--f-mono); font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--text-faint); text-align:center; margin-bottom:10px;}
+  .cp-list{list-style:none; margin:0; padding:0; display:grid; gap:6px;}
+  .cp-row{border:1px solid var(--line); border-radius:var(--radius-sm); padding:7px 9px;}
+  .cp-own{border-color:var(--purple); background:rgba(162,57,255,.08);}
+  .cp-top{display:flex; justify-content:space-between; align-items:baseline; gap:8px; font-size:13px;}
+  .cp-n{font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .cp-r{font-family:var(--f-mono); font-weight:400; color:var(--text-faint); margin-right:4px;}
+  .cp-riv{font-family:var(--f-mono); font-size:10px; font-weight:400; color:var(--text-faint); margin-left:4px;}
+  .cp-top b{font-family:var(--f-mono); white-space:nowrap;}
+  .cp-sub{display:flex; flex-wrap:wrap; gap:2px 10px; margin-top:3px; font-family:var(--f-mono); font-size:10px; color:var(--text-faint);}
   .clan-card .name{font-family:var(--f-display); font-size:18px; font-weight:800; text-transform:uppercase; color:var(--text); text-align:center;}
   /* .stats no tenía justify-content, así que la fila de números quedaba pegada a la izquierda (flex-start por defecto). Historial en CHANGELOG.md. */
   .clan-card .stats{display:flex; justify-content:center; gap:18px; margin-top:14px; font-family:var(--f-mono);}
@@ -340,6 +353,7 @@
         <span class="text-faint" id="clanCount" style="font-family:var(--f-mono); font-size:13px;"></span>
       </div>
       <div class="clan-grid" id="clanGrid" style="margin-top:20px;"></div>
+      <div id="pronosticoNota" class="text-faint" style="font-family:var(--f-mono); font-size:12px; margin-top:14px;" hidden>📈 Pronóstico de hoy: techo de fama que cada clan todavía puede alcanzar hoy con los ataques que le quedan, una cota máxima y no una predicción. «Roster» supone que juegan únicamente las cuentas que ya están en la carrera; «Máx» supone además que las cuentas sin atacar se reemplazan por cuentas de apoyo.</div>
     </section>
 
     <!-- Pronóstico de Hoy: pública, solo en día de guerra; oculta si el backend no responde. Sin aria-live (se refresca sola). Historial en CHANGELOG.md. -->
@@ -1090,6 +1104,7 @@ function render(data){
       <div style="margin-top:10px;font-size:12px;color:var(--text-dim);font-family:var(--f-mono);text-align:center;">
         ${fmtNum(g.atacaron)}/${fmtNum(g.totalHoy)} atacaron hoy (${pct}%)
       </div>
+      <div class="clan-pron" data-clan="${esc(nombre)}" hidden></div>
     </div>`;
   }).join('') : '<div class="empty">Sin datos de guerra registrados para hoy.</div>';
   clanes.forEach(([nombre, g], idx) => {
@@ -1562,7 +1577,64 @@ function cabeceraClanGuerraHtml(nombre){
   if(!info) return `<div class="name">${esc(nombre)}</div>`;
   return clanCardCabeceraHtml({ ...info.c, nombre: info.c.nombre || nombre }, info.i, { mostrarRol: true });
 }
+/* Pronóstico dentro de cada tarjeta de "Guerra de Hoy": el clan Terna y los rivales de SU carrera, ordenados por fame actual. Une cada rival con su clan Terna por clanTernaTag (o clanTernaNombre) en webPronosticoGuerra. CONTRATO PENDIENTE (backend, 38_Pronostico_Guerra.gs): mientras ningún rival traiga ese campo no hay forma de saber en qué carrera está cada uno; en ese caso pronosticoFusionado queda en false y se conserva la tabla suelta de siempre (sección "Pronóstico de Hoy"), sin perder información. Historial en CHANGELOG.md. */
+let pronosticoFusionado = false;
+function agruparPronosticoPorClan(data){
+  const clanes = ((data && data.clanes) || []).filter(c => c && c.nombre);
+  const porTag = {};
+  clanes.filter(c => !c.esRival).forEach(c => {
+    const t = _normTagGuerra(c.clanTag);
+    if(t) porTag[t] = { propio: c, rivales: [] };
+  });
+  let hay = false;
+  clanes.filter(c => c.esRival).forEach(r => {
+    let t = _normTagGuerra(r.clanTernaTag);
+    if(!t || !porTag[t]){
+      const n = _normNombreClanGuerra(r.clanTernaNombre);
+      t = n ? (Object.keys(porTag).find(k => _normNombreClanGuerra(porTag[k].propio.nombre) === n) || '') : '';
+    }
+    if(t && porTag[t]){ porTag[t].rivales.push(r); hay = true; }
+  });
+  return { porTag, hay };
+}
+function pronosticoClanHtml(grupo){
+  const todos = [grupo.propio].concat(grupo.rivales);
+  const fame = c => Number(c.fameActual) || 0;
+  const puestoDe = c => 1 + todos.filter(o => fame(o) > fame(c)).length; // empates comparten puesto, igual que el "Puesto #N de M" de la cabecera
+  const orden = todos.slice().sort((a, b) => (fame(b) - fame(a)) || ((a === grupo.propio ? 0 : 1) - (b === grupo.propio ? 0 : 1)));
+  return `<div class="cp-head">📈 Pronóstico de hoy</div><ul class="cp-list">${orden.map(c => `
+    <li class="cp-row${c === grupo.propio ? ' cp-own' : ''}">
+      <div class="cp-top"><span class="cp-n"><span class="cp-r">#${fmtNum(puestoDe(c))}</span>${esc(c.nombre)}${c.esRival ? '<span class="cp-riv">rival</span>' : ''}</span><b>${fmtNum(c.fameActual)}</b></div>
+      <div class="cp-sub"><span title="Techo de fama si juegan solo las cuentas que ya están en la carrera">Roster ${fmtNum(c.fameTechoRoster)}</span><span title="Techo de fama si además las cuentas sin atacar se reemplazan por cuentas de apoyo">Máx ${fmtNum(c.fameTecho)}</span><span>${fmtNum(c.ataquesUsados)}/${PRONOSTICO_ATAQUES_MAX_CLAN} atq</span></div>
+    </li>`).join('')}</ul>`;
+}
+function pintarPronosticoEnTarjetas(){
+  const g = ultimoPronosticoData ? agruparPronosticoPorClan(ultimoPronosticoData) : { porTag: {}, hay: false };
+  let alguna = false;
+  document.querySelectorAll('#clanGrid .clan-pron').forEach(el => {
+    const info = infoClanGuerraPorNombre(el.dataset.clan);
+    let grupo = info ? g.porTag[_normTagGuerra(info.c.clanTag)] : null;
+    if(!grupo){ // sin webClanInfo (o sin coincidencia): se busca por nombre del clan propio
+      const n = _normNombreClanGuerra(el.dataset.clan);
+      const k = Object.keys(g.porTag).find(t => _normNombreClanGuerra(g.porTag[t].propio.nombre) === n);
+      grupo = k ? g.porTag[k] : null;
+    }
+    if(g.hay && grupo){
+      const html = pronosticoClanHtml(grupo);
+      if(el.innerHTML !== html) el.innerHTML = html;
+      el.hidden = false;
+      alguna = true;
+    }else{
+      el.innerHTML = '';
+      el.hidden = true;
+    }
+  });
+  pronosticoFusionado = alguna;
+  const nota = document.getElementById('pronosticoNota');
+  if(nota) nota.hidden = !alguna;
+}
 function actualizarPuestosClanes(){
+  pintarPronosticoEnTarjetas();
   document.querySelectorAll('#clanGrid .clan-puesto').forEach(el => {
     const info = infoClanGuerraPorNombre(el.dataset.clan);
     const tag  = info ? _normTagGuerra(info.c.clanTag) : '';
@@ -1611,6 +1683,10 @@ async function cargarPronosticoGuerra(ctx, manual){
     if(!clanes.length){ ocultar(); return; }
     ultimoPronosticoData = data;
     actualizarPuestosClanes();
+    if(pronosticoFusionado){ // el pronóstico ya está dentro de cada tarjeta: la tabla suelta sobra
+      section.style.display = 'none'; wrap.innerHTML = ''; ultimoPronosticoHtml = '';
+      return;
+    }
     const html = `
       <div class="card" style="padding:12px;"><div class="table-scroll"><table>
         <thead><tr><th scope="col">Clan</th><th scope="col">Fama actual</th><th scope="col">Techo (solo roster)</th><th scope="col">Techo máximo</th><th scope="col">Ataques hoy</th></tr></thead>
@@ -1633,15 +1709,16 @@ async function cargarPronosticoGuerra(ctx, manual){
     section.style.display = '';
   }catch(err){
     // Defensivo, igual que cargarGuerraLog(): sin datos frescos y sin nada pintado, la sección no aparece.
-    if(!ultimoPronosticoHtml) ocultar();
+    if(!ultimoPronosticoHtml && !pronosticoFusionado) ocultar(); // ya fusionado: se conserva lo último pintado en las tarjetas
   }
 }
 
 /* Botones Jue–Dom: cada cuadro de día abre #tlPanel con el puesto de cada clan al cierre de ese día (webGuerraPuestosDia = EndOfDayRank de Guerra_Logs, semana más reciente con filas: de lun a mié sigue mostrando el último Jue–Dom). El día en curso muestra el puesto EN VIVO de webPronosticoGuerra, porque su EndOfDayRank sigue en 0 hasta que cierra. Si un día quedó en 0 (ej. domingos de Guerra_Logs con ceros, pendiente del backend) se muestra "—", nunca un puesto inventado. */
 const NOMBRES_DIA_GUERRA = { J:'Jueves', V:'Viernes', S:'Sábado', D:'Domingo' };
-async function cargarPuestosDia(manual){
+/* prioridad=true (clic del visitante en un día): la petición pasa al frente de la cola de api.js en vez de esperar detrás de webGuerraEnVivo y las demás cargas. Las recargas automáticas de render() no la piden. Historial en CHANGELOG.md. */
+async function cargarPuestosDia(manual, prioridad){
   try{
-    const data = await apiGet('webGuerraPuestosDia', null, manual ? { sinCache: true } : { ttlMs: 120000, staleIfError: true });
+    const data = await apiGet('webGuerraPuestosDia', null, manual ? { sinCache: true, prioridad: !!prioridad } : { ttlMs: 120000, staleIfError: true, prioridad: !!prioridad });
     if(!data || !Array.isArray(data.dias)) throw new Error('respuesta sin dias');
     puestosDiaData = data;
     puestosDiaError = false;
@@ -1669,7 +1746,7 @@ function seleccionarDiaPuestos(letra){
     b.setAttribute('aria-pressed', on ? 'true' : 'false');
   });
   pintarPanelPuestosDia();
-  if(diaPuestosSel) cargarPuestosDia(false);
+  if(diaPuestosSel) cargarPuestosDia(false, true);
 }
 function pintarPanelPuestosDia(){
   const panel = document.getElementById('tlPanel');
@@ -1692,7 +1769,10 @@ function pintarPanelPuestosDia(){
   const cab = `<div class="tlp-head"><b>${esc(titulo)}</b><span>${esc(semTxt)}<button type="button" class="tlp-x" aria-label="Cerrar">✕</button></span></div>`;
   let html;
   if(!dia){
-    html = cab + `<div class="empty">${puestosDiaError ? 'No se pudieron cargar los puestos.' : 'Cargando…'}</div>`;
+    // Tres casos distintos (antes los dos últimos se veían igual, como un "Cargando…" eterno): la petición falló; ya respondió pero sin datos de ESTE día; o todavía no responde.
+    const txt = puestosDiaError ? 'No se pudieron cargar los puestos.'
+      : (pd ? 'Sin puesto registrado para este día.' : 'Cargando… (puede tardar unos segundos)');
+    html = cab + `<div class="empty">${txt}</div>`;
   }else{
     let hayDato = false;
     const filas = (dia.clanes || []).map(c => {
