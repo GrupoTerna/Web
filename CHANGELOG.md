@@ -94,6 +94,19 @@ actualizarlo a mano cuando cambie una página pública.
 
 ## CSS compartido (assets/styles.css)
 
+### 20-sep-2026 — `.perfil-cabecera .stats-mini b` centralizada (D-3 b2)
+La regla (16 px, `--f-display`) estaba repetida carácter por carácter en
+`directorio.html` y `perfil.html`; pasa a `styles.css`. Las sesiones anteriores
+la habían dejado sin mover porque `admin.html` usa 15 px con la fuente del cuerpo
+y, al ir el `<link>` antes del `<style>` local, el `font-family` compartido se le
+habría filtrado. Se resuelve fijando `font-family:inherit` en la regla local de
+`admin.html` (lo que ese número ya usaba). `.stats-mini` (el contenedor) sigue en
+cada página porque difiere. Solo esas 4 páginas usan `.perfil-cabecera`.
+Verificación: estilos calculados idénticos antes/después en las 3 páginas
+(estructura inyectada, porque la pinta JS con datos del backend); control
+negativo: sin el `inherit`, admin pasaba de IBM Plex Mono a Rajdhani. Capturas:
+0 px distintos en `directorio`, `perfil`, `admin`, `guerra` e `index`.
+
 ### 20-sep-2026 — Contraste de enlaces de texto en párrafos (B-21, primera medición real)
 Auditoría de contraste en Chromium (color de texto contra fondo efectivo
 compuesto, umbral 4.5:1 o 3:1 para texto grande) sobre `index`, `comunidad`,
@@ -105,9 +118,14 @@ compuesto, umbral 4.5:1 o 3:1 para texto grande) sobre `index`, `comunidad`,
   repetido (por especificidad). Nav, botones y enlaces con clase no cambian.
   Comparación de capturas: 377 px distintos, todos en esa palabra; el resto
   de páginas, 0.
-- **Borde, sin tocar:** `#agoText` de `guerra.html` ("—" antes de cargar) da
-  4.27:1 con `--text-faint`. Es marginal y sale del token; subir el token afecta
-  a todo el sitio, así que queda como decisión de diseño.
+- **Segundo fallo real, resuelto en `guerra.html`:** `#agoText` ("—" antes de
+  cargar; luego "Actualizado hace X s") daba 4.27:1 con `--text-faint`. La
+  primera lectura fue que el token era demasiado tenue sobre las tarjetas, pero
+  era incorrecta: sobre la tarjeta lisa el token da 4.83:1 (pasa); el texto va
+  dentro de un `.eyebrow`, cuyo tinte dorado (`rgba(243,169,34,.08)`) aclara el
+  fondo. Por eso `.refresh-row` (solo se usa en `guerra.html`) pasa a
+  `--text-dim` (6.39:1) y el token global **no** se toca. Captura: 8 px
+  distintos (el guion).
 - Ojo al repetir esta medición: las tarjetas con `data-reveal` están en
   `opacity:0` hasta su animación y dan falsos "1:1"; hay que quitar la clase
   `js-reveal` de `<html>` antes de medir.
@@ -302,6 +320,14 @@ selector de `styles.css` ni de otra página.
 ---
 
 ## mensajes.html
+
+### 20-sep-2026 — Regla muerta `.categoria-contenido-body` borrada (D-3 a1)
+`.categoria-contenido-body{padding:0 2px 14px 26px}` nunca se aplicó: las 7 cajas
+que la usan llevan también `.admin-subseccion-body`, que va después con la misma
+especificidad y gana por orden (padding real medido en Chromium: `2px 2px 14px`).
+Se borró la regla; la clase queda solo como gancho de JS. Sin cambio visual (0 px
+distintos). Si algún día se quiere la sangría de 26 px, hay que decidirlo como
+cambio de diseño, no como "restaurar" algo que existía.
 
 ### 20-sep-2026 — Accesibilidad: encabezados, `<main>` y anuncio de "Copiado"
 Tres de los límites que la revisión anterior dejó anotados.
@@ -3761,6 +3787,12 @@ FIX (03-sep-2026, pedido usuario — "Vigencia [última
 
 
 ## guerra.html
+
+### 20-sep-2026 — Contraste de "Actualizado hace X s" (`.refresh-row`)
+`color:var(--text-faint)` → `var(--text-dim)`: sobre el tinte dorado de
+`.eyebrow` el token daba 4.27:1 (mín. 4.5:1). Detalle y corrección del
+diagnóstico inicial en "CSS compartido (assets/styles.css)". Comentario en el
+propio CSS. Mismo día que el cambio de accesibilidad de abajo.
 
 ### 20-sep-2026 — Nombre accesible en los 5 selectores de temporada
 `#anioActivosSelect`, `#temporadaActivosSelect`, `#semanaActivosSelect`

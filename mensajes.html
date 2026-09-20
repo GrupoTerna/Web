@@ -43,7 +43,7 @@
   /* "Mensajes automáticos" usa 3 tarjetas .admin-grupo de estructura fija
      (ver initMensajesAutomaticos()/cargarGrupoToggle() en el JS), no el
      acordeón dinámico anterior. .categoria-contenido-body sigue en uso vía
-     .categoria-contenido-simple. */
+     .categoria-contenido-simple (como gancho de JS; ya no define estilos). */
   /* Botón que fuerza un refetch puntual de la categoría (ver
      btnRefrescarCategoria más abajo) sin recargar toda la página, ya que
      Menú/Mensajes se reconstruyen enteros en cada corrida automática del
@@ -56,7 +56,11 @@
   }
   .btn-refrescar-categoria:hover{border-color:var(--purple); color:var(--text);}
   .btn-refrescar-categoria.girando{transform:rotate(180deg);}
-  .categoria-contenido-body{padding:0 2px 14px 26px;}
+  /* 20-sep-2026 (D-3 a1): aquí había .categoria-contenido-body{padding:0 2px 14px 26px}, código muerto:
+     las 7 cajas que la usan llevan también .admin-subseccion-body (más abajo, misma especificidad, gana
+     por orden), así que su padding real siempre fue 2px 2px 14px y la sangría de 26px nunca se aplicó.
+     Se borró la regla sin cambio visual (medido en Chromium). La clase se conserva solo como gancho
+     de JS (querySelector('.categoria-contenido-body'), ver btnRefrescarCategoria). */
   /* Tarjetas de toggle horizontal (Guerra/Entrenamiento/Mazos,
      Participantes/Ganadores) — ver cargarGrupoToggle() en el JS. Los
      botones reutilizan la pastilla .tab-clan, no definen estilo propio. */
