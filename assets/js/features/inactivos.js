@@ -36,7 +36,7 @@ function _filaInactivoHtml(c){
   const cwOk = urlValida(c.cwstats);
   const puedeVetar = adminPuedeVetar();
   const nomMultiTxt = c.nomMulti ? esc(c.nomMulti) : '—';
-  const nivelTxt = c.nivelXp != null ? fmtNum(c.nivelXp) : '—';
+  const nivelTxt = (c.nivelXp != null && c.nivelXp !== '') ? fmtNum(c.nivelXp) : '—';
   const copasTxt = c.copas != null ? fmtNum(c.copas) : '—';
   return `
     <tr class="inactivo-row" data-inactivo-tag="${esc(c.tag)}">
