@@ -16,7 +16,7 @@
  * ========================================================================= */
 const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbwxTdbddzujbus0e5JT8cDcSHrOB6i-txjdjTu6_cbUGIYmNsF0P8MF71eFmH8_3MKfiw/exec'; // termina en /exec
 
-const WEB_MEMBER_TOKEN = 'terna-web-pub-24ago'; // debe ser igual al de 34_Web_API.gs
+const WEB_MEMBER_TOKEN = '8adb26e9c98bd188ac4572997bdd38f1fc252f57'; // debe ser igual al de 34_Web_API.gs -- actualizado 20-sep-2026 tras rotarTokensDesdeCodigo()
 
 
 /* FASE 0 (24-ago-2026): canales reales de postulación/contacto, en un solo
