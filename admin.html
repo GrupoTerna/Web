@@ -505,7 +505,7 @@
             <a href="#" id="torneoVolverPaso2" class="text-dim" style="font-size:12px; display:inline-block; margin-bottom:10px;">‹ Cambiar</a>
 
             <div id="camposRegistrar" style="display:none;">
-              <!-- Botón que precarga Organizador/Cuenta/Comentario del último torneo registrado; pendiente conectar 3 piezas de backend. -->
+              <!-- Botón que precarga Organizador/Cuenta/Comentario del último torneo registrado; conectado a webAdminUltimoRegistro (34_Web_API.gs). -->
               <button type="button" class="btn btn-ghost btn-block" id="btnPrecargarUltimoTorneo" style="margin-bottom:14px;">↻ Precargar datos del último torneo registrado</button>
 
               <div class="field">
@@ -555,7 +555,7 @@
                 <div id="tCuentaOrgInfo" class="text-dim" style="font-size:12px; margin-top:6px;"></div>
               </div>
 
-              <!-- El selector de semanas está documentado junto a cargarSemanasRecientes()/pintarSemanasSelector() en el <script>; su evaluación real queda pendiente de backend. -->
+              <!-- El selector de semanas está documentado junto a cargarSemanasRecientes()/pintarSemanasSelector() en el <script>; el backend ya usa esas semanas para promediar trofeos/ataques y contar torneos (verificado 20-sep-2026). -->
               <div class="field" id="semanaSelectorWrapReg" style="margin-top:14px;">
                 <label>¿Qué semanas se deben evaluar para este torneo?</label>
                 <p class="text-dim" style="font-size:12px; margin:0 0 8px;">Se marcan las 2 más recientes por defecto — usualmente son las que definen si un jugador puede participar.</p>
@@ -824,7 +824,7 @@
               <!-- Paso 3 de Sorteos: mismos 3 contenedores que Torneos, conectados de punta a punta a sus endpoints. -->
               <!-- "Registrar sorteo" usa el mismo patrón que Torneos, sin selector de semanas, editor de premios ni link (Sorteos no tiene esos conceptos acá). -->
               <div id="camposRegistrarSorteo" style="display:none;">
-                <!-- Botón para precargar el último sorteo registrado, gemelo del de Torneos; mismo trío de backend pendiente. -->
+                <!-- Botón para precargar el último sorteo registrado, gemelo del de Torneos; mismo endpoint webAdminUltimoRegistro (categoria:'Sorteo'). -->
                 <button type="button" class="btn btn-ghost btn-block" id="btnPrecargarUltimoSorteo" style="margin-bottom:14px;">↻ Precargar datos del último sorteo registrado</button>
 
                 <div class="field-row" id="filaFechaHoraSorteoReg">
@@ -1130,7 +1130,7 @@
 
               <!-- Cambio de rango, Paso 3: campos comunes a Ascenso y Descenso (Fecha, Hora, Semanas, Organizador, Comentario). Historial en CHANGELOG.md. -->
               <div id="crPaso3" style="display:none; margin-top:14px; padding-top:14px; border-top:1px solid var(--line);">
-                <!-- Botón para precargar la última corrida de Cambio de Rango ya registrada (equivalente al de Torneos/Sorteos), solo visible en modo Registrar. Pendiente de backend, mismo trío que Torneos/Sorteos. Historial en CHANGELOG.md. -->
+                <!-- Botón para precargar la última corrida de Cambio de Rango ya registrada (equivalente al de Torneos/Sorteos), solo visible en modo Registrar. Usa webCRListaListar/webCRListaFilaPorId, que ya existen en el backend. Historial en CHANGELOG.md. -->
                 <div id="crPrecargarUltimoBox" style="display:none; margin-bottom:14px;">
                   <button type="button" class="btn btn-ghost btn-block" id="btnCrPrecargarUltimo">↻ Precargar datos de la última corrida registrada</button>
                 </div>
@@ -1905,8 +1905,8 @@ async function buscarSugerenciasMiembro(q){
     _sugerenciasMiembroCache = data.resultados;
     renderSugerenciasMiembro(_ordenarSugerenciasMiembro(data.resultados));
   }catch(err){
-    // Backend todavía no tiene esta acción conectada, o falló la red: no
-    // se muestra ningún error al admin por esto — las sugerencias son un
+    // Falló la red o la acción devolvió un error (webAdminBuscarMiembroSugerencias
+    // ya existe en el backend): no se muestra ningún error al admin por esto — las sugerencias son un
     // plus, no algo de lo que dependa poder buscar (ver buscarMiembro()).
     renderSugerenciasMiembro([]);
   }
@@ -2429,8 +2429,7 @@ initCampoHoraAmigable('crHora', 'crHoraHH', 'crHoraMM', 'crHoraAmPm');
    real): "Temporada N" y "Semana M" YA NO se calculan acá con el contador
    relativo de antes (arrancaba en 1 en la semana más antigua visible y
    subía 1 en cada cambio de mes calendario — NO era el número real de
-   temporada/season del juego, ver PENDIENTE BACKEND que había acá mismo
-   hasta hoy). Ahora se piden a _webAdminSemanasRecientes() (34_Web_API.gs),
+   temporada/season del juego; ese punto ya quedó resuelto en el backend). Ahora se piden a _webAdminSemanasRecientes() (34_Web_API.gs),
    que usa la MISMA fuente real que T_Lista.TEMPORADA
    (_calcularTemporadaParaFecha()/_calcularSemanaTorneo(),
    24_Torneos_Core.gs) -- por eso "Semana M" cambia de significado: ahora
@@ -3181,9 +3180,9 @@ document.getElementById('btnAgregarPremioSorteoPlan').addEventListener('click', 
  * "Modificar torneo" muestre primero el valor actual antes de que el admin
  * cambie nada (en vez de arrancar vacío, como pedía el patrón viejo).
  *
- * Si `texto` llega vacío (torneo sin premios registrados todavía, o
- * mientras el backend no mande el campo `premios` — ver PENDIENTE BACKEND
- * junto a #camposModificar en el HTML), poblarPremiosEditor() deja 3 filas
+ * Si `texto` llega vacío (torneo sin premios registrados todavía; el
+ * backend ya manda `premios` en _listarTorneosDeHoy()/_listarSorteosDeHoy()),
+ * poblarPremiosEditor() deja 3 filas
  * en blanco tipo "Pass Royale", EXACTAMENTE el mismo estado inicial que
  * reiniciarPremiosEditor() usa en "Planificar" — así los dos editores se
  * ven y se comportan igual, que era el pedido puntual del usuario.
@@ -3222,8 +3221,8 @@ function poblarPremiosEditor(containerId, texto){
  * fechas ISO (yyyy-mm-dd, lunes de cada semana) que ya se habían marcado
  * para este torneo y ajusta los checkboxes ya pintados por
  * pintarSemanasSelector() para que coincidan. Si `semanasIsoCsv` llega
- * vacío (sin dato del backend todavía — ver PENDIENTE BACKEND junto a
- * #camposModificar en el HTML), no toca nada y se queda el default de
+ * vacío (torneo sin semanas registradas; el backend ya manda `semanas`
+ * como fechas ISO), no toca nada y se queda el default de
  * pintarSemanasSelector() (las 2 semanas más recientes marcadas).
  */
 function preseleccionarSemanas(containerId, semanasIsoCsv){
@@ -3586,9 +3585,9 @@ function actualizarEtiquetaAutorPropio(){
  * actual)' debería ser 'Sin cambios (Diana)'"): reemplaza el texto de la
  * opción "Sin cambios" de #tAutorSelectMod por el nombre del autor YA
  * registrado en el torneo elegido en #tSelectHoy (`nombreActual`, viene de
- * data-autor — ver PENDIENTE BACKEND junto a #camposModificar en el HTML).
- * Si no hay dato (torneo sin autor registrado, ninguno elegido todavía, o
- * el backend aún no manda ese campo), vuelve al texto genérico.
+ * data-autor; el backend ya manda `autor` por torneo).
+ * Si no hay dato (torneo sin autor registrado o ninguno elegido todavía),
+ * vuelve al texto genérico.
  */
 function actualizarEtiquetaSinCambiosAutor(nombreActual){
   const opt = document.querySelector('#tAutorSelectMod option[value=""]');
@@ -3783,11 +3782,11 @@ async function aplicarAutorYCuentaPrecargados(datos, sufijo, prefijo){
  * registrado en T_Lista, y los deja escritos en #tAutorSelect/#tCuentaOrgBox/
  * #tComentario -- NO toca Link/Fecha/Hora ni #semanasSelectorReg (pedido
  * explícito: cada torneo elige sus propias semanas).
- * PENDIENTE BACKEND: `webAdminUltimoRegistro` todavía no existe en el
- * backend (ver PENDIENTE BACKEND junto a #btnPrecargarUltimoTorneo en el
- * HTML) -- mientras tanto esta llamada falla y el catch de abajo la deja
- * pasar en silencio, mismo criterio de tolerancia a fallos que
- * cargarRequisitosPorClan().
+ * BACKEND CONECTADO (verificado 20-sep-2026): `webAdminUltimoRegistro`
+ * ya existe (_webAdminUltimoRegistroTorneoOSorteo(), 34_Web_API.gs) y
+ * devuelve {ok, registro:{autor, tagOrg, clanOrg, clanTagOrg, comentario}|null}.
+ * Si la llamada falla, el catch de abajo la deja pasar en silencio, mismo
+ * criterio de tolerancia a fallos que cargarRequisitosPorClan().
  */
 async function precargarUltimoRegistroTorneo(){
   try{
@@ -3815,9 +3814,9 @@ document.getElementById('btnPrecargarUltimoTorneo').addEventListener('click', pr
  * Fecha/Hora ni #semanasSelectorSorteoReg (cada sorteo elige sus propias
  * semanas). Reutiliza aplicarAutorYCuentaPrecargados() TAL CUAL, con
  * prefijo 's' en vez de 't'.
- * PENDIENTE BACKEND: mismo `webAdminUltimoRegistro` pendiente de
+ * BACKEND CONECTADO (20-sep-2026): mismo `webAdminUltimoRegistro` de
  * precargarUltimoRegistroTorneo(), esta vez con categoria:'Sorteo' -- mismo
- * criterio de tolerancia a fallos mientras no exista.
+ * criterio de tolerancia a fallos.
  */
 async function precargarUltimoRegistroSorteo(){
   try{
@@ -5060,11 +5059,11 @@ async function precargarFormularioCR(idAscenso){
  * Si `cambioRangoParesData` todavía no se cargó en esta vuelta por el
  * wizard (normal en modo Registrar, que no llama cargarCRListaPares()),
  * se pide una vez acá mismo.
- * PENDIENTE BACKEND: `webCRListaFilaPorId` ya existe y ya lo usa
- * precargarFormularioCR() -- lo único pendiente es que
- * `_webCRListaListar()` siga devolviendo el más reciente primero (ya
- * CONFIRMADO por el usuario que así es), sin pieza nueva de backend
- * exclusiva para este botón (a diferencia de Torneos/Sorteos).
+ * SIN PIEZA NUEVA DE BACKEND: `webCRListaFilaPorId` ya existe y ya lo usa
+ * precargarFormularioCR(); solo se apoya en que `_webCRListaListar()`
+ * siga devolviendo el más reciente primero (ya CONFIRMADO por el usuario
+ * que así es), sin endpoint exclusivo para este botón (a diferencia de
+ * Torneos/Sorteos).
  */
 async function precargarUltimoRegistroCR(){
   document.getElementById('crPaso2Msg').innerHTML = '<div class="text-dim">Buscando la última corrida registrada…</div>';
@@ -5124,8 +5123,7 @@ document.getElementById('btnCrPrecargarUltimo').addEventListener('click', precar
  * mapaTemporadasCR()), pero sus checkboxes se pintan solo con las semanas
  * puntuales que esa corrida ya tenía marcadas -- sin rango de fechas,
  * porque ese dato no está fuera del caché de recientes.
- * PENDIENTE BACKEND (mismo criterio que otros puntos marcados así en este
- * archivo): si más adelante hace falta elegir semanas de CUALQUIER
+ * POSIBLE MEJORA FUTURA (no es una conexión pendiente): si más adelante hace falta elegir semanas de CUALQUIER
  * temporada pasada con su rango de fechas completo, se necesita un
  * endpoint nuevo tipo webAdminSemanasDeTemporada(temporada) -- por ahora
  * alcanza con lo de acá para el caso normal (corridas recientes).

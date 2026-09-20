@@ -126,8 +126,9 @@
   .mazo-chips{display:grid; grid-template-columns:repeat(auto-fill, minmax(230px, 1fr)); gap:12px;}
   /* ===== FIX (12-sep-2026, pedido usuario — aprovechar TODO el JSON crudo
    * del export de Drive): estilos de las secciones nuevas del perfil.
-   * Qué falta conectar al backend y con qué nombre de categoría: ver los
-   * comentarios "PENDIENTE BACKEND" junto a cada render*() del script. */
+   * Backend conectado (20-sep-2026): webPerfil ya adjunta rawClash desde el
+   * snapshot de Drive (_webDatosDriveJugador(), 34_Web_API.gs); cada
+   * render*() del script indica qué categoría lee. */
   .snapshot-info{font-family:var(--f-mono); font-size:11px; color:var(--text-faint); margin-top:4px;}
   .badge-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(118px,1fr)); gap:10px; margin-top:14px;}
   .badge-item{background:var(--bg-2); border:1px solid var(--line); border-radius:var(--radius-sm); padding:10px 8px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:4px;}
@@ -207,7 +208,7 @@
           <div>
             <h1 id="mNombre" style="font-size:26px;">—</h1>
             <div class="text-dim" id="mSub" style="margin-top:6px; font-size:14px;">—</div>
-            <!-- Fecha/clan del snapshot exportado a Drive; oculto si el backend todavía no adjunta rawClash. Historial en CHANGELOG.md. -->
+            <!-- Fecha/clan del snapshot exportado a Drive; oculto si el jugador todavía no tiene JSON en Drive (sin rawClash). Historial en CHANGELOG.md. -->
             <div class="snapshot-info" id="mSnapshotInfo" style="display:none;"></div>
           </div>
           <div class="stats-mini">
@@ -274,7 +275,7 @@
         <div id="mBarcosChart"></div>
       </div>
 
-      <!-- Secciones nuevas que leen jugador.rawClash(); pendientes de que webPerfil adjunte el snapshot JSON crudo con los nombres de categoría de Supercell. Historial en CHANGELOG.md. -->
+      <!-- Secciones nuevas que leen jugador.rawClash() (snapshot JSON crudo con los nombres de categoría de Supercell, ya adjuntado por webPerfil). Historial en CHANGELOG.md. -->
       <div class="card" id="mFavoritaCard" style="padding:28px; margin-top:20px; display:none;">
         <div class="eyebrow">Personal</div>
         <h2 style="font-size:19px; margin-top:8px;">Carta favorita</h2>
@@ -298,7 +299,7 @@
       <div class="card" id="mTorresCard" style="padding:28px; margin-top:20px; display:none;">
         <div class="eyebrow">Colección</div>
         <h2 style="font-size:19px; margin-top:8px;">Cartas de torre</h2>
-        <!-- Pendiente backend: categoría supportCards[] del JSON (Tower Cards de RoyaleAPI, distinto de currentDeckSupportCards del mazo actual). Historial en CHANGELOG.md. -->
+        <!-- Categoría supportCards[] del JSON (Tower Cards de RoyaleAPI, distinto de currentDeckSupportCards del mazo actual); el backend ya la manda. Historial en CHANGELOG.md. -->
         <div class="torre-grid" id="mTorresContenido"></div>
       </div>
 
@@ -356,7 +357,7 @@
  * legacyTrophyRoadHighScore, progress, starPoints, expPoints,
  * totalExpPoints, expLevel, kingTowerLevel, tournamentBattleCount,
  * currentWinLoseStreak, _fecha, _clan, ...). Cada función nueva lleva un
- * comentario "PENDIENTE BACKEND" con el nombre EXACTO de la categoría que
+ * comentario "BACKEND CONECTADO" con el nombre EXACTO de la categoría que
  * lee. OJO: no se hardcodeó NINGUNA insignia/carta/logro concreto — cada
  * miembro desbloquea un subconjunto distinto y el catálogo total es mayor
  * que el de este ejemplo (#2GG8PJ8GC.json); se renderiza TODO lo que
@@ -434,10 +435,12 @@ function extItem(valor, label, esNumero){
 /**
  * rawClash(j) → el JSON crudo del snapshot exportado a Drive.
  * FIX (12-sep-2026): punto de entrada único para TODAS las secciones
- * nuevas. PENDIENTE BACKEND: webPerfil (34_Web_API.gs) debe adjuntar el
- * objeto del snapshot tal cual como jugador.rawClash (mismos nombres de
- * categoría que el JSON de Supercell — ver ejemplo #2GG8PJ8GC.json).
- * Mientras no llegue, devuelve {} y cada sección se oculta sola.
+ * nuevas. BACKEND CONECTADO (verificado 20-sep-2026): webPerfil
+ * (34_Web_API.gs, _webDatosDriveJugador()) adjunta el snapshot como
+ * jugador.extendido.rawClash (mismos nombres de categoría que el JSON de
+ * Supercell — ver ejemplo #2GG8PJ8GC.json), campo por campo solo si el JSON
+ * de Drive lo trae. Si el jugador no tiene JSON, devuelve {} y cada sección
+ * se oculta sola.
  * OJO (revisar duplicados antes de conectar): trophies, bestTrophies,
  * wins, losses, battleCount, donations, totalDonations, warDayWins,
  * clanCardsCollected, threeCrownWins, challengeMaxWins,
@@ -470,7 +473,7 @@ function estrellasHtml(starLevel){
  * barraRequisito()), las estrellas van como sufijo y `info` se muestra
  * como descripción chica debajo (ej. "Donate 2500 cards"). Se renderizan
  * TODOS los que vengan, sin hardcodear ninguno.
- * PENDIENTE BACKEND: adjuntar achievements[] dentro de jugador.rawClash.
+ * BACKEND CONECTADO: achievements[] ya llega dentro de jugador.rawClash.
  */
 function renderLogros(j){
   const logros = rawClash(j).achievements;
@@ -501,8 +504,8 @@ function renderLogros(j){
  * SeasonalBadge_*, MergeTacticsBadge_*, *LeagueBadge, 20XXYearBadge...).
  * NO hardcodear nada: se renderiza TODO lo que venga en badges[]; un
  * miembro puede simplemente no tener insignias que otro sí tiene.
- * PENDIENTE BACKEND: adjuntar badges[] completo dentro de
- * jugador.rawClash (hoy 07_API_ClashRoyale.gs descarta casi todas).
+ * BACKEND CONECTADO: badges[] completo ya llega dentro de
+ * jugador.rawClash (copiado tal cual del JSON de Drive).
  */
 function renderInsignias(j){
   const badges = rawClash(j).badges;
@@ -537,7 +540,7 @@ function renderInsignias(j){
  * currentfavouritecard que es la carta favorita de esa persona"):
  * card "Carta favorita" a partir de rawClash(j).currentFavouriteCard
  * ({name, id, maxLevel, elixirCost, iconUrls, rarity}).
- * PENDIENTE BACKEND: adjuntar currentFavouriteCard en jugador.rawClash.
+ * BACKEND CONECTADO: currentFavouriteCard ya llega en jugador.rawClash.
  */
 function renderCartaFavorita(j){
   const fav = rawClash(j).currentFavouriteCard;
@@ -580,8 +583,10 @@ function _polTxt(r){
  *  - leagueStatistics.{bestSeason,currentSeason,previousSeason}
  *    ({id, trophies, bestTrophies})
  *  - expLevel, kingTowerLevel, starPoints, expPoints/totalExpPoints
- * PENDIENTE BACKEND: esas categorías dentro de jugador.rawClash. La card
- * se oculta sola si ninguna llega.
+ * BACKEND CONECTADO (20-sep-2026): todas esas categorías ya llegan dentro
+ * de jugador.rawClash (expLevel y kingTowerLevel se agregaron el 20-sep en
+ * _webDatosDriveJugador(); antes faltaban). La card se oculta sola si
+ * ninguna llega.
  */
 function renderCaminoLeyendas(j){
   const raw = rawClash(j);
@@ -620,7 +625,7 @@ let _colFiltroActivo = 'todos';
  *  - starLevel se muestra con estrellitas doradas.
  *  - La carta se dibuja con el ícono de evolución si evolutionLevel > 0.
  *  - Las de level >= maxLevel se remarcan con borde dorado.
- * PENDIENTE BACKEND: adjuntar cards[] dentro de jugador.rawClash.
+ * BACKEND CONECTADO: cards[] ya llega dentro de jugador.rawClash.
  */
 function renderColeccion(j){
   const cartas = rawClash(j).cards;
@@ -682,7 +687,7 @@ function pintarColeccion(cartas){
  * iconUrls} — las "Tower Card Collection" 4/4 de RoyaleAPI). Distinto de
  * currentDeckSupportCards (la torre equipada en el mazo actual, que se
  * pinta dentro de "Mazo actual").
- * PENDIENTE BACKEND: adjuntar supportCards[] en jugador.rawClash.
+ * BACKEND CONECTADO: supportCards[] ya llega en jugador.rawClash.
  */
 function renderCartasTorre(j){
   const torres = rawClash(j).supportCards;
@@ -713,7 +718,7 @@ function renderCartasTorre(j){
  * "2v2League_202609"; puede haber una clave vacía "", que se ignora). Cada
  * valor trae {arena:{name}, trophies, bestTrophies}. Se renderiza todo lo
  * que venga, sin hardcodear eventos concretos.
- * PENDIENTE BACKEND: adjuntar progress{} en jugador.rawClash.
+ * BACKEND CONECTADO: progress{} ya llega en jugador.rawClash.
  */
 function renderProgresoEventos(j){
   const prog = rawClash(j).progress;
@@ -737,7 +742,7 @@ function renderProgresoEventos(j){
  * rawClash(j)._fecha y rawClash(j)._clan — campos PROPIOS del exportador
  * (no de la API de Supercell) que vienen en cada JSON subido a Drive, y
  * que abren la puerta al historial propio de snapshots por jugador.
- * PENDIENTE BACKEND: adjuntar _fecha/_clan en jugador.rawClash.
+ * BACKEND CONECTADO: _fecha/_clan ya llegan en jugador.rawClash.
  */
 function renderSnapshotInfo(j){
   const raw = rawClash(j);
@@ -987,12 +992,12 @@ function _ordenarCartasMazo(cartas){
  *  - starLevel → estrellitas doradas (estrellasHtml()).
  *  - count → "×N" (cantidad de cartas disponibles de ese nombre). Ambos
  *    campos se cruzan con rawClash(j).currentDeck por nombre cuando el
- *    backend todavía no los manda en mazoActual.cartas.
- *    PENDIENTE BACKEND: categorías starLevel/count/evolutionLevel por
- *    carta (pueden venir en rawClash.currentDeck o directamente en
- *    j.mazoActual.cartas desde _webMazoActualDesdeCards2()).
+ *    backend no los manda en mazoActual.cartas.
+ *    BACKEND CONECTADO: rawClash.currentDeck ya llega crudo (con lo que
+ *    traiga el JSON por carta: starLevel/count/evolutionLevel); no vienen
+ *    en j.mazoActual.cartas (_webMazoActualDesdeCards2()), por eso el cruce.
  *  - currentDeckSupportCards → bloque "Carta de torre del mazo" debajo del
- *    grid (PENDIENTE BACKEND: categoría currentDeckSupportCards).
+ *    grid (BACKEND CONECTADO: categoría currentDeckSupportCards).
  * Distinto de "Sugerencias de mazo"/"Sugerencias de mazo (2)" (botones del
  * encabezado, búsquedas en RoyaleAPI desde ext.deck/ext.deck2).
  */
@@ -1022,7 +1027,7 @@ function renderMazoActual(mazoActual, ext, j){
     return;
   }
 
-  // Cruza cada carta del mazo con rawClash(j).currentDeck para sumar starLevel/count/evolutionLevel; pendiente backend. Historial en CHANGELOG.md.
+  // Cruza cada carta del mazo con rawClash(j).currentDeck para sumar starLevel/count/evolutionLevel; el backend ya lo manda. Historial en CHANGELOG.md.
   const rawDeck = rawClash(j).currentDeck;
   const rawPorNombre = {};
   if (Array.isArray(rawDeck)) rawDeck.forEach(rc => { if (rc && rc.name) rawPorNombre[rc.name] = rc; });
@@ -1063,7 +1068,7 @@ function renderMazoActual(mazoActual, ext, j){
     </div>`;
   }).join('');
 
-  // Carta de torre equipada con este mazo; pendiente backend (categoría currentDeckSupportCards del JSON). Historial en CHANGELOG.md.
+  // Carta de torre equipada con este mazo; categoría currentDeckSupportCards del JSON (el backend ya la manda). Historial en CHANGELOG.md.
   const torresRaw = rawClash(j).currentDeckSupportCards;
   const torreHtml = (Array.isArray(torresRaw) && torresRaw.length) ? `
     <div style="margin-top:18px; padding-top:14px; border-top:1px solid var(--line);">
