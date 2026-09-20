@@ -41,6 +41,24 @@ Pendientes que quedaban de B-15, resueltos en la misma tanda:
 
 ## Rendimiento (Lighthouse)
 
+### 19-sep-2026 — Hero de `index.html` con `srcset` y precaché de `join-modal.js`
+- **Hero (LCP de `index`, 4.5-4.7 s en la primera corrida):** todos los
+  dispositivos bajaban `banner-hero.webp` de 1600 px (240 KB). Se agrega
+  `assets/img/banner-hero-1000.webp` (1000×602, 108 KB, calidad 78) y el
+  `<source>` pasa a `srcset="… 1000w, … 1600w" sizes="100vw"` (el `<img>`
+  mide siempre 100 % del ancho, aunque `object-fit:cover` recorte). El
+  fallback `.jpg` no cambia. Comprobado en Chromium: 412 px a 1.75× y 360 px a
+  2× eligen la de 1000 px; 390 px a 3×, tablet y escritorio, la de 1600 px.
+  Captura móvil antes/después: diferencia media 0.53/255, el escudo se
+  conserva. Falta re-medir con Lighthouse tras publicar.
+- **`sw.js`:** `CORE_ASSETS` no incluía `assets/js/features/join-modal.js`
+  (B-5, lo cargan `index` y `directorio`). Se agrega y `CACHE_NAME` sube a
+  `terna-static-v3` (cambia `CORE_ASSETS`, así que `activate` borra `v2`).
+  Se comprobó que todo `<script src>` local de las 6 páginas públicas está
+  precacheado y que ninguna ruta de `CORE_ASSETS` deja de existir.
+- `robots.txt`: `Disallow: /permisos.html` (consistencia con `mensajes.html`;
+  la protección real sigue siendo el `noindex` de la página).
+
 ### 19-sep-2026 — Peticiones duplicadas en torneos y reserva de alto en guerra
 Primera corrida de `lighthouse.yml` (móvil simulado): `guerra.html` y
 `torneos.html` sacaron 0.66-0.67 en Rendimiento (mínimo 0.7, en `warn`).
@@ -75,6 +93,24 @@ actualizarlo a mano cuando cambie una página pública.
 ---
 
 ## CSS compartido (assets/styles.css)
+
+### 19-sep-2026 — Contraste de enlaces de texto en párrafos (B-21, primera medición real)
+Auditoría de contraste en Chromium (color de texto contra fondo efectivo
+compuesto, umbral 4.5:1 o 3:1 para texto grande) sobre `index`, `comunidad`,
+`torneos`, `directorio`, `guerra`, `404` y `perfil`, solo contenido estático
+(lo que pinta JS con datos del backend no se evaluó). Resultado:
+- **1 fallo real:** el enlace "Directorio" dentro de un párrafo de `index`
+  (`a{color:var(--purple)}`, #a239ff) daba 4.03:1 sobre la tarjeta. Nueva
+  regla `p a:not([class])` con `--purple-light` (>7:1) y su `:hover` dorado
+  repetido (por especificidad). Nav, botones y enlaces con clase no cambian.
+  Comparación de capturas: 377 px distintos, todos en esa palabra; el resto
+  de páginas, 0.
+- **Borde, sin tocar:** `#agoText` de `guerra.html` ("—" antes de cargar) da
+  4.27:1 con `--text-faint`. Es marginal y sale del token; subir el token afecta
+  a todo el sitio, así que queda como decisión de diseño.
+- Ojo al repetir esta medición: las tarjetas con `data-reveal` están en
+  `opacity:0` hasta su animación y dan falsos "1:1"; hay que quitar la clase
+  `js-reveal` de `<html>` antes de medir.
 
 ### 19-sep-2026 — Fase 3, sub-lote 2: un duplicado muerto menos y tres que se dejan a propósito
 - **`perfil.html`**: se quita `.field textarea` (la base). Era idéntica
@@ -209,6 +245,10 @@ tarjeta "Ver ganadores" del panel.
 
 ## permisos.html
 
+### 19-sep-2026 — Landmark `<main>`
+`sinAccesoSec` y `panelSec` quedan dentro de `<main id="main-content">`
+(la página no tenía landmark principal). Sin cambio visual (captura idéntica).
+
 ### 19-sep-2026 — Accesibilidad de la lista de permisos
 Con decenas de casillas repetidas por administrador, un lector de pantalla
 solo oía "Vetar, casilla" sin saber de quién.
@@ -262,6 +302,26 @@ selector de `styles.css` ni de otra página.
 ---
 
 ## mensajes.html
+
+### 19-sep-2026 — Accesibilidad: encabezados, `<main>` y anuncio de "Copiado"
+Tres de los límites que la revisión anterior dejó anotados.
+- **Salto `h1` → `h3`:** los 3 títulos de tarjeta pasan a `h2`. Se comprobó
+  antes que no hay regla global de `h2` (`styles.css:244` trata `h1`–`h4`
+  igual y `.sec-head h2` solo aplica dentro de `.sec-head`), y los estilos
+  inline (15 px, dorado) no cambian: medido en Chromium, idéntico.
+- **`<main id="main-content">`** envolviendo `#panelSec` (antes la página no
+  tenía landmark principal). No se cambió `<section>` por `<main>` porque
+  `section{padding:72px 0}` (`styles.css:284`) habría quitado el relleno.
+- **"✔ Copiado" ahora se anuncia:** el cambio de texto de un botón con foco
+  no siempre se lee. Nueva región `#anuncioSr` (`role="status"`,
+  `aria-live="polite"`, clase `.anuncio-sr` con recorte de 1×1 px, no
+  `display:none`) y helper `anunciarSr()` que la vacía y reescribe para que
+  copiar dos veces seguidas vuelva a anunciarse. También avisa "No se pudo
+  copiar el mensaje".
+- Sigue pendiente: los botones "↻" dentro de `<summary>` (requiere rediseñar
+  la cabecera del `<details>`).
+- Prueba: Chromium con sesión y backend simulados; portapapeles y región
+  viva verificados. Sin cambios de píxeles.
 
 ### 19-sep-2026 — Accesibilidad: nombres de botones y estado de los selectores
 Primera revisión de accesibilidad de la página (no la cubría ninguna
@@ -358,6 +418,17 @@ una página interna `noindex` que no se precachea.
 > Esta página es la más grande del sitio (~8,760 líneas). El historial se
 > va agregando por tramos a medida que se aligeran sus comentarios; los
 > tramos siguientes se agregarán debajo de este a medida que se procesen.
+
+### 19-sep-2026 — 26 campos con nombre accesible
+Auditoría automática en Chromium: 40 campos sin nombre accesible. 14 eran los
+`<input type="date|time">` nativos, que ya llevan `aria-hidden="true"` y
+`tabindex="-1"` (detrás del campo de texto amigable): falso positivo. Los 26
+reales reciben `aria-label`: minutos (`…HoraMM`, "Minutos") y `select` AM/PM
+(`…HoraAmPm`) de los 7 grupos de fecha/hora, los 6 campos de autor/organizador
+manual (torneos y sorteos), y los buscadores `#tagInput`, `#infTagInput`,
+`#nmNomMultiNuevo`, `#tModificarLink` y `#ascEditBuscar`. Solo atributos:
+captura de la pantalla de login idéntica y sin errores de JS. No se probó el
+panel con sesión real.
 
 ### Tramo 1 — bloque `<style>` (líneas ~16-430)
 
@@ -2858,6 +2929,10 @@ PENDIENTE BACKEND: categoría supportCards[] del JSON (las
 
 ## directorio.html — historial trasladado
 
+### 19-sep-2026 — Nombre accesible en los campos de búsqueda
+`#tagInput`, `#compTag1` y `#compTag2` solo tenían `placeholder`; ahora llevan
+`aria-label` (el placeholder no cuenta como etiqueta y desaparece al escribir).
+
 ### 18-sep-2026 (refactor CSS, Fase 2 — tablas) — Restyle manual de `.roster-table-wrap` eliminado por duplicado
 El restyle morado de la barra de scroll (thumb `var(--purple-light)`,
 track translúcido) agregado a mano el 16-sep-2026 quedó duplicado byte a
@@ -3308,6 +3383,11 @@ el clic del usuario.
 
 ## index.html — historial trasladado
 
+### 19-sep-2026 — Hero con `srcset` y encabezado `h2`
+Ver "Rendimiento (Lighthouse)" para el `srcset` del hero. Además,
+"¿Nuevo en la Familia Terna?" pasa de `h3` a `h2` (el esquema saltaba de `h1`
+a `h3`); mismo estilo inline, no está dentro de `.ingreso-clan`, captura idéntica.
+
 ### Línea original 592 (HTML)
 
 ```
@@ -3681,6 +3761,12 @@ FIX (03-sep-2026, pedido usuario — "Vigencia [última
 
 
 ## guerra.html
+
+### 19-sep-2026 — Nombre accesible en los 5 selectores de temporada
+`#anioActivosSelect`, `#temporadaActivosSelect`, `#semanaActivosSelect`
+("Valores diarios") y `#anioTemporadaSelect`, `#temporadaSelect` ("Valores
+semanales") empiezan ocultos y los llena JS; ahora llevan `aria-label` que
+indica de cuál cuadrícula son. Sin cambio visual.
 
 ### 19-sep-2026 — "Pronóstico de Hoy" fusionado con "Guerra de Hoy" (continuación de cada tarjeta)
 Pedido usuario: el pronóstico se veía como una lista aparte y no se entendía

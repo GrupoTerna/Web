@@ -25,7 +25,10 @@
 
 // v2 (18-sep-2026): cambió CORE_ASSETS (se añadieron los módulos de assets/js/**),
 // así que se sube la versión para que 'activate' borre el caché v1.
-const CACHE_NAME = 'terna-static-v2';
+// v3 (19-sep-2026): se añade assets/js/features/join-modal.js (B-5, lo cargan
+// index.html y directorio.html) que había quedado fuera de CORE_ASSETS; mismo
+// motivo: cambia CORE_ASSETS, así que se sube la versión.
+const CACHE_NAME = 'terna-static-v3';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
@@ -55,6 +58,7 @@ const CORE_ASSETS = [
   'assets/js/features/clan-card.js',
   'assets/js/features/inactivos.js',
   'assets/js/features/timeline-svg.js',
+  'assets/js/features/join-modal.js',
   'assets/img/logo-cuadrado.jpg',
   'assets/img/icon-192.png',
   'assets/img/icon-512.png'

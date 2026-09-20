@@ -98,6 +98,15 @@
   .doc-original-cargando{
     padding:16px; text-align:center; color:var(--text-dim); font-family:var(--f-mono); font-size:13px;
   }
+  /* Región viva solo para lectores de pantalla (19-sep-2026): el botón "⧉ Copiar"
+     cambia de texto a "✔ Copiado", pero un lector no siempre anuncia el cambio
+     de texto de un botón que ya tiene el foco. Se oculta visualmente con el mismo
+     recorte de 1x1px que usa admin.html (.campo-oculto-visual), sin display:none
+     (que la sacaría del árbol de accesibilidad y no se anunciaría nada). */
+  .anuncio-sr{
+    position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+    overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0;
+  }
 </style>
 </head>
 <body data-page="mensajes">
@@ -120,6 +129,8 @@
   </div>
 </nav>
 
+<main id="main-content">
+
 <!-- ---------- MENSAJES (solo admin) ----------
      Sin sesión de admin esta página no muestra nada: el <script> del final
      redirige a admin.html (que muestra el formulario de inicio de sesión). -->
@@ -138,7 +149,7 @@
     <div class="card admin-grupo" style="margin-top:24px;">
       <div class="eyebrow">Mensajes automáticos</div>
 
-      <h3 style="font-size:15px; color:var(--gold); margin:10px 0 4px;">Guerra, entrenamiento y mazos</h3>
+      <h2 style="font-size:15px; color:var(--gold); margin:10px 0 4px;">Guerra, entrenamiento y mazos</h2>
       <p class="text-dim" style="font-size:13px; margin:0 0 4px;">Preparación de guerra, estándar para todos los clanes: en Entrenamiento se piden las defensas de barcos, en Mazos se pide revisar RoyaleAPI para actualizar el mazo, y los ataques pendientes son el mensaje clásico de guerra. Ábrelo para copiarlo o descargarlo.</p>
 
       <details class="admin-subseccion admin-toggle-grupo">
@@ -158,7 +169,7 @@
         <div class="admin-subseccion-body categoria-contenido-body"></div>
       </details>
 
-      <h3 style="font-size:15px; color:var(--gold); margin:24px 0 4px;">Torneos, sorteos y ascensos</h3>
+      <h2 style="font-size:15px; color:var(--gold); margin:24px 0 4px;">Torneos, sorteos y ascensos</h2>
       <p class="text-dim" style="font-size:13px; margin:0 0 4px;">Mensajes de torneos, sorteos y cambios de rango. Ábrelo para copiarlo o descargarlo.</p>
 
       <details class="admin-subseccion admin-toggle-grupo">
@@ -188,7 +199,7 @@
         <div class="admin-subseccion-body categoria-contenido-body"></div>
       </details>
 
-      <h3 style="font-size:15px; color:var(--gold); margin:24px 0 4px;">Mensajes que no suelen enviarse</h3>
+      <h2 style="font-size:15px; color:var(--gold); margin:24px 0 4px;">Mensajes que no suelen enviarse</h2>
       <p class="text-dim" style="font-size:13px; margin:0 0 4px;">Bienvenida e iniciales se envían una sola vez a cada persona; etiqueta y número de teléfono se piden esporádicamente; la descripción de grupos no se le envía a nadie, es solo para actualizar los grupos de WhatsApp.</p>
 
       <details class="admin-subseccion categoria-contenido-simple" data-categoria="Bienvenida">
@@ -219,6 +230,11 @@
 
   </div>
 </section>
+
+</main>
+
+<!-- Anuncios para lectores de pantalla (ver .anuncio-sr): fuera de #panelSec para que exista aunque el panel esté oculto. -->
+<div id="anuncioSr" class="anuncio-sr" role="status" aria-live="polite" aria-atomic="true"></div>
 
 <script src="assets/js/core/config.js"></script>
 <script src="assets/js/util.js"></script>
@@ -256,6 +272,16 @@ function manejarRespuestaAuth(data){
     return true;
   }
   return false;
+}
+
+/** Anuncia un texto corto a lectores de pantalla (región #anuncioSr). Se vacía
+ *  y se reescribe en el siguiente ciclo para que un mismo mensaje repetido
+ *  (copiar dos veces seguidas) vuelva a anunciarse. */
+function anunciarSr(texto){
+  const el = document.getElementById('anuncioSr');
+  if(!el) return;
+  el.textContent = '';
+  setTimeout(() => { el.textContent = texto; }, 60);
 }
 
 function mostrarPanel(){
@@ -647,8 +673,10 @@ function _activarAccionesContenido(root, opciones){
       await navigator.clipboard.writeText(pre.textContent);
       btnCopiar.textContent = '✔ Copiado';
       btnCopiar.classList.add('copiado');
+      anunciarSr('Mensaje copiado al portapapeles');
     }catch(err){
       btnCopiar.textContent = 'No se pudo copiar';
+      anunciarSr('No se pudo copiar el mensaje');
     }
     setTimeout(() => {
       btnCopiar.textContent = '⧉ Copiar';
