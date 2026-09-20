@@ -94,6 +94,51 @@ actualizarlo a mano cuando cambie una página pública.
 
 ## CSS compartido (assets/styles.css)
 
+### 20-sep-2026 — `.buscador input` salía sin estilo (fondo blanco, 21 px)
+Hallado con la auditoría de tamaño de objetivos táctiles en Chromium: 6 campos
+(los 3 buscadores de `directorio`: `#tagInput`, `#compTag1`, `#compTag2`, y
+`#tagInput`, `#infTagInput`, `#ascEditBuscar` de `admin`) no están dentro de
+`.field`, así que no recibían su estilo y se veían con el aspecto por defecto del
+navegador (fondo blanco, borde gris, 21 px de alto) sobre el sitio oscuro. Los
+otros 42 inputs de admin sí tienen estilo. `.buscador input` solo definía
+`flex` y `min-width`.
+- **Ya venía así en el zip original** (capturas idénticas, 0 px de diferencia). La
+  nota de Fase 3 dice que la regla era idéntica en admin y directorio, así que
+  no se puede saber desde cuándo ocurre ni si fue una regresión.
+- **Arreglo:** `.buscador input` toma el mismo aspecto que `.field input`
+  (fondo `--bg-2`, borde `--line`, padding 13×16, radio, `--f-body` 15 px) más su
+  `:focus` (borde y aro morados), y `::placeholder` con `--text-faint` (el color
+  por defecto daba 4.27:1; ahora ≈5:1). Alto 21 → 46 px; en escritorio input y
+  botón miden ambos 46 px y quedan en el mismo renglón.
+- Efecto medido: `directorio` +2 px de alto de página, `admin` +1 px; `index`,
+  `perfil`, `guerra`, `torneos` y `comunidad` sin cambios (0 px). El desplegable de
+  sugerencias de admin se ancla al fondo de `.buscador-wrap`, así que baja con la
+  fila. No se probó el panel de admin con sesión real.
+
+### 20-sep-2026 — Fase 3 cerrada: conteo rehecho y `.admin-subseccion-body` centralizada (D-3 c)
+Conteo con un script que analiza el CSS real (`conteo-css.py`, reproducible; las
+cifras anteriores no eran comparables entre cortes y quedan sustituidas):
+`styles.css` 939 líneas / 51 KB / 247 reglas; `<style>` locales 2 555 líneas en 11
+páginas (directorio 540, sorteo 552, index 496, guerra 248, admin 205…);
+`style=""` estático 290; `style=""` dentro de plantillas JS 440 (407 en los
+`<script>` de las páginas, 33 en `assets/js`; admin concentra 271).
+- **Duplicados literales entre páginas: solo quedaban 2.** `.admin-subseccion-body{padding:2px 2px 14px}`
+  (admin + mensajes; 29 usos) se movía a mano de `styles.css` solo porque en
+  mensajes chocaba con la regla muerta que se borró en D-3 a1; sin ese choque
+  se centraliza ahora. Padding calculado idéntico antes/después en ambas
+  páginas, 0 px distintos. La otra, `.linechart-svg .grid-line` (index +
+  directorio), **no se mueve a propósito**: el resto de esa familia
+  (`.linechart-svg`, `.axis-label`, `.axis-title`) difiere entre las dos páginas y
+  `styles.css` ya lo documenta; sacar una sola línea la fragmentaría.
+- `sorteo.html` no enlaza `styles.css`, así que sus `* {box-sizing}` y
+  `html,body{margin:0}` (idénticas a las globales) no son redundantes.
+- 9 selectores locales redefinen uno global con otro cuerpo (casi todos de
+  `sorteo`; en admin, `.field textarea` y `.stats-mini b`; en index,
+  `.ingreso-row`): son overrides, no duplicados, y no se pueden mover a ciegas.
+- **Conclusión:** la consolidación por duplicados está agotada. Los 2 555
+  líneas locales son específicas de cada página; lo único que las movería es
+  modularizar (B-16), que las cambia de sitio, no las elimina.
+
 ### 20-sep-2026 — `.perfil-cabecera .stats-mini b` centralizada (D-3 b2)
 La regla (16 px, `--f-display`) estaba repetida carácter por carácter en
 `directorio.html` y `perfil.html`; pasa a `styles.css`. Las sesiones anteriores

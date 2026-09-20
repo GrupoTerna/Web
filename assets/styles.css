@@ -475,7 +475,19 @@ section{padding:72px 0;}
    escala distinta, no la misma familia — fusionar solo esa línea suelta
    de la familia agregaría acoplamiento sin necesidad real. */
 .buscador{display:flex; gap:10px; flex-wrap:wrap;}
-.buscador input{flex:1; min-width:200px;}
+.buscador input{
+  flex:1; min-width:200px;
+  /* 20-sep-2026 (auditoría de objetivos táctiles): estos campos (los 3 buscadores de directorio y #tagInput,
+     #infTagInput y #ascEditBuscar de admin) no están dentro de .field y salían con el estilo por defecto del
+     navegador (fondo blanco, 21px de alto, borde gris) en un sitio oscuro. Mismo aspecto que .field input.
+     Ya venía así en el zip original; no se sabe desde cuándo. */
+  background:var(--bg-2); border:1px solid var(--line); color:var(--text);
+  padding:13px 16px; border-radius:var(--radius-sm); font-family:var(--f-body); font-size:15px;
+  transition:all .18s ease;
+}
+.buscador input:focus{border-color:var(--purple); box-shadow:0 0 0 3px rgba(162,57,255,.2); outline:none;}
+/* Placeholder: el color por defecto del navegador (#757575) da 4.27:1 sobre --bg-2, bajo el 4.5:1 de AA. */
+.buscador input::placeholder{color:var(--text-faint); opacity:1;}
 .miembro-row .mr-name{font-weight:600; font-size:14px;}
 .miembro-row .mr-tag{font-family:var(--f-mono); font-size:11px; color:var(--text-faint); margin-top:2px;}
 .miembro-row .mr-right{text-align:right;}
@@ -899,10 +911,11 @@ footer .wrap span{text-align:justify; text-justify:inter-word;}
  * FINAL de este archivo a propósito: el orden relativo frente al resto de
  * styles.css es el mismo que tenían dentro del <style> de cada página.
  *
- * NO se movió .admin-subseccion-body{padding:2px 2px 14px}: en mensajes.html
- * los mismos elementos llevan también .categoria-contenido-body (padding
- * distinto, definida ANTES en esa página), y hoy gana .admin-subseccion-body
- * solo por ir después. Si viviera acá, iría antes y ganaría el otro padding.
+ * .admin-subseccion-body (20-sep-2026, D-3 c): antes NO se había movido porque en
+ * mensajes.html los mismos elementos llevaban también .categoria-contenido-body
+ * (padding distinto, definida antes) y solo ganaba .admin-subseccion-body por ir
+ * después. Esa otra regla era código muerto y se borró (D-3 a1), así que el
+ * motivo desapareció y la regla vive ahora aquí, idéntica en admin y mensajes.
  * ========================================================================== */
 /* Visor de contenido (Fase 2, 24-ago-2026), solo lectura */
 .contenido-item{border:1px solid var(--line); border-radius:var(--radius-sm); padding:14px 16px; margin-top:12px;}
@@ -934,3 +947,4 @@ footer .wrap span{text-align:justify; text-justify:inter-word;}
 }
 .admin-subseccion[open] > summary::before{content:'–';}
 .admin-subseccion > summary .cat-titulo{flex:1;}
+.admin-subseccion-body{padding:2px 2px 14px;}
