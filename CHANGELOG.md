@@ -3565,6 +3565,16 @@ que explicaba "solo roster"/"techo máximo" pasó a un pie bajo la grilla.
 - `pintarPronosticoEnTarjetas()` corre dentro de `actualizarPuestosClanes()`,
   así que se repinta en cada `render()` (las tarjetas se recrean cada 60 s)
   y al llegar `webPronosticoGuerra` o `webClanInfo`, sin parpadeo.
+- Rediseño de las filas (20-sep-2026, captura del usuario: "se ve
+  desorganizado"): cada fila es #puesto | nombre | fame, una barra fina
+  (fame actual sólida y hasta dónde podría llegar, tenue; misma escala dentro
+  de la tarjeta) y una línea "Techo … · ataques". Se quitó la etiqueta
+  "rival" de cada fila (el clan Terna va resaltado, el resto son sus rivales)
+  y Roster/Máx pasan a un solo valor cuando coinciden, o a "roster–máx" si
+  difieren. Las secciones de las 4 tarjetas (cabecera, puesto, números,
+  barra, asistencia, pronóstico) quedan alineadas entre sí con `subgrid`
+  (con `@supports`; sin soporte queda el layout anterior). Probado con
+  Chromium en 1280 px y 390 px con datos simulados.
 - Corrección de layout (20-sep-2026, captura del usuario): las filas del
   primer clan se salían de la tarjeta y cortaban la fame. Faltaba
   `min-width:0` en la cadena tarjeta -> continuación -> lista -> fila ->

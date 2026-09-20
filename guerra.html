@@ -79,22 +79,36 @@
   .tlp-nota{margin-top:8px; font-family:var(--f-mono); font-size:11px; color:var(--text-faint);}
   .clan-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:16px;}
   /* Continuación de cada tarjeta de "Guerra de Hoy": pronóstico del clan y de sus rivales en la misma carrera (pronosticoClanHtml()). Historial en CHANGELOG.md. */
-  /* min-width:0 en toda la cadena (tarjeta -> continuación -> lista -> fila -> nombre): sin eso un nombre largo (ej. "Sopaipas_Chile") ensanchaba la fila y la fame se salía de la tarjeta. Historial en CHANGELOG.md. */
+  /* Continuación de cada tarjeta de "Guerra de Hoy" (pronosticoClanHtml()). min-width:0 en toda la cadena para que un nombre largo no ensanche la fila. Historial en CHANGELOG.md. */
   .clan-card{min-width:0;}
   .clan-pron{margin-top:16px; padding-top:14px; border-top:1px dashed var(--line-strong); min-width:0;}
   .clan-pron[hidden]{display:none;}
   .cp-head{font-family:var(--f-mono); font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--text-faint); text-align:center; margin-bottom:10px;}
   .cp-list{list-style:none; margin:0; padding:0; display:grid; grid-template-columns:minmax(0,1fr); gap:6px;}
-  .cp-row{border:1px solid var(--line); border-radius:var(--radius-sm); padding:7px 9px; min-width:0;}
+  /* Fila: #puesto | nombre | fame, barra fina (fame actual sólida, hasta dónde podría llegar tenue) y "Techo … · ataques". Rivales en neutro; el clan Terna resaltado en morado. */
+  .cp-row{display:grid; grid-template-columns:auto minmax(0,1fr) auto; column-gap:8px; row-gap:5px; align-items:baseline; border:1px solid var(--line); border-radius:var(--radius-sm); padding:8px 8px; min-width:0;}
   .cp-own{border-color:var(--purple); background:rgba(162,57,255,.08);}
-  .cp-top{display:flex; justify-content:space-between; align-items:baseline; gap:8px; font-size:13px; min-width:0;}
-  .cp-n{flex:1 1 0; min-width:0; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-  .cp-r{font-family:var(--f-mono); font-weight:400; color:var(--text-faint); margin-right:4px;}
-  .cp-riv{font-family:var(--f-mono); font-size:10px; font-weight:400; color:var(--text-faint); margin-left:4px;}
-  .cp-top b{flex:0 0 auto; font-family:var(--f-mono); white-space:nowrap;}
-  /* Roster y Máx en la 1ª línea y los ataques SIEMPRE en la 2ª, para que todas las filas de todas las tarjetas midan lo mismo. */
-  .cp-sub{display:flex; flex-wrap:wrap; gap:2px 10px; margin-top:3px; font-family:var(--f-mono); font-size:10px; color:var(--text-faint);}
-  .cp-sub span:last-child{flex-basis:100%;}
+  .cp-r{font-family:var(--f-mono); font-size:11px; color:var(--text-faint);}
+  .cp-n{min-width:0; font-size:13px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .cp-f{font-family:var(--f-mono); font-size:13px; white-space:nowrap;}
+  .cp-bar{grid-column:1 / -1; position:relative; height:4px; border-radius:2px; background:var(--bg-2); overflow:hidden;}
+  .cp-bar u, .cp-bar i{position:absolute; left:0; top:0; bottom:0; display:block; text-decoration:none; border-radius:2px;}
+  .cp-bar u{background:rgba(255,255,255,.14);}
+  .cp-bar i{background:var(--text-dim);}
+  .cp-own .cp-bar u{background:rgba(162,57,255,.30);}
+  .cp-own .cp-bar i{background:linear-gradient(90deg, var(--violet), var(--purple));}
+  .cp-sub{grid-column:1 / -1; display:flex; flex-wrap:wrap; justify-content:space-between; gap:0 6px; font-family:var(--f-mono); font-size:10px; color:var(--text-faint); white-space:nowrap;}
+  /* Alinea entre tarjetas cada sección (cabecera, puesto, números, barra, asistencia, pronóstico) aunque una cabecera sea más alta que otra: cada tarjeta comparte las filas de la grilla (subgrid). Sin soporte, queda el layout normal. */
+  @supports (grid-template-rows: subgrid){
+    .clan-grid{row-gap:0;}
+    .clan-card{display:grid; grid-template-rows:subgrid; grid-row:span 6; row-gap:0; margin-bottom:16px; align-content:start;}
+    .clan-card > .clan-cab{grid-row:1;}
+    .clan-card > .clan-puesto{grid-row:2;}
+    .clan-card > .stats{grid-row:3;}
+    .clan-card > .bar{grid-row:4;}
+    .clan-card > .clan-atq{grid-row:5;}
+    .clan-card > .clan-pron{grid-row:6;}
+  }
   .clan-card .name{font-family:var(--f-display); font-size:18px; font-weight:800; text-transform:uppercase; color:var(--text); text-align:center;}
   /* .stats no tenía justify-content, así que la fila de números quedaba pegada a la izquierda (flex-start por defecto). Historial en CHANGELOG.md. */
   .clan-card .stats{display:flex; justify-content:center; gap:18px; margin-top:14px; font-family:var(--f-mono);}
@@ -357,7 +371,7 @@
         <span class="text-faint" id="clanCount" style="font-family:var(--f-mono); font-size:13px;"></span>
       </div>
       <div class="clan-grid" id="clanGrid" style="margin-top:20px;"></div>
-      <div id="pronosticoNota" class="text-faint" style="font-family:var(--f-mono); font-size:12px; margin-top:14px;" hidden>📈 Pronóstico de hoy: techo de fama que cada clan todavía puede alcanzar hoy con los ataques que le quedan, una cota máxima y no una predicción. «Roster» supone que juegan únicamente las cuentas que ya están en la carrera; «Máx» supone además que las cuentas sin atacar se reemplazan por cuentas de apoyo.</div>
+      <div id="pronosticoNota" class="text-faint" style="font-family:var(--f-mono); font-size:12px; margin-top:6px; line-height:1.6;" hidden>📈 Pronóstico de hoy: la fila resaltada es el clan Terna y las demás son sus rivales en la carrera. La barra muestra la fame actual (sólida) y hasta dónde podría llegar hoy (tenue). «Techo» es una cota máxima, no una predicción: con un solo valor, juegan las cuentas que ya están en la carrera; con dos («roster – máx»), el segundo supone además que las cuentas sin atacar se reemplazan por cuentas de apoyo.</div>
     </section>
 
     <!-- Pronóstico de Hoy: pública, solo en día de guerra; oculta si el backend no responde. Sin aria-live (se refresca sola). Historial en CHANGELOG.md. -->
@@ -1105,7 +1119,7 @@ function render(data){
            fila debajo de la barrita de progreso en guerra de hoy"): se
            agrega text-align:center a este renglón (antes quedaba pegado a
            la izquierda por default). -->
-      <div style="margin-top:10px;font-size:12px;color:var(--text-dim);font-family:var(--f-mono);text-align:center;">
+      <div class="clan-atq" style="margin-top:10px;font-size:12px;color:var(--text-dim);font-family:var(--f-mono);text-align:center;">
         ${fmtNum(g.atacaron)}/${fmtNum(g.totalHoy)} atacaron hoy (${pct}%)
       </div>
       <div class="clan-pron" data-clan="${esc(nombre)}" hidden></div>
@@ -1604,13 +1618,20 @@ function agruparPronosticoPorClan(data){
 function pronosticoClanHtml(grupo){
   const todos = [grupo.propio].concat(grupo.rivales);
   const fame = c => Number(c.fameActual) || 0;
+  const techoMax = c => Math.max(Number(c.fameTecho) || 0, fame(c));
+  const escala = Math.max(1, ...todos.map(techoMax)); // misma escala en las barras de todo el grupo
+  const pct = v => Math.max(0, Math.min(100, (v / escala) * 100)).toFixed(1);
   const puestoDe = c => 1 + todos.filter(o => fame(o) > fame(c)).length; // empates comparten puesto, igual que el "Puesto #N de M" de la cabecera
   const orden = todos.slice().sort((a, b) => (fame(b) - fame(a)) || ((a === grupo.propio ? 0 : 1) - (b === grupo.propio ? 0 : 1)));
-  return `<div class="cp-head">📈 Pronóstico de hoy</div><ul class="cp-list">${orden.map(c => `
+  return `<div class="cp-head">📈 Pronóstico de hoy</div><ul class="cp-list">${orden.map(c => {
+    const roster = Number(c.fameTechoRoster) || 0, max = Number(c.fameTecho) || 0;
+    const techoTxt = roster === max ? fmtNum(max) : `${fmtNum(roster)}–${fmtNum(max)}`; // un solo valor si Roster y Máx coinciden
+    return `
     <li class="cp-row${c === grupo.propio ? ' cp-own' : ''}">
-      <div class="cp-top"><span class="cp-n"><span class="cp-r">#${fmtNum(puestoDe(c))}</span>${esc(c.nombre)}${c.esRival ? '<span class="cp-riv">rival</span>' : ''}</span><b>${fmtNum(c.fameActual)}</b></div>
-      <div class="cp-sub"><span title="Techo de fama si juegan solo las cuentas que ya están en la carrera">Roster ${fmtNum(c.fameTechoRoster)}</span><span title="Techo de fama si además las cuentas sin atacar se reemplazan por cuentas de apoyo">Máx ${fmtNum(c.fameTecho)}</span><span>${fmtNum(c.ataquesUsados)}/${PRONOSTICO_ATAQUES_MAX_CLAN} atq</span></div>
-    </li>`).join('')}</ul>`;
+      <span class="cp-r">#${fmtNum(puestoDe(c))}</span><span class="cp-n" title="${esc(c.nombre)}${c.esRival ? ' (rival)' : ''}">${esc(c.nombre)}</span><b class="cp-f">${fmtNum(c.fameActual)}</b>
+      <div class="cp-bar" aria-hidden="true"><u style="width:${pct(techoMax(c))}%"></u><i style="width:${pct(fame(c))}%"></i></div>
+      <div class="cp-sub"><span title="Techo de fama de hoy. Si dos valores: solo con las cuentas que ya están en la carrera – con cuentas de apoyo">Techo ${techoTxt}</span><span>${fmtNum(c.ataquesUsados)}/${PRONOSTICO_ATAQUES_MAX_CLAN} atq</span></div>
+    </li>`; }).join('')}</ul>`;
 }
 function pintarPronosticoEnTarjetas(){
   const g = ultimoPronosticoData ? agruparPronosticoPorClan(ultimoPronosticoData) : { porTag: {}, hay: false };
