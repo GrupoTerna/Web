@@ -41,6 +41,22 @@ Pendientes que quedaban de B-15, resueltos en la misma tanda:
 
 ## Rendimiento (Lighthouse)
 
+### 20-sep-2026 — D-7 (b): se quita el peso 500 de Inter y de IBM Plex Mono
+Medido en Chromium (texto renderizado de las 10 páginas que cargan las 3
+familias) y en el código: ningún `font-weight:500` ni `font:` con 500 existe
+en `assets/` ni en esas páginas (los 3 únicos están en `sorteo.html`, que
+tiene su propio enlace de fuentes y no se toca). Inter y IBM Plex Mono se
+renderizan solo en 400, 600 y 700, así que `wght@400;500;600;700` pasa a
+`wght@400;600;700` en los 3 enlaces de cada página (`preload`, `stylesheet`,
+`noscript`): 12 pesos → 10. Sin cambio visual esperable, porque ningún texto
+pedía 500. Se dejan a propósito **Rajdhani 500** (los elementos de `admin`
+con Rajdhani sin peso, 400, se dibujan con el 500 por ser el más cercano;
+quitarlo los pasaría a 600) y **Rajdhani 600/800** (usados en `admin` e
+`index`/`404`). Ahorro esperable: 1 archivo de fuente (IBM Plex Mono es
+estática); Inter en Google Fonts es variable, así que ahí el ahorro puede ser
+nulo. Límite: el barrido cubre el HTML renderizado y el código, no el
+contenido que el backend inyecte con estilos propios (no se vio ninguno).
+
 ### 20-sep-2026 — D-13: interruptor de prueba para `_MAX_PETICIONES_SIMULTANEAS`
 El valor sigue en **1** para todos (se mantiene la decisión del 13-sep: con
 2 simultáneas volvían los 404 de entrega de Apps Script y los "Cargando…"
