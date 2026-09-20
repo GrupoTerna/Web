@@ -61,7 +61,6 @@
     font-family:var(--f-mono); font-size:10px; letter-spacing:.06em; text-transform:uppercase;
     color:var(--gold); border:1px solid var(--gold); border-radius:999px; padding:1px 8px; margin-left:8px;
   }
-  .admin-permiso-card .meta-adm{font-family:var(--f-mono); font-size:12px; color:var(--text-dim);}
   .admin-permiso-card .cuentas-adm{
     font-size:12px; color:var(--text-faint); margin-top:4px;
     display:flex; flex-direction:column; gap:2px;
@@ -81,16 +80,8 @@
   .etiqueta-seccion-fila .etiqueta-seccion{margin-bottom:0;}
   .marcar-botones{display:flex; gap:8px; flex-wrap:wrap;}
 
-  /* Reusado por el botón "Recargar" del filtro y por "Marcar/Desmarcar
-     todo" de cada sección — antes .btn-icono no tenía estilo propio y el
-     botón de Recargar salía con la apariencia nativa del navegador. */
-  .btn-icono{
-    background:none; border:1px solid var(--line); color:var(--text-dim);
-    font-family:var(--f-mono); font-size:11px; letter-spacing:.04em; text-transform:uppercase;
-    padding:6px 12px; cursor:pointer; border-radius:var(--radius-sm); transition:border-color .15s, color .15s;
-    white-space:nowrap;
-  }
-  .btn-icono:hover{border-color:var(--purple); color:var(--purple-light);}
+  /* Ayuda corta bajo el título de una sección de casillas (ver "Clanes"). */
+  .permisos-ayuda{font-size:12px; color:var(--text-faint); margin:-2px 0 8px; line-height:1.45;}
   .permisos-grid{
     display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:6px 14px;
     max-height:260px; overflow-y:auto; padding-right:4px;
@@ -179,12 +170,12 @@
     </div>
 
     <div class="permiso-nota">
-      Marca o desmarca lo que cada administrador puede hacer desde el panel web. Cada casilla de <b>Funciones</b> es una acción puntual (por ejemplo, vetar o registrar un miembro nuevo); las de <b>Categorías</b> controlan qué contenido de mensajes puede ver en su propio panel. Los cambios se guardan de inmediato al presionar «Guardar» y quedan anotados en el registro del sistema con quién los hizo — nadie queda sin rastro. Ningún cambio afecta las contraseñas ni los datos de contacto de nadie.
+      Marca o desmarca lo que cada administrador puede hacer desde el panel web. Cada casilla de <b>Funciones</b> es una acción puntual (por ejemplo, vetar o registrar un miembro nuevo); las de <b>Clanes</b> indican en qué clanes puede tomar decisiones; las de <b>Categorías</b> controlan qué contenido de mensajes puede ver en su propio panel. Los cambios se guardan de inmediato al presionar «Guardar» y quedan anotados en el registro del sistema con quién los hizo — nadie queda sin rastro. Ningún cambio afecta las contraseñas ni los datos de contacto de nadie.
     </div>
 
     <div class="permisos-filtro">
-      <input type="text" id="permisosFiltro" placeholder="Buscar administrador por nombre o tag…" autocomplete="off">
-      <button type="button" class="btn-icono" id="btnRecargarPermisos" title="Recargar lista">↻ Recargar</button>
+      <input type="text" id="permisosFiltro" placeholder="Buscar administrador por nombre o tag…" aria-label="Buscar administrador por nombre o tag" autocomplete="off">
+      <button type="button" class="btn-icono" id="btnRecargarPermisos" title="Recargar lista" aria-label="Recargar lista de administradores">↻ Recargar</button>
     </div>
 
     <div id="permisosMsg"></div>
@@ -248,8 +239,64 @@ document.getElementById('logoutBtn').addEventListener('click', async () => {
 // volver a pedirlo al backend cada vez que se escribe en el buscador.
 let PERMISOS_DATA = null;
 
+// Catálogo de clanes para las casillas de Clanes_Admin: [{nombre, etiqueta}].
+// Se arma una sola vez por carga (ver construirCatalogoClanes) para que el
+// buscador y los guardados no lo hagan cambiar sobre la marcha.
+let CATALOGO_CLANES = [];
+let CATALOGO_CLANES_DEL_BACKEND = false;
+
 function normalizarBusqueda(s){
   return String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+/**
+ * clanesComoLista(valor)
+ * Clanes_Admin de un admin como arreglo de textos. Hoy el backend lo manda
+ * como un solo texto separado por comas ("Clan A, Clan B"); si algún día lo
+ * manda como arreglo también se acepta.
+ */
+function clanesComoLista(valor){
+  const partes = Array.isArray(valor) ? valor : String(valor || '').split(/[,;\n]+/);
+  return partes.map(p => String(p).trim()).filter(Boolean);
+}
+
+/** ¿Son la misma selección de clanes (sin importar orden, mayúsculas ni tildes)? */
+function mismosClanes(a, b){
+  const ka = new Set(clanesComoLista(a).map(normalizarBusqueda));
+  const kb = new Set(clanesComoLista(b).map(normalizarBusqueda));
+  if(ka.size !== kb.size) return false;
+  for(const k of ka){ if(!kb.has(k)) return false; }
+  return true;
+}
+
+/**
+ * construirCatalogoClanes(data)
+ * Si el backend manda `data.clanes` (texto o {id|nombre, etiqueta}), ese
+ * catálogo manda y conserva su orden. Mientras no lo mande, se arma con los
+ * clanes que ya figuran en el Clanes_Admin de algún administrador — usando
+ * el texto tal cual está guardado, para no inventar un formato distinto al
+ * de la hoja (un clan que hoy nadie administra no aparece hasta que el
+ * backend mande el catálogo). En ese caso se ordena con ordenarClanes(),
+ * el mismo orden fijo de la Familia que usa el resto del sitio.
+ */
+function construirCatalogoClanes(data){
+  const vistos = new Map(); // clave normalizada -> {nombre, etiqueta}
+  const agregar = (nombre, etiqueta) => {
+    const n = String(nombre || '').trim();
+    const k = normalizarBusqueda(n);
+    if(n && !vistos.has(k)) vistos.set(k, { nombre: n, etiqueta: String(etiqueta || n) });
+  };
+
+  if(Array.isArray(data.clanes) && data.clanes.length){
+    data.clanes.forEach(c => {
+      if(c && typeof c === 'object') agregar(c.id || c.nombre, c.etiqueta);
+      else agregar(c);
+    });
+    return { lista: Array.from(vistos.values()), delBackend: true };
+  }
+
+  (data.admins || []).forEach(a => clanesComoLista(a.clanesAdmin).forEach(t => agregar(t)));
+  return { lista: ordenarClanes(Array.from(vistos.values())), delBackend: false };
 }
 
 /**
@@ -308,6 +355,9 @@ async function cargarListado(){
       return;
     }
     PERMISOS_DATA = data;
+    const catalogo = construirCatalogoClanes(data);
+    CATALOGO_CLANES = catalogo.lista;
+    CATALOGO_CLANES_DEL_BACKEND = catalogo.delBackend;
     pintarLista();
   }catch(err){
     cont.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
@@ -367,6 +417,9 @@ function agruparCuentasPorClan(cuentas){
 
 function pintarCardAdmin(a){
   const cuentasHtml = agruparCuentasPorClan(a.cuentas);
+  // Base para los ids de esta tarjeta (aria-labelledby). Solo caracteres seguros: a.id viene del backend.
+  const idBase = 'adm-' + String(a.id).replace(/[^\w-]/g, '_');
+  const nombreAdm = String(a.nombre || 'administrador');
 
   const funcionesHtml = (PERMISOS_DATA.funciones || []).map(f => {
     const marcado = (a.funciones || []).indexOf(f.id) !== -1;
@@ -381,6 +434,33 @@ function pintarCardAdmin(a){
       </label>`;
   }).join('');
 
+  // Clanes donde este admin puede decidir (Clanes_Admin). Un clan que ya
+  // tiene asignado y no está en el catálogo (p. ej. uno que cambió de
+  // nombre) se muestra igual, marcado y avisado, para que un "Guardar" no
+  // lo borre en silencio.
+  const clanesDelAdmin = clanesComoLista(a.clanesAdmin);
+  const clavesCatalogo = new Set(CATALOGO_CLANES.map(c => normalizarBusqueda(c.nombre)));
+  const clavesAdmin = new Set(clanesDelAdmin.map(normalizarBusqueda));
+  const extrasVistos = new Set();
+  const clanesExtra = clanesDelAdmin.filter(t => {
+    const k = normalizarBusqueda(t);
+    if(clavesCatalogo.has(k) || extrasVistos.has(k)) return false;
+    extrasVistos.add(k);
+    return true;
+  });
+  const itemClan = (valor, etiqueta, marcado, nota) => `
+      <label class="permiso-item">
+        <input type="checkbox" class="chk-clan" value="${esc(valor)}" ${marcado ? 'checked' : ''}>
+        <span class="txt-permiso">
+          <span class="nombre-permiso">${esc(etiqueta)}</span>
+          ${nota ? `<span class="desc-permiso">${esc(nota)}</span>` : ''}
+        </span>
+      </label>`;
+  const clanesHtml = CATALOGO_CLANES.map(c => itemClan(c.nombre, c.etiqueta, clavesAdmin.has(normalizarBusqueda(c.nombre)), ''))
+    .concat(clanesExtra.map(t => itemClan(t, t, true, 'No está en el catálogo de clanes')))
+    .join('');
+  const hayClanes = CATALOGO_CLANES.length > 0 || clanesExtra.length > 0;
+
   const categorias = PERMISOS_DATA.categorias || [];
   const categoriasHtml = categorias.map(c => {
     const marcado = (a.categorias || []).indexOf(c) !== -1;
@@ -392,32 +472,45 @@ function pintarCardAdmin(a){
   }).join('');
 
   return `
-    <div class="card admin-permiso-card${a.esTu ? ' es-tu' : ''}" data-id="${esc(a.id)}">
+    <div class="card admin-permiso-card${a.esTu ? ' es-tu' : ''}" data-id="${esc(a.id)}" role="group" aria-labelledby="${idBase}-nom">
       <div class="cab">
         <div class="cab-info">
-          <div class="nombre-adm">${esc(a.nombre)}${a.esTu ? '<span class="tag-tu">Tú</span>' : ''}</div>
-          ${a.clanesAdmin ? `<div class="meta-adm">${esc(a.clanesAdmin)}</div>` : ''}
+          <div class="nombre-adm"><span id="${idBase}-nom">${esc(a.nombre)}</span>${a.esTu ? '<span class="tag-tu">Tú</span>' : ''}</div>
           ${cuentasHtml ? `<div class="cuentas-adm">${cuentasHtml}</div>` : ''}
         </div>
       </div>
 
-      <div class="permisos-seccion">
+      <div class="permisos-seccion" role="group" aria-labelledby="${idBase}-fun">
         <div class="etiqueta-seccion-fila">
-          <span class="etiqueta-seccion">Funciones</span>
+          <span class="etiqueta-seccion" id="${idBase}-fun">Funciones</span>
           <div class="marcar-botones">
-            <button type="button" class="btn-icono" data-marcar="funcion" data-valor="1">Marcar todo</button>
-            <button type="button" class="btn-icono" data-marcar="funcion" data-valor="0">Desmarcar todo</button>
+            <button type="button" class="btn-icono" data-marcar="funcion" data-valor="1" aria-label="Marcar todas las funciones de ${esc(nombreAdm)}">Marcar todo</button>
+            <button type="button" class="btn-icono" data-marcar="funcion" data-valor="0" aria-label="Desmarcar todas las funciones de ${esc(nombreAdm)}">Desmarcar todo</button>
           </div>
         </div>
         <div class="permisos-grid cortas">${funcionesHtml || '<div class="empty">Sin funciones en el catálogo.</div>'}</div>
       </div>
 
-      <div class="permisos-seccion">
+      <div class="permisos-seccion" role="group" aria-labelledby="${idBase}-cla">
         <div class="etiqueta-seccion-fila">
-          <span class="etiqueta-seccion">Categorías de contenido (Cat_disp)</span>
+          <span class="etiqueta-seccion" id="${idBase}-cla">Clanes donde puede tomar decisiones (Clanes_Admin)</span>
+          ${hayClanes ? `<div class="marcar-botones">
+            <button type="button" class="btn-icono" data-marcar="clan" data-valor="1" aria-label="Marcar todos los clanes de ${esc(nombreAdm)}">Marcar todo</button>
+            <button type="button" class="btn-icono" data-marcar="clan" data-valor="0" aria-label="Desmarcar todos los clanes de ${esc(nombreAdm)}">Desmarcar todo</button>
+          </div>` : ''}
+        </div>
+        ${hayClanes
+          ? `<div class="permisos-ayuda">Sin ningún clan marcado, no podrá tomar decisiones sobre jugadores de ningún clan.${CATALOGO_CLANES_DEL_BACKEND ? '' : ' La lista se arma con los clanes que ya figuran asignados a algún administrador.'}</div>
+             <div class="permisos-grid cortas">${clanesHtml}</div>`
+          : '<div class="empty">Sin clanes en el catálogo todavía.</div>'}
+      </div>
+
+      <div class="permisos-seccion" role="group" aria-labelledby="${idBase}-cat">
+        <div class="etiqueta-seccion-fila">
+          <span class="etiqueta-seccion" id="${idBase}-cat">Categorías de contenido (Cat_disp)</span>
           ${categorias.length ? `<div class="marcar-botones">
-            <button type="button" class="btn-icono" data-marcar="categoria" data-valor="1">Marcar todo</button>
-            <button type="button" class="btn-icono" data-marcar="categoria" data-valor="0">Desmarcar todo</button>
+            <button type="button" class="btn-icono" data-marcar="categoria" data-valor="1" aria-label="Marcar todas las categorías de ${esc(nombreAdm)}">Marcar todo</button>
+            <button type="button" class="btn-icono" data-marcar="categoria" data-valor="0" aria-label="Desmarcar todas las categorías de ${esc(nombreAdm)}">Desmarcar todo</button>
           </div>` : ''}
         </div>
         ${categorias.length
@@ -426,8 +519,8 @@ function pintarCardAdmin(a){
       </div>
 
       <div class="permisos-acciones">
-        <button type="button" class="btn-guardar-permisos" data-accion="guardar">Guardar</button>
-        <span class="permiso-msg-inline" data-rol="msg"></span>
+        <button type="button" class="btn-guardar-permisos" data-accion="guardar" aria-label="Guardar permisos de ${esc(nombreAdm)}">Guardar</button>
+        <span class="permiso-msg-inline" data-rol="msg" role="status"></span>
       </div>
     </div>`;
 }
@@ -439,11 +532,13 @@ function activarCardAdmin(a){
   const msgEl = card.querySelector('[data-rol="msg"]');
 
   // "Marcar todo" / "Desmarcar todo" de cada sección — solo tocan las
-  // casillas de SU PROPIA sección (funcion o categoria) dentro de esta
-  // tarjeta, nunca las de otro admin ni las de la otra sección.
+  // casillas de SU PROPIA sección (funcion, clan o categoria) dentro de esta
+  // tarjeta, nunca las de otro admin ni las de otra sección.
+  const CLASE_CHK_POR_SECCION = { funcion: '.chk-funcion', clan: '.chk-clan', categoria: '.chk-categoria' };
   card.querySelectorAll('[data-marcar]').forEach(btnMarcar => {
     btnMarcar.addEventListener('click', () => {
-      const claseChk = btnMarcar.dataset.marcar === 'funcion' ? '.chk-funcion' : '.chk-categoria';
+      const claseChk = CLASE_CHK_POR_SECCION[btnMarcar.dataset.marcar];
+      if(!claseChk) return;
       const marcar = btnMarcar.dataset.valor === '1';
       card.querySelectorAll(claseChk).forEach(chk => { chk.checked = marcar; });
     });
@@ -453,9 +548,20 @@ function activarCardAdmin(a){
     const funciones = Array.from(card.querySelectorAll('.chk-funcion:checked')).map(c => c.value);
     const categorias = Array.from(card.querySelectorAll('.chk-categoria:checked')).map(c => c.value);
 
+    // Clanes_Admin solo se manda si la sección se pintó Y la selección cambió
+    // respecto de lo que había: así un "Guardar" que solo toca funciones o
+    // categorías nunca pisa los clanes de nadie (ni con una lista vacía).
+    const hayCasillasClan = card.querySelector('.chk-clan') !== null;
+    const clanes = Array.from(card.querySelectorAll('.chk-clan:checked')).map(c => c.value);
+    const cambioClanes = hayCasillasClan && !mismosClanes(clanes, a.clanesAdmin);
+    const datos = { id: a.id, funciones, categorias };
+    if(cambioClanes) datos.clanesAdmin = clanes;
+
     btn.disabled = true;
     const textoOriginal = btn.textContent;
+    const etiquetaOriginal = btn.getAttribute('aria-label');
     btn.textContent = 'Guardando…';
+    btn.setAttribute('aria-label', 'Guardando permisos…');
     msgEl.textContent = '';
     msgEl.className = 'permiso-msg-inline';
 
@@ -463,7 +569,7 @@ function activarCardAdmin(a){
       const token = localStorage.getItem(SESSION_KEY);
       const resp = await apiPost('webPermisosGuardar', {
         sessionToken: token,
-        datos: { id: a.id, funciones, categorias }
+        datos
       });
       if(manejarRespuestaAuth(resp)) return;
       if(!resp.ok){
@@ -478,6 +584,16 @@ function activarCardAdmin(a){
       a.funciones = resp.funciones || funciones;
       a.categorias = resp.categorias || categorias;
       const cuentasTxt = resp.cuentasActualizadas > 1 ? ` (${resp.cuentasActualizadas} cuentas actualizadas)` : '';
+      // Si se mandó un cambio de clanes, el servidor debe confirmarlo en
+      // resp.clanesAdmin. Si no lo devuelve, no se da por guardado: la copia
+      // local queda como estaba y se avisa, en vez de mostrar "Guardado"
+      // por algo que el servidor quizás ignoró.
+      if(cambioClanes && resp.clanesAdmin === undefined){
+        msgEl.textContent = `Funciones y categorías guardadas, pero el servidor no confirmó el cambio de clanes (puede que todavía no lo guarde). Recarga la lista para ver qué quedó realmente.${cuentasTxt}`;
+        msgEl.classList.add('error');
+        return;
+      }
+      if(cambioClanes) a.clanesAdmin = resp.clanesAdmin;
       msgEl.textContent = `Guardado.${cuentasTxt}`;
       msgEl.classList.add('ok');
     }catch(err){
@@ -486,6 +602,7 @@ function activarCardAdmin(a){
     }finally{
       btn.disabled = false;
       btn.textContent = textoOriginal;
+      if(etiquetaOriginal) btn.setAttribute('aria-label', etiquetaOriginal);
     }
   });
 }

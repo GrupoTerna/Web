@@ -19,36 +19,22 @@
   /* Estilos propios de esta página (reusa tokens de styles.css).
      19-sep-2026: la sección "Mensajes" se migró desde admin.html a esta
      página propia (mensajes.html). Las reglas de abajo se copiaron tal cual
-     desde el <style> de admin.html; .contenido-item, .tab-clan,
-     .admin-subseccion y afines siguen también en admin.html porque otras
-     secciones de allá (Torneos/Sorteos/Cambio de rango/Ganadores) las usan
-     — quedan pendientes de una consolidación aparte, más grande, si se
-     retoma la Fase 3. .admin-topbar, #logoutBtn y .btn-icono SÍ eran
+     desde el <style> de admin.html. Fase 3, sub-lote 1 (19-sep-2026):
+     .contenido-item, .contenido-tabs, .tab-clan, .admin-grupo y
+     .admin-subseccion (+ hijos) ya se consolidaron en assets/styles.css,
+     compartidos con admin.html; acá quedan solo las reglas propias de
+     Mensajes y .admin-subseccion-body (ver nota en styles.css). .admin-topbar, #logoutBtn y .btn-icono SÍ eran
      idénticos carácter por carácter en admin.html/mensajes.html/permisos.html
      y ya se centralizaron en assets/styles.css (Fase 0 re-verificada,
      19-sep-2026). */
-  /* Fase 2 (24-ago-2026): visor de contenido, solo lectura */
-  .contenido-item{border:1px solid var(--line); border-radius:var(--radius-sm); padding:14px 16px; margin-top:12px;}
-  .contenido-item .cab{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px; flex-wrap:wrap;}
   .contenido-item .cab-info{display:flex; align-items:center; gap:10px; flex-wrap:wrap;}
-  .contenido-item .etiqueta{font-family:var(--f-mono); font-size:11px; letter-spacing:.06em; text-transform:uppercase; color:var(--gold);}
-  .contenido-item .clan-chip{font-family:var(--f-mono); font-size:11px; color:var(--text-dim); background:var(--surface); border:1px solid var(--line); padding:2px 8px; border-radius:999px;}
   /* Cada opción de contenido usa una caja con fondo propio (más legible
      para saltos de línea/emojis de WhatsApp) más botones de acción
      (copiar, colapsar) a la derecha del encabezado. */
   .contenido-acciones{display:flex; align-items:center; gap:6px; margin-left:auto;}
-  /* Cuando una categoría tiene varias opciones (una por clan), se pinta
-     un solo .contenido-item "en escena" y estos botones (.contenido-tabs)
-     cambian de opción al clickear, como pestañas — en vez de apilar todas
-     las opciones una debajo de otra. */
-  .contenido-tabs{display:flex; align-items:center; gap:6px; flex-wrap:wrap;}
-  .tab-clan{
-    background:var(--surface); border:1px solid var(--line); color:var(--text-dim);
-    font-family:var(--f-mono); font-size:11px; letter-spacing:.04em; padding:5px 10px;
-    border-radius:999px; cursor:pointer; transition:border-color .15s, color .15s, background .15s;
-  }
-  .tab-clan:hover{border-color:var(--purple-light); color:var(--text);}
-  .tab-clan.activo{border-color:var(--purple); color:var(--text); background:rgba(162,57,255,.18);}
+  /* Varias opciones por categoría (una por clan): un solo .contenido-item "en
+     escena" y botones .contenido-tabs > .tab-clan (definidos en styles.css) que
+     cambian de opción al clickear, en vez de apilarlas todas. */
   .contenido-caja{
     background:var(--bg-2); border:1px solid var(--line); border-radius:var(--radius-sm);
     padding:12px 14px; margin-top:2px;
@@ -76,23 +62,6 @@
      botones reutilizan la pastilla .tab-clan, no definen estilo propio. */
   .admin-toggle-body{min-height:1px;}
   .admin-toggle-panel .contenido-item{margin-top:0;}
-  /* .admin-subseccion agrupa varias cards sueltas (que antes repetían el
-     mismo eyebrow) en un único .card con un eyebrow y una subsección
-     plegable por formulario. A diferencia de .categoria-contenido no va
-     anidado en una .seccion-contenido, así que no lleva su padding-left
-     extra. */
-  .admin-grupo > .eyebrow{margin-bottom:2px;}
-  .admin-subseccion{border-top:1px solid var(--line); margin-top:10px; padding-top:2px;}
-  .admin-subseccion > summary{
-    cursor:pointer; list-style:none; padding:10px 2px; display:flex; align-items:center; gap:10px;
-    font-size:15px; color:var(--gold); font-family:var(--f-display,inherit);
-  }
-  .admin-subseccion > summary::-webkit-details-marker{display:none;}
-  .admin-subseccion > summary::before{
-    content:'+'; width:16px; flex-shrink:0; text-align:center; color:var(--purple-light); font-family:var(--f-mono);
-  }
-  .admin-subseccion[open] > summary::before{content:'–';}
-  .admin-subseccion > summary .cat-titulo{flex:1;}
   .admin-subseccion-body{padding:2px 2px 14px;}
   .contenido-item pre{white-space:pre-wrap; word-break:break-word; font-family:var(--f-body,inherit); font-size:14px; color:var(--text); margin:0; line-height:1.5;}
   /* Cuando la opción trae o.docId, un botón muestra el Doc de origen
@@ -173,19 +142,19 @@
       <p class="text-dim" style="font-size:13px; margin:0 0 4px;">Preparación de guerra, estándar para todos los clanes: en Entrenamiento se piden las defensas de barcos, en Mazos se pide revisar RoyaleAPI para actualizar el mazo, y los ataques pendientes son el mensaje clásico de guerra. Ábrelo para copiarlo o descargarlo.</p>
 
       <details class="admin-subseccion admin-toggle-grupo">
-        <summary><span class="cat-titulo">Día de guerra, entrenamiento y mazos</span><button type="button" class="btn-refrescar-categoria" title="Actualizar contenido">↻</button></summary>
+        <summary><span class="cat-titulo">Día de guerra, entrenamiento y mazos</span><button type="button" class="btn-refrescar-categoria" title="Actualizar contenido" aria-label="Actualizar contenido: Día de guerra, entrenamiento y mazos">↻</button></summary>
         <div class="admin-subseccion-body">
-          <div class="contenido-tabs admin-toggle-botones">
-            <button type="button" class="tab-clan btn-toggle-cat activo" data-categoria="Día de guerra">Guerra</button>
-            <button type="button" class="tab-clan btn-toggle-cat" data-categoria="Defensas de barcos">Entrenamiento</button>
-            <button type="button" class="tab-clan btn-toggle-cat" data-categoria="Mazos">Mazos</button>
+          <div class="contenido-tabs admin-toggle-botones" role="group" aria-label="Categoría a mostrar: Día de guerra, entrenamiento y mazos">
+            <button type="button" aria-pressed="true" class="tab-clan btn-toggle-cat activo" data-categoria="Día de guerra">Guerra</button>
+            <button type="button" aria-pressed="false" class="tab-clan btn-toggle-cat" data-categoria="Defensas de barcos">Entrenamiento</button>
+            <button type="button" aria-pressed="false" class="tab-clan btn-toggle-cat" data-categoria="Mazos">Mazos</button>
           </div>
           <div class="admin-toggle-body" style="margin-top:10px;"><div class="empty">Cargando…</div></div>
         </div>
       </details>
 
       <details class="admin-subseccion categoria-contenido-simple" data-categoria="Mensaje de Guerra">
-        <summary><span class="cat-titulo">Mensaje de ataques pendientes</span><button type="button" class="btn-refrescar-categoria" title="Actualizar contenido">↻</button></summary>
+        <summary><span class="cat-titulo">Mensaje de ataques pendientes</span><button type="button" class="btn-refrescar-categoria" title="Actualizar contenido" aria-label="Actualizar contenido: Mensaje de ataques pendientes">↻</button></summary>
         <div class="admin-subseccion-body categoria-contenido-body"></div>
       </details>
 
@@ -193,29 +162,29 @@
       <p class="text-dim" style="font-size:13px; margin:0 0 4px;">Mensajes de torneos, sorteos y cambios de rango. Ábrelo para copiarlo o descargarlo.</p>
 
       <details class="admin-subseccion admin-toggle-grupo">
-        <summary><span class="cat-titulo">Torneos</span><button type="button" class="btn-refrescar-categoria" title="Actualizar contenido">↻</button></summary>
+        <summary><span class="cat-titulo">Torneos</span><button type="button" class="btn-refrescar-categoria" title="Actualizar contenido" aria-label="Actualizar contenido: Torneos">↻</button></summary>
         <div class="admin-subseccion-body">
-          <div class="contenido-tabs admin-toggle-botones">
-            <button type="button" class="tab-clan btn-toggle-cat activo" data-categoria="Participantes calificados (torneo)">Participantes</button>
-            <button type="button" class="tab-clan btn-toggle-cat" data-categoria="Ganadores (torneo)">Ganadores</button>
+          <div class="contenido-tabs admin-toggle-botones" role="group" aria-label="Categoría a mostrar: Torneos">
+            <button type="button" aria-pressed="true" class="tab-clan btn-toggle-cat activo" data-categoria="Participantes calificados (torneo)">Participantes</button>
+            <button type="button" aria-pressed="false" class="tab-clan btn-toggle-cat" data-categoria="Ganadores (torneo)">Ganadores</button>
           </div>
           <div class="admin-toggle-body" style="margin-top:10px;"><div class="empty">Cargando…</div></div>
         </div>
       </details>
 
       <details class="admin-subseccion admin-toggle-grupo">
-        <summary><span class="cat-titulo">Sorteos</span><button type="button" class="btn-refrescar-categoria" title="Actualizar contenido">↻</button></summary>
+        <summary><span class="cat-titulo">Sorteos</span><button type="button" class="btn-refrescar-categoria" title="Actualizar contenido" aria-label="Actualizar contenido: Sorteos">↻</button></summary>
         <div class="admin-subseccion-body">
-          <div class="contenido-tabs admin-toggle-botones">
-            <button type="button" class="tab-clan btn-toggle-cat activo" data-categoria="Participantes calificados (sorteo)">Participantes</button>
-            <button type="button" class="tab-clan btn-toggle-cat" data-categoria="Ganadores (sorteo)">Ganadores</button>
+          <div class="contenido-tabs admin-toggle-botones" role="group" aria-label="Categoría a mostrar: Sorteos">
+            <button type="button" aria-pressed="true" class="tab-clan btn-toggle-cat activo" data-categoria="Participantes calificados (sorteo)">Participantes</button>
+            <button type="button" aria-pressed="false" class="tab-clan btn-toggle-cat" data-categoria="Ganadores (sorteo)">Ganadores</button>
           </div>
           <div class="admin-toggle-body" style="margin-top:10px;"><div class="empty">Cargando…</div></div>
         </div>
       </details>
 
       <details class="admin-subseccion categoria-contenido-simple" data-categoria="Ascensos y descensos">
-        <summary><span class="cat-titulo">Cambio de rango</span><button type="button" class="btn-refrescar-categoria" title="Actualizar contenido">↻</button></summary>
+        <summary><span class="cat-titulo">Cambio de rango</span><button type="button" class="btn-refrescar-categoria" title="Actualizar contenido" aria-label="Actualizar contenido: Cambio de rango">↻</button></summary>
         <div class="admin-subseccion-body categoria-contenido-body"></div>
       </details>
 
@@ -223,27 +192,27 @@
       <p class="text-dim" style="font-size:13px; margin:0 0 4px;">Bienvenida e iniciales se envían una sola vez a cada persona; etiqueta y número de teléfono se piden esporádicamente; la descripción de grupos no se le envía a nadie, es solo para actualizar los grupos de WhatsApp.</p>
 
       <details class="admin-subseccion categoria-contenido-simple" data-categoria="Bienvenida">
-        <summary><span class="cat-titulo">Bienvenida de miembros</span><button type="button" class="btn-refrescar-categoria" title="Actualizar contenido">↻</button></summary>
+        <summary><span class="cat-titulo">Bienvenida de miembros</span><button type="button" class="btn-refrescar-categoria" title="Actualizar contenido" aria-label="Actualizar contenido: Bienvenida de miembros">↻</button></summary>
         <div class="admin-subseccion-body categoria-contenido-body"></div>
       </details>
 
       <details class="admin-subseccion categoria-contenido-simple" data-categoria="iPhone">
-        <summary><span class="cat-titulo">Aplicación de iniciales en iPhone</span><button type="button" class="btn-refrescar-categoria" title="Actualizar contenido">↻</button></summary>
+        <summary><span class="cat-titulo">Aplicación de iniciales en iPhone</span><button type="button" class="btn-refrescar-categoria" title="Actualizar contenido" aria-label="Actualizar contenido: Aplicación de iniciales en iPhone">↻</button></summary>
         <div class="admin-subseccion-body categoria-contenido-body"></div>
       </details>
 
       <details class="admin-subseccion categoria-contenido-simple" data-categoria="Etiqueta de miembro">
-        <summary><span class="cat-titulo">Etiqueta de miembro en grupos de WhatsApp</span><button type="button" class="btn-refrescar-categoria" title="Actualizar contenido">↻</button></summary>
+        <summary><span class="cat-titulo">Etiqueta de miembro en grupos de WhatsApp</span><button type="button" class="btn-refrescar-categoria" title="Actualizar contenido" aria-label="Actualizar contenido: Etiqueta de miembro en grupos de WhatsApp">↻</button></summary>
         <div class="admin-subseccion-body categoria-contenido-body"></div>
       </details>
 
       <details class="admin-subseccion categoria-contenido-simple" data-categoria="Celular">
-        <summary><span class="cat-titulo">Solicitud de número de teléfono</span><button type="button" class="btn-refrescar-categoria" title="Actualizar contenido">↻</button></summary>
+        <summary><span class="cat-titulo">Solicitud de número de teléfono</span><button type="button" class="btn-refrescar-categoria" title="Actualizar contenido" aria-label="Actualizar contenido: Solicitud de número de teléfono">↻</button></summary>
         <div class="admin-subseccion-body categoria-contenido-body"></div>
       </details>
 
       <details class="admin-subseccion categoria-contenido-simple" data-categoria="Descripción">
-        <summary><span class="cat-titulo">Descripción de grupos de WSP</span><button type="button" class="btn-refrescar-categoria" title="Actualizar contenido">↻</button></summary>
+        <summary><span class="cat-titulo">Descripción de grupos de WSP</span><button type="button" class="btn-refrescar-categoria" title="Actualizar contenido" aria-label="Actualizar contenido: Descripción de grupos de WSP">↻</button></summary>
         <div class="admin-subseccion-body categoria-contenido-body"></div>
       </details>
     </div>
@@ -376,8 +345,9 @@ async function initMensajesAutomaticos(){
         if(!quedan.length){
           det.style.display = 'none';
         }else if(!quedan.some(b => b.classList.contains('activo'))){
-          botones.forEach(b => b.classList.remove('activo'));
+          botones.forEach(b => { b.classList.remove('activo'); b.setAttribute('aria-pressed', 'false'); });
           quedan[0].classList.add('activo');
+          quedan[0].setAttribute('aria-pressed', 'true');
         }
       });
     }
@@ -459,7 +429,10 @@ async function cargarGrupoToggle(det){
   botones.forEach(b => {
     b.addEventListener('click', () => {
       if(b.classList.contains('activo')) return;
-      botones.forEach(x => x.classList.toggle('activo', x === b));
+      botones.forEach(x => {
+        x.classList.toggle('activo', x === b);
+        x.setAttribute('aria-pressed', x === b ? 'true' : 'false');
+      });
       panels.forEach(p => { p.style.display = (p.dataset.categoria === b.dataset.categoria) ? '' : 'none'; });
     });
   });
@@ -513,10 +486,10 @@ function renderContenidoHtml(opciones, mensajeVacio){
     return `<div class="empty">${esc(mensajeVacio || 'Esta categoría no tiene contenido cargado todavía.')}</div>`;
   }
   const tabsHtml = opciones.length > 1
-    ? `<div class="contenido-tabs" role="tablist">
+    ? `<div class="contenido-tabs" role="group" aria-label="Elegir opción">
         ${opciones.map((o, i) => `
           <button type="button" class="tab-clan${i === 0 ? ' activo' : ''}" data-idx="${i}"
-            role="tab" aria-selected="${i === 0 ? 'true' : 'false'}">
+            aria-pressed="${i === 0 ? 'true' : 'false'}">
             ${esc(o.etiqueta || o.subcategoria || o.clan || ('Opción ' + (i + 1)))}
           </button>`).join('')}
       </div>`
@@ -534,7 +507,7 @@ function renderContenidoHtml(opciones, mensajeVacio){
           <!-- Botón nuevo que descarga el PDF al dispositivo, aparte de "Ver original" que abre el Doc en el panel. -->
           <button type="button" class="btn-icono btn-descargar-pdf" style="display:none;" title="Descargar este contenido como PDF">⬇ Descargar PDF</button>
           <button type="button" class="btn-icono btn-copiar" title="Copiar al portapapeles">⧉ Copiar</button>
-          <button type="button" class="btn-icono btn-colapsar" aria-expanded="true" title="Colapsar texto">▾</button>
+          <button type="button" class="btn-icono btn-colapsar" aria-expanded="true" aria-label="Colapsar texto" title="Colapsar texto">▾</button>
         </div>
       </div>
       <div class="contenido-caja"><pre data-campo="contenido"></pre></div>
@@ -612,7 +585,7 @@ function _activarAccionesContenido(root, opciones){
       if(idx === Number(item.dataset.idxActual)) return;
       root.querySelectorAll('.tab-clan').forEach(t => {
         t.classList.toggle('activo', t === tab);
-        t.setAttribute('aria-selected', t === tab ? 'true' : 'false');
+        t.setAttribute('aria-pressed', t === tab ? 'true' : 'false');
       });
       _pintarOpcionContenido(item, opciones, idx);
     });
@@ -689,6 +662,7 @@ function _activarAccionesContenido(root, opciones){
     btnColapsar.textContent = colapsando ? '▸' : '▾';
     btnColapsar.setAttribute('aria-expanded', String(!colapsando));
     btnColapsar.title = colapsando ? 'Expandir texto' : 'Colapsar texto';
+    btnColapsar.setAttribute('aria-label', btnColapsar.title);
   });
 }
 
