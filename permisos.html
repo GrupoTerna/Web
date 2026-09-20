@@ -60,13 +60,35 @@
     color:var(--gold); border:1px solid var(--gold); border-radius:999px; padding:1px 8px; margin-left:8px;
   }
   .admin-permiso-card .meta-adm{font-family:var(--f-mono); font-size:12px; color:var(--text-dim);}
-  .admin-permiso-card .cuentas-adm{font-size:12px; color:var(--text-faint); margin-top:2px;}
+  .admin-permiso-card .cuentas-adm{
+    font-size:12px; color:var(--text-faint); margin-top:4px;
+    display:flex; flex-direction:column; gap:2px;
+  }
+  .admin-permiso-card .cuentas-adm .grupo-clan .nombre-clan{color:var(--text-dim); font-weight:600;}
 
   .permisos-seccion{margin-top:12px; padding-top:12px; border-top:1px solid var(--line);}
-  .permisos-seccion > .etiqueta-seccion{
+  .etiqueta-seccion-fila{
+    display:flex; align-items:center; justify-content:space-between; gap:10px 14px;
+    margin-bottom:8px; flex-wrap:wrap;
+  }
+  .permisos-seccion > .etiqueta-seccion,
+  .etiqueta-seccion-fila .etiqueta-seccion{
     font-family:var(--f-mono); font-size:11px; letter-spacing:.06em; text-transform:uppercase;
     color:var(--purple-light); margin-bottom:8px; display:block;
   }
+  .etiqueta-seccion-fila .etiqueta-seccion{margin-bottom:0;}
+  .marcar-botones{display:flex; gap:8px; flex-wrap:wrap;}
+
+  /* Reusado por el botón "Recargar" del filtro y por "Marcar/Desmarcar
+     todo" de cada sección — antes .btn-icono no tenía estilo propio y el
+     botón de Recargar salía con la apariencia nativa del navegador. */
+  .btn-icono{
+    background:none; border:1px solid var(--line); color:var(--text-dim);
+    font-family:var(--f-mono); font-size:11px; letter-spacing:.04em; text-transform:uppercase;
+    padding:6px 12px; cursor:pointer; border-radius:var(--radius-sm); transition:border-color .15s, color .15s;
+    white-space:nowrap;
+  }
+  .btn-icono:hover{border-color:var(--purple); color:var(--purple-light);}
   .permisos-grid{
     display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:6px 14px;
     max-height:260px; overflow-y:auto; padding-right:4px;
@@ -319,10 +341,30 @@ function pintarLista(){
   visibles.forEach(a => activarCardAdmin(a));
 }
 
+/**
+ * agruparCuentasPorClan(cuentas)
+ * Agrupa las cuentas de un admin (multicuenta) por clan, en vez de listarlas
+ * todas seguidas sin separación visual. Conserva el orden en que aparece
+ * cada clan por primera vez en `cuentas` (mismo orden que ya trae el
+ * backend). Las cuentas sin clan asignado quedan bajo "Sin clan".
+ */
+function agruparCuentasPorClan(cuentas){
+  if(!cuentas || !cuentas.length) return '';
+  const porClan = new Map();
+  const ordenClanes = [];
+  cuentas.forEach(c => {
+    const clan = c.clan || 'Sin clan';
+    if(!porClan.has(clan)){ porClan.set(clan, []); ordenClanes.push(clan); }
+    porClan.get(clan).push(c.nombre || c.tag);
+  });
+  return ordenClanes.map(clan => {
+    const nombres = porClan.get(clan).map(n => esc(n)).join(', ');
+    return `<div class="grupo-clan"><span class="nombre-clan">${esc(clan)}</span> — ${nombres}</div>`;
+  }).join('');
+}
+
 function pintarCardAdmin(a){
-  const cuentasTxt = (a.cuentas || [])
-    .map(c => `${esc(c.nombre || c.tag)}${c.clan ? ' · ' + esc(c.clan) : ''}`)
-    .join(' &nbsp;·&nbsp; ');
+  const cuentasHtml = agruparCuentasPorClan(a.cuentas);
 
   const funcionesHtml = (PERMISOS_DATA.funciones || []).map(f => {
     const marcado = (a.funciones || []).indexOf(f.id) !== -1;
@@ -352,18 +394,30 @@ function pintarCardAdmin(a){
       <div class="cab">
         <div class="cab-info">
           <div class="nombre-adm">${esc(a.nombre)}${a.esTu ? '<span class="tag-tu">Tú</span>' : ''}</div>
-          <div class="meta-adm">${a.celularFin ? '···' + esc(a.celularFin) : 'Sin celular registrado'}${a.clanesAdmin ? ' — ' + esc(a.clanesAdmin) : ''}</div>
-          ${cuentasTxt ? `<div class="cuentas-adm">${cuentasTxt}</div>` : ''}
+          ${a.clanesAdmin ? `<div class="meta-adm">${esc(a.clanesAdmin)}</div>` : ''}
+          ${cuentasHtml ? `<div class="cuentas-adm">${cuentasHtml}</div>` : ''}
         </div>
       </div>
 
       <div class="permisos-seccion">
-        <span class="etiqueta-seccion">Funciones</span>
+        <div class="etiqueta-seccion-fila">
+          <span class="etiqueta-seccion">Funciones</span>
+          <div class="marcar-botones">
+            <button type="button" class="btn-icono" data-marcar="funcion" data-valor="1">Marcar todo</button>
+            <button type="button" class="btn-icono" data-marcar="funcion" data-valor="0">Desmarcar todo</button>
+          </div>
+        </div>
         <div class="permisos-grid cortas">${funcionesHtml || '<div class="empty">Sin funciones en el catálogo.</div>'}</div>
       </div>
 
       <div class="permisos-seccion">
-        <span class="etiqueta-seccion">Categorías de contenido (Cat_disp)</span>
+        <div class="etiqueta-seccion-fila">
+          <span class="etiqueta-seccion">Categorías de contenido (Cat_disp)</span>
+          ${categorias.length ? `<div class="marcar-botones">
+            <button type="button" class="btn-icono" data-marcar="categoria" data-valor="1">Marcar todo</button>
+            <button type="button" class="btn-icono" data-marcar="categoria" data-valor="0">Desmarcar todo</button>
+          </div>` : ''}
+        </div>
         ${categorias.length
           ? `<div class="permisos-grid">${categoriasHtml}</div>`
           : '<div class="empty">Sin categorías en el catálogo todavía.</div>'}
@@ -381,6 +435,17 @@ function activarCardAdmin(a){
   if(!card) return;
   const btn = card.querySelector('[data-accion="guardar"]');
   const msgEl = card.querySelector('[data-rol="msg"]');
+
+  // "Marcar todo" / "Desmarcar todo" de cada sección — solo tocan las
+  // casillas de SU PROPIA sección (funcion o categoria) dentro de esta
+  // tarjeta, nunca las de otro admin ni las de la otra sección.
+  card.querySelectorAll('[data-marcar]').forEach(btnMarcar => {
+    btnMarcar.addEventListener('click', () => {
+      const claseChk = btnMarcar.dataset.marcar === 'funcion' ? '.chk-funcion' : '.chk-categoria';
+      const marcar = btnMarcar.dataset.valor === '1';
+      card.querySelectorAll(claseChk).forEach(chk => { chk.checked = marcar; });
+    });
+  });
 
   btn.addEventListener('click', async () => {
     const funciones = Array.from(card.querySelectorAll('.chk-funcion:checked')).map(c => c.value);
