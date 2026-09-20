@@ -883,15 +883,17 @@ cargarClanes();
  * miembro nuevo) con tooltip que muestra en qué clan se hizo cada
  * registro.
  *
- * CONTRATO ESPERADO de 'webIngresosRecientes' (backend, fuera de este
- * repo — solo front-end): además de lo que ya usaba (nombre, tag, clan,
- * fechaIngreso, royaleApi, cwstats), cada ingreso debería traer:
+ * CONTRATO de 'webIngresosRecientes' (backend, fuera de este repo — solo
+ * front-end; CUMPLIDO por el backend, verificado 20-sep-2026): además de lo
+ * que ya usaba (nombre, tag, clan, fechaIngreso, royaleApi, cwstats), cada
+ * ingreso trae:
  *   copas, victoriasGuerra, diasInactivo,
  *   guerraSemana: { ataques, puntaje, barcos },
  *   historialSemanal: [ { semana, clan, ataques, puntaje, barcos }, ... ]
  *   (campo 'barcos' agregado 03-sep-2026, pedido del usuario, para la
- *   tercera gráfica comparativa "Barcos por semana"; si el backend
- *   todavía no lo manda, esa gráfica se dibuja en 0 para todos.)
+ *   tercera gráfica comparativa "Barcos por semana"; el backend lo manda
+ *   desde el 17-sep-2026, tanto desde Nuevos como desde el respaldo de
+ *   Control_2. Si alguna vez faltara, esa gráfica se dibuja en 0.)
  * RESUELTO (14-sep-2026, cierre de conexión pendiente): la respuesta de
  * 'webIngresosRecientes' ya trae, al mismo nivel que 'ingresos', el array
  * 'semanasGuerra' con TODAS las semanas de guerra transcurridas (mismo
@@ -1321,10 +1323,10 @@ function activarTooltipsGraficas(){
  *   (lineChartLegendHtml) ahora se imprime ANTES del SVG, no después.
  * - "falta una gráfica de Barcos": se agrega una tercera tarjeta igual a
  *   las otras dos, usando el campo 'barcos' de historialSemanal.
- *   CONTRATO: si el backend todavía no manda 'barcos' por semana dentro
- *   de historialSemanal (ver comentario de contrato más arriba), esta
- *   gráfica simplemente se dibuja en 0 para todos — no rompe, pero para
- *   que muestre datos reales el backend debe agregar ese campo. */
+ *   CONTRATO CUMPLIDO (17-sep-2026): el backend ya manda 'barcos' por
+ *   semana dentro de historialSemanal (ver comentario de contrato más
+ *   arriba). Si algún día faltara, esta gráfica se dibuja en 0 para todos
+ *   — no rompe. */
 function renderComparativaSemanal(container, miembrosTodos, semanasGuerra){
   const miembros = miembrosTodos.filter(m => (m.historialSemanal || []).length);
   if (!miembros.length){ container.innerHTML = ''; return; }

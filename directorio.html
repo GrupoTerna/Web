@@ -233,11 +233,11 @@
          m.fechaIngreso; viene directo de 'webRoster' (backend), tomado de
          la hoja Players (columna "Antigüedad"), y solo se formatea con
          formatearAntiguedad().
-     CONTRATO ESPERADO de 'webRoster' (backend, fuera de este repo): cada
-     miembro debería traer, además de lo que ya usaba (tag, nombre, rango,
-     vigencia), estos campos nuevos: ranking, nivelXp, nivelCartas, copas,
-     arena, vGuerra, fechaIngreso, antiguedad. Si el backend todavía no
-     manda alguno, esta tabla no rompe: la celda se pinta "—" (ver
+     CONTRATO de 'webRoster' (backend, fuera de este repo; CUMPLIDO,
+     verificado 20-sep-2026): cada miembro trae, además de lo que ya usaba
+     (tag, nombre, rango, vigencia), estos campos: ranking, nivelXp,
+     nivelCartas, copas, arena, vGuerra, fechaIngreso, antiguedad. Si algún
+     día faltara alguno, esta tabla no rompe: la celda se pinta "—" (ver
      ROSTER_COLUMNAS). */
   /* FIX (18-sep-2026, refactor CSS — fusión de duplicación literal):
      .roster-table-wrap{overflow-x:auto; -webkit-overflow-scrolling:touch;}
@@ -450,8 +450,9 @@
      recientes agrega V_Guerra, Nivel (xp)"): mini-stats debajo del clan,
      mismo patrón visual que .ext-item (más arriba, "Cara a cara"), solo
      que en fila y sin fondo propio para no competir con el resto de la
-     tarjeta. Si el backend todavía no manda victoriasGuerra/nivelXp para
-     este endpoint, se pinta "—" (ver ingresoStatHtml() más abajo). */
+     tarjeta. El backend ya manda victoriasGuerra y nivelXp en este
+     endpoint (desde el 07-sep-2026); si algún día faltaran, se pinta "—"
+     (ver ingresoStatHtml() más abajo). */
   .nuevo-card .nc-stats{display:flex; justify-content:center; gap:16px; margin:2px 0 12px; flex-wrap:wrap;}
   .nuevo-card .nc-stats span{font-family:var(--f-mono); font-size:13.5px; color:var(--text-dim);}
   .nuevo-card .nc-stats b{color:var(--text); font-weight:700;}
@@ -2313,10 +2314,10 @@ function renderComparativaSemanal(container, miembrosTodos){
  * nombres de campo que ya usa el resto del sitio para lo mismo (vGuerra/
  * victoriasGuerra en perfil.html e index.html respectivamente — se acepta
  * cualquiera de los dos por si el backend manda uno u otro acá; nivelXp
- * igual que perfil.html, ext.nivelXp). CONTRATO ESPERADO ampliado de
- * 'webIngresosRecientes': si el backend todavía no manda vGuerra/
- * victoriasGuerra o nivelXp para este endpoint, la tarjeta pinta "—" en
- * vez de romper (ver ingresoStatHtml()).
+ * igual que perfil.html, ext.nivelXp). CONTRATO ampliado de
+ * 'webIngresosRecientes' (CUMPLIDO: el backend manda victoriasGuerra y
+ * nivelXp, verificado 20-sep-2026): si algún día faltara alguno, la
+ * tarjeta pinta "—" en vez de romper (ver ingresoStatHtml()).
  */
 function ingresoStatHtml(valor, label){
   const txt = (valor === undefined || valor === null || valor === '') ? '—' : fmtNum(valor);
