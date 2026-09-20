@@ -28,7 +28,11 @@
 // v3 (20-sep-2026): se añade assets/js/features/join-modal.js (B-5, lo cargan
 // index.html y directorio.html) que había quedado fuera de CORE_ASSETS; mismo
 // motivo: cambia CORE_ASSETS, así que se sube la versión.
-const CACHE_NAME = 'terna-static-v3';
+// v4 (20-sep-2026): config.js cambió (WEB_MEMBER_TOKEN rotado) y los navegadores
+// seguían sirviendo el config.js viejo desde este caché. Se sube la versión para
+// que 'activate' borre v3, y el precaché de 'install' ahora ignora el caché HTTP
+// del navegador (cache:'reload') para no volver a guardar una copia vieja.
+const CACHE_NAME = 'terna-static-v4';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
@@ -67,7 +71,7 @@ const CORE_ASSETS = [
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(CORE_ASSETS))
+      .then(cache => cache.addAll(CORE_ASSETS.map(ruta => new Request(ruta, { cache: 'reload' }))))
       .catch(() => { /* si algún asset falla (ej. red lenta en el install), no bloquea el resto */ })
   );
   self.skipWaiting();

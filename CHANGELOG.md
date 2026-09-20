@@ -41,6 +41,16 @@ Pendientes que quedaban de B-15, resueltos en la misma tanda:
 
 ## Rendimiento (Lighthouse)
 
+### 20-sep-2026 — `sw.js` v4: `config.js` rotado no llegaba al navegador
+Tras rotar los tokens del backend, `config.js` ya tenía el `WEB_MEMBER_TOKEN`
+nuevo pero el sitio seguía respondiendo "no autorizado": `sw.js` sirve los
+assets propios desde caché primero, así que el navegador seguía usando el
+`config.js` viejo. `CACHE_NAME` sube a `terna-static-v4` (`activate` borra
+`v3`) y el precaché de `install` usa `new Request(ruta, { cache: 'reload' })`
+para no copiar al caché una versión vieja que aún esté en el caché HTTP.
+Efecto: tras publicar `sw.js`, la primera visita instala el Service Worker
+nuevo y la siguiente ya carga el `config.js` correcto.
+
 ### 20-sep-2026 — Hero de `index.html` con `srcset` y precaché de `join-modal.js`
 - **Hero (LCP de `index`, 4.5-4.7 s en la primera corrida):** todos los
   dispositivos bajaban `banner-hero.webp` de 1600 px (240 KB). Se agrega
