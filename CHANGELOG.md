@@ -41,7 +41,7 @@ Pendientes que quedaban de B-15, resueltos en la misma tanda:
 
 ## Rendimiento (Lighthouse)
 
-### 19-sep-2026 — Hero de `index.html` con `srcset` y precaché de `join-modal.js`
+### 20-sep-2026 — Hero de `index.html` con `srcset` y precaché de `join-modal.js`
 - **Hero (LCP de `index`, 4.5-4.7 s en la primera corrida):** todos los
   dispositivos bajaban `banner-hero.webp` de 1600 px (240 KB). Se agrega
   `assets/img/banner-hero-1000.webp` (1000×602, 108 KB, calidad 78) y el
@@ -94,7 +94,7 @@ actualizarlo a mano cuando cambie una página pública.
 
 ## CSS compartido (assets/styles.css)
 
-### 19-sep-2026 — Contraste de enlaces de texto en párrafos (B-21, primera medición real)
+### 20-sep-2026 — Contraste de enlaces de texto en párrafos (B-21, primera medición real)
 Auditoría de contraste en Chromium (color de texto contra fondo efectivo
 compuesto, umbral 4.5:1 o 3:1 para texto grande) sobre `index`, `comunidad`,
 `torneos`, `directorio`, `guerra`, `404` y `perfil`, solo contenido estático
@@ -245,7 +245,7 @@ tarjeta "Ver ganadores" del panel.
 
 ## permisos.html
 
-### 19-sep-2026 — Landmark `<main>`
+### 20-sep-2026 — Landmark `<main>`
 `sinAccesoSec` y `panelSec` quedan dentro de `<main id="main-content">`
 (la página no tenía landmark principal). Sin cambio visual (captura idéntica).
 
@@ -303,7 +303,7 @@ selector de `styles.css` ni de otra página.
 
 ## mensajes.html
 
-### 19-sep-2026 — Accesibilidad: encabezados, `<main>` y anuncio de "Copiado"
+### 20-sep-2026 — Accesibilidad: encabezados, `<main>` y anuncio de "Copiado"
 Tres de los límites que la revisión anterior dejó anotados.
 - **Salto `h1` → `h3`:** los 3 títulos de tarjeta pasan a `h2`. Se comprobó
   antes que no hay regla global de `h2` (`styles.css:244` trata `h1`–`h4`
@@ -419,7 +419,7 @@ una página interna `noindex` que no se precachea.
 > va agregando por tramos a medida que se aligeran sus comentarios; los
 > tramos siguientes se agregarán debajo de este a medida que se procesen.
 
-### 19-sep-2026 — 26 campos con nombre accesible
+### 20-sep-2026 — 26 campos con nombre accesible
 Auditoría automática en Chromium: 40 campos sin nombre accesible. 14 eran los
 `<input type="date|time">` nativos, que ya llevan `aria-hidden="true"` y
 `tabindex="-1"` (detrás del campo de texto amigable): falso positivo. Los 26
@@ -2929,7 +2929,7 @@ PENDIENTE BACKEND: categoría supportCards[] del JSON (las
 
 ## directorio.html — historial trasladado
 
-### 19-sep-2026 — Nombre accesible en los campos de búsqueda
+### 20-sep-2026 — Nombre accesible en los campos de búsqueda
 `#tagInput`, `#compTag1` y `#compTag2` solo tenían `placeholder`; ahora llevan
 `aria-label` (el placeholder no cuenta como etiqueta y desaparece al escribir).
 
@@ -3383,7 +3383,7 @@ el clic del usuario.
 
 ## index.html — historial trasladado
 
-### 19-sep-2026 — Hero con `srcset` y encabezado `h2`
+### 20-sep-2026 — Hero con `srcset` y encabezado `h2`
 Ver "Rendimiento (Lighthouse)" para el `srcset` del hero. Además,
 "¿Nuevo en la Familia Terna?" pasa de `h3` a `h2` (el esquema saltaba de `h1`
 a `h3`); mismo estilo inline, no está dentro de `.ingreso-clan`, captura idéntica.
@@ -3762,7 +3762,7 @@ FIX (03-sep-2026, pedido usuario — "Vigencia [última
 
 ## guerra.html
 
-### 19-sep-2026 — Nombre accesible en los 5 selectores de temporada
+### 20-sep-2026 — Nombre accesible en los 5 selectores de temporada
 `#anioActivosSelect`, `#temporadaActivosSelect`, `#semanaActivosSelect`
 ("Valores diarios") y `#anioTemporadaSelect`, `#temporadaSelect` ("Valores
 semanales") empiezan ocultos y los llena JS; ahora llevan `aria-label` que

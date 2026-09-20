@@ -25,7 +25,7 @@
 
 // v2 (18-sep-2026): cambió CORE_ASSETS (se añadieron los módulos de assets/js/**),
 // así que se sube la versión para que 'activate' borre el caché v1.
-// v3 (19-sep-2026): se añade assets/js/features/join-modal.js (B-5, lo cargan
+// v3 (20-sep-2026): se añade assets/js/features/join-modal.js (B-5, lo cargan
 // index.html y directorio.html) que había quedado fuera de CORE_ASSETS; mismo
 // motivo: cambia CORE_ASSETS, así que se sube la versión.
 const CACHE_NAME = 'terna-static-v3';
