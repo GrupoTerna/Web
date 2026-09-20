@@ -41,6 +41,28 @@ Pendientes que quedaban de B-15, resueltos en la misma tanda:
 
 ## Rendimiento (Lighthouse)
 
+### 20-sep-2026 — D-13: interruptor de prueba para `_MAX_PETICIONES_SIMULTANEAS`
+El valor sigue en **1** para todos (se mantiene la decisión del 13-sep: con
+2 simultáneas volvían los 404 de entrega de Apps Script y los "Cargando…"
+colgados). Subirlo exige medir contra el backend real, que este entorno no
+tiene. `assets/js/core/api.js` lee ahora `localStorage['terna_max_simultaneas']`
+(entero 1–4; cualquier otro valor o un fallo de `localStorage` → 1) para poder
+probar en un solo navegador sin publicar nada distinto: `localStorage.setItem(
+'terna_max_simultaneas','2')` + recargar; `removeItem` para volver. Sin
+efecto para los visitantes que no lo fijen.
+
+### 20-sep-2026 — `sw.js`: la revalidación de assets salta el caché HTTP
+En el `fetch` de assets estáticos (caché primero + actualización en segundo
+plano) la petición a la red ahora es `fetch(req, { cache: 'no-cache' })`.
+Antes podía resolverse desde el caché HTTP del navegador (GitHub Pages
+publica `max-age=600`), de modo que un `config.js`, CSS o JS recién
+publicado tardaba hasta ~10 min en actualizar el caché del Service Worker.
+Con `no-cache` el navegador valida contra el servidor en cada visita (304 si
+no cambió). **Límite:** sigue siendo caché primero, así que la carga que
+dispara la actualización todavía muestra la copia anterior; el archivo
+nuevo se ve en la carga siguiente. `CACHE_NAME` no sube (`CORE_ASSETS` no
+cambió).
+
 ### 20-sep-2026 — D-9 (b): 5 min + `staleIfError` en 5 endpoints que cambian poco
 `webRankings`, `webAniversarios`, `webEstadisticasCartas` (`index.html`),
 `webIngresosRecientes` (`index.html` y `directorio.html`) y

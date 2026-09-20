@@ -28,6 +28,8 @@
 // v3 (20-sep-2026): se añade assets/js/features/join-modal.js (B-5, lo cargan
 // index.html y directorio.html) que había quedado fuera de CORE_ASSETS; mismo
 // motivo: cambia CORE_ASSETS, así que se sube la versión.
+// Tanda 2 (20-sep-2026, sin subir versión: CORE_ASSETS no cambia): la revalidación en segundo plano
+// de los assets estáticos usa cache:'no-cache' (ver el fetch handler de más abajo).
 // v4 (20-sep-2026): config.js cambió (WEB_MEMBER_TOKEN rotado) y los navegadores
 // seguían sirviendo el config.js viejo desde este caché. Se sube la versión para
 // que 'activate' borre v3, y el precaché de 'install' ahora ignora el caché HTTP
@@ -112,7 +114,10 @@ self.addEventListener('fetch', event => {
 
   event.respondWith(
     caches.match(req).then(cacheado => {
-      const enRed = fetch(req).then(res => {
+      // 20-sep-2026 (tanda 2): cache:'no-cache' obliga a validar contra el servidor (If-None-Match/ETag)
+      // en vez de aceptar la copia del caché HTTP del navegador (GitHub Pages: max-age=600). Si el
+      // archivo no cambió, el servidor responde 304 (casi sin costo); si cambió, llega completo.
+      const enRed = fetch(req, { cache: 'no-cache' }).then(res => {
         if (res && res.ok) {
           const copia = res.clone();
           caches.open(CACHE_NAME).then(cache => cache.put(req, copia));

@@ -161,7 +161,20 @@ function _mensajeErrorRed(){
  * que se deja en 1 tal como estaba: es una decisión que requiere medir,
  * no un cambio de código que se pueda inferir del código fuente solo.
  */
-const _MAX_PETICIONES_SIMULTANEAS = 1;
+const _MAX_PETICIONES_SIMULTANEAS = _leerLimiteSimultaneas();
+
+/* D-13 (20-sep-2026): el valor por defecto SIGUE SIENDO 1 (ver diagnóstico de arriba); no cambia nada para
+ * ningún visitante. Solo se agrega un interruptor de PRUEBA para poder medir contra el backend real sin
+ * tocar código: en la consola del navegador, `localStorage.setItem('terna_max_simultaneas', '2')` y
+ * recargar (`localStorage.removeItem('terna_max_simultaneas')` para volver a 1). Solo afecta a ese
+ * navegador. Se acepta un entero de 1 a 4; cualquier otro valor, o si localStorage falla, usa 1. */
+function _leerLimiteSimultaneas(){
+  try{
+    const n = parseInt(localStorage.getItem('terna_max_simultaneas'), 10);
+    if (n >= 1 && n <= 4) return n;
+  }catch(e){ /* localStorage inaccesible: valor por defecto */ }
+  return 1;
+}
 
 let _peticionesActivas = 0;
 
