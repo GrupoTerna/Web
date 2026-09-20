@@ -41,6 +41,41 @@ Pendientes que quedaban de B-15, resueltos en la misma tanda:
 
 ## Rendimiento (Lighthouse)
 
+### 20-sep-2026 — Badge de clan deformado (`Skull_05`) y su peso
+Lighthouse marcó "Displays images with incorrect aspect ratio" (Buenas prácticas 96) en `index`,
+`directorio` y `guerra`: `Skull_05.png` mide 127×151 px (0.84) pero se dibuja en una caja de 26×26,
+así que se veía aplastado; además pesaba 29.6 KB para un ícono de 26 px (Lighthouse: ~26 KB de ahorro).
+- **`assets/js/data/clan-badges.js`** (`iconoBadgeClanHtml`): el `<img>` suma `object-fit:contain`. La caja
+  sigue siendo `size × size`, así que el layout no cambia (a 26 px el badge se dibuja de ~22×26 px, centrado).
+  Lighthouse no evalúa la proporción de las imágenes con `object-fit` distinto de `fill`.
+- **`assets/badges/Skull_05.png`**: 127×151 → **66×78** px (unos 3× la altura a la que se dibuja),
+  29 664 → **9 955 bytes**, sin pérdida de color (la comparación píxel a píxel con el original reducido
+  con el mismo filtro da 0). Mismo nombre y ruta, sin cambios de código para eso.
+- **Verificación (Chromium, `directorio` con `webClanInfo` simulado y badges 16000028):** caja 26×26
+  antes y después; altura de página igual (3995 px); `object-fit: contain`; 0 errores de JS. Comparación
+  visual a 26 px con densidad 3×: el badge nuevo es proporcional y nítido.
+- **Al publicar:** `sw.js` precachea `clan-badges.js`; la primera visita puede verse aún con el `<img>`
+  anterior hasta la segunda carga. **Badges nuevos:** exportarlos a `assets/badges/` de ~78 px de alto
+  (solo existe `Skull_05` hoy; los otros 179 IDs no tienen archivo y el `<img>` se quita solo).
+
+### 20-sep-2026 — `directorio.html`: se reserva la altura de los esqueletos (CLS 0.306)
+La primera corrida de Lighthouse dio CLS **0.306** en `directorio` (las 3 corridas), a cargo de
+`#chartsGrid`. Las 4 tarjetas de "Cargando estadísticas…" medían 86 px y las reales
+(título + 4 barras) miden 187 px; al llegar `webClanInfo` todo lo de abajo saltaba ~400 px en
+móvil (grilla de 392 → 794 px a 412 px de ancho). Cambio (2 reglas en el `<style>` de la página):
+- `.chart-card.clan-card-skel{min-height:187px}` — la tarjeta real mide 187 px en 360, 412, 600, 768,
+  1024 y 1280 px de ancho (medido en Chromium con datos simulados; a 412 px la grilla real da 794 px,
+  igual que el rect de Lighthouse, 798 px).
+- `#clanGrid > .clan-card-skel{min-height:260px}` — las tarjetas de clan reales miden entre 271 y 328 px
+  según el ancho y el contenido; se usa un piso de 260 px para que, si el contenido real fuera menor,
+  no quede un hueco.
+**Medición (PerformanceObserver de `layout-shift`, respuesta simulada tras 1.2 s):** 412×823:
+CLS 0.301 → **0.021**; 1280×800: 0.167 → **0.022**. Con los datos ya cargados la página es idéntica
+píxel por píxel (412 y 1280 px) y sin errores de JS. **Límites:** el modelo reproduce el valor de Lighthouse
+(0.301 vs 0.306), pero no se probó con el backend real; si `webClanInfo` falla, el bloque de error
+(más bajo que el esqueleto) colapsa y la página sube de golpe (caso raro, con `staleIfError`).
+No se tocó `index.html` (su CLS fue 0.003 en 2 de 3 corridas; la 0.151 de la otra es otra causa).
+
 ### 20-sep-2026 — Accesibilidad de `index` y `directorio` (Lighthouse: `label-content-name-mismatch` y `heading-order`)
 Primera corrida real de Lighthouse (accesibilidad 96 en `index`, 98 en `directorio`).
 - **`index.html`, "Ingresos recientes":** la tarjeta `.js-ingreso-row` era un

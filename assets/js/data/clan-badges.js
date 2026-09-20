@@ -109,7 +109,11 @@ function iconoBadgeClanHtml(badgeId, opts){
   const idx = Number(badgeId) - BADGE_ID_BASE;
   const nombre = BADGE_NOMBRES_POR_ID[idx];
   if (!nombre) return '';
-  return `<img src="assets/badges/${nombre}.png" alt="" width="${size}" height="${size}" loading="lazy" decoding="async" style="vertical-align:-6px; margin-right:6px;" onerror="this.remove();">`;
+  // FIX (20-sep-2026, Lighthouse "image-aspect-ratio" en index/directorio/guerra): el badge no es cuadrado
+  // (Skull_05 mide 66x78) pero se dibujaba en una caja de size x size y quedaba deformado. object-fit:contain
+  // lo escala sin deformar dentro de la misma caja (el layout no cambia). Al exportar badges nuevos a
+  // assets/badges/, dejarlos de ~78 px de alto: aquí se dibujan a 26 px, así cubre pantallas de hasta 3x.
+  return `<img src="assets/badges/${nombre}.png" alt="" width="${size}" height="${size}" loading="lazy" decoding="async" style="vertical-align:-6px; margin-right:6px; object-fit:contain;" onerror="this.remove();">`;
 }
 
 

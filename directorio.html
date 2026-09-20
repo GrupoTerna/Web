@@ -33,6 +33,14 @@
   /* ---------- Gráficos de clan (Miembros/Donaciones/Trofeos/Copas) ---------- */
   .charts-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:16px; margin-bottom:32px;}
   .chart-card{padding:20px;}
+  /* FIX (20-sep-2026, Lighthouse: CLS 0.306 en esta página): las 4 tarjetas de "Cargando estadísticas…"
+     medían 86 px y las reales (título + 4 barras) miden 187 px, así que al llegar webClanInfo todo lo de
+     abajo saltaba unos 400 px en móvil. Medido en Chromium con datos simulados a 360/412/600/768/1024/1280 px:
+     la tarjeta real mide 187 px en todos los anchos (mismo valor que el rect de Lighthouse: 798 px de grilla a 1 columna).
+     Las tarjetas de clan de abajo (#clanGrid) miden entre 271 y 328 px según el ancho, con contenido variable:
+     se reserva un piso conservador de 260 px para no dejar hueco si el contenido real es menor. */
+  .chart-card.clan-card-skel{min-height:187px;}
+  #clanGrid > .clan-card-skel{min-height:260px;}
   /* FIX (16-sep-2026 v6, pedido usuario — "me parece que los nombres y
      valores resaltan más que el título, no se ve correcto"): el título
      usaba var(--text-dim) (gris) mientras que .chart-label-fuerte y
