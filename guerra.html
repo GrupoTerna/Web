@@ -79,18 +79,22 @@
   .tlp-nota{margin-top:8px; font-family:var(--f-mono); font-size:11px; color:var(--text-faint);}
   .clan-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:16px;}
   /* Continuación de cada tarjeta de "Guerra de Hoy": pronóstico del clan y de sus rivales en la misma carrera (pronosticoClanHtml()). Historial en CHANGELOG.md. */
-  .clan-pron{margin-top:16px; padding-top:14px; border-top:1px dashed var(--line-strong);}
+  /* min-width:0 en toda la cadena (tarjeta -> continuación -> lista -> fila -> nombre): sin eso un nombre largo (ej. "Sopaipas_Chile") ensanchaba la fila y la fame se salía de la tarjeta. Historial en CHANGELOG.md. */
+  .clan-card{min-width:0;}
+  .clan-pron{margin-top:16px; padding-top:14px; border-top:1px dashed var(--line-strong); min-width:0;}
   .clan-pron[hidden]{display:none;}
   .cp-head{font-family:var(--f-mono); font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--text-faint); text-align:center; margin-bottom:10px;}
-  .cp-list{list-style:none; margin:0; padding:0; display:grid; gap:6px;}
-  .cp-row{border:1px solid var(--line); border-radius:var(--radius-sm); padding:7px 9px;}
+  .cp-list{list-style:none; margin:0; padding:0; display:grid; grid-template-columns:minmax(0,1fr); gap:6px;}
+  .cp-row{border:1px solid var(--line); border-radius:var(--radius-sm); padding:7px 9px; min-width:0;}
   .cp-own{border-color:var(--purple); background:rgba(162,57,255,.08);}
-  .cp-top{display:flex; justify-content:space-between; align-items:baseline; gap:8px; font-size:13px;}
-  .cp-n{font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .cp-top{display:flex; justify-content:space-between; align-items:baseline; gap:8px; font-size:13px; min-width:0;}
+  .cp-n{flex:1 1 0; min-width:0; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
   .cp-r{font-family:var(--f-mono); font-weight:400; color:var(--text-faint); margin-right:4px;}
   .cp-riv{font-family:var(--f-mono); font-size:10px; font-weight:400; color:var(--text-faint); margin-left:4px;}
-  .cp-top b{font-family:var(--f-mono); white-space:nowrap;}
+  .cp-top b{flex:0 0 auto; font-family:var(--f-mono); white-space:nowrap;}
+  /* Roster y Máx en la 1ª línea y los ataques SIEMPRE en la 2ª, para que todas las filas de todas las tarjetas midan lo mismo. */
   .cp-sub{display:flex; flex-wrap:wrap; gap:2px 10px; margin-top:3px; font-family:var(--f-mono); font-size:10px; color:var(--text-faint);}
+  .cp-sub span:last-child{flex-basis:100%;}
   .clan-card .name{font-family:var(--f-display); font-size:18px; font-weight:800; text-transform:uppercase; color:var(--text); text-align:center;}
   /* .stats no tenía justify-content, así que la fila de números quedaba pegada a la izquierda (flex-start por defecto). Historial en CHANGELOG.md. */
   .clan-card .stats{display:flex; justify-content:center; gap:18px; margin-top:14px; font-family:var(--f-mono);}

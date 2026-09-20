@@ -3565,9 +3565,15 @@ que explicaba "solo roster"/"techo máximo" pasó a un pie bajo la grilla.
 - `pintarPronosticoEnTarjetas()` corre dentro de `actualizarPuestosClanes()`,
   así que se repinta en cada `render()` (las tarjetas se recrean cada 60 s)
   y al llegar `webPronosticoGuerra` o `webClanInfo`, sin parpadeo.
-- Observación (sin cambiar): en la captura del pedido "Techo (solo roster)"
-  sale MAYOR que "Techo máximo", al revés de lo que dice la nota. Revisar
-  `fameTechoRoster`/`fameTecho` en `38_Pronostico_Guerra.gs`.
+- Corrección de layout (20-sep-2026, captura del usuario): las filas del
+  primer clan se salían de la tarjeta y cortaban la fame. Faltaba
+  `min-width:0` en la cadena tarjeta -> continuación -> lista -> fila ->
+  nombre (los nombres largos ensanchaban la fila). Además Roster/Máx van en
+  la primera línea y los ataques siempre en la segunda, para que todas las
+  filas midan igual entre tarjetas.
+- Observación (resuelta el 20-sep-2026 en `38_Pronostico_Guerra.gs`): el
+  techo Roster salía mayor que el Máx porque no respetaba los topes de 200
+  ataques / 50 cuentas.
 
 ### 19-sep-2026 — Botones Jue–Dom: el panel "Puesto al cierre" se quedaba en "Cargando…"
 Pedido usuario: al pulsar Jue/Vie/Sáb/Dom el panel no terminaba de cargar.
