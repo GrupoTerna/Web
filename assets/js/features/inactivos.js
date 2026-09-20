@@ -8,9 +8,9 @@
  * REGLA DURA (pedido del usuario): "en ningún caso se debe mostrar datos
  * sensibles (celulares)" — esta fila nunca debe agregar el campo Celular
  * aunque el backend llegara a incluirlo en el objeto `cuentas`.
- * OJO backend (1-sep-2026, pedido usuario — "agregarle botones de
- * RoyaleAPI/CWStats/Vetar, también depende de que el backend devuelva
- * esos datos por cuenta inactiva, cosa que hoy no hace"): `c.royaleApi`/
+ * RESUELTO en backend (20-sep-2026; antes 1-sep-2026, pedido usuario —
+ * "agregarle botones de RoyaleAPI/CWStats/Vetar"): _webAdminCuentasInactivas()
+ * (34_Web_API.gs) ya manda `royaleApi` y `cwstats` por cuenta. `c.royaleApi`/
  * `c.cwstats` se pintan solo si urlValida() los acepta, igual que en
  * directorio.html/index.html con el resto de links externos.
  * FIX (07-sep-2026, pedido usuario — "la letra está muy pequeña, los tags
@@ -23,13 +23,13 @@
  * flexbox "cuadre por casualidad". Nombre/Tag/Clan se mantienen dentro de
  * una sola celda (identidad de la cuenta) pero ya no se parten de línea
  * (white-space:nowrap, ver .ia-nombre/.ia-tag/.ia-clan en styles.css) y
- * con letra más grande. CONTRATO ESPERADO ampliado de
- * 'webAdminCuentasInactivas' (backend, fuera de este repo): además de
- * {tag, nombre, clan, esAdmin}, cada cuenta debería traer nomMulti,
- * nivelXp (mismo nombre que ya usa perfil.html/directorio.html para
- * "Nivel (XP)") y copas. Si el backend todavía no manda alguno de los
- * tres, la celda pinta "—" en vez de romper — igual que hace ya
- * ROSTER_COLUMNAS en directorio.html para sus propias columnas nuevas.
+ * con letra más grande. CONTRATO de 'webAdminCuentasInactivas' (ya
+ * cumplido por el backend, verificado 20-sep-2026): además de
+ * {tag, nombre, clan, esAdmin}, cada cuenta trae nomMulti, nivelXp (mismo
+ * nombre que ya usa perfil.html/directorio.html para "Nivel (XP)"), copas,
+ * royaleApi y cwstats. Si algún día faltara alguno de los tres primeros, la
+ * celda pinta "—" en vez de romper — igual que hace ya ROSTER_COLUMNAS en
+ * directorio.html para sus propias columnas nuevas.
  */
 function _filaInactivoHtml(c){
   const royaleOk = urlValida(c.royaleApi);
