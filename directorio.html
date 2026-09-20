@@ -2519,7 +2519,7 @@ async function cargarIngresosRecientes(){
   const chartsWrap = document.getElementById('ingresosChartsWrap');
   const pillsWrap = document.getElementById('ingClanPills');
   try{
-    const data = await apiGet('webIngresosRecientes');
+    const data = await apiGet('webIngresosRecientes', null, { ttlMs: 300000, staleIfError: true }); // D-9 (b): 5 min; B4/B-10: si falla la red, usar el último dato guardado
     const nuevos = (data.ingresos || []).slice().sort((a, b) => {
       const porClan = ordenClanIndex(a.clan) - ordenClanIndex(b.clan);
       if (porClan !== 0) return porClan;

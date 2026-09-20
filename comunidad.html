@@ -411,7 +411,7 @@
 async function cargarAscensos(){
   const wrap = document.getElementById('ascensosWrap');
   try{
-    const data = await apiGet('webAscensosRecientes');
+    const data = await apiGet('webAscensosRecientes', null, { ttlMs: 300000, staleIfError: true }); // D-9 (b): 5 min; B4/B-10: si falla la red, usar el último dato guardado
     const ascensos = data.ascensos || [];
     if (!ascensos.length){
       wrap.innerHTML = '<div class="empty">Todavía no hay ascensos registrados.</div>';

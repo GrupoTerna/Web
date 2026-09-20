@@ -1356,7 +1356,7 @@ async function cargarIngresos(){
   try{
     // webRoster (mismo directorio que usa directorio.html) se pide en paralelo para cruzarlo con webIngresosRecientes. Historial en CHANGELOG.md.
     const [data, dataRoster] = await Promise.all([
-      apiGet('webIngresosRecientes'),
+      apiGet('webIngresosRecientes', null, { ttlMs: 300000, staleIfError: true }), // D-9 (b): 5 min; B4/B-10: si falla la red, usar el último dato guardado
       apiGet('webRoster', null, { ttlMs: 300000, staleIfError: true }).catch(() => null) // defensivo: si falla y no hay respaldo, no filtra en vez de romper la sección; B-11: 5 min; B4/B-10
     ]);
     let ingresos = data.ingresos || [];
@@ -1480,7 +1480,7 @@ async function cargarAniversarios(){
   const section = document.getElementById('aniversarios');
   const wrap = document.getElementById('aniversariosWrap');
   try{
-    const data = await apiGet('webAniversarios');
+    const data = await apiGet('webAniversarios', null, { ttlMs: 300000, staleIfError: true }); // D-9 (b): 5 min; B4/B-10: si falla la red, usar el último dato guardado
     const lista = data.aniversarios || [];
     if (!lista.length){ section.style.display = 'none'; return; }
 
@@ -1561,7 +1561,7 @@ function pintarRanking(elId, lista, sufijo){
  */
 async function cargarRankings(){
   try{
-    const data = await apiGet('webRankings');
+    const data = await apiGet('webRankings', null, { ttlMs: 300000, staleIfError: true }); // D-9 (b): 5 min; B4/B-10: si falla la red, usar el último dato guardado
     pintarRanking('rkDonadores', data.donadores, '');
     pintarRanking('rkRacha', data.racha, '');
     pintarRanking('rkTorneos', data.torneos, 'batallas');
@@ -1651,7 +1651,7 @@ function rarezaHtml(rarity){
 async function cargarEstadisticasCartas(){
   const wrap = document.getElementById('cartasWrap');
   try{
-    const data = await apiGet('webEstadisticasCartas');
+    const data = await apiGet('webEstadisticasCartas', null, { ttlMs: 300000, staleIfError: true }); // D-9 (b): 5 min; B4/B-10: si falla la red, usar el último dato guardado
     if (!data.top10 || !data.top10.length){
       wrap.innerHTML = '<div class="empty" style="padding:8px 0;">Todavía no hay datos de mazos disponibles.</div>';
       return;

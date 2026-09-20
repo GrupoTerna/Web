@@ -41,6 +41,30 @@ Pendientes que quedaban de B-15, resueltos en la misma tanda:
 
 ## Rendimiento (Lighthouse)
 
+### 20-sep-2026 — D-9 (b): 5 min + `staleIfError` en 5 endpoints que cambian poco
+`webRankings`, `webAniversarios`, `webEstadisticasCartas` (`index.html`),
+`webIngresosRecientes` (`index.html` y `directorio.html`) y
+`webAscensosRecientes` (`comunidad.html`) usaban el TTL por defecto (60 s) y
+sin respaldo. Ahora pasan `{ ttlMs: 300000, staleIfError: true }`, igual que
+`webClanInfo`/`webRoster`. Efecto: menos peticiones al backend y, si este
+falla, se muestra el último dato guardado en `localStorage` en vez del error
+(si no hay respaldo, el error se lanza como antes). Sin cambios en
+`webGuerraLog` ni en el comparador (`webCompararJugadores`,
+`webHistorialGuerraComparador`), que se dejan a propósito con el TTL por
+defecto. Un ingreso, ascenso o ranking nuevo puede tardar hasta 5 min en
+verse en una pestaña que ya lo tenía cargado.
+
+### 20-sep-2026 — D-22: objetivo táctil del enlace "Volver" y `::placeholder` global
+- **`perfil.html`:** el enlace "← Volver al Directorio" medía 159×14 px (por
+  debajo de los 24 px de WCAG 2.5.8). Se le agrega `display:inline-block;
+  padding:5px 0` (alto ≈ 24 px; empuja ~10 px el contenido).
+- **`assets/styles.css`:** `.field input::placeholder` y
+  `.field textarea::placeholder` con `--text-faint` y `opacity:1` (antes
+  color por defecto del navegador, ~4.27:1; ahora 5.12:1 sobre `--bg-2`).
+  Afecta al texto de ayuda de los formularios de `admin`, `mensajes`, etc.
+  que usan `.field`. `sorteo.html` no enlaza `styles.css` y conserva sus
+  propios placeholders.
+
 ### 20-sep-2026 — `sw.js` v4: `config.js` rotado no llegaba al navegador
 Tras rotar los tokens del backend, `config.js` ya tenía el `WEB_MEMBER_TOKEN`
 nuevo pero el sitio seguía respondiendo "no autorizado": `sw.js` sirve los
