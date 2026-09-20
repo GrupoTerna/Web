@@ -314,6 +314,22 @@
       <div id="misCuentasWrap"><div class="empty">Cargando tus cuentas…</div></div>
     </div>
 
+    <!-- PANEL DE PERMISOS (19-sep-2026, pedido de Diana): card aparte que
+         lleva a permisos.html, la pantalla con los checkboxes de Funciones/
+         Cat_disp por administrador. Oculta por defecto (display:none) —
+         aplicarVisibilidadPanelPermisos() solo la muestra si el backend
+         confirma (webAdminMisPermisos) que este Celular es el guardado en
+         la Script Property PANEL_PERMISOS_CELULAR. El aislamiento real pasa
+         en el backend (_webPermisosExigirAcceso(), 34_Web_API.gs); esto es
+         solo para no mostrarle el atajo a quien de todos modos no puede
+         usarlo. -->
+    <div class="card" id="cardPanelPermisos" style="display:none; margin-top:24px; border-color:var(--gold);">
+      <div class="eyebrow">Solo para ti</div>
+      <h3 style="font-size:15px; color:var(--gold); margin:10px 0 4px;">Panel de permisos</h3>
+      <p class="text-dim" style="font-size:13px; margin:0 0 14px;">Administra con checkboxes qué puede hacer cada administrador (Funciones) y qué categorías de mensajes puede ver (Cat_disp), en vez de editar la hoja a mano.</p>
+      <a href="permisos.html" class="btn btn-primary btn-block">Abrir panel de permisos</a>
+    </div>
+
     <!-- "Buscar miembro" busca por Nombre, Nom_Multi o Tag en toda la base, con sugerencias mientras se escribe; si no hay coincidencias, prueba como Tag directo. -->
     <div class="card" style="margin-top:24px;">
       <div class="eyebrow">Buscar miembro</div>
@@ -1566,6 +1582,7 @@ function mostrarPanel(){
   // por si esta función corriera antes de tener el admin guardado.
   actualizarEtiquetaAutorPropio();
   aplicarVisibilidadPorFunciones();
+  aplicarVisibilidadPanelPermisos();
   cargarMisCuentas();
   cargarTorneosHoy();
   cargarSorteosHoy();
@@ -1607,6 +1624,28 @@ function aplicarVisibilidadPorFunciones(){
   document.getElementById('cardVetar').style.display = puedeVetar ? '' : 'none';
   // #cardInfiltrados vive junto a "Buscar miembro"; ya no fuerza visible el contenedor "Directorio" si queda vacío. Historial en CHANGELOG.md.
   document.getElementById('directorioGrupo').style.display = (puedeRegistrar || puedeVetar) ? '' : 'none';
+}
+
+/**
+ * aplicarVisibilidadPanelPermisos()
+ * PANEL DE PERMISOS (19-sep-2026, pedido de Diana): a diferencia de
+ * aplicarVisibilidadPorFunciones() (que solo lee la copia de Funciones
+ * guardada en localStorage al iniciar sesión), acá SÍ hace falta preguntar
+ * al backend: `panelPermisos` no es una Función más de la lista, es un
+ * flag aparte que solo webAdminMisPermisos calcula comparando el Celular de
+ * la sesión contra la Script Property PANEL_PERMISOS_CELULAR (ver
+ * _webAdminMisPermisos(), 34_Web_API.gs) — no hay nada de eso en la sesión
+ * guardada por webLogin. Si la llamada falla (sin conexión, etc.) la card
+ * se queda oculta: fallar cerrado, nunca mostrar el atajo por error.
+ */
+async function aplicarVisibilidadPanelPermisos(){
+  try{
+    const data = await apiGetAuth('webAdminMisPermisos', {});
+    if(manejarRespuestaAuth(data)) return;
+    document.getElementById('cardPanelPermisos').style.display = (data.ok && data.panelPermisos) ? '' : 'none';
+  }catch(err){
+    document.getElementById('cardPanelPermisos').style.display = 'none';
+  }
 }
 function mostrarLogin(msg){
   localStorage.removeItem(SESSION_KEY);
@@ -1656,6 +1695,13 @@ document.getElementById('btnLogin').addEventListener('click', async () => {
     // un valor fijo: el contenido de ?volver= nunca se usa como URL.
     if(new URLSearchParams(window.location.search).get('volver') === 'mensajes'){
       window.location.replace('mensajes.html');
+      return;
+    }
+    // PANEL DE PERMISOS (19-sep-2026, pedido de Diana): mismo mecanismo que
+    // ?volver=mensajes de arriba, para volver a permisos.html tras iniciar
+    // sesión desde ahí (ver irALogin() en permisos.html).
+    if(new URLSearchParams(window.location.search).get('volver') === 'permisos'){
+      window.location.replace('permisos.html');
       return;
     }
     mostrarPanel();

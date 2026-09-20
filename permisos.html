@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Permisos — Familia Terna</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600;700&display=swap"></noscript>
+<link rel="stylesheet" href="assets/styles.css">
+<link rel="icon" type="image/jpeg" href="assets/img/logo-cuadrado.jpg">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#040508">
+<link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png">
+<style>
+  /* Estilos propios de esta página (reusa tokens de styles.css). Página
+     nueva (19-sep-2026, pedido de Diana): panel de permisos, aparte de
+     admin.html, aislado por celular en el backend (_webPermisosExigirAcceso(),
+     34_Web_API.gs) — SOLO el Celular guardado en la Script Property
+     PANEL_PERMISOS_CELULAR entra de verdad. Esta página además se autooculta
+     del lado del cliente si el backend dice que no toca (ver
+     verificarAccesoYCargar() más abajo), y el link hacia acá en admin.html
+     solo se muestra a esa misma persona. */
+  .admin-topbar{display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;}
+  #logoutBtn{
+    background:none; border:1px solid var(--line); color:var(--text-dim);
+    font-family:var(--f-mono); font-size:11px; letter-spacing:.06em; text-transform:uppercase;
+    padding:7px 14px; cursor:pointer; border-radius:var(--radius-sm); transition:border-color .15s, color .15s;
+  }
+  #logoutBtn:hover{border-color:var(--danger); color:var(--danger);}
+
+  .permiso-nota{
+    background:var(--bg-2); border:1px solid var(--line); border-radius:var(--radius-sm);
+    padding:12px 14px; font-size:13px; color:var(--text-dim); margin-top:14px; line-height:1.5;
+  }
+
+  .permisos-filtro{
+    display:flex; gap:10px; align-items:center; margin:18px 0 4px; flex-wrap:wrap;
+  }
+  .permisos-filtro input[type="text"]{
+    flex:1; min-width:200px; padding:9px 12px; font-size:13px; border-radius:6px;
+    border:1px solid var(--line); background:var(--bg-2); color:var(--text); font-family:inherit;
+  }
+
+  .admin-permiso-card{
+    border:1px solid var(--line); border-radius:var(--radius-sm); padding:16px 18px; margin-top:14px;
+    transition:border-color .15s;
+  }
+  .admin-permiso-card.es-tu{border-color:var(--gold);}
+  .admin-permiso-card .cab{
+    display:flex; align-items:flex-start; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:10px;
+  }
+  .admin-permiso-card .cab-info{display:flex; flex-direction:column; gap:3px;}
+  .admin-permiso-card .nombre-adm{font-size:16px; font-weight:700; color:var(--text);}
+  .admin-permiso-card .nombre-adm .tag-tu{
+    font-family:var(--f-mono); font-size:10px; letter-spacing:.06em; text-transform:uppercase;
+    color:var(--gold); border:1px solid var(--gold); border-radius:999px; padding:1px 8px; margin-left:8px;
+  }
+  .admin-permiso-card .meta-adm{font-family:var(--f-mono); font-size:12px; color:var(--text-dim);}
+  .admin-permiso-card .cuentas-adm{font-size:12px; color:var(--text-faint); margin-top:2px;}
+
+  .permisos-seccion{margin-top:12px; padding-top:12px; border-top:1px solid var(--line);}
+  .permisos-seccion > .etiqueta-seccion{
+    font-family:var(--f-mono); font-size:11px; letter-spacing:.06em; text-transform:uppercase;
+    color:var(--purple-light); margin-bottom:8px; display:block;
+  }
+  .permisos-grid{
+    display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:6px 14px;
+    max-height:260px; overflow-y:auto; padding-right:4px;
+  }
+  .permisos-grid.cortas{max-height:none;}
+  .permiso-item{
+    display:flex; align-items:flex-start; gap:9px; padding:5px 4px; font-size:13px; color:var(--text);
+    cursor:pointer; border-radius:5px; user-select:none;
+  }
+  .permiso-item:hover{background:rgba(162,57,255,.1);}
+  .permiso-item input[type="checkbox"]{
+    accent-color:var(--purple); width:16px; height:16px; flex-shrink:0; margin-top:1px; cursor:pointer;
+  }
+  .permiso-item .txt-permiso{display:flex; flex-direction:column;}
+  .permiso-item .txt-permiso .desc-permiso{font-size:11px; color:var(--text-faint); margin-top:1px;}
+  .permiso-item.sensible .txt-permiso .nombre-permiso{color:var(--gold);}
+
+  .permisos-acciones{
+    display:flex; align-items:center; gap:12px; margin-top:14px; padding-top:14px; border-top:1px solid var(--line);
+    flex-wrap:wrap;
+  }
+  .btn-guardar-permisos{
+    background:var(--purple); color:#fff; border:1px solid transparent; border-radius:var(--radius-sm);
+    font-family:var(--f-mono); font-size:12px; font-weight:700; letter-spacing:.04em; text-transform:uppercase;
+    padding:9px 18px; cursor:pointer; transition:background .15s;
+  }
+  .btn-guardar-permisos:hover{background:var(--purple-light);}
+  .btn-guardar-permisos:disabled{opacity:.55; cursor:default;}
+  .permiso-msg-inline{font-size:13px;}
+  .permiso-msg-inline.ok{color:var(--ok);}
+  .permiso-msg-inline.error{color:var(--danger);}
+
+  .sin-acceso-box{
+    max-width:520px; margin:60px auto 0; text-align:center; padding:32px 24px;
+  }
+  .sin-acceso-box .eyebrow{color:var(--danger);}
+</style>
+</head>
+<body data-page="permisos">
+
+<a href="#panelSec" class="skip-link">Saltar al contenido</a>
+
+<nav class="nav">
+  <div class="wrap">
+    <a href="index.html" class="brand"><picture><source srcset="assets/img/logo-cuadrado.webp" type="image/webp"><img src="assets/img/logo-cuadrado.jpg" alt="Escudo GxT Familia Terna" class="brand-logo" width="256" height="256"></picture> Familia Terna</a>
+    <button type="button" id="navToggle" class="nav-toggle" aria-label="Abrir menú" aria-expanded="false" aria-controls="navLinks">☰</button>
+    <div class="links" id="navLinks">
+      <a href="index.html" data-page="inicio">Inicio</a>
+      <a href="directorio.html" data-page="directorio">Directorio</a>
+      <a href="guerra.html" data-page="guerra">Guerra</a>
+      <a href="torneos.html" data-page="torneos">Torneos</a>
+      <a href="comunidad.html" data-page="comunidad">Comunidad</a>
+      <a href="mensajes.html" data-page="mensajes" style="display:none;">Mensajes</a>
+      <a href="admin.html" data-page="admin" class="cta">Acceder</a>
+    </div>
+  </div>
+</nav>
+
+<!-- ========== SIN ACCESO ==========
+     Se muestra si no hay sesión, si la sesión venció, o si el backend
+     confirma que este Celular NO es el de PANEL_PERMISOS_CELULAR. Nunca se
+     asume acceso del lado del cliente: siempre se pregunta primero. -->
+<section id="sinAccesoSec" style="display:none; padding-top:24px;">
+  <div class="wrap">
+    <div class="card sin-acceso-box">
+      <div class="eyebrow">Acceso restringido</div>
+      <h1 style="font-size:22px; margin-top:10px;">No tienes acceso a esta sección</h1>
+      <p class="text-dim" style="margin-top:10px; font-size:14px;">Esta pantalla es solo para la administración de permisos. Si crees que esto es un error, contacta a la persona encargada.</p>
+      <a href="admin.html" class="btn btn-primary" style="margin-top:18px; display:inline-block;">Volver al panel</a>
+    </div>
+  </div>
+</section>
+
+<!-- ========== PANEL DE PERMISOS (solo Diana) ==========
+     El script del final decide si esto se muestra o no; nunca queda
+     visible por defecto. -->
+<section id="panelSec" style="display:none; padding-top:32px;">
+  <div class="wrap">
+
+    <div class="admin-topbar">
+      <div>
+        <div class="eyebrow" id="permisosBienvenida">Panel de permisos</div>
+        <h1 style="font-size:clamp(24px,4vw,32px); margin-top:10px;">Permisos de administradores</h1>
+      </div>
+      <button id="logoutBtn" type="button">Cerrar sesión</button>
+    </div>
+
+    <div class="permiso-nota">
+      Marca o desmarca lo que cada administrador puede hacer desde el panel web. Cada casilla de <b>Funciones</b> es una acción puntual (por ejemplo, vetar o registrar un miembro nuevo); las de <b>Categorías</b> controlan qué contenido de mensajes puede ver en su propio panel. Los cambios se guardan de inmediato al presionar «Guardar» y quedan anotados en el registro del sistema con quién los hizo — nadie queda sin rastro. Ningún cambio afecta las contraseñas ni los datos de contacto de nadie.
+    </div>
+
+    <div class="permisos-filtro">
+      <input type="text" id="permisosFiltro" placeholder="Buscar administrador por nombre o tag…" autocomplete="off">
+      <button type="button" class="btn-icono" id="btnRecargarPermisos" title="Recargar lista">↻ Recargar</button>
+    </div>
+
+    <div id="permisosMsg"></div>
+    <div id="permisosLista"><div class="empty">Cargando administradores…</div></div>
+
+  </div>
+</section>
+
+<script src="assets/js/core/config.js"></script>
+<script src="assets/js/util.js"></script>
+<script src="assets/js/core/api.js"></script>
+<script src="assets/js/core/auth.js"></script>
+<script src="assets/js/ui/effects.js"></script>
+<script src="assets/common.js"></script>
+<script>
+const SESSION_KEY = 'terna_admin_token';
+const SESSION_ADMIN_KEY = 'terna_admin_info';
+
+/** Limpia la sesión local y manda a admin.html, que sin token muestra el
+ *  formulario de inicio de sesión. replace() (no assign) para que "Atrás"
+ *  no regrese a esta página vacía en bucle. ?volver=permisos hace que,
+ *  tras iniciar sesión, admin.html regrese aquí en vez de quedarse en el
+ *  panel (mismo mecanismo que ya usa mensajes.html). */
+function irALogin(){
+  localStorage.removeItem(SESSION_KEY);
+  localStorage.removeItem(SESSION_ADMIN_KEY);
+  window.location.replace('admin.html?volver=permisos');
+}
+
+/** Misma detección que admin.html/mensajes.html: si el backend responde
+ *  ok:false con un error de sesión (token vencido/inválido), se vuelve al
+ *  login en vez de mostrar el mensaje de error tal cual. */
+function manejarRespuestaAuth(data){
+  if(data && data.ok === false && /sesión|sesion/i.test(String(data.error||''))){
+    irALogin();
+    return true;
+  }
+  return false;
+}
+
+function mostrarSinAcceso(){
+  document.getElementById('panelSec').style.display = 'none';
+  document.getElementById('sinAccesoSec').style.display = 'block';
+}
+
+document.getElementById('logoutBtn').addEventListener('click', async () => {
+  const btn = document.getElementById('logoutBtn');
+  btn.disabled = true;
+  btn.textContent = 'Cerrando sesión…';
+  await Promise.race([
+    cerrarSesionAdmin(),
+    new Promise(resolve => setTimeout(resolve, 3000))
+  ]);
+  window.location.replace('admin.html');
+});
+
+/* ---------- Carga y pintado ---------- */
+
+// Catálogo de Funciones/categorías + admins, tal como lo devuelve
+// webPermisosListar (34_Web_API.gs). Se guarda para poder filtrar sin
+// volver a pedirlo al backend cada vez que se escribe en el buscador.
+let PERMISOS_DATA = null;
+
+function normalizarBusqueda(s){
+  return String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
+/**
+ * verificarAccesoYCargar()
+ * Puerta de entrada de la página. Nunca asume acceso: primero pregunta al
+ * backend con webAdminMisPermisos (cualquier admin con sesión puede
+ * llamarla) y solo si panelPermisos===true sigue a pedir el listado
+ * completo con webPermisosListar — que además vuelve a validar el Celular
+ * por su cuenta (_webPermisosExigirAcceso(), 34_Web_API.gs), así que
+ * aunque alguien manipulara esta pantalla del lado del cliente, el
+ * backend igual rechaza a cualquiera que no sea el Celular guardado en
+ * PANEL_PERMISOS_CELULAR.
+ */
+async function verificarAccesoYCargar(){
+  if(!localStorage.getItem(SESSION_KEY)){ irALogin(); return; }
+
+  let mis;
+  try{
+    mis = await apiGetAuth('webAdminMisPermisos', {});
+  }catch(err){
+    document.getElementById('permisosLista').innerHTML =
+      `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
+    document.getElementById('panelSec').style.display = 'block';
+    return;
+  }
+  if(manejarRespuestaAuth(mis)) return;
+  if(!mis.ok || !mis.panelPermisos){
+    mostrarSinAcceso();
+    return;
+  }
+
+  document.getElementById('panelSec').style.display = 'block';
+  const adminGuardado = localStorage.getItem(SESSION_ADMIN_KEY);
+  if(adminGuardado){
+    try{
+      const admin = JSON.parse(adminGuardado);
+      const nombreMostrar = admin.nomMulti || admin.nombre;
+      if(nombreMostrar) document.getElementById('permisosBienvenida').textContent = `Panel de permisos — ${nombreMostrar}`;
+    }catch(err){ /* si el JSON guardado no es válido, se deja el texto por defecto */ }
+  }
+
+  cargarListado();
+}
+
+async function cargarListado(){
+  const cont = document.getElementById('permisosLista');
+  const msgEl = document.getElementById('permisosMsg');
+  msgEl.innerHTML = '';
+  cont.innerHTML = '<div class="empty">Cargando administradores…</div>';
+  try{
+    const data = await apiGetAuth('webPermisosListar', {});
+    if(manejarRespuestaAuth(data)) return;
+    if(!data.ok){
+      if(/no tienes acceso/i.test(String(data.error||''))){ mostrarSinAcceso(); return; }
+      cont.innerHTML = `<div class="msg msg-error">${esc(data.error || 'No se pudo cargar la lista.')}</div>`;
+      return;
+    }
+    PERMISOS_DATA = data;
+    pintarLista();
+  }catch(err){
+    cont.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
+  }
+}
+
+function pintarLista(){
+  const cont = document.getElementById('permisosLista');
+  if(!PERMISOS_DATA || !Array.isArray(PERMISOS_DATA.admins) || !PERMISOS_DATA.admins.length){
+    cont.innerHTML = '<div class="empty">No hay administradores registrados todavía.</div>';
+    return;
+  }
+
+  const filtro = normalizarBusqueda(document.getElementById('permisosFiltro').value);
+  // Diana (esTu) siempre primero, después alfabético por nombre visible.
+  const admins = PERMISOS_DATA.admins.slice().sort((a, b) => {
+    if(a.esTu !== b.esTu) return a.esTu ? -1 : 1;
+    return (a.nombre || '').localeCompare(b.nombre || '');
+  });
+
+  const visibles = admins.filter(a => {
+    if(!filtro) return true;
+    const cuentasTxt = (a.cuentas || []).map(c => `${c.nombre} ${c.tag}`).join(' ');
+    return normalizarBusqueda(a.nombre + ' ' + a.id + ' ' + cuentasTxt).indexOf(filtro) !== -1;
+  });
+
+  if(!visibles.length){
+    cont.innerHTML = '<div class="empty">Ningún administrador coincide con esa búsqueda.</div>';
+    return;
+  }
+
+  cont.innerHTML = visibles.map(a => pintarCardAdmin(a)).join('');
+  visibles.forEach(a => activarCardAdmin(a));
+}
+
+function pintarCardAdmin(a){
+  const cuentasTxt = (a.cuentas || [])
+    .map(c => `${esc(c.nombre || c.tag)}${c.clan ? ' · ' + esc(c.clan) : ''}`)
+    .join(' &nbsp;·&nbsp; ');
+
+  const funcionesHtml = (PERMISOS_DATA.funciones || []).map(f => {
+    const marcado = (a.funciones || []).indexOf(f.id) !== -1;
+    const sensible = f.id === 'Corregir autor' ? ' sensible' : '';
+    return `
+      <label class="permiso-item${sensible}">
+        <input type="checkbox" class="chk-funcion" value="${esc(f.id)}" ${marcado ? 'checked' : ''}>
+        <span class="txt-permiso">
+          <span class="nombre-permiso">${esc(f.etiqueta)}</span>
+          <span class="desc-permiso">${esc(f.descripcion || '')}</span>
+        </span>
+      </label>`;
+  }).join('');
+
+  const categorias = PERMISOS_DATA.categorias || [];
+  const categoriasHtml = categorias.map(c => {
+    const marcado = (a.categorias || []).indexOf(c) !== -1;
+    return `
+      <label class="permiso-item">
+        <input type="checkbox" class="chk-categoria" value="${esc(c)}" ${marcado ? 'checked' : ''}>
+        <span class="txt-permiso"><span class="nombre-permiso">${esc(c)}</span></span>
+      </label>`;
+  }).join('');
+
+  return `
+    <div class="card admin-permiso-card${a.esTu ? ' es-tu' : ''}" data-id="${esc(a.id)}">
+      <div class="cab">
+        <div class="cab-info">
+          <div class="nombre-adm">${esc(a.nombre)}${a.esTu ? '<span class="tag-tu">Tú</span>' : ''}</div>
+          <div class="meta-adm">${a.celularFin ? '···' + esc(a.celularFin) : 'Sin celular registrado'}${a.clanesAdmin ? ' — ' + esc(a.clanesAdmin) : ''}</div>
+          ${cuentasTxt ? `<div class="cuentas-adm">${cuentasTxt}</div>` : ''}
+        </div>
+      </div>
+
+      <div class="permisos-seccion">
+        <span class="etiqueta-seccion">Funciones</span>
+        <div class="permisos-grid cortas">${funcionesHtml || '<div class="empty">Sin funciones en el catálogo.</div>'}</div>
+      </div>
+
+      <div class="permisos-seccion">
+        <span class="etiqueta-seccion">Categorías de contenido (Cat_disp)</span>
+        ${categorias.length
+          ? `<div class="permisos-grid">${categoriasHtml}</div>`
+          : '<div class="empty">Sin categorías en el catálogo todavía.</div>'}
+      </div>
+
+      <div class="permisos-acciones">
+        <button type="button" class="btn-guardar-permisos" data-accion="guardar">Guardar</button>
+        <span class="permiso-msg-inline" data-rol="msg"></span>
+      </div>
+    </div>`;
+}
+
+function activarCardAdmin(a){
+  const card = document.querySelector(`.admin-permiso-card[data-id="${CSS.escape(a.id)}"]`);
+  if(!card) return;
+  const btn = card.querySelector('[data-accion="guardar"]');
+  const msgEl = card.querySelector('[data-rol="msg"]');
+
+  btn.addEventListener('click', async () => {
+    const funciones = Array.from(card.querySelectorAll('.chk-funcion:checked')).map(c => c.value);
+    const categorias = Array.from(card.querySelectorAll('.chk-categoria:checked')).map(c => c.value);
+
+    btn.disabled = true;
+    const textoOriginal = btn.textContent;
+    btn.textContent = 'Guardando…';
+    msgEl.textContent = '';
+    msgEl.className = 'permiso-msg-inline';
+
+    try{
+      const token = localStorage.getItem(SESSION_KEY);
+      const resp = await apiPost('webPermisosGuardar', {
+        sessionToken: token,
+        datos: { id: a.id, funciones, categorias }
+      });
+      if(manejarRespuestaAuth(resp)) return;
+      if(!resp.ok){
+        if(/no tienes acceso/i.test(String(resp.error||''))){ mostrarSinAcceso(); return; }
+        msgEl.textContent = resp.error || 'No se pudo guardar.';
+        msgEl.classList.add('error');
+        return;
+      }
+      // Refleja lo confirmado por el servidor (fuente de verdad) en la
+      // copia local, para que un filtro/recarga posterior no muestre algo
+      // desactualizado antes de volver a pedir la lista completa.
+      a.funciones = resp.funciones || funciones;
+      a.categorias = resp.categorias || categorias;
+      const cuentasTxt = resp.cuentasActualizadas > 1 ? ` (${resp.cuentasActualizadas} cuentas actualizadas)` : '';
+      msgEl.textContent = `Guardado.${cuentasTxt}`;
+      msgEl.classList.add('ok');
+    }catch(err){
+      msgEl.textContent = `Error de conexión: ${err.message}`;
+      msgEl.classList.add('error');
+    }finally{
+      btn.disabled = false;
+      btn.textContent = textoOriginal;
+    }
+  });
+}
+
+document.getElementById('permisosFiltro').addEventListener('input', () => pintarLista());
+document.getElementById('btnRecargarPermisos').addEventListener('click', () => cargarListado());
+
+verificarAccesoYCargar();
+</script>
+</body>
+</html>
