@@ -41,6 +41,32 @@ Pendientes que quedaban de B-15, resueltos en la misma tanda:
 
 ## Rendimiento (Lighthouse)
 
+### 20-sep-2026 — Accesibilidad de `index` y `directorio` (Lighthouse: `label-content-name-mismatch` y `heading-order`)
+Primera corrida real de Lighthouse (accesibilidad 96 en `index`, 98 en `directorio`).
+- **`index.html`, "Ingresos recientes":** la tarjeta `.js-ingreso-row` era un
+  `role="link"` con `tabindex="0"` y `aria-label="Ver perfil de X"` (B-6,
+  18-sep). Ese nombre no contenía el texto visible de la tarjeta (nombre, tag,
+  fecha, estadísticas), y la tarjeta anidaba enlaces reales (nombre,
+  RoyaleAPI, CWStats). Ahora es `role="group"` con nombre "Ingreso reciente: X",
+  sin `tabindex`, y se quitó el listener de Enter/Espacio (ya nada lo dispara).
+  **Efecto:** con teclado o lector de pantalla se llega al mismo perfil con el
+  enlace del nombre (`enlaceJugador`: misma URL, misma pestaña nueva); el clic
+  del mouse sobre la tarjeta se mantiene. Se pierde el tope de Tab en la
+  tarjeta completa (que era un 4.º por tarjeta). Es reversible si prefieres el
+  comportamiento de B-6.
+- **`directorio.html`:** las tarjetas de clan usan `<h3>` y venían justo tras el
+  `<h1>`. Se agrega `<h2 class="h2-solo-sr">Tarjetas de los clanes</h2>` antes de
+  `#clanGrid`, oculto visualmente con el recorte de 1x1 px (mismo patrón que
+  `.anuncio-sr` de `mensajes.html`).
+- **Verificación (Chromium, API simulada):** sin errores de JS; `index` con
+  `role="group"`, sin `tabindex`, y el clic sigue abriendo `perfil.html?tag=…`;
+  `directorio` con jerarquía H1 → H2 → H3 y **0 px de diferencia** en la captura de
+  página completa (misma altura, 4265 px). No se probó con un lector de pantalla
+  real ni con el backend.
+- **Sin tocar (pendiente de tu decisión):** el `target-size` de los enlaces del
+  nombre en "Ingresos recientes" (`a.jugador-link`, menos de 24 px de alto) cambiaría el
+  aspecto de la tarjeta.
+
 ### 20-sep-2026 — D-7 (b): se quita el peso 500 de Inter y de IBM Plex Mono
 Medido en Chromium (texto renderizado de las 10 páginas que cargan las 3
 familias) y en el código: ningún `font-weight:500` ni `font:` con 500 existe

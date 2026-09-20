@@ -1392,14 +1392,17 @@ async function cargarIngresos(){
           const cwOk = urlValida(ing.cwstats);
           const sem = ing.guerraSemana || {};
           return `
-          <!-- Cada tarjeta de "Ingresos recientes" abre el perfil del jugador al hacer clic (mismo patrón que guerra.html). Historial en CHANGELOG.md.
-               FIX (B-6, 18-sep-2026): antes solo el nombre (enlaceJugador) era
-               alcanzable por teclado; la tarjeta completa no lo era pese a
-               tener su propio comportamiento de clic. Se agrega
-               tabindex="0" + role="link" + aria-label a la tarjeta para que
-               Tab la enfoque y un lector de pantalla anuncie el destino;
-               Enter/Espacio se manejan más abajo, junto al listener de clic. -->
-          <div class="ingreso-row js-ingreso-row" data-tag="${esc(ing.tag || '')}" style="cursor:pointer;" tabindex="0" role="link" aria-label="Ver perfil de ${esc(ing.nombre || ing.tag || '')}">
+          <!-- Cada tarjeta de "Ingresos recientes" abre el perfil del jugador al hacer clic con el mouse (mismo patrón que guerra.html). Historial en CHANGELOG.md.
+               FIX (20-sep-2026, Lighthouse "label-content-name-mismatch"): la tarjeta ya no
+               es un role="link" enfocable (B-6, 18-sep). Un role="link" con aria-label "Ver
+               perfil de X" no contiene el texto visible de la tarjeta (nombre, tag, fecha,
+               estadísticas) y además anidaba otros enlaces reales (nombre, RoyaleAPI,
+               CWStats); se sumaba un 4.º tope de Tab por tarjeta. Quien navega con teclado
+               o lector de pantalla llega al MISMO perfil con el enlace del nombre
+               (enlaceJugador, misma URL y misma pestaña nueva). Ahora es un
+               role="group" con nombre "Ingreso reciente: X", sin tabindex; el clic del
+               mouse sobre la tarjeta se mantiene. -->
+          <div class="ingreso-row js-ingreso-row" data-tag="${esc(ing.tag || '')}" style="cursor:pointer;" role="group" aria-label="Ingreso reciente: ${esc(ing.nombre || ing.tag || '')}">
             <div class="ingreso-top">
               <div class="ingreso-info">
                 <div class="ing-nombre">${enlaceJugador(ing.nombre, ing.tag)}</div>
@@ -1441,16 +1444,8 @@ async function cargarIngresos(){
         if (e.target.closest('a, .ingreso-links')) return;
         abrirPerfil();
       });
-      // FIX (B-6, 18-sep-2026): Enter/Espacio replican el clic para quien
-      // navega con teclado (ver tabindex/role agregados arriba). Espacio se
-      // previene por defecto porque, al ser un <div>, el navegador no le
-      // aplica el scroll-de-página que sí le daría a un botón/checkbox real.
-      row.addEventListener('keydown', e => {
-        if (e.target.closest('a, .ingreso-links')) return;
-        if (e.key !== 'Enter' && e.key !== ' ') return;
-        e.preventDefault();
-        abrirPerfil();
-      });
+      // 20-sep-2026: se quitó el listener de teclado (Enter/Espacio) de B-6: la tarjeta ya no recibe
+      // foco (ver el comentario de la plantilla); el teclado usa el enlace real del nombre.
     });
 
     // Las gráficas reusan el mismo 'grupos' ya ordenado, para que colores/leyenda coincidan con las tarjetas de arriba. Historial en CHANGELOG.md.
