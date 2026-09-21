@@ -11,6 +11,48 @@ el código hoy) cuando hace falta para mantenerlo; el "por qué histórico"
 
 ---
 
+## Comentarios desactualizados (limpieza, 21-sep-2026)
+
+### 21-sep-2026 — Tres "pendiente de conectar" que ya estaban conectados
+Al revisar Web-main y `Base.md` en busca de trabajo pendiente real (a raíz
+del cierre del "PENDIENTE DE BACKEND" de `perfil.html`, ver esa sección más
+abajo), aparecieron 3 comentarios que documentaban una conexión backend
+como pendiente cuando el backend ya la había resuelto en una sesión
+posterior — el mismo patrón que perfil.html, solo que sin nadie que los
+corrigiera todavía. Ningún código cambió en ninguno de los tres; solo el
+comentario:
+
+- **`admin.html`, `cargarCuentasDelAutor()`:** decía "Ver el bloque de
+  comentarios grande de arriba para el endpoint pendiente — mientras no
+  exista, deja un aviso en vez de inventar datos". El propio bloque grande
+  que menciona ya decía "YA RESUELTO (12-sep-2026)", y el cuerpo de la
+  función de abajo ya llamaba a `apiGetAuth('webAdminCuentasDeNomMulti', ...)`
+  sin ninguna rama de "si no existe" — el comentario había quedado un paso
+  atrás del propio código que describe.
+- **`admin.html`, subsección "Registrar miembro nuevo" (modo "Buscar en
+  Directorio"):** decía que la acción `webAdminListaMiembrosClan` estaba
+  "pendiente de conectar en el backend". Se conectó el 18-sep-2026 (ver
+  `_webAdminListaMiembrosClan()`, `34_Web_API.gs`) y `admin.html` ya la
+  llama unas líneas más abajo del propio comentario.
+- **`assets/js/data/clan-badges.js`:** decía que el backend "debe reenviar
+  `badgeId` tal cual lo entrega Supercell" en `webClanInfo`, como si
+  siguiera pendiente. `_webClanInfo()` (`34_Web_API.gs`) ya lo hace desde el
+  16-sep-2026 (`c.badgeId`, consumido por `clan-card.js` en las 4 tarjetas
+  de clan). Lo único que de verdad seguía sin pedirse era el badge por
+  miembro del roster/ingresos — eso se deja anotado como posibilidad futura,
+  ya no como pendiente de backend.
+
+También se corrigió el mismo tipo de comentario en `Base.md`
+(`13_Directorio_Inactivos_Vetados.gs`, `_obtenerCuentasDeNomMulti()`): decía
+"todavía NO está conectado a ningún endpoint", pero `_webAdminCuentasDeNomMulti()`
+(`34_Web_API.gs`) lo envuelve desde el 12-sep-2026 — ese archivo no tiene
+changelog propio, así que el detalle queda solo en su propio docblock.
+
+Se comprobó que el AST del JavaScript de los tres archivos (`admin.html`,
+`clan-badges.js`) y la sintaxis del `.gs` son idénticos antes y después.
+
+---
+
 ## CI y herramientas (raíz del repo: `.github/`, `package.json`, `.htmlvalidate.js`)
 
 ### 19-sep-2026 — B-15 completo: CI en Node 22, Lighthouse semanal, `type="button"` y Dependabot

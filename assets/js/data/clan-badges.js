@@ -51,17 +51,17 @@ const ICONO_CWSTATS = '<img src="https://assets.cwstats.com/icons/logo.webp" alt
  * <img> simplemente no se pinta (fallback silencioso a solo texto) — no
  * hay forma de que un ícono roto llegue a mostrarse.
  *
- * PENDIENTE DE BACKEND (no se puede resolver solo desde el frontend): el
- * backend (Base.md, 34_Web_API.gs) debe reenviar `badgeId` tal cual lo
- * entrega Supercell (sin transformarlo) en la respuesta de CUALQUIER
- * endpoint que arme datos de un clan a partir de /clans/{tag} o
- * /clans/{tag}/currentriverrace — hoy eso es como mínimo webClanInfo (las
- * 4 tarjetas de clan de directorio.html/index.html) y lo que arme cada
- * fila de roster/ingresos si también se quiere el badge por miembro. Ya
- * que el ícono se puede cambiar desde el juego en cualquier momento, NO
- * se debe cachear/guardar el nombre resuelto en la hoja de cálculo — el
- * backend solo pasa el `badgeId` crudo tal cual llega de Supercell en
- * cada consulta, y esta función (frontend) lo resuelve en el momento.
+ * BACKEND CONECTADO (16-sep-2026, limpieza de comentario desactualizado):
+ * este bloque decía que el backend "debe reenviar `badgeId`" como algo
+ * pendiente. Ya no es cierto para el caso que de verdad se usa: webClanInfo
+ * (_webClanInfo(), 34_Web_API.gs) reenvía `badgeId` crudo desde el 16-sep en
+ * las 4 tarjetas de clan (c.badgeId, ver clan-card.js), sin transformarlo y
+ * sin cachear el nombre resuelto en la hoja -- exactamente el criterio que
+ * pedía este comentario. El badge por miembro del roster/ingresos NUNCA se
+ * llegó a pedir (ningún consumidor del frontend lo usa hoy); si se necesita
+ * en el futuro, el backend debería reenviar `badgeId` por fila con el mismo
+ * criterio, y esta misma función (iconoBadgeClanHtml) ya sirve para eso sin
+ * cambios. Historial en CHANGELOG.md.
  */
 const BADGE_ID_BASE = 16000000;
 
