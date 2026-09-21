@@ -566,7 +566,16 @@ svg circle[data-kb]:focus-visible{outline:none; stroke:var(--text); stroke-width
 .carta-chip .cc-elixir{display:inline-flex; align-items:center; gap:3px; color:var(--purple-light); font-family:var(--f-mono);}
 .carta-chip .cc-elixir img{width:13px; height:13px; vertical-align:-2px;}
 .carta-chip .cc-meta{display:flex; align-items:center; gap:6px; flex-wrap:wrap;}
-.carta-chip .cc-rareza{
+/* FIX (21-sep-2026, pedido usuario — "cualquier lugar donde se mencione la
+   calidad de una carta debe usar el mismo estilo que Cartas de torre"):
+   .cc-rareza pasa de estar acotado a ".carta-chip .cc-rareza" a un selector
+   propio, sin exigir el ancestro ".carta-chip". Con el selector viejo, el
+   badge de rareza de la sección "Colección" (.col-card, perfil.html,
+   pintarColeccion()) quedaba sin pintar -- ese <span class="cc-rareza"> vive
+   dentro de .col-card, no de .carta-chip, así que nunca hacía match y se
+   veía como texto plano en vez de la píldora de color. Ahora el mismo
+   badge se pinta igual sin importar el contenedor que lo use. */
+.cc-rareza{
   font-family:var(--f-mono); font-size:10px; text-transform:uppercase; letter-spacing:.03em;
   padding:2px 7px; border-radius:999px; border:1px solid currentColor;
 }
@@ -574,17 +583,17 @@ svg circle[data-kb]:focus-visible{outline:none; stroke:var(--text); stroke-width
    en Clash Royale): Común = azul, Especial = naranja, Épica = rosa (color
    del elixir), Legendaria = degradado verde-rosa, Campeón = letras
    doradas. */
-.carta-chip .cc-rareza[data-rareza="comun"]{color:#4da6ff;}
-.carta-chip .cc-rareza[data-rareza="especial"]{color:#ff9a3d;}
-.carta-chip .cc-rareza[data-rareza="epica"]{color:#e64bd1;}
-.carta-chip .cc-rareza[data-rareza="legendaria"]{
+.cc-rareza[data-rareza="comun"]{color:#4da6ff;}
+.cc-rareza[data-rareza="especial"]{color:#ff9a3d;}
+.cc-rareza[data-rareza="epica"]{color:#e64bd1;}
+.cc-rareza[data-rareza="legendaria"]{
   /* Degradado verde-rosa: el borde (currentColor) no puede heredar un
      degradado, así que se fija aparte con border-color. */
   background:linear-gradient(90deg, #6ee7a0, #ff7cf0);
   -webkit-background-clip:text; background-clip:text; color:transparent;
   border-color:#ff7cf0;
 }
-.carta-chip .cc-rareza[data-rareza="campeon"]{color:var(--gold);}
+.cc-rareza[data-rareza="campeon"]{color:var(--gold);}
 .carta-chip .cc-tipo{
   font-family:var(--f-mono); font-size:10px; text-transform:uppercase; letter-spacing:.03em;
   padding:2px 7px; border-radius:999px; border:1px solid var(--line); color:var(--text-faint);
