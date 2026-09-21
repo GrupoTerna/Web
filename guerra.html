@@ -1808,22 +1808,25 @@ function pintarPanelPuestosDia(){
     html = cab + `<div class="empty">${txt}</div>`;
   }else{
     let hayDato = false;
+    const estDia = !!dia.estimado; // coliseo: los puestos de ese día son estimados (la API no los entrega)
     const filas = (dia.clanes || []).map(c => {
       const nombre = c.clan || nombreClanPorTag(c.tag) || ('#' + c.tag);
-      let puesto = 0, sub = '';
+      let puesto = 0, sub = '', estim = false;
       if(esHoy){
         const p = puestoEnVivoPorTag(c.tag);
         if(p){ puesto = Number(p.puesto); sub = `de ${fmtNum(p.clanesEnCarrera)} · en vivo`; }
       }else if(Number(c.rank) > 0){
         puesto = Number(c.rank);
+        estim = estDia;
       }
       if(puesto > 0) hayDato = true;
       const color = puesto === 1 ? 'var(--gold)' : 'var(--text)';
-      const valor = puesto > 0 ? `<span style="color:${color};">#${fmtNum(puesto)}</span>${sub ? `<small>${esc(sub)}</small>` : ''}` : '—';
+      const valor = puesto > 0 ? `<span style="color:${color};"${estim ? ' title="Puesto estimado"' : ''}>${estim ? '~' : ''}#${fmtNum(puesto)}</span>${sub ? `<small>${esc(sub)}</small>` : ''}` : '—';
       return `<li><span class="n">${esc(nombre)}</span><span class="p">${valor}</span></li>`;
     }).join('');
     const futuro = semVig && !esHoy && Number(dia.periodIndex) > Number(ctx.periodIndex);
-    const nota = hayDato ? '' : `<div class="tlp-nota">${futuro ? 'Este día todavía no se juega.' : (esHoy ? 'Sin puesto en vivo por ahora.' : 'Sin puesto registrado para este día.')}</div>`;
+    const notaEstimado = (hayDato && estDia && !esHoy) ? '<div class="tlp-nota">~ Puesto estimado por fama acumulada: en coliseo la API no entrega puestos diarios.</div>' : '';
+    const nota = hayDato ? notaEstimado : `<div class="tlp-nota">${futuro ? 'Este día todavía no se juega.' : (esHoy ? 'Sin puesto en vivo por ahora.' : 'Sin puesto registrado para este día.')}</div>`;
     html = cab + `<ul class="tlp-list">${filas}</ul>` + nota;
   }
   if(html !== ultimoPanelHtml){ // no repintar si nada cambió (cada render() y cada carga de pronóstico llegan aquí)
@@ -1855,6 +1858,11 @@ async function cargarGuerraLog(){
     function pintarTablaGuerraLog(){
       const c = clanes[idxActivo];
       const semanas = c.semanas || [];
+      const hayEstimado = semanas.some(s => s && s.rankEstimado && Number(s.rank) > 0);
+      const hayColiseo  = semanas.some(s => s && s.coliseo);
+      const notaLog = (hayEstimado || hayColiseo)
+        ? `<div class="tlp-nota">${hayEstimado ? '~ Puesto estimado por fama acumulada (en coliseo la API no entrega puestos diarios). ' : ''}${hayColiseo ? 'Coliseo: los barcos no avanzan, por eso no hay Boat (—).' : ''}</div>`
+        : '';
       tableWrap.innerHTML = semanas.length ? `
         <div class="card" style="padding:12px;"><div class="table-scroll"><table>
           <thead><tr><th scope="col">Temporada</th><th scope="col">Semana</th><th scope="col">Rank</th><th scope="col">Boat</th><th scope="col">Trophy</th></tr></thead>
@@ -1867,13 +1875,13 @@ async function cargarGuerraLog(){
             <tr>
               <td>${fmtNum(s.temporada)}</td>
               <td>${fmtNum(s.semana)}</td>
-              <td>${Number(s.rank) > 0 ? '#' + fmtNum(s.rank) : '—'}</td>
-              <td>${fmtNum(s.boat)}</td>
+              <td${s.rankEstimado && Number(s.rank) > 0 ? ' title="Puesto estimado"' : ''}>${Number(s.rank) > 0 ? (s.rankEstimado ? '~' : '') + '#' + fmtNum(s.rank) : '—'}</td>
+              <td>${s.coliseo ? '—' : fmtNum(s.boat)}</td>
               <td>${fmtNum(s.trophy)}${deltaHtml}</td>
             </tr>`;
           }).join('')}
           </tbody>
-        </table></div></div>` : '<div class="empty">Sin historial registrado todavía para este clan.</div>';
+        </table></div></div>${notaLog}` : '<div class="empty">Sin historial registrado todavía para este clan.</div>';
       // FIX (18-sep-2026, pedido usuario): esta era la 3ra tabla pendiente
       // de la tanda de "ninguna tabla debe tener la barra nativa" -- las
       // otras dos de esta misma página (Pendientes de Atacar e Inactivos)

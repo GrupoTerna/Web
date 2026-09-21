@@ -3987,6 +3987,27 @@ FIX (03-sep-2026, pedido usuario — "Vigencia [última
 
 ## guerra.html
 
+### 21-sep-2026 — Coliseo: puesto marcado como estimado y sin "Boat" (Tanda 11b)
+Pedido usuario. En la semana de coliseo (la última de cada temporada, de lunes
+a domingo aunque cruce de mes) la API no entrega puestos diarios ni hay barco
+que avance; el backend (`17_GuerraSheet.gs`, Tanda 11) ya lo distingue y
+manda campos nuevos. La página los usa así:
+- **Historial semanal** (`webGuerraLog`, campos `coliseo` y `rankEstimado`): el
+  puesto estimado se pinta `~#N` (con `title="Puesto estimado"`) y la columna
+  Boat muestra `—` en coliseo en vez de `0`. Bajo la tabla sale una nota corta
+  que explica `~` y el guion, solo si hay filas de ese tipo.
+- **Botones Jue–Dom** (`webGuerraPuestosDia`, campos `coliseo` y `estimado` por
+  día): los puestos al cierre de un día de coliseo salen como `~#N` con la
+  misma nota. El puesto "en vivo" del día en curso no cambia: sigue saliendo
+  del pronóstico.
+- **Compatibilidad**: los campos `rank`, `boat`, `trophy` y `trophyDelta` no
+  cambiaron de nombre ni de significado. Si el Apps Script aún no está
+  actualizado, faltan los campos nuevos y la página se ve exactamente igual que
+  antes; se puede publicar en cualquier orden. `sw.js` no necesita subir de
+  versión (las páginas se piden primero a la red).
+- **Formato confirmado por el usuario** (`~#N`, guion y nota al pie);
+  cambiarlo es tocar solo estas dos plantillas.
+
 ### 20-sep-2026 — `actualizarAgoText()` usa `fmtTiempoRelativo()` (D-10 b)
 Repetía en solitario las mismas franjas de segundos/minutos que ya calcula
 `fmtTiempoRelativo()` (`assets/js/util.js`), el componente que
