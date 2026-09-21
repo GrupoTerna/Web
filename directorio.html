@@ -463,7 +463,7 @@
   /* FIX (20-sep-2026): el nombre reserva 22px a cada lado (simétrico, así sigue centrado) para que un nombre largo no quede debajo del checkbox de la esquina superior derecha; el tag/fecha puede envolver en tarjetas angostas. */
   .nuevo-card .name{font-weight:700; font-size:16px; color:var(--text); padding:0 22px; overflow-wrap:anywhere;}
   .nuevo-card .tag{font-family:var(--f-mono); font-size:13.5px; color:var(--text-dim); overflow-wrap:anywhere;}
-  .nuevo-card .clan{font-size:14px; color:var(--text-dim); margin:6px 0 0;}
+  .nuevo-card .clan{font-size:14px; color:var(--text-dim); margin:0;}
   /* FIX (20-sep-2026 v2, pedido usuario — "prevalece index, pero también se conserva lo que le faltaba a index de directorio [...] no se debe perder información, fusionadas en un solo modelo"):
      la tarjeta pasa a ser la de index (tag, fecha de ingreso, aviso de clan rival, Copas / V. Guerra / Días inactivo / Vigencia, Ataques / Puntaje / Barcos de la semana con su desglose diario y los enlaces RoyaleAPI / CWStats)
      MÁS lo que solo tenía directorio (Nivel (XP), checkbox en la esquina, pastillas y contador arriba, datos centrados), pero angosta: en vez de una fila de 6 recuadros, las estadísticas van en cuadrículas de 3 columnas.
@@ -484,10 +484,13 @@
   .nuevo-card .dd-head{color:var(--purple-light); font-weight:700; text-transform:uppercase; font-size:11px; letter-spacing:.04em;}
   .nuevo-card .dd-label{text-align:left; color:var(--text-dim); font-weight:600; white-space:nowrap; padding-right:4px;}
   .nuevo-card .dd-blank{color:var(--text-faint);}
-  /* Enlaces con el mismo aspecto de botón que en index (borde), pero compactos para que quepan en la tarjeta angosta. */
-  .nuevo-card .links{display:flex; justify-content:center; flex-wrap:wrap; gap:8px; margin-top:12px;}
-  .nuevo-card .links a{font-family:var(--f-mono); font-size:12.5px; font-weight:600; color:var(--purple-light); border:1px solid var(--line); padding:6px 11px; border-radius:var(--radius-sm); text-decoration:none; transition:all .18s ease;}
-  .nuevo-card .links a:hover{border-color:var(--purple); background:rgba(162,57,255,.1);}
+  /* FIX (20-sep-2026 v3, pedido usuario — "para no hacer tan largos los botones, solo los íconos pequeños al lado del clan [...] y se evita la última fila"): RoyaleAPI y CWStats pasan de dos botones con texto en una fila propia al final a dos íconos junto al nombre del clan. El texto queda en aria-label/title para lectores de pantalla y al pasar el mouse. */
+  .nuevo-card .nc-clan-row{display:flex; justify-content:center; align-items:center; flex-wrap:wrap; gap:4px 8px; margin-top:6px;}
+  .nuevo-card .links{display:inline-flex; align-items:center; gap:4px;}
+  .nuevo-card .links a{display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; border:1px solid var(--line); border-radius:var(--radius-sm); transition:all .18s ease;}
+  .nuevo-card .links a:hover, .nuevo-card .links a:focus-visible{border-color:var(--purple); background:rgba(162,57,255,.12);}
+  /* Los íconos (assets/js/data/clan-badges.js) traen tamaño y margen derecho en línea pensados para ir junto a un texto; acá van solos y centrados. */
+  .nuevo-card .links a img{width:18px; height:18px; margin:0 !important; vertical-align:0 !important;}
 
   /* ---------- Ingresos Recientes: pastillas de clan + checkbox por
      tarjeta (16-sep-2026 v2, pedido usuario — "el botón de filtrar por
@@ -2462,7 +2465,13 @@ function nuevoCardHtml(n){
         <div class="name">${enlaceJugador(n.nombre, n.tag)}</div>
         <div class="tag">${esc(n.tag || '—')}</div>
         <div class="nc-fecha">${fecha ? 'Ingresó el ' + esc(fecha) : 'Fecha de ingreso no registrada'}</div>
-        <div class="clan">${esc(n.clan)}</div>
+        <div class="nc-clan-row">
+          <div class="clan">${esc(n.clan)}</div>
+          ${(royaleOk || cwOk) ? `<div class="links">
+            ${royaleOk ? `<a href="${esc(n.royaleApi)}" target="_blank" rel="noopener" aria-label="RoyaleAPI de ${esc(n.nombre)}" title="RoyaleAPI">${ICONO_ROYALEAPI}</a>` : ''}
+            ${cwOk ? `<a href="${esc(n.cwstats)}" target="_blank" rel="noopener" aria-label="CWStats de ${esc(n.nombre)}" title="CWStats">${ICONO_CWSTATS}</a>` : ''}
+          </div>` : ''}
+        </div>
         ${ingBadgeRivalHtml(n.esRivalTemporada, n.clanRivalDetectado)}
         <div class="nc-stats-grid">
           ${ingresoStatHtml(n.copas, '🏆 Copas')}
@@ -2478,10 +2487,6 @@ function nuevoCardHtml(n){
           ${ingresoStatHtml(sem.barcos, '🚢 Barcos', { semana: true })}
         </div>
         ${desgloseDiasHtml(n.guerraSemanaDias)}
-        ${(royaleOk || cwOk) ? `<div class="links">
-          ${royaleOk ? `<a href="${esc(n.royaleApi)}" target="_blank" rel="noopener">${ICONO_ROYALEAPI}RoyaleAPI</a>` : ''}
-          ${cwOk ? `<a href="${esc(n.cwstats)}" target="_blank" rel="noopener">${ICONO_CWSTATS}CWStats</a>` : ''}
-        </div>` : ''}
       </div>`;
 }
 
