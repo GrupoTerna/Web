@@ -433,7 +433,18 @@
      de guerra.html (donde vivía antes) — mismo markup, mismo criterio
      visual, solo que ahora aparece al final del Directorio en vez de en
      el Panel de Guerra. Ver cargarIngresosRecientes() más abajo. */
-  .nuevo-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:16px;}
+  /* FIX (20-sep-2026, pedido usuario — uniformizar Ingresos recientes con
+     index: "evitar que sea tan ancha cada tarjeta y quepan al menos 2 o 3
+     por fila"): antes era auto-fit/minmax(220px), y auto-fit estira las
+     columnas vacías, así que con pocas tarjetas (p. ej. un solo miembro
+     visible) una tarjeta ocupaba todo el ancho. Ahora auto-fill + 280px:
+     las columnas nunca se estiran más allá de su ancho, salen 3 por fila
+     en escritorio (contenedor de 1160px) y 2 en tablet. En móvil angosto
+     (<=600px) se fijan 2 columnas (ver @media más abajo). */
+  .nuevo-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:16px;}
+  .nuevo-grid .empty{grid-column:1 / -1;}
+  /* Margen para que el ancla #ingresosRecientes no quede tapada por la barra de navegación fija. */
+  #ingresosRecientes{scroll-margin-top:40px;}
   /* FIX (08-sep-2026, pedido usuario — "los datos de las tablas de
    * Ingresos recientes también tienen un tamaño de letra muy bajo"):
    * mismo criterio que la sección equivalente en index.html (ver ese
@@ -449,8 +460,9 @@
      justify-content:center para que sus items también queden centrados
      horizontalmente en vez de pegados a la izquierda. */
   .nuevo-card{text-align:center;}
-  .nuevo-card .name{font-weight:700; font-size:16px; color:var(--text);}
-  .nuevo-card .tag{font-family:var(--f-mono); font-size:13.5px; color:var(--text-dim);}
+  /* FIX (20-sep-2026): el nombre reserva 22px a cada lado (simétrico, así sigue centrado) para que un nombre largo no quede debajo del checkbox de la esquina superior derecha; el tag/fecha puede envolver en tarjetas angostas. */
+  .nuevo-card .name{font-weight:700; font-size:16px; color:var(--text); padding:0 22px; overflow-wrap:anywhere;}
+  .nuevo-card .tag{font-family:var(--f-mono); font-size:13.5px; color:var(--text-dim); overflow-wrap:anywhere;}
   .nuevo-card .clan{font-size:14px; color:var(--text-dim); margin:6px 0 12px;}
   .nuevo-card .links{display:flex; justify-content:center; gap:14px; font-size:13px;}
   .nuevo-card .links a{text-decoration:none; color:var(--purple-light); font-weight:600;}
@@ -494,6 +506,9 @@
   .ing-pill.active{color:#fff; border-color:var(--purple); background:rgba(162,57,255,.18); box-shadow:0 0 12px rgba(162,57,255,.18);}
   .ing-pill-count{font-size:10.5px; color:var(--text-faint);}
   .ing-pill.active .ing-pill-count{color:var(--purple-light);}
+  /* Estado parcial (20-sep-2026): algunos miembros de ese clan están marcados y otros no (se marcaron/desmarcaron a mano en sus tarjetas). Un clic la pasa a "todo marcado". */
+  .ing-pill.parcial{border-style:dashed;}
+  .ing-pill:not([data-clan="__todos__"]).parcial{border-color:var(--purple); color:var(--text);}
   .ing-pill[data-clan="__todos__"]{border-color:var(--gold); color:var(--gold);}
   .ing-pill[data-clan="__todos__"].active{background:rgba(255,193,68,.16); border-color:var(--gold); color:var(--gold); box-shadow:0 0 12px rgba(255,193,68,.18);}
   /* Checkbox de cada tarjeta de miembro (nuevoCardHtml). FIX (16-sep-2026
@@ -508,6 +523,28 @@
      .nuevo-card ya centra el nombre por su cuenta (text-align:center),
      así que no hace falta tocar esa regla. */
   .nuevo-card .js-ingreso-check{position:absolute; top:18px; right:18px; width:16px; height:16px; accent-color:var(--purple); cursor:pointer; flex-shrink:0;}
+  /* FIX (20-sep-2026, pedido usuario — "al marcar o desmarcar la tarjeta de un miembro, no debe desaparecer la tarjeta, solo su presencia en las gráficas. Las tarjetas nunca deben desaparecer"): el checkbox y las pastillas de clan ya NO ocultan tarjetas, solo incluyen/excluyen al miembro de las gráficas. Una tarjeta excluida sigue completa y clicable; solo baja un poco de intensidad (.excluido) para que se note de un vistazo quién está fuera de las gráficas. */
+  .nuevo-card{transition:opacity .18s ease;}
+  .nuevo-card.excluido{opacity:.62;}
+  .nuevo-card.excluido:hover{opacity:.9;}
+  .nuevo-card .ing-rival{margin:0 0 10px;}
+  .nuevo-card .ing-rival .badge{font-size:11px;}
+  .nuevo-card .ing-rival-detalle{font-size:11px; margin-top:4px; color:var(--text-dim);}
+  /* Barra bajo el encabezado: pastillas de clan a la izquierda y contador de jugadores a la derecha (envuelve en pantallas angostas). */
+  .ing-toolbar{display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px 16px; margin-top:14px;}
+  .ing-toolbar .ing-pill-row{margin-top:0;}
+  .ing-contador{font-family:var(--f-mono); font-size:13px; color:var(--text-dim); white-space:nowrap;}
+  @media (max-width:600px){
+    .nuevo-grid{grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px;}
+    .nuevo-card{padding:14px 10px;}
+    .nuevo-card .name{font-size:14px; padding:0 18px;}
+    .nuevo-card .tag{font-size:11.5px;}
+    .nuevo-card .clan{font-size:12.5px; margin:4px 0 8px;}
+    .nuevo-card .nc-stats{gap:4px 10px;}
+    .nuevo-card .nc-stats span{font-size:12px;}
+    .nuevo-card .links{gap:8px; font-size:12px; flex-wrap:wrap;}
+    .nuevo-card .js-ingreso-check{top:10px; right:10px;}
+  }
 
   /* ---------- Ingresos Recientes: gráficas comparativas (Ataques/Puntaje/
      Barcos por semana), pedido del usuario (07-sep-2026): "que la sección
@@ -737,12 +774,17 @@
 
   <!-- "Ingresos recientes" se movió acá desde guerra.html (markup + JS); sigue consumiendo webGuerraEnVivo. Historial en CHANGELOG.md. -->
   <section id="ingresosRecientes" style="padding:32px 0 0;" data-reveal>
-    <div class="sec-head" style="display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:10px; border-bottom:1px solid var(--line); padding-bottom:12px;">
-      <h2 style="font-size:22px;">🆕 Ingresos Recientes</h2>
-      <span class="text-faint" id="nuevosCount" style="font-family:var(--f-mono); font-size:13px;"></span>
+    <!-- Encabezado (eyebrow + título + descripción) igual al de index.html, pedido usuario 20-sep-2026 (uniformizar Ingresos recientes). El contador de jugadores pasó a la barra de las pastillas. Historial en CHANGELOG.md. -->
+    <div class="sec-head" style="margin-bottom:0;">
+      <a class="eyebrow" href="#roster" style="text-decoration:none;">Directorio en movimiento</a>
+      <h2 style="font-size:24px; margin-top:10px;">Ingresos recientes</h2>
+      <p style="margin-top:8px;">Los miembros más nuevos de cada clan, ordenados por clan y luego por nombre.</p>
     </div>
-    <!-- Pastillas de clan en vez de un botón con panel plegable, pintadas por construirFiltroIngresos(). Historial en CHANGELOG.md. -->
-    <div class="ing-pill-row" id="ingClanPills"></div>
+    <!-- Pastillas de clan (marcan/desmarcan a todo el clan en las gráficas, sin ocultar tarjetas) + contador dinámico, pintados por construirFiltroIngresos()/aplicarFiltroIngresos(). Historial en CHANGELOG.md. -->
+    <div class="ing-toolbar">
+      <div class="ing-pill-row" id="ingClanPills"></div>
+      <span class="ing-contador" id="nuevosCount" aria-live="polite" title="Jugadores incluidos en las gráficas"></span>
+    </div>
     <div class="nuevo-grid" id="nuevoGrid" style="margin-top:20px;"></div>
     <!-- Botón Mostrar/Ocultar gráficas evita precargar todo de golpe; las gráficas comparativas arrancan cerradas. Historial en CHANGELOG.md. -->
     <div style="display:flex; justify-content:center; margin-top:28px;">
@@ -2142,14 +2184,18 @@ function construirFechasEstimadasSemanasViejas(semanas){
  */
 function lineChartSvg(miembros, campo, semanas, opts){
   opts = opts || {};
-  // PAD_L/PAD_B suben para los títulos fijos de los ejes, mismo cambio que su gemela en index.html. Historial en CHANGELOG.md.
-  const W = 960, H = 460, PAD_L = 74, PAD_R = 20, PAD_T = 20, PAD_B = 84;
-  const plotW = W - PAD_L - PAD_R, plotH = H - PAD_T - PAD_B;
+  // PAD_B sube para el título fijo del eje X, mismo cambio que su gemela en index.html. Historial en CHANGELOG.md.
+  const W = 960, H = 460, PAD_R = 20, PAD_T = 20, PAD_B = 84;
 
   let max = 0;
   miembros.forEach(m => (m.historialSemanal || []).forEach(h => { max = Math.max(max, Number(h[campo]) || 0); }));
   const pasos = 4;
   const techo = Math.ceil((max || pasos) / pasos) * pasos || pasos;
+
+  // FIX (20-sep-2026, pedido usuario — "el nombre del eje y debe separarse un poco de los valores, ahí se ve que puntaje está muy pegado a 1700"): antes PAD_L era fijo (74) y el título del eje Y iba en x=18, es decir, casi encima de las marcas más anchas (p. ej. "3,400", "12,750"). Ahora el margen izquierdo se calcula según el ancho real de la marca más ancha (fuente monoespaciada de 15px ≈ 9.3px por carácter) + 10px de aire a la línea + 14px de espacio libre + 22px para el título rotado.
+  const anchoMarcaY = Math.max(...Array.from({ length: pasos + 1 }, (_, i) => fmtNum(Math.round((techo / pasos) * i)).length)) * 9.3;
+  const PAD_L = Math.max(74, Math.ceil(10 + anchoMarcaY + 14 + 22));
+  const plotW = W - PAD_L - PAD_R, plotH = H - PAD_T - PAD_B;
 
   const xPos = i => PAD_L + (semanas.length <= 1 ? plotW / 2 : (i / (semanas.length - 1)) * plotW);
   const yPos = v => PAD_T + plotH - (Math.min(v, techo) / techo) * plotH;
@@ -2216,7 +2262,7 @@ function lineChartSvg(miembros, campo, semanas, opts){
   // la gemela de index.html.
   const ejeXTitle = `<text class="ing-axis-title" x="${PAD_L + plotW / 2}" y="${H - 8}" text-anchor="middle">Fecha</text>`;
   const ejeYTitle = opts.ejeY
-    ? `<text class="ing-axis-title" x="18" y="${PAD_T + plotH / 2}" text-anchor="middle" transform="rotate(-90 18 ${PAD_T + plotH / 2})">${esc(opts.ejeY)}</text>`
+    ? `<text class="ing-axis-title" x="14" y="${PAD_T + plotH / 2}" text-anchor="middle" transform="rotate(-90 14 ${PAD_T + plotH / 2})">${esc(opts.ejeY)}</text>`
     : '';
 
   return `<svg class="ing-linechart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">${gridLines.join('')}${gridMedios}${lineasTemporales}${xLabels}${seriesSvg}${ejeXTitle}${ejeYTitle}</svg>`;
@@ -2341,15 +2387,40 @@ function ingresoStatHtml(valor, label){
   return `<span><b>${esc(txt)}</b> ${esc(label)}</span>`;
 }
 
+/** Clave con la que se identifica a cada miembro en el Set de seleccionados (mismo valor que data-tag de su tarjeta). */
+function claveIngreso(n){ return (n && n.tag) || ''; }
+
+/** Aviso "Estuvo en un clan rival" — copia reducida del de index.html (ingBadgeRivalHtml) para no perder ese dato al uniformizar las tarjetas. Solo aparece si el backend marca esRivalTemporada. */
+function ingBadgeRivalHtml(esRivalTemporada, clanRivalDetectado){
+  if (!esRivalTemporada) return '';
+  const info = clanRivalDetectado || {};
+  const detalle = [];
+  if (info.nombre) detalle.push(`estuvo en ${esc(info.nombre)}`);
+  if (info.motivo) detalle.push(esc(info.motivo));
+  return `<div class="ing-rival">
+    <span class="badge badge-warn">Estuvo en un clan rival</span>
+    ${detalle.length ? `<div class="ing-rival-detalle">${detalle.join(' · ')}</div>` : ''}
+  </div>`;
+}
+
+/** Texto del contador. FIX (20-sep-2026, pedido usuario — "jugador es solo cuando se muestre 1, para 0 y cualquier otro número es jugadores"): la palabra se decide por el número de jugadores incluidos (el primero). Si están todos, se muestra solo el total. */
+function textoContadorIngresos(incluidos, total){
+  if (!total) return '';
+  const palabra = incluidos === 1 ? 'jugador' : 'jugadores';
+  return (incluidos === total) ? `${total} ${palabra}` : `${incluidos} de ${total} ${palabra}`;
+}
+
 function nuevoCardHtml(n){
   const royaleOk = urlValida(n.royaleApi);
   const cwOk = urlValida(n.cwstats);
+  const incluido = !ingresosSeleccionados || ingresosSeleccionados.has(claveIngreso(n));
   return `
-      <div class="card nuevo-card js-nuevo-card" data-tag="${esc(n.tag || '')}" style="cursor:pointer; position:relative;">
-        <input type="checkbox" class="js-ingreso-check" data-tag="${esc(n.tag || '')}" checked aria-label="Incluir a ${esc(n.nombre)} en la vista y las gráficas">
-        <div class="name">${esc(n.nombre)}</div>
+      <div class="card nuevo-card js-nuevo-card${incluido ? '' : ' excluido'}" data-tag="${esc(claveIngreso(n))}" style="cursor:pointer; position:relative;">
+        <input type="checkbox" class="js-ingreso-check" data-tag="${esc(claveIngreso(n))}"${incluido ? ' checked' : ''} aria-label="Incluir a ${esc(n.nombre)} en las gráficas">
+        <div class="name">${enlaceJugador(n.nombre, n.tag)}</div>
         <div class="tag">${esc(n.tag)} · ${fmtFecha(n.fechaIngresoISO)}</div>
         <div class="clan">${esc(n.clan)}</div>
+        ${ingBadgeRivalHtml(n.esRivalTemporada, n.clanRivalDetectado)}
         <div class="nc-stats">
           ${ingresoStatHtml(n.vGuerra != null ? n.vGuerra : n.victoriasGuerra, 'V. Guerra')}
           ${ingresoStatHtml(n.nivelXp, 'Nivel (XP)')}
@@ -2362,31 +2433,32 @@ function nuevoCardHtml(n){
 }
 
 /* ---------- Filtro de "Ingresos Recientes" por clan/miembro ----------
- * FIX (16-sep-2026, pedido usuario — ver docblock del <style> más arriba,
- * bloque ".ing-filtro-panel"). Estado en memoria:
+ * FIX (20-sep-2026, pedido usuario — "las tarjetas nunca deben
+ * desaparecer"): el filtro YA NO oculta tarjetas. Estado en memoria:
  *   - ingresosTodosCache: la lista completa que devolvió el backend (ya
- *     ordenada por clan/nombre), sin filtrar.
- *   - ingresosSeleccionados: Set de tags actualmente marcados (visibles);
- *     null solo antes de la primera carga.
- * Tanto las tarjetas (#nuevoGrid) como las tres gráficas comparativas se
- * repintan a partir del mismo subconjunto filtrado — ver
- * aplicarFiltroIngresos(). */
+ *     ordenada por clan/nombre), sin filtrar. Las tarjetas se pintan UNA
+ *     sola vez a partir de esta lista completa (renderNuevoGrid()).
+ *   - ingresosSeleccionados: Set de tags INCLUIDOS en las gráficas y en el
+ *     contador; null solo antes de la primera carga.
+ *   - ingresosGrupos: la misma lista agrupada por clan, para las pastillas.
+ * Marcar/desmarcar un checkbox o una pastilla solo cambia ese Set; después
+ * aplicarFiltroIngresos() sincroniza checkboxes, pastillas, contador y
+ * gráficas, sin repintar (ni perder el foco de) las tarjetas. */
 let ingresosTodosCache = [];
 let ingresosSeleccionados = null;
+let ingresosGrupos = [];
 // Las 3 gráficas comparativas no se pintan al cargar (lo más caro de renderizar); arrancan cerradas y se muestran al abrir el botón, con el último filtro ya guardado. Historial en CHANGELOG.md.
 let ingresosGraficasVisibles = false;
 let ingresosUltimosFiltrados = [];
 
-function renderNuevoGrid(lista){
+function renderNuevoGrid(){
   const nuevoGrid = document.getElementById('nuevoGrid');
   if (!nuevoGrid) return;
-  if (lista.length){
-    nuevoGrid.innerHTML = lista.map(nuevoCardHtml).join('');
-  } else {
-    nuevoGrid.innerHTML = ingresosTodosCache.length
-      ? '<div class="empty">Ningún miembro coincide con el filtro elegido.</div>'
-      : '<div class="empty">No hay ingresos recientes.</div>';
+  if (!ingresosTodosCache.length){
+    nuevoGrid.innerHTML = '<div class="empty">No hay ingresos recientes.</div>';
+    return;
   }
+  nuevoGrid.innerHTML = ingresosTodosCache.map(nuevoCardHtml).join('');
   nuevoGrid.querySelectorAll('.js-nuevo-card').forEach(card => {
     const linksBox = card.querySelector('.links');
     if (linksBox) linksBox.addEventListener('click', e => e.stopPropagation());
@@ -2399,34 +2471,69 @@ function renderNuevoGrid(lista){
         aplicarFiltroIngresos();
       });
     }
-    card.addEventListener('click', () => {
+    card.addEventListener('click', e => {
+      // El nombre es un enlace real (teclado/lectores de pantalla): si el clic cae en cualquier <a>, actúa el enlace y no se abre una segunda pestaña.
+      if (e.target.closest('a')) return;
       if (!card.dataset.tag) return;
       window.open('perfil.html?tag=' + encodeURIComponent(card.dataset.tag), '_blank');
     });
   });
 }
 
+/** Actualiza (sin reconstruir) el estado de cada pastilla: activa = todo el clan marcado, parcial = algunos, apagada = ninguno. "Todos" sigue la misma regla sobre la lista completa. */
+function actualizarPillsIngresos(){
+  const wrap = document.getElementById('ingClanPills');
+  if (!wrap || !ingresosSeleccionados) return;
+  const estadoDe = miembros => {
+    const marcados = miembros.filter(m => ingresosSeleccionados.has(claveIngreso(m))).length;
+    if (marcados === 0) return 'ninguno';
+    return marcados === miembros.length ? 'todos' : 'parcial';
+  };
+  wrap.querySelectorAll('.ing-pill').forEach(btn => {
+    const clan = btn.dataset.clan;
+    const miembros = (clan === '__todos__')
+      ? ingresosTodosCache
+      : ((ingresosGrupos.find(g => g.clan === clan) || {}).miembros || []);
+    const estado = estadoDe(miembros);
+    btn.classList.toggle('active', estado === 'todos');
+    btn.classList.toggle('parcial', estado === 'parcial');
+    btn.setAttribute('aria-pressed', estado === 'todos' ? 'true' : (estado === 'parcial' ? 'mixed' : 'false'));
+  });
+}
+
 function aplicarFiltroIngresos(){
   const total = ingresosTodosCache.length;
   const filtrados = ingresosSeleccionados
-    ? ingresosTodosCache.filter(n => ingresosSeleccionados.has(n.tag))
+    ? ingresosTodosCache.filter(n => ingresosSeleccionados.has(claveIngreso(n)))
     : ingresosTodosCache.slice();
   ingresosUltimosFiltrados = filtrados;
 
   const countEl = document.getElementById('nuevosCount');
-  if (countEl){
-    countEl.textContent = (filtrados.length === total)
-      ? total + ' jugador(es)'
-      : filtrados.length + ' de ' + total + ' jugador(es)';
-  }
+  if (countEl) countEl.textContent = textoContadorIngresos(filtrados.length, total);
 
-  renderNuevoGrid(filtrados);
+  // Las tarjetas se quedan todas; solo cambia su checkbox y su intensidad.
+  document.querySelectorAll('#nuevoGrid .js-nuevo-card').forEach(card => {
+    const incluido = !ingresosSeleccionados || ingresosSeleccionados.has(card.dataset.tag);
+    card.classList.toggle('excluido', !incluido);
+    const check = card.querySelector('.js-ingreso-check');
+    if (check && check.checked !== incluido) check.checked = incluido;
+  });
+  actualizarPillsIngresos();
 
   // Las gráficas solo se recalculan si están visibles; si están ocultas, se pintan recién al abrirlas. Historial en CHANGELOG.md.
   if (ingresosGraficasVisibles){
     const chartsWrap = document.getElementById('ingresosChartsWrap');
-    if (chartsWrap) renderComparativaSemanal(chartsWrap, filtrados);
+    if (chartsWrap) pintarGraficasIngresos(chartsWrap, filtrados);
   }
+}
+
+/** Pinta las gráficas con el subconjunto incluido; si no hay ninguno marcado, avisa en vez de dejar el espacio en blanco. */
+function pintarGraficasIngresos(chartsWrap, filtrados){
+  if (!filtrados.length){
+    chartsWrap.innerHTML = '<div class="empty">Marca al menos un miembro para ver las gráficas.</div>';
+    return;
+  }
+  renderComparativaSemanal(chartsWrap, filtrados);
 }
 
 /** Botón "Mostrar gráficas" / "Ocultar gráficas" sobre #ingresosChartsWrap.
@@ -2448,7 +2555,7 @@ function inicializarToggleGraficasIngresos(){
     ingresosGraficasVisibles = !ingresosGraficasVisibles;
     pintarBoton();
     if (ingresosGraficasVisibles){
-      renderComparativaSemanal(chartsWrap, ingresosUltimosFiltrados);
+      pintarGraficasIngresos(chartsWrap, ingresosUltimosFiltrados);
     }else{
       chartsWrap.innerHTML = '';
     }
@@ -2470,65 +2577,68 @@ function agruparPorClanEnOrden(nuevos){
 }
 
 /** Pinta la fila de pastillas de clan ("Todos" + una por clan) y reinicia
- * la selección a "todos visibles". Se llama una sola vez por carga de
- * datos (no en cada click de pastilla — eso lo maneja pintarPills() sin
- * reconstruir el resto de la página).
- * FIX (16-sep-2026 v2, pedido usuario — reemplaza el panel de checkboxes
- * por columna anterior): cada pastilla de clan es un toggle independiente
- * (selección múltiple real, no radio) que muestra/oculta TODAS las
- * tarjetas de ese clan a la vez; "Todos" siempre reactiva los clanes y
- * miembros completos de un solo click (no es un toggle, es un "reset").
- * El filtro fino por miembro individual ahora vive directo en la tarjeta
- * (checkbox de .js-ingreso-check, ver nuevoCardHtml()/renderNuevoGrid()),
- * así que acá ya no hace falta un checklist de nombres. */
-let ingresosClanesActivos = null;
-
+ * la selección a "todos incluidos". Se llama una sola vez por carga de
+ * datos; el estado de cada pastilla lo actualiza actualizarPillsIngresos()
+ * sin reconstruirlas (así el teclado no pierde el foco al pulsarlas).
+ * FIX (20-sep-2026, pedido usuario — "las tarjetas nunca deben
+ * desaparecer"): las pastillas ya no ocultan tarjetas. Cada pastilla de
+ * clan marca/desmarca a TODOS los miembros de ese clan en las gráficas
+ * (si el clan ya está completo lo desmarca; si está vacío o parcial lo
+ * completa); "Todos" siempre vuelve a marcar a todos de un solo clic (no
+ * es un toggle, es un "reset"). El filtro fino por miembro sigue en el
+ * checkbox de cada tarjeta y ambos se mantienen sincronizados. */
 function construirFiltroIngresos(nuevos){
   const wrap = document.getElementById('ingClanPills');
   if (!wrap) return;
 
-  const grupos = agruparPorClanEnOrden(nuevos);
-  ingresosSeleccionados = new Set(nuevos.map(n => n.tag));
-  ingresosClanesActivos = new Set(grupos.map(g => g.clan));
+  ingresosGrupos = agruparPorClanEnOrden(nuevos);
+  ingresosSeleccionados = new Set(nuevos.map(claveIngreso));
 
-  if (!grupos.length){
+  if (!ingresosGrupos.length){
     wrap.innerHTML = '';
     return;
   }
 
-  const pintarPills = () => {
-    const todosActivos = grupos.every(g => ingresosClanesActivos.has(g.clan));
-    wrap.innerHTML = `
-      <button type="button" class="ing-pill${todosActivos ? ' active' : ''}" data-clan="__todos__" aria-pressed="${todosActivos}">Todos</button>
-      ${grupos.map(g => `
-        <button type="button" class="ing-pill${ingresosClanesActivos.has(g.clan) ? ' active' : ''}" data-clan="${esc(g.clan)}" aria-pressed="${ingresosClanesActivos.has(g.clan)}">
-          ${esc(g.clan)} <span class="ing-pill-count">${g.miembros.length}</span>
-        </button>`).join('')}`;
+  wrap.innerHTML = `
+    <button type="button" class="ing-pill active" data-clan="__todos__" aria-pressed="true">Todos</button>
+    ${ingresosGrupos.map(g => `
+      <button type="button" class="ing-pill active" data-clan="${esc(g.clan)}" aria-pressed="true">
+        ${esc(g.clan)} <span class="ing-pill-count">${g.miembros.length}</span>
+      </button>`).join('')}`;
 
-    wrap.querySelectorAll('.ing-pill').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const clan = btn.dataset.clan;
-        if (clan === '__todos__'){
-          ingresosClanesActivos = new Set(grupos.map(g => g.clan));
-          ingresosSeleccionados = new Set(nuevos.map(n => n.tag));
-        } else {
-          const grupo = grupos.find(g => g.clan === clan);
-          if (!grupo) return;
-          if (ingresosClanesActivos.has(clan)){
-            ingresosClanesActivos.delete(clan);
-            grupo.miembros.forEach(m => ingresosSeleccionados.delete(m.tag));
-          } else {
-            ingresosClanesActivos.add(clan);
-            grupo.miembros.forEach(m => ingresosSeleccionados.add(m.tag));
-          }
-        }
-        pintarPills();
-        aplicarFiltroIngresos();
-      });
+  // Un solo listener delegado por carga (el contenedor se reutiliza entre cargas).
+  if (!wrap.dataset.enlazado){
+    wrap.dataset.enlazado = '1';
+    wrap.addEventListener('click', e => {
+      const btn = e.target.closest('.ing-pill');
+      if (!btn || !ingresosSeleccionados) return;
+      const clan = btn.dataset.clan;
+      if (clan === '__todos__'){
+        ingresosSeleccionados = new Set(ingresosTodosCache.map(claveIngreso));
+      } else {
+        const grupo = ingresosGrupos.find(g => g.clan === clan);
+        if (!grupo) return;
+        const completo = grupo.miembros.every(m => ingresosSeleccionados.has(claveIngreso(m)));
+        grupo.miembros.forEach(m => {
+          if (completo) ingresosSeleccionados.delete(claveIngreso(m));
+          else ingresosSeleccionados.add(claveIngreso(m));
+        });
+      }
+      aplicarFiltroIngresos();
     });
-  };
+  }
+}
 
-  pintarPills();
+/** Set con los tags (normalizados) de quienes hoy figuran en el directorio (webRoster) y, por tag, sus datos de perfil (nivelXp/vGuerra).
+ * FIX (20-sep-2026, pedido usuario — uniformizar con index.html "con lo mejor de cada uno"):
+ *   - Cruce con el directorio: igual que index.html, la hoja de origen de webIngresosRecientes conserva cuentas que YA salieron de la Familia; sin este cruce las dos páginas mostraban listas distintas. Si webRoster falla, no se filtra (mismo criterio defensivo de index.html).
+ *   - Nivel (XP)/V. Guerra: si el endpoint de ingresos no los trae para un miembro, se toman del directorio (mismos campos nivelXp/vGuerra que la tabla de arriba), para que la tarjeta no pinte "—" teniendo el dato. apiGet comparte la petición en vuelo de webRoster, no cuesta una llamada extra. */
+function indexarRosterParaIngresos(dataRoster){
+  const porTag = new Map();
+  ((dataRoster && dataRoster.clanes) || []).forEach(c => (c.miembros || []).forEach(m => {
+    if (m.tag) porTag.set(normalizarTag(m.tag), m);
+  }));
+  return porTag;
 }
 
 async function cargarIngresosRecientes(){
@@ -2536,19 +2646,41 @@ async function cargarIngresosRecientes(){
   const chartsWrap = document.getElementById('ingresosChartsWrap');
   const pillsWrap = document.getElementById('ingClanPills');
   try{
-    const data = await apiGet('webIngresosRecientes', null, { ttlMs: 300000, staleIfError: true }); // D-9 (b): 5 min; B4/B-10: si falla la red, usar el último dato guardado
-    const nuevos = (data.ingresos || []).slice().sort((a, b) => {
+    const [data, dataRoster] = await Promise.all([
+      apiGet('webIngresosRecientes', null, { ttlMs: 300000, staleIfError: true }), // D-9 (b): 5 min; B4/B-10: si falla la red, usar el último dato guardado
+      apiGet('webRoster', null, { ttlMs: 300000, staleIfError: true }).catch(() => null) // defensivo: si falla y no hay respaldo, no filtra ni completa datos en vez de romper la sección
+    ]);
+    const roster = dataRoster ? indexarRosterParaIngresos(dataRoster) : null;
+    let ingresos = (data.ingresos || []).slice();
+    if (roster && roster.size){
+      ingresos = ingresos.filter(ing => !ing.tag || roster.has(normalizarTag(ing.tag)));
+      ingresos = ingresos.map(ing => {
+        const m = ing.tag ? roster.get(normalizarTag(ing.tag)) : null;
+        if (!m) return ing;
+        const falta = v => (v === undefined || v === null || v === '');
+        const copia = Object.assign({}, ing);
+        if (falta(copia.nivelXp) && !falta(m.nivelXp)) copia.nivelXp = m.nivelXp;
+        if (falta(copia.vGuerra) && falta(copia.victoriasGuerra)){
+          const v = (m.vGuerra != null) ? m.vGuerra : m.victoriasGuerra;
+          if (!falta(v)) copia.vGuerra = v;
+        }
+        return copia;
+      });
+    }
+    const nuevos = ingresos.sort((a, b) => {
       const porClan = ordenClanIndex(a.clan) - ordenClanIndex(b.clan);
       if (porClan !== 0) return porClan;
       return (a.nombre || '').localeCompare(b.nombre || '', 'es', { sensitivity: 'base' });
     });
     ingresosTodosCache = nuevos;
     construirFiltroIngresos(nuevos);
+    renderNuevoGrid();
     aplicarFiltroIngresos();
   }catch(err){
     ingresosTodosCache = [];
     ingresosSeleccionados = null;
-    ingresosClanesActivos = null;
+    ingresosGrupos = [];
+    ingresosUltimosFiltrados = [];
     if (nuevoGrid) nuevoGrid.innerHTML = `<div class="empty">No se pudo cargar los ingresos recientes: ${esc(err.message)}</div>`;
     if (chartsWrap) chartsWrap.innerHTML = '';
     if (pillsWrap) pillsWrap.innerHTML = '';
@@ -2558,8 +2690,12 @@ async function cargarIngresosRecientes(){
 }
 
 inicializarToggleGraficasIngresos();
-cargarRoster();
-cargarIngresosRecientes();
+// FIX (20-sep-2026, pedido usuario — el botón de index.html lleva a directorio.html#ingresosRecientes): el ancla se calcula antes de que el directorio y los ingresos terminen de pintarse (la página crece después), así que el navegador queda en otra zona. Al terminar ambas cargas se vuelve a posicionar en la sección.
+Promise.allSettled([cargarRoster(), cargarIngresosRecientes()]).then(() => {
+  if (location.hash !== '#ingresosRecientes') return;
+  const sec = document.getElementById('ingresosRecientes');
+  if (sec) sec.scrollIntoView({ block: 'start' });
+});
 </script>
 </body>
 </html>
