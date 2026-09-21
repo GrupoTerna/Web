@@ -3987,6 +3987,29 @@ FIX (03-sep-2026, pedido usuario — "Vigencia [última
 
 ## guerra.html
 
+### 21-sep-2026 — Puesto estimado también en vivo y nota al pie general (Tandas 13c y 14b)
+Pedido usuario. El backend (`17_GuerraSheet.gs`, Tandas 13c y 14; `38_Pronostico_Guerra.gs`)
+ya sabe qué puestos son estimados y lo manda en campos nuevos. La página los usa así:
+- **Puesto en vivo** (`webPronosticoGuerra`, campo `estimado` del clan propio): la
+  tarjeta de "Guerra de Hoy" y el panel de los botones Jue–Dom pintan `~#N` cuando
+  `estimado` es `true` (hoy, solo en la semana de coliseo, donde la API no entrega
+  puestos). Con `estimado` en `false` o ausente se ve igual que antes.
+- **Botones Jue–Dom** (`webGuerraPuestosDia`): cada clan trae ahora su propio
+  `estimado`; se usa ese y, si falta, el `estimado` del día (como en la Tanda 11b).
+  Antes solo se marcaba en coliseo; ahora también sale `~` en el domingo en curso
+  de una semana normal, cuyo puesto es una estimación por los puntos del día.
+- **Nota al pie**: el texto era "estimado por fama acumulada (coliseo)" y ya no
+  era cierto para el domingo en curso. Ahora hay una sola constante,
+  `NOTA_PUESTO_ESTIMADO`, que usan el panel y el historial semanal: la API no
+  entrega ese puesto cerrado y se calcula (en coliseo, por fama acumulada; el
+  domingo en curso, con los puntos del día). El panel la muestra también en el
+  día en curso si hay algún puesto estimado.
+- **Compatibilidad**: no cambió el nombre ni el significado de ningún campo que ya
+  se leía (`puesto`, `clanesEnCarrera`, `rank`, `rankEstimado`, `coliseo`,
+  `estimado` por día). Con el Apps Script sin actualizar faltan los campos nuevos
+  y la página se ve como antes; se puede publicar en cualquier orden. `sw.js` no
+  necesita subir de versión (las páginas se piden primero a la red).
+
 ### 21-sep-2026 — Coliseo: puesto marcado como estimado y sin "Boat" (Tanda 11b)
 Pedido usuario. En la semana de coliseo (la última de cada temporada, de lunes
 a domingo aunque cruce de mes) la API no entrega puestos diarios ni hay barco

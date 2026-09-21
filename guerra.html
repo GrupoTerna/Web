@@ -1075,6 +1075,8 @@ let ultimoDataGuerra = null;
 let diaPuestosSel = null;
 let puestosDiaData = null;
 let puestosDiaError = false;
+// Nota al pie del "~" (puesto estimado), única para el panel Jue–Dom y el historial semanal. Historial en CHANGELOG.md.
+const NOTA_PUESTO_ESTIMADO = '~ Puesto estimado: la API no lo entrega cerrado, así que se calcula (en coliseo, por fama acumulada; el domingo en curso, con los puntos del día).';
 let ultimoPanelHtml = '';
 
 function render(data){
@@ -1676,8 +1678,9 @@ function actualizarPuestosClanes(){
       : null;
     if(p && Number(p.puesto) > 0){
       const color = Number(p.puesto) === 1 ? 'var(--gold)' : 'var(--text)';
-      el.title = 'Según la fame acumulada de la semana en la carrera de guerra';
-      el.innerHTML = `🏁 Puesto <b style="color:${color};">#${fmtNum(p.puesto)}</b> de ${fmtNum(p.clanesEnCarrera)}`;
+      const estim = !!p.estimado; // coliseo: la API no entrega puestos, el backend lo calcula por fama acumulada
+      el.title = estim ? 'Puesto estimado por la fame acumulada de la semana (en coliseo la API no entrega puestos)' : 'Según la fame acumulada de la semana en la carrera de guerra';
+      el.innerHTML = `🏁 Puesto <b style="color:${color};">${estim ? '~' : ''}#${fmtNum(p.puesto)}</b> de ${fmtNum(p.clanesEnCarrera)}`;
       el.style.display = '';
     }else{
       el.innerHTML = '';
@@ -1808,24 +1811,26 @@ function pintarPanelPuestosDia(){
     html = cab + `<div class="empty">${txt}</div>`;
   }else{
     let hayDato = false;
-    const estDia = !!dia.estimado; // coliseo: los puestos de ese día son estimados (la API no los entrega)
+    const estDia = !!dia.estimado; // algún puesto de ese día es estimado; cada clan trae además su propio `estimado` (si falta, se usa este)
+    let hayEstim = false;
     const filas = (dia.clanes || []).map(c => {
       const nombre = c.clan || nombreClanPorTag(c.tag) || ('#' + c.tag);
       let puesto = 0, sub = '', estim = false;
       if(esHoy){
         const p = puestoEnVivoPorTag(c.tag);
-        if(p){ puesto = Number(p.puesto); sub = `de ${fmtNum(p.clanesEnCarrera)} · en vivo`; }
+        if(p){ puesto = Number(p.puesto); sub = `de ${fmtNum(p.clanesEnCarrera)} · en vivo`; estim = !!p.estimado; }
       }else if(Number(c.rank) > 0){
         puesto = Number(c.rank);
-        estim = estDia;
+        estim = (typeof c.estimado === 'boolean') ? c.estimado : estDia;
       }
       if(puesto > 0) hayDato = true;
+      if(puesto > 0 && estim) hayEstim = true;
       const color = puesto === 1 ? 'var(--gold)' : 'var(--text)';
       const valor = puesto > 0 ? `<span style="color:${color};"${estim ? ' title="Puesto estimado"' : ''}>${estim ? '~' : ''}#${fmtNum(puesto)}</span>${sub ? `<small>${esc(sub)}</small>` : ''}` : '—';
       return `<li><span class="n">${esc(nombre)}</span><span class="p">${valor}</span></li>`;
     }).join('');
     const futuro = semVig && !esHoy && Number(dia.periodIndex) > Number(ctx.periodIndex);
-    const notaEstimado = (hayDato && estDia && !esHoy) ? '<div class="tlp-nota">~ Puesto estimado por fama acumulada: en coliseo la API no entrega puestos diarios.</div>' : '';
+    const notaEstimado = (hayDato && hayEstim) ? `<div class="tlp-nota">${NOTA_PUESTO_ESTIMADO}</div>` : '';
     const nota = hayDato ? notaEstimado : `<div class="tlp-nota">${futuro ? 'Este día todavía no se juega.' : (esHoy ? 'Sin puesto en vivo por ahora.' : 'Sin puesto registrado para este día.')}</div>`;
     html = cab + `<ul class="tlp-list">${filas}</ul>` + nota;
   }
@@ -1861,7 +1866,7 @@ async function cargarGuerraLog(){
       const hayEstimado = semanas.some(s => s && s.rankEstimado && Number(s.rank) > 0);
       const hayColiseo  = semanas.some(s => s && s.coliseo);
       const notaLog = (hayEstimado || hayColiseo)
-        ? `<div class="tlp-nota">${hayEstimado ? '~ Puesto estimado por fama acumulada (en coliseo la API no entrega puestos diarios). ' : ''}${hayColiseo ? 'Coliseo: los barcos no avanzan, por eso no hay Boat (—).' : ''}</div>`
+        ? `<div class="tlp-nota">${hayEstimado ? NOTA_PUESTO_ESTIMADO + ' ' : ''}${hayColiseo ? 'Coliseo: los barcos no avanzan, por eso no hay Boat (—).' : ''}</div>`
         : '';
       tableWrap.innerHTML = semanas.length ? `
         <div class="card" style="padding:12px;"><div class="table-scroll"><table>
