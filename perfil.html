@@ -276,6 +276,19 @@
         <div id="mMazoActualContenido" style="margin-top:14px;"></div>
       </div>
 
+      <!-- FIX (20-sep-2026, pedido usuario — "la carta favorita debe salir en la
+           misma fila que la carta de torre actual o debajo de ella pero no
+           separada por las gráficas"): mFavoritaCard vivía después de las 4
+           tarjetas de evolución (Ranking/Ataques/Puntaje/Barcos), lo que la
+           alejaba visualmente de "Carta de torre del mazo" (que se pinta
+           dentro de mMazoActualCard, justo arriba). Se mueve acá, pegada a
+           Mazo actual, ANTES de las gráficas. Historial en CHANGELOG.md. -->
+      <div class="card pf-panel-datos" id="mFavoritaCard" style="display:none;">
+        <div class="eyebrow">Personal</div>
+        <h2 class="pf-subtitulo">Carta favorita</h2>
+        <div id="mFavoritaContenido"></div>
+      </div>
+
       <!-- ---------- RANKING EN EL CLAN (nuevo, 31-ago-2026) ---------- -->
       <div class="card" style="padding:28px; margin-top:20px;">
         <div class="eyebrow">Evolución</div>
@@ -301,12 +314,6 @@
       </div>
 
       <!-- Secciones nuevas que leen jugador.rawClash() (snapshot JSON crudo con los nombres de categoría de Supercell, ya adjuntado por webPerfil). Historial en CHANGELOG.md. -->
-      <div class="card pf-panel-datos" id="mFavoritaCard" style="display:none;">
-        <div class="eyebrow">Personal</div>
-        <h2 class="pf-subtitulo">Carta favorita</h2>
-        <div id="mFavoritaContenido"></div>
-      </div>
-
       <div class="card pf-panel-datos" id="mLeyendasCard" style="display:none;">
         <div class="eyebrow">Competitivo</div>
         <h2 class="pf-subtitulo">Camino de Leyendas y ligas</h2>
@@ -490,6 +497,109 @@ function estrellasHtml(starLevel){
 }
 
 /**
+ * ===================================================================
+ * PENDIENTE DE BACKEND (20-sep-2026, pedido usuario — "se traduce mal,
+ * esas traducciones se quedaron como fallback, no debe ser la fuente
+ * principal"): Base.md se está editando en otra sesión en paralelo, así
+ * que ACÁ SOLO SE DEJA DOCUMENTADO qué agregar en los .gs — no se toca
+ * Base.md desde esta sesión, para no cruzar cambios.
+ * ===================================================================
+ *
+ * Confirmado leyendo Base.md (09_Cards_Mazos.gs, 34_Web_API.gs,
+ * 36_Insignias.gs): la fuente correcta YA EXISTE del lado del backend —
+ * es justo el CSV que menciona el usuario:
+ *   - Backup_Cards.csv: columnas N°|ID|Name|Nombre|Maxlevel|
+ *     MaxEvolutionLevel|Rarity|Tipo|Elixircost|Carta|Héroe|Evolución.
+ *     "Nombre" (índice 3) es la traducción al español, completada a mano
+ *     por el usuario directamente en el CSV — antes vivía en la hoja
+ *     "Cards". Se cruza por "ID" (índice 1), NUNCA por nombre (evita
+ *     desajustes si dos cartas comparten palabras).
+ *   - Backup_Insignias_2.csv (por jugador): columnas N°|Tag|Name|Nombre|
+ *     Progreso|Nivel. "Nombre" (índice 3) es la traducción semi-manual de
+ *     36_Insignias.gs (auto-completada para insignias "MasteryX" cruzando
+ *     con Backup_Cards.csv, manual para el resto) — antes vivía en la
+ *     hoja "Cards_2"/equivalente de insignias. Se cruza por (Tag, Name).
+ *
+ * HOY, _webMazoActualDesdeCards2() (34_Web_API.gs) YA cruza
+ * mazoActual.cartas[].name contra Backup_Cards.csv["Nombre"] — por eso
+ * las cartas del grid "Mazo actual" SÍ salen bien traducidas. El resto de
+ * categorías que llegan por rawClash(j) (ver _webDatosDriveJugador(),
+ * 34_Web_API.gs) se copian TAL CUAL del JSON crudo de Supercell — nunca
+ * pasan por ese cruce, por eso currentFavouriteCard/currentDeckSupportCards/
+ * cards[]/supportCards[]/badges[] siempre llegan en inglés (o sin
+ * traducir, en el caso de insignias).
+ *
+ * QUÉ AGREGAR (cuando Base.md quede libre para editar), en
+ * 34_Web_API.gs → _webDatosDriveJugador(tag):
+ *
+ *   1) Justo después de `var datos = _cargarPlayerDesideDrive(...)`, leer
+ *      UNA VEZ el catálogo de cartas y armar un mapa id→nombreEs:
+ *        var _cardsCsv = _leerCardsCSV(); // 09_Cards_Mazos.gs
+ *        var _nombreCartaPorId = {};
+ *        for (var _i = 0; _i < _cardsCsv.rows.length; _i++) {
+ *          var _idC = String(_cardsCsv.rows[_i][1] || '').trim();
+ *          if (_idC) _nombreCartaPorId[_idC] =
+ *            String(_cardsCsv.rows[_i][3] || _cardsCsv.rows[_i][2] || '').trim();
+ *        }
+ *        function _conNombreEs(obj) {
+ *          if (!obj || obj.id == null) return obj;
+ *          var es = _nombreCartaPorId[String(obj.id)];
+ *          if (es) obj.nombreEs = es; // agrega el campo, NO reemplaza `name`
+ *          return obj;
+ *        }
+ *
+ *   2) Aplicar _conNombreEs() a cada objeto/array antes de copiarlo a
+ *      `extra` (mismo patrón "si vino algo, se agrega" que ya usa esta
+ *      función):
+ *        if (datos.currentFavouriteCard) extra.currentFavouriteCard = _conNombreEs(datos.currentFavouriteCard);
+ *        ... (cards[]/supportCards[]/currentDeckSupportCards[]: igual,
+ *        pero con .map(_conNombreEs) en vez de una sola llamada).
+ *
+ *   3) Para badges[], mismo patrón pero cruzando por (Tag, Name) contra
+ *      Backup_Insignias_2.csv (_leerInsignias2CSV(), 36_Insignias.gs) en
+ *      vez de por ID (las insignias no tienen ID, solo Name):
+ *        var _insCsv = _leerInsignias2CSV();
+ *        var _nombreInsigniaPorName = {};
+ *        for (var _k = 0; _k < _insCsv.rows.length; _k++) {
+ *          if (cleanTag(_insCsv.rows[_k][1]) !== tagConNumeral) continue;
+ *          var _nm = String(_insCsv.rows[_k][2] || '').trim();
+ *          var _es = String(_insCsv.rows[_k][3] || '').trim();
+ *          if (_nm && _es) _nombreInsigniaPorName[_nm] = _es;
+ *        }
+ *        // luego, al armar extra.badges: b.nombreEs = _nombreInsigniaPorName[b.name] || undefined;
+ *
+ * Con `nombreEs` agregado (nunca reemplazando `name`, que sigue siendo el
+ * original de Supercell por si algo más lo necesita), el frontend ya está
+ * listo para preferirlo automáticamente — ver _nombreCartaEs()/
+ * _nombreInsigniaEs() justo abajo: el diccionario local (cards-es.js) pasa
+ * a ser EXCLUSIVAMENTE un respaldo para IDs que todavía no estén en
+ * Backup_Cards.csv, tal como pidió el usuario. No hace falta tocar nada
+ * más acá cuando eso se agregue en Base.md.
+ */
+
+/** Nombre de una carta para mostrar: prioriza `obj.nombreEs` (columna
+ * "Nombre" de Backup_Cards.csv, cuando el backend lo agregue — ver
+ * PENDIENTE DE BACKEND arriba); si todavía no llega, cae al diccionario
+ * local EN->ES (traducirNombreCarta(), cards-es.js) como respaldo. */
+function _nombreCartaEs(obj){
+  if (!obj) return '';
+  if (obj.nombreEs) return obj.nombreEs;
+  return traducirNombreCarta(obj.name);
+}
+
+/** Nombre de una insignia para mostrar: prioriza `b.nombreEs` (columna
+ * "Nombre" de Backup_Insignias_2.csv, cuando el backend lo agregue — ver
+ * PENDIENTE DE BACKEND arriba). No hay diccionario local de respaldo para
+ * insignias (a diferencia de las cartas): son ~180+ y su traducción en el
+ * CSV es semi-manual, así que inventar una tabla acá arriesga mostrar una
+ * traducción incorrecta — mejor mostrar el nombre crudo de Supercell
+ * mientras tanto que una traducción no verificada. */
+function _nombreInsigniaEs(b){
+  if (!b) return '';
+  return b.nombreEs || b.name || '';
+}
+
+/**
  * renderLogros(j)
  * FIX (12-sep-2026, pedido usuario — aprovechar achievements): pinta la
  * card "Logros" a partir de rawClash(j).achievements, con EL MISMO nombre
@@ -545,10 +655,15 @@ function renderInsignias(j){
       const nivelTxt = (b.level != null && b.maxLevel != null) ? `Nv. ${b.level}/${b.maxLevel}` : (b.level != null ? `Nv. ${b.level}` : '');
       const tieneTarget = b.target != null && b.target > 0;
       const pct = tieneTarget ? Math.min(100, Math.round((Number(b.progress) || 0) / b.target * 100)) : 100;
+      // FIX (20-sep-2026, pedido usuario — nombres en español, fuente
+      // primaria = CSV): _nombreInsigniaEs() usa b.nombreEs si el backend
+      // lo agrega (ver PENDIENTE DE BACKEND más arriba); si no, cae al
+      // nombre crudo de Supercell (no hay diccionario local para insignias).
+      const nombreEs = _nombreInsigniaEs(b);
       return `
-      <div class="badge-item" title="${esc(String(b.name))}${tieneTarget ? ` \u2014 ${fmtNum(b.progress)}/${fmtNum(b.target)}` : ''}">
+      <div class="badge-item" title="${esc(nombreEs)}${tieneTarget ? ` \u2014 ${fmtNum(b.progress)}/${fmtNum(b.target)}` : ''}">
         ${icono ? `<img src="${esc(icono)}" alt="" loading="lazy" onerror="this.style.visibility='hidden';">` : ''}
-        <div class="b-nombre">${esc(String(b.name))}</div>
+        <div class="b-nombre">${esc(nombreEs)}</div>
         ${nivelTxt ? `<div class="b-nivel">${esc(nivelTxt)}</div>` : ''}
         <div class="progress${pct >= 100 ? ' complete' : ''}"><i style="width:${pct}%"></i></div>
         <div class="b-prog">${tieneTarget ? `${fmtNum(b.progress)} / ${fmtNum(b.target)}` : (b.progress != null ? fmtNum(b.progress) : '')}</div>
@@ -574,12 +689,19 @@ function renderCartaFavorita(j){
   if (!fav || !fav.name){ card.style.display = 'none'; cont.innerHTML = ''; return; }
   const rk = rarezaKey(fav.rarity);
   const img = (fav.iconUrls && (fav.iconUrls.medium || fav.iconUrls.large)) || '';
+  // FIX (20-sep-2026, pedido usuario — "se deben leer los nombres de las
+  // cartas en español"): currentFavouriteCard viene crudo del JSON de
+  // Supercell (siempre en inglés, ver comentario de cards-es.js), a
+  // diferencia de mazoActual.cartas que ya llega traducido desde el
+  // backend. Se traduce acá con el mismo diccionario EN->ES que ya usan
+  // otras páginas del sitio (traducirNombreCarta, cards-es.js).
+  const nombreEs = _nombreCartaEs(fav);
   card.style.display = '';
   cont.innerHTML = `
     <div class="fav-wrap">
-      ${urlValida(img) ? `<img src="${esc(img)}" alt="${esc(String(fav.name))}" loading="lazy">` : ''}
+      ${urlValida(img) ? `<img src="${esc(img)}" alt="${esc(nombreEs)}" loading="lazy">` : ''}
       <div class="carta-chip fav-info">
-        <div style="font-size:17px; font-weight:800; font-family:var(--f-display); color:var(--text);">${esc(String(fav.name))}</div>
+        <div style="font-size:17px; font-weight:800; font-family:var(--f-display); color:var(--text);">${esc(nombreEs)}</div>
         <div class="cc-meta" style="margin-top:6px;">
           ${rk ? `<span class="cc-rareza" data-rareza="${rk}">${esc(RAREZA_CARTA_TXT[rk])}</span>` : (fav.rarity ? `<span class="cc-rareza">${esc(String(fav.rarity))}</span>` : '')}
           ${fav.elixirCost != null ? `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">${esc(String(fav.elixirCost))}</span>` : ''}
@@ -679,20 +801,25 @@ function pintarColeccion(cartas){
   const cont = document.getElementById('mColeccionContenido');
   const ordRar = { campeon:0, legendaria:1, epica:2, especial:3, comun:4 };
   const visibles = cartas.filter(c => _colFiltroActivo === 'todos' || rarezaKey(c.rarity) === _colFiltroActivo);
+  // FIX (20-sep-2026, pedido usuario — nombres de cartas en español): se
+  // ordena por el nombre YA traducido, para que el orden alfabético
+  // coincida con lo que se ve en pantalla.
   visibles.sort((a, b) =>
     ((ordRar[rarezaKey(a.rarity)] ?? 9) - (ordRar[rarezaKey(b.rarity)] ?? 9)) ||
     ((b.level || 0) - (a.level || 0)) ||
-    String(a.name || '').localeCompare(String(b.name || ''), 'es'));
+    _nombreCartaEs(a).localeCompare(_nombreCartaEs(b), 'es'));
   cont.innerHTML = visibles.map(c => {
     const rk = rarezaKey(c.rarity);
     const urls = c.iconUrls || {};
     const img = ((c.evolutionLevel || 0) > 0 && urls.evolutionMedium) ? urls.evolutionMedium
       : (rk === 'campeon' && urls.heroMedium) ? urls.heroMedium
       : urls.medium || '';
+    // cards[] (colección completa) también viene crudo del JSON de Supercell.
+    const nombreEs = _nombreCartaEs(c);
     return `
-    <div class="col-card${c.maxLevel != null && c.level >= c.maxLevel ? ' max-level' : ''}" title="${esc(String(c.name))}">
+    <div class="col-card${c.maxLevel != null && c.level >= c.maxLevel ? ' max-level' : ''}" title="${esc(nombreEs)}">
       ${img ? `<img src="${esc(img)}" alt="" loading="lazy" onerror="this.style.visibility='hidden';">` : ''}
-      <div class="col-nombre">${esc(String(c.name))}</div>
+      <div class="col-nombre">${esc(nombreEs)}</div>
       ${rk ? `<span class="cc-rareza" data-rareza="${rk}">${esc(RAREZA_CARTA_TXT[rk])}</span>` : ''}
       <div class="text-faint" style="font-family:var(--f-mono); font-size:10px;">Nv. ${esc(String(c.level != null ? c.level : '\u2014'))}/${esc(String(c.maxLevel != null ? c.maxLevel : '\u2014'))}</div>
       <div class="cc-meta" style="justify-content:center;">
@@ -723,11 +850,14 @@ function renderCartasTorre(j){
   cont.innerHTML = torres.map(t => {
     const rk = rarezaKey(t.rarity);
     const img = (t.iconUrls && (t.iconUrls.medium || t.iconUrls.large)) || '';
+    // FIX (20-sep-2026, pedido usuario — nombres de cartas en español):
+    // supportCards[] también viene crudo del JSON de Supercell.
+    const nombreEs = _nombreCartaEs(t);
     return `
     <div class="carta-chip${img ? '' : ' carta-chip--sin-img'}">
-      ${img ? `<img class="cc-img" src="${esc(img)}" alt="${esc(String(t.name))}" loading="lazy" onerror="const p=this.parentElement; this.remove(); if(p) p.classList.add('carta-chip--sin-img');">` : ''}
+      ${img ? `<img class="cc-img" src="${esc(img)}" alt="${esc(nombreEs)}" loading="lazy" onerror="const p=this.parentElement; this.remove(); if(p) p.classList.add('carta-chip--sin-img');">` : ''}
       <div class="cc-content">
-        <div class="cc-fila-1"><b>${esc(String(t.name))}</b></div>
+        <div class="cc-fila-1"><b>${esc(nombreEs)}</b></div>
         <div class="cc-meta">${rk ? `<span class="cc-rareza" data-rareza="${rk}">${esc(RAREZA_CARTA_TXT[rk])}</span>` : ''}</div>
         <div class="text-faint" style="font-size:10px;">Nv. ${esc(String(t.level != null ? t.level : '\u2014'))}/${esc(String(t.maxLevel != null ? t.maxLevel : '\u2014'))} \u00b7 \u00d7${fmtNum(t.count)}</div>
       </div>
@@ -1006,6 +1136,43 @@ function _ordenarCartasMazo(cartas){
 }
 
 /**
+ * _cartaMazoFallback(rc)
+ * FIX (20-sep-2026, pedido usuario — "el mazo es de 8 cartas, se ven 7 en
+ * mi perfil"): arma una entrada con la MISMA forma que un elemento de
+ * mazoActual.cartas (_webMazoActualDesdeCards2(), Base.md) a partir de una
+ * carta cruda de rawClash(j).currentDeck, para los casos en que esa carta
+ * todavía no tiene fila con Currentdeck='Sí' en Backup_Cards_2.csv (ver
+ * renderMazoActual() más abajo) — así el grid nunca muestra menos de las
+ * cartas que trae currentDeck, aunque a esta entrada puntual le falte el
+ * cruce con Backup_Cards.csv que sí tienen las demás.
+ * `name` se resuelve con _nombreCartaEs() (nombreEs del backend si ya
+ * llega, si no el diccionario local SOLO como respaldo — ver PENDIENTE DE
+ * BACKEND más arriba) para que _datosCarta()/_ordenarCartasMazo() puedan
+ * seguir ordenándola igual que al resto.
+ * @param {Object} rc - Carta cruda de rawClash(j).currentDeck.
+ * @returns {Object} Objeto con la forma de mazoActual.cartas[].
+ */
+function _cartaMazoFallback(rc){
+  rc = rc || {};
+  const urls = rc.iconUrls || {};
+  const nivel = (rc.level != null && rc.maxLevel != null) ? (16 - rc.maxLevel + rc.level) : null;
+  return {
+    id:            rc.id,
+    name:          _nombreCartaEs(rc),
+    rarity:        rc.rarity || '',
+    tipo:          '',
+    elixirCost:    rc.elixirCost != null ? rc.elixirCost : null,
+    icon:          urls.medium || '',
+    nivel:         nivel,
+    evoLevel:      rc.evolutionLevel || 0,
+    hasEvolution:  (rc.evolutionLevel || 0) > 0,
+    evolutionIcon: urls.evolutionMedium || null,
+    hasHero:       false,
+    heroIcon:      null
+  };
+}
+
+/**
  * renderMazoActual(mazoActual, ext, j)
  * FASE 10 (06-sep-2026, punto 10 del documento — mazo actual real) +
  * FIXes 08/09-sep-2026 (botones de sugerencia a la derecha, orden
@@ -1040,7 +1207,45 @@ function renderMazoActual(mazoActual, ext, j){
     ${deckOkBtn ? `<a href="${esc(ext.deck)}" target="_blank" rel="noopener" title="${esc(deckTitle)}">🃏 Sugerencias de mazo</a>` : ''}
     ${deck2OkBtn ? `<a href="${esc(ext.deck2)}" target="_blank" rel="noopener" title="${esc(deck2Title)}">🃏 Sugerencias de mazo (2)</a>` : ''}`;
 
-  const hayCartas = mazoActual && Array.isArray(mazoActual.cartas) && mazoActual.cartas.length;
+  // FIX (20-sep-2026, pedido usuario — "el mazo es de 8 cartas, se ven 7
+  // en mi perfil"): mazoActual.cartas (_webMazoActualDesdeCards2(),
+  // Base.md) depende de que Backup_Cards_2.csv tenga la fila
+  // Currentdeck='Sí' marcada para las 8 cartas de este jugador — si por
+  // lo que sea falta una (CSV desactualizado, jugador sin escanear
+  // recientemente con PLAYERS_API_ENABLED=true, etc.) esa carta
+  // simplemente no aparece en el array y el grid queda con 7 en vez de 8.
+  // rawClash(j).currentDeck es el campo crudo que manda Supercell y
+  // SIEMPRE trae las 8 cartas reales de este snapshot (ver el propio
+  // docblock de esta función, arriba) — se usa acá como la lista
+  // definitiva de QUÉ 8 cartas van en el grid. mazoActual.cartas sigue
+  // siendo la fuente PRIMARIA de nombre en español/tipo/rareza/ícono para
+  // cada una (viene de Backup_Cards.csv, cruzado por el backend); si una
+  // carta de rawDeck todavía no tiene fila en mazoActual.cartas, se arma
+  // con los datos crudos de esa misma carta (_cartaMazoFallback()) en vez
+  // de omitirse — nunca se muestran menos de las cartas que trae rawDeck.
+  const rawDeck = rawClash(j).currentDeck;
+  const rawPorId = {};
+  if (Array.isArray(rawDeck)) rawDeck.forEach(rc => { if (rc && rc.id != null) rawPorId[String(rc.id)] = rc; });
+
+  const porIdMazo = {};
+  if (mazoActual && Array.isArray(mazoActual.cartas)) {
+    mazoActual.cartas.forEach(c => { if (c && c.id != null) porIdMazo[String(c.id)] = c; });
+  }
+
+  let listaCartas;
+  if (Array.isArray(rawDeck) && rawDeck.length) {
+    // rawDeck manda: por cada una de sus 8 cartas, usar la versión ya
+    // resuelta por el backend si existe (mazoActual.cartas, por ID), o
+    // armar el fallback desde el propio objeto crudo si no.
+    listaCartas = rawDeck.map(rc => (rc && rc.id != null && porIdMazo[String(rc.id)]) || _cartaMazoFallback(rc));
+  } else if (mazoActual && Array.isArray(mazoActual.cartas)) {
+    // Snapshot sin currentDeck (raro): se cae al comportamiento anterior.
+    listaCartas = mazoActual.cartas;
+  } else {
+    listaCartas = [];
+  }
+
+  const hayCartas = listaCartas.length > 0;
   if (!hayCartas && !deckOkBtn && !deck2OkBtn){
     card.style.display = 'none';
     cont.innerHTML = '';
@@ -1052,13 +1257,8 @@ function renderMazoActual(mazoActual, ext, j){
     return;
   }
 
-  // Cruza cada carta del mazo con rawClash(j).currentDeck para sumar starLevel/count/evolutionLevel; el backend ya lo manda. Historial en CHANGELOG.md.
-  const rawDeck = rawClash(j).currentDeck;
-  const rawPorNombre = {};
-  if (Array.isArray(rawDeck)) rawDeck.forEach(rc => { if (rc && rc.name) rawPorNombre[rc.name] = rc; });
-
-  const cartasHtml = _ordenarCartasMazo(mazoActual.cartas).map(c => {
-    const rc = rawPorNombre[c.name] || {};
+  const cartasHtml = _ordenarCartasMazo(listaCartas).map(c => {
+    const rc = (c.id != null && rawPorId[String(c.id)]) || {};
     const urlsRc = rc.iconUrls || {};
     const d = _datosCarta(c.name);
     const tipoTxt = d ? d.tipo.charAt(0).toUpperCase() + d.tipo.slice(1) : '';
@@ -1101,11 +1301,16 @@ function renderMazoActual(mazoActual, ext, j){
       <div class="mazo-chips">${torresRaw.map(t => {
         const rk = rarezaKey(t.rarity);
         const img = (t.iconUrls && (t.iconUrls.medium || t.iconUrls.large)) || '';
+        // FIX (20-sep-2026, pedido usuario — nombres de cartas en español):
+        // currentDeckSupportCards viene crudo del JSON de Supercell, igual
+        // que currentFavouriteCard más abajo — se traduce con el mismo
+        // diccionario (cards-es.js).
+        const nombreEs = _nombreCartaEs(t);
         return `
         <div class="carta-chip${img ? '' : ' carta-chip--sin-img'}">
-          ${img ? `<img class="cc-img" src="${esc(img)}" alt="${esc(String(t.name))}" loading="lazy" onerror="const p=this.parentElement; this.remove(); if(p) p.classList.add('carta-chip--sin-img');">` : ''}
+          ${img ? `<img class="cc-img" src="${esc(img)}" alt="${esc(nombreEs)}" loading="lazy" onerror="const p=this.parentElement; this.remove(); if(p) p.classList.add('carta-chip--sin-img');">` : ''}
           <div class="cc-content">
-            <div class="cc-fila-1"><b>${esc(String(t.name))}</b></div>
+            <div class="cc-fila-1"><b>${esc(nombreEs)}</b></div>
             <div class="cc-meta">${rk ? `<span class="cc-rareza" data-rareza="${rk}">${esc(RAREZA_CARTA_TXT[rk])}</span>` : ''}</div>
             <div class="text-faint" style="font-size:10px;">Nv. ${esc(String(t.level != null ? t.level : '—'))}/${esc(String(t.maxLevel != null ? t.maxLevel : '—'))}</div>
           </div>
