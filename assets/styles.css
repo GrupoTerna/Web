@@ -45,7 +45,21 @@
   /* Layout & Effets */
   --radius:       14px;
   --radius-sm:    8px;
-  --maxw:         1160px;
+  /* FIX (21-sep-2026, pedido usuario — "debe dejar los márgenes laterales
+     a la mitad"): --maxw pasaba de un valor fijo (1160px), así que el
+     margen lateral del .wrap ((100vw - maxw)/2) crecía sin límite en
+     pantallas anchas (ver captura del usuario: franjas negras enormes a
+     los costados). Se reemplaza por una fórmula que reduce ese margen a la
+     MITAD en cualquier ancho de viewport, en vez de fijar un número de
+     píxeles que solo funcionaría bien para una resolución puntual.
+     Despeje: margen_nuevo = margen_viejo/2
+       margen_viejo = (100vw - 1160)/2
+       margen_nuevo = (100vw - maxw_nuevo)/2 = margen_viejo/2
+       → maxw_nuevo = 50vw + 580px
+     (580px = 1160px/2, la mitad del ancho máximo viejo). En pantallas
+     angostas (mobile) esto no cambia nada: el .wrap ya no tenía margen ahí
+     porque maxw superaba el ancho del viewport, igual que antes. */
+  --maxw:         calc(50vw + 580px);
   --glow:         0 0 0 1px var(--line-strong), 0 8px 32px rgba(162,57,255,.28);
   --glow-gold:    0 0 0 1px var(--line-gold), 0 8px 32px rgba(243,169,34,.25);
   --glass-blur:   blur(14px);
