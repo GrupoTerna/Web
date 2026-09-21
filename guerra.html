@@ -560,15 +560,19 @@ function setNum(id, val){
   if(changed){ el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); }
   prevValues[id] = val;
 }
+// FIX (20-sep-2026, D-10 b): antes esta función repetía acá las mismas
+// franjas de segundos/minutos que ya calcula fmtTiempoRelativo() (util.js),
+// el componente único que index/directorio/perfil/torneos usan para
+// "actualizado hace X" sobre el respaldo en localStorage. Esta página sigue
+// necesitando su propia función porque su fuente es lastFetchAt (en
+// memoria, se auto-refresca sola cada REFRESH_INTERVAL_MS) y no el
+// localStorage de apiGetUltimaActualizacion(), pero el texto ya sale de la
+// misma función compartida en vez de una copia local — una sola definición
+// de "actualizado hace X" en todo el sitio.
 function actualizarAgoText(){
   const el = document.getElementById('agoText');
   if(!el || !lastFetchAt) return;
-  const segs = Math.floor((Date.now() - lastFetchAt.getTime()) / 1000);
-  let txt;
-  if(segs < 5) txt = 'actualizado ahora mismo';
-  else if(segs < 60) txt = `actualizado hace ${segs}s`;
-  else txt = `actualizado hace ${Math.floor(segs/60)} min`;
-  el.textContent = txt;
+  el.textContent = fmtTiempoRelativo(lastFetchAt);
 }
 function iniciarProgreso(){
   const fill = document.getElementById('progressFill');

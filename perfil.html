@@ -159,6 +159,17 @@
   .panel-stats td:last-child{text-align:right; color:var(--text); font-family:var(--f-mono); font-size:12px; white-space:nowrap;}
   .fav-wrap{display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-top:14px;}
   .fav-wrap img{width:72px; height:84px; object-fit:contain;}
+  /* FIX (20-sep-2026, D-21 b): dos style="" que se repetían 12 y 11 veces
+     respectivamente pasan a clases locales de esta página.
+     .pf-subtitulo cubre el <h2> de cada panel de estadísticas de Clash
+     (Cartas equipadas, Ranking en el clan, Ataques por semana, etc.).
+     .pf-panel-datos cubre el padding/margin de esas mismas tarjetas
+     ("card"); el display:none inicial de cada una queda como style=""
+     aparte porque el JS lo limpia con card.style.display = '' para
+     mostrarlas al llegar datos — si display:none viviera en la clase, esa
+     línea ya no alcanzaría para revelarlas. */
+  .pf-subtitulo{font-size:19px; margin-top:8px;}
+  .pf-panel-datos{padding:28px; margin-top:20px;}
 </style>
 </head>
 <body data-page="perfil">
@@ -240,11 +251,11 @@
       </div>
 
       <!-- "Mazo actual" es pd.currentDeck real de la API; los botones "Sugerencias de mazo" viven en la esquina superior derecha de esta card, junto al eyebrow/título. Historial en CHANGELOG.md. -->
-      <div class="card" id="mMazoActualCard" style="padding:28px; margin-top:20px; display:none;">
+      <div class="card pf-panel-datos" id="mMazoActualCard" style="display:none;">
         <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:14px; flex-wrap:wrap;">
           <div>
             <div class="eyebrow">Mazo actual</div>
-            <h2 style="font-size:19px; margin-top:8px;">Cartas equipadas ahora mismo</h2>
+            <h2 class="pf-subtitulo">Cartas equipadas ahora mismo</h2>
           </div>
           <div id="mMazoActualBtns" class="ext-links" style="margin-top:0;"></div>
         </div>
@@ -254,70 +265,70 @@
       <!-- ---------- RANKING EN EL CLAN (nuevo, 31-ago-2026) ---------- -->
       <div class="card" style="padding:28px; margin-top:20px;">
         <div class="eyebrow">Evolución</div>
-        <h2 style="font-size:19px; margin-top:8px;">Ranking en el clan</h2>
+        <h2 class="pf-subtitulo">Ranking en el clan</h2>
         <div id="mRankingChart"></div>
       </div>
 
       <!-- Ataques/Puntaje/Barcos por semana usan el mismo array que "Ranking en el clan"; cada tarjeta arranca oculta y se muestra sola si el backend trae datos para ese campo. Historial en CHANGELOG.md. -->
-      <div class="card" id="mAtaquesChartCard" style="padding:28px; margin-top:20px; display:none;">
+      <div class="card pf-panel-datos" id="mAtaquesChartCard" style="display:none;">
         <div class="eyebrow">Evolución</div>
-        <h2 style="font-size:19px; margin-top:8px;">Ataques por semana</h2>
+        <h2 class="pf-subtitulo">Ataques por semana</h2>
         <div id="mAtaquesChart"></div>
       </div>
-      <div class="card" id="mPuntajeChartCard" style="padding:28px; margin-top:20px; display:none;">
+      <div class="card pf-panel-datos" id="mPuntajeChartCard" style="display:none;">
         <div class="eyebrow">Evolución</div>
-        <h2 style="font-size:19px; margin-top:8px;">Puntaje por semana</h2>
+        <h2 class="pf-subtitulo">Puntaje por semana</h2>
         <div id="mPuntajeChart"></div>
       </div>
-      <div class="card" id="mBarcosChartCard" style="padding:28px; margin-top:20px; display:none;">
+      <div class="card pf-panel-datos" id="mBarcosChartCard" style="display:none;">
         <div class="eyebrow">Evolución</div>
-        <h2 style="font-size:19px; margin-top:8px;">Barcos por semana</h2>
+        <h2 class="pf-subtitulo">Barcos por semana</h2>
         <div id="mBarcosChart"></div>
       </div>
 
       <!-- Secciones nuevas que leen jugador.rawClash() (snapshot JSON crudo con los nombres de categoría de Supercell, ya adjuntado por webPerfil). Historial en CHANGELOG.md. -->
-      <div class="card" id="mFavoritaCard" style="padding:28px; margin-top:20px; display:none;">
+      <div class="card pf-panel-datos" id="mFavoritaCard" style="display:none;">
         <div class="eyebrow">Personal</div>
-        <h2 style="font-size:19px; margin-top:8px;">Carta favorita</h2>
+        <h2 class="pf-subtitulo">Carta favorita</h2>
         <div id="mFavoritaContenido"></div>
       </div>
 
-      <div class="card" id="mLeyendasCard" style="padding:28px; margin-top:20px; display:none;">
+      <div class="card pf-panel-datos" id="mLeyendasCard" style="display:none;">
         <div class="eyebrow">Competitivo</div>
-        <h2 style="font-size:19px; margin-top:8px;">Camino de Leyendas y ligas</h2>
+        <h2 class="pf-subtitulo">Camino de Leyendas y ligas</h2>
         <div id="mLeyendasContenido"></div>
       </div>
 
-      <div class="card" id="mColeccionCard" style="padding:28px; margin-top:20px; display:none;">
+      <div class="card pf-panel-datos" id="mColeccionCard" style="display:none;">
         <div class="eyebrow">Colección</div>
-        <h2 style="font-size:19px; margin-top:8px;">Colección completa de cartas</h2>
+        <h2 class="pf-subtitulo">Colección completa de cartas</h2>
         <div class="coleccion-resumen" id="mColeccionResumen"></div>
         <div class="coleccion-filtros" id="mColeccionFiltros"></div>
         <div class="coleccion-grid" id="mColeccionContenido"></div>
       </div>
 
-      <div class="card" id="mTorresCard" style="padding:28px; margin-top:20px; display:none;">
+      <div class="card pf-panel-datos" id="mTorresCard" style="display:none;">
         <div class="eyebrow">Colección</div>
-        <h2 style="font-size:19px; margin-top:8px;">Cartas de torre</h2>
+        <h2 class="pf-subtitulo">Cartas de torre</h2>
         <!-- Categoría supportCards[] del JSON (Tower Cards de RoyaleAPI, distinto de currentDeckSupportCards del mazo actual); el backend ya la manda. Historial en CHANGELOG.md. -->
         <div class="torre-grid" id="mTorresContenido"></div>
       </div>
 
-      <div class="card" id="mInsigniasCard" style="padding:28px; margin-top:20px; display:none;">
+      <div class="card pf-panel-datos" id="mInsigniasCard" style="display:none;">
         <div class="eyebrow">Insignias y logros</div>
-        <h2 style="font-size:19px; margin-top:8px;">Insignias</h2>
+        <h2 class="pf-subtitulo">Insignias</h2>
         <div id="mInsigniasContenido"></div>
       </div>
 
-      <div class="card" id="mLogrosCard" style="padding:28px; margin-top:20px; display:none;">
+      <div class="card pf-panel-datos" id="mLogrosCard" style="display:none;">
         <div class="eyebrow">Insignias y logros</div>
-        <h2 style="font-size:19px; margin-top:8px;">Logros</h2>
+        <h2 class="pf-subtitulo">Logros</h2>
         <div id="mLogrosContenido" style="margin-top:14px;"></div>
       </div>
 
-      <div class="card" id="mProgresoCard" style="padding:28px; margin-top:20px; display:none;">
+      <div class="card pf-panel-datos" id="mProgresoCard" style="display:none;">
         <div class="eyebrow">Actividad</div>
-        <h2 style="font-size:19px; margin-top:8px;">Progreso de eventos y modos</h2>
+        <h2 class="pf-subtitulo">Progreso de eventos y modos</h2>
         <div id="mProgresoContenido"></div>
       </div>
     </div>

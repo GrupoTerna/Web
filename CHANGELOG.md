@@ -872,6 +872,15 @@ suelta arriba del panel.
 
 ## comunidad.html
 
+### 20-sep-2026 — Dos `style=""` repetidos pasan a clases locales (D-21 b)
+`style="padding:40px 0 0;"` (9 veces, en cada `<section data-reveal>` de
+historia/comunidad) y `style="margin-top:20px; padding:32px;"` (9 veces,
+en cada `.card.historia-card`) pasan a `.hist-seccion` y a la propia regla
+`.historia-card`, ambas locales de esta página. No se generalizó por el
+atributo `data-reveal` que comparten las 9 `<section>` porque
+`.comunidad-header` y `.ascenso-row` también lo usan con otro padding.
+Sin cambio visual esperado.
+
 ### 13-sep-2026 — Íconos de WhatsApp y Discord en "Redes"
 Pedido usuario: "falta el icono de wsp" / "el de discord también agrégalo".
 Se agregan WhatsApp y Discord, primeros en la fila (a la izquierda de
@@ -2784,6 +2793,18 @@ FIX (03-sep-2026, pedido usuario, punto 19 — "agregar un
 
 ## perfil.html — historial trasladado
 
+### 20-sep-2026 — Dos `style=""` repetidos pasan a clases locales (D-21 b)
+`style="font-size:19px; margin-top:8px;"` (12 veces, en el `<h2>` de cada
+panel de estadísticas de Clash) y `style="padding:28px; margin-top:20px;
+display:none;"` (11 veces, en la tarjeta `.card` de cada uno de esos
+paneles) pasan a `.pf-subtitulo` y `.pf-panel-datos`, clases nuevas y
+locales de esta página. El `display:none;` de las 11 tarjetas se dejó
+como `style=""` aparte, fuera de `.pf-panel-datos`: varias funciones de
+`<script>` las muestran con `card.style.display = ''`, que solo limpia el
+inline y deja que la cascada decida — si `display:none` viviera en la
+clase, esa línea ya no alcanzaría para revelarlas. Sin cambio visual
+esperado.
+
 ### Línea original 18 (HTML)
 
 ```
@@ -3965,6 +3986,18 @@ FIX (03-sep-2026, pedido usuario — "Vigencia [última
 
 
 ## guerra.html
+
+### 20-sep-2026 — `actualizarAgoText()` usa `fmtTiempoRelativo()` (D-10 b)
+Repetía en solitario las mismas franjas de segundos/minutos que ya calcula
+`fmtTiempoRelativo()` (`assets/js/util.js`), el componente que
+`index`/`directorio`/`perfil`/`torneos` ya comparten para "actualizado hace
+X" sobre el respaldo en `localStorage`. Esta página sigue necesitando su
+propia función porque su fuente es `lastFetchAt` en memoria (se
+auto-refresca sola cada `REFRESH_INTERVAL_MS`), no ese respaldo, pero el
+texto ya sale de la función centralizada en vez de una copia local. El
+mensaje de "sin conexión, mostrando última carga" (rama de error de
+`cargar()`) no se tocó: sigue siendo un estado propio de esta página, no
+un texto de `fmtTiempoRelativo()`. Sin cambio visual esperado.
 
 ### 20-sep-2026 — Contraste de "Actualizado hace X s" (`.refresh-row`)
 `color:var(--text-faint)` → `var(--text-dim)`: sobre el tinte dorado de
