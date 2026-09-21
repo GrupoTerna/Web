@@ -2793,6 +2793,49 @@ FIX (03-sep-2026, pedido usuario, punto 19 — "agregar un
 
 ## perfil.html — historial trasladado
 
+### 21-sep-2026 — Nombres en español desde el CSV: se cierra el "PENDIENTE DE BACKEND"
+El 20-sep se dejó en `perfil.html` un bloque "PENDIENTE DE BACKEND" (pedido: "se
+traduce mal, esas traducciones se quedaron como fallback, no debe ser la fuente
+principal"). `Base.md` se estaba editando en otra sesión y no se tocó entonces.
+Motivo: solo el mazo actual salía bien traducido (`_webMazoActualDesdeCards2()`
+ya cruza contra `Backup_Cards.csv`); el resto de categorías de `rawClash` se
+copiaban tal cual del JSON de Supercell, en inglés.
+
+**Backend (`34_Web_API.gs`, `_webDatosDriveJugador()`):** se agrega `nombreEs`
+(nunca se reemplaza `name`) a:
+- `currentFavouriteCard`, `cards[]`, `supportCards[]`, `currentDeck[]` y
+  `currentDeckSupportCards[]`:
+  columna "Nombre" de `Backup_Cards.csv`, cruzada por **ID** (nunca por nombre).
+- `badges[]`: columna "Nombre" de `Backup_Insignias_2.csv`, cruzada por
+  **(Tag, Name)**; el Tag se compara con `cleanTag()` en ambos lados.
+
+Decisiones que se apartan de lo que decía el bloque pendiente:
+- **Se copia, no se muta.** El bloque proponía `obj.nombreEs = es`, pero
+  `_cargarPlayerDesideDrive()` deja el JSON en `_DRIVE_CACHE_MEM`, compartido con
+  otras funciones; mutarlo llenaría de `nombreEs` objetos que no son de esta función.
+- **"Nombre" vacío = sin `nombreEs`.** El bloque proponía usar la columna "Name"
+  (inglés) como reemplazo. Si eso pasara, `perfil.html` preferiría ese inglés y dejaría de
+  usar el diccionario local (`cards-es.js`), que sí podría tener la traducción.
+  Sin `nombreEs`, las cartas caen a ese diccionario y las insignias muestran el
+  nombre crudo de Supercell.
+- Si el CSV no se puede leer, el mapa queda vacío y el perfil se ve como antes.
+  El CSV se lee una sola vez por perfil, y ninguna si el JSON no trae esas categorías.
+- `currentDeck[]` se agregó en una segunda pasada del mismo día. `perfil.html` lo
+  usa como lista definitiva de las 8 cartas del mazo; si a una le falta la fila
+  `Currentdeck='Sí'` en `Backup_Cards_2.csv`, `_cartaMazoFallback()` la arma
+  desde el objeto crudo y ahí `nombreEs` evita caer al diccionario local.
+
+**Frontend (`perfil.html`):** sin cambios de código (`_nombreCartaEs()` y
+`_nombreInsigniaEs()` ya preferían `nombreEs`). Solo se reemplazó el bloque
+pendiente por una nota funcional corta y se corrigieron las referencias a él. Se
+corrigió también la nota del `<head>`, que decía "pendiente que webPerfil adjunte el
+snapshot JSON crudo" cuando ese enlace ya estaba conectado desde el 15-sep. Se
+comprobó que el AST del JavaScript inline es idéntico antes y después.
+
+**Al publicar:** hay que volver a desplegar el web app del backend para que llegue
+`nombreEs`. Las insignias solo se traducen donde `Backup_Insignias_2.csv` tenga
+"Nombre" completo (las "Mastery…" se autocompletan; el resto es manual).
+
 ### 20-sep-2026 — Dos `style=""` repetidos pasan a clases locales (D-21 b)
 `style="font-size:19px; margin-top:8px;"` (12 veces, en el `<h2>` de cada
 panel de estadísticas de Clash) y `style="padding:28px; margin-top:20px;
