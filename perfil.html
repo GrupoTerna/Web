@@ -158,7 +158,9 @@
   .panel-stats td{padding:8px 10px; border-bottom:1px solid var(--line); color:var(--text-dim); vertical-align:top;}
   .panel-stats td:last-child{text-align:right; color:var(--text); font-family:var(--f-mono); font-size:12px; white-space:nowrap;}
   .fav-wrap{display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-top:14px;}
-  .fav-wrap img{width:72px; height:84px; object-fit:contain;}
+  /* FIX (20-sep-2026, pedido usuario — "el ícono de elixir está demasiado grande, debería ser pequeñito"): esta regla era `.fav-wrap img` y alcanzaba a TODAS las imágenes de la tarjeta, incluido el ícono de elixir (quedaba de 72x84). Ahora solo toca la imagen de la carta (hijo directo). El bloque de texto lleva .carta-chip (ver renderCartaFavorita) para heredar de styles.css el ícono de elixir de 13px y los estilos de calidad/nivel máx. que el mazo ya usa; .fav-info le quita el borde, el relleno y la cuadrícula propios de la ficha. */
+  .fav-wrap > img{width:72px; height:84px; object-fit:contain;}
+  .fav-wrap .fav-info{display:block; border:0; padding:0; font-size:inherit; color:inherit;}
   /* FIX (20-sep-2026, D-21 b): dos style="" que se repetían 12 y 11 veces
      respectivamente pasan a clases locales de esta página.
      .pf-subtitulo cubre el <h2> de cada panel de estadísticas de Clash
@@ -169,6 +171,18 @@
      mostrarlas al llegar datos — si display:none viviera en la clase, esa
      línea ya no alcanzaría para revelarlas. */
   .pf-subtitulo{font-size:19px; margin-top:8px;}
+  /* FIX (20-sep-2026, pedido usuario — "imponer el formato de las gráficas de directorio en perfil"): las 4 gráficas del perfil (Ranking en el clan, Ataques, Puntaje y Barcos por semana) usan el mismo formato que las de "Ingresos recientes" de directorio.html: lienzo 960x460, marcas del eje Y con margen calculado, títulos de ejes, puntos con borde oscuro, tramos punteados y puntos huecos para semanas sin dato, y la mini-leyenda de arriba. Mismas clases (prefijo "ing-") que directorio.html. */
+  .ing-chart-leyenda{display:flex; flex-direction:column; gap:5px; margin:14px 0 18px; font-family:var(--f-mono); font-size:11.5px; color:var(--text-dim);}
+  .ing-chart-leyenda-fila{display:flex; align-items:center; gap:8px;}
+  .ing-chart-leyenda svg{flex-shrink:0;}
+  .ing-linechart-svg{width:100%; height:auto; aspect-ratio:960/460; display:block; overflow:visible;}
+  .ing-linechart-svg .ing-grid-line{stroke:var(--line-strong); stroke-width:1; opacity:.4;}
+  .ing-linechart-svg .ing-serie-line-dashed{stroke-dasharray:5 4; opacity:.55;}
+  .ing-linechart-svg .ing-axis-label{fill:var(--text-dim); font-family:var(--f-mono); font-size:15px; font-weight:600;}
+  .ing-linechart-svg .ing-serie-line{fill:none; stroke-width:3; opacity:.95;}
+  .ing-linechart-svg .ing-serie-pt{cursor:pointer; transition:r .15s ease;}
+  .ing-linechart-svg .ing-serie-pt:hover{r:7;}
+  .ing-linechart-svg .ing-axis-title{fill:var(--text-dim); font-family:var(--f-mono); font-size:14px; font-weight:700; letter-spacing:.04em;}
   .pf-panel-datos{padding:28px; margin-top:20px;}
 </style>
 </head>
@@ -564,7 +578,7 @@ function renderCartaFavorita(j){
   cont.innerHTML = `
     <div class="fav-wrap">
       ${urlValida(img) ? `<img src="${esc(img)}" alt="${esc(String(fav.name))}" loading="lazy">` : ''}
-      <div>
+      <div class="carta-chip fav-info">
         <div style="font-size:17px; font-weight:800; font-family:var(--f-display); color:var(--text);">${esc(String(fav.name))}</div>
         <div class="cc-meta" style="margin-top:6px;">
           ${rk ? `<span class="cc-rareza" data-rareza="${rk}">${esc(RAREZA_CARTA_TXT[rk])}</span>` : (fav.rarity ? `<span class="cc-rareza">${esc(String(fav.rarity))}</span>` : '')}
@@ -1127,6 +1141,178 @@ function parseFechaDDMMYYYY(s){
   return new Date(Number(y), Number(mo) - 1, Number(d)).getTime();
 }
 
+/* =========================================================================
+ * Gráficas del perfil en el formato de directorio.html (FIX 20-sep-2026,
+ * pedido usuario — "imponer el formato de las gráficas de directorio en
+ * perfil"). perfilLineChartSvg() es la versión de UNA sola serie de
+ * lineChartSvg() de directorio.html ("Ingresos recientes"): mismo lienzo
+ * (960x460), mismas marcas del eje Y con margen calculado según el ancho
+ * de la marca más larga, mismos títulos de eje, mismas líneas de
+ * referencia (año/temporada + medias horizontales), mismos puntos y
+ * tramos punteados con puntos huecos para semanas sin dato, y el mismo
+ * tooltip/teclado. Historial en CHANGELOG.md.
+ * ========================================================================= */
+const COLOR_SERIE_PERFIL = '#a239ff'; // primer color de PALETA_SERIES de directorio.html
+let perfilGraficaCtx = { nombre: '', tag: '', clan: '' }; // lo fija renderMiembro() antes de pintar
+
+function fmtFechaLargaDDMMYYYYPerfil(t){
+  const d = new Date(t);
+  return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear();
+}
+/** "17/08/2026" → "17/08" para el eje X; cualquier otro formato se muestra tal cual. */
+function semanaLabelCortaPerfil(semana){
+  const m = String(semana ?? '').match(/^(\d{1,2}\/\d{1,2})\/\d{4}$/);
+  return m ? m[1] : String(semana ?? '—');
+}
+/** Ordena por fecha real (dd/MM/yyyy); si alguna no tiene ese formato no se reordena entre sí (mismo criterio que tenían ambas gráficas). */
+function ordenarHistorialPorSemana(historial){
+  return historial.slice().sort((a, b) => {
+    const fa = parseFechaDDMMYYYY(a.semana), fb = parseFechaDDMMYYYY(b.semana);
+    if (!isNaN(fa) && !isNaN(fb)) return fa - fb;
+    if (isNaN(fa) && isNaN(fb)) return 0;
+    return isNaN(fa) ? 1 : -1;
+  });
+}
+/** Si TODAS las semanas son fechas y van de 7 en 7 días (o múltiplos), inserta las semanas intermedias que faltan como puntos sin dato (real:false), igual que directorio.html con las semanas sin registro. En cualquier otro caso devuelve los puntos tal cual. */
+function completarSemanasSinDato(puntos){
+  const tiempos = puntos.map(p => parseFechaDDMMYYYY(p.semana));
+  if (puntos.length < 2 || tiempos.some(t => isNaN(t))) return puntos;
+  const MS_DIA = 24 * 60 * 60 * 1000;
+  for (let i = 1; i < tiempos.length; i++){
+    const dias = Math.round((tiempos[i] - tiempos[i - 1]) / MS_DIA);
+    if (dias <= 0 || dias % 7 !== 0) return puntos;
+  }
+  const out = [];
+  puntos.forEach((p, i) => {
+    out.push(p);
+    if (i === puntos.length - 1) return;
+    const dias = Math.round((tiempos[i + 1] - tiempos[i]) / MS_DIA);
+    for (let k = 1; k < dias / 7; k++){
+      const f = new Date(tiempos[i]); f.setDate(f.getDate() + 7 * k);
+      out.push({ semana: fmtFechaLargaDDMMYYYYPerfil(f.getTime()), valor: 0, real: false });
+    }
+  });
+  return out;
+}
+
+function etiquetaPuntoPerfil(pt){
+  const d = pt.dataset;
+  return `${d.nombre || ''}${d.tag ? ' (' + d.tag + ')' : ''}: ${d.prefijo || ''}${fmtNum(d.valor)} ${d.unidad || ''} — ${d.clan || ''} · ${d.semana || ''}`;
+}
+function htmlTooltipPuntoPerfil(pt){
+  const d = pt.dataset;
+  return `<b>${esc(d.nombre || '')}${d.tag ? ' (' + esc(d.tag) + ')' : ''}</b><br><span style="color:var(--text-faint);">${esc((d.prefijo || '') + fmtNum(d.valor))} ${esc(d.unidad || '')} — ${esc(d.clan || '')} · ${esc(d.semana || '')}</span>`;
+}
+
+/**
+ * perfilLineChartSvg(puntos, opts)
+ * puntos: [{ semana, valor, real, clan? }] en orden cronológico (real:false = semana sin dato).
+ * opts.ejeY: título del eje Y · opts.unidad: texto del tooltip · opts.prefijo: "#" en ranking
+ * opts.base: valor mínimo del eje (0 en métricas, 1 en ranking) · opts.invertido: true = el valor más BAJO va arriba (ranking).
+ */
+function perfilLineChartSvg(puntos, opts){
+  opts = opts || {};
+  const W = 960, H = 460, PAD_R = 20, PAD_T = 20, PAD_B = 84;
+  const base = opts.base || 0, pasos = 4, prefijo = opts.prefijo || '';
+  const max = Math.max(...puntos.filter(p => p.real).map(p => p.valor));
+  const rango = Math.ceil(((max - base) || pasos) / pasos) * pasos || pasos;
+  const techo = base + rango;
+  const valorMarca = i => base + (rango / pasos) * i;
+
+  // Margen izquierdo según la marca más ancha (misma fórmula que lineChartSvg de directorio.html).
+  const anchoMarcaY = Math.max(...Array.from({ length: pasos + 1 }, (_, i) => (prefijo + fmtNum(Math.round(valorMarca(i)))).length)) * 9.3;
+  const PAD_L = Math.max(74, Math.ceil(10 + anchoMarcaY + 14 + 22));
+  const plotW = W - PAD_L - PAD_R, plotH = H - PAD_T - PAD_B;
+  const n = puntos.length;
+
+  const xPos = i => PAD_L + (n <= 1 ? plotW / 2 : (i / (n - 1)) * plotW);
+  const yPos = v => {
+    const f = (Math.min(Math.max(v, base), techo) - base) / rango;
+    return opts.invertido ? PAD_T + f * plotH : PAD_T + plotH - f * plotH;
+  };
+
+  const gridLines = [];
+  for (let i = 0; i <= pasos; i++){
+    const v = valorMarca(i), y = yPos(v);
+    gridLines.push(`<line class="ing-grid-line" x1="${PAD_L}" y1="${y}" x2="${W - PAD_R}" y2="${y}"></line>`);
+    gridLines.push(`<text class="ing-axis-label" x="${PAD_L - 10}" y="${y + 4}" text-anchor="end">${esc(prefijo + fmtNum(Math.round(v)))}</text>`);
+  }
+  const gridMedios = Array.from({ length: pasos }, (_, i) => {
+    const y = yPos(valorMarca(i + 0.5)).toFixed(1);
+    return `<line class="grid-line-medio" x1="${PAD_L}" y1="${y}" x2="${W - PAD_R}" y2="${y}"></line>`;
+  }).join('');
+
+  const fechasEje = puntos.map(p => { const t = parseFechaDDMMYYYY(p.semana); return isNaN(t) ? null : new Date(t); });
+  const lineasTemporales = lineasTemporalesSvg(fechasEje, xPos, PAD_T, H - PAD_B, { granularidadDiaria: false });
+
+  // Con muchas semanas no se rotulan todas (se cuenta desde la última, que siempre se muestra).
+  const paso = Math.max(1, Math.ceil(n / 24));
+  const xLabels = puntos.map((p, i) => {
+    if ((n - 1 - i) % paso !== 0) return '';
+    const x = xPos(i), y = H - PAD_B + 16;
+    return `<text class="ing-axis-label" x="${x}" y="${y}" text-anchor="end" transform="rotate(-45 ${x} ${y})">${esc(semanaLabelCortaPerfil(p.semana))}</text>`;
+  }).join('');
+
+  let path = '';
+  for (let i = 0; i < n - 1; i++){
+    const a = puntos[i], b = puntos[i + 1];
+    const dashed = !(a.real && b.real);
+    path += `<path class="ing-serie-line${dashed ? ' ing-serie-line-dashed' : ''}" d="M ${xPos(i).toFixed(1)} ${yPos(a.valor).toFixed(1)} L ${xPos(i + 1).toFixed(1)} ${yPos(b.valor).toFixed(1)}" stroke="${COLOR_SERIE_PERFIL}"></path>`;
+  }
+  const circles = puntos.map((p, i) => `
+      <circle class="ing-serie-pt${p.real ? '' : ' serie-pt-vacio'}" cx="${xPos(i).toFixed(1)}" cy="${yPos(p.valor).toFixed(1)}" r="5"
+        fill="${p.real ? COLOR_SERIE_PERFIL : 'none'}" stroke="${p.real ? 'var(--bg)' : COLOR_SERIE_PERFIL}" stroke-width="${p.real ? 1.5 : 2}"
+        data-nombre="${esc(perfilGraficaCtx.nombre)}" data-tag="${esc(perfilGraficaCtx.tag)}" data-valor="${p.valor}" data-prefijo="${esc(p.real ? prefijo : '')}"
+        data-clan="${esc(p.real ? (p.clan || perfilGraficaCtx.clan || '—') : 'Sin dato — sin clan o sin participar')}"
+        data-semana="${esc(p.semana)}" data-unidad="${esc(opts.unidad || '')}"></circle>`).join('');
+
+  const ejeXTitle = `<text class="ing-axis-title" x="${PAD_L + plotW / 2}" y="${H - 8}" text-anchor="middle">Fecha</text>`;
+  const ejeYTitle = opts.ejeY
+    ? `<text class="ing-axis-title" x="14" y="${PAD_T + plotH / 2}" text-anchor="middle" transform="rotate(-90 14 ${PAD_T + plotH / 2})">${esc(opts.ejeY)}</text>`
+    : '';
+  return `<svg class="ing-linechart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">${gridLines.join('')}${gridMedios}${lineasTemporales}${xLabels}${path}${circles}${ejeXTitle}${ejeYTitle}</svg>`;
+}
+
+/** Mini-leyenda de arriba de cada gráfica (idéntica a la de directorio.html). */
+function leyendaPuntosGraficaHtml(conHuecos){
+  return `
+    <div class="ing-chart-leyenda">
+      <div class="ing-chart-leyenda-fila">
+        <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><circle cx="5" cy="5" r="4" fill="var(--text-dim)"></circle></svg>
+        Punto relleno = valor real registrado
+      </div>
+      ${conHuecos === false ? '' : `<div class="ing-chart-leyenda-fila">
+        <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><circle cx="5" cy="5" r="3.4" fill="none" stroke="var(--text-dim)" stroke-width="1.6"></circle></svg>
+        Punto solo con borde = sin dato esa semana
+      </div>`}
+    </div>`;
+}
+
+/** Pinta la gráfica dentro de `wrap` y activa tooltip de mouse + teclado (mismo comportamiento que directorio.html). */
+function pintarGraficaPerfil(wrap, puntos, opts, nota){
+  wrap.innerHTML = `${leyendaPuntosGraficaHtml(!opts.sinHuecos)}${perfilLineChartSvg(puntos, opts)}${nota || ''}`;
+  const svg = wrap.querySelector('.ing-linechart-svg');
+  if (!svg) return;
+  const tip = obtenerTooltipGrafica();
+  svg.querySelectorAll('.ing-serie-pt').forEach(pt => {
+    pt.addEventListener('mousemove', e => {
+      tip.innerHTML = htmlTooltipPuntoPerfil(pt);
+      tip.style.display = 'block';
+      tip.style.left = (e.clientX + 14) + 'px';
+      tip.style.top  = (e.clientY + 14) + 'px';
+    });
+    pt.addEventListener('mouseleave', () => { tip.style.display = 'none'; });
+  });
+  // Teclado y lectores de pantalla: un Tab entra a la gráfica, ←/→ recorren las semanas.
+  activarTecladoPuntosGrafica(svg, {
+    selector: '.ing-serie-pt',
+    serieDe: () => 'serie',
+    etiqueta: etiquetaPuntoPerfil,
+    htmlTooltip: htmlTooltipPuntoPerfil,
+    titulo: (opts.ejeY || 'Valor') + ' por semana'
+  });
+}
+
 function renderRankingChart(ext){
   const wrap = document.getElementById('mRankingChart');
   const historial = ext && Array.isArray(ext.historialRanking) ? ext.historialRanking.filter(h => h && h.ranking != null) : [];
@@ -1136,116 +1322,25 @@ function renderRankingChart(ext){
     </div>`;
     return;
   }
-  /* FIX (05-sep-2026, pedido usuario — "muestra fechas repetidas" / al
-   * acercar el mouse "debería mostrar las etiquetas de ese punto pero no
-   * muestra nada"): el backend manda `semana` como texto "dd/MM/yyyy".
-   * Antes se ordenaba con localeCompare (comparación de texto plano), que
-   * NO entiende fechas: compara caracter por caracter, así que por ejemplo
-   * "18/08/2026" quedaba ubicado después de "01/09/2026" en vez de antes,
-   * desordenando por completo el eje X (de ahí las fechas "repetidas" o
-   * fuera de orden que se veían). Ahora se parsea "dd/MM/yyyy" a una fecha
-   * real (parseFechaDDMMYYYY) y se ordena por esa fecha. Además se agrega
-   * un tooltip nativo (<title> dentro de cada <circle>) con semana + puesto
-   * exacto de ese punto al pasar el mouse. */
-  const ordenados = historial.slice().sort((a, b) => {
-    const fa = parseFechaDDMMYYYY(a.semana), fb = parseFechaDDMMYYYY(b.semana);
-    if (!isNaN(fa) && !isNaN(fb)) return fa - fb;
-    // Respaldo si alguna fecha no tiene el formato esperado: no reordenar entre sí.
-    if (isNaN(fa) && isNaN(fb)) return 0;
-    return isNaN(fa) ? 1 : -1;
-  });
-  const valores = ordenados.map(h => Number(h.ranking));
-  const max = Math.max(...valores), min = Math.min(...valores);
-  const W = 640, H = 200, PAD_L = 34, PAD_R = 12, PAD_TOP = 14, PAD_BOTTOM = 40;
-  const anchoUtil = W - PAD_L - PAD_R;
-  const stepX = ordenados.length > 1 ? anchoUtil / (ordenados.length - 1) : 0;
-  const escalaY = v => {
-    if (max === min) return PAD_TOP + (H - PAD_TOP - PAD_BOTTOM)/2;
-    // Ranking: 1 es el MEJOR puesto, así que el eje se invierte (menor = más arriba).
-    return PAD_TOP + ((v - min) / (max - min)) * (H - PAD_TOP - PAD_BOTTOM);
-  };
-  const puntos = valores.map((v,i) => `${PAD_L + i*stepX},${escalaY(v)}`).join(' ');
-
-  /* FIX (04-sep-2026, pedido usuario — "las gráficas... con ese tamaño no
-   * se ve nada" / "ya hay gráfica, pero no se entiende nada"): esta
-   * gráfica dibujaba UNA etiqueta de semana por punto sin importar cuántos
-   * puntos hubiera, así que con varias decenas de semanas las etiquetas
-   * quedaban todas superpuestas e ilegibles (una sola mancha de texto). Y
-   * al no tener ninguna referencia numérica del eje vertical, tampoco se
-   * podía saber a qué puesto correspondía cada altura de línea — el único
-   * dato visible era el texto ilegible de abajo.
-   * Ahora:
-   *   1) Como máximo ~8 etiquetas de semana, elegidas con un paso fijo
-   *      (siempre se incluye la primera y la última), en vez de una por
-   *      punto.
-   *   2) Se agregan los valores de puesto MÁXIMO (peor) y MÍNIMO (mejor)
-   *      como referencia del eje Y, a la izquierda, más una línea guía
-   *      punteada horizontal en cada extremo. */
-  const maxEtiquetas = 8;
-  const pasoEtiqueta = ordenados.length > maxEtiquetas
-    ? Math.ceil((ordenados.length - 1) / (maxEtiquetas - 1))
-    : 1;
-  const etiquetasVisibles = ordenados.map((h, i) => {
-    const esUltimo = i === ordenados.length - 1;
-    return (i % pasoEtiqueta === 0 || esUltimo) ? esc(String(h.semana)) : '';
-  });
-
-  const yMax = escalaY(max); // puesto más alto numéricamente = peor puesto = línea de abajo
-  const yMin = escalaY(min); // puesto más bajo numéricamente = mejor puesto = línea de arriba
-  // Línea horizontal secundaria a mitad de camino entre las dos líneas del eje Y, mismo criterio que el resto de gráficas del sitio. Historial en CHANGELOG.md.
-  const yMedio = (yMin + yMax) / 2;
-
-  // Líneas verticales de referencia; esta gráfica es semanal, así que no lleva línea de inicio de semana. Historial en CHANGELOG.md.
-  const fechasEje = ordenados.map(h => {
-    const t = parseFechaDDMMYYYY(h.semana);
-    return isNaN(t) ? null : new Date(t);
-  });
-  const lineasTemporales = lineasTemporalesSvg(fechasEje, i => PAD_L + i*stepX, PAD_TOP, H - PAD_BOTTOM, { granularidadDiaria: false });
-
-  // Títulos de los ejes con margen extra, sin tocar las coordenadas ya calculadas; el título del eje X se ajustó para no pisar las fechas rotadas -45°. Historial en CHANGELOG.md.
-  const ejeXTitle = `<text x="${PAD_L + anchoUtil/2}" y="${H+74}" font-size="11" font-weight="700" letter-spacing=".04em" fill="var(--text-dim,#94a3b8)" text-anchor="middle" font-family="var(--f-mono)">Fecha</text>`;
-  const centroY = PAD_TOP + (H - PAD_TOP - PAD_BOTTOM) / 2;
-  const ejeYTitle = `<text x="-8" y="${centroY}" font-size="11" font-weight="700" letter-spacing=".04em" fill="var(--text-dim,#94a3b8)" text-anchor="middle" font-family="var(--f-mono)" transform="rotate(-90 -8 ${centroY})">Ranking</text>`;
-
-  wrap.innerHTML = `
-    <svg viewBox="-16 0 ${W+16} ${H+80}" style="width:100%; height:auto; margin-top:8px; overflow:visible;">
-      ${lineasTemporales}
-      <line x1="${PAD_L}" y1="${yMedio}" x2="${W-PAD_R}" y2="${yMedio}" class="grid-line-medio"/>
-      <line x1="${PAD_L}" y1="${yMin}" x2="${W-PAD_R}" y2="${yMin}" stroke="var(--border,#333)" stroke-width="1" stroke-dasharray="3,4"/>
-      <line x1="${PAD_L}" y1="${yMax}" x2="${W-PAD_R}" y2="${yMax}" stroke="var(--border,#333)" stroke-width="1" stroke-dasharray="3,4"/>
-      <text x="2" y="${yMin+3}" font-size="10" fill="var(--text-faint,#888)" font-family="var(--f-mono)">#${esc(String(min))}</text>
-      <text x="2" y="${yMax+3}" font-size="10" fill="var(--text-faint,#888)" font-family="var(--f-mono)">#${esc(String(max))}</text>
-      <polyline points="${puntos}" fill="none" stroke="var(--purple-light, #c084fc)" stroke-width="2.5"/>
-      ${ordenados.map((h,i) => `<circle cx="${PAD_L + i*stepX}" cy="${escalaY(valores[i])}" r="4" fill="var(--purple-light, #c084fc)"><title>${esc(String(h.semana))} — #${esc(String(valores[i]))}</title></circle>`).join('')}
-      ${etiquetasVisibles.map((t,i) => t ? `<text x="${PAD_L + i*stepX}" y="${H+18}" font-size="10" fill="var(--text-faint,#888)" text-anchor="end" font-family="var(--f-mono)" transform="rotate(-45, ${PAD_L + i*stepX}, ${H+18})">${t}</text>` : '').join('')}
-      ${ejeXTitle}
-      ${ejeYTitle}
-    </svg>
-    <div class="text-faint" style="font-family:var(--f-mono); font-size:11px; margin-top:4px;">Menor número = mejor puesto en el clan. Líneas punteadas: mejor puesto (#${esc(String(min))}) y peor puesto (#${esc(String(max))}) del historial mostrado.</div>`;
-  // Teclado y lectores de pantalla: un Tab entra a la gráfica, ←/→ recorren las semanas.
-  activarTecladoPuntosGrafica(wrap.querySelector('svg'), {
-    titulo: 'Ranking en el clan por semana',
-    etiqueta: pt => 'Ranking en el clan · ' + pt.querySelector('title').textContent
-  });
+  // El backend manda `semana` como texto "dd/MM/yyyy": se ordena por fecha real, no como texto (ver FIX 05-sep-2026 en CHANGELOG.md).
+  const puntos = ordenarHistorialPorSemana(historial).map(h => ({ semana: String(h.semana), valor: Number(h.ranking), real: true, clan: h.clan }));
+  // Ranking: 1 es el MEJOR puesto, así que el eje va invertido (el #1 arriba) y empieza en 1. No se rellenan semanas sin dato (un 0 sería "mejor puesto").
+  pintarGraficaPerfil(wrap, puntos, { ejeY: 'Ranking', unidad: 'en el clan', prefijo: '#', base: 1, invertido: true, sinHuecos: true },
+    `<div class="text-faint" style="font-family:var(--f-mono); font-size:11px; margin-top:4px;">Menor número = mejor puesto en el clan (el #1 queda arriba).</div>`);
 }
 
 /**
  * renderMetricaSemanal(elId, historial, campo, opts)
  * FIX (08-sep-2026, pedido usuario — "solo se está mostrando evolución de
- * ranking, falta de ataques, puntaje y barcos"): gráfica de líneas
- * genérica para el resto de métricas semanales de guerra/River Race, a
- * partir del MISMO array que ya usa renderRankingChart() (j.extendido.
- * historialRanking) — se asume que cada fila de ese historial puede
- * traer, además de `ranking`, los campos `ataques`/`puntaje`/`barcos`
- * (nombres más probables dado el pedido); si `_webPerfilJugador()`
- * (34_Web_API.gs) todavía no los manda con exactamente esos nombres, la
- * tarjeta correspondiente (#<elId>Card) se queda oculta en vez de
- * mostrar una gráfica vacía o con datos inventados — no hace falta tocar
- * este archivo de nuevo, empieza a funcionar solo en cuanto el backend
- * agregue el campo.
- * A diferencia de renderRankingChart() (donde el valor NUMÉRICO más bajo
- * es el mejor puesto y por eso va arriba del gráfico), acá el criterio es
- * el normal: valor más alto = más arriba.
+ * ranking, falta de ataques, puntaje y barcos"): gráfica de una métrica
+ * semanal de guerra/River Race a partir del MISMO array que usa
+ * renderRankingChart() (j.extendido.historialRanking). Si el backend no
+ * manda ese campo, la tarjeta (#<elId>Card) se queda oculta en vez de
+ * mostrar una gráfica vacía. Acá el criterio es el normal (valor más alto
+ * = más arriba) y el eje empieza en 0.
+ * FIX (20-sep-2026): se dibuja con el formato de directorio.html
+ * (perfilLineChartSvg); las semanas intermedias sin registro se muestran
+ * como puntos huecos en 0 con tramo punteado, igual que allá.
  */
 function renderMetricaSemanal(elId, historial, campo, opts){
   opts = opts || {};
@@ -1261,67 +1356,11 @@ function renderMetricaSemanal(elId, historial, campo, opts){
   }
   card.style.display = '';
 
-  const ordenados = datos.slice().sort((a, b) => {
-    const fa = parseFechaDDMMYYYY(a.semana), fb = parseFechaDDMMYYYY(b.semana);
-    if (!isNaN(fa) && !isNaN(fb)) return fa - fb;
-    if (isNaN(fa) && isNaN(fb)) return 0;
-    return isNaN(fa) ? 1 : -1;
-  });
-  const valores = ordenados.map(h => Number(h[campo]));
-  const max = Math.max(...valores), min = Math.min(...valores);
-  const W = 640, H = 200, PAD_L = 34, PAD_R = 12, PAD_TOP = 14, PAD_BOTTOM = 40;
-  const anchoUtil = W - PAD_L - PAD_R;
-  const stepX = ordenados.length > 1 ? anchoUtil / (ordenados.length - 1) : 0;
-  const escalaY = v => {
-    if (max === min) return PAD_TOP + (H - PAD_TOP - PAD_BOTTOM)/2;
-    // Criterio normal (a diferencia del ranking): valor más ALTO = más arriba.
-    return PAD_TOP + (H - PAD_TOP - PAD_BOTTOM) * (1 - (v - min) / (max - min));
-  };
-  const puntos = valores.map((v,i) => `${PAD_L + i*stepX},${escalaY(v)}`).join(' ');
-
-  const maxEtiquetas = 8;
-  const pasoEtiqueta = ordenados.length > maxEtiquetas
-    ? Math.ceil((ordenados.length - 1) / (maxEtiquetas - 1))
-    : 1;
-  const etiquetasVisibles = ordenados.map((h, i) => {
-    const esUltimo = i === ordenados.length - 1;
-    return (i % pasoEtiqueta === 0 || esUltimo) ? esc(String(h.semana)) : '';
-  });
-
-  const pixelArriba = escalaY(max);   // línea del valor máximo (arriba del gráfico)
-  const pixelAbajo = escalaY(min);    // línea del valor mínimo (abajo del gráfico)
-  const yMedio = (pixelArriba + pixelAbajo) / 2;
-  const fechasEje = ordenados.map(h => {
-    const t = parseFechaDDMMYYYY(h.semana);
-    return isNaN(t) ? null : new Date(t);
-  });
-  const lineasTemporales = lineasTemporalesSvg(fechasEje, i => PAD_L + i*stepX, PAD_TOP, H - PAD_BOTTOM, { granularidadDiaria: false });
-
-  // Mismo ajuste que renderRankingChart(): el título del eje X se baja para no pisar las fechas rotadas -45°. Historial en CHANGELOG.md.
-  const ejeXTitle = `<text x="${PAD_L + anchoUtil/2}" y="${H+74}" font-size="11" font-weight="700" letter-spacing=".04em" fill="var(--text-dim,#94a3b8)" text-anchor="middle" font-family="var(--f-mono)">Fecha</text>`;
-  const centroY = PAD_TOP + (H - PAD_TOP - PAD_BOTTOM) / 2;
-  const ejeYTitle = `<text x="-8" y="${centroY}" font-size="11" font-weight="700" letter-spacing=".04em" fill="var(--text-dim,#94a3b8)" text-anchor="middle" font-family="var(--f-mono)" transform="rotate(-90 -8 ${centroY})">${esc(opts.tituloEje || '')}</text>`;
-
-  wrap.innerHTML = `
-    <svg viewBox="-16 0 ${W+16} ${H+80}" style="width:100%; height:auto; margin-top:8px; overflow:visible;">
-      ${lineasTemporales}
-      <line x1="${PAD_L}" y1="${yMedio}" x2="${W-PAD_R}" y2="${yMedio}" class="grid-line-medio"/>
-      <line x1="${PAD_L}" y1="${pixelAbajo}" x2="${W-PAD_R}" y2="${pixelAbajo}" stroke="var(--border,#333)" stroke-width="1" stroke-dasharray="3,4"/>
-      <line x1="${PAD_L}" y1="${pixelArriba}" x2="${W-PAD_R}" y2="${pixelArriba}" stroke="var(--border,#333)" stroke-width="1" stroke-dasharray="3,4"/>
-      <text x="2" y="${pixelArriba+3}" font-size="10" fill="var(--text-faint,#888)" font-family="var(--f-mono)">${esc(fmtNum(max))}</text>
-      <text x="2" y="${pixelAbajo+3}" font-size="10" fill="var(--text-faint,#888)" font-family="var(--f-mono)">${esc(fmtNum(min))}</text>
-      <polyline points="${puntos}" fill="none" stroke="var(--purple-light, #c084fc)" stroke-width="2.5"/>
-      ${ordenados.map((h,i) => `<circle cx="${PAD_L + i*stepX}" cy="${escalaY(valores[i])}" r="4" fill="var(--purple-light, #c084fc)"><title>${esc(String(h.semana))} — ${esc(fmtNum(valores[i]))}</title></circle>`).join('')}
-      ${etiquetasVisibles.map((t,i) => t ? `<text x="${PAD_L + i*stepX}" y="${H+18}" font-size="10" fill="var(--text-faint,#888)" text-anchor="end" font-family="var(--f-mono)" transform="rotate(-45, ${PAD_L + i*stepX}, ${H+18})">${t}</text>` : '').join('')}
-      ${ejeXTitle}
-      ${ejeYTitle}
-    </svg>`;
-  // Teclado y lectores de pantalla: un Tab entra a la gráfica, ←/→ recorren las semanas.
-  const nombreMetrica = opts.tituloEje || 'Valor';
-  activarTecladoPuntosGrafica(wrap.querySelector('svg'), {
-    titulo: nombreMetrica + ' por semana',
-    etiqueta: pt => nombreMetrica + ' · ' + pt.querySelector('title').textContent
-  });
+  const puntos = completarSemanasSinDato(
+    ordenarHistorialPorSemana(datos).map(h => ({ semana: String(h.semana), valor: Number(h[campo]), real: true, clan: h.clan }))
+  );
+  const unidades = { Ataques: 'ataques', Puntaje: 'de puntaje', Barcos: 'barcos' };
+  pintarGraficaPerfil(wrap, puntos, { ejeY: opts.tituloEje || '', unidad: unidades[opts.tituloEje] || '', base: 0 });
 }
 
 /**
@@ -1367,6 +1406,7 @@ function renderMiembro(j){
     : '<div class="empty">Este clan todavía no tiene requisitos configurados.</div>';
 
   renderExtendido(j.extendido);
+  perfilGraficaCtx = { nombre: j.nombre || '', tag: j.tag || '', clan: j.clan || '' }; // FIX (20-sep-2026): datos del tooltip de las gráficas
   renderRankingChart(j.extendido);
   renderMetricasSemanales(j.extendido); // FIX (08-sep-2026)
   renderMazoActual(j.mazoActual, j.extendido, j); // FASE 10 (06-sep-2026); FIX 08-sep-2026: botones de sugerencia de mazo se arman acá ahora; FIX 12-sep-2026: se pasa j completo para cruzar con rawClash (starLevel/count/currentDeckSupportCards)
