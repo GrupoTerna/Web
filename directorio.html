@@ -441,7 +441,7 @@
      las columnas nunca se estiran más allá de su ancho, salen 3 por fila
      en escritorio (contenedor de 1160px) y 2 en tablet. En móvil angosto
      (<=600px) se fijan 2 columnas (ver @media más abajo). */
-  .nuevo-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(280px,1fr)); gap:16px;}
+  .nuevo-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(290px,1fr)); gap:16px;}
   .nuevo-grid .empty{grid-column:1 / -1;}
   /* Margen para que el ancla #ingresosRecientes no quede tapada por la barra de navegación fija. */
   #ingresosRecientes{scroll-margin-top:40px;}
@@ -463,19 +463,31 @@
   /* FIX (20-sep-2026): el nombre reserva 22px a cada lado (simétrico, así sigue centrado) para que un nombre largo no quede debajo del checkbox de la esquina superior derecha; el tag/fecha puede envolver en tarjetas angostas. */
   .nuevo-card .name{font-weight:700; font-size:16px; color:var(--text); padding:0 22px; overflow-wrap:anywhere;}
   .nuevo-card .tag{font-family:var(--f-mono); font-size:13.5px; color:var(--text-dim); overflow-wrap:anywhere;}
-  .nuevo-card .clan{font-size:14px; color:var(--text-dim); margin:6px 0 12px;}
-  .nuevo-card .links{display:flex; justify-content:center; gap:14px; font-size:13px;}
-  .nuevo-card .links a{text-decoration:none; color:var(--purple-light); font-weight:600;}
-  /* FIX (07-sep-2026, pedido usuario — "en el bloque de ingresos
-     recientes agrega V_Guerra, Nivel (xp)"): mini-stats debajo del clan,
-     mismo patrón visual que .ext-item (más arriba, "Cara a cara"), solo
-     que en fila y sin fondo propio para no competir con el resto de la
-     tarjeta. El backend ya manda victoriasGuerra y nivelXp en este
-     endpoint (desde el 07-sep-2026); si algún día faltaran, se pinta "—"
-     (ver ingresoStatHtml() más abajo). */
-  .nuevo-card .nc-stats{display:flex; justify-content:center; gap:16px; margin:2px 0 12px; flex-wrap:wrap;}
-  .nuevo-card .nc-stats span{font-family:var(--f-mono); font-size:13.5px; color:var(--text-dim);}
-  .nuevo-card .nc-stats b{color:var(--text); font-weight:700;}
+  .nuevo-card .clan{font-size:14px; color:var(--text-dim); margin:6px 0 0;}
+  /* FIX (20-sep-2026 v2, pedido usuario — "prevalece index, pero también se conserva lo que le faltaba a index de directorio [...] no se debe perder información, fusionadas en un solo modelo"):
+     la tarjeta pasa a ser la de index (tag, fecha de ingreso, aviso de clan rival, Copas / V. Guerra / Días inactivo / Vigencia, Ataques / Puntaje / Barcos de la semana con su desglose diario y los enlaces RoyaleAPI / CWStats)
+     MÁS lo que solo tenía directorio (Nivel (XP), checkbox en la esquina, pastillas y contador arriba, datos centrados), pero angosta: en vez de una fila de 6 recuadros, las estadísticas van en cuadrículas de 3 columnas.
+     Historial en CHANGELOG.md. */
+  .nuevo-card .nc-fecha{font-family:var(--f-mono); font-size:12.5px; color:var(--text-faint); margin-top:3px;}
+  .nuevo-card .nc-stats-grid{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; margin-top:12px;}
+  .nuevo-card .nc-stat{background:var(--bg-2); border:1px solid var(--line); border-radius:var(--radius-sm); padding:7px 4px; text-align:center; min-width:0;}
+  /* Vigencia (fecha larga, p. ej. "19 set. 2026") ocupa 2 de las 3 columnas para que no se corte. */
+  .nuevo-card .nc-stat.nc-stat-ancho{grid-column:span 2;}
+  .nuevo-card .nc-stat.nc-stat-semana{background:rgba(162,57,255,.07); border-color:var(--line-strong);}
+  .nuevo-card .nc-stat b{display:block; font-family:var(--f-display); font-weight:800; font-size:15px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .nuevo-card .nc-stat span{display:block; font-family:var(--f-mono); font-size:10.5px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.02em; margin-top:2px; line-height:1.25; overflow-wrap:anywhere;}
+  .nuevo-card .nc-subtitulo{font-family:var(--f-mono); font-size:10.5px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--purple-light); margin-top:12px;}
+  .nuevo-card .nc-subtitulo + .nc-stats-grid{margin-top:6px;}
+  /* Desglose diario (jueves a domingo) de la semana actual, igual al de index: una fila por métrica, una columna por día. Un día sin jugar llega como null y se muestra "—". */
+  .nuevo-card .nc-desglose{margin-top:8px; display:grid; grid-template-columns:auto repeat(4,minmax(0,1fr)); gap:3px 4px; background:var(--bg-2); border:1px solid var(--line); border-radius:var(--radius-sm); padding:8px;}
+  .nuevo-card .dd-cell{font-family:var(--f-mono); font-size:11.5px; color:var(--text); text-align:center; padding:2px 0; min-width:0;}
+  .nuevo-card .dd-head{color:var(--purple-light); font-weight:700; text-transform:uppercase; font-size:11px; letter-spacing:.04em;}
+  .nuevo-card .dd-label{text-align:left; color:var(--text-dim); font-weight:600; white-space:nowrap; padding-right:4px;}
+  .nuevo-card .dd-blank{color:var(--text-faint);}
+  /* Enlaces con el mismo aspecto de botón que en index (borde), pero compactos para que quepan en la tarjeta angosta. */
+  .nuevo-card .links{display:flex; justify-content:center; flex-wrap:wrap; gap:8px; margin-top:12px;}
+  .nuevo-card .links a{font-family:var(--f-mono); font-size:12.5px; font-weight:600; color:var(--purple-light); border:1px solid var(--line); padding:6px 11px; border-radius:var(--radius-sm); text-decoration:none; transition:all .18s ease;}
+  .nuevo-card .links a:hover{border-color:var(--purple); background:rgba(162,57,255,.1);}
 
   /* ---------- Ingresos Recientes: pastillas de clan + checkbox por
      tarjeta (16-sep-2026 v2, pedido usuario — "el botón de filtrar por
@@ -527,23 +539,24 @@
   .nuevo-card{transition:opacity .18s ease;}
   .nuevo-card.excluido{opacity:.62;}
   .nuevo-card.excluido:hover{opacity:.9;}
-  .nuevo-card .ing-rival{margin:0 0 10px;}
+  .nuevo-card .ing-rival{margin:8px 0 0;}
   .nuevo-card .ing-rival .badge{font-size:11px;}
   .nuevo-card .ing-rival-detalle{font-size:11px; margin-top:4px; color:var(--text-dim);}
   /* Barra bajo el encabezado: pastillas de clan a la izquierda y contador de jugadores a la derecha (envuelve en pantallas angostas). */
   .ing-toolbar{display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px 16px; margin-top:14px;}
   .ing-toolbar .ing-pill-row{margin-top:0;}
   .ing-contador{font-family:var(--f-mono); font-size:13px; color:var(--text-dim); white-space:nowrap;}
-  @media (max-width:600px){
-    .nuevo-grid{grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px;}
-    .nuevo-card{padding:14px 10px;}
-    .nuevo-card .name{font-size:14px; padding:0 18px;}
-    .nuevo-card .tag{font-size:11.5px;}
-    .nuevo-card .clan{font-size:12.5px; margin:4px 0 8px;}
-    .nuevo-card .nc-stats{gap:4px 10px;}
-    .nuevo-card .nc-stats span{font-size:12px;}
-    .nuevo-card .links{gap:8px; font-size:12px; flex-wrap:wrap;}
-    .nuevo-card .js-ingreso-check{top:10px; right:10px;}
+  /* Con la tarjeta completa (más datos que antes) en teléfono cabe 1 por fila; de 560px a 640px se fijan 2 (desde 640px sube sola a 2-3 con el auto-fill de arriba). */
+  @media (max-width:640px){
+    .nuevo-grid{grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px;}
+    .nuevo-card{padding:16px 12px;}
+    .nuevo-card .name{padding:0 18px;}
+    .nuevo-card .js-ingreso-check{top:12px; right:12px;}
+    .nuevo-card .nc-stat b{font-size:14px;}
+    .nuevo-card .dd-cell{font-size:10.5px;}
+  }
+  @media (max-width:559px){
+    .nuevo-grid{grid-template-columns:minmax(0,1fr);}
   }
 
   /* ---------- Ingresos Recientes: gráficas comparativas (Ataques/Puntaje/
@@ -2382,9 +2395,36 @@ function renderComparativaSemanal(container, miembrosTodos){
  * nivelXp, verificado 20-sep-2026): si algún día faltara alguno, la
  * tarjeta pinta "—" en vez de romper (ver ingresoStatHtml()).
  */
-function ingresoStatHtml(valor, label){
+function ingresoStatHtml(valor, label, opts){
   const txt = (valor === undefined || valor === null || valor === '') ? '—' : fmtNum(valor);
-  return `<span><b>${esc(txt)}</b> ${esc(label)}</span>`;
+  const cls = (opts && opts.semana) ? ' nc-stat-semana' : '';
+  return `<div class="nc-stat${cls}"><b>${esc(txt)}</b><span>${esc(label)}</span></div>`;
+}
+
+/** Cuadrícula compacta con el desglose diario (jueves a domingo) de Ataques/Puntaje/Barcos de la semana actual — misma función que tenía index.html (desgloseDiasHtml). Si el backend no manda guerraSemanaDias, no dibuja nada. */
+function desgloseDiasHtml(guerraSemanaDias){
+  const gd = guerraSemanaDias;
+  if (!gd || !Array.isArray(gd.dias) || !gd.dias.length) return '';
+  const diasCorta = gd.dias.map(d => String(d || '').slice(0, 1).toUpperCase());
+  const filaHtml = (label, valores) => `
+    <span class="dd-cell dd-label">${esc(label)}</span>
+    ${(valores || []).map(v => `<span class="dd-cell${v === null || v === undefined ? ' dd-blank' : ''}">${v === null || v === undefined ? '—' : esc(fmtNum(v))}</span>`).join('')}`;
+  return `
+    <div class="nc-desglose">
+      <span class="dd-cell dd-head"></span>
+      ${diasCorta.map(d => `<span class="dd-cell dd-head">${esc(d)}</span>`).join('')}
+      ${filaHtml('⚔️ Ataques', gd.ataques)}
+      ${filaHtml('⭐ Puntaje', gd.puntaje)}
+      ${filaHtml('🚢 Barcos', gd.barcos)}
+    </div>`;
+}
+
+/** Fecha de ingreso para la tarjeta: la de index (texto ya formateado, con año) si el backend la manda; si no, la ISO de directorio en dd/mm/aaaa. */
+function fechaIngresoTexto(n){
+  if (n.fechaIngreso) return String(n.fechaIngreso);
+  const d = n.fechaIngresoISO ? new Date(n.fechaIngresoISO) : null;
+  if (!d || isNaN(d.getTime())) return '';
+  return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear();
 }
 
 /** Clave con la que se identifica a cada miembro en el Set de seleccionados (mismo valor que data-tag de su tarjeta). */
@@ -2414,17 +2454,30 @@ function nuevoCardHtml(n){
   const royaleOk = urlValida(n.royaleApi);
   const cwOk = urlValida(n.cwstats);
   const incluido = !ingresosSeleccionados || ingresosSeleccionados.has(claveIngreso(n));
+  const sem = n.guerraSemana || {};
+  const fecha = fechaIngresoTexto(n);
   return `
       <div class="card nuevo-card js-nuevo-card${incluido ? '' : ' excluido'}" data-tag="${esc(claveIngreso(n))}" style="cursor:pointer; position:relative;">
         <input type="checkbox" class="js-ingreso-check" data-tag="${esc(claveIngreso(n))}"${incluido ? ' checked' : ''} aria-label="Incluir a ${esc(n.nombre)} en las gráficas">
         <div class="name">${enlaceJugador(n.nombre, n.tag)}</div>
-        <div class="tag">${esc(n.tag)} · ${fmtFecha(n.fechaIngresoISO)}</div>
+        <div class="tag">${esc(n.tag || '—')}</div>
+        <div class="nc-fecha">${fecha ? 'Ingresó el ' + esc(fecha) : 'Fecha de ingreso no registrada'}</div>
         <div class="clan">${esc(n.clan)}</div>
         ${ingBadgeRivalHtml(n.esRivalTemporada, n.clanRivalDetectado)}
-        <div class="nc-stats">
-          ${ingresoStatHtml(n.vGuerra != null ? n.vGuerra : n.victoriasGuerra, 'V. Guerra')}
-          ${ingresoStatHtml(n.nivelXp, 'Nivel (XP)')}
+        <div class="nc-stats-grid">
+          ${ingresoStatHtml(n.copas, '🏆 Copas')}
+          ${ingresoStatHtml(n.vGuerra != null ? n.vGuerra : n.victoriasGuerra, '🎖️ V. Guerra')}
+          ${ingresoStatHtml(n.nivelXp, '📈 Nivel (XP)')}
+          ${ingresoStatHtml(n.diasInactivo, '😴 Días inactivo')}
+          ${n.vigencia ? `<div class="nc-stat nc-stat-ancho"><b>${esc(fmtFechaVigenciaCorta(n.vigencia))}</b><span>🕒 Vigencia</span></div>` : ''}
         </div>
+        <div class="nc-subtitulo">Semana actual</div>
+        <div class="nc-stats-grid">
+          ${ingresoStatHtml(sem.ataques, '⚔️ Ataques', { semana: true })}
+          ${ingresoStatHtml(sem.puntaje, '⭐ Puntaje', { semana: true })}
+          ${ingresoStatHtml(sem.barcos, '🚢 Barcos', { semana: true })}
+        </div>
+        ${desgloseDiasHtml(n.guerraSemanaDias)}
         ${(royaleOk || cwOk) ? `<div class="links">
           ${royaleOk ? `<a href="${esc(n.royaleApi)}" target="_blank" rel="noopener">${ICONO_ROYALEAPI}RoyaleAPI</a>` : ''}
           ${cwOk ? `<a href="${esc(n.cwstats)}" target="_blank" rel="noopener">${ICONO_CWSTATS}CWStats</a>` : ''}
@@ -2632,7 +2685,7 @@ function construirFiltroIngresos(nuevos){
 /** Set con los tags (normalizados) de quienes hoy figuran en el directorio (webRoster) y, por tag, sus datos de perfil (nivelXp/vGuerra).
  * FIX (20-sep-2026, pedido usuario — uniformizar con index.html "con lo mejor de cada uno"):
  *   - Cruce con el directorio: igual que index.html, la hoja de origen de webIngresosRecientes conserva cuentas que YA salieron de la Familia; sin este cruce las dos páginas mostraban listas distintas. Si webRoster falla, no se filtra (mismo criterio defensivo de index.html).
- *   - Nivel (XP)/V. Guerra: si el endpoint de ingresos no los trae para un miembro, se toman del directorio (mismos campos nivelXp/vGuerra que la tabla de arriba), para que la tarjeta no pinte "—" teniendo el dato. apiGet comparte la petición en vuelo de webRoster, no cuesta una llamada extra. */
+ *   - Nivel (XP)/V. Guerra/Copas/Vigencia: si el endpoint de ingresos no los trae para un miembro, se toman del directorio (mismos campos nivelXp/vGuerra que la tabla de arriba), para que la tarjeta no pinte "—" teniendo el dato. apiGet comparte la petición en vuelo de webRoster, no cuesta una llamada extra. */
 function indexarRosterParaIngresos(dataRoster){
   const porTag = new Map();
   ((dataRoster && dataRoster.clanes) || []).forEach(c => (c.miembros || []).forEach(m => {
@@ -2660,6 +2713,8 @@ async function cargarIngresosRecientes(){
         const falta = v => (v === undefined || v === null || v === '');
         const copia = Object.assign({}, ing);
         if (falta(copia.nivelXp) && !falta(m.nivelXp)) copia.nivelXp = m.nivelXp;
+        if (falta(copia.copas) && !falta(m.copas)) copia.copas = m.copas;
+        if (falta(copia.vigencia) && !falta(m.vigencia)) copia.vigencia = m.vigencia;
         if (falta(copia.vGuerra) && falta(copia.victoriasGuerra)){
           const v = (m.vGuerra != null) ? m.vGuerra : m.victoriasGuerra;
           if (!falta(v)) copia.vGuerra = v;
