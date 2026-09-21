@@ -489,6 +489,28 @@ function rawClash(j){
  * sitio (mismas claves que usa .cc-rareza y DATOS_CARTAS_MAZO). */
 const RAREZA_RAW_A_KEY = { common:'comun', rare:'especial', epic:'epica', legendary:'legendaria', champion:'campeon' };
 function rarezaKey(r){ return RAREZA_RAW_A_KEY[String(r || '').toLowerCase()] || ''; }
+/**
+ * nivelAppAjustado(level, maxLevel)
+ * FIX (21-sep-2026, pedido usuario — "el nivel de cartas se calcula mal"):
+ * rawClash(j) trae level/maxLevel tal cual los expone la API oficial de
+ * Supercell, donde el tope de nivel varía según la rareza (Campeón tope 6,
+ * Legendaria tope 8, Épica tope 11, Especial tope 13, Común tope 14 en el
+ * catálogo viejo) — un rezago de una versión de Clash Royale de hace años.
+ * Desde entonces el juego unificó el tope de nivel a 16 para TODAS las
+ * cartas; lo que cambia según la rareza es el nivel en el que se
+ * desbloquean, no el tope. Mismo criterio que ya aplica el backend para
+ * mazoActual.cartas (ver "16 - maxLevel + level", 09_Cards_Mazos.gs,
+ * Base.md) — acá se replica para todo lo que se lee directo de
+ * rawClash(j) (cards[], supportCards[], currentFavouriteCard,
+ * currentDeckSupportCards), que no pasa por esa corrección en el backend.
+ * @returns {{nivel:?number, nivelMax:?number}} nivel/nivelMax ya
+ *   compensados (nivelMax siempre 16 si había datos), o ambos null si
+ *   faltaba level o maxLevel.
+ */
+function nivelAppAjustado(level, maxLevel){
+  if (level == null || maxLevel == null) return { nivel: null, nivelMax: null };
+  return { nivel: 16 - maxLevel + level, nivelMax: 16 };
+}
 /** Estrellitas del nivel estelar (categoría `starLevel` por carta). */
 function estrellasHtml(starLevel){
   const n = Number(starLevel) || 0;
@@ -632,7 +654,7 @@ function renderCartaFavorita(j){
         <div class="cc-meta" style="margin-top:6px;">
           ${rk ? `<span class="cc-rareza" data-rareza="${rk}">${esc(RAREZA_CARTA_TXT[rk])}</span>` : (fav.rarity ? `<span class="cc-rareza">${esc(String(fav.rarity))}</span>` : '')}
           ${fav.elixirCost != null ? `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">${esc(String(fav.elixirCost))}</span>` : ''}
-          ${fav.maxLevel != null ? `<span class="cc-badge">Nivel m\u00e1x. ${esc(String(fav.maxLevel))}</span>` : ''}
+          ${fav.maxLevel != null ? `<span class="cc-badge">Nivel m\u00e1x. ${esc(String(nivelAppAjustado(fav.level, fav.maxLevel).nivelMax))}</span>` : ''}
         </div>
       </div>
     </div>`;
@@ -677,7 +699,7 @@ function renderCaminoLeyendas(j){
   add('Liga \u00b7 Temporada anterior', lsTxt(ls.previousSeason));
   add('Nivel de experiencia', raw.expLevel);
   add('Nivel de torre del rey', raw.kingTowerLevel);
-  add('Puntos de estrella (star points)', raw.starPoints != null ? fmtNum(raw.starPoints) : null);
+  add('Puntos estelares', raw.starPoints != null ? fmtNum(raw.starPoints) : null);
   add('Puntos de experiencia', raw.expPoints != null ? `${fmtNum(raw.expPoints)} / ${fmtNum(raw.totalExpPoints)}` : null);
   const card = document.getElementById('mLeyendasCard');
   const cont = document.getElementById('mLeyendasContenido');
@@ -743,12 +765,19 @@ function pintarColeccion(cartas){
       : urls.medium || '';
     // cards[] (colección completa) también viene crudo del JSON de Supercell.
     const nombreEs = _nombreCartaEs(c);
+    // FIX (21-sep-2026): nivel/nivelMax ya compensados (ver docblock de
+    // nivelAppAjustado() más arriba) para que el tope mostrado sea 16 para
+    // todas las rarezas, igual que en el juego. El condicional "max-level"
+    // sigue comparando c.level/c.maxLevel crudos porque esa comparación no
+    // cambia con el ajuste (es un corrimiento lineal parejo para level y
+    // maxLevel de una misma carta).
+    const nvl = nivelAppAjustado(c.level, c.maxLevel);
     return `
     <div class="col-card${c.maxLevel != null && c.level >= c.maxLevel ? ' max-level' : ''}" title="${esc(nombreEs)}">
       ${img ? `<img src="${esc(img)}" alt="" loading="lazy" onerror="this.style.visibility='hidden';">` : ''}
       <div class="col-nombre">${esc(nombreEs)}</div>
       ${rk ? `<span class="cc-rareza" data-rareza="${rk}">${esc(RAREZA_CARTA_TXT[rk])}</span>` : ''}
-      <div class="text-faint" style="font-family:var(--f-mono); font-size:10px;">Nv. ${esc(String(c.level != null ? c.level : '\u2014'))}/${esc(String(c.maxLevel != null ? c.maxLevel : '\u2014'))}</div>
+      <div class="text-faint" style="font-family:var(--f-mono); font-size:10px;">Nv. ${esc(String(nvl.nivel != null ? nvl.nivel : '\u2014'))}/${esc(String(nvl.nivelMax != null ? nvl.nivelMax : '\u2014'))}</div>
       <div class="cc-meta" style="justify-content:center;">
         ${estrellasHtml(c.starLevel)}
         ${(c.evolutionLevel || 0) > 0 ? `<span class="cc-badge">\u2728 Evo ${c.evolutionLevel > 1 ? c.evolutionLevel : ''}</span>` : ''}
@@ -780,13 +809,16 @@ function renderCartasTorre(j){
     // FIX (20-sep-2026, pedido usuario — nombres de cartas en español):
     // supportCards[] también viene crudo del JSON de Supercell.
     const nombreEs = _nombreCartaEs(t);
+    // FIX (21-sep-2026): nivel/nivelMax ya compensados (nivelAppAjustado()) —
+    // supportCards[] trae el mismo tope viejo por rareza que cards[].
+    const nvl = nivelAppAjustado(t.level, t.maxLevel);
     return `
     <div class="carta-chip${img ? '' : ' carta-chip--sin-img'}">
       ${img ? `<img class="cc-img" src="${esc(img)}" alt="${esc(nombreEs)}" loading="lazy" onerror="const p=this.parentElement; this.remove(); if(p) p.classList.add('carta-chip--sin-img');">` : ''}
       <div class="cc-content">
         <div class="cc-fila-1"><b>${esc(nombreEs)}</b></div>
         <div class="cc-meta">${rk ? `<span class="cc-rareza" data-rareza="${rk}">${esc(RAREZA_CARTA_TXT[rk])}</span>` : ''}</div>
-        <div class="text-faint" style="font-size:10px;">Nv. ${esc(String(t.level != null ? t.level : '\u2014'))}/${esc(String(t.maxLevel != null ? t.maxLevel : '\u2014'))} \u00b7 \u00d7${fmtNum(t.count)}</div>
+        <div class="text-faint" style="font-size:10px;">Nv. ${esc(String(nvl.nivel != null ? nvl.nivel : '\u2014'))}/${esc(String(nvl.nivelMax != null ? nvl.nivelMax : '\u2014'))} \u00b7 \u00d7${fmtNum(t.count)}</div>
       </div>
     </div>`;
   }).join('');
@@ -1233,13 +1265,17 @@ function renderMazoActual(mazoActual, ext, j){
         // que currentFavouriteCard más abajo — se traduce con el mismo
         // diccionario (cards-es.js).
         const nombreEs = _nombreCartaEs(t);
+        // FIX (21-sep-2026): nivel/nivelMax ya compensados (nivelAppAjustado()) —
+        // currentDeckSupportCards trae el mismo tope viejo por rareza que
+        // supportCards[]/cards[].
+        const nvl = nivelAppAjustado(t.level, t.maxLevel);
         return `
         <div class="carta-chip${img ? '' : ' carta-chip--sin-img'}">
           ${img ? `<img class="cc-img" src="${esc(img)}" alt="${esc(nombreEs)}" loading="lazy" onerror="const p=this.parentElement; this.remove(); if(p) p.classList.add('carta-chip--sin-img');">` : ''}
           <div class="cc-content">
             <div class="cc-fila-1"><b>${esc(nombreEs)}</b></div>
             <div class="cc-meta">${rk ? `<span class="cc-rareza" data-rareza="${rk}">${esc(RAREZA_CARTA_TXT[rk])}</span>` : ''}</div>
-            <div class="text-faint" style="font-size:10px;">Nv. ${esc(String(t.level != null ? t.level : '—'))}/${esc(String(t.maxLevel != null ? t.maxLevel : '—'))}</div>
+            <div class="text-faint" style="font-size:10px;">Nv. ${esc(String(nvl.nivel != null ? nvl.nivel : '—'))}/${esc(String(nvl.nivelMax != null ? nvl.nivelMax : '—'))}</div>
           </div>
         </div>`;
       }).join('')}</div>
