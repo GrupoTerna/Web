@@ -23,7 +23,7 @@ const GLOBALES_COMPARTIDOS = [
   '_fetchYParsearInterno', '_filaInactivoHtml', '_mensajeErrorRed', '_mismaFecha', '_obtenerVistaInactivos', '_peticionesActivas',
   '_renderVistaInactivos', '_toggleFormVetarInactivo', 'abrirModalUnirse', 'activarBarraScrollTabla', 'activarTecladoPuntosGrafica', 'actualizarNavCta',
   'adminPuedeVetar', 'agregarTarjetaCuentasInactivasSiAdmin', 'apiGet', 'apiGetAuth', 'apiPost', 'cerrarModalUnirse',
-  'chartCardHtml', 'clanCardHtml', 'debounce', 'enlaceJugador', 'esAdminLogueado', 'esInicioAnio',
+  'chartCardHtml', 'clanCardHtml', 'debounce', 'enlaceClan', 'enlaceJugador', 'esAdminLogueado', 'esInicioAnio',
   'esInicioSemana', 'esInicioTemporada', 'esc', 'etiquetaPuntoSerie', 'fitOneLine', 'fitOneLineAll',
   'fmtFechaVigenciaCorta', 'fmtNum', 'gridHorizontalMediosSvg', 'htmlTooltipPuntoSerie', 'iconoBadgeClanHtml', 'initJoinModal',
   'joinModalTriggerEl', 'lineasTemporalesSvg', 'marcarNavActiva', 'normalizarTag', 'obtenerTooltipGrafica', 'ordenClanIndex',
