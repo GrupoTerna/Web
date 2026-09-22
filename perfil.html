@@ -831,15 +831,28 @@ function pintarColeccion(cartas){
     // backend (archivo 17 de Base.md) — falta que el usuario suba Base.md
     // en esta conversación para poder editarlo.
     const alMax = c.maxLevel != null && c.level != null && c.level >= c.maxLevel;
+    // FIX (21-sep-2026, pedido usuario — "héroe y evolución debe tener un
+    // solo formato en toda la web y es el formato que está en index"): el
+    // badge de Evolución acá era <span> texto plano, distinto del botón
+    // cc-badge-btn que ya usan "Mazo actual" e index.html. Se unifica:
+    // mismo botón, mismo data-icon-base/cc-img para que
+    // cambiarVarianteCarta() (ver más abajo en el <script>) también
+    // funcione acá. El ícono que se muestra por defecto ya prioriza
+    // evolución (arriba, "img"), así que el botón arranca is-activa si
+    // coincide con lo que ya se ve, igual que en Mazo actual.
+    const iconoBase = urls.medium || '';
+    const iconoEvo = urls.evolutionMedium || '';
+    const tieneEvo = (c.evolutionLevel || 0) > 0;
+    const activaEvo = !!(tieneEvo && iconoEvo && img === iconoEvo);
     return `
-    <div class="col-card${alMax ? ' max-level' : ''}" title="${esc(nombreEs)}">
-      ${img ? `<img src="${esc(img)}" alt="" loading="lazy" onerror="this.style.visibility='hidden';">` : ''}
+    <div class="col-card${alMax ? ' max-level' : ''}" title="${esc(nombreEs)}" data-icon-base="${esc(iconoBase)}">
+      ${img ? `<img class="cc-img" src="${esc(img)}" alt="" loading="lazy" onerror="this.style.visibility='hidden';">` : ''}
       <div class="col-nombre">${esc(nombreEs)}</div>
       ${rk ? `<span class="cc-rareza" data-rareza="${rk}">${esc(RAREZA_CARTA_TXT[rk])}</span>` : ''}
       <div class="text-faint" style="font-family:var(--f-mono); font-size:10px;">Nv. ${esc(String(nvl.nivel != null ? nvl.nivel : '\u2014'))}</div>
       <div class="cc-meta" style="justify-content:center;">
         ${estrellasHtml(c.starLevel)}
-        ${(c.evolutionLevel || 0) > 0 ? `<span class="cc-badge">\u2728 Evoluci\u00f3n</span>` : ''}
+        ${tieneEvo ? `<button type="button" class="cc-badge cc-badge-btn${activaEvo ? ' is-activa' : ''}" data-icon-variante="${esc(iconoEvo)}" onclick="cambiarVarianteCarta(this)">\u2728 Evoluci\u00f3n</button>` : ''}
       </div>
       ${!alMax ? `<div class="cc-count" title="Cantidad de cartas disponibles de este nombre">\u00d7${fmtNum(c.count)}</div>` : ''}
     </div>`;
@@ -1392,10 +1405,16 @@ function renderMazoActual(mazoActual, ext, j){
  * imagen se precarga con Image() antes de aplicarla — si el link de esa
  * variante fallara, el ícono visible no se rompe ni desaparece. Se deja
  * sin duplicar/importar desde index.html porque cada página arma su
- * propio <script> inline; el cuerpo es carácter por carácter el mismo.
+ * propio <script> inline; el cuerpo es carácter por carácter el mismo,
+ * salvo el selector de abajo.
+ * FIX (21-sep-2026, pedido usuario — "héroe y evolución debe tener un
+ * solo formato en toda la web"): el selector pasa de '.carta-chip' a
+ * '.carta-chip, .col-card' para que el mismo botón también funcione en
+ * "Colección completa" (pintarColeccion(), que usa .col-card en vez de
+ * .carta-chip) sin duplicar esta función una tercera vez.
  */
 function cambiarVarianteCarta(btn){
-  const chip = btn.closest('.carta-chip');
+  const chip = btn.closest('.carta-chip, .col-card');
   const img = chip && chip.querySelector('.cc-img');
   if (!chip || !img) return;
 

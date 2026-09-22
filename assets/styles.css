@@ -571,15 +571,21 @@ svg circle[data-kb]:focus-visible{outline:none; stroke:var(--text); stroke-width
 }
 .carta-chip.carta-chip--sin-img{grid-template-columns:1fr;}
 .carta-chip .cc-img{
-  width:52px; height:100%; min-height:62px; object-fit:cover; border-radius:8px;
-  background:var(--bg-2); align-self:stretch;
+  width:52px; height:100%; min-height:62px; object-fit:contain; border-radius:8px;
+  background:var(--bg-2); align-self:stretch; padding:4px; box-sizing:border-box;
 }
 .carta-chip .cc-content{display:flex; flex-direction:column; justify-content:center; gap:5px; min-width:0;}
 .carta-chip .cc-fila-1{display:flex; flex-wrap:wrap; align-items:center; gap:5px 10px;}
 .carta-chip b{color:var(--text);}
 .carta-chip .cc-elixir{display:inline-flex; align-items:center; gap:3px; color:var(--purple-light); font-family:var(--f-mono);}
 .carta-chip .cc-elixir img{width:13px; height:13px; vertical-align:-2px;}
-.carta-chip .cc-meta{display:flex; align-items:center; gap:6px; flex-wrap:wrap;}
+/* FIX (21-sep-2026, pedido usuario — "héroe y evolución debe tener un solo
+ * formato en toda la web"): mismo criterio que .cc-rareza/.cc-badge más
+ * arriba — .cc-meta pasa de ".carta-chip .cc-meta" a selector propio.
+ * .col-card (Colección completa) ya usaba esta clase para su fila de
+ * estrellas+Evolución, pero al no matchear nunca actuaba como flex, así
+ * que el botón de Evolución quedaba desalineado en vez de centrado. */
+.cc-meta{display:flex; align-items:center; gap:6px; flex-wrap:wrap;}
 /* FIX (21-sep-2026, pedido usuario — "cualquier lugar donde se mencione la
    calidad de una carta debe usar el mismo estilo que Cartas de torre"):
    .cc-rareza pasa de estar acotado a ".carta-chip .cc-rareza" a un selector
@@ -612,7 +618,15 @@ svg circle[data-kb]:focus-visible{outline:none; stroke:var(--text); stroke-width
   font-family:var(--f-mono); font-size:10px; text-transform:uppercase; letter-spacing:.03em;
   padding:2px 7px; border-radius:999px; border:1px solid var(--line); color:var(--text-faint);
 }
-.carta-chip .cc-badge{
+/* FIX (21-sep-2026, pedido usuario — "héroe y evolución debe tener un solo
+ * formato en toda la web"): .cc-badge y .cc-badge-btn pasan de estar
+ * acotados a ".carta-chip .cc-badge(-btn)" a un selector propio, sin
+ * exigir el ancestro ".carta-chip" — mismo criterio que ya se usó para
+ * .cc-rareza (ver comentario más arriba). Antes el botón de Evolución de
+ * "Colección completa" (pintarColeccion(), que usa .col-card en vez de
+ * .carta-chip) nunca hacía match con estas reglas y se veía como texto
+ * plano sin píldora ni estados hover/is-activa. */
+.cc-badge{
   font-family:var(--f-mono); font-size:10px; padding:2px 7px; border-radius:999px;
   background:var(--bg-2); color:var(--text-faint);
 }
@@ -629,12 +643,12 @@ svg circle[data-kb]:focus-visible{outline:none; stroke:var(--text); stroke-width
  * de botón para que quede alineado igual que el resto de badges de
  * .cc-meta), con estado hover y un estado "is-activa" (variante
  * actualmente mostrada en el ícono del chip) bien distinguible. */
-.carta-chip .cc-badge-btn{
+.cc-badge-btn{
   font-family:inherit; line-height:inherit; margin:0; cursor:pointer;
   border:1px solid var(--line); transition:background .15s ease, color .15s ease, border-color .15s ease;
 }
-.carta-chip .cc-badge-btn:hover{ background:rgba(162,57,255,.14); color:var(--text); }
-.carta-chip .cc-badge-btn.is-activa{
+.cc-badge-btn:hover{ background:rgba(162,57,255,.14); color:var(--text); }
+.cc-badge-btn.is-activa{
   background:var(--purple); border-color:var(--purple); color:#fff;
 }
 .perfil-cabecera{display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px;}
