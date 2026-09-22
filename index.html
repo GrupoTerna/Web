@@ -903,25 +903,30 @@ async function cargarEstadisticasCartas(){
       wrap.innerHTML = '<div class="empty" style="padding:8px 0;">Todavía no hay datos de mazos disponibles.</div>';
       return;
     }
-    wrap.innerHTML = data.top10.map((c, i) => `
+    // FIX (21-sep-2026, pedido usuario — orden estándar de fichas de carta
+    // en toda la web): Nombre/Héroe/Evolución/Rareza/Tipo/Elixir+Estrellas/
+    // Nivel+Cantidad, cada uno en su propia fila, se omite si no hay dato.
+    // Este ranking no trae nivel/cantidad/estrellas por jugador (es un
+    // agregado de la Familia, no de una cuenta puntual), así que esas filas
+    // simplemente no aplican acá. El número de ranking se queda junto al
+    // nombre (fila 1) y "usos en mazo" es un dato propio de esta sección
+    // (no una fila genérica de ficha de carta), así que va al final.
+    wrap.innerHTML = data.top10.map((c, i) => {
+      const rareza = rarezaHtml(c.rarity);
+      return `
       <div class="carta-chip${c.icon ? '' : ' carta-chip--sin-img'}" data-icon-base="${esc(c.icon || '')}">
         ${c.icon ? `<img class="cc-img" src="${esc(c.icon)}" alt="" loading="lazy" onerror="const p=this.parentElement; this.remove(); if(p) p.classList.add('carta-chip--sin-img');">` : ''}
         <div class="cc-content">
-          <div class="cc-fila-1">
-            <span>${i + 1}.</span> <b>${esc(c.name)}</b>
-            ${c.elixirCost != null ? `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">${fmtNum(c.elixirCost)}</span>` : ''}
-          </div>
+          <div class="cc-fila-1"><span>${i + 1}.</span> <b>${esc(c.name)}</b></div>
+          ${c.hasHero ? `<div class="cc-meta"><button type="button" class="cc-badge cc-badge-btn" data-icon-variante="${esc(c.heroIcon || '')}" onclick="cambiarVarianteCarta(this)">🦸 Héroe</button></div>` : ''}
+          ${c.hasEvolution ? `<div class="cc-meta"><button type="button" class="cc-badge cc-badge-btn" data-icon-variante="${esc(c.evolutionIcon || '')}" onclick="cambiarVarianteCarta(this)">✨ Evolución</button></div>` : ''}
+          ${rareza ? `<div class="cc-meta">${rareza}</div>` : ''}
+          ${c.tipo ? `<div class="cc-meta"><span class="cc-tipo">${esc(c.tipo)}</span></div>` : ''}
+          ${c.elixirCost != null ? `<div class="cc-meta"><span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">${fmtNum(c.elixirCost)}</span></div>` : ''}
           <div class="cc-fila-1"><span class="cc-usos">${fmtNum(c.usos)} en mazo</span></div>
-          <div class="cc-meta">
-            ${rarezaHtml(c.rarity)}
-            ${c.tipo ? `<span class="cc-tipo">${esc(c.tipo)}</span>` : ''}
-          </div>
-          ${(c.hasHero || c.hasEvolution) ? `<div class="cc-meta">
-            ${c.hasHero ? `<button type="button" class="cc-badge cc-badge-btn" data-icon-variante="${esc(c.heroIcon || '')}" onclick="cambiarVarianteCarta(this)">🦸 Héroe</button>` : ''}
-            ${c.hasEvolution ? `<button type="button" class="cc-badge cc-badge-btn" data-icon-variante="${esc(c.evolutionIcon || '')}" onclick="cambiarVarianteCarta(this)">✨ Evolución</button>` : ''}
-          </div>` : ''}
         </div>
-      </div>`).join('');
+      </div>`;
+    }).join('');
   }catch(err){
     wrap.innerHTML = `<div class="empty" style="padding:8px 0;">No se pudo cargar: ${esc(err.message)}</div>`;
   }
