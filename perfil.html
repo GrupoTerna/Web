@@ -123,7 +123,14 @@
    * carácter, el comentario original ya lo admitía). Se centraliza en
    * assets/styles.css; se elimina la copia de acá. .mazo-chips es
    * específico de esta página (el grid contenedor) y se queda. */
-  .mazo-chips{display:grid; grid-template-columns:repeat(auto-fill, minmax(230px, 1fr)); gap:12px;}
+  /* FIX (21-sep-2026, pedido usuario — "el tipo de carta se lleve a una
+   * fila aparte de la calidad para que disminuya el ancho y las 8 cartas
+   * quepan en una sola fila, actualmente caben solo 6"): el tipo (Tropa/
+   * Hechizo/Estructura) se saca de la misma línea que rareza+elixir+badges
+   * (ver renderMazoActual() más abajo, ya no va dentro de .cc-meta sino en
+   * su propia fila debajo) y el ancho mínimo de cada ficha baja de 230px a
+   * 165px, ahora que cada fila necesita menos espacio horizontal. */
+  .mazo-chips{display:grid; grid-template-columns:repeat(auto-fill, minmax(165px, 1fr)); gap:12px;}
   /* ===== FIX (12-sep-2026, pedido usuario — aprovechar TODO el JSON crudo
    * del export de Drive): estilos de las secciones nuevas del perfil.
    * Backend conectado (20-sep-2026): webPerfil ya adjunta rawClash desde el
@@ -793,8 +800,20 @@ function pintarColeccion(cartas){
     // cambia con el ajuste (es un corrimiento lineal parejo para level y
     // maxLevel de una misma carta).
     const nvl = nivelAppAjustado(c.level, c.maxLevel);
+    // FIX (21-sep-2026, pedido usuario — "el 'x0' al lado del nivel de
+    // carta ... no se debe mostrar en cartas al nivel 16"): al llegar una
+    // carta a su nivel máximo (16 en el sistema unificado), Clash Royale
+    // convierte automáticamente todas las cartas sobrantes de ese nombre
+    // en puntos para comprar reacciones — el jugador deja de "guardar"
+    // copias de esa carta, así que el contador ×N deja de tener sentido
+    // (queda pegado en 0 para siempre). Se reutiliza la misma comparación
+    // cruda c.level>=c.maxLevel que ya usa la clase "max-level" de abajo.
+    // PENDIENTE: documentar este comportamiento del juego también en el
+    // backend (archivo 17 de Base.md) — falta que el usuario suba Base.md
+    // en esta conversación para poder editarlo.
+    const alMax = c.maxLevel != null && c.level != null && c.level >= c.maxLevel;
     return `
-    <div class="col-card${c.maxLevel != null && c.level >= c.maxLevel ? ' max-level' : ''}" title="${esc(nombreEs)}">
+    <div class="col-card${alMax ? ' max-level' : ''}" title="${esc(nombreEs)}">
       ${img ? `<img src="${esc(img)}" alt="" loading="lazy" onerror="this.style.visibility='hidden';">` : ''}
       <div class="col-nombre">${esc(nombreEs)}</div>
       ${rk ? `<span class="cc-rareza" data-rareza="${rk}">${esc(RAREZA_CARTA_TXT[rk])}</span>` : ''}
@@ -803,7 +822,7 @@ function pintarColeccion(cartas){
         ${estrellasHtml(c.starLevel)}
         ${(c.evolutionLevel || 0) > 0 ? `<span class="cc-badge">\u2728 Evoluci\u00f3n</span>` : ''}
       </div>
-      <div class="cc-count" title="Cantidad de cartas disponibles de este nombre">\u00d7${fmtNum(c.count)}</div>
+      ${!alMax ? `<div class="cc-count" title="Cantidad de cartas disponibles de este nombre">\u00d7${fmtNum(c.count)}</div>` : ''}
     </div>`;
   }).join('');
 }
@@ -833,13 +852,17 @@ function renderCartasTorre(j){
     // FIX (21-sep-2026): nivel/nivelMax ya compensados (nivelAppAjustado()) —
     // supportCards[] trae el mismo tope viejo por rareza que cards[].
     const nvl = nivelAppAjustado(t.level, t.maxLevel);
+    // Mismo criterio que pintarColeccion(): al nivel máximo las cartas
+    // sobrantes se convierten en puntos de reacción, así que el ×N deja de
+    // tener sentido. Ver comentario extendido más arriba en pintarColeccion().
+    const alMax = t.maxLevel != null && t.level != null && t.level >= t.maxLevel;
     return `
     <div class="carta-chip${img ? '' : ' carta-chip--sin-img'}">
       ${img ? `<img class="cc-img" src="${esc(img)}" alt="${esc(nombreEs)}" loading="lazy" onerror="const p=this.parentElement; this.remove(); if(p) p.classList.add('carta-chip--sin-img');">` : ''}
       <div class="cc-content">
         <div class="cc-fila-1"><b>${esc(nombreEs)}</b></div>
         <div class="cc-meta">${rk ? `<span class="cc-rareza" data-rareza="${rk}">${esc(RAREZA_CARTA_TXT[rk])}</span>` : ''}</div>
-        <div class="text-faint" style="font-size:10px;">Nv. ${esc(String(nvl.nivel != null ? nvl.nivel : '\u2014'))}/${esc(String(nvl.nivelMax != null ? nvl.nivelMax : '\u2014'))} \u00b7 \u00d7${fmtNum(t.count)}</div>
+        <div class="text-faint" style="font-size:10px;">Nv. ${esc(String(nvl.nivel != null ? nvl.nivel : '\u2014'))}/${esc(String(nvl.nivelMax != null ? nvl.nivelMax : '\u2014'))}${alMax ? '' : ` \u00b7 \u00d7${fmtNum(t.count)}`}</div>
       </div>
     </div>`;
   }).join('');
@@ -1259,14 +1282,14 @@ function renderMazoActual(mazoActual, ext, j){
         <div class="cc-fila-1"><b>${esc(c.name)}</b></div>
         <div class="cc-meta">
           ${d ? `<span class="cc-rareza" data-rareza="${d.rareza}">${esc(RAREZA_CARTA_TXT[d.rareza])}</span>` : ''}
-          ${tipoTxt ? `<span class="cc-tipo">${esc(tipoTxt)}</span>` : ''}
           ${d && d.elixir != null ? `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">${esc(String(d.elixir))}</span>` : ''}
           ${(c.hasHero || (d && d.rareza === 'campeon')) ? `<span class="cc-badge">🦸 Héroe</span>` : ''}
           ${hasEvo ? `<span class="cc-badge">✨ Evolución</span>` : ''}
         </div>
+        ${tipoTxt ? `<div class="cc-meta"><span class="cc-tipo">${esc(tipoTxt)}</span></div>` : ''}
         <div class="text-faint" style="font-family:var(--f-mono); font-size:10px;">
           Nv. ${esc(String(c.nivel != null ? c.nivel : '\u2014'))}/16
-          ${count != null ? ` · <span class="cc-count" title="Cantidad de cartas disponibles de este nombre">×${fmtNum(count)}</span>` : ''}
+          ${(count != null && c.nivel !== 16) ? ` · <span class="cc-count" title="Cantidad de cartas disponibles de este nombre">×${fmtNum(count)}</span>` : ''}
         </div>
         ${estrellasHtml(starLevel)}
       </div>
