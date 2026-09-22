@@ -1282,16 +1282,29 @@ function renderMazoActual(mazoActual, ext, j){
         <div class="cc-fila-1"><b>${esc(c.name)}</b></div>
         <div class="cc-meta">
           ${d ? `<span class="cc-rareza" data-rareza="${d.rareza}">${esc(RAREZA_CARTA_TXT[d.rareza])}</span>` : ''}
-          ${d && d.elixir != null ? `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">${esc(String(d.elixir))}</span>` : ''}
           ${(c.hasHero || (d && d.rareza === 'campeon')) ? `<span class="cc-badge">🦸 Héroe</span>` : ''}
           ${hasEvo ? `<span class="cc-badge">✨ Evolución</span>` : ''}
+        </div>
+        <!-- FIX (21-sep-2026, pedido usuario — "las imágenes se han
+             estirado, inserta una fila entre la rareza y el tipo, pon ahí
+             el costo de la carta y las estrellas"): el ancho angosto del
+             chip (165px, tanda anterior) sumado a filas de altura variable
+             según cuántos badges traía cada carta (Héroe/Evolución envolvían
+             a veces a una segunda línea) hacía que unas fichas quedaran más
+             altas que otras en la misma fila del grid; como .mazo-chips no
+             fuerza una altura fija, cc-img (height:100%) se estiraba distinto
+             en cada una. Elixir y estrellas salen de la fila de rareza y del
+             final de la ficha, y se agrupan en esta fila propia entre rareza
+             y tipo, para que la estructura sea más pareja entre cartas. -->
+        <div class="cc-meta">
+          ${d && d.elixir != null ? `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">${esc(String(d.elixir))}</span>` : ''}
+          ${estrellasHtml(starLevel)}
         </div>
         ${tipoTxt ? `<div class="cc-meta"><span class="cc-tipo">${esc(tipoTxt)}</span></div>` : ''}
         <div class="text-faint" style="font-family:var(--f-mono); font-size:10px;">
           Nv. ${esc(String(c.nivel != null ? c.nivel : '\u2014'))}/16
           ${(count != null && c.nivel !== 16) ? ` · <span class="cc-count" title="Cantidad de cartas disponibles de este nombre">×${fmtNum(count)}</span>` : ''}
         </div>
-        ${estrellasHtml(starLevel)}
       </div>
     </div>`;
   }).join('');
