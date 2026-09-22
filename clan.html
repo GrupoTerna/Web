@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clan — Familia Terna</title>
+<meta name="description" content="Dashboard de un clan de la Familia Terna: información general, roster completo y el resumen de guerra de esta semana.">
+<link rel="canonical" href="https://grupoterna.github.io/Web/clan.html">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://grupoterna.github.io/Web/clan.html">
+<meta property="og:site_name" content="Familia Terna">
+<meta property="og:title" content="Clan — Familia Terna">
+<meta property="og:description" content="Dashboard de un clan de la Familia Terna: información general, roster completo y el resumen de guerra de esta semana.">
+<meta property="og:image" content="https://grupoterna.github.io/Web/assets/img/og-image.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="es_PE">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Clan — Familia Terna">
+<meta name="twitter:description" content="Dashboard de un clan de la Familia Terna: información general, roster completo y el resumen de guerra de esta semana.">
+<meta name="twitter:image" content="https://grupoterna.github.io/Web/assets/img/og-image.jpg">
+<meta name="robots" content="noindex">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800&family=Inter:wght@400;600;700&family=IBM+Plex+Mono:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800&family=Inter:wght@400;600;700&family=IBM+Plex+Mono:wght@400;600;700&display=swap" media="print" onload="this.media='all'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800&family=Inter:wght@400;600;700&family=IBM+Plex+Mono:wght@400;600;700&display=swap"></noscript>
+<link rel="stylesheet" href="assets/styles.css">
+<link rel="icon" type="image/jpeg" href="assets/img/logo-cuadrado.jpg">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#040508">
+<link rel="apple-touch-icon" href="assets/img/apple-touch-icon.png">
+<style>
+  /* ---------- Dashboard de clan (nuevo, 21-sep-2026, pedido usuario: "haz
+     que toda mención al nombre de uno de nuestros clanes lleve a otro link
+     así como al seleccionar un jugador y se abra un dashboard de ese
+     clan"). Alcance acordado con el usuario: Básico + roster + resumen de
+     guerra de esta semana. Página nueva, mismo patrón que perfil.html
+     (estado cargando/error/contenido, ?clan=NombreDelClan en la URL, igual
+     que ya usaba el botón "Ver clan" de Inicio hacia
+     directorio.html?clan=...#roster). ---------- */
+  .cd-stats-mini{display:flex; flex-wrap:wrap; gap:18px 28px; margin-top:16px;}
+  .cd-stats-mini span{display:flex; flex-direction:column; font-family:var(--f-mono); font-size:11px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.05em;}
+  .cd-stats-mini b{color:var(--text); font-size:18px; font-family:var(--f-display); font-weight:700; text-transform:none; letter-spacing:0;}
+  .cd-guerra-stats{display:flex; flex-wrap:wrap; gap:18px 28px; justify-content:center; margin-top:16px; font-family:var(--f-mono);}
+  .cd-guerra-stats .stat{text-align:center;}
+  .cd-guerra-stats .stat b{display:block; font-size:22px; color:var(--text); font-family:var(--f-display);}
+  .cd-guerra-stats .stat span{font-size:10px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.08em;}
+  .cd-roster-header{display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; padding:16px 20px;}
+</style>
+</head>
+<body data-page="clan">
+
+<a href="#main-content" class="skip-link">Saltar al contenido</a>
+
+<nav class="nav">
+  <div class="wrap">
+    <a href="index.html" class="brand">
+      <picture>
+        <source srcset="assets/img/logo-cuadrado.webp" type="image/webp">
+        <img src="assets/img/logo-cuadrado.jpg" alt="Escudo GxT Familia Terna" class="brand-logo" width="256" height="256">
+      </picture>
+      <span>ᴳ乂ᵀ <span class="crown">⚜️</span> Familia Terna</span>
+    </a>
+    <button type="button" id="navToggle" class="nav-toggle" aria-label="Abrir menú" aria-expanded="false" aria-controls="navLinks">☰</button>
+    <div class="links" id="navLinks">
+      <a href="index.html" data-page="inicio">Inicio</a>
+      <a href="directorio.html" data-page="directorio">Directorio</a>
+      <a href="guerra.html" data-page="guerra">Guerra</a>
+      <a href="torneos.html" data-page="torneos">Torneos</a>
+      <a href="comunidad.html" data-page="comunidad">Comunidad</a>
+      <a href="mensajes.html" data-page="mensajes" style="display:none;">Mensajes</a>
+      <a href="admin.html" data-page="admin" class="cta">Acceder</a>
+    </div>
+  </div>
+</nav>
+
+<main class="wrap" id="main-content" style="padding-top:36px; padding-bottom:80px;">
+
+  <a href="directorio.html#roster" class="text-dim" style="font-family:var(--f-mono); font-size:12px; display:inline-block; padding:5px 0;">&larr; Volver al Directorio</a>
+
+  <section id="clanSec" style="padding:20px 0 8px;" aria-live="polite">
+    <div id="clanCargando" class="loading-block"><div class="spinner"></div></div>
+    <div id="clanError" style="display:none;"></div>
+
+    <div id="clanContenido" style="display:none;">
+      <div class="eyebrow">Dashboard de clan</div>
+      <div class="text-faint" id="clanActualizadoTxt" style="font-size:12px; margin-top:2px;"></div>
+
+      <!-- ---------- Básico ---------- -->
+      <div id="clanInfoWrap" style="margin-top:16px;"></div>
+
+      <!-- ---------- Resumen de guerra de esta semana ---------- -->
+      <div class="card" style="padding:24px; margin-top:20px;">
+        <div class="eyebrow">Guerra</div>
+        <h2 class="pf-subtitulo" id="clanGuerraTitulo">Resumen de guerra de esta semana</h2>
+        <div id="clanGuerraWrap" style="margin-top:8px;"></div>
+      </div>
+
+      <!-- ---------- Roster ---------- -->
+      <div class="card" style="padding:0; margin-top:20px;">
+        <div class="cd-roster-header">
+          <h2 class="pf-subtitulo" style="margin:0;">Roster</h2>
+          <a href="#" id="clanVerDirectorioLink" class="text-dim" style="font-family:var(--f-mono); font-size:12px;">Ver en el Directorio &rarr;</a>
+        </div>
+        <div id="clanRosterWrap" style="padding:0 20px 20px;"></div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<footer>
+  <div class="wrap">
+    <span>Familia Terna · Portal de la comunidad</span>
+    <span>Sincronizado vía Google Apps Script API</span>
+  </div>
+</footer>
+
+<script src="assets/js/core/config.js"></script>
+<script src="assets/js/util.js"></script>
+<script src="assets/js/core/api.js"></script>
+<script src="assets/js/core/auth.js"></script>
+<script src="assets/js/ui/tables.js"></script>
+<script src="assets/js/ui/filters.js"></script>
+<script src="assets/js/ui/effects.js"></script>
+<script src="assets/js/data/cards-es.js"></script>
+<script src="assets/js/data/clan-badges.js"></script>
+<script src="assets/js/features/clan-card.js"></script>
+<script src="assets/common.js"></script>
+<script>
+/**
+ * clan.html — dashboard de un clan (nuevo, 21-sep-2026, pedido usuario).
+ * Lee ?clan=NombreDelClan de la URL (mismo parámetro que ya usaba
+ * directorio.html?clan=...#roster desde el botón "Ver clan" de Inicio).
+ * Combina 3 llamadas ya existentes en el sitio, ninguna nueva del backend:
+ *   - webClanInfo:    básico (líder, liga, escudo, links, métricas totales)
+ *   - webRoster:      roster completo del clan
+ *   - webGuerraEnVivo: resumen de guerra de esta semana + pendientes del clan
+ * Alcance "Básico + roster + resumen de guerra de esta semana" acordado
+ * con el usuario — sin el sistema de filtros/orden por columna que tiene
+ * el roster completo de directorio.html (eso queda disponible desde el
+ * link "Ver en el Directorio" de esta misma página).
+ */
+const NOMBRE_CLAN_QUERY = (new URLSearchParams(location.search).get('clan') || '').trim();
+
+function clanCoincide(nombreClan){
+  return String(nombreClan || '').trim().toLowerCase() === NOMBRE_CLAN_QUERY.toLowerCase();
+}
+
+function mostrarErrorClan(msg){
+  document.getElementById('clanCargando').style.display = 'none';
+  document.getElementById('clanError').style.display = 'block';
+  document.getElementById('clanError').innerHTML = `<div class="msg msg-error">${esc(msg)}</div>`;
+}
+
+/** Pinta el bloque "Básico" reutilizando clanCardHtml() (mismo componente
+ * que Inicio/Directorio) — sin botones "Ver clan"/"Unirse", ya estamos
+ * dentro del dashboard de ese clan. */
+function renderClanBasico(clanInfo, idx){
+  document.getElementById('clanInfoWrap').innerHTML =
+    clanCardHtml(clanInfo, idx, { mostrarVerClan: false, mostrarUnirse: false });
+}
+
+/** Pinta el resumen de guerra de esta semana (webGuerraEnVivo), o un
+ * mensaje neutro si el backend todavía no tiene datos para este clan
+ * (ej. clan sin guerra registrada esta temporada). */
+function renderClanGuerra(dataGuerra, nombreClan){
+  const wrap = document.getElementById('clanGuerraWrap');
+  const ctx = (dataGuerra && dataGuerra.ctx) || {};
+  document.getElementById('clanGuerraTitulo').textContent =
+    `Resumen de guerra — Temporada ${ctx.temporada ?? '—'}, Semana ${(Number(ctx.sectionIndex) || 0) + 1}`;
+  const entradaGuerra = Object.entries(dataGuerra.guerraPorClan || {}).find(([nombre]) => clanCoincide(nombre));
+  if (!entradaGuerra){
+    wrap.innerHTML = '<div class="empty">Sin datos de guerra registrados para este clan por ahora.</div>';
+    return;
+  }
+  const g = entradaGuerra[1];
+  const pendientesClan = (dataGuerra.pendientes || []).filter(p => clanCoincide(p.clan)).length;
+  const pct = g.totalHoy ? Math.round((g.atacaron / g.totalHoy) * 100) : 0;
+  wrap.innerHTML = `
+    <div class="cd-guerra-stats">
+      <div class="stat"><b>${fmtNum(g.ataques)}</b><span>Ataques</span></div>
+      <div class="stat"><b>${fmtNum(g.fame)}</b><span>Fame</span></div>
+      <div class="stat"><b>${fmtNum(g.barcos)}</b><span>Barcos</span></div>
+      <div class="stat"><b>${fmtNum(g.atacaron)}/${fmtNum(g.totalHoy)}</b><span>Atacaron hoy (${pct}%)</span></div>
+      <div class="stat"><b>${fmtNum(pendientesClan)}</b><span>Pendientes</span></div>
+    </div>
+    <div style="text-align:center; margin-top:16px;">
+      <a href="guerra.html" class="text-dim" style="font-family:var(--f-mono); font-size:12px;">Ver Guerra en vivo &rarr;</a>
+    </div>`;
+}
+
+/** Pinta la tabla básica del roster del clan (sin filtros/orden, ver
+ * docblock de arriba). Reutiliza enlaceJugador() para el nombre, igual
+ * que el resto del sitio. */
+function renderClanRoster(clanRoster){
+  const wrap = document.getElementById('clanRosterWrap');
+  const miembros = (clanRoster && clanRoster.miembros) || [];
+  document.getElementById('clanVerDirectorioLink').href =
+    'directorio.html?clan=' + encodeURIComponent(clanRoster.nombre) + '#roster';
+  if (!miembros.length){
+    wrap.innerHTML = '<div class="empty">Este clan todavía no tiene miembros registrados.</div>';
+    return;
+  }
+  wrap.innerHTML = `
+    <div class="table-scroll">
+      <table class="tbl-pendientes">
+        <thead><tr>
+          <th scope="col">N°</th><th scope="col">Nombre</th><th scope="col">Tag</th>
+          <th scope="col">Rango</th><th scope="col">Copas</th><th scope="col">V. Guerra</th><th scope="col">Perfil</th>
+        </tr></thead>
+        <tbody>${miembros.map((m, i) => {
+          const royaleOk = urlValida(m.royaleApi);
+          const cwOk = urlValida(m.cwStats);
+          const vGuerra = m.vGuerra != null ? m.vGuerra : m.victoriasGuerra;
+          return `
+            <tr>
+              <td class="col-n">${i + 1}</td>
+              <td class="col-nombre">${enlaceJugador(m.nombre, m.tag)}</td>
+              <td class="col-tag">${esc(m.tag || '—')}</td>
+              <td>${esc(m.rango || '—')}</td>
+              <td>${m.copas != null ? fmtNum(m.copas) : '—'}</td>
+              <td>${vGuerra != null ? fmtNum(vGuerra) : '—'}</td>
+              <td class="col-perfil-icons">${royaleOk ? `<a href="${esc(m.royaleApi)}" target="_blank" rel="noopener" aria-label="RoyaleAPI" title="RoyaleAPI">${ICONO_ROYALEAPI}</a>` : ''}${cwOk ? `<a href="${esc(m.cwStats)}" target="_blank" rel="noopener" aria-label="CWStats" title="CWStats">${ICONO_CWSTATS}</a>` : ''}</td>
+            </tr>`;
+        }).join('')}
+        </tbody>
+      </table>
+    </div>`;
+  activarBarraScrollTabla(wrap.querySelector('.table-scroll'));
+}
+
+async function cargarClan(){
+  if (!NOMBRE_CLAN_QUERY){
+    mostrarErrorClan('Falta el nombre del clan en el link (?clan=...).');
+    return;
+  }
+  try{
+    const [dataInfo, dataRoster, dataGuerra] = await Promise.all([
+      apiGet('webClanInfo', null, { ttlMs: 300000, staleIfError: true }),
+      apiGet('webRoster', null, { ttlMs: 300000, staleIfError: true }),
+      apiGet('webGuerraEnVivo', null, { ttlMs: 120000, staleIfError: true })
+    ]);
+    const clanesInfo = ordenarClanes(dataInfo.clanes || []);
+    const idx = clanesInfo.findIndex(c => clanCoincide(c.nombre));
+    if (idx < 0){
+      mostrarErrorClan('No se encontró este clan.');
+      return;
+    }
+    const clanInfo = clanesInfo[idx];
+    document.title = `${clanInfo.nombre || 'Clan'} — Familia Terna`;
+
+    const clanRoster = (dataRoster.clanes || []).find(c => clanCoincide(c.nombre)) || { nombre: clanInfo.nombre, miembros: [] };
+
+    document.getElementById('clanCargando').style.display = 'none';
+    document.getElementById('clanContenido').style.display = 'block';
+    document.getElementById('clanActualizadoTxt').textContent =
+      fmtTiempoRelativo(apiGetUltimaActualizacion('webClanInfo', null));
+
+    renderClanBasico(clanInfo, idx);
+    renderClanGuerra(dataGuerra || {}, clanInfo.nombre);
+    renderClanRoster(clanRoster);
+  }catch(err){
+    mostrarErrorClan('Error de conexión: ' + err.message);
+  }
+}
+cargarClan();
+</script>
+</body>
+</html>

@@ -15,11 +15,20 @@ function clanCardCabeceraHtml(c, i, opts){
   const badge  = (opts.mostrarRol ? CLAN_BADGES_ROL[i] : CLAN_BADGES[i]) || { cls: 'badge-purple', label: 'Clan Terna' };
   const nombre = c.nombre || badge.label;
   const iconoBadgeHtml = c.badgeId ? iconoBadgeClanHtml(c.badgeId, { size: 26 }) : '';
+  // FIX (21-sep-2026, pedido usuario — "haz que toda mención al nombre de
+  // uno de nuestros clanes lleve a otro link así como al seleccionar un
+  // jugador y se abra un dashboard de ese clan"): el nombre del clan (acá
+  // en la cabecera compartida por Inicio, Directorio y "Guerra de Hoy" de
+  // guerra.html) ahora es clickeable hacia clan.html, mismo patrón que
+  // enlaceJugador() ya usaba para nombres de jugador. Solo se activa si
+  // hay c.nombre real (si no lo hay, se usaba el label del badge como
+  // respaldo, y ese no identifica un clan real para armar el link).
+  const nombreHtml = c.nombre ? enlaceClan(c.nombre) : esc(nombre);
   return `
       <div style="display:flex; justify-content:center; gap:8px; flex-wrap:wrap; margin-bottom:14px;">
         <span class="badge ${badge.cls}">${esc(badge.label)}</span>
       </div>
-      <h3 style="font-size:20px; text-align:center;">${iconoBadgeHtml}${esc(nombre)}</h3>
+      <h3 style="font-size:20px; text-align:center;">${iconoBadgeHtml}${nombreHtml}</h3>
       <div class="text-faint" style="font-family:var(--f-mono); font-size:12px; margin-top:4px; text-align:center;">${esc(c.clanTag||'')}</div>`;
 }
 
@@ -33,8 +42,10 @@ function clanCardCabeceraHtml(c, i, opts){
  *   opts.mostrarUnirse: agrega el botón "Unirse a este clan" (Inicio y Clanes).
  *   opts.mostrarVerClan: agrega el botón "Ver clan" (SOLO Inicio — a pedido
  *     del usuario, la página Clanes ya no lo lleva porque el visitante ya
- *     está ahí; en Inicio lleva directo a la pestaña de ese clan en el
- *     roster de directorio.html).
+ *     está ahí). FIX (21-sep-2026, pedido usuario): antes llevaba a la
+ *     pestaña de ese clan en el roster de directorio.html
+ *     (directorio.html?clan=...#roster); ahora lleva al dashboard nuevo de
+ *     ese clan (clan.html?clan=...), que ya incluye su propio roster.
  * Ya NO incluye la descripción del clan (retirada a pedido del usuario) —
  * solo RoyaleAPI/CWStats + (opcional) Ver clan + (opcional) Unirse.
  *
@@ -56,7 +67,7 @@ function clanCardHtml(c, i, opts){
   const reqTxt = c.requerimiento > 0 ? fmtNum(c.requerimiento) + '+' : '—';
   const lider  = c.lider || '—';
   const liga   = c.liga  || '—';
-  const verClanHref = `directorio.html?clan=${encodeURIComponent(nombre)}#roster`;
+  const verClanHref = `clan.html?clan=${encodeURIComponent(nombre)}`;
   const royaleApiOk = urlValida(c.royaleApi);
   const cwStatsOk   = urlValida(c.cwStats);
   // La cabecera (insignia + escudo + nombre + tag) vive en clanCardCabeceraHtml(),
@@ -119,7 +130,7 @@ function chartCardHtml(titulo, icono, clanes, campo, formatFn){
     // (ej. el comparador "Cara a cara" jugador vs jugador).
     return `
       <div class="chart-row chart-row-clan">
-        <span class="chart-label chart-label-fuerte" title="${esc(nombreClan)}">${esc(nombreClan)}</span>
+        <span class="chart-label chart-label-fuerte" title="${esc(nombreClan)}">${enlaceClan(nombreClan)}</span>
         <span class="chart-track"><span class="chart-fill" style="width:${pct}%"></span></span>
         <span class="chart-val">${esc(txt)}</span>
       </div>`;

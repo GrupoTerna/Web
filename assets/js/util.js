@@ -122,6 +122,29 @@ function enlaceJugador(nombre, tag, opts){
 
 
 /**
+ * enlaceClan(nombre, opts)
+ * Nombre de clan clickeable hacia su dashboard (clan.html?clan=...) —
+ * mismo patrón que enlaceJugador() de arriba, ahora para clanes (pedido
+ * usuario 21-sep-2026: "haz que toda mención al nombre de uno de nuestros
+ * clanes lleve a otro link así como al seleccionar un jugador y se abra
+ * un dashboard de ese clan"). Si no hay nombre, se devuelve '—' escapado
+ * (sin <a>) — mismo criterio defensivo que enlaceJugador() sin tag.
+ * opts.clase: clase(s) CSS adicionales para el <a> (además de
+ *   "clan-link", que ya trae subrayado on-hover — ver styles.css).
+ * opts.mismaVentana: si true, navega en la misma pestaña en vez de abrir
+ *   una nueva (por defecto abre nueva pestaña, igual que enlaceJugador()).
+ */
+function enlaceClan(nombre, opts){
+  opts = opts || {};
+  const nombreEsc = esc(nombre || '—');
+  if (!nombre) return nombreEsc;
+  const clase = 'clan-link' + (opts.clase ? ' ' + opts.clase : '');
+  const target = opts.mismaVentana ? '' : ' target="_blank" rel="noopener"';
+  return `<a class="${clase}" href="clan.html?clan=${encodeURIComponent(nombre)}"${target}>${nombreEsc}</a>`;
+}
+
+
+/**
  * fmtTiempoRelativo(fecha)
  * Texto tipo "actualizado hace X" a partir de una Date (o null). Mismo
  * estilo de texto que ya usaba guerra.html (actualizarAgoText(), inline

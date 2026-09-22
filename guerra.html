@@ -1158,7 +1158,7 @@ function render(data){
     const filas = pendPorClan[clanNombre];
     return `
     <div class="card ai-clan-card" data-clan="${esc(clanNombre)}" style="padding:16px;">
-      <h3>${esc(clanNombre)} <span class="text-faint" style="font-family:var(--f-mono); font-size:12px; font-weight:400;">(${filas.length} pendiente${filas.length === 1 ? '' : 's'})</span></h3>
+      <h3>${enlaceClan(clanNombre)} <span class="text-faint" style="font-family:var(--f-mono); font-size:12px; font-weight:400;">(${filas.length} pendiente${filas.length === 1 ? '' : 's'})</span></h3>
       <div class="table-scroll"><table class="tbl-pendientes">
         <thead><tr>
           <th scope="col">N°</th><th scope="col">Tag</th><th scope="col">Nombre</th>${pendEsAdmin ? '<th scope="col">Jugador</th><th scope="col">Préstamo</th>' : ''}<th scope="col">Rango</th><th scope="col">Faltantes</th><th scope="col">Perfil</th>
@@ -1203,7 +1203,7 @@ function render(data){
   const resumenWrap = document.getElementById('resumenWrap');
   resumenWrap.innerHTML = resumen.length ? `<div class="card">` + resumen.map(([nombre, count]) => `
     <div class="resumen-row">
-      <div class="clan-n">${esc(nombre)}</div>
+      <div class="clan-n">${enlaceClan(nombre)}</div>
       <div class="track"><div class="fill" style="width:${(count/maxResumen)*100}%"></div></div>
       <div class="val">${fmtNum(count)}</div>
     </div>`).join('') + `</div>` : '<div class="empty">Sin datos de directorio.</div>';
@@ -1258,7 +1258,7 @@ function render(data){
       const filas = controlActivos[clanNombre];
       return `
         <div class="card ai-clan-card" data-clan="${esc(clanNombre)}" style="padding:16px;">
-          <h3>${esc(clanNombre)} <span class="text-faint" style="font-family:var(--f-mono); font-size:12px; font-weight:400;">(${filas.length} activo${filas.length === 1 ? '' : 's'})</span></h3>
+          <h3>${enlaceClan(clanNombre)} <span class="text-faint" style="font-family:var(--f-mono); font-size:12px; font-weight:400;">(${filas.length} activo${filas.length === 1 ? '' : 's'})</span></h3>
           <div class="table-scroll"><table class="tbl-activos-grid" data-grid-id="activos:${esc(clanNombre)}">
             <thead>
               <tr>
@@ -1330,7 +1330,7 @@ function render(data){
       const filas = controlTemporada[clanNombre];
       return `
         <div class="card ai-clan-card" data-clan="${esc(clanNombre)}" style="padding:16px;">
-          <h3>${esc(clanNombre)} <span class="text-faint" style="font-family:var(--f-mono); font-size:12px; font-weight:400;">(${filas.length} activo${filas.length === 1 ? '' : 's'})</span></h3>
+          <h3>${enlaceClan(clanNombre)} <span class="text-faint" style="font-family:var(--f-mono); font-size:12px; font-weight:400;">(${filas.length} activo${filas.length === 1 ? '' : 's'})</span></h3>
           <div class="table-scroll"><table class="tbl-activos-grid tbl-temporada-grid" data-grid-id="temporada:${esc(clanNombre)}">
             <thead>
               <tr>
@@ -1475,7 +1475,7 @@ async function cargarAportesInactivosSiAdmin(ctx){
       const div = document.createElement('div');
       div.innerHTML = `
         <div class="card ai-clan-card" data-clan="${esc(clanNombre)}" style="padding:16px;">
-          <h3>${esc(clanNombre)} <span class="text-faint" style="font-family:var(--f-mono); font-size:12px; font-weight:400;">(0 activos)</span></h3>
+          <h3>${enlaceClan(clanNombre)} <span class="text-faint" style="font-family:var(--f-mono); font-size:12px; font-weight:400;">(0 activos)</span></h3>
           <div class="ai-inactivos-wrap" data-clan-inactivos="${esc(clanNombre)}">${bloqueHtml(filas)}</div>
         </div>`;
       const tarjetaNueva = div.firstElementChild;
@@ -1532,7 +1532,7 @@ function renderParticipacionHoyGuerra(clanes, multiClan){
     const sinPendientes = c.reservadas.filter(cta => pendientesHoy(cta) === 0);
     return `
     <div class="card ai-clan-card" data-clan="${esc(c.clan)}" style="padding:16px;">
-      <div class="part-clan-nombre">${esc(c.clan)}</div>
+      <div class="part-clan-nombre">${enlaceClan(c.clan)}</div>
       <div class="part-grid">
         <div>
           <div class="part-col-header">🔒 Reservadas (${c.reservadas.length})</div>
@@ -1638,7 +1638,7 @@ function pronosticoClanHtml(grupo){
     const techoTxt = roster === max ? fmtNum(max) : `${fmtNum(roster)}–${fmtNum(max)}`; // un solo valor si Roster y Máx coinciden
     return `
     <li class="cp-row${c === grupo.propio ? ' cp-own' : ''}">
-      <span class="cp-r">#${fmtNum(puestoDe(c))}</span><span class="cp-n" title="${esc(c.nombre)}${c.esRival ? ' (rival)' : ''}">${esc(c.nombre)}</span><b class="cp-f">${fmtNum(c.fameActual)}</b>
+      <span class="cp-r">#${fmtNum(puestoDe(c))}</span><span class="cp-n" title="${esc(c.nombre)}${c.esRival ? ' (rival)' : ''}">${c.esRival ? esc(c.nombre) : enlaceClan(c.nombre)}</span><b class="cp-f">${fmtNum(c.fameActual)}</b>
       <div class="cp-bar" aria-hidden="true"><u style="width:${pct(techoMax(c))}%"></u><i style="width:${pct(fame(c))}%"></i></div>
       <div class="cp-sub"><span title="Techo de fama de hoy. Si dos valores: solo con las cuentas que ya están en la carrera – con cuentas de apoyo">Techo ${techoTxt}</span><span>${fmtNum(c.ataquesUsados)}/${PRONOSTICO_ATAQUES_MAX_CLAN} atq</span></div>
     </li>`; }).join('')}</ul>`;
@@ -1728,7 +1728,7 @@ async function cargarPronosticoGuerra(ctx, manual){
         <thead><tr><th scope="col">Clan</th><th scope="col">Fama actual</th><th scope="col">Techo (solo roster)</th><th scope="col">Techo máximo</th><th scope="col">Ataques hoy</th></tr></thead>
         <tbody>${clanes.map(c => `
           <tr>
-            <td>${esc(c.nombre)}${c.esRival ? ' <span class="text-faint" style="font-family:var(--f-mono); font-size:11px;">(rival)</span>' : ''}</td>
+            <td>${c.esRival ? esc(c.nombre) : enlaceClan(c.nombre)}${c.esRival ? ' <span class="text-faint" style="font-family:var(--f-mono); font-size:11px;">(rival)</span>' : ''}</td>
             <td>${fmtNum(c.fameActual)}</td>
             <td>${fmtNum(c.fameTechoRoster)}</td>
             <td>${fmtNum(c.fameTecho)}</td>

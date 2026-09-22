@@ -1799,7 +1799,7 @@ function renderMetricasSemanales(ext){
 function renderMiembro(j){
   document.title = `${j.nombre || 'Jugador'} — Familia Terna`;
   document.getElementById('mNombre').textContent = j.nombre || 'Sin nombre';
-  document.getElementById('mSub').textContent = `${j.tag} · ${j.clan || '—'} · ${j.rango || '—'} · ${j.estado || '—'}`;
+  document.getElementById('mSub').innerHTML = `${esc(j.tag)} · ${j.clan ? enlaceClan(j.clan) : '—'} · ${esc(j.rango || '—')} · ${esc(j.estado || '—')}`;
   document.getElementById('mCopas').textContent = fmtNum(j.copas);
   document.getElementById('mVGuerra').textContent = fmtNum(j.vGuerra);
   document.getElementById('mTorneos').textContent = fmtNum(j.torneos);
@@ -1875,7 +1875,7 @@ async function verTorneosJugador(tag){
       <div class="ingreso-row" style="cursor:default;">
         <div class="ingreso-info">
           <div class="ing-nombre">Torneo ${esc(String(t.idTorneo))}</div>
-          <div class="ing-fecha">${t.clan ? esc(t.clan) + ' · ' : ''}${t.fecha ? esc(t.fecha) : 'Fecha no registrada'}</div>
+          <div class="ing-fecha">${t.clan ? enlaceClan(t.clan) + ' · ' : ''}${t.fecha ? esc(t.fecha) : 'Fecha no registrada'}</div>
         </div>
         <div class="ingreso-links">
           ${t.puesto ? `<span class="badge badge-gold">Puesto ${esc(String(t.puesto))}</span>` : ''}
@@ -2070,7 +2070,7 @@ function pintarTablaHistorialGuerraFiltrada(){
       <td style="padding:6px 8px;">${esc(r.fecha || '—')}</td>
       <td style="padding:6px 8px;">${esc(String(r.temporadaInterna ?? '—'))}</td>
       <td style="padding:6px 8px;">${esc(String(r.semana ?? '—'))}</td>
-      <td style="padding:6px 8px;">${esc(r.clan || '—')}</td>
+      <td style="padding:6px 8px;">${r.clan ? enlaceClan(r.clan) : '—'}</td>
       <td style="padding:6px 8px;">${r.ataques == null ? '—' : fmtNum(r.ataques)}</td>
       <td style="padding:6px 8px;">${r.fame == null ? '—' : fmtNum(r.fame)}</td>
       <td style="padding:6px 8px;">${r.barcos == null ? '—' : fmtNum(r.barcos)}</td>
