@@ -616,6 +616,27 @@ svg circle[data-kb]:focus-visible{outline:none; stroke:var(--text); stroke-width
   font-family:var(--f-mono); font-size:10px; padding:2px 7px; border-radius:999px;
   background:var(--bg-2); color:var(--text-faint);
 }
+/* FIX (21-sep-2026, pedido usuario — "se debe imitar el botón de héroe y
+ * evolución de index a perfil.html"): .cc-badge-btn vivía solo en el
+ * <style> local de index.html (comentario viejo: "porque son exclusivos
+ * de esta página, perfil.html no tiene el botón de editar variante de
+ * carta") — ya no es cierto, "Mazo actual" en perfil.html ahora también
+ * usa este botón (ver cambiarVarianteCarta() en el <script> de esa
+ * página) para previsualizar el ícono Héroe/Evolución de cada carta
+ * equipada. Se centraliza acá siguiendo el mismo criterio del refactor de
+ * Fase 3 (18-sep-2026) para el resto de .carta-chip/.cc-*: reutiliza la
+ * píldora de .cc-badge pero como <button> real (reset de estilos nativos
+ * de botón para que quede alineado igual que el resto de badges de
+ * .cc-meta), con estado hover y un estado "is-activa" (variante
+ * actualmente mostrada en el ícono del chip) bien distinguible. */
+.carta-chip .cc-badge-btn{
+  font-family:inherit; line-height:inherit; margin:0; cursor:pointer;
+  border:1px solid var(--line); transition:background .15s ease, color .15s ease, border-color .15s ease;
+}
+.carta-chip .cc-badge-btn:hover{ background:rgba(162,57,255,.14); color:var(--text); }
+.carta-chip .cc-badge-btn.is-activa{
+  background:var(--purple); border-color:var(--purple); color:#fff;
+}
 .perfil-cabecera{display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:12px;}
 /* 20-sep-2026 (D-3 b2): valor destacado de la fila de stats de la cabecera de perfil. Estaba repetido
    carácter por carácter en directorio.html y perfil.html. admin.html usa 15px y la fuente del cuerpo, por

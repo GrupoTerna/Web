@@ -335,12 +335,6 @@
       </div>
 
       <!-- Secciones nuevas que leen jugador.rawClash() (snapshot JSON crudo con los nombres de categoría de Supercell, ya adjuntado por webPerfil). Historial en CHANGELOG.md. -->
-      <div class="card pf-panel-datos" id="mLeyendasCard" style="display:none;">
-        <div class="eyebrow">Competitivo</div>
-        <h2 class="pf-subtitulo">Camino de Leyendas y ligas</h2>
-        <div id="mLeyendasContenido"></div>
-      </div>
-
       <div class="card pf-panel-datos" id="mColeccionCard" style="display:none;">
         <div class="eyebrow">Colección</div>
         <h2 class="pf-subtitulo">Colección completa de cartas</h2>
@@ -360,6 +354,17 @@
         <div class="eyebrow">Insignias y logros</div>
         <h2 class="pf-subtitulo">Insignias</h2>
         <div id="mInsigniasContenido"></div>
+      </div>
+
+      <!-- FIX (21-sep-2026, pedido usuario — "mueve Camino de Leyendas y
+           ligas debajo de las insignias en perfil"): esta tarjeta vivía
+           antes de "Colección completa de cartas" (justo después de las
+           gráficas de Evolución); se mueve tal cual, sin cambios de
+           contenido, a esta posición. -->
+      <div class="card pf-panel-datos" id="mLeyendasCard" style="display:none;">
+        <div class="eyebrow">Competitivo</div>
+        <h2 class="pf-subtitulo">Camino de Leyendas y ligas</h2>
+        <div id="mLeyendasContenido"></div>
       </div>
 
       <div class="card pf-panel-datos" id="mLogrosCard" style="display:none;">
@@ -1284,20 +1289,33 @@ function renderMazoActual(mazoActual, ext, j){
     const evoLvl = c.evolutionLevel != null ? c.evolutionLevel : (rc.evolutionLevel || 0);
     const hasEvo = c.hasEvolution || evoLvl > 0;
     const evoIcon = c.evolutionIcon || urlsRc.evolutionMedium || '';
+    const heroIcon = c.heroIcon || '';
     // Prioridad de imagen: Héroe > Evolución (solo si la tiene desbloqueada)
     // > básica — misma prioridad que usa _ordenarCartasMazo() para el orden.
-    const imgSrc = (c.hasHero && c.heroIcon) ? c.heroIcon
+    const imgSrc = (c.hasHero && heroIcon) ? heroIcon
       : (hasEvo && evoIcon) ? evoIcon
       : c.icon;
+    // FIX (21-sep-2026, pedido usuario — "se debe imitar el botón de héroe
+    // y evolución de index a perfil.html"): los badges Héroe/Evolución
+    // pasan de <span> decorativo a <button> real (cc-badge-btn), igual que
+    // en "Cartas más usadas en la Familia" (index.html,
+    // cargarEstadisticasCartas()/cambiarVarianteCarta()). data-icon-base
+    // guarda el ícono básico de la carta para poder volver a él; como acá
+    // el ícono que se muestra por defecto YA prioriza Héroe/Evolución
+    // sobre el básico (ver arriba), se marca is-activa de entrada en el
+    // botón que corresponde a esa variante, para que el estado visual del
+    // botón siempre coincida con lo que se ve en el ícono del chip.
+    const activaHero = !!(c.hasHero && heroIcon && imgSrc === heroIcon);
+    const activaEvo = !!(hasEvo && evoIcon && imgSrc === evoIcon);
     return `
-    <div class="carta-chip${imgSrc ? '' : ' carta-chip--sin-img'}">
+    <div class="carta-chip${imgSrc ? '' : ' carta-chip--sin-img'}" data-icon-base="${esc(c.icon || '')}">
       ${imgSrc ? `<img class="cc-img" src="${esc(imgSrc)}" alt="${esc(c.name)}" loading="lazy" onerror="const p=this.parentElement; this.remove(); if(p) p.classList.add('carta-chip--sin-img');">` : ''}
       <div class="cc-content">
         <div class="cc-fila-1"><b>${esc(c.name)}</b></div>
         <div class="cc-meta">
           ${d ? `<span class="cc-rareza" data-rareza="${d.rareza}">${esc(RAREZA_CARTA_TXT[d.rareza])}</span>` : ''}
-          ${(c.hasHero || (d && d.rareza === 'campeon')) ? `<span class="cc-badge">🦸 Héroe</span>` : ''}
-          ${hasEvo ? `<span class="cc-badge">✨ Evolución</span>` : ''}
+          ${(c.hasHero || (d && d.rareza === 'campeon')) ? `<button type="button" class="cc-badge cc-badge-btn${activaHero ? ' is-activa' : ''}" data-icon-variante="${esc(heroIcon)}" onclick="cambiarVarianteCarta(this)">🦸 Héroe</button>` : ''}
+          ${hasEvo ? `<button type="button" class="cc-badge cc-badge-btn${activaEvo ? ' is-activa' : ''}" data-icon-variante="${esc(evoIcon)}" onclick="cambiarVarianteCarta(this)">✨ Evolución</button>` : ''}
         </div>
         <!-- FIX (21-sep-2026, pedido usuario — "las imágenes se han
              estirado, inserta una fila entre la rareza y el tipo, pon ahí
@@ -1360,6 +1378,41 @@ function renderMazoActual(mazoActual, ext, j){
     : '';
 
   cont.innerHTML = `<div class="mazo-chips">${cartasHtml}</div>${torreHtml}${promedioHtml}`;
+}
+
+/**
+ * cambiarVarianteCarta(btn)
+ * FIX (21-sep-2026, pedido usuario — "se debe imitar el botón de héroe y
+ * evolución de index a perfil.html"): idéntica a la función del mismo
+ * nombre en index.html ("Cartas más usadas en la Familia") — al tocar el
+ * botón "Héroe" o "Evolución" de una carta de "Mazo actual", cambia el
+ * ícono del chip (cc-img) a la URL de esa variante (data-icon-variante).
+ * Un segundo toque sobre el mismo botón (o tocar el otro botón del mismo
+ * chip) vuelve al ícono básico de la carta (data-icon-base del chip). La
+ * imagen se precarga con Image() antes de aplicarla — si el link de esa
+ * variante fallara, el ícono visible no se rompe ni desaparece. Se deja
+ * sin duplicar/importar desde index.html porque cada página arma su
+ * propio <script> inline; el cuerpo es carácter por carácter el mismo.
+ */
+function cambiarVarianteCarta(btn){
+  const chip = btn.closest('.carta-chip');
+  const img = chip && chip.querySelector('.cc-img');
+  if (!chip || !img) return;
+
+  const yaActivo = btn.classList.contains('is-activa');
+  chip.querySelectorAll('.cc-badge-btn.is-activa').forEach(b => b.classList.remove('is-activa'));
+
+  if (yaActivo){
+    img.src = chip.dataset.iconBase || '';
+    return;
+  }
+
+  const urlVariante = btn.dataset.iconVariante;
+  if (!urlVariante) return;
+
+  const pre = new Image();
+  pre.onload = () => { img.src = urlVariante; btn.classList.add('is-activa'); };
+  pre.src = urlVariante;
 }
 
 /**
