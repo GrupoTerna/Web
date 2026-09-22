@@ -311,10 +311,17 @@
    * ambas tarjetas de esa fila, mismo borde izquierdo/derecho en todas
    * las filas), que es justamente lo que pedía "alinear". En móvil baja a
    * una sola columna (ver @media más abajo). */
-  .cartas-list{display:grid; grid-template-columns:repeat(2, 1fr); gap:10px; margin-top:14px;}
-  @media (max-width:680px){
-    .cartas-list{grid-template-columns:1fr;}
-  }
+  /* FIX (21-sep-2026, pedido usuario — "baja la cantidad de cartas en el
+   * mazo a una nueva fila, también debe haber una nueva fila para héroe y
+   * evolución, se debe tratar de tener 5 por fila"): con "N en mazo" y los
+   * badges Héroe/Evolución en sus propias filas (ver cargarEstadisticasCartas()
+   * más abajo en el <script>), cada ficha necesita bastante menos ancho, así
+   * que .cartas-list pasa de 2 columnas fijas a auto-fill con ancho mínimo
+   * de 220px — mismo patrón que ya usan .badge-grid/.coleccion-grid/
+   * .torre-grid (perfil.html): en pantallas típicas de escritorio caben
+   * ~5 fichas por fila, y baja de forma automática en pantallas angostas
+   * sin necesitar el @media de acá abajo. */
+  .cartas-list{display:grid; grid-template-columns:repeat(auto-fill, minmax(220px, 1fr)); gap:10px; margin-top:14px;}
   /* FIX (04-sep-2026, pedido usuario — "falta insertar las imágenes de las
    * cartas y su costo, usa Elixir.webp"): el chip pasa de una sola línea
    * de texto a incluir el ícono de la carta (cc-img) y el costo de elixir
@@ -912,15 +919,17 @@ async function cargarEstadisticasCartas(){
         <div class="cc-content">
           <div class="cc-fila-1">
             <span>${i + 1}.</span> <b>${esc(c.name)}</b>
-            <span class="cc-usos">${fmtNum(c.usos)} en mazo</span>
             ${c.elixirCost != null ? `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">${fmtNum(c.elixirCost)}</span>` : ''}
           </div>
+          <div class="cc-fila-1"><span class="cc-usos">${fmtNum(c.usos)} en mazo</span></div>
           <div class="cc-meta">
             ${rarezaHtml(c.rarity)}
             ${c.tipo ? `<span class="cc-tipo">${esc(c.tipo)}</span>` : ''}
+          </div>
+          ${(c.hasHero || c.hasEvolution) ? `<div class="cc-meta">
             ${c.hasHero ? `<button type="button" class="cc-badge cc-badge-btn" data-icon-variante="${esc(c.heroIcon || '')}" onclick="cambiarVarianteCarta(this)">🦸 Héroe</button>` : ''}
             ${c.hasEvolution ? `<button type="button" class="cc-badge cc-badge-btn" data-icon-variante="${esc(c.evolutionIcon || '')}" onclick="cambiarVarianteCarta(this)">✨ Evolución</button>` : ''}
-          </div>
+          </div>` : ''}
         </div>
       </div>`).join('');
   }catch(err){
