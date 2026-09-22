@@ -129,8 +129,22 @@
    * Hechizo/Estructura) se saca de la misma línea que rareza+elixir+badges
    * (ver renderMazoActual() más abajo, ya no va dentro de .cc-meta sino en
    * su propia fila debajo) y el ancho mínimo de cada ficha baja de 230px a
-   * 165px, ahora que cada fila necesita menos espacio horizontal. */
-  .mazo-chips{display:grid; grid-template-columns:repeat(auto-fill, minmax(165px, 1fr)); gap:12px;}
+   * 165px, ahora que cada fila necesita menos espacio horizontal.
+   *
+   * FIX (21-sep-2026, pedido usuario — "las cartas salen estiradas y solo
+   * aparecen 7 de 8, deja que sean 2 filas de 4 cartas cada una"): con
+   * auto-fill + minmax(165px,1fr) el número de columnas dependía del ancho
+   * disponible y de cuánto cabía cada ficha, así que en pantallas anchas
+   * entraban 7 por fila (la 8va bajaba sola a una segunda fila casi vacía)
+   * y cada ficha se estiraba de forma pareja hasta ocupar todo el sobrante,
+   * dándole un ancho distinto al de las demás secciones de la página. Se
+   * fija en 4 columnas siempre (8 cartas = 2 filas parejas de 4), con un
+   * fallback a 2 columnas en pantallas angostas para que cada ficha no
+   * quede demasiado angosta en celular. */
+  .mazo-chips{display:grid; grid-template-columns:repeat(4, 1fr); gap:12px;}
+  @media (max-width:640px){
+    .mazo-chips{grid-template-columns:repeat(2, 1fr);}
+  }
   /* ===== FIX (12-sep-2026, pedido usuario — aprovechar TODO el JSON crudo
    * del export de Drive): estilos de las secciones nuevas del perfil.
    * Backend conectado (20-sep-2026): webPerfil ya adjunta rawClash desde el
@@ -682,7 +696,7 @@ function renderCartaFavorita(j){
         <div class="cc-meta" style="margin-top:6px;">
           ${rk ? `<span class="cc-rareza" data-rareza="${rk}">${esc(RAREZA_CARTA_TXT[rk])}</span>` : (fav.rarity ? `<span class="cc-rareza">${esc(String(fav.rarity))}</span>` : '')}
           ${fav.elixirCost != null ? `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">${esc(String(fav.elixirCost))}</span>` : ''}
-          ${nvl.nivelMax != null ? `<span class="cc-badge">Nv. ${esc(String(nvl.nivel != null ? nvl.nivel : '\u2014'))}/${esc(String(nvl.nivelMax))}</span>` : ''}
+          ${nvl.nivelMax != null ? `<span class="cc-badge">Nv. ${esc(String(nvl.nivel != null ? nvl.nivel : '\u2014'))}</span>` : ''}
         </div>
       </div>
     </div>`;
@@ -817,7 +831,7 @@ function pintarColeccion(cartas){
       ${img ? `<img src="${esc(img)}" alt="" loading="lazy" onerror="this.style.visibility='hidden';">` : ''}
       <div class="col-nombre">${esc(nombreEs)}</div>
       ${rk ? `<span class="cc-rareza" data-rareza="${rk}">${esc(RAREZA_CARTA_TXT[rk])}</span>` : ''}
-      <div class="text-faint" style="font-family:var(--f-mono); font-size:10px;">Nv. ${esc(String(nvl.nivel != null ? nvl.nivel : '\u2014'))}/${esc(String(nvl.nivelMax != null ? nvl.nivelMax : '\u2014'))}</div>
+      <div class="text-faint" style="font-family:var(--f-mono); font-size:10px;">Nv. ${esc(String(nvl.nivel != null ? nvl.nivel : '\u2014'))}</div>
       <div class="cc-meta" style="justify-content:center;">
         ${estrellasHtml(c.starLevel)}
         ${(c.evolutionLevel || 0) > 0 ? `<span class="cc-badge">\u2728 Evoluci\u00f3n</span>` : ''}
@@ -862,7 +876,7 @@ function renderCartasTorre(j){
       <div class="cc-content">
         <div class="cc-fila-1"><b>${esc(nombreEs)}</b></div>
         <div class="cc-meta">${rk ? `<span class="cc-rareza" data-rareza="${rk}">${esc(RAREZA_CARTA_TXT[rk])}</span>` : ''}</div>
-        <div class="text-faint" style="font-size:10px;">Nv. ${esc(String(nvl.nivel != null ? nvl.nivel : '\u2014'))}/${esc(String(nvl.nivelMax != null ? nvl.nivelMax : '\u2014'))}${alMax ? '' : ` \u00b7 \u00d7${fmtNum(t.count)}`}</div>
+        <div class="text-faint" style="font-size:10px;">Nv. ${esc(String(nvl.nivel != null ? nvl.nivel : '\u2014'))}${alMax ? '' : ` \u00b7 \u00d7${fmtNum(t.count)}`}</div>
       </div>
     </div>`;
   }).join('');
@@ -1293,16 +1307,19 @@ function renderMazoActual(mazoActual, ext, j){
              a veces a una segunda línea) hacía que unas fichas quedaran más
              altas que otras en la misma fila del grid; como .mazo-chips no
              fuerza una altura fija, cc-img (height:100%) se estiraba distinto
-             en cada una. Elixir y estrellas salen de la fila de rareza y del
-             final de la ficha, y se agrupan en esta fila propia entre rareza
-             y tipo, para que la estructura sea más pareja entre cartas. -->
+             en cada una. Elixir y estrellas se sacaron de la fila de rareza y
+             del final de la ficha para tener su propia fila.
+             FIX (21-sep-2026, pedido usuario — "intercambia la posición de
+             las filas de tipo y costo de cartas"): la fila de tipo
+             (Tropa/Hechizo/Estructura) pasa a ir ANTES que la de costo
+             (elixir+estrellas); antes era al revés. -->
+        ${tipoTxt ? `<div class="cc-meta"><span class="cc-tipo">${esc(tipoTxt)}</span></div>` : ''}
         <div class="cc-meta">
           ${d && d.elixir != null ? `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">${esc(String(d.elixir))}</span>` : ''}
           ${estrellasHtml(starLevel)}
         </div>
-        ${tipoTxt ? `<div class="cc-meta"><span class="cc-tipo">${esc(tipoTxt)}</span></div>` : ''}
         <div class="text-faint" style="font-family:var(--f-mono); font-size:10px;">
-          Nv. ${esc(String(c.nivel != null ? c.nivel : '\u2014'))}/16
+          Nv. ${esc(String(c.nivel != null ? c.nivel : '\u2014'))}
           ${(count != null && c.nivel !== 16) ? ` · <span class="cc-count" title="Cantidad de cartas disponibles de este nombre">×${fmtNum(count)}</span>` : ''}
         </div>
       </div>
@@ -1332,7 +1349,7 @@ function renderMazoActual(mazoActual, ext, j){
           <div class="cc-content">
             <div class="cc-fila-1"><b>${esc(nombreEs)}</b></div>
             <div class="cc-meta">${rk ? `<span class="cc-rareza" data-rareza="${rk}">${esc(RAREZA_CARTA_TXT[rk])}</span>` : ''}</div>
-            <div class="text-faint" style="font-size:10px;">Nv. ${esc(String(nvl.nivel != null ? nvl.nivel : '—'))}/${esc(String(nvl.nivelMax != null ? nvl.nivelMax : '—'))}</div>
+            <div class="text-faint" style="font-size:10px;">Nv. ${esc(String(nvl.nivel != null ? nvl.nivel : '—'))}</div>
           </div>
         </div>`;
       }).join('')}</div>
