@@ -503,13 +503,22 @@ function rarezaKey(r){ return RAREZA_RAW_A_KEY[String(r || '').toLowerCase()] ||
  * Base.md) — acá se replica para todo lo que se lee directo de
  * rawClash(j) (cards[], supportCards[], currentFavouriteCard,
  * currentDeckSupportCards), que no pasa por esa corrección en el backend.
+ * FIX (21-sep-2026, pedido usuario — unificar las 3 formas distintas de
+ * mostrar el nivel de carta en perfil.html): antes, si faltaba `level`
+ * (caso de currentFavouriteCard, que la API de Supercell NO expone con
+ * nivel actual, solo con maxLevel) la función devolvía nivelMax:null
+ * también, y como el llamador solo comprobaba `fav.maxLevel != null`, se
+ * terminaba imprimiendo el texto "null" en pantalla. Ahora nivelMax se
+ * calcula con SOLO maxLevel (siempre es 16, es una constante del sistema
+ * unificado, no depende de level); nivel sigue siendo null si falta level,
+ * para que el llamador pueda mostrar un guion en su lugar.
  * @returns {{nivel:?number, nivelMax:?number}} nivel/nivelMax ya
- *   compensados (nivelMax siempre 16 si había datos), o ambos null si
- *   faltaba level o maxLevel.
+ *   compensados (nivelMax siempre 16 si había maxLevel, nivel null si
+ *   faltaba level), o ambos null si ni siquiera había maxLevel.
  */
 function nivelAppAjustado(level, maxLevel){
-  if (level == null || maxLevel == null) return { nivel: null, nivelMax: null };
-  return { nivel: 16 - maxLevel + level, nivelMax: 16 };
+  if (maxLevel == null) return { nivel: null, nivelMax: null };
+  return { nivel: (level != null ? (16 - maxLevel + level) : null), nivelMax: 16 };
 }
 /** Estrellitas del nivel estelar (categoría `starLevel` por carta). */
 function estrellasHtml(starLevel){
@@ -645,6 +654,18 @@ function renderCartaFavorita(j){
   // backend. Se traduce acá con el mismo diccionario EN->ES que ya usan
   // otras páginas del sitio (traducirNombreCarta, cards-es.js).
   const nombreEs = _nombreCartaEs(fav);
+  // FIX (21-sep-2026, pedido usuario — unificar las 3 formas de nivel del
+  // perfil en una sola): currentFavouriteCard no trae el nivel ACTUAL del
+  // jugador para esa carta (solo maxLevel), por eso esta card mostraba
+  // "Nivel máx. N" en vez del mismo "Nv. X/Y" que usan Mazo actual, Cartas
+  // de torre y Colección completa. Se cruza por id con rawClash(j).cards
+  // (colección completa, que sí trae level) para poder mostrar el nivel
+  // real y usar exactamente el mismo formato en toda la página.
+  const cartasCol = rawClash(j).cards;
+  const cartaReal = Array.isArray(cartasCol)
+    ? cartasCol.find(c => c && c.id != null && fav.id != null && String(c.id) === String(fav.id))
+    : null;
+  const nvl = nivelAppAjustado(cartaReal ? cartaReal.level : fav.level, cartaReal ? cartaReal.maxLevel : fav.maxLevel);
   card.style.display = '';
   cont.innerHTML = `
     <div class="fav-wrap">
@@ -654,7 +675,7 @@ function renderCartaFavorita(j){
         <div class="cc-meta" style="margin-top:6px;">
           ${rk ? `<span class="cc-rareza" data-rareza="${rk}">${esc(RAREZA_CARTA_TXT[rk])}</span>` : (fav.rarity ? `<span class="cc-rareza">${esc(String(fav.rarity))}</span>` : '')}
           ${fav.elixirCost != null ? `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">${esc(String(fav.elixirCost))}</span>` : ''}
-          ${fav.maxLevel != null ? `<span class="cc-badge">Nivel m\u00e1x. ${esc(String(nivelAppAjustado(fav.level, fav.maxLevel).nivelMax))}</span>` : ''}
+          ${nvl.nivelMax != null ? `<span class="cc-badge">Nv. ${esc(String(nvl.nivel != null ? nvl.nivel : '\u2014'))}/${esc(String(nvl.nivelMax))}</span>` : ''}
         </div>
       </div>
     </div>`;
@@ -780,7 +801,7 @@ function pintarColeccion(cartas){
       <div class="text-faint" style="font-family:var(--f-mono); font-size:10px;">Nv. ${esc(String(nvl.nivel != null ? nvl.nivel : '\u2014'))}/${esc(String(nvl.nivelMax != null ? nvl.nivelMax : '\u2014'))}</div>
       <div class="cc-meta" style="justify-content:center;">
         ${estrellasHtml(c.starLevel)}
-        ${(c.evolutionLevel || 0) > 0 ? `<span class="cc-badge">\u2728 Evo ${c.evolutionLevel > 1 ? c.evolutionLevel : ''}</span>` : ''}
+        ${(c.evolutionLevel || 0) > 0 ? `<span class="cc-badge">\u2728 Evoluci\u00f3n</span>` : ''}
       </div>
       <div class="cc-count" title="Cantidad de cartas disponibles de este nombre">\u00d7${fmtNum(c.count)}</div>
     </div>`;
@@ -1243,8 +1264,8 @@ function renderMazoActual(mazoActual, ext, j){
           ${(c.hasHero || (d && d.rareza === 'campeon')) ? `<span class="cc-badge">🦸 Héroe</span>` : ''}
           ${hasEvo ? `<span class="cc-badge">✨ Evolución</span>` : ''}
         </div>
-        <div class="text-faint" style="font-size:10px;">
-          ${c.nivel ? 'Nivel ' + esc(String(c.nivel)) : '—'}
+        <div class="text-faint" style="font-family:var(--f-mono); font-size:10px;">
+          Nv. ${esc(String(c.nivel != null ? c.nivel : '\u2014'))}/16
           ${count != null ? ` · <span class="cc-count" title="Cantidad de cartas disponibles de este nombre">×${fmtNum(count)}</span>` : ''}
         </div>
         ${estrellasHtml(starLevel)}
