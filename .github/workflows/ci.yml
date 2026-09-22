@@ -1,9 +1,22 @@
-# CI gratuito (B-15). Tres pasos, en cada push/PR a main:
+# CI gratuito (B-15). Cuatro pasos, en cada push/PR a main:
 # 1. check-links: rutas locales rotas (script propio, sin dependencias).
 # 2. lint: ESLint sobre assets/**/*.js, con los globals compartidos entre
 #    archivos declarados en eslint.config.js (ver el comentario ahí).
 # 3. validate-html: html-validate sobre las 9 páginas. Arranca en modo
 #    permisivo a propósito (ver .htmlvalidate.js).
+# 4. test: tests unitarios (test/*.test.js) con el test runner nativo de
+#    Node (node --test, sin dependencias nuevas) sobre las funciones puras
+#    del sitio — antes ninguna tenía cobertura y un cambio ahí podía
+#    romperse sin que el CI se enterara. Cubre hoy:
+#      - assets/js/util.js: esc() (única barrera contra XSS del sitio),
+#        fmtNum(), ordenClanIndex/ordenarClanes, urlValida(),
+#        normalizarTag(), enlaceJugador(), fmtTiempoRelativo().
+#      - assets/js/core/api.js: _esErrorDeRed(), _mensajeErrorRed().
+#      - assets/js/data/cards-es.js: traducirNombreCarta().
+#      - assets/js/data/clan-badges.js: iconoBadgeClanHtml().
+#      - assets/js/ui/filters.js: primeraLetraFiltro().
+#    test/load-browser-script.js explica cómo se ejecutan esos scripts de
+#    navegador (sin import/export) dentro de Node.
 # Lighthouse va aparte, en lighthouse.yml (semanal/manual): necesita el
 # sitio ya publicado en GitHub Pages, no el código crudo del repo.
 #
@@ -40,3 +53,4 @@ jobs:
       - run: npm run check-links
       - run: npm run lint
       - run: npm run validate-html
+      - run: npm test
