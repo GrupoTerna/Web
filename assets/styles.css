@@ -567,16 +567,36 @@ svg circle[data-kb]:focus-visible{outline:none; stroke:var(--text); stroke-width
  * fuera lo que NO era compartido: .cc-usos y .cc-badge-btn(+:hover/
  * .is-activa) son exclusivos de index.html (el modal de editar variante
  * de carta ahí no existe en perfil.html) y se quedan en su <style>. */
+/* FIX (22-sep-2026, pedido usuario — "el nombre de la carta debe empezar a
+   la izquierda, al mismo nivel que la imagen, sin espacio negro a la
+   izquierda del nombre"): align-items pasa de "stretch" a "start". Con
+   "stretch", la columna de la imagen (cc-img, ver abajo) se estiraba para
+   ocupar el alto completo de la fila del grid -- si el contenido (nombre +
+   badges + rareza + tipo + elixir + nivel) sumaba varias líneas, la fila se
+   volvía alta y cc-img (con su fondo --bg-2, casi negro) se estiraba con
+   ella, dejando un bloque negro de sobra alrededor de la imagen real
+   (object-fit:contain no rellena ese sobrante). Con "start" cada columna
+   ocupa solo su alto natural y ambas arrancan a la misma altura (parejas
+   "al mismo nivel"), sin caja negra de más. */
 .carta-chip{
-  display:grid; grid-template-columns:auto 1fr; align-items:stretch; gap:5px 12px; padding:8px 14px 8px 8px;
-  border:1px solid var(--line); border-radius:14px; font-size:12px; color:var(--text-dim);
+  display:grid; grid-template-columns:auto 1fr; align-items:start; gap:5px 12px; padding:8px 14px 8px 8px;
+  border:1px solid var(--line); border-radius:14px; font-size:11px; color:var(--text-dim);
 }
 .carta-chip.carta-chip--sin-img{grid-template-columns:1fr;}
+/* FIX (22-sep-2026, mismo pedido de arriba): cc-img pasa de height:100%
+   (estirado a la fila) + align-self:stretch a un alto fijo de 60px, igual
+   al que ya usa .col-card img (ver abajo) -- mismo tamaño de imagen en
+   toda la web, y ya no se estira más allá de su contenido. */
 .carta-chip .cc-img{
-  width:52px; height:100%; min-height:62px; object-fit:contain; border-radius:8px;
-  background:var(--bg-2); align-self:stretch; padding:4px; box-sizing:border-box;
+  width:52px; height:60px; object-fit:contain; border-radius:8px;
+  background:var(--bg-2); padding:4px; box-sizing:border-box;
 }
-.carta-chip .cc-content{display:flex; flex-direction:column; justify-content:center; gap:5px; min-width:0;}
+/* FIX (22-sep-2026, mismo pedido): justify-content pasa de "center" a
+   "flex-start" -- antes el bloque de texto se centraba verticalmente
+   dentro de una fila que ahora ya no se estira, así que el nombre debe
+   arrancar arriba, al mismo nivel que la imagen, en vez de quedar centrado
+   más abajo. */
+.carta-chip .cc-content{display:flex; flex-direction:column; justify-content:flex-start; gap:5px; min-width:0;}
 .carta-chip .cc-fila-1{display:flex; flex-wrap:wrap; align-items:center; gap:5px 10px;}
 .carta-chip b{color:var(--text);}
 /* FIX (21-sep-2026, pedido usuario — "el tamaño del ícono de elixir debe
@@ -586,8 +606,16 @@ svg circle[data-kb]:focus-visible{outline:none; stroke:var(--text); stroke-width
    ".carta-chip". Con el selector viejo, el <span class="cc-elixir"> de la
    sección "Colección" (.col-card, perfil.html, pintarColeccion()) nunca
    hacía match: el ícono de elixir quedaba con su tamaño natural (mucho más
-   grande que los 13px del resto del sitio) en vez de heredar esta regla. */
-.cc-elixir{display:inline-flex; align-items:center; gap:3px; color:var(--purple-light); font-family:var(--f-mono);}
+   grande que los 13px del resto del sitio) en vez de heredar esta regla.
+   FIX (22-sep-2026, pedido usuario — "el mismo tamaño de letra en toda la
+   sección"): por el mismo motivo, .cc-elixir tampoco tenía font-size
+   propio -- heredaba el de su contenedor, que cambia según la sección
+   (12px en .carta-chip, 17px dentro de "Carta favorita", el tamaño del
+   body -sin resetear- dentro de .col-card). Se agrega font-size:11px acá,
+   igual al resto de las píldoras de la ficha (cc-rareza/cc-tipo/cc-badge/
+   cc-count, que vive en el <style> local de perfil.html), para que el
+   número de elixir se vea igual sin importar el contenedor. */
+.cc-elixir{display:inline-flex; align-items:center; gap:3px; color:var(--purple-light); font-family:var(--f-mono); font-size:11px;}
 .cc-elixir img{width:13px; height:13px; vertical-align:-2px;}
 /* FIX (21-sep-2026, pedido usuario — "héroe y evolución debe tener un solo
  * formato en toda la web"): mismo criterio que .cc-rareza/.cc-badge más
@@ -606,7 +634,7 @@ svg circle[data-kb]:focus-visible{outline:none; stroke:var(--text); stroke-width
    veía como texto plano en vez de la píldora de color. Ahora el mismo
    badge se pinta igual sin importar el contenedor que lo use. */
 .cc-rareza{
-  font-family:var(--f-mono); font-size:10px; text-transform:uppercase; letter-spacing:.03em;
+  font-family:var(--f-mono); font-size:11px; text-transform:uppercase; letter-spacing:.03em;
   padding:2px 7px; border-radius:999px; border:1px solid currentColor;
 }
 /* CORRECCIÓN (05-sep-2026, pedido usuario — colores reales de cada calidad
@@ -629,7 +657,7 @@ svg circle[data-kb]:focus-visible{outline:none; stroke:var(--text); stroke-width
    (.col-card) tenía exactamente el mismo problema de fondo (dependía del
    ancestro ".carta-chip" que .col-card nunca tiene). */
 .cc-tipo{
-  font-family:var(--f-mono); font-size:10px; text-transform:uppercase; letter-spacing:.03em;
+  font-family:var(--f-mono); font-size:11px; text-transform:uppercase; letter-spacing:.03em;
   padding:2px 7px; border-radius:999px; border:1px solid var(--line); color:var(--text-faint);
 }
 /* FIX (21-sep-2026, pedido usuario — "héroe y evolución debe tener un solo
@@ -641,7 +669,7 @@ svg circle[data-kb]:focus-visible{outline:none; stroke:var(--text); stroke-width
  * .carta-chip) nunca hacía match con estas reglas y se veía como texto
  * plano sin píldora ni estados hover/is-activa. */
 .cc-badge{
-  font-family:var(--f-mono); font-size:10px; padding:2px 7px; border-radius:999px;
+  font-family:var(--f-mono); font-size:11px; padding:2px 7px; border-radius:999px;
   background:var(--bg-2); color:var(--text-faint);
 }
 /* FIX (21-sep-2026, pedido usuario — "se debe imitar el botón de héroe y

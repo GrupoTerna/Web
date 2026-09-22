@@ -159,7 +159,10 @@
   .badge-item .b-prog{font-family:var(--f-mono); font-size:10px; color:var(--text-faint);}
   .badge-item .progress{width:100%; height:5px; margin-top:2px;}
   .star-level{color:var(--gold); font-size:11px; letter-spacing:1px; white-space:nowrap;}
-  .cc-count{font-family:var(--f-mono); font-size:10px; color:var(--text-faint);}
+  /* FIX (22-sep-2026, pedido usuario — "el mismo tamaño de letra en toda
+     la sección"): pasa de 10px a 11px, igual al resto de la ficha de carta
+     (cc-rareza/cc-tipo/cc-badge/cc-elixir en assets/styles.css). */
+  .cc-count{font-family:var(--f-mono); font-size:11px; color:var(--text-faint);}
   .coleccion-resumen{font-family:var(--f-mono); font-size:12px; color:var(--text-dim); margin-top:10px;}
   .coleccion-filtros{display:flex; gap:8px; flex-wrap:wrap; margin:14px 0 4px;}
   .coleccion-filtros button{
@@ -172,13 +175,23 @@
   .coleccion-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(96px,1fr)); gap:10px; margin-top:12px;}
   .col-card{background:var(--bg-2); border:1px solid var(--line); border-radius:10px; padding:8px 6px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:3px;}
   .col-card img{width:52px; height:60px; object-fit:contain;}
-  .col-card .col-nombre{font-size:10px; font-weight:700; color:var(--text); line-height:1.15; word-break:break-word;}
+  /* FIX (22-sep-2026, pedido usuario — "el mismo tamaño de letra en toda
+     la sección"): pasa de 10px a 11px, igual al resto de la ficha (ver
+     cc-count arriba y las reglas cc-* de assets/styles.css). */
+  .col-card .col-nombre{font-size:11px; font-weight:700; color:var(--text); line-height:1.15; word-break:break-word;}
   .col-card.max-level{border-color:var(--gold);}
   .torre-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:12px; margin-top:14px;}
   .panel-stats{width:100%; border-collapse:collapse; font-size:13px; margin-top:12px;}
   .panel-stats td{padding:8px 10px; border-bottom:1px solid var(--line); color:var(--text-dim); vertical-align:top;}
   .panel-stats td:last-child{text-align:right; color:var(--text); font-family:var(--f-mono); font-size:12px; white-space:nowrap;}
-  .fav-wrap{display:flex; align-items:center; gap:14px; flex-wrap:wrap; margin-top:14px;}
+  /* FIX (22-sep-2026, mismo pedido de arriba sobre .carta-chip/.cc-img —
+     "el nombre de la carta debe empezar... al mismo nivel que la imagen"):
+     align-items pasa de "center" a "flex-start". Con "center", la imagen
+     (72x84, más baja que el bloque de texto de 5 filas: nombre + rareza +
+     tipo + elixir + nivel) quedaba centrada respecto a ese bloque más
+     alto, así que su borde superior arrancaba más abajo que el nombre en
+     vez de parejo con él. */
+  .fav-wrap{display:flex; align-items:flex-start; gap:14px; flex-wrap:wrap; margin-top:14px;}
   /* FIX (20-sep-2026, pedido usuario — "el ícono de elixir está demasiado grande, debería ser pequeñito"): esta regla era `.fav-wrap img` y alcanzaba a TODAS las imágenes de la tarjeta, incluido el ícono de elixir (quedaba de 72x84). Ahora solo toca la imagen de la carta (hijo directo). El bloque de texto lleva .carta-chip (ver renderCartaFavorita) para heredar de styles.css el ícono de elixir de 13px y los estilos de calidad/nivel máx. que el mazo ya usa; .fav-info le quita el borde, el relleno y la cuadrícula propios de la ficha. */
   .fav-wrap > img{width:72px; height:84px; object-fit:contain;}
   .fav-wrap .fav-info{display:block; border:0; padding:0; font-size:inherit; color:inherit;}
@@ -715,7 +728,12 @@ function renderCartaFavorita(j){
     <div class="fav-wrap">
       ${urlValida(img) ? `<img src="${esc(img)}" alt="${esc(nombreEs)}" loading="lazy">` : ''}
       <div class="carta-chip fav-info">
-        <div style="font-size:17px; font-weight:800; font-family:var(--f-display); color:var(--text);">${esc(nombreEs)}</div>
+        <!-- FIX (22-sep-2026, pedido usuario — "el mismo tamaño de letra en
+             toda la sección"): el nombre pasa de 17px (mucho más grande que
+             el resto de la ficha: rareza/tipo/elixir/nivel a 11px) a 11px,
+             igual al resto de "Carta favorita" y al de las demás fichas de
+             carta del sitio (Mazo actual, Cartas de torre, Colección). -->
+        <div style="font-size:11px; font-weight:800; font-family:var(--f-display); color:var(--text);">${esc(nombreEs)}</div>
         ${esHeroe ? `<div class="cc-meta" style="margin-top:6px;"><button type="button" class="cc-badge cc-badge-btn" data-icon-variante="${esc(heroIcon)}" onclick="cambiarVarianteCarta(this)">🦸 Héroe</button></div>` : ''}
         ${tieneEvo ? `<div class="cc-meta" style="margin-top:6px;"><button type="button" class="cc-badge cc-badge-btn" data-icon-variante="${esc(evoIcon)}" onclick="cambiarVarianteCarta(this)">✨ Evolución</button></div>` : ''}
         ${(rk || fav.rarity) ? `<div class="cc-meta" style="margin-top:6px;">
@@ -894,7 +912,7 @@ function pintarColeccion(cartas){
         ${c.elixirCost != null ? `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">${esc(String(c.elixirCost))}</span>` : ''}
         ${estrellasHtml(c.starLevel)}
       </div>` : ''}
-      <div class="text-faint" style="font-family:var(--f-mono); font-size:10px;">Nv. ${esc(String(nvl.nivel != null ? nvl.nivel : '\u2014'))}</div>
+      <div class="text-faint" style="font-family:var(--f-mono); font-size:11px;">Nv. ${esc(String(nvl.nivel != null ? nvl.nivel : '\u2014'))}</div>
       ${!alMax ? `<div class="cc-count" title="Cantidad de cartas disponibles de este nombre">\u00d7${fmtNum(c.count)}</div>` : ''}
     </div>`;
   }).join('');
@@ -955,7 +973,7 @@ function renderCartasTorre(j){
           ${t.elixirCost != null ? `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">${esc(String(t.elixirCost))}</span>` : ''}
           ${estrellasHtml(t.starLevel)}
         </div>` : ''}
-        <div class="text-faint" style="font-size:10px;">Nv. ${esc(String(nvl.nivel != null ? nvl.nivel : '\u2014'))}${alMax ? '' : ` \u00b7 \u00d7${fmtNum(t.count)}`}</div>
+        <div class="text-faint" style="font-size:11px;">Nv. ${esc(String(nvl.nivel != null ? nvl.nivel : '\u2014'))}${alMax ? '' : ` \u00b7 \u00d7${fmtNum(t.count)}`}</div>
       </div>
     </div>`;
   }).join('');
@@ -1402,7 +1420,7 @@ function renderMazoActual(mazoActual, ext, j){
           ${d && d.elixir != null ? `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">${esc(String(d.elixir))}</span>` : ''}
           ${estrellasHtml(starLevel)}
         </div>` : ''}
-        <div class="text-faint" style="font-family:var(--f-mono); font-size:10px;">
+        <div class="text-faint" style="font-family:var(--f-mono); font-size:11px;">
           Nv. ${esc(String(c.nivel != null ? c.nivel : '\u2014'))}
           ${(count != null && c.nivel !== 16) ? ` · <span class="cc-count" title="Cantidad de cartas disponibles de este nombre">×${fmtNum(count)}</span>` : ''}
         </div>
@@ -1455,7 +1473,7 @@ function renderMazoActual(mazoActual, ext, j){
               ${t.elixirCost != null ? `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">${esc(String(t.elixirCost))}</span>` : ''}
               ${estrellasHtml(t.starLevel)}
             </div>` : ''}
-            <div class="text-faint" style="font-size:10px;">Nv. ${esc(String(nvl.nivel != null ? nvl.nivel : '—'))}${(!alMax && t.count != null) ? ` · ×${fmtNum(t.count)}` : ''}</div>
+            <div class="text-faint" style="font-size:11px;">Nv. ${esc(String(nvl.nivel != null ? nvl.nivel : '—'))}${(!alMax && t.count != null) ? ` · ×${fmtNum(t.count)}` : ''}</div>
           </div>
         </div>`;
       }).join('')}</div>
