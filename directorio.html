@@ -917,6 +917,19 @@ cargarClanInfoYCharts();
 let rosterData = [];  // lista de clanes: {nombre, miembros:[{tag,nombre,rango,vGuerra,torneos}]}
 let clanActivoIdx = 0;
 
+/* FIX (22-sep-2026, pedido usuario — el buscador de perfil y el comparador
+   "Cara a cara" mandaban el texto escrito tal cual como si fuera un Tag
+   cuando el directorio (rosterData) todavía no terminaba de cargar (ej.
+   proxy de Apps Script recién reactivándose), en vez de esperar y buscar
+   coincidencias por nombre. Como pareceTag()/el chequeo viejo solo
+   validaba "¿es alfanumérico de 4+ caracteres?", un nombre parcial como
+   "CHIS" (de "Chistris") pasaba esa prueba igual que un Tag real, y
+   terminaba abriendo perfil.html?tag=%23CHIS o mandando "CHIS" tal cual al
+   comparador — de ahí el "No encontré ese Tag ni en el Directorio ni en la
+   API". rosterCargaPromise guarda la promesa de cargarRoster() para que
+   buscarMiembro()/compararJugadores() puedan esperarla antes de decidir. */
+let rosterCargaPromise = null;
+
 function campoMinTSegunRango(rango){
   const r = String(rango||'').toLowerCase();
   if(r.includes('col')) return 'minTColider';
@@ -1046,27 +1059,40 @@ async function buscarMiembro(tagDirecto){
   if (tagDirecto){
     // Vino de un clic en el directorio o en "Ver otras cuentas": ya es un Tag real.
     tagFinal = normalizarTag(tagDirecto);
-  } else if (rosterData.length){
-    const candidatos = coincidenciasDirectorio(rawTrim, MAX_COINCIDENCIAS);
-    if (!candidatos.length){
-      msgEl.innerHTML = '<div class="msg msg-error">No se encontró ningún miembro con ese nombre o Tag.</div>';
-      return;
-    }
-    // Con una sola coincidencia se resuelve directo; con 2+ se muestra la lista y se espera el clic del usuario. Historial en CHANGELOG.md.
-    if (candidatos.length > 1){
-      msgEl.innerHTML = renderListaCoincidencias(candidatos, 'buscarMiembro');
-      return;
-    }
-    tagFinal = candidatos[0].tag;
   } else {
-    // Si el directorio no terminó de cargar y el texto parece un Tag completo, se prueba directo contra la API. Historial en CHANGELOG.md.
-    const sinEspacios = rawTrim.replace(/\s+/g, '');
-    const pareceTag = /^#?[A-Za-z0-9]{4,}$/.test(sinEspacios);
-    if (!pareceTag){
-      msgEl.innerHTML = '<div class="msg msg-error">El directorio todavía se está cargando — intenta de nuevo en un segundo.</div>';
-      return;
+    // FIX (22-sep-2026): si el directorio todavía está cargando, se espera
+    // esa carga (en vez de adivinar si el texto "parece" un Tag) antes de
+    // decidir cómo resolver — así un nombre parcial nunca se manda tal
+    // cual como si fuera un Tag. Historial en CHANGELOG.md.
+    if (!rosterData.length && rosterCargaPromise){
+      msgEl.innerHTML = '<div class="text-faint" style="font-size:13px;">Cargando el directorio…</div>';
+      await rosterCargaPromise.catch(() => {});
     }
-    tagFinal = normalizarTag(rawTrim);
+
+    if (rosterData.length){
+      const candidatos = coincidenciasDirectorio(rawTrim, MAX_COINCIDENCIAS);
+      if (!candidatos.length){
+        msgEl.innerHTML = '<div class="msg msg-error">No se encontró ningún miembro con ese nombre o Tag.</div>';
+        return;
+      }
+      // Con una sola coincidencia se resuelve directo; con 2+ se muestra la lista y se espera el clic del usuario. Historial en CHANGELOG.md.
+      if (candidatos.length > 1){
+        msgEl.innerHTML = renderListaCoincidencias(candidatos, 'buscarMiembro');
+        return;
+      }
+      tagFinal = candidatos[0].tag;
+    } else {
+      // El directorio no pudo cargar (falló la red, no que todavía esté en
+      // camino): recién acá, como último recurso, se prueba el texto
+      // directo contra la API si parece un Tag completo.
+      const sinEspacios = rawTrim.replace(/\s+/g, '');
+      const pareceTag = /^#?[A-Za-z0-9]{4,}$/.test(sinEspacios);
+      if (!pareceTag){
+        msgEl.innerHTML = '<div class="msg msg-error">No se pudo cargar el directorio. Si conoces el Tag exacto (con #), ingrésalo directamente, o recarga la página.</div>';
+        return;
+      }
+      tagFinal = normalizarTag(rawTrim);
+    }
   }
 
   if (!tagFinal){ msgEl.innerHTML = '<div class="msg msg-error">Escribe un nombre o Tag válido.</div>'; return; }
@@ -1125,11 +1151,19 @@ function renderComparadorLado(jugador){
  */
 /** Resuelve un tag "final" a partir de texto libre para UN lado del
  * comparador: si hay 1 sola coincidencia en el directorio, la usa; si el
- * directorio no encuentra ninguna (ej. un Tag pegado que no está en
- * rosterData todavía, o el directorio no cargó), deja pasar el texto tal
- * cual (el backend igual puede resolverlo — "es más complicado pegar tags
- * pero no se debe descartar"). Si hay 2+ coincidencias, devuelve null y
- * las deja en `ambiguas` para que el llamador muestre el picker. */
+ * directorio no encuentra ninguna coincidencia local (ej. un Tag pegado
+ * que no está en rosterData), deja pasar el texto tal cual (el backend
+ * igual puede resolverlo — "es más complicado pegar tags pero no se debe
+ * descartar"). Si hay 2+ coincidencias, devuelve null y las deja en
+ * `ambiguas` para que el llamador muestre el picker.
+ * FIX (22-sep-2026): antes, si rosterData todavía no había terminado de
+ * cargar, esta función devolvía el texto escrito tal cual de una — eso
+ * mandaba nombres parciales (ej. "chis" de "Chistris") directo a la API
+ * como si fueran un Tag real, y el backend respondía "No encontré ese Tag
+ * ni en el Directorio ni en la API". Ahora ese caso (rosterData vacío) lo
+ * maneja compararJugadores() esperando rosterCargaPromise ANTES de llamar
+ * a esta función — acá ya no debería llegar con rosterData vacío salvo que
+ * la carga del directorio haya fallado de verdad. */
 function resolverLadoComparador(raw, ambiguasOut){
   if (!rosterData.length) return String(raw||'').trim();
   const candidatos = coincidenciasDirectorio(raw, MAX_COINCIDENCIAS);
@@ -1374,6 +1408,16 @@ async function compararJugadores(){
   if (!raw1 || !raw2){
     msgEl.innerHTML = '<div class="msg msg-error">Ingresa los dos nombres o tags a comparar.</div>';
     return;
+  }
+
+  // FIX (22-sep-2026): esperar a que el directorio termine de cargar antes
+  // de resolver los dos lados — antes, si esta función corría mientras
+  // rosterData todavía estaba vacío, resolverLadoComparador() mandaba el
+  // texto escrito tal cual (nombre parcial incluido) directo a la API como
+  // si fuera un Tag. Historial en CHANGELOG.md.
+  if (!rosterData.length && rosterCargaPromise){
+    msgEl.innerHTML = '<div class="text-faint" style="font-size:13px;">Cargando el directorio…</div>';
+    await rosterCargaPromise.catch(() => {});
   }
 
   // Cada lado del comparador se resuelve por separado contra el directorio ya cargado; si es ambiguo, se muestran las coincidencias antes de comparar. Historial en CHANGELOG.md.
@@ -2751,7 +2795,8 @@ async function cargarIngresosRecientes(){
 
 inicializarToggleGraficasIngresos();
 // FIX (20-sep-2026, pedido usuario — el botón de index.html lleva a directorio.html#ingresosRecientes): el ancla se calcula antes de que el directorio y los ingresos terminen de pintarse (la página crece después), así que el navegador queda en otra zona. Al terminar ambas cargas se vuelve a posicionar en la sección.
-Promise.allSettled([cargarRoster(), cargarIngresosRecientes()]).then(() => {
+rosterCargaPromise = cargarRoster();
+Promise.allSettled([rosterCargaPromise, cargarIngresosRecientes()]).then(() => {
   if (location.hash !== '#ingresosRecientes') return;
   const sec = document.getElementById('ingresosRecientes');
   if (sec) sec.scrollIntoView({ block: 'start' });
