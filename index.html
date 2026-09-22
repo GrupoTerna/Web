@@ -809,10 +809,20 @@ function pintarRanking(elId, lista, sufijo){
 async function cargarRankings(){
   try{
     const data = await apiGet('webRankings', null, { ttlMs: 300000, staleIfError: true }); // D-9 (b): 5 min; B4/B-10: si falla la red, usar el último dato guardado
-    pintarRanking('rkDonadores', data.donadores, '');
-    pintarRanking('rkRacha', data.racha, '');
+    // FIX (21-sep-2026, pedido usuario — "falta agregar igual que en
+    // batallas de torneo que sí indica que son batallas, las otras
+    // tarjetas solo tienen números"): pintarRanking() ya soportaba un
+    // sufijo por lista (lo usaba solo "torneos" -> 'batallas'), pero acá se
+    // le mandaba '' para las otras 3 listas. Se agrega el sufijo que
+    // corresponde a cada unidad real: donaciones se miden en cartas
+    // donadas, racha de guerra en días/batallas de ataque consecutivas
+    // (mismo dato que "warDayWins" del bot) y victorias con 3 coronas son
+    // victorias. No se toca renderRankingRow()/pintarRanking(): ya sabían
+    // agregar el sufijo con un espacio antes, solo faltaba pasarlo acá.
+    pintarRanking('rkDonadores', data.donadores, 'cartas');
+    pintarRanking('rkRacha', data.racha, 'batallas');
     pintarRanking('rkTorneos', data.torneos, 'batallas');
-    pintarRanking('rkVictorias3c', data.victorias3c, '');
+    pintarRanking('rkVictorias3c', data.victorias3c, 'victorias');
   }catch(err){
     ['rkDonadores','rkRacha','rkTorneos','rkVictorias3c'].forEach(id => {
       document.getElementById(id).innerHTML = `<div class="empty" style="padding:16px 0;">Error: ${esc(err.message)}</div>`;

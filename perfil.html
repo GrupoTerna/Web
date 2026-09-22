@@ -1383,7 +1383,7 @@ function renderMazoActual(mazoActual, ext, j){
     const activaEvo = !!(hasEvo && evoIcon && imgSrc === evoIcon);
     return `
     <div class="carta-chip${imgSrc ? '' : ' carta-chip--sin-img'}" data-icon-base="${esc(c.icon || '')}">
-      ${imgSrc ? `<img class="cc-img" src="${esc(imgSrc)}" alt="${esc(c.name)}" loading="lazy" onerror="const p=this.parentElement; this.remove(); if(p) p.classList.add('carta-chip--sin-img');">` : ''}
+      ${imgSrc ? `<img class="cc-img" src="${esc(imgSrc)}" alt="${esc(c.name)}" loading="lazy" onerror="_marcarCartaSinImagen(this);" onload="if(this.naturalWidth===0) _marcarCartaSinImagen(this);">` : ''}
       <div class="cc-content">
         <div class="cc-fila-1"><b>${esc(c.name)}</b></div>
         <!-- FIX (21-sep-2026, pedido usuario — orden estándar de fichas de
@@ -1444,7 +1444,7 @@ function renderMazoActual(mazoActual, ext, j){
         const alMax = t.maxLevel != null && t.level != null && t.level >= t.maxLevel;
         return `
         <div class="carta-chip${img ? '' : ' carta-chip--sin-img'}">
-          ${img ? `<img class="cc-img" src="${esc(img)}" alt="${esc(nombreEs)}" loading="lazy" onerror="const p=this.parentElement; this.remove(); if(p) p.classList.add('carta-chip--sin-img');">` : ''}
+          ${img ? `<img class="cc-img" src="${esc(img)}" alt="${esc(nombreEs)}" loading="lazy" onerror="_marcarCartaSinImagen(this);" onload="if(this.naturalWidth===0) _marcarCartaSinImagen(this);">` : ''}
           <div class="cc-content">
             <div class="cc-fila-1"><b>${esc(nombreEs)}</b></div>
             ${esHeroe ? `<div class="cc-meta"><button type="button" class="cc-badge cc-badge-btn" data-icon-variante="${esc(heroIcon)}" onclick="cambiarVarianteCarta(this)">🦸 Héroe</button></div>` : ''}
@@ -1488,6 +1488,33 @@ function renderMazoActual(mazoActual, ext, j){
  * "Colección completa" (pintarColeccion(), que usa .col-card en vez de
  * .carta-chip) sin duplicar esta función una tercera vez.
  */
+/**
+ * _marcarCartaSinImagen(img)
+ * FIX (21-sep-2026, pedido usuario — "el nombre debe mostrarse desde la
+ * izquierda y no dejar ese espacio negro a la izquierda" cuando el ícono de
+ * una carta del mazo no se ve): antes cada <img class="cc-img"> de
+ * renderMazoActual() (carta del mazo y carta de torre del mazo) solo
+ * colapsaba el layout con el onerror inline ("this.remove(); ...
+ * carta-chip--sin-img"), que depende de que el navegador dispare un error
+ * de RED real (404, CORS bloqueado, etc.). Las URLs de estas dos secciones
+ * en particular vienen crudas de rawClash(j) (iconUrls tal cual las manda
+ * Supercell, sin pasar por Backup_Cards.csv) — si Supercell responde 200
+ * con una imagen vacía/en blanco para ese ID puntual, no hay ningún error
+ * de red que dispare el onerror y el <img> se queda ocupando su columna
+ * (52px) con el fondo oscuro de .cc-img, dejando ese espacio "negro" a la
+ * izquierda del nombre en vez de colapsar a una sola columna.
+ * Esta función centraliza el colapso (remover el <img>, agregar
+ * carta-chip--sin-img) y se llama tanto desde onerror (falla de red) como
+ * desde onload cuando la imagen sí cargó pero con naturalWidth 0 (imagen
+ * vacía/corrupta) — mismo resultado visual en ambos casos.
+ * @param {HTMLImageElement} img
+ */
+function _marcarCartaSinImagen(img){
+  const p = img.parentElement;
+  img.remove();
+  if (p) p.classList.add('carta-chip--sin-img');
+}
+
 function cambiarVarianteCarta(btn){
   const chip = btn.closest('.carta-chip, .col-card');
   const img = chip && chip.querySelector('.cc-img');

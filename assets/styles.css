@@ -577,8 +577,16 @@ svg circle[data-kb]:focus-visible{outline:none; stroke:var(--text); stroke-width
 .carta-chip .cc-content{display:flex; flex-direction:column; justify-content:center; gap:5px; min-width:0;}
 .carta-chip .cc-fila-1{display:flex; flex-wrap:wrap; align-items:center; gap:5px 10px;}
 .carta-chip b{color:var(--text);}
-.carta-chip .cc-elixir{display:inline-flex; align-items:center; gap:3px; color:var(--purple-light); font-family:var(--f-mono);}
-.carta-chip .cc-elixir img{width:13px; height:13px; vertical-align:-2px;}
+/* FIX (21-sep-2026, pedido usuario — "el tamaño del ícono de elixir debe
+   ser el mismo en todas las secciones"): mismo criterio que .cc-rareza/
+   .cc-badge más arriba — .cc-elixir pasa de estar acotado a
+   ".carta-chip .cc-elixir" a un selector propio, sin exigir el ancestro
+   ".carta-chip". Con el selector viejo, el <span class="cc-elixir"> de la
+   sección "Colección" (.col-card, perfil.html, pintarColeccion()) nunca
+   hacía match: el ícono de elixir quedaba con su tamaño natural (mucho más
+   grande que los 13px del resto del sitio) en vez de heredar esta regla. */
+.cc-elixir{display:inline-flex; align-items:center; gap:3px; color:var(--purple-light); font-family:var(--f-mono);}
+.cc-elixir img{width:13px; height:13px; vertical-align:-2px;}
 /* FIX (21-sep-2026, pedido usuario — "héroe y evolución debe tener un solo
  * formato en toda la web"): mismo criterio que .cc-rareza/.cc-badge más
  * arriba — .cc-meta pasa de ".carta-chip .cc-meta" a selector propio.
@@ -614,7 +622,11 @@ svg circle[data-kb]:focus-visible{outline:none; stroke:var(--text); stroke-width
   border-color:#ff7cf0;
 }
 .cc-rareza[data-rareza="campeon"]{color:var(--gold);}
-.carta-chip .cc-tipo{
+/* FIX (21-sep-2026, mismo criterio de arriba para .cc-elixir): .cc-tipo
+   también pasa a selector propio — el badge de Tipo de "Colección"
+   (.col-card) tenía exactamente el mismo problema de fondo (dependía del
+   ancestro ".carta-chip" que .col-card nunca tiene). */
+.cc-tipo{
   font-family:var(--f-mono); font-size:10px; text-transform:uppercase; letter-spacing:.03em;
   padding:2px 7px; border-radius:999px; border:1px solid var(--line); color:var(--text-faint);
 }
