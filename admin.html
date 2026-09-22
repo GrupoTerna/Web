@@ -1784,7 +1784,7 @@ function renderMiembro(j){
   miembroActual = j.tag;
   document.getElementById('miembroSec').style.display = 'block';
   document.getElementById('mNombre').textContent = j.nombre;
-  document.getElementById('mSub').textContent = `${j.tag} · ${j.clan} · ${j.rango} · ${j.estado}`;
+  document.getElementById('mSub').innerHTML = `${esc(j.tag)} · ${j.clan ? enlaceClan(j.clan) : '—'} · ${esc(j.rango)} · ${esc(j.estado)}`;
   document.getElementById('mVGuerra').textContent = fmtNum(j.vGuerra);
   document.getElementById('mTorneos').textContent = fmtNum(j.torneos);
   document.getElementById('mAtaques').textContent = fmtNum(j.guerraSemana.ataques);
@@ -2013,7 +2013,7 @@ function _tablaCoincidencias(filas, conColumnaOrigenClan){
       ${conColumnaOrigenClan ? `<td>${esc(f.nombreEnClanRival)} <span class="text-faint">(${esc(f.tagEnClanRival)})</span></td><td>${esc(f.rolEnClanRival)}</td>` : ''}
       <td>${esc(f.origen)}</td>
       <td>${f.origen === 'Directorio' ? enlaceJugador(f.nombre, f.tag) : esc(f.nombre)} <span class="text-faint">(${esc(f.tag)})</span></td>
-      <td>${esc(f.clan)}</td>
+      <td>${f.clan ? enlaceClan(f.clan) : '—'}</td>
       <td>${esc(f.razon || '—')}</td>
     </tr>`).join('');
   return `<div class="tabla-coincidencias-wrap" style="overflow-x:auto;"><table>
@@ -2157,7 +2157,7 @@ async function cargarMisCuentas(){
       <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px;">
         ${todas.map(m => `
           <div style="background:var(--bg-2); border:1px solid var(--line); border-radius:var(--radius-sm); padding:10px 12px;">
-            <div style="font-family:var(--f-display); font-weight:700; font-size:10px; color:var(--gold); text-transform:uppercase; letter-spacing:.04em; margin-bottom:6px; text-align:center;">🍀 ${esc(m._clan)}</div>
+            <div style="font-family:var(--f-display); font-weight:700; font-size:10px; color:var(--gold); text-transform:uppercase; letter-spacing:.04em; margin-bottom:6px; text-align:center;">🍀 ${enlaceClan(m._clan)}</div>
             <div style="font-weight:600; font-size:14px; text-align:center;">${enlaceJugador(m.nombre, m.tag)}</div>
             <div style="font-family:var(--f-mono); font-size:11px; color:var(--text-faint); margin-top:2px; text-align:center;">${esc(m.tag)} · ${esc(m.rango)}</div>
             <!-- clan/nombre/tag-rango/vigencia quedan centrados, pero las 3 filas de Copas/V.Guerra/Torneos siguen alineadas a la izquierda entre sí, centradas como bloque. -->
@@ -4031,7 +4031,7 @@ function renderAscensosEditablesLista(){
       <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
         <div>
           <div style="font-weight:700; font-size:13px;">${enlaceJugador(a.nombre, a.tag)} <span class="text-faint" style="font-family:var(--f-mono); font-size:11px;">${esc(a.tag)}</span></div>
-          <div class="text-dim" style="font-size:12px; margin-top:2px;">${esc(a.tipo)} · ${esc(a.rangoAnterior)} → ${esc(a.rangoNuevo)} · ${esc(a.clan)} · ${esc(a.fechaTxt)}</div>
+          <div class="text-dim" style="font-size:12px; margin-top:2px;">${esc(a.tipo)} · ${esc(a.rangoAnterior)} → ${esc(a.rangoNuevo)} · ${a.clan ? enlaceClan(a.clan) : '—'} · ${esc(a.fechaTxt)}</div>
           <div class="text-dim" style="font-size:12px; margin-top:2px;">Autor actual: <b>${esc(a.autor || 'sin autor')}</b></div>
         </div>
         <button type="button" class="btn js-editar-autor-asc">Editar autor</button>
@@ -5639,7 +5639,7 @@ function _filaPropuestaCR(p, i){
       <td>${i + 1}</td>
       <td>${enlaceJugador(p.nombre, p.tag)}</td>
       <td>${esc(p.tag)}</td>
-      <td>${esc(p.clan)}</td>
+      <td>${p.clan ? enlaceClan(p.clan) : '—'}</td>
       <td>${esc(p.rangoActual)}</td>
       <td><span class="badge ${badgeClase}">${etiquetaTipo}</span></td>
       <td>${_celdaUmbralCR(p.ataquesProm, p.umbralAtaques, p.cumpleAtaques)}</td>
@@ -6327,7 +6327,7 @@ function filaParticipanteResolucion(p){
     <div class="contenido-item">
       <div class="cab">
         <span class="etiqueta">Puesto ${esc(p.puesto)} — ${p.tag ? enlaceJugador(p.nombre, p.tag) : esc(p.nombre)}</span>
-        <span class="clan-chip">${esc(p.clan)}</span>
+        <span class="clan-chip">${p.clan ? enlaceClan(p.clan) : '—'}</span>
       </div>
       <div class="ganador-victorias">${fmtNum(p.victorias)} victorias</div>
       ${estadoHtml}
@@ -6743,7 +6743,7 @@ async function verificarTagNuevoMiembro(){
     if(manejarRespuestaAuth(data)) return;
     if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
     nmTagVerificado = data.jugador.tag;
-    msgEl.innerHTML = `<div class="msg msg-ok">Encontrado (${esc(data.fuente)}): <b>${esc(data.jugador.nombre)}</b>${data.jugador.clan ? ' · ' + esc(data.jugador.clan) : ''}</div>`;
+    msgEl.innerHTML = `<div class="msg msg-ok">Encontrado (${esc(data.fuente)}): <b>${esc(data.jugador.nombre)}</b>${data.jugador.clan ? ' · ' + enlaceClan(data.jugador.clan) : ''}</div>`;
     document.getElementById('nmNomMultiNuevo').style.display = 'none';
     document.getElementById('nmNomMultiNuevo').value = '';
     document.getElementById('nmPrefijo').value = '';
