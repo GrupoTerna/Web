@@ -2835,7 +2835,28 @@ FIX (03-sep-2026, pedido usuario, punto 19 — "agregar un
 
 ## perfil.html — historial trasladado
 
-### 21-sep-2026 — Nombres en español desde el CSV: se cierra el "PENDIENTE DE BACKEND"
+### 23-sep-2026 — Cartas de "Mazo actual" y "Carta de torre del mazo" pasan a `.col-card--grande`
+Pedido usuario: "el tamaño de cartas de mazo actual y su carta de torre es muy
+pequeño, dale el mismo tamaño de la imagen de carta favorita". Las tres
+secciones (Mazo actual, Carta de torre del mazo, Carta favorita) comparten el
+mismo componente `.col-card`/`.col-nombre`/`.col-cuerpo`/`.col-ficha` desde el
+FIX del 23-sep-2026 más abajo ("solo se hizo el cambio en la colección
+completa pero falta en las otras secciones de cartas en perfil.html"), pero
+solo "Carta favorita" (`renderCartaFavorita()`) llevaba el modificador
+`.col-card--grande` (imagen 72x84) — Mazo actual y Carta de torre del mazo
+(ambas en `renderMazoActual()`) se quedaron en el tamaño base de `.col-card`
+(52x60, el mismo de Colección completa), sin que nadie lo hubiera pedido así
+explícitamente.
+
+Se agrega `col-card--grande` a los dos `<div class="col-card">` que arma
+`renderMazoActual()` (la ficha de cada una de las 8 cartas del mazo y la de
+`currentDeckSupportCards`), sin tocar `assets/styles.css` — la regla
+`.col-card--grande .col-cuerpo > img{width:72px; height:84px;}` ya existía y
+alcanza a cualquier `.col-card` que lleve el modificador, sin importar la
+sección. `Colección completa` (`pintarColeccion()`) no se toca: sigue en
+52x60, que es el tamaño que ya tenía y que nadie pidió agrandar acá.
+
+
 El 20-sep se dejó en `perfil.html` un bloque "PENDIENTE DE BACKEND" (pedido: "se
 traduce mal, esas traducciones se quedaron como fallback, no debe ser la fuente
 principal"). `Base.md` se estaba editando en otra sesión y no se tocó entonces.
