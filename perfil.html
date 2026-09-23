@@ -243,6 +243,21 @@
   .insignias-orden select:hover, .insignias-orden select:focus{border-color:var(--purple); color:var(--purple-light);}
   .badge-item .b-nombre{font-size:11px; font-weight:700; color:var(--text); line-height:1.2; word-break:break-word;}
   .badge-item .b-nivel{font-family:var(--f-mono); font-size:10px; color:var(--gold);}
+  /* FIX (23-sep-2026, pedido usuario — "agrega dos minigráficos de estilo
+     pastel: uno para el porcentaje de victorias y derrotas y otro para las
+     donaciones hechas y recibidas"): gráficos de pastel (SVG) que se pintan
+     debajo de la grilla de cuadritos (renderExtendido()/_pastelMiniHtml()).
+     Mismo lenguaje visual que .ext-item (fondo --bg-2, borde --line). */
+  .mini-pies{display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:14px; margin-top:14px;}
+  .mini-pie{background:var(--bg-2); border:1px solid var(--line); border-radius:var(--radius-sm); padding:12px 16px;}
+  .mini-pie-titulo{font-family:var(--f-mono); font-size:10px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.06em; margin-bottom:8px;}
+  .mini-pie-cuerpo{display:flex; align-items:center; gap:18px; flex-wrap:wrap;}
+  .mini-pie svg{width:96px; height:96px; flex-shrink:0;}
+  .mini-pie-leyenda{display:flex; flex-direction:column; gap:6px; font-size:13px; color:var(--text-dim); min-width:0;}
+  .mini-pie-leyenda .fila{display:flex; align-items:center; gap:8px;}
+  .mini-pie-leyenda .punto{width:10px; height:10px; border-radius:50%; flex-shrink:0;}
+  .mini-pie-leyenda b{font-family:var(--f-display); font-size:16px; color:var(--text);}
+  .mini-pie-leyenda .pct{font-family:var(--f-mono); font-size:11px; color:var(--text-faint);}
   .badge-item .b-prog{font-family:var(--f-mono); font-size:10px; color:var(--text-faint);}
   .badge-item .progress{width:100%; height:5px; margin-top:2px;}
   .star-level{color:var(--gold); font-size:11px; letter-spacing:1px; white-space:nowrap;}
@@ -1644,6 +1659,53 @@ function renderSnapshotInfo(j){
   }
 }
 
+/**
+ * _pastelMiniHtml(titulo, porciones)
+ * FIX (23-sep-2026, pedido usuario — dos minigráficos de estilo pastel):
+ * gráfico de pastel en SVG (sin librerías) con su leyenda. `porciones` es
+ * [{etiqueta, valor, color}] (color = cualquier valor CSS, p. ej.
+ * 'var(--ok)'). Devuelve '' si algún valor no es numérico o si la suma es 0
+ * (no se dibuja un pastel vacío). Con una sola porción distinta de 0 se
+ * dibuja un círculo completo (un arco de 360° no se puede trazar con un solo
+ * <path>). Los porcentajes de la leyenda se calculan sobre la suma de las
+ * porciones mostradas.
+ */
+function _pastelMiniHtml(titulo, porciones){
+  const vals = porciones.map(p => Number(p.valor));
+  if (vals.some(v => !isFinite(v) || v < 0)) return '';
+  const total = vals.reduce((a, b) => a + b, 0);
+  if (!(total > 0)) return '';
+  const R = 50, C = 50;
+  const punto = ang => [C + R * Math.sin(ang), C - R * Math.cos(ang)];
+  const activas = porciones.filter((p, i) => vals[i] > 0);
+  let trozos = '';
+  if (activas.length === 1){
+    trozos = `<circle cx="${C}" cy="${C}" r="${R}" fill="${activas[0].color}"/>`;
+  } else {
+    let acum = 0;
+    porciones.forEach((p, i) => {
+      if (!(vals[i] > 0)) return;
+      const a0 = acum / total * 2 * Math.PI;
+      acum += vals[i];
+      const a1 = acum / total * 2 * Math.PI;
+      const [x0, y0] = punto(a0), [x1, y1] = punto(a1);
+      trozos += `<path d="M${C},${C} L${x0.toFixed(3)},${y0.toFixed(3)} A${R},${R} 0 ${(a1 - a0) > Math.PI ? 1 : 0} 1 ${x1.toFixed(3)},${y1.toFixed(3)} Z" fill="${p.color}" stroke="var(--bg-2)" stroke-width="1.5"/>`;
+    });
+  }
+  const resumen = porciones.map((p, i) => `${p.etiqueta}: ${fmtNum(vals[i])} (${(vals[i] / total * 100).toFixed(1)}%)`).join('; ');
+  const leyenda = porciones.map((p, i) => `
+        <div class="fila"><span class="punto" style="background:${p.color};"></span>${esc(p.etiqueta)} <b>${esc(fmtNum(vals[i]))}</b> <span class="pct">${(vals[i] / total * 100).toFixed(1)}%</span></div>`).join('');
+  return `
+    <div class="mini-pie">
+      <div class="mini-pie-titulo">${esc(titulo)}</div>
+      <div class="mini-pie-cuerpo">
+        <svg viewBox="0 0 100 100" role="img" aria-label="${esc(titulo)}. ${esc(resumen)}">${trozos}</svg>
+        <div class="mini-pie-leyenda">${leyenda}
+        </div>
+      </div>
+    </div>`;
+}
+
 function renderExtendido(ext, j){
   const wrap = document.getElementById('mExtWrap');
   if (!ext && !j){ wrap.innerHTML = ''; return; }
@@ -1705,7 +1767,18 @@ function renderExtendido(ext, j){
    * botones de acción se pintan juntos, en una sola fila con el formato
    * .ext-links, en renderMiembro().
    */
-  wrap.innerHTML = (items ? `<div class="ext-grid">${items}</div>` : '') + camino;
+  // FIX (23-sep-2026, pedido usuario): dos gráficos de pastel debajo de la grilla — Victorias/Derrotas y Donaciones hechas/recibidas. Cada uno se omite solo si faltan sus datos o suman 0.
+  const pies = [
+    (ext.victorias != null && ext.derrotas != null) ? _pastelMiniHtml('Victorias y derrotas', [
+      { etiqueta: 'Victorias', valor: ext.victorias, color: 'var(--ok)' },
+      { etiqueta: 'Derrotas', valor: ext.derrotas, color: 'var(--danger)' },
+    ]) : '',
+    (ext.donacionesRealizadas != null && ext.donacionesRecibidas != null) ? _pastelMiniHtml('Donaciones hechas y recibidas', [
+      { etiqueta: 'Hechas', valor: ext.donacionesRealizadas, color: 'var(--gold)' },
+      { etiqueta: 'Recibidas', valor: ext.donacionesRecibidas, color: 'var(--purple)' },
+    ]) : '',
+  ].join('');
+  wrap.innerHTML = (items ? `<div class="ext-grid">${items}</div>` : '') + (pies.trim() ? `<div class="mini-pies">${pies}</div>` : '') + camino;
 }
 
 /**

@@ -2835,6 +2835,20 @@ FIX (03-sep-2026, pedido usuario, punto 19 — "agregar un
 
 ## perfil.html — historial trasladado
 
+### 23-sep-2026 — Dos minigráficos de pastel (victorias/derrotas y donaciones)
+Pedido del usuario: "agrega dos minigráficos de estilo pastel: uno para el
+porcentaje de victorias y derrotas y otro para las donaciones hechas y
+recibidas".
+
+- **`_pastelMiniHtml(titulo, porciones)` (nueva) / `renderExtendido()`:** SVG
+  propio, sin librerías, con leyenda (valor y porcentaje). Se pintan en
+  `.mini-pies`, justo debajo de la grilla de cuadritos y encima del badge de
+  Camino de Leyendas. Victorias y derrotas usan `ext.victorias`/`ext.derrotas`
+  (verde/rojo); donaciones usan `ext.donacionesRealizadas` ("Hechas", dorado) y
+  `ext.donacionesRecibidas` ("Recibidas", morado). Cada gráfico se omite solo
+  si faltan sus datos o suman 0; con una sola porción distinta de 0 se dibuja
+  un círculo completo. Los cuadritos de % Victorias/% Derrotas se conservan.
+
 ### 23-sep-2026 — Mazo actual: dos subsecciones con subtítulo y separación
 Pedido del usuario (con captura): "la carta de torre debe tener algo más de
 separación, que se note que las cartas son una subsección y la carta de torre
