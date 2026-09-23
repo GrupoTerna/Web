@@ -169,7 +169,18 @@
   .snapshot-info{font-family:var(--f-mono); font-size:11px; color:var(--text-faint); margin-top:4px;}
   .badge-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(118px,1fr)); gap:10px; margin-top:14px;}
   .badge-item{background:var(--bg-2); border:1px solid var(--line); border-radius:var(--radius-sm); padding:10px 8px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:4px;}
-  .badge-item img{width:46px; height:46px; object-fit:contain;}
+  /* FIX (23-sep-2026, pedido usuario — "las insignias y cartas de torre
+     deben tener el mismo tamaño que el resto de imágenes en perfil.html,
+     todas las imágenes de perfil deben tener un solo tamaño"): antes era
+     46×46 acá, distinto de los 72×84 que ya usan Mazo actual/Carta
+     favorita/Colección completa (.col-card--grande .col-cuerpo > img, ver
+     más abajo en este mismo <style>) y que ahora también usa Cartas de
+     torre (ver FIX del mismo pedido en renderCartasTorre() más abajo en el
+     <script>). Se iguala acá al mismo 72×84; object-fit:contain (ya
+     estaba) evita que el ícono cuadrado de la insignia se deforme dentro
+     de esa caja más alta que ancha, solo lo deja centrado con espacio
+     arriba/abajo. */
+  .badge-item img{width:72px; height:84px; object-fit:contain;}
   .badge-item .b-nombre{font-size:11px; font-weight:700; color:var(--text); line-height:1.2; word-break:break-word;}
   .badge-item .b-nivel{font-family:var(--f-mono); font-size:10px; color:var(--gold);}
   .badge-item .b-prog{font-family:var(--f-mono); font-size:10px; color:var(--text-faint);}
@@ -1352,8 +1363,17 @@ function renderCartasTorre(j){
 
   cont.innerHTML = datosTorres.map(x => {
     const { t, rk, img, nombreEs, nvl, alMax, tipoTxt, heroIcon, evoIcon } = x;
+    // FIX (23-sep-2026, pedido usuario — "¿la colección de cartas de torre
+    // tiene el mismo tamaño de imagen que mazo actual? ... todas las
+    // imágenes de perfil deben tener un solo tamaño"): esta sección (la
+    // grilla completa de "Cartas de torre", distinta de la ficha suelta
+    // de "Carta de torre del mazo" dentro de Mazo actual, que sí ya tenía
+    // --grande) se quedó con .col-card a secas → imagen 52×60 en vez de
+    // los 72×84 que ya usan Mazo actual/Colección completa/Carta favorita.
+    // Se agrega el modificador --grande, igual que en esas otras 3
+    // secciones (ver .col-card--grande .col-cuerpo > img en el <style>).
     return `
-    <div class="col-card${alMax ? ' max-level' : ''}">
+    <div class="col-card col-card--grande${alMax ? ' max-level' : ''}">
       <div class="col-nombre">
         <span class="col-nombre-txt">${esc(nombreEs)}</span>
         ${!alMax ? `<span class="cc-count" title="Cantidad de cartas disponibles de este nombre">\u00d7${fmtNum(t.count)}</span>` : ''}
