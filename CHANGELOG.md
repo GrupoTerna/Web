@@ -2848,11 +2848,13 @@ las cartas del mazo actual con la carta de torre a la derecha".
   (`cambiarOrdenMaestrias()`); las generales siguen con `_insigniasOrden` y
   `#selInsigniasOrden`. El selector de las generales solo se muestra si hay
   insignias generales.
-- **Card `#mLeyendasCard` / `renderCaminoLeyendas()`:** se quita el título
-  "Camino de Leyendas y ligas" y el eyebrow "Competitivo"; el título de la card
-  es ahora "Competitivo", con las subsecciones "Camino de Leyendas" y "Ligas"
-  (antes "Liga"). Se agrega `.leyendas-subcat--sola{margin-top:14px}` para
-  separar la primera subsección del título.
+- **Card `#mLeyendasCard` / `renderCaminoLeyendas()`:** se quita el `<h2>`
+  "Camino de Leyendas y ligas"; el eyebrow "Competitivo" se conserva con su
+  estilo original (una primera versión lo había reemplazado por un título
+  plano y se revirtió a pedido). Subsecciones "Camino de Leyendas" y "Ligas"
+  (antes "Liga"), con el mismo `<h3>` exacto dentro de un `.leyendas-bloque`:
+  se quita la variante `--sola`, que le sacaba la línea divisoria solo a la
+  primera y la hacía verse de otro peso.
 - **`renderMazoActual()`:** las 8 cartas (4x2, `.mazo-chips-principal`) van
   dentro de `.mazo-layout-deck`, que ocupa 4 de 5 columnas iguales de
   `.mazo-layout`; la carta de torre (`.mazo-layout-torre`) ocupa la 5.ª, arriba

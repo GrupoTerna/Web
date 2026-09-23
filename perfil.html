@@ -212,8 +212,9 @@
      una card, no algo específico de insignias. Historial en CHANGELOG.md. */
   .insignias-subcat, .leyendas-subcat{font-size:15px; margin:22px 0 0; padding-top:16px; border-top:1px solid var(--line); color:var(--text);}
   .insignias-subcat--sola, .leyendas-subcat--sola{margin-top:0; padding-top:0; border-top:0;}
-  /* FIX (23-sep-2026): en la card "Competitivo" la primera subsección va justo bajo el título (sin eyebrow), así que necesita un poco de aire arriba. */
-  .leyendas-subcat--sola{margin-top:14px;}
+  /* FIX (23-sep-2026, pedido usuario — "camino de leyendas no parece tener el mismo tamaño o peso que ligas"): en la card "Competitivo" las dos subsecciones usan exactamente el mismo encabezado, sin variante "--sola" (que quitaba la línea divisoria solo a la primera y la hacía verse distinta). El espaciado va en el bloque contenedor, no en el <h3>. */
+  .leyendas-bloque{margin-top:18px;}
+  .leyendas-bloque > .leyendas-subcat{margin:0; padding:0; border:0; font-size:15px; font-weight:700;}
   .insignias-subcat .cuenta, .leyendas-subcat .cuenta{font-family:var(--f-mono); font-size:11px; font-weight:400; color:var(--text-faint); margin-left:6px;}
   /* FIX (23-sep-2026, pedido usuario — "en las insignias y maestrías, agrega
      un botón selector para ordenar por nombre o nivel, a a la z, menos a
@@ -549,8 +550,8 @@
            gráficas de Evolución); se mueve tal cual, sin cambios de
            contenido, a esta posición. -->
       <div class="card pf-panel-datos" id="mLeyendasCard" style="display:none;">
-        <!-- FIX (23-sep-2026, pedido usuario — "quita el texto de 'Camino de leyendas y ligas', que quede como competitivo desglosándose en camino de leyendas y en ligas"): el título de la card pasa a ser "Competitivo" (sin el eyebrow duplicado) y las dos subsecciones las arma renderCaminoLeyendas(). Historial en CHANGELOG.md. -->
-        <h2 class="pf-subtitulo" style="margin-top:0;">Competitivo</h2>
+        <!-- FIX (23-sep-2026, pedido usuario — "quita el texto de 'Camino de leyendas y ligas', que quede como competitivo desglosándose en camino de leyendas y en ligas"): se quita el <h2> "Camino de Leyendas y ligas" y se conserva el eyebrow "Competitivo" con su estilo original; las dos subsecciones las arma renderCaminoLeyendas(). Historial en CHANGELOG.md. -->
+        <div class="eyebrow">Competitivo</div>
         <div id="mLeyendasContenido"></div>
       </div>
 
@@ -1170,11 +1171,15 @@ function renderCaminoLeyendas(j){
   card.style.display = '';
   const tabla = filas => `<table class="panel-stats"><tbody>${filas.join('')}</tbody></table>`;
   const seccionLeyendas = filasLeyendas.length ? `
-    <h3 class="leyendas-subcat leyendas-subcat--sola">Camino de Leyendas</h3>
-    ${tabla(filasLeyendas)}` : '';
+    <div class="leyendas-bloque">
+      <h3 class="leyendas-subcat">Camino de Leyendas</h3>
+      ${tabla(filasLeyendas)}
+    </div>` : '';
   const seccionLiga = filasLiga.length ? `
-    <h3 class="leyendas-subcat${filasLeyendas.length ? '' : ' leyendas-subcat--sola'}">Ligas</h3>
-    ${tabla(filasLiga)}` : '';
+    <div class="leyendas-bloque">
+      <h3 class="leyendas-subcat">Ligas</h3>
+      ${tabla(filasLiga)}
+    </div>` : '';
   cont.innerHTML = `${seccionLeyendas}${seccionLiga}`;
 }
 
