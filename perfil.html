@@ -163,14 +163,24 @@
    * contenedor y el mazo ocupa todo el ancho como antes. En pantallas
    * <=900px la torre baja debajo del mazo (5 columnas quedarían muy
    * angostas). */
-  .mazo-layout{display:grid; grid-template-columns:repeat(5, 1fr); gap:12px; align-items:start;}
-  .mazo-layout > .mazo-layout-deck{grid-column:span 4; min-width:0;}
-  .mazo-layout > .mazo-layout-torre{min-width:0; display:flex; flex-direction:column; gap:12px;}
-  .mazo-torre-leyenda{font-family:var(--f-mono); font-size:11px; color:var(--text-faint); text-align:center;}
+  /* FIX (23-sep-2026, pedido usuario — "la carta de torre debe tener algo
+   * más de separación, que se note que las cartas son una subsección y la
+   * carta de torre otra ... sigue siendo un subtítulo"): ahora son dos
+   * subsecciones con su propio subtítulo (.mazo-subtitulo, mismo estilo que
+   * las subsecciones de Insignias/Competitivo): "Cartas del mazo" a la
+   * izquierda y "Carta de torre del mazo" a la derecha, separadas por una
+   * línea vertical y más aire. Columnas 4fr/1fr (la carta de torre queda casi
+   * del mismo ancho que una del mazo). En <=900px la torre baja debajo del
+   * mazo y la línea pasa a ser horizontal. */
+  .mazo-layout{display:grid; grid-template-columns:minmax(0,4fr) minmax(0,1fr); align-items:start;}
+  .mazo-layout > .mazo-layout-deck{min-width:0; padding-right:24px;}
+  .mazo-layout > .mazo-layout-torre{min-width:0; padding-left:24px; border-left:1px solid var(--line);}
+  .mazo-subtitulo{font-size:15px; margin:0 0 12px; color:var(--text);}
   @media (max-width:900px){
     .mazo-layout{grid-template-columns:1fr;}
-    .mazo-layout > .mazo-layout-deck{grid-column:auto;}
-    .mazo-layout > .mazo-layout-torre{max-width:280px;}
+    .mazo-layout > .mazo-layout-deck{padding-right:0;}
+    .mazo-layout > .mazo-layout-torre{padding-left:0; border-left:0; border-top:1px solid var(--line); margin-top:20px; padding-top:18px;}
+    .mazo-layout > .mazo-layout-torre .col-card{max-width:280px;}
   }
   /* FIX (23-sep-2026, pedido usuario — "replica los estilos del mazo actual
    * a la colección completa de cartas"): mismo motivo que arriba
@@ -2166,16 +2176,16 @@ function renderMazoActual(mazoActual, ext, j){
         </div>`;
     }).join('');
 
-    // FIX (23-sep-2026, pedido usuario — torre a la derecha del mazo): antes
-    // esto era un bloque aparte debajo del mazo (con su eyebrow y su
-    // <div class="mazo-chips">); ahora es solo la columna derecha de
-    // .mazo-layout (ver CSS arriba). El título "Carta de torre del mazo"
-    // pasa de eyebrow a una leyenda chica bajo la carta, para no desalinear
-    // la carta de torre con la primera fila del mazo.
+    // FIX (23-sep-2026, pedido usuario — torre a la derecha del mazo): es la
+    // columna derecha de .mazo-layout (ver CSS arriba). FIX (mismo día,
+    // "la carta de torre debe tener algo más de separación ... sigue siendo
+    // un subtítulo"): su título es un subtítulo (.mazo-subtitulo) arriba de
+    // la carta, igual que el de "Cartas del mazo" a la izquierda, así las
+    // dos cartas quedan alineadas en la misma fila.
     torreHtml = `
     <div class="mazo-layout-torre">
-      ${chipsHtml}
-      <div class="mazo-torre-leyenda">Carta de torre del mazo</div>
+      <h3 class="mazo-subtitulo">Carta de torre del mazo</h3>
+      <div style="display:flex; flex-direction:column; gap:12px;">${chipsHtml}</div>
     </div>`;
   }
 
@@ -2185,7 +2195,7 @@ function renderMazoActual(mazoActual, ext, j){
 
   const mazoHtml = `<div class="mazo-chips mazo-chips-principal">${cartasHtml}</div>`;
   cont.innerHTML = torreHtml
-    ? `<div class="mazo-layout"><div class="mazo-layout-deck">${mazoHtml}</div>${torreHtml}</div>${promedioHtml}`
+    ? `<div class="mazo-layout"><div class="mazo-layout-deck"><h3 class="mazo-subtitulo">Cartas del mazo</h3>${mazoHtml}</div>${torreHtml}</div>${promedioHtml}`
     : `${mazoHtml}${promedioHtml}`;
 }
 

@@ -2835,6 +2835,20 @@ FIX (03-sep-2026, pedido usuario, punto 19 — "agregar un
 
 ## perfil.html — historial trasladado
 
+### 23-sep-2026 — Mazo actual: dos subsecciones con subtítulo y separación
+Pedido del usuario (con captura): "la carta de torre debe tener algo más de
+separación, que se note que las cartas son una subsección y la carta de torre
+otra, todo dentro de la sección de mazo actual. el texto de carta de torre no
+debe quedarse como texto simple, sigue siendo un subtítulo".
+
+- **`renderMazoActual()` / `.mazo-layout`:** ahora hay dos subsecciones, cada una
+  con su `<h3 class="mazo-subtitulo">`: "Cartas del mazo" (izquierda) y "Carta de
+  torre del mazo" (derecha). Reemplaza la leyenda chica bajo la carta
+  (`.mazo-torre-leyenda`, eliminada). Columnas 4fr/1fr con una línea vertical
+  entre ambas y 24 px de aire a cada lado; en pantallas de hasta 900 px la
+  torre baja debajo del mazo y la línea pasa a ser horizontal. Sin carta de
+  torre, el mazo se pinta como antes, sin subtítulo.
+
 ### 23-sep-2026 — Cabecera del perfil reducida a 7 datos; el resto pasa a los cuadritos
 Pedido del usuario (con captura): "en la parte de arriba solo se debe mostrar
 nivel de torre del rey, nivel de XP, copas, victorias de guerra, ataques en la
