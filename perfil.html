@@ -444,6 +444,15 @@
              en vez de ese estilo, para conservar el mismo formato de píldora
              (🦸 Héroe / ✨ Evolución) que ya se usa en el resto de la web. -->
         <div class="coleccion-filtros" id="mColeccionFiltrosTipo"></div>
+        <!-- FIX (23-sep-2026, pedido usuario — "agrega una tercera fila de
+             filtros para nivel (16 a la izquierda y 1 a la derecha),
+             mostrando solo las pastillas de niveles que haya en las
+             cartas"): tercera fila, ver renderColeccion() más abajo. Usa
+             el nivel YA ajustado (nivelAppAjustado(), mismo cálculo que
+             ya muestra "Nivel X" en cada ficha más abajo en esta función),
+             no el level crudo de la API, para que los números coincidan
+             con lo que se ve en pantalla. -->
+        <div class="coleccion-filtros" id="mColeccionFiltrosNivel"></div>
         <div class="coleccion-grid" id="mColeccionContenido"></div>
       </div>
 
@@ -993,7 +1002,18 @@ function renderCaminoLeyendas(j){
   cont.innerHTML = `<table class="panel-stats"><tbody>${filas.join('')}</tbody></table>`;
 }
 
-let _colFiltroActivo = 'todos';
+// FIX (23-sep-2026, pedido usuario — "las pastillas de filtro por tipo o
+// rareza deben ser de opción múltiple ... debe permitir filtrar por
+// calidad, tipo y nivel a la vez ... si hago clic en una pastilla, debe
+// poder deshacer el filtro si vuelvo a hacer clic en ella"): antes
+// _colFiltroActivo era un único string (selección simple, tipo radio).
+// Se reemplaza por _colFiltrosActivos: un Set por categoría (rareza/tipo/
+// nivel, donde varias pastillas de la MISMA categoría se combinan con OR:
+// "legendaria" o "especial") más dos booleanos independientes (héroe/
+// evolución). Categorías distintas se combinan con AND entre sí (ver
+// _colCartaPasaFiltro): p.ej. rareza=Legendaria Y tipo=Tropa Y nivel=14.
+// Una categoría vacía (ningún botón de esa fila activo) no restringe nada.
+const _colFiltrosActivos = { rareza: new Set(), tipo: new Set(), nivel: new Set(), heroe: false, evolucion: false };
 // FIX (23-sep-2026, pedido usuario — pastillas de tipo/héroe/evolución en
 // Colección completa): faltaba esta constante y el helper de más abajo,
 // lo que rompía renderColeccion() con "TIPOS_CARTA_FILTRO is not defined".
@@ -1003,19 +1023,25 @@ let _colFiltroActivo = 'todos';
 // objeto {tropa:0,...} pensado para ordenar, no para iterar como lista.
 const TIPOS_CARTA_FILTRO = ['tropa', 'hechizo', 'estructura'];
 /**
- * _colCartaPasaFiltro(c): true si la carta `c` cumple el filtro activo de
- * "Colección completa" (_colFiltroActivo). Usado tanto por el filtro de
- * rareza de siempre como por las pastillas de tipo/héroe/evolución nuevas.
+ * _colCartaPasaFiltro(c): true si la carta `c` cumple TODOS los filtros
+ * activos de "Colección completa" (_colFiltrosActivos) a la vez. Usado
+ * tanto por el filtro de rareza de siempre como por las pastillas de
+ * tipo/nivel/héroe/evolución nuevas.
  */
 function _colCartaPasaFiltro(c){
-  if (_colFiltroActivo === 'todos') return true;
-  if (_colFiltroActivo === 'heroe') return rarezaKey(c.rarity) === 'campeon';
-  if (_colFiltroActivo === 'evolucion') return (c.evolutionLevel || 0) > 0;
-  if (TIPOS_CARTA_FILTRO.includes(_colFiltroActivo)){
+  const f = _colFiltrosActivos;
+  if (f.rareza.size && !f.rareza.has(rarezaKey(c.rarity))) return false;
+  if (f.tipo.size){
     const d = _datosCarta(_nombreCartaEs(c));
-    return !!(d && d.tipo === _colFiltroActivo);
+    if (!d || !f.tipo.has(d.tipo)) return false;
   }
-  return rarezaKey(c.rarity) === _colFiltroActivo;
+  if (f.nivel.size){
+    const nvl = nivelAppAjustado(c.level, c.maxLevel).nivel;
+    if (nvl == null || !f.nivel.has(nvl)) return false;
+  }
+  if (f.heroe && rarezaKey(c.rarity) !== 'campeon') return false;
+  if (f.evolucion && !((c.evolutionLevel || 0) > 0)) return false;
+  return true;
 }
 /**
  * renderColeccion(j) / pintarColeccion(cartas)
@@ -1040,11 +1066,19 @@ function renderColeccion(j){
   const conEvo = cartas.filter(c => (c.evolutionLevel || 0) > 0).length;
   document.getElementById('mColeccionResumen').innerHTML =
     `Colecci\u00f3n: <b>${cartas.length}</b> cartas \u00b7 <b>${enMax}</b> al nivel m\u00e1ximo (${cartas.length ? Math.round(enMax / cartas.length * 100) : 0}%) \u00b7 <b>${conEvo}</b> con evoluci\u00f3n desbloqueada`;
+  // Al volver a pintar (p.ej. si el jugador se recarga) se reinicia toda
+  // selección de filtros, igual que hacía antes _colFiltroActivo = 'todos'.
+  _colFiltrosActivos.rareza.clear();
+  _colFiltrosActivos.tipo.clear();
+  _colFiltrosActivos.nivel.clear();
+  _colFiltrosActivos.heroe = false;
+  _colFiltrosActivos.evolucion = false;
+
   const raridades = ['campeon', 'legendaria', 'epica', 'especial', 'comun'];
   const presentes = raridades.filter(r => cartas.some(c => rarezaKey(c.rarity) === r));
   const filtros = document.getElementById('mColeccionFiltros');
-  filtros.innerHTML = [`<button type="button" data-f="todos" class="activo">Todas (${cartas.length})</button>`]
-    .concat(presentes.map(r => `<button type="button" data-f="${r}">${RAREZA_CARTA_TXT[r]} (${cartas.filter(c => rarezaKey(c.rarity) === r).length})</button>`))
+  filtros.innerHTML = [`<button type="button" data-cat="todos" class="activo">Todas (${cartas.length})</button>`]
+    .concat(presentes.map(r => `<button type="button" data-cat="rareza" data-f="${r}">${RAREZA_CARTA_TXT[r]} (${cartas.filter(c => rarezaKey(c.rarity) === r).length})</button>`))
     .join('');
   // FIX (23-sep-2026, pedido usuario — "otra fila con pastillas por tipo
   // (tropa, hechizo, estructura, etc) y pastillas para héroe y evolución,
@@ -1054,37 +1088,77 @@ function renderColeccion(j){
   // de arriba (`presentes`). Tipo sale de DATOS_CARTAS_MAZO/_datosCarta()
   // (mismo diccionario que ya usa "Mazo actual"); Héroe/Evolución salen de
   // rarezaKey()==='campeon' y evolutionLevel>0 respectivamente, igual que
-  // en pintarColeccion() más abajo.
+  // en _colCartaPasaFiltro() más arriba.
   const tiposCarta = cartas.map(c => (_datosCarta(_nombreCartaEs(c)) || {}).tipo || '');
   const presentesTipo = TIPOS_CARTA_FILTRO.filter(t => tiposCarta.includes(t));
   const cantHeroe = cartas.filter(c => rarezaKey(c.rarity) === 'campeon').length;
   const filtrosTipo = document.getElementById('mColeccionFiltrosTipo');
   filtrosTipo.innerHTML = presentesTipo
-    .map(t => `<button type="button" data-f="${t}">${t.charAt(0).toUpperCase() + t.slice(1)} (${tiposCarta.filter(x => x === t).length})</button>`)
+    .map(t => `<button type="button" data-cat="tipo" data-f="${t}">${t.charAt(0).toUpperCase() + t.slice(1)} (${tiposCarta.filter(x => x === t).length})</button>`)
     .join('')
     // Pastillas de Héroe/Evolución: mismo estilo .cc-badge/.cc-badge-btn
     // (con emoji, ver _filaHeroeEvo() más abajo) en vez del estilo plano de
     // las demás pastillas de filtro, tal como pidió el usuario. El estado
     // "activo" de estas dos usa la clase .is-activa (la que ya trae
     // .cc-badge-btn) en vez de .activo (ver listener combinado más abajo).
-    + (cantHeroe ? `<button type="button" class="cc-badge cc-badge-btn" data-f="heroe">\u{1f9b8} H\u00e9roe (${cantHeroe})</button>` : '')
-    + (conEvo ? `<button type="button" class="cc-badge cc-badge-btn" data-f="evolucion">\u2728 Evoluci\u00f3n (${conEvo})</button>` : '');
-  // Las dos filas comparten un único filtro de selección simple
-  // (_colFiltroActivo): al elegir una pastilla de cualquiera de las dos
-  // filas, se desmarcan las de la otra. Por eso los botones de ambos
-  // contenedores se recorren juntos acá.
-  const botonesFiltroColeccion = () => [...filtros.querySelectorAll('button'), ...filtrosTipo.querySelectorAll('button')];
+    + (cantHeroe ? `<button type="button" data-cat="heroe" class="cc-badge cc-badge-btn">\u{1f9b8} H\u00e9roe (${cantHeroe})</button>` : '')
+    + (conEvo ? `<button type="button" data-cat="evolucion" class="cc-badge cc-badge-btn">\u2728 Evoluci\u00f3n (${conEvo})</button>` : '');
+  // FIX (23-sep-2026, pedido usuario — "agrega una tercera fila de filtros
+  // para nivel (16 a la izquierda y 1 a la derecha), mostrando solo las
+  // pastillas de niveles que haya en las cartas ... si la carta de menor
+  // nivel es 11, ya no se muestra los botones del 1 al 10"): niveles YA
+  // ajustados (nivelAppAjustado(), el mismo número que se ve en cada ficha
+  // como "Nivel X"), de mayor a menor (16 a la izquierda). Solo se listan
+  // los valores que realmente aparecen en `cartas`, ni uno más.
+  const nivelesCarta = cartas
+    .map(c => nivelAppAjustado(c.level, c.maxLevel).nivel)
+    .filter(n => n != null);
+  const presentesNivel = [...new Set(nivelesCarta)].sort((a, b) => b - a);
+  const filtrosNivel = document.getElementById('mColeccionFiltrosNivel');
+  filtrosNivel.innerHTML = presentesNivel
+    .map(n => `<button type="button" data-cat="nivel" data-f="${n}">Nv. ${n} (${nivelesCarta.filter(x => x === n).length})</button>`)
+    .join('');
+  // Las 3 filas comparten el mismo estado de filtros (_colFiltrosActivos):
+  // cada pastilla se prende/apaga sola (opción múltiple, sin desmarcar las
+  // demás) salvo "Todas", que limpia todo. Por eso los botones de las 3
+  // filas se recorren juntos acá.
+  const botonesFiltroColeccion = () => [
+    ...filtros.querySelectorAll('button'),
+    ...filtrosTipo.querySelectorAll('button'),
+    ...filtrosNivel.querySelectorAll('button')
+  ];
+  const hayAlgunFiltroActivo = () =>
+    _colFiltrosActivos.rareza.size || _colFiltrosActivos.tipo.size || _colFiltrosActivos.nivel.size ||
+    _colFiltrosActivos.heroe || _colFiltrosActivos.evolucion;
+  const sincronizarBotonTodos = () => {
+    filtros.querySelector('[data-cat="todos"]').classList.toggle('activo', !hayAlgunFiltroActivo());
+  };
   botonesFiltroColeccion().forEach(b => b.addEventListener('click', () => {
-    _colFiltroActivo = b.dataset.f;
-    botonesFiltroColeccion().forEach(x => {
-      const elegido = x === b;
-      const esBadge = x.classList.contains('cc-badge-btn');
-      x.classList.toggle('activo', elegido && !esBadge);
-      x.classList.toggle('is-activa', elegido && esBadge);
-    });
+    const cat = b.dataset.cat;
+    if (cat === 'todos'){
+      _colFiltrosActivos.rareza.clear();
+      _colFiltrosActivos.tipo.clear();
+      _colFiltrosActivos.nivel.clear();
+      _colFiltrosActivos.heroe = false;
+      _colFiltrosActivos.evolucion = false;
+      botonesFiltroColeccion().forEach(x => { x.classList.remove('activo'); x.classList.remove('is-activa'); });
+      b.classList.add('activo');
+    } else if (cat === 'heroe' || cat === 'evolucion'){
+      _colFiltrosActivos[cat] = !_colFiltrosActivos[cat];
+      b.classList.toggle('is-activa', _colFiltrosActivos[cat]);
+      sincronizarBotonTodos();
+    } else {
+      // rareza / tipo / nivel: Set de la categoría, valor tal como quedó
+      // en data-f (nivel viaja como string en el DOM; se normaliza acá
+      // para que coincida con lo que compara _colCartaPasaFiltro).
+      const valor = cat === 'nivel' ? Number(b.dataset.f) : b.dataset.f;
+      const set = _colFiltrosActivos[cat];
+      if (set.has(valor)){ set.delete(valor); b.classList.remove('activo'); }
+      else { set.add(valor); b.classList.add('activo'); }
+      sincronizarBotonTodos();
+    }
     pintarColeccion(cartas);
   }));
-  _colFiltroActivo = 'todos';
   pintarColeccion(cartas);
 }
 function pintarColeccion(cartas){
@@ -1105,8 +1179,8 @@ function pintarColeccion(cartas){
   // renderMazoActual() y datosTorres/seccionTorres* de renderCartasTorre()
   // más arriba — se calculan los datos de cada ficha primero (datosCol),
   // y recién con eso los flags de sección (seccionColHeroe/Evo/Rareza/
-  // Tipo/Elixir). Acá la "sección" es `visibles` (las cartas que pasan el
-  // filtro de rareza activo, _colFiltroActivo) y no todo `cartas`: al
+  // Tipo/Elixir). Acá la "sección" es `visibles` (las cartas que pasan los
+  // filtros activos, _colFiltrosActivos) y no todo `cartas`: al
   // cambiar de filtro esta función se vuelve a llamar entera, así que los
   // flags se recalculan contra lo que realmente se va a pintar cada vez.
   // Historial en CHANGELOG.md.
