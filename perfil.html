@@ -426,36 +426,24 @@
         <div id="mFavoritaContenido"></div>
       </div>
 
-      <!-- ---------- RANKING EN EL CLAN (nuevo, 31-ago-2026) ---------- -->
-      <div class="card" style="padding:28px; margin-top:20px;">
-        <div class="eyebrow">Evolución</div>
-        <h2 class="pf-subtitulo">Ranking en el clan</h2>
-        <div id="mRankingChart"></div>
-      </div>
-
-      <!-- Ataques/Puntaje/Barcos por semana usan el mismo array que "Ranking en el clan"; cada tarjeta arranca oculta y se muestra sola si el backend trae datos para ese campo. Historial en CHANGELOG.md. -->
-      <div class="card pf-panel-datos" id="mAtaquesChartCard" style="display:none;">
-        <div class="eyebrow">Evolución</div>
-        <h2 class="pf-subtitulo">Ataques por semana</h2>
-        <div id="mAtaquesChart"></div>
-      </div>
-      <div class="card pf-panel-datos" id="mPuntajeChartCard" style="display:none;">
-        <div class="eyebrow">Evolución</div>
-        <h2 class="pf-subtitulo">Puntaje por semana</h2>
-        <div id="mPuntajeChart"></div>
-      </div>
-      <div class="card pf-panel-datos" id="mBarcosChartCard" style="display:none;">
-        <div class="eyebrow">Evolución</div>
-        <h2 class="pf-subtitulo">Barcos por semana</h2>
-        <div id="mBarcosChart"></div>
-      </div>
-
       <!-- Secciones nuevas que leen jugador.rawClash() (snapshot JSON crudo con los nombres de categoría de Supercell, ya adjuntado por webPerfil). Historial en CHANGELOG.md. -->
       <div class="card pf-panel-datos" id="mColeccionCard" style="display:none;">
         <div class="eyebrow">Colección</div>
         <h2 class="pf-subtitulo">Colección completa de cartas</h2>
         <div class="coleccion-resumen" id="mColeccionResumen"></div>
         <div class="coleccion-filtros" id="mColeccionFiltros"></div>
+        <!-- FIX (23-sep-2026, pedido usuario — "así como hay pastillas para
+             filtrar cartas por calidad (rarity), añade otra fila con
+             pastillas por tipo (tropa, hechizo, estructura, etc) y añade
+             pastillas para héroe y evolución, conservando el estilo de
+             pastillas que ya hay para héroe y evolución"): segunda fila de
+             filtros, ver renderColeccion() más abajo. Reusa la misma clase
+             .coleccion-filtros para las pastillas de tipo (mismo estilo que
+             la fila de rareza de arriba); las pastillas de Héroe/Evolución
+             que se agregan al final de esta fila usan .cc-badge/.cc-badge-btn
+             en vez de ese estilo, para conservar el mismo formato de píldora
+             (🦸 Héroe / ✨ Evolución) que ya se usa en el resto de la web. -->
+        <div class="coleccion-filtros" id="mColeccionFiltrosTipo"></div>
         <div class="coleccion-grid" id="mColeccionContenido"></div>
       </div>
 
@@ -493,6 +481,36 @@
         <div class="eyebrow">Actividad</div>
         <h2 class="pf-subtitulo">Progreso de eventos y modos</h2>
         <div id="mProgresoContenido"></div>
+      </div>
+
+      <!-- FIX (23-sep-2026, pedido usuario — "mueve las gráficas en perfil al
+           último"): Ranking/Ataques/Puntaje/Barcos vivían justo después de
+           "Mazo actual"/"Carta favorita" (ver comentario de mFavoritaCard más
+           arriba, que sigue siendo válido como historial de esa reubicación
+           puntual). Se mueven tal cual, sin cambios de contenido, al final
+           del perfil, después de "Progreso de eventos y modos". -->
+      <!-- ---------- RANKING EN EL CLAN (nuevo, 31-ago-2026) ---------- -->
+      <div class="card" style="padding:28px; margin-top:20px;">
+        <div class="eyebrow">Evolución</div>
+        <h2 class="pf-subtitulo">Ranking en el clan</h2>
+        <div id="mRankingChart"></div>
+      </div>
+
+      <!-- Ataques/Puntaje/Barcos por semana usan el mismo array que "Ranking en el clan"; cada tarjeta arranca oculta y se muestra sola si el backend trae datos para ese campo. Historial en CHANGELOG.md. -->
+      <div class="card pf-panel-datos" id="mAtaquesChartCard" style="display:none;">
+        <div class="eyebrow">Evolución</div>
+        <h2 class="pf-subtitulo">Ataques por semana</h2>
+        <div id="mAtaquesChart"></div>
+      </div>
+      <div class="card pf-panel-datos" id="mPuntajeChartCard" style="display:none;">
+        <div class="eyebrow">Evolución</div>
+        <h2 class="pf-subtitulo">Puntaje por semana</h2>
+        <div id="mPuntajeChart"></div>
+      </div>
+      <div class="card pf-panel-datos" id="mBarcosChartCard" style="display:none;">
+        <div class="eyebrow">Evolución</div>
+        <h2 class="pf-subtitulo">Barcos por semana</h2>
+        <div id="mBarcosChart"></div>
       </div>
     </div>
   </section>
@@ -1005,9 +1023,42 @@ function renderColeccion(j){
   filtros.innerHTML = [`<button type="button" data-f="todos" class="activo">Todas (${cartas.length})</button>`]
     .concat(presentes.map(r => `<button type="button" data-f="${r}">${RAREZA_CARTA_TXT[r]} (${cartas.filter(c => rarezaKey(c.rarity) === r).length})</button>`))
     .join('');
-  filtros.querySelectorAll('button').forEach(b => b.addEventListener('click', () => {
+  // FIX (23-sep-2026, pedido usuario — "otra fila con pastillas por tipo
+  // (tropa, hechizo, estructura, etc) y pastillas para héroe y evolución,
+  // conservando el estilo de pastillas que ya hay para héroe y evolución"):
+  // segunda fila de filtros, mismo criterio de "solo se muestra lo que
+  // realmente está presente en la colección" que ya usa la fila de rareza
+  // de arriba (`presentes`). Tipo sale de DATOS_CARTAS_MAZO/_datosCarta()
+  // (mismo diccionario que ya usa "Mazo actual"); Héroe/Evolución salen de
+  // rarezaKey()==='campeon' y evolutionLevel>0 respectivamente, igual que
+  // en pintarColeccion() más abajo.
+  const tiposCarta = cartas.map(c => (_datosCarta(_nombreCartaEs(c)) || {}).tipo || '');
+  const presentesTipo = TIPOS_CARTA_FILTRO.filter(t => tiposCarta.includes(t));
+  const cantHeroe = cartas.filter(c => rarezaKey(c.rarity) === 'campeon').length;
+  const filtrosTipo = document.getElementById('mColeccionFiltrosTipo');
+  filtrosTipo.innerHTML = presentesTipo
+    .map(t => `<button type="button" data-f="${t}">${t.charAt(0).toUpperCase() + t.slice(1)} (${tiposCarta.filter(x => x === t).length})</button>`)
+    .join('')
+    // Pastillas de Héroe/Evolución: mismo estilo .cc-badge/.cc-badge-btn
+    // (con emoji, ver _filaHeroeEvo() más abajo) en vez del estilo plano de
+    // las demás pastillas de filtro, tal como pidió el usuario. El estado
+    // "activo" de estas dos usa la clase .is-activa (la que ya trae
+    // .cc-badge-btn) en vez de .activo (ver listener combinado más abajo).
+    + (cantHeroe ? `<button type="button" class="cc-badge cc-badge-btn" data-f="heroe">\u{1f9b8} H\u00e9roe (${cantHeroe})</button>` : '')
+    + (conEvo ? `<button type="button" class="cc-badge cc-badge-btn" data-f="evolucion">\u2728 Evoluci\u00f3n (${conEvo})</button>` : '');
+  // Las dos filas comparten un único filtro de selección simple
+  // (_colFiltroActivo): al elegir una pastilla de cualquiera de las dos
+  // filas, se desmarcan las de la otra. Por eso los botones de ambos
+  // contenedores se recorren juntos acá.
+  const botonesFiltroColeccion = () => [...filtros.querySelectorAll('button'), ...filtrosTipo.querySelectorAll('button')];
+  botonesFiltroColeccion().forEach(b => b.addEventListener('click', () => {
     _colFiltroActivo = b.dataset.f;
-    filtros.querySelectorAll('button').forEach(x => x.classList.toggle('activo', x === b));
+    botonesFiltroColeccion().forEach(x => {
+      const elegido = x === b;
+      const esBadge = x.classList.contains('cc-badge-btn');
+      x.classList.toggle('activo', elegido && !esBadge);
+      x.classList.toggle('is-activa', elegido && esBadge);
+    });
     pintarColeccion(cartas);
   }));
   _colFiltroActivo = 'todos';
