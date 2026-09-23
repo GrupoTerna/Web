@@ -103,6 +103,8 @@
           <h2 class="pf-subtitulo" style="margin:0;">Roster</h2>
           <a href="#" id="clanVerDirectorioLink" class="text-dim" style="font-family:var(--f-mono); font-size:12px;">Ver en el Directorio &rarr;</a>
         </div>
+        <!-- Fila A-Z/# para filtrar por primera letra del nombre, mismo patrón que #rosterLetraFilter de directorio.html: reusa pintarFiltroLetra()/LETRAS_FILTRO de assets/js/ui/filters.js. Historial en CHANGELOG.md. -->
+        <div class="tabs-row" id="clanRosterLetraFilter" style="margin:0 20px 12px;"></div>
         <div id="clanRosterWrap" style="padding:0 20px 20px;"></div>
       </div>
     </div>
@@ -141,8 +143,20 @@
  * con el usuario — sin el sistema de filtros/orden por columna que tiene
  * el roster completo de directorio.html (eso queda disponible desde el
  * link "Ver en el Directorio" de esta misma página).
+ * CORRECCIÓN A LO DICHO ANTES (23-sep-2026, pedido explícito del usuario):
+ * la exclusión de arriba sigue vigente para el sistema de filtros/orden
+ * POR COLUMNA (Rango/Copas/V. Guerra, etc.), pero SÍ se agrega el filtro
+ * A-Z/# por primera letra del nombre — mismo patrón que ya usan el roster
+ * de directorio.html (#rosterLetraFilter) y las 3 tablas de guerra.html,
+ * reusando tal cual pintarFiltroLetra()/LETRAS_FILTRO/primeraLetraFiltro()
+ * de assets/js/ui/filters.js (ya cargado en esta página, ver <script> más
+ * abajo). Es solo ocultar/mostrar filas ya pintadas por su primera letra,
+ * no un sistema de orden/filtro por columna, así que no contradice la
+ * exclusión original.
  */
 const NOMBRE_CLAN_QUERY = (new URLSearchParams(location.search).get('clan') || '').trim();
+// Letra A-Z/# elegida en #clanRosterLetraFilter (ver docblock de arriba, corrección 23-sep-2026). Esta página carga una sola vez (no hay pestañas de clan que resetear), así que no hace falta limpiarla en ningún otro punto.
+let clanRosterLetraSeleccionada = null;
 
 function clanCoincide(nombreClan){
   return String(nombreClan || '').trim().toLowerCase() === NOMBRE_CLAN_QUERY.toLowerCase();
@@ -215,7 +229,7 @@ function renderClanRoster(clanRoster){
           const cwOk = urlValida(m.cwStats);
           const vGuerra = m.vGuerra != null ? m.vGuerra : m.victoriasGuerra;
           return `
-            <tr>
+            <tr class="js-clan-roster-fila" data-letra="${esc(primeraLetraFiltro(m.nombre))}">
               <td class="col-n">${i + 1}</td>
               <td class="col-nombre">${enlaceJugador(m.nombre, m.tag)}</td>
               <td class="col-tag">${esc(m.tag || '—')}</td>
@@ -229,6 +243,14 @@ function renderClanRoster(clanRoster){
       </table>
     </div>`;
   activarBarraScrollTabla(wrap.querySelector('.table-scroll'));
+  pintarFiltroLetra('clanRosterLetraFilter', LETRAS_FILTRO, () => clanRosterLetraSeleccionada, v => clanRosterLetraSeleccionada = v, aplicarFiltroLetraClanRoster);
+}
+
+/** Oculta (display:none) las filas del roster cuya primera letra de nombre no calce con clanRosterLetraSeleccionada; sin letra elegida, se ven todas. Mismo criterio que aplicarFiltroLetraIngresos() de directorio.html, pero sobre <tr> en vez de tarjetas. */
+function aplicarFiltroLetraClanRoster(){
+  document.querySelectorAll('#clanRosterWrap .js-clan-roster-fila').forEach(fila => {
+    fila.style.display = (!clanRosterLetraSeleccionada || fila.dataset.letra === clanRosterLetraSeleccionada) ? '' : 'none';
+  });
 }
 
 async function cargarClan(){
