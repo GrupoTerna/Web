@@ -155,6 +155,12 @@
    * comparten la misma clase .cc-rareza) para no afectar ningún otro
    * lugar de la web. */
   .mazo-chips-principal .cc-rareza{font-size:10px;}
+  /* FIX (23-sep-2026, pedido usuario — "replica los estilos del mazo actual
+   * a la colección completa de cartas"): mismo motivo que arriba
+   * (.mazo-chips-principal .cc-rareza) — se replica el mismo ajuste acá,
+   * acotado a .coleccion-grid (ya es un selector propio de esta sección,
+   * no hace falta una clase extra como en Mazo actual). */
+  .coleccion-grid .cc-rareza{font-size:10px;}
   /* ===== FIX (12-sep-2026, pedido usuario — aprovechar TODO el JSON crudo
    * del export de Drive): estilos de las secciones nuevas del perfil.
    * Backend conectado (20-sep-2026): webPerfil ya adjunta rawClash desde el
@@ -1036,7 +1042,7 @@ function pintarColeccion(cartas){
   cont.innerHTML = datosCol.map(x => {
     const { c, rk, img, nombreEs, nvl, alMax, iconoBase, iconoEvo, activaEvo, tipoTxt, iconoHeroe, activaHero } = x;
     return `
-    <div class="col-card${alMax ? ' max-level' : ''}" title="${esc(nombreEs)}" data-icon-base="${esc(iconoBase)}">
+    <div class="col-card col-card--grande${alMax ? ' max-level' : ''}" title="${esc(nombreEs)}" data-icon-base="${esc(iconoBase)}">
       <div class="col-nombre">${esc(nombreEs)}</div>
       <div class="col-cuerpo">
         ${img ? `<img class="cc-img" src="${esc(img)}" alt="" loading="lazy" onerror="this.style.visibility='hidden';">` : ''}
@@ -1050,7 +1056,7 @@ function pintarColeccion(cartas){
           ${_filaFicha(seccionColElixir, x.mostrarElixir,
             `${c.elixirCost != null ? `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">${esc(String(c.elixirCost))}</span>` : ''}${estrellasHtml(c.starLevel)}`,
             `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">&nbsp;</span>`)}
-          <div class="text-faint" style="font-family:var(--f-mono); font-size:11px;">Nv. ${esc(String(nvl.nivel != null ? nvl.nivel : '\u2014'))}</div>
+          <div class="text-faint" style="font-family:var(--f-mono); font-size:11px;">Nivel ${esc(String(nvl.nivel != null ? nvl.nivel : '\u2014'))}</div>
           ${!alMax ? `<div class="cc-count" title="Cantidad de cartas disponibles de este nombre">\u00d7${fmtNum(c.count)}</div>` : ''}
           ${_filaHeroeEvo(x.mostrarHeroe,
             `<button type="button" class="cc-badge cc-badge-btn${activaHero ? ' is-activa' : ''}" data-icon-variante="${esc(iconoHeroe)}" onclick="cambiarVarianteCarta(this)">\u{1f9b8} H\u00e9roe</button>`,
