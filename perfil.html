@@ -172,13 +172,43 @@
   }
   .coleccion-filtros button:hover{border-color:var(--purple); color:var(--purple-light);}
   .coleccion-filtros button.activo{border-color:var(--purple); background:rgba(162,57,255,.12); color:var(--purple-light);}
-  .coleccion-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(96px,1fr)); gap:10px; margin-top:12px;}
-  .col-card{background:var(--bg-2); border:1px solid var(--line); border-radius:10px; padding:8px 6px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:3px;}
-  .col-card img{width:52px; height:60px; object-fit:contain;}
-  /* FIX (22-sep-2026, pedido usuario — "el mismo tamaño de letra en toda
-     la sección"): pasa de 10px a 11px, igual al resto de la ficha (ver
-     cc-count arriba y las reglas cc-* de assets/styles.css). */
-  .col-card .col-nombre{font-size:11px; font-weight:700; color:var(--text); line-height:1.15; word-break:break-word;}
+  /* FIX (23-sep-2026, pedido usuario — "el tamaño de los íconos de elixir
+     debe ser del tamaño de la letra, el nombre debe estar en la fila
+     superior, debajo deben estar la imagen y la ficha de la carta"):
+     dos cambios juntos porque comparten la misma causa.
+     1) El ícono de elixir seguía saliendo gigante en esta sección pese al
+        FIX del 21-sep-2026 en assets/styles.css (".cc-elixir img" sin
+        depender de ".carta-chip"): esa regla nunca ganaba porque
+        ".col-card img" de acá (mismo puntaje de especificidad: una clase +
+        un tipo) es un selector DESCENDIENTE — matchea cualquier <img> en
+        cualquier nivel dentro de .col-card, incluido el <img> de
+        Elixir.webp que vive anidado dentro de .col-ficha > .cc-meta >
+        .cc-elixir — y al estar declarada más abajo en el documento que
+        assets/styles.css (el <link> va antes de este <style>, ver FIX
+        20-sep-2026 más arriba), gana el empate de especificidad y el
+        ícono de elixir terminaba con el tamaño de la imagen de la carta
+        (52x60) en vez de los 13px de .cc-elixir img. Mismo defecto de raíz
+        que ya se había corregido antes para ".fav-wrap img" (ver FIX
+        20-sep-2026 más abajo, en "el ícono de elixir está demasiado
+        grande"), pero nunca se replicó acá. Se resuelve igual: el
+        selector pasa a acotarse a la imagen de la carta únicamente
+        (".col-cuerpo > img", hijo directo del contenedor nuevo de abajo),
+        así que ya no alcanza al <img> anidado de Elixir.webp y ese hereda
+        los 13px de .cc-elixir img sin competencia.
+     2) Reestructuración pedida: antes .col-card era una sola columna
+        centrada (imagen, nombre, rareza, tipo, elixir+estrellas, nivel,
+        cantidad, cada fila una debajo de la otra). Ahora el nombre pasa a
+        ser su propia fila superior (.col-nombre, ancho completo) y todo
+        lo demás (imagen + ficha de datos) baja a una fila aparte debajo
+        (.col-cuerpo), con la imagen a la izquierda y la ficha (rareza/
+        tipo/elixir+estrellas/nivel/cantidad) a la derecha — ver
+        pintarColeccion() más abajo, que arma este HTML nuevo. */
+  .coleccion-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:10px; margin-top:12px;}
+  .col-card{background:var(--bg-2); border:1px solid var(--line); border-radius:10px; padding:8px; display:flex; flex-direction:column; gap:6px;}
+  .col-card .col-nombre{font-size:11px; font-weight:700; color:var(--text); line-height:1.15; word-break:break-word; text-align:left;}
+  .col-card .col-cuerpo{display:flex; align-items:flex-start; gap:8px;}
+  .col-card .col-cuerpo > img{width:52px; height:60px; object-fit:contain; flex-shrink:0;}
+  .col-card .col-ficha{display:flex; flex-direction:column; align-items:flex-start; gap:3px; min-width:0; text-align:left;}
   .col-card.max-level{border-color:var(--gold);}
   .torre-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:12px; margin-top:14px;}
   .panel-stats{width:100%; border-collapse:collapse; font-size:13px; margin-top:12px;}
@@ -902,18 +932,22 @@ function pintarColeccion(cartas){
     const activaHero = !!(esHeroe && iconoHeroe && img === iconoHeroe);
     return `
     <div class="col-card${alMax ? ' max-level' : ''}" title="${esc(nombreEs)}" data-icon-base="${esc(iconoBase)}">
-      ${img ? `<img class="cc-img" src="${esc(img)}" alt="" loading="lazy" onerror="this.style.visibility='hidden';">` : ''}
       <div class="col-nombre">${esc(nombreEs)}</div>
-      ${esHeroe ? `<button type="button" class="cc-badge cc-badge-btn${activaHero ? ' is-activa' : ''}" data-icon-variante="${esc(iconoHeroe)}" onclick="cambiarVarianteCarta(this)">\u{1f9b8} H\u00e9roe</button>` : ''}
-      ${tieneEvo ? `<button type="button" class="cc-badge cc-badge-btn${activaEvo ? ' is-activa' : ''}" data-icon-variante="${esc(iconoEvo)}" onclick="cambiarVarianteCarta(this)">\u2728 Evoluci\u00f3n</button>` : ''}
-      ${rk ? `<span class="cc-rareza" data-rareza="${rk}">${esc(RAREZA_CARTA_TXT[rk])}</span>` : ''}
-      ${tipoTxt ? `<span class="cc-tipo">${esc(tipoTxt)}</span>` : ''}
-      ${(c.elixirCost != null || c.starLevel) ? `<div class="cc-meta" style="justify-content:center;">
-        ${c.elixirCost != null ? `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">${esc(String(c.elixirCost))}</span>` : ''}
-        ${estrellasHtml(c.starLevel)}
-      </div>` : ''}
-      <div class="text-faint" style="font-family:var(--f-mono); font-size:11px;">Nv. ${esc(String(nvl.nivel != null ? nvl.nivel : '\u2014'))}</div>
-      ${!alMax ? `<div class="cc-count" title="Cantidad de cartas disponibles de este nombre">\u00d7${fmtNum(c.count)}</div>` : ''}
+      <div class="col-cuerpo">
+        ${img ? `<img class="cc-img" src="${esc(img)}" alt="" loading="lazy" onerror="this.style.visibility='hidden';">` : ''}
+        <div class="col-ficha">
+          ${esHeroe ? `<button type="button" class="cc-badge cc-badge-btn${activaHero ? ' is-activa' : ''}" data-icon-variante="${esc(iconoHeroe)}" onclick="cambiarVarianteCarta(this)">\u{1f9b8} H\u00e9roe</button>` : ''}
+          ${tieneEvo ? `<button type="button" class="cc-badge cc-badge-btn${activaEvo ? ' is-activa' : ''}" data-icon-variante="${esc(iconoEvo)}" onclick="cambiarVarianteCarta(this)">\u2728 Evoluci\u00f3n</button>` : ''}
+          ${rk ? `<span class="cc-rareza" data-rareza="${rk}">${esc(RAREZA_CARTA_TXT[rk])}</span>` : ''}
+          ${tipoTxt ? `<span class="cc-tipo">${esc(tipoTxt)}</span>` : ''}
+          ${(c.elixirCost != null || c.starLevel) ? `<div class="cc-meta">
+            ${c.elixirCost != null ? `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">${esc(String(c.elixirCost))}</span>` : ''}
+            ${estrellasHtml(c.starLevel)}
+          </div>` : ''}
+          <div class="text-faint" style="font-family:var(--f-mono); font-size:11px;">Nv. ${esc(String(nvl.nivel != null ? nvl.nivel : '\u2014'))}</div>
+          ${!alMax ? `<div class="cc-count" title="Cantidad de cartas disponibles de este nombre">\u00d7${fmtNum(c.count)}</div>` : ''}
+        </div>
+      </div>
     </div>`;
   }).join('');
 }
