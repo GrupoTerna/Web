@@ -435,26 +435,15 @@
             <div class="snapshot-info" id="mSnapshotInfo" style="display:none;"></div>
           </div>
           <div class="stats-mini">
+            <!-- FIX (23-sep-2026, pedido usuario — "en la parte de arriba solo se debe mostrar nivel de torre del rey, nivel de XP, copas, victorias de guerra, ataques en la semana actual y fame de la semana actual, y vigencia. todo lo demás debe ir en los cuadritos debajo"): la cabecera queda con estos 7 datos, en este orden. Torneos, Puntos estelares y Puntos de experiencia pasan a la grilla de cuadritos (renderExtendido()). Cada <span> con "Wrap" se oculta sola si el dato no llega (ver renderStatsAvanzadasCabecera() y renderMiembro()). Historial en CHANGELOG.md. -->
+            <span id="mTorreReyWrap" style="display:none;"><b id="mTorreRey">0</b>Nivel de torre del rey</span>
+            <span id="mNivelExpWrap" style="display:none;"><b id="mNivelExp">0</b>Nivel de XP</span>
             <span><b id="mCopas">0</b>Copas</span>
             <span><b id="mVGuerra">0</b>V. Guerra</span>
-            <span><b id="mTorneos">0</b>Torneos</span>
             <span><b id="mAtaques">0</b>Ataques en la semana actual</span>
+            <span id="mFameSemanaWrap" style="display:none;"><b id="mFameSemana">0</b>Fame de la semana actual</span>
             <!-- Vigencia (Última conexión) queda oculta hasta que el backend mande j.vigencia. Historial en CHANGELOG.md. -->
             <span id="mVigenciaWrap" style="display:none;"><b id="mVigencia">—</b>Vigencia</span>
-            <!-- FIX (23-sep-2026, pedido usuario — "el nivel de experiencia,
-                 nivel de torre de rey, puntos estelares y puntos de
-                 experiencia deben subirse a la sección de perfil de
-                 jugador"): estos 4 campos vivían en la card "Camino de
-                 Leyendas y ligas" (ver renderCaminoLeyendas() más abajo en
-                 el <script>); se trasladan acá, a la cabecera de "Perfil del
-                 jugador", junto a Copas/V. Guerra/Torneos/Ataques/Vigencia.
-                 Cada <span> se oculta sola si el dato no llega, mismo patrón
-                 que mVigenciaWrap — ver renderStatsAvanzadasCabecera() más
-                 abajo en el <script>. Historial en CHANGELOG.md. -->
-            <span id="mNivelExpWrap" style="display:none;"><b id="mNivelExp">0</b>Nivel de experiencia</span>
-            <span id="mTorreReyWrap" style="display:none;"><b id="mTorreRey">0</b>Nivel de torre del rey</span>
-            <span id="mPuntosEstelaresWrap" style="display:none;"><b id="mPuntosEstelares">0</b>Puntos estelares</span>
-            <span id="mPuntosExpWrap" style="display:none;"><b id="mPuntosExp">0</b>Puntos de experiencia</span>
           </div>
         </div>
 
@@ -1197,10 +1186,9 @@ function renderCaminoLeyendas(j){
 function renderStatsAvanzadasCabecera(j){
   const raw = rawClash(j);
   const campos = [
-    ['mNivelExpWrap', 'mNivelExp', raw.expLevel != null ? fmtNum(raw.expLevel) : null],
+    // FIX (23-sep-2026): Nivel de XP cae a j.extendido.nivelXp si rawClash no trae expLevel (ese cuadrito ya no se pinta abajo, ver renderExtendido()).
+    ['mNivelExpWrap', 'mNivelExp', raw.expLevel != null ? fmtNum(raw.expLevel) : ((j.extendido && j.extendido.nivelXp != null && j.extendido.nivelXp !== '') ? fmtNum(j.extendido.nivelXp) : null)],
     ['mTorreReyWrap', 'mTorreRey', raw.kingTowerLevel != null ? fmtNum(raw.kingTowerLevel) : null],
-    ['mPuntosEstelaresWrap', 'mPuntosEstelares', raw.starPoints != null ? fmtNum(raw.starPoints) : null],
-    ['mPuntosExpWrap', 'mPuntosExp', raw.expPoints != null ? `${fmtNum(raw.expPoints)} / ${fmtNum(raw.totalExpPoints)}` : null],
   ];
   campos.forEach(([wrapId, valId, val]) => {
     const wrap = document.getElementById(wrapId);
@@ -1646,13 +1634,18 @@ function renderSnapshotInfo(j){
   }
 }
 
-function renderExtendido(ext){
+function renderExtendido(ext, j){
   const wrap = document.getElementById('mExtWrap');
-  if (!ext){ wrap.innerHTML = ''; return; }
+  if (!ext && !j){ wrap.innerHTML = ''; return; }
+  ext = ext || {};
+  const raw = j ? rawClash(j) : {};
   let items = '';
-  items += extItem(ext.nivelXp, 'Nivel de XP', true);
+  // FIX (23-sep-2026, pedido usuario — la cabecera solo muestra 7 datos): "Nivel de XP" ya vive arriba (cabecera), así que se quita este cuadrito duplicado; Torneos, Puntos estelares y Puntos de experiencia pasan de la cabecera a esta grilla.
   items += extItem(ext.nivelCartas, 'Nivel de cartas', true);
   items += extItem(ext.copasMax, 'Copas máx.', true);
+  items += extItem(j ? j.torneos : null, 'Torneos', true);
+  items += extItem(raw.starPoints, 'Puntos estelares', true);
+  items += extItem(raw.expPoints != null ? `${fmtNum(raw.expPoints)} / ${fmtNum(raw.totalExpPoints)}` : null, 'Puntos de experiencia', false);
   items += extItem(ext.arena, 'Arena', false);
   items += extItem(ext.victorias, 'Victorias', true);
   items += extItem(ext.derrotas, 'Derrotas', true);
@@ -2541,8 +2534,16 @@ function renderMiembro(j){
   document.getElementById('mSub').innerHTML = `${esc(j.tag)} · ${j.clan ? enlaceClan(j.clan) : '—'} · ${esc(j.rango || '—')} · ${esc(j.estado || '—')}`;
   document.getElementById('mCopas').textContent = fmtNum(j.copas);
   document.getElementById('mVGuerra').textContent = fmtNum(j.vGuerra);
-  document.getElementById('mTorneos').textContent = fmtNum(j.torneos);
   document.getElementById('mAtaques').textContent = fmtNum(j.guerraSemana && j.guerraSemana.ataques);
+  // FIX (23-sep-2026): "Fame de la semana actual" = guerraSemana.puntaje (en guerra, fame = puntaje del jugador); se oculta si el backend no lo manda, en vez de mostrar un 0 engañoso.
+  const fameSem = j.guerraSemana ? j.guerraSemana.puntaje : null;
+  const fameWrap = document.getElementById('mFameSemanaWrap');
+  if (fameSem != null && fameSem !== ''){
+    document.getElementById('mFameSemana').textContent = fmtNum(fameSem);
+    fameWrap.style.display = '';
+  } else {
+    fameWrap.style.display = 'none';
+  }
 
   // Vigencia acepta j.vigencia o j.extendido.vigencia/ultimaConexion; ya conectado con el backend (columna DC.VIGENCIA). Historial en CHANGELOG.md.
   const vigenciaWrap = document.getElementById('mVigenciaWrap');
@@ -2561,7 +2562,7 @@ function renderMiembro(j){
     ? bloques.join('')
     : '<div class="empty">Este clan todavía no tiene requisitos configurados.</div>';
 
-  renderExtendido(j.extendido);
+  renderExtendido(j.extendido, j);
   perfilGraficaCtx = { nombre: j.nombre || '', tag: j.tag || '', clan: j.clan || '' }; // FIX (20-sep-2026): datos del tooltip de las gráficas
   renderRankingChart(j.extendido);
   renderMetricasSemanales(j.extendido); // FIX (08-sep-2026)

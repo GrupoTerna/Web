@@ -2835,6 +2835,24 @@ FIX (03-sep-2026, pedido usuario, punto 19 — "agregar un
 
 ## perfil.html — historial trasladado
 
+### 23-sep-2026 — Cabecera del perfil reducida a 7 datos; el resto pasa a los cuadritos
+Pedido del usuario (con captura): "en la parte de arriba solo se debe mostrar
+nivel de torre del rey, nivel de XP, copas, victorias de guerra, ataques en la
+semana actual y fame de la semana actual, y vigencia. todo lo demás debe ir en
+los cuadritos debajo de la fila que indica que el clan no tiene requisitos".
+
+- **`.stats-mini` de `#perfilContenido`:** queda en este orden: Nivel de torre
+  del rey, Nivel de XP (antes "Nivel de experiencia"), Copas, V. Guerra, Ataques
+  en la semana actual, Fame de la semana actual (`#mFameSemanaWrap`, nueva) y
+  Vigencia. "Fame de la semana actual" lee `j.guerraSemana.puntaje` (en guerra,
+  fame = puntaje del jugador) y se oculta si el backend no lo manda.
+- **`renderExtendido(ext, j)`:** ahora recibe también `j`. Se quita el cuadrito
+  "Nivel de XP" (duplicaba el de la cabecera) y se agregan "Torneos", "Puntos
+  estelares" y "Puntos de experiencia", que salen de la cabecera.
+- **`renderStatsAvanzadasCabecera()`:** solo maneja Nivel de XP y Nivel de torre
+  del rey; Nivel de XP cae a `j.extendido.nivelXp` si `rawClash` no trae
+  `expLevel`.
+
 ### 23-sep-2026 — Orden propio para Maestrías, card "Competitivo" y carta de torre a la derecha del mazo
 Pedido del usuario (con captura y boceto): "maestrías debe tener su propio
 filtro de orden", "quita el texto de 'Camino de leyendas y ligas', que quede
