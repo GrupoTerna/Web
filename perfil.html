@@ -891,8 +891,17 @@ function renderCartaFavorita(j){
   const alMax = !!(cartaReal && cartaReal.maxLevel != null && cartaReal.level != null && cartaReal.level >= cartaReal.maxLevel);
   const count = (!alMax && cartaReal) ? cartaReal.count : null;
   card.style.display = '';
+  // FIX (23-sep-2026, pedido usuario — "hazlo", confirmando extender a
+  // Carta favorita/Cartas de torre/Carta de torre del mazo el mismo borde
+  // dorado de nivel máximo que ya tenían Colección completa y Mazo actual):
+  // las 3 secciones ya calculaban `alMax` para decidir si mostraban el ×N,
+  // pero ninguna se lo pasaba a la clase "max-level" del div. Mismo cambio
+  // en las 3: agregar "${alMax ? ' max-level' : ''}" al className del
+  // .col-card, reusando la variable alMax que cada una ya tenía en scope
+  // (acá; en renderCartasTorre() y en la ficha de "Carta de torre del
+  // mazo" más abajo, ambas ya la traían destructurada de `x`).
   cont.innerHTML = `
-    <div class="col-card col-card--grande" style="max-width:260px;">
+    <div class="col-card col-card--grande${alMax ? ' max-level' : ''}" style="max-width:260px;">
       <div class="col-nombre">
         <span class="col-nombre-txt">${esc(nombreEs)}</span>
         ${count != null ? `<span class="cc-count" title="Cantidad de cartas disponibles de este nombre">×${fmtNum(count)}</span>` : ''}
@@ -1196,7 +1205,7 @@ function renderCartasTorre(j){
   cont.innerHTML = datosTorres.map(x => {
     const { t, rk, img, nombreEs, nvl, alMax, tipoTxt, heroIcon, evoIcon } = x;
     return `
-    <div class="col-card">
+    <div class="col-card${alMax ? ' max-level' : ''}">
       <div class="col-nombre">
         <span class="col-nombre-txt">${esc(nombreEs)}</span>
         ${!alMax ? `<span class="cc-count" title="Cantidad de cartas disponibles de este nombre">\u00d7${fmtNum(t.count)}</span>` : ''}
@@ -1769,7 +1778,7 @@ function renderMazoActual(mazoActual, ext, j){
     const chipsHtml = datosTorres.map(x => {
       const { t, rk, img, nombreEs, nvl, tipoTxt, heroIcon, evoIcon, alMax } = x;
       return `
-        <div class="col-card col-card--grande">
+        <div class="col-card col-card--grande${alMax ? ' max-level' : ''}">
           <div class="col-nombre">
             <span class="col-nombre-txt">${esc(nombreEs)}</span>
             ${(!alMax && t.count != null) ? `<span class="cc-count" title="Cantidad de cartas disponibles de este nombre">×${fmtNum(t.count)}</span>` : ''}
