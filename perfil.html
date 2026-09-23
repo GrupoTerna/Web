@@ -253,7 +253,24 @@
      en vez de más abajo en .col-ficha, donde antes vivía (a veces como
      <div>/<span class="cc-count"> aparte, a veces baked-in dentro del texto
      "Nv. X · ×N"). */
-  .col-card .col-nombre .col-nombre-txt{word-break:break-word; min-width:0;}
+  .col-card .col-nombre .col-nombre-txt{
+    font-family:var(--f-display); font-weight:700; font-size:14px; color:var(--purple-light);
+    text-transform:uppercase; letter-spacing:.02em; line-height:1.1;
+    word-break:break-word; min-width:0;
+  }
+  /* FIX (23-sep-2026, pedido usuario — "aplica la E y b" de las 5
+     propuestas mostradas para el nombre de la carta): antes .col-nombre-txt
+     heredaba la fuente de cuerpo (Inter, vía --f-body) y color blanco
+     puro; ahora usa --f-display (Rajdhani), la misma familia que ya usan
+     h1-h4 y el resto de títulos del sitio (opción B, consistencia con el
+     resto de la web), en --purple-light en vez de --text/blanco (opción E,
+     le da jerarquía de "marca" sin ser tan gritón). Sube de 11px a 14px
+     porque Rajdhani a 11px se leía más chico que el resto de la ficha
+     (Inter y Rajdhani no comparten el mismo x-height a igual font-size).
+     Se separa de .col-nombre (el contenedor flex) porque el color/fuente
+     nuevos son solo para el texto del nombre, no para el ×N que vive al
+     lado (.cc-count sigue con su propio font-family mono y color
+     --text-faint, ver más abajo). */
   .col-card .col-nombre .cc-count{flex-shrink:0; white-space:nowrap;}
   .col-card .col-cuerpo{display:flex; align-items:flex-start; gap:8px;}
   .col-card .col-cuerpo > img{width:52px; height:60px; object-fit:contain; flex-shrink:0;}
@@ -1649,8 +1666,18 @@ function renderMazoActual(mazoActual, ext, j){
 
   const cartasHtml = datosCartas.map(x => {
     const { c, d, tipoTxt, starLevel, count, heroIcon, evoIcon, imgSrc, activaHero, activaEvo } = x;
+    // FIX (23-sep-2026, pedido usuario — "en el mazo actual falta agregar
+    // los bordes dorados para cartas al nivel 16"): la clase "max-level"
+    // (.col-card.max-level, border-color:var(--gold)) ya existía en el CSS
+    // y ya la usaba pintarColeccion() ("Colección completa"), pero esta
+    // ficha (Mazo actual) nunca la agregaba al div — se remataba con el
+    // mismo borde violeta que cualquier otra carta sin importar el nivel.
+    // c.nivel ya viene compensado al tope unificado de 16 (mismo criterio
+    // que el resto de esta función; ver nivelAppAjustado()), así que
+    // comparar contra 16 acá es equivalente al c.level>=c.maxLevel crudo
+    // que usa pintarColeccion().
     return `
-    <div class="col-card col-card--grande" data-icon-base="${esc(c.icon || '')}">
+    <div class="col-card col-card--grande${c.nivel === 16 ? ' max-level' : ''}" data-icon-base="${esc(c.icon || '')}">
       <div class="col-nombre">
         <span class="col-nombre-txt">${esc(c.name)}</span>
         ${(count != null && c.nivel !== 16) ? `<span class="cc-count" title="Cantidad de cartas disponibles de este nombre">×${fmtNum(count)}</span>` : ''}
