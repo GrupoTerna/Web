@@ -642,6 +642,30 @@ function _filaFicha(reservar, mostrar, htmlVisible, htmlPlaceholder){
 }
 
 /**
+ * _filaHeroeEvo(mostrarHeroe, htmlHeroe, mostrarEvo, htmlEvo)
+ * FIX (23-sep-2026, pedido usuario — "mueve las filas de héroe y
+ * evolución al último. solo en el caso de esas dos no se reserva fila,
+ * si hay héroe o evolución pueden estar en la misma fila. si hay ambos,
+ * héroe va primero"): a diferencia de _filaFicha() (Rareza/Tipo/Elixir),
+ * Héroe y Evolución dejan de tener cada uno su propia fila reservada por
+ * sección. Ahora comparten UNA sola fila, calculada por ficha (no por
+ * sección): si la ficha no tiene ninguno de los dos, no se imprime nada
+ * (ni siquiera oculto, sin reservar espacio); si tiene uno solo, va solo
+ * en esa fila; si tiene ambos, van juntos en la misma fila con Héroe
+ * primero. Esta fila se ubica al final de la ficha (después de Rareza/
+ * Tipo/Elixir), no en su posición anterior.
+ * @param {boolean} mostrarHeroe - true si esta ficha tiene el badge Héroe.
+ * @param {string} htmlHeroe - contenido del badge Héroe (solo si mostrarHeroe).
+ * @param {boolean} mostrarEvo - true si esta ficha tiene el badge Evolución.
+ * @param {string} htmlEvo - contenido del badge Evolución (solo si mostrarEvo).
+ * @returns {string}
+ */
+function _filaHeroeEvo(mostrarHeroe, htmlHeroe, mostrarEvo, htmlEvo){
+  if (!mostrarHeroe && !mostrarEvo) return '';
+  return `<div class="cc-meta">${mostrarHeroe ? htmlHeroe : ''}${mostrarEvo ? htmlEvo : ''}</div>`;
+}
+
+/**
  * Nombres en español (backend: 34_Web_API.gs, _webDatosDriveJugador()).
  * El backend agrega `nombreEs` a currentFavouriteCard, cards[], supportCards[]
  * currentDeck[] y currentDeckSupportCards[] (columna "Nombre" de Backup_Cards.csv, cruzada
@@ -994,8 +1018,6 @@ function pintarColeccion(cartas){
       mostrarElixir: !!(c.elixirCost != null || c.starLevel)
     };
   });
-  const seccionColHeroe = datosCol.some(x => x.mostrarHeroe);
-  const seccionColEvo = datosCol.some(x => x.mostrarEvo);
   const seccionColRareza = datosCol.some(x => x.mostrarRareza);
   const seccionColTipo = datosCol.some(x => x.mostrarTipo);
   const seccionColElixir = datosCol.some(x => x.mostrarElixir);
@@ -1008,12 +1030,6 @@ function pintarColeccion(cartas){
       <div class="col-cuerpo">
         ${img ? `<img class="cc-img" src="${esc(img)}" alt="" loading="lazy" onerror="this.style.visibility='hidden';">` : ''}
         <div class="col-ficha">
-          ${_filaFicha(seccionColHeroe, x.mostrarHeroe,
-            `<button type="button" class="cc-badge cc-badge-btn${activaHero ? ' is-activa' : ''}" data-icon-variante="${esc(iconoHeroe)}" onclick="cambiarVarianteCarta(this)">\u{1f9b8} H\u00e9roe</button>`,
-            `<button type="button" class="cc-badge cc-badge-btn" tabindex="-1">\u{1f9b8} H\u00e9roe</button>`)}
-          ${_filaFicha(seccionColEvo, x.mostrarEvo,
-            `<button type="button" class="cc-badge cc-badge-btn${activaEvo ? ' is-activa' : ''}" data-icon-variante="${esc(iconoEvo)}" onclick="cambiarVarianteCarta(this)">\u2728 Evoluci\u00f3n</button>`,
-            `<button type="button" class="cc-badge cc-badge-btn" tabindex="-1">\u2728 Evoluci\u00f3n</button>`)}
           ${_filaFicha(seccionColRareza, x.mostrarRareza,
             rk ? `<span class="cc-rareza" data-rareza="${rk}">${esc(RAREZA_CARTA_TXT[rk])}</span>` : '',
             `<span class="cc-rareza">&nbsp;</span>`)}
@@ -1023,6 +1039,10 @@ function pintarColeccion(cartas){
           ${_filaFicha(seccionColElixir, x.mostrarElixir,
             `${c.elixirCost != null ? `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">${esc(String(c.elixirCost))}</span>` : ''}${estrellasHtml(c.starLevel)}`,
             `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">&nbsp;</span>`)}
+          ${_filaHeroeEvo(x.mostrarHeroe,
+            `<button type="button" class="cc-badge cc-badge-btn${activaHero ? ' is-activa' : ''}" data-icon-variante="${esc(iconoHeroe)}" onclick="cambiarVarianteCarta(this)">\u{1f9b8} H\u00e9roe</button>`,
+            x.mostrarEvo,
+            `<button type="button" class="cc-badge cc-badge-btn${activaEvo ? ' is-activa' : ''}" data-icon-variante="${esc(iconoEvo)}" onclick="cambiarVarianteCarta(this)">\u2728 Evoluci\u00f3n</button>`)}
           <div class="text-faint" style="font-family:var(--f-mono); font-size:11px;">Nv. ${esc(String(nvl.nivel != null ? nvl.nivel : '\u2014'))}</div>
           ${!alMax ? `<div class="cc-count" title="Cantidad de cartas disponibles de este nombre">\u00d7${fmtNum(c.count)}</div>` : ''}
         </div>
@@ -1098,8 +1118,6 @@ function renderCartasTorre(j){
       mostrarElixir: !!(t.elixirCost != null || t.starLevel)
     };
   });
-  const seccionTorresHeroe = datosTorres.some(x => x.mostrarHeroe);
-  const seccionTorresEvo = datosTorres.some(x => x.mostrarEvo);
   const seccionTorresRareza = datosTorres.some(x => x.mostrarRareza);
   const seccionTorresTipo = datosTorres.some(x => x.mostrarTipo);
   const seccionTorresElixir = datosTorres.some(x => x.mostrarElixir);
@@ -1112,12 +1130,6 @@ function renderCartasTorre(j){
       <div class="col-cuerpo">
         ${img ? `<img class="cc-img" src="${esc(img)}" alt="${esc(nombreEs)}" loading="lazy" onerror="_marcarCartaSinImagen(this);" onload="if(this.naturalWidth===0) _marcarCartaSinImagen(this);">` : ''}
         <div class="col-ficha">
-          ${_filaFicha(seccionTorresHeroe, x.mostrarHeroe,
-            `<button type="button" class="cc-badge cc-badge-btn" data-icon-variante="${esc(heroIcon)}" onclick="cambiarVarianteCarta(this)">🦸 Héroe</button>`,
-            `<button type="button" class="cc-badge cc-badge-btn" tabindex="-1">🦸 Héroe</button>`)}
-          ${_filaFicha(seccionTorresEvo, x.mostrarEvo,
-            `<button type="button" class="cc-badge cc-badge-btn" data-icon-variante="${esc(evoIcon)}" onclick="cambiarVarianteCarta(this)">✨ Evolución</button>`,
-            `<button type="button" class="cc-badge cc-badge-btn" tabindex="-1">✨ Evolución</button>`)}
           ${_filaFicha(seccionTorresRareza, x.mostrarRareza,
             rk ? `<span class="cc-rareza" data-rareza="${rk}">${esc(RAREZA_CARTA_TXT[rk])}</span>` : '',
             `<span class="cc-rareza">&nbsp;</span>`)}
@@ -1127,6 +1139,10 @@ function renderCartasTorre(j){
           ${_filaFicha(seccionTorresElixir, x.mostrarElixir,
             `${t.elixirCost != null ? `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">${esc(String(t.elixirCost))}</span>` : ''}${estrellasHtml(t.starLevel)}`,
             `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">&nbsp;</span>`)}
+          ${_filaHeroeEvo(x.mostrarHeroe,
+            `<button type="button" class="cc-badge cc-badge-btn" data-icon-variante="${esc(heroIcon)}" onclick="cambiarVarianteCarta(this)">🦸 Héroe</button>`,
+            x.mostrarEvo,
+            `<button type="button" class="cc-badge cc-badge-btn" data-icon-variante="${esc(evoIcon)}" onclick="cambiarVarianteCarta(this)">✨ Evolución</button>`)}
           <div class="text-faint" style="font-size:11px;">Nv. ${esc(String(nvl.nivel != null ? nvl.nivel : '\u2014'))}${alMax ? '' : ` \u00b7 \u00d7${fmtNum(t.count)}`}</div>
         </div>
       </div>
@@ -1570,8 +1586,6 @@ function renderMazoActual(mazoActual, ext, j){
     };
   });
   // Flags de sección: se reserva una fila solo si ALGUNA de las 8 fichas del mazo la usa. Ver _filaFicha().
-  const seccionMazoHeroe = datosCartas.some(x => x.mostrarHeroe);
-  const seccionMazoEvo = datosCartas.some(x => x.mostrarEvo);
   const seccionMazoRareza = datosCartas.some(x => x.mostrarRareza);
   const seccionMazoTipo = datosCartas.some(x => x.mostrarTipo);
   const seccionMazoElixir = datosCartas.some(x => x.mostrarElixir);
@@ -1584,23 +1598,15 @@ function renderMazoActual(mazoActual, ext, j){
       <div class="col-cuerpo">
         ${imgSrc ? `<img class="cc-img" src="${esc(imgSrc)}" alt="${esc(c.name)}" loading="lazy" onerror="_marcarCartaSinImagen(this);" onload="if(this.naturalWidth===0) _marcarCartaSinImagen(this);">` : ''}
         <div class="col-ficha">
-          <!-- FIX (21-sep-2026, pedido usuario — orden estándar de fichas de
-               carta en toda la web): Héroe y Evolución pasan de compartir una
-               fila con la rareza a ir cada uno en su propia fila (2 y 3), y la
-               rareza pasa a su propia fila (4), seguida de tipo (5) y
-               elixir+estrellas juntos (6, ver FIX anterior sobre por qué van
-               juntos) y nivel+cantidad (7). Mismo orden que el resto de fichas
-               de carta del sitio (Colección, Cartas de torre, Carta favorita,
-               Cartas más usadas). Una fila se omite si NINGUNA ficha de la
-               sección tiene ese dato (ver _filaFicha() y seccionMazo* más
-               arriba); si al menos una ficha de la sección sí lo tiene, la
-               fila se reserva en todas (oculta en las que no lo tengan). -->
-          ${_filaFicha(seccionMazoHeroe, x.mostrarHeroe,
-            `<button type="button" class="cc-badge cc-badge-btn${activaHero ? ' is-activa' : ''}" data-icon-variante="${esc(heroIcon)}" onclick="cambiarVarianteCarta(this)">🦸 Héroe</button>`,
-            `<button type="button" class="cc-badge cc-badge-btn" tabindex="-1">🦸 Héroe</button>`)}
-          ${_filaFicha(seccionMazoEvo, x.mostrarEvo,
-            `<button type="button" class="cc-badge cc-badge-btn${activaEvo ? ' is-activa' : ''}" data-icon-variante="${esc(evoIcon)}" onclick="cambiarVarianteCarta(this)">✨ Evolución</button>`,
-            `<button type="button" class="cc-badge cc-badge-btn" tabindex="-1">✨ Evolución</button>`)}
+          <!-- FIX (23-sep-2026, pedido usuario — "mueve las filas de héroe y
+               evolución al último. solo en el caso de esas dos no se reserva
+               fila..."): orden pasa a ser Rareza/Tipo/Elixir+Estrellas
+               (siguen reservando fila por sección, ver _filaFicha() y
+               seccionMazo* más arriba) y, al final, Héroe+Evolución
+               compartiendo una sola fila sin reservar espacio si ninguna de
+               las dos aplica (ver _filaHeroeEvo()). Mismo orden que el resto
+               de fichas de carta del sitio (Colección, Cartas de torre,
+               Carta favorita, Cartas más usadas). -->
           ${_filaFicha(seccionMazoRareza, x.mostrarRareza,
             d ? `<span class="cc-rareza" data-rareza="${d.rareza}">${esc(RAREZA_CARTA_TXT[d.rareza])}</span>` : '',
             `<span class="cc-rareza">&nbsp;</span>`)}
@@ -1610,6 +1616,10 @@ function renderMazoActual(mazoActual, ext, j){
           ${_filaFicha(seccionMazoElixir, x.mostrarElixir,
             `${d && d.elixir != null ? `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">${esc(String(d.elixir))}</span>` : ''}${estrellasHtml(starLevel)}`,
             `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">&nbsp;</span>`)}
+          ${_filaHeroeEvo(x.mostrarHeroe,
+            `<button type="button" class="cc-badge cc-badge-btn${activaHero ? ' is-activa' : ''}" data-icon-variante="${esc(heroIcon)}" onclick="cambiarVarianteCarta(this)">🦸 Héroe</button>`,
+            x.mostrarEvo,
+            `<button type="button" class="cc-badge cc-badge-btn${activaEvo ? ' is-activa' : ''}" data-icon-variante="${esc(evoIcon)}" onclick="cambiarVarianteCarta(this)">✨ Evolución</button>`)}
           <div class="text-faint" style="font-family:var(--f-mono); font-size:11px;">
             Nv. ${esc(String(c.nivel != null ? c.nivel : '\u2014'))}
             ${(count != null && c.nivel !== 16) ? ` · <span class="cc-count" title="Cantidad de cartas disponibles de este nombre">×${fmtNum(count)}</span>` : ''}
@@ -1664,8 +1674,6 @@ function renderMazoActual(mazoActual, ext, j){
         mostrarElixir: !!((t.elixirCost != null) || t.starLevel)
       };
     });
-    const seccionTorreHeroe = datosTorres.some(x => x.mostrarHeroe);
-    const seccionTorreEvo = datosTorres.some(x => x.mostrarEvo);
     const seccionTorreRareza = datosTorres.some(x => x.mostrarRareza);
     const seccionTorreTipo = datosTorres.some(x => x.mostrarTipo);
     const seccionTorreElixir = datosTorres.some(x => x.mostrarElixir);
@@ -1678,12 +1686,6 @@ function renderMazoActual(mazoActual, ext, j){
           <div class="col-cuerpo">
             ${img ? `<img class="cc-img" src="${esc(img)}" alt="${esc(nombreEs)}" loading="lazy" onerror="_marcarCartaSinImagen(this);" onload="if(this.naturalWidth===0) _marcarCartaSinImagen(this);">` : ''}
             <div class="col-ficha">
-              ${_filaFicha(seccionTorreHeroe, x.mostrarHeroe,
-                `<button type="button" class="cc-badge cc-badge-btn" data-icon-variante="${esc(heroIcon)}" onclick="cambiarVarianteCarta(this)">🦸 Héroe</button>`,
-                `<button type="button" class="cc-badge cc-badge-btn" tabindex="-1">🦸 Héroe</button>`)}
-              ${_filaFicha(seccionTorreEvo, x.mostrarEvo,
-                `<button type="button" class="cc-badge cc-badge-btn" data-icon-variante="${esc(evoIcon)}" onclick="cambiarVarianteCarta(this)">✨ Evolución</button>`,
-                `<button type="button" class="cc-badge cc-badge-btn" tabindex="-1">✨ Evolución</button>`)}
               ${_filaFicha(seccionTorreRareza, x.mostrarRareza,
                 rk ? `<span class="cc-rareza" data-rareza="${rk}">${esc(RAREZA_CARTA_TXT[rk])}</span>` : '',
                 `<span class="cc-rareza">&nbsp;</span>`)}
@@ -1693,6 +1695,10 @@ function renderMazoActual(mazoActual, ext, j){
               ${_filaFicha(seccionTorreElixir, x.mostrarElixir,
                 `${t.elixirCost != null ? `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">${esc(String(t.elixirCost))}</span>` : ''}${estrellasHtml(t.starLevel)}`,
                 `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">&nbsp;</span>`)}
+              ${_filaHeroeEvo(x.mostrarHeroe,
+                `<button type="button" class="cc-badge cc-badge-btn" data-icon-variante="${esc(heroIcon)}" onclick="cambiarVarianteCarta(this)">🦸 Héroe</button>`,
+                x.mostrarEvo,
+                `<button type="button" class="cc-badge cc-badge-btn" data-icon-variante="${esc(evoIcon)}" onclick="cambiarVarianteCarta(this)">✨ Evolución</button>`)}
               <div class="text-faint" style="font-size:11px;">Nv. ${esc(String(nvl.nivel != null ? nvl.nivel : '—'))}${(!alMax && t.count != null) ? ` · ×${fmtNum(t.count)}` : ''}</div>
             </div>
           </div>
