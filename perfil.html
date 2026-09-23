@@ -186,10 +186,31 @@
      tiene su propio padding (10px 8px) — .badge-grid sube su ancho mínimo
      de columna de 118px a 132px acá arriba para que no quede apretado. */
   .badge-item img{width:92px; height:92px; object-fit:contain;}
-  /* Subcategoría "Maestrías" dentro de la card Insignias (renderInsignias()). Historial en CHANGELOG.md. */
-  .insignias-subcat{font-size:15px; margin:22px 0 0; padding-top:16px; border-top:1px solid var(--line); color:var(--text);}
-  .insignias-subcat--sola{margin-top:0; padding-top:0; border-top:0;}
-  .insignias-subcat .cuenta{font-family:var(--f-mono); font-size:11px; font-weight:400; color:var(--text-faint); margin-left:6px;}
+  /* Subcategoría "Maestrías" dentro de la card Insignias (renderInsignias()).
+     FIX (23-sep-2026, pedido usuario — "en camino de leyendas y ligas agrega
+     subsecciones para 'Camino de leyendas' y 'Liga'"): el mismo estilo de
+     subcategoría se reutiliza en la card "Camino de Leyendas y ligas"
+     (.leyendas-subcat, ver renderCaminoLeyendas() más abajo) para no
+     duplicar reglas — es puramente un encabezado de subsección dentro de
+     una card, no algo específico de insignias. Historial en CHANGELOG.md. */
+  .insignias-subcat, .leyendas-subcat{font-size:15px; margin:22px 0 0; padding-top:16px; border-top:1px solid var(--line); color:var(--text);}
+  .insignias-subcat--sola, .leyendas-subcat--sola{margin-top:0; padding-top:0; border-top:0;}
+  .insignias-subcat .cuenta, .leyendas-subcat .cuenta{font-family:var(--f-mono); font-size:11px; font-weight:400; color:var(--text-faint); margin-left:6px;}
+  /* FIX (23-sep-2026, pedido usuario — "en las insignias y maestrías, agrega
+     un botón selector para ordenar por nombre o nivel, a a la z, menos a
+     mayor y viceversa"): selector desplegable arriba de la grilla de
+     Insignias/Maestrías (renderInsignias()/cambiarOrdenInsignias() más abajo
+     en el <script>). Mismo lenguaje visual que .coleccion-filtros button
+     (mono, borde tenue, hover morado) pero como <select> nativo en vez de
+     píldoras, porque acá es una sola elección entre 4 criterios, no un
+     filtro de múltiples opciones a la vez. */
+  .insignias-orden{display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin:14px 0 4px; font-family:var(--f-mono); font-size:11px; color:var(--text-dim);}
+  .insignias-orden select{
+    font-family:var(--f-mono); font-size:11px; font-weight:600; color:var(--text-dim);
+    border:1px solid var(--line); padding:5px 10px; border-radius:var(--radius-sm); background:var(--bg-2);
+    cursor:pointer;
+  }
+  .insignias-orden select:hover, .insignias-orden select:focus{border-color:var(--purple); color:var(--purple-light);}
   .badge-item .b-nombre{font-size:11px; font-weight:700; color:var(--text); line-height:1.2; word-break:break-word;}
   .badge-item .b-nivel{font-family:var(--f-mono); font-size:10px; color:var(--gold);}
   .badge-item .b-prog{font-family:var(--f-mono); font-size:10px; color:var(--text-faint);}
@@ -400,6 +421,20 @@
             <span><b id="mAtaques">0</b>Ataques en la semana actual</span>
             <!-- Vigencia (Última conexión) queda oculta hasta que el backend mande j.vigencia. Historial en CHANGELOG.md. -->
             <span id="mVigenciaWrap" style="display:none;"><b id="mVigencia">—</b>Vigencia</span>
+            <!-- FIX (23-sep-2026, pedido usuario — "el nivel de experiencia,
+                 nivel de torre de rey, puntos estelares y puntos de
+                 experiencia deben subirse a la sección de perfil de
+                 jugador"): estos 4 campos vivían en la card "Camino de
+                 Leyendas y ligas" (ver renderCaminoLeyendas() más abajo en
+                 el <script>); se trasladan acá, a la cabecera de "Perfil del
+                 jugador", junto a Copas/V. Guerra/Torneos/Ataques/Vigencia.
+                 Cada <span> se oculta sola si el dato no llega, mismo patrón
+                 que mVigenciaWrap — ver renderStatsAvanzadasCabecera() más
+                 abajo en el <script>. Historial en CHANGELOG.md. -->
+            <span id="mNivelExpWrap" style="display:none;"><b id="mNivelExp">0</b>Nivel de experiencia</span>
+            <span id="mTorreReyWrap" style="display:none;"><b id="mTorreRey">0</b>Nivel de torre del rey</span>
+            <span id="mPuntosEstelaresWrap" style="display:none;"><b id="mPuntosEstelares">0</b>Puntos estelares</span>
+            <span id="mPuntosExpWrap" style="display:none;"><b id="mPuntosExp">0</b>Puntos de experiencia</span>
           </div>
         </div>
 
@@ -848,6 +883,38 @@ function insigniaEsMaestria(b){
   return !!b && typeof b.name === 'string' && b.name.indexOf('Mastery') === 0;
 }
 
+/** FIX (23-sep-2026, pedido usuario — "en las insignias y maestrías, agrega
+ * un botón selector para ordenar por nombre o nivel, a a la z, menos a
+ * mayor y viceversa"): estado del orden elegido (persiste mientras dure la
+ * carga del perfil en pantalla; se reinicia a "nombre-asc" si se recarga
+ * la página) y último `badges[]` recibido, para poder reordenar y volver a
+ * pintar sin tener que pedirle `j` de nuevo a cambiarOrdenInsignias(). */
+let _insigniasOrden = 'nombre-asc';
+let _ultimosBadges = null;
+
+/** Compara dos insignias según el criterio de _insigniasOrden. Para orden
+ * por nivel, las insignias sin `level` quedan al final (tratadas como
+ * -Infinity) y, en caso de empate de nivel, se desempata por nombre A-Z
+ * para que el orden sea estable y predecible. */
+function _compararInsignias(a, b, orden){
+  if (orden === 'nivel-asc' || orden === 'nivel-desc'){
+    const na = a.level != null ? Number(a.level) : -Infinity;
+    const nb = b.level != null ? Number(b.level) : -Infinity;
+    if (na !== nb) return orden === 'nivel-asc' ? na - nb : nb - na;
+    return _nombreInsigniaEs(a).localeCompare(_nombreInsigniaEs(b), 'es');
+  }
+  const cmp = _nombreInsigniaEs(a).localeCompare(_nombreInsigniaEs(b), 'es');
+  return orden === 'nombre-desc' ? -cmp : cmp;
+}
+
+/** onchange del <select> de orden (ver _pintarInsignias() más abajo):
+ * guarda el nuevo criterio y vuelve a pintar con los mismos badges ya
+ * recibidos, sin volver a tocar el backend. */
+function cambiarOrdenInsignias(orden){
+  _insigniasOrden = orden;
+  if (_ultimosBadges) _pintarInsignias(_ultimosBadges);
+}
+
 function _insigniaItemHtml(b){
   const urls = b.iconUrls || {};
   const icono = urlValida(urls.large) ? urls.large : (urlValida(urls.medium) ? urls.medium : '');
@@ -865,24 +932,54 @@ function _insigniaItemHtml(b){
       </div>`;
 }
 
-function renderInsignias(j){
-  const badges = rawClash(j).badges;
+/** Arma el <select> de orden, marcando como `selected` la opción vigente en
+ * _insigniasOrden (para que sobreviva a un re-pintado, ej. al cambiar de
+ * orden o al volver a llamar a renderInsignias() con datos nuevos). */
+function _selectorOrdenInsigniasHtml(){
+  const opciones = [
+    ['nombre-asc', 'Nombre (A-Z)'],
+    ['nombre-desc', 'Nombre (Z-A)'],
+    ['nivel-asc', 'Nivel (menor a mayor)'],
+    ['nivel-desc', 'Nivel (mayor a menor)'],
+  ];
+  return `
+    <div class="insignias-orden">
+      <label for="selInsigniasOrden">Ordenar por</label>
+      <select id="selInsigniasOrden" onchange="cambiarOrdenInsignias(this.value)">
+        ${opciones.map(([v, txt]) => `<option value="${v}"${_insigniasOrden === v ? ' selected' : ''}>${txt}</option>`).join('')}
+      </select>
+    </div>`;
+}
+
+/** Pinta la card "Insignias" (grid + subsección "Maestrías") aplicando el
+ * orden vigente (_insigniasOrden) a cada subsección por separado — general
+ * y Maestrías siguen siendo dos grupos aparte, solo cambia el orden DENTRO
+ * de cada uno. Separada de renderInsignias() para que cambiarOrdenInsignias()
+ * pueda volver a pintar sin depender de `j`. */
+function _pintarInsignias(badges){
   const card = document.getElementById('mInsigniasCard');
   const cont = document.getElementById('mInsigniasContenido');
   if (!Array.isArray(badges) || !badges.length){ card.style.display = 'none'; cont.innerHTML = ''; return; }
   card.style.display = '';
-  const generales = badges.filter(b => !insigniaEsMaestria(b));
-  const maestrias = badges.filter(insigniaEsMaestria);
+  const generales = badges.filter(b => !insigniaEsMaestria(b)).sort((a, b) => _compararInsignias(a, b, _insigniasOrden));
+  const maestrias = badges.filter(insigniaEsMaestria).sort((a, b) => _compararInsignias(a, b, _insigniasOrden));
   const gridHtml = lista => `<div class="badge-grid">${lista.map(_insigniaItemHtml).join('')}</div>`;
   const seccionMaestrias = maestrias.length ? `
     <h3 class="insignias-subcat${generales.length ? '' : ' insignias-subcat--sola'}">Maestrías<span class="cuenta">${maestrias.length}</span></h3>
     ${gridHtml(maestrias)}` : '';
   cont.innerHTML = `
+    ${_selectorOrdenInsigniasHtml()}
     ${generales.length ? gridHtml(generales) : ''}
     ${seccionMaestrias}
     <div class="text-faint" style="font-family:var(--f-mono); font-size:11px; margin-top:12px;">
       Insignias desbloqueadas: ${badges.length}${maestrias.length ? ` (${maestrias.length} de maestría)` : ''}. Cada jugador desbloquea un subconjunto distinto del catálogo total \u2014 las que no aparecen simplemente no están desbloqueadas todavía.
     </div>`;
+}
+
+function renderInsignias(j){
+  const badges = rawClash(j).badges;
+  _ultimosBadges = Array.isArray(badges) ? badges : null;
+  _pintarInsignias(badges);
 }
 
 /**
@@ -992,34 +1089,89 @@ function _polTxt(r){
  *  - legacyTrophyRoadHighScore (mejor del Camino de Trofeos "viejo")
  *  - leagueStatistics.{bestSeason,currentSeason,previousSeason}
  *    ({id, trophies, bestTrophies})
- *  - expLevel, kingTowerLevel, starPoints, expPoints/totalExpPoints
  * BACKEND CONECTADO (20-sep-2026): todas esas categorías ya llegan dentro
- * de jugador.rawClash (expLevel y kingTowerLevel se agregaron el 20-sep en
- * _webDatosDriveJugador(); antes faltaban). La card se oculta sola si
- * ninguna llega.
+ * de jugador.rawClash. La card se oculta sola si ninguna llega.
+ *
+ * FIX (23-sep-2026, pedido usuario — "en camino de leyendas y ligas agrega
+ * subsecciones para 'Camino de leyendas' y 'Liga' para dejar de usar el
+ * prefijo de la subsección"): antes era UNA sola tabla con todas las filas
+ * prefijadas a mano ("Camino de Leyendas · Mejor temporada", "Liga · Mejor
+ * temporada", etc.). Ahora son DOS tablas separadas, cada una bajo su
+ * propio <h3> de subsección (mismo estilo .leyendas-subcat que
+ * .insignias-subcat de Maestrías, ver <style> más arriba), y las filas ya
+ * no repiten el prefijo porque el título de la subsección cumple ese rol.
+ * "Mejor ladder histórico (Camino de Trofeos)" no tenía prefijo en la
+ * versión anterior (es el Camino de Trofeos "viejo", un modo distinto al
+ * Camino de Leyendas actual) — se deja dentro de la subsección "Camino de
+ * Leyendas" por ser lo más cercano temáticamente y por ser donde ya vivía
+ * físicamente (entre el grupo de Camino de Leyendas y el de Liga); si el
+ * usuario prefiere una tercera subsección aparte para este dato, avisar.
+ *
+ * FIX (23-sep-2026, mismo pedido — "el nivel de experiencia, nivel de
+ * torre de rey, puntos estelares y puntos de experiencia deben subirse a
+ * la sección de perfil de jugador"): esos 4 campos (expLevel,
+ * kingTowerLevel, starPoints, expPoints/totalExpPoints) se sacan de esta
+ * card por completo y se pintan ahora en la cabecera de "Perfil del
+ * jugador" — ver renderStatsAvanzadasCabecera() justo debajo de esta
+ * función, y los <span> mNivelExpWrap/mTorreReyWrap/mPuntosEstelaresWrap/
+ * mPuntosExpWrap agregados en el <html> más arriba.
  */
 function renderCaminoLeyendas(j){
   const raw = rawClash(j);
   const ls = raw.leagueStatistics || {};
-  const filas = [];
-  const add = (lbl, val) => { if (val != null && val !== '') filas.push(`<tr><td>${esc(lbl)}</td><td>${esc(String(val))}</td></tr>`); };
-  add('Camino de Leyendas \u00b7 Mejor temporada', _polTxt(raw.bestPathOfLegendSeasonResult));
-  add('Camino de Leyendas \u00b7 Temporada actual', _polTxt(raw.currentPathOfLegendSeasonResult));
-  add('Camino de Leyendas \u00b7 Temporada anterior', _polTxt(raw.lastPathOfLegendSeasonResult));
-  add('Mejor ladder hist\u00f3rico (Camino de Trofeos)', raw.legacyTrophyRoadHighScore != null ? `${fmtNum(raw.legacyTrophyRoadHighScore)} \ud83c\udfc6` : null);
+  const filasLeyendas = [];
+  const filasLiga = [];
+  const add = (arr, lbl, val) => { if (val != null && val !== '') arr.push(`<tr><td>${esc(lbl)}</td><td>${esc(String(val))}</td></tr>`); };
+  add(filasLeyendas, 'Mejor temporada', _polTxt(raw.bestPathOfLegendSeasonResult));
+  add(filasLeyendas, 'Temporada actual', _polTxt(raw.currentPathOfLegendSeasonResult));
+  add(filasLeyendas, 'Temporada anterior', _polTxt(raw.lastPathOfLegendSeasonResult));
+  add(filasLeyendas, 'Mejor ladder hist\u00f3rico (Camino de Trofeos)', raw.legacyTrophyRoadHighScore != null ? `${fmtNum(raw.legacyTrophyRoadHighScore)} \ud83c\udfc6` : null);
   const lsTxt = s => (s && (s.trophies != null || s.id)) ? `${s.id ? esc(String(s.id)) + ' \u00b7 ' : ''}${fmtNum(s.trophies)} \ud83c\udfc6${s.bestTrophies ? ` (mejor ${fmtNum(s.bestTrophies)})` : ''}` : null;
-  add('Liga \u00b7 Mejor temporada', lsTxt(ls.bestSeason));
-  add('Liga \u00b7 Temporada actual', lsTxt(ls.currentSeason));
-  add('Liga \u00b7 Temporada anterior', lsTxt(ls.previousSeason));
-  add('Nivel de experiencia', raw.expLevel);
-  add('Nivel de torre del rey', raw.kingTowerLevel);
-  add('Puntos estelares', raw.starPoints != null ? fmtNum(raw.starPoints) : null);
-  add('Puntos de experiencia', raw.expPoints != null ? `${fmtNum(raw.expPoints)} / ${fmtNum(raw.totalExpPoints)}` : null);
+  add(filasLiga, 'Mejor temporada', lsTxt(ls.bestSeason));
+  add(filasLiga, 'Temporada actual', lsTxt(ls.currentSeason));
+  add(filasLiga, 'Temporada anterior', lsTxt(ls.previousSeason));
   const card = document.getElementById('mLeyendasCard');
   const cont = document.getElementById('mLeyendasContenido');
-  if (!filas.length){ card.style.display = 'none'; cont.innerHTML = ''; return; }
+  if (!filasLeyendas.length && !filasLiga.length){ card.style.display = 'none'; cont.innerHTML = ''; return; }
   card.style.display = '';
-  cont.innerHTML = `<table class="panel-stats"><tbody>${filas.join('')}</tbody></table>`;
+  const tabla = filas => `<table class="panel-stats"><tbody>${filas.join('')}</tbody></table>`;
+  const seccionLeyendas = filasLeyendas.length ? `
+    <h3 class="leyendas-subcat leyendas-subcat--sola">Camino de Leyendas</h3>
+    ${tabla(filasLeyendas)}` : '';
+  const seccionLiga = filasLiga.length ? `
+    <h3 class="leyendas-subcat${filasLeyendas.length ? '' : ' leyendas-subcat--sola'}">Liga</h3>
+    ${tabla(filasLiga)}` : '';
+  cont.innerHTML = `${seccionLeyendas}${seccionLiga}`;
+}
+
+/**
+ * renderStatsAvanzadasCabecera(j)
+ * FIX (23-sep-2026, pedido usuario — "el nivel de experiencia, nivel de
+ * torre de rey, puntos estelares y puntos de experiencia deben subirse a
+ * la sección de perfil de jugador"): pinta esos 4 campos (antes en la card
+ * "Camino de Leyendas y ligas", ver comentario en renderCaminoLeyendas())
+ * en la cabecera de "Perfil del jugador" (.stats-mini), junto a Copas/
+ * V. Guerra/Torneos/Ataques/Vigencia. Mismo patrón que mVigenciaWrap: cada
+ * <span> se oculta solo si el dato no llega en rawClash(j), en vez de
+ * mostrar un "0"/"—" engañoso.
+ */
+function renderStatsAvanzadasCabecera(j){
+  const raw = rawClash(j);
+  const campos = [
+    ['mNivelExpWrap', 'mNivelExp', raw.expLevel != null ? fmtNum(raw.expLevel) : null],
+    ['mTorreReyWrap', 'mTorreRey', raw.kingTowerLevel != null ? fmtNum(raw.kingTowerLevel) : null],
+    ['mPuntosEstelaresWrap', 'mPuntosEstelares', raw.starPoints != null ? fmtNum(raw.starPoints) : null],
+    ['mPuntosExpWrap', 'mPuntosExp', raw.expPoints != null ? `${fmtNum(raw.expPoints)} / ${fmtNum(raw.totalExpPoints)}` : null],
+  ];
+  campos.forEach(([wrapId, valId, val]) => {
+    const wrap = document.getElementById(wrapId);
+    if (val != null){
+      document.getElementById(valId).textContent = val;
+      wrap.style.display = '';
+    } else {
+      wrap.style.display = 'none';
+    }
+  });
 }
 
 // FIX (23-sep-2026, pedido usuario — "las pastillas de filtro por tipo o
@@ -2353,6 +2505,7 @@ function renderMiembro(j){
   } else {
     vigenciaWrap.style.display = 'none';
   }
+  renderStatsAvanzadasCabecera(j); // FIX 23-sep-2026 — expLevel/kingTowerLevel/starPoints/expPoints, trasladados desde "Camino de Leyendas y ligas"
 
   // Se quita un separador extra entre bloques de Ascensos/Descensos: el margin-bottom de .req-row ya es uniforme para todos los renglones. Historial en CHANGELOG.md.
   const bloques = ['ascensos', 'descensos'].map(key => bloqueRequisitos(j, key)).filter(Boolean);
