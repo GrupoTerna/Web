@@ -214,17 +214,24 @@
   .panel-stats{width:100%; border-collapse:collapse; font-size:13px; margin-top:12px;}
   .panel-stats td{padding:8px 10px; border-bottom:1px solid var(--line); color:var(--text-dim); vertical-align:top;}
   .panel-stats td:last-child{text-align:right; color:var(--text); font-family:var(--f-mono); font-size:12px; white-space:nowrap;}
-  /* FIX (22-sep-2026, mismo pedido de arriba sobre .carta-chip/.cc-img —
-     "el nombre de la carta debe empezar... al mismo nivel que la imagen"):
-     align-items pasa de "center" a "flex-start". Con "center", la imagen
-     (72x84, más baja que el bloque de texto de 5 filas: nombre + rareza +
-     tipo + elixir + nivel) quedaba centrada respecto a ese bloque más
-     alto, así que su borde superior arrancaba más abajo que el nombre en
-     vez de parejo con él. */
-  .fav-wrap{display:flex; align-items:flex-start; gap:14px; flex-wrap:wrap; margin-top:14px;}
-  /* FIX (20-sep-2026, pedido usuario — "el ícono de elixir está demasiado grande, debería ser pequeñito"): esta regla era `.fav-wrap img` y alcanzaba a TODAS las imágenes de la tarjeta, incluido el ícono de elixir (quedaba de 72x84). Ahora solo toca la imagen de la carta (hijo directo). El bloque de texto lleva .carta-chip (ver renderCartaFavorita) para heredar de styles.css el ícono de elixir de 13px y los estilos de calidad/nivel máx. que el mazo ya usa; .fav-info le quita el borde, el relleno y la cuadrícula propios de la ficha. */
-  .fav-wrap > img{width:72px; height:84px; object-fit:contain;}
-  .fav-wrap .fav-info{display:block; border:0; padding:0; font-size:inherit; color:inherit;}
+  /* FIX (23-sep-2026, pedido usuario — "solo se hizo el cambio en la
+     colección completa pero falta en las otras secciones de cartas en
+     perfil.html"): "Carta favorita" deja de usar su propio wrapper
+     .fav-wrap/.fav-info (imagen a la izquierda, ficha de texto a la
+     derecha, cada una con su propio remache de bordes/relleno) y pasa a
+     reusar el mismo componente .col-card/.col-nombre/.col-cuerpo/
+     .col-ficha que ya arma pintarColeccion() más arriba — incluida la
+     ficha de elixir, ahora del tamaño de la letra por el mismo motivo
+     explicado ahí (".col-cuerpo > img" como hijo directo, sin alcanzar al
+     ícono anidado de Elixir.webp). Esta sección reemplaza por completo el
+     bloque ".fav-wrap/.fav-info" de más abajo (ya no existe ningún
+     elemento con esas clases en el HTML, ver renderCartaFavorita()); se
+     agrega ".col-card--grande" como único añadido nuevo, porque esta
+     ficha en particular seguía mostrando la imagen más grande (72x84 en
+     vez de los 52x60 del resto del sitio) para destacarla como "favorita"
+     — se conserva ese tamaño mayor con un modificador en vez de perderlo
+     al unificar el layout. */
+  .col-card--grande .col-cuerpo > img{width:72px; height:84px;}
   /* FIX (20-sep-2026, D-21 b): dos style="" que se repetían 12 y 11 veces
      respectivamente pasan a clases locales de esta página.
      .pf-subtitulo cubre el <h2> de cada panel de estadísticas de Clash
@@ -755,29 +762,26 @@ function renderCartaFavorita(j){
   const count = (!alMax && cartaReal) ? cartaReal.count : null;
   card.style.display = '';
   cont.innerHTML = `
-    <div class="fav-wrap">
-      ${urlValida(img) ? `<img src="${esc(img)}" alt="${esc(nombreEs)}" loading="lazy">` : ''}
-      <div class="carta-chip fav-info">
-        <!-- FIX (22-sep-2026, pedido usuario — "el mismo tamaño de letra en
-             toda la sección"): el nombre pasa de 17px (mucho más grande que
-             el resto de la ficha: rareza/tipo/elixir/nivel a 11px) a 11px,
-             igual al resto de "Carta favorita" y al de las demás fichas de
-             carta del sitio (Mazo actual, Cartas de torre, Colección). -->
-        <div style="font-size:11px; font-weight:800; font-family:var(--f-display); color:var(--text);">${esc(nombreEs)}</div>
-        ${esHeroe ? `<div class="cc-meta" style="margin-top:6px;"><button type="button" class="cc-badge cc-badge-btn" data-icon-variante="${esc(heroIcon)}" onclick="cambiarVarianteCarta(this)">🦸 Héroe</button></div>` : ''}
-        ${tieneEvo ? `<div class="cc-meta" style="margin-top:6px;"><button type="button" class="cc-badge cc-badge-btn" data-icon-variante="${esc(evoIcon)}" onclick="cambiarVarianteCarta(this)">✨ Evolución</button></div>` : ''}
-        ${(rk || fav.rarity) ? `<div class="cc-meta" style="margin-top:6px;">
-          ${rk ? `<span class="cc-rareza" data-rareza="${rk}">${esc(RAREZA_CARTA_TXT[rk])}</span>` : `<span class="cc-rareza">${esc(String(fav.rarity))}</span>`}
-        </div>` : ''}
-        ${tipoTxt ? `<div class="cc-meta" style="margin-top:6px;"><span class="cc-tipo">${esc(tipoTxt)}</span></div>` : ''}
-        ${(fav.elixirCost != null || starLevel) ? `<div class="cc-meta" style="margin-top:6px;">
-          ${fav.elixirCost != null ? `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">${esc(String(fav.elixirCost))}</span>` : ''}
-          ${estrellasHtml(starLevel)}
-        </div>` : ''}
-        ${nvl.nivelMax != null ? `<div class="cc-meta" style="margin-top:6px;">
-          <span class="cc-badge">Nv. ${esc(String(nvl.nivel != null ? nvl.nivel : '\u2014'))}</span>
-          ${count != null ? `<span class="cc-count" title="Cantidad de cartas disponibles de este nombre">×${fmtNum(count)}</span>` : ''}
-        </div>` : ''}
+    <div class="col-card col-card--grande" style="max-width:260px;">
+      <div class="col-nombre">${esc(nombreEs)}</div>
+      <div class="col-cuerpo">
+        ${urlValida(img) ? `<img src="${esc(img)}" alt="${esc(nombreEs)}" loading="lazy">` : ''}
+        <div class="col-ficha">
+          ${esHeroe ? `<div class="cc-meta"><button type="button" class="cc-badge cc-badge-btn" data-icon-variante="${esc(heroIcon)}" onclick="cambiarVarianteCarta(this)">🦸 Héroe</button></div>` : ''}
+          ${tieneEvo ? `<div class="cc-meta"><button type="button" class="cc-badge cc-badge-btn" data-icon-variante="${esc(evoIcon)}" onclick="cambiarVarianteCarta(this)">✨ Evolución</button></div>` : ''}
+          ${(rk || fav.rarity) ? `<div class="cc-meta">
+            ${rk ? `<span class="cc-rareza" data-rareza="${rk}">${esc(RAREZA_CARTA_TXT[rk])}</span>` : `<span class="cc-rareza">${esc(String(fav.rarity))}</span>`}
+          </div>` : ''}
+          ${tipoTxt ? `<div class="cc-meta"><span class="cc-tipo">${esc(tipoTxt)}</span></div>` : ''}
+          ${(fav.elixirCost != null || starLevel) ? `<div class="cc-meta">
+            ${fav.elixirCost != null ? `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">${esc(String(fav.elixirCost))}</span>` : ''}
+            ${estrellasHtml(starLevel)}
+          </div>` : ''}
+          ${nvl.nivelMax != null ? `<div class="cc-meta">
+            <span class="cc-badge">Nv. ${esc(String(nvl.nivel != null ? nvl.nivel : '\u2014'))}</span>
+            ${count != null ? `<span class="cc-count" title="Cantidad de cartas disponibles de este nombre">×${fmtNum(count)}</span>` : ''}
+          </div>` : ''}
+        </div>
       </div>
     </div>`;
 }
@@ -962,6 +966,14 @@ function pintarColeccion(cartas){
  * pinta dentro de "Mazo actual").
  * BACKEND CONECTADO: supportCards[] ya llega en jugador.rawClash.
  */
+// FIX (23-sep-2026, pedido usuario — "falta en las otras secciones de
+// cartas en perfil.html"): la ficha de cada carta pasa de .carta-chip
+// (imagen a la izquierda, nombre+ficha a la derecha) a .col-card (mismo
+// componente que ya usa pintarColeccion() para "Colección completa"):
+// nombre en su propia fila superior, imagen y ficha de datos juntas en
+// una fila debajo. De paso corrige el mismo bug del ícono de elixir
+// gigante (ver comentario extendido junto a ".col-card .col-cuerpo > img"
+// más arriba en el <style> de esta página).
 function renderCartasTorre(j){
   const torres = rawClash(j).supportCards;
   const card = document.getElementById('mTorresCard');
@@ -995,19 +1007,21 @@ function renderCartasTorre(j){
     const tieneEvo = (t.evolutionLevel || 0) > 0;
     const evoIcon = (t.iconUrls && t.iconUrls.evolutionMedium) || '';
     return `
-    <div class="carta-chip${img ? '' : ' carta-chip--sin-img'}">
-      ${img ? `<img class="cc-img" src="${esc(img)}" alt="${esc(nombreEs)}" loading="lazy" onerror="const p=this.parentElement; this.remove(); if(p) p.classList.add('carta-chip--sin-img');">` : ''}
-      <div class="cc-content">
-        <div class="cc-fila-1"><b>${esc(nombreEs)}</b></div>
-        ${esHeroe ? `<div class="cc-meta"><button type="button" class="cc-badge cc-badge-btn" data-icon-variante="${esc(heroIcon)}" onclick="cambiarVarianteCarta(this)">🦸 Héroe</button></div>` : ''}
-        ${tieneEvo ? `<div class="cc-meta"><button type="button" class="cc-badge cc-badge-btn" data-icon-variante="${esc(evoIcon)}" onclick="cambiarVarianteCarta(this)">✨ Evolución</button></div>` : ''}
-        <div class="cc-meta">${rk ? `<span class="cc-rareza" data-rareza="${rk}">${esc(RAREZA_CARTA_TXT[rk])}</span>` : ''}</div>
-        ${tipoTxt ? `<div class="cc-meta"><span class="cc-tipo">${esc(tipoTxt)}</span></div>` : ''}
-        ${(t.elixirCost != null || t.starLevel) ? `<div class="cc-meta">
-          ${t.elixirCost != null ? `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">${esc(String(t.elixirCost))}</span>` : ''}
-          ${estrellasHtml(t.starLevel)}
-        </div>` : ''}
-        <div class="text-faint" style="font-size:11px;">Nv. ${esc(String(nvl.nivel != null ? nvl.nivel : '\u2014'))}${alMax ? '' : ` \u00b7 \u00d7${fmtNum(t.count)}`}</div>
+    <div class="col-card">
+      <div class="col-nombre">${esc(nombreEs)}</div>
+      <div class="col-cuerpo">
+        ${img ? `<img class="cc-img" src="${esc(img)}" alt="${esc(nombreEs)}" loading="lazy" onerror="_marcarCartaSinImagen(this);" onload="if(this.naturalWidth===0) _marcarCartaSinImagen(this);">` : ''}
+        <div class="col-ficha">
+          ${esHeroe ? `<div class="cc-meta"><button type="button" class="cc-badge cc-badge-btn" data-icon-variante="${esc(heroIcon)}" onclick="cambiarVarianteCarta(this)">🦸 Héroe</button></div>` : ''}
+          ${tieneEvo ? `<div class="cc-meta"><button type="button" class="cc-badge cc-badge-btn" data-icon-variante="${esc(evoIcon)}" onclick="cambiarVarianteCarta(this)">✨ Evolución</button></div>` : ''}
+          <div class="cc-meta">${rk ? `<span class="cc-rareza" data-rareza="${rk}">${esc(RAREZA_CARTA_TXT[rk])}</span>` : ''}</div>
+          ${tipoTxt ? `<div class="cc-meta"><span class="cc-tipo">${esc(tipoTxt)}</span></div>` : ''}
+          ${(t.elixirCost != null || t.starLevel) ? `<div class="cc-meta">
+            ${t.elixirCost != null ? `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">${esc(String(t.elixirCost))}</span>` : ''}
+            ${estrellasHtml(t.starLevel)}
+          </div>` : ''}
+          <div class="text-faint" style="font-size:11px;">Nv. ${esc(String(nvl.nivel != null ? nvl.nivel : '\u2014'))}${alMax ? '' : ` \u00b7 \u00d7${fmtNum(t.count)}`}</div>
+        </div>
       </div>
     </div>`;
   }).join('');
@@ -1434,29 +1448,31 @@ function renderMazoActual(mazoActual, ext, j){
     const activaHero = !!(c.hasHero && heroIcon && imgSrc === heroIcon);
     const activaEvo = !!(hasEvo && evoIcon && imgSrc === evoIcon);
     return `
-    <div class="carta-chip${imgSrc ? '' : ' carta-chip--sin-img'}" data-icon-base="${esc(c.icon || '')}">
-      ${imgSrc ? `<img class="cc-img" src="${esc(imgSrc)}" alt="${esc(c.name)}" loading="lazy" onerror="_marcarCartaSinImagen(this);" onload="if(this.naturalWidth===0) _marcarCartaSinImagen(this);">` : ''}
-      <div class="cc-content">
-        <div class="cc-fila-1"><b>${esc(c.name)}</b></div>
-        <!-- FIX (21-sep-2026, pedido usuario — orden estándar de fichas de
-             carta en toda la web): Héroe y Evolución pasan de compartir una
-             fila con la rareza a ir cada uno en su propia fila (2 y 3), y la
-             rareza pasa a su propia fila (4), seguida de tipo (5) y
-             elixir+estrellas juntos (6, ver FIX anterior sobre por qué van
-             juntos) y nivel+cantidad (7). Mismo orden que el resto de fichas
-             de carta del sitio (Colección, Cartas de torre, Carta favorita,
-             Cartas más usadas). Una fila se omite si no hay dato para ella. -->
-        ${(c.hasHero || (d && d.rareza === 'campeon')) ? `<div class="cc-meta"><button type="button" class="cc-badge cc-badge-btn${activaHero ? ' is-activa' : ''}" data-icon-variante="${esc(heroIcon)}" onclick="cambiarVarianteCarta(this)">🦸 Héroe</button></div>` : ''}
-        ${hasEvo ? `<div class="cc-meta"><button type="button" class="cc-badge cc-badge-btn${activaEvo ? ' is-activa' : ''}" data-icon-variante="${esc(evoIcon)}" onclick="cambiarVarianteCarta(this)">✨ Evolución</button></div>` : ''}
-        ${d ? `<div class="cc-meta"><span class="cc-rareza" data-rareza="${d.rareza}">${esc(RAREZA_CARTA_TXT[d.rareza])}</span></div>` : ''}
-        ${tipoTxt ? `<div class="cc-meta"><span class="cc-tipo">${esc(tipoTxt)}</span></div>` : ''}
-        ${(d && d.elixir != null) || starLevel ? `<div class="cc-meta">
-          ${d && d.elixir != null ? `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">${esc(String(d.elixir))}</span>` : ''}
-          ${estrellasHtml(starLevel)}
-        </div>` : ''}
-        <div class="text-faint" style="font-family:var(--f-mono); font-size:11px;">
-          Nv. ${esc(String(c.nivel != null ? c.nivel : '\u2014'))}
-          ${(count != null && c.nivel !== 16) ? ` · <span class="cc-count" title="Cantidad de cartas disponibles de este nombre">×${fmtNum(count)}</span>` : ''}
+    <div class="col-card" data-icon-base="${esc(c.icon || '')}">
+      <div class="col-nombre">${esc(c.name)}</div>
+      <div class="col-cuerpo">
+        ${imgSrc ? `<img class="cc-img" src="${esc(imgSrc)}" alt="${esc(c.name)}" loading="lazy" onerror="_marcarCartaSinImagen(this);" onload="if(this.naturalWidth===0) _marcarCartaSinImagen(this);">` : ''}
+        <div class="col-ficha">
+          <!-- FIX (21-sep-2026, pedido usuario — orden estándar de fichas de
+               carta en toda la web): Héroe y Evolución pasan de compartir una
+               fila con la rareza a ir cada uno en su propia fila (2 y 3), y la
+               rareza pasa a su propia fila (4), seguida de tipo (5) y
+               elixir+estrellas juntos (6, ver FIX anterior sobre por qué van
+               juntos) y nivel+cantidad (7). Mismo orden que el resto de fichas
+               de carta del sitio (Colección, Cartas de torre, Carta favorita,
+               Cartas más usadas). Una fila se omite si no hay dato para ella. -->
+          ${(c.hasHero || (d && d.rareza === 'campeon')) ? `<div class="cc-meta"><button type="button" class="cc-badge cc-badge-btn${activaHero ? ' is-activa' : ''}" data-icon-variante="${esc(heroIcon)}" onclick="cambiarVarianteCarta(this)">🦸 Héroe</button></div>` : ''}
+          ${hasEvo ? `<div class="cc-meta"><button type="button" class="cc-badge cc-badge-btn${activaEvo ? ' is-activa' : ''}" data-icon-variante="${esc(evoIcon)}" onclick="cambiarVarianteCarta(this)">✨ Evolución</button></div>` : ''}
+          ${d ? `<div class="cc-meta"><span class="cc-rareza" data-rareza="${d.rareza}">${esc(RAREZA_CARTA_TXT[d.rareza])}</span></div>` : ''}
+          ${tipoTxt ? `<div class="cc-meta"><span class="cc-tipo">${esc(tipoTxt)}</span></div>` : ''}
+          ${(d && d.elixir != null) || starLevel ? `<div class="cc-meta">
+            ${d && d.elixir != null ? `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">${esc(String(d.elixir))}</span>` : ''}
+            ${estrellasHtml(starLevel)}
+          </div>` : ''}
+          <div class="text-faint" style="font-family:var(--f-mono); font-size:11px;">
+            Nv. ${esc(String(c.nivel != null ? c.nivel : '\u2014'))}
+            ${(count != null && c.nivel !== 16) ? ` · <span class="cc-count" title="Cantidad de cartas disponibles de este nombre">×${fmtNum(count)}</span>` : ''}
+          </div>
         </div>
       </div>
     </div>`;
@@ -1495,19 +1511,21 @@ function renderMazoActual(mazoActual, ext, j){
         const evoIcon = (t.iconUrls && t.iconUrls.evolutionMedium) || '';
         const alMax = t.maxLevel != null && t.level != null && t.level >= t.maxLevel;
         return `
-        <div class="carta-chip${img ? '' : ' carta-chip--sin-img'}">
-          ${img ? `<img class="cc-img" src="${esc(img)}" alt="${esc(nombreEs)}" loading="lazy" onerror="_marcarCartaSinImagen(this);" onload="if(this.naturalWidth===0) _marcarCartaSinImagen(this);">` : ''}
-          <div class="cc-content">
-            <div class="cc-fila-1"><b>${esc(nombreEs)}</b></div>
-            ${esHeroe ? `<div class="cc-meta"><button type="button" class="cc-badge cc-badge-btn" data-icon-variante="${esc(heroIcon)}" onclick="cambiarVarianteCarta(this)">🦸 Héroe</button></div>` : ''}
-            ${tieneEvo ? `<div class="cc-meta"><button type="button" class="cc-badge cc-badge-btn" data-icon-variante="${esc(evoIcon)}" onclick="cambiarVarianteCarta(this)">✨ Evolución</button></div>` : ''}
-            <div class="cc-meta">${rk ? `<span class="cc-rareza" data-rareza="${rk}">${esc(RAREZA_CARTA_TXT[rk])}</span>` : ''}</div>
-            ${tipoTxt ? `<div class="cc-meta"><span class="cc-tipo">${esc(tipoTxt)}</span></div>` : ''}
-            ${(t.elixirCost != null || t.starLevel) ? `<div class="cc-meta">
-              ${t.elixirCost != null ? `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">${esc(String(t.elixirCost))}</span>` : ''}
-              ${estrellasHtml(t.starLevel)}
-            </div>` : ''}
-            <div class="text-faint" style="font-size:11px;">Nv. ${esc(String(nvl.nivel != null ? nvl.nivel : '—'))}${(!alMax && t.count != null) ? ` · ×${fmtNum(t.count)}` : ''}</div>
+        <div class="col-card">
+          <div class="col-nombre">${esc(nombreEs)}</div>
+          <div class="col-cuerpo">
+            ${img ? `<img class="cc-img" src="${esc(img)}" alt="${esc(nombreEs)}" loading="lazy" onerror="_marcarCartaSinImagen(this);" onload="if(this.naturalWidth===0) _marcarCartaSinImagen(this);">` : ''}
+            <div class="col-ficha">
+              ${esHeroe ? `<div class="cc-meta"><button type="button" class="cc-badge cc-badge-btn" data-icon-variante="${esc(heroIcon)}" onclick="cambiarVarianteCarta(this)">🦸 Héroe</button></div>` : ''}
+              ${tieneEvo ? `<div class="cc-meta"><button type="button" class="cc-badge cc-badge-btn" data-icon-variante="${esc(evoIcon)}" onclick="cambiarVarianteCarta(this)">✨ Evolución</button></div>` : ''}
+              <div class="cc-meta">${rk ? `<span class="cc-rareza" data-rareza="${rk}">${esc(RAREZA_CARTA_TXT[rk])}</span>` : ''}</div>
+              ${tipoTxt ? `<div class="cc-meta"><span class="cc-tipo">${esc(tipoTxt)}</span></div>` : ''}
+              ${(t.elixirCost != null || t.starLevel) ? `<div class="cc-meta">
+                ${t.elixirCost != null ? `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">${esc(String(t.elixirCost))}</span>` : ''}
+                ${estrellasHtml(t.starLevel)}
+              </div>` : ''}
+              <div class="text-faint" style="font-size:11px;">Nv. ${esc(String(nvl.nivel != null ? nvl.nivel : '—'))}${(!alMax && t.count != null) ? ` · ×${fmtNum(t.count)}` : ''}</div>
+            </div>
           </div>
         </div>`;
       }).join('')}</div>
@@ -1559,6 +1577,17 @@ function renderMazoActual(mazoActual, ext, j){
  * carta-chip--sin-img) y se llama tanto desde onerror (falla de red) como
  * desde onload cuando la imagen sí cargó pero con naturalWidth 0 (imagen
  * vacía/corrupta) — mismo resultado visual en ambos casos.
+ * FIX (23-sep-2026): las dos fichas de renderMazoActual() (y ahora también
+ * la de renderCartasTorre(), que antes hacía este mismo remove+addClass a
+ * mano sin pasar por esta función) dejaron de usar .carta-chip (grid
+ * imagen|contenido) y pasaron a .col-card > .col-cuerpo (flex, imagen +
+ * .col-ficha). Remover el <img> sigue colapsando el espacio correctamente
+ * porque .col-cuerpo es flex: sin el <img>, .col-ficha simplemente pasa a
+ * ocupar toda la fila. El classList.add('carta-chip--sin-img') ya no
+ * matchea ninguna regla CSS bajo .col-card (esa clase solo existía para
+ * .carta-chip, ver assets/styles.css) — queda ahí sin efecto, no rompe
+ * nada, pero podría limpiarse más adelante si se retira del todo
+ * .carta-chip de perfil.html.
  * @param {HTMLImageElement} img
  */
 function _marcarCartaSinImagen(img){
