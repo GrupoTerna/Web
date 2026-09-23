@@ -801,6 +801,8 @@
       <div class="ing-pill-row" id="ingClanPills"></div>
       <span class="ing-contador" id="nuevosCount" aria-live="polite" title="Jugadores incluidos en las gráficas"></span>
     </div>
+    <!-- Fila A-Z/# para filtrar por primera letra del nombre, mismo patrón que #rosterLetraFilter (Directorio por clan): reusa pintarFiltroLetra()/LETRAS_FILTRO de assets/js/ui/filters.js. Historial en CHANGELOG.md. -->
+    <div class="tabs-row" id="ingresosLetraFilter" style="margin-top:12px;"></div>
     <div class="nuevo-grid" id="nuevoGrid" style="margin-top:20px;"></div>
     <!-- Botón Mostrar/Ocultar gráficas evita precargar todo de golpe; las gráficas comparativas arrancan cerradas. Historial en CHANGELOG.md. -->
     <div style="display:flex; justify-content:center; margin-top:28px;">
@@ -1977,7 +1979,11 @@ function pintarFilasRoster(wrap, miembros){
   if (!tbody) return;
   tbody.innerHTML = filasHtmlRoster(miembros);
   tbody.querySelectorAll('.js-miembro').forEach(row => {
-    row.addEventListener('click', () => buscarMiembro(row.dataset.tag));
+    row.addEventListener('click', e => {
+      // La columna "Perfil" trae enlaces reales a RoyaleAPI/CWStats (target="_blank"): si el clic cae en cualquier <a>, actúa ese enlace y no se abre también el perfil interno.
+      if (e.target.closest('a')) return;
+      buscarMiembro(row.dataset.tag);
+    });
   });
   aplicarFiltrosRoster(wrap);
   actualizarIconosFiltro(wrap);
@@ -2504,7 +2510,7 @@ function nuevoCardHtml(n){
   const sem = n.guerraSemana || {};
   const fecha = fechaIngresoTexto(n);
   return `
-      <div class="card nuevo-card js-nuevo-card${incluido ? '' : ' excluido'}" data-tag="${esc(claveIngreso(n))}" style="cursor:pointer; position:relative;">
+      <div class="card nuevo-card js-nuevo-card${incluido ? '' : ' excluido'}" data-tag="${esc(claveIngreso(n))}" data-letra="${esc(primeraLetraFiltro(n.nombre))}" style="cursor:pointer; position:relative;">
         <input type="checkbox" class="js-ingreso-check" data-tag="${esc(claveIngreso(n))}"${incluido ? ' checked' : ''} aria-label="Incluir a ${esc(n.nombre)} en las gráficas">
         <div class="name">${enlaceJugador(n.nombre, n.tag)}</div>
         <div class="tag">${esc(n.tag || '—')}</div>
@@ -2552,6 +2558,8 @@ let ingresosGrupos = [];
 // Las 3 gráficas comparativas no se pintan al cargar (lo más caro de renderizar); arrancan cerradas y se muestran al abrir el botón, con el último filtro ya guardado. Historial en CHANGELOG.md.
 let ingresosGraficasVisibles = false;
 let ingresosUltimosFiltrados = [];
+// Letra A-Z/# elegida en #ingresosLetraFilter; a diferencia del roster (que se resetea al cambiar de clan), acá no hay tal reset porque la sección se carga una sola vez. Historial en CHANGELOG.md.
+let ingresosLetraSeleccionada = null;
 
 function renderNuevoGrid(){
   const nuevoGrid = document.getElementById('nuevoGrid');
@@ -2579,6 +2587,13 @@ function renderNuevoGrid(){
       if (!card.dataset.tag) return;
       window.open('perfil.html?tag=' + encodeURIComponent(card.dataset.tag), '_blank');
     });
+  });
+}
+
+/** Oculta (display:none) las tarjetas cuya primera letra de nombre no calce con ingresosLetraSeleccionada; sin letra elegida, se ven todas. Independiente del filtro por clan/checkbox (ese solo atenúa con .excluido, nunca oculta — ver docblock de arriba). */
+function aplicarFiltroLetraIngresos(){
+  document.querySelectorAll('#nuevoGrid .js-nuevo-card').forEach(card => {
+    card.style.display = (!ingresosLetraSeleccionada || card.dataset.letra === ingresosLetraSeleccionada) ? '' : 'none';
   });
 }
 
@@ -2780,6 +2795,9 @@ async function cargarIngresosRecientes(){
     construirFiltroIngresos(nuevos);
     renderNuevoGrid();
     aplicarFiltroIngresos();
+    // pintarFiltroLetra() solo pinta la fila de botones la primera vez (guardia por dataset.pintado); acá no hace falta limpiar el estado "active" como en el roster porque esta sección no se recarga por clan. Historial en CHANGELOG.md.
+    pintarFiltroLetra('ingresosLetraFilter', LETRAS_FILTRO, () => ingresosLetraSeleccionada, v => ingresosLetraSeleccionada = v, aplicarFiltroLetraIngresos);
+    aplicarFiltroLetraIngresos();
   }catch(err){
     ingresosTodosCache = [];
     ingresosSeleccionados = null;
