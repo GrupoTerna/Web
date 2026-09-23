@@ -186,6 +186,10 @@
      tiene su propio padding (10px 8px) — .badge-grid sube su ancho mínimo
      de columna de 118px a 132px acá arriba para que no quede apretado. */
   .badge-item img{width:92px; height:92px; object-fit:contain;}
+  /* Subcategoría "Maestrías" dentro de la card Insignias (renderInsignias()). Historial en CHANGELOG.md. */
+  .insignias-subcat{font-size:15px; margin:22px 0 0; padding-top:16px; border-top:1px solid var(--line); color:var(--text);}
+  .insignias-subcat--sola{margin-top:0; padding-top:0; border-top:0;}
+  .insignias-subcat .cuenta{font-family:var(--f-mono); font-size:11px; font-weight:400; color:var(--text-faint); margin-left:6px;}
   .badge-item .b-nombre{font-size:11px; font-weight:700; color:var(--text); line-height:1.2; word-break:break-word;}
   .badge-item .b-nivel{font-family:var(--f-mono); font-size:10px; color:var(--gold);}
   .badge-item .b-prog{font-family:var(--f-mono); font-size:10px; color:var(--text-faint);}
@@ -779,8 +783,8 @@ function _filaHeroeEvo(mostrarHeroe, htmlHeroe, mostrarEvo, htmlEvo){
  * Nombres en español (backend: 34_Web_API.gs, _webDatosDriveJugador()).
  * El backend agrega `nombreEs` a currentFavouriteCard, cards[], supportCards[]
  * currentDeck[] y currentDeckSupportCards[] (columna "Nombre" de Backup_Cards.csv, cruzada
- * por ID) y a badges[] (columna "Nombre" de Backup_Insignias_2.csv, cruzada
- * por Tag + Name). `name` sigue siendo el original de Supercell. Una carta o
+ * por ID) y a badges[] (columna "Nombre" del catálogo Backup_Insignias.csv,
+ * cruzada por Name). `name` sigue siendo el original de Supercell. Una carta o
  * insignia sin traducción en el CSV llega sin `nombreEs`. Motivo e historial
  * en CHANGELOG.md.
  */
@@ -796,7 +800,7 @@ function _nombreCartaEs(obj){
 }
 
 /** Nombre de una insignia para mostrar: prioriza `b.nombreEs` (columna
- * "Nombre" de Backup_Insignias_2.csv, que agrega el backend). No hay
+ * "Nombre" de Backup_Insignias.csv, que agrega el backend). No hay
  * diccionario local de respaldo para insignias (a diferencia de las
  * cartas): son ~180+ y su traducción en el CSV es semi-manual, así que
  * inventar una tabla acá arriesga mostrar una traducción incorrecta — sin
@@ -832,42 +836,26 @@ function renderLogros(j){
 
 /**
  * renderInsignias(j)
- * FIX (12-sep-2026, pedido usuario — mitad "Insignias" del punto 26):
- * pinta la card "Insignias" como GRID de íconos (como "Achievement
- * Badges" de RoyaleAPI) a partir de rawClash(j).badges, con EL MISMO
- * nombre de categoría del JSON. Cada insignia trae {name, level,
- * maxLevel, progress, target, iconUrls.large}.
- * OJO (aclarado por el usuario): UNA insignia por nombre — el ícono que
- * manda la API ya corresponde al nivel alcanzado por ESTE jugador, así
- * que no se duplica ni se arma catálogo por niveles acá. ADEMÁS: el
- * catálogo total de insignias posibles es GRANDE y cada miembro
- * desbloquea un subconjunto distinto — este ejemplo (#2GG8PJ8GC.json)
- * trae ~130, pero pueden existir y venir muchas más (Mastery*,
- * SeasonalBadge_*, MergeTacticsBadge_*, *LeagueBadge, 20XXYearBadge...).
- * NO hardcodear nada: se renderiza TODO lo que venga en badges[]; un
- * miembro puede simplemente no tener insignias que otro sí tiene.
- * BACKEND CONECTADO: badges[] completo ya llega dentro de
- * jugador.rawClash (copiado tal cual del JSON de Drive).
+ * Pinta la card "Insignias" como GRID de íconos a partir de rawClash(j).badges
+ * ({name, level, maxLevel, progress, target, iconUrls.large, nombreEs?}).
+ * Las insignias cuyo `name` empieza con "Mastery" van aparte, bajo la
+ * subcategoría "Maestrías" (insigniaEsMaestria()); el resto queda arriba.
+ * UNA insignia por nombre (el ícono de la API ya es el del nivel de ESTE
+ * jugador) y NADA hardcodeado: se renderiza todo lo que venga en badges[].
+ * Historial (12-sep, 23-sep-2026) en CHANGELOG.md.
  */
-function renderInsignias(j){
-  const badges = rawClash(j).badges;
-  const card = document.getElementById('mInsigniasCard');
-  const cont = document.getElementById('mInsigniasContenido');
-  if (!Array.isArray(badges) || !badges.length){ card.style.display = 'none'; cont.innerHTML = ''; return; }
-  card.style.display = '';
-  cont.innerHTML = `
-    <div class="badge-grid">${badges.map(b => {
-      const urls = b.iconUrls || {};
-      const icono = urlValida(urls.large) ? urls.large : (urlValida(urls.medium) ? urls.medium : '');
-      const nivelTxt = (b.level != null && b.maxLevel != null) ? `Nv. ${b.level}/${b.maxLevel}` : (b.level != null ? `Nv. ${b.level}` : '');
-      const tieneTarget = b.target != null && b.target > 0;
-      const pct = tieneTarget ? Math.min(100, Math.round((Number(b.progress) || 0) / b.target * 100)) : 100;
-      // Nombres en español, fuente primaria = CSV: _nombreInsigniaEs() usa
-      // b.nombreEs (lo agrega el backend); si esa insignia no tiene
-      // traducción, cae al nombre crudo de Supercell (no hay diccionario
-      // local para insignias).
-      const nombreEs = _nombreInsigniaEs(b);
-      return `
+function insigniaEsMaestria(b){
+  return !!b && typeof b.name === 'string' && b.name.indexOf('Mastery') === 0;
+}
+
+function _insigniaItemHtml(b){
+  const urls = b.iconUrls || {};
+  const icono = urlValida(urls.large) ? urls.large : (urlValida(urls.medium) ? urls.medium : '');
+  const nivelTxt = (b.level != null && b.maxLevel != null) ? `Nv. ${b.level}/${b.maxLevel}` : (b.level != null ? `Nv. ${b.level}` : '');
+  const tieneTarget = b.target != null && b.target > 0;
+  const pct = tieneTarget ? Math.min(100, Math.round((Number(b.progress) || 0) / b.target * 100)) : 100;
+  const nombreEs = _nombreInsigniaEs(b);
+  return `
       <div class="badge-item" title="${esc(nombreEs)}${tieneTarget ? ` \u2014 ${fmtNum(b.progress)}/${fmtNum(b.target)}` : ''}">
         ${icono ? `<img src="${esc(icono)}" alt="" loading="lazy" onerror="this.style.visibility='hidden';">` : ''}
         <div class="b-nombre">${esc(nombreEs)}</div>
@@ -875,9 +863,25 @@ function renderInsignias(j){
         <div class="progress${pct >= 100 ? ' complete' : ''}"><i style="width:${pct}%"></i></div>
         <div class="b-prog">${tieneTarget ? `${fmtNum(b.progress)} / ${fmtNum(b.target)}` : (b.progress != null ? fmtNum(b.progress) : '')}</div>
       </div>`;
-    }).join('')}</div>
+}
+
+function renderInsignias(j){
+  const badges = rawClash(j).badges;
+  const card = document.getElementById('mInsigniasCard');
+  const cont = document.getElementById('mInsigniasContenido');
+  if (!Array.isArray(badges) || !badges.length){ card.style.display = 'none'; cont.innerHTML = ''; return; }
+  card.style.display = '';
+  const generales = badges.filter(b => !insigniaEsMaestria(b));
+  const maestrias = badges.filter(insigniaEsMaestria);
+  const gridHtml = lista => `<div class="badge-grid">${lista.map(_insigniaItemHtml).join('')}</div>`;
+  const seccionMaestrias = maestrias.length ? `
+    <h3 class="insignias-subcat${generales.length ? '' : ' insignias-subcat--sola'}">Maestrías<span class="cuenta">${maestrias.length}</span></h3>
+    ${gridHtml(maestrias)}` : '';
+  cont.innerHTML = `
+    ${generales.length ? gridHtml(generales) : ''}
+    ${seccionMaestrias}
     <div class="text-faint" style="font-family:var(--f-mono); font-size:11px; margin-top:12px;">
-      Insignias desbloqueadas: ${badges.length}. Cada jugador desbloquea un subconjunto distinto del catálogo total \u2014 las que no aparecen simplemente no están desbloqueadas todavía.
+      Insignias desbloqueadas: ${badges.length}${maestrias.length ? ` (${maestrias.length} de maestría)` : ''}. Cada jugador desbloquea un subconjunto distinto del catálogo total \u2014 las que no aparecen simplemente no están desbloqueadas todavía.
     </div>`;
 }
 

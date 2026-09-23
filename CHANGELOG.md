@@ -2835,6 +2835,36 @@ FIX (03-sep-2026, pedido usuario, punto 19 — "agregar un
 
 ## perfil.html — historial trasladado
 
+### 23-sep-2026 — Subcategoría "Maestrías" en Insignias y corrección de los nombres en español
+Pedido usuario: "haz una subcategoría para todas las insignias que empiezan con
+\"Mastery\" y llámala Maestrías" y "hice un csv con la columna Nombre en español ...
+pero veo que no se están usando".
+
+**Frontend (`perfil.html`, `renderInsignias()`):** las insignias cuyo `name` empieza
+con `Mastery` (distingue mayúsculas, `insigniaEsMaestria()`) se separan del resto y
+se pintan en un segundo grid bajo el subtítulo "Maestrías" (con su cantidad); las
+demás quedan arriba, igual que antes. Si el jugador solo tiene maestrías, el
+subtítulo va sin línea separadora; si no tiene ninguna, no aparece. El pie ahora
+dice cuántas de las desbloqueadas son de maestría. La tarjeta de cada insignia se
+movió a `_insigniaItemHtml()` sin cambiar su HTML. Estilos nuevos:
+`.insignias-subcat`, `.insignias-subcat--sola` y `.cuenta`.
+
+**Corrección a lo dicho el 21-sep-2026 (más abajo):** ese día se documentó que
+`badges[].nombreEs` salía de la columna "Nombre" de `Backup_Insignias_2.csv`, cruzada
+por (Tag, Name). Eso no servía: esa columna solo se autocompletaba para las
+"Mastery…" y las traducciones que el usuario escribe a mano están en el catálogo
+`Backup_Insignias.csv`, que nadie leía. Backend corregido (`34_Web_API.gs`,
+`_webMapaNombreInsigniaPorName()`): ahora lee el catálogo y cruza por Name
+(ya no depende del Tag), igual que las cartas con `Backup_Cards.csv` por ID.
+`36_Insignias.gs` también cambió: las filas nuevas o vacías de una insignia heredan
+el Nombre de sus otros niveles, el catálogo se agrupa por insignia y nivel, y el
+mapa de cartas se lee una sola vez por ejecución. Los comentarios de `perfil.html`
+que citaban `Backup_Insignias_2.csv` se corrigieron.
+
+**No se probó en navegador real:** se verificó la sintaxis del `<script>` inline y el
+render con datos simulados (mezcla, solo maestrías, sin maestrías, `name` nulo). Para
+que llegue `nombreEs` hay que volver a desplegar el web app del backend.
+
 ### 23-sep-2026 — Corrección: la fila solo se reserva si ALGUNA ficha de la sección tiene ese dato (antes se reservaba siempre)
 Pedido usuario, corrigiendo el FIX inmediatamente anterior (mismo día, más
 abajo): "en todo perfil.html hay varias secciones. si el dato se menciona
