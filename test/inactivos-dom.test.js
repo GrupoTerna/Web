@@ -14,13 +14,28 @@ const { loadBrowserScriptsWithDom } = require('./load-browser-script');
 // TODO inactivos.js con loadBrowserScriptsWithDom(), a diferencia de
 // timeline-svg.js que sí tuvo una mitad realmente pura.
 //
+// AMPLIACIÓN (Fase 1, 5ta tanda — cierre de inactivos.js):
+// _obtenerVistaInactivos()/_renderVistaInactivos()/
+// agregarTarjetaCuentasInactivasSiAdmin() (las 3 funciones que habían
+// quedado sin probar de las tandas anteriores, ver
+// Consolidado_Mejoras_Web_Main.md) además necesitan activarBarraScrollTabla()
+// (tables.js, ya probada en su propia tanda) y fitOneLine() (ui/effects.js)
+// — se agregan ambas a DEPENDENCIAS, respetando el mismo orden de carga
+// que usan directorio.html/index.html vía <script src>. apiGetAuth()
+// (core/api.js) NO se carga: se mockea directo como window.apiGetAuth,
+// mismo criterio ya usado en este archivo para apiPost() (ver comentario
+// más abajo, sección de _enviarVetoInactivo).
+//
 // Dependencias cargadas, en el mismo orden que usarían directorio.html/
 // index.html vía <script src>: util.js (esc/fmtNum/urlValida),
-// core/auth.js (esAdminLogueado/adminPuedeVetar), data/clan-badges.js
+// core/auth.js (esAdminLogueado/adminPuedeVetar), ui/tables.js
+// (activarBarraScrollTabla), ui/effects.js (fitOneLine), data/clan-badges.js
 // (ICONO_ROYALEAPI/ICONO_CWSTATS) y por último features/inactivos.js.
 const DEPENDENCIAS = [
   'assets/js/util.js',
   'assets/js/core/auth.js',
+  'assets/js/ui/tables.js',
+  'assets/js/ui/effects.js',
   'assets/js/data/clan-badges.js',
   'assets/js/features/inactivos.js'
 ];
@@ -44,6 +59,18 @@ const TABLA_HTML = `
 
 function montar(htmlBody){
   const window = loadBrowserScriptsWithDom(DEPENDENCIAS, htmlBody || '');
+  // AVISO ABIERTO (limitación de jsdom, no del código real): jsdom no
+  // implementa Element.prototype.scrollIntoView en absoluto (confirmado en
+  // esta sesión — sin este polyfill, cualquier llamada revienta con
+  // "scrollIntoView is not a function"). agregarTarjetaCuentasInactivasSiAdmin()
+  // la llama al abrir la vista de inactivos. Se agrega acá como no-op para
+  // poder probar el resto del flujo del click sin que la falta de esta API
+  // de jsdom tape una prueba real; no verifica CON qué argumentos se
+  // llamaría scrollIntoView en un navegador real (ver test más abajo, que
+  // sí confirma que se invoca).
+  if (typeof window.Element.prototype.scrollIntoView !== 'function'){
+    window.Element.prototype.scrollIntoView = function(){};
+  }
   return window;
 }
 
@@ -336,4 +363,246 @@ test('_enviarVetoInactivo() limpia el mensaje anterior al reintentar (msgEl.inne
   await window._enviarVetoInactivo(wrap, '#T1', null);
   assert.doesNotMatch(wrap.querySelector('.js-iv-msg').innerHTML, /Primer error/);
   assert.match(wrap.querySelector('.js-iv-msg').innerHTML, /Miembro vetado\./);
+});
+
+// ---------------------------------------------------------------------
+// _obtenerVistaInactivos(afterEl)
+// ---------------------------------------------------------------------
+
+// grid + un hermano siguiente ya existente ("siguiente"), para poder
+// comprobar que la sección se inserta EXACTAMENTE después de afterEl y no
+// al final del contenedor.
+function montarConGrid(htmlBody){
+  const window = montar(htmlBody || '<div id="contenedor"><div id="grid"></div><div id="siguiente">ya había algo después</div></div>');
+  const { document } = window;
+  return { window, document, grid: document.getElementById('grid') };
+}
+
+test('_obtenerVistaInactivos() crea la sección #inactivosVista la primera vez, con título/lista/botón Cerrar', () => {
+  const { window, document, grid } = montarConGrid();
+  const section = window._obtenerVistaInactivos(grid);
+  assert.equal(section.id, 'inactivosVista');
+  assert.equal(section.className, 'card');
+  assert.equal(section.style.display, 'none');
+  assert.ok(section.querySelector('#inactivosVistaTitulo'));
+  assert.ok(section.querySelector('#inactivosVistaLista'));
+  assert.ok(section.querySelector('#inactivosVistaCerrar'));
+  assert.equal(document.getElementById('inactivosVista'), section);
+});
+
+test('_obtenerVistaInactivos() reutiliza la misma sección en llamadas siguientes, sin crear una segunda', () => {
+  const { window, document, grid } = montarConGrid();
+  const s1 = window._obtenerVistaInactivos(grid);
+  const s2 = window._obtenerVistaInactivos(grid);
+  assert.equal(s1, s2);
+  assert.equal(document.querySelectorAll('#inactivosVista').length, 1);
+});
+
+test('_obtenerVistaInactivos() inserta la sección justo después de afterEl, antes de cualquier hermano que ya existiera ahí', () => {
+  const { window, grid } = montarConGrid();
+  const section = window._obtenerVistaInactivos(grid);
+  assert.equal(grid.nextElementSibling, section);
+  assert.equal(section.nextElementSibling.id, 'siguiente');
+});
+
+test('_obtenerVistaInactivos() — el botón "Cerrar ✕" oculta la sección', () => {
+  const { window, grid } = montarConGrid();
+  const section = window._obtenerVistaInactivos(grid);
+  section.style.display = 'block';
+  section.querySelector('#inactivosVistaCerrar').click();
+  assert.equal(section.style.display, 'none');
+});
+
+// ---------------------------------------------------------------------
+// _renderVistaInactivos(section, titulo, cuentas)
+// ---------------------------------------------------------------------
+
+// Sección "mínima" con solo lo que _renderVistaInactivos() necesita leer
+// (#inactivosVistaTitulo/#inactivosVistaLista) — armada a mano en vez de
+// vía _obtenerVistaInactivos() para no acoplar estos tests a esa otra
+// función (mismo criterio ya usado en TABLA_HTML más arriba).
+function seccionVistaVacia(document){
+  const section = document.createElement('section');
+  section.innerHTML = '<div id="inactivosVistaTitulo"></div><div id="inactivosVistaLista"></div>';
+  document.body.appendChild(section);
+  return section;
+}
+
+test('_renderVistaInactivos() refleja el título recibido en #inactivosVistaTitulo', () => {
+  const { window, document } = montar();
+  const section = seccionVistaVacia(document);
+  window._renderVistaInactivos(section, 'Cuentas inactivas — General', []);
+  assert.equal(section.querySelector('#inactivosVistaTitulo').textContent, 'Cuentas inactivas — General');
+});
+
+test('_renderVistaInactivos() con cuentas=[] muestra "No hay cuentas en este grupo." y no arma tabla', () => {
+  const { window, document } = montar();
+  const section = seccionVistaVacia(document);
+  window._renderVistaInactivos(section, 'x', []);
+  const lista = section.querySelector('#inactivosVistaLista');
+  assert.match(lista.innerHTML, /No hay cuentas en este grupo\./);
+  assert.equal(lista.querySelector('table'), null);
+});
+
+test('_renderVistaInactivos() con cuentas arma la tabla .inactivos-table, con el encabezado Nombre/Jugador/Nivel/Copas y una fila por cuenta', () => {
+  const { window, document } = montar();
+  const section = seccionVistaVacia(document);
+  window._renderVistaInactivos(section, 'x', [
+    { tag: '#AAA', nombre: 'Ana', clan: 'Terna' },
+    { tag: '#BBB', nombre: 'Beto', clan: 'Terna' }
+  ]);
+  const tabla = section.querySelector('#inactivosVistaLista table.inactivos-table');
+  assert.ok(tabla);
+  // El encabezado dice "Jugador" aunque el dato interno sea nomMulti — ver
+  // FIX 07-sep-2026 en el docblock de _renderVistaInactivos: es a propósito,
+  // NO un bug a "corregir" en el test.
+  const encabezados = Array.from(tabla.querySelectorAll('thead th')).map(th => th.textContent);
+  assert.deepEqual(encabezados, ['Nombre', 'Jugador', 'Nivel', 'Copas', '']);
+  const filas = tabla.querySelectorAll('tbody tr.inactivo-row');
+  assert.equal(filas.length, 2);
+  assert.equal(filas[0].dataset.inactivoTag, '#AAA');
+  assert.equal(filas[1].dataset.inactivoTag, '#BBB');
+});
+
+test('_renderVistaInactivos() aplica activarBarraScrollTabla() sobre .inactivos-table-wrap (barra superior con las clases de tables.js)', () => {
+  const { window, document } = montar();
+  const section = seccionVistaVacia(document);
+  window._renderVistaInactivos(section, 'x', [{ tag: '#AAA', nombre: 'Ana' }]);
+  const wrap = section.querySelector('.inactivos-table-wrap');
+  assert.equal(wrap.classList.contains('tabla-scroll-wrap'), true);
+  assert.equal(wrap.classList.contains('scroll-morado'), true);
+  assert.equal(wrap.previousElementSibling.classList.contains('tabla-scroll-top'), true);
+});
+
+test('_renderVistaInactivos() — clic en "🚫 Vetar" de una fila abre su mini-formulario (usa _toggleFormVetarInactivo internamente)', () => {
+  const { window, document } = montar();
+  admin(window, { puedeVetar: true });
+  const section = seccionVistaVacia(document);
+  window._renderVistaInactivos(section, 'x', [{ tag: '#AAA', nombre: 'Ana' }]);
+  const btn = section.querySelector('.js-inactivo-vetar-btn');
+  assert.ok(btn);
+  btn.click();
+  const filaForm = section.querySelector('.inactivo-vetar-fila');
+  assert.equal(filaForm.style.display, 'table-row');
+  assert.match(filaForm.querySelector('.js-inactivo-vetar-wrap').innerHTML, /Vetar a #AAA/);
+});
+
+test('_renderVistaInactivos() llamado de nuevo con cuentas=[] reemplaza el contenido anterior, sin residuos de la tabla previa', () => {
+  const { window, document } = montar();
+  const section = seccionVistaVacia(document);
+  window._renderVistaInactivos(section, 'x', [{ tag: '#AAA', nombre: 'Ana' }]);
+  window._renderVistaInactivos(section, 'y', []);
+  const lista = section.querySelector('#inactivosVistaLista');
+  assert.equal(lista.querySelector('table'), null);
+  assert.match(lista.innerHTML, /No hay cuentas en este grupo\./);
+});
+
+// ---------------------------------------------------------------------
+// agregarTarjetaCuentasInactivasSiAdmin(grid)
+// ---------------------------------------------------------------------
+
+const CUENTAS_MOCK = [
+  { tag: '#A1', nombre: 'Ana', esAdmin: true },
+  { tag: '#A2', nombre: 'Beto', esAdmin: true },
+  { tag: '#A3', nombre: 'Caro', esAdmin: false }
+];
+
+test('agregarTarjetaCuentasInactivasSiAdmin() sin grid: no hace nada y no rompe', async () => {
+  const { window } = montarConGrid();
+  admin(window);
+  let llamado = false;
+  window.apiGetAuth = async () => { llamado = true; return { ok: true, cuentas: CUENTAS_MOCK }; };
+  await assert.doesNotReject(() => window.agregarTarjetaCuentasInactivasSiAdmin(null));
+  assert.equal(llamado, false);
+});
+
+test('agregarTarjetaCuentasInactivasSiAdmin() sin sesión de admin: no llama apiGetAuth() ni agrega tarjetas', async () => {
+  const { window, grid } = montarConGrid();
+  let llamado = false;
+  window.apiGetAuth = async () => { llamado = true; return { ok: true, cuentas: CUENTAS_MOCK }; };
+  await window.agregarTarjetaCuentasInactivasSiAdmin(grid);
+  assert.equal(llamado, false);
+  assert.equal(grid.children.length, 0);
+});
+
+test('agregarTarjetaCuentasInactivasSiAdmin() con respuesta inválida de apiGetAuth (sin data, con error, cuentas no-array, cuentas vacío) no agrega tarjetas', async () => {
+  const respuestasInvalidas = [
+    null,
+    { ok: false, error: 'Sesión expirada' },
+    { ok: true, cuentas: 'no es un array' },
+    { ok: true, cuentas: [] }
+  ];
+  for (const resp of respuestasInvalidas){
+    const { window, grid } = montarConGrid();
+    admin(window);
+    window.apiGetAuth = async () => resp;
+    await window.agregarTarjetaCuentasInactivasSiAdmin(grid);
+    assert.equal(grid.children.length, 0);
+  }
+});
+
+test('agregarTarjetaCuentasInactivasSiAdmin() con datos válidos agrega las 2 tarjetas (Admins/General) con el conteo correcto de cada grupo', async () => {
+  const { window, document, grid } = montarConGrid();
+  admin(window);
+  window.apiGetAuth = async () => ({ ok: true, cuentas: CUENTAS_MOCK });
+  await window.agregarTarjetaCuentasInactivasSiAdmin(grid);
+  assert.equal(grid.children.length, 2);
+  const [tarjetaAdmins, tarjetaGeneral] = Array.from(grid.children);
+  assert.match(tarjetaAdmins.innerHTML, /Inactivos \(Admins\)/);
+  assert.match(tarjetaAdmins.innerHTML, /2 cuenta\(s\) inactiva\(s\)/); // Ana + Beto
+  assert.match(tarjetaGeneral.innerHTML, /Inactivos \(General\)/);
+  assert.match(tarjetaGeneral.innerHTML, /1 cuenta\(s\) inactiva\(s\)/); // Caro
+  // La vista (_obtenerVistaInactivos) ya se crea acá, aunque todavía no se
+  // haya hecho clic en ninguna tarjeta -- oculta hasta el primer clic.
+  const vista = document.getElementById('inactivosVista');
+  assert.ok(vista);
+  assert.equal(vista.style.display, 'none');
+});
+
+test('agregarTarjetaCuentasInactivasSiAdmin() si apiGetAuth() rechaza (error de red/sesión): no rompe y no agrega tarjetas (catch defensivo)', async () => {
+  const { window, grid } = montarConGrid();
+  admin(window);
+  window.apiGetAuth = async () => { throw new Error('Failed to fetch'); };
+  await assert.doesNotReject(() => window.agregarTarjetaCuentasInactivasSiAdmin(grid));
+  assert.equal(grid.children.length, 0);
+});
+
+test('agregarTarjetaCuentasInactivasSiAdmin() — clic en una tarjeta abre _renderVistaInactivos con su grupo, muestra la vista y la inserta justo después del grid', async () => {
+  const { window, document, grid } = montarConGrid();
+  admin(window);
+  window.apiGetAuth = async () => ({ ok: true, cuentas: CUENTAS_MOCK });
+  await window.agregarTarjetaCuentasInactivasSiAdmin(grid);
+  const tarjetaAdmins = grid.children[0];
+  tarjetaAdmins.click();
+  const vista = document.getElementById('inactivosVista');
+  assert.equal(grid.nextElementSibling, vista);
+  assert.equal(vista.style.display, 'block');
+  assert.equal(vista.dataset.grupo, 'Cuentas inactivas — Administradores');
+  assert.equal(vista.querySelector('#inactivosVistaTitulo').textContent, 'Cuentas inactivas — Administradores');
+  assert.equal(vista.querySelectorAll('tbody tr.inactivo-row').length, 2); // Ana + Beto
+});
+
+test('agregarTarjetaCuentasInactivasSiAdmin() — un 2do clic en la MISMA tarjeta, con su grupo ya abierto, cierra la vista', async () => {
+  const { window, document, grid } = montarConGrid();
+  admin(window);
+  window.apiGetAuth = async () => ({ ok: true, cuentas: CUENTAS_MOCK });
+  await window.agregarTarjetaCuentasInactivasSiAdmin(grid);
+  const tarjetaAdmins = grid.children[0];
+  tarjetaAdmins.click();
+  tarjetaAdmins.click();
+  assert.equal(document.getElementById('inactivosVista').style.display, 'none');
+});
+
+test('agregarTarjetaCuentasInactivasSiAdmin() — clic en la OTRA tarjeta mientras la vista ya está abierta en otro grupo: cambia de grupo en vez de cerrarla', async () => {
+  const { window, document, grid } = montarConGrid();
+  admin(window);
+  window.apiGetAuth = async () => ({ ok: true, cuentas: CUENTAS_MOCK });
+  await window.agregarTarjetaCuentasInactivasSiAdmin(grid);
+  const [tarjetaAdmins, tarjetaGeneral] = Array.from(grid.children);
+  tarjetaAdmins.click();
+  tarjetaGeneral.click();
+  const vista = document.getElementById('inactivosVista');
+  assert.equal(vista.style.display, 'block');
+  assert.equal(vista.dataset.grupo, 'Cuentas inactivas — General');
+  assert.equal(vista.querySelectorAll('tbody tr.inactivo-row').length, 1); // solo Caro
 });

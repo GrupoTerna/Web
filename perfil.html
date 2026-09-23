@@ -994,6 +994,29 @@ function renderCaminoLeyendas(j){
 }
 
 let _colFiltroActivo = 'todos';
+// FIX (23-sep-2026, pedido usuario — pastillas de tipo/héroe/evolución en
+// Colección completa): faltaba esta constante y el helper de más abajo,
+// lo que rompía renderColeccion() con "TIPOS_CARTA_FILTRO is not defined".
+// TIPOS_CARTA_FILTRO son los mismos 3 valores de tipo que ya usa
+// ORDEN_TIPO_CARTA (definido más abajo, junto a _datosCarta) para "Mazo
+// actual"; se repite acá como array simple porque ORDEN_TIPO_CARTA es un
+// objeto {tropa:0,...} pensado para ordenar, no para iterar como lista.
+const TIPOS_CARTA_FILTRO = ['tropa', 'hechizo', 'estructura'];
+/**
+ * _colCartaPasaFiltro(c): true si la carta `c` cumple el filtro activo de
+ * "Colección completa" (_colFiltroActivo). Usado tanto por el filtro de
+ * rareza de siempre como por las pastillas de tipo/héroe/evolución nuevas.
+ */
+function _colCartaPasaFiltro(c){
+  if (_colFiltroActivo === 'todos') return true;
+  if (_colFiltroActivo === 'heroe') return rarezaKey(c.rarity) === 'campeon';
+  if (_colFiltroActivo === 'evolucion') return (c.evolutionLevel || 0) > 0;
+  if (TIPOS_CARTA_FILTRO.includes(_colFiltroActivo)){
+    const d = _datosCarta(_nombreCartaEs(c));
+    return !!(d && d.tipo === _colFiltroActivo);
+  }
+  return rarezaKey(c.rarity) === _colFiltroActivo;
+}
 /**
  * renderColeccion(j) / pintarColeccion(cartas)
  * FIX (12-sep-2026, pedido usuario — "cards[]: colección completa ... una
@@ -1067,7 +1090,7 @@ function renderColeccion(j){
 function pintarColeccion(cartas){
   const cont = document.getElementById('mColeccionContenido');
   const ordRar = { campeon:0, legendaria:1, epica:2, especial:3, comun:4 };
-  const visibles = cartas.filter(c => _colFiltroActivo === 'todos' || rarezaKey(c.rarity) === _colFiltroActivo);
+  const visibles = cartas.filter(_colCartaPasaFiltro);
   // FIX (20-sep-2026, pedido usuario — nombres de cartas en español): se
   // ordena por el nombre YA traducido, para que el orden alfabético
   // coincida con lo que se ve en pantalla.
