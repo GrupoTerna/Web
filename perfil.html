@@ -155,6 +155,23 @@
    * comparten la misma clase .cc-rareza) para no afectar ningún otro
    * lugar de la web. */
   .mazo-chips-principal .cc-rareza{font-size:10px;}
+  /* FIX (23-sep-2026, pedido usuario — "reordena las cartas del mazo actual
+   * con la carta de torre a la derecha", según un boceto): las 8 cartas
+   * (4 columnas x 2 filas, .mazo-chips) ocupan las primeras 4 de 5 columnas
+   * iguales y la carta de torre la quinta, arriba y con el mismo ancho que
+   * una carta del mazo. Sin carta de torre, renderMazoActual() no arma este
+   * contenedor y el mazo ocupa todo el ancho como antes. En pantallas
+   * <=900px la torre baja debajo del mazo (5 columnas quedarían muy
+   * angostas). */
+  .mazo-layout{display:grid; grid-template-columns:repeat(5, 1fr); gap:12px; align-items:start;}
+  .mazo-layout > .mazo-layout-deck{grid-column:span 4; min-width:0;}
+  .mazo-layout > .mazo-layout-torre{min-width:0; display:flex; flex-direction:column; gap:12px;}
+  .mazo-torre-leyenda{font-family:var(--f-mono); font-size:11px; color:var(--text-faint); text-align:center;}
+  @media (max-width:900px){
+    .mazo-layout{grid-template-columns:1fr;}
+    .mazo-layout > .mazo-layout-deck{grid-column:auto;}
+    .mazo-layout > .mazo-layout-torre{max-width:280px;}
+  }
   /* FIX (23-sep-2026, pedido usuario — "replica los estilos del mazo actual
    * a la colección completa de cartas"): mismo motivo que arriba
    * (.mazo-chips-principal .cc-rareza) — se replica el mismo ajuste acá,
@@ -195,6 +212,8 @@
      una card, no algo específico de insignias. Historial en CHANGELOG.md. */
   .insignias-subcat, .leyendas-subcat{font-size:15px; margin:22px 0 0; padding-top:16px; border-top:1px solid var(--line); color:var(--text);}
   .insignias-subcat--sola, .leyendas-subcat--sola{margin-top:0; padding-top:0; border-top:0;}
+  /* FIX (23-sep-2026): en la card "Competitivo" la primera subsección va justo bajo el título (sin eyebrow), así que necesita un poco de aire arriba. */
+  .leyendas-subcat--sola{margin-top:14px;}
   .insignias-subcat .cuenta, .leyendas-subcat .cuenta{font-family:var(--f-mono); font-size:11px; font-weight:400; color:var(--text-faint); margin-left:6px;}
   /* FIX (23-sep-2026, pedido usuario — "en las insignias y maestrías, agrega
      un botón selector para ordenar por nombre o nivel, a a la z, menos a
@@ -530,8 +549,8 @@
            gráficas de Evolución); se mueve tal cual, sin cambios de
            contenido, a esta posición. -->
       <div class="card pf-panel-datos" id="mLeyendasCard" style="display:none;">
-        <div class="eyebrow">Competitivo</div>
-        <h2 class="pf-subtitulo">Camino de Leyendas y ligas</h2>
+        <!-- FIX (23-sep-2026, pedido usuario — "quita el texto de 'Camino de leyendas y ligas', que quede como competitivo desglosándose en camino de leyendas y en ligas"): el título de la card pasa a ser "Competitivo" (sin el eyebrow duplicado) y las dos subsecciones las arma renderCaminoLeyendas(). Historial en CHANGELOG.md. -->
+        <h2 class="pf-subtitulo" style="margin-top:0;">Competitivo</h2>
         <div id="mLeyendasContenido"></div>
       </div>
 
@@ -890,6 +909,10 @@ function insigniaEsMaestria(b){
  * la página) y último `badges[]` recibido, para poder reordenar y volver a
  * pintar sin tener que pedirle `j` de nuevo a cambiarOrdenInsignias(). */
 let _insigniasOrden = 'nombre-asc';
+/** FIX (23-sep-2026, pedido usuario — "maestrías debe tener su propio
+ * filtro de orden"): Maestrías deja de compartir el criterio de orden con
+ * las insignias generales y guarda el suyo (mismo valor inicial). */
+let _maestriasOrden = 'nombre-asc';
 let _ultimosBadges = null;
 
 /** Compara dos insignias según el criterio de _insigniasOrden. Para orden
@@ -915,6 +938,14 @@ function cambiarOrdenInsignias(orden){
   if (_ultimosBadges) _pintarInsignias(_ultimosBadges);
 }
 
+/** onchange del <select> de orden de la subsección Maestrías: igual que
+ * cambiarOrdenInsignias() pero solo toca _maestriasOrden, así que las
+ * insignias generales conservan su propio orden. */
+function cambiarOrdenMaestrias(orden){
+  _maestriasOrden = orden;
+  if (_ultimosBadges) _pintarInsignias(_ultimosBadges);
+}
+
 function _insigniaItemHtml(b){
   const urls = b.iconUrls || {};
   const icono = urlValida(urls.large) ? urls.large : (urlValida(urls.medium) ? urls.medium : '');
@@ -932,10 +963,12 @@ function _insigniaItemHtml(b){
       </div>`;
 }
 
-/** Arma el <select> de orden, marcando como `selected` la opción vigente en
- * _insigniasOrden (para que sobreviva a un re-pintado, ej. al cambiar de
- * orden o al volver a llamar a renderInsignias() con datos nuevos). */
-function _selectorOrdenInsigniasHtml(){
+/** Arma un <select> de orden, marcando como `selected` la opción vigente
+ * (`actual`, que es _insigniasOrden o _maestriasOrden según el grupo) para
+ * que sobreviva a un re-pintado, ej. al cambiar de orden o al volver a
+ * llamar a renderInsignias() con datos nuevos. `id` y `handler` distinguen
+ * el selector de Insignias del de Maestrías. */
+function _selectorOrdenHtml(id, actual, handler){
   const opciones = [
     ['nombre-asc', 'Nombre (A-Z)'],
     ['nombre-desc', 'Nombre (Z-A)'],
@@ -944,17 +977,17 @@ function _selectorOrdenInsigniasHtml(){
   ];
   return `
     <div class="insignias-orden">
-      <label for="selInsigniasOrden">Ordenar por</label>
-      <select id="selInsigniasOrden" onchange="cambiarOrdenInsignias(this.value)">
-        ${opciones.map(([v, txt]) => `<option value="${v}"${_insigniasOrden === v ? ' selected' : ''}>${txt}</option>`).join('')}
+      <label for="${id}">Ordenar por</label>
+      <select id="${id}" onchange="${handler}(this.value)">
+        ${opciones.map(([v, txt]) => `<option value="${v}"${actual === v ? ' selected' : ''}>${txt}</option>`).join('')}
       </select>
     </div>`;
 }
 
-/** Pinta la card "Insignias" (grid + subsección "Maestrías") aplicando el
- * orden vigente (_insigniasOrden) a cada subsección por separado — general
- * y Maestrías siguen siendo dos grupos aparte, solo cambia el orden DENTRO
- * de cada uno. Separada de renderInsignias() para que cambiarOrdenInsignias()
+/** Pinta la card "Insignias" (grid + subsección "Maestrías"). Cada grupo
+ * tiene su PROPIO selector y su propio orden (_insigniasOrden para las
+ * generales, _maestriasOrden para Maestrías) — general y Maestrías son dos
+ * grupos aparte y solo cambia el orden DENTRO de cada uno. Separada de renderInsignias() para que cambiarOrdenInsignias()
  * pueda volver a pintar sin depender de `j`. */
 function _pintarInsignias(badges){
   const card = document.getElementById('mInsigniasCard');
@@ -962,13 +995,14 @@ function _pintarInsignias(badges){
   if (!Array.isArray(badges) || !badges.length){ card.style.display = 'none'; cont.innerHTML = ''; return; }
   card.style.display = '';
   const generales = badges.filter(b => !insigniaEsMaestria(b)).sort((a, b) => _compararInsignias(a, b, _insigniasOrden));
-  const maestrias = badges.filter(insigniaEsMaestria).sort((a, b) => _compararInsignias(a, b, _insigniasOrden));
+  const maestrias = badges.filter(insigniaEsMaestria).sort((a, b) => _compararInsignias(a, b, _maestriasOrden));
   const gridHtml = lista => `<div class="badge-grid">${lista.map(_insigniaItemHtml).join('')}</div>`;
   const seccionMaestrias = maestrias.length ? `
     <h3 class="insignias-subcat${generales.length ? '' : ' insignias-subcat--sola'}">Maestrías<span class="cuenta">${maestrias.length}</span></h3>
+    ${_selectorOrdenHtml('selMaestriasOrden', _maestriasOrden, 'cambiarOrdenMaestrias')}
     ${gridHtml(maestrias)}` : '';
   cont.innerHTML = `
-    ${_selectorOrdenInsigniasHtml()}
+    ${generales.length ? _selectorOrdenHtml('selInsigniasOrden', _insigniasOrden, 'cambiarOrdenInsignias') : ''}
     ${generales.length ? gridHtml(generales) : ''}
     ${seccionMaestrias}
     <div class="text-faint" style="font-family:var(--f-mono); font-size:11px; margin-top:12px;">
@@ -1139,7 +1173,7 @@ function renderCaminoLeyendas(j){
     <h3 class="leyendas-subcat leyendas-subcat--sola">Camino de Leyendas</h3>
     ${tabla(filasLeyendas)}` : '';
   const seccionLiga = filasLiga.length ? `
-    <h3 class="leyendas-subcat${filasLeyendas.length ? '' : ' leyendas-subcat--sola'}">Liga</h3>
+    <h3 class="leyendas-subcat${filasLeyendas.length ? '' : ' leyendas-subcat--sola'}">Ligas</h3>
     ${tabla(filasLiga)}` : '';
   cont.innerHTML = `${seccionLeyendas}${seccionLiga}`;
 }
@@ -2134,10 +2168,16 @@ function renderMazoActual(mazoActual, ext, j){
         </div>`;
     }).join('');
 
+    // FIX (23-sep-2026, pedido usuario — torre a la derecha del mazo): antes
+    // esto era un bloque aparte debajo del mazo (con su eyebrow y su
+    // <div class="mazo-chips">); ahora es solo la columna derecha de
+    // .mazo-layout (ver CSS arriba). El título "Carta de torre del mazo"
+    // pasa de eyebrow a una leyenda chica bajo la carta, para no desalinear
+    // la carta de torre con la primera fila del mazo.
     torreHtml = `
-    <div style="margin-top:18px; padding-top:14px; border-top:1px solid var(--line);">
-      <div class="eyebrow" style="margin-bottom:8px;">Carta de torre del mazo</div>
-      <div class="mazo-chips">${chipsHtml}</div>
+    <div class="mazo-layout-torre">
+      ${chipsHtml}
+      <div class="mazo-torre-leyenda">Carta de torre del mazo</div>
     </div>`;
   }
 
@@ -2145,7 +2185,10 @@ function renderMazoActual(mazoActual, ext, j){
     ? `<div class="text-dim" style="font-size:12px; margin-top:16px;">Coste de elixir promedio: <b>${esc(String(mazoActual.elixirPromedio))}</b></div>`
     : '';
 
-  cont.innerHTML = `<div class="mazo-chips mazo-chips-principal">${cartasHtml}</div>${torreHtml}${promedioHtml}`;
+  const mazoHtml = `<div class="mazo-chips mazo-chips-principal">${cartasHtml}</div>`;
+  cont.innerHTML = torreHtml
+    ? `<div class="mazo-layout"><div class="mazo-layout-deck">${mazoHtml}</div>${torreHtml}</div>${promedioHtml}`
+    : `${mazoHtml}${promedioHtml}`;
 }
 
 /**

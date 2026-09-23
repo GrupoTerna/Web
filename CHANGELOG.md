@@ -2835,6 +2835,32 @@ FIX (03-sep-2026, pedido usuario, punto 19 — "agregar un
 
 ## perfil.html — historial trasladado
 
+### 23-sep-2026 — Orden propio para Maestrías, card "Competitivo" y carta de torre a la derecha del mazo
+Pedido del usuario (con captura y boceto): "maestrías debe tener su propio
+filtro de orden", "quita el texto de 'Camino de leyendas y ligas', que quede
+como competitivo desglosándose en camino de leyendas y en ligas" y "reordena
+las cartas del mazo actual con la carta de torre a la derecha".
+
+- **`_pintarInsignias()` / `_selectorOrdenHtml()` (antes
+  `_selectorOrdenInsigniasHtml()`):** Maestrías ya no comparte el orden con las
+  insignias generales. Hay un estado propio (`_maestriasOrden`), su selector
+  (`#selMaestriasOrden`, bajo el subtítulo "Maestrías") y su handler
+  (`cambiarOrdenMaestrias()`); las generales siguen con `_insigniasOrden` y
+  `#selInsigniasOrden`. El selector de las generales solo se muestra si hay
+  insignias generales.
+- **Card `#mLeyendasCard` / `renderCaminoLeyendas()`:** se quita el título
+  "Camino de Leyendas y ligas" y el eyebrow "Competitivo"; el título de la card
+  es ahora "Competitivo", con las subsecciones "Camino de Leyendas" y "Ligas"
+  (antes "Liga"). Se agrega `.leyendas-subcat--sola{margin-top:14px}` para
+  separar la primera subsección del título.
+- **`renderMazoActual()`:** las 8 cartas (4x2, `.mazo-chips-principal`) van
+  dentro de `.mazo-layout-deck`, que ocupa 4 de 5 columnas iguales de
+  `.mazo-layout`; la carta de torre (`.mazo-layout-torre`) ocupa la 5.ª, arriba
+  y con el ancho de una carta del mazo. El título "Carta de torre del mazo"
+  pasa de eyebrow a leyenda chica bajo la carta (`.mazo-torre-leyenda`) para no
+  desalinearla de la primera fila. Sin carta de torre, el mazo ocupa todo el
+  ancho como antes. En pantallas de hasta 900 px la torre baja debajo del mazo.
+
 ### 23-sep-2026 — Subcategoría "Maestrías" en Insignias y corrección de los nombres en español
 Pedido usuario: "haz una subcategoría para todas las insignias que empiezan con
 \"Mastery\" y llámala Maestrías" y "hice un csv con la columna Nombre en español ...
