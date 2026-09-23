@@ -101,6 +101,39 @@ function loadBrowserScripts(relPaths){
  * pedido del usuario, específicamente para esto) para levantar un
  * documento HTML real y correr los archivos ahí dentro con `window.eval()`,
  * en vez del sandbox vacío de `vm`.
+ *
+ * CORRECCIÓN (23-sep-2026, tanda de inactivos.js — encontrado al escribir
+ * inactivos-dom.test.js): la primera versión de esta función llamaba a
+ * `window.eval(codigo)` UNA VEZ POR ARCHIVO, dentro del `for`. Eso se ve
+ * igual que `<script src>` real, pero NO se comporta igual: cada llamada
+ * a `window.eval(...)` (eval INDIRECTO, porque se invoca como
+ * `window.eval(...)` y no como `eval(...)` a secas) evalúa ese código como
+ * un Script nuevo, y — a diferencia de múltiples etiquetas `<script>` en
+ * un HTML real — jsdom NO comparte las declaraciones `const`/`let` de
+ * nivel raíz de una llamada a `eval()` con la siguiente. Solo `var` y las
+ * `function` de nivel raíz (que si quedan como propiedades reales de
+ * `window`) sobrevivían entre archivos. Esto rompía en silencio cualquier
+ * archivo que dependiera de un `const` de nivel raíz de OTRO archivo
+ * cargado antes en la misma lista — ej. `ICONO_ROYALEAPI`/`ICONO_CWSTATS`
+ * (`const` en data/clan-badges.js) usados dentro de
+ * `_filaInactivoHtml()` (inactivos.js): con la versión anterior de esta
+ * función, ese caso fallaba con "ICONO_ROYALEAPI is not defined" apenas se
+ * probaba con un royaleApi/cwstats válido (antes no se había notado
+ * porque los tests de timeline-svg-dom.test.js, la única otra tanda que
+ * usa esta función hasta ahora, no dependen de ningún `const` cruzado
+ * entre util.js y timeline-svg.js).
+ *
+ * Fix: concatenar el código de TODOS los archivos en un solo string y
+ * pasarlo a una ÚNICA llamada a `window.eval(...)`, en vez de una llamada
+ * por archivo. Con un solo eval, todas las declaraciones de nivel raíz
+ * (`const`, `let`, `function`, `var`) quedan en el MISMO Script y se
+ * comparten entre sí, igual que si todo el código viviera en un único
+ * `<script>` — que es, de hecho, más parecido a cómo se comportan
+ * múltiples `<script src>` reales en un HTML (que sí comparten el entorno
+ * léxico global entre sí) de lo que se comportaba la versión anterior.
+ * Se revisó explícitamente que este cambio no rompiera
+ * timeline-svg-dom.test.js (los 16 tests de esa tanda siguen en verde
+ * después del fix, ver Consolidado_Mejoras_Web_Main.md).
  * @param {string[]} relPaths Rutas relativas a la raíz del repo, en el
  *   mismo orden de carga que usaría el <script src> real.
  * @param {string} [htmlBody] HTML inicial del <body> (ej. un contenedor
@@ -117,11 +150,11 @@ function loadBrowserScriptsWithDom(relPaths, htmlBody){
     { runScripts: 'outside-only', pretendToBeVisual: true, url: 'https://terna.example/' }
   );
   const { window } = dom;
-  for (const relPath of relPaths){
+  const codigoCompleto = relPaths.map(relPath => {
     const fullPath = path.join(__dirname, '..', relPath);
-    const codigo = fs.readFileSync(fullPath, 'utf8');
-    window.eval(codigo);
-  }
+    return fs.readFileSync(fullPath, 'utf8');
+  }).join('\n;\n'); // ';' de separación: evita que un archivo sin ';' final rompa el siguiente (ASI)
+  window.eval(codigoCompleto);
   return window;
 }
 
