@@ -2835,6 +2835,65 @@ FIX (03-sep-2026, pedido usuario, punto 19 — "agregar un
 
 ## perfil.html — historial trasladado
 
+### 23-sep-2026 — Corrección: la fila solo se reserva si ALGUNA ficha de la sección tiene ese dato (antes se reservaba siempre)
+Pedido usuario, corrigiendo el FIX inmediatamente anterior (mismo día, más
+abajo): "en todo perfil.html hay varias secciones. si el dato se menciona
+para alguna ficha en una determinada sección, se le reserva una ficha. si
+no se menciona, no se debe reservar la fila". El FIX anterior (`_filaFicha`
+original, solo con `mostrar`/`htmlVisible`/`htmlPlaceholder`) reservaba
+SIEMPRE las 5 filas condicionales (Héroe, Evolución, Rareza, Tipo,
+Elixir+Estrellas) en toda ficha de "Mazo actual" y "Carta de torre del
+mazo", aunque NINGUNA ficha de esa sección tuviera el dato — por ejemplo,
+si ninguna de las 8 cartas del mazo tiene Evolución, esa fila se seguía
+reservando (oculta) en las 8 igual, ocupando espacio vertical sin ningún
+propósito, porque ninguna ficha vecina la necesitaba para alinearse.
+
+**`_filaFicha(reservar, mostrar, htmlVisible, htmlPlaceholder)`** gana un
+parámetro nuevo al principio: `reservar` es un flag calculado UNA VEZ POR
+SECCIÓN (no por ficha) — verdadero si `Array.some()` encuentra que alguna
+ficha de esa sección concreta tiene el dato. Si `reservar` es falso, la
+función devuelve `''` (la fila no existe para ninguna ficha de la
+sección). Si es verdadero, se mantiene el comportamiento anterior: la
+ficha que sí tiene el dato lo muestra, la que no lo tiene reserva el
+mismo alto oculta con `visibility:hidden`.
+
+Se aplicó a las **4 funciones de perfil.html** que arman fichas con este
+componente (`.col-card`/`.col-ficha`/`.cc-meta`), cada una calculando sus
+propios flags de sección **por separado** (una sección nunca contamina a
+otra):
+- **`renderMazoActual()` — "Mazo actual":** se separa el cálculo de datos
+  por ficha (`datosCartas`, un `.map()` que ya no arma HTML, solo objetos)
+  del armado de HTML (`cartasHtml`, un segundo `.map()` sobre
+  `datosCartas`), porque los flags de sección
+  (`seccionMazoHeroe/Evo/Rareza/Tipo/Elixir`) necesitan conocer las 8
+  fichas completas antes de poder decidir si cada fila se reserva.
+- **`renderMazoActual()` — "Carta de torre del mazo":** mismo patrón,
+  aparte (`datosTorres`/`seccionTorre*`) — es su propia sección (su propio
+  título, su propio `.mazo-chips`), sus flags NO se mezclan con los de
+  "Mazo actual" aunque viven en la misma función. `torreHtml` pasa de
+  expresión ternaria en una sola línea a un `if` con `let torreHtml = '';`
+  para poder declarar `datosTorres` y los flags antes de armar el HTML.
+- **`renderCartasTorre()` — "Cartas de torre":** mismo patrón
+  (`datosTorres`/`seccionTorres*` — nombres locales a esta función, no
+  confundir con los de `renderMazoActual()` de arriba, cada función tiene
+  su propio scope).
+- **`pintarColeccion()` — "Colección completa":** mismo patrón
+  (`datosCol`/`seccionCol*`), calculado contra `visibles` (las cartas que
+  pasan el filtro de rareza activo `_colFiltroActivo`), no contra `cartas`
+  completo — como esta función se vuelve a ejecutar entera al cambiar de
+  filtro, los flags se recalculan cada vez contra lo que realmente se va a
+  pintar. De paso, Rareza y Tipo (que acá eran `<span>` sueltos, sin
+  envolver en `.cc-meta`, a diferencia de las otras 3 secciones) pasan a
+  envolverse en `.cc-meta` igual que el resto — sin cambio visual (
+  `.col-ficha` ya es `flex-direction:column`, cualquier hijo directo era
+  su propia fila con o sin el wrapper), pero ahora las 4 secciones
+  comparten el mismo marcado para el mismo dato.
+
+No se tocó `renderCartaFavorita()` ("Carta favorita"): es una sección de
+una sola ficha, así que "reservar si alguna ficha de la sección lo tiene"
+da exactamente el mismo resultado que "mostrar si esta ficha lo tiene" —
+no hay ninguna ficha vecina con la que alinearse.
+
 ### 23-sep-2026 — Filas de la ficha (Héroe/Evolución/Rareza/Tipo/Elixir) alineadas entre tarjetas de una misma fila del grid
 Pedido usuario: "en cada sección, haz que cada tipo de dato dentro de la
 misma fila esté a la misma altura. es decir, todos los costos a la misma

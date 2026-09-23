@@ -603,36 +603,39 @@ function estrellasHtml(starLevel){
 }
 
 /**
- * _filaFicha(mostrar, htmlVisible, htmlPlaceholder)
- * FIX (23-sep-2026, pedido usuario — "en cada sección, haz que cada tipo de
- * dato dentro de la misma fila esté a la misma altura ... todos los costos
- * a la misma altura, todos los tipos a la misma altura, todas las
- * calidades a la misma altura, etc"): dentro de una misma fila visual de
- * .mazo-chips (grid de 4 columnas), cada .col-card arma su .col-ficha con
- * una fila (.cc-meta) por dato que tenga -- Héroe y Evolución son
- * condicionales (no todas las cartas los tienen), así que una carta con
- * ambos (p.ej. Valquiria: Héroe + Evolución) suma 2 filas de más arriba de
- * Rareza/Tipo/Elixir/Nivel que una carta sin ninguno de los dos (p.ej.
- * Montacarneros) -- esas 2 filas de más corren hacia abajo todo lo que
- * sigue, y Rareza/Tipo/Elixir/Nivel dejan de coincidir en altura con los
- * mismos datos de las tarjetas vecinas de la misma fila del grid (ver
- * imagen del pedido).
- * Se resuelve reservando siempre la misma cantidad de filas, en el mismo
- * orden, en TODAS las tarjetas: si el dato puntual no aplica, la fila se
- * sigue renderizando igual (con htmlPlaceholder, la misma marca/clases con
- * un espacio en blanco, para que ocupe exactamente el mismo alto) pero
- * oculta con visibility:hidden -- nunca display:none, que sí colapsaría el
- * alto y volvería a romper la alineación -- y sin foco de teclado
- * (tabindex="-1" ya viene incluido en cada htmlPlaceholder de botón) ni
- * lectura de pantalla (aria-hidden="true").
- * Se usa tanto para las 8 cartas del mazo como para la carta de torre del
- * mazo, dentro de renderMazoActual() más abajo.
- * @param {boolean} mostrar
+ * _filaFicha(reservar, mostrar, htmlVisible, htmlPlaceholder)
+ * FIX (23-sep-2026, pedido usuario — "en todo perfil.html hay varias
+ * secciones. si el dato se menciona para alguna ficha en una determinada
+ * sección, se le reserva una fila. si no se menciona, no se debe reservar
+ * la fila"): corrige el FIX anterior (mismo día, más abajo en este
+ * archivo), que siempre reservaba las 5 filas condicionales (Héroe,
+ * Evolución, Rareza, Tipo, Elixir+Estrellas) en TODAS las fichas de una
+ * sección, aunque NINGUNA ficha de esa sección tuviera ese dato (p.ej. una
+ * sección sin ninguna carta Evolución igual reservaba la fila de
+ * Evolución, oculta, en cada una de sus fichas — espacio vertical de
+ * sobra sin ningún propósito).
+ * Ahora la decisión de reservar o no una fila se toma una sola vez por
+ * SECCIÓN (no por ficha): cada función que arma una sección de fichas
+ * (renderMazoActual() para "Mazo actual" y "Carta de torre del mazo",
+ * renderCartasTorre() para "Cartas de torre", pintarColeccion() para
+ * "Colección completa") primero calcula sus datos por ficha, LUEGO revisa
+ * con Array.some() si ALGUNA ficha de esa sección tiene cada dato
+ * (sección­TieneHeroe/Evo/Rareza/Tipo/Elixir), y recién con eso arma el
+ * HTML de cada ficha. `reservar` es ese flag de sección: si es falso, la
+ * fila no se imprime para ninguna ficha (ni siquiera oculta). Si es
+ * verdadero, se mantiene el comportamiento del FIX anterior: la ficha que
+ * sí tiene el dato lo muestra normal, y la que no lo tiene igual reserva
+ * el espacio (mismo marcado/alto) pero con visibility:hidden — nunca
+ * display:none, que sí colapsaría el alto — para que las fichas de esa
+ * sección sigan alineadas entre sí.
+ * @param {boolean} reservar - true si ALGUNA ficha de la sección tiene este dato.
+ * @param {boolean} mostrar - true si ESTA ficha puntual tiene el dato.
  * @param {string} htmlVisible - contenido real cuando mostrar es true.
  * @param {string} htmlPlaceholder - contenido oculto (mismo alto) cuando mostrar es false.
  * @returns {string}
  */
-function _filaFicha(mostrar, htmlVisible, htmlPlaceholder){
+function _filaFicha(reservar, mostrar, htmlVisible, htmlPlaceholder){
+  if (!reservar) return '';
   return mostrar
     ? `<div class="cc-meta">${htmlVisible}</div>`
     : `<div class="cc-meta" style="visibility:hidden;" aria-hidden="true">${htmlPlaceholder}</div>`;
@@ -919,7 +922,19 @@ function pintarColeccion(cartas){
     ((ordRar[rarezaKey(a.rarity)] ?? 9) - (ordRar[rarezaKey(b.rarity)] ?? 9)) ||
     ((b.level || 0) - (a.level || 0)) ||
     _nombreCartaEs(a).localeCompare(_nombreCartaEs(b), 'es'));
-  cont.innerHTML = visibles.map(c => {
+  // FIX (23-sep-2026, pedido usuario — "en todo perfil.html hay varias
+  // secciones. si el dato se menciona para alguna ficha en una determinada
+  // sección, se le reserva una fila. si no se menciona, no se debe
+  // reservar la fila"): mismo criterio que datosCartas/seccionMazo* de
+  // renderMazoActual() y datosTorres/seccionTorres* de renderCartasTorre()
+  // más arriba — se calculan los datos de cada ficha primero (datosCol),
+  // y recién con eso los flags de sección (seccionColHeroe/Evo/Rareza/
+  // Tipo/Elixir). Acá la "sección" es `visibles` (las cartas que pasan el
+  // filtro de rareza activo, _colFiltroActivo) y no todo `cartas`: al
+  // cambiar de filtro esta función se vuelve a llamar entera, así que los
+  // flags se recalculan contra lo que realmente se va a pintar cada vez.
+  // Historial en CHANGELOG.md.
+  const datosCol = visibles.map(c => {
     const rk = rarezaKey(c.rarity);
     const urls = c.iconUrls || {};
     const img = ((c.evolutionLevel || 0) > 0 && urls.evolutionMedium) ? urls.evolutionMedium
@@ -970,20 +985,44 @@ function pintarColeccion(cartas){
     const esHeroe = rk === 'campeon';
     const iconoHeroe = urls.heroMedium || '';
     const activaHero = !!(esHeroe && iconoHeroe && img === iconoHeroe);
+    return {
+      c, rk, img, nombreEs, nvl, alMax, iconoBase, iconoEvo, tieneEvo, activaEvo, tipoTxt, esHeroe, iconoHeroe, activaHero,
+      mostrarHeroe: esHeroe,
+      mostrarEvo: tieneEvo,
+      mostrarRareza: !!rk,
+      mostrarTipo: !!tipoTxt,
+      mostrarElixir: !!(c.elixirCost != null || c.starLevel)
+    };
+  });
+  const seccionColHeroe = datosCol.some(x => x.mostrarHeroe);
+  const seccionColEvo = datosCol.some(x => x.mostrarEvo);
+  const seccionColRareza = datosCol.some(x => x.mostrarRareza);
+  const seccionColTipo = datosCol.some(x => x.mostrarTipo);
+  const seccionColElixir = datosCol.some(x => x.mostrarElixir);
+
+  cont.innerHTML = datosCol.map(x => {
+    const { c, rk, img, nombreEs, nvl, alMax, iconoBase, iconoEvo, activaEvo, tipoTxt, iconoHeroe, activaHero } = x;
     return `
     <div class="col-card${alMax ? ' max-level' : ''}" title="${esc(nombreEs)}" data-icon-base="${esc(iconoBase)}">
       <div class="col-nombre">${esc(nombreEs)}</div>
       <div class="col-cuerpo">
         ${img ? `<img class="cc-img" src="${esc(img)}" alt="" loading="lazy" onerror="this.style.visibility='hidden';">` : ''}
         <div class="col-ficha">
-          ${esHeroe ? `<button type="button" class="cc-badge cc-badge-btn${activaHero ? ' is-activa' : ''}" data-icon-variante="${esc(iconoHeroe)}" onclick="cambiarVarianteCarta(this)">\u{1f9b8} H\u00e9roe</button>` : ''}
-          ${tieneEvo ? `<button type="button" class="cc-badge cc-badge-btn${activaEvo ? ' is-activa' : ''}" data-icon-variante="${esc(iconoEvo)}" onclick="cambiarVarianteCarta(this)">\u2728 Evoluci\u00f3n</button>` : ''}
-          ${rk ? `<span class="cc-rareza" data-rareza="${rk}">${esc(RAREZA_CARTA_TXT[rk])}</span>` : ''}
-          ${tipoTxt ? `<span class="cc-tipo">${esc(tipoTxt)}</span>` : ''}
-          ${(c.elixirCost != null || c.starLevel) ? `<div class="cc-meta">
-            ${c.elixirCost != null ? `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">${esc(String(c.elixirCost))}</span>` : ''}
-            ${estrellasHtml(c.starLevel)}
-          </div>` : ''}
+          ${_filaFicha(seccionColHeroe, x.mostrarHeroe,
+            `<button type="button" class="cc-badge cc-badge-btn${activaHero ? ' is-activa' : ''}" data-icon-variante="${esc(iconoHeroe)}" onclick="cambiarVarianteCarta(this)">\u{1f9b8} H\u00e9roe</button>`,
+            `<button type="button" class="cc-badge cc-badge-btn" tabindex="-1">\u{1f9b8} H\u00e9roe</button>`)}
+          ${_filaFicha(seccionColEvo, x.mostrarEvo,
+            `<button type="button" class="cc-badge cc-badge-btn${activaEvo ? ' is-activa' : ''}" data-icon-variante="${esc(iconoEvo)}" onclick="cambiarVarianteCarta(this)">\u2728 Evoluci\u00f3n</button>`,
+            `<button type="button" class="cc-badge cc-badge-btn" tabindex="-1">\u2728 Evoluci\u00f3n</button>`)}
+          ${_filaFicha(seccionColRareza, x.mostrarRareza,
+            rk ? `<span class="cc-rareza" data-rareza="${rk}">${esc(RAREZA_CARTA_TXT[rk])}</span>` : '',
+            `<span class="cc-rareza">&nbsp;</span>`)}
+          ${_filaFicha(seccionColTipo, x.mostrarTipo,
+            `<span class="cc-tipo">${esc(tipoTxt)}</span>`,
+            `<span class="cc-tipo">&nbsp;</span>`)}
+          ${_filaFicha(seccionColElixir, x.mostrarElixir,
+            `${c.elixirCost != null ? `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">${esc(String(c.elixirCost))}</span>` : ''}${estrellasHtml(c.starLevel)}`,
+            `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">&nbsp;</span>`)}
           <div class="text-faint" style="font-family:var(--f-mono); font-size:11px;">Nv. ${esc(String(nvl.nivel != null ? nvl.nivel : '\u2014'))}</div>
           ${!alMax ? `<div class="cc-count" title="Cantidad de cartas disponibles de este nombre">\u00d7${fmtNum(c.count)}</div>` : ''}
         </div>
@@ -1016,7 +1055,15 @@ function renderCartasTorre(j){
   const cont = document.getElementById('mTorresContenido');
   if (!Array.isArray(torres) || !torres.length){ card.style.display = 'none'; cont.innerHTML = ''; return; }
   card.style.display = '';
-  cont.innerHTML = torres.map(t => {
+  // FIX (23-sep-2026, pedido usuario — "en todo perfil.html hay varias
+  // secciones. si el dato se menciona para alguna ficha en una determinada
+  // sección, se le reserva una fila. si no se menciona, no se debe
+  // reservar la fila"): mismo criterio que datosCartas/seccionMazo* en
+  // renderMazoActual() más arriba — se calculan los datos de cada ficha
+  // primero (datosTorres), y recién con eso los flags de sección
+  // (seccionTorresHeroe/Evo/Rareza/Tipo/Elixir, calculados solo contra
+  // "Cartas de torre", ninguna otra sección). Historial en CHANGELOG.md.
+  const datosTorres = torres.map(t => {
     const rk = rarezaKey(t.rarity);
     const img = (t.iconUrls && (t.iconUrls.medium || t.iconUrls.large)) || '';
     // FIX (20-sep-2026, pedido usuario — nombres de cartas en español):
@@ -1042,20 +1089,44 @@ function renderCartasTorre(j){
     const heroIcon = (t.iconUrls && t.iconUrls.heroMedium) || '';
     const tieneEvo = (t.evolutionLevel || 0) > 0;
     const evoIcon = (t.iconUrls && t.iconUrls.evolutionMedium) || '';
+    return {
+      t, rk, img, nombreEs, nvl, alMax, tipoTxt, esHeroe, heroIcon, tieneEvo, evoIcon,
+      mostrarHeroe: esHeroe,
+      mostrarEvo: tieneEvo,
+      mostrarRareza: !!rk,
+      mostrarTipo: !!tipoTxt,
+      mostrarElixir: !!(t.elixirCost != null || t.starLevel)
+    };
+  });
+  const seccionTorresHeroe = datosTorres.some(x => x.mostrarHeroe);
+  const seccionTorresEvo = datosTorres.some(x => x.mostrarEvo);
+  const seccionTorresRareza = datosTorres.some(x => x.mostrarRareza);
+  const seccionTorresTipo = datosTorres.some(x => x.mostrarTipo);
+  const seccionTorresElixir = datosTorres.some(x => x.mostrarElixir);
+
+  cont.innerHTML = datosTorres.map(x => {
+    const { t, rk, img, nombreEs, nvl, alMax, tipoTxt, heroIcon, evoIcon } = x;
     return `
     <div class="col-card">
       <div class="col-nombre">${esc(nombreEs)}</div>
       <div class="col-cuerpo">
         ${img ? `<img class="cc-img" src="${esc(img)}" alt="${esc(nombreEs)}" loading="lazy" onerror="_marcarCartaSinImagen(this);" onload="if(this.naturalWidth===0) _marcarCartaSinImagen(this);">` : ''}
         <div class="col-ficha">
-          ${esHeroe ? `<div class="cc-meta"><button type="button" class="cc-badge cc-badge-btn" data-icon-variante="${esc(heroIcon)}" onclick="cambiarVarianteCarta(this)">🦸 Héroe</button></div>` : ''}
-          ${tieneEvo ? `<div class="cc-meta"><button type="button" class="cc-badge cc-badge-btn" data-icon-variante="${esc(evoIcon)}" onclick="cambiarVarianteCarta(this)">✨ Evolución</button></div>` : ''}
-          <div class="cc-meta">${rk ? `<span class="cc-rareza" data-rareza="${rk}">${esc(RAREZA_CARTA_TXT[rk])}</span>` : ''}</div>
-          ${tipoTxt ? `<div class="cc-meta"><span class="cc-tipo">${esc(tipoTxt)}</span></div>` : ''}
-          ${(t.elixirCost != null || t.starLevel) ? `<div class="cc-meta">
-            ${t.elixirCost != null ? `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">${esc(String(t.elixirCost))}</span>` : ''}
-            ${estrellasHtml(t.starLevel)}
-          </div>` : ''}
+          ${_filaFicha(seccionTorresHeroe, x.mostrarHeroe,
+            `<button type="button" class="cc-badge cc-badge-btn" data-icon-variante="${esc(heroIcon)}" onclick="cambiarVarianteCarta(this)">🦸 Héroe</button>`,
+            `<button type="button" class="cc-badge cc-badge-btn" tabindex="-1">🦸 Héroe</button>`)}
+          ${_filaFicha(seccionTorresEvo, x.mostrarEvo,
+            `<button type="button" class="cc-badge cc-badge-btn" data-icon-variante="${esc(evoIcon)}" onclick="cambiarVarianteCarta(this)">✨ Evolución</button>`,
+            `<button type="button" class="cc-badge cc-badge-btn" tabindex="-1">✨ Evolución</button>`)}
+          ${_filaFicha(seccionTorresRareza, x.mostrarRareza,
+            rk ? `<span class="cc-rareza" data-rareza="${rk}">${esc(RAREZA_CARTA_TXT[rk])}</span>` : '',
+            `<span class="cc-rareza">&nbsp;</span>`)}
+          ${_filaFicha(seccionTorresTipo, x.mostrarTipo,
+            `<span class="cc-tipo">${esc(tipoTxt)}</span>`,
+            `<span class="cc-tipo">&nbsp;</span>`)}
+          ${_filaFicha(seccionTorresElixir, x.mostrarElixir,
+            `${t.elixirCost != null ? `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">${esc(String(t.elixirCost))}</span>` : ''}${estrellasHtml(t.starLevel)}`,
+            `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">&nbsp;</span>`)}
           <div class="text-faint" style="font-size:11px;">Nv. ${esc(String(nvl.nivel != null ? nvl.nivel : '\u2014'))}${alMax ? '' : ` \u00b7 \u00d7${fmtNum(t.count)}`}</div>
         </div>
       </div>
@@ -1456,7 +1527,12 @@ function renderMazoActual(mazoActual, ext, j){
   }
 
   // col-card--grande: mismo tamaño de imagen que "Carta favorita" (72x84). Historial en CHANGELOG.md.
-  const cartasHtml = _ordenarCartasMazo(listaCartas).map(c => {
+  // FIX (23-sep-2026): se separa el cálculo de datos por ficha (mapDatos)
+  // del armado del HTML (mapHtml) para poder calcular antes los flags de
+  // sección (seccionTiene*, ver _filaFicha() más arriba) — necesitan
+  // conocer TODAS las fichas de "Mazo actual" antes de decidir si cada
+  // fila se reserva o no. Historial en CHANGELOG.md.
+  const datosCartas = _ordenarCartasMazo(listaCartas).map(c => {
     const rc = (c.id != null && rawPorId[String(c.id)]) || {};
     const urlsRc = rc.iconUrls || {};
     const d = _datosCarta(c.name);
@@ -1484,6 +1560,24 @@ function renderMazoActual(mazoActual, ext, j){
     // botón siempre coincida con lo que se ve en el ícono del chip.
     const activaHero = !!(c.hasHero && heroIcon && imgSrc === heroIcon);
     const activaEvo = !!(hasEvo && evoIcon && imgSrc === evoIcon);
+    return {
+      c, d, tipoTxt, starLevel, count, hasEvo, evoIcon, heroIcon, imgSrc, activaHero, activaEvo,
+      mostrarHeroe: !!(c.hasHero || (d && d.rareza === 'campeon')),
+      mostrarEvo: hasEvo,
+      mostrarRareza: !!d,
+      mostrarTipo: !!tipoTxt,
+      mostrarElixir: !!((d && d.elixir != null) || starLevel)
+    };
+  });
+  // Flags de sección: se reserva una fila solo si ALGUNA de las 8 fichas del mazo la usa. Ver _filaFicha().
+  const seccionMazoHeroe = datosCartas.some(x => x.mostrarHeroe);
+  const seccionMazoEvo = datosCartas.some(x => x.mostrarEvo);
+  const seccionMazoRareza = datosCartas.some(x => x.mostrarRareza);
+  const seccionMazoTipo = datosCartas.some(x => x.mostrarTipo);
+  const seccionMazoElixir = datosCartas.some(x => x.mostrarElixir);
+
+  const cartasHtml = datosCartas.map(x => {
+    const { c, d, tipoTxt, starLevel, count, heroIcon, evoIcon, imgSrc, activaHero, activaEvo } = x;
     return `
     <div class="col-card col-card--grande" data-icon-base="${esc(c.icon || '')}">
       <div class="col-nombre">${esc(c.name)}</div>
@@ -1497,20 +1591,23 @@ function renderMazoActual(mazoActual, ext, j){
                elixir+estrellas juntos (6, ver FIX anterior sobre por qué van
                juntos) y nivel+cantidad (7). Mismo orden que el resto de fichas
                de carta del sitio (Colección, Cartas de torre, Carta favorita,
-               Cartas más usadas). Una fila se omite si no hay dato para ella. -->
-          ${_filaFicha(c.hasHero || (d && d.rareza === 'campeon'),
+               Cartas más usadas). Una fila se omite si NINGUNA ficha de la
+               sección tiene ese dato (ver _filaFicha() y seccionMazo* más
+               arriba); si al menos una ficha de la sección sí lo tiene, la
+               fila se reserva en todas (oculta en las que no lo tengan). -->
+          ${_filaFicha(seccionMazoHeroe, x.mostrarHeroe,
             `<button type="button" class="cc-badge cc-badge-btn${activaHero ? ' is-activa' : ''}" data-icon-variante="${esc(heroIcon)}" onclick="cambiarVarianteCarta(this)">🦸 Héroe</button>`,
             `<button type="button" class="cc-badge cc-badge-btn" tabindex="-1">🦸 Héroe</button>`)}
-          ${_filaFicha(hasEvo,
+          ${_filaFicha(seccionMazoEvo, x.mostrarEvo,
             `<button type="button" class="cc-badge cc-badge-btn${activaEvo ? ' is-activa' : ''}" data-icon-variante="${esc(evoIcon)}" onclick="cambiarVarianteCarta(this)">✨ Evolución</button>`,
             `<button type="button" class="cc-badge cc-badge-btn" tabindex="-1">✨ Evolución</button>`)}
-          ${_filaFicha(!!d,
+          ${_filaFicha(seccionMazoRareza, x.mostrarRareza,
             d ? `<span class="cc-rareza" data-rareza="${d.rareza}">${esc(RAREZA_CARTA_TXT[d.rareza])}</span>` : '',
             `<span class="cc-rareza">&nbsp;</span>`)}
-          ${_filaFicha(!!tipoTxt,
+          ${_filaFicha(seccionMazoTipo, x.mostrarTipo,
             `<span class="cc-tipo">${esc(tipoTxt)}</span>`,
             `<span class="cc-tipo">&nbsp;</span>`)}
-          ${_filaFicha((d && d.elixir != null) || !!starLevel,
+          ${_filaFicha(seccionMazoElixir, x.mostrarElixir,
             `${d && d.elixir != null ? `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">${esc(String(d.elixir))}</span>` : ''}${estrellasHtml(starLevel)}`,
             `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">&nbsp;</span>`)}
           <div class="text-faint" style="font-family:var(--f-mono); font-size:11px;">
@@ -1524,63 +1621,90 @@ function renderMazoActual(mazoActual, ext, j){
 
   // Carta de torre equipada con este mazo; categoría currentDeckSupportCards del JSON (el backend ya la manda). Historial en CHANGELOG.md.
   const torresRaw = rawClash(j).currentDeckSupportCards;
-  const torreHtml = (Array.isArray(torresRaw) && torresRaw.length) ? `
-    <div style="margin-top:18px; padding-top:14px; border-top:1px solid var(--line);">
-      <div class="eyebrow" style="margin-bottom:8px;">Carta de torre del mazo</div>
-      <div class="mazo-chips">${torresRaw.map(t => {
-        const rk = rarezaKey(t.rarity);
-        const img = (t.iconUrls && (t.iconUrls.medium || t.iconUrls.large)) || '';
-        // FIX (20-sep-2026, pedido usuario — nombres de cartas en español):
-        // currentDeckSupportCards viene crudo del JSON de Supercell, igual
-        // que currentFavouriteCard más abajo — se traduce con el mismo
-        // diccionario (cards-es.js).
-        const nombreEs = _nombreCartaEs(t);
-        // FIX (21-sep-2026): nivel/nivelMax ya compensados (nivelAppAjustado()) —
-        // currentDeckSupportCards trae el mismo tope viejo por rareza que
-        // supportCards[]/cards[].
-        const nvl = nivelAppAjustado(t.level, t.maxLevel);
-        // FIX (21-sep-2026, pedido usuario — orden estándar de fichas de
-        // carta en toda la web): se agregan Tipo (_datosCarta()), Elixir/
-        // Estrellas (t.elixirCost/t.starLevel, mismos campos que trae
-        // supportCards[]/currentDeckSupportCards) y Cantidad (t.count) —
-        // antes esta ficha era la más incompleta del sitio (solo nombre/
-        // rareza/nivel). Héroe (rk === 'campeon') se deja por generalidad;
-        // en la práctica las torres nunca son Campeón, así que esa fila
-        // queda vacía por diseño del juego, no por falta de dato.
-        const d = _datosCarta(nombreEs);
-        const tipoTxt = d ? d.tipo.charAt(0).toUpperCase() + d.tipo.slice(1) : '';
-        const esHeroe = rk === 'campeon';
-        const heroIcon = (t.iconUrls && t.iconUrls.heroMedium) || '';
-        const tieneEvo = (t.evolutionLevel || 0) > 0;
-        const evoIcon = (t.iconUrls && t.iconUrls.evolutionMedium) || '';
-        const alMax = t.maxLevel != null && t.level != null && t.level >= t.maxLevel;
-        return `
+  let torreHtml = '';
+  if (Array.isArray(torresRaw) && torresRaw.length) {
+    // FIX (23-sep-2026): mismo criterio que datosCartas/seccionMazo* más
+    // arriba — "Carta de torre del mazo" es su propia sección (su propio
+    // título, su propio <div class="mazo-chips">), así que sus flags de
+    // reserva de fila se calculan aparte, solo contra las fichas de
+    // torresRaw, no contra las 8 cartas del mazo. Historial en CHANGELOG.md.
+    const datosTorres = torresRaw.map(t => {
+      const rk = rarezaKey(t.rarity);
+      const img = (t.iconUrls && (t.iconUrls.medium || t.iconUrls.large)) || '';
+      // FIX (20-sep-2026, pedido usuario — nombres de cartas en español):
+      // currentDeckSupportCards viene crudo del JSON de Supercell, igual
+      // que currentFavouriteCard más abajo — se traduce con el mismo
+      // diccionario (cards-es.js).
+      const nombreEs = _nombreCartaEs(t);
+      // FIX (21-sep-2026): nivel/nivelMax ya compensados (nivelAppAjustado()) —
+      // currentDeckSupportCards trae el mismo tope viejo por rareza que
+      // supportCards[]/cards[].
+      const nvl = nivelAppAjustado(t.level, t.maxLevel);
+      // FIX (21-sep-2026, pedido usuario — orden estándar de fichas de
+      // carta en toda la web): se agregan Tipo (_datosCarta()), Elixir/
+      // Estrellas (t.elixirCost/t.starLevel, mismos campos que trae
+      // supportCards[]/currentDeckSupportCards) y Cantidad (t.count) —
+      // antes esta ficha era la más incompleta del sitio (solo nombre/
+      // rareza/nivel). Héroe (rk === 'campeon') se deja por generalidad;
+      // en la práctica las torres nunca son Campeón, así que esa fila
+      // queda vacía por diseño del juego, no por falta de dato.
+      const d = _datosCarta(nombreEs);
+      const tipoTxt = d ? d.tipo.charAt(0).toUpperCase() + d.tipo.slice(1) : '';
+      const esHeroe = rk === 'campeon';
+      const heroIcon = (t.iconUrls && t.iconUrls.heroMedium) || '';
+      const tieneEvo = (t.evolutionLevel || 0) > 0;
+      const evoIcon = (t.iconUrls && t.iconUrls.evolutionMedium) || '';
+      const alMax = t.maxLevel != null && t.level != null && t.level >= t.maxLevel;
+      return {
+        t, rk, img, nombreEs, nvl, tipoTxt, esHeroe, heroIcon, tieneEvo, evoIcon, alMax,
+        mostrarHeroe: esHeroe,
+        mostrarEvo: tieneEvo,
+        mostrarRareza: !!rk,
+        mostrarTipo: !!tipoTxt,
+        mostrarElixir: !!((t.elixirCost != null) || t.starLevel)
+      };
+    });
+    const seccionTorreHeroe = datosTorres.some(x => x.mostrarHeroe);
+    const seccionTorreEvo = datosTorres.some(x => x.mostrarEvo);
+    const seccionTorreRareza = datosTorres.some(x => x.mostrarRareza);
+    const seccionTorreTipo = datosTorres.some(x => x.mostrarTipo);
+    const seccionTorreElixir = datosTorres.some(x => x.mostrarElixir);
+
+    const chipsHtml = datosTorres.map(x => {
+      const { t, rk, img, nombreEs, nvl, tipoTxt, heroIcon, evoIcon, alMax } = x;
+      return `
         <div class="col-card col-card--grande">
           <div class="col-nombre">${esc(nombreEs)}</div>
           <div class="col-cuerpo">
             ${img ? `<img class="cc-img" src="${esc(img)}" alt="${esc(nombreEs)}" loading="lazy" onerror="_marcarCartaSinImagen(this);" onload="if(this.naturalWidth===0) _marcarCartaSinImagen(this);">` : ''}
             <div class="col-ficha">
-              ${_filaFicha(esHeroe,
+              ${_filaFicha(seccionTorreHeroe, x.mostrarHeroe,
                 `<button type="button" class="cc-badge cc-badge-btn" data-icon-variante="${esc(heroIcon)}" onclick="cambiarVarianteCarta(this)">🦸 Héroe</button>`,
                 `<button type="button" class="cc-badge cc-badge-btn" tabindex="-1">🦸 Héroe</button>`)}
-              ${_filaFicha(tieneEvo,
+              ${_filaFicha(seccionTorreEvo, x.mostrarEvo,
                 `<button type="button" class="cc-badge cc-badge-btn" data-icon-variante="${esc(evoIcon)}" onclick="cambiarVarianteCarta(this)">✨ Evolución</button>`,
                 `<button type="button" class="cc-badge cc-badge-btn" tabindex="-1">✨ Evolución</button>`)}
-              ${_filaFicha(!!rk,
+              ${_filaFicha(seccionTorreRareza, x.mostrarRareza,
                 rk ? `<span class="cc-rareza" data-rareza="${rk}">${esc(RAREZA_CARTA_TXT[rk])}</span>` : '',
                 `<span class="cc-rareza">&nbsp;</span>`)}
-              ${_filaFicha(!!tipoTxt,
+              ${_filaFicha(seccionTorreTipo, x.mostrarTipo,
                 `<span class="cc-tipo">${esc(tipoTxt)}</span>`,
                 `<span class="cc-tipo">&nbsp;</span>`)}
-              ${_filaFicha((t.elixirCost != null) || !!t.starLevel,
+              ${_filaFicha(seccionTorreElixir, x.mostrarElixir,
                 `${t.elixirCost != null ? `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">${esc(String(t.elixirCost))}</span>` : ''}${estrellasHtml(t.starLevel)}`,
                 `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">&nbsp;</span>`)}
               <div class="text-faint" style="font-size:11px;">Nv. ${esc(String(nvl.nivel != null ? nvl.nivel : '—'))}${(!alMax && t.count != null) ? ` · ×${fmtNum(t.count)}` : ''}</div>
             </div>
           </div>
         </div>`;
-      }).join('')}</div>
-    </div>` : '';
+    }).join('');
+
+    torreHtml = `
+    <div style="margin-top:18px; padding-top:14px; border-top:1px solid var(--line);">
+      <div class="eyebrow" style="margin-bottom:8px;">Carta de torre del mazo</div>
+      <div class="mazo-chips">${chipsHtml}</div>
+    </div>`;
+  }
 
   const promedioHtml = (mazoActual.elixirPromedio !== null && mazoActual.elixirPromedio !== undefined)
     ? `<div class="text-dim" style="font-size:12px; margin-top:16px;">Coste de elixir promedio: <b>${esc(String(mazoActual.elixirPromedio))}</b></div>`
