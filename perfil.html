@@ -603,6 +603,42 @@ function estrellasHtml(starLevel){
 }
 
 /**
+ * _filaFicha(mostrar, htmlVisible, htmlPlaceholder)
+ * FIX (23-sep-2026, pedido usuario — "en cada sección, haz que cada tipo de
+ * dato dentro de la misma fila esté a la misma altura ... todos los costos
+ * a la misma altura, todos los tipos a la misma altura, todas las
+ * calidades a la misma altura, etc"): dentro de una misma fila visual de
+ * .mazo-chips (grid de 4 columnas), cada .col-card arma su .col-ficha con
+ * una fila (.cc-meta) por dato que tenga -- Héroe y Evolución son
+ * condicionales (no todas las cartas los tienen), así que una carta con
+ * ambos (p.ej. Valquiria: Héroe + Evolución) suma 2 filas de más arriba de
+ * Rareza/Tipo/Elixir/Nivel que una carta sin ninguno de los dos (p.ej.
+ * Montacarneros) -- esas 2 filas de más corren hacia abajo todo lo que
+ * sigue, y Rareza/Tipo/Elixir/Nivel dejan de coincidir en altura con los
+ * mismos datos de las tarjetas vecinas de la misma fila del grid (ver
+ * imagen del pedido).
+ * Se resuelve reservando siempre la misma cantidad de filas, en el mismo
+ * orden, en TODAS las tarjetas: si el dato puntual no aplica, la fila se
+ * sigue renderizando igual (con htmlPlaceholder, la misma marca/clases con
+ * un espacio en blanco, para que ocupe exactamente el mismo alto) pero
+ * oculta con visibility:hidden -- nunca display:none, que sí colapsaría el
+ * alto y volvería a romper la alineación -- y sin foco de teclado
+ * (tabindex="-1" ya viene incluido en cada htmlPlaceholder de botón) ni
+ * lectura de pantalla (aria-hidden="true").
+ * Se usa tanto para las 8 cartas del mazo como para la carta de torre del
+ * mazo, dentro de renderMazoActual() más abajo.
+ * @param {boolean} mostrar
+ * @param {string} htmlVisible - contenido real cuando mostrar es true.
+ * @param {string} htmlPlaceholder - contenido oculto (mismo alto) cuando mostrar es false.
+ * @returns {string}
+ */
+function _filaFicha(mostrar, htmlVisible, htmlPlaceholder){
+  return mostrar
+    ? `<div class="cc-meta">${htmlVisible}</div>`
+    : `<div class="cc-meta" style="visibility:hidden;" aria-hidden="true">${htmlPlaceholder}</div>`;
+}
+
+/**
  * Nombres en español (backend: 34_Web_API.gs, _webDatosDriveJugador()).
  * El backend agrega `nombreEs` a currentFavouriteCard, cards[], supportCards[]
  * currentDeck[] y currentDeckSupportCards[] (columna "Nombre" de Backup_Cards.csv, cruzada
@@ -1462,14 +1498,21 @@ function renderMazoActual(mazoActual, ext, j){
                juntos) y nivel+cantidad (7). Mismo orden que el resto de fichas
                de carta del sitio (Colección, Cartas de torre, Carta favorita,
                Cartas más usadas). Una fila se omite si no hay dato para ella. -->
-          ${(c.hasHero || (d && d.rareza === 'campeon')) ? `<div class="cc-meta"><button type="button" class="cc-badge cc-badge-btn${activaHero ? ' is-activa' : ''}" data-icon-variante="${esc(heroIcon)}" onclick="cambiarVarianteCarta(this)">🦸 Héroe</button></div>` : ''}
-          ${hasEvo ? `<div class="cc-meta"><button type="button" class="cc-badge cc-badge-btn${activaEvo ? ' is-activa' : ''}" data-icon-variante="${esc(evoIcon)}" onclick="cambiarVarianteCarta(this)">✨ Evolución</button></div>` : ''}
-          ${d ? `<div class="cc-meta"><span class="cc-rareza" data-rareza="${d.rareza}">${esc(RAREZA_CARTA_TXT[d.rareza])}</span></div>` : ''}
-          ${tipoTxt ? `<div class="cc-meta"><span class="cc-tipo">${esc(tipoTxt)}</span></div>` : ''}
-          ${(d && d.elixir != null) || starLevel ? `<div class="cc-meta">
-            ${d && d.elixir != null ? `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">${esc(String(d.elixir))}</span>` : ''}
-            ${estrellasHtml(starLevel)}
-          </div>` : ''}
+          ${_filaFicha(c.hasHero || (d && d.rareza === 'campeon'),
+            `<button type="button" class="cc-badge cc-badge-btn${activaHero ? ' is-activa' : ''}" data-icon-variante="${esc(heroIcon)}" onclick="cambiarVarianteCarta(this)">🦸 Héroe</button>`,
+            `<button type="button" class="cc-badge cc-badge-btn" tabindex="-1">🦸 Héroe</button>`)}
+          ${_filaFicha(hasEvo,
+            `<button type="button" class="cc-badge cc-badge-btn${activaEvo ? ' is-activa' : ''}" data-icon-variante="${esc(evoIcon)}" onclick="cambiarVarianteCarta(this)">✨ Evolución</button>`,
+            `<button type="button" class="cc-badge cc-badge-btn" tabindex="-1">✨ Evolución</button>`)}
+          ${_filaFicha(!!d,
+            d ? `<span class="cc-rareza" data-rareza="${d.rareza}">${esc(RAREZA_CARTA_TXT[d.rareza])}</span>` : '',
+            `<span class="cc-rareza">&nbsp;</span>`)}
+          ${_filaFicha(!!tipoTxt,
+            `<span class="cc-tipo">${esc(tipoTxt)}</span>`,
+            `<span class="cc-tipo">&nbsp;</span>`)}
+          ${_filaFicha((d && d.elixir != null) || !!starLevel,
+            `${d && d.elixir != null ? `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">${esc(String(d.elixir))}</span>` : ''}${estrellasHtml(starLevel)}`,
+            `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">&nbsp;</span>`)}
           <div class="text-faint" style="font-family:var(--f-mono); font-size:11px;">
             Nv. ${esc(String(c.nivel != null ? c.nivel : '\u2014'))}
             ${(count != null && c.nivel !== 16) ? ` · <span class="cc-count" title="Cantidad de cartas disponibles de este nombre">×${fmtNum(count)}</span>` : ''}
@@ -1517,14 +1560,21 @@ function renderMazoActual(mazoActual, ext, j){
           <div class="col-cuerpo">
             ${img ? `<img class="cc-img" src="${esc(img)}" alt="${esc(nombreEs)}" loading="lazy" onerror="_marcarCartaSinImagen(this);" onload="if(this.naturalWidth===0) _marcarCartaSinImagen(this);">` : ''}
             <div class="col-ficha">
-              ${esHeroe ? `<div class="cc-meta"><button type="button" class="cc-badge cc-badge-btn" data-icon-variante="${esc(heroIcon)}" onclick="cambiarVarianteCarta(this)">🦸 Héroe</button></div>` : ''}
-              ${tieneEvo ? `<div class="cc-meta"><button type="button" class="cc-badge cc-badge-btn" data-icon-variante="${esc(evoIcon)}" onclick="cambiarVarianteCarta(this)">✨ Evolución</button></div>` : ''}
-              <div class="cc-meta">${rk ? `<span class="cc-rareza" data-rareza="${rk}">${esc(RAREZA_CARTA_TXT[rk])}</span>` : ''}</div>
-              ${tipoTxt ? `<div class="cc-meta"><span class="cc-tipo">${esc(tipoTxt)}</span></div>` : ''}
-              ${(t.elixirCost != null || t.starLevel) ? `<div class="cc-meta">
-                ${t.elixirCost != null ? `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">${esc(String(t.elixirCost))}</span>` : ''}
-                ${estrellasHtml(t.starLevel)}
-              </div>` : ''}
+              ${_filaFicha(esHeroe,
+                `<button type="button" class="cc-badge cc-badge-btn" data-icon-variante="${esc(heroIcon)}" onclick="cambiarVarianteCarta(this)">🦸 Héroe</button>`,
+                `<button type="button" class="cc-badge cc-badge-btn" tabindex="-1">🦸 Héroe</button>`)}
+              ${_filaFicha(tieneEvo,
+                `<button type="button" class="cc-badge cc-badge-btn" data-icon-variante="${esc(evoIcon)}" onclick="cambiarVarianteCarta(this)">✨ Evolución</button>`,
+                `<button type="button" class="cc-badge cc-badge-btn" tabindex="-1">✨ Evolución</button>`)}
+              ${_filaFicha(!!rk,
+                rk ? `<span class="cc-rareza" data-rareza="${rk}">${esc(RAREZA_CARTA_TXT[rk])}</span>` : '',
+                `<span class="cc-rareza">&nbsp;</span>`)}
+              ${_filaFicha(!!tipoTxt,
+                `<span class="cc-tipo">${esc(tipoTxt)}</span>`,
+                `<span class="cc-tipo">&nbsp;</span>`)}
+              ${_filaFicha((t.elixirCost != null) || !!t.starLevel,
+                `${t.elixirCost != null ? `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">${esc(String(t.elixirCost))}</span>` : ''}${estrellasHtml(t.starLevel)}`,
+                `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">&nbsp;</span>`)}
               <div class="text-faint" style="font-size:11px;">Nv. ${esc(String(nvl.nivel != null ? nvl.nivel : '—'))}${(!alMax && t.count != null) ? ` · ×${fmtNum(t.count)}` : ''}</div>
             </div>
           </div>

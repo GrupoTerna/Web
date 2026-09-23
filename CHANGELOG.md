@@ -2835,6 +2835,38 @@ FIX (03-sep-2026, pedido usuario, punto 19 — "agregar un
 
 ## perfil.html — historial trasladado
 
+### 23-sep-2026 — Filas de la ficha (Héroe/Evolución/Rareza/Tipo/Elixir) alineadas entre tarjetas de una misma fila del grid
+Pedido usuario: "en cada sección, haz que cada tipo de dato dentro de la
+misma fila esté a la misma altura. es decir, todos los costos a la misma
+altura, todos los tipos a la misma altura, todas las calidades a la misma
+altura, etc" — a raíz del FIX anterior de `.col-card--grande` (mismo día,
+ver más abajo), donde se ve claramente que en "Mazo actual" (grid de 4
+columnas, `.mazo-chips`) una carta con Héroe+Evolución (ej. Valquiria) tiene
+2 filas más arriba de Rareza/Tipo/Elixir/Nivel que una sin ninguno de los
+dos (ej. Montacarneros) — esas 2 filas de más corrían todo lo de abajo, y el
+mismo dato (p.ej. la píldora de Rareza) quedaba a distinta altura según la
+columna.
+
+Se agrega `_filaFicha(mostrar, htmlVisible, htmlPlaceholder)` (helper nuevo,
+arriba de `renderMazoActual()`): cuando `mostrar` es falso, en vez de omitir
+la fila (`''`) se sigue renderizando un `.cc-meta` con el mismo marcado
+(mismas clases/pill) pero `visibility:hidden` — nunca `display:none`, que sí
+colapsa el alto y vuelve a romper la alineación — y `aria-hidden="true"`
+(los botones ocultos de Héroe/Evolución también llevan `tabindex="-1"` para
+no robar foco de teclado). Se aplica a las 5 filas condicionales de una
+ficha (Héroe, Evolución, Rareza, Tipo, Elixir+Estrellas) tanto en las 8
+cartas del mazo como en la carta de torre del mazo
+(`renderMazoActual()`) — la fila de Nivel no se toca porque ya se
+renderizaba siempre, sin condición.
+
+No se tocó `assets/styles.css` ni `.coleccion-grid`/`pintarColeccion()`
+("Colección completa"): esa sección usa `grid-template-columns:repeat(
+auto-fill,minmax(150px,1fr))`, sin un número fijo de columnas por fila, así
+que qué tarjetas comparten fila visual cambia según el ancho de pantalla —
+el mismo problema pedido acá ("mazo actual y su carta de torre") no aplica
+igual ahí; se puede extender después si el usuario lo pide para esa
+sección.
+
 ### 23-sep-2026 — Cartas de "Mazo actual" y "Carta de torre del mazo" pasan a `.col-card--grande`
 Pedido usuario: "el tamaño de cartas de mazo actual y su carta de torre es muy
 pequeño, dale el mismo tamaño de la imagen de carta favorita". Las tres
