@@ -219,18 +219,18 @@
         (.col-cuerpo), con la imagen a la izquierda y la ficha (rareza/
         tipo/elixir+estrellas/nivel/cantidad) a la derecha — ver
         pintarColeccion() más abajo, que arma este HTML nuevo. */
-  /* FIX (23-sep-2026, pedido usuario — "en la colección completa falta
-   * espacio, cambia de 7 a 6 fichas por fila"): grid-template-columns
-   * pasa de auto-fill/minmax(150px,1fr) (número de columnas variable
-   * según el ancho disponible — en su pantalla resultaban 7) a un número
-   * fijo de 6 columnas, mismo criterio que ya usa .mazo-chips (repeat(4,
-   * 1fr) con fallback a 2 en pantallas angostas) — así cada ficha queda
-   * más ancha y con más espacio, sin importar el ancho de pantalla.
-   */
-  .coleccion-grid{display:grid; grid-template-columns:repeat(6, 1fr); gap:10px; margin-top:12px;}
-  @media (max-width:640px){
-    .coleccion-grid{grid-template-columns:repeat(2, 1fr);}
-  }
+  /* FIX (23-sep-2026, pedido usuario — "cambia de 7 a 6 fichas por fila")
+   * y luego, mismo día, pedido usuario — "no me molestaría que sea
+   * autofill mientras no se corte información, los botones de evolución
+   * se estaban cortando": se revierte el número fijo de 6 columnas
+   * (dejaba muy poco ancho para la ficha de datos junto a la imagen de
+   * 72px — el botón "✨ Evolución"/"🦸 Héroe", que no se achica, terminaba
+   * más ancho que ese espacio y se salía de la tarjeta). Vuelve a
+   * auto-fill/minmax, pero con un mínimo mayor (150px -> 210px: imagen
+   * 72px + gap 8px + padding 16px + ~114px para que la píldora de
+   * Héroe/Evolución entre completa) para que, sea cual sea el ancho de
+   * pantalla, nunca se recorte contenido. */
+  .coleccion-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(210px,1fr)); gap:10px; margin-top:12px;}
   .col-card{background:var(--bg-2); border:1px solid var(--line); border-radius:10px; padding:8px; display:flex; flex-direction:column; gap:6px;}
   .col-card .col-nombre{font-size:11px; font-weight:700; color:var(--text); line-height:1.15; word-break:break-word; text-align:left; text-transform:uppercase;}
   .col-card .col-cuerpo{display:flex; align-items:flex-start; gap:8px;}
