@@ -1490,17 +1490,40 @@ function renderColeccion(j){
  * Héroe/Evolución (que sigue siendo la última):
  *   - oro para subir de nivel  → cards[].costoOro (número)
  *   - cartas para el siguiente nivel → cards[].cartasSiguienteNivel (número)
- * BACKEND PENDIENTE: 34_Web_API.gs (_webDatosDriveJugador()) todavía no manda
- * esos dos campos dentro de rawClash.cards[]; cuando existan, esta función ya
- * los toma sin más cambios. Las cartas a nivel máximo no muestran valor
- * (no hay nivel siguiente).
- * Mientras el backend no los mande, COLECCION_ESPACIO_COSTO_MEJORA = true
- * deja las dos filas siempre visibles con "—" para poder probar el espacio y
- * la alineación; al conectar el backend se puede poner en false para volver
- * al criterio de reserva de fila de las demás (solo si ALGUNA ficha visible
- * tiene el dato).
+ * FIX (23-sep-2026, AVISO 8, decidido por el usuario — "debe acoplarse en
+ * xN, solo que ahora debe decir algo como 12/20"): BACKEND CONECTADO.
+ * 34_Web_API.gs (_webDatosDriveJugador(), _webConCostoSubida()) manda
+ * costoOro y cartasSiguienteNivel en las 4 listas de cartas de rawClash
+ * (cards[], supportCards[], currentDeck[], currentDeckSupportCards[]). Se
+ * dejaron 2 cosas distintas:
+ *   - Oro: sigue siendo una fila propia, solo en "Colección completa"
+ *     (las otras secciones todavía no la muestran).
+ *   - Cartas: YA NO es una fila aparte ("Cartas: N"). Se acopló al "×N" del
+ *     encabezado de cada ficha (ver _cantidadCartasHtml()): "12/20" = cartas
+ *     que tiene / cartas que hacen falta. Si no hay dato del costo, queda el
+ *     "×N" de siempre. A nivel máximo no se muestra nada (no hay siguiente).
+ * COLECCION_ESPACIO_COSTO_MEJORA quedó en false (criterio normal de reserva
+ * de fila: solo si ALGUNA ficha visible tiene el dato); en true vuelve el
+ * modo de prueba, con la fila de oro siempre visible y "—" si falta el dato.
  */
-const COLECCION_ESPACIO_COSTO_MEJORA = true;
+const COLECCION_ESPACIO_COSTO_MEJORA = false;
+/**
+ * _cantidadCartasHtml(count, cartasSig)
+ * FIX (23-sep-2026, AVISO 8): el <span class="cc-count"> del encabezado de
+ * cada ficha de carta. Con costo de subida ("12/20") muestra tiene/necesita;
+ * sin él, el "×N" de siempre. Si no hay `count`, no devuelve nada. Quien llama
+ * decide antes si la carta está al máximo (ahí no se pinta nada).
+ * @param {?number} count - Copias que tiene el jugador (JSON crudo, `count`).
+ * @param {*} cartasSig - cartasSiguienteNivel (Backup_Cards_3.csv vía backend); cualquier valor no numérico se ignora.
+ * @returns {string} HTML del span, o ''.
+ */
+function _cantidadCartasHtml(count, cartasSig){
+  if (count === undefined || count === null || count === '') return '';
+  const sig = (cartasSig !== undefined && cartasSig !== null && cartasSig !== '' && isFinite(Number(cartasSig))) ? Number(cartasSig) : null;
+  return sig != null
+    ? `<span class="cc-count" title="Cartas que tienes / cartas necesarias para subir al siguiente nivel">${fmtNum(count)}/${fmtNum(sig)}</span>`
+    : `<span class="cc-count" title="Cantidad de cartas disponibles de este nombre">\u00d7${fmtNum(count)}</span>`;
+}
 function _filaCostoMejora(reservar, tieneValor, htmlValor, htmlSinDato){
   if (!reservar) return '';
   if (tieneValor) return htmlValor;
@@ -1603,7 +1626,6 @@ function pintarColeccion(cartas){
   const seccionColTipo = datosCol.some(x => x.mostrarTipo);
   const seccionColElixir = datosCol.some(x => x.mostrarElixir);
   const seccionColOro = COLECCION_ESPACIO_COSTO_MEJORA || datosCol.some(x => x.costoOro != null);
-  const seccionColCartasSig = COLECCION_ESPACIO_COSTO_MEJORA || datosCol.some(x => x.cartasSig != null);
 
   cont.innerHTML = datosCol.map(x => {
     const { c, rk, img, nombreEs, nvl, alMax, iconoBase, iconoEvo, activaEvo, tipoTxt, iconoHeroe, activaHero } = x;
@@ -1611,7 +1633,7 @@ function pintarColeccion(cartas){
     <div class="col-card col-card--grande${alMax ? ' max-level' : ''}" title="${esc(nombreEs)}" data-icon-base="${esc(iconoBase)}">
       <div class="col-nombre">
         <span class="col-nombre-txt">${esc(nombreEs)}</span>
-        ${!alMax ? `<span class="cc-count" title="Cantidad de cartas disponibles de este nombre">\u00d7${fmtNum(c.count)}</span>` : ''}
+        ${!alMax ? _cantidadCartasHtml(c.count, x.cartasSig) : ''}
       </div>
       <div class="col-cuerpo">
         ${img ? `<img class="cc-img" src="${esc(img)}" alt="" loading="lazy" onerror="this.style.visibility='hidden';">` : ''}
@@ -1629,9 +1651,6 @@ function pintarColeccion(cartas){
           ${_filaCostoMejora(seccionColOro, x.costoOro != null,
             `<div class="cc-meta"><span class="cc-oro" title="Oro necesario para subir de nivel">${_ICONO_ORO_HTML}${esc(fmtNum(x.costoOro))}</span></div>`,
             `<div class="cc-meta"><span class="cc-oro" title="Oro necesario para subir de nivel">${_ICONO_ORO_HTML}\u2014</span></div>`)}
-          ${_filaCostoMejora(seccionColCartasSig, x.cartasSig != null,
-            `<div class="text-faint" style="font-family:var(--f-mono); font-size:11px;" title="Cartas necesarias para el siguiente nivel">Cartas: ${esc(fmtNum(x.cartasSig))}</div>`,
-            `<div class="text-faint" style="font-family:var(--f-mono); font-size:11px;" title="Cartas necesarias para el siguiente nivel">Cartas: \u2014</div>`)}
           ${_filaHeroeEvo(x.mostrarHeroe,
             `<button type="button" class="cc-badge cc-badge-btn${activaHero ? ' is-activa' : ''}" data-icon-variante="${esc(iconoHeroe)}" onclick="cambiarVarianteCarta(this)">\u{1f9b8} H\u00e9roe</button>`,
             x.mostrarEvo,
@@ -1728,7 +1747,7 @@ function renderCartasTorre(j){
     <div class="col-card col-card--grande${alMax ? ' max-level' : ''}">
       <div class="col-nombre">
         <span class="col-nombre-txt">${esc(nombreEs)}</span>
-        ${!alMax ? `<span class="cc-count" title="Cantidad de cartas disponibles de este nombre">\u00d7${fmtNum(t.count)}</span>` : ''}
+        ${!alMax ? _cantidadCartasHtml(t.count, t.cartasSiguienteNivel) : ''}
       </div>
       <div class="col-cuerpo">
         ${img ? `<img class="cc-img" src="${esc(img)}" alt="${esc(nombreEs)}" loading="lazy" onerror="_marcarCartaSinImagen(this);" onload="if(this.naturalWidth===0) _marcarCartaSinImagen(this);">` : ''}
@@ -2292,6 +2311,11 @@ function renderMazoActual(mazoActual, ext, j){
     const tipoTxt = d ? d.tipo.charAt(0).toUpperCase() + d.tipo.slice(1) : '';
     const starLevel = c.starLevel != null ? c.starLevel : (rc.starLevel || 0);
     const count = c.count != null ? c.count : rc.count;
+    // FIX (23-sep-2026, AVISO 8): cartas para subir de nivel. mazoActual.cartas
+    // (backend, Backup_Cards_2.csv) no lo trae; sí rawClash(j).currentDeck[]
+    // (rc), que ya lo manda _webConCostoSubida(). Se acopla al "×N" (ver
+    // _cantidadCartasHtml()).
+    const cartasSig = c.cartasSiguienteNivel != null ? c.cartasSiguienteNivel : rc.cartasSiguienteNivel;
     // FIX (23-sep-2026, AVISO 15, punto 3): nivel máximo SIN comparar contra
     // un 16 escrito a mano. Prioridad: c.alTope (lo manda el backend en
     // mazoActual.cartas, _webCartaAlTope(), y _cartaMazoFallback() lo arma del
@@ -2323,7 +2347,7 @@ function renderMazoActual(mazoActual, ext, j){
     const activaHero = !!(c.hasHero && heroIcon && imgSrc === heroIcon);
     const activaEvo = !!(hasEvo && evoIcon && imgSrc === evoIcon);
     return {
-      c, d, tipoTxt, starLevel, count, alTope, hasEvo, evoIcon, heroIcon, imgSrc, activaHero, activaEvo,
+      c, d, tipoTxt, starLevel, count, cartasSig, alTope, hasEvo, evoIcon, heroIcon, imgSrc, activaHero, activaEvo,
       mostrarHeroe: !!(c.hasHero || (d && d.rareza === 'campeon')),
       mostrarEvo: hasEvo,
       mostrarRareza: !!d,
@@ -2337,7 +2361,7 @@ function renderMazoActual(mazoActual, ext, j){
   const seccionMazoElixir = datosCartas.some(x => x.mostrarElixir);
 
   const cartasHtml = datosCartas.map(x => {
-    const { c, d, tipoTxt, starLevel, count, alTope, heroIcon, evoIcon, imgSrc, activaHero, activaEvo } = x;
+    const { c, d, tipoTxt, starLevel, count, cartasSig, alTope, heroIcon, evoIcon, imgSrc, activaHero, activaEvo } = x;
     // FIX (23-sep-2026, pedido usuario — "en el mazo actual falta agregar
     // los bordes dorados para cartas al nivel 16"): la clase "max-level"
     // (.col-card.max-level, border-color:var(--gold)) ya existía en el CSS
@@ -2355,7 +2379,7 @@ function renderMazoActual(mazoActual, ext, j){
     <div class="col-card col-card--grande${alTope ? ' max-level' : ''}" data-icon-base="${esc(c.icon || '')}">
       <div class="col-nombre">
         <span class="col-nombre-txt">${esc(c.name)}</span>
-        ${(count != null && !alTope) ? `<span class="cc-count" title="Cantidad de cartas disponibles de este nombre">×${fmtNum(count)}</span>` : ''}
+        ${!alTope ? _cantidadCartasHtml(count, cartasSig) : ''}
       </div>
       <div class="col-cuerpo">
         ${imgSrc ? `<img class="cc-img" src="${esc(imgSrc)}" alt="${esc(c.name)}" loading="lazy" onerror="_marcarCartaSinImagen(this);" onload="if(this.naturalWidth===0) _marcarCartaSinImagen(this);">` : ''}
@@ -2447,7 +2471,7 @@ function renderMazoActual(mazoActual, ext, j){
         <div class="col-card col-card--grande${alMax ? ' max-level' : ''}">
           <div class="col-nombre">
             <span class="col-nombre-txt">${esc(nombreEs)}</span>
-            ${(!alMax && t.count != null) ? `<span class="cc-count" title="Cantidad de cartas disponibles de este nombre">×${fmtNum(t.count)}</span>` : ''}
+            ${!alMax ? _cantidadCartasHtml(t.count, t.cartasSiguienteNivel) : ''}
           </div>
           <div class="col-cuerpo">
             ${img ? `<img class="cc-img" src="${esc(img)}" alt="${esc(nombreEs)}" loading="lazy" onerror="_marcarCartaSinImagen(this);" onload="if(this.naturalWidth===0) _marcarCartaSinImagen(this);">` : ''}
