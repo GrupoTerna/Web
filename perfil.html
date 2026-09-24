@@ -1703,12 +1703,34 @@ function abrirModalCostoCarta(nombreEs, nivelActual, obj){
    * falta el oro, que no se evalúa acá, mismo criterio que ya usa
    * _cantidadCartasHtml()). Si `count` no es un número válido, ninguna fila
    * se marca (no hay con qué comparar) y tampoco se muestra "Cartas
-   * disponibles" en el subtítulo. */
+   * disponibles" en el subtítulo.
+   * FIX (24-sep-2026, pedido usuario — de las 4 mejoras propuestas eligió
+   * "1, 2 y 3"):
+   *   1. Badge "puedes llegar hasta Nivel X" — se arma junto con `filas`,
+   *      guardando en `nivelAlcanzable` el último `hasta` cuya fila dio
+   *      alcanza=true (las filas son consecutivas y acumCartas solo crece,
+   *      así que la última fila en true es siempre la más alta alcanzada).
+   *      Si ni la primera fila alcanza, o si no hay `count`, no se pinta
+   *      badge (no hay nada que festejar todavía / no hay con qué
+   *      calcularlo).
+   *   2. Nota "te faltan N cartas para el máximo" — reusa el mismo
+   *      total.cartas de la tabla, comparado contra `count`; si ya alcanza
+   *      (totalAlcanza), cambia a un aviso de "ya tienes todas".
+   *   3. Barra de progreso — se reusa barraRequisito() tal cual (mismo
+   *      componente .req-row/.progress que ya usan Ascensos/Descensos más
+   *      arriba en esta página), en vez de duplicar el markup de una barra
+   *      nueva. activo = countNum != null (si no hay dato, no pinta nada,
+   *      mismo comportamiento que ya tiene barraRequisito()).
+   * Las 3 comparan solo CARTAS, nunca oro (no hay forma de saber cuánto
+   * oro tiene el jugador — a diferencia de las cartas, ese dato no viene
+   * en rawClash), mismo criterio ya usado en toda esta función. */
   const countNum = (obj.count !== undefined && obj.count !== null && obj.count !== '' && isFinite(Number(obj.count))) ? Number(obj.count) : null;
   let acumCartas = 0;
+  let nivelAlcanzable = null;
   const filas = obj.costosNiveles.map(n => {
     acumCartas += Number(n.cartas) || 0;
     const alcanza = countNum != null && countNum >= acumCartas;
+    if (alcanza) nivelAlcanzable = n.hasta;
     return `
         <tr>
           <td>Nivel ${esc(String(n.desde))} \u2192 ${esc(String(n.hasta))}</td>
@@ -1717,13 +1739,26 @@ function abrirModalCostoCarta(nombreEs, nivelActual, obj){
         </tr>`;
   }).join('');
   const total = obj.costoTotal || { oro: 0, cartas: 0, niveles: obj.costosNiveles.length };
-  const totalAlcanza = countNum != null && countNum >= (Number(total.cartas) || 0);
+  const totalCartas = Number(total.cartas) || 0;
+  const totalAlcanza = countNum != null && countNum >= totalCartas;
   const subPartes = [];
   if (nivelActual != null) subPartes.push(`Nivel actual: ${nivelActual}`);
   if (countNum != null) subPartes.push(`Cartas disponibles: ${fmtNum(countNum)}`);
   document.getElementById('costoModalTitulo').textContent = nombreEs || 'Carta';
   document.getElementById('costoModalSub').textContent = subPartes.join(' \u00b7 ');
+  // Mejora 1: badge de nivel alcanzable con las cartas que ya tiene.
+  const badgeNivelHtml = (countNum != null && nivelAlcanzable != null)
+    ? `<div style="margin-top:12px;"><span class="badge badge-ok">${totalAlcanza ? '\u2713 Te alcanza para el nivel m\u00e1ximo' : `\u2713 Con tus cartas llegas hasta Nivel ${esc(String(nivelAlcanzable))}`}</span></div>`
+    : '';
+  // Mejora 3: barra de progreso de cartas hacia el máximo (reusa barraRequisito()).
+  const barraCartasHtml = barraRequisito('Cartas para el m\u00e1ximo', countNum, totalCartas, countNum != null, '');
+  // Mejora 2: nota de cuánto falta juntar en cartas para el máximo.
+  const faltanCartas = countNum != null ? Math.max(0, totalCartas - countNum) : null;
+  const notaFaltaHtml = countNum == null ? '' : (faltanCartas > 0
+    ? `<div class="costo-nota">Te faltan ${esc(fmtNum(faltanCartas))} cartas para completar el m\u00e1ximo (tienes ${esc(fmtNum(countNum))} de ${esc(fmtNum(totalCartas))} necesarias).</div>`
+    : '<div class="costo-nota">Ya tienes las cartas necesarias para llegar al m\u00e1ximo (aparte hace falta el oro).</div>');
   document.getElementById('costoModalTablaWrap').innerHTML = `
+      ${badgeNivelHtml}
       <table class="costo-tabla">
         <thead><tr><th>Nivel</th><th>Oro</th><th>Cartas</th></tr></thead>
         <tbody>${filas}</tbody>
@@ -1735,6 +1770,8 @@ function abrirModalCostoCarta(nombreEs, nivelActual, obj){
           </tr>
         </tfoot>
       </table>
+      ${barraCartasHtml ? `<div style="margin-top:16px;">${barraCartasHtml}</div>` : ''}
+      ${notaFaltaHtml}
       ${countNum != null
         ? '<div class="costo-nota">En verde: cantidad de cartas que ya te alcanza con tus copias actuales para llegar hasta ese nivel (aparte hace falta el oro).</div>'
         : ''}
