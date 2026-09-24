@@ -503,6 +503,35 @@
      de a un <span> del encabezado de la ficha. */
   .costo-tabla td.costo-tabla-alcanza{color:var(--ok); font-weight:700;}
   .costo-nota{margin-top:12px; font-family:var(--f-mono); font-size:11px; color:var(--text-faint); line-height:1.5;}
+  /* FIX (24-sep-2026, pedido usuario — "divide la barra en secciones de
+     colores, una sección por cada nivel faltante. abajo se muestra el
+     nivel y los valores justo debajo de las líneas, la cantidad de cartas
+     debe aparecer sobre la barra y en el medio de cada sección"): la única
+     <i style="width:%"> que hasta ahora pintaba barraRequisito() para
+     "Cartas para el máximo" se reemplaza por _barraCartasSegmentadaHtml()
+     (ver <script>), un tramo de color por cada fila de costosNiveles
+     (mismas filas que ya arma la tabla de arriba, así que tabla y barra
+     siempre quedan de acuerdo). Cada tramo se rellena por separado según
+     cuántas cartas de ESE tramo ya cubre `count` — mismo criterio "alcanza"
+     ya usado en la tabla (columna Cartas en verde): solo se comparan
+     CARTAS, nunca oro. .cc-barra-pista es la "pista" de fondo (posición
+     relativa) sobre la que flotan, con position:absolute, tanto los tramos
+     de color (.cc-barra-tramo) como las cifras de cartas arriba
+     (.cc-barra-cifra, centradas en el medio de su tramo) y los niveles
+     abajo (.cc-barra-marca, uno justo debajo de cada línea divisoria entre
+     tramos, con un tiquecito ::before marcando la línea). No reemplaza a
+     barraRequisito() en sí (Ascensos/Descensos más arriba en esta misma
+     página lo siguen usando tal cual) — es un componente nuevo, solo para
+     este modal. */
+  .cc-barra-cartas{margin-top:18px;}
+  .cc-barra-cartas .lbl{font-family:var(--f-mono); font-size:12px; color:var(--text-dim); margin-bottom:24px;}
+  .cc-barra-pista{position:relative; height:14px; margin:0 1px 22px;}
+  .cc-barra-tramo{position:absolute; top:0; height:100%; border-radius:3px; overflow:hidden;}
+  .cc-barra-tramo i{display:block; height:100%;}
+  .cc-barra-cifra{position:absolute; top:-20px; transform:translateX(-50%); font-family:var(--f-mono); font-size:11px; font-weight:700; color:var(--text); white-space:nowrap;}
+  .cc-barra-marca{position:absolute; top:100%; padding-top:5px; font-family:var(--f-mono); font-size:10px; color:var(--text-faint); white-space:nowrap;}
+  .cc-barra-marca::before{content:''; position:absolute; left:50%; top:0; width:1px; height:5px; background:var(--line-strong); transform:translateX(-50%);}
+  .cc-barra-cartas .val{text-align:right; font-family:var(--f-mono); font-size:12px; color:var(--text-dim);}
   /* .col-card--clicable: se agrega SOLO a las fichas que sí tienen tabla de
      costo (_activarClickCosto() decide caso por caso, carta por carta), no
      a toda ficha .col-card por igual. */
@@ -1681,6 +1710,56 @@ const _ICONO_ORO_HTML = '<img src="assets/img/Gold.webp" alt="Oro" onerror="this
 function _tieneTablaCostos(obj){
   return !!(obj && Array.isArray(obj.costosNiveles) && obj.costosNiveles.length);
 }
+/** Paleta de colores para _barraCartasSegmentadaHtml() — un color por tramo,
+ * rotando si hay más niveles faltantes que colores en la lista (en la
+ * práctica nunca pasa: ninguna carta tiene tantos niveles de diferencia). */
+const _PALETA_BARRA_TRAMOS = ['#a239ff','#22d3ee','#34d399','#f3a922','#f87171','#60a5fa','#f472b6','#facc15'];
+/**
+ * _barraCartasSegmentadaHtml(niveles, countNum, totalCartas)
+ * FIX (24-sep-2026, pedido usuario — "divide la barra en secciones de
+ * colores, una sección por cada nivel faltante. abajo se muestra el nivel y
+ * los valores justo debajo de las líneas, la cantidad de cartas debe
+ * aparecer sobre la barra y en el medio de cada sección"): antes,
+ * abrirModalCostoCarta() armaba esta barra reusando barraRequisito() tal
+ * cual (un solo tramo, de 0 a countNum/totalCartas). Esta función arma en
+ * su lugar un tramo por cada fila de `niveles` (las mismas obj.costosNiveles
+ * que ya arma la tabla de la Mejora 1/2/3, ver docblock de
+ * abrirModalCostoCarta() más abajo), así la barra queda dividida en
+ * secciones — una por nivel — en vez de una sola barra continua.
+ * @param {Array<{desde:number,hasta:number,cartas:number}>} niveles - obj.costosNiveles tal cual.
+ * @param {?number} countNum - cartas que el jugador ya tiene (null si no hay dato: no se pinta nada, mismo criterio que ya tenía barraRequisito()).
+ * @param {number} totalCartas - total.cartas (suma de todos los tramos), ya calculado en abrirModalCostoCarta().
+ * @returns {string} HTML de la barra, o '' si no hay `count` o no hay tramos.
+ */
+function _barraCartasSegmentadaHtml(niveles, countNum, totalCartas){
+  if (countNum == null || !Array.isArray(niveles) || !niveles.length || totalCartas <= 0) return '';
+  let acumPrevio = 0;
+  const marcas = [`<span class="cc-barra-marca" style="left:0%; transform:translateX(0);">${esc(String(niveles[0].desde))}</span>`];
+  const tramos = niveles.map((n, i) => {
+    const cartas = Number(n.cartas) || 0;
+    const izqPct = (acumPrevio / totalCartas) * 100;
+    const anchoPct = (cartas / totalCartas) * 100;
+    const acumHasta = acumPrevio + cartas;
+    // Mismo criterio "alcanza" de la tabla: cuánto de ESTE tramo ya cubren las cartas que tiene (nunca se evalúa el oro).
+    const have = Math.max(0, Math.min(cartas, countNum - acumPrevio));
+    const fillPct = cartas > 0 ? (have / cartas) * 100 : 100;
+    const color = _PALETA_BARRA_TRAMOS[i % _PALETA_BARRA_TRAMOS.length];
+    const esUltimo = i === niveles.length - 1;
+    marcas.push(`<span class="cc-barra-marca" style="left:${esUltimo ? 100 : (acumHasta / totalCartas) * 100}%; transform:translateX(${esUltimo ? '-100%' : '-50%'});">${esc(String(n.hasta))}</span>`);
+    acumPrevio = acumHasta;
+    return `
+        <div class="cc-barra-cifra" style="left:${izqPct + anchoPct / 2}%;">${esc(fmtNum(cartas))}</div>
+        <div class="cc-barra-tramo" style="left:${izqPct}%; width:${anchoPct}%; background:${color}33;">
+          <i style="width:${fillPct}%; background:${color};"></i>
+        </div>`;
+  }).join('');
+  return `
+    <div class="cc-barra-cartas">
+      <div class="lbl">Cartas para el m\u00e1ximo</div>
+      <div class="cc-barra-pista">${tramos}${marcas.join('')}</div>
+      <div class="val">${esc(fmtNum(countNum))} / ${esc(fmtNum(totalCartas))}</div>
+    </div>`;
+}
 /**
  * abrirModalCostoCarta(nombreEs, nivelActual, obj)
  * @param {string} nombreEs - nombre en español de la carta (título del modal).
@@ -1735,7 +1814,7 @@ function abrirModalCostoCarta(nombreEs, nivelActual, obj){
         <tr>
           <td>Nivel ${esc(String(n.desde))} \u2192 ${esc(String(n.hasta))}</td>
           <td><span class="cc-oro">${_ICONO_ORO_HTML}${esc(fmtNum(n.oro))}</span></td>
-          <td class="${alcanza ? 'costo-tabla-alcanza' : ''}"${alcanza ? ' title="Ya te alcanza con tus copias actuales para llegar hasta este nivel (aparte hace falta el oro)"' : ''}>${esc(fmtNum(n.cartas))}</td>
+          <td class="${alcanza ? 'costo-tabla-alcanza' : ''}"${alcanza ? ' title="Ya tienes las cartas necesarias para llegar hasta este nivel (no se eval\u00faa el oro disponible, solo las cartas)"' : ''}>${esc(fmtNum(n.cartas))}</td>
         </tr>`;
   }).join('');
   const total = obj.costoTotal || { oro: 0, cartas: 0, niveles: obj.costosNiveles.length };
@@ -1750,8 +1829,8 @@ function abrirModalCostoCarta(nombreEs, nivelActual, obj){
   const badgeNivelHtml = (countNum != null && nivelAlcanzable != null)
     ? `<div style="margin-top:12px;"><span class="badge badge-ok">${totalAlcanza ? '\u2713 Te alcanza para el nivel m\u00e1ximo' : `\u2713 Con tus cartas llegas hasta Nivel ${esc(String(nivelAlcanzable))}`}</span></div>`
     : '';
-  // Mejora 3: barra de progreso de cartas hacia el máximo (reusa barraRequisito()).
-  const barraCartasHtml = barraRequisito('Cartas para el m\u00e1ximo', countNum, totalCartas, countNum != null, '');
+  // Mejora 3: barra de progreso de cartas hacia el máximo, dividida en un tramo de color por cada nivel faltante (ver _barraCartasSegmentadaHtml()).
+  const barraCartasHtml = _barraCartasSegmentadaHtml(obj.costosNiveles, countNum, totalCartas);
   // Mejora 2: nota de cuánto falta juntar en cartas para el máximo.
   const faltanCartas = countNum != null ? Math.max(0, totalCartas - countNum) : null;
   const notaFaltaHtml = countNum == null ? '' : (faltanCartas > 0
@@ -1773,7 +1852,7 @@ function abrirModalCostoCarta(nombreEs, nivelActual, obj){
       ${barraCartasHtml ? `<div style="margin-top:16px;">${barraCartasHtml}</div>` : ''}
       ${notaFaltaHtml}
       ${countNum != null
-        ? '<div class="costo-nota">En verde: cantidad de cartas que ya te alcanza con tus copias actuales para llegar hasta ese nivel (aparte hace falta el oro).</div>'
+        ? '<div class="costo-nota">En verde: cantidad de cartas que ya tienes para llegar hasta ese nivel. No se eval\u00faa el oro disponible, solo se eval\u00faan las cartas.</div>'
         : ''}
       ${obj.costoCompleto === false
         ? '<div class="costo-aviso">Falta el costo de al menos un nivel intermedio en la base de datos: el total de arriba no lo incluye, así que el costo real para llegar al máximo es mayor que el mostrado.</div>'
