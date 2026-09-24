@@ -1308,7 +1308,7 @@ function renderCartaFavorita(j){
   // (cartaReal, ya se calculaba arriba para el nivel), porque
   // currentFavouriteCard por sí solo no trae esos campos.
   const d = _datosCarta(nombreEs);
-  const tipoTxt = d ? d.tipo.charAt(0).toUpperCase() + d.tipo.slice(1) : '';
+  const tipoTxt = _tipoCartaTxt(fav, d);
   const esHeroe = rk === 'campeon';
   const heroIcon = (fav.iconUrls && fav.iconUrls.heroMedium) || '';
   const evoLevel = cartaReal ? (cartaReal.evolutionLevel || 0) : 0;
@@ -1373,7 +1373,8 @@ function _polTxt(r){
  * 24-sep-2026: best/current/last PathOfLegendSeasonResult y legacyTrophyRoadHighScore
  * llegan en rawClash ya resueltos CSV-primero (Backup_CaminoLeyendas.csv, ver
  * 39_CaminoLeyendas.gs), con el JSON de Drive de respaldo. No requiere cambio
- * de lectura aquí; leagueStatistics sigue saliendo del JSON.
+ * de lectura aquí. leagueStatistics (Ligas) también llega CSV-primero: sus
+ * 9 columnas viven al final de Backup_CaminoLeyendas.csv.
  * FIX (12-sep-2026): panel estilo "Ranked Stats" de RoyaleAPI con:
  *  - bestPathOfLegendSeasonResult / currentPathOfLegendSeasonResult /
  *    lastPathOfLegendSeasonResult ({leagueNumber, trophies, rank})
@@ -1498,8 +1499,8 @@ function _colCartaPasaFiltro(c){
   const f = _colFiltrosActivos;
   if (f.rareza.size && !f.rareza.has(rarezaKey(c.rarity))) return false;
   if (f.tipo.size){
-    const d = _datosCarta(_nombreCartaEs(c));
-    if (!d || !f.tipo.has(d.tipo)) return false;
+    const tk = _tipoCartaKey(c, _datosCarta(_nombreCartaEs(c)));
+    if (!tk || !f.tipo.has(tk)) return false;
   }
   if (f.nivel.size){
     const nvl = nivelAppAjustado(c.level, c.maxLevel, c.rarity).nivel;
@@ -1555,7 +1556,7 @@ function renderColeccion(j){
   // (mismo diccionario que ya usa "Mazo actual"); Héroe/Evolución salen de
   // rarezaKey()==='campeon' y evolutionLevel>0 respectivamente, igual que
   // en _colCartaPasaFiltro() más arriba.
-  const tiposCarta = cartas.map(c => (_datosCarta(_nombreCartaEs(c)) || {}).tipo || '');
+  const tiposCarta = cartas.map(c => _tipoCartaKey(c, _datosCarta(_nombreCartaEs(c))));
   const presentesTipo = TIPOS_CARTA_FILTRO.filter(t => tiposCarta.includes(t));
   const cantHeroe = cartas.filter(c => rarezaKey(c.rarity) === 'campeon').length;
   const filtrosTipo = document.getElementById('mColeccionFiltrosTipo');
@@ -1995,7 +1996,7 @@ function pintarColeccion(cartas){
     // (rk === 'campeon' — toda carta Campeón es Héroe en el juego; cards[]
     // no trae un flag hasHero propio como sí lo hace mazoActual.cartas).
     const d = _datosCarta(nombreEs);
-    const tipoTxt = d ? d.tipo.charAt(0).toUpperCase() + d.tipo.slice(1) : '';
+    const tipoTxt = _tipoCartaTxt(c, d);
     const esHeroe = rk === 'campeon';
     const iconoHeroe = urls.heroMedium || '';
     const activaHero = !!(esHeroe && iconoHeroe && img === iconoHeroe);
@@ -2108,7 +2109,7 @@ function renderCartasTorre(j){
     // 'campeon'; en la práctica las torres nunca son Campeón, así que esta
     // fila queda vacía por diseño del juego, no por falta de dato).
     const d = _datosCarta(nombreEs);
-    const tipoTxt = d ? d.tipo.charAt(0).toUpperCase() + d.tipo.slice(1) : '';
+    const tipoTxt = _tipoCartaTxt(t, d);
     const esHeroe = rk === 'campeon';
     const heroIcon = (t.iconUrls && t.iconUrls.heroMedium) || '';
     const tieneEvo = (t.evolutionLevel || 0) > 0;
@@ -2553,6 +2554,17 @@ const DATOS_CARTAS_MAZO = {
 function _datosCarta(nombre){
   return DATOS_CARTAS_MAZO[_normNombreCarta(nombre)] || null;
 }
+/* 24-sep-2026 (pedido usuario — datos de cartas desde los CSV): el backend manda
+ * `tipo` (columna Tipo de Backup_Cards.csv) en cada carta; el diccionario local
+ * DATOS_CARTAS_MAZO queda solo de respaldo. _tipoCartaKey() → 'tropa'|'hechizo'|
+ * 'estructura'|'torre'|''; _tipoCartaTxt() → mismo valor con la primera en mayúscula. */
+function _tipoCartaKey(carta, d){
+  return String((carta && carta.tipo) || (d && d.tipo) || '').trim().toLowerCase();
+}
+function _tipoCartaTxt(carta, d){
+  const t = _tipoCartaKey(carta, d);
+  return t ? t.charAt(0).toUpperCase() + t.slice(1) : '';
+}
 function _ordenarCartasMazo(cartas){
   return cartas.slice().sort((a, b) => {
     const da = _datosCarta(a.name), db = _datosCarta(b.name);
@@ -2718,7 +2730,7 @@ function renderMazoActual(mazoActual, ext, j){
     const rc = (c.id != null && rawPorId[String(c.id)]) || {};
     const urlsRc = rc.iconUrls || {};
     const d = _datosCarta(c.name);
-    const tipoTxt = d ? d.tipo.charAt(0).toUpperCase() + d.tipo.slice(1) : '';
+    const tipoTxt = _tipoCartaTxt(c, d);
     const starLevel = c.starLevel != null ? c.starLevel : (rc.starLevel || 0);
     const count = c.count != null ? c.count : rc.count;
     // FIX (23-sep-2026, AVISO 8): cartas para subir de nivel. mazoActual.cartas
@@ -2874,7 +2886,7 @@ function renderMazoActual(mazoActual, ext, j){
       // en la práctica las torres nunca son Campeón, así que esa fila
       // queda vacía por diseño del juego, no por falta de dato.
       const d = _datosCarta(nombreEs);
-      const tipoTxt = d ? d.tipo.charAt(0).toUpperCase() + d.tipo.slice(1) : '';
+      const tipoTxt = _tipoCartaTxt(t, d);
       const esHeroe = rk === 'campeon';
       const heroIcon = (t.iconUrls && t.iconUrls.heroMedium) || '';
       const tieneEvo = (t.evolutionLevel || 0) > 0;
