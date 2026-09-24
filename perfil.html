@@ -1283,9 +1283,17 @@ function renderCartaFavorita(j){
   // (colección completa, que sí trae level) para poder mostrar el nivel
   // real y usar exactamente el mismo formato en toda la página.
   const cartasCol = rawClash(j).cards;
-  const cartaReal = Array.isArray(cartasCol)
+  const cartaCol = Array.isArray(cartasCol)
     ? cartasCol.find(c => c && c.id != null && fav.id != null && String(c.id) === String(fav.id))
     : null;
+  // 24-sep-2026 (pedido usuario — "currentfavouritecard debe acoplarse a cards en sus
+  // csv"): el backend ya cruza la favorita con Backup_Cards/_2/_3 (level, count,
+  // evolutionLevel, starLevel, costoOro, cartasSiguienteNivel, costosNiveles). Se usa
+  // ella misma como fuente; solo si no trae level se cae a la colección (cards[]).
+  const cartaReal = (fav.level != null) ? fav : cartaCol;
+  const _fuenteCosto = cartaReal || fav;
+  const oroSubida = _numOrNull(_fuenteCosto.costoOro);
+  const cartasSig = _numOrNull(_fuenteCosto.cartasSiguienteNivel);
   const nvl = nivelAppAjustado(cartaReal ? cartaReal.level : fav.level, cartaReal ? cartaReal.maxLevel : fav.maxLevel, cartaReal ? cartaReal.rarity : fav.rarity);
   // FIX (21-sep-2026, pedido usuario — orden estándar de fichas de carta en
   // toda la web: Nombre/Héroe/Evolución/Rareza/Tipo/Elixir+Estrellas/
@@ -1301,7 +1309,7 @@ function renderCartaFavorita(j){
   const heroIcon = (fav.iconUrls && fav.iconUrls.heroMedium) || '';
   const evoLevel = cartaReal ? (cartaReal.evolutionLevel || 0) : 0;
   const tieneEvo = evoLevel > 0;
-  const evoIcon = (cartaReal && cartaReal.iconUrls && cartaReal.iconUrls.evolutionMedium) || '';
+  const evoIcon = (cartaReal && cartaReal.iconUrls && cartaReal.iconUrls.evolutionMedium) || (cartaCol && cartaCol.iconUrls && cartaCol.iconUrls.evolutionMedium) || '';
   const starLevel = cartaReal ? cartaReal.starLevel : null;
   const alMax = !!(cartaReal && cartaReal.maxLevel != null && cartaReal.level != null && cartaReal.level >= cartaReal.maxLevel);
   const count = (!alMax && cartaReal) ? cartaReal.count : null;
@@ -1319,7 +1327,7 @@ function renderCartaFavorita(j){
     <div class="col-card col-card--grande${alMax ? ' max-level' : ''}" style="max-width:260px;">
       <div class="col-nombre">
         <span class="col-nombre-txt">${esc(nombreEs)}</span>
-        ${count != null ? `<span class="cc-count" title="Cantidad de cartas disponibles de este nombre">×${fmtNum(count)}</span>` : ''}
+        ${count != null ? _cantidadCartasHtml(count, cartasSig) : ''}
       </div>
       <div class="col-cuerpo">
         ${urlValida(img) ? `<img src="${esc(img)}" alt="${esc(nombreEs)}" loading="lazy">` : ''}
@@ -1337,9 +1345,13 @@ function renderCartaFavorita(j){
           ${nvl.nivelMax != null ? `<div class="cc-meta">
             <span class="cc-badge">Nv. ${esc(String(nvl.nivel != null ? nvl.nivel : '\u2014'))}</span>
           </div>` : ''}
+          ${(!alMax && oroSubida != null) ? _oroHtml(oroSubida) : ''}
         </div>
       </div>
     </div>`;
+  // 24-sep-2026: mismo clic que las demás fichas (tabla de costos hasta el máximo)
+  // si el backend trajo costosNiveles para la favorita.
+  _activarClickCosto(cont.querySelectorAll('.col-card'), [_fuenteCosto], x => x, () => nombreEs, () => nvl.nivel);
 }
 
 /** _polTxt(r) → texto "Liga N · X 🏆 · Rango #R" para un resultado Path of
@@ -1354,6 +1366,10 @@ function _polTxt(r){
 }
 /**
  * renderCaminoLeyendas(j)
+ * 24-sep-2026: best/current/last PathOfLegendSeasonResult y legacyTrophyRoadHighScore
+ * llegan en rawClash ya resueltos CSV-primero (Backup_CaminoLeyendas.csv, ver
+ * 39_CaminoLeyendas.gs), con el JSON de Drive de respaldo. No requiere cambio
+ * de lectura aquí; leagueStatistics sigue saliendo del JSON.
  * FIX (12-sep-2026): panel estilo "Ranked Stats" de RoyaleAPI con:
  *  - bestPathOfLegendSeasonResult / currentPathOfLegendSeasonResult /
  *    lastPathOfLegendSeasonResult ({leagueNumber, trophies, rank})
