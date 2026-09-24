@@ -316,14 +316,15 @@
    * (.mini-pie-cuerpo) usan .mini-disp-cuerpo con una leyenda de chips + un
    * SVG de diagrama de dispersión (puntos, sin barras ni líneas que los
    * unan — pedido explícito del usuario: "de barras no, haz un diagrama de
-   * dispersión"). PENDIENTE DE BACKEND (no se tiene Base.md en esta sesión
-   * para confirmar el nombre exacto del campo): se asume que el backend
-   * manda `ext.guerraDias`, un arreglo de objetos
-   * `{dia:'J'|'V'|'S'|'D', ataques, barcos, fama}` — uno por día de guerra
-   * ya jugado esta semana (J=Jueves, V=Viernes, S=Sábado, D=Domingo). Si el
-   * campo real se llama distinto o trae otra forma, avisar para ajustar
-   * `renderExtendido()` sin tocar el resto de esta función. Mientras ese
-   * campo no llegue, ambas tarjetas simplemente no se pintan (mismo
+   * dispersión"). CONEXIÓN (24-sep-2026, pedido usuario — "conecta los
+   * minigráficos al backend"): con Base.md real a la vista, el campo real
+   * es `j.guerraSemanaDias` (34_Web_API.gs, _webPerfilJugador()), NO
+   * `ext.guerraDias` (nombre asumido a ciegas cuando no se tenía Base.md en
+   * esta sesión) — objeto de arreglos paralelos { dias, ataques, puntaje,
+   * puntajeAcumulado, barcos }, 4 posiciones fijas (offset 0-3 = Jueves-
+   * Domingo) con `null` en los días todavía no jugados; ver
+   * renderExtendido() para el recorte a solo los días con dato. Sin ningún
+   * día jugado esta semana, ambas tarjetas simplemente no se pintan (mismo
    * criterio "se omite si faltan datos" que ya usan los dos donuts de al
    * lado). */
   .mini-disp-cuerpo{display:flex; flex-direction:column; gap:10px;}
@@ -2522,20 +2523,34 @@ function renderExtendido(ext, j){
   /* FIX (24-sep-2026, pedido usuario — "ahí deben ir dos minigráficos: uno
    * de ataques vs día con dos series (ataques y barcos), el otro de fama vs
    * día", luego "de barras no, haz un diagrama de dispersión"): dos
-   * tarjetas más de dispersión al lado de los donuts de arriba, leen
-   * ext.guerraDias — ver el FIX "PENDIENTE DE BACKEND" en el bloque CSS
-   * .mini-disp-* (styles.css) para el nombre y la forma exacta que se
-   * asume para ese campo. Si no llega (o llega vacío), _dispersionMiniHtml()
-   * devuelve '' y estas dos tarjetas simplemente no se pintan, igual que ya
-   * pasa con los dos donuts de arriba cuando falta su dato. */
-  const guerraDias = Array.isArray(ext.guerraDias) ? ext.guerraDias.filter(d => d && d.dia) : [];
-  const graficosGuerra = guerraDias.length ? [
-    _dispersionMiniHtml('Ataques y barcos por día', guerraDias.map(d => d.dia), [
-      { etiqueta: 'Ataques', color: 'var(--gold)', valores: guerraDias.map(d => d.ataques) },
-      { etiqueta: 'Barcos', color: 'var(--purple)', valores: guerraDias.map(d => d.barcos) },
+   * tarjetas más de dispersión al lado de los donuts de arriba.
+   * CONEXIÓN (24-sep-2026, pedido usuario — "conecta los minigráficos al
+   * backend"): con Base.md real a la vista, el campo NO es `ext.guerraDias`
+   * (nombre asumido a ciegas cuando se escribió este bloque, sin Base.md
+   * en esa sesión) sino `j.guerraSemanaDias` — un objeto de arreglos
+   * paralelos { dias:['Jueves','Viernes','Sábado','Domingo'], ataques,
+   * puntaje, puntajeAcumulado, barcos }, cada arreglo de 4 posiciones fijas
+   * (offset 0-3 = Jueves-Domingo) con `null` en los días de guerra que
+   * todavía no se jugaron esta semana (_webPerfilJugador(), 34_Web_API.gs).
+   * Se recorta a solo los índices con dato real (mismo criterio "hueco, no
+   * 0" que pedía el comentario original) y las etiquetas de día se abrevian
+   * a su inicial (J/V/S/D), tal como ya asumía _dispersionMiniHtml(). El
+   * gráfico de Fama suma la serie 'Acumulado' (puntajeAcumulado) que el
+   * backend ya arma para esto, además de la 'Fama' diaria. Sin datos
+   * jugados esta semana (recién arrancó el entrenamiento), ambas tarjetas
+   * simplemente no se pintan, igual que ya pasa con los dos donuts de
+   * arriba cuando falta su dato. */
+  const gsd = j.guerraSemanaDias;
+  const idxDiasJugados = gsd ? [0, 1, 2, 3].filter(i => gsd.ataques[i] != null) : [];
+  const diasJugadosLbl = idxDiasJugados.map(i => String(gsd.dias[i] || '').charAt(0).toUpperCase());
+  const graficosGuerra = idxDiasJugados.length ? [
+    _dispersionMiniHtml('Ataques y barcos por día', diasJugadosLbl, [
+      { etiqueta: 'Ataques', color: 'var(--gold)', valores: idxDiasJugados.map(i => gsd.ataques[i]) },
+      { etiqueta: 'Barcos', color: 'var(--purple)', valores: idxDiasJugados.map(i => gsd.barcos[i]) },
     ], { icono: '⚔️' }),
-    _dispersionMiniHtml('Fama por día', guerraDias.map(d => d.dia), [
-      { etiqueta: 'Fama', color: 'var(--gold)', valores: guerraDias.map(d => d.fama) },
+    _dispersionMiniHtml('Fama por día', diasJugadosLbl, [
+      { etiqueta: 'Fama', color: 'var(--gold)', valores: idxDiasJugados.map(i => gsd.puntaje[i]) },
+      { etiqueta: 'Acumulado', color: 'var(--purple)', valores: idxDiasJugados.map(i => gsd.puntajeAcumulado[i]) },
     ], { icono: '🔥' }),
   ].join('') : '';
   const pies = piesDonuts + graficosGuerra;
