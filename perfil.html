@@ -1111,6 +1111,10 @@ function _nombreInsigniaEs(b){
  * como descripción chica debajo (ej. "Donate 2500 cards"). Se renderizan
  * TODOS los que vengan, sin hardcodear ninguno.
  * BACKEND CONECTADO: achievements[] ya llega dentro de jugador.rawClash.
+ * 24-sep-2026: llega CSV-primero (Backup_Logros_2.csv, ver 40_Logros.gs) con
+ * `nombreEs` (Backup_Logros.csv, columna Nombre) cuando está traducido; sin él
+ * se muestra el nombre crudo, igual que las insignias. La descripción usa
+ * `infoEs` (columna Info_es del catálogo) y cae a `info` del JSON.
  */
 function renderLogros(j){
   const logros = rawClash(j).achievements;
@@ -1120,8 +1124,8 @@ function renderLogros(j){
   card.style.display = '';
   cont.innerHTML = logros.map(l => `
     <div style="margin-bottom:12px;">
-      ${barraRequisito(l.name, l.value, l.target, true, l.stars ? ` \u00b7 \u2b50${fmtNum(l.stars)}` : '')}
-      ${l.info ? `<div class="text-faint" style="font-family:var(--f-mono); font-size:10px; margin-top:4px;">${esc(String(l.info))}</div>` : ''}
+      ${barraRequisito(l.nombreEs || l.name, l.value, l.target, true, l.stars ? ` \u00b7 \u2b50${fmtNum(l.stars)}` : '')}
+      ${(l.infoEs || l.info) ? `<div class="text-faint" style="font-family:var(--f-mono); font-size:10px; margin-top:4px;">${esc(String(l.infoEs || l.info))}</div>` : ''}
     </div>`).join('');
 }
 
