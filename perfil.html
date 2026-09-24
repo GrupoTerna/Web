@@ -1737,12 +1737,16 @@ function renderProgresoEventos(j){
  * (no de la API de Supercell) que vienen en cada JSON subido a Drive, y
  * que abren la puerta al historial propio de snapshots por jugador.
  * BACKEND CONECTADO: _fecha/_clan ya llegan en jugador.rawClash.
+ * FIX (23-sep-2026, pedido usuario — "quita Clan en el export"): ya no se
+ * pinta el bullet "· Clan en el export: <clan>". raw._clan deja de leerse
+ * acá (el _fecha sigue mostrándose igual que antes); la visibilidad de la
+ * línea ahora depende solo de raw._fecha.
  */
 function renderSnapshotInfo(j){
   const raw = rawClash(j);
   const el = document.getElementById('mSnapshotInfo');
-  if (raw._fecha || raw._clan){
-    el.textContent = `Snapshot: ${raw._fecha || 'sin fecha'}${raw._clan ? ` \u00b7 Clan en el export: ${raw._clan}` : ''}`;
+  if (raw._fecha){
+    el.textContent = `Snapshot: ${raw._fecha}`;
     el.style.display = '';
   } else {
     el.style.display = 'none';
