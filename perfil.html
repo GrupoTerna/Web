@@ -494,6 +494,15 @@
   .costo-tabla td:first-child{font-family:var(--f-mono); white-space:nowrap;}
   .costo-tabla tfoot td{font-weight:700; border-top:1px solid var(--line-strong); border-bottom:none; padding-top:10px;}
   .costo-aviso{margin-top:14px; padding:10px 12px; border-radius:var(--radius-sm); border:1px solid rgba(244,63,94,.4); background:rgba(244,63,94,.12); color:var(--text); font-size:12px; line-height:1.5;}
+  /* FIX (24-sep-2026, pedido usuario — "en la tabla indica también la
+     cantidad de cartas disponibles y marca en verde los valores de
+     cantidad de cartas hasta donde se pueda subir con las cartas que se
+     tiene"): .costo-tabla-alcanza reusa el mismo verde/negrita que ya usa
+     .cc-count--alcanza (ver más abajo) para la misma idea ("ya te alcanza
+     con tus copias actuales") pero aplicado a una celda de la tabla en vez
+     de a un <span> del encabezado de la ficha. */
+  .costo-tabla td.costo-tabla-alcanza{color:var(--ok); font-weight:700;}
+  .costo-nota{margin-top:12px; font-family:var(--f-mono); font-size:11px; color:var(--text-faint); line-height:1.5;}
   /* .col-card--clicable: se agrega SOLO a las fichas que sí tienen tabla de
      costo (_activarClickCosto() decide caso por caso, carta por carta), no
      a toda ficha .col-card por igual. */
@@ -1679,15 +1688,41 @@ function _tieneTablaCostos(obj){
  * @param {Object} obj - carta cruda con costosNiveles/costoTotal/costoCompleto (ver docblock de arriba).
  */
 function abrirModalCostoCarta(nombreEs, nivelActual, obj){
-  const filas = obj.costosNiveles.map(n => `
+  /* FIX (24-sep-2026, pedido usuario — "en la tabla indica también la
+   * cantidad de cartas disponibles y marca en verde los valores de
+   * cantidad de cartas hasta donde se pueda subir con las cartas que se
+   * tiene"): `obj` es la misma carta cruda de rawClash(j) que ya trae
+   * costosNiveles/costoTotal (ver docblock de _tieneTablaCostos() más
+   * arriba) y, por ese mismo origen, también trae `count` (cantidad de
+   * copias que el jugador ya tiene de esa carta — el mismo campo que usa
+   * _cantidadCartasHtml() para el "×N"/"12/20" del encabezado de la
+   * ficha). Se marca en verde+negrita (misma idea que .cc-count--alcanza)
+   * la celda "Cartas" de cada fila cuyo acumulado de cartas, sumando desde
+   * el nivel actual, todavía entra dentro de `count` — o sea, hasta dónde
+   * se podría subir usando solo las copias que ya tiene (aparte igual hace
+   * falta el oro, que no se evalúa acá, mismo criterio que ya usa
+   * _cantidadCartasHtml()). Si `count` no es un número válido, ninguna fila
+   * se marca (no hay con qué comparar) y tampoco se muestra "Cartas
+   * disponibles" en el subtítulo. */
+  const countNum = (obj.count !== undefined && obj.count !== null && obj.count !== '' && isFinite(Number(obj.count))) ? Number(obj.count) : null;
+  let acumCartas = 0;
+  const filas = obj.costosNiveles.map(n => {
+    acumCartas += Number(n.cartas) || 0;
+    const alcanza = countNum != null && countNum >= acumCartas;
+    return `
         <tr>
           <td>Nivel ${esc(String(n.desde))} \u2192 ${esc(String(n.hasta))}</td>
           <td><span class="cc-oro">${_ICONO_ORO_HTML}${esc(fmtNum(n.oro))}</span></td>
-          <td>${esc(fmtNum(n.cartas))}</td>
-        </tr>`).join('');
+          <td class="${alcanza ? 'costo-tabla-alcanza' : ''}"${alcanza ? ' title="Ya te alcanza con tus copias actuales para llegar hasta este nivel (aparte hace falta el oro)"' : ''}>${esc(fmtNum(n.cartas))}</td>
+        </tr>`;
+  }).join('');
   const total = obj.costoTotal || { oro: 0, cartas: 0, niveles: obj.costosNiveles.length };
+  const totalAlcanza = countNum != null && countNum >= (Number(total.cartas) || 0);
+  const subPartes = [];
+  if (nivelActual != null) subPartes.push(`Nivel actual: ${nivelActual}`);
+  if (countNum != null) subPartes.push(`Cartas disponibles: ${fmtNum(countNum)}`);
   document.getElementById('costoModalTitulo').textContent = nombreEs || 'Carta';
-  document.getElementById('costoModalSub').textContent = nivelActual != null ? `Nivel actual: ${nivelActual}` : '';
+  document.getElementById('costoModalSub').textContent = subPartes.join(' \u00b7 ');
   document.getElementById('costoModalTablaWrap').innerHTML = `
       <table class="costo-tabla">
         <thead><tr><th>Nivel</th><th>Oro</th><th>Cartas</th></tr></thead>
@@ -1696,10 +1731,13 @@ function abrirModalCostoCarta(nombreEs, nivelActual, obj){
           <tr>
             <td>Total (${esc(String(total.niveles))} nivel${total.niveles === 1 ? '' : 'es'})</td>
             <td><span class="cc-oro">${_ICONO_ORO_HTML}${esc(fmtNum(total.oro))}</span></td>
-            <td>${esc(fmtNum(total.cartas))}</td>
+            <td class="${totalAlcanza ? 'costo-tabla-alcanza' : ''}">${esc(fmtNum(total.cartas))}</td>
           </tr>
         </tfoot>
       </table>
+      ${countNum != null
+        ? '<div class="costo-nota">En verde: cantidad de cartas que ya te alcanza con tus copias actuales para llegar hasta ese nivel (aparte hace falta el oro).</div>'
+        : ''}
       ${obj.costoCompleto === false
         ? '<div class="costo-aviso">Falta el costo de al menos un nivel intermedio en la base de datos: el total de arriba no lo incluye, así que el costo real para llegar al máximo es mayor que el mostrado.</div>'
         : ''}`;
