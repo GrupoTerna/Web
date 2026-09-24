@@ -798,39 +798,65 @@ function rawClash(j){
 const RAREZA_RAW_A_KEY = { common:'comun', rare:'especial', epic:'epica', legendary:'legendaria', champion:'campeon' };
 function rarezaKey(r){ return RAREZA_RAW_A_KEY[String(r || '').toLowerCase()] || ''; }
 // -----------------------------------------------------------------------------
-// DIFERENCIA FIJA DE NIVEL POR RAREZA (nivel del JSON -> nivel unificado del sitio)
+// DIFERENCIA DE NIVEL POR RAREZA (nivel del JSON -> nivel unificado del sitio)
 //
-// FIX (23-sep-2026, AVISO 15, puntos 1 y 2 — "revisar si perfil.html supone 16
-// como tope"): mismo problema que ya tuvo 09_Cards_Mazos.gs (Base.md, AVISO 11,
-// resuelto 23-sep-2026): nivelAppAjustado() calculaba "16 - maxLevel + level" a
-// mano. Hoy da el mismo resultado que usar una diferencia fija por rareza
-// porque el tope actual del JSON coincide con 16, pero si el juego crea el
-// nivel 17 esta cuenta se desalinea (el maxLevel del JSON de esa rareza sube
-// en 1 y el "16 - maxLevel" cambia, cuando lo que debe quedar fijo es la
-// diferencia). Se copia acá la MISMA tabla que ya usa el backend
-// (CARDS_DIFERENCIA_NIVEL_POR_RAREZA, 09_Cards_Mazos.gs, Base.md) para que
-// ambos lados calculen igual. Si se actualiza un lado hay que actualizar el
-// otro a mano — no hay forma de compartir la constante entre Apps Script y
-// este archivo estático.
+// FIX (23-sep-2026, AVISO 15, puntos 1 y 2): nivelAppAjustado() calculaba
+// "16 - maxLevel + level" a mano; se pasó a una diferencia por rareza.
+// FIX (24-sep-2026, AVISO 14, pedido usuario — "el maxlevel más alto de todas
+// las rarezas es el nuevo nivel máximo absoluto; compensación = nivel máximo −
+// maxlevel de esa rareza + nivel de la carta"): ya NO hay una tabla escrita a
+// mano (antes era una copia de CARDS_DIFERENCIA_NIVEL_POR_RAREZA de
+// 09_Cards_Mazos.gs, que el backend también eliminó y ahora calcula del
+// catálogo Backup_Cards.csv). Acá se aplica la MISMA regla con las cartas del
+// propio JSON del jugador (rawClash(j): cards, supportCards, currentDeck y
+// currentDeckSupportCards, todas con `rarity` y `maxLevel`):
+//   nivel máximo absoluto = mayor maxLevel entre TODAS sus cartas
+//   diferencia de una rareza = nivel máximo absoluto − maxLevel de esa rareza
+// Así no hay nada que mantener a mano en los dos lados y, si el juego crea el
+// nivel 17, se ajusta solo. renderMiembro() llama a _prepararDiferenciasNivel()
+// antes de pintar nada. Límite: si el jugador no tiene ninguna carta de una
+// rareza, esa rareza no aparece (tampoco hay cartas suyas que convertir).
 // -----------------------------------------------------------------------------
-const CARDS_DIFERENCIA_NIVEL_POR_RAREZA = {
-  common:    0,
-  rare:      2,
-  epic:      5,
-  legendary: 8,
-  champion:  10
-};
+let _difNivelPorRareza = {};   // rareza en minúscula -> diferencia
+let _nivelMaxAbsoluto = null;  // mayor maxLevel del JSON del jugador (null si no hay datos)
+
+/**
+ * _prepararDiferenciasNivel(rc)
+ * Calcula _nivelMaxAbsoluto y _difNivelPorRareza a partir de las cartas de
+ * rawClash(j). Se llama una vez por perfil, al inicio de renderMiembro().
+ * @param {Object} rc - Resultado de rawClash(j) (puede venir vacío).
+ */
+function _prepararDiferenciasNivel(rc){
+  const maxPorRareza = {};
+  let absoluto = 0;
+  rc = rc || {};
+  [rc.cards, rc.supportCards, rc.currentDeck, rc.currentDeckSupportCards].forEach(lista => {
+    if (!Array.isArray(lista)) return;
+    lista.forEach(c => {
+      if (!c) return;
+      const k = String(c.rarity || '').trim().toLowerCase();
+      const mx = Number(c.maxLevel);
+      if (!k || !(mx >= 1)) return;
+      if (!(maxPorRareza[k] >= mx)) maxPorRareza[k] = mx;
+      if (mx > absoluto) absoluto = mx;
+    });
+  });
+  _difNivelPorRareza = {};
+  Object.keys(maxPorRareza).forEach(k => { _difNivelPorRareza[k] = absoluto - maxPorRareza[k]; });
+  _nivelMaxAbsoluto = absoluto >= 1 ? absoluto : null;
+}
 
 /**
  * _diferenciaNivelRareza(rarity)
- * Mismo criterio que _diferenciaNivelRareza() de 09_Cards_Mazos.gs (Base.md):
- * diferencia fija entre el nivel del JSON y el del sitio para esa rareza.
+ * Diferencia entre el nivel del JSON y el del sitio para esa rareza, según
+ * _prepararDiferenciasNivel() (misma regla que _mapaDiferenciaNivelPorRareza()
+ * de 09_Cards_Mazos.gs, Base.md, pero con las cartas del propio jugador).
  * @param {string} rarity - rawClash(j).cards[].rarity o similar (en inglés).
- * @returns {?number} La diferencia, o null si la rareza no está en la tabla.
+ * @returns {?number} La diferencia, o null si la rareza no aparece en sus cartas.
  */
 function _diferenciaNivelRareza(rarity){
   const k = String(rarity || '').trim().toLowerCase();
-  return CARDS_DIFERENCIA_NIVEL_POR_RAREZA.hasOwnProperty(k) ? CARDS_DIFERENCIA_NIVEL_POR_RAREZA[k] : null;
+  return Object.prototype.hasOwnProperty.call(_difNivelPorRareza, k) ? _difNivelPorRareza[k] : null;
 }
 
 /**
@@ -854,13 +880,15 @@ function _diferenciaNivelRareza(rarity){
  * calcula con SOLO maxLevel; nivel sigue siendo null si falta level, para
  * que el llamador pueda mostrar un guion en su lugar.
  * FIX (23-sep-2026, AVISO 15, puntos 1 y 2): antes usaba "16 - maxLevel +
- * level" a mano (ver bloque de arriba). Ahora usa la diferencia fija por
- * rareza (_diferenciaNivelRareza(), misma tabla que el backend), igual que
- * ya hace 09_Cards_Mazos.gs desde el AVISO 11. Si `rarity` no está en la
- * tabla (rareza nueva que todavía no se agregó acá NI en el backend), cae
- * de respaldo a la fórmula vieja "16 - maxLevel + level" y avisa por
- * console.warn — mismo espíritu que el AVISO 14 del backend, pero sin log
- * de Apps Script disponible en el navegador.
+ * level" a mano (ver bloque de arriba). Ahora usa la diferencia por
+ * rareza (_diferenciaNivelRareza()).
+ * FIX (24-sep-2026, AVISO 14): esa diferencia ya no sale de una tabla manual
+ * sino del nivel máximo absoluto de las cartas del jugador (ver el bloque
+ * "DIFERENCIA DE NIVEL POR RAREZA" más arriba). Si `rarity` no aparece en sus
+ * cartas (ej. currentFavouriteCard de una rareza que no tiene ninguna otra
+ * carta), el respaldo usa ese mismo nivel máximo absoluto (nivel + absoluto −
+ * maxLevel); solo si no hay ningún dato usa el 16 antiguo. Avisa por
+ * console.warn.
  * @returns {{nivel:?number, nivelMax:?number}} nivel/nivelMax ya
  *   compensados (nivel null si faltaba level), o ambos null si ni siquiera
  *   había maxLevel.
@@ -869,11 +897,10 @@ function nivelAppAjustado(level, maxLevel, rarity){
   if (maxLevel == null) return { nivel: null, nivelMax: null };
   const diff = _diferenciaNivelRareza(rarity);
   if (diff == null) {
-    console.warn('[nivelAppAjustado] Rareza sin diferencia definida: "' + rarity + '". ' +
-                  'Se usa de respaldo el cálculo antiguo (16 - maxLevel + level); agrégala a ' +
-                  'CARDS_DIFERENCIA_NIVEL_POR_RAREZA (perfil.html) Y a CARDS_DIFERENCIA_NIVEL_POR_RAREZA ' +
-                  '(09_Cards_Mazos.gs, Base.md).');
-    return { nivel: (level != null ? (16 - maxLevel + level) : null), nivelMax: 16 };
+    const tope = _nivelMaxAbsoluto != null ? _nivelMaxAbsoluto : 16;
+    console.warn('[nivelAppAjustado] Rareza sin diferencia calculable: "' + rarity + '" (ninguna carta del ' +
+                  'jugador de esa rareza con maxLevel). Se usa de respaldo el nivel máximo absoluto (' + tope + ').');
+    return { nivel: (level != null ? (tope - maxLevel + level) : null), nivelMax: tope };
   }
   return { nivel: (level != null ? (level + diff) : null), nivelMax: maxLevel + diff };
 }
@@ -1518,7 +1545,8 @@ const COLECCION_ESPACIO_COSTO_MEJORA = false;
  * cada ficha de carta. Con costo de subida ("12/20") muestra tiene/necesita;
  * sin él, el "×N" de siempre. Si no hay `count`, no devuelve nada. Quien llama
  * decide antes si la carta está al máximo (ahí no se pinta nada).
- * @param {?number} count - Copias que tiene el jugador (JSON crudo, `count`).
+ * @param {?number} count - Copias que tiene el jugador. AVISO 7 (24-sep-2026): el backend ya lo manda
+ *   de Backup_Cards_2.csv.Count y, si falta, del `count` del JSON de Drive (34_Web_API.gs, _webDatosDriveJugador()).
  * @param {*} cartasSig - cartasSiguienteNivel (Backup_Cards_3.csv vía backend); cualquier valor no numérico se ignora.
  * @returns {string} HTML del span, o ''.
  */
@@ -2894,6 +2922,7 @@ function renderMetricasSemanales(ext){
 // también por la vista de cuentas inactivas) — se quita el duplicado local.
 
 function renderMiembro(j){
+  _prepararDiferenciasNivel(rawClash(j)); // AVISO 14 (24-sep-2026): diferencias de nivel por rareza desde las cartas del jugador
   document.title = `${j.nombre || 'Jugador'} — Familia Terna`;
   document.getElementById('mNombre').textContent = j.nombre || 'Sin nombre';
   document.getElementById('mSub').innerHTML = `${esc(j.tag)} · ${j.clan ? enlaceClan(j.clan) : '—'} · ${esc(j.rango || '—')} · ${esc(j.estado || '—')}`;
