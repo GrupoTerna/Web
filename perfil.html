@@ -295,10 +295,14 @@
   .mini-pie-leyenda .pct{font-family:var(--f-mono); font-size:11px; color:var(--text-faint);}
   /* FIX (23-sep-2026, pedido usuario — "en el minigráfico de victorias/
    * derrotas faltaría agregar el ratio"): dato adicional para valores que
-   * no son una porción del donut (p. ej. Ratio V/D). Ahora en formato
-   * pastilla con brillo (mismo lenguaje que .badge-gold/.badge-purple de
-   * assets/styles.css) en vez de una fila de texto plano. */
-  .mini-pie-extra{display:inline-flex; align-items:center; gap:7px; margin-top:16px; padding:6px 12px; border-radius:999px; background:rgba(162,57,255,.1); border:1px solid var(--line-strong); box-shadow:0 0 10px rgba(162,57,255,.15); font-family:var(--f-mono); font-size:10px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.08em;}
+   * no son una porción del donut (p. ej. Ratio V/D). En formato pastilla
+   * con brillo (mismo lenguaje que .badge-gold/.badge-purple de
+   * assets/styles.css) en vez de una fila de texto plano.
+   * FIX (23-sep-2026, pedido usuario — "bajar racha al lado de ratio"):
+   * .mini-pie-extras envuelve una o más .mini-pie-extra en fila, para que
+   * Ratio V/D y Racha queden lado a lado (con wrap si no entran). */
+  .mini-pie-extras{display:flex; flex-wrap:wrap; gap:8px; margin-top:16px;}
+  .mini-pie-extra{display:inline-flex; align-items:center; gap:7px; padding:6px 12px; border-radius:999px; background:rgba(162,57,255,.1); border:1px solid var(--line-strong); box-shadow:0 0 10px rgba(162,57,255,.15); font-family:var(--f-mono); font-size:10px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.08em;}
   .mini-pie-extra b{font-family:var(--f-display); font-size:15px; font-weight:800; color:var(--gold-light); text-transform:none; letter-spacing:normal; text-shadow:0 0 10px rgba(243,169,34,.5);}
   .badge-item .b-prog{font-family:var(--f-mono); font-size:10px; color:var(--text-faint);}
   .badge-item .progress{width:100%; height:5px; margin-top:2px;}
@@ -1754,11 +1758,16 @@ function renderSnapshotInfo(j){
  * (no se dibuja un gráfico vacío).
  * FIX (23-sep-2026, pedido usuario — "en el minigráfico de victorias y
  * derrotas faltaría agregar el ratio, y sacar esos campos de los
- * cuadritos"): parámetro `extra` opcional, `{etiqueta, valor}`, para un dato
- * que acompaña al gráfico sin ser una porción suyo (p. ej. Ratio V/D, que no
- * se puede repartir junto con Victorias/Derrotas). Se pinta como pastilla
- * debajo de la leyenda (.mini-pie-extra). Si `extra` no se pasa, o `valor`
- * es null/undefined, no se pinta nada distinto a antes.
+ * cuadritos"): parámetro `extra` opcional, `{etiqueta, valor}` o un array de
+ * varios `{etiqueta, valor}` (ver FIX más abajo), para uno o más datos que
+ * acompañan al gráfico sin ser una porción suya (p. ej. Ratio V/D, que no se
+ * puede repartir junto con Victorias/Derrotas). Se pintan como pastillas
+ * debajo de la leyenda (.mini-pie-extras > .mini-pie-extra). Si `extra` no
+ * se pasa, o un elemento no trae `valor`, ese elemento no pinta nada.
+ * FIX (23-sep-2026, pedido usuario — "falta retirar el cuadrito de batallas
+ * y bajar racha al lado de ratio"): `extra` ahora también acepta un array,
+ * para poder mostrar varias pastillas juntas (p. ej. Ratio V/D + Racha) en
+ * vez de una sola; un solo objeto sigue funcionando igual que antes.
  * FIX (23-sep-2026, pedido usuario — "los gráficos se siguen viendo feos,
  * dale una estética gamer"): se reemplaza el pastel plano (un solo <path>
  * relleno) por un DONUT en base a <circle> con stroke-dasharray (mismo
@@ -1793,13 +1802,22 @@ function _pastelMiniHtml(titulo, porciones, extra, opts){
     segmentos += `<circle cx="${C}" cy="${C}" r="${R}" fill="none" stroke="${p.color}" stroke-width="${GROSOR}" stroke-linecap="round" stroke-dasharray="${visible.toFixed(2)} ${(CIRC - visible).toFixed(2)}" stroke-dashoffset="${(-acumLargo).toFixed(2)}" style="filter:drop-shadow(0 0 5px ${p.color})"/>`;
     acumLargo += largo;
   });
-  const tieneExtra = extra && extra.valor !== null && extra.valor !== undefined && extra.valor !== '';
+  /* FIX (23-sep-2026, pedido usuario — "falta retirar el cuadrito de
+   * batallas y bajar racha al lado de ratio"): `extra` ahora acepta un
+   * array de `{etiqueta, valor}` (además de seguir aceptando un solo
+   * objeto, por compatibilidad) para poder mostrar varias pastillas juntas
+   * — p. ej. Ratio V/D y Racha lado a lado — en vez de una sola. Cada
+   * elemento sin `valor` (null/undefined/'') simplemente no pinta su
+   * pastilla, sin afectar a los demás. */
+  const extras = (Array.isArray(extra) ? extra : (extra ? [extra] : []))
+    .filter(e => e && e.valor !== null && e.valor !== undefined && e.valor !== '');
   let resumen = porciones.map((p, i) => `${p.etiqueta}: ${fmtNum(vals[i])} (${(vals[i] / total * 100).toFixed(1)}%)`).join('; ');
-  if (tieneExtra) resumen += `; ${extra.etiqueta}: ${extra.valor}`;
+  extras.forEach(e => { resumen += `; ${e.etiqueta}: ${e.valor}`; });
   const leyenda = porciones.map((p, i) => `
         <div class="fila"><span class="punto" style="background:${p.color}; color:${p.color};"></span>${esc(p.etiqueta)} <b>${esc(fmtNum(vals[i]))}</b> <span class="pct">${(vals[i] / total * 100).toFixed(1)}%</span></div>`).join('');
-  const extraHtml = tieneExtra ? `
-      <div class="mini-pie-extra">${esc(extra.etiqueta)} <b>${esc(String(extra.valor))}</b></div>` : '';
+  const extraHtml = extras.length ? `
+      <div class="mini-pie-extras">${extras.map(e => `<div class="mini-pie-extra">${esc(e.etiqueta)} <b>${esc(String(e.valor))}</b></div>`).join('')}
+      </div>` : '';
   const icoHtml = opts.icono ? `<span class="ico">${esc(opts.icono)}</span>` : '';
   return `
     <div class="mini-pie">
@@ -1832,7 +1850,18 @@ function renderExtendido(ext, j){
   items += extItem(raw.starPoints, 'Puntos estelares', true);
   items += extItem(raw.expPoints != null ? `${fmtNum(raw.expPoints)} / ${fmtNum(raw.totalExpPoints)}` : null, 'Puntos de experiencia', false);
   items += extItem(ext.arena, 'Arena', false);
-  items += extItem(ext.batallas, 'Batallas', true);
+  /* FIX (23-sep-2026, pedido usuario — "falta retirar el cuadrito de
+   * batallas"): Batallas ya no se pinta como cuadrito suelto. En su lugar,
+   * el minigráfico "Victorias y derrotas" muestra en su centro la suma de
+   * las dos porciones que recibe (Victorias + Derrotas), con la etiqueta
+   * "Batallas" (centroEtiqueta:'Batallas', ver el arreglo `pies`).
+   * PENDIENTE DE VERIFICAR (no se tiene Base.md en esta sesión para
+   * confirmarlo): se asume que ext.batallas es siempre igual a
+   * ext.victorias + ext.derrotas. Si el backend llegara a contar ahí algo
+   * más (por ejemplo empates u otro tipo de partida que no sea
+   * victoria/derrota), el número del centro del donut podría no coincidir
+   * exactamente con el valor real de ext.batallas — avisar si se nota esa
+   * diferencia en algún perfil. */
   /* FIX (23-sep-2026, pedido usuario — "las donaciones ya se muestran en
    * los minigráficos, no se deben repetir en los cuadritos; en el otro
    * minigráfico faltaría agregar el ratio y sacar todos los campos
@@ -1847,7 +1876,11 @@ function renderExtendido(ext, j){
    * con qué dividir, no es un error). */
   const vNum = Number(ext.victorias) || 0, dNum = Number(ext.derrotas) || 0;
   const ratioVD = dNum > 0 ? (vNum / dNum).toFixed(2) : '—';
-  items += extItem(ext.racha, 'Racha', true);
+  /* FIX (23-sep-2026, pedido usuario — "bajar racha al lado de ratio"):
+   * Racha ya no se pinta como cuadrito suelto: se pasa como segunda
+   * pastilla del minigráfico "Victorias y derrotas", al lado de Ratio V/D
+   * (ver el arreglo `extra` que se le pasa a _pastelMiniHtml() dentro del
+   * arreglo `pies` más abajo). */
   items += extItem(ext.victorias3Coronas, '3 coronas', true);
   items += extItem(ext.maxVictoriasDesafios, 'Máx. victorias desafío', true);
   items += extItem(ext.cartasDesafios, 'Cartas de desafíos', true);
@@ -1884,7 +1917,10 @@ function renderExtendido(ext, j){
     (ext.victorias != null && ext.derrotas != null) ? _pastelMiniHtml('Victorias y derrotas', [
       { etiqueta: 'Victorias', valor: ext.victorias, color: 'var(--ok)' },
       { etiqueta: 'Derrotas', valor: ext.derrotas, color: 'var(--danger)' },
-    ], { etiqueta: 'Ratio V/D', valor: ratioVD }, { icono: '⚔️', centroEtiqueta: 'Batallas' }) : '',
+    ], [
+      { etiqueta: 'Ratio V/D', valor: ratioVD },
+      { etiqueta: 'Racha', valor: ext.racha },
+    ], { icono: '⚔️', centroEtiqueta: 'Batallas' }) : '',
     (ext.donacionesRealizadas != null && ext.donacionesRecibidas != null) ? _pastelMiniHtml('Donaciones hechas y recibidas', [
       { etiqueta: 'Hechas', valor: ext.donacionesRealizadas, color: 'var(--gold)' },
       { etiqueta: 'Recibidas', valor: ext.donacionesRecibidas, color: 'var(--purple)' },
