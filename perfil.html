@@ -267,6 +267,13 @@
   .mini-pie-leyenda .punto{width:10px; height:10px; border-radius:50%; flex-shrink:0;}
   .mini-pie-leyenda b{font-family:var(--f-display); font-size:16px; color:var(--text);}
   .mini-pie-leyenda .pct{font-family:var(--f-mono); font-size:11px; color:var(--text-faint);}
+  /* FIX (23-sep-2026, pedido usuario — "en el minigráfico de victorias/
+   * derrotas faltaría agregar el ratio"): dato adicional debajo de la
+   * leyenda para valores que no son una porción del pastel (p. ej. Ratio
+   * V/D). Mismo lenguaje visual que .ext-item .k/.v (assets/styles.css):
+   * etiqueta mono en mayúsculas + valor en --f-display. */
+  .mini-pie-extra{display:flex; align-items:center; gap:6px; margin-top:10px; padding-top:10px; border-top:1px solid var(--line); font-family:var(--f-mono); font-size:10px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.06em;}
+  .mini-pie-extra b{font-family:var(--f-display); font-size:16px; color:var(--text); text-transform:none; letter-spacing:normal;}
   .badge-item .b-prog{font-family:var(--f-mono); font-size:10px; color:var(--text-faint);}
   .badge-item .progress{width:100%; height:5px; margin-top:2px;}
   .star-level{color:var(--gold); font-size:11px; letter-spacing:1px; white-space:nowrap;}
@@ -1713,7 +1720,7 @@ function renderSnapshotInfo(j){
 }
 
 /**
- * _pastelMiniHtml(titulo, porciones)
+ * _pastelMiniHtml(titulo, porciones, extra)
  * FIX (23-sep-2026, pedido usuario — dos minigráficos de estilo pastel):
  * gráfico de pastel en SVG (sin librerías) con su leyenda. `porciones` es
  * [{etiqueta, valor, color}] (color = cualquier valor CSS, p. ej.
@@ -1722,8 +1729,15 @@ function renderSnapshotInfo(j){
  * dibuja un círculo completo (un arco de 360° no se puede trazar con un solo
  * <path>). Los porcentajes de la leyenda se calculan sobre la suma de las
  * porciones mostradas.
+ * FIX (23-sep-2026, pedido usuario — "en el minigráfico de victorias y
+ * derrotas faltaría agregar el ratio, y sacar esos campos de los
+ * cuadritos"): parámetro `extra` opcional, `{etiqueta, valor}`, para un dato
+ * que acompaña al pastel sin ser una porción suya (p. ej. Ratio V/D, que no
+ * se puede repartir en el círculo junto con Victorias/Derrotas). Se pinta
+ * debajo de la leyenda con separador propio (.mini-pie-extra). Si `extra` no
+ * se pasa, o `valor` es null/undefined, no se pinta nada distinto a antes.
  */
-function _pastelMiniHtml(titulo, porciones){
+function _pastelMiniHtml(titulo, porciones, extra){
   const vals = porciones.map(p => Number(p.valor));
   if (vals.some(v => !isFinite(v) || v < 0)) return '';
   const total = vals.reduce((a, b) => a + b, 0);
@@ -1745,9 +1759,13 @@ function _pastelMiniHtml(titulo, porciones){
       trozos += `<path d="M${C},${C} L${x0.toFixed(3)},${y0.toFixed(3)} A${R},${R} 0 ${(a1 - a0) > Math.PI ? 1 : 0} 1 ${x1.toFixed(3)},${y1.toFixed(3)} Z" fill="${p.color}" stroke="var(--bg-2)" stroke-width="1.5"/>`;
     });
   }
-  const resumen = porciones.map((p, i) => `${p.etiqueta}: ${fmtNum(vals[i])} (${(vals[i] / total * 100).toFixed(1)}%)`).join('; ');
+  const tieneExtra = extra && extra.valor !== null && extra.valor !== undefined && extra.valor !== '';
+  let resumen = porciones.map((p, i) => `${p.etiqueta}: ${fmtNum(vals[i])} (${(vals[i] / total * 100).toFixed(1)}%)`).join('; ');
+  if (tieneExtra) resumen += `; ${extra.etiqueta}: ${extra.valor}`;
   const leyenda = porciones.map((p, i) => `
         <div class="fila"><span class="punto" style="background:${p.color};"></span>${esc(p.etiqueta)} <b>${esc(fmtNum(vals[i]))}</b> <span class="pct">${(vals[i] / total * 100).toFixed(1)}%</span></div>`).join('');
+  const extraHtml = tieneExtra ? `
+      <div class="mini-pie-extra">${esc(extra.etiqueta)} <b>${esc(String(extra.valor))}</b></div>` : '';
   return `
     <div class="mini-pie">
       <div class="mini-pie-titulo">${esc(titulo)}</div>
@@ -1755,7 +1773,7 @@ function _pastelMiniHtml(titulo, porciones){
         <svg viewBox="0 0 100 100" role="img" aria-label="${esc(titulo)}. ${esc(resumen)}">${trozos}</svg>
         <div class="mini-pie-leyenda">${leyenda}
         </div>
-      </div>
+      </div>${extraHtml}
     </div>`;
 }
 
@@ -1772,24 +1790,21 @@ function renderExtendido(ext, j){
   items += extItem(raw.starPoints, 'Puntos estelares', true);
   items += extItem(raw.expPoints != null ? `${fmtNum(raw.expPoints)} / ${fmtNum(raw.totalExpPoints)}` : null, 'Puntos de experiencia', false);
   items += extItem(ext.arena, 'Arena', false);
-  items += extItem(ext.victorias, 'Victorias', true);
-  items += extItem(ext.derrotas, 'Derrotas', true);
   items += extItem(ext.batallas, 'Batallas', true);
-  /* Punto 18 de la Lista "ChatGPT" (cambios_web.pdf) — % de victorias, %
-   * de derrotas y ratio V/D. Calculado 100% en frontend a partir de
-   * ext.victorias/ext.derrotas, que el backend YA envía (sin tocar
-   * 34_Web_API.gs ni ningún endpoint): son los mismos valores que se
-   * muestran arriba como "Victorias"/"Derrotas", solo derivados. Si no
-   * hay ninguna batalla registrada (total=0) no se muestra nada, para no
-   * pintar "0.0%" sin sentido en un perfil recién creado. Ratio V/D queda
-   * en '—' cuando Derrotas=0 (no hay con qué dividir, no es un error). */
+  /* FIX (23-sep-2026, pedido usuario — "las donaciones ya se muestran en
+   * los minigráficos, no se deben repetir en los cuadritos; en el otro
+   * minigráfico faltaría agregar el ratio y sacar todos los campos
+   * mencionados ahí de los cuadritos"): Victorias, Derrotas, % Victorias,
+   * % Derrotas y Ratio V/D ya no se pintan como cuadritos sueltos: los
+   * mismos datos (valor + % de cada uno, más ahora el ratio) se muestran
+   * en el minigráfico "Victorias y derrotas" de más abajo (ver
+   * _pastelMiniHtml() y el arreglo `pies`). vNum/dNum se conservan acá
+   * porque el ratio que se le pasa a ese minigráfico se sigue calculando
+   * a partir de ext.victorias/ext.derrotas (backend ya los envía, sin
+   * tocar 34_Web_API.gs). Ratio V/D queda en '—' cuando Derrotas=0 (no hay
+   * con qué dividir, no es un error). */
   const vNum = Number(ext.victorias) || 0, dNum = Number(ext.derrotas) || 0;
-  const totalVD = vNum + dNum;
-  if (totalVD > 0){
-    items += extItem(((vNum / totalVD) * 100).toFixed(1) + '%', '% Victorias', false);
-    items += extItem(((dNum / totalVD) * 100).toFixed(1) + '%', '% Derrotas', false);
-    items += extItem(dNum > 0 ? (vNum / dNum).toFixed(2) : '—', 'Ratio V/D', false);
-  }
+  const ratioVD = dNum > 0 ? (vNum / dNum).toFixed(2) : '—';
   items += extItem(ext.racha, 'Racha', true);
   items += extItem(ext.victorias3Coronas, '3 coronas', true);
   items += extItem(ext.maxVictoriasDesafios, 'Máx. victorias desafío', true);
@@ -1797,8 +1812,10 @@ function renderExtendido(ext, j){
   items += extItem(ext.cartasTorneos, 'Cartas de torneos', true);
   items += extItem(ext.emotes, 'Emotes', true);
   items += extItem(ext.banners, 'Banners', true);
-  items += extItem(ext.donacionesRecibidas, 'Donaciones recibidas', true);
-  items += extItem(ext.donacionesRealizadas, 'Donaciones hechas', true);
+  /* FIX (23-sep-2026, pedido usuario): Donaciones recibidas/hechas ya no se
+   * pintan como cuadritos sueltos: los mismos datos se muestran en el
+   * minigráfico "Donaciones hechas y recibidas" de más abajo (ver el
+   * arreglo `pies`), así que repetirlos acá era redundante. */
   items += extItem(ext.rankingClan, 'Ranking en el clan', true);
 
   let camino = '';
@@ -1825,7 +1842,7 @@ function renderExtendido(ext, j){
     (ext.victorias != null && ext.derrotas != null) ? _pastelMiniHtml('Victorias y derrotas', [
       { etiqueta: 'Victorias', valor: ext.victorias, color: 'var(--ok)' },
       { etiqueta: 'Derrotas', valor: ext.derrotas, color: 'var(--danger)' },
-    ]) : '',
+    ], { etiqueta: 'Ratio V/D', valor: ratioVD }) : '',
     (ext.donacionesRealizadas != null && ext.donacionesRecibidas != null) ? _pastelMiniHtml('Donaciones hechas y recibidas', [
       { etiqueta: 'Hechas', valor: ext.donacionesRealizadas, color: 'var(--gold)' },
       { etiqueta: 'Recibidas', valor: ext.donacionesRecibidas, color: 'var(--purple)' },
