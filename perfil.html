@@ -311,6 +311,10 @@
      la sección"): pasa de 10px a 11px, igual al resto de la ficha de carta
      (cc-rareza/cc-tipo/cc-badge/cc-elixir en assets/styles.css). */
   .cc-count{font-family:var(--f-mono); font-size:11px; color:var(--text-faint);}
+  /* FIX (23-sep-2026, AVISO 8, pedido usuario — "resalta"): "12/20" cuando las copias que
+     tiene ya alcanzan para subir de nivel (ver _cantidadCartasHtml()). Verde + negrita:
+     no depende solo del color. */
+  .cc-count.cc-count--alcanza{color:var(--ok); font-weight:700;}
   .coleccion-resumen{font-family:var(--f-mono); font-size:12px; color:var(--text-dim); margin-top:10px;}
   .coleccion-filtros{display:flex; gap:8px; flex-wrap:wrap; margin:14px 0 4px;}
   .coleccion-filtros button{
@@ -1496,8 +1500,9 @@ function renderColeccion(j){
  * costoOro y cartasSiguienteNivel en las 4 listas de cartas de rawClash
  * (cards[], supportCards[], currentDeck[], currentDeckSupportCards[]). Se
  * dejaron 2 cosas distintas:
- *   - Oro: sigue siendo una fila propia, solo en "Colección completa"
- *     (las otras secciones todavía no la muestran).
+ *   - Oro: fila propia (_oroHtml()) en las 4 secciones: Colección completa,
+ *     Cartas de torre, Mazo actual y Carta de torre del mazo (el usuario lo
+ *     pidió el mismo día; las de nivel máximo no la muestran).
  *   - Cartas: YA NO es una fila aparte ("Cartas: N"). Se acopló al "×N" del
  *     encabezado de cada ficha (ver _cantidadCartasHtml()): "12/20" = cartas
  *     que tiene / cartas que hacen falta. Si no hay dato del costo, queda el
@@ -1520,9 +1525,28 @@ const COLECCION_ESPACIO_COSTO_MEJORA = false;
 function _cantidadCartasHtml(count, cartasSig){
   if (count === undefined || count === null || count === '') return '';
   const sig = (cartasSig !== undefined && cartasSig !== null && cartasSig !== '' && isFinite(Number(cartasSig))) ? Number(cartasSig) : null;
-  return sig != null
-    ? `<span class="cc-count" title="Cartas que tienes / cartas necesarias para subir al siguiente nivel">${fmtNum(count)}/${fmtNum(sig)}</span>`
-    : `<span class="cc-count" title="Cantidad de cartas disponibles de este nombre">\u00d7${fmtNum(count)}</span>`;
+  if (sig == null) return `<span class="cc-count" title="Cantidad de cartas disponibles de este nombre">\u00d7${fmtNum(count)}</span>`;
+  // FIX (23-sep-2026, AVISO 8, pedido usuario — "resalta"): si ya tiene las
+  // copias necesarias se resalta. Solo se comparan las CARTAS: el oro no se
+  // evalúa (decisión del usuario, ver AVISO 6), así que el título lo aclara.
+  const alcanza = Number(count) >= sig;
+  return alcanza
+    ? `<span class="cc-count cc-count--alcanza" title="Ya tienes las cartas necesarias para subir al siguiente nivel (aparte hace falta el oro)">${fmtNum(count)}/${fmtNum(sig)}</span>`
+    : `<span class="cc-count" title="Cartas que tienes / cartas necesarias para subir al siguiente nivel">${fmtNum(count)}/${fmtNum(sig)}</span>`;
+}
+/**
+ * _numOrNull(v) / _oroHtml(oro)
+ * FIX (23-sep-2026, AVISO 8, pedido usuario — oro también en Mazo actual y
+ * Cartas de torre): _numOrNull() normaliza costoOro/cartasSiguienteNivel (null si
+ * falta o no es número); _oroHtml() es la fila de oro que antes estaba escrita a
+ * mano en pintarColeccion(), ahora compartida por las 4 secciones de cartas
+ * (con "—" si oro es null). Se usa dentro de _filaCostoMejora().
+ */
+function _numOrNull(v){
+  return (v !== undefined && v !== null && v !== '' && isFinite(Number(v))) ? Number(v) : null;
+}
+function _oroHtml(oro){
+  return `<div class="cc-meta"><span class="cc-oro" title="Oro necesario para subir de nivel">${_ICONO_ORO_HTML}${oro != null ? esc(fmtNum(oro)) : '\u2014'}</span></div>`;
 }
 function _filaCostoMejora(reservar, tieneValor, htmlValor, htmlSinDato){
   if (!reservar) return '';
@@ -1648,9 +1672,7 @@ function pintarColeccion(cartas){
             `${c.elixirCost != null ? `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">${esc(String(c.elixirCost))}</span>` : ''}${estrellasHtml(c.starLevel)}`,
             `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">&nbsp;</span>`)}
           <div class="text-faint" style="font-family:var(--f-mono); font-size:11px;">Nivel ${esc(String(nvl.nivel != null ? nvl.nivel : '\u2014'))}</div>
-          ${_filaCostoMejora(seccionColOro, x.costoOro != null,
-            `<div class="cc-meta"><span class="cc-oro" title="Oro necesario para subir de nivel">${_ICONO_ORO_HTML}${esc(fmtNum(x.costoOro))}</span></div>`,
-            `<div class="cc-meta"><span class="cc-oro" title="Oro necesario para subir de nivel">${_ICONO_ORO_HTML}\u2014</span></div>`)}
+          ${_filaCostoMejora(seccionColOro, x.costoOro != null, _oroHtml(x.costoOro), _oroHtml(null))}
           ${_filaHeroeEvo(x.mostrarHeroe,
             `<button type="button" class="cc-badge cc-badge-btn${activaHero ? ' is-activa' : ''}" data-icon-variante="${esc(iconoHeroe)}" onclick="cambiarVarianteCarta(this)">\u{1f9b8} H\u00e9roe</button>`,
             x.mostrarEvo,
@@ -1719,8 +1741,10 @@ function renderCartasTorre(j){
     const heroIcon = (t.iconUrls && t.iconUrls.heroMedium) || '';
     const tieneEvo = (t.evolutionLevel || 0) > 0;
     const evoIcon = (t.iconUrls && t.iconUrls.evolutionMedium) || '';
+    // FIX (23-sep-2026, AVISO 8): oro para subir de nivel (no aplica a nivel máximo).
+    const costoOro = alMax ? null : _numOrNull(t.costoOro);
     return {
-      t, rk, img, nombreEs, nvl, alMax, tipoTxt, esHeroe, heroIcon, tieneEvo, evoIcon,
+      t, rk, img, nombreEs, nvl, alMax, tipoTxt, esHeroe, heroIcon, tieneEvo, evoIcon, costoOro,
       mostrarHeroe: esHeroe,
       mostrarEvo: tieneEvo,
       mostrarRareza: !!rk,
@@ -1731,6 +1755,7 @@ function renderCartasTorre(j){
   const seccionTorresRareza = datosTorres.some(x => x.mostrarRareza);
   const seccionTorresTipo = datosTorres.some(x => x.mostrarTipo);
   const seccionTorresElixir = datosTorres.some(x => x.mostrarElixir);
+  const seccionTorresOro = COLECCION_ESPACIO_COSTO_MEJORA || datosTorres.some(x => x.costoOro != null);
 
   cont.innerHTML = datosTorres.map(x => {
     const { t, rk, img, nombreEs, nvl, alMax, tipoTxt, heroIcon, evoIcon } = x;
@@ -1762,6 +1787,7 @@ function renderCartasTorre(j){
             `${t.elixirCost != null ? `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">${esc(String(t.elixirCost))}</span>` : ''}${estrellasHtml(t.starLevel)}`,
             `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">&nbsp;</span>`)}
           <div class="text-faint" style="font-size:11px;">Nv. ${esc(String(nvl.nivel != null ? nvl.nivel : '\u2014'))}</div>
+          ${_filaCostoMejora(seccionTorresOro, x.costoOro != null, _oroHtml(x.costoOro), _oroHtml(null))}
           ${_filaHeroeEvo(x.mostrarHeroe,
             `<button type="button" class="cc-badge cc-badge-btn" data-icon-variante="${esc(heroIcon)}" onclick="cambiarVarianteCarta(this)">🦸 Héroe</button>`,
             x.mostrarEvo,
@@ -2316,6 +2342,9 @@ function renderMazoActual(mazoActual, ext, j){
     // (rc), que ya lo manda _webConCostoSubida(). Se acopla al "×N" (ver
     // _cantidadCartasHtml()).
     const cartasSig = c.cartasSiguienteNivel != null ? c.cartasSiguienteNivel : rc.cartasSiguienteNivel;
+    // FIX (23-sep-2026, AVISO 8): oro para subir de nivel, mismo origen (rc) y
+    // misma regla (no aplica a nivel máximo).
+    const costoOroBruto = c.costoOro != null ? c.costoOro : rc.costoOro;
     // FIX (23-sep-2026, AVISO 15, punto 3): nivel máximo SIN comparar contra
     // un 16 escrito a mano. Prioridad: c.alTope (lo manda el backend en
     // mazoActual.cartas, _webCartaAlTope(), y _cartaMazoFallback() lo arma del
@@ -2348,6 +2377,7 @@ function renderMazoActual(mazoActual, ext, j){
     const activaEvo = !!(hasEvo && evoIcon && imgSrc === evoIcon);
     return {
       c, d, tipoTxt, starLevel, count, cartasSig, alTope, hasEvo, evoIcon, heroIcon, imgSrc, activaHero, activaEvo,
+      costoOro: alTope ? null : _numOrNull(costoOroBruto),
       mostrarHeroe: !!(c.hasHero || (d && d.rareza === 'campeon')),
       mostrarEvo: hasEvo,
       mostrarRareza: !!d,
@@ -2359,6 +2389,7 @@ function renderMazoActual(mazoActual, ext, j){
   const seccionMazoRareza = datosCartas.some(x => x.mostrarRareza);
   const seccionMazoTipo = datosCartas.some(x => x.mostrarTipo);
   const seccionMazoElixir = datosCartas.some(x => x.mostrarElixir);
+  const seccionMazoOro = COLECCION_ESPACIO_COSTO_MEJORA || datosCartas.some(x => x.costoOro != null);
 
   const cartasHtml = datosCartas.map(x => {
     const { c, d, tipoTxt, starLevel, count, cartasSig, alTope, heroIcon, evoIcon, imgSrc, activaHero, activaEvo } = x;
@@ -2407,6 +2438,7 @@ function renderMazoActual(mazoActual, ext, j){
           <div class="text-faint" style="font-family:var(--f-mono); font-size:11px;">
             Nivel ${esc(String(c.nivel != null ? c.nivel : '\u2014'))}
           </div>
+          ${_filaCostoMejora(seccionMazoOro, x.costoOro != null, _oroHtml(x.costoOro), _oroHtml(null))}
           ${_filaHeroeEvo(x.mostrarHeroe,
             `<button type="button" class="cc-badge cc-badge-btn${activaHero ? ' is-activa' : ''}" data-icon-variante="${esc(heroIcon)}" onclick="cambiarVarianteCarta(this)">🦸 Héroe</button>`,
             x.mostrarEvo,
@@ -2452,8 +2484,10 @@ function renderMazoActual(mazoActual, ext, j){
       const tieneEvo = (t.evolutionLevel || 0) > 0;
       const evoIcon = (t.iconUrls && t.iconUrls.evolutionMedium) || '';
       const alMax = t.maxLevel != null && t.level != null && t.level >= t.maxLevel;
+      // FIX (23-sep-2026, AVISO 8): oro para subir de nivel (no aplica a nivel máximo).
+      const costoOro = alMax ? null : _numOrNull(t.costoOro);
       return {
-        t, rk, img, nombreEs, nvl, tipoTxt, esHeroe, heroIcon, tieneEvo, evoIcon, alMax,
+        t, rk, img, nombreEs, nvl, tipoTxt, esHeroe, heroIcon, tieneEvo, evoIcon, alMax, costoOro,
         mostrarHeroe: esHeroe,
         mostrarEvo: tieneEvo,
         mostrarRareza: !!rk,
@@ -2464,6 +2498,7 @@ function renderMazoActual(mazoActual, ext, j){
     const seccionTorreRareza = datosTorres.some(x => x.mostrarRareza);
     const seccionTorreTipo = datosTorres.some(x => x.mostrarTipo);
     const seccionTorreElixir = datosTorres.some(x => x.mostrarElixir);
+    const seccionTorreOro = COLECCION_ESPACIO_COSTO_MEJORA || datosTorres.some(x => x.costoOro != null);
 
     const chipsHtml = datosTorres.map(x => {
       const { t, rk, img, nombreEs, nvl, tipoTxt, heroIcon, evoIcon, alMax } = x;
@@ -2486,6 +2521,7 @@ function renderMazoActual(mazoActual, ext, j){
                 `${t.elixirCost != null ? `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">${esc(String(t.elixirCost))}</span>` : ''}${estrellasHtml(t.starLevel)}`,
                 `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">&nbsp;</span>`)}
               <div class="text-faint" style="font-size:11px;">Nv. ${esc(String(nvl.nivel != null ? nvl.nivel : '—'))}</div>
+              ${_filaCostoMejora(seccionTorreOro, x.costoOro != null, _oroHtml(x.costoOro), _oroHtml(null))}
               ${_filaHeroeEvo(x.mostrarHeroe,
                 `<button type="button" class="cc-badge cc-badge-btn" data-icon-variante="${esc(heroIcon)}" onclick="cambiarVarianteCarta(this)">🦸 Héroe</button>`,
                 x.mostrarEvo,
