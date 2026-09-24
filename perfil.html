@@ -2182,6 +2182,10 @@ function _cartaMazoFallback(rc){
     elixirCost:    rc.elixirCost != null ? rc.elixirCost : null,
     icon:          urls.medium || '',
     nivel:         nivel,
+    // FIX (23-sep-2026, AVISO 15, punto 3): mismo campo que manda el backend
+    // (_webCartaAlTope(), 34_Web_API.gs), calculado acá con la comparación
+    // cruda del JSON — igual que pintarColeccion() y el resto de secciones.
+    alTope:        !!(rc.maxLevel != null && rc.level != null && rc.level >= rc.maxLevel),
     evoLevel:      rc.evolutionLevel || 0,
     hasEvolution:  (rc.evolutionLevel || 0) > 0,
     evolutionIcon: urls.evolutionMedium || null,
@@ -2288,6 +2292,15 @@ function renderMazoActual(mazoActual, ext, j){
     const tipoTxt = d ? d.tipo.charAt(0).toUpperCase() + d.tipo.slice(1) : '';
     const starLevel = c.starLevel != null ? c.starLevel : (rc.starLevel || 0);
     const count = c.count != null ? c.count : rc.count;
+    // FIX (23-sep-2026, AVISO 15, punto 3): nivel máximo SIN comparar contra
+    // un 16 escrito a mano. Prioridad: c.alTope (lo manda el backend en
+    // mazoActual.cartas, _webCartaAlTope(), y _cartaMazoFallback() lo arma del
+    // JSON crudo); si el backend todavía no lo manda (respuesta en cache vieja
+    // o backend sin actualizar) se calcula acá con la misma comparación cruda
+    // level>=maxLevel de la carta equivalente en rawClash(j).currentDeck.
+    const alTope = (typeof c.alTope === 'boolean')
+      ? c.alTope
+      : !!(rc.maxLevel != null && rc.level != null && rc.level >= rc.maxLevel);
     const evoLvl = c.evolutionLevel != null ? c.evolutionLevel : (rc.evolutionLevel || 0);
     const hasEvo = c.hasEvolution || evoLvl > 0;
     const evoIcon = c.evolutionIcon || urlsRc.evolutionMedium || '';
@@ -2310,7 +2323,7 @@ function renderMazoActual(mazoActual, ext, j){
     const activaHero = !!(c.hasHero && heroIcon && imgSrc === heroIcon);
     const activaEvo = !!(hasEvo && evoIcon && imgSrc === evoIcon);
     return {
-      c, d, tipoTxt, starLevel, count, hasEvo, evoIcon, heroIcon, imgSrc, activaHero, activaEvo,
+      c, d, tipoTxt, starLevel, count, alTope, hasEvo, evoIcon, heroIcon, imgSrc, activaHero, activaEvo,
       mostrarHeroe: !!(c.hasHero || (d && d.rareza === 'campeon')),
       mostrarEvo: hasEvo,
       mostrarRareza: !!d,
@@ -2324,22 +2337,25 @@ function renderMazoActual(mazoActual, ext, j){
   const seccionMazoElixir = datosCartas.some(x => x.mostrarElixir);
 
   const cartasHtml = datosCartas.map(x => {
-    const { c, d, tipoTxt, starLevel, count, heroIcon, evoIcon, imgSrc, activaHero, activaEvo } = x;
+    const { c, d, tipoTxt, starLevel, count, alTope, heroIcon, evoIcon, imgSrc, activaHero, activaEvo } = x;
     // FIX (23-sep-2026, pedido usuario — "en el mazo actual falta agregar
     // los bordes dorados para cartas al nivel 16"): la clase "max-level"
     // (.col-card.max-level, border-color:var(--gold)) ya existía en el CSS
     // y ya la usaba pintarColeccion() ("Colección completa"), pero esta
     // ficha (Mazo actual) nunca la agregaba al div — se remataba con el
     // mismo borde violeta que cualquier otra carta sin importar el nivel.
-    // c.nivel ya viene compensado al tope unificado de 16 (mismo criterio
-    // que el resto de esta función; ver nivelAppAjustado()), así que
-    // comparar contra 16 acá es equivalente al c.level>=c.maxLevel crudo
-    // que usa pintarColeccion().
+    // FIX (23-sep-2026, AVISO 15, punto 3): antes esto comparaba
+    // `c.nivel === 16`. c.nivel ya viene convertido al nivel unificado de la
+    // app (Backup_Cards_2.csv.Level), así que si el juego crea el nivel 17 el
+    // backend mandaría 17 para una carta al tope y esa comparación se quedaba
+    // buscando 16 para siempre (se rompían el borde dorado y el ocultamiento
+    // del "×N"). Ahora se usa `alTope` (ver arriba, en datosCartas), que es
+    // el equivalente al c.level>=c.maxLevel crudo que usa pintarColeccion().
     return `
-    <div class="col-card col-card--grande${c.nivel === 16 ? ' max-level' : ''}" data-icon-base="${esc(c.icon || '')}">
+    <div class="col-card col-card--grande${alTope ? ' max-level' : ''}" data-icon-base="${esc(c.icon || '')}">
       <div class="col-nombre">
         <span class="col-nombre-txt">${esc(c.name)}</span>
-        ${(count != null && c.nivel !== 16) ? `<span class="cc-count" title="Cantidad de cartas disponibles de este nombre">×${fmtNum(count)}</span>` : ''}
+        ${(count != null && !alTope) ? `<span class="cc-count" title="Cantidad de cartas disponibles de este nombre">×${fmtNum(count)}</span>` : ''}
       </div>
       <div class="col-cuerpo">
         ${imgSrc ? `<img class="cc-img" src="${esc(imgSrc)}" alt="${esc(c.name)}" loading="lazy" onerror="_marcarCartaSinImagen(this);" onload="if(this.naturalWidth===0) _marcarCartaSinImagen(this);">` : ''}
