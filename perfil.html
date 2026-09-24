@@ -457,6 +457,49 @@
   .ing-linechart-svg .ing-serie-pt:hover{r:7;}
   .ing-linechart-svg .ing-axis-title{fill:var(--text-dim); font-family:var(--f-mono); font-size:14px; font-weight:700; letter-spacing:.04em;}
   .pf-panel-datos{padding:28px; margin-top:20px;}
+  /* FIX (24-sep-2026, pedido usuario — "haz que el backend mande un json con
+     la carta, el costo en oro y de cartas para subir los niveles restantes
+     ... para que al hacer clic en una carta, se muestre una tabla con los
+     costos por cada nivel faltante y los costos totales para subirla al
+     máximo"): modal de costo de mejora. El backend ya manda la tabla
+     (34_Web_API.gs, _webConCostoSubida()/_webCostosNivelesRestantes() —
+     costosNiveles[]/costoTotal/costoCompleto) en las 4 listas de cartas que
+     ya tenían costoOro (Colección completa, Cartas de torre, Mazo actual y
+     Carta de torre del mazo); acá se agrega el modal que la muestra al
+     hacer click en la ficha. Mismo patrón visual que .join-modal-overlay
+     (assets/styles.css, usado en index.html/directorio.html), pero local a
+     esta página porque solo perfil.html necesita este modal en concreto.
+     Ver _activarClickCosto()/abrirModalCostoCarta() más abajo en el
+     <script>. */
+  .costo-modal-overlay{
+    position:fixed; inset:0; background:rgba(4,5,8,.82); backdrop-filter:blur(8px);
+    display:none; align-items:center; justify-content:center; z-index:250; padding:20px;
+  }
+  .costo-modal-overlay.open{display:flex;}
+  .costo-modal{
+    background:var(--bg-2); border:1px solid var(--line-strong); border-radius:var(--radius);
+    padding:28px; max-width:420px; width:100%; position:relative; box-shadow:var(--glow);
+    max-height:85vh; overflow-y:auto;
+  }
+  .costo-modal-close{
+    position:absolute; top:14px; right:16px; background:rgba(162,57,255,.1); border:1px solid var(--line);
+    color:var(--text-dim); font-size:20px; line-height:1; cursor:pointer; width:32px; height:32px;
+    border-radius:var(--radius-sm); transition:all .15s ease; display:flex; align-items:center; justify-content:center;
+  }
+  .costo-modal-close:hover{color:var(--text); border-color:var(--purple); background:rgba(162,57,255,.2);}
+  .costo-modal-sub{font-family:var(--f-mono); font-size:12px; color:var(--text-dim); margin-top:4px; min-height:16px;}
+  .costo-tabla{width:100%; border-collapse:collapse; margin-top:18px; font-size:13px;}
+  .costo-tabla th{font-family:var(--f-mono); font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--text-faint); text-align:left; padding:6px 8px; border-bottom:1px solid var(--line);}
+  .costo-tabla td{padding:6px 8px; border-bottom:1px solid var(--line); color:var(--text);}
+  .costo-tabla td:first-child{font-family:var(--f-mono); white-space:nowrap;}
+  .costo-tabla tfoot td{font-weight:700; border-top:1px solid var(--line-strong); border-bottom:none; padding-top:10px;}
+  .costo-aviso{margin-top:14px; padding:10px 12px; border-radius:var(--radius-sm); border:1px solid rgba(244,63,94,.4); background:rgba(244,63,94,.12); color:var(--text); font-size:12px; line-height:1.5;}
+  /* .col-card--clicable: se agrega SOLO a las fichas que sí tienen tabla de
+     costo (_activarClickCosto() decide caso por caso, carta por carta), no
+     a toda ficha .col-card por igual. */
+  .col-card--clicable{cursor:pointer; transition:border-color .15s ease, transform .15s ease;}
+  .col-card--clicable:hover{border-color:var(--purple-light); transform:translateY(-2px);}
+  .col-card--clicable:focus-visible{outline:2px solid var(--purple-light); outline-offset:2px;}
 </style>
 </head>
 <body data-page="perfil">
@@ -671,6 +714,21 @@
     <span>Sincronizado vía Google Apps Script API</span>
   </div>
 </footer>
+
+<!-- ---------- MODAL "COSTO DE MEJORA" ---------- -->
+<!-- FIX (24-sep-2026, pedido usuario): tabla de costos por nivel restante,
+     se abre al hacer click en cualquier ficha de carta que tenga la tabla
+     que manda el backend (ver .costo-modal-overlay en el <style> y
+     abrirModalCostoCarta() en el <script>). -->
+<div class="costo-modal-overlay" id="costoModalOverlay" role="dialog" aria-modal="true" aria-labelledby="costoModalTitulo" aria-hidden="true">
+  <div class="costo-modal" id="costoModal">
+    <button type="button" class="costo-modal-close" id="costoModalClose" aria-label="Cerrar">&times;</button>
+    <div class="eyebrow">Costo de mejora</div>
+    <h3 style="margin-top:6px;" id="costoModalTitulo">—</h3>
+    <div class="costo-modal-sub" id="costoModalSub"></div>
+    <div id="costoModalTablaWrap"></div>
+  </div>
+</div>
 
 <script src="assets/js/core/config.js"></script>
 <script src="assets/js/util.js"></script>
@@ -1586,6 +1644,113 @@ function _filaCostoMejora(reservar, tieneValor, htmlValor, htmlSinDato){
 }
 const _ICONO_ORO_HTML = '<img src="assets/img/Gold.webp" alt="Oro" onerror="this.replaceWith(document.createTextNode(\'\\u{1FA99}\'));">';
 
+/**
+ * _tieneTablaCostos(obj) / abrirModalCostoCarta() / cerrarModalCostoCarta() /
+ * _activarClickCosto()
+ * FIX (24-sep-2026, pedido usuario — "haz que el backend mande un json con
+ * la carta, el costo en oro y de cartas para subir los niveles restantes
+ * ... para que al hacer clic en una carta, se muestre una tabla con los
+ * costos por cada nivel faltante y los costos totales para subirla al
+ * máximo"): BACKEND CONECTADO. 34_Web_API.gs (_webConCostoSubida(),
+ * _webCostosNivelesRestantes()) ya manda, en cada carta que todavía puede
+ * subir de nivel, dentro de las mismas 4 listas que ya traían costoOro/
+ * cartasSiguienteNivel (cards[], supportCards[], currentDeck[],
+ * currentDeckSupportCards[]):
+ *   - costosNiveles: [{desde, hasta, oro, cartas}, ...] — un renglón por
+ *     cada nivel que le falta a la carta hasta el máximo, ya en NIVEL DE LA
+ *     APP (el mismo "Nivel X" que ya se ve en cada ficha).
+ *   - costoTotal: {oro, cartas, niveles} — la suma de todos esos renglones.
+ *   - costoCompleto: false si a algún nivel del tramo le faltó su fila en
+ *     Backup_Cards_3.csv (el juego creó un nivel nuevo y no se agregó a
+ *     mano) — en ese caso costoTotal NO incluye ese nivel, y el modal lo
+ *     avisa con .costo-aviso en vez de mostrar un total silenciosamente
+ *     incompleto.
+ * Las cartas al nivel máximo, o cuya rareza no está en el catálogo de
+ * costos, no traen ninguno de estos 3 campos — _tieneTablaCostos() decide
+ * caso por caso, ficha por ficha, si corresponde hacerla clicable.
+ */
+function _tieneTablaCostos(obj){
+  return !!(obj && Array.isArray(obj.costosNiveles) && obj.costosNiveles.length);
+}
+/**
+ * abrirModalCostoCarta(nombreEs, nivelActual, obj)
+ * @param {string} nombreEs - nombre en español de la carta (título del modal).
+ * @param {?number} nivelActual - nivel de la app (el mismo "Nivel X" de la ficha), o null si no se pudo calcular.
+ * @param {Object} obj - carta cruda con costosNiveles/costoTotal/costoCompleto (ver docblock de arriba).
+ */
+function abrirModalCostoCarta(nombreEs, nivelActual, obj){
+  const filas = obj.costosNiveles.map(n => `
+        <tr>
+          <td>Nivel ${esc(String(n.desde))} \u2192 ${esc(String(n.hasta))}</td>
+          <td><span class="cc-oro">${_ICONO_ORO_HTML}${esc(fmtNum(n.oro))}</span></td>
+          <td>${esc(fmtNum(n.cartas))}</td>
+        </tr>`).join('');
+  const total = obj.costoTotal || { oro: 0, cartas: 0, niveles: obj.costosNiveles.length };
+  document.getElementById('costoModalTitulo').textContent = nombreEs || 'Carta';
+  document.getElementById('costoModalSub').textContent = nivelActual != null ? `Nivel actual: ${nivelActual}` : '';
+  document.getElementById('costoModalTablaWrap').innerHTML = `
+      <table class="costo-tabla">
+        <thead><tr><th>Nivel</th><th>Oro</th><th>Cartas</th></tr></thead>
+        <tbody>${filas}</tbody>
+        <tfoot>
+          <tr>
+            <td>Total (${esc(String(total.niveles))} nivel${total.niveles === 1 ? '' : 'es'})</td>
+            <td><span class="cc-oro">${_ICONO_ORO_HTML}${esc(fmtNum(total.oro))}</span></td>
+            <td>${esc(fmtNum(total.cartas))}</td>
+          </tr>
+        </tfoot>
+      </table>
+      ${obj.costoCompleto === false
+        ? '<div class="costo-aviso">Falta el costo de al menos un nivel intermedio en la base de datos: el total de arriba no lo incluye, así que el costo real para llegar al máximo es mayor que el mostrado.</div>'
+        : ''}`;
+  const ov = document.getElementById('costoModalOverlay');
+  ov.classList.add('open');
+  ov.setAttribute('aria-hidden', 'false');
+}
+function cerrarModalCostoCarta(){
+  const ov = document.getElementById('costoModalOverlay');
+  ov.classList.remove('open');
+  ov.setAttribute('aria-hidden', 'true');
+}
+document.getElementById('costoModalClose').addEventListener('click', cerrarModalCostoCarta);
+document.getElementById('costoModalOverlay').addEventListener('click', e => {
+  if (e.target.id === 'costoModalOverlay') cerrarModalCostoCarta();
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarModalCostoCarta(); });
+/**
+ * _activarClickCosto(nodos, lista, getObj, getNombre, getNivel)
+ * Conecta cada ficha .col-card ya pintada en el DOM con la carta cruda que
+ * le corresponde (mismo orden que se usó para construir ese HTML) y, si esa
+ * carta trae tabla de costos (_tieneTablaCostos()), la hace clicable
+ * (click y Enter/Espacio) para abrir abrirModalCostoCarta(). Se llama una
+ * vez por cada una de las 4 secciones que ya muestran costoOro — cada una
+ * arma su HTML con datos que no viven en el mismo lugar, así que cada
+ * llamado recibe sus propios `getObj`/`getNombre`/`getNivel` (ver cada
+ * llamado más abajo, junto a la sección correspondiente).
+ * @param {NodeListOf<Element>} nodos - .col-card ya en el DOM, en el mismo orden que `lista`.
+ * @param {Array<Object>} lista - datos ya calculados de esa sección (uno por nodo).
+ * @param {function(Object):Object} getObj - de un item de `lista`, la carta cruda con costosNiveles.
+ * @param {function(Object):string} getNombre - de un item de `lista`, el nombre en español.
+ * @param {function(Object):?number} getNivel - de un item de `lista`, el nivel de la app (o null).
+ */
+function _activarClickCosto(nodos, lista, getObj, getNombre, getNivel){
+  nodos.forEach((nodo, i) => {
+    const item = lista[i];
+    if (!item) return;
+    const obj = getObj(item);
+    if (!_tieneTablaCostos(obj)) return;
+    nodo.classList.add('col-card--clicable');
+    nodo.setAttribute('role', 'button');
+    nodo.setAttribute('tabindex', '0');
+    nodo.title = nodo.title ? `${nodo.title} \u2014 click para ver el costo de subir de nivel` : 'Click para ver el costo de subir de nivel';
+    const abrir = () => abrirModalCostoCarta(getNombre(item), getNivel(item), obj);
+    nodo.addEventListener('click', abrir);
+    nodo.addEventListener('keydown', e => {
+      if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); abrir(); }
+    });
+  });
+}
+
 function pintarColeccion(cartas){
   const cont = document.getElementById('mColeccionContenido');
   const ordRar = { campeon:0, legendaria:1, epica:2, especial:3, comun:4 };
@@ -1709,6 +1874,11 @@ function pintarColeccion(cartas){
       </div>
     </div>`;
   }).join('');
+  // 24-sep-2026 (pedido usuario): hace clicable cada ficha que trae tabla de
+  // costos (ver docblock de _activarClickCosto() más arriba). c = carta
+  // cruda de rawClash(j).cards, ya trae costosNiveles/costoTotal/
+  // costoCompleto directo (mismo objeto que manda 34_Web_API.gs).
+  _activarClickCosto(cont.querySelectorAll('.col-card'), datosCol, x => x.c, x => x.nombreEs, x => (x.nvl && x.nvl.nivel != null) ? x.nvl.nivel : null);
 }
 
 /**
@@ -1824,6 +1994,10 @@ function renderCartasTorre(j){
       </div>
     </div>`;
   }).join('');
+  // 24-sep-2026 (pedido usuario): mismo criterio que pintarColeccion() —
+  // t = carta cruda de rawClash(j).supportCards, ya trae costosNiveles/
+  // costoTotal/costoCompleto directo.
+  _activarClickCosto(cont.querySelectorAll('.col-card'), datosTorres, x => x.t, x => x.nombreEs, x => (x.nvl && x.nvl.nivel != null) ? x.nvl.nivel : null);
 }
 
 /**
@@ -2405,6 +2579,12 @@ function renderMazoActual(mazoActual, ext, j){
     const activaEvo = !!(hasEvo && evoIcon && imgSrc === evoIcon);
     return {
       c, d, tipoTxt, starLevel, count, cartasSig, alTope, hasEvo, evoIcon, heroIcon, imgSrc, activaHero, activaEvo,
+      // 24-sep-2026 (pedido usuario): se conserva `rc` (rawClash(j).currentDeck[]
+      // de esta misma carta) para la tabla de costos — mazoActual.cartas (c) no
+      // trae costosNiveles/costoTotal/costoCompleto, solo rc los trae (mismo
+      // origen que ya usa costoOroBruto/cartasSig arriba). Ver _activarClickCosto()
+      // más abajo, al cerrar renderMazoActual().
+      rc,
       costoOro: alTope ? null : _numOrNull(costoOroBruto),
       mostrarHeroe: !!(c.hasHero || (d && d.rareza === 'campeon')),
       mostrarEvo: hasEvo,
@@ -2479,6 +2659,12 @@ function renderMazoActual(mazoActual, ext, j){
   // Carta de torre equipada con este mazo; categoría currentDeckSupportCards del JSON (el backend ya la manda). Historial en CHANGELOG.md.
   const torresRaw = rawClash(j).currentDeckSupportCards;
   let torreHtml = '';
+  // 24-sep-2026 (pedido usuario): se guarda `datosTorres` (declarado dentro
+  // del if de abajo, con let/const local a ese bloque) en esta variable de
+  // función para poder usarlo después de armar cont.innerHTML, al conectar
+  // el click de "Carta de torre del mazo" con su tabla de costos — ver
+  // _activarClickCosto() al final de renderMazoActual().
+  let datosTorresDelMazo = null;
   if (Array.isArray(torresRaw) && torresRaw.length) {
     // FIX (23-sep-2026): mismo criterio que datosCartas/seccionMazo* más
     // arriba — "Carta de torre del mazo" es su propia sección (su propio
@@ -2523,6 +2709,7 @@ function renderMazoActual(mazoActual, ext, j){
         mostrarElixir: !!((t.elixirCost != null) || t.starLevel)
       };
     });
+    datosTorresDelMazo = datosTorres;
     const seccionTorreRareza = datosTorres.some(x => x.mostrarRareza);
     const seccionTorreTipo = datosTorres.some(x => x.mostrarTipo);
     const seccionTorreElixir = datosTorres.some(x => x.mostrarElixir);
@@ -2580,6 +2767,14 @@ function renderMazoActual(mazoActual, ext, j){
   cont.innerHTML = torreHtml
     ? `<div class="mazo-layout"><div class="mazo-layout-deck"><h3 class="mazo-subtitulo">Cartas del mazo</h3>${mazoHtml}</div>${torreHtml}</div>${promedioHtml}`
     : `${mazoHtml}${promedioHtml}`;
+  // 24-sep-2026 (pedido usuario): "Cartas del mazo" usa `rc` (ver el campo
+  // agregado a datosCartas.map() más arriba) porque mazoActual.cartas no
+  // trae la tabla de costos, solo rawClash(j).currentDeck sí. "Carta de
+  // torre del mazo" usa `t` directo, igual que las otras 3 secciones.
+  _activarClickCosto(cont.querySelectorAll('.mazo-chips-principal .col-card'), datosCartas, x => x.rc, x => x.c.name, x => (x.c.nivel != null ? x.c.nivel : null));
+  if (datosTorresDelMazo) {
+    _activarClickCosto(cont.querySelectorAll('.mazo-layout-torre .col-card'), datosTorresDelMazo, x => x.t, x => x.nombreEs, x => (x.nvl && x.nvl.nivel != null) ? x.nvl.nivel : null);
+  }
 }
 
 /**
