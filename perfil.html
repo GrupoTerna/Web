@@ -188,6 +188,15 @@
    * acotado a .coleccion-grid (ya es un selector propio de esta sección,
    * no hace falta una clase extra como en Mazo actual). */
   .coleccion-grid .cc-rareza{font-size:10px;}
+  /* FIX (23-sep-2026, pedido usuario — costo en oro para subir de nivel y
+   * cartas requeridas para el siguiente nivel en Colección completa):
+   * .cc-oro es el gemelo de .cc-elixir (assets/styles.css: mono 11px, ícono
+   * de 13px de alto). El ícono de oro (assets/img/Gold.webp) va con la MISMA
+   * altura que el de elixir (13px) y ancho automático por si no es cuadrado.
+   * Vive acá y no en styles.css porque de momento solo lo usa esta grilla
+   * (ver _filaCostoMejora() y COLECCION_ESPACIO_COSTO_MEJORA en el <script>). */
+  .cc-oro{display:inline-flex; align-items:center; gap:3px; color:var(--gold); font-family:var(--f-mono); font-size:11px;}
+  .cc-oro img{height:13px; width:auto; vertical-align:-2px;}
   /* ===== FIX (12-sep-2026, pedido usuario — aprovechar TODO el JSON crudo
    * del export de Drive): estilos de las secciones nuevas del perfil.
    * Backend conectado (20-sep-2026): webPerfil ya adjunta rawClash desde el
@@ -1385,6 +1394,37 @@ function renderColeccion(j){
   }));
   pintarColeccion(cartas);
 }
+/**
+ * COLECCION_ESPACIO_COSTO_MEJORA / _filaCostoMejora()
+ * FIX (23-sep-2026, pedido usuario — "agrega un campo para añadir el costo
+ * en oro para subir de nivel, también la cantidad de cartas requeridas para
+ * el siguiente nivel. aún no conecto el backend pero ve preparando el
+ * espacio en la sección de colección completa para probar"): dos filas
+ * nuevas en cada ficha de "Colección completa", entre "Nivel" y la fila de
+ * Héroe/Evolución (que sigue siendo la última):
+ *   - oro para subir de nivel  → cards[].costoOro (número)
+ *   - cartas para el siguiente nivel → cards[].cartasSiguienteNivel (número)
+ * BACKEND PENDIENTE: 34_Web_API.gs (_webDatosDriveJugador()) todavía no manda
+ * esos dos campos dentro de rawClash.cards[]; cuando existan, esta función ya
+ * los toma sin más cambios. Las cartas a nivel máximo no muestran valor
+ * (no hay nivel siguiente).
+ * Mientras el backend no los mande, COLECCION_ESPACIO_COSTO_MEJORA = true
+ * deja las dos filas siempre visibles con "—" para poder probar el espacio y
+ * la alineación; al conectar el backend se puede poner en false para volver
+ * al criterio de reserva de fila de las demás (solo si ALGUNA ficha visible
+ * tiene el dato).
+ */
+const COLECCION_ESPACIO_COSTO_MEJORA = true;
+function _filaCostoMejora(reservar, tieneValor, htmlValor, htmlSinDato){
+  if (!reservar) return '';
+  if (tieneValor) return htmlValor;
+  // Sin dato: en modo prueba se ve el "—"; si no, se reserva el alto invisible.
+  return COLECCION_ESPACIO_COSTO_MEJORA
+    ? htmlSinDato
+    : htmlSinDato.replace('<div ', '<div style="visibility:hidden;" aria-hidden="true" ');
+}
+const _ICONO_ORO_HTML = '<img src="assets/img/Gold.webp" alt="Oro" onerror="this.replaceWith(document.createTextNode(\'\\u{1FA99}\'));">';
+
 function pintarColeccion(cartas){
   const cont = document.getElementById('mColeccionContenido');
   const ordRar = { campeon:0, legendaria:1, epica:2, especial:3, comun:4 };
@@ -1459,8 +1499,13 @@ function pintarColeccion(cartas){
     const esHeroe = rk === 'campeon';
     const iconoHeroe = urls.heroMedium || '';
     const activaHero = !!(esHeroe && iconoHeroe && img === iconoHeroe);
+    // FIX (23-sep-2026): costo en oro y cartas para el siguiente nivel (backend pendiente, ver COLECCION_ESPACIO_COSTO_MEJORA más arriba). A nivel máximo no aplica.
+    const _num = v => (v !== undefined && v !== null && v !== '' && isFinite(Number(v))) ? Number(v) : null;
+    const costoOro = alMax ? null : _num(c.costoOro);
+    const cartasSig = alMax ? null : _num(c.cartasSiguienteNivel);
     return {
       c, rk, img, nombreEs, nvl, alMax, iconoBase, iconoEvo, tieneEvo, activaEvo, tipoTxt, esHeroe, iconoHeroe, activaHero,
+      costoOro, cartasSig,
       mostrarHeroe: esHeroe,
       mostrarEvo: tieneEvo,
       mostrarRareza: !!rk,
@@ -1471,6 +1516,8 @@ function pintarColeccion(cartas){
   const seccionColRareza = datosCol.some(x => x.mostrarRareza);
   const seccionColTipo = datosCol.some(x => x.mostrarTipo);
   const seccionColElixir = datosCol.some(x => x.mostrarElixir);
+  const seccionColOro = COLECCION_ESPACIO_COSTO_MEJORA || datosCol.some(x => x.costoOro != null);
+  const seccionColCartasSig = COLECCION_ESPACIO_COSTO_MEJORA || datosCol.some(x => x.cartasSig != null);
 
   cont.innerHTML = datosCol.map(x => {
     const { c, rk, img, nombreEs, nvl, alMax, iconoBase, iconoEvo, activaEvo, tipoTxt, iconoHeroe, activaHero } = x;
@@ -1493,6 +1540,12 @@ function pintarColeccion(cartas){
             `${c.elixirCost != null ? `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">${esc(String(c.elixirCost))}</span>` : ''}${estrellasHtml(c.starLevel)}`,
             `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">&nbsp;</span>`)}
           <div class="text-faint" style="font-family:var(--f-mono); font-size:11px;">Nivel ${esc(String(nvl.nivel != null ? nvl.nivel : '\u2014'))}</div>
+          ${_filaCostoMejora(seccionColOro, x.costoOro != null,
+            `<div class="cc-meta"><span class="cc-oro" title="Oro necesario para subir de nivel">${_ICONO_ORO_HTML}${esc(fmtNum(x.costoOro))}</span></div>`,
+            `<div class="cc-meta"><span class="cc-oro" title="Oro necesario para subir de nivel">${_ICONO_ORO_HTML}\u2014</span></div>`)}
+          ${_filaCostoMejora(seccionColCartasSig, x.cartasSig != null,
+            `<div class="text-faint" style="font-family:var(--f-mono); font-size:11px;" title="Cartas necesarias para el siguiente nivel">Cartas: ${esc(fmtNum(x.cartasSig))}</div>`,
+            `<div class="text-faint" style="font-family:var(--f-mono); font-size:11px;" title="Cartas necesarias para el siguiente nivel">Cartas: \u2014</div>`)}
           ${_filaHeroeEvo(x.mostrarHeroe,
             `<button type="button" class="cc-badge cc-badge-btn${activaHero ? ' is-activa' : ''}" data-icon-variante="${esc(iconoHeroe)}" onclick="cambiarVarianteCarta(this)">\u{1f9b8} H\u00e9roe</button>`,
             x.mostrarEvo,

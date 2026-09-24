@@ -2835,6 +2835,27 @@ FIX (03-sep-2026, pedido usuario, punto 19 — "agregar un
 
 ## perfil.html — historial trasladado
 
+### 23-sep-2026 — Colección completa: espacio para costo en oro y cartas del siguiente nivel (backend pendiente)
+Pedido del usuario: "agrega un campo para añadir el costo en oro para subir de
+nivel, también la cantidad de cartas requeridas para el siguiente nivel. aún
+no conecto el backend pero ve preparando el espacio en la sección de colección
+completa para probar. el ícono de oro debe tener el mismo tamaño que el de
+elixir o al menos la misma altura".
+
+- **`pintarColeccion()` / `_filaCostoMejora()` / `COLECCION_ESPACIO_COSTO_MEJORA`:**
+  dos filas nuevas en cada ficha, entre "Nivel" y la fila de Héroe/Evolución
+  (que sigue siendo la última): oro para subir de nivel (ícono + número) y
+  "Cartas: N". Leen `cards[].costoOro` y `cards[].cartasSiguienteNivel`, campos
+  que el backend (`_webDatosDriveJugador()`, `34_Web_API.gs`) **todavía no manda**.
+  Con la constante en `true` (estado actual) las filas se ven siempre, con "—"
+  si falta el dato, para probar el espacio; en `false` vuelve el criterio de
+  reserva de fila de las demás (solo si alguna ficha visible tiene el dato). A
+  nivel máximo no se muestra valor.
+- **`.cc-oro` (en el `<style>` de `perfil.html`):** gemelo de `.cc-elixir`
+  (mono 11px); el ícono `assets/img/Gold.webp` mide 13 px de alto (igual que el
+  de Elixir) con ancho automático. Si el archivo no existe, `onerror` lo
+  reemplaza por 🪙.
+
 ### 23-sep-2026 — Dos minigráficos de pastel (victorias/derrotas y donaciones)
 Pedido del usuario: "agrega dos minigráficos de estilo pastel: uno para el
 porcentaje de victorias y derrotas y otro para las donaciones hechas y
