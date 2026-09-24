@@ -304,6 +304,39 @@
   .mini-pie-extras{display:flex; flex-wrap:wrap; gap:8px; margin-top:16px;}
   .mini-pie-extra{display:inline-flex; align-items:center; gap:7px; padding:6px 12px; border-radius:999px; background:rgba(162,57,255,.1); border:1px solid var(--line-strong); box-shadow:0 0 10px rgba(162,57,255,.15); font-family:var(--f-mono); font-size:10px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.08em;}
   .mini-pie-extra b{font-family:var(--f-display); font-size:15px; font-weight:800; color:var(--gold-light); text-transform:none; letter-spacing:normal; text-shadow:0 0 10px rgba(243,169,34,.5);}
+  /* FIX (24-sep-2026, pedido usuario — "ahí deben ir dos minigráficos: uno
+   * de ataques vs día con dos series (ataques y barcos) y otro de fama vs
+   * día"): dos tarjetas más dentro de la misma grilla .mini-pies (los dos
+   * huecos vacíos que quedaban a la derecha de "Donaciones hechas y
+   * recibidas" porque la grilla ya reservaba hasta 4 columnas de 280px
+   * pero solo se pintaban 2 tarjetas — ver renderExtendido()/
+   * _dispersionMiniHtml() más abajo). Reutilizan el wrapper .mini-pie
+   * (mismo glass+glow, misma franja HUD superior) para que las 4 tarjetas
+   * se vean como un solo set; solo cambia el cuerpo: en vez del donut
+   * (.mini-pie-cuerpo) usan .mini-disp-cuerpo con una leyenda de chips + un
+   * SVG de diagrama de dispersión (puntos, sin barras ni líneas que los
+   * unan — pedido explícito del usuario: "de barras no, haz un diagrama de
+   * dispersión"). PENDIENTE DE BACKEND (no se tiene Base.md en esta sesión
+   * para confirmar el nombre exacto del campo): se asume que el backend
+   * manda `ext.guerraDias`, un arreglo de objetos
+   * `{dia:'J'|'V'|'S'|'D', ataques, barcos, fama}` — uno por día de guerra
+   * ya jugado esta semana (J=Jueves, V=Viernes, S=Sábado, D=Domingo). Si el
+   * campo real se llama distinto o trae otra forma, avisar para ajustar
+   * `renderExtendido()` sin tocar el resto de esta función. Mientras ese
+   * campo no llegue, ambas tarjetas simplemente no se pintan (mismo
+   * criterio "se omite si faltan datos" que ya usan los dos donuts de al
+   * lado). */
+  .mini-disp-cuerpo{display:flex; flex-direction:column; gap:10px;}
+  .mini-disp-leyenda{display:flex; flex-wrap:wrap; gap:8px 16px; font-family:var(--f-mono); font-size:11px; color:var(--text-dim);}
+  .mini-disp-chip{display:inline-flex; align-items:center; gap:6px;}
+  .mini-disp-chip i{width:9px; height:9px; border-radius:50%; flex-shrink:0; background:var(--c); box-shadow:0 0 7px 1px var(--c);}
+  .mini-disp-svg{width:100%; height:auto; aspect-ratio:260/152; display:block; overflow:visible;}
+  .mini-disp-svg .md-grid{stroke:var(--line-strong); stroke-width:1; opacity:.35;}
+  .mini-disp-svg .md-base{stroke:var(--line-strong); stroke-width:1; opacity:.55;}
+  .mini-disp-svg .md-punto{cursor:pointer; transition:r .15s ease;}
+  .mini-disp-svg .md-punto:hover{r:7;}
+  .mini-disp-svg .md-eje-label{fill:var(--text-dim); font-family:var(--f-mono); font-size:11px; text-anchor:middle;}
+  .mini-disp-svg .md-valor-label{fill:var(--text); font-family:var(--f-mono); font-size:9.5px; font-weight:700; text-anchor:middle;}
   .badge-item .b-prog{font-family:var(--f-mono); font-size:10px; color:var(--text-faint);}
   .badge-item .progress{width:100%; height:5px; margin-top:2px;}
   .star-level{color:var(--gold); font-size:11px; letter-spacing:1px; white-space:nowrap;}
@@ -2311,6 +2344,83 @@ function _pastelMiniHtml(titulo, porciones, extra, opts){
     </div>`;
 }
 
+/**
+ * _dispersionMiniHtml(titulo, dias, series, opts)
+ * FIX (24-sep-2026, pedido usuario — "ahí deben ir dos minigráficos: uno de
+ * ataques vs día con dos series (ataques y barcos) y otro de fama vs día",
+ * luego "de barras no, haz un diagrama de dispersión"): hermano de
+ * _pastelMiniHtml() para las dos tarjetas nuevas de la grilla .mini-pies,
+ * pero con un diagrama de dispersión (puntos sueltos, sin barras y sin
+ * línea que los una — a diferencia de los .ing-linechart-svg de más abajo,
+ * que sí trazan una línea entre puntos) en vez de un donut. Misma tarjeta
+ * (.mini-pie, mismo glass+glow) para que las 4 encajen como un solo set
+ * visual; mismo lenguaje de punto que .ing-serie-pt (círculo relleno del
+ * color de la serie, con borde oscuro var(--bg) para que resalte sobre el
+ * fondo glass de la tarjeta).
+ * @param {string} titulo - título de la tarjeta (mismo lugar que en el donut).
+ * @param {string[]} dias - etiquetas del eje X, una por día (p. ej. ['J','V','S','D']).
+ * @param {{etiqueta:string, color:string, valores:number[]}[]} series - una o más
+ *   series; cada `valores` debe tener el mismo largo que `dias`. Con 2 series
+ *   (Ataques/Barcos) los puntos de cada día se separan con un pequeño
+ *   desplazamiento horizontal para que no queden exactamente encimados
+ *   (recordar que barcos ≤ ataques siempre, así que sin ese desplazamiento
+ *   el punto de Barcos podría quedar tapado bajo el de Ataques); con 1 sola
+ *   serie (Fama) el punto va centrado en el día y además muestra el valor
+ *   arriba.
+ * @param {{icono?:string}} [opts]
+ * Devuelve '' (y por lo tanto no pinta nada) si no hay días con datos, igual
+ * que _pastelMiniHtml() hace con porciones en 0.
+ */
+function _dispersionMiniHtml(titulo, dias, series, opts){
+  opts = opts || {};
+  if (!Array.isArray(dias) || !dias.length || !Array.isArray(series) || !series.length) return '';
+  const todosVals = series.flatMap(s => (s.valores || []).map(Number).filter(v => isFinite(v)));
+  if (!todosVals.length) return '';
+  const max = Math.max(1, ...todosVals);
+  const W = 260, H = 152, PAD_L = 14, PAD_R = 14, PAD_TOP = 20, PAD_BOTTOM = 22;
+  const plotW = W - PAD_L - PAD_R, plotH = H - PAD_TOP - PAD_BOTTOM;
+  const groupW = plotW / dias.length;
+  const OFFSET = series.length > 1 ? 8 : 0;
+  const unaSerie = series.length === 1;
+  const R = 5;
+
+  // 3 líneas de referencia horizontales (25/50/75% de la escala) + la base (0%), igual de tenues que .ing-grid-line de las gráficas grandes — solo para que el ojo pueda comparar alturas entre puntos, no llevan rótulo.
+  let grid = '';
+  [0.25, 0.5, 0.75].forEach(frac => {
+    const y = PAD_TOP + plotH * (1 - frac);
+    grid += `<line class="md-grid" x1="${PAD_L}" y1="${y.toFixed(1)}" x2="${W - PAD_R}" y2="${y.toFixed(1)}"/>`;
+  });
+  const baseY = PAD_TOP + plotH;
+  grid += `<line class="md-base" x1="${PAD_L}" y1="${baseY}" x2="${W - PAD_R}" y2="${baseY}"/>`;
+
+  let puntos = '';
+  dias.forEach((dia, dIdx) => {
+    const cx = PAD_L + dIdx * groupW + groupW / 2;
+    series.forEach((s, sIdx) => {
+      const val = Number((s.valores || [])[dIdx]) || 0;
+      const y = max > 0 ? PAD_TOP + plotH * (1 - val / max) : baseY;
+      const x = cx + (sIdx - (series.length - 1) / 2) * OFFSET;
+      puntos += `<circle class="md-punto" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${R}" fill="${s.color}" stroke="var(--bg)" stroke-width="1.5" style="filter:drop-shadow(0 0 4px ${s.color})"><title>${esc(dia)} · ${esc(s.etiqueta)}: ${esc(fmtNum(val))}</title></circle>`;
+      if (unaSerie){
+        puntos += `<text class="md-valor-label" x="${x.toFixed(1)}" y="${Math.max(PAD_TOP - 6, y - 10).toFixed(1)}">${esc(fmtNum(val))}</text>`;
+      }
+    });
+    puntos += `<text class="md-eje-label" x="${cx.toFixed(1)}" y="${(H - 6).toFixed(1)}">${esc(dia)}</text>`;
+  });
+
+  const leyenda = series.map(s => `<span class="mini-disp-chip" style="--c:${s.color}"><i></i>${esc(s.etiqueta)}</span>`).join('');
+  const icoHtml = opts.icono ? `<span class="ico">${esc(opts.icono)}</span>` : '';
+  const resumen = dias.map((dia, dIdx) => `${dia}: ${series.map(s => `${s.etiqueta} ${fmtNum(Number((s.valores || [])[dIdx]) || 0)}`).join(', ')}`).join('; ');
+  return `
+    <div class="mini-pie">
+      <div class="mini-pie-titulo">${icoHtml}${esc(titulo)}</div>
+      <div class="mini-disp-cuerpo">
+        <div class="mini-disp-leyenda">${leyenda}</div>
+        <svg class="mini-disp-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(titulo)}. ${esc(resumen)}">${grid}${puntos}</svg>
+      </div>
+    </div>`;
+}
+
 
 function renderExtendido(ext, j){
   const wrap = document.getElementById('mExtWrap');
@@ -2388,7 +2498,7 @@ function renderExtendido(ext, j){
    * .ext-links, en renderMiembro().
    */
   // FIX (23-sep-2026, pedido usuario): dos gráficos de pastel debajo de la grilla — Victorias/Derrotas y Donaciones hechas/recibidas. Cada uno se omite solo si faltan sus datos o suman 0.
-  const pies = [
+  const piesDonuts = [
     /* FIX (24-sep-2026, pedido usuario — "cambia el rojo y verde por
      * amarillo y morado para conservar la identidad visual de la página"):
      * Victorias/Derrotas dejan de usar var(--ok)/var(--danger) (verde/rojo,
@@ -2409,6 +2519,26 @@ function renderExtendido(ext, j){
       { etiqueta: 'Recibidas', valor: ext.donacionesRecibidas, color: 'var(--purple)' },
     ], null, { icono: '🎁', centroEtiqueta: 'Total' }) : '',
   ].join('');
+  /* FIX (24-sep-2026, pedido usuario — "ahí deben ir dos minigráficos: uno
+   * de ataques vs día con dos series (ataques y barcos), el otro de fama vs
+   * día", luego "de barras no, haz un diagrama de dispersión"): dos
+   * tarjetas más de dispersión al lado de los donuts de arriba, leen
+   * ext.guerraDias — ver el FIX "PENDIENTE DE BACKEND" en el bloque CSS
+   * .mini-disp-* (styles.css) para el nombre y la forma exacta que se
+   * asume para ese campo. Si no llega (o llega vacío), _dispersionMiniHtml()
+   * devuelve '' y estas dos tarjetas simplemente no se pintan, igual que ya
+   * pasa con los dos donuts de arriba cuando falta su dato. */
+  const guerraDias = Array.isArray(ext.guerraDias) ? ext.guerraDias.filter(d => d && d.dia) : [];
+  const graficosGuerra = guerraDias.length ? [
+    _dispersionMiniHtml('Ataques y barcos por día', guerraDias.map(d => d.dia), [
+      { etiqueta: 'Ataques', color: 'var(--gold)', valores: guerraDias.map(d => d.ataques) },
+      { etiqueta: 'Barcos', color: 'var(--purple)', valores: guerraDias.map(d => d.barcos) },
+    ], { icono: '⚔️' }),
+    _dispersionMiniHtml('Fama por día', guerraDias.map(d => d.dia), [
+      { etiqueta: 'Fama', color: 'var(--gold)', valores: guerraDias.map(d => d.fama) },
+    ], { icono: '🔥' }),
+  ].join('') : '';
+  const pies = piesDonuts + graficosGuerra;
   wrap.innerHTML = (items ? `<div class="ext-grid">${items}</div>` : '') + (pies.trim() ? `<div class="mini-pies">${pies}</div>` : '') + camino;
 }
 
