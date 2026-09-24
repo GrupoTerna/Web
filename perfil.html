@@ -254,26 +254,52 @@
   .badge-item .b-nivel{font-family:var(--f-mono); font-size:10px; color:var(--gold);}
   /* FIX (23-sep-2026, pedido usuario — "agrega dos minigráficos de estilo
      pastel: uno para el porcentaje de victorias y derrotas y otro para las
-     donaciones hechas y recibidas"): gráficos de pastel (SVG) que se pintan
-     debajo de la grilla de cuadritos (renderExtendido()/_pastelMiniHtml()).
-     Mismo lenguaje visual que .ext-item (fondo --bg-2, borde --line). */
-  .mini-pies{display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:14px; margin-top:14px;}
-  .mini-pie{background:var(--bg-2); border:1px solid var(--line); border-radius:var(--radius-sm); padding:12px 16px;}
-  .mini-pie-titulo{font-family:var(--f-mono); font-size:10px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.06em; margin-bottom:8px;}
-  .mini-pie-cuerpo{display:flex; align-items:center; gap:18px; flex-wrap:wrap;}
-  .mini-pie svg{width:96px; height:96px; flex-shrink:0;}
-  .mini-pie-leyenda{display:flex; flex-direction:column; gap:6px; font-size:13px; color:var(--text-dim); min-width:0;}
-  .mini-pie-leyenda .fila{display:flex; align-items:center; gap:8px;}
-  .mini-pie-leyenda .punto{width:10px; height:10px; border-radius:50%; flex-shrink:0;}
-  .mini-pie-leyenda b{font-family:var(--f-display); font-size:16px; color:var(--text);}
+     donaciones hechas y recibidas"): gráficos en SVG que se pintan debajo
+     de la grilla de cuadritos (renderExtendido()/_pastelMiniHtml()).
+     FIX (23-sep-2026, pedido usuario — "los gráficos se siguen viendo
+     feos, dale una estética gamer"): la tarjeta pasa del fondo plano
+     --bg-2 al mismo lenguaje "glass + glow" que .card/.card-hover de
+     assets/styles.css (backdrop-filter + --surface-card + --glow al pasar
+     el mouse), con una franja de acento superior tipo HUD (degradado
+     morado→dorado) y un donut con brillo de neón por segmento (ver el
+     filter:drop-shadow inline que arma _pastelMiniHtml() por cada
+     <circle>) en vez del pastel relleno plano de antes. */
+  .mini-pies{display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px; margin-top:16px;}
+  .mini-pie{
+    position:relative; overflow:hidden;
+    background:var(--surface-card);
+    backdrop-filter:var(--glass-blur); -webkit-backdrop-filter:var(--glass-blur);
+    border:1px solid var(--line); border-radius:var(--radius);
+    padding:18px 20px 16px;
+    box-shadow:0 4px 20px rgba(0,0,0,.3);
+    transition:all .28s cubic-bezier(.16, 1, .3, 1);
+  }
+  .mini-pie:hover{ transform:translateY(-4px); border-color:var(--line-strong); box-shadow:var(--glow); }
+  .mini-pie::before{
+    content:''; position:absolute; top:0; left:0; right:0; height:2px;
+    background:linear-gradient(90deg, transparent, var(--purple), var(--gold), transparent);
+    opacity:.75;
+  }
+  .mini-pie-titulo{display:flex; align-items:center; gap:7px; font-family:var(--f-mono); font-size:10px; font-weight:600; color:var(--text-dim); text-transform:uppercase; letter-spacing:.12em; margin-bottom:16px;}
+  .mini-pie-titulo .ico{font-size:13px; line-height:1; filter:drop-shadow(0 0 4px rgba(162,57,255,.6));}
+  .mini-pie-cuerpo{display:flex; align-items:center; gap:20px; flex-wrap:wrap;}
+  .mini-pie-donut-wrap{position:relative; width:104px; height:104px; flex-shrink:0;}
+  .mini-pie-donut-wrap svg{width:100%; height:100%; display:block; overflow:visible;}
+  .mini-pie-donut-centro{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; pointer-events:none;}
+  .mini-pie-donut-centro b{font-family:var(--f-display); font-size:19px; font-weight:800; color:var(--text); line-height:1; text-shadow:0 0 12px rgba(162,57,255,.35);}
+  .mini-pie-donut-centro span{font-family:var(--f-mono); font-size:8px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.1em; margin-top:3px;}
+  .mini-pie-leyenda{display:flex; flex-direction:column; gap:10px; font-size:13px; color:var(--text-dim); min-width:0;}
+  .mini-pie-leyenda .fila{display:flex; align-items:center; gap:9px;}
+  .mini-pie-leyenda .punto{width:9px; height:9px; border-radius:50%; flex-shrink:0; box-shadow:0 0 7px 1px currentColor;}
+  .mini-pie-leyenda b{font-family:var(--f-display); font-size:16px; font-weight:700; color:var(--text);}
   .mini-pie-leyenda .pct{font-family:var(--f-mono); font-size:11px; color:var(--text-faint);}
   /* FIX (23-sep-2026, pedido usuario — "en el minigráfico de victorias/
-   * derrotas faltaría agregar el ratio"): dato adicional debajo de la
-   * leyenda para valores que no son una porción del pastel (p. ej. Ratio
-   * V/D). Mismo lenguaje visual que .ext-item .k/.v (assets/styles.css):
-   * etiqueta mono en mayúsculas + valor en --f-display. */
-  .mini-pie-extra{display:flex; align-items:center; gap:6px; margin-top:10px; padding-top:10px; border-top:1px solid var(--line); font-family:var(--f-mono); font-size:10px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.06em;}
-  .mini-pie-extra b{font-family:var(--f-display); font-size:16px; color:var(--text); text-transform:none; letter-spacing:normal;}
+   * derrotas faltaría agregar el ratio"): dato adicional para valores que
+   * no son una porción del donut (p. ej. Ratio V/D). Ahora en formato
+   * pastilla con brillo (mismo lenguaje que .badge-gold/.badge-purple de
+   * assets/styles.css) en vez de una fila de texto plano. */
+  .mini-pie-extra{display:inline-flex; align-items:center; gap:7px; margin-top:16px; padding:6px 12px; border-radius:999px; background:rgba(162,57,255,.1); border:1px solid var(--line-strong); box-shadow:0 0 10px rgba(162,57,255,.15); font-family:var(--f-mono); font-size:10px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.08em;}
+  .mini-pie-extra b{font-family:var(--f-display); font-size:15px; font-weight:800; color:var(--gold-light); text-transform:none; letter-spacing:normal; text-shadow:0 0 10px rgba(243,169,34,.5);}
   .badge-item .b-prog{font-family:var(--f-mono); font-size:10px; color:var(--text-faint);}
   .badge-item .progress{width:100%; height:5px; margin-top:2px;}
   .star-level{color:var(--gold); font-size:11px; letter-spacing:1px; white-space:nowrap;}
@@ -1720,62 +1746,78 @@ function renderSnapshotInfo(j){
 }
 
 /**
- * _pastelMiniHtml(titulo, porciones, extra)
+ * _pastelMiniHtml(titulo, porciones, extra, opts)
  * FIX (23-sep-2026, pedido usuario — dos minigráficos de estilo pastel):
- * gráfico de pastel en SVG (sin librerías) con su leyenda. `porciones` es
+ * gráfico en SVG (sin librerías) con su leyenda. `porciones` es
  * [{etiqueta, valor, color}] (color = cualquier valor CSS, p. ej.
  * 'var(--ok)'). Devuelve '' si algún valor no es numérico o si la suma es 0
- * (no se dibuja un pastel vacío). Con una sola porción distinta de 0 se
- * dibuja un círculo completo (un arco de 360° no se puede trazar con un solo
- * <path>). Los porcentajes de la leyenda se calculan sobre la suma de las
- * porciones mostradas.
+ * (no se dibuja un gráfico vacío).
  * FIX (23-sep-2026, pedido usuario — "en el minigráfico de victorias y
  * derrotas faltaría agregar el ratio, y sacar esos campos de los
  * cuadritos"): parámetro `extra` opcional, `{etiqueta, valor}`, para un dato
- * que acompaña al pastel sin ser una porción suya (p. ej. Ratio V/D, que no
- * se puede repartir en el círculo junto con Victorias/Derrotas). Se pinta
- * debajo de la leyenda con separador propio (.mini-pie-extra). Si `extra` no
- * se pasa, o `valor` es null/undefined, no se pinta nada distinto a antes.
+ * que acompaña al gráfico sin ser una porción suyo (p. ej. Ratio V/D, que no
+ * se puede repartir junto con Victorias/Derrotas). Se pinta como pastilla
+ * debajo de la leyenda (.mini-pie-extra). Si `extra` no se pasa, o `valor`
+ * es null/undefined, no se pinta nada distinto a antes.
+ * FIX (23-sep-2026, pedido usuario — "los gráficos se siguen viendo feos,
+ * dale una estética gamer"): se reemplaza el pastel plano (un solo <path>
+ * relleno) por un DONUT en base a <circle> con stroke-dasharray (mismo
+ * truco que un "loading ring"): cada porción es un <circle> con su propio
+ * hueco de aire entre segmentos (GAP) y un filter:drop-shadow del color de
+ * la porción, para que brille tipo HUD/neón. Al ser hueco, el centro queda
+ * libre para una lectura tipo "TOTAL 11,904" (overlay HTML encima del SVG,
+ * .mini-pie-donut-centro), algo que el pastel relleno anterior no permitía.
+ * La tarjeta pasa a usar el mismo lenguaje "glass + glow" que .card/.
+ * card-hover de assets/styles.css (backdrop-filter, --surface-card, --glow
+ * al pasar el mouse) en vez del fondo plano --bg-2 que tenía antes.
+ * `opts` es opcional: `{icono, centroEtiqueta}` — `icono` es un emoji que se
+ * antepone al título (estilo insignia de HUD) y `centroEtiqueta` es el texto
+ * chico bajo el número central (por defecto 'TOTAL').
  */
-function _pastelMiniHtml(titulo, porciones, extra){
+function _pastelMiniHtml(titulo, porciones, extra, opts){
+  opts = opts || {};
   const vals = porciones.map(p => Number(p.valor));
   if (vals.some(v => !isFinite(v) || v < 0)) return '';
   const total = vals.reduce((a, b) => a + b, 0);
   if (!(total > 0)) return '';
-  const R = 50, C = 50;
-  const punto = ang => [C + R * Math.sin(ang), C - R * Math.cos(ang)];
+  const C = 50, R = 38, GROSOR = 13;
+  const CIRC = 2 * Math.PI * R;
   const activas = porciones.filter((p, i) => vals[i] > 0);
-  let trozos = '';
-  if (activas.length === 1){
-    trozos = `<circle cx="${C}" cy="${C}" r="${R}" fill="${activas[0].color}"/>`;
-  } else {
-    let acum = 0;
-    porciones.forEach((p, i) => {
-      if (!(vals[i] > 0)) return;
-      const a0 = acum / total * 2 * Math.PI;
-      acum += vals[i];
-      const a1 = acum / total * 2 * Math.PI;
-      const [x0, y0] = punto(a0), [x1, y1] = punto(a1);
-      trozos += `<path d="M${C},${C} L${x0.toFixed(3)},${y0.toFixed(3)} A${R},${R} 0 ${(a1 - a0) > Math.PI ? 1 : 0} 1 ${x1.toFixed(3)},${y1.toFixed(3)} Z" fill="${p.color}" stroke="var(--bg-2)" stroke-width="1.5"/>`;
-    });
-  }
+  const GAP = activas.length > 1 ? Math.min(4, CIRC * 0.02) : 0;
+  let acumLargo = 0;
+  let segmentos = '';
+  porciones.forEach((p, i) => {
+    if (!(vals[i] > 0)) return;
+    const largo = (vals[i] / total) * CIRC;
+    const visible = Math.max(largo - GAP, 0.001);
+    segmentos += `<circle cx="${C}" cy="${C}" r="${R}" fill="none" stroke="${p.color}" stroke-width="${GROSOR}" stroke-linecap="round" stroke-dasharray="${visible.toFixed(2)} ${(CIRC - visible).toFixed(2)}" stroke-dashoffset="${(-acumLargo).toFixed(2)}" style="filter:drop-shadow(0 0 5px ${p.color})"/>`;
+    acumLargo += largo;
+  });
   const tieneExtra = extra && extra.valor !== null && extra.valor !== undefined && extra.valor !== '';
   let resumen = porciones.map((p, i) => `${p.etiqueta}: ${fmtNum(vals[i])} (${(vals[i] / total * 100).toFixed(1)}%)`).join('; ');
   if (tieneExtra) resumen += `; ${extra.etiqueta}: ${extra.valor}`;
   const leyenda = porciones.map((p, i) => `
-        <div class="fila"><span class="punto" style="background:${p.color};"></span>${esc(p.etiqueta)} <b>${esc(fmtNum(vals[i]))}</b> <span class="pct">${(vals[i] / total * 100).toFixed(1)}%</span></div>`).join('');
+        <div class="fila"><span class="punto" style="background:${p.color}; color:${p.color};"></span>${esc(p.etiqueta)} <b>${esc(fmtNum(vals[i]))}</b> <span class="pct">${(vals[i] / total * 100).toFixed(1)}%</span></div>`).join('');
   const extraHtml = tieneExtra ? `
       <div class="mini-pie-extra">${esc(extra.etiqueta)} <b>${esc(String(extra.valor))}</b></div>` : '';
+  const icoHtml = opts.icono ? `<span class="ico">${esc(opts.icono)}</span>` : '';
   return `
     <div class="mini-pie">
-      <div class="mini-pie-titulo">${esc(titulo)}</div>
+      <div class="mini-pie-titulo">${icoHtml}${esc(titulo)}</div>
       <div class="mini-pie-cuerpo">
-        <svg viewBox="0 0 100 100" role="img" aria-label="${esc(titulo)}. ${esc(resumen)}">${trozos}</svg>
+        <div class="mini-pie-donut-wrap" role="img" aria-label="${esc(titulo)}. ${esc(resumen)}">
+          <svg viewBox="0 0 100 100" aria-hidden="true">
+            <circle cx="${C}" cy="${C}" r="${R}" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="${GROSOR}"/>
+            <g transform="rotate(-90 ${C} ${C})">${segmentos}</g>
+          </svg>
+          <div class="mini-pie-donut-centro" aria-hidden="true"><b>${esc(fmtNum(total))}</b><span>${esc(opts.centroEtiqueta || 'Total')}</span></div>
+        </div>
         <div class="mini-pie-leyenda">${leyenda}
         </div>
       </div>${extraHtml}
     </div>`;
 }
+
 
 function renderExtendido(ext, j){
   const wrap = document.getElementById('mExtWrap');
@@ -1842,11 +1884,11 @@ function renderExtendido(ext, j){
     (ext.victorias != null && ext.derrotas != null) ? _pastelMiniHtml('Victorias y derrotas', [
       { etiqueta: 'Victorias', valor: ext.victorias, color: 'var(--ok)' },
       { etiqueta: 'Derrotas', valor: ext.derrotas, color: 'var(--danger)' },
-    ], { etiqueta: 'Ratio V/D', valor: ratioVD }) : '',
+    ], { etiqueta: 'Ratio V/D', valor: ratioVD }, { icono: '⚔️', centroEtiqueta: 'Batallas' }) : '',
     (ext.donacionesRealizadas != null && ext.donacionesRecibidas != null) ? _pastelMiniHtml('Donaciones hechas y recibidas', [
       { etiqueta: 'Hechas', valor: ext.donacionesRealizadas, color: 'var(--gold)' },
       { etiqueta: 'Recibidas', valor: ext.donacionesRecibidas, color: 'var(--purple)' },
-    ]) : '',
+    ], null, { icono: '🎁', centroEtiqueta: 'Total' }) : '',
   ].join('');
   wrap.innerHTML = (items ? `<div class="ext-grid">${items}</div>` : '') + (pies.trim() ? `<div class="mini-pies">${pies}</div>` : '') + camino;
 }
