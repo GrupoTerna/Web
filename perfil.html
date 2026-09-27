@@ -3588,7 +3588,20 @@ function cambiarVarianteCarta(btn){
  * renderMetricaSemanal() (gráficas de Ataques/Puntaje/Barcos, mismo
  * formato de fecha "dd/MM/yyyy" que manda el backend). */
 function parseFechaDDMMYYYY(s){
-  const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(String(s || '').trim());
+  // PARCHE DEFENSIVO (27-sep-2026, pedido usuario — "las gráficas no
+  // tienen por qué traer hora, parece que está trayendo los datos del
+  // csv"): antes esta función solo aceptaba "dd/MM/yyyy" exacto. Tras
+  // borrar la hoja de Sheets, el backend empezó a mandar `semana` con hora
+  // pegada (ej. "06/08/2026 00:00:00" o con "T"), probablemente por leer
+  // directo de un CSV con timestamp en vez de solo la fecha de cierre de
+  // semana. El regex de acá es el mismo de antes MÁS un grupo opcional al
+  // final que absorbe " 00:00:00" / "T00:00:00" sin afectar el cálculo (se
+  // ignora, solo importa dd/MM/yyyy para ordenar y agrupar por día). Esto
+  // es un parche defensivo en el FRONTEND: lo correcto es que el backend
+  // vuelva a mandar solo "dd/MM/yyyy" (ver conversación con el usuario);
+  // esto evita que se rompan ordenamiento, relleno de semanas sin dato,
+  // filtro de días de guerra y líneas de domingo mientras eso se corrige.
+  const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:[ T]\d{1,2}:\d{2}(?::\d{2})?)?$/.exec(String(s || '').trim());
   if (!m) return NaN;
   const [, d, mo, y] = m;
   return new Date(Number(y), Number(mo) - 1, Number(d)).getTime();
@@ -3612,9 +3625,14 @@ function fmtFechaLargaDDMMYYYYPerfil(t){
   const d = new Date(t);
   return String(d.getDate()).padStart(2, '0') + '/' + String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear();
 }
-/** "17/08/2026" → "17/08" para el eje X; cualquier otro formato se muestra tal cual. */
+/** "17/08/2026" → "17/08" para el eje X; cualquier otro formato se muestra tal cual.
+ * PARCHE DEFENSIVO (27-sep-2026, mismo motivo que parseFechaDDMMYYYY de
+ * arriba): si `semana` llega como "17/08/2026 00:00:00" (hora pegada,
+ * viene del CSV), se sigue recortando a "17/08" en vez de mostrar el
+ * timestamp completo. Solo cambia qué formatos reconoce como fecha; sigue
+ * cayendo al string crudo si de verdad no es una fecha. */
 function semanaLabelCortaPerfil(semana){
-  const m = String(semana ?? '').match(/^(\d{1,2}\/\d{1,2})\/\d{4}$/);
+  const m = String(semana ?? '').match(/^(\d{1,2}\/\d{1,2})\/\d{4}(?:[ T]\d{1,2}:\d{2}(?::\d{2})?)?$/);
   return m ? m[1] : String(semana ?? '—');
 }
 /** Ordena por fecha real (dd/MM/yyyy); si alguna no tiene ese formato no se reordena entre sí (mismo criterio que tenían ambas gráficas). */
