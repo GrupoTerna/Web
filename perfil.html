@@ -708,8 +708,21 @@
 
       <!-- Secciones nuevas que leen jugador.rawClash() (snapshot JSON crudo con los nombres de categoría de Supercell, ya adjuntado por webPerfil). Historial en CHANGELOG.md. -->
       <div class="card pf-panel-datos" id="mColeccionCard" style="display:none;">
-        <div class="eyebrow">Colección</div>
-        <h2 class="pf-subtitulo">Colección completa de cartas</h2>
+        <!-- FIX (26-sep-2026, pedido usuario — "añade una pastilla ... llamada
+             'Mejora disponible' ... sube esos dos botones [Todas y Mejora
+             disponible] a la esquina superior derecha de su sección, al
+             nivel del título"): mismo patrón flex que ya usa mMazoActualCard
+             (título a la izquierda, pastillas/botones a la derecha, misma
+             fila). "Todas" se saca de la fila de rareza (mColeccionFiltros)
+             y, junto con la nueva "Mejora disponible", pasa a vivir acá, en
+             mColeccionFiltrosTop — ver renderColeccion() más abajo. -->
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:14px; flex-wrap:wrap;">
+          <div>
+            <div class="eyebrow">Colección</div>
+            <h2 class="pf-subtitulo">Colección completa de cartas</h2>
+          </div>
+          <div class="coleccion-filtros" id="mColeccionFiltrosTop" style="margin:0;"></div>
+        </div>
         <div class="coleccion-resumen" id="mColeccionResumen"></div>
         <div class="coleccion-filtros" id="mColeccionFiltros"></div>
         <!-- FIX (23-sep-2026, pedido usuario — "así como hay pastillas para
@@ -1564,7 +1577,7 @@ function renderStatsAvanzadasCabecera(j){
 // evolución). Categorías distintas se combinan con AND entre sí (ver
 // _colCartaPasaFiltro): p.ej. rareza=Legendaria Y tipo=Tropa Y nivel=14.
 // Una categoría vacía (ningún botón de esa fila activo) no restringe nada.
-const _colFiltrosActivos = { rareza: new Set(), tipo: new Set(), nivel: new Set(), heroe: false, evolucion: false };
+const _colFiltrosActivos = { rareza: new Set(), tipo: new Set(), nivel: new Set(), heroe: false, evolucion: false, mejora: false };
 // FIX (23-sep-2026, pedido usuario — pastillas de tipo/héroe/evolución en
 // Colección completa): faltaba esta constante y el helper de más abajo,
 // lo que rompía renderColeccion() con "TIPOS_CARTA_FILTRO is not defined".
@@ -1592,7 +1605,24 @@ function _colCartaPasaFiltro(c){
   }
   if (f.heroe && rarezaKey(c.rarity) !== 'campeon') return false;
   if (f.evolucion && !((c.evolutionLevel || 0) > 0)) return false;
+  if (f.mejora && !_cartaMejoraDisponible(c)) return false;
   return true;
+}
+/**
+ * _cartaMejoraDisponible(c)
+ * FIX (26-sep-2026, pedido usuario — pastilla "Mejora disponible" en
+ * Colección completa): true si el jugador ya tiene suficientes copias
+ * (`count`) para llegar a `cartasSiguienteNivel` — el MISMO criterio
+ * "alcanza" que ya resalta en dorado el "12/20" de cada ficha (ver
+ * _cantidadCartasHtml() más abajo). Solo compara cartas: el oro
+ * (costoOro) no entra en esta cuenta, igual que allá. Cartas al nivel
+ * máximo (sin cartasSiguienteNivel) nunca cuentan como "mejora
+ * disponible" — no hay a qué nivel subir.
+ */
+function _cartaMejoraDisponible(c){
+  const sig = c.cartasSiguienteNivel;
+  if (sig === undefined || sig === null || sig === '' || !isFinite(Number(sig))) return false;
+  return Number(c.count) >= Number(sig);
 }
 /**
  * renderColeccion(j) / pintarColeccion(cartas)
@@ -1624,12 +1654,23 @@ function renderColeccion(j){
   _colFiltrosActivos.nivel.clear();
   _colFiltrosActivos.heroe = false;
   _colFiltrosActivos.evolucion = false;
+  _colFiltrosActivos.mejora = false;
+
+  // FIX (26-sep-2026, pedido usuario): "Todas" y la nueva "Mejora disponible"
+  // se pintan en mColeccionFiltrosTop (esquina superior derecha de la
+  // sección, al nivel del título — ver el HTML de arriba), no en la fila de
+  // rareza. "Mejora disponible" reusa el estilo .cc-badge/.cc-badge-btn de
+  // Héroe/Evolución (misma pastilla con emoji) y, como esas dos, se omite
+  // sola si ninguna carta la cumple.
+  const cantMejora = cartas.filter(_cartaMejoraDisponible).length;
+  const filtrosTop = document.getElementById('mColeccionFiltrosTop');
+  filtrosTop.innerHTML = `<button type="button" data-cat="todos" class="activo">Todas (${cartas.length})</button>`
+    + (cantMejora ? `<button type="button" data-cat="mejora" class="cc-badge cc-badge-btn">\u2b06\ufe0f Mejora disponible (${cantMejora})</button>` : '');
 
   const raridades = ['campeon', 'legendaria', 'epica', 'especial', 'comun'];
   const presentes = raridades.filter(r => cartas.some(c => rarezaKey(c.rarity) === r));
   const filtros = document.getElementById('mColeccionFiltros');
-  filtros.innerHTML = [`<button type="button" data-cat="todos" class="activo">Todas (${cartas.length})</button>`]
-    .concat(presentes.map(r => `<button type="button" data-cat="rareza" data-f="${r}">${RAREZA_CARTA_TXT[r]} (${cartas.filter(c => rarezaKey(c.rarity) === r).length})</button>`))
+  filtros.innerHTML = presentes.map(r => `<button type="button" data-cat="rareza" data-f="${r}">${RAREZA_CARTA_TXT[r]} (${cartas.filter(c => rarezaKey(c.rarity) === r).length})</button>`)
     .join('');
   // FIX (23-sep-2026, pedido usuario — "otra fila con pastillas por tipo
   // (tropa, hechizo, estructura, etc) y pastillas para héroe y evolución,
@@ -1674,15 +1715,16 @@ function renderColeccion(j){
   // demás) salvo "Todas", que limpia todo. Por eso los botones de las 3
   // filas se recorren juntos acá.
   const botonesFiltroColeccion = () => [
+    ...filtrosTop.querySelectorAll('button'),
     ...filtros.querySelectorAll('button'),
     ...filtrosTipo.querySelectorAll('button'),
     ...filtrosNivel.querySelectorAll('button')
   ];
   const hayAlgunFiltroActivo = () =>
     _colFiltrosActivos.rareza.size || _colFiltrosActivos.tipo.size || _colFiltrosActivos.nivel.size ||
-    _colFiltrosActivos.heroe || _colFiltrosActivos.evolucion;
+    _colFiltrosActivos.heroe || _colFiltrosActivos.evolucion || _colFiltrosActivos.mejora;
   const sincronizarBotonTodos = () => {
-    filtros.querySelector('[data-cat="todos"]').classList.toggle('activo', !hayAlgunFiltroActivo());
+    filtrosTop.querySelector('[data-cat="todos"]').classList.toggle('activo', !hayAlgunFiltroActivo());
   };
   botonesFiltroColeccion().forEach(b => b.addEventListener('click', () => {
     const cat = b.dataset.cat;
@@ -1692,9 +1734,10 @@ function renderColeccion(j){
       _colFiltrosActivos.nivel.clear();
       _colFiltrosActivos.heroe = false;
       _colFiltrosActivos.evolucion = false;
+      _colFiltrosActivos.mejora = false;
       botonesFiltroColeccion().forEach(x => { x.classList.remove('activo'); x.classList.remove('is-activa'); });
       b.classList.add('activo');
-    } else if (cat === 'heroe' || cat === 'evolucion'){
+    } else if (cat === 'heroe' || cat === 'evolucion' || cat === 'mejora'){
       _colFiltrosActivos[cat] = !_colFiltrosActivos[cat];
       b.classList.toggle('is-activa', _colFiltrosActivos[cat]);
       sincronizarBotonTodos();
