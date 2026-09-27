@@ -366,7 +366,25 @@
   .mini-disp-leyenda{display:flex; flex-wrap:wrap; justify-content:center; gap:8px 16px; font-family:var(--f-mono); font-size:11px; color:var(--text-dim);}
   .mini-disp-chip{display:inline-flex; align-items:center; gap:6px;}
   .mini-disp-chip i{width:9px; height:9px; border-radius:50%; flex-shrink:0; background:var(--c); box-shadow:0 0 7px 1px var(--c);}
-  .mini-disp-svg{width:100%; height:auto; aspect-ratio:260/152; display:block; overflow:visible;}
+  /* FIX (27-sep-2026, pedido usuario — "los minigráficos de fame y ataques
+   * deben tener la misma altura que los minigráficos de pastel"): el SVG
+   * de dispersión escalaba fluido al 100% del ancho de su tarjeta
+   * (aspect-ratio 260/152); como #mReqGraficosWrap es angosto pero no tan
+   * angosto (~370-400px de contenido en desktop), el SVG terminaba con
+   * ~215-220px de alto y la tarjeta completa (título + leyenda + SVG +
+   * paddings) quedaba en ~330-345px, muy por encima de los 260px que miden
+   * Victorias/Derrotas y Donaciones (que sí respetan el min-height:260px
+   * de .mini-pie porque su contenido, el donut, es fijo: 104x104px, no
+   * fluido). Se pasa el SVG de dispersión de fluido a tamaño fijo
+   * (243x142px, misma proporción 260/152 que su viewBox) — mismo criterio
+   * que el donut — calculado para que 18(padding-top) + 26(min-height del
+   * título) + 16(margin-bottom del título) + 32(min-height de la leyenda)
+   * + 10(gap) + 142(svg) + 16(padding-bottom) = 260px exactos, igual al
+   * min-height de .mini-pie. max-width:100% deja que se achique en
+   * pantallas angostas sin distorsionarse (aspect-ratio se mantiene); ahí
+   * el piso min-height:260px de .mini-pie sigue cubriendo la diferencia,
+   * igual que ya hace con Victorias/Derrotas y Donaciones. */
+  .mini-disp-svg{width:243px; max-width:100%; height:auto; aspect-ratio:260/152; display:block; overflow:visible;}
   .mini-disp-svg .md-grid{stroke:var(--line-strong); stroke-width:1; opacity:.35;}
   .mini-disp-svg .md-base{stroke:var(--line-strong); stroke-width:1; opacity:.55;}
   .mini-disp-svg .md-punto{cursor:pointer; transition:r .15s ease;}
