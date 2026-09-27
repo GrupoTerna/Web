@@ -2873,23 +2873,46 @@ function renderExtendido(ext, j){
    * todavía no se jugaron esta semana (_webPerfilJugador(), 34_Web_API.gs).
    * Se recorta a solo los índices con dato real (mismo criterio "hueco, no
    * 0" que pedía el comentario original) y las etiquetas de día se abrevian
-   * a su inicial (J/V/S/D), tal como ya asumía _dispersionMiniHtml(). El
-   * gráfico de Fama suma la serie 'Acumulado' (puntajeAcumulado) que el
-   * backend ya arma para esto, además de la 'Fama' diaria. Sin datos
-   * jugados esta semana (recién arrancó el entrenamiento), ambas tarjetas
-   * simplemente no se pintan, igual que ya pasa con los dos donuts de
-   * arriba cuando falta su dato. */
+   * a su inicial (J/V/S/D), tal como ya asumía _dispersionMiniHtml().
+   * FIX (27-sep-2026, pedido usuario — "el minigráfico de Fama lo lee al
+   * revés: la serie amarilla debería llamarse 'Trofeos de guerra' y mostrar
+   * lo ganado ESE día (ej. 700/500/400), y 'Acumulado' debería mostrar la
+   * suma corrida (700/1200/1600) — justo lo que hoy muestra la serie
+   * amarilla — mientras que 'Acumulado' hoy muestra un valor todavía más
+   * grande (700/1900/3500)"): sin Base.md en esta sesión no se puede
+   * confirmar qué computa exactamente 34_Web_API.gs, pero los números que
+   * reporta el usuario cuadran con que `gsd.puntaje[i]` YA es el corrido
+   * semanal (no el trofeo ganado ese día) y que `gsd.puntajeAcumulado[i]`
+   * sale de sumar esos corridos entre sí otra vez (doble acumulado) en vez
+   * de ser ese mismo corrido. Se deja de usar `gsd.puntajeAcumulado` (dato
+   * crudo del backend, sin tocar 34_Web_API.gs, por si se corrige a
+   * futuro) y, en su lugar: "Trofeos de guerra" resta el corrido del día
+   * anterior al de cada día (mismo criterio de delta que
+   * _valoresDiariosDesdeAcumulado() usa más abajo para los otros gráficos,
+   * pero sobre este arreglo de 4 posiciones fijas) y "Acumulado" pasa a
+   * ser directamente `gsd.puntaje[i]`, el corrido tal cual. El delta se
+   * calcula sobre los 4 días fijos en orden (no solo sobre
+   * idxDiasJugados), para que siempre reste contra el corrido real del día
+   * jugado anterior, sin importar si hay huecos en medio. */
   const gsd = j.guerraSemanaDias;
   const idxDiasJugados = gsd ? [0, 1, 2, 3].filter(i => gsd.ataques[i] != null) : [];
   const diasJugadosLbl = idxDiasJugados.map(i => String(gsd.dias[i] || '').charAt(0).toUpperCase());
+  let _corridoAnterior = 0;
+  const trofeosGuerraPorDia = [0, 1, 2, 3].map(i => {
+    const corrido = gsd ? Number(gsd.puntaje[i]) : NaN;
+    if (!isFinite(corrido)) return null;
+    const delta = corrido - _corridoAnterior;
+    _corridoAnterior = corrido;
+    return delta;
+  });
   const graficosGuerra = idxDiasJugados.length ? [
     _dispersionMiniHtml('Ataques y barcos por día', diasJugadosLbl, [
       { etiqueta: 'Ataques', color: 'var(--gold)', valores: idxDiasJugados.map(i => gsd.ataques[i]) },
       { etiqueta: 'Barcos', color: 'var(--purple)', valores: idxDiasJugados.map(i => gsd.barcos[i]) },
     ], { icono: '⚔️' }),
-    _dispersionMiniHtml('Fama por día', diasJugadosLbl, [
-      { etiqueta: 'Fama', color: 'var(--gold)', valores: idxDiasJugados.map(i => gsd.puntaje[i]) },
-      { etiqueta: 'Acumulado', color: 'var(--purple)', valores: idxDiasJugados.map(i => gsd.puntajeAcumulado[i]) },
+    _dispersionMiniHtml('Trofeos de guerra por día', diasJugadosLbl, [
+      { etiqueta: 'Trofeos de guerra', color: 'var(--gold)', valores: idxDiasJugados.map(i => trofeosGuerraPorDia[i]) },
+      { etiqueta: 'Acumulado', color: 'var(--purple)', valores: idxDiasJugados.map(i => gsd.puntaje[i]) },
     ], { icono: '🔥' }),
   ].join('') : '';
   // FIX (26-sep-2026, pedido usuario): graficosGuerra (Ataques/Fama por día)
