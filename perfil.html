@@ -415,8 +415,18 @@
    * título/leyenda ocupa 1 o 2 líneas. Scoped a #mReqGraficosWrap para no
    * tocar el resto de .mini-pie (Victorias/Donaciones, títulos cortos que
    * nunca envuelven). */
-  #mReqGraficosWrap .mini-pie-titulo{ min-height:26px; }
-  #mReqGraficosWrap .mini-disp-leyenda{ min-height:32px; align-items:center; align-content:center; }
+  /* FIX (27-sep-2026, pedido usuario -- se juntan los 4 minigráficos en un
+     solo contenedor, #mMiniGraficosWrap (ver el HTML de la cabecera): este
+     ámbito, antes acotado a #mReqGraficosWrap (solo las 2 tarjetas de
+     dispersión), pasa a cubrir las 4 tarjetas por igual. min-height:26px en
+     el título sigue sirviendo para que "Ataques y barcos por día" (título
+     largo) y "Fama por día" (corto) midan lo mismo entre sí sin desalinear
+     a Victorias/Donaciones, que también viven acá ahora pero cuyos títulos
+     nunca envuelven a 2 líneas. min-height:32px en .mini-disp-leyenda no
+     afecta a los donuts (esa clase solo existe en las tarjetas de
+     dispersión). */
+  #mMiniGraficosWrap .mini-pie-titulo{ min-height:26px; }
+  #mMiniGraficosWrap .mini-disp-leyenda{ min-height:32px; align-items:center; align-content:center; }
   .badge-item .b-prog{font-family:var(--f-mono); font-size:10px; color:var(--text-faint);}
   .badge-item .progress{width:100%; height:5px; margin-top:2px;}
   .star-level{color:var(--gold); font-size:11px; letter-spacing:1px; white-space:nowrap;}
@@ -774,8 +784,26 @@
              (en vez de angostarse él mismo hasta apretar las tarjetas). -->
         <div style="display:flex; gap:20px; flex-wrap:wrap; align-items:flex-start; margin-top:16px;">
           <div id="mReqContenido" style="flex:1; min-width:260px;"></div>
-          <div id="mReqGraficosWrap" style="flex:2; min-width:556px; display:grid; grid-template-columns:repeat(auto-fit,minmax(270px,1fr)); gap:16px;"></div>
+          <!-- FIX (27-sep-2026, pedido usuario -- "mueve los cuadritos (copas
+               máx, torneos ... ranking en el clan) a la derecha del bloque de
+               requisitos"): #mCuadritosWrap ocupa el lugar donde antes vivían
+               los minigráficos de dispersión (Ataques/Fama) -- ver
+               #mMiniGraficosWrap más abajo, donde se juntan los 4
+               minigráficos en una sola fila. Se pinta desde renderExtendido(). -->
+          <div id="mCuadritosWrap" style="flex:2; min-width:556px;"></div>
         </div>
+        <!-- FIX (27-sep-2026, pedido usuario -- "los minigráficos de ataques y
+             puntaje ponlos debajo del bloque de requisitos y a la derecha de
+             ellos pon los minigráficos pastel, así los 4 minigráficos quedan
+             alineados y con la misma altura"): un solo grid con las 4
+             tarjetas (Ataques y barcos por día, Fama por día, Victorias y
+             derrotas, Donaciones hechas y recibidas), en ese orden -- antes
+             vivían en dos contenedores separados (uno junto a Requisitos,
+             otro debajo de los cuadritos). Todas comparten la clase
+             .mini-pie (min-height:260px), así quedan a la misma altura sin
+             importar cuál sea donut y cuál dispersión. Se pinta desde
+             renderExtendido(). -->
+        <div id="mMiniGraficosWrap" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:16px; margin-top:16px;"></div>
         <div id="mExtWrap"></div>
 
         <!-- Una sola fila de acciones, formato ".ext-links" (pill chico). Historial en CHANGELOG.md. -->
@@ -2868,10 +2896,20 @@ function renderExtendido(ext, j){
   // ya no se pinta acá junto a los donuts — se sube a #mReqGraficosWrap, al
   // lado de Requisitos (ver el HTML de la cabecera, más arriba). pies queda
   // solo con los dos donuts (Victorias/Donaciones).
-  const pies = piesDonuts;
-  wrap.innerHTML = (items ? `<div class="ext-grid">${items}</div>` : '') + (pies.trim() ? `<div class="mini-pies">${pies}</div>` : '') + camino;
-  const reqGraficosWrap = document.getElementById('mReqGraficosWrap');
-  if (reqGraficosWrap) reqGraficosWrap.innerHTML = graficosGuerra;
+  // FIX (27-sep-2026, pedido usuario -- "mueve los cuadritos a la derecha de
+  // requisitos; los minigráficos de ataques/fame y los de pastel deben
+  // quedar alineados en una sola fila con la misma altura"): el grid de
+  // cuadritos (.ext-grid) pasa de #mExtWrap (debajo, ancho completo) a
+  // #mCuadritosWrap (a la derecha de Requisitos, donde antes vivían los
+  // minigráficos de dispersión). Los 4 minigráficos se juntan en un solo
+  // grid (#mMiniGraficosWrap), en el orden Ataques y barcos por día / Fama
+  // por día / Victorias y derrotas / Donaciones hechas y recibidas.
+  // #mExtWrap ahora solo pinta el badge de Camino de Leyendas (si aplica).
+  const cuadritosWrap = document.getElementById('mCuadritosWrap');
+  if (cuadritosWrap) cuadritosWrap.innerHTML = items ? `<div class="ext-grid">${items}</div>` : '';
+  const miniGraficosWrap = document.getElementById('mMiniGraficosWrap');
+  if (miniGraficosWrap) miniGraficosWrap.innerHTML = graficosGuerra + piesDonuts;
+  wrap.innerHTML = camino;
 }
 
 /**
