@@ -1144,21 +1144,26 @@
       </div>
 
       <!-- ---------- BATALLAS MÁS RECIENTES ---------- -->
-      <!-- FIX (27-sep-2026, pedido usuario): misma lógica de placeholder que
-           "Ciclo de cofres" arriba (ver ese comentario para el detalle del
-           patrón y por qué es <button> y no <a>).
-           TODO: sin implementar todavía. Cuando se conecte, este botón debe
-           consumir el endpoint 'battlelog' (34_Web_API.gs), que YA existe en
-           el backend — falta conectar el frontend acá. Botón deshabilitado
-           mientras tanto, mismo motivo que el de Ciclo de cofres. -->
+      <!-- FIX (27-sep-2026, pedido usuario): igual que "Ciclo de cofres" más
+           arriba, este botón apuntaba a un endpoint 'battlelog' que NUNCA
+           existió como acción web (solo existía descargarBattlelogJugador(),
+           MANUAL, que guarda el JSON crudo en Drive -- no un endpoint web).
+           Se conecta acá a la acción real 'webBattlelogJugador', servida por
+           la función nueva _webBattlelogJugador() (34_Web_API.gs, enrutada
+           en 08_Web_Endpoints.gs), que SÍ llama en vivo a /battlelog y
+           traduce arena/modo al español reutilizando los catálogos que
+           descargarBattlelogJugador() ya alimenta (_resolverArenaDesdeCatalogo()/
+           _resolverModoDesdeCatalogo(), 07_API_ClashRoyale.gs) -- mismos
+           helpers que usa _webPerfilExtendido() para el resto del perfil, no
+           hizo falta escribir nada nuevo de ese lado. -->
       <div class="card pf-panel-datos" id="mBatallasRecientesCard">
         <div class="eyebrow">Actividad</div>
         <h2 class="pf-subtitulo">Batallas más recientes</h2>
         <p class="text-dim" style="margin-top:6px; font-size:14px;">El historial de batallas más reciente de este jugador.</p>
         <div style="display:flex; justify-content:flex-start; margin-top:8px;">
-          <button type="button" class="btn btn-primary" id="mVerBatallasRecientesBtn" disabled title="Próximamente">⚔️ Ver batallas más recientes</button>
+          <button type="button" class="btn btn-primary" id="mVerBatallasRecientesBtn">⚔️ Ver batallas más recientes</button>
         </div>
-        <div class="text-faint" style="font-size:12px; margin-top:10px;">Próximamente — falta conectar con el endpoint <code>battlelog</code>.</div>
+        <div id="mBatallasRecientesWrap" style="display:none;"></div>
       </div>
     </div>
   </section>
@@ -4557,6 +4562,77 @@ async function verCicloCofres(){
   }
 }
 document.getElementById('mVerCicloCofresBtn').addEventListener('click', verCicloCofres);
+
+/**
+ * pintarBatallasRecientes(batallas)
+ * NUEVO (27-sep-2026, pedido usuario, "haz lo mismo para battlelog"): cada
+ * fila reutiliza .ingreso-row/.ingreso-info/.ing-nombre/.ing-fecha (mismo
+ * bloque que verTorneosJugador(), más arriba) en vez de crear clases CSS
+ * nuevas -- una fila de batalla es, visualmente, el mismo patrón
+ * "título + subtítulo + badges a la derecha" que una fila de torneo.
+ * Resultado (victoria/derrota/empate) como badge de color: var(--ok)/
+ * var(--danger)/var(--text-dim) inline, ya que .badge-gold/.badge-purple
+ * (assets/styles.css) no cubren esta semántica y no hace falta agregar
+ * clases nuevas para dos colores que ya existen como variables.
+ * boatBattle no tiene "coronas" en el sentido normal (b.miCorona/
+ * b.rivalCorona llegan null desde _webBattlelogJugador(), ver su docblock)
+ * -- se muestra en su lugar "Torres: nuevas/restantes".
+ * @param {Array<Object>} batallas - ver forma exacta en el docblock de
+ *   _webBattlelogJugador() (34_Web_API.gs).
+ */
+function pintarBatallasRecientes(batallas){
+  var wrap = document.getElementById('mBatallasRecientesWrap');
+  wrap.style.display = 'block';
+  if (!batallas || !batallas.length){
+    wrap.innerHTML = '<div class="empty">Este jugador no tiene batallas registradas.</div>';
+    return;
+  }
+
+  var COLOR_RESULTADO = { victoria: 'var(--ok)', derrota: 'var(--danger)', empate: 'var(--text-dim)' };
+  var TXT_RESULTADO = { victoria: 'Victoria', derrota: 'Derrota', empate: 'Empate' };
+
+  wrap.innerHTML = `<div class="card" style="padding:8px 4px;">${batallas.map(function(b){
+    var esBoat = (b.tipo === 'boatBattle');
+    var colorResultado = COLOR_RESULTADO[b.resultado] || 'var(--text-dim)';
+    var txtResultado = TXT_RESULTADO[b.resultado] || b.resultado;
+    var subtitulo = [b.modo, b.arena].filter(Boolean).map(esc).join(' · ') || 'Modo no registrado';
+    var rivalTxt = b.rivalNombre ? ('vs. ' + b.rivalNombre + (b.rivalClan ? ' (' + b.rivalClan + ')' : '')) : '';
+    var marcadorTxt = esBoat
+      ? `Torres: +${fmtNum(b.barcoTorresNuevas || 0)} · quedan ${fmtNum(b.barcoTorresRestantes || 0)}`
+      : `${fmtNum(b.miCorona || 0)} \u2013 ${fmtNum(b.rivalCorona || 0)}`;
+    return `
+      <div class="ingreso-row" style="cursor:default;">
+        <div class="ingreso-info">
+          <div class="ing-nombre">${rivalTxt ? esc(rivalTxt) : subtitulo}</div>
+          <div class="ing-fecha">${rivalTxt ? subtitulo + ' · ' : ''}${b.fecha ? esc(b.fecha) : 'Fecha no registrada'}</div>
+        </div>
+        <div class="ingreso-links">
+          <span class="badge" style="border-color:${colorResultado}; color:${colorResultado};">${esc(txtResultado)}</span>
+          <span class="badge badge-gold">${esc(marcadorTxt)}</span>
+        </div>
+      </div>`;
+  }).join('')}</div>`;
+}
+
+/**
+ * verBatallasRecientes()
+ * Mismo patrón que verCicloCofres() justo arriba: pide 'webBattlelogJugador'
+ * (_webBattlelogJugador(), 34_Web_API.gs) y pinta con
+ * pintarBatallasRecientes(). Tampoco necesita dataset.tag, mismo motivo que
+ * verCicloCofres() (TAG_PERFIL ya resuelto desde el arranque de la página).
+ */
+async function verBatallasRecientes(){
+  var wrap = document.getElementById('mBatallasRecientesWrap');
+  wrap.style.display = 'block';
+  wrap.innerHTML = '<div class="text-faint" style="font-family:var(--f-mono); font-size:12px;">Cargando batallas recientes…</div>';
+  try{
+    var data = await apiGet('webBattlelogJugador', { tag: TAG_PERFIL }, { ttlMs: 300000, staleIfError: true }); // B-11: 5 min; B4/B-10: si falla la red, usar el último dato guardado
+    pintarBatallasRecientes((data && data.batallas) || []);
+  }catch(err){
+    wrap.innerHTML = `<div class="empty">No se pudo cargar las batallas recientes: ${esc(err.message)}</div>`;
+  }
+}
+document.getElementById('mVerBatallasRecientesBtn').addEventListener('click', verBatallasRecientes);
 
 /**
  * MESES_ES / parsearFechaHistorial(fecha) / construirSelectoresHistorialGuerra()
