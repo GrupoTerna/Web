@@ -2319,6 +2319,21 @@ function _filaCostoMejora(reservar, tieneValor, htmlValor, htmlSinDato){
     : htmlSinDato.replace('<div ', '<div style="visibility:hidden;" aria-hidden="true" ');
 }
 const _ICONO_ORO_HTML = '<img src="assets/img/Gold.webp" alt="Oro" onerror="this.replaceWith(document.createTextNode(\'\\u{1FA99}\'));">';
+/**
+ * _ICONO_GUERRA_HTML
+ * NUEVO (27-sep-2026, pedido usuario -- ícono de guerra en el battlelog del
+ * perfil, para distinguir riverRacePvP/riverRaceDuel/boatBattle de las
+ * demás batallas). Mismo patrón exacto que _ICONO_ORO_HTML (arriba): <img>
+ * a assets/img/Guerra.webp con onerror que lo reemplaza por el emoji 🎖️
+ * (medalla militar) si el archivo todavía no está subido a
+ * grupoterna.github.io/Web/assets/img/ -- así el battlelog no se rompe
+ * mientras el ícono real no esté disponible, y el reemplazo es automático
+ * apenas el archivo se suba (no hace falta tocar este código de nuevo).
+ * El usuario confirmó que el ícono real del "escudo con espadas cruzadas"
+ * (menú Guerra del juego) no es viable por derechos de autor de Supercell
+ * -- 🎖️ es el reemplazo aprobado mientras tanto.
+ */
+const _ICONO_GUERRA_HTML = '<img src="assets/img/Guerra.webp" alt="Guerra" onerror="this.replaceWith(document.createTextNode(\'\\u{1F396}\\u{FE0F}\'));">';
 
 /**
  * _tieneTablaCostos(obj) / abrirModalCostoCarta() / cerrarModalCostoCarta() /
@@ -4577,6 +4592,31 @@ document.getElementById('mVerCicloCofresBtn').addEventListener('click', verCiclo
  * boatBattle no tiene "coronas" en el sentido normal (b.miCorona/
  * b.rivalCorona llegan null desde _webBattlelogJugador(), ver su docblock)
  * -- se muestra en su lugar "Torres: nuevas/restantes".
+ * ACTUALIZADO (27-sep-2026, pedido usuario -- "se debe procesar toda la
+ * información, haciendo pasar todos los datos disponibles en los csv"):
+ * _webBattlelogJugador() ahora manda b.arenaTxt/b.modoTxt (los strings ya
+ * resueltos, mismo rol que antes tenían b.arena/b.modo -- por eso el
+ * subtítulo se arma igual que antes, solo cambiaron los nombres de campo) y
+ * además b.arena/b.modo como objetos completos ({id,name,nombre,nombre2}),
+ * que acá se usan SOLO para el atributo title="" (tooltip con el Name en
+ * inglés que trae la API, y Nombre_2 de arena si existe -- útil para
+ * detectar arenas/modos que el catálogo todavía tiene sin traducir a
+ * mano). Se agregan tres badges nuevos, todos opcionales (si el campo
+ * viene vacío/null, el badge no se pinta -- ver `badges` más abajo):
+ *   - trophyChange: "+30"/"-30" (o "+1"/"-1" en Challenge, donde el mismo
+ *     campo es el contador de victorias del reto, no copas) en el mismo
+ *     color que el badge de resultado. FIX (27-sep-2026, pedido usuario --
+ *     aclaración con capturas de pantalla del juego): el campo NO siempre
+ *     representa trofeos reales. "Camino de trofeos" (donde sí se suben
+ *     copas) no manda trophyChange en el battlelog; "Modo competitivo"
+ *     (pathOfLegend/Ranked 1v1) avanza por escalones y ligas, no por
+ *     copas; y en Challenge ("trail") el mismo campo es el conteo de
+ *     victorias del reto. Por eso el badge NUNCA lleva ícono de trofeo --
+ *     solo el número con signo, sin asumir qué representa.
+ *   - miClan (si vino, symmetric a rivalClan que ya se mostraba junto al
+ *     nombre del rival).
+ *   - deckSelection, solo cuando NO es 'collection' (el caso normal, no
+ *     aporta nada nuevo) -- por ejemplo 'eventDeck' en un Challenge.
  * @param {Array<Object>} batallas - ver forma exacta en el docblock de
  *   _webBattlelogJugador() (34_Web_API.gs).
  */
@@ -4595,20 +4635,57 @@ function pintarBatallasRecientes(batallas){
     var esBoat = (b.tipo === 'boatBattle');
     var colorResultado = COLOR_RESULTADO[b.resultado] || 'var(--text-dim)';
     var txtResultado = TXT_RESULTADO[b.resultado] || b.resultado;
-    var subtitulo = [b.modo, b.arena].filter(Boolean).map(esc).join(' · ') || 'Modo no registrado';
+
+    // arenaTxt/modoTxt: strings ya resueltos (mismo rol que antes b.arena/
+    // b.modo). title="" con el detalle crudo del catálogo, si hay algo que
+    // no esté ya visible en el texto (Name en inglés, Nombre_2 de arena).
+    var arenaObj = b.arena || {};
+    var modoObj  = b.modo  || {};
+    var arenaTip = [arenaObj.name, arenaObj.nombre2].filter(Boolean).join(' · ');
+    var modoTip  = modoObj.name || '';
+    var subtitulo = [
+      b.modoTxt  ? `<span title="${esc(modoTip)}">${esc(b.modoTxt)}</span>`   : '',
+      b.arenaTxt ? `<span title="${esc(arenaTip)}">${esc(b.arenaTxt)}</span>` : ''
+    ].filter(Boolean).join(' · ') || 'Modo no registrado';
+    var subtituloPlano = [b.modoTxt, b.arenaTxt].filter(Boolean).join(' · ') || 'Modo no registrado';
+
+    // NUEVO (27-sep-2026, pedido usuario -- ícono de guerra): los tres
+    // tipos de batalla de Guerra de Río (riverRacePvP/riverRaceDuel/
+    // boatBattle, ver _webBattlelogJugador(), 34_Web_API.gs) usan
+    // _ICONO_GUERRA_HTML (arriba en este archivo) junto al marcador, para
+    // distinguirlas de las demás a simple vista -- mismo criterio que el
+    // ícono de oro (_ICONO_ORO_HTML), con fallback automático a 🎖️ si
+    // Guerra.webp todavía no está subido a assets/img/.
+    var esGuerra = (b.tipo === 'riverRacePvP' || b.tipo === 'riverRaceDuel' || esBoat);
     var rivalTxt = b.rivalNombre ? ('vs. ' + b.rivalNombre + (b.rivalClan ? ' (' + b.rivalClan + ')' : '')) : '';
+    var miClanTxt = b.miClan ? (' · ' + b.miClan) : '';
     var marcadorTxt = esBoat
       ? `Torres: +${fmtNum(b.barcoTorresNuevas || 0)} · quedan ${fmtNum(b.barcoTorresRestantes || 0)}`
       : `${fmtNum(b.miCorona || 0)} \u2013 ${fmtNum(b.rivalCorona || 0)}`;
+    var marcadorHtml = (esGuerra ? _ICONO_GUERRA_HTML + ' ' : '') + esc(marcadorTxt);
+
+    // Badges opcionales: solo se pintan si el dato vino (trophyChange no
+    // aplica fuera de pathOfLegend, deckSelection 'collection' es el caso
+    // normal y no aporta nada al mostrarlo).
+    var badgesExtra = '';
+    if (b.trophyChange !== null && b.trophyChange !== undefined){
+      var signo = b.trophyChange > 0 ? '+' : '';
+      badgesExtra += `<span class="badge" style="border-color:${colorResultado}; color:${colorResultado};">${signo}${fmtNum(b.trophyChange)}</span>`;
+    }
+    if (b.deckSelection && b.deckSelection !== 'collection'){
+      badgesExtra += `<span class="badge badge-purple">${esc(b.deckSelection)}</span>`;
+    }
+
     return `
       <div class="ingreso-row" style="cursor:default;">
         <div class="ingreso-info">
-          <div class="ing-nombre">${rivalTxt ? esc(rivalTxt) : subtitulo}</div>
+          <div class="ing-nombre">${rivalTxt ? esc(rivalTxt) + esc(miClanTxt) : subtitulo}</div>
           <div class="ing-fecha">${rivalTxt ? subtitulo + ' · ' : ''}${b.fecha ? esc(b.fecha) : 'Fecha no registrada'}</div>
         </div>
         <div class="ingreso-links">
           <span class="badge" style="border-color:${colorResultado}; color:${colorResultado};">${esc(txtResultado)}</span>
-          <span class="badge badge-gold">${esc(marcadorTxt)}</span>
+          ${badgesExtra}
+          <span class="badge badge-gold">${marcadorHtml}</span>
         </div>
       </div>`;
   }).join('')}</div>`;
