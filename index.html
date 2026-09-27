@@ -894,6 +894,17 @@ async function cargarRankings(){
  * tocarlo, regresa al ícono base (c.icon, guardado en data-icon-base del
  * chip). Si el link de la variante falla al cargar, se precarga con
  * Image() antes de aplicarlo — así nunca se rompe el ícono visible.
+ * FIX (27-sep-2026, pedido usuario — alinear el orden de botones de esta
+ * sección con el patrón genérico ya vigente en perfil.html): esta ficha
+ * seguía el orden viejo del 21-sep-2026 (Héroe/Evolución primero, luego
+ * Rareza/Tipo/Elixir). perfil.html ya corrigió ese orden el 23-sep-2026
+ * (ver _filaHeroeEvo() en ese archivo) a Rareza/Tipo/Elixir+Estrellas/
+ * Nivel+Cantidad/Héroe+Evolución — Héroe y Evolución al final, compartiendo
+ * una sola fila (Héroe primero si hay ambos) y sin reservar espacio si la
+ * carta no tiene ninguno de los dos. Esta sección no tiene Nivel/Cantidad
+ * (es un agregado de la Familia, no de una cuenta puntual), así que el dato
+ * propio de esta sección ("usos en mazo") ocupa ese mismo lugar en la
+ * secuencia, justo antes de Héroe+Evolución.
  */
 /* CORRECCIÓN (05-sep-2026, pedido usuario — "se está traduciendo
    literalmente las calidades de las cartas, no existe 'rara' como tal, su
@@ -923,14 +934,19 @@ async function cargarEstadisticasCartas(){
       wrap.innerHTML = '<div class="empty" style="padding:8px 0;">Todavía no hay datos de mazos disponibles.</div>';
       return;
     }
-    // FIX (21-sep-2026, pedido usuario — orden estándar de fichas de carta
-    // en toda la web): Nombre/Héroe/Evolución/Rareza/Tipo/Elixir+Estrellas/
-    // Nivel+Cantidad, cada uno en su propia fila, se omite si no hay dato.
-    // Este ranking no trae nivel/cantidad/estrellas por jugador (es un
-    // agregado de la Familia, no de una cuenta puntual), así que esas filas
-    // simplemente no aplican acá. El número de ranking se queda junto al
-    // nombre (fila 1) y "usos en mazo" es un dato propio de esta sección
-    // (no una fila genérica de ficha de carta), así que va al final.
+    // FIX (27-sep-2026, pedido usuario): orden estándar de fichas de carta
+    // vigente en toda la web (mismo patrón que perfil.html, ver
+    // _filaHeroeEvo() ahí): Nombre/Rareza/Tipo/Elixir+Estrellas/
+    // Nivel+Cantidad/Héroe+Evolución, cada uno en su propia fila, se omite
+    // si no hay dato. Este ranking no trae nivel/cantidad/estrellas por
+    // jugador (es un agregado de la Familia, no de una cuenta puntual), así
+    // que esas filas no aplican acá; "usos en mazo" es el dato propio de
+    // esta sección y ocupa ese mismo lugar en la secuencia (antes de
+    // Héroe+Evolución). El número de ranking se queda junto al nombre
+    // (fila 1). Héroe y Evolución van al final, compartiendo una sola fila
+    // (Héroe primero si la carta tiene ambos) y sin reservar espacio si no
+    // tiene ninguno de los dos — antes cada uno tenía su propia fila al
+    // inicio de la ficha.
     // FIX (26-sep-2026, pedido usuario — "en realidad puede ser cualquier
     // número, debería decir 'En N mazos'"): antes decía "N en mazo" fijo en
     // singular sin importar el número; ahora usa el mismo patrón que el
@@ -938,17 +954,19 @@ async function cargarEstadisticasCartas(){
     wrap.innerHTML = data.top10.map((c, i) => {
       const rareza = rarezaHtml(c.rarity);
       const usosTexto = `En ${fmtNum(c.usos)} mazo${c.usos === 1 ? '' : 's'}`;
+      const heroeEvoHtml = (c.hasHero || c.hasEvolution)
+        ? `<div class="cc-meta">${c.hasHero ? `<button type="button" class="cc-badge cc-badge-btn" data-icon-variante="${esc(c.heroIcon || '')}" onclick="cambiarVarianteCarta(this)">🦸 Héroe</button>` : ''}${c.hasEvolution ? `<button type="button" class="cc-badge cc-badge-btn" data-icon-variante="${esc(c.evolutionIcon || '')}" onclick="cambiarVarianteCarta(this)">✨ Evolución</button>` : ''}</div>`
+        : '';
       return `
       <div class="carta-chip${c.icon ? '' : ' carta-chip--sin-img'}" data-icon-base="${esc(c.icon || '')}">
         ${c.icon ? `<img class="cc-img" src="${esc(c.icon)}" alt="" loading="lazy" onerror="const p=this.parentElement; this.remove(); if(p) p.classList.add('carta-chip--sin-img');">` : ''}
         <div class="cc-content">
           <div class="cc-fila-1"><span>${i + 1}.</span> <b>${esc(c.name)}</b></div>
-          ${c.hasHero ? `<div class="cc-meta"><button type="button" class="cc-badge cc-badge-btn" data-icon-variante="${esc(c.heroIcon || '')}" onclick="cambiarVarianteCarta(this)">🦸 Héroe</button></div>` : ''}
-          ${c.hasEvolution ? `<div class="cc-meta"><button type="button" class="cc-badge cc-badge-btn" data-icon-variante="${esc(c.evolutionIcon || '')}" onclick="cambiarVarianteCarta(this)">✨ Evolución</button></div>` : ''}
           ${rareza ? `<div class="cc-meta">${rareza}</div>` : ''}
           ${c.tipo ? `<div class="cc-meta"><span class="cc-tipo">${esc(c.tipo)}</span></div>` : ''}
           ${c.elixirCost != null ? `<div class="cc-meta"><span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">${fmtNum(c.elixirCost)}</span></div>` : ''}
           <div class="cc-fila-1"><span class="cc-usos">${esc(usosTexto)}</span></div>
+          ${heroeEvoHtml}
         </div>
       </div>`;
     }).join('');
