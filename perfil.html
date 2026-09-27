@@ -921,10 +921,16 @@
              misma fila que el eyebrow "Colección"/h2. "Todas" y "Mejora
              disponible" salen de acá (ver más abajo, ahora comparten fila
              con "Ordenar por"). -->
+        <!-- FIX (27-sep-2026, pedido usuario — "colección completa de cartas y
+             cartas de torre tienen secciones separadas pero ambas dicen
+             colección en su botón naranja"): mTorresCard (antes su propia
+             .card con eyebrow "Colección" duplicado, ver historial más
+             abajo) se fusiona acá adentro como subsección — el eyebrow de
+             ARRIBA pasa a describir la sección fusionada completa. -->
         <div style="display:flex; justify-content:space-between; align-items:center; gap:14px; flex-wrap:wrap;">
           <div>
-            <div class="eyebrow">Colección</div>
-            <h2 class="pf-subtitulo">Colección completa de cartas</h2>
+            <div class="eyebrow">Colección completa de cartas</div>
+            <h2 class="pf-subtitulo">Cartas de mazo</h2>
           </div>
           <!-- FIX (27-sep-2026, pedido usuario — "al lado del título de la
                colección completa, agrega un minigráfico de pastel que
@@ -970,13 +976,21 @@
           <div class="coleccion-filtros" id="mColeccionFiltrosTop" style="margin:0;"></div>
         </div>
         <div class="coleccion-grid" id="mColeccionContenido"></div>
-      </div>
-
-      <div class="card pf-panel-datos" id="mTorresCard" style="display:none;">
-        <div class="eyebrow">Colección</div>
-        <h2 class="pf-subtitulo">Cartas de torre</h2>
-        <!-- Categoría supportCards[] del JSON (Tower Cards de RoyaleAPI, distinto de currentDeckSupportCards del mazo actual); el backend ya la manda. Historial en CHANGELOG.md. -->
-        <div class="torre-grid" id="mTorresContenido"></div>
+        <!-- FIX (27-sep-2026, pedido usuario — "no deben tener esa separación
+             de sección"): mTorresCard ya no es su propia .card (borde propio
+             separado, ver la vieja ubicación en el historial); pasa a vivir
+             DENTRO de mColeccionCard como una subsección más, mismo patrón de
+             subtítulo .mazo-subtitulo (h3) que ya usan "Cartas del mazo"/
+             "Carta de torre del mazo" en Mazo actual, en vez de su propio
+             eyebrow+h2 — evita el "Colección" duplicado que se veía en su
+             botón naranja. Solo cambia el envoltorio/título; renderCartasTorre()
+             (más abajo en el <script>) sigue usando los mismos ids
+             (mTorresCard/mTorresContenido) tal cual, sin tocar su lógica. -->
+        <div id="mTorresCard" style="display:none; margin-top:24px;">
+          <!-- Categoría supportCards[] del JSON (Tower Cards de RoyaleAPI, distinto de currentDeckSupportCards del mazo actual); el backend ya la manda. Historial en CHANGELOG.md. -->
+          <h3 class="mazo-subtitulo">Cartas de torre</h3>
+          <div class="torre-grid" id="mTorresContenido"></div>
+        </div>
       </div>
 
       <div class="card pf-panel-datos" id="mInsigniasCard" style="display:none;">
