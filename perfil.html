@@ -569,6 +569,11 @@
   .ing-linechart-svg .ing-serie-pt{cursor:pointer; transition:r .15s ease;}
   .ing-linechart-svg .ing-serie-pt:hover{r:7;}
   .ing-linechart-svg .ing-axis-title{fill:var(--text-dim); font-family:var(--f-mono); font-size:14px; font-weight:700; letter-spacing:.04em;}
+  /* NUEVO (27-sep-2026, pedido usuario): línea guía vertical en cada
+     domingo (cierre de semana de guerra) y el rótulo J/V/S/D sin rotar,
+     pegado al eje, encima de la fila de fechas -- ver perfilLineChartSvg(). */
+  .ing-linechart-svg .linea-domingo{stroke:var(--purple); stroke-width:1; stroke-dasharray:3 4; opacity:.35;}
+  .ing-linechart-svg .ing-axis-label-dia{font-size:12px; opacity:.8;}
   .pf-panel-datos{padding:28px; margin-top:20px;}
   /* FIX (24-sep-2026, pedido usuario — "haz que el backend mande un json con
      la carta, el costo en oro y de cartas para subir los niveles restantes
@@ -3599,7 +3604,20 @@ function htmlTooltipPuntoPerfil(pt){
  */
 function perfilLineChartSvg(puntos, opts){
   opts = opts || {};
-  const W = 960, H = 460, PAD_R = 20, PAD_T = 20, PAD_B = 84;
+  // FIX (27-sep-2026, pedido usuario -- "los puntos de entrenamiento no
+  // deben existir"): estas gráficas pintan un punto por DÍA (no por semana,
+  // pese al nombre de las variables). Antes solo se ocultaba el RÓTULO de
+  // lunes a miércoles (entrenamiento), pero el punto y el tramo de línea
+  // seguían dibujándose; ahora se filtran del todo, antes de calcular
+  // escala, posiciones, línea y tooltips. Si una fecha no se puede leer se
+  // deja tal cual (no hay forma de saber si cae en día de guerra).
+  puntos = puntos.filter(p => {
+    const t = parseFechaDDMMYYYY(p.semana);
+    if (isNaN(t)) return true;
+    const dia = new Date(t).getDay(); // 0=domingo … 6=sábado
+    return dia === 0 || dia >= 4; // jueves(4), viernes(5), sábado(6), domingo(0)
+  });
+  const W = 960, H = 460, PAD_R = 20, PAD_T = 20, PAD_B = 90;
   const base = opts.base || 0, pasos = 4, prefijo = opts.prefijo || '';
   const max = Math.max(...puntos.filter(p => p.real).map(p => p.valor));
   const rango = Math.ceil(((max - base) || pasos) / pasos) * pasos || pasos;
@@ -3632,30 +3650,44 @@ function perfilLineChartSvg(puntos, opts){
   const fechasEje = puntos.map(p => { const t = parseFechaDDMMYYYY(p.semana); return isNaN(t) ? null : new Date(t); });
   const lineasTemporales = lineasTemporalesSvg(fechasEje, xPos, PAD_T, H - PAD_B, { granularidadDiaria: false });
 
-  // FIX (27-sep-2026, pedido usuario -- "se están mostrando fechas de
-  // entrenamiento, solo debe mostrar días de guerra"): estas gráficas
-  // pintan un punto por DÍA (no por semana, pese al nombre de las
-  // variables), así que entre jueves y domingo (guerra) siempre aparecían
-  // también los días lunes a miércoles (entrenamiento). Se arma primero la
-  // lista de índices que caen en día de guerra (getDay(): 0=domingo,
-  // 4=jueves, 5=viernes, 6=sábado) y solo de ESOS se van rotulando algunos
-  // si hay demasiados (mismo criterio de antes: se cuenta desde el
-  // último, que siempre se muestra). Además, para que nunca se repita la
+  // FIX (27-sep-2026, pedido usuario -- "agrega líneas guía verticales en
+  // los domingos para que sea más fácil identificar las semanas"): una
+  // línea vertical tenue en cada domingo (cierre de la semana de guerra),
+  // igual de alta que el área de trazado.
+  const lineasDomingo = puntos.map((p, i) => {
+    const f = fechasEje[i];
+    if (!f || f.getDay() !== 0) return '';
+    const x = xPos(i).toFixed(1);
+    return `<line class="linea-domingo" x1="${x}" y1="${PAD_T}" x2="${x}" y2="${H - PAD_B}"></line>`;
+  }).join('');
+
+  // FIX (27-sep-2026, pedido usuario -- "antes de las fechas, ponle J V S D
+  // en el eje x, como un segundo rótulo pero este va junto al eje sin
+  // rotar"): fila de letras (jueves/viernes/sábado/domingo) sin rotar,
+  // pegada al eje, una por cada punto (ya son solo días de guerra). Debajo
+  // sigue la fila de fechas, rotada como antes.
+  const LETRA_DIA = { 4: 'J', 5: 'V', 6: 'S', 0: 'D' };
+  const xLetrasDia = puntos.map((p, i) => {
+    const f = fechasEje[i];
+    const letra = f ? LETRA_DIA[f.getDay()] : null;
+    if (!letra) return '';
+    const x = xPos(i), y = H - PAD_B + 14;
+    return `<text class="ing-axis-label ing-axis-label-dia" x="${x}" y="${y}" text-anchor="middle">${esc(letra)}</text>`;
+  }).join('');
+
+  // Con muchos días de guerra no se rotulan todas las fechas (se cuenta
+  // desde la última, que siempre se muestra); y para que nunca se repita la
   // misma fecha ya rotulada (el bug de "la fecha más a la izquierda se
   // repite"), se salta cualquier etiqueta idéntica a la anterior que sí se
   // dibujó.
-  const idxDiasGuerra = fechasEje.reduce((acc, f, i) => {
-    if (f){ const dia = f.getDay(); if (dia === 0 || dia >= 4) acc.push(i); }
-    return acc;
-  }, []);
-  const pasoGuerra = Math.max(1, Math.ceil(idxDiasGuerra.length / 24));
-  let ultimaEtiquetaGuerra = null;
-  const xLabels = idxDiasGuerra.map((i, k) => {
-    if ((idxDiasGuerra.length - 1 - k) % pasoGuerra !== 0) return '';
-    const etiqueta = semanaLabelCortaPerfil(puntos[i].semana);
-    if (etiqueta === ultimaEtiquetaGuerra) return '';
-    ultimaEtiquetaGuerra = etiqueta;
-    const x = xPos(i), y = H - PAD_B + 16;
+  const paso = Math.max(1, Math.ceil(n / 24));
+  let ultimaEtiqueta = null;
+  const xLabels = puntos.map((p, i) => {
+    if ((n - 1 - i) % paso !== 0) return '';
+    const etiqueta = semanaLabelCortaPerfil(p.semana);
+    if (etiqueta === ultimaEtiqueta) return '';
+    ultimaEtiqueta = etiqueta;
+    const x = xPos(i), y = H - PAD_B + 32;
     return `<text class="ing-axis-label" x="${x}" y="${y}" text-anchor="end" transform="rotate(-45 ${x} ${y})">${esc(etiqueta)}</text>`;
   }).join('');
 
@@ -3676,7 +3708,7 @@ function perfilLineChartSvg(puntos, opts){
   const ejeYTitle = opts.ejeY
     ? `<text class="ing-axis-title" x="14" y="${PAD_T + plotH / 2}" text-anchor="middle" transform="rotate(-90 14 ${PAD_T + plotH / 2})">${esc(opts.ejeY)}</text>`
     : '';
-  return `<svg class="ing-linechart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">${gridLines.join('')}${gridMedios}${lineasTemporales}${xLabels}${path}${circles}${ejeXTitle}${ejeYTitle}</svg>`;
+  return `<svg class="ing-linechart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">${gridLines.join('')}${gridMedios}${lineasTemporales}${lineasDomingo}${xLetrasDia}${xLabels}${path}${circles}${ejeXTitle}${ejeYTitle}</svg>`;
 }
 
 /** Mini-leyenda de arriba de cada gráfica (idéntica a la de directorio.html). */
