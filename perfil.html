@@ -2818,20 +2818,15 @@ function renderExtendido(ext, j){
   items += extItem(j ? j.torneos : null, 'Torneos', true);
   items += extItem(raw.starPoints, 'Puntos estelares', true);
   items += extItem(raw.expPoints != null ? `${fmtNum(raw.expPoints)} / ${fmtNum(raw.totalExpPoints)}` : null, 'Puntos de experiencia', false);
-  /* FIX (27-sep-2026, pedido usuario — "en el cuadrito de arena se está
-   * llamando a la columna 'Nombre' pero falta llamar a la columna
-   * 'Nombre_2', debe quedar como 'Nombre (Nombre_2)'"): ext.arena hoy
-   * llega como un solo string (columna "Nombre" del catálogo de Arenas que
-   * arma el backend — no se tiene ese script en esta sesión, ver
-   * conversación con el usuario). AVISO: el nombre de campo para la
-   * segunda columna ("Nombre_2") es una SUPOSICIÓN (se prueban 3 nombres
-   * plausibles); hay que confirmar con 34_Web_API.gs (o como se llame el
-   * script que arma `ext`) cuál es el real y ajustar acá si no coincide.
-   * Mientras ese campo no llegue del backend con ninguno de estos nombres,
-   * el cuadrito se ve exactamente igual que antes (solo ext.arena). */
-  const arenaNombre2 = ext.arenaNombre2 ?? ext.arena2 ?? ext.arenaSubnombre ?? null;
-  const arenaTxt = (ext.arena && arenaNombre2) ? `${ext.arena} (${arenaNombre2})` : ext.arena;
-  items += extItem(arenaTxt, 'Arena', false, 2);
+  /* FIX (27-sep-2026): con el fix de _resolverArenaDesdeCatalogo() (archivo
+   * 7, 07_API_ClashRoyale.gs — ver conversación con el usuario), ext.arena
+   * ya llega combinado como "Nombre (Nombre_2)" desde el backend (o solo
+   * "Nombre" si esa arena no tiene Nombre_2 en Backup_Arena.csv). Se quita
+   * la combinación especulativa que se había puesto acá antes: ya no hace
+   * falta, el frontend solo muestra ext.arena tal cual. Sigue ocupando 2
+   * columnas del grid (pedido usuario) porque "Nombre (Nombre_2)" puede
+   * ser bastante largo. */
+  items += extItem(ext.arena, 'Arena', false, 2);
   /* FIX (23-sep-2026, pedido usuario — "falta retirar el cuadrito de
    * batallas"): Batallas ya no se pinta como cuadrito suelto. En su lugar,
    * el minigráfico "Victorias y derrotas" muestra en su centro la suma de
