@@ -837,8 +837,21 @@
                  escrito a mano acá en vez de interpolar ICONO_XP_HTML
                  (assets/js/data/clan-badges.js): MISMO archivo/tamaño/
                  fallback que esa constante, para que un cambio futuro a
-                 ICONO_XP_HTML recuerde actualizar también esta copia. -->
-            <span id="mNivelExpWrap" style="display:none;"><b id="mNivelExp">0</b><span><img src="assets/img/XP.webp" alt="Nivel de XP" width="13" height="13" loading="lazy" decoding="async" style="vertical-align:-2px; margin-right:3px;" onerror="this.remove();">Nivel de XP</span></span>
+                 ICONO_XP_HTML recuerde actualizar también esta copia.
+                 FIX (27-sep-2026, pedido usuario — "haz que el ícono
+                 aparezca a la derecha del 71, en lugar de estar debajo"):
+                 antes el ícono vivía junto al texto "Nivel de XP" (2da
+                 fila, ver .stats-mini span{flex-direction:column} en el
+                 <style> de más arriba), así que quedaba debajo del número
+                 en vez de al lado. Ahora el <b> y el ícono comparten un
+                 <span style="display:inline-flex"> como PRIMER hijo (fila
+                 de arriba, número+ícono lado a lado) y "Nivel de XP" queda
+                 solo como SEGUNDO hijo (fila de abajo, sin ícono) — mismo
+                 patrón de 2 hijos que ya usan el resto de los <span> de
+                 .stats-mini, así que el flex-column del contenedor sigue
+                 apilando exactamente 2 filas, ninguna otra regla CSS
+                 cambia. -->
+            <span id="mNivelExpWrap" style="display:none;"><span style="display:inline-flex; align-items:center; gap:4px;"><b id="mNivelExp">0</b><img src="assets/img/XP.webp" alt="Nivel de XP" width="13" height="13" loading="lazy" decoding="async" onerror="this.remove();"></span>Nivel de XP</span>
             <!-- FIX (26-sep-2026, pedido usuario — "el cuadrito de 'Nivel de
                  cartas' debe cambiar el nombre a 'Nivel de colección' y
                  moverse a la derecha de 'Nivel de XP'"): antes era un
