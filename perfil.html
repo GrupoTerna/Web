@@ -1114,22 +1114,25 @@
            página (probablemente un modal o un bloque que se despliega acá
            mismo — todavía sin definir).
            TODO: sin implementar todavía. Cuando se conecte, este botón debe
-           consumir el endpoint 'upcomingchests' (34_Web_API.gs), que YA
-           existe en el backend — falta conectar el frontend acá. Mientras
-           tanto el botón queda deshabilitado (disabled, mismo estilo opacado
-           que .btn:disabled en assets/styles.css) para no prometer una
-           función que todavía no hace nada al tocarla.
+           consumir un endpoint nuevo en el backend -- falta conectar el
+           frontend acá. Mientras tanto el botón queda deshabilitado
+           (disabled, mismo estilo opacado que .btn:disabled en
+           assets/styles.css) para no prometer una función que todavía no
+           hace nada al tocarla.
            ACTUALIZACIÓN (27-sep-2026, pedido usuario): se conecta el botón
-           a 'upcomingchests' -- ya deja de ser placeholder. El pintado
-           (ver pintarCicloCofres()/verCicloCofres() en el <script> de más
-           abajo) ya está preparado para el día en que el backend agregue,
-           por cada ítem del JSON, los campos `nombre` (columna Nombre de
-           Backup_Cofres.csv, cruzada contra `name` -- ese cruce todavía NO
-           existe en el backend, ver comentario de esas funciones) y `link`
-           (columna Link de esa misma hoja, hoy vacía -- pedido usuario:
-           "puede ser que luego consiga links de los íconos"): mientras
-           esos campos no vengan, se muestra `name` (inglés) sin ícono, sin
-           tocar nada acá cuando empiecen a llegar. -->
+           a 'upcomingchests' -- ya deja de ser placeholder.
+           FIX (27-sep-2026, mismo día): 'upcomingchests' NO era un endpoint
+           real del backend (solo existía descargarUpcomingChestsJugador(),
+           una función MANUAL que descarga a Drive, no un endpoint web) --
+           se corrige a la acción real 'webCofresJugador', servida por la
+           función nueva _webCofresJugador() (34_Web_API.gs, enrutada en
+           08_Web_Endpoints.gs). Esa función YA cruza cada cofre contra
+           Backup_Cofres.csv y manda `nombre` (columna Nombre, con fallback
+           al `name` en inglés) y `link` (columna Link, agregada a mano por
+           el usuario -- hoy vacía, "puede ser que luego consiga links de
+           los íconos"). El pintado (ver pintarCicloCofres()/verCicloCofres()
+           en el <script> de más abajo) no necesita ningún cambio: ya estaba
+           preparado para mostrar el ícono en cuanto `link` tenga valor. -->
       <div class="card pf-panel-datos" id="mCicloCofresCard">
         <div class="eyebrow">Actividad</div>
         <h2 class="pf-subtitulo">Ciclo de cofres</h2>
@@ -4437,18 +4440,15 @@ document.getElementById('btnVerOtrasCuentas').addEventListener('click', function
 
 /**
  * nombreCofreMostrar(item)
- * FIX (27-sep-2026, pedido usuario): el endpoint 'upcomingchests'
- * (34_Web_API.gs) hoy manda cada ítem como {index, name} -- `name` tal
- * cual lo devuelve la API de Clash Royale, en inglés. El pedido es
- * mostrar el nombre en ESPAÑOL cuando exista, sacado de la columna
- * Nombre de Backup_Cofres.csv cruzada por `name` contra su columna Name
- * -- ese cruce es trabajo de una función nueva en el BACKEND (todavía no
- * existe) que agregaría el campo `nombre` a cada ítem antes de mandarlo;
- * esta función del frontend NO intenta el cruce por su cuenta (no tiene
- * acceso a Backup_Cofres.csv), solo prefiere `item.nombre` si ya viene
- * y cae a `item.name` si no -- el día que el backend empiece a mandar
- * `nombre`, se muestra solo con que aparezca en el JSON, sin tocar nada
- * más acá.
+ * FIX (27-sep-2026, pedido usuario): la acción 'webCofresJugador'
+ * (_webCofresJugador(), 34_Web_API.gs) manda cada ítem como
+ * {index, name, nombre, link} -- `name` tal cual lo devuelve la API de
+ * Clash Royale, en inglés, y `nombre` ya cruzado contra la columna Nombre
+ * de Backup_Cofres.csv por el backend (con fallback al propio `name` en
+ * inglés si el cofre no está en el catálogo o su Nombre está vacío). Esta
+ * función del frontend NO hace el cruce por su cuenta (no tiene acceso a
+ * Backup_Cofres.csv) -- solo prefiere `item.nombre` si viene y cae a
+ * `item.name` si no, por si el backend algún día deja de mandar `nombre`.
  * @param {{name?:string, nombre?:string}} item
  * @returns {string}
  */
@@ -4539,18 +4539,18 @@ function pintarCicloCofres(items){
 /**
  * verCicloCofres()
  * Mismo patrón que verTorneosJugador()/verOtrasCuentas() más arriba: al
- * clic pide 'upcomingchests' (endpoint YA existente en el backend,
- * 34_Web_API.gs) y pinta con pintarCicloCofres(). A diferencia de esos
- * otros dos botones, este no necesita dataset.tag: TAG_PERFIL ya está
- * resuelto desde el arranque de la página (viene de la URL, no de
- * renderMiembro()), así que se usa directo.
+ * clic pide 'webCofresJugador' (_webCofresJugador(), 34_Web_API.gs) y
+ * pinta con pintarCicloCofres(). A diferencia de esos otros dos botones,
+ * este no necesita dataset.tag: TAG_PERFIL ya está resuelto desde el
+ * arranque de la página (viene de la URL, no de renderMiembro()), así que
+ * se usa directo.
  */
 async function verCicloCofres(){
   var wrap = document.getElementById('mCicloCofresWrap');
   wrap.style.display = 'block';
   wrap.innerHTML = '<div class="text-faint" style="font-family:var(--f-mono); font-size:12px;">Cargando ciclo de cofres…</div>';
   try{
-    var data = await apiGet('upcomingchests', { tag: TAG_PERFIL }, { ttlMs: 300000, staleIfError: true }); // B-11: 5 min; B4/B-10: si falla la red, usar el último dato guardado
+    var data = await apiGet('webCofresJugador', { tag: TAG_PERFIL }, { ttlMs: 300000, staleIfError: true }); // B-11: 5 min; B4/B-10: si falla la red, usar el último dato guardado
     pintarCicloCofres((data && data.items) || []);
   }catch(err){
     wrap.innerHTML = `<div class="empty">No se pudo cargar el ciclo de cofres: ${esc(err.message)}</div>`;
