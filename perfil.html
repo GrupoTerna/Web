@@ -732,15 +732,17 @@
             <div class="text-dim" id="mSub" style="margin-top:6px; font-size:14px;">—</div>
           </div>
           <!-- FIX (27-sep-2026, pedido usuario — "a la derecha del nombre
-               añade el ícono del clan"): se oculta sola si no se resuelve
-               una URL (ver _urlInsigniaClan()/renderMiembro() más abajo en
-               el <script>). PENDIENTE DE CONFIRMAR: no se tuvo
-               assets/js/data/clan-badges.js a la vista en esta sesión, así
-               que _urlInsigniaClan() prueba nombres de función/variable
-               global plausibles; si esa lib expone algo distinto, el
-               ícono queda oculto sin romper nada — avisar el nombre real
-               para terminar de conectarlo. -->
-          <img id="mClanIcono" alt="" style="display:none; width:48px; height:48px; object-fit:contain; flex-shrink:0;" loading="lazy">
+               añade el ícono del clan"). Conectado con la MISMA función que
+               ya usan index.html/directorio.html/guerra.html para pintar el
+               escudo de cada clan (iconoBadgeClanHtml(), en
+               assets/js/data/clan-badges.js): esa función ya arma el
+               <img> completo (src="assets/badges/{nombre}.png",
+               onerror="this.remove()" incluido), así que acá solo hace
+               falta un contenedor donde insertar ese HTML (ver
+               renderMiembro() más abajo en el <script>) — se queda vacío y
+               oculto solo si el badgeId no está en la tabla o el PNG no
+               existe en assets/badges/, igual que en el resto del sitio. -->
+          <span id="mClanIconoWrap" style="display:none; flex-shrink:0;"></span>
           <div class="stats-mini">
             <!-- FIX (23-sep-2026, pedido usuario — "en la parte de arriba solo se debe mostrar nivel de torre del rey, nivel de XP, copas, victorias de guerra, ataques en la semana actual y fame de la semana actual, y vigencia. todo lo demás debe ir en los cuadritos debajo"): la cabecera queda con estos 7 datos, en este orden. Torneos, Puntos estelares y Puntos de experiencia pasan a la grilla de cuadritos (renderExtendido()). Cada <span> con "Wrap" se oculta sola si el dato no llega (ver renderStatsAvanzadasCabecera() y renderMiembro()). Historial en CHANGELOG.md. -->
             <span id="mTorreReyWrap" style="display:none;"><b id="mTorreRey">0</b>Nivel de torre del rey</span>
@@ -1148,30 +1150,6 @@ function bloqueRequisitos(j, key){
   if (!html) return '';
   const titulo = key === 'ascensos' ? 'Requisitos para ascender de rango' : 'Requisitos para mantener el rango';
   return `<div class="req-bloque-titulo">${esc(titulo)}</div>${html}`;
-}
-/**
- * _urlInsigniaClan(badgeId)
- * FIX (27-sep-2026, pedido usuario — ícono del clan junto al nombre en la
- * cabecera del perfil). No se tuvo assets/js/data/clan-badges.js a la
- * vista en esta sesión (se carga en la página — ver <script src> más
- * abajo — pero perfil.html no llamaba ninguna de sus funciones hasta
- * ahora), así que esto prueba, en orden, los 3 nombres de función/objeto
- * global más plausibles para ese archivo. Si ninguno existe o no
- * devuelve nada, retorna null y el <img id="mClanIcono"> se queda oculto
- * (no rompe nada, solo no se ve el ícono). AVISAR el nombre real que
- * expone clan-badges.js para dejar esto conectado de forma definitiva en
- * vez de con esta detección.
- */
-function _urlInsigniaClan(badgeId){
-  if (badgeId == null) return null;
-  try {
-    if (typeof urlInsigniaClan === 'function') return urlInsigniaClan(badgeId) || null;
-    if (typeof obtenerUrlInsigniaClan === 'function') return obtenerUrlInsigniaClan(badgeId) || null;
-    if (typeof CLAN_BADGES !== 'undefined' && CLAN_BADGES){
-      return CLAN_BADGES[badgeId] || (CLAN_BADGES.urls && CLAN_BADGES.urls[badgeId]) || null;
-    }
-  } catch (e){ /* cualquier nombre global no definido: se ignora, queda oculto */ }
-  return null;
 }
 function extItem(valor, label, esNumero, ancho){
   if (valor === undefined || valor === null || valor === '') return '';
@@ -4053,21 +4031,21 @@ function renderMiembro(j){
    * clan, igual que antes. */
   const clanTagRaw = rawClash(j).clan && rawClash(j).clan.tag;
   /* FIX (27-sep-2026, pedido usuario — ícono del clan junto al nombre):
-   * ver el comentario en el <img id="mClanIcono"> del HTML (más arriba)
-   * sobre por qué esto es una suposición pendiente de confirmar contra
-   * assets/js/data/clan-badges.js. */
+   * usa iconoBadgeClanHtml(badgeId, opts), la MISMA función de
+   * assets/js/data/clan-badges.js con la que index.html/directorio.html/
+   * guerra.html pintan el escudo en sus tarjetas de clan (ver
+   * clanCardCabeceraHtml() en clan-card.js) — ya arma el <img> completo
+   * (src="assets/badges/{nombre}.png", onerror="this.remove()"), así que
+   * acá solo se inserta ese HTML dentro del contenedor. Si el badgeId no
+   * está en la tabla o el PNG no está subido a assets/badges/, la función
+   * devuelve '' y el contenedor se queda vacío/oculto, igual que en el
+   * resto del sitio. */
   const badgeIdClan = rawClash(j).clan && rawClash(j).clan.badgeId;
-  const iconoClanEl = document.getElementById('mClanIcono');
-  const urlIconoClan = _urlInsigniaClan(badgeIdClan);
-  if (iconoClanEl){
-    if (urlIconoClan){
-      iconoClanEl.src = urlIconoClan;
-      iconoClanEl.alt = j.clan ? `Insignia de ${j.clan}` : 'Insignia del clan';
-      iconoClanEl.style.display = '';
-    } else {
-      iconoClanEl.removeAttribute('src');
-      iconoClanEl.style.display = 'none';
-    }
+  const iconoClanWrap = document.getElementById('mClanIconoWrap');
+  if (iconoClanWrap){
+    const iconoClanHtml = badgeIdClan ? iconoBadgeClanHtml(badgeIdClan, { size: 48 }) : '';
+    iconoClanWrap.innerHTML = iconoClanHtml;
+    iconoClanWrap.style.display = iconoClanHtml ? '' : 'none';
   }
   document.getElementById('mSub').innerHTML = `
     <div>${esc(j.tag)} · ${esc(j.rango || '—')} · ${esc(j.estado || '—')}</div>
