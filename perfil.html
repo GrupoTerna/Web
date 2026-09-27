@@ -719,6 +719,35 @@
   .col-card--clicable{cursor:pointer; transition:border-color .15s ease, transform .15s ease;}
   .col-card--clicable:hover{border-color:var(--purple-light); transform:translateY(-2px);}
   .col-card--clicable:focus-visible{outline:2px solid var(--purple-light); outline-offset:2px;}
+
+  /* ---------- CICLO DE COFRES (27-sep-2026, pedido usuario) ----------
+     Ver comentario sobre #mCicloCofresCard en el <body> y pintarCicloCofres()
+     en el <script> para el detalle de qué manda hoy el backend vs. qué
+     campos opcionales (nombre/link) va a agregar después.
+     .cc-cofre-proximo: callout del primer ítem del ciclo ("próximo cofre
+     que va a abrir"), separado del resto de la secuencia -- mismo
+     lenguaje visual (borde + fondo violeta sutil) que ya usa el resto de
+     la página para destacar un dato (ver .mini-pie-titulo/.cc-oro más
+     arriba), no un componente nuevo desde cero.
+     .cc-cofre-badge: extiende .cc-badge (definida en assets/styles.css,
+     NO acá) solo para el layout interno en fila (ícono + índice + nombre
+     + contador) -- el color/fondo/borde de la píldora en sí sigue
+     viniendo de .cc-badge, así que ya calza visualmente con el resto de
+     píldoras de la página (Héroe/Evolución/Nv./Mejora disponible).
+     .cc-cofre-icon: 18x18 (32x32 en el callout de "Próximo cofre").
+     Mientras Backup_Cofres.csv no tenga Link, pintarCicloCofres() no
+     genera ningún <img> -- por eso NO se reserva acá un hueco vacío para
+     un ícono ausente; la píldora es más angosta hasta que haya un link
+     real y el <img> empiece a insertarse. */
+  .cc-cofre-proximo{display:flex; align-items:center; gap:10px; padding:10px 14px; margin-top:10px; border:1px solid var(--purple); border-radius:10px; background:rgba(162,57,255,.08);}
+  .cc-cofre-proximo .cc-cofre-icon{width:32px; height:32px;}
+  .cc-cofre-proximo-lbl{font-family:var(--f-mono); font-size:10px; font-weight:700; color:var(--purple-light); text-transform:uppercase; letter-spacing:.1em;}
+  .cc-cofre-proximo-nombre{font-size:15px; font-weight:600; color:var(--text);}
+  .cc-cofre-lista{display:flex; flex-wrap:wrap; gap:8px; margin-top:12px;}
+  .cc-cofre-badge{display:inline-flex; align-items:center; gap:6px;}
+  .cc-cofre-icon{width:18px; height:18px; border-radius:3px; object-fit:contain; flex-shrink:0;}
+  .cc-cofre-index{font-family:var(--f-mono); font-size:10px; color:var(--text-faint);}
+  .cc-cofre-x{font-family:var(--f-mono); font-size:10px; font-weight:700; color:var(--gold);}
 </style>
 </head>
 <body data-page="perfil">
@@ -1089,15 +1118,26 @@
            existe en el backend — falta conectar el frontend acá. Mientras
            tanto el botón queda deshabilitado (disabled, mismo estilo opacado
            que .btn:disabled en assets/styles.css) para no prometer una
-           función que todavía no hace nada al tocarla. -->
+           función que todavía no hace nada al tocarla.
+           ACTUALIZACIÓN (27-sep-2026, pedido usuario): se conecta el botón
+           a 'upcomingchests' -- ya deja de ser placeholder. El pintado
+           (ver pintarCicloCofres()/verCicloCofres() en el <script> de más
+           abajo) ya está preparado para el día en que el backend agregue,
+           por cada ítem del JSON, los campos `nombre` (columna Nombre de
+           Backup_Cofres.csv, cruzada contra `name` -- ese cruce todavía NO
+           existe en el backend, ver comentario de esas funciones) y `link`
+           (columna Link de esa misma hoja, hoy vacía -- pedido usuario:
+           "puede ser que luego consiga links de los íconos"): mientras
+           esos campos no vengan, se muestra `name` (inglés) sin ícono, sin
+           tocar nada acá cuando empiecen a llegar. -->
       <div class="card pf-panel-datos" id="mCicloCofresCard">
         <div class="eyebrow">Actividad</div>
         <h2 class="pf-subtitulo">Ciclo de cofres</h2>
         <p class="text-dim" style="margin-top:6px; font-size:14px;">Los próximos cofres que este jugador va a abrir, en orden.</p>
         <div style="display:flex; justify-content:flex-start; margin-top:8px;">
-          <button type="button" class="btn btn-primary" id="mVerCicloCofresBtn" disabled title="Próximamente">📦 Ver ciclo de cofres</button>
+          <button type="button" class="btn btn-primary" id="mVerCicloCofresBtn">📦 Ver ciclo de cofres</button>
         </div>
-        <div class="text-faint" style="font-size:12px; margin-top:10px;">Próximamente — falta conectar con el endpoint <code>upcomingchests</code>.</div>
+        <div id="mCicloCofresWrap" style="display:none;"></div>
       </div>
 
       <!-- ---------- BATALLAS MÁS RECIENTES ---------- -->
@@ -4394,6 +4434,129 @@ async function verOtrasCuentas(tag){
 document.getElementById('btnVerOtrasCuentas').addEventListener('click', function(){
   verOtrasCuentas(this.dataset.tag);
 });
+
+/**
+ * nombreCofreMostrar(item)
+ * FIX (27-sep-2026, pedido usuario): el endpoint 'upcomingchests'
+ * (34_Web_API.gs) hoy manda cada ítem como {index, name} -- `name` tal
+ * cual lo devuelve la API de Clash Royale, en inglés. El pedido es
+ * mostrar el nombre en ESPAÑOL cuando exista, sacado de la columna
+ * Nombre de Backup_Cofres.csv cruzada por `name` contra su columna Name
+ * -- ese cruce es trabajo de una función nueva en el BACKEND (todavía no
+ * existe) que agregaría el campo `nombre` a cada ítem antes de mandarlo;
+ * esta función del frontend NO intenta el cruce por su cuenta (no tiene
+ * acceso a Backup_Cofres.csv), solo prefiere `item.nombre` si ya viene
+ * y cae a `item.name` si no -- el día que el backend empiece a mandar
+ * `nombre`, se muestra solo con que aparezca en el JSON, sin tocar nada
+ * más acá.
+ * @param {{name?:string, nombre?:string}} item
+ * @returns {string}
+ */
+function nombreCofreMostrar(item){
+  return (item && (item.nombre || item.name)) || '—';
+}
+
+/**
+ * agruparCofresConsecutivos(items)
+ * Junta corridas de ítems SEGUIDOS (adyacentes en el array) con el mismo
+ * nombre mostrado (ver nombreCofreMostrar) en un solo grupo con contador
+ * -- pedido usuario: "Agrupar duplicados consecutivos con un contador
+ * (ej. 'Cofre de oro rebosante ×2') ... solo cuando son seguidos". Dos
+ * cofres iguales pero separados por otros en el medio (p. ej. índices 0
+ * y 5 del JSON de ejemplo) NO se agrupan entre sí: quedan como dos
+ * grupos de 1 cada uno, en su lugar dentro de la secuencia.
+ * @param {Array<{index:number, name:string, nombre?:string, link?:string}>} items
+ * @returns {Array<{nombre:string, link:string, indices:number[]}>}
+ */
+function agruparCofresConsecutivos(items){
+  var grupos = [];
+  (items || []).forEach(function(it){
+    var nombre = nombreCofreMostrar(it);
+    var link = (it && it.link) || '';
+    var ultimo = grupos[grupos.length - 1];
+    if (ultimo && ultimo.nombre === nombre){
+      ultimo.indices.push(it.index);
+      if (!ultimo.link && link) ultimo.link = link; // por si el link solo viene en alguna repetición de la corrida
+    } else {
+      grupos.push({ nombre: nombre, link: link, indices: [it.index] });
+    }
+  });
+  return grupos;
+}
+
+/**
+ * pintarCicloCofres(items)
+ * Pinta el ciclo de cofres en #mCicloCofresWrap: el primer ítem del array
+ * (el próximo cofre que el jugador va a abrir) como callout destacado
+ * aparte (.cc-cofre-proximo), y el RESTO de la secuencia como píldoras
+ * .cc-badge en fila (.cc-cofre-lista), agrupando duplicados SEGUIDOS con
+ * un contador "×N" (ver agruparCofresConsecutivos) -- el primer ítem
+ * queda siempre fuera de ese agrupado, se muestra solo en el callout.
+ * El índice chico (`#N`) al lado de cada nombre es a propósito (pedido
+ * usuario: "para que se note el salto"): dentro del ciclo de cofres real
+ * de Clash Royale los índices avanzan de a 1 en el tramo inicial y
+ * después saltan de golpe (ver 19→38→383 del JSON de ejemplo, cuando el
+ * jugador ya vació el ciclo corto inicial) -- mostrar el índice real, no
+ * la posición en la lista, deja ver ese salto.
+ * Sin ícono (Backup_Cofres.csv sin Link todavía) no se genera ningún
+ * <img> -- ver comentario de .cc-cofre-icon en el <style>.
+ * @param {Array<{index:number, name:string, nombre?:string, link?:string}>} items
+ */
+function pintarCicloCofres(items){
+  var wrap = document.getElementById('mCicloCofresWrap');
+  wrap.style.display = 'block';
+  if (!items || !items.length){
+    wrap.innerHTML = '<div class="empty">No hay información del ciclo de cofres de este jugador.</div>';
+    return;
+  }
+
+  var proximo = items[0];
+  var resto = agruparCofresConsecutivos(items.slice(1));
+
+  var proximoIconHtml = proximo.link ? `<img class="cc-cofre-icon" src="${esc(proximo.link)}" alt="">` : '';
+
+  var restoHtml = resto.map(function(g){
+    var iconHtml = g.link ? `<img class="cc-cofre-icon" src="${esc(g.link)}" alt="">` : '';
+    var idxLabel = g.indices.length > 1
+      ? `#${g.indices[0]}\u2013${g.indices[g.indices.length - 1]}`
+      : `#${g.indices[0]}`;
+    var xLabel = g.indices.length > 1 ? `<span class="cc-cofre-x">\u00d7${g.indices.length}</span>` : '';
+    return `<span class="cc-badge cc-cofre-badge">${iconHtml}<span class="cc-cofre-index">${esc(idxLabel)}</span>${esc(g.nombre)}${xLabel}</span>`;
+  }).join('');
+
+  wrap.innerHTML = `
+    <div class="cc-cofre-proximo">
+      ${proximoIconHtml}
+      <div>
+        <div class="cc-cofre-proximo-lbl">Próximo cofre</div>
+        <div class="cc-cofre-proximo-nombre">${esc(nombreCofreMostrar(proximo))}</div>
+      </div>
+    </div>
+    ${restoHtml ? `<div class="cc-cofre-lista">${restoHtml}</div>` : ''}
+  `;
+}
+
+/**
+ * verCicloCofres()
+ * Mismo patrón que verTorneosJugador()/verOtrasCuentas() más arriba: al
+ * clic pide 'upcomingchests' (endpoint YA existente en el backend,
+ * 34_Web_API.gs) y pinta con pintarCicloCofres(). A diferencia de esos
+ * otros dos botones, este no necesita dataset.tag: TAG_PERFIL ya está
+ * resuelto desde el arranque de la página (viene de la URL, no de
+ * renderMiembro()), así que se usa directo.
+ */
+async function verCicloCofres(){
+  var wrap = document.getElementById('mCicloCofresWrap');
+  wrap.style.display = 'block';
+  wrap.innerHTML = '<div class="text-faint" style="font-family:var(--f-mono); font-size:12px;">Cargando ciclo de cofres…</div>';
+  try{
+    var data = await apiGet('upcomingchests', { tag: TAG_PERFIL }, { ttlMs: 300000, staleIfError: true }); // B-11: 5 min; B4/B-10: si falla la red, usar el último dato guardado
+    pintarCicloCofres((data && data.items) || []);
+  }catch(err){
+    wrap.innerHTML = `<div class="empty">No se pudo cargar el ciclo de cofres: ${esc(err.message)}</div>`;
+  }
+}
+document.getElementById('mVerCicloCofresBtn').addEventListener('click', verCicloCofres);
 
 /**
  * MESES_ES / parsearFechaHistorial(fecha) / construirSelectoresHistorialGuerra()
