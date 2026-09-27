@@ -58,6 +58,17 @@
      usa min-width:110px + width:auto + white-space:nowrap; en admin 90px
      fijo y en directorio 100px fijo. */
   .req-row .val{min-width:110px; width:auto; text-align:right; font-family:var(--f-mono); font-size:12px; flex-shrink:0; white-space:nowrap;}
+  /* NUEVO (26-sep-2026, pedido usuario — "no se indica qué es" cada bloque
+   * de barras de Ascenso/Descenso): título chico encima de cada bloque, ver
+   * bloqueRequisitos() en el <script> más abajo. Mismo criterio visual que
+   * .mazo-subtitulo (más abajo, "Cartas del mazo"/"Carta de torre del
+   * mazo") pero más chico, ya que este va DENTRO de la cabecera del
+   * perfil, no como un <h3> de sección propia. El primer bloque no
+   * necesita margin-top (ya tiene el margin-top:16px de #mReqContenido);
+   * el segundo (si el primero no se ocultó por ser Líder) sí, para separar
+   * de las barras del bloque anterior. */
+  .req-bloque-titulo{font-size:13px; color:var(--text); font-weight:600; margin:0 0 8px;}
+  .req-bloque-titulo:not(:first-child){margin-top:16px;}
   /* FIX (11-sep-2026, pedido usuario — punto 26 del docx, mitad "Insignias"):
    * fila para cada insignia de renderInsignias() más abajo. Reusa .req-row
    * (mismo componente que Logros/bloqueRequisitos()) agregándole el ícono
@@ -853,6 +864,17 @@ function fmtFechaCorta(v){
   return `${fecha}, ${hora}`;
 }
 
+/** NUEVO (26-sep-2026, pedido usuario — "no se indica qué representa cada
+ * barra de Ascenso/Descenso"): mismo criterio que campoMinTSegunRango() y
+ * campoAtaquesSegunRango(), pero solo distingue Líder de todo lo demás.
+ * OJO: "colíder" también contiene la subcadena "líder", así que no alcanza
+ * con r.includes('líder') solo -- hay que descartar primero el caso
+ * "colíder" (mismo chequeo r.includes('col') que ya usan esas dos
+ * funciones) para no confundir a un Colíder con el Líder real. */
+function esRangoLider(rango){
+  const r = String(rango||'').toLowerCase();
+  return r.includes('líder') && !r.includes('col');
+}
 function campoMinTSegunRango(rango){
   const r = String(rango||'').toLowerCase();
   if(r.includes('col')) return 'minTColider';
@@ -883,8 +905,19 @@ function barraRequisito(lbl, actual, requerido, activo, sufijo){
 /** MIGRADO (Fase 9, backend — 34_Web_API.gs/_webProgresoRequisitos()):
  * `torneos` y `reaccion` se quitaron del objeto que manda el backend (nunca
  * fueron requisitos reales de Ascensos/Descensos) — se dejan de leer acá.
- * `ataques` ahora se lee por rol, igual que Trofeos guerra (minT). */
+ * `ataques` ahora se lee por rol, igual que Trofeos guerra (minT).
+ * FIX (26-sep-2026, pedido usuario — "no se indica qué es" + "no tiene
+ * sentido mostrarle requisitos de ascenso al líder"): dos cambios.
+ * (1) Cada bloque ahora lleva un título propio ("Requisitos para ascender
+ * de rango" / "Requisitos para descender de rango") en vez de mostrar las
+ * barras de Ascenso y Descenso una debajo de la otra sin ninguna
+ * indicación de cuál es cuál (mismo texto/estilo que usan las etiquetas de
+ * Ascensos/Descensos del panel de admin, admin.html). (2) El bloque de
+ * Ascensos ya no se pinta para el Líder del clan: no existe un rango por
+ * encima de Líder al que ascender, así que mostrárselo no tiene sentido
+ * (el de Descensos SÍ se mantiene -- un Líder puede bajar de rango). */
 function bloqueRequisitos(j, key){
+  if (key === 'ascensos' && esRangoLider(j.rango)) return '';
   const req = j.progreso ? j.progreso[key] : null;
   if (!req) return '';
   const campoMinT = campoMinTSegunRango(j.rango);
@@ -894,7 +927,9 @@ function bloqueRequisitos(j, key){
   let html = '';
   if (minT) html += barraRequisito('Trofeos guerra', minT.actual, minT.requerido, minT.activo, '🏆');
   if (ataques) html += barraRequisito('Ataques/semana', ataques.actual, ataques.requerido, ataques.activo, '');
-  return html;
+  if (!html) return '';
+  const titulo = key === 'ascensos' ? 'Requisitos para ascender de rango' : 'Requisitos para descender de rango';
+  return `<div class="req-bloque-titulo">${esc(titulo)}</div>${html}`;
 }
 function extItem(valor, label, esNumero){
   if (valor === undefined || valor === null || valor === '') return '';
@@ -3484,7 +3519,10 @@ function renderMiembro(j){
   }
   renderStatsAvanzadasCabecera(j); // FIX 23-sep-2026 — expLevel/kingTowerLevel/starPoints/expPoints, trasladados desde "Camino de Leyendas y ligas"
 
-  // Se quita un separador extra entre bloques de Ascensos/Descensos: el margin-bottom de .req-row ya es uniforme para todos los renglones. Historial en CHANGELOG.md.
+  // El margin-bottom de .req-row ya es uniforme para todos los renglones,
+  // así que no hace falta un separador extra entre bloques -- la
+  // separación entre "Ascensos" y "Descensos" ahora la da el margin-top de
+  // .req-bloque-titulo (ver bloqueRequisitos() más arriba). Historial en CHANGELOG.md.
   const bloques = ['ascensos', 'descensos'].map(key => bloqueRequisitos(j, key)).filter(Boolean);
   document.getElementById('mReqContenido').innerHTML = bloques.length
     ? bloques.join('')
