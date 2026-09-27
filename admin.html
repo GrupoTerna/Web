@@ -1325,20 +1325,16 @@
                 <div id="crGuardarMsg"></div>
               </div>
 
-              <!-- Botones "Ver propuestas" y "Generar propuestas" de Cambio de Rango, hermanos de #crPaso3 para poder mostrarse solos en modo "ver"; con el mismo estilo fijo de encabezado que el resto del wizard. Historial en CHANGELOG.md. -->
+              <!-- Botón "Registrar en Sheets" (antes "Generar propuestas") de Cambio de Rango, hermano de #crPaso3 para poder mostrarse solo en modo "ver"; con el mismo estilo fijo de encabezado que el resto del wizard. El botón "Ver propuestas" se quitó porque al elegir la corrida la tabla ya se calcula sola (ver seleccionarCorridaParaVerPropuestas()); el botón que queda vive ahora en la esquina superior derecha del encabezado de esta sección, no junto a la tabla. Historial en CHANGELOG.md. -->
               <div class="cr-requisitos-bloque" id="crPropuestasBloque">
-                <div class="cr-requisitos-header"><span class="cat-titulo">Propuestas de cambio de rango</span></div>
+                <div class="cr-requisitos-header" style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+                  <span class="cat-titulo">Propuestas de cambio de rango</span>
+                  <button type="button" class="btn btn-primary" id="btnCrGenerarPropuestas" style="display:none;">Registrar en Sheets</button>
+                </div>
                 <div class="admin-subseccion-body">
                   <div id="crPropuestasBox" style="display:none;">
-                    <!-- Dos líneas cortas (una por botón) explican la diferencia entre "Ver propuestas" y "Generar propuestas". -->
-                    <ul class="text-dim" style="font-size:13px; margin:0 0 10px; padding-left:18px;">
-                      <li><strong>Ver propuestas:</strong> solo calcula y muestra la tabla -- no escribe nada en la hoja. Se puede repetir tantas veces como haga falta.</li>
-                      <li><strong>Generar propuestas:</strong> agrega lo que muestre la tabla a Historial_A/D como "Planificado" -- ahí sí queda guardado. No duplica las que ya estén pendientes.</li>
-                    </ul>
-                    <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                      <button type="button" class="btn btn-ghost" id="btnCrVerPropuestas">Ver propuestas</button>
-                      <button type="button" class="btn btn-primary" id="btnCrGenerarPropuestas">Generar propuestas</button>
-                    </div>
+                    <!-- Explica qué hace el único botón que queda ("Registrar en Sheets", arriba en el encabezado). La tabla de abajo se recalcula sola al elegir la corrida. -->
+                    <p class="text-dim" style="font-size:13px; margin:0 0 10px;">La tabla se calcula sola al elegir la corrida -- no escribe nada en la hoja todavía. <strong>Registrar en Sheets</strong> agrega lo que muestre la tabla a Historial_A/D como "Planificado" -- ahí sí queda guardado. No duplica las que ya estén pendientes.</p>
                     <div id="crPropuestasMsg" style="margin-top:10px;"></div>
                     <div id="crPropuestasTablaWrap" style="margin-top:10px;"></div>
                   </div>
@@ -4974,18 +4970,20 @@ async function limpiarFormularioCR(){
 /**
  * actualizarVisibilidadPropuestasCR()
  * PASO 5 (13-sep-2026, pedido del usuario -- Fase 7 del plan de Cambio de
- * Rango): muestra #crPropuestasBox (botones Ver/Generar propuestas + tabla)
- * SOLO cuando ya hay una corrida guardada en CR_Lista (`crIdExistenteActual`
- * con valor) -- webCRListaPropuestas/webCRListaGenerarPropuestas leen por ID
- * desde la hoja, así que no tiene sentido ofrecerlos antes de Guardar. Se
- * llama al entrar/salir de cada modo (limpiarFormularioCR(),
- * precargarFormularioCR()) y después de un Guardar exitoso. Limpia también
- * el mensaje y la tabla de una corrida anterior, para no dejar restos de
- * otro par al cambiar de corrida.
+ * Rango): muestra #crPropuestasBox (tabla) y el botón "Registrar en Sheets"
+ * (antes "Generar propuestas", ahora en la esquina superior derecha del
+ * encabezado de la sección) SOLO cuando ya hay una corrida guardada en
+ * CR_Lista (`crIdExistenteActual` con valor) -- webCRListaPropuestas/
+ * webCRListaGenerarPropuestas leen por ID desde la hoja, así que no tiene
+ * sentido ofrecerlos antes de Guardar. Se llama al entrar/salir de cada modo
+ * (limpiarFormularioCR(), precargarFormularioCR()) y después de un Guardar
+ * exitoso. Limpia también el mensaje y la tabla de una corrida anterior,
+ * para no dejar restos de otro par al cambiar de corrida.
  */
 function actualizarVisibilidadPropuestasCR(){
   const hayCorrida = !!crIdExistenteActual;
   document.getElementById('crPropuestasBox').style.display = hayCorrida ? '' : 'none';
+  document.getElementById('btnCrGenerarPropuestas').style.display = hayCorrida ? '' : 'none';
   document.getElementById('crPropuestasSinGuardar').style.display = hayCorrida ? 'none' : '';
   document.getElementById('crPropuestasMsg').innerHTML = '';
   document.getElementById('crPropuestasTablaWrap').innerHTML = '';
@@ -5465,10 +5463,11 @@ async function seleccionarCorridaParaVerPropuestas(idAscenso){
   document.getElementById('crPaso2Msg').innerHTML = '';
   actualizarVisibilidadPropuestasCR();
   // Carga la tabla de una vez -- el admin ya expresó su intención al elegir
-  // "Ver propuestas de una corrida", no hace falta un click extra sobre el
-  // botón "Ver propuestas" (que sigue ahí para volver a recalcular cuando
-  // quiera, ej. después de generar o de algún cambio en el roster).
-  document.getElementById('btnCrVerPropuestas').click();
+  // "Ver propuestas de una corrida", no hace falta un botón "Ver propuestas"
+  // aparte (se quitó, 26-sep-2026, pedido usuario -- "ya es algo
+  // automático"): esta misma función se usa para recalcular después de
+  // "Registrar en Sheets" (ver btnCrGenerarPropuestas más abajo).
+  calcularYPintarPropuestasCR();
 }
 
 document.getElementById('crSelectPar').addEventListener('change', () => {
@@ -5758,13 +5757,20 @@ function _tablaPropuestasCR(propuestas, diagnostico){
 }
 
 /**
- * btnCrVerPropuestas -- llama a webCRListaPropuestas (GET, no escribe nada)
- * con el par actual (crIdExistenteActual/crIdDescensoActual, ver
- * actualizarVisibilidadPropuestasCR()) y pinta la tabla. Se puede llamar
- * tantas veces como haga falta, ej. después de editar los requisitos y
- * volver a Guardar -- mismo criterio que su docblock en 34_Web_API.gs.
+ * calcularYPintarPropuestasCR()
+ * NUEVO (26-sep-2026, pedido usuario -- se quitó el botón "Ver propuestas"
+ * porque calcular la tabla "ya es algo automático"): antes vivía adentro del
+ * listener de click de #btnCrVerPropuestas; se saca a función aparte para
+ * poder llamarla sola al elegir la corrida (seleccionarCorridaParaVerPropuestas())
+ * y también después de "Registrar en Sheets" (ver btnCrGenerarPropuestas
+ * más abajo), sin depender de un botón que ya no existe. Llama a
+ * webCRListaPropuestas (GET, no escribe nada) con el par actual
+ * (crIdExistenteActual/crIdDescensoActual, ver actualizarVisibilidadPropuestasCR())
+ * y pinta la tabla. Se puede llamar tantas veces como haga falta, ej.
+ * después de editar los requisitos y volver a Guardar -- mismo criterio que
+ * su docblock en 34_Web_API.gs.
  */
-document.getElementById('btnCrVerPropuestas').addEventListener('click', async () => {
+async function calcularYPintarPropuestasCR(){
   const msgEl = document.getElementById('crPropuestasMsg');
   const tablaEl = document.getElementById('crPropuestasTablaWrap');
   if(!crIdExistenteActual || !crIdDescensoActual){
@@ -5786,15 +5792,17 @@ document.getElementById('btnCrVerPropuestas').addEventListener('click', async ()
   }catch(err){
     msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
   }
-});
+}
 
 /**
- * btnCrGenerarPropuestas -- llama a webCRListaGenerarPropuestas (POST, sí
- * escribe en Historial_A/D como 'Planificado') con el mismo par. Pide
- * confirmación antes (escritura real, mismo criterio que btnVetar/otras
- * acciones irreversibles del panel) y, si el admin no llamó antes a "Ver
- * propuestas" en esta sesión de edición, igual pinta la tabla resultante
- * al terminar -- así siempre queda a la vista qué se generó.
+ * btnCrGenerarPropuestas ("Registrar en Sheets", antes "Generar propuestas",
+ * y antes al lado de "Ver propuestas" -- ahora solo en la esquina superior
+ * derecha del encabezado de la sección, ver actualizarVisibilidadPropuestasCR()) --
+ * llama a webCRListaGenerarPropuestas (POST, sí escribe en Historial_A/D
+ * como 'Planificado') con el par actual. Pide confirmación antes (escritura
+ * real, mismo criterio que btnVetar/otras acciones irreversibles del panel)
+ * y repinta la tabla con calcularYPintarPropuestasCR() al terminar -- así
+ * siempre queda a la vista qué se generó.
  */
 document.getElementById('btnCrGenerarPropuestas').addEventListener('click', async () => {
   const msgEl = document.getElementById('crPropuestasMsg');
@@ -5821,7 +5829,9 @@ document.getElementById('btnCrGenerarPropuestas').addEventListener('click', asyn
     msgEl.innerHTML = `<div class="msg msg-success">${esc(data.agregadas)} propuesta(s) nueva(s) agregada(s) como Planificado${desglose}` +
       (data.saltadas ? `, ${esc(data.saltadas)} ya estaban pendientes (sin duplicar).` : '.') + '</div>';
     // Repinta la tabla con el estado recalculado, para que quede a la vista
-    // qué se generó (mismo cálculo que Ver propuestas -- ver su docblock).
+    // qué se generó (mismo cálculo que calcularYPintarPropuestasCR() -- ver
+    // su docblock -- pero sin pisar el mensaje de éxito que se acaba de
+    // mostrar arriba, por eso no se llama esa función acá).
     const dataVer = await apiGetAuth('webCRListaPropuestas', { idAscenso: crIdExistenteActual, idDescenso: crIdDescensoActual });
     if(dataVer && dataVer.ok) tablaEl.innerHTML = _tablaPropuestasCR(dataVer.propuestas, dataVer.diagnostico);
   }catch(err){
