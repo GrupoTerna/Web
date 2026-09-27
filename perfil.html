@@ -291,9 +291,14 @@
     background:linear-gradient(90deg, transparent, var(--purple), var(--gold), transparent);
     opacity:.75;
   }
-  .mini-pie-titulo{display:flex; align-items:center; gap:7px; font-family:var(--f-mono); font-size:10px; font-weight:600; color:var(--text-dim); text-transform:uppercase; letter-spacing:.12em; margin-bottom:16px;}
+  /* FIX (26-sep-2026, pedido usuario — "en los 4 minigráficos centra el
+   * título y el gráfico"): título centrado (era flex-start) y, más abajo,
+   * .mini-pie-cuerpo/.mini-disp-cuerpo también centran su contenido (donut+
+   * leyenda en los dos pastel, chips+SVG en los dos de dispersión) en vez
+   * de quedar pegados a la izquierda. */
+  .mini-pie-titulo{display:flex; align-items:center; justify-content:center; gap:7px; font-family:var(--f-mono); font-size:10px; font-weight:600; color:var(--text-dim); text-transform:uppercase; letter-spacing:.12em; margin-bottom:16px;}
   .mini-pie-titulo .ico{font-size:13px; line-height:1; filter:drop-shadow(0 0 4px rgba(162,57,255,.6));}
-  .mini-pie-cuerpo{display:flex; align-items:center; gap:20px; flex-wrap:wrap;}
+  .mini-pie-cuerpo{display:flex; align-items:center; justify-content:center; gap:20px; flex-wrap:wrap;}
   .mini-pie-donut-wrap{position:relative; width:104px; height:104px; flex-shrink:0;}
   .mini-pie-donut-wrap svg{width:100%; height:100%; display:block; overflow:visible;}
   .mini-pie-donut-centro{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; pointer-events:none;}
@@ -338,8 +343,8 @@
    * día jugado esta semana, ambas tarjetas simplemente no se pintan (mismo
    * criterio "se omite si faltan datos" que ya usan los dos donuts de al
    * lado). */
-  .mini-disp-cuerpo{display:flex; flex-direction:column; gap:10px;}
-  .mini-disp-leyenda{display:flex; flex-wrap:wrap; gap:8px 16px; font-family:var(--f-mono); font-size:11px; color:var(--text-dim);}
+  .mini-disp-cuerpo{display:flex; flex-direction:column; align-items:center; gap:10px;}
+  .mini-disp-leyenda{display:flex; flex-wrap:wrap; justify-content:center; gap:8px 16px; font-family:var(--f-mono); font-size:11px; color:var(--text-dim);}
   .mini-disp-chip{display:inline-flex; align-items:center; gap:6px;}
   .mini-disp-chip i{width:9px; height:9px; border-radius:50%; flex-shrink:0; background:var(--c); box-shadow:0 0 7px 1px var(--c);}
   .mini-disp-svg{width:100%; height:auto; aspect-ratio:260/152; display:block; overflow:visible;}
@@ -641,14 +646,24 @@
             <span id="mNivelExpWrap" style="display:none;"><b id="mNivelExp">0</b>Nivel de XP</span>
             <span><b id="mCopas">0</b>Copas</span>
             <span><b id="mVGuerra">0</b>V. Guerra</span>
-            <span><b id="mAtaques">0</b>Ataques en la semana actual</span>
+            <!-- FIX (26-sep-2026, pedido usuario — "el cuadrito de ataques semanales que actualmente dice 8 ya no debe ir porque se está mostrando abajo"): se quita de la cabecera; el mismo dato (guerraSemana.ataques) ya se ve en la barra "Ataques/semana" de Requisitos para descender de rango. mAtaques ya no existe en el DOM: si algún día se necesita de nuevo, ojo con el textContent de más abajo (renderMiembro()) que todavía intentaba escribirle. -->
             <span id="mFameSemanaWrap" style="display:none;"><b id="mFameSemana">0</b>Fame de la semana actual</span>
             <!-- Vigencia (Última conexión) queda oculta hasta que el backend mande j.vigencia. Historial en CHANGELOG.md. -->
             <span id="mVigenciaWrap" style="display:none;"><b id="mVigencia">—</b>Vigencia</span>
           </div>
         </div>
 
-        <div id="mReqContenido" style="margin-top:16px;"></div>
+        <!-- FIX (26-sep-2026, pedido usuario — "sube los dos minigráficos de
+             ataques y fame a la derecha de la sección de requisitos de
+             ascenso o descenso"): fila flex con Requisitos a la izquierda y,
+             a la derecha, los dos minigráficos de dispersión (Ataques y
+             barcos por día / Fama por día) que antes vivían más abajo junto
+             a los donuts de Victorias/Donaciones (ver renderExtendido()).
+             mReqGraficosWrap se llena desde ahí mismo, no desde acá. -->
+        <div style="display:flex; gap:20px; flex-wrap:wrap; align-items:flex-start; margin-top:16px;">
+          <div id="mReqContenido" style="flex:2; min-width:260px;"></div>
+          <div id="mReqGraficosWrap" style="flex:1; min-width:280px; display:flex; flex-direction:column; gap:16px;"></div>
+        </div>
         <div id="mExtWrap"></div>
 
         <!-- Una sola fila de acciones, formato ".ext-links" (pill chico). Historial en CHANGELOG.md. -->
@@ -2588,8 +2603,14 @@ function renderExtendido(ext, j){
       { etiqueta: 'Acumulado', color: 'var(--purple)', valores: idxDiasJugados.map(i => gsd.puntajeAcumulado[i]) },
     ], { icono: '🔥' }),
   ].join('') : '';
-  const pies = piesDonuts + graficosGuerra;
+  // FIX (26-sep-2026, pedido usuario): graficosGuerra (Ataques/Fama por día)
+  // ya no se pinta acá junto a los donuts — se sube a #mReqGraficosWrap, al
+  // lado de Requisitos (ver el HTML de la cabecera, más arriba). pies queda
+  // solo con los dos donuts (Victorias/Donaciones).
+  const pies = piesDonuts;
   wrap.innerHTML = (items ? `<div class="ext-grid">${items}</div>` : '') + (pies.trim() ? `<div class="mini-pies">${pies}</div>` : '') + camino;
+  const reqGraficosWrap = document.getElementById('mReqGraficosWrap');
+  if (reqGraficosWrap) reqGraficosWrap.innerHTML = graficosGuerra;
 }
 
 /**
@@ -3494,10 +3515,22 @@ function renderMiembro(j){
   _prepararDiferenciasNivel(rawClash(j)); // AVISO 14 (24-sep-2026): diferencias de nivel por rareza desde las cartas del jugador
   document.title = `${j.nombre || 'Jugador'} — Familia Terna`;
   document.getElementById('mNombre').textContent = j.nombre || 'Sin nombre';
-  document.getElementById('mSub').innerHTML = `${esc(j.tag)} · ${j.clan ? enlaceClan(j.clan) : '—'} · ${esc(j.rango || '—')} · ${esc(j.estado || '—')}`;
+  /* FIX (26-sep-2026, pedido usuario — "debajo del nombre debe ir solo el
+   * tag, rango y estado (activo), en la línea siguiente debe ir el clan y
+   * entre paréntesis el clantag"): mSub pasa de una sola línea
+   * (tag · clan · rango · estado) a dos: la primera solo con tag/rango/
+   * estado, la segunda con el clan (enlaceClan, mismo link de siempre) y,
+   * si el snapshot de Clash trae el tag del clan (rawClash(j).clan.tag —
+   * campo estándar de la API oficial, {tag,name,badgeId}), entre paréntesis
+   * al lado. Sin ese dato, la segunda línea queda solo con el nombre del
+   * clan, igual que antes. */
+  const clanTagRaw = rawClash(j).clan && rawClash(j).clan.tag;
+  document.getElementById('mSub').innerHTML = `
+    <div>${esc(j.tag)} · ${esc(j.rango || '—')} · ${esc(j.estado || '—')}</div>
+    <div style="margin-top:4px;">${j.clan ? enlaceClan(j.clan) : '—'}${clanTagRaw ? ` (${esc(clanTagRaw)})` : ''}</div>
+  `;
   document.getElementById('mCopas').textContent = fmtNum(j.copas);
   document.getElementById('mVGuerra').textContent = fmtNum(j.vGuerra);
-  document.getElementById('mAtaques').textContent = fmtNum(j.guerraSemana && j.guerraSemana.ataques);
   // FIX (23-sep-2026): "Fame de la semana actual" = guerraSemana.puntaje (en guerra, fame = puntaje del jugador); se oculta si el backend no lo manda, en vez de mostrar un 0 engañoso.
   const fameSem = j.guerraSemana ? j.guerraSemana.puntaje : null;
   const fameWrap = document.getElementById('mFameSemanaWrap');
