@@ -50,6 +50,26 @@
    * dentro de su ancho de contenido. */
   .perfil-cabecera .stats-mini{display:flex; gap:18px; font-family:var(--f-mono); font-size:12px; color:var(--text-dim); flex-wrap:wrap; text-align:center;}
   .perfil-cabecera .stats-mini span{display:flex; flex-direction:column; align-items:center;}
+  /* FIX (27-sep-2026, pedido usuario — "agranda un poco el ícono del clan,
+   * que ocupe la misma altura que desde el nombre hasta el clan y va en el
+   * centro también entre el bloque del nombre y el cuadrito de nivel de
+   * torre del rey"): #mClanIconoWrap ya vivía en el lugar correcto (2do
+   * hijo de .perfil-cabecera, entre el bloque del nombre y .stats-mini) —
+   * con justify-content:space-between de .perfil-cabecera (assets/
+   * styles.css) eso YA lo deja centrado en el espacio horizontal libre
+   * entre ambos, sin tocar nada. Faltaba el alto: .perfil-cabecera usa
+   * align-items:flex-start (no se toca acá, es compartida con admin.html/
+   * directorio.html), así que el ícono quedaba con el tamaño fijo de
+   * iconoBadgeClanHtml() (48px) pegado arriba. align-self:stretch SOLO en
+   * este hijo lo estira a la altura real de la fila (que define el bloque
+   * del nombre, el hijo más alto: h1 + las 2 líneas de mSub) sin afectar
+   * el align-items:flex-start de los demás hijos; height:100% en el <img>
+   * (que llega con width/height=48 fijos desde iconoBadgeClanHtml(), ver
+   * renderMiembro()) lo agranda para ocupar ese alto completo, con
+   * width:auto para no deformarlo. display:flex + centrado acá adentro
+   * también centra el ícono verticalmente dentro de ese alto ya estirado. */
+  #mClanIconoWrap{display:flex; align-items:center; justify-content:center; align-self:stretch;}
+  #mClanIconoWrap img{width:auto; height:100%; max-height:90px; margin-right:0 !important;}
   /* 20-sep-2026 (D-3 b2): .perfil-cabecera .stats-mini b se movió a assets/styles.css (16px + --f-display).
      Lo que dice el comentario de arriba ya no aplica: admin.html ahora fija font-family:inherit. */
   /* FIX (18-sep-2026, Fase 3 del refactor CSS): .req-row/.lbl/.progress
@@ -2906,11 +2926,20 @@ function renderExtendido(ext, j){
   // FIX (27-sep-2026, pedido usuario — "mueve Ranking en el clan antes que
   // copas max"): Ranking en el clan (más abajo, antes al final de la
   // grilla) pasa a ser el primer cuadrito.
+  // FIX (27-sep-2026, pedido usuario — "ordena los cuadritos de la forma
+  // que están en la captura"): reordenados para que coincidan con la
+  // captura que pasó el usuario (Ranking en el clan/Copas máx./Arena/
+  // Torneos, luego Máx. victorias desafío/3 coronas/Puntos de experiencia/
+  // Puntos estelares, luego Emotes/Banners/Cartas de desafíos/Cartas de
+  // torneos) — mismos 12 cuadritos de siempre, sin agregar ni quitar
+  // ninguno, solo el orden en que se concatenan a `items`. El grid
+  // (.ext-grid, assets/styles.css) sigue siendo fluido
+  // (grid-template-columns:repeat(auto-fit,minmax(130px,1fr))), así que
+  // cuántos entran por fila depende del ancho de pantalla — el orden de
+  // abajo es el que se ve tal cual en pantallas anchas (una fila por cada
+  // línea de este bloque).
   items += extItem(ext.rankingClan, 'Ranking en el clan', true);
   items += extItem(ext.copasMax, 'Copas máx.', true);
-  items += extItem(j ? j.torneos : null, 'Torneos', true);
-  items += extItem(raw.starPoints, 'Puntos estelares', true);
-  items += extItem(raw.expPoints != null ? `${fmtNum(raw.expPoints)} / ${fmtNum(raw.totalExpPoints)}` : null, 'Puntos de experiencia', false);
   /* FIX (27-sep-2026): con el fix de _resolverArenaDesdeCatalogo() (archivo
    * 7, 07_API_ClashRoyale.gs — ver conversación con el usuario), ext.arena
    * ya llega combinado como "Nombre (Nombre_2)" desde el backend (o solo
@@ -2920,6 +2949,11 @@ function renderExtendido(ext, j){
    * columnas del grid (pedido usuario) porque "Nombre (Nombre_2)" puede
    * ser bastante largo. */
   items += extItem(ext.arena, 'Arena', false, 2);
+  items += extItem(j ? j.torneos : null, 'Torneos', true);
+  items += extItem(ext.maxVictoriasDesafios, 'Máx. victorias desafío', true);
+  items += extItem(ext.victorias3Coronas, '3 coronas', true);
+  items += extItem(raw.expPoints != null ? `${fmtNum(raw.expPoints)} / ${fmtNum(raw.totalExpPoints)}` : null, 'Puntos de experiencia', false);
+  items += extItem(raw.starPoints, 'Puntos estelares', true);
   /* FIX (23-sep-2026, pedido usuario — "falta retirar el cuadrito de
    * batallas"): Batallas ya no se pinta como cuadrito suelto. En su lugar,
    * el minigráfico "Victorias y derrotas" muestra en su centro la suma de
@@ -2951,12 +2985,10 @@ function renderExtendido(ext, j){
    * pastilla del minigráfico "Victorias y derrotas", al lado de Ratio V/D
    * (ver el arreglo `extra` que se le pasa a _pastelMiniHtml() dentro del
    * arreglo `pies` más abajo). */
-  items += extItem(ext.victorias3Coronas, '3 coronas', true);
-  items += extItem(ext.maxVictoriasDesafios, 'Máx. victorias desafío', true);
-  items += extItem(ext.cartasDesafios, 'Cartas de desafíos', true);
-  items += extItem(ext.cartasTorneos, 'Cartas de torneos', true);
   items += extItem(ext.emotes, 'Emotes', true);
   items += extItem(ext.banners, 'Banners', true);
+  items += extItem(ext.cartasDesafios, 'Cartas de desafíos', true);
+  items += extItem(ext.cartasTorneos, 'Cartas de torneos', true);
   /* FIX (23-sep-2026, pedido usuario): Donaciones recibidas/hechas ya no se
    * pintan como cuadritos sueltos: los mismos datos se muestran en el
    * minigráfico "Donaciones hechas y recibidas" de más abajo (ver el
