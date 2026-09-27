@@ -536,7 +536,7 @@
                 </div>
               </div>
 
-              <!-- "Lo organicé yo" deja usar el admin de la sesión como organizador; el dropdown lista los Nom_Multi de los admins. -->
+              <!-- "Lo organicé yo" deja usar el admin de la sesión como organizador; el dropdown lista los Nom_Multi de los admins. Fase 11 (plan T_Lista, ver 24_Torneos_Core.gs): texto de ayuda deja claro que es un fallback. Historial en CHANGELOG.md. -->
               <div class="field" style="margin-top:14px;">
                 <label for="tAutorSelect">¿Quién organizó el torneo?</label>
                 <select id="tAutorSelect">
@@ -544,6 +544,7 @@
                   <option value="__otro__">Ninguna de las anteriores</option>
                 </select>
                 <input type="text" id="tAutorManual" aria-label="Nombre de quien organizó el torneo" placeholder="Nombre de quien organizó" style="margin-top:8px; display:none;">
+                <p class="text-dim" style="font-size:12px; margin:6px 0 0;">Solo se usa si el torneo no trae organizador en su propio registro de RoyaleAPI.</p>
               </div>
 
               <!-- El cuadro de cuenta organizadora aparece solo con un Nom_Multi elegido; el clan se detecta solo desde el backend. -->
@@ -569,6 +570,8 @@
                 <select id="tSelectHoy"><option value="">Cargando torneos de hoy…</option></select>
                 <!-- Ingresar link es una opción más de #tSelectHoy (no un control aparte, se limpia al elegir otra opción); solo existe en Torneos, no en Sorteos. Historial en CHANGELOG.md. -->
                 <input type="text" id="tModificarLink" aria-label="Link del torneo a modificar" placeholder="https://link.clashroyale.com/..." style="margin-top:8px; display:none;">
+                <!-- Fase 11 (plan T_Lista, ver 24_Torneos_Core.gs): nota sobre el alcance de "Ingresar link". Historial en CHANGELOG.md. -->
+                <p class="text-dim" style="font-size:12px; margin:6px 0 0;">"Ingresar link" también sirve para corregir el link de un torneo ya registrado — incluyendo cuando el organizador quedó mal detectado — aunque por ahora esa corrección completa todavía no está disponible.</p>
               </div>
               <div class="field-row" id="filaFechaHoraMod">
                 <div class="field">
@@ -594,14 +597,18 @@
                 </div>
               </div>
 
-              <!-- Modificar torneo: autor y premios son opcionales, "Sin cambios" muestra el autor ya cargado y el editor de premios precarga los valores existentes; conectado con el backend. Historial en CHANGELOG.md. -->
-              <div class="field" style="margin-top:14px;">
+              <!-- Modificar torneo: autor y premios son opcionales, "Sin cambios" muestra el autor ya cargado y el editor de premios precarga los valores existentes; conectado con el backend. Fase 11 (plan T_Lista, ver 24_Torneos_Core.gs): si el torneo elegido trae Organizador_Fuente='API', este bloque se reemplaza por #tAutorSoloLecturaMod (mismo bloqueo que ya aplica el backend en _webAdminTorneoModificar()). Historial en CHANGELOG.md. -->
+              <div class="field" id="tAutorEditableModWrap" style="margin-top:14px;">
                 <label for="tAutorSelectMod">¿Quién organizó el torneo?</label>
                 <select id="tAutorSelectMod">
                   <option value="">Sin cambios (mantener autor actual)</option>
                   <option value="__otro__">Ninguna de las anteriores</option>
                 </select>
                 <input type="text" id="tAutorManualMod" aria-label="Nombre de quien organizó el torneo" placeholder="Nombre de quien organizó" style="margin-top:8px; display:none;">
+              </div>
+              <div class="field" id="tAutorSoloLecturaMod" style="display:none; margin-top:14px;">
+                <label>¿Quién organizó el torneo?</label>
+                <p class="text-dim" style="font-size:13px; margin:0;" id="tAutorSoloLecturaModTexto"></p>
               </div>
 
               <!-- Mismo cuadro de cuenta/clan que Registrar, pero opcional en Modificar: si no se toca, no pisa lo ya guardado. -->
@@ -654,6 +661,7 @@
                 </div>
               </div>
 
+              <!-- Fase 11 (plan T_Lista, ver 24_Torneos_Core.gs): mismo texto de ayuda que Registrar. Historial en CHANGELOG.md. -->
               <div class="field" style="margin-top:14px;">
                 <label for="tAutorSelectPlan">¿Quién organiza el torneo?</label>
                 <select id="tAutorSelectPlan">
@@ -661,6 +669,7 @@
                   <option value="__otro__">Ninguna de las anteriores</option>
                 </select>
                 <input type="text" id="tAutorManualPlan" aria-label="Nombre de quien organiza el torneo" placeholder="Nombre de quien organiza" style="margin-top:8px; display:none;">
+                <p class="text-dim" style="font-size:12px; margin:6px 0 0;">Solo se usa si el torneo no trae organizador en su propio registro de RoyaleAPI.</p>
               </div>
 
               <!-- Mismo cuadro de cuenta/clan que #camposRegistrar. -->
@@ -3265,7 +3274,8 @@ async function cargarTorneosHoy(){
           const fechaTxt = new Date(t.fecha).toLocaleString('es-PE', { hour12:false });
           // data-autor/premios/semanas/comentario llegan del backend para precargar "Modificar"; si faltan, quedan vacíos sin romper nada. Historial en CHANGELOG.md.
           const semanasCsv = Array.isArray(t.semanas) ? t.semanas.join(',') : '';
-          return `<option value="${esc(t.id)}" data-fecha="${esc(t.fecha)}" data-autor="${esc(t.autor || '')}" data-premios="${esc(t.premios || '')}" data-semanas="${esc(semanasCsv)}" data-comentario="${esc(t.comentario || '')}">${esc(t.id)} — ${esc(fechaTxt)}</option>`;
+          // data-organizador-fuente ('API'|'Manual'|''): Fase 11 (plan T_Lista, ver 24_Torneos_Core.gs) -- decide si #tAutorSelectMod queda editable o se reemplaza por #tAutorSoloLecturaMod. Historial en CHANGELOG.md.
+          return `<option value="${esc(t.id)}" data-fecha="${esc(t.fecha)}" data-autor="${esc(t.autor || '')}" data-organizador-fuente="${esc(t.organizadorFuente || '')}" data-premios="${esc(t.premios || '')}" data-semanas="${esc(semanasCsv)}" data-comentario="${esc(t.comentario || '')}">${esc(t.id)} — ${esc(fechaTxt)}</option>`;
         }).join('') + OPCION_INGRESAR_LINK;
     }
   }catch(err){
@@ -3593,6 +3603,38 @@ function actualizarEtiquetaSinCambiosAutor(nombreActual){
   const opt = document.querySelector('#tAutorSelectMod option[value=""]');
   if(!opt) return;
   opt.textContent = nombreActual ? `Sin cambios (${nombreActual})` : 'Sin cambios (mantener autor actual)';
+}
+
+/**
+ * aplicarBloqueoOrganizadorMod(organizadorFuente, nombreActual)
+ * Fase 11 (25-sep-2026, plan T_Lista -- ver docblock "PLAN EN CURSO" en
+ * 24_Torneos_Core.gs y TL.ORGANIZADOR_FUENTE ahí): refleja en el panel el
+ * mismo bloqueo que ya aplica el backend desde la Fase 10
+ * (_webAdminTorneoModificar(), 34_Web_API.gs, vía
+ * _obtenerOrganizadorFuenteTLista()). Si `organizadorFuente==='API'`, oculta
+ * #tAutorEditableModWrap (el <select> + input manual) y muestra en su lugar
+ * #tAutorSoloLecturaMod con el nombre ya detectado, sin poder editarlo. En
+ * cualquier otro caso ('Manual', '', o ningún torneo elegido) se muestra el
+ * bloque editable de siempre. Esto es solo UI: el backend sigue validando
+ * igual aunque este bloque quedara desactualizado (ver docblock de
+ * _webAdminTorneoModificar()). Historial en CHANGELOG.md.
+ * @param {string} organizadorFuente 'API'|'Manual'|''
+ * @param {string} nombreActual
+ */
+function aplicarBloqueoOrganizadorMod(organizadorFuente, nombreActual){
+  const wrapEditable = document.getElementById('tAutorEditableModWrap');
+  const wrapSoloLectura = document.getElementById('tAutorSoloLecturaMod');
+  const textoSoloLectura = document.getElementById('tAutorSoloLecturaModTexto');
+  if(!wrapEditable || !wrapSoloLectura || !textoSoloLectura) return;
+
+  const esApi = organizadorFuente === 'API';
+  wrapEditable.style.display = esApi ? 'none' : '';
+  wrapSoloLectura.style.display = esApi ? '' : 'none';
+  if(esApi){
+    textoSoloLectura.textContent = nombreActual
+      ? `Organizador: ${nombreActual} — detectado automáticamente, no editable.`
+      : 'Organizador detectado automáticamente — no editable.';
+  }
 }
 
 /**
@@ -4267,6 +4309,8 @@ document.getElementById('tSelectHoy').addEventListener('change', () => {
 
   // Al elegir/quitar un torneo en Modificar se refresca autor/premios/semanas con lo ya registrado de ese torneo. Historial en CHANGELOG.md.
   actualizarEtiquetaSinCambiosAutor(opt && opt.dataset.autor);
+  // Fase 11 (plan T_Lista, ver 24_Torneos_Core.gs): con organizadorFuente==='API' el bloque editable se reemplaza por el de solo lectura. Historial en CHANGELOG.md.
+  aplicarBloqueoOrganizadorMod(opt && opt.dataset.organizadorFuente, opt && opt.dataset.autor);
   document.getElementById('tAutorSelectMod').value = '';
   document.getElementById('tAutorManualMod').value = '';
   document.getElementById('tAutorManualMod').style.display = 'none';
@@ -4415,6 +4459,8 @@ document.getElementById('btnModificarTorneo').addEventListener('click', async ()
     poblarPremiosEditor('premiosEditorMod', '');
     pintarSemanasSelector('semanasSelectorMod');
     actualizarEtiquetaSinCambiosAutor('');
+    // Fase 11 (plan T_Lista, ver 24_Torneos_Core.gs): vuelve al bloque editable tras un envío exitoso, igual que el resto de campos de este listener. Historial en CHANGELOG.md.
+    aplicarBloqueoOrganizadorMod('', '');
     cargarTorneosHoy();
     cargarGanadoresTorneo();
   }catch(err){

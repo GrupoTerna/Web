@@ -11,6 +11,64 @@ el código hoy) cuando hace falta para mantenerlo; el "por qué histórico"
 
 ---
 
+## admin.html — Fase 11 del plan T_Lista (26-sep-2026)
+
+### 26-sep-2026 — Modificar torneo: refleja el bloqueo del Organizador cuando viene de la API
+Fase 11 del plan "PLAN EN CURSO — Rediseño T_Lista" documentado en
+`24_Torneos_Core.gs` (`Base.md`). Las Fases 9 y 10 (columna
+`Organizador_Fuente` en T_Lista y el bloqueo real del lado del servidor en
+`_webAdminTorneoModificar()`, `34_Web_API.gs`) ya estaban implementadas;
+esta fase es solo frontend, para que el panel deje de mostrar un campo
+editable que el backend igual iba a rechazar:
+
+- **`cargarTorneosHoy()`:** cada `<option>` de `#tSelectHoy` ahora también
+  trae `data-organizador-fuente` (`'API'|'Manual'|''`), tomado de
+  `organizadorFuente` que ya devuelve `_listarTorneosDeHoy()`
+  (`24_Torneos_Core.gs`) y que el frontend todavía no leía.
+- **Nueva función `aplicarBloqueoOrganizadorMod(organizadorFuente,
+  nombreActual)`:** si el torneo elegido en "Modificar" tiene
+  `organizadorFuente==='API'`, oculta el bloque editable
+  (`#tAutorEditableModWrap`, que envuelve `#tAutorSelectMod` +
+  `#tAutorManualMod`) y muestra en su lugar `#tAutorSoloLecturaMod` con el
+  texto "Organizador: {nombre} — detectado automáticamente, no editable."
+  En cualquier otro caso (`'Manual'`, `''`, o ningún torneo elegido todavía)
+  se muestra el bloque editable de siempre. Se llama desde el listener de
+  `'change'` de `#tSelectHoy`, y se resetea a editable tras un envío
+  exitoso de "Modificar torneo" (mismo punto donde ya se resetean
+  autor/premios/semanas).
+- Esto es solo UI: aunque este bloque quedara desactualizado o alguien
+  llame al endpoint directo, `_webAdminTorneoModificar()` sigue validando
+  igual del lado del servidor (Fase 10, ya implementada).
+- **Registrar (`#tAutorSelect`) y Planificar (`#tAutorSelectPlan`):** sin
+  cambios de comportamiento — se les agregó solo un texto de ayuda ("Solo
+  se usa si el torneo no trae organizador en su propio registro de
+  RoyaleAPI.") para que quede claro que es un fallback, ya que estos dos
+  flujos no tienen `Organizador_Fuente` que consultar todavía (el torneo
+  recién se está registrando/planificando).
+- **`#tSelectHoy`, opción "Ingresar link":** se agregó una nota aclarando
+  que también sirve para corregir el link de un torneo ya registrado
+  (incluyendo cuando el organizador quedó mal detectado), pero que esa
+  corrección completa todavía no está disponible — la re-resolución real
+  al corregir un Link_app ya asignado es la Fase 12 del mismo plan
+  (`24_Torneos_Core.gs`), que además documenta un bug latente: hoy
+  "Ingresar link" sobre un torneo que YA tiene Link_app no encuentra fila
+  "Planificado" que calce y termina creando una fila duplicada en vez de
+  corregir la existente. La nota se agregó ahora, en la Fase 11, para no
+  dejar al usuario del panel sin ninguna pista de que esa opción cambiará
+  de alcance pronto.
+- **Verificación:** revisado a mano el árbol de nodos alrededor de las 4
+  zonas editadas (Registrar, Planificar, `#tSelectHoy`, y el
+  `#tAutorEditableModWrap`/`#tAutorSoloLecturaMod` de Modificar) y
+  extraído + validado con `node --check` el bloque `<script>` completo del
+  archivo: sin errores de sintaxis. **No se probó en navegador real** (no
+  hay acceso a Apps Script/Sheets reales desde esta sesión) — falta que el
+  usuario confirme visualmente que, al elegir en "Modificar" un torneo con
+  `Organizador_Fuente='API'`, el bloque de solo lectura aparece con el
+  nombre correcto y el editable queda oculto, y que con `'Manual'`/vacío
+  el comportamiento de siempre no cambió.
+
+---
+
 ## Comentarios desactualizados (limpieza, 21-sep-2026)
 
 ### 21-sep-2026 — Tres "pendiente de conectar" que ya estaban conectados
