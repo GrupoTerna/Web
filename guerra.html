@@ -1151,6 +1151,32 @@ function render(data){
   document.getElementById('pendCount').textContent = pend.length + ' jugador(es)';
   const pendPorClan = {};
   pend.forEach(p => { const c = p.clan || '—'; (pendPorClan[c] = pendPorClan[c] || []).push(p); });
+  /* FIX (27-sep-2026, pedido usuario — "en pendientes de atacar ordena
+   * primero por ataques faltantes (mayor a menor), luego por rango (líder,
+   * colíder, veterano, miembro), luego por nombre alfabético"): dentro de
+   * cada tarjeta de clan, `filas` venía sin ordenar (mismo orden en que
+   * llegaba data.pendientes del backend). RANGO_ORDEN_PEND usa la misma
+   * lista/capitalización que RANGO_ORDEN_CR (admin.html, tabla de
+   * Cambios de Rango) — p.rango llega como "Líder"/"Colíder"/"Veterano"/
+   * "Miembro" (ver comentario de la columna "Rango", más arriba, y
+   * CHANGELOG.md). Un rango que no calce con la lista (dato faltante o
+   * distinto) se manda al final, no al principio, para no adelantarlo por
+   * error. El nombre usado para el desempate alfabético es el mismo que
+   * se muestra en la columna Nombre (p.nombre || p.nomMulti || p.tag). */
+  const RANGO_ORDEN_PEND = ['Líder', 'Colíder', 'Veterano', 'Miembro'];
+  const _idxRangoPend = (rango) => {
+    const i = RANGO_ORDEN_PEND.indexOf(rango);
+    return i === -1 ? RANGO_ORDEN_PEND.length : i;
+  };
+  const _nombrePend = (p) => p.nombre || p.nomMulti || p.tag || '';
+  const _compararPendientes = (a, b) => {
+    const faltA = Number(a.faltantes) || 0, faltB = Number(b.faltantes) || 0;
+    if (faltA !== faltB) return faltB - faltA; // mayor a menor
+    const rangoA = _idxRangoPend(a.rango), rangoB = _idxRangoPend(b.rango);
+    if (rangoA !== rangoB) return rangoA - rangoB;
+    return _nombrePend(a).localeCompare(_nombrePend(b), 'es', { numeric:true, sensitivity:'base' });
+  };
+  Object.values(pendPorClan).forEach(filas => filas.sort(_compararPendientes));
   const clanesPend = Object.keys(pendPorClan).sort((a, b) => ordenClanIndex(a) - ordenClanIndex(b));
   const pendWrap = document.getElementById('pendWrap');
   const pendEsAdmin = esAdminLogueado();

@@ -373,6 +373,25 @@
   .mini-disp-svg .md-punto:hover{r:7;}
   .mini-disp-svg .md-eje-label{fill:var(--text-dim); font-family:var(--f-mono); font-size:11px; text-anchor:middle;}
   .mini-disp-svg .md-valor-label{fill:var(--text); font-family:var(--f-mono); font-size:9.5px; font-weight:700; text-anchor:middle;}
+  /* FIX (27-sep-2026, pedido usuario — "las gráficas no tienen la misma
+   * altura; Requisitos... debe mostrarse al mismo nivel que los dos
+   * minigráficos pero... el segundo minigráfico está bajando"): las dos
+   * tarjetas de dispersión (Ataques y barcos / Fama) viven apiladas en
+   * columna dentro de #mReqGraficosWrap, junto a "Requisitos" (ver el HTML
+   * de la cabecera). El min-height:260px de .mini-pie es un piso común a
+   * las 4 tarjetas del sitio, pero no garantiza que estas dos midan lo
+   * mismo ENTRE SÍ: el título "Ataques y barcos por día" es bastante más
+   * largo que "Fama por día" y, en tarjetas angostas, puede envolver a 2
+   * líneas mientras el otro título cabe en 1 sola — eso alarga la primera
+   * tarjeta y empuja la segunda hacia abajo, además de desalinear todo el
+   * bloque con "Requisitos" a la izquierda. Se reserva una altura mínima
+   * fija para el título y para la leyenda de estas dos tarjetas (pensada
+   * para 2 líneas de texto), así ambas miden lo mismo sin importar si su
+   * título/leyenda ocupa 1 o 2 líneas. Scoped a #mReqGraficosWrap para no
+   * tocar el resto de .mini-pie (Victorias/Donaciones, títulos cortos que
+   * nunca envuelven). */
+  #mReqGraficosWrap .mini-pie-titulo{ min-height:26px; }
+  #mReqGraficosWrap .mini-disp-leyenda{ min-height:32px; align-items:center; align-content:center; }
   .badge-item .b-prog{font-family:var(--f-mono); font-size:10px; color:var(--text-faint);}
   .badge-item .progress{width:100%; height:5px; margin-top:2px;}
   .star-level{color:var(--gold); font-size:11px; letter-spacing:1px; white-space:nowrap;}
