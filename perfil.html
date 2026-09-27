@@ -3632,12 +3632,31 @@ function perfilLineChartSvg(puntos, opts){
   const fechasEje = puntos.map(p => { const t = parseFechaDDMMYYYY(p.semana); return isNaN(t) ? null : new Date(t); });
   const lineasTemporales = lineasTemporalesSvg(fechasEje, xPos, PAD_T, H - PAD_B, { granularidadDiaria: false });
 
-  // Con muchas semanas no se rotulan todas (se cuenta desde la última, que siempre se muestra).
-  const paso = Math.max(1, Math.ceil(n / 24));
-  const xLabels = puntos.map((p, i) => {
-    if ((n - 1 - i) % paso !== 0) return '';
+  // FIX (27-sep-2026, pedido usuario -- "se están mostrando fechas de
+  // entrenamiento, solo debe mostrar días de guerra"): estas gráficas
+  // pintan un punto por DÍA (no por semana, pese al nombre de las
+  // variables), así que entre jueves y domingo (guerra) siempre aparecían
+  // también los días lunes a miércoles (entrenamiento). Se arma primero la
+  // lista de índices que caen en día de guerra (getDay(): 0=domingo,
+  // 4=jueves, 5=viernes, 6=sábado) y solo de ESOS se van rotulando algunos
+  // si hay demasiados (mismo criterio de antes: se cuenta desde el
+  // último, que siempre se muestra). Además, para que nunca se repita la
+  // misma fecha ya rotulada (el bug de "la fecha más a la izquierda se
+  // repite"), se salta cualquier etiqueta idéntica a la anterior que sí se
+  // dibujó.
+  const idxDiasGuerra = fechasEje.reduce((acc, f, i) => {
+    if (f){ const dia = f.getDay(); if (dia === 0 || dia >= 4) acc.push(i); }
+    return acc;
+  }, []);
+  const pasoGuerra = Math.max(1, Math.ceil(idxDiasGuerra.length / 24));
+  let ultimaEtiquetaGuerra = null;
+  const xLabels = idxDiasGuerra.map((i, k) => {
+    if ((idxDiasGuerra.length - 1 - k) % pasoGuerra !== 0) return '';
+    const etiqueta = semanaLabelCortaPerfil(puntos[i].semana);
+    if (etiqueta === ultimaEtiquetaGuerra) return '';
+    ultimaEtiquetaGuerra = etiqueta;
     const x = xPos(i), y = H - PAD_B + 16;
-    return `<text class="ing-axis-label" x="${x}" y="${y}" text-anchor="end" transform="rotate(-45 ${x} ${y})">${esc(semanaLabelCortaPerfil(p.semana))}</text>`;
+    return `<text class="ing-axis-label" x="${x}" y="${y}" text-anchor="end" transform="rotate(-45 ${x} ${y})">${esc(etiqueta)}</text>`;
   }).join('');
 
   let path = '';
