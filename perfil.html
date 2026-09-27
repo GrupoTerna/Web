@@ -731,6 +731,16 @@
             <h1 id="mNombre" style="font-size:26px;">—</h1>
             <div class="text-dim" id="mSub" style="margin-top:6px; font-size:14px;">—</div>
           </div>
+          <!-- FIX (27-sep-2026, pedido usuario — "a la derecha del nombre
+               añade el ícono del clan"): se oculta sola si no se resuelve
+               una URL (ver _urlInsigniaClan()/renderMiembro() más abajo en
+               el <script>). PENDIENTE DE CONFIRMAR: no se tuvo
+               assets/js/data/clan-badges.js a la vista en esta sesión, así
+               que _urlInsigniaClan() prueba nombres de función/variable
+               global plausibles; si esa lib expone algo distinto, el
+               ícono queda oculto sin romper nada — avisar el nombre real
+               para terminar de conectarlo. -->
+          <img id="mClanIcono" alt="" style="display:none; width:48px; height:48px; object-fit:contain; flex-shrink:0;" loading="lazy">
           <div class="stats-mini">
             <!-- FIX (23-sep-2026, pedido usuario — "en la parte de arriba solo se debe mostrar nivel de torre del rey, nivel de XP, copas, victorias de guerra, ataques en la semana actual y fame de la semana actual, y vigencia. todo lo demás debe ir en los cuadritos debajo"): la cabecera queda con estos 7 datos, en este orden. Torneos, Puntos estelares y Puntos de experiencia pasan a la grilla de cuadritos (renderExtendido()). Cada <span> con "Wrap" se oculta sola si el dato no llega (ver renderStatsAvanzadasCabecera() y renderMiembro()). Historial en CHANGELOG.md. -->
             <span id="mTorreReyWrap" style="display:none;"><b id="mTorreRey">0</b>Nivel de torre del rey</span>
@@ -1132,10 +1142,40 @@ function bloqueRequisitos(j, key){
   const titulo = key === 'ascensos' ? 'Requisitos para ascender de rango' : 'Requisitos para mantener el rango';
   return `<div class="req-bloque-titulo">${esc(titulo)}</div>${html}`;
 }
-function extItem(valor, label, esNumero){
+/**
+ * _urlInsigniaClan(badgeId)
+ * FIX (27-sep-2026, pedido usuario — ícono del clan junto al nombre en la
+ * cabecera del perfil). No se tuvo assets/js/data/clan-badges.js a la
+ * vista en esta sesión (se carga en la página — ver <script src> más
+ * abajo — pero perfil.html no llamaba ninguna de sus funciones hasta
+ * ahora), así que esto prueba, en orden, los 3 nombres de función/objeto
+ * global más plausibles para ese archivo. Si ninguno existe o no
+ * devuelve nada, retorna null y el <img id="mClanIcono"> se queda oculto
+ * (no rompe nada, solo no se ve el ícono). AVISAR el nombre real que
+ * expone clan-badges.js para dejar esto conectado de forma definitiva en
+ * vez de con esta detección.
+ */
+function _urlInsigniaClan(badgeId){
+  if (badgeId == null) return null;
+  try {
+    if (typeof urlInsigniaClan === 'function') return urlInsigniaClan(badgeId) || null;
+    if (typeof obtenerUrlInsigniaClan === 'function') return obtenerUrlInsigniaClan(badgeId) || null;
+    if (typeof CLAN_BADGES !== 'undefined' && CLAN_BADGES){
+      return CLAN_BADGES[badgeId] || (CLAN_BADGES.urls && CLAN_BADGES.urls[badgeId]) || null;
+    }
+  } catch (e){ /* cualquier nombre global no definido: se ignora, queda oculto */ }
+  return null;
+}
+function extItem(valor, label, esNumero, ancho){
   if (valor === undefined || valor === null || valor === '') return '';
   const txt = esNumero ? fmtNum(valor) : String(valor);
-  return `<div class="ext-item"><div class="v">${esc(txt)}</div><div class="k">${esc(label)}</div></div>`;
+  // FIX (27-sep-2026, pedido usuario — "haz que arena ocupe el lugar de dos
+  // cuadritos horizontalmente"): 4to parámetro opcional; ancho=2 hace que
+  // el cuadrito ocupe 2 columnas del grid (.ext-grid, grid-template-columns
+  // en assets/styles.css) en vez de 1. Sin este parámetro el comportamiento
+  // es idéntico al de antes para el resto de los cuadritos.
+  const estiloAncho = ancho === 2 ? ' style="grid-column:span 2;"' : '';
+  return `<div class="ext-item"${estiloAncho}><div class="v">${esc(txt)}</div><div class="k">${esc(label)}</div></div>`;
 }
 /**
  * rawClash(j) → el JSON crudo del snapshot exportado a Drive.
@@ -2770,11 +2810,28 @@ function renderExtendido(ext, j){
   // colección") se sube a la cabecera, a la derecha de Nivel de XP — ver
   // mNivelColeccionWrap en el <html> y renderStatsAvanzadasCabecera() más
   // arriba. Ya no se pinta acá como .ext-item.
+  // FIX (27-sep-2026, pedido usuario — "mueve Ranking en el clan antes que
+  // copas max"): Ranking en el clan (más abajo, antes al final de la
+  // grilla) pasa a ser el primer cuadrito.
+  items += extItem(ext.rankingClan, 'Ranking en el clan', true);
   items += extItem(ext.copasMax, 'Copas máx.', true);
   items += extItem(j ? j.torneos : null, 'Torneos', true);
   items += extItem(raw.starPoints, 'Puntos estelares', true);
   items += extItem(raw.expPoints != null ? `${fmtNum(raw.expPoints)} / ${fmtNum(raw.totalExpPoints)}` : null, 'Puntos de experiencia', false);
-  items += extItem(ext.arena, 'Arena', false);
+  /* FIX (27-sep-2026, pedido usuario — "en el cuadrito de arena se está
+   * llamando a la columna 'Nombre' pero falta llamar a la columna
+   * 'Nombre_2', debe quedar como 'Nombre (Nombre_2)'"): ext.arena hoy
+   * llega como un solo string (columna "Nombre" del catálogo de Arenas que
+   * arma el backend — no se tiene ese script en esta sesión, ver
+   * conversación con el usuario). AVISO: el nombre de campo para la
+   * segunda columna ("Nombre_2") es una SUPOSICIÓN (se prueban 3 nombres
+   * plausibles); hay que confirmar con 34_Web_API.gs (o como se llame el
+   * script que arma `ext`) cuál es el real y ajustar acá si no coincide.
+   * Mientras ese campo no llegue del backend con ninguno de estos nombres,
+   * el cuadrito se ve exactamente igual que antes (solo ext.arena). */
+  const arenaNombre2 = ext.arenaNombre2 ?? ext.arena2 ?? ext.arenaSubnombre ?? null;
+  const arenaTxt = (ext.arena && arenaNombre2) ? `${ext.arena} (${arenaNombre2})` : ext.arena;
+  items += extItem(arenaTxt, 'Arena', false, 2);
   /* FIX (23-sep-2026, pedido usuario — "falta retirar el cuadrito de
    * batallas"): Batallas ya no se pinta como cuadrito suelto. En su lugar,
    * el minigráfico "Victorias y derrotas" muestra en su centro la suma de
@@ -2816,7 +2873,9 @@ function renderExtendido(ext, j){
    * pintan como cuadritos sueltos: los mismos datos se muestran en el
    * minigráfico "Donaciones hechas y recibidas" de más abajo (ver el
    * arreglo `pies`), así que repetirlos acá era redundante. */
-  items += extItem(ext.rankingClan, 'Ranking en el clan', true);
+  // FIX (27-sep-2026): "Ranking en el clan" se pintaba acá, al final de la
+  // grilla; ahora es el primer cuadrito (ver arriba, justo antes de "Copas
+  // máx."), pedido usuario.
 
   let camino = '';
   if (ext.caminoLeyendas){
@@ -3950,6 +4009,23 @@ function renderMiembro(j){
    * al lado. Sin ese dato, la segunda línea queda solo con el nombre del
    * clan, igual que antes. */
   const clanTagRaw = rawClash(j).clan && rawClash(j).clan.tag;
+  /* FIX (27-sep-2026, pedido usuario — ícono del clan junto al nombre):
+   * ver el comentario en el <img id="mClanIcono"> del HTML (más arriba)
+   * sobre por qué esto es una suposición pendiente de confirmar contra
+   * assets/js/data/clan-badges.js. */
+  const badgeIdClan = rawClash(j).clan && rawClash(j).clan.badgeId;
+  const iconoClanEl = document.getElementById('mClanIcono');
+  const urlIconoClan = _urlInsigniaClan(badgeIdClan);
+  if (iconoClanEl){
+    if (urlIconoClan){
+      iconoClanEl.src = urlIconoClan;
+      iconoClanEl.alt = j.clan ? `Insignia de ${j.clan}` : 'Insignia del clan';
+      iconoClanEl.style.display = '';
+    } else {
+      iconoClanEl.removeAttribute('src');
+      iconoClanEl.style.display = 'none';
+    }
+  }
   document.getElementById('mSub').innerHTML = `
     <div>${esc(j.tag)} · ${esc(j.rango || '—')} · ${esc(j.estado || '—')}</div>
     <div style="margin-top:4px;">${j.clan ? enlaceClan(j.clan) : '—'}${clanTagRaw ? ` (${esc(clanTagRaw)})` : ''}</div>
