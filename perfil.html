@@ -871,6 +871,13 @@
             <div class="eyebrow">Colección</div>
             <h2 class="pf-subtitulo">Colección completa de cartas</h2>
           </div>
+          <!-- FIX (27-sep-2026, pedido usuario — "al lado del título de la
+               colección completa, agrega un minigráfico de pastel que
+               muestre el porcentaje y cantidad de cartas de cada nivel que
+               se tiene"): lo llena renderColeccion() más abajo en el
+               <script>, con _pastelMiniHtml() (mismo componente donut que
+               los de Victorias/Donaciones). -->
+          <div id="mColeccionNivelPie"></div>
           <div class="coleccion-filtros" id="mColeccionFiltrosTop" style="margin:0;"></div>
         </div>
         <div class="coleccion-resumen" id="mColeccionResumen"></div>
@@ -1979,6 +1986,27 @@ function renderColeccion(j){
   filtrosNivel.innerHTML = presentesNivel
     .map(n => `<button type="button" data-cat="nivel" data-f="${n}">Nv. ${n} (${nivelesCarta.filter(x => x === n).length})</button>`)
     .join('');
+  /* FIX (27-sep-2026, pedido usuario — "al lado del título de la colección
+   * completa, agrega un minigráfico de pastel que muestre el porcentaje y
+   * cantidad de cartas de cada nivel que se tiene"): reusa _pastelMiniHtml()
+   * (mismo componente donut que Victorias/Donaciones) con una porción por
+   * nivel presente — mismos `nivelesCarta`/`presentesNivel` que ya usa la
+   * fila de pastillas de nivel de arriba, así que el gráfico y esas
+   * pastillas nunca pueden desincronizarse entre sí. Colores: paleta
+   * dorado→morado (_paletaNivelesColeccion(), ver más abajo), nivel más
+   * alto = dorado, siguiendo el mismo lenguaje visual del resto de la
+   * página. Se oculta sola si no hay niveles (no debería pasar si ya
+   * llegamos hasta acá con `cartas.length`, pero _pastelMiniHtml() ya
+   * devuelve '' de por sí en ese caso). */
+  const nivelPieWrap = document.getElementById('mColeccionNivelPie');
+  if (nivelPieWrap){
+    const paletaNiveles = _paletaNivelesColeccion(presentesNivel.length);
+    nivelPieWrap.innerHTML = _pastelMiniHtml('Cartas por nivel', presentesNivel.map((n, i) => ({
+      etiqueta: `Nv. ${n}`,
+      valor: nivelesCarta.filter(x => x === n).length,
+      color: paletaNiveles[i]
+    })), null, { icono: '📊', centroEtiqueta: 'Cartas' });
+  }
   // Las 3 filas comparten el mismo estado de filtros (_colFiltrosActivos):
   // cada pastilla se prende/apaga sola (opción múltiple, sin desmarcar las
   // demás) salvo "Todas", que limpia todo. Por eso los botones de las 3
@@ -2634,6 +2662,26 @@ function renderSnapshotInfo(j){
   }
 }
 
+/**
+ * _paletaNivelesColeccion(n)
+ * FIX (27-sep-2026, pedido usuario — minigráfico "Cartas por nivel" junto
+ * al título de Colección completa): genera `n` colores en HSL, uno por
+ * nivel presente, del dorado (nivel más alto, primero en `presentesNivel`
+ * porque va de mayor a menor) al morado (nivel más bajo) — mismo criterio
+ * dorado/morado de identidad visual que ya usan los demás minigráficos de
+ * la página (Victorias/Donaciones). No depende de una paleta fija de N
+ * colores porque la cantidad de niveles distintos varía según el jugador.
+ */
+function _paletaNivelesColeccion(n){
+  if (n <= 1) return ['hsl(45, 85%, 58%)'];
+  const colores = [];
+  for (let i = 0; i < n; i++){
+    const t = i / (n - 1); // 0 = dorado, 1 = morado
+    const hue = 45 + t * (275 - 45);
+    colores.push(`hsl(${hue.toFixed(0)}, 80%, 58%)`);
+  }
+  return colores;
+}
 /**
  * _pastelMiniHtml(titulo, porciones, extra, opts)
  * FIX (23-sep-2026, pedido usuario — dos minigráficos de estilo pastel):
