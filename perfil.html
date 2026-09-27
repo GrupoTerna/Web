@@ -276,6 +276,24 @@
      filter:drop-shadow inline que arma _pastelMiniHtml() por cada
      <circle>) en vez del pastel relleno plano de antes. */
   .mini-pies{display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:16px; margin-top:16px;}
+  /* FIX (26-sep-2026, pedido usuario — "los minigráficos de fame y ataques
+   * deben tener la misma altura que los minigráficos de pastel"): los 4
+   * viven en contenedores DISTINTOS (Victorias/Donaciones siguen en
+   * .mini-pies, debajo de la grilla; Ataques/Fama se subieron a
+   * #mReqGraficosWrap, junto a Requisitos — ver renderExtendido() más
+   * abajo), así que un simple grid/stretch entre hermanos no alcanza: el
+   * donut mide siempre 104px de alto pero el SVG de dispersión escala con
+   * el ancho de su contenedor (aspect-ratio 260/152), y además Victorias/
+   * Derrotas trae una fila extra (.mini-pie-extras con Ratio V/D y Racha)
+   * que Donaciones no tiene. Se fija una altura mínima común en .mini-pie
+   * (pensada para la tarjeta más alta, Victorias/Derrotas con extras) y se
+   * pasa la tarjeta a flex-column con .mini-pie-cuerpo/.mini-disp-cuerpo en
+   * flex:1 + centrados verticalmente, para que las 4 keden a la misma
+   * altura sin importar cuál contenedor las pinte ni cuánto contenido
+   * tengan; si el contenido de alguna es más alto que el mínimo (p. ej. el
+   * SVG de dispersión en pantallas muy anchas), la tarjeta simplemente
+   * crece — min-height es un piso, no un techo, así que nunca se recorta
+   * nada. */
   .mini-pie{
     position:relative; overflow:hidden;
     background:var(--surface-card);
@@ -284,6 +302,7 @@
     padding:18px 20px 16px;
     box-shadow:0 4px 20px rgba(0,0,0,.3);
     transition:all .28s cubic-bezier(.16, 1, .3, 1);
+    display:flex; flex-direction:column; min-height:260px;
   }
   .mini-pie:hover{ transform:translateY(-4px); border-color:var(--line-strong); box-shadow:var(--glow); }
   .mini-pie::before{
@@ -298,7 +317,7 @@
    * de quedar pegados a la izquierda. */
   .mini-pie-titulo{display:flex; align-items:center; justify-content:center; gap:7px; font-family:var(--f-mono); font-size:10px; font-weight:600; color:var(--text-dim); text-transform:uppercase; letter-spacing:.12em; margin-bottom:16px;}
   .mini-pie-titulo .ico{font-size:13px; line-height:1; filter:drop-shadow(0 0 4px rgba(162,57,255,.6));}
-  .mini-pie-cuerpo{display:flex; align-items:center; justify-content:center; gap:20px; flex-wrap:wrap;}
+  .mini-pie-cuerpo{display:flex; align-items:center; justify-content:center; gap:20px; flex-wrap:wrap; flex:1;}
   .mini-pie-donut-wrap{position:relative; width:104px; height:104px; flex-shrink:0;}
   .mini-pie-donut-wrap svg{width:100%; height:100%; display:block; overflow:visible;}
   .mini-pie-donut-centro{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; pointer-events:none;}
@@ -343,7 +362,7 @@
    * día jugado esta semana, ambas tarjetas simplemente no se pintan (mismo
    * criterio "se omite si faltan datos" que ya usan los dos donuts de al
    * lado). */
-  .mini-disp-cuerpo{display:flex; flex-direction:column; align-items:center; gap:10px;}
+  .mini-disp-cuerpo{display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; flex:1; width:100%;}
   .mini-disp-leyenda{display:flex; flex-wrap:wrap; justify-content:center; gap:8px 16px; font-family:var(--f-mono); font-size:11px; color:var(--text-dim);}
   .mini-disp-chip{display:inline-flex; align-items:center; gap:6px;}
   .mini-disp-chip i{width:9px; height:9px; border-radius:50%; flex-shrink:0; background:var(--c); box-shadow:0 0 7px 1px var(--c);}
@@ -630,20 +649,42 @@
 
     <div id="perfilContenido" style="display:none;">
       <div class="eyebrow">Perfil del jugador</div>
-      <!-- B4/B-10: indicador de última actualización — usa apiGetUltimaActualizacion() de api.js sobre el respaldo en localStorage, sin disparar ninguna petición nueva. -->
-      <div class="text-faint" id="perfilActualizadoTxt" style="font-size:12px; margin-top:2px;"></div>
+      <!-- FIX (26-sep-2026, pedido usuario — "sube la fila del snapshot a la
+           derecha de 'actualizado ahora mismo', debajo de 'perfil del
+           jugador'"): #mSnapshotInfo (fecha del snapshot de Drive, la pinta
+           renderSnapshotInfo() más abajo en el <script>) vivía dentro de la
+           card, debajo del nombre/subtítulo del jugador. Se saca de ahí y se
+           pone en la misma fila que #perfilActualizadoTxt (B4/B-10, "última
+           actualización"), justo bajo el eyebrow "Perfil del jugador". Fila
+           flex en vez de dos <div> sueltos para que "Snapshot: ..." quede al
+           lado y no debajo; ambos siguen ocultándose solos si falta su dato
+           (perfilActualizadoTxt siempre se pinta, mSnapshotInfo solo si el
+           jugador tiene rawClash._fecha — ver renderSnapshotInfo()). -->
+      <div style="display:flex; align-items:baseline; flex-wrap:wrap; gap:10px; margin-top:2px;">
+        <!-- B4/B-10: indicador de última actualización — usa apiGetUltimaActualizacion() de api.js sobre el respaldo en localStorage, sin disparar ninguna petición nueva. -->
+        <div class="text-faint" id="perfilActualizadoTxt" style="font-size:12px;"></div>
+        <!-- Fecha/clan del snapshot exportado a Drive; oculto si el jugador todavía no tiene JSON en Drive (sin rawClash). Historial en CHANGELOG.md. -->
+        <div class="snapshot-info" id="mSnapshotInfo" style="display:none; margin-top:0;"></div>
+      </div>
       <div class="card" style="padding:28px; margin-top:16px;">
         <div class="perfil-cabecera">
           <div>
             <h1 id="mNombre" style="font-size:26px;">—</h1>
             <div class="text-dim" id="mSub" style="margin-top:6px; font-size:14px;">—</div>
-            <!-- Fecha/clan del snapshot exportado a Drive; oculto si el jugador todavía no tiene JSON en Drive (sin rawClash). Historial en CHANGELOG.md. -->
-            <div class="snapshot-info" id="mSnapshotInfo" style="display:none;"></div>
           </div>
           <div class="stats-mini">
             <!-- FIX (23-sep-2026, pedido usuario — "en la parte de arriba solo se debe mostrar nivel de torre del rey, nivel de XP, copas, victorias de guerra, ataques en la semana actual y fame de la semana actual, y vigencia. todo lo demás debe ir en los cuadritos debajo"): la cabecera queda con estos 7 datos, en este orden. Torneos, Puntos estelares y Puntos de experiencia pasan a la grilla de cuadritos (renderExtendido()). Cada <span> con "Wrap" se oculta sola si el dato no llega (ver renderStatsAvanzadasCabecera() y renderMiembro()). Historial en CHANGELOG.md. -->
             <span id="mTorreReyWrap" style="display:none;"><b id="mTorreRey">0</b>Nivel de torre del rey</span>
             <span id="mNivelExpWrap" style="display:none;"><b id="mNivelExp">0</b>Nivel de XP</span>
+            <!-- FIX (26-sep-2026, pedido usuario — "el cuadrito de 'Nivel de
+                 cartas' debe cambiar el nombre a 'Nivel de colección' y
+                 moverse a la derecha de 'Nivel de XP'"): antes era un
+                 .ext-item de la grilla de cuadritos (renderExtendido(),
+                 ext.nivelCartas); se saca de ahí y se pinta acá como un dato
+                 más de la cabecera, mismo patrón que mNivelExpWrap/
+                 mTorreReyWrap (se oculta solo si falta el dato — ver
+                 renderStatsAvanzadasCabecera() más abajo). -->
+            <span id="mNivelColeccionWrap" style="display:none;"><b id="mNivelColeccion">0</b>Nivel de colección</span>
             <span><b id="mCopas">0</b>Copas</span>
             <span><b id="mVGuerra">0</b>V. Guerra</span>
             <!-- FIX (26-sep-2026, pedido usuario — "el cuadrito de ataques semanales que actualmente dice 8 ya no debe ir porque se está mostrando abajo"): se quita de la cabecera; el mismo dato (guerraSemana.ataques) ya se ve en la barra "Ataques/semana" de Requisitos para descender de rango. mAtaques ya no existe en el DOM: si algún día se necesita de nuevo, ojo con el textContent de más abajo (renderMiembro()) que todavía intentaba escribirle. -->
@@ -1553,6 +1594,10 @@ function renderStatsAvanzadasCabecera(j){
   const campos = [
     // FIX (23-sep-2026): Nivel de XP cae a j.extendido.nivelXp si rawClash no trae expLevel (ese cuadrito ya no se pinta abajo, ver renderExtendido()).
     ['mNivelExpWrap', 'mNivelExp', raw.expLevel != null ? fmtNum(raw.expLevel) : ((j.extendido && j.extendido.nivelXp != null && j.extendido.nivelXp !== '') ? fmtNum(j.extendido.nivelXp) : null)],
+    // FIX (26-sep-2026, pedido usuario): "Nivel de colección" (antes "Nivel
+    // de cartas", .ext-item de renderExtendido()) se pinta acá, a la
+    // derecha de Nivel de XP. Mismo campo de siempre, j.extendido.nivelCartas.
+    ['mNivelColeccionWrap', 'mNivelColeccion', (j.extendido && j.extendido.nivelCartas != null && j.extendido.nivelCartas !== '') ? fmtNum(j.extendido.nivelCartas) : null],
     ['mTorreReyWrap', 'mTorreRey', raw.kingTowerLevel != null ? fmtNum(raw.kingTowerLevel) : null],
   ];
   campos.forEach(([wrapId, valId, val]) => {
@@ -2523,7 +2568,10 @@ function renderExtendido(ext, j){
   const raw = j ? rawClash(j) : {};
   let items = '';
   // FIX (23-sep-2026, pedido usuario — la cabecera solo muestra 7 datos): "Nivel de XP" ya vive arriba (cabecera), así que se quita este cuadrito duplicado; Torneos, Puntos estelares y Puntos de experiencia pasan de la cabecera a esta grilla.
-  items += extItem(ext.nivelCartas, 'Nivel de cartas', true);
+  // FIX (26-sep-2026, pedido usuario): "Nivel de cartas" (ahora "Nivel de
+  // colección") se sube a la cabecera, a la derecha de Nivel de XP — ver
+  // mNivelColeccionWrap en el <html> y renderStatsAvanzadasCabecera() más
+  // arriba. Ya no se pinta acá como .ext-item.
   items += extItem(ext.copasMax, 'Copas máx.', true);
   items += extItem(j ? j.torneos : null, 'Torneos', true);
   items += extItem(raw.starPoints, 'Puntos estelares', true);
