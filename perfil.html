@@ -447,6 +447,26 @@
   }
   .coleccion-filtros button:hover{border-color:var(--purple); color:var(--purple-light);}
   .coleccion-filtros button.activo{border-color:var(--purple); background:rgba(162,57,255,.12); color:var(--purple-light);}
+  /* FIX (27-sep-2026, pedido usuario — "el minigráfico de colección de
+   * cartas debe caber debajo del botón de todas y mejora disponible,
+   * ajustando la altura a la misma que ocupan las 4 filas de colección y
+   * las filas de filtro, en el centro horizontalmente del espacio que
+   * queda a la derecha de esas filas"): antes #mColeccionNivelPie vivía
+   * DENTRO de la fila del título/Todas/Mejora (arriba de todo, con el
+   * .mini-pie normal de min-height:260px, mucho más alto que esa fila).
+   * Ahora vive en una fila propia, debajo del título, junto a
+   * #mColeccionResumenFiltrosWrap (resumen + las 3 filas de pastillas):
+   * ese bloque va a la izquierda con su ancho natural, y este wrapper
+   * (flex:1) ocupa TODO el espacio que sobra a la derecha y centra el
+   * .mini-pie ahí adentro (justify-content:center); align-items:stretch
+   * (heredado del contenedor padre, ver el <div> en el HTML) hace que
+   * ambos lados terminen con la misma altura sin necesidad de calcularla
+   * a mano. Se anula el min-height:260px de .mini-pie SOLO acá (con este
+   * selector más específico, sin tocar Victorias/Donaciones) para que la
+   * tarjeta no fuerce una altura mayor a la de esas 4 filas. */
+  .coleccion-nivel-pie-wrap{flex:1; min-width:200px; display:flex; justify-content:center;}
+  .coleccion-nivel-pie-wrap .mini-pie{min-height:0; padding:14px 18px 12px;}
+  .coleccion-nivel-pie-wrap .mini-pie-titulo{margin-bottom:10px;}
   /* FIX (23-sep-2026, pedido usuario — "el tamaño de los íconos de elixir
      debe ser del tamaño de la letra, el nombre debe estar en la fila
      superior, debajo deben estar la imagen y la ficha de la carta"):
@@ -873,38 +893,54 @@
             <div class="eyebrow">Colección</div>
             <h2 class="pf-subtitulo">Colección completa de cartas</h2>
           </div>
+          <div class="coleccion-filtros" id="mColeccionFiltrosTop" style="margin:0;"></div>
+        </div>
+        <!-- FIX (27-sep-2026, pedido usuario — "el minigráfico de colección de
+             cartas debe caber debajo del botón de todas y mejora disponible,
+             ajustando la altura a la misma que ocupan las 4 filas de
+             colección y las filas de filtro, en el centro horizontalmente
+             del espacio que queda a la derecha de esas filas"): el
+             minigráfico (antes pegado al título, ver comentario viejo más
+             arriba en el historial) se saca de ahí y pasa a compartir esta
+             fila con el resumen + las 3 filas de pastillas, como columna
+             derecha — ver CSS de .coleccion-nivel-pie-wrap más arriba
+             (anula el min-height de .mini-pie SOLO ahí) y renderColeccion()
+             más abajo en el <script> (sigue llenándolo con
+             _pastelMiniHtml(), sin cambios de esa parte). -->
+        <div style="display:flex; align-items:stretch; gap:20px; flex-wrap:wrap;">
+          <div style="flex:1; min-width:260px;">
+            <div class="coleccion-resumen" id="mColeccionResumen"></div>
+            <div class="coleccion-filtros" id="mColeccionFiltros"></div>
+            <!-- FIX (23-sep-2026, pedido usuario — "así como hay pastillas para
+                 filtrar cartas por calidad (rarity), añade otra fila con
+                 pastillas por tipo (tropa, hechizo, estructura, etc) y añade
+                 pastillas para héroe y evolución, conservando el estilo de
+                 pastillas que ya hay para héroe y evolución"): segunda fila de
+                 filtros, ver renderColeccion() más abajo. Reusa la misma clase
+                 .coleccion-filtros para las pastillas de tipo (mismo estilo que
+                 la fila de rareza de arriba); las pastillas de Héroe/Evolución
+                 que se agregan al final de esta fila usan .cc-badge/.cc-badge-btn
+                 en vez de ese estilo, para conservar el mismo formato de píldora
+                 (🦸 Héroe / ✨ Evolución) que ya se usa en el resto de la web. -->
+            <div class="coleccion-filtros" id="mColeccionFiltrosTipo"></div>
+            <!-- FIX (23-sep-2026, pedido usuario — "agrega una tercera fila de
+                 filtros para nivel (16 a la izquierda y 1 a la derecha),
+                 mostrando solo las pastillas de niveles que haya en las
+                 cartas"): tercera fila, ver renderColeccion() más abajo. Usa
+                 el nivel YA ajustado (nivelAppAjustado(), mismo cálculo que
+                 ya muestra "Nivel X" en cada ficha más abajo en esta función),
+                 no el level crudo de la API, para que los números coincidan
+                 con lo que se ve en pantalla. -->
+            <div class="coleccion-filtros" id="mColeccionFiltrosNivel"></div>
+          </div>
           <!-- FIX (27-sep-2026, pedido usuario — "al lado del título de la
                colección completa, agrega un minigráfico de pastel que
                muestre el porcentaje y cantidad de cartas de cada nivel que
                se tiene"): lo llena renderColeccion() más abajo en el
                <script>, con _pastelMiniHtml() (mismo componente donut que
                los de Victorias/Donaciones). -->
-          <div id="mColeccionNivelPie"></div>
-          <div class="coleccion-filtros" id="mColeccionFiltrosTop" style="margin:0;"></div>
+          <div id="mColeccionNivelPie" class="coleccion-nivel-pie-wrap"></div>
         </div>
-        <div class="coleccion-resumen" id="mColeccionResumen"></div>
-        <div class="coleccion-filtros" id="mColeccionFiltros"></div>
-        <!-- FIX (23-sep-2026, pedido usuario — "así como hay pastillas para
-             filtrar cartas por calidad (rarity), añade otra fila con
-             pastillas por tipo (tropa, hechizo, estructura, etc) y añade
-             pastillas para héroe y evolución, conservando el estilo de
-             pastillas que ya hay para héroe y evolución"): segunda fila de
-             filtros, ver renderColeccion() más abajo. Reusa la misma clase
-             .coleccion-filtros para las pastillas de tipo (mismo estilo que
-             la fila de rareza de arriba); las pastillas de Héroe/Evolución
-             que se agregan al final de esta fila usan .cc-badge/.cc-badge-btn
-             en vez de ese estilo, para conservar el mismo formato de píldora
-             (🦸 Héroe / ✨ Evolución) que ya se usa en el resto de la web. -->
-        <div class="coleccion-filtros" id="mColeccionFiltrosTipo"></div>
-        <!-- FIX (23-sep-2026, pedido usuario — "agrega una tercera fila de
-             filtros para nivel (16 a la izquierda y 1 a la derecha),
-             mostrando solo las pastillas de niveles que haya en las
-             cartas"): tercera fila, ver renderColeccion() más abajo. Usa
-             el nivel YA ajustado (nivelAppAjustado(), mismo cálculo que
-             ya muestra "Nivel X" en cada ficha más abajo en esta función),
-             no el level crudo de la API, para que los números coincidan
-             con lo que se ve en pantalla. -->
-        <div class="coleccion-filtros" id="mColeccionFiltrosNivel"></div>
         <!-- FIX (27-sep-2026, pedido usuario — "en la colección completa de
              cartas ponle un botón para ordenar por nombre ... y por
              nivel ..., como el botón o filtro que está en insignias"): usa
@@ -1508,13 +1544,20 @@ function _insigniaItemHtml(b){
  * FIX (27-sep-2026, pedido usuario — "en la colección completa de cartas
  * ponle un botón para ordenar ..., como el botón o filtro que está en
  * insignias"): reusado tal cual (mismas 4 opciones) para Colección
- * completa — ver renderColeccion()/cambiarOrdenColeccion(). */
-function _selectorOrdenHtml(id, actual, handler){
+ * completa — ver renderColeccion()/cambiarOrdenColeccion().
+ * FIX (27-sep-2026, pedido usuario — "en el botón de ordenar por también
+ * agrega la opción de ordenar por calidad"): `opcionesExtra` (array
+ * [valor,texto], opcional) agrega opciones SOLO para el selector que las
+ * reciba, sin tocar Insignias/Maestrías (que siguen llamando esta función
+ * sin ese 5to parámetro) — hoy solo lo usa Colección completa, para
+ * agregar "Calidad" al final de las 4 opciones de siempre. */
+function _selectorOrdenHtml(id, actual, handler, opcionesExtra){
   const opciones = [
     ['nombre-asc', 'Nombre (A-Z)'],
     ['nombre-desc', 'Nombre (Z-A)'],
     ['nivel-asc', 'Nivel (menor a mayor)'],
     ['nivel-desc', 'Nivel (mayor a menor)'],
+    ...(opcionesExtra || []),
   ];
   return `
     <div class="insignias-orden">
@@ -1809,14 +1852,38 @@ let _ultimasCartasColeccion = null;
  * (nivelAppAjustado devuelve null) quedan al final, y en empate de nivel
  * se desempata por nombre A-Z. Usa el nivel YA ajustado (mismo número que
  * se ve en cada ficha como "Nivel X"), no el `level` crudo de la API, para
- * que el orden coincida con lo que se ve en pantalla. */
+ * que el orden coincida con lo que se ve en pantalla.
+ * FIX (27-sep-2026, pedido usuario — "agrega la opción de ordenar por
+ * calidad ... en este orden: campeón, legendaria, épica, especial y
+ * común. si se elige ordenar por calidad, se ordena por calidad, nivel
+ * (mayor a menor), nombre (alfabético). si se elige ordenar por nivel, se
+ * ordena por nivel ..., luego por calidad ... y nombre alfabético"): dos
+ * cambios. (1) orden nuevo 'calidad': rareza (ORDEN_RAREZA_CARTA, ya
+ * usado por "Mazo actual" para el mismo orden campeón→común) → nivel
+ * ajustado descendente → nombre A-Z. (2) 'nivel-asc'/'nivel-desc' ganan un
+ * desempate nuevo por rareza (mismo ORDEN_RAREZA_CARTA) ANTES del nombre,
+ * cuando dos cartas empatan en nivel — antes solo desempataba por nombre. */
 function _compararColeccion(a, b, orden){
+  if (orden === 'calidad'){
+    const ra = ORDEN_RAREZA_CARTA[rarezaKey(a.rarity)] ?? 9;
+    const rb = ORDEN_RAREZA_CARTA[rarezaKey(b.rarity)] ?? 9;
+    if (ra !== rb) return ra - rb;
+    const na = nivelAppAjustado(a.level, a.maxLevel, a.rarity).nivel;
+    const nb = nivelAppAjustado(b.level, b.maxLevel, b.rarity).nivel;
+    const va = na != null ? na : -Infinity;
+    const vb = nb != null ? nb : -Infinity;
+    if (va !== vb) return vb - va;
+    return _nombreCartaEs(a).localeCompare(_nombreCartaEs(b), 'es');
+  }
   if (orden === 'nivel-asc' || orden === 'nivel-desc'){
     const na = nivelAppAjustado(a.level, a.maxLevel, a.rarity).nivel;
     const nb = nivelAppAjustado(b.level, b.maxLevel, b.rarity).nivel;
     const va = na != null ? na : -Infinity;
     const vb = nb != null ? nb : -Infinity;
     if (va !== vb) return orden === 'nivel-asc' ? va - vb : vb - va;
+    const ra = ORDEN_RAREZA_CARTA[rarezaKey(a.rarity)] ?? 9;
+    const rb = ORDEN_RAREZA_CARTA[rarezaKey(b.rarity)] ?? 9;
+    if (ra !== rb) return ra - rb;
     return _nombreCartaEs(a).localeCompare(_nombreCartaEs(b), 'es');
   }
   const cmp = _nombreCartaEs(a).localeCompare(_nombreCartaEs(b), 'es');
@@ -1896,7 +1963,7 @@ function renderColeccion(j){
   if (!Array.isArray(cartas) || !cartas.length){ card.style.display = 'none'; return; }
   card.style.display = '';
   _ultimasCartasColeccion = cartas;
-  document.getElementById('mColeccionOrden').innerHTML = _selectorOrdenHtml('selColeccionOrden', _coleccionOrden, 'cambiarOrdenColeccion');
+  document.getElementById('mColeccionOrden').innerHTML = _selectorOrdenHtml('selColeccionOrden', _coleccionOrden, 'cambiarOrdenColeccion', [['calidad', 'Calidad (Campeón→Común)']]);
   const enMax = cartas.filter(c => c.maxLevel != null && c.level >= c.maxLevel).length;
   const conEvo = cartas.filter(c => (c.evolutionLevel || 0) > 0).length;
   document.getElementById('mColeccionResumen').innerHTML =
