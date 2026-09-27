@@ -483,8 +483,14 @@
    * ambos lados terminen con la misma altura sin necesidad de calcularla
    * a mano. Se anula el min-height:260px de .mini-pie SOLO acá (con este
    * selector más específico, sin tocar Victorias/Donaciones) para que la
-   * tarjeta no fuerce una altura mayor a la de esas 4 filas. */
-  .coleccion-nivel-pie-wrap{flex:1; min-width:200px; display:flex; justify-content:center;}
+   * tarjeta no fuerce una altura mayor a la de esas 4 filas.
+   * FIX (27-sep-2026, pedido usuario — "sube el gráfico a la altura del
+   * botón 'Colección'"): el minigráfico se mueve a la fila del
+   * eyebrow/título (justify-content:space-between, ver el HTML), así que
+   * ya no necesita flex:1/min-width:200px para repartirse el espacio con
+   * el resumen+filtros — eso ahora vive en su propia fila, debajo. Se
+   * queda solo con flex-shrink:0 para que conserve su tamaño natural. */
+  .coleccion-nivel-pie-wrap{flex-shrink:0; display:flex; justify-content:center;}
   .coleccion-nivel-pie-wrap .mini-pie{min-height:0; padding:14px 18px 12px;}
   .coleccion-nivel-pie-wrap .mini-pie-titulo{margin-bottom:10px;}
   /* FIX (23-sep-2026, pedido usuario — "el tamaño de los íconos de elixir
@@ -908,50 +914,17 @@
              fila). "Todas" se saca de la fila de rareza (mColeccionFiltros)
              y, junto con la nueva "Mejora disponible", pasa a vivir acá, en
              mColeccionFiltrosTop — ver renderColeccion() más abajo. -->
+        <!-- FIX (27-sep-2026, pedido usuario — "sube el gráfico a la altura
+             del botón 'Colección'"): el minigráfico de pastel (antes
+             compartiendo fila con el resumen+filtros más abajo, ver
+             historial) vuelve a vivir junto al título, a su derecha, en la
+             misma fila que el eyebrow "Colección"/h2. "Todas" y "Mejora
+             disponible" salen de acá (ver más abajo, ahora comparten fila
+             con "Ordenar por"). -->
         <div style="display:flex; justify-content:space-between; align-items:center; gap:14px; flex-wrap:wrap;">
           <div>
             <div class="eyebrow">Colección</div>
             <h2 class="pf-subtitulo">Colección completa de cartas</h2>
-          </div>
-          <div class="coleccion-filtros" id="mColeccionFiltrosTop" style="margin:0;"></div>
-        </div>
-        <!-- FIX (27-sep-2026, pedido usuario — "el minigráfico de colección de
-             cartas debe caber debajo del botón de todas y mejora disponible,
-             ajustando la altura a la misma que ocupan las 4 filas de
-             colección y las filas de filtro, en el centro horizontalmente
-             del espacio que queda a la derecha de esas filas"): el
-             minigráfico (antes pegado al título, ver comentario viejo más
-             arriba en el historial) se saca de ahí y pasa a compartir esta
-             fila con el resumen + las 3 filas de pastillas, como columna
-             derecha — ver CSS de .coleccion-nivel-pie-wrap más arriba
-             (anula el min-height de .mini-pie SOLO ahí) y renderColeccion()
-             más abajo en el <script> (sigue llenándolo con
-             _pastelMiniHtml(), sin cambios de esa parte). -->
-        <div style="display:flex; align-items:stretch; gap:20px; flex-wrap:wrap;">
-          <div style="flex:1; min-width:260px;">
-            <div class="coleccion-resumen" id="mColeccionResumen"></div>
-            <div class="coleccion-filtros" id="mColeccionFiltros"></div>
-            <!-- FIX (23-sep-2026, pedido usuario — "así como hay pastillas para
-                 filtrar cartas por calidad (rarity), añade otra fila con
-                 pastillas por tipo (tropa, hechizo, estructura, etc) y añade
-                 pastillas para héroe y evolución, conservando el estilo de
-                 pastillas que ya hay para héroe y evolución"): segunda fila de
-                 filtros, ver renderColeccion() más abajo. Reusa la misma clase
-                 .coleccion-filtros para las pastillas de tipo (mismo estilo que
-                 la fila de rareza de arriba); las pastillas de Héroe/Evolución
-                 que se agregan al final de esta fila usan .cc-badge/.cc-badge-btn
-                 en vez de ese estilo, para conservar el mismo formato de píldora
-                 (🦸 Héroe / ✨ Evolución) que ya se usa en el resto de la web. -->
-            <div class="coleccion-filtros" id="mColeccionFiltrosTipo"></div>
-            <!-- FIX (23-sep-2026, pedido usuario — "agrega una tercera fila de
-                 filtros para nivel (16 a la izquierda y 1 a la derecha),
-                 mostrando solo las pastillas de niveles que haya en las
-                 cartas"): tercera fila, ver renderColeccion() más abajo. Usa
-                 el nivel YA ajustado (nivelAppAjustado(), mismo cálculo que
-                 ya muestra "Nivel X" en cada ficha más abajo en esta función),
-                 no el level crudo de la API, para que los números coincidan
-                 con lo que se ve en pantalla. -->
-            <div class="coleccion-filtros" id="mColeccionFiltrosNivel"></div>
           </div>
           <!-- FIX (27-sep-2026, pedido usuario — "al lado del título de la
                colección completa, agrega un minigráfico de pastel que
@@ -961,14 +934,41 @@
                los de Victorias/Donaciones). -->
           <div id="mColeccionNivelPie" class="coleccion-nivel-pie-wrap"></div>
         </div>
-        <!-- FIX (27-sep-2026, pedido usuario — "en la colección completa de
-             cartas ponle un botón para ordenar por nombre ... y por
-             nivel ..., como el botón o filtro que está en insignias"): usa
-             _selectorOrdenHtml(), el mismo componente/clase .insignias-orden
-             que ya arma el selector de Insignias/Maestrías — se pinta desde
-             renderColeccion() más abajo, misma posición relativa (justo
-             antes de la grilla que controla) que en Insignias. -->
-        <div id="mColeccionOrden"></div>
+        <div style="margin-top:16px;">
+          <div class="coleccion-resumen" id="mColeccionResumen"></div>
+          <div class="coleccion-filtros" id="mColeccionFiltros"></div>
+          <!-- FIX (23-sep-2026, pedido usuario — "así como hay pastillas para
+               filtrar cartas por calidad (rarity), añade otra fila con
+               pastillas por tipo (tropa, hechizo, estructura, etc) y añade
+               pastillas para héroe y evolución, conservando el estilo de
+               pastillas que ya hay para héroe y evolución"): segunda fila de
+               filtros, ver renderColeccion() más abajo. Reusa la misma clase
+               .coleccion-filtros para las pastillas de tipo (mismo estilo que
+               la fila de rareza de arriba); las pastillas de Héroe/Evolución
+               que se agregan al final de esta fila usan .cc-badge/.cc-badge-btn
+               en vez de ese estilo, para conservar el mismo formato de píldora
+               (🦸 Héroe / ✨ Evolución) que ya se usa en el resto de la web. -->
+          <div class="coleccion-filtros" id="mColeccionFiltrosTipo"></div>
+          <!-- FIX (23-sep-2026, pedido usuario — "agrega una tercera fila de
+               filtros para nivel (16 a la izquierda y 1 a la derecha),
+               mostrando solo las pastillas de niveles que haya en las
+               cartas"): tercera fila, ver renderColeccion() más abajo. Usa
+               el nivel YA ajustado (nivelAppAjustado(), mismo cálculo que
+               ya muestra "Nivel X" en cada ficha más abajo en esta función),
+               no el level crudo de la API, para que los números coincidan
+               con lo que se ve en pantalla. -->
+          <div class="coleccion-filtros" id="mColeccionFiltrosNivel"></div>
+        </div>
+        <!-- FIX (27-sep-2026, pedido usuario — "mueve los botones todas y
+             mejora disponible a la derecha del desplegable de ordenar por"):
+             "Ordenar por" (mColeccionOrden, _selectorOrdenHtml()) y
+             "Todas"/"Mejora disponible" (mColeccionFiltrosTop, llenado en
+             renderColeccion() más abajo) ahora comparten una misma fila,
+             con el selector a la izquierda y las pastillas a la derecha. -->
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:14px; flex-wrap:wrap; margin-top:16px;">
+          <div id="mColeccionOrden"></div>
+          <div class="coleccion-filtros" id="mColeccionFiltrosTop" style="margin:0;"></div>
+        </div>
         <div class="coleccion-grid" id="mColeccionContenido"></div>
       </div>
 
@@ -2952,7 +2952,10 @@ function renderExtendido(ext, j){
   items += extItem(j ? j.torneos : null, 'Torneos', true);
   items += extItem(ext.maxVictoriasDesafios, 'Máx. victorias desafío', true);
   items += extItem(ext.victorias3Coronas, '3 coronas', true);
-  items += extItem(raw.expPoints != null ? `${fmtNum(raw.expPoints)} / ${fmtNum(raw.totalExpPoints)}` : null, 'Puntos de experiencia', false);
+  // FIX (27-sep-2026, pedido usuario — "puntos de experiencia debe ocupar
+  // dos columnas"): mismo mecanismo que ya usa Arena (ancho=2, ver extItem()
+  // más arriba), porque el valor "actual / total" puede ser bastante largo.
+  items += extItem(raw.expPoints != null ? `${fmtNum(raw.expPoints)} / ${fmtNum(raw.totalExpPoints)}` : null, 'Puntos de experiencia', false, 2);
   items += extItem(raw.starPoints, 'Puntos estelares', true);
   /* FIX (23-sep-2026, pedido usuario — "falta retirar el cuadrito de
    * batallas"): Batallas ya no se pinta como cuadrito suelto. En su lugar,
