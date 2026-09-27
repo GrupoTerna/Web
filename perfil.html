@@ -394,9 +394,16 @@
   /* FIX (27-sep-2026, pedido usuario — "las gráficas no tienen la misma
    * altura; Requisitos... debe mostrarse al mismo nivel que los dos
    * minigráficos pero... el segundo minigráfico está bajando"): las dos
-   * tarjetas de dispersión (Ataques y barcos / Fama) viven apiladas en
-   * columna dentro de #mReqGraficosWrap, junto a "Requisitos" (ver el HTML
-   * de la cabecera). El min-height:260px de .mini-pie es un piso común a
+   * tarjetas de dispersión (Ataques y barcos / Fama) viven dentro de
+   * #mReqGraficosWrap, junto a "Requisitos" (ver el HTML de la cabecera).
+   * OJO: esta nota describía el layout apilado en columna de ese momento;
+   * otro FIX del mismo día (27-sep-2026, "deben caber en una sola fila") lo
+   * cambió después a una fila de 2 columnas — ver el HTML de
+   * mReqGraficosWrap — pero el problema de fondo que arregla ESTE bloque
+   * (el título/leyenda de una tarjeta más largo que el de la otra la
+   * alarga y desalinea el par) sigue existiendo igual en fila que en
+   * columna, así que las alturas fijas de más abajo se mantienen. El
+   * min-height:260px de .mini-pie es un piso común a
    * las 4 tarjetas del sitio, pero no garantiza que estas dos midan lo
    * mismo ENTRE SÍ: el título "Ataques y barcos por día" es bastante más
    * largo que "Fama por día" y, en tarjetas angostas, puede envolver a 2
@@ -724,7 +731,7 @@
             <span id="mNivelColeccionWrap" style="display:none;"><b id="mNivelColeccion">0</b>Nivel de colección</span>
             <span><b id="mCopas">0</b>Copas</span>
             <span><b id="mVGuerra">0</b>V. Guerra</span>
-            <!-- FIX (26-sep-2026, pedido usuario — "el cuadrito de ataques semanales que actualmente dice 8 ya no debe ir porque se está mostrando abajo"): se quita de la cabecera; el mismo dato (guerraSemana.ataques) ya se ve en la barra "Ataques/semana" de Requisitos para descender de rango. mAtaques ya no existe en el DOM: si algún día se necesita de nuevo, ojo con el textContent de más abajo (renderMiembro()) que todavía intentaba escribirle. -->
+            <!-- FIX (26-sep-2026, pedido usuario — "el cuadrito de ataques semanales que actualmente dice 8 ya no debe ir porque se está mostrando abajo"): se quita de la cabecera; el mismo dato (guerraSemana.ataques) ya se ve en la barra "Ataques/semana" de Requisitos para mantener el rango (antes "descender de rango" — ver FIX 27-sep-2026 en bloqueRequisitos()). mAtaques ya no existe en el DOM: si algún día se necesita de nuevo, ojo con el textContent de más abajo (renderMiembro()) que todavía intentaba escribirle. -->
             <span id="mFameSemanaWrap" style="display:none;"><b id="mFameSemana">0</b>Fame de la semana actual</span>
             <!-- Vigencia (Última conexión) queda oculta hasta que el backend mande j.vigencia. Historial en CHANGELOG.md. -->
             <span id="mVigenciaWrap" style="display:none;"><b id="mVigencia">—</b>Vigencia</span>
@@ -737,10 +744,32 @@
              a la derecha, los dos minigráficos de dispersión (Ataques y
              barcos por día / Fama por día) que antes vivían más abajo junto
              a los donuts de Victorias/Donaciones (ver renderExtendido()).
-             mReqGraficosWrap se llena desde ahí mismo, no desde acá. -->
+             mReqGraficosWrap se llena desde ahí mismo, no desde acá.
+             FIX (27-sep-2026, pedido usuario — "las gráficas de ataques y
+             fame deben caber en una sola fila, igual que el bloque de
+             cuadritos con los minigráficos de pastel a la derecha"): esta
+             sección reemplaza el reparto de ancho y el modo de apilado del
+             26-sep-2026 (el resto de ese FIX -- que ambos minigráficos vivan
+             acá, al lado de Requisitos -- sigue vigente). Antes
+             mReqGraficosWrap era flex-direction:column (Ataques arriba,
+             Fama abajo) con flex:1 (menos ancho que Requisitos, flex:2), lo
+             que dejaba muy poco espacio horizontal para dos tarjetas de
+             ~280px cada una. Se invierte la proporción (Requisitos flex:1,
+             más angosto -- su contenido son solo 2-4 barras de progreso,
+             nunca necesitó tanto ancho -- y mReqGraficosWrap flex:2) y se
+             pasa mReqGraficosWrap a grid de 2 columnas con
+             auto-fit/minmax(270px,1fr), el mismo patrón responsivo que ya
+             usa .mini-pies para poner Victorias/Derrotas y Donaciones lado a
+             lado en una sola fila: con ancho de sobra (desktop) entran las 2
+             columnas una junto a la otra; si el contenedor se angosta
+             demasiado (pantallas chicas) el grid cae solo a 1 columna
+             apilada, sin que se recorte ni se aplaste nada. min-width:556px
+             (270*2 + 16 de gap) en mReqGraficosWrap hace que sea ESTE bloque
+             el que baje entero debajo de Requisitos en pantallas angostas
+             (en vez de angostarse él mismo hasta apretar las tarjetas). -->
         <div style="display:flex; gap:20px; flex-wrap:wrap; align-items:flex-start; margin-top:16px;">
-          <div id="mReqContenido" style="flex:2; min-width:260px;"></div>
-          <div id="mReqGraficosWrap" style="flex:1; min-width:280px; display:flex; flex-direction:column; gap:16px;"></div>
+          <div id="mReqContenido" style="flex:1; min-width:260px;"></div>
+          <div id="mReqGraficosWrap" style="flex:2; min-width:556px; display:grid; grid-template-columns:repeat(auto-fit,minmax(270px,1fr)); gap:16px;"></div>
         </div>
         <div id="mExtWrap"></div>
 
@@ -824,6 +853,14 @@
              no el level crudo de la API, para que los números coincidan
              con lo que se ve en pantalla. -->
         <div class="coleccion-filtros" id="mColeccionFiltrosNivel"></div>
+        <!-- FIX (27-sep-2026, pedido usuario — "en la colección completa de
+             cartas ponle un botón para ordenar por nombre ... y por
+             nivel ..., como el botón o filtro que está en insignias"): usa
+             _selectorOrdenHtml(), el mismo componente/clase .insignias-orden
+             que ya arma el selector de Insignias/Maestrías — se pinta desde
+             renderColeccion() más abajo, misma posición relativa (justo
+             antes de la grilla que controla) que en Insignias. -->
+        <div id="mColeccionOrden"></div>
         <div class="coleccion-grid" id="mColeccionContenido"></div>
       </div>
 
@@ -981,6 +1018,21 @@ function esRangoLider(rango){
   const r = String(rango||'').toLowerCase();
   return r.includes('líder') && !r.includes('col');
 }
+/** FIX (27-sep-2026, pedido usuario — "veo que a los colíderes se les
+ * muestra requisitos para ascender, no se les debe mostrar, ya que no
+ * necesariamente van a ascender. el cambio de líder es esporádico"): mismo
+ * chequeo r.includes('col') que ya usan campoMinTSegunRango()/
+ * campoAtaquesSegunRango() para detectar Colíder. Se usa junto con
+ * esRangoLider() en bloqueRequisitos() para que el bloque de Ascensos deje
+ * de pintarse también para Colíder (antes solo se ocultaba para Líder): el
+ * paso de Colíder a Líder no sigue la misma regla automática por trofeos/
+ * ataques que Miembro→Veterano→Colíder, es una decisión manual y poco
+ * frecuente del Líder actual, así que mostrarlo como si fuera un requisito
+ * más no tiene sentido. */
+function esRangoColider(rango){
+  const r = String(rango||'').toLowerCase();
+  return r.includes('col');
+}
 function campoMinTSegunRango(rango){
   const r = String(rango||'').toLowerCase();
   if(r.includes('col')) return 'minTColider';
@@ -1021,9 +1073,19 @@ function barraRequisito(lbl, actual, requerido, activo, sufijo){
  * Ascensos/Descensos del panel de admin, admin.html). (2) El bloque de
  * Ascensos ya no se pinta para el Líder del clan: no existe un rango por
  * encima de Líder al que ascender, así que mostrárselo no tiene sentido
- * (el de Descensos SÍ se mantiene -- un Líder puede bajar de rango). */
+ * (el de Descensos SÍ se mantiene -- un Líder puede bajar de rango).
+ * FIX (27-sep-2026, pedido usuario — ver esRangoColider() más arriba):
+ * Corrección a lo dicho antes: ocultar Ascensos no bastaba con esRangoLider()
+ * solo -- Colíder también lo veía y no debía, así que ahora se ocultan
+ * ambos rangos (esRangoLider() OR esRangoColider()). Además, "Requisitos
+ * para descender de rango" pasa a llamarse "Requisitos para mantener el
+ * rango" (pedido usuario — el nombre anterior confundía: esta barra no es
+ * un requisito para bajar de rango a propósito, es el mínimo que hay que
+ * sostener para NO ser bajado de rango). Esta segunda parte es solo texto
+ * (titulo); la key interna 'descensos' del backend (j.progreso.descensos)
+ * y el resto de la lógica no cambian. */
 function bloqueRequisitos(j, key){
-  if (key === 'ascensos' && esRangoLider(j.rango)) return '';
+  if (key === 'ascensos' && (esRangoLider(j.rango) || esRangoColider(j.rango))) return '';
   const req = j.progreso ? j.progreso[key] : null;
   if (!req) return '';
   const campoMinT = campoMinTSegunRango(j.rango);
@@ -1034,7 +1096,7 @@ function bloqueRequisitos(j, key){
   if (minT) html += barraRequisito('Trofeos guerra', minT.actual, minT.requerido, minT.activo, '🏆');
   if (ataques) html += barraRequisito('Ataques/semana', ataques.actual, ataques.requerido, ataques.activo, '');
   if (!html) return '';
-  const titulo = key === 'ascensos' ? 'Requisitos para ascender de rango' : 'Requisitos para descender de rango';
+  const titulo = key === 'ascensos' ? 'Requisitos para ascender de rango' : 'Requisitos para mantener el rango';
   return `<div class="req-bloque-titulo">${esc(titulo)}</div>${html}`;
 }
 function extItem(valor, label, esNumero){
@@ -1380,10 +1442,15 @@ function _insigniaItemHtml(b){
 }
 
 /** Arma un <select> de orden, marcando como `selected` la opción vigente
- * (`actual`, que es _insigniasOrden o _maestriasOrden según el grupo) para
- * que sobreviva a un re-pintado, ej. al cambiar de orden o al volver a
- * llamar a renderInsignias() con datos nuevos. `id` y `handler` distinguen
- * el selector de Insignias del de Maestrías. */
+ * (`actual`, que es _insigniasOrden/_maestriasOrden/_coleccionOrden según
+ * el grupo) para que sobreviva a un re-pintado, ej. al cambiar de orden o
+ * al volver a llamar a renderInsignias()/renderColeccion() con datos
+ * nuevos. `id` y `handler` distinguen el selector de Insignias, el de
+ * Maestrías y el de Colección completa entre sí.
+ * FIX (27-sep-2026, pedido usuario — "en la colección completa de cartas
+ * ponle un botón para ordenar ..., como el botón o filtro que está en
+ * insignias"): reusado tal cual (mismas 4 opciones) para Colección
+ * completa — ver renderColeccion()/cambiarOrdenColeccion(). */
 function _selectorOrdenHtml(id, actual, handler){
   const opciones = [
     ['nombre-asc', 'Nombre (A-Z)'],
@@ -1660,6 +1727,51 @@ function renderStatsAvanzadasCabecera(j){
 // _colCartaPasaFiltro): p.ej. rareza=Legendaria Y tipo=Tropa Y nivel=14.
 // Una categoría vacía (ningún botón de esa fila activo) no restringe nada.
 const _colFiltrosActivos = { rareza: new Set(), tipo: new Set(), nivel: new Set(), heroe: false, evolucion: false, mejora: false };
+/** FIX (27-sep-2026, pedido usuario — "en la colección completa de cartas
+ * ponle un botón para ordenar por nombre ... y por nivel ..., como el botón
+ * o filtro que está en insignias"): mismo patrón que _insigniasOrden/
+ * _maestriasOrden/_compararInsignias/_selectorOrdenHtml (ver ese bloque más
+ * abajo) reutilizado acá — mismas 4 opciones (nombre-asc/desc,
+ * nivel-asc/desc) y mismo componente visual (.insignias-orden,
+ * _selectorOrdenHtml()). _ultimasCartasColeccion guarda el `cartas[]` que
+ * ya recibió renderColeccion(), para que cambiarOrdenColeccion() pueda
+ * volver a pintar sin pedirle `j` de nuevo (igual que _ultimosBadges).
+ * OJO -- cambio de comportamiento visible: antes pintarColeccion() SIEMPRE
+ * ordenaba agrupando por rareza primero (campeón→legendaria→…→común) y
+ * dentro de cada rareza por nivel descendente; ese agrupamiento por rareza
+ * se pierde con este cambio (el selector, igual que en Insignias, ordena
+ * por nombre o nivel sin agrupar por rareza) y el valor por defecto pasa a
+ * ser "Nombre (A-Z)", igual que Insignias. Si el agrupamiento por rareza
+ * como vista por defecto era importante, avisar para agregarlo como opción
+ * aparte en el selector. */
+let _coleccionOrden = 'nombre-asc';
+let _ultimasCartasColeccion = null;
+/** Compara dos cartas de Colección completa según `orden`, mismo criterio
+ * que _compararInsignias(): para nivel, las cartas sin nivel calculable
+ * (nivelAppAjustado devuelve null) quedan al final, y en empate de nivel
+ * se desempata por nombre A-Z. Usa el nivel YA ajustado (mismo número que
+ * se ve en cada ficha como "Nivel X"), no el `level` crudo de la API, para
+ * que el orden coincida con lo que se ve en pantalla. */
+function _compararColeccion(a, b, orden){
+  if (orden === 'nivel-asc' || orden === 'nivel-desc'){
+    const na = nivelAppAjustado(a.level, a.maxLevel, a.rarity).nivel;
+    const nb = nivelAppAjustado(b.level, b.maxLevel, b.rarity).nivel;
+    const va = na != null ? na : -Infinity;
+    const vb = nb != null ? nb : -Infinity;
+    if (va !== vb) return orden === 'nivel-asc' ? va - vb : vb - va;
+    return _nombreCartaEs(a).localeCompare(_nombreCartaEs(b), 'es');
+  }
+  const cmp = _nombreCartaEs(a).localeCompare(_nombreCartaEs(b), 'es');
+  return orden === 'nombre-desc' ? -cmp : cmp;
+}
+/** onchange del <select> de orden de Colección completa: guarda el nuevo
+ * criterio y vuelve a pintar con las mismas cartas ya recibidas (respeta
+ * los filtros de pastillas activos, que pintarColeccion() vuelve a
+ * calcular sobre `cartas` cada vez), sin volver a tocar el backend. */
+function cambiarOrdenColeccion(orden){
+  _coleccionOrden = orden;
+  if (_ultimasCartasColeccion) pintarColeccion(_ultimasCartasColeccion);
+}
 // FIX (23-sep-2026, pedido usuario — pastillas de tipo/héroe/evolución en
 // Colección completa): faltaba esta constante y el helper de más abajo,
 // lo que rompía renderColeccion() con "TIPOS_CARTA_FILTRO is not defined".
@@ -1725,6 +1837,8 @@ function renderColeccion(j){
   const card = document.getElementById('mColeccionCard');
   if (!Array.isArray(cartas) || !cartas.length){ card.style.display = 'none'; return; }
   card.style.display = '';
+  _ultimasCartasColeccion = cartas;
+  document.getElementById('mColeccionOrden').innerHTML = _selectorOrdenHtml('selColeccionOrden', _coleccionOrden, 'cambiarOrdenColeccion');
   const enMax = cartas.filter(c => c.maxLevel != null && c.level >= c.maxLevel).length;
   const conEvo = cartas.filter(c => (c.evolutionLevel || 0) > 0).length;
   document.getElementById('mColeccionResumen').innerHTML =
@@ -2151,15 +2265,15 @@ function _activarClickCosto(nodos, lista, getObj, getNombre, getNivel){
 
 function pintarColeccion(cartas){
   const cont = document.getElementById('mColeccionContenido');
-  const ordRar = { campeon:0, legendaria:1, epica:2, especial:3, comun:4 };
   const visibles = cartas.filter(_colCartaPasaFiltro);
   // FIX (20-sep-2026, pedido usuario — nombres de cartas en español): se
   // ordena por el nombre YA traducido, para que el orden alfabético
   // coincida con lo que se ve en pantalla.
-  visibles.sort((a, b) =>
-    ((ordRar[rarezaKey(a.rarity)] ?? 9) - (ordRar[rarezaKey(b.rarity)] ?? 9)) ||
-    ((b.level || 0) - (a.level || 0)) ||
-    _nombreCartaEs(a).localeCompare(_nombreCartaEs(b), 'es'));
+  // FIX (27-sep-2026, pedido usuario — selector de orden en Colección
+  // completa, ver _compararColeccion()/_coleccionOrden más arriba): antes
+  // el orden era fijo (rareza → nivel descendente → nombre); ahora lo
+  // decide el <select> "Ordenar por" (mismas 4 opciones que Insignias).
+  visibles.sort((a, b) => _compararColeccion(a, b, _coleccionOrden));
   // FIX (23-sep-2026, pedido usuario — "en todo perfil.html hay varias
   // secciones. si el dato se menciona para alguna ficha en una determinada
   // sección, se le reserva una fila. si no se menciona, no se debe
