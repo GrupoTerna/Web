@@ -2893,6 +2893,39 @@ FIX (03-sep-2026, pedido usuario, punto 19 — "agregar un
 
 ## perfil.html — historial trasladado
 
+### 27-sep-2026 — Íconos nuevos: Puntos estelares y Camino de Leyendas
+Pedido del usuario: subió tres íconos del juego (`icon_menu_clan_wars`,
+`icon_star_level`, `Path_of_Legends_icon`) aclarando que el primero ya
+estaba guardado en `assets/img/Guerra.webp`, el segundo es para "Puntos
+estelares" (`perfil.html`) y el tercero es el ícono del modo competitivo
+(Camino de Leyendas).
+
+- **`assets/img/`:** `icon_star_level.webp` → `PuntosEstelares.webp`;
+  `Path_of_Legends_icon.webp` → `Leyendas.webp`. `icon_menu_clan_wars` no se
+  duplicó: `Guerra.webp` ya existía y es visualmente idéntico (aunque no
+  byte-a-byte, probablemente por un re-encode).
+- **`_ICONO_PUNTOS_ESTELARES_HTML` / `_ICONO_LEYENDAS_HTML` (nuevas):** mismo
+  patrón que `_ICONO_ORO_HTML`/`_ICONO_GUERRA_HTML` — `<img>` con `onerror`
+  que reemplaza por ⭐/🎖️ si el archivo llegara a faltar.
+- **`extItem(valor, label, esNumero, ancho, icono)`:** nuevo 5º parámetro
+  opcional (HTML de ícono ya armado) que se antepone al label dentro de
+  `.k`. Sin este parámetro el comportamiento es idéntico al de antes para
+  el resto de los cuadritos — se usa solo en el cuadrito "Puntos
+  estelares" (`raw.starPoints`), pasándole `_ICONO_PUNTOS_ESTELARES_HTML`.
+- **`renderCaminoLeyendas()`:** el `<h3 class="leyendas-subcat">Camino de
+  Leyendas</h3>` ahora antepone `_ICONO_LEYENDAS_HTML`. La subsección
+  "Ligas" no lleva ícono (no se subió uno específico para Ligas).
+- **Corrección (27-sep-2026, aviso del usuario):** el docblock de
+  `_ICONO_GUERRA_HTML` decía que el ícono real (escudo con espadas
+  cruzadas) no era viable por derechos de autor de Supercell y que 🎖️ era
+  "el reemplazo aprobado" — el usuario aclaró que sí es legal (descargado
+  del Fan Kit de Supercell) y que además el ícono y el emoji no son
+  equivalentes: el ícono representa el modo de juego (Guerra de Río), 🎖️
+  es solo el símbolo de respaldo técnico más cercano si el archivo llega a
+  faltar, sin pretender representar lo mismo. Docblock corregido.
+- También se corrigió un comentario desactualizado junto a `_ICONO_GUERRA_HTML`
+  en el battlelog que todavía decía "Guerra.webp todavía no está subido".
+
 ### 23-sep-2026 — Colección completa: espacio para costo en oro y cartas del siguiente nivel (backend pendiente)
 Pedido del usuario: "agrega un campo para añadir el costo en oro para subir de
 nivel, también la cantidad de cartas requeridas para el siguiente nivel. aún

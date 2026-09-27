@@ -1345,7 +1345,7 @@ function bloqueRequisitos(j, key){
   const titulo = key === 'ascensos' ? 'Requisitos para ascender de rango' : 'Requisitos para mantener el rango';
   return `<div class="req-bloque-titulo">${esc(titulo)}</div>${html}`;
 }
-function extItem(valor, label, esNumero, ancho){
+function extItem(valor, label, esNumero, ancho, icono){
   if (valor === undefined || valor === null || valor === '') return '';
   const txt = esNumero ? fmtNum(valor) : String(valor);
   // FIX (27-sep-2026, pedido usuario — "haz que arena ocupe el lugar de dos
@@ -1354,7 +1354,13 @@ function extItem(valor, label, esNumero, ancho){
   // en assets/styles.css) en vez de 1. Sin este parámetro el comportamiento
   // es idéntico al de antes para el resto de los cuadritos.
   const estiloAncho = ancho === 2 ? ' style="grid-column:span 2;"' : '';
-  return `<div class="ext-item"${estiloAncho}><div class="v">${esc(txt)}</div><div class="k">${esc(label)}</div></div>`;
+  // FIX (27-sep-2026, pedido usuario — ícono de "Puntos estelares"): 5to
+  // parámetro opcional, HTML de un <img> ya armado (mismo patrón que
+  // _ICONO_ORO_HTML/_ICONO_GUERRA_HTML, ver más abajo) que se antepone a
+  // `label` dentro de .k. Sin este parámetro el comportamiento es idéntico
+  // al de antes para el resto de los cuadritos (solo texto, sin ícono).
+  const labelHtml = icono ? `${icono}${esc(label)}` : esc(label);
+  return `<div class="ext-item"${estiloAncho}><div class="v">${esc(txt)}</div><div class="k">${labelHtml}</div></div>`;
 }
 /**
  * rawClash(j) → el JSON crudo del snapshot exportado a Drive.
@@ -1930,7 +1936,7 @@ function renderCaminoLeyendas(j){
   const tabla = filas => `<table class="panel-stats"><tbody>${filas.join('')}</tbody></table>`;
   const seccionLeyendas = filasLeyendas.length ? `
     <div class="leyendas-bloque">
-      <h3 class="leyendas-subcat">Camino de Leyendas</h3>
+      <h3 class="leyendas-subcat">${_ICONO_LEYENDAS_HTML}Camino de Leyendas</h3>
       ${tabla(filasLeyendas)}
     </div>` : '';
   const seccionLiga = filasLiga.length ? `
@@ -2335,13 +2341,19 @@ const _ICONO_ORO_HTML = '<img src="assets/img/Gold.webp" alt="Oro" onerror="this
  * perfil, para distinguir riverRacePvP/riverRaceDuel/boatBattle de las
  * demás batallas). Mismo patrón exacto que _ICONO_ORO_HTML (arriba): <img>
  * a assets/img/Guerra.webp con onerror que lo reemplaza por el emoji 🎖️
- * (medalla militar) si el archivo todavía no está subido a
- * grupoterna.github.io/Web/assets/img/ -- así el battlelog no se rompe
- * mientras el ícono real no esté disponible, y el reemplazo es automático
- * apenas el archivo se suba (no hace falta tocar este código de nuevo).
- * El usuario confirmó que el ícono real del "escudo con espadas cruzadas"
- * (menú Guerra del juego) no es viable por derechos de autor de Supercell
- * -- 🎖️ es el reemplazo aprobado mientras tanto.
+ * si el archivo llegara a faltar en assets/img/ -- así el battlelog no se
+ * rompe si el ícono no está disponible, sin que haga falta tocar este
+ * código de nuevo.
+ * ACLARACIÓN (27-sep-2026, corrección del usuario): Guerra.webp es el
+ * ícono oficial del menú "Guerra" del juego (escudo mitad azul/mitad rojo
+ * con espadas cruzadas), descargado del Fan Kit de Supercell -- uso legal,
+ * no hay problema de derechos de autor (a diferencia de lo que decía una
+ * versión anterior de este comentario). El emoji 🎖️ NO es un reemplazo
+ * equivalente ni pretende serlo: el ícono representa el MODO de juego
+ * (Guerra de Río), mientras que 🎖️ (medalla militar) es solo el símbolo
+ * de respaldo más cercano disponible como texto plano si el <img> no
+ * carga -- son dos cosas conceptualmente distintas, el emoji es puramente
+ * una red de seguridad técnica, no una elección de diseño por similitud.
  */
 const _ICONO_GUERRA_HTML = '<img src="assets/img/Guerra.webp" alt="Guerra" onerror="this.replaceWith(document.createTextNode(\'\\u{1F396}\\u{FE0F}\'));">';
 
@@ -2371,6 +2383,31 @@ const _ICONO_GUERRA_HTML = '<img src="assets/img/Guerra.webp" alt="Guerra" onerr
 const _ICONO_CORONA_AZUL_HTML = '<img src="assets/img/BlueCrown.webp" alt="Coronas propias" style="height:14px; width:auto; vertical-align:-3px;" onerror="this.replaceWith(document.createTextNode(\'\\u{1F451}\'));">';
 const _ICONO_CORONA_ROJA_HTML = '<img src="assets/img/RedCrown.webp" alt="Coronas del rival" style="height:14px; width:auto; vertical-align:-3px;" onerror="this.replaceWith(document.createTextNode(\'\\u{1F451}\'));">';
 const _ICONO_BATALLA_HTML = '<img src="assets/img/Batalla.webp" alt="Camino de trofeos" style="height:14px; width:auto; vertical-align:-3px;" onerror="this.replaceWith(document.createTextNode(\'\\u{2694}\\u{FE0F}\'));">';
+
+/**
+ * _ICONO_PUNTOS_ESTELARES_HTML / _ICONO_LEYENDAS_HTML
+ * NUEVO (27-sep-2026, pedido usuario -- dos íconos nuevos del juego,
+ * subidos a assets/img/ como PuntosEstelares.webp y Leyendas.webp):
+ *   - PuntosEstelares.webp es el ícono in-game de "Puntos estelares"
+ *     (badge amarillo en forma de estrella) -- se usa junto al cuadrito
+ *     "Puntos estelares" de renderExtendido() (raw.starPoints, ver más
+ *     abajo), NO junto a las estrellitas de nivel estelar por carta
+ *     (estrellasHtml(), que sigue usando el glifo ★ tal cual: son datos
+ *     distintos, el nivel estelar de una carta puntual vs. la moneda
+ *     "puntos estelares" del perfil).
+ *   - Leyendas.webp es el ícono in-game del modo "Camino de Leyendas"
+ *     (medalla morada con corona) -- se usa junto al <h3> "Camino de
+ *     Leyendas" de renderCaminoLeyendas() (más abajo), NO junto a la
+ *     subsección "Ligas" (modo de juego distinto, sin ícono propio subido
+ *     todavía).
+ * Mismo patrón que el resto de los íconos de esta sección: <img> con
+ * onerror que reemplaza por un emoji de respaldo si el archivo llegara a
+ * faltar. 12px/14px de alto porque acá conviven con texto más chico
+ * (10px en .ext-item .k, 15px en .leyendas-subcat) que el de los badges
+ * de coronas (14px, junto a texto de 11px dentro de .badge-gold).
+ */
+const _ICONO_PUNTOS_ESTELARES_HTML = '<img src="assets/img/PuntosEstelares.webp" alt="Puntos estelares" style="height:12px; width:auto; vertical-align:-2px; margin-right:4px;" onerror="this.replaceWith(document.createTextNode(\'\\u{2B50}\'));">';
+const _ICONO_LEYENDAS_HTML = '<img src="assets/img/Leyendas.webp" alt="Camino de Leyendas" style="height:14px; width:auto; vertical-align:-3px; margin-right:5px;" onerror="this.replaceWith(document.createTextNode(\'\\u{1F396}\\u{FE0F}\'));">';
 
 /**
  * _tieneTablaCostos(obj) / abrirModalCostoCarta() / cerrarModalCostoCarta() /
@@ -3166,7 +3203,7 @@ function renderExtendido(ext, j){
   // dos columnas"): mismo mecanismo que ya usa Arena (ancho=2, ver extItem()
   // más arriba), porque el valor "actual / total" puede ser bastante largo.
   items += extItem(raw.expPoints != null ? `${fmtNum(raw.expPoints)} / ${fmtNum(raw.totalExpPoints)}` : null, 'Puntos de experiencia', false, 2);
-  items += extItem(raw.starPoints, 'Puntos estelares', true);
+  items += extItem(raw.starPoints, 'Puntos estelares', true, undefined, _ICONO_PUNTOS_ESTELARES_HTML);
   /* FIX (23-sep-2026, pedido usuario — "falta retirar el cuadrito de
    * batallas"): Batallas ya no se pinta como cuadrito suelto. En su lugar,
    * el minigráfico "Victorias y derrotas" muestra en su centro la suma de
@@ -4702,8 +4739,9 @@ function pintarBatallasRecientes(batallas){
     // boatBattle, ver _webBattlelogJugador(), 34_Web_API.gs) usan
     // _ICONO_GUERRA_HTML (arriba en este archivo) junto al marcador, para
     // distinguirlas de las demás a simple vista -- mismo criterio que el
-    // ícono de oro (_ICONO_ORO_HTML), con fallback automático a 🎖️ si
-    // Guerra.webp todavía no está subido a assets/img/.
+    // ícono de oro (_ICONO_ORO_HTML). Guerra.webp ya está subido a
+    // assets/img/ (27-sep-2026); el onerror a 🎖️ queda igual como red de
+    // seguridad si el archivo llegara a faltar.
     var esGuerra = (b.tipo === 'riverRacePvP' || b.tipo === 'riverRaceDuel' || esBoat);
     // NUEVO (27-sep-2026, pedido usuario -- "icon menu battle es para
     // camino de trofeos"): _webBattlelogJugador() manda exactamente el
