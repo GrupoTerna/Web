@@ -407,6 +407,13 @@
   .mini-disp-svg{width:243px; max-width:100%; height:auto; aspect-ratio:260/152; display:block; overflow:visible;}
   .mini-disp-svg .md-grid{stroke:var(--line-strong); stroke-width:1; opacity:.35;}
   .mini-disp-svg .md-base{stroke:var(--line-strong); stroke-width:1; opacity:.55;}
+  /* FIX (27-sep-2026, pedido usuario -- "agrega las líneas que unan los
+   * puntos, siguiendo el formato de las gráficas grandes"): mismo lenguaje
+   * visual que .ing-serie-line (fill:none, sin punteado porque acá no hay
+   * huecos que marcar, ver _dispersionMiniHtml()), con un stroke-width algo
+   * más fino (2 en vez de 3) para no tapar los puntos (r=5) en un SVG tan
+   * chico como este (260x152 contra el ~700+ de las gráficas grandes). */
+  .mini-disp-svg .md-linea{fill:none; stroke-width:2; opacity:.85;}
   .mini-disp-svg .md-punto{cursor:pointer; transition:r .15s ease;}
   .mini-disp-svg .md-punto:hover{r:7;}
   .mini-disp-svg .md-eje-label{fill:var(--text-dim); font-family:var(--f-mono); font-size:11px; text-anchor:middle;}
@@ -2910,6 +2917,36 @@ function _dispersionMiniHtml(titulo, dias, series, opts){
   grid += `<line class="md-base" x1="${PAD_L}" y1="${baseY}" x2="${W - PAD_R}" y2="${baseY}"/>`;
 
   let puntos = '';
+  // FIX (27-sep-2026, pedido usuario -- "agrega las líneas que unan los
+  // puntos, siguiendo el formato de las gráficas grandes"): mismo lenguaje
+  // visual que .ing-serie-line de los gráficos grandes (línea de color
+  // sólido, sin relleno, uniendo puntos consecutivos con segmentos rectos)
+  // pero con su propia clase .md-linea (ver CSS más arriba) porque acá la
+  // línea es más fina, a juego con el resto de este mini-gráfico (puntos de
+  // r=5 en vez de r=5 con hover, etc.). Se recorren las coordenadas ya
+  // calculadas por serie (mismo x con el desplegamiento OFFSET que ya usan
+  // los círculos, para que la línea pase exactamente por el centro de cada
+  // punto) y se arma un solo <path> por serie, con M/L consecutivos: no hay
+  // huecos que saltear porque `dias`/`series[].valores` ya vienen recortados
+  // a solo días con dato real (ver idxDiasJugados en el caller), a
+  // diferencia de .ing-serie-line-dashed en las gráficas grandes.
+  let lineas = '';
+  const coordsPorSerie = series.map(() => []);
+  dias.forEach((dia, dIdx) => {
+    const cx = PAD_L + dIdx * groupW + groupW / 2;
+    series.forEach((s, sIdx) => {
+      const val = Number((s.valores || [])[dIdx]) || 0;
+      const y = max > 0 ? PAD_TOP + plotH * (1 - val / max) : baseY;
+      const x = cx + (sIdx - (series.length - 1) / 2) * OFFSET;
+      coordsPorSerie[sIdx].push({ x, y });
+    });
+  });
+  series.forEach((s, sIdx) => {
+    const pts = coordsPorSerie[sIdx];
+    if (pts.length < 2) return;
+    const d = pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
+    lineas += `<path class="md-linea" d="${d}" stroke="${s.color}"></path>`;
+  });
   dias.forEach((dia, dIdx) => {
     const cx = PAD_L + dIdx * groupW + groupW / 2;
     series.forEach((s, sIdx) => {
@@ -2932,7 +2969,7 @@ function _dispersionMiniHtml(titulo, dias, series, opts){
       <div class="mini-pie-titulo">${icoHtml}${esc(titulo)}</div>
       <div class="mini-disp-cuerpo">
         <div class="mini-disp-leyenda">${leyenda}</div>
-        <svg class="mini-disp-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(titulo)}. ${esc(resumen)}">${grid}${puntos}</svg>
+        <svg class="mini-disp-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(titulo)}. ${esc(resumen)}">${grid}${lineas}${puntos}</svg>
       </div>
     </div>`;
 }
