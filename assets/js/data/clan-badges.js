@@ -24,6 +24,45 @@ const ICONO_CWSTATS = '<img src="https://assets.cwstats.com/icons/logo.webp" alt
 
 
 /**
+ * ICONO_XP_HTML
+ * NUEVO (27-sep-2026, pedido usuario — "experience icon es para el nivel de
+ * XP [...] debe poder usarse en cualquier parte de la web que mencione el
+ * nivel de xp y debe ser pequeño, como el tamaño de los íconos de oro y
+ * elixir"): vive acá (clan-badges.js, ya cargado por las 9 páginas que lo
+ * incluyen — index/directorio/guerra/perfil/clan/comunidad/torneos/
+ * mensajes/admin) en vez de quedar local a perfil.html, que es donde hoy
+ * vive el único cuadrito "Nivel de XP" (.stats-mini, cabecera de "Perfil del
+ * jugador") — así cualquier página nueva que muestre expLevel puede usar
+ * esta misma constante sin duplicarla. width/height 13px, mismo tamaño que
+ * .cc-oro img/.cc-elixir img (assets/styles.css / perfil.html), no los 14px
+ * de ICONO_ROYALEAPI/ICONO_CWSTATS de arriba. onerror la reemplaza por 🎖️
+ * (insignia, sin asociación con ninguna carta/objeto del juego) si
+ * assets/img/XP.webp todavía no está subida al repo — mismo patrón que
+ * _ICONO_ORO_HTML/_ICONO_GUERRA_HTML en perfil.html.
+ */
+const ICONO_XP_HTML = '<img src="assets/img/XP.webp" alt="Nivel de XP" width="13" height="13" loading="lazy" decoding="async" style="vertical-align:-2px; margin-right:3px;" onerror="this.replaceWith(document.createTextNode(\'\u{1F3C5}\'));">';
+
+/**
+ * ICONO_HEROCOIN_HTML
+ * NUEVO (27-sep-2026, pedido usuario — "hero coin puede usarse como costo de
+ * monedas de héroe, para desbloquear un héroe siempre se paga 200 monedas de
+ * héroe, se puede mostrar como costo en las cartas que ya tienen héroe pero
+ * el jugador aún no los ha desbloqueado"): ningún listado de cartas de la
+ * web de hoy distingue todavía "el jugador no tiene esta carta" (Colección
+ * en perfil.html solo pinta las cartas que la cuenta SÍ tiene, ver
+ * pintarColeccion(); el ranking de index.html —cargarEstadisticasCartas()—
+ * es un Top 10 de uso en mazos, no un catálogo completo) — por eso esta
+ * constante queda preparada acá, junto a ICONO_XP_HTML, para cuando exista
+ * esa sección. Uso previsto: en la ficha de una carta con rarity==='Champion'
+ * que el jugador no tiene desbloqueada, un <span class="cc-oro"> gemelo del
+ * de _oroHtml() (perfil.html) pero con ICONO_HEROCOIN_HTML + "200" fijo (el
+ * costo de desbloqueo NUNCA varía, a diferencia del oro de mejora). Mismo
+ * tamaño (13px) y mismo criterio de onerror que ICONO_XP_HTML.
+ */
+const ICONO_HEROCOIN_HTML = '<img src="assets/img/HeroCoin.webp" alt="Monedas de héroe" width="13" height="13" loading="lazy" decoding="async" style="vertical-align:-2px; margin-right:3px;" onerror="this.replaceWith(document.createTextNode(\'\u{1FA99}\'));">';
+
+
+/**
  * BADGE_NOMBRES_POR_ID / iconoBadgeClanHtml(badgeId)
  * FIX (16-sep-2026, pedido usuario — "hay imágenes de clan, busqué en
  * clans/currentriverrace pero solo dan 'badgeId', no un link [...] el

@@ -828,7 +828,17 @@
           <div class="stats-mini">
             <!-- FIX (23-sep-2026, pedido usuario — "en la parte de arriba solo se debe mostrar nivel de torre del rey, nivel de XP, copas, victorias de guerra, ataques en la semana actual y fame de la semana actual, y vigencia. todo lo demás debe ir en los cuadritos debajo"): la cabecera queda con estos 7 datos, en este orden. Torneos, Puntos estelares y Puntos de experiencia pasan a la grilla de cuadritos (renderExtendido()). Cada <span> con "Wrap" se oculta sola si el dato no llega (ver renderStatsAvanzadasCabecera() y renderMiembro()). Historial en CHANGELOG.md. -->
             <span id="mTorreReyWrap" style="display:none;"><b id="mTorreRey">0</b>Nivel de torre del rey</span>
-            <span id="mNivelExpWrap" style="display:none;"><b id="mNivelExp">0</b>Nivel de XP</span>
+            <!-- FIX (27-sep-2026, pedido usuario — "experience icon [...] es
+                 para el nivel de XP [...] debe ser pequeño, como el tamaño de
+                 los íconos de oro y elixir"): esta etiqueta es HTML estático
+                 (renderStatsAvanzadasCabecera() solo escribe el <b> con
+                 textContent, nunca reescribe este <span> — ver ese
+                 comentario más abajo en el <script>), así que el ícono va
+                 escrito a mano acá en vez de interpolar ICONO_XP_HTML
+                 (assets/js/data/clan-badges.js): MISMO archivo/tamaño/
+                 fallback que esa constante, para que un cambio futuro a
+                 ICONO_XP_HTML recuerde actualizar también esta copia. -->
+            <span id="mNivelExpWrap" style="display:none;"><b id="mNivelExp">0</b><span><img src="assets/img/XP.webp" alt="Nivel de XP" width="13" height="13" loading="lazy" decoding="async" style="vertical-align:-2px; margin-right:3px;" onerror="this.remove();">Nivel de XP</span></span>
             <!-- FIX (26-sep-2026, pedido usuario — "el cuadrito de 'Nivel de
                  cartas' debe cambiar el nombre a 'Nivel de colección' y
                  moverse a la derecha de 'Nivel de XP'"): antes era un
@@ -2334,6 +2344,33 @@ const _ICONO_ORO_HTML = '<img src="assets/img/Gold.webp" alt="Oro" onerror="this
  * -- 🎖️ es el reemplazo aprobado mientras tanto.
  */
 const _ICONO_GUERRA_HTML = '<img src="assets/img/Guerra.webp" alt="Guerra" onerror="this.replaceWith(document.createTextNode(\'\\u{1F396}\\u{FE0F}\'));">';
+
+/**
+ * _ICONO_CORONA_AZUL_HTML / _ICONO_CORONA_ROJA_HTML / _ICONO_BATALLA_HTML
+ * NUEVO (27-sep-2026, pedido usuario -- "el ícono bluecrown es para
+ * battlelog, el perfil siempre debe mostrar al jugador del clan con la
+ * corona azul y al oponente con la roja. el jugador del que se consulta
+ * battlelog siempre es azul, los oponentes siempre son rojos"): en
+ * pintarBatallasRecientes() (más abajo), la cuenta cuyo battlelog se está
+ * viendo (TAG_PERFIL) es SIEMPRE b.miCorona/azul, nunca al revés -- no hace
+ * falta comparar tags porque _webBattlelogJugador() ya arma b.miCorona
+ * desde el punto de vista de esa cuenta. Mismo patrón exacto que
+ * _ICONO_ORO_HTML/_ICONO_GUERRA_HTML (arriba): <img> con onerror que
+ * reemplaza por un emoji si el archivo todavía no está subido a
+ * assets/img/ -- 👑 para ambas coronas (no existe un emoji de corona azul
+ * y otro de corona roja por separado) y ⚔️ para _ICONO_BATALLA_HTML (pedido
+ * usuario -- "icon menu battle es para camino de trofeos, representa ese
+ * modo de juego, que es una batalla normal"), distinto del 🎖️ de
+ * _ICONO_GUERRA_HTML para que ambos badges no se confundan a simple vista.
+ * 14px de alto (un poco más que los 13px de _ICONO_ORO_HTML/.cc-elixir img:
+ * acá conviven con el número de coronas dentro de .badge-gold, que ya usa
+ * font-size:11px -- 14px las hace notar sin desbordar la píldora) y ancho
+ * automático por si el recorte final de cada PNG no queda perfectamente
+ * cuadrado.
+ */
+const _ICONO_CORONA_AZUL_HTML = '<img src="assets/img/BlueCrown.webp" alt="Coronas propias" style="height:14px; width:auto; vertical-align:-3px;" onerror="this.replaceWith(document.createTextNode(\'\\u{1F451}\'));">';
+const _ICONO_CORONA_ROJA_HTML = '<img src="assets/img/RedCrown.webp" alt="Coronas del rival" style="height:14px; width:auto; vertical-align:-3px;" onerror="this.replaceWith(document.createTextNode(\'\\u{1F451}\'));">';
+const _ICONO_BATALLA_HTML = '<img src="assets/img/Batalla.webp" alt="Camino de trofeos" style="height:14px; width:auto; vertical-align:-3px;" onerror="this.replaceWith(document.createTextNode(\'\\u{2694}\\u{FE0F}\'));">';
 
 /**
  * _tieneTablaCostos(obj) / abrirModalCostoCarta() / cerrarModalCostoCarta() /
@@ -4592,6 +4629,17 @@ document.getElementById('mVerCicloCofresBtn').addEventListener('click', verCiclo
  * boatBattle no tiene "coronas" en el sentido normal (b.miCorona/
  * b.rivalCorona llegan null desde _webBattlelogJugador(), ver su docblock)
  * -- se muestra en su lugar "Torres: nuevas/restantes".
+ * ACTUALIZADO (27-sep-2026, pedido usuario -- "el ícono bluecrown es para
+ * battlelog, el perfil siempre debe mostrar al jugador del clan con la
+ * corona azul y al oponente con la roja"): el marcador de coronas (excepto
+ * boatBattle) ya no es texto plano "X – Y" -- usa _ICONO_CORONA_AZUL_HTML
+ * junto a b.miCorona y _ICONO_CORONA_ROJA_HTML junto a b.rivalCorona (ver
+ * esas constantes más arriba en este archivo). También se antepone
+ * _ICONO_BATALLA_HTML cuando b.modoTxt === 'Camino de trofeos' (pedido
+ * usuario -- "icon menu battle es para camino de trofeos"), mismo lugar y
+ * mismo criterio que _ICONO_GUERRA_HTML para las batallas de Guerra de Río
+ * (los dos son mutuamente excluyentes: una Guerra de Río nunca es "Camino
+ * de trofeos").
  * ACTUALIZADO (27-sep-2026, pedido usuario -- "se debe procesar toda la
  * información, haciendo pasar todos los datos disponibles en los csv"):
  * _webBattlelogJugador() ahora manda b.arenaTxt/b.modoTxt (los strings ya
@@ -4657,12 +4705,29 @@ function pintarBatallasRecientes(batallas){
     // ícono de oro (_ICONO_ORO_HTML), con fallback automático a 🎖️ si
     // Guerra.webp todavía no está subido a assets/img/.
     var esGuerra = (b.tipo === 'riverRacePvP' || b.tipo === 'riverRaceDuel' || esBoat);
+    // NUEVO (27-sep-2026, pedido usuario -- "icon menu battle es para
+    // camino de trofeos"): _webBattlelogJugador() manda exactamente el
+    // string "Camino de trofeos" en b.modoTxt para las batallas normales de
+    // ladder (ver docblock de esta función, arriba) -- se usa ese string
+    // literal para decidir cuándo antepone _ICONO_BATALLA_HTML, en vez de
+    // agregar un campo nuevo al backend solo para esto.
+    var esTrofeos = (b.modoTxt === 'Camino de trofeos');
     var rivalTxt = b.rivalNombre ? ('vs. ' + b.rivalNombre + (b.rivalClan ? ' (' + b.rivalClan + ')' : '')) : '';
     var miClanTxt = b.miClan ? (' · ' + b.miClan) : '';
-    var marcadorTxt = esBoat
-      ? `Torres: +${fmtNum(b.barcoTorresNuevas || 0)} · quedan ${fmtNum(b.barcoTorresRestantes || 0)}`
-      : `${fmtNum(b.miCorona || 0)} \u2013 ${fmtNum(b.rivalCorona || 0)}`;
-    var marcadorHtml = (esGuerra ? _ICONO_GUERRA_HTML + ' ' : '') + esc(marcadorTxt);
+    // NUEVO (27-sep-2026, pedido usuario -- "el ícono bluecrown es para
+    // battlelog, el perfil siempre debe mostrar al jugador del clan con la
+    // corona azul y al oponente con la roja"): reemplaza el "X – Y" en
+    // texto plano por _ICONO_CORONA_AZUL_HTML/_ICONO_CORONA_ROJA_HTML junto
+    // a cada cifra -- b.miCorona es SIEMPRE la cuenta del battlelog (azul),
+    // b.rivalCorona SIEMPRE el rival (roja), sin excepción. boatBattle no
+    // tiene coronas (b.miCorona/b.rivalCorona llegan null, ver docblock más
+    // arriba) y sigue mostrando "Torres: nuevas/restantes" en texto, sin
+    // coronas ni ícono de batalla (una Guerra de Río nunca es "Camino de
+    // trofeos").
+    var marcadorHtml = esBoat
+      ? esc(`Torres: +${fmtNum(b.barcoTorresNuevas || 0)} · quedan ${fmtNum(b.barcoTorresRestantes || 0)}`)
+      : `${_ICONO_CORONA_AZUL_HTML}${esc(fmtNum(b.miCorona || 0))} &nbsp;\u2013&nbsp; ${_ICONO_CORONA_ROJA_HTML}${esc(fmtNum(b.rivalCorona || 0))}`;
+    marcadorHtml = (esGuerra ? _ICONO_GUERRA_HTML + ' ' : (esTrofeos ? _ICONO_BATALLA_HTML + ' ' : '')) + marcadorHtml;
 
     // Badges opcionales: solo se pintan si el dato vino (trophyChange no
     // aplica fuera de pathOfLegend, deckSelection 'collection' es el caso
