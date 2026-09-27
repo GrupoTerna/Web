@@ -876,7 +876,7 @@
   <div class="costo-modal" id="costoModal">
     <button type="button" class="costo-modal-close" id="costoModalClose" aria-label="Cerrar">&times;</button>
     <div class="eyebrow">Costo de mejora</div>
-    <h3 style="margin-top:6px;" id="costoModalTitulo">—</h3>
+    <h3 style="margin-top:6px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;" id="costoModalTitulo">—</h3>
     <div class="costo-modal-sub" id="costoModalSub"></div>
     <div id="costoModalTablaWrap"></div>
   </div>
@@ -2016,7 +2016,21 @@ function abrirModalCostoCarta(nombreEs, nivelActual, obj){
   const subPartes = [];
   if (nivelActual != null) subPartes.push(`Nivel actual: ${nivelActual}`);
   if (countNum != null) subPartes.push(`Cartas disponibles: ${fmtNum(countNum)}`);
-  document.getElementById('costoModalTitulo').textContent = nombreEs || 'Carta';
+  // FIX (26-sep-2026, pedido usuario — "a la derecha del nombre en la tabla,
+  // haz que se muestre la pastilla de Calidad (rarity) y al lado la de
+  // tipo"): mismas píldoras .cc-rareza/.cc-tipo que ya usan las fichas de
+  // carta en el resto de la página (Colección/Mazo/Cartas de torre/Carta
+  // favorita), reusando RAREZA_CARTA_TXT y _tipoCartaTxt(). `obj` es
+  // siempre la carta cruda (viene de rawClash(j) en las 5 secciones que
+  // llaman a _activarClickCosto(), ver docblock de esa función), así que
+  // ya trae `.rarity` igual que cualquier `c`/`t`/`rc` de esta página — no
+  // hace falta que cada llamado a abrirModalCostoCarta() pase un dato
+  // aparte. Si a la carta le falta rareza o tipo (no debería pasar, pero
+  // por las dudas), esa píldora puntual simplemente no se pinta.
+  const rk = rarezaKey(obj.rarity);
+  const tipoTxt = _tipoCartaTxt(obj, _datosCarta(nombreEs));
+  const pillsHtml = `${rk ? `<span class="cc-rareza" data-rareza="${rk}">${esc(RAREZA_CARTA_TXT[rk])}</span>` : ''}${tipoTxt ? `<span class="cc-tipo">${esc(tipoTxt)}</span>` : ''}`;
+  document.getElementById('costoModalTitulo').innerHTML = `${esc(nombreEs || 'Carta')}${pillsHtml}`;
   document.getElementById('costoModalSub').textContent = subPartes.join(' \u00b7 ');
   // Mejora 1: badge de nivel alcanzable con las cartas que ya tiene.
   const badgeNivelHtml = (countNum != null && nivelAlcanzable != null)
@@ -3564,6 +3578,39 @@ function renderRankingChart(ext){
  * (perfilLineChartSvg); las semanas intermedias sin registro se muestran
  * como puntos huecos en 0 con tramo punteado, igual que allá.
  */
+/**
+ * _valoresDiariosDesdeAcumulado(datosOrdenados, campo)
+ * FIX (26-sep-2026, pedido usuario — "las gráficas están mostrando valores
+ * acumulados pero se debe mostrar valores diarios, es decir, si hago mis 4
+ * ataques diarios, ahora muestra 4, 8, 12, 16 cuando debería hacer 4
+ * registros manteniéndose en 4, la hoja guerra ya consigue mostrar valores
+ * diarios de la semana actual sin acumular"): `ataques`/`puntaje`/`barcos`
+ * en cada registro de ext.historialRanking son el CONTADOR ACUMULADO de la
+ * semana de guerra actual en el momento de esa foto diaria (mismo campo
+ * crudo que guerraSemana.ataques/puntaje — sube 4 en 4 según los ataques
+ * del jugador y se reinicia a 0 cuando arranca una semana nueva), no el
+ * valor de ESE día — por eso el gráfico terminaba mostrando la rampa
+ * 4/8/12/16 en vez de 4/4/4/4. Se resta el registro anterior al actual
+ * para obtener el delta diario; si el valor bajó respecto al anterior (el
+ * contador se reinició al empezar una semana de guerra nueva) se toma el
+ * valor actual tal cual, sin restar, porque ya es el total del día 1 de la
+ * semana nueva. `anterior` siempre guarda el acumulado CRUDO del registro
+ * previo (no el delta ya calculado), para que la resta del siguiente
+ * registro sea correcta. No toca `campo === 'ranking'` (renderRankingChart
+ * no pasa por acá): el ranking es una posición, no un contador que se
+ * pueda acumular.
+ */
+function _valoresDiariosDesdeAcumulado(datosOrdenados, campo){
+  let anterior = null;
+  return datosOrdenados.map(h => {
+    const actual = Number(h[campo]);
+    const diario = (anterior != null && isFinite(anterior) && isFinite(actual) && actual >= anterior)
+      ? actual - anterior
+      : actual;
+    anterior = actual;
+    return Object.assign({}, h, { [campo]: diario });
+  });
+}
 function renderMetricaSemanal(elId, historial, campo, opts){
   opts = opts || {};
   const card = document.getElementById(elId + 'Card');
@@ -3578,8 +3625,14 @@ function renderMetricaSemanal(elId, historial, campo, opts){
   }
   card.style.display = '';
 
+  // FIX (26-sep-2026): se calcula el delta diario ANTES de rellenar huecos
+  // (completarSemanasSinDato) — necesita la secuencia real de registros,
+  // en orden, para restar cada uno contra el anterior. Ver
+  // _valoresDiariosDesdeAcumulado() justo arriba.
+  const ordenados = ordenarHistorialPorSemana(datos);
+  const diarios = _valoresDiariosDesdeAcumulado(ordenados, campo);
   const puntos = completarSemanasSinDato(
-    ordenarHistorialPorSemana(datos).map(h => ({ semana: String(h.semana), valor: Number(h[campo]), real: true, clan: h.clan }))
+    diarios.map(h => ({ semana: String(h.semana), valor: Number(h[campo]), real: true, clan: h.clan }))
   );
   const unidades = { Ataques: 'ataques', Puntaje: 'de puntaje', Barcos: 'barcos' };
   pintarGraficaPerfil(wrap, puntos, { ejeY: opts.tituloEje || '', unidad: unidades[opts.tituloEje] || '', base: 0 });
