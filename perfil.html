@@ -927,10 +927,47 @@
              .card con eyebrow "Colección" duplicado, ver historial más
              abajo) se fusiona acá adentro como subsección — el eyebrow de
              ARRIBA pasa a describir la sección fusionada completa. -->
-        <div style="display:flex; justify-content:space-between; align-items:center; gap:14px; flex-wrap:wrap;">
-          <div>
+        <!-- FIX (27-sep-2026, pedido usuario — "el gráfico debe quedar a la
+             altura del botón de colección completa de cartas, y no generar
+             todo ese espacio hueco sobre colección completa de cartas ni
+             debajo de cartas de mazo"): el título y el bloque
+             resumen+filtros (antes en dos filas separadas, la 2da con
+             margin-top:16px, ver historial) se fusionan en UNA sola columna
+             izquierda, para que el resumen quede pegado justo debajo de
+             "Cartas de mazo" sin saltar de fila. Esa columna comparte fila
+             con el gráfico usando align-items:flex-start (antes :center) —
+             así el gráfico arranca exactamente a la altura del eyebrow/
+             botón "Colección completa de cartas" en vez de centrarse
+             respecto a una fila mucho más alta que él (lo que antes dejaba
+             hueco arriba del botón Y debajo de "Cartas de mazo" al mismo
+             tiempo). -->
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:20px; flex-wrap:wrap;">
+          <div style="flex:1; min-width:260px;">
             <div class="eyebrow">Colección completa de cartas</div>
             <h2 class="pf-subtitulo">Cartas de mazo</h2>
+            <div class="coleccion-resumen" id="mColeccionResumen"></div>
+            <div class="coleccion-filtros" id="mColeccionFiltros"></div>
+            <!-- FIX (23-sep-2026, pedido usuario — "así como hay pastillas para
+                 filtrar cartas por calidad (rarity), añade otra fila con
+                 pastillas por tipo (tropa, hechizo, estructura, etc) y añade
+                 pastillas para héroe y evolución, conservando el estilo de
+                 pastillas que ya hay para héroe y evolución"): segunda fila de
+                 filtros, ver renderColeccion() más abajo. Reusa la misma clase
+                 .coleccion-filtros para las pastillas de tipo (mismo estilo que
+                 la fila de rareza de arriba); las pastillas de Héroe/Evolución
+                 que se agregan al final de esta fila usan .cc-badge/.cc-badge-btn
+                 en vez de ese estilo, para conservar el mismo formato de píldora
+                 (🦸 Héroe / ✨ Evolución) que ya se usa en el resto de la web. -->
+            <div class="coleccion-filtros" id="mColeccionFiltrosTipo"></div>
+            <!-- FIX (23-sep-2026, pedido usuario — "agrega una tercera fila de
+                 filtros para nivel (16 a la izquierda y 1 a la derecha),
+                 mostrando solo las pastillas de niveles que haya en las
+                 cartas"): tercera fila, ver renderColeccion() más abajo. Usa
+                 el nivel YA ajustado (nivelAppAjustado(), mismo cálculo que
+                 ya muestra "Nivel X" en cada ficha más abajo en esta función),
+                 no el level crudo de la API, para que los números coincidan
+                 con lo que se ve en pantalla. -->
+            <div class="coleccion-filtros" id="mColeccionFiltrosNivel"></div>
           </div>
           <!-- FIX (27-sep-2026, pedido usuario — "al lado del título de la
                colección completa, agrega un minigráfico de pastel que
@@ -939,31 +976,6 @@
                <script>, con _pastelMiniHtml() (mismo componente donut que
                los de Victorias/Donaciones). -->
           <div id="mColeccionNivelPie" class="coleccion-nivel-pie-wrap"></div>
-        </div>
-        <div style="margin-top:16px;">
-          <div class="coleccion-resumen" id="mColeccionResumen"></div>
-          <div class="coleccion-filtros" id="mColeccionFiltros"></div>
-          <!-- FIX (23-sep-2026, pedido usuario — "así como hay pastillas para
-               filtrar cartas por calidad (rarity), añade otra fila con
-               pastillas por tipo (tropa, hechizo, estructura, etc) y añade
-               pastillas para héroe y evolución, conservando el estilo de
-               pastillas que ya hay para héroe y evolución"): segunda fila de
-               filtros, ver renderColeccion() más abajo. Reusa la misma clase
-               .coleccion-filtros para las pastillas de tipo (mismo estilo que
-               la fila de rareza de arriba); las pastillas de Héroe/Evolución
-               que se agregan al final de esta fila usan .cc-badge/.cc-badge-btn
-               en vez de ese estilo, para conservar el mismo formato de píldora
-               (🦸 Héroe / ✨ Evolución) que ya se usa en el resto de la web. -->
-          <div class="coleccion-filtros" id="mColeccionFiltrosTipo"></div>
-          <!-- FIX (23-sep-2026, pedido usuario — "agrega una tercera fila de
-               filtros para nivel (16 a la izquierda y 1 a la derecha),
-               mostrando solo las pastillas de niveles que haya en las
-               cartas"): tercera fila, ver renderColeccion() más abajo. Usa
-               el nivel YA ajustado (nivelAppAjustado(), mismo cálculo que
-               ya muestra "Nivel X" en cada ficha más abajo en esta función),
-               no el level crudo de la API, para que los números coincidan
-               con lo que se ve en pantalla. -->
-          <div class="coleccion-filtros" id="mColeccionFiltrosNivel"></div>
         </div>
         <!-- FIX (27-sep-2026, pedido usuario — "mueve los botones todas y
              mejora disponible a la derecha del desplegable de ordenar por"):
