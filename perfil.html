@@ -1651,18 +1651,23 @@ function insigniaEsMaestria(b){
   return !!b && typeof b.name === 'string' && b.name.indexOf('Mastery') === 0;
 }
 
-/** Minúsculas y solo letras/dígitos, para comparar el nombre de carta que
- * viene pegado dentro del `name` de una insignia de Maestría ("Ronin",
- * extraído de "MasteryRonin") contra el `name` de una carta de
- * rawClash(j).cards ("Ronin") sin que un espacio, guion o mayúscula
- * distinta rompa la coincidencia. Mismo criterio que
- * _normalizarClaveInsignia() del backend (34_Web_API.gs/36_Insignias.gs). */
+/** Minúsculas, sin tildes/diacríticos y solo letras/dígitos — para
+ * comparar nombres en español (ej. "Peón" == "peon") o el nombre de carta
+ * pegado dentro de una insignia de Maestría en inglés ("Ronin", extraído
+ * de "MasteryRonin") contra el `name`/`nombreEs` de una carta de
+ * rawClash(j).cards, sin que un espacio, guion, mayúscula o acento rompa
+ * la coincidencia. Mismo criterio que _normalizarClaveInsignia() del
+ * backend (34_Web_API.gs/36_Insignias.gs), con el agregado de quitar
+ * tildes (necesario acá porque ahora también compara texto en español). */
 function _normalizarClaveCartaFallback(texto){
-  return String(texto || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  return String(texto || '')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '');
 }
 
 /**
- * _iconoCartaFallbackParaMaestria(nombreInsignia)
+ * _iconoCartaFallbackParaMaestria(b)
  * FIX (27-sep-2026, pedido usuario — "la maestría del ronin trae un link
  * defectuoso que no tiene imagen, haz que pueda llamar a los links de
  * cards como fallback"): Supercell a veces no manda un iconUrls válido
@@ -1671,26 +1676,60 @@ function _normalizarClaveCartaFallback(texto){
  * 1 a 1 a una carta que el jugador ya tiene en su colección
  * (rawClash(j).cards, la MISMA fuente cuyos iconUrls ya se ven bien en
  * "Colección completa" — ver renderColeccion()), se busca ahí esa carta
- * por nombre y se usa su ícono como respaldo.
- * Reusa `_ultimasCartasColeccion` (global que llena renderColeccion(),
- * que siempre corre antes que renderInsignias() — ver el orden de
- * llamadas en la función que dispara el render del perfil) en vez de
- * pedirle `j` de nuevo a esta función, por el mismo motivo que
- * _ultimosBadges: _insigniaItemHtml() también se llama al reordenar
- * (cambiarOrdenInsignias/Maestrias), sin `j` a mano.
- * @param {string} nombreInsignia - b.name de la insignia (ej. "MasteryRonin").
- * @returns {string} URL del ícono de la carta, o '' si no se encontró.
+ * y se usa su ícono como respaldo.
+ * CORRECCIÓN (27-sep-2026, mismo pedido — "debe buscar el nombre en
+ * español, porque los nombres en inglés no siempre coinciden ... algunas
+ * insignias concatenan el mismo nombre de la carta y otras no"): la
+ * primera versión comparaba `b.name` sin el prefijo "Mastery" (inglés)
+ * contra `c.name` de la carta (inglés) — pero ese texto pegado dentro del
+ * `name` de la insignia no siempre es idéntico letra por letra al `name`
+ * crudo de la carta en /players (variantes, alias, etc.), así que a veces
+ * no matcheaba aunque la insignia sí fuera de esa carta.
+ * Ahora la comparación PRIMARIA es por nombre en ESPAÑOL: `nombreEs` de
+ * la insignia (columna Nombre de Backup_Insignias.csv) contra `nombreEs`
+ * de cada carta (columna Nombre de Backup_Cards.csv, vía _nombreCartaEs())
+ * — mucho más confiable, porque cuando una Maestría se auto-traduce
+ * (_traducirNombreInsignia(), backend) su Nombre se copia TAL CUAL de la
+ * traducción de esa misma carta en Backup_Cards.csv, así que ambos textos
+ * coinciden de forma estable. Si la insignia todavía no tiene `nombreEs`
+ * (recién vista, sin traducir a mano en el catálogo), cae como respaldo
+ * SECUNDARIO a la comparación por nombre en inglés de antes.
+ * @param {Object} b - la insignia completa (necesita `.name` y, si lo
+ *   trae, `.nombreEs`).
+ * @returns {string} URL del ícono de la carta, o '' si no se encontró por
+ *   ninguno de los dos criterios.
  */
-function _iconoCartaFallbackParaMaestria(nombreInsignia){
-  const n = String(nombreInsignia || '');
-  if (n.indexOf('Mastery') !== 0) return '';
-  const nombreCarta = n.substring('Mastery'.length).trim();
-  if (!nombreCarta || !Array.isArray(_ultimasCartasColeccion)) return '';
-  const clave = _normalizarClaveCartaFallback(nombreCarta);
-  const carta = _ultimasCartasColeccion.find(c => _normalizarClaveCartaFallback(c.name) === clave);
-  if (!carta) return '';
-  const urls = carta.iconUrls || {};
-  return urlValida(urls.large) ? urls.large : (urlValida(urls.medium) ? urls.medium : '');
+function _iconoCartaFallbackParaMaestria(b){
+  if (!Array.isArray(_ultimasCartasColeccion) || !_ultimasCartasColeccion.length) return '';
+
+  // 1) PRIMARIO: nombre en español.
+  const nombreEsInsignia = _nombreInsigniaEs(b);
+  if (nombreEsInsignia) {
+    const claveEs = _normalizarClaveCartaFallback(nombreEsInsignia);
+    const cartaPorEs = _ultimasCartasColeccion.find(c => _normalizarClaveCartaFallback(_nombreCartaEs(c)) === claveEs);
+    if (cartaPorEs) {
+      const urls = cartaPorEs.iconUrls || {};
+      const icono = urlValida(urls.large) ? urls.large : (urlValida(urls.medium) ? urls.medium : '');
+      if (icono) return icono;
+    }
+  }
+
+  // 2) SECUNDARIO: nombre en inglés (b.name sin el prefijo "Mastery"),
+  //    solo si el paso 1 no encontró nada.
+  const n = String(b.name || '');
+  if (n.indexOf('Mastery') === 0) {
+    const nombreCartaEn = n.substring('Mastery'.length).trim();
+    if (nombreCartaEn) {
+      const claveEn = _normalizarClaveCartaFallback(nombreCartaEn);
+      const cartaPorEn = _ultimasCartasColeccion.find(c => _normalizarClaveCartaFallback(c.name) === claveEn);
+      if (cartaPorEn) {
+        const urls = cartaPorEn.iconUrls || {};
+        return urlValida(urls.large) ? urls.large : (urlValida(urls.medium) ? urls.medium : '');
+      }
+    }
+  }
+
+  return '';
 }
 
 /** FIX (23-sep-2026, pedido usuario — "en las insignias y maestrías, agrega
@@ -1744,7 +1783,7 @@ function _insigniaItemHtml(b){
   // _iconoCartaFallbackParaMaestria() más arriba): si es una insignia de
   // Maestría y Supercell no mandó un ícono válido, se cae al ícono de la
   // carta correspondiente en la colección del jugador.
-  if (!icono && insigniaEsMaestria(b)) icono = _iconoCartaFallbackParaMaestria(b.name);
+  if (!icono && insigniaEsMaestria(b)) icono = _iconoCartaFallbackParaMaestria(b);
   const nivelTxt = (b.level != null && b.maxLevel != null) ? `Nv. ${b.level}/${b.maxLevel}` : (b.level != null ? `Nv. ${b.level}` : '');
   const tieneTarget = b.target != null && b.target > 0;
   const pct = tieneTarget ? Math.min(100, Math.round((Number(b.progress) || 0) / b.target * 100)) : 100;
