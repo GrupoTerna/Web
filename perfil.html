@@ -1861,13 +1861,25 @@ function _insigniaItemHtml(b){
   // Maestría y Supercell no mandó un ícono válido, se cae al ícono de la
   // carta correspondiente en la colección del jugador.
   if (!icono && insigniaEsMaestria(b)) icono = _iconoCartaFallbackParaMaestria(b);
+  // FIX (27-sep-2026, pedido usuario — "la maestría del ronin sigue sin
+  // imagen"): el respaldo de arriba solo actúa cuando Supercell NO manda
+  // ningún link. El caso de Ronin es otro: el link SÍ viene (pasa
+  // urlValida()), pero la imagen no existe al pedirla, así que el <img>
+  // fallaba y el onerror solo la ocultaba. Ahora, si el ícono de la
+  // maestría falla al cargar, se reintenta UNA vez con el ícono de la carta
+  // (data-fallback); si ese también falla, recién ahí se oculta.
+  let iconoRespaldo = '';
+  if (insigniaEsMaestria(b)) {
+    iconoRespaldo = _iconoCartaFallbackParaMaestria(b);
+    if (iconoRespaldo === icono) iconoRespaldo = ''; // mismo link: reintentar no sirve
+  }
   const nivelTxt = (b.level != null && b.maxLevel != null) ? `Nv. ${b.level}/${b.maxLevel}` : (b.level != null ? `Nv. ${b.level}` : '');
   const tieneTarget = b.target != null && b.target > 0;
   const pct = tieneTarget ? Math.min(100, Math.round((Number(b.progress) || 0) / b.target * 100)) : 100;
   const nombreEs = _nombreInsigniaEs(b);
   return `
       <div class="badge-item" title="${esc(nombreEs)}${tieneTarget ? ` \u2014 ${fmtNum(b.progress)}/${fmtNum(b.target)}` : ''}">
-        ${icono ? `<img src="${esc(icono)}" alt="" loading="lazy" onerror="this.style.visibility='hidden';">` : ''}
+        ${icono ? `<img src="${esc(icono)}" alt="" loading="lazy"${iconoRespaldo ? ` data-fallback="${esc(iconoRespaldo)}"` : ''} onerror="if(this.dataset.fallback){const f=this.dataset.fallback;this.dataset.fallback='';this.src=f;}else{this.style.visibility='hidden';}">` : ''}
         <div class="b-nombre">${esc(nombreEs)}</div>
         ${nivelTxt ? `<div class="b-nivel">${esc(nivelTxt)}</div>` : ''}
         <div class="progress${pct >= 100 ? ' complete' : ''}"><i style="width:${pct}%"></i></div>
