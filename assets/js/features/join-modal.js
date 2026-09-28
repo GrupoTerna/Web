@@ -43,6 +43,13 @@ function abrirModalUnirse(nombreClan, triggerEl){
   overlay.classList.add('open');
   overlay.setAttribute('aria-hidden', 'false');
   document.getElementById('joinModalClose').focus();
+  // Analítica (Fase 4): cuenta cada apertura del modal como evento de GoatCounter.
+  // count.js carga async: si todavía no terminó de cargar (o lo bloquea un adblock), se ignora sin error.
+  try {
+    if (window.goatcounter && typeof window.goatcounter.count === 'function') {
+      window.goatcounter.count({ path: 'evento/como-unirte', title: 'Modal Cómo unirte', event: true });
+    }
+  } catch (e) { /* la analítica nunca debe romper el modal */ }
 }
 
 function cerrarModalUnirse(){
