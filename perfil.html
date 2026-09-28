@@ -720,34 +720,109 @@
   .col-card--clicable:hover{border-color:var(--purple-light); transform:translateY(-2px);}
   .col-card--clicable:focus-visible{outline:2px solid var(--purple-light); outline-offset:2px;}
 
-  /* ---------- CICLO DE COFRES (27-sep-2026, pedido usuario) ----------
-     Ver comentario sobre #mCicloCofresCard en el <body> y pintarCicloCofres()
-     en el <script> para el detalle de qué manda hoy el backend vs. qué
-     campos opcionales (nombre/link) va a agregar después.
-     .cc-cofre-proximo: callout del primer ítem del ciclo ("próximo cofre
-     que va a abrir"), separado del resto de la secuencia -- mismo
-     lenguaje visual (borde + fondo violeta sutil) que ya usa el resto de
-     la página para destacar un dato (ver .mini-pie-titulo/.cc-oro más
-     arriba), no un componente nuevo desde cero.
-     .cc-cofre-badge: extiende .cc-badge (definida en assets/styles.css,
-     NO acá) solo para el layout interno en fila (ícono + índice + nombre
-     + contador) -- el color/fondo/borde de la píldora en sí sigue
-     viniendo de .cc-badge, así que ya calza visualmente con el resto de
-     píldoras de la página (Héroe/Evolución/Nv./Mejora disponible).
-     .cc-cofre-icon: 18x18 (32x32 en el callout de "Próximo cofre").
-     Mientras Backup_Cofres.csv no tenga Link, pintarCicloCofres() no
-     genera ningún <img> -- por eso NO se reserva acá un hueco vacío para
-     un ícono ausente; la píldora es más angosta hasta que haya un link
-     real y el <img> empiece a insertarse. */
-  .cc-cofre-proximo{display:flex; align-items:center; gap:10px; padding:10px 14px; margin-top:10px; border:1px solid var(--purple); border-radius:10px; background:rgba(162,57,255,.08);}
-  .cc-cofre-proximo .cc-cofre-icon{width:32px; height:32px;}
-  .cc-cofre-proximo-lbl{font-family:var(--f-mono); font-size:10px; font-weight:700; color:var(--purple-light); text-transform:uppercase; letter-spacing:.1em;}
-  .cc-cofre-proximo-nombre{font-size:15px; font-weight:600; color:var(--text);}
-  .cc-cofre-lista{display:flex; flex-wrap:wrap; gap:8px; margin-top:12px;}
-  .cc-cofre-badge{display:inline-flex; align-items:center; gap:6px;}
-  .cc-cofre-icon{width:18px; height:18px; border-radius:3px; object-fit:contain; flex-shrink:0;}
-  .cc-cofre-index{font-family:var(--f-mono); font-size:10px; color:var(--text-faint);}
-  .cc-cofre-x{font-family:var(--f-mono); font-size:10px; font-weight:700; color:var(--gold);}
+  /* ---------- CICLO DE COFRES (rediseño 27-sep-2026, pedido usuario:
+     "los cofres... se ven muy feos y simples") ----------
+     Reemplaza el enfoque anterior de píldoras sueltas .cc-badge (que
+     dependían de estilos compartidos en assets/styles.css pensados para
+     otro tipo de dato) por un componente propio y autocontenido, para
+     tener control total del resultado visual sin heredar nada inesperado:
+     - .cc-cofre-proximo: callout destacado del próximo cofre, con ícono
+       grande enmarcado (halo violeta) en vez del ícono chico de antes.
+     - .cc-cofre-lista: grilla de tarjetas (no una fila de píldoras) para
+       el resto de la secuencia, cada una con su índice, ícono, nombre y
+       contador "×N" si agrupa duplicados consecutivos (ver
+       agruparCofresConsecutivos() en el <script>).
+     - .cc-cofre-item-icono-vacio: placeholder visual (recuadro tenue) para
+       cuando Backup_Cofres.csv todavía no tiene Link -- antes se omitía el
+       hueco del ícono por completo, dejando la tarjeta descuadrada frente
+       a las que sí tienen ícono; ahora todas las tarjetas miden lo mismo. */
+  .cc-cofre-proximo{
+    position:relative; display:flex; align-items:center; gap:16px;
+    padding:16px 18px; margin-top:12px;
+    border:1px solid var(--purple); border-radius:14px;
+    background:linear-gradient(135deg, rgba(162,57,255,.16), rgba(162,57,255,.03));
+    overflow:hidden;
+  }
+  .cc-cofre-proximo::before{
+    content:''; position:absolute; inset:0; pointer-events:none;
+    background:radial-gradient(140px 90px at 0% 0%, rgba(162,57,255,.35), transparent 70%);
+  }
+  .cc-cofre-proximo-icono{
+    position:relative; z-index:1; flex-shrink:0;
+    width:60px; height:60px; display:flex; align-items:center; justify-content:center;
+    border-radius:16px; border:1px solid rgba(162,57,255,.55);
+    background:linear-gradient(160deg, rgba(255,255,255,.07), rgba(255,255,255,0));
+    box-shadow:0 0 18px rgba(162,57,255,.35);
+  }
+  .cc-cofre-proximo-icono img{width:42px; height:42px; object-fit:contain;}
+  .cc-cofre-proximo-lbl{
+    position:relative; z-index:1; display:inline-flex; align-items:center; gap:6px;
+    font-family:var(--f-mono); font-size:10px; font-weight:700; color:var(--purple-light);
+    text-transform:uppercase; letter-spacing:.14em;
+  }
+  .cc-cofre-proximo-lbl::before{content:'◆';}
+  .cc-cofre-proximo-nombre{position:relative; z-index:1; font-family:var(--f-display); font-size:19px; font-weight:700; color:var(--text); margin-top:2px;}
+
+  .cc-cofre-lista{display:grid; grid-template-columns:repeat(auto-fill, minmax(104px, 1fr)); gap:10px; margin-top:14px;}
+  .cc-cofre-item{
+    position:relative; display:flex; flex-direction:column; align-items:center; text-align:center; gap:6px;
+    padding:14px 8px 10px; border:1px solid var(--line); border-radius:12px; background:var(--bg-2);
+    transition:border-color .15s ease, transform .15s ease, background .15s ease;
+  }
+  .cc-cofre-item:hover{border-color:var(--purple-light); transform:translateY(-3px); background:rgba(162,57,255,.06);}
+  .cc-cofre-item-index{position:absolute; top:6px; left:8px; font-family:var(--f-mono); font-size:9px; font-weight:700; color:var(--text-faint);}
+  .cc-cofre-item-x{
+    position:absolute; top:5px; right:7px; font-family:var(--f-mono); font-size:10px; font-weight:800; color:var(--gold-light);
+    background:rgba(243,169,34,.14); border:1px solid rgba(243,169,34,.4); border-radius:999px; padding:1px 6px;
+  }
+  .cc-cofre-item-icono{width:36px; height:36px; object-fit:contain; margin-top:8px; flex-shrink:0;}
+  .cc-cofre-item-icono-vacio{width:36px; height:36px; margin-top:8px; border-radius:8px; background:var(--line); opacity:.4; flex-shrink:0;}
+  .cc-cofre-item-nombre{font-size:11px; font-weight:600; color:var(--text-dim); line-height:1.25;}
+
+  /* ---------- BATALLAS MÁS RECIENTES (rediseño 27-sep-2026, mismo pedido)
+     ----------
+     Antes reutilizaba .ingreso-row/.ingreso-info/.ing-nombre/.ing-fecha
+     (pensado para filas de torneos/cuentas, una sola línea de texto) --
+     acá cada batalla necesita más jerarquía visual (resultado, rival,
+     modo/arena, marcador con coronas, badges extra), así que pasa a un
+     componente propio: .bt-row, con una franja de color a la izquierda
+     según el resultado (victoria/derrota/empate) para poder escanear el
+     historial de un vistazo, igual que un marcador deportivo. */
+  #mBatallasRecientesWrap .bt-lista{display:flex; flex-direction:column; gap:10px;}
+  .bt-row{
+    position:relative; display:flex; align-items:center; gap:16px; flex-wrap:wrap;
+    padding:14px 16px 14px 20px; border:1px solid var(--line); border-radius:12px; background:var(--bg-2);
+    overflow:hidden; transition:border-color .15s ease, transform .15s ease;
+  }
+  .bt-row:hover{border-color:var(--line-strong); transform:translateY(-2px);}
+  .bt-row::before{content:''; position:absolute; left:0; top:0; bottom:0; width:4px;}
+  .bt-row.bt-victoria::before{background:var(--ok);}
+  .bt-row.bt-derrota::before{background:var(--danger);}
+  .bt-row.bt-empate::before{background:var(--text-dim);}
+  .bt-resultado{
+    flex-shrink:0; width:80px; text-align:center; padding:6px 0; border-radius:8px; border:1px solid currentColor;
+    font-family:var(--f-mono); font-size:11px; font-weight:800; letter-spacing:.05em;
+  }
+  .bt-row.bt-victoria .bt-resultado{color:var(--ok); background:rgba(60,200,120,.08);}
+  .bt-row.bt-derrota .bt-resultado{color:var(--danger); background:rgba(255,80,80,.08);}
+  .bt-row.bt-empate .bt-resultado{color:var(--text-dim); background:rgba(255,255,255,.04);}
+  .bt-info{flex:1 1 200px; min-width:0;}
+  .bt-vs{font-family:var(--f-display); font-size:15px; font-weight:700; color:var(--text); display:flex; align-items:center; gap:6px; flex-wrap:wrap;}
+  .bt-sub{font-family:var(--f-mono); font-size:11px; color:var(--text-faint); margin-top:4px;}
+  .bt-sub-dot{margin:0 2px; opacity:.6;}
+  .bt-marcador{
+    flex-shrink:0; display:inline-flex; align-items:center; gap:6px; font-family:var(--f-mono); font-weight:700; font-size:14px; color:var(--text);
+    padding:7px 12px; border-radius:8px; background:rgba(255,255,255,.03); border:1px solid var(--line); white-space:nowrap;
+  }
+  .bt-marcador img{height:15px; width:auto; vertical-align:-2px;}
+  .bt-meta{flex-shrink:0; display:flex; flex-direction:row; align-items:center; gap:6px; flex-wrap:wrap; justify-content:flex-end;}
+  .bt-badge{font-family:var(--f-mono); font-size:10px; font-weight:700; letter-spacing:.03em; padding:3px 9px; border-radius:999px; border:1px solid var(--line-strong); color:var(--text-dim); white-space:nowrap;}
+  @media (max-width:640px){
+    .bt-row{padding:14px 14px 14px 18px;}
+    .bt-info{order:1; flex-basis:100%;}
+    .bt-marcador{order:2;}
+    .bt-meta{order:3;}
+  }
 </style>
 </head>
 <body data-page="perfil">
@@ -4706,20 +4781,36 @@ function pintarCicloCofres(items){
   var proximo = items[0];
   var resto = agruparCofresConsecutivos(items.slice(1));
 
-  var proximoIconHtml = proximo.link ? `<img class="cc-cofre-icon" src="${esc(proximo.link)}" alt="">` : '';
+  // FIX (27-sep-2026, pedido usuario -- "se ven muy feos y simples"):
+  // el próximo cofre ahora va en un marco de ícono grande (halo violeta,
+  // ver .cc-cofre-proximo-icono); sin Link cae a un 📦 de texto plano en
+  // vez de dejar el marco vacío.
+  var proximoIconHtml = proximo.link ? `<img src="${esc(proximo.link)}" alt="">` : '<span style="font-size:28px; line-height:1;">📦</span>';
 
   var restoHtml = resto.map(function(g){
-    var iconHtml = g.link ? `<img class="cc-cofre-icon" src="${esc(g.link)}" alt="">` : '';
+    // Sin Link se pinta un placeholder tenue (.cc-cofre-item-icono-vacio)
+    // en vez de omitir el hueco del ícono, para que todas las tarjetas de
+    // la grilla midan lo mismo aunque falten íconos por completar en
+    // Backup_Cofres.csv.
+    var iconHtml = g.link
+      ? `<img class="cc-cofre-item-icono" src="${esc(g.link)}" alt="">`
+      : '<div class="cc-cofre-item-icono-vacio"></div>';
     var idxLabel = g.indices.length > 1
       ? `#${g.indices[0]}\u2013${g.indices[g.indices.length - 1]}`
       : `#${g.indices[0]}`;
-    var xLabel = g.indices.length > 1 ? `<span class="cc-cofre-x">\u00d7${g.indices.length}</span>` : '';
-    return `<span class="cc-badge cc-cofre-badge">${iconHtml}<span class="cc-cofre-index">${esc(idxLabel)}</span>${esc(g.nombre)}${xLabel}</span>`;
+    var xLabel = g.indices.length > 1 ? `<span class="cc-cofre-item-x">\u00d7${g.indices.length}</span>` : '';
+    return `
+      <div class="cc-cofre-item">
+        <span class="cc-cofre-item-index">${esc(idxLabel)}</span>
+        ${xLabel}
+        ${iconHtml}
+        <span class="cc-cofre-item-nombre">${esc(g.nombre)}</span>
+      </div>`;
   }).join('');
 
   wrap.innerHTML = `
     <div class="cc-cofre-proximo">
-      ${proximoIconHtml}
+      <div class="cc-cofre-proximo-icono">${proximoIconHtml}</div>
       <div>
         <div class="cc-cofre-proximo-lbl">Próximo cofre</div>
         <div class="cc-cofre-proximo-nombre">${esc(nombreCofreMostrar(proximo))}</div>
@@ -4815,7 +4906,7 @@ function pintarBatallasRecientes(batallas){
   var COLOR_RESULTADO = { victoria: 'var(--ok)', derrota: 'var(--danger)', empate: 'var(--text-dim)' };
   var TXT_RESULTADO = { victoria: 'Victoria', derrota: 'Derrota', empate: 'Empate' };
 
-  wrap.innerHTML = `<div class="card" style="padding:8px 4px;">${batallas.map(function(b){
+  wrap.innerHTML = `<div class="bt-lista">${batallas.map(function(b){
     var esBoat = (b.tipo === 'boatBattle');
     var colorResultado = COLOR_RESULTADO[b.resultado] || 'var(--text-dim)';
     var txtResultado = TXT_RESULTADO[b.resultado] || b.resultado;
@@ -4872,23 +4963,34 @@ function pintarBatallasRecientes(batallas){
     var badgesExtra = '';
     if (b.trophyChange !== null && b.trophyChange !== undefined){
       var signo = b.trophyChange > 0 ? '+' : '';
-      badgesExtra += `<span class="badge" style="border-color:${colorResultado}; color:${colorResultado};">${signo}${fmtNum(b.trophyChange)}</span>`;
+      badgesExtra += `<span class="bt-badge" style="border-color:${colorResultado}; color:${colorResultado};">${signo}${fmtNum(b.trophyChange)}</span>`;
     }
     if (b.deckSelection && b.deckSelection !== 'collection'){
-      badgesExtra += `<span class="badge badge-purple">${esc(b.deckSelection)}</span>`;
+      badgesExtra += `<span class="bt-badge" style="border-color:var(--purple-light); color:var(--purple-light);">${esc(b.deckSelection)}</span>`;
     }
 
+    // FIX (27-sep-2026, pedido usuario -- "las batallas se ven muy feos y
+    // simples"): deja de reutilizar .ingreso-row/.ingreso-info/.ing-nombre
+    // (pensado para una sola línea de texto, torneos/otras cuentas) y pasa
+    // a .bt-row, un componente propio tipo "marcador deportivo": franja de
+    // color a la izquierda según resultado, badge de resultado a la
+    // izquierda, rival/modo al centro y marcador con coronas + badges
+    // extra a la derecha. tituloHtml/subHtml arman el mismo contenido que
+    // antes (rival+clan arriba y modo/arena+fecha abajo, o modo/arena
+    // arriba y fecha abajo si no hay rival) -- solo cambia el maquetado.
+    var tituloHtml = rivalTxt ? (esc(rivalTxt) + esc(miClanTxt)) : subtitulo;
+    var subHtml = (rivalTxt ? subtitulo + ' <span class="bt-sub-dot">·</span> ' : '') + (b.fecha ? esc(b.fecha) : 'Fecha no registrada');
+    var claseResultado = 'bt-' + (b.resultado === 'victoria' || b.resultado === 'derrota' || b.resultado === 'empate' ? b.resultado : 'empate');
+
     return `
-      <div class="ingreso-row" style="cursor:default;">
-        <div class="ingreso-info">
-          <div class="ing-nombre">${rivalTxt ? esc(rivalTxt) + esc(miClanTxt) : subtitulo}</div>
-          <div class="ing-fecha">${rivalTxt ? subtitulo + ' · ' : ''}${b.fecha ? esc(b.fecha) : 'Fecha no registrada'}</div>
+      <div class="bt-row ${claseResultado}">
+        <div class="bt-resultado">${esc(txtResultado)}</div>
+        <div class="bt-info">
+          <div class="bt-vs">${tituloHtml}</div>
+          <div class="bt-sub">${subHtml}</div>
         </div>
-        <div class="ingreso-links">
-          <span class="badge" style="border-color:${colorResultado}; color:${colorResultado};">${esc(txtResultado)}</span>
-          ${badgesExtra}
-          <span class="badge badge-gold">${marcadorHtml}</span>
-        </div>
+        <div class="bt-marcador">${marcadorHtml}</div>
+        ${badgesExtra ? `<div class="bt-meta">${badgesExtra}</div>` : ''}
       </div>`;
   }).join('')}</div>`;
 }
