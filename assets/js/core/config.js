@@ -46,11 +46,14 @@ const WEB_MEMBER_TOKEN = '8adb26e9c98bd188ac4572997bdd38f1fc252f57'; // debe ser
  *  - webGuerraEnVivo: cada "pendiente" trae nomMulti y prestamo (quién prestó
  *    la cuenta). guerra.html solo los pinta a admins, pero viajan a cualquiera
  *    que tenga el token.
- *  - webIngresosRecientes: cada ingreso trae esRivalTemporada y
- *    clanRivalDetectado {nombre, fuente, motivo} (cruce contra clanes rivales
- *    y la lista manual "Conflictos"). directorio.html lo muestra como aviso.
- *  - webPerfil / webCompararJugadores: si el Tag está en Inactivos, responden
- *    con estado "Inactivo" y el perfil de esa cuenta.
+ *  - webIngresosRecientes: CAMBIO (28-sep-2026, Fase 5b tanda B): esRivalTemporada
+ *    y clanRivalDetectado {nombre, fuente, motivo} (cruce contra clanes rivales
+ *    y la lista manual "Conflictos") ya NO salen con este token solo: únicamente
+ *    con sessionToken de admin (directorio.html manda conSesion:true).
+ *  - webPerfil / webCompararJugadores: CAMBIO (Fase 5b tanda A): el estado
+ *    "Inactivo" de una cuenta de Inactivos solo sale con sessionToken de admin.
+ *  - webTorneosJugador / webHistorialGuerraComparador: CAMBIO (Fase 5b tanda A3):
+ *    una cuenta inactiva responde vacío salvo con sessionToken de admin.
  *  Nunca salen (en el código revisado): celular, prefijo, claves, contraseña de
  *  torneo, Vetado/Razón, ni Autor/Comentario de ascensos.
  *

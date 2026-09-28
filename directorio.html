@@ -1440,7 +1440,7 @@ async function compararJugadores(){
     // El historial de guerra del comparador se pide en paralelo al perfil, con su propio catch, para no romper el resto si ese endpoint falla. Historial en CHANGELOG.md.
     const [data, histData] = await Promise.all([
       apiGet('webCompararJugadores', { tag1, tag2 }, { conSesion: true }), // Fase 5b tanda A (28-sep-2026): con sesión de admin el backend muestra "Inactivo"; a un visitante, una cuenta de Inactivos le sale como "Sin registro con nosotros". Historial en CHANGELOG.md.
-      apiGet('webHistorialGuerraComparador', { tag1, tag2 }).catch(() => null)
+      apiGet('webHistorialGuerraComparador', { tag1, tag2 }, { conSesion: true }).catch(() => null)
     ]);
     msgEl.innerHTML = '';
     let html = '';
@@ -2765,7 +2765,7 @@ async function cargarIngresosRecientes(){
   const pillsWrap = document.getElementById('ingClanPills');
   try{
     const [data, dataRoster] = await Promise.all([
-      apiGet('webIngresosRecientes', null, { ttlMs: 300000, staleIfError: true }), // D-9 (b): 5 min; B4/B-10: si falla la red, usar el último dato guardado
+      apiGet('webIngresosRecientes', null, { ttlMs: 300000, staleIfError: true, conSesion: true }), // D-9 (b): 5 min; B4/B-10: si falla la red, usar el último dato guardado
       apiGet('webRoster', null, { ttlMs: 300000, staleIfError: true }).catch(() => null) // defensivo: si falla y no hay respaldo, no filtra ni completa datos en vez de romper la sección
     ]);
     const roster = dataRoster ? indexarRosterParaIngresos(dataRoster) : null;

@@ -590,7 +590,7 @@ async function cargar(manual){
   if(refreshBtn){ refreshBtn.classList.add('spinning'); refreshBtn.disabled = true; }
   try{
 // antes esto pegaba directo a ?dashboard=json con un token de administradores hardcodeado acá mismo, visible para cualquiera con "Ver código fuente" de esta página PÚBLICA. Historial en CHANGELOG.md.
-    const data = await apiGet('webGuerraEnVivo', null, { sinCache: true });
+    const data = await apiGet('webGuerraEnVivo', null, { sinCache: true, conSesion: true }); // Fase 5b tanda C (28-sep-2026): con sesión de admin el backend manda nomMulti/prestamo de los pendientes; a un visitante no.
     render(data);
     cargarPronosticoGuerra(data.ctx || {}, manual); // sin await: no retrasa ni rompe el resto de la página
     lastFetchAt = new Date();
