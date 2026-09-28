@@ -806,10 +806,13 @@
   .bt-row.bt-victoria .bt-resultado{color:var(--ok); background:rgba(60,200,120,.08);}
   .bt-row.bt-derrota .bt-resultado{color:var(--danger); background:rgba(255,80,80,.08);}
   .bt-row.bt-empate .bt-resultado{color:var(--text-dim); background:rgba(255,255,255,.04);}
-  .bt-info{flex:1 1 200px; min-width:0;}
-  .bt-vs{font-family:var(--f-display); font-size:15px; font-weight:700; color:var(--text); display:flex; align-items:center; gap:6px; flex-wrap:wrap;}
-  .bt-sub{font-family:var(--f-mono); font-size:11px; color:var(--text-faint); margin-top:4px;}
-  .bt-sub-dot{margin:0 2px; opacity:.6;}
+  .bt-vs{flex:2 1 260px; min-width:0; font-family:var(--f-display); font-size:15px; font-weight:700; color:var(--text);}
+  .bt-vs-txt{color:var(--text-faint); font-weight:600; margin:0 2px;}
+  .bt-rival{color:var(--text);}
+  .bt-modo{flex:0 1 150px; display:flex; align-items:center; gap:6px; font-size:12px; color:var(--text-dim);}
+  .bt-modo-ico img{height:16px; width:auto; vertical-align:middle;}
+  .bt-arena{flex:0 1 170px; font-family:var(--f-mono); font-size:11px; color:var(--text-faint);}
+  .bt-fecha{flex:0 0 auto; font-family:var(--f-mono); font-size:11px; color:var(--text-faint); white-space:nowrap; text-align:right;}
   .bt-marcador{
     flex-shrink:0; display:inline-flex; align-items:center; gap:6px; font-family:var(--f-mono); font-weight:700; font-size:14px; color:var(--text);
     padding:7px 12px; border-radius:8px; background:rgba(255,255,255,.03); border:1px solid var(--line); white-space:nowrap;
@@ -819,9 +822,7 @@
   .bt-badge{font-family:var(--f-mono); font-size:10px; font-weight:700; letter-spacing:.03em; padding:3px 9px; border-radius:999px; border:1px solid var(--line-strong); color:var(--text-dim); white-space:nowrap;}
   @media (max-width:640px){
     .bt-row{padding:14px 14px 14px 18px;}
-    .bt-info{order:1; flex-basis:100%;}
-    .bt-marcador{order:2;}
-    .bt-meta{order:3;}
+    .bt-vs{flex-basis:100%;}
   }
 </style>
 </head>
@@ -4956,7 +4957,7 @@ function pintarBatallasRecientes(batallas){
     var marcadorHtml = esBoat
       ? esc(`Torres: +${fmtNum(b.barcoTorresNuevas || 0)} · quedan ${fmtNum(b.barcoTorresRestantes || 0)}`)
       : `${_ICONO_CORONA_AZUL_HTML}${esc(fmtNum(b.miCorona || 0))} &nbsp;\u2013&nbsp; ${_ICONO_CORONA_ROJA_HTML}${esc(fmtNum(b.rivalCorona || 0))}`;
-    marcadorHtml = (esGuerra ? _ICONO_GUERRA_HTML + ' ' : (esTrofeos ? _ICONO_BATALLA_HTML + ' ' : '')) + marcadorHtml;
+    var iconoModoHtml = esGuerra ? _ICONO_GUERRA_HTML : (esTrofeos ? _ICONO_BATALLA_HTML : '');
 
     // Badges opcionales: solo se pintan si el dato vino (trophyChange no
     // aplica fuera de pathOfLegend, deckSelection 'collection' es el caso
@@ -4979,19 +4980,31 @@ function pintarBatallasRecientes(batallas){
     // extra a la derecha. tituloHtml/subHtml arman el mismo contenido que
     // antes (rival+clan arriba y modo/arena+fecha abajo, o modo/arena
     // arriba y fecha abajo si no hay rival) -- solo cambia el maquetado.
-    var tituloHtml = rivalTxt ? (esc(rivalTxt) + esc(miClanTxt)) : subtitulo;
-    var subHtml = (rivalTxt ? subtitulo + ' <span class="bt-sub-dot">·</span> ' : '') + (b.fecha ? esc(b.fecha) : 'Fecha no registrada');
+    // FIX (27-sep-2026, pedido usuario): orden de izquierda a derecha:
+    // [jugador (clan) vs. rival (clan)] · [ícono+modo] · [arena] ·
+    // [coronas] · [resultado] · [fecha]. El clan propio va como enlace
+    // (enlaceClan, igual que en la cabecera); el del rival, texto plano.
+    // FIX (27-sep-2026, pedido usuario): nombre y clan del jugador salen
+    // SOLO de la batalla (b.miNombre/b.miClan), no del perfil actual: en
+    // esa fecha pudo llamarse distinto o estar en otro clan. Sin fallback
+    // al perfil a propósito.
+    var miNombre = b.miNombre || '—';
+    var miClanNom = b.miClan || '';
+    var miClanHtml = miClanNom ? ` (${enlaceClan(miClanNom)})` : '';
+    var rivalHtml = b.rivalNombre ? `${esc(b.rivalNombre)}${b.rivalClan ? ' (' + esc(b.rivalClan) + ')' : ''}` : 'Rival desconocido';
+    var vsHtml = `<span class="bt-yo">${esc(miNombre)}${miClanHtml}</span> <span class="bt-vs-txt">vs.</span> <span class="bt-rival">${rivalHtml}</span>`;
+    var modoHtml = `${iconoModoHtml ? `<span class="bt-modo-ico">${iconoModoHtml}</span>` : ''}<span title="${esc(modoTip)}">${esc(b.modoTxt || 'Modo no registrado')}</span>`;
+    var arenaHtml = b.arenaTxt ? `<span title="${esc(arenaTip)}">${esc(b.arenaTxt)}</span>` : '<span>—</span>';
     var claseResultado = 'bt-' + (b.resultado === 'victoria' || b.resultado === 'derrota' || b.resultado === 'empate' ? b.resultado : 'empate');
 
     return `
       <div class="bt-row ${claseResultado}">
-        <div class="bt-resultado">${esc(txtResultado)}</div>
-        <div class="bt-info">
-          <div class="bt-vs">${tituloHtml}</div>
-          <div class="bt-sub">${subHtml}</div>
-        </div>
+        <div class="bt-vs">${vsHtml}</div>
+        <div class="bt-modo">${modoHtml}</div>
+        <div class="bt-arena">${arenaHtml}</div>
         <div class="bt-marcador">${marcadorHtml}</div>
-        ${badgesExtra ? `<div class="bt-meta">${badgesExtra}</div>` : ''}
+        <div class="bt-resultado">${esc(txtResultado)}</div>
+        <div class="bt-fecha">${b.fecha ? esc(b.fecha) : 'Fecha no registrada'}${badgesExtra ? ` <span class="bt-meta">${badgesExtra}</span>` : ''}</div>
       </div>`;
   }).join('')}</div>`;
 }
