@@ -11,6 +11,32 @@ el código hoy) cuando hace falta para mantenerlo; el "por qué histórico"
 
 ---
 
+## perfil.html, directorio.html y `assets/js/core/api.js` — Fase 5b tanda A del Consolidado de mejoras (28-sep-2026)
+
+### 28-sep-2026 — El estado "Inactivo" de un Tag solo lo ve un admin
+Decisión del usuario (punto 3 de la Fase 5): a quien no sea admin, una cuenta
+de la hoja Inactivos se le muestra como "Sin registro con nosotros" (antes, desde
+el 24-sep-2026, `webPerfil` respondía con estado "Inactivo" a cualquiera con el
+token público, que es visible en este repo). La regla vive en el backend
+(`_webPerfilJugador()`, `34_Web_API.gs`): el navegador solo avisa quién es.
+
+- **`api.js`, `apiGet()`:** nueva opción `opts.conSesion`. Si hay un admin con
+  sesión (`localStorage['terna_admin_token']`), la petición agrega su
+  `sessionToken` y sale **sin caché**: no se lee ni se guarda en `sessionStorage` ni
+  en el respaldo de `localStorage`, y tampoco se usa `staleIfError`. Motivo: que un
+  dato solo-admin no quede guardado en el navegador después de cerrar sesión. Sin sesión
+  no cambia nada.
+- **`perfil.html`:** `webPerfil` se pide con `conSesion: true`. El texto
+  "actualizado ..." del admin dice "ahora mismo", porque su petición no se guarda en
+  el respaldo del que lo leería `apiGetUltimaActualizacion()`.
+- **`directorio.html`:** el comparador pide `webCompararJugadores` con `conSesion: true`.
+- **`sw.js`:** `CACHE_NAME` sube a `terna-static-v6` (cambió `api.js`).
+- **Límite conocido:** si la sesión del admin venció en el servidor (6 h) pero sigue
+  guardada en el navegador, el backend la trata como visitante y el admin verá "Sin
+  registro con nosotros" hasta volver a iniciar sesión.
+
+---
+
 ## admin.html — Fase 11 del plan T_Lista (26-sep-2026)
 
 ### 26-sep-2026 — Modificar torneo: refleja el bloqueo del Organizador cuando viene de la API

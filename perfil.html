@@ -5364,7 +5364,8 @@ async function cargarPerfil(){
     return;
   }
   try{
-    const data = await apiGet('webPerfil', { tag: TAG_PERFIL }, { ttlMs: 300000, staleIfError: true }); // B-11: 5 min; B4/B-10: si falla la red, usar el último dato guardado
+    // Fase 5b tanda A (28-sep-2026): conSesion manda el sessionToken del admin (si hay) para que el backend le muestre el estado "Inactivo"; a un visitante, una cuenta de Inactivos le sale como "Sin registro con nosotros". Con sesión no se usa caché (ver apiGet en api.js). Historial en CHANGELOG.md.
+    const data = await apiGet('webPerfil', { tag: TAG_PERFIL }, { ttlMs: 300000, staleIfError: true, conSesion: true }); // B-11: 5 min; B4/B-10: si falla la red, usar el último dato guardado
     if (!data.ok){
       document.getElementById('perfilCargando').style.display = 'none';
       document.getElementById('perfilError').style.display = 'block';
@@ -5374,7 +5375,7 @@ async function cargarPerfil(){
     renderMiembro(data.jugador);
     // B4/B-10: no dispara ninguna petición — lee el mismo respaldo que apiGet() ya guardó en localStorage al resolver la llamada de arriba (ya sea fresca o por staleIfError).
     document.getElementById('perfilActualizadoTxt').textContent =
-      fmtTiempoRelativo(apiGetUltimaActualizacion('webPerfil', { tag: TAG_PERFIL }));
+      fmtTiempoRelativo(esAdminLogueado() ? new Date() : apiGetUltimaActualizacion('webPerfil', { tag: TAG_PERFIL })); // admin: la petición con sesión no se guarda en el respaldo y se acaba de pedir a la red
   }catch(err){
     document.getElementById('perfilCargando').style.display = 'none';
     document.getElementById('perfilError').style.display = 'block';

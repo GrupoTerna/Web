@@ -37,7 +37,10 @@
 // v5 (28-sep-2026): join-modal.js cambió (evento de GoatCounter al abrir el modal, Fase 4 del
 // Consolidado de mejoras) y config.js suma un comentario (Fase 5). Se sube la versión para que
 // 'activate' borre v4 y todos los visitantes reciban de inmediato los archivos nuevos.
-const CACHE_NAME = 'terna-static-v5';
+// v6 (28-sep-2026): api.js cambió (opts.conSesion en apiGet, Fase 5b tanda A del Consolidado de
+// mejoras). Se sube la versión para que 'activate' borre v5 y perfil.html/directorio.html (que ya
+// pasan conSesion) no corran con un api.js viejo que lo ignore.
+const CACHE_NAME = 'terna-static-v6';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y

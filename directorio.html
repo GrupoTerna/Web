@@ -1439,7 +1439,7 @@ async function compararJugadores(){
   try{
     // El historial de guerra del comparador se pide en paralelo al perfil, con su propio catch, para no romper el resto si ese endpoint falla. Historial en CHANGELOG.md.
     const [data, histData] = await Promise.all([
-      apiGet('webCompararJugadores', { tag1, tag2 }),
+      apiGet('webCompararJugadores', { tag1, tag2 }, { conSesion: true }), // Fase 5b tanda A (28-sep-2026): con sesión de admin el backend muestra "Inactivo"; a un visitante, una cuenta de Inactivos le sale como "Sin registro con nosotros". Historial en CHANGELOG.md.
       apiGet('webHistorialGuerraComparador', { tag1, tag2 }).catch(() => null)
     ]);
     msgEl.innerHTML = '';

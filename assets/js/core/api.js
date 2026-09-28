@@ -39,6 +39,13 @@
  * indicador ("Actualizado hace...", "Sin conexión, mostrando datos de
  * hace...") cuando se decida hacerlo — no hay UI todavía, solo la
  * capacidad en esta capa.
+ *
+ * CAMBIO (28-sep-2026, Fase 5b tanda A): opts.conSesion=true — si hay un admin
+ * con sesión (localStorage 'terna_admin_token'), la petición lleva además su
+ * sessionToken y sale sin caché ni respaldo (ver el comentario dentro de la
+ * función). Hoy lo usan perfil.html (webPerfil) y directorio.html
+ * (webCompararJugadores) para que el admin siga viendo el estado "Inactivo".
+ * Sin sesión, es igual que no pasarlo.
  */
 const API_GET_CACHE_TTL_MS = 60000;
 
@@ -312,7 +319,22 @@ const _peticionesEnVuelo = {};
 
 async function apiGet(accion, params, opts){
   opts = opts || {};
-  const qs = new URLSearchParams({ accion, token: WEB_MEMBER_TOKEN, ...(params||{}) });
+  params = params || {};
+  // CAMBIO (28-sep-2026, Fase 5b tanda A del Consolidado de mejoras): opts.conSesion
+  // agrega el sessionToken del admin logueado (si hay uno) para que el backend
+  // habilite los datos solo-admin de esa acción (hoy: el estado "Inactivo" de
+  // webPerfil/webCompararJugadores). Con sesión la petición sale SIEMPRE fresca y
+  // sin guardarse en sessionStorage ni en el respaldo de localStorage, para que
+  // un dato solo-admin no quede en el navegador después de cerrar sesión. Sin
+  // sesión (visitante) no cambia nada: mismo caché y mismos parámetros de antes.
+  if (opts.conSesion){
+    const sessionToken = localStorage.getItem('terna_admin_token');
+    if (sessionToken){
+      params = { ...params, sessionToken };
+      opts = { ...opts, sinCache: true, staleIfError: false };
+    }
+  }
+  const qs = new URLSearchParams({ accion, token: WEB_MEMBER_TOKEN, ...params });
   const cacheKey = 'terna_cache_' + qs.toString();
   const ttlMs = (typeof opts.ttlMs === 'number' && opts.ttlMs >= 0) ? opts.ttlMs : API_GET_CACHE_TTL_MS;
   if(!opts.sinCache){
