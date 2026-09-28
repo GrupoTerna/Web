@@ -19,38 +19,53 @@ const WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbwxTdbddzujbus0e5JT8
 const WEB_MEMBER_TOKEN = '8adb26e9c98bd188ac4572997bdd38f1fc252f57'; // debe ser igual al de 34_Web_API.gs -- actualizado 20-sep-2026 tras rotarTokensDesdeCodigo()
 
 /* NIVEL DE EXPOSICIÓN ACEPTADO DE WEB_MEMBER_TOKEN (Fase 5 del Consolidado de
- * mejoras, 28-sep-2026 — solo documentación, no cambia comportamiento).
+ * mejoras, 28-sep-2026 — solo documentación, no cambia comportamiento;
+ * revisado contra doGet/doPost de 08_Web_Endpoints.gs y las funciones web* de
+ * 34_Web_API.gs).
  *
  * Este repo es público, así que CUALQUIERA puede leer el token de arriba y
  * llamar directo al Web App (WEBAPP_URL) sin pasar por la web. Es una
  * decisión aceptada, no un descuido: un token que viaja en el JS de una página
- * pública nunca es un secreto real. Lo que sí hace es filtrar tráfico casual y
- * permitir rotarlo (rotarTokensDesdeCodigo(), última vez 20-sep-2026); el
- * sitio pide el token en cada apiGet() (assets/js/core/api.js).
+ * pública nunca es un secreto real. Sirve para filtrar tráfico casual y se
+ * puede rotar (rotarTokensDesdeCodigo(), última vez 20-sep-2026). El backend lo
+ * guarda en la Script Property WEB_MEMBER_TOKEN.
  *
- * Qué se puede alcanzar con ESTE token (según lo que el frontend llama con
- * apiGet()): solo acciones web* de lectura de datos públicos del clan:
- *   webClanInfo, webRoster, webGuerraEnVivo, webGuerraLog, webGuerraPuestosDia,
- *   webHistorialGuerraComparador, webPronosticoGuerra, webRankings,
- *   webTorneosJugador, webPerfil, webCofresJugador, webBattlelogJugador,
- *   webCompararJugadores, webEstadisticasCartas, webIngresosRecientes,
- *   webAscensosRecientes, webAniversarios.
- * Riesgo real: quien tenga el token puede leer todo eso (ya es lo que muestra
- * el portal) y gastar cuota del Web App / del proxy de Render, sobre todo con
- * webPerfil, webCofresJugador y webBattlelogJugador, que consultan a
- * Supercell en vivo.
+ * QUÉ ALCANZA (19 acciones, todas GET, en doGet): webRoster, webClanInfo,
+ * webGuerraEnVivo, webPronosticoGuerra, webGuerraLog, webGuerraPuestosDia,
+ * webPerfil, webCompararJugadores, webHistorialGuerraComparador, webTorneos,
+ * webHistorialTorneos, webTorneosJugador, webRankings, webAniversarios,
+ * webIngresosRecientes, webAscensosRecientes, webEstadisticasCartas,
+ * webCofresJugador, webBattlelogJugador.
  *
- * Qué NO protege este token: las acciones de admin (crear/modificar torneos y
- * sorteos, vetar, permisos, login) van por apiPost()/apiGetAuth() con la
- * sesión personal de cada admin (terna_admin_token / sessionToken), no con
- * este token.
+ * QUÉ NO ALCANZA: las acciones de admin (webAdmin*, webPermisos*, webCRLista*,
+ * webMisCuentas, webAportesInactivos, webSorteoCalificados, etc.) validan el
+ * sessionToken de cada admin y ignoran este token; doPost no lo acepta en
+ * ninguna acción (ni siquiera webLogin).
  *
- * VERIFICACIÓN ABIERTA (pendiente de contestar): el punto anterior sale de
- * revisar el FRONTEND. Falta confirmar en el backend (34_Web_API.gs / doGet en
- * 08_Web_Endpoints.gs, Base.md) que ninguna acción que acepte WEB_MEMBER_TOKEN
- * escriba datos ni devuelva datos personales sensibles, y que las acciones de
- * admin rechacen este token. Si el backend contradice esta nota, corregirla
- * acá y avisar como corrección.
+ * DATOS QUE SÍ SALEN CON ESTE TOKEN (conviene tenerlos presentes):
+ *  - webGuerraEnVivo: cada "pendiente" trae nomMulti y prestamo (quién prestó
+ *    la cuenta). guerra.html solo los pinta a admins, pero viajan a cualquiera
+ *    que tenga el token.
+ *  - webIngresosRecientes: cada ingreso trae esRivalTemporada y
+ *    clanRivalDetectado {nombre, fuente, motivo} (cruce contra clanes rivales
+ *    y la lista manual "Conflictos"). directorio.html lo muestra como aviso.
+ *  - webPerfil / webCompararJugadores: si el Tag está en Inactivos, responden
+ *    con estado "Inactivo" y el perfil de esa cuenta.
+ *  Nunca salen (en el código revisado): celular, prefijo, claves, contraseña de
+ *  torneo, Vetado/Razón, ni Autor/Comentario de ascensos.
+ *
+ * COSTO DE ABUSO: webPerfil (Tag sin registro), webCofresJugador y
+ * webBattlelogJugador llaman en vivo a Supercell vía el proxy de Render. El
+ * límite de pedidos es global (180/min para todas las acciones web*), no por
+ * IP, porque Apps Script no expone la IP del cliente.
+ *
+ * VERIFICACIONES ABIERTAS (ver Consolidado, Fase 5):
+ *  - webBattlelogJugador llama a _resolverModoDesdeCatalogo(); según el
+ *    docblock de _obtenerModoCompletoDesdeCatalogo() (34_Web_API.gs) esa
+ *    función encola filas nuevas en Backup_Modo.csv. Si es así, este token
+ *    permitiría una escritura. Falta leer 07_API_ClashRoyale.gs para confirmarlo.
+ *  - Sin revisar por falta de archivo: webPronosticoGuerra (38_Pronostico_Guerra.gs),
+ *    webGuerraLog y webGuerraPuestosDia (17_GuerraSheet.gs).
  */
 
 
