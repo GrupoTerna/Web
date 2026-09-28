@@ -34,7 +34,10 @@
 // seguían sirviendo el config.js viejo desde este caché. Se sube la versión para
 // que 'activate' borre v3, y el precaché de 'install' ahora ignora el caché HTTP
 // del navegador (cache:'reload') para no volver a guardar una copia vieja.
-const CACHE_NAME = 'terna-static-v4';
+// v5 (28-sep-2026): join-modal.js cambió (evento de GoatCounter al abrir el modal, Fase 4 del
+// Consolidado de mejoras) y config.js suma un comentario (Fase 5). Se sube la versión para que
+// 'activate' borre v4 y todos los visitantes reciban de inmediato los archivos nuevos.
+const CACHE_NAME = 'terna-static-v5';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
