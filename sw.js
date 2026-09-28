@@ -45,7 +45,7 @@
 // pedir webTorneos/webHistorialTorneos (Fase 5b tanda D, AVISO A9 de 34_Web_API.gs). Se sube la
 // versión para que 'activate' borre v6 y los visitantes no se queden con la versión vieja de
 // torneos.html (sin los links) servida desde este caché de forma indefinida.
-const CACHE_NAME = 'terna-static-v7';
+const CACHE_NAME = 'terna-static-v8';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
