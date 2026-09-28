@@ -928,7 +928,8 @@
                  apilando exactamente 2 filas, ninguna otra regla CSS
                  cambia. -->
             <!-- FIX (27-sep-2026, pedido usuario — "pon el ícono celeste a la izquierda de nivel de xp, así como el ícono de puntos estelares"): el ícono vuelve a la fila de la etiqueta, a la IZQUIERDA del texto "Nivel de XP" (mismo criterio que _ICONO_PUNTOS_ESTELARES_HTML en el cuadrito de Puntos estelares); el <b> queda solo arriba. Siguen siendo 2 hijos, así que el flex-column no cambia. -->
-            <span id="mNivelExpWrap" style="display:none;"><b id="mNivelExp">0</b><span style="display:inline-flex; align-items:center; gap:4px;"><img src="assets/img/XP.webp" alt="" width="13" height="13" loading="lazy" decoding="async" onerror="this.remove();">Nivel de XP</span></span>
+            <!-- FIX (27-sep-2026, pedido usuario — "se supone que se había movido el ícono a la izquierda de nivel de xp [...] debe quedar como el de puntos estelares, en una sola fila"): el ícono seguía saliendo debajo del número, en una fila aparte. Causa: la regla `.perfil-cabecera .stats-mini span{flex-direction:column}` (<style>, más arriba) NO solo aplica a los <span> de primer nivel: también al <span> interno de la etiqueta, así que apilaba ícono y texto en columna aunque tuviera display:inline-flex. Se agrega `flex-direction:row` en el estilo en línea de ese <span> interno (el estilo en línea gana a la regla del <style>), sin tocar la regla general. -->
+            <span id="mNivelExpWrap" style="display:none;"><b id="mNivelExp">0</b><span style="display:inline-flex; flex-direction:row; align-items:center; gap:4px;"><img src="assets/img/XP.webp" alt="" width="13" height="13" loading="lazy" decoding="async" onerror="this.remove();">Nivel de XP</span></span>
             <!-- FIX (26-sep-2026, pedido usuario — "el cuadrito de 'Nivel de
                  cartas' debe cambiar el nombre a 'Nivel de colección' y
                  moverse a la derecha de 'Nivel de XP'"): antes era un
@@ -4799,7 +4800,12 @@ function pintarCicloCofres(items){
   // el próximo cofre ahora va en un marco de ícono grande (halo violeta,
   // ver .cc-cofre-proximo-icono); sin Link cae a un 📦 de texto plano en
   // vez de dejar el marco vacío.
-  var proximoIconHtml = proximo.link ? `<img src="${esc(proximo.link)}" alt="">` : '<span style="font-size:28px; line-height:1;">📦</span>';
+  // FIX (27-sep-2026, pedido usuario — "sigue apareciendo los cofres sin
+  // imágenes"): si el Link existe pero la imagen no carga (URL que no es de
+  // imagen directa, archivo todavía no subido, etc.), antes quedaba el
+  // ícono de imagen rota; ahora onerror cae al mismo placeholder que ya se
+  // usa cuando no hay Link.
+  var proximoIconHtml = proximo.link ? `<img src="${esc(proximo.link)}" alt="" onerror="this.outerHTML='<span style=font-size:28px;line-height:1>📦</span>'">` : '<span style="font-size:28px; line-height:1;">📦</span>';
 
   var restoHtml = resto.map(function(g){
     // Sin Link se pinta un placeholder tenue (.cc-cofre-item-icono-vacio)
@@ -4807,7 +4813,7 @@ function pintarCicloCofres(items){
     // la grilla midan lo mismo aunque falten íconos por completar en
     // Backup_Cofres.csv.
     var iconHtml = g.link
-      ? `<img class="cc-cofre-item-icono" src="${esc(g.link)}" alt="">`
+      ? `<img class="cc-cofre-item-icono" src="${esc(g.link)}" alt="" onerror="this.outerHTML='<div class=cc-cofre-item-icono-vacio></div>'">`
       : '<div class="cc-cofre-item-icono-vacio"></div>';
     var idxLabel = g.indices.length > 1
       ? `#${g.indices[0]}\u2013${g.indices[g.indices.length - 1]}`
