@@ -33,6 +33,17 @@
 <style>
   /* Consume 'webTorneos' (34_Web_API.gs), el mismo endpoint que usa
      admin.html para la tarjeta "Ver ganadores" del panel. */
+  /* FASE 5b tanda D (28-sep-2026, pedido del usuario -- AVISO A7,
+     34_Web_API.gs): el nombre de un participante pasa a ser un link a
+     perfil.html?tag=... cuando el backend manda `tag` (participante
+     activo, o sesión de admin) -- mismo patrón visual que .rk-nombre de
+     index.html. Clase compartida por los 5 lugares donde se pinta un
+     nombre en esta página (ver enlaceParticipante() más abajo), para no
+     repetir la regla en cada contenedor (.g-nombre/.tr-nombre/.tg-fila b/
+     .sp-nombre/.rk-victorias-nombre) -- hereda el color de su contenedor
+     y solo agrega el subrayado al pasar el mouse. */
+  .participante-link{color:inherit; text-decoration:none;}
+  .participante-link:hover{text-decoration:underline; color:var(--purple-light);}
   .ganadores-grid{
     display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr));
     gap:16px; margin-top:20px;
@@ -320,6 +331,24 @@ function medallaPuesto(puesto){
 }
 
 /**
+ * enlaceParticipante(nombre, tag)
+ * FASE 5b tanda D (28-sep-2026, pedido del usuario — AVISO A7,
+ * 34_Web_API.gs): pinta el nombre de un participante como link a
+ * perfil.html?tag=... cuando el backend manda `tag` (participante activo,
+ * o con sesión de admin — ver apiGetTorneosCompartido() más abajo, que
+ * agrega conSesion:true). Mismo patrón que renderRankingRow() en
+ * index.html. Si `tag` viene null (ex-miembro sin sesión de admin, ver
+ * _webCuentaOcultaParaVisitante() en 34_Web_API.gs), se degrada a texto
+ * plano — el participante SIGUE apareciendo en la lista (eso no cambió,
+ * ver AVISO A5/A7), solo su nombre deja de ser clicable.
+ */
+function enlaceParticipante(nombre, tag){
+  return tag
+    ? `<a class="participante-link" href="perfil.html?tag=${encodeURIComponent(tag)}" target="_blank" rel="noopener">${esc(nombre)}</a>`
+    : esc(nombre);
+}
+
+/**
  * todosResultadosHtml(idUnico, participantes)
  * Cuadro plegable con TODOS los participantes de un torneo con Victorias
  * > 0 (no solo el top 3), leído de `participantes`. Marca a cada uno
@@ -332,7 +361,7 @@ function todosResultadosHtml(idUnico, participantes){
   const filas = participantes.map(p => `
     <div class="todos-resultados-fila">
       <span class="tr-puesto">${p.puesto ? '#' + esc(String(p.puesto)) : '—'}</span>
-      <span class="tr-nombre">${esc(p.nombre)}</span>
+      <span class="tr-nombre">${enlaceParticipante(p.nombre, p.tag)}</span>
       <span class="tr-clan">${esc(p.clan || '—')}</span>
       ${p.descalificado ? '<span class="badge badge-warn">❌ Descalificado</span>' : ''}
       ${p.premioRepartido ? '<span class="badge badge-purple">🤝 Premio repartido</span>' : ''}
@@ -381,8 +410,16 @@ function idTorneoPrincipalDe(t){
 // assets/js/core/api.js, pendiente #4 de B5.5), esta página vuelve a
 // llamar apiGet() directo — el ahorro de las 4 llamadas a 2 sigue
 // aplicando igual, ya sin el wrapper local.
+// CAMBIO (28-sep-2026, Fase 5b tanda D, AVISO A7): se agrega
+// conSesion:true (assets/js/core/api.js) — si hay un admin con sesión
+// (localStorage 'terna_admin_token'), la petición manda su sessionToken
+// para que _webTorneos()/_webHistorialTorneos() (34_Web_API.gs) devuelvan
+// el Tag real también de los participantes inactivos, igual que ya hacen
+// perfil.html y directorio.html. Sin sesión, es igual que no pasarlo (el
+// caché de 5 min y el respaldo de red siguen aplicando normal, mismo
+// criterio que conSesion en esas otras páginas).
 function apiGetTorneosCompartido(accion){
-  return apiGet(accion, null, { ttlMs: 300000, staleIfError: true }); // B-11: 5 min; B4/B-10: si falla la red, usar el último dato guardado
+  return apiGet(accion, null, { ttlMs: 300000, staleIfError: true, conSesion: true }); // B-11: 5 min; B4/B-10: si falla la red, usar el último dato guardado
 }
 
 async function cargarTorneos(){
@@ -410,7 +447,7 @@ async function cargarTorneos(){
       ganadoresWrap.innerHTML = g.top3.map(p => `
         <div class="card ganador-card" data-reveal>
           <div class="medalla">${medallaPuesto(p.puesto)}</div>
-          <div class="g-nombre">${esc(p.nombre)}</div>
+          <div class="g-nombre">${enlaceParticipante(p.nombre, p.tag)}</div>
           <div class="g-clan">${esc(p.clan)}</div>
           ${p.premioRepartido ? '<div style="margin-top:8px;"><span class="badge badge-purple">🤝 Premio repartido</span></div>' : ''}
           <div class="g-victorias">${fmtNum(p.victorias)} victorias</div>
@@ -482,7 +519,7 @@ async function cargarTorneos(){
       }
       const ganadoresHtml = top3.length ? `
         <div class="t-ganadores">
-          ${top3.map(p => `<div class="tg-fila">${medallaPuesto(p.puesto)} <b>${esc(p.nombre)}</b> · ${fmtNum(p.victorias)} victorias${p.premioRepartido ? ' · 🤝 repartido' : ''}</div>`).join('')}
+          ${top3.map(p => `<div class="tg-fila">${medallaPuesto(p.puesto)} <b>${enlaceParticipante(p.nombre, p.tag)}</b> · ${fmtNum(p.victorias)} victorias${p.premioRepartido ? ' · 🤝 repartido' : ''}</div>`).join('')}
         </div>` : '<div class="t-ganadores"><span class="empty" style="padding:0; font-size:11px;">Sin ganadores registrados</span></div>';
       return `
       <div class="torneo-row" data-reveal>
@@ -509,9 +546,19 @@ cargarSalonDeLaFama();
  * calcularRankingVictoriasTorneos(historial)
  * Suma victorias por jugador a través de `t.participantes` (todos los
  * que ganaron al menos una partida, no solo el top 3) en TODAS sus
- * apariciones del historial (últimos 30 torneos, 34_Web_API.gs). Como
- * el campo no incluye Tag, se agrupa por nombre + clan para no mezclar
- * jugadores distintos con el mismo nombre en clanes distintos.
+ * apariciones del historial (últimos 30 torneos, 34_Web_API.gs). Se
+ * agrupa por nombre + clan (no por Tag) para no mezclar jugadores
+ * distintos con el mismo nombre en clanes distintos — límite conocido: si
+ * un mismo jugador cambió de nombre entre torneos, sus victorias quedan
+ * repartidas en dos filas.
+ * CAMBIO (28-sep-2026, Fase 5b tanda D, AVISO A7): se arrastra `tag` (el
+ * campo condicional que ahora manda el backend — ver docblock de
+ * enlaceParticipante() más abajo) para poder enlazar el nombre en el
+ * render. El agrupamiento sigue siendo por nombre+clan (no por Tag) para
+ * no cambiar el comportamiento de siempre; como `tag` refleja el estado
+ * ACTUAL del Tag (no el de la fecha del torneo), todas las apariciones de
+ * un mismo jugador real traen el mismo valor de `tag` — alcanza con
+ * quedarse con el primero que llegue no-nulo.
  */
 function calcularRankingVictoriasTorneos(historial){
   const mapa = new Map();
@@ -521,9 +568,10 @@ function calcularRankingVictoriasTorneos(historial){
       const victorias = Number(p.victorias) || 0;
       if (!victorias) return;
       const clave = `${p.nombre}|${p.clan || ''}`;
-      const actual = mapa.get(clave) || { nombre: p.nombre, clan: p.clan || '', victorias: 0, apariciones: 0 };
+      const actual = mapa.get(clave) || { nombre: p.nombre, clan: p.clan || '', victorias: 0, apariciones: 0, tag: null };
       actual.victorias += victorias;
       actual.apariciones += 1;
+      if (!actual.tag && p.tag) actual.tag = p.tag;
       mapa.set(clave, actual);
     });
   });
@@ -542,7 +590,7 @@ function renderRankingVictoriasTorneos(wrap, historial){
     <div class="rk-victorias-row">
       <span class="rk-victorias-puesto">${i < 3 ? medallaPuesto(i + 1) : '#' + (i + 1)}</span>
       <div class="rk-victorias-info">
-        <div class="rk-victorias-nombre">${esc(r.nombre)}</div>
+        <div class="rk-victorias-nombre">${enlaceParticipante(r.nombre, r.tag)}</div>
         <div class="rk-victorias-clan">${esc(r.clan || '—')}</div>
       </div>
       <div class="rk-victorias-stats">
@@ -588,7 +636,7 @@ async function cargarSalonDeLaFama(){
       const filas = t.top3.map(p => `
         <div class="salon-puesto">
           <span>${medallaPuesto(p.puesto)}</span>
-          <span class="sp-nombre">${esc(p.nombre)}</span>
+          <span class="sp-nombre">${enlaceParticipante(p.nombre, p.tag)}</span>
           ${p.premioRepartido ? '<span class="badge badge-purple" style="font-size:9px; padding:3px 8px;">🤝 Repartido</span>' : ''}
           <span class="sp-victorias">${fmtNum(p.victorias)} victorias</span>
         </div>`).join('');
