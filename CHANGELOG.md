@@ -11,6 +11,142 @@ el código hoy) cuando hace falta para mantenerlo; el "por qué histórico"
 
 ---
 
+## torneos.html, `34_Web_API.gs`, `08_Web_Endpoints.gs` y `sw.js` — Fase 5b tanda D del Consolidado de mejoras (28-sep-2026)
+
+### 28-sep-2026 — Se cierra el pendiente de ex-miembros en torneos.html; el nombre de un participante activo enlaza a su perfil
+Quedaban dos pendientes anotados al cerrar las tandas A, B y C: revisar si
+`webTorneos`/`webHistorialTorneos` muestran a ex-miembros, y actualizar este
+CHANGELOG con las decisiones A5 (renombrado a A8, ver más abajo), A6 y A7.
+
+**Revisión (sin cambio de comportamiento):** `_webTorneos()` y
+`_webHistorialTorneos()` (`34_Web_API.gs`) SÍ muestran a ex-miembros en sus
+listas — nombre/clan/puesto/victorias salen de `T_Asistencia` (la foto del
+día del torneo) sin cruzar con el Directorio actual. Confirmado por el
+usuario que así debe quedar: es un registro histórico ("el ganador sigue
+siendo el ganador de esa fecha"), mismo criterio que ya declaraba el
+docblock de `_webHistorialTorneos()` desde antes. Con esto queda cerrado el
+pendiente — no hizo falta tocar código para esta parte.
+
+**Cambio (pedido del usuario):** el nombre de un participante SIGUE
+apareciendo en la lista aunque sea ex-miembro, pero deja de poder hacerse
+clic para ir a su `perfil.html` — solo los participantes activos (o
+cualquiera, con sesión de admin) quedan con el nombre enlazado.
+
+- **`34_Web_API.gs` — `_webTorneos()`, `_webGanadoresTorneoMasReciente()`,
+  `_webHistorialTorneos()`:** ahora reciben `opciones.esAdmin` y agregan un
+  campo `tag` a cada participante (`top3` y `participantes`), usando
+  `_webCuentaOcultaParaVisitante()` (mismo criterio de siempre: Inactivos o
+  Directorio Estado='Inactivo') para decidir si sale el Tag real o `null`.
+  El Tag sigue sin exponerse sin condición para nadie oculto — antes no
+  viajaba en absoluto, ahora viaja condicional. Ver AVISO A9 en el bloque
+  `AVISOS ABIERTOS` del archivo.
+- **`08_Web_Endpoints.gs` — `doGet`:** las rutas de `webTorneos` y
+  `webHistorialTorneos` pasan `{esAdmin: _webAuthValidar(e.parameter.sessionToken)}`,
+  mismo patrón que ya usaba `webTorneosJugador`.
+- **`torneos.html`:** `apiGetTorneosCompartido()` agrega `conSesion:true`
+  (así un admin logueado recibe el Tag real también de los inactivos).
+  Nueva función `enlaceParticipante(nombre, tag)` que arma el link
+  `perfil.html?tag=...` cuando `tag` llega, o texto plano si no — aplicada
+  en los 5 lugares donde se pinta un nombre: podio del torneo más reciente,
+  "ver todos los resultados", filas de "Torneos recientes", tarjetas del
+  Salón de la fama y el ranking de victorias acumuladas.
+  `calcularRankingVictoriasTorneos()` ahora arrastra el `tag` de cada
+  jugador (el agrupamiento del ranking sigue siendo por nombre+clan, sin
+  cambios ahí). CSS nuevo `.participante-link` (hereda el color de su
+  contenedor, subrayado solo al pasar el mouse — mismo patrón visual que
+  `.rk-nombre` de `index.html`).
+- **`sw.js`:** `CACHE_NAME` sube a `terna-static-v7` (torneos.html está en
+  `CORE_ASSETS` y cambió).
+- **Corrección de numeración de avisos (regla 9):** `34_Web_API.gs` traía
+  **dos AVISO A5 distintos** desde antes de esta tanda (uno de la tanda A2,
+  "pruebas pendientes en Apps Script real", y otro de la tanda C/A3, la
+  decisión sobre `_webTorneosJugador`/`_webHistorialGuerraComparador`) — un
+  choque de numeración de una sesión anterior, no algo de esta tanda. El
+  segundo se renombró a **AVISO A8** (se corrigieron sus referencias
+  cruzadas en `_webHistorialGuerraComparador()`, `_webTorneosJugador()` y
+  `_webCuentaOcultaParaVisitante()`, y se actualizó esta última porque decía
+  "solo la usan" dos funciones que ya no son las únicas). El aviso nuevo de
+  esta tanda, que había quedado mal etiquetado "A7" (chocando con el AVISO
+  A7 real de la tanda C, nomMulti/prestamo), se renombró a **AVISO A9**.
+  Ningún criterio ni decisión cambió, solo los números.
+- **Sin probar:** no se probó en Apps Script real ni en navegador real —
+  falta confirmar que un ex-miembro sale con `tag:null` (nombre sin link) y
+  un activo con su Tag real (nombre con link), con y sin sesión de admin, y
+  revisar visualmente los 5 lugares en escritorio y en el layout móvil.
+
+---
+
+## directorio.html y `34_Web_API.gs` — Fase 5b tanda B del Consolidado de mejoras (28-sep-2026)
+
+### 28-sep-2026 — El aviso de "clan rival" de Ingresos recientes solo lo ve un admin
+**Nota:** esta entrada se agrega recién en la tanda D (ver más arriba) — el
+cambio ya estaba aplicado al código desde la tanda B, pero nunca se había
+escrito en este CHANGELOG.
+
+Decisión del usuario: el aviso de que un ingreso reciente viene de un clan
+rival de temporada es información sensible del clan (estrategia de
+reclutamiento), solo para admins.
+
+- **`34_Web_API.gs`, `_webIngresosRecientes(opciones)`:** la caché de 60 s
+  (`_webCacheado()`) sigue guardando la respuesta COMPLETA (con
+  `esRivalTemporada`/`clanRivalDetectado`), compartida entre admins y
+  visitantes. El recorte para no-admins se hace DESPUÉS de leer la caché,
+  nunca antes de guardarla — así un visitante nunca puede recibir el aviso
+  de una respuesta que cacheó un admin, ni al revés. Sin sesión de admin,
+  ambos campos se quitan de cada ingreso por completo (no viajan ni como
+  `false`/`null`, para no poder distinguir a quién se le marcó).
+- **`08_Web_Endpoints.gs`, `doGet`:** la ruta de `webIngresosRecientes` pasa
+  `{esAdmin: _webAuthValidar(e.parameter.sessionToken)}`.
+- **`directorio.html`:** `apiGet('webIngresosRecientes', ...)` manda
+  `conSesion: true`.
+- **`webGuerraEnVivo` no necesitó cambio:** su lista `nuevos` solo toma
+  `tag`, `nombre`, `clan`, `fecha` y links — nunca copió esos dos campos.
+- **Pendiente de definir (mismo caso que el aviso A4 de la tanda A):** un
+  admin con la sesión vencida en el servidor (6 h) pero guardada en el
+  navegador ve el aviso desaparecer hasta volver a iniciar sesión.
+
+---
+
+## guerra.html y `34_Web_API.gs` — Fase 5b tanda C del Consolidado de mejoras (28-sep-2026)
+
+### 28-sep-2026 — `nomMulti` y `prestamo` de los pendientes de guerra solo los ve un admin
+**Nota:** igual que la tanda B de arriba, esta entrada se agrega recién en
+la tanda D — el cambio ya estaba aplicado desde la tanda C.
+
+Decisión del usuario: "a los no-admin no se les muestra el nommulti ni
+préstamo de nadie, sin excepciones". La tabla "Ataques pendientes" de
+`guerra.html` traía, para cada jugador que todavía no usó todos sus ataques,
+el nombre de quien tiene prestada la cuenta (`Nom_Multi`) y si está prestada
+(`prestamo`) — visible para cualquiera con el token público.
+
+- **`34_Web_API.gs`, `_webGuerraEnVivo(opciones)`:** quita `nomMulti` y
+  `prestamo` de cada pendiente cuando no hay sesión de admin, DESPUÉS de
+  leer la caché grande (la misma caché que también llena el bot con la
+  respuesta completa, sin recortar).
+- **`08_Web_Endpoints.gs`, `doGet`:** la ruta de `webGuerraEnVivo` pasa
+  `{esAdmin: _webAuthValidar(e.parameter.sessionToken)}`.
+- **`guerra.html`:** `apiGet('webGuerraEnVivo', ...)` manda `conSesion: true`.
+- **Efecto visible para visitantes:** en la tabla de pendientes,
+  `guerra.html` pinta `p.nombre || p.nomMulti || p.tag`; si un pendiente no
+  trae `nombre` (poco frecuente), el visitante ahora ve el Tag en vez del
+  `Nom_Multi`. Antes de esta decisión se había preguntado si mostrar el Tag
+  en ese caso era lo correcto — el usuario confirmó que sí.
+- **`clan.html`** también consume `webGuerraEnVivo` pero solo cuenta
+  pendientes (no usa `nomMulti` ni `prestamo`), así que no necesitó cambio.
+- **El dashboard de admins** (`?dashboard=1`/`json`, con `DASHBOARD_TOKEN`)
+  usa `_getDatosDashboard()` directo, sin pasar por `_webGuerraEnVivo()`, así
+  que no cambia.
+- **Corrección a un comentario viejo (regla 9):** el docblock de
+  `_webGuerraEnVivo()` decía que `guerra.html` "nunca" leía celular ni
+  préstamo — eso era incorrecto (sí traía `nomMulti`/`prestamo`, y
+  `guerra.html` los pintaba a los admins). El comentario ya se corrigió en
+  `34_Web_API.gs`.
+- **Pendiente de revisar:** `ctx`, `nuevos` y los demás campos del mismo
+  objeto de `_webGuerraEnVivo()` no se auditaron en esta tanda por si
+  exponen algo similar.
+
+---
+
 ## perfil.html, directorio.html y `assets/js/core/api.js` — Fase 5b tanda A del Consolidado de mejoras (28-sep-2026)
 
 ### 28-sep-2026 — El estado "Inactivo" de un Tag solo lo ve un admin

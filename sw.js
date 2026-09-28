@@ -40,7 +40,12 @@
 // v6 (28-sep-2026): api.js cambió (opts.conSesion en apiGet, Fase 5b tanda A del Consolidado de
 // mejoras). Se sube la versión para que 'activate' borre v5 y perfil.html/directorio.html (que ya
 // pasan conSesion) no corran con un api.js viejo que lo ignore.
-const CACHE_NAME = 'terna-static-v6';
+// v7 (28-sep-2026): torneos.html cambió (CORE_ASSETS de abajo) -- ahora enlaza el nombre de cada
+// participante a perfil.html?tag=... cuando el backend manda el Tag, y manda conSesion:true al
+// pedir webTorneos/webHistorialTorneos (Fase 5b tanda D, AVISO A9 de 34_Web_API.gs). Se sube la
+// versión para que 'activate' borre v6 y los visitantes no se queden con la versión vieja de
+// torneos.html (sin los links) servida desde este caché de forma indefinida.
+const CACHE_NAME = 'terna-static-v7';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
