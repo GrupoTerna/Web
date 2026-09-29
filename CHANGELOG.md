@@ -11,6 +11,67 @@ el código hoy) cuando hace falta para mantenerlo; el "por qué histórico"
 
 ---
 
+## index.html, perfil.html y Lighthouse — sexta sesión de rendimiento (29-sep-2026)
+
+### 29-sep-2026 — `index.html`: la imagen de "Cartas más usadas" pasa de 52×60 a 72×84
+Pedido del usuario, al ver las imágenes ya cargadas: se veían muy pequeñas y debían tener el mismo
+tamaño que en `perfil.html`. Ahí las fichas de carta (Carta favorita, Mazo actual, Colección completa)
+usan `.col-card--grande`, con la imagen a **72×84 px**; `.carta-chip .cc-img` en `styles.css` la dejaba en 52×60.
+- **`index.html`** (`<style>`): `#cartasWrap .carta-chip .cc-img{width:72px; height:84px;}`. Se acota a
+  `#cartasWrap` y no se toca `styles.css`: `index.html` es el único sitio que todavía pinta `.carta-chip`
+  (`perfil.html` migró a `.col-card`; solo conserva un ayudante que busca `.carta-chip, .col-card`).
+- **Verificación (Chromium, 5 chips con la CSS real de `styles.css` + la de `index.html`, imagen de prueba):**
+  imagen 72×84 y chip de 230×102 px. No se probó con el backend real ni con las 10 cartas y sus filas de
+  Héroe/Evolución; con esas filas el texto ya era más alto que la imagen, así que el alto de cada chip
+  debería cambiar poco o nada, pero no está medido.
+- **Efecto secundario a vigilar:** `cambiarVarianteCarta()` cambia el `src` de la misma imagen (Héroe/Evolución);
+  no se tocó, pero conviene pulsar los dos botones en una carta al publicar.
+
+### 29-sep-2026 — La CSP bloqueaba las imágenes de cartas (`index.html`, `perfil.html`)
+Las 12 páginas llevan una CSP por `<meta>` cuyo `img-src` era `'self' data: assets.cwstats.com cdn.royaleapi.com
+www.google.com grupoterna.goatcounter.com`. Las imágenes de las cartas vienen del backend (URL de Supercell,
+`https://api-assets.clashroyale.com/cards/300/…png`), así que el navegador las bloqueaba (`errors-in-console`:
+"violates the following Content Security Policy directive… has been blocked"; `inspector-issues`: 10 imágenes) y
+el `onerror` de `index.html` las ocultaba. Esa CSP no constaba en este `CHANGELOG.md`; en las páginas solo hay un
+comentario sobre `gc.zgo.at`/goatcounter.
+- **`index.html` y `perfil.html`:** se añade `https://api-assets.clashroyale.com` al `img-src` (única diferencia
+  respecto a la versión anterior de cada archivo, 1 línea). Las otras 10 páginas no usan esos íconos (búsqueda
+  de `iconUrls`, `c.icon` y `.icon` en `.html` y `assets/js`) y no se tocaron.
+- **Medido (Lighthouse, 29-sep, 21:19-21:31 UTC):** Buenas prácticas de `index` 93 → **100** en las 3 corridas;
+  0 errores de consola. El usuario confirmó a ojo que las cartas ya se ven en `index`.
+- **Sin verificar:** `perfil.html` no está entre las páginas que audita Lighthouse; no se ha comprobado que ahí
+  se vean la carta favorita, el mazo y la colección (abrir un perfil y mirar F12 → Consola).
+
+### 29-sep-2026 — Lighthouse tras publicar las tandas 1-5, `directorio` y `Skull_05`
+Dos corridas (5 páginas × 3): 20:54-21:05 UTC (con la CSP bloqueando las cartas) y 21:19-21:31 UTC (ya corregida).
+Aserciones: vacías (ninguna falló). Rangos de las 3 corridas de la segunda tanda:
+
+| Página | Rendim. | A11y / BP / SEO | CLS | LCP |
+|---|---|---|---|---|
+| `index` | 75 / 92 / 91 | 100 / 100 / 100 | 0 / 0.153 / 0.166 | 4.4 / 2.0 / 2.2 s |
+| `directorio` | 95-98 | 100 / 100 / 100 | 0.022 | 1.9 s |
+| `guerra` | 88-95 | 100 / 100 / 100 | 0.021-0.022 | 1.7 s |
+| `torneos` | 99 | 100 / 100 / 100 | 0.053 | 1.6 s |
+| `comunidad` | 83 / 99 / 99 | 100 / 100 / 100 | 0.02-0.035 | 1.55 s (la primera, 3.56 s) |
+
+- `directorio`: CLS **0.306 → 0.022** (las 3 corridas) y BP 96 → 100 (fix de `clan-card-skel` y de `Skull_05`
+  confirmados con datos reales). `guerra`: BP 96 → 100 (`Skull_05`).
+- `index`: LCP 2.8-4.4 s → 1.75-2.2 s en las corridas normales. La primera corrida de cada tanda fue la peor
+  (65 y 75 de rendimiento, LCP 4.4-4.6 s, Render Delay 3.4-3.8 s); `comunidad` repitió el patrón. Causa no
+  identificada; parece arranque en frío del laboratorio o de GitHub Pages. No afecta a las aserciones (el
+  agregado es "optimistic").
+
+### 29-sep-2026 — Abierto: CLS 0.15 del hero de `index.html` (causa: petición de fuente)
+Las dos corridas con CLS ≈ 0.153-0.166 lo atribuyen a `section.hero-banner > div.wrap > p.text-dim` (y 0.013 a
+`div.hero-cta-row` en una), con causa "Font request" (Rajdhani, la del `h1`). Probable mecanismo: al aplicarse
+la fuente cambia el alto del título y empuja el párrafo y los botones. **No comprobado** (sin salida a internet
+para cargar las fuentes). `fitOneLineAll()` no interviene: solo está definida, no se invoca en `index.html`.
+Opciones sin aplicar: (1) `display=swap` → `display=optional` en el enlace de Google Fonts (sin salto, pero la
+primera visita puede verse con la fuente de respaldo); (2) `@font-face` de respaldo local con `size-adjust`/
+`ascent-override` medidos sobre Rajdhani; (3) reservar el alto del título (frágil con `clamp()`).
+
+---
+
 ## torneos.html, `34_Web_API.gs`, `08_Web_Endpoints.gs` y `sw.js` — Fase 5b tanda D del Consolidado de mejoras (28-sep-2026)
 
 ### 28-sep-2026 — Se cierra el pendiente de ex-miembros en torneos.html; el nombre de un participante activo enlaza a su perfil
