@@ -5676,10 +5676,19 @@ function _round1CR(n){
  * 14_Directorio_HistorialAscensos.gs) -- solo cambia la ETIQUETA visible.
  */
 function _filaPropuestaCR(p, i){
-  const badgeClase = p.tipoPropuesta === 'Ascenso' ? 'badge-ok'
+  // FIX (29-sep-2026, Fase 14 del plan): el backend ya manda tipoPropuesta
+  // 'AscensoClan' (Colíder de cantera que sube de clan, con p.clanDestino);
+  // antes caía en el 'else' y se pintaba como badge-purple con el texto
+  // crudo "AscensoClan". Ahora se etiqueta "Ascenso de clan" (mismo texto
+  // que ASC.TIPO en Historial_A/D) y se agrega el clan de destino.
+  const badgeClase = (p.tipoPropuesta === 'Ascenso' || p.tipoPropuesta === 'AscensoClan') ? 'badge-ok'
     : p.tipoPropuesta === 'Descenso' ? 'badge-warn'
     : 'badge-purple';
-  const etiquetaTipo = p.tipoPropuesta === 'EligibleAdmin' ? 'Admin' : esc(p.tipoPropuesta);
+  const etiquetaTipo = p.tipoPropuesta === 'EligibleAdmin' ? 'Admin'
+    : p.tipoPropuesta === 'AscensoClan' ? 'Ascenso de clan'
+    : esc(p.tipoPropuesta);
+  const destinoClan = (p.tipoPropuesta === 'AscensoClan' && p.clanDestino)
+    ? `<div class="text-faint" style="font-size:11px; margin-top:2px;">→ ${esc(p.clanDestino)}</div>` : '';
   return `
     <tr>
       <td>${i + 1}</td>
@@ -5687,7 +5696,7 @@ function _filaPropuestaCR(p, i){
       <td>${esc(p.tag)}</td>
       <td>${p.clan ? enlaceClan(p.clan) : '—'}</td>
       <td>${esc(p.rangoActual)}</td>
-      <td><span class="badge ${badgeClase}">${etiquetaTipo}</span></td>
+      <td><span class="badge ${badgeClase}">${etiquetaTipo}</span>${destinoClan}</td>
       <td>${_celdaUmbralCR(p.ataquesProm, p.umbralAtaques, p.cumpleAtaques)}</td>
       <td>${_celdaUmbralCR(p.fameProm, p.umbralPuntaje, p.cumplePuntaje)}</td>
       <td>${_celdaUmbralCR(p.barcosProm, p.umbralBarcos, p.cumpleBarcos)}</td>
@@ -5697,7 +5706,7 @@ function _filaPropuestaCR(p, i){
 
 // La tabla de propuestas de Cambio de Rango se reordena en el frontend: Clan → Rango actual → Tipo → Nombre. Historial en CHANGELOG.md.
 const RANGO_ORDEN_CR = ['Líder', 'Colíder', 'Veterano', 'Miembro'];
-const TIPO_ORDEN_CR = { 'Ascenso': 0, 'Descenso': 1, 'EligibleAdmin': 2 };
+const TIPO_ORDEN_CR = { 'Ascenso': 0, 'AscensoClan': 1, 'Descenso': 2, 'EligibleAdmin': 3 };
 
 function _idxRangoCR(rango){
   const i = RANGO_ORDEN_CR.indexOf(rango);
@@ -5729,13 +5738,13 @@ function _ordenarPropuestasCR(propuestas){
  * fila por fila.
  */
 function _resumenPropuestasCR(propuestas){
-  const conteo = { Ascenso: 0, Descenso: 0, Admin: 0 };
+  const conteo = { Ascenso: 0, AscensoClan: 0, Descenso: 0, Admin: 0 };
   propuestas.forEach(p => {
     const cat = p.tipoPropuesta === 'EligibleAdmin' ? 'Admin' : p.tipoPropuesta;
     if(cat in conteo) conteo[cat]++;
   });
   return `<div class="text-dim" style="font-size:12px; margin-bottom:8px;">
-    ${propuestas.length} propuesta(s) en total -- ${conteo.Ascenso} Ascenso, ${conteo.Descenso} Descenso, ${conteo.Admin} Admin.
+    ${propuestas.length} propuesta(s) en total -- ${conteo.Ascenso} Ascenso, ${conteo.AscensoClan} Ascenso de clan, ${conteo.Descenso} Descenso, ${conteo.Admin} Admin.
   </div>`;
 }
 
