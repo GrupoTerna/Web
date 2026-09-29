@@ -1241,6 +1241,7 @@
         <p class="text-dim" style="margin-top:6px; font-size:14px;">Los próximos cofres que este jugador va a abrir, en orden.</p>
         <div style="display:flex; justify-content:flex-start; margin-top:8px;">
           <button type="button" class="btn btn-primary" id="mVerCicloCofresBtn">📦 Ver ciclo de cofres</button>
+          <button type="button" class="btn" id="mForzarCofresBtn" style="display:none; margin-left:8px;" title="Solo administradores con panel de permisos: descarga de nuevo desde Clash Royale, ignorando la copia guardada hoy.">🔄 Forzar descarga</button>
         </div>
         <div id="mCicloCofresWrap" style="display:none;"></div>
       </div>
@@ -1264,6 +1265,7 @@
         <p class="text-dim" style="margin-top:6px; font-size:14px;">El historial de batallas más reciente de este jugador.</p>
         <div style="display:flex; justify-content:flex-start; margin-top:8px;">
           <button type="button" class="btn btn-primary" id="mVerBatallasRecientesBtn">⚔️ Ver batallas más recientes</button>
+          <button type="button" class="btn" id="mForzarBatallasBtn" style="display:none; margin-left:8px;" title="Solo administradores con panel de permisos: descarga de nuevo desde Clash Royale, ignorando la copia guardada hoy.">🔄 Forzar descarga</button>
         </div>
         <div id="mBatallasRecientesWrap" style="display:none;"></div>
       </div>
@@ -4850,18 +4852,34 @@ function pintarCicloCofres(items){
  * arranque de la página (viene de la URL, no de renderMiembro()), así que
  * se usa directo.
  */
-async function verCicloCofres(){
+/**
+ * FEATURE (29-sep-2026, pregunta 33 del plan, pedido de la usuaria):
+ * (1) conSesion:true manda el sessionToken del admin para que el backend le
+ * deje ver cofres/battlelog de cuentas inactivas; un no admin solo ve
+ * activos y un inactivo/desconocido recibe "Sin registro con nosotros.".
+ * (2) `forzar` (solo el botón 🔄, visible únicamente para el admin con panel
+ * de permisos) manda forzar=1; el backend lo ignora si no corresponde.
+ * (3) msgErrorJson(): ese "Sin registro" se muestra tal cual, sin el
+ * prefijo "No se pudo cargar...", para no delatar nada más.
+ */
+function msgErrorJson(err, base){
+  var m = String((err && err.message) || '');
+  return /sin registro/i.test(m) ? m : base + ': ' + m;
+}
+async function verCicloCofres(forzar){
   var wrap = document.getElementById('mCicloCofresWrap');
   wrap.style.display = 'block';
   wrap.innerHTML = '<div class="text-faint" style="font-family:var(--f-mono); font-size:12px;">Cargando ciclo de cofres…</div>';
   try{
-    var data = await apiGet('webCofresJugador', { tag: TAG_PERFIL }, { ttlMs: 300000, staleIfError: true }); // B-11: 5 min; B4/B-10: si falla la red, usar el último dato guardado
+    var paramsCofres = forzar === true ? { tag: TAG_PERFIL, forzar: '1' } : { tag: TAG_PERFIL };
+    var data = await apiGet('webCofresJugador', paramsCofres, { ttlMs: 300000, staleIfError: true, conSesion: true }); // B-11: 5 min; B4/B-10: si falla la red, usar el último dato guardado; con sesión de admin sale sin caché
     pintarCicloCofres((data && data.items) || []);
   }catch(err){
-    wrap.innerHTML = `<div class="empty">No se pudo cargar el ciclo de cofres: ${esc(err.message)}</div>`;
+    wrap.innerHTML = `<div class="empty">${esc(msgErrorJson(err, 'No se pudo cargar el ciclo de cofres'))}</div>`;
   }
 }
-document.getElementById('mVerCicloCofresBtn').addEventListener('click', verCicloCofres);
+document.getElementById('mVerCicloCofresBtn').addEventListener('click', function(){ verCicloCofres(false); });
+document.getElementById('mForzarCofresBtn').addEventListener('click', function(){ verCicloCofres(true); });
 
 /**
  * pintarBatallasRecientes(batallas)
@@ -5035,18 +5053,39 @@ function pintarBatallasRecientes(batallas){
  * pintarBatallasRecientes(). Tampoco necesita dataset.tag, mismo motivo que
  * verCicloCofres() (TAG_PERFIL ya resuelto desde el arranque de la página).
  */
-async function verBatallasRecientes(){
+async function verBatallasRecientes(forzar){
   var wrap = document.getElementById('mBatallasRecientesWrap');
   wrap.style.display = 'block';
   wrap.innerHTML = '<div class="text-faint" style="font-family:var(--f-mono); font-size:12px;">Cargando batallas recientes…</div>';
   try{
-    var data = await apiGet('webBattlelogJugador', { tag: TAG_PERFIL }, { ttlMs: 300000, staleIfError: true }); // B-11: 5 min; B4/B-10: si falla la red, usar el último dato guardado
+    var paramsBatallas = forzar === true ? { tag: TAG_PERFIL, forzar: '1' } : { tag: TAG_PERFIL };
+    var data = await apiGet('webBattlelogJugador', paramsBatallas, { ttlMs: 300000, staleIfError: true, conSesion: true }); // B-11: 5 min; B4/B-10: si falla la red, usar el último dato guardado; con sesión de admin sale sin caché
     pintarBatallasRecientes((data && data.batallas) || []);
   }catch(err){
-    wrap.innerHTML = `<div class="empty">No se pudo cargar las batallas recientes: ${esc(err.message)}</div>`;
+    wrap.innerHTML = `<div class="empty">${esc(msgErrorJson(err, 'No se pudo cargar las batallas recientes'))}</div>`;
   }
 }
-document.getElementById('mVerBatallasRecientesBtn').addEventListener('click', verBatallasRecientes);
+document.getElementById('mVerBatallasRecientesBtn').addEventListener('click', function(){ verBatallasRecientes(false); });
+document.getElementById('mForzarBatallasBtn').addEventListener('click', function(){ verBatallasRecientes(true); });
+
+/**
+ * mostrarBotonesForzarDescarga()
+ * Muestra los botones 🔄 solo si hay sesión de admin Y el backend confirma
+ * (webAdminMisPermisos, el mismo aviso que usa admin.html para la tarjeta
+ * "Panel de permisos") que es el admin con panel de permisos. Es solo UX: el
+ * backend vuelve a validarlo (_webOpcionesCofresBattlelog()) y ignora forzar
+ * si no corresponde. Cualquier fallo deja los botones ocultos.
+ */
+async function mostrarBotonesForzarDescarga(){
+  if(!esAdminLogueado()) return;
+  try{
+    var data = await apiGetAuth('webAdminMisPermisos', {});
+    if(data && data.ok && data.panelPermisos){
+      document.getElementById('mForzarCofresBtn').style.display = '';
+      document.getElementById('mForzarBatallasBtn').style.display = '';
+    }
+  }catch(err){ /* se quedan ocultos */ }
+}
 
 /**
  * MESES_ES / parsearFechaHistorial(fecha) / construirSelectoresHistorialGuerra()
@@ -5373,6 +5412,7 @@ async function cargarPerfil(){
       return;
     }
     renderMiembro(data.jugador);
+    mostrarBotonesForzarDescarga();
     // B4/B-10: no dispara ninguna petición — lee el mismo respaldo que apiGet() ya guardó en localStorage al resolver la llamada de arriba (ya sea fresca o por staleIfError).
     document.getElementById('perfilActualizadoTxt').textContent =
       fmtTiempoRelativo(esAdminLogueado() ? new Date() : apiGetUltimaActualizacion('webPerfil', { tag: TAG_PERFIL })); // admin: la petición con sesión no se guarda en el respaldo y se acaba de pedir a la red
