@@ -235,6 +235,11 @@
    * snapshot de Drive (_webDatosDriveJugador(), 34_Web_API.gs); cada
    * render*() del script indica qué categoría lee. */
   .snapshot-info{font-family:var(--f-mono); font-size:11px; color:var(--text-faint); margin-top:4px;}
+  /* Desbloqueadas / Por desbloquear (insignias, maestrías y colección) */
+  .desbloqueo-tit{font-family:var(--f-mono); font-size:12px; font-weight:700; margin:18px 0 0; color:var(--text);}
+  .desbloqueo-tit .cuenta{font-weight:400; color:var(--text-faint); margin-left:6px;}
+  .badge-item--bloqueada, .col-card--bloqueada{opacity:.6; filter:grayscale(.85);}
+  .badge-item--bloqueada .b-nivel{color:var(--text-faint);}
   .badge-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(132px,1fr)); gap:10px; margin-top:14px;}
   .badge-item{background:var(--bg-2); border:1px solid var(--line); border-radius:var(--radius-sm); padding:10px 8px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:4px;}
   /* FIX (23-sep-2026, pedido usuario — "las insignias y cartas de torre
@@ -1125,7 +1130,9 @@
           <div id="mColeccionOrden"></div>
           <div class="coleccion-filtros" id="mColeccionFiltrosTop" style="margin:0;"></div>
         </div>
+        <h4 class="desbloqueo-tit" id="mColeccionTitDesbloq" style="display:none;"></h4>
         <div class="coleccion-grid" id="mColeccionContenido"></div>
+        <div id="mColeccionBloqueadas"></div>
         <!-- FIX (27-sep-2026, pedido usuario — "no deben tener esa separación
              de sección"): mTorresCard ya no es su propia .card (borde propio
              separado, ver la vieja ubicación en el historial); pasa a vivir
@@ -1781,13 +1788,14 @@ function _normalizarClaveCartaFallback(texto){
  *   ninguno de los dos criterios.
  */
 function _iconoCartaFallbackParaMaestria(b){
-  if (!Array.isArray(_ultimasCartasColeccion) || !_ultimasCartasColeccion.length) return '';
+  const _todasCartas = [...(Array.isArray(_ultimasCartasColeccion) ? _ultimasCartasColeccion : []), ...(Array.isArray(_ultimasCartasBloqueadas) ? _ultimasCartasBloqueadas : [])];
+  if (!_todasCartas.length) return '';
 
   // 1) PRIMARIO: nombre en español.
   const nombreEsInsignia = _nombreInsigniaEs(b);
   if (nombreEsInsignia) {
     const claveEs = _normalizarClaveCartaFallback(nombreEsInsignia);
-    const cartaPorEs = _ultimasCartasColeccion.find(c => _normalizarClaveCartaFallback(_nombreCartaEs(c)) === claveEs);
+    const cartaPorEs = _todasCartas.find(c => _normalizarClaveCartaFallback(_nombreCartaEs(c)) === claveEs);
     if (cartaPorEs) {
       const urls = cartaPorEs.iconUrls || {};
       const icono = urlValida(urls.large) ? urls.large : (urlValida(urls.medium) ? urls.medium : '');
@@ -1802,7 +1810,7 @@ function _iconoCartaFallbackParaMaestria(b){
     const nombreCartaEn = n.substring('Mastery'.length).trim();
     if (nombreCartaEn) {
       const claveEn = _normalizarClaveCartaFallback(nombreCartaEn);
-      const cartaPorEn = _ultimasCartasColeccion.find(c => _normalizarClaveCartaFallback(c.name) === claveEn);
+      const cartaPorEn = _todasCartas.find(c => _normalizarClaveCartaFallback(c.name) === claveEn);
       if (cartaPorEn) {
         const urls = cartaPorEn.iconUrls || {};
         return urlValida(urls.large) ? urls.large : (urlValida(urls.medium) ? urls.medium : '');
@@ -1825,6 +1833,9 @@ let _insigniasOrden = 'nombre-asc';
  * las insignias generales y guarda el suyo (mismo valor inicial). */
 let _maestriasOrden = 'nombre-asc';
 let _ultimosBadges = null;
+/** Insignias/maestrías por desbloquear (backend: rawClash.badgesBloqueadas, primer nivel) y cartas por desbloquear (rawClash.cardsBloqueadas). */
+let _ultimasBadgesBloqueadas = [];
+let _ultimasCartasBloqueadas = [];
 
 /** Compara dos insignias según el criterio de _insigniasOrden. Para orden
  * por nivel, las insignias sin `level` quedan al final (tratadas como
@@ -1877,17 +1888,17 @@ function _insigniaItemHtml(b){
     iconoRespaldo = _iconoCartaFallbackParaMaestria(b);
     if (iconoRespaldo === icono) iconoRespaldo = ''; // mismo link: reintentar no sirve
   }
-  const nivelTxt = (b.level != null && b.maxLevel != null) ? `Nv. ${b.level}/${b.maxLevel}` : (b.level != null ? `Nv. ${b.level}` : '');
+  const nivelTxt = b.bloqueada ? `\u{1F512} Nv. 1${b.maxLevel != null ? '/' + b.maxLevel : ''}` : (b.level != null && b.maxLevel != null) ? `Nv. ${b.level}/${b.maxLevel}` : (b.level != null ? `Nv. ${b.level}` : '');
   const tieneTarget = b.target != null && b.target > 0;
   const pct = tieneTarget ? Math.min(100, Math.round((Number(b.progress) || 0) / b.target * 100)) : 100;
   const nombreEs = _nombreInsigniaEs(b);
   return `
-      <div class="badge-item" title="${esc(nombreEs)}${tieneTarget ? ` \u2014 ${fmtNum(b.progress)}/${fmtNum(b.target)}` : ''}">
+      <div class="badge-item${b.bloqueada ? ' badge-item--bloqueada' : ''}" title="${esc(nombreEs)}${(!b.bloqueada && tieneTarget) ? ` \u2014 ${fmtNum(b.progress)}/${fmtNum(b.target)}` : ''}">
         ${icono ? `<img src="${esc(icono)}" alt="" loading="lazy"${iconoRespaldo ? ` data-fallback="${esc(iconoRespaldo)}"` : ''} onerror="if(this.dataset.fallback){const f=this.dataset.fallback;this.dataset.fallback='';this.src=f;}else{this.style.visibility='hidden';}">` : ''}
         <div class="b-nombre">${esc(nombreEs)}</div>
         ${nivelTxt ? `<div class="b-nivel">${esc(nivelTxt)}</div>` : ''}
-        <div class="progress${pct >= 100 ? ' complete' : ''}"><i style="width:${pct}%"></i></div>
-        <div class="b-prog">${tieneTarget ? `${fmtNum(b.progress)} / ${fmtNum(b.target)}` : (b.progress != null ? fmtNum(b.progress) : '')}</div>
+        ${b.bloqueada ? '' : `<div class="progress${pct >= 100 ? ' complete' : ''}"><i style="width:${pct}%"></i></div>`}
+        <div class="b-prog">${b.bloqueada ? '' : tieneTarget ? `${fmtNum(b.progress)} / ${fmtNum(b.target)}` : (b.progress != null ? fmtNum(b.progress) : '')}</div>
       </div>`;
 }
 
@@ -1932,27 +1943,40 @@ function _selectorOrdenHtml(id, actual, handler, opcionesExtra){
 function _pintarInsignias(badges){
   const card = document.getElementById('mInsigniasCard');
   const cont = document.getElementById('mInsigniasContenido');
-  if (!Array.isArray(badges) || !badges.length){ card.style.display = 'none'; cont.innerHTML = ''; return; }
+  const bloq = Array.isArray(_ultimasBadgesBloqueadas) ? _ultimasBadgesBloqueadas : [];
+  const desbl = Array.isArray(badges) ? badges : [];
+  if (!desbl.length && !bloq.length){ card.style.display = 'none'; cont.innerHTML = ''; return; }
   card.style.display = '';
-  const generales = badges.filter(b => !insigniaEsMaestria(b)).sort((a, b) => _compararInsignias(a, b, _insigniasOrden));
-  const maestrias = badges.filter(insigniaEsMaestria).sort((a, b) => _compararInsignias(a, b, _maestriasOrden));
+  const porNombre = (a, b) => _nombreInsigniaEs(a).localeCompare(_nombreInsigniaEs(b), 'es');
+  const generales = desbl.filter(b => !insigniaEsMaestria(b)).sort((a, b) => _compararInsignias(a, b, _insigniasOrden));
+  const maestrias = desbl.filter(insigniaEsMaestria).sort((a, b) => _compararInsignias(a, b, _maestriasOrden));
+  const bloqGen = bloq.filter(b => !insigniaEsMaestria(b)).sort(porNombre);
+  const bloqMae = bloq.filter(insigniaEsMaestria).sort(porNombre);
   const gridHtml = lista => `<div class="badge-grid">${lista.map(_insigniaItemHtml).join('')}</div>`;
-  const seccionMaestrias = maestrias.length ? `
-    <h3 class="insignias-subcat${generales.length ? '' : ' insignias-subcat--sola'}">Maestrías<span class="cuenta">${maestrias.length}</span></h3>
-    ${_selectorOrdenHtml('selMaestriasOrden', _maestriasOrden, 'cambiarOrdenMaestrias')}
-    ${gridHtml(maestrias)}` : '';
+  // Un grupo (generales o maestrías): "Desbloqueadas" + "Por desbloquear".
+  // Los subtítulos solo aparecen si el grupo tiene insignias por desbloquear.
+  const grupoHtml = (lista, listaBloq, selectorHtml) => `
+    ${lista.length ? selectorHtml : ''}
+    ${listaBloq.length ? `<h4 class="desbloqueo-tit">Desbloqueadas<span class="cuenta">${lista.length}</span></h4>` : ''}
+    ${lista.length ? gridHtml(lista) : (listaBloq.length ? '<div class="text-faint" style="font-size:11px; margin-top:8px;">Ninguna todavía.</div>' : '')}
+    ${listaBloq.length ? `<h4 class="desbloqueo-tit">Por desbloquear<span class="cuenta">${listaBloq.length}</span></h4>${gridHtml(listaBloq)}` : ''}`;
+  const hayGenerales = generales.length || bloqGen.length;
+  const seccionMaestrias = (maestrias.length || bloqMae.length) ? `
+    <h3 class="insignias-subcat${hayGenerales ? '' : ' insignias-subcat--sola'}">Maestrías<span class="cuenta">${maestrias.length}${bloqMae.length ? ` / ${maestrias.length + bloqMae.length}` : ''}</span></h3>
+    ${grupoHtml(maestrias, bloqMae, _selectorOrdenHtml('selMaestriasOrden', _maestriasOrden, 'cambiarOrdenMaestrias'))}` : '';
   cont.innerHTML = `
-    ${generales.length ? _selectorOrdenHtml('selInsigniasOrden', _insigniasOrden, 'cambiarOrdenInsignias') : ''}
-    ${generales.length ? gridHtml(generales) : ''}
+    ${hayGenerales ? grupoHtml(generales, bloqGen, _selectorOrdenHtml('selInsigniasOrden', _insigniasOrden, 'cambiarOrdenInsignias')) : ''}
     ${seccionMaestrias}
     <div class="text-faint" style="font-family:var(--f-mono); font-size:11px; margin-top:12px;">
-      Insignias desbloqueadas: ${badges.length}${maestrias.length ? ` (${maestrias.length} de maestría)` : ''}. Cada jugador desbloquea un subconjunto distinto del catálogo total \u2014 las que no aparecen simplemente no están desbloqueadas todavía.
+      Insignias desbloqueadas: ${desbl.length}${maestrias.length ? ` (${maestrias.length} de maestría)` : ''}${bloq.length ? `. Por desbloquear: ${bloq.length}, mostradas con su primer nivel` : ''}.
     </div>`;
 }
 
 function renderInsignias(j){
   const badges = rawClash(j).badges;
   _ultimosBadges = Array.isArray(badges) ? badges : null;
+  const _bb = rawClash(j).badgesBloqueadas;
+  _ultimasBadgesBloqueadas = Array.isArray(_bb) ? _bb.map(b => ({...b, bloqueada: true})) : [];
   _pintarInsignias(badges);
 }
 
@@ -2319,6 +2343,9 @@ function renderColeccion(j){
   if (!Array.isArray(cartas) || !cartas.length){ card.style.display = 'none'; return; }
   card.style.display = '';
   _ultimasCartasColeccion = cartas;
+  const _cb = rawClash(j).cardsBloqueadas;
+  _ultimasCartasBloqueadas = Array.isArray(_cb) ? _cb : [];
+  pintarColeccionBloqueadas();
   document.getElementById('mColeccionOrden').innerHTML = _selectorOrdenHtml('selColeccionOrden', _coleccionOrden, 'cambiarOrdenColeccion', [['calidad', 'Calidad (Campeón→Común)']]);
   const enMax = cartas.filter(c => c.maxLevel != null && c.level >= c.maxLevel).length;
   const conEvo = cartas.filter(c => (c.evolutionLevel || 0) > 0).length;
@@ -2836,6 +2863,39 @@ function _activarClickCosto(nodos, lista, getObj, getNombre, getNivel){
       if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); abrir(); }
     });
   });
+}
+
+/** Cartas por desbloquear: solo nombre, imagen y datos fijos del catálogo
+ * (backend: rawClash.cardsBloqueadas). No entran a filtros, orden ni gráfico
+ * de niveles, que trabajan solo con las desbloqueadas. */
+function pintarColeccionBloqueadas(){
+  const tit = document.getElementById('mColeccionTitDesbloq');
+  const cont = document.getElementById('mColeccionBloqueadas');
+  const lista = (Array.isArray(_ultimasCartasBloqueadas) ? _ultimasCartasBloqueadas : []).slice()
+    .sort((a, b) => (ORDEN_RAREZA_CARTA[rarezaKey(a.rarity)] ?? 9) - (ORDEN_RAREZA_CARTA[rarezaKey(b.rarity)] ?? 9)
+      || _nombreCartaEs(a).localeCompare(_nombreCartaEs(b), 'es'));
+  const nDesbl = Array.isArray(_ultimasCartasColeccion) ? _ultimasCartasColeccion.length : 0;
+  if (!lista.length){ tit.style.display = 'none'; tit.innerHTML = ''; cont.innerHTML = ''; return; }
+  tit.style.display = '';
+  tit.innerHTML = `Desbloqueadas<span class="cuenta">${nDesbl}</span>`;
+  cont.innerHTML = `<h4 class="desbloqueo-tit">Por desbloquear<span class="cuenta">${lista.length}</span></h4>
+    <div class="coleccion-grid">${lista.map(c => {
+      const rk = rarezaKey(c.rarity);
+      const nombreEs = _nombreCartaEs(c);
+      const img = (c.iconUrls && c.iconUrls.medium) || '';
+      return `
+      <div class="col-card col-card--grande col-card--bloqueada" title="${esc(nombreEs)}">
+        <div class="col-nombre"><span class="col-nombre-txt">${esc(nombreEs)}</span></div>
+        <div class="col-cuerpo">
+          ${img ? `<img class="cc-img" src="${esc(img)}" alt="" loading="lazy" onerror="this.style.visibility='hidden';">` : ''}
+          <div class="col-ficha">
+            ${rk ? `<span class="cc-rareza" data-rareza="${rk}">${esc(RAREZA_CARTA_TXT[rk])}</span>` : ''}
+            ${c.elixirCost != null ? `<span class="cc-elixir"><img src="assets/img/Elixir.webp" alt="Elixir">${esc(String(c.elixirCost))}</span>` : ''}
+            <div class="text-faint" style="font-size:11px;">\u{1F512} Por desbloquear</div>
+          </div>
+        </div>
+      </div>`;
+    }).join('')}</div>`;
 }
 
 function pintarColeccion(cartas){
