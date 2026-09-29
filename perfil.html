@@ -259,6 +259,8 @@
      tiene su propio padding (10px 8px) — .badge-grid sube su ancho mínimo
      de columna de 118px a 132px acá arriba para que no quede apretado. */
   .badge-item img{width:92px; height:92px; object-fit:contain;}
+  /* Insignia sin link de ícono: reserva el mismo espacio de 92px que un <img> (que al fallar solo se oculta con visibility) para que el nombre quede alineado con las demás. */
+  .badge-item .badge-ico-vacio{width:92px; height:92px; flex:none;}
   /* Subcategoría "Maestrías" dentro de la card Insignias (renderInsignias()).
      FIX (23-sep-2026, pedido usuario — "en camino de leyendas y ligas agrega
      subsecciones para 'Camino de leyendas' y 'Liga'"): el mismo estilo de
@@ -1894,7 +1896,7 @@ function _insigniaItemHtml(b){
   const nombreEs = _nombreInsigniaEs(b);
   return `
       <div class="badge-item${b.bloqueada ? ' badge-item--bloqueada' : ''}" title="${esc(nombreEs)}${(!b.bloqueada && tieneTarget) ? ` \u2014 ${fmtNum(b.progress)}/${fmtNum(b.target)}` : ''}">
-        ${icono ? `<img src="${esc(icono)}" alt="" loading="lazy"${iconoRespaldo ? ` data-fallback="${esc(iconoRespaldo)}"` : ''} onerror="if(this.dataset.fallback){const f=this.dataset.fallback;this.dataset.fallback='';this.src=f;}else{this.style.visibility='hidden';}">` : ''}
+        ${icono ? `<img src="${esc(icono)}" alt="" loading="lazy"${iconoRespaldo ? ` data-fallback="${esc(iconoRespaldo)}"` : ''} onerror="if(this.dataset.fallback){const f=this.dataset.fallback;this.dataset.fallback='';this.src=f;}else{this.style.visibility='hidden';}">` : '<div class="badge-ico-vacio"></div>'}
         <div class="b-nombre">${esc(nombreEs)}</div>
         ${nivelTxt ? `<div class="b-nivel">${esc(nivelTxt)}</div>` : ''}
         ${b.bloqueada ? '' : `<div class="progress${pct >= 100 ? ' complete' : ''}"><i style="width:${pct}%"></i></div>`}
