@@ -240,6 +240,14 @@
   .desbloqueo-tit .cuenta{font-weight:400; color:var(--text-faint); margin-left:6px;}
   .badge-item--bloqueada, .col-card--bloqueada{opacity:.6; filter:grayscale(.85);}
   .badge-item--bloqueada .b-nivel{color:var(--text-faint);}
+  /* FIX (29-sep-2026, pedido usuario — "las secciones de Por desbloquear deben mostrar un botón para ver a voluntad, no deben mostrarse por defecto"):
+     "Por desbloquear" (insignias, maestrías, colección y cartas de torre) queda plegado tras este botón. */
+  .bloq-toggle{display:inline-flex; align-items:center; gap:8px; margin:18px 0 0; padding:7px 12px; font-family:var(--f-mono); font-size:12px; font-weight:700; color:var(--text); background:var(--bg-2); border:1px solid var(--line); border-radius:var(--radius-sm); cursor:pointer;}
+  .bloq-toggle:hover{border-color:var(--text-faint);}
+  .bloq-toggle .cuenta{font-weight:400; color:var(--text-faint);}
+  .bloq-toggle .bloq-flecha{display:inline-block; color:var(--text-faint); transition:transform .15s;}
+  .bloq-toggle[aria-expanded="true"] .bloq-flecha{transform:rotate(90deg);}
+  .bloq-cuerpo[hidden]{display:none;}
   .badge-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(132px,1fr)); gap:10px; margin-top:14px;}
   .badge-item{background:var(--bg-2); border:1px solid var(--line); border-radius:var(--radius-sm); padding:10px 8px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:4px;}
   /* FIX (23-sep-2026, pedido usuario — "las insignias y cartas de torre
@@ -1148,7 +1156,9 @@
         <div id="mTorresCard" style="display:none; margin-top:24px;">
           <!-- Categoría supportCards[] del JSON (Tower Cards de RoyaleAPI, distinto de currentDeckSupportCards del mazo actual); el backend ya la manda. Historial en CHANGELOG.md. -->
           <h3 class="mazo-subtitulo">Cartas de torre</h3>
+          <h4 class="desbloqueo-tit" id="mTorresTitDesbloq" style="display:none;"></h4>
           <div class="torre-grid" id="mTorresContenido"></div>
+          <div id="mTorresBloqueadas"></div>
         </div>
       </div>
 
@@ -1838,6 +1848,31 @@ let _ultimosBadges = null;
 /** Insignias/maestrías por desbloquear (backend: rawClash.badgesBloqueadas, primer nivel) y cartas por desbloquear (rawClash.cardsBloqueadas). */
 let _ultimasBadgesBloqueadas = [];
 let _ultimasCartasBloqueadas = [];
+let _ultimasTorresBloqueadas = [];
+let _ultimasTorres = null;
+
+/** Secciones "Por desbloquear" abiertas (clave -> true). Por defecto todas
+ * quedan plegadas; el estado sobrevive a re-pintados (p. ej. al cambiar el
+ * orden), porque _bloqSeccionHtml() lo consulta cada vez que se arma. */
+const _bloqAbiertas = {};
+
+/** Botón "Ver por desbloquear" + contenido plegado (atributo hidden).
+ * `clave` identifica la sección: 'ins-gen', 'ins-mae', 'cartas', 'torres'. */
+function _bloqSeccionHtml(clave, n, contenidoHtml){
+  const ab = !!_bloqAbiertas[clave];
+  return `<button type="button" class="bloq-toggle" aria-expanded="${ab ? 'true' : 'false'}" onclick="alternarBloqueadas('${clave}', this)"><span class="bloq-flecha" aria-hidden="true">&#9656;</span><span class="bloq-toggle-txt">${ab ? 'Ocultar por desbloquear' : 'Ver por desbloquear'}</span><span class="cuenta">${n}</span></button><div class="bloq-cuerpo"${ab ? '' : ' hidden'}>${contenidoHtml}</div>`;
+}
+
+/** onclick del botón de _bloqSeccionHtml(): muestra/oculta sin volver a pintar. */
+function alternarBloqueadas(clave, btn){
+  const ab = !_bloqAbiertas[clave];
+  _bloqAbiertas[clave] = ab;
+  btn.setAttribute('aria-expanded', ab ? 'true' : 'false');
+  const t = btn.querySelector('.bloq-toggle-txt');
+  if (t) t.textContent = ab ? 'Ocultar por desbloquear' : 'Ver por desbloquear';
+  const cuerpo = btn.nextElementSibling;
+  if (cuerpo) cuerpo.hidden = !ab;
+}
 
 /** Compara dos insignias según el criterio de _insigniasOrden. Para orden
  * por nivel, las insignias sin `level` quedan al final (tratadas como
@@ -1957,17 +1992,17 @@ function _pintarInsignias(badges){
   const gridHtml = lista => `<div class="badge-grid">${lista.map(_insigniaItemHtml).join('')}</div>`;
   // Un grupo (generales o maestrías): "Desbloqueadas" + "Por desbloquear".
   // Los subtítulos solo aparecen si el grupo tiene insignias por desbloquear.
-  const grupoHtml = (lista, listaBloq, selectorHtml) => `
+  const grupoHtml = (lista, listaBloq, selectorHtml, claveBloq) => `
     ${lista.length ? selectorHtml : ''}
     ${listaBloq.length ? `<h4 class="desbloqueo-tit">Desbloqueadas<span class="cuenta">${lista.length}</span></h4>` : ''}
     ${lista.length ? gridHtml(lista) : (listaBloq.length ? '<div class="text-faint" style="font-size:11px; margin-top:8px;">Ninguna todavía.</div>' : '')}
-    ${listaBloq.length ? `<h4 class="desbloqueo-tit">Por desbloquear<span class="cuenta">${listaBloq.length}</span></h4>${gridHtml(listaBloq)}` : ''}`;
+    ${listaBloq.length ? _bloqSeccionHtml(claveBloq, listaBloq.length, gridHtml(listaBloq)) : ''}`;
   const hayGenerales = generales.length || bloqGen.length;
   const seccionMaestrias = (maestrias.length || bloqMae.length) ? `
     <h3 class="insignias-subcat${hayGenerales ? '' : ' insignias-subcat--sola'}">Maestrías<span class="cuenta">${maestrias.length}${bloqMae.length ? ` / ${maestrias.length + bloqMae.length}` : ''}</span></h3>
-    ${grupoHtml(maestrias, bloqMae, _selectorOrdenHtml('selMaestriasOrden', _maestriasOrden, 'cambiarOrdenMaestrias'))}` : '';
+    ${grupoHtml(maestrias, bloqMae, _selectorOrdenHtml('selMaestriasOrden', _maestriasOrden, 'cambiarOrdenMaestrias'), 'ins-mae')}` : '';
   cont.innerHTML = `
-    ${hayGenerales ? grupoHtml(generales, bloqGen, _selectorOrdenHtml('selInsigniasOrden', _insigniasOrden, 'cambiarOrdenInsignias')) : ''}
+    ${hayGenerales ? grupoHtml(generales, bloqGen, _selectorOrdenHtml('selInsigniasOrden', _insigniasOrden, 'cambiarOrdenInsignias'), 'ins-gen') : ''}
     ${seccionMaestrias}
     <div class="text-faint" style="font-family:var(--f-mono); font-size:11px; margin-top:12px;">
       Insignias desbloqueadas: ${desbl.length}${maestrias.length ? ` (${maestrias.length} de maestría)` : ''}${bloq.length ? `. Por desbloquear: ${bloq.length}, mostradas con su primer nivel` : ''}.
@@ -2867,25 +2902,13 @@ function _activarClickCosto(nodos, lista, getObj, getNombre, getNivel){
   });
 }
 
-/** Cartas por desbloquear: solo nombre, imagen y datos fijos del catálogo
- * (backend: rawClash.cardsBloqueadas). No entran a filtros, orden ni gráfico
- * de niveles, que trabajan solo con las desbloqueadas. */
-function pintarColeccionBloqueadas(){
-  const tit = document.getElementById('mColeccionTitDesbloq');
-  const cont = document.getElementById('mColeccionBloqueadas');
-  const lista = (Array.isArray(_ultimasCartasBloqueadas) ? _ultimasCartasBloqueadas : []).slice()
-    .sort((a, b) => (ORDEN_RAREZA_CARTA[rarezaKey(a.rarity)] ?? 9) - (ORDEN_RAREZA_CARTA[rarezaKey(b.rarity)] ?? 9)
-      || _nombreCartaEs(a).localeCompare(_nombreCartaEs(b), 'es'));
-  const nDesbl = Array.isArray(_ultimasCartasColeccion) ? _ultimasCartasColeccion.length : 0;
-  if (!lista.length){ tit.style.display = 'none'; tit.innerHTML = ''; cont.innerHTML = ''; return; }
-  tit.style.display = '';
-  tit.innerHTML = `Desbloqueadas<span class="cuenta">${nDesbl}</span>`;
-  cont.innerHTML = `<h4 class="desbloqueo-tit">Por desbloquear<span class="cuenta">${lista.length}</span></h4>
-    <div class="coleccion-grid">${lista.map(c => {
-      const rk = rarezaKey(c.rarity);
-      const nombreEs = _nombreCartaEs(c);
-      const img = (c.iconUrls && c.iconUrls.medium) || '';
-      return `
+/** Ficha de una carta por desbloquear (colecci\u00f3n y torres): solo nombre,
+ * imagen y datos fijos del cat\u00e1logo. */
+function _cartaBloqueadaHtml(c){
+  const rk = rarezaKey(c.rarity);
+  const nombreEs = _nombreCartaEs(c);
+  const img = (c.iconUrls && c.iconUrls.medium) || '';
+  return `
       <div class="col-card col-card--grande col-card--bloqueada" title="${esc(nombreEs)}">
         <div class="col-nombre"><span class="col-nombre-txt">${esc(nombreEs)}</span></div>
         <div class="col-cuerpo">
@@ -2897,7 +2920,44 @@ function pintarColeccionBloqueadas(){
           </div>
         </div>
       </div>`;
-    }).join('')}</div>`;
+}
+
+/** Ordena cartas por desbloquear: rareza y luego nombre en espa\u00f1ol. */
+function _ordenarCartasBloqueadas(lista){
+  return (Array.isArray(lista) ? lista : []).slice()
+    .sort((a, b) => (ORDEN_RAREZA_CARTA[rarezaKey(a.rarity)] ?? 9) - (ORDEN_RAREZA_CARTA[rarezaKey(b.rarity)] ?? 9)
+      || _nombreCartaEs(a).localeCompare(_nombreCartaEs(b), 'es'));
+}
+
+/** Cartas por desbloquear: solo nombre, imagen y datos fijos del cat\u00e1logo
+ * (backend: rawClash.cardsBloqueadas). No entran a filtros, orden ni gr\u00e1fico
+ * de niveles, que trabajan solo con las desbloqueadas. Plegadas tras un
+ * bot\u00f3n (ver _bloqSeccionHtml()). */
+function pintarColeccionBloqueadas(){
+  const tit = document.getElementById('mColeccionTitDesbloq');
+  const cont = document.getElementById('mColeccionBloqueadas');
+  const lista = _ordenarCartasBloqueadas(_ultimasCartasBloqueadas);
+  const nDesbl = Array.isArray(_ultimasCartasColeccion) ? _ultimasCartasColeccion.length : 0;
+  if (!lista.length){ tit.style.display = 'none'; tit.innerHTML = ''; cont.innerHTML = ''; return; }
+  tit.style.display = '';
+  tit.innerHTML = `Desbloqueadas<span class="cuenta">${nDesbl}</span>`;
+  cont.innerHTML = _bloqSeccionHtml('cartas', lista.length,
+    `<div class="coleccion-grid">${lista.map(_cartaBloqueadaHtml).join('')}</div>`);
+}
+
+/** Cartas de torre por desbloquear (backend: rawClash.supportCardsBloqueadas).
+ * Misma idea que pintarColeccionBloqueadas(), con su propio bot\u00f3n. */
+function pintarTorresBloqueadas(){
+  const tit = document.getElementById('mTorresTitDesbloq');
+  const cont = document.getElementById('mTorresBloqueadas');
+  const lista = _ordenarCartasBloqueadas(_ultimasTorresBloqueadas);
+  const torres = _ultimasTorres;
+  const nDesbl = Array.isArray(torres) ? torres.length : 0;
+  if (!lista.length){ tit.style.display = 'none'; tit.innerHTML = ''; cont.innerHTML = ''; return; }
+  tit.style.display = '';
+  tit.innerHTML = `Desbloqueadas<span class="cuenta">${nDesbl}</span>`;
+  cont.innerHTML = _bloqSeccionHtml('torres', lista.length,
+    `<div class="torre-grid">${lista.map(_cartaBloqueadaHtml).join('')}</div>`);
 }
 
 function pintarColeccion(cartas){
@@ -3052,8 +3112,18 @@ function renderCartasTorre(j){
   const torres = rawClash(j).supportCards;
   const card = document.getElementById('mTorresCard');
   const cont = document.getElementById('mTorresContenido');
-  if (!Array.isArray(torres) || !torres.length){ card.style.display = 'none'; cont.innerHTML = ''; return; }
+  if (!Array.isArray(torres) || !torres.length){
+    card.style.display = 'none'; cont.innerHTML = '';
+    _ultimasTorres = null; _ultimasTorresBloqueadas = []; pintarTorresBloqueadas();
+    return;
+  }
   card.style.display = '';
+  // FIX (29-sep-2026, pedido usuario — "las cartas de torre también deben tener su sección de Por desbloquear"):
+  // supportCardsBloqueadas lo manda el backend (34_Web_API.gs, _webCartasBloqueadas(..., true)).
+  _ultimasTorres = torres;
+  const _tb = rawClash(j).supportCardsBloqueadas;
+  _ultimasTorresBloqueadas = Array.isArray(_tb) ? _tb : [];
+  pintarTorresBloqueadas();
   // FIX (23-sep-2026, pedido usuario — "en todo perfil.html hay varias
   // secciones. si el dato se menciona para alguna ficha en una determinada
   // sección, se le reserva una fila. si no se menciona, no se debe
