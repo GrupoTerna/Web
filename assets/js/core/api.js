@@ -33,19 +33,42 @@
  * conexión, backend caído, etc.), en vez de lanzar el error se devuelva
  * ese respaldo (por viejo que sea) cuando exista; si no hay respaldo
  * guardado, el error se lanza igual que antes. Por defecto (sin pasar
- * staleIfError) el comportamiento no cambia: ningún punto de llamada
- * existente lo pasa todavía. apiGetUltimaActualizacion(accion, params)
+ * staleIfError) el comportamiento no cambia (al 30-sep-2026 ya casi todas
+ * las llamadas lo pasan: ver el último párrafo). apiGetUltimaActualizacion(accion, params)
  * expone la fecha de ese respaldo para que cada página pinte su propio
  * indicador ("Actualizado hace...", "Sin conexión, mostrando datos de
- * hace...") cuando se decida hacerlo — no hay UI todavía, solo la
- * capacidad en esta capa.
+ * hace...") — (al 30-sep-2026 ya lo pintan varias páginas: ver el último
+ * párrafo).
  *
  * CAMBIO (28-sep-2026, Fase 5b tanda A): opts.conSesion=true — si hay un admin
  * con sesión (localStorage 'terna_admin_token'), la petición lleva además su
  * sessionToken y sale sin caché ni respaldo (ver el comentario dentro de la
  * función). Hoy lo usan perfil.html (webPerfil) y directorio.html
  * (webCompararJugadores) para que el admin siga viendo el estado "Inactivo".
- * Sin sesión, es igual que no pasarlo.
+ *  Sin sesión, es igual que no pasarlo.
+ *
+ * ACTUALIZADO (30-sep-2026, solo comentario; el código no cambió). Estado real
+ * de las llamadas, verificado contra el código de cada página:
+ * - ttlMs 5 min + staleIfError: webClanInfo (index, directorio, guerra, clan),
+ *   webRoster (directorio, clan), webAniversarios, webRankings y
+ *   webEstadisticasCartas (index), webIngresosRecientes (directorio),
+ *   webAscensosRecientes (comunidad), webPerfil, webTorneosJugador,
+ *   webCofresJugador y webBattlelogJugador (perfil), webTorneos y
+ *   webHistorialTorneos (torneos).
+ * - ttlMs 2 min: webGuerraEnVivo en clan.html (con staleIfError; sin conSesion,
+ *   así que cachea solo la versión pública), y en guerra.html webPronosticoGuerra
+ *   (sin staleIfError) y webGuerraPuestosDia (con staleIfError); estas dos pasan a
+ *   sinCache cuando el usuario pulsa Actualizar.
+ * - Sin caché: webGuerraEnVivo en guerra.html (sinCache + conSesion).
+ * - TTL por defecto (60 s), sin staleIfError: webGuerraLog (guerra).
+ * - conSesion: perfil (webPerfil, webTorneosJugador, webCofresJugador,
+ *   webBattlelogJugador), directorio (webCompararJugadores,
+ *   webHistorialGuerraComparador, webIngresosRecientes), guerra (webGuerraEnVivo)
+ *   y torneos (webTorneos, webHistorialTorneos). Con sesión de admin esas llamadas
+ *   salen sin caché ni respaldo, así que el admin no tiene modo sin conexión en
+ *   esas secciones.
+ * - apiGetUltimaActualizacion(): la leen index, directorio, torneos, clan y
+ *   perfil (en perfil, con sesión de admin el texto sale como "ahora mismo").
  */
 const API_GET_CACHE_TTL_MS = 60000;
 

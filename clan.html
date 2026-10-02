@@ -102,7 +102,7 @@
       <div class="card" style="padding:0; margin-top:20px;">
         <div class="cd-roster-header">
           <h2 class="pf-subtitulo" style="margin:0;">Roster</h2>
-          <a href="#" id="clanVerDirectorioLink" class="text-dim" style="font-family:var(--f-mono); font-size:12px;">Ver en el Directorio &rarr;</a>
+          <a href="#" id="clanVerDirectorioLink" class="text-dim" style="font-family:var(--f-mono); font-size:12px; display:inline-block; padding:5px 0;">Ver en el Directorio &rarr;</a>
         </div>
         <!-- Fila A-Z/# para filtrar por primera letra del nombre, mismo patrón que #rosterLetraFilter de directorio.html: reusa pintarFiltroLetra()/LETRAS_FILTRO de assets/js/ui/filters.js. Historial en CHANGELOG.md. -->
         <div class="tabs-row" id="clanRosterLetraFilter" style="margin:0 20px 12px;"></div>
@@ -173,8 +173,14 @@ function mostrarErrorClan(msg){
  * que Inicio/Directorio) — sin botones "Ver clan"/"Unirse", ya estamos
  * dentro del dashboard de ese clan. */
 function renderClanBasico(clanInfo, idx){
-  document.getElementById('clanInfoWrap').innerHTML =
-    clanCardHtml(clanInfo, idx, { mostrarVerClan: false, mostrarUnirse: false });
+  const wrap = document.getElementById('clanInfoWrap');
+  wrap.innerHTML = clanCardHtml(clanInfo, idx, { mostrarVerClan: false, mostrarUnirse: false });
+  // Accesibilidad (30-sep-2026, auditoría de clan.html): la página no tenía <h1> y el
+  // nombre del clan sale como <h3> (clanCardHtml() es compartido con Inicio y
+  // Directorio, donde sí cuelga de un <h2>). Aquí es el título de la página, así que
+  // se anuncia como nivel 1 sin cambiar la etiqueta ni el estilo, y sin tocar clan-card.js.
+  const tituloClan = wrap.querySelector('h3');
+  if (tituloClan) tituloClan.setAttribute('aria-level', '1');
 }
 
 /** Pinta el resumen de guerra de esta semana (webGuerraEnVivo), o un

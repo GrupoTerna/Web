@@ -11,6 +11,39 @@ el código hoy) cuando hace falta para mantenerlo; el "por qué histórico"
 
 ---
 
+## clan.html y comentarios de api.js — séptima sesión (30-sep-2026)
+
+### 30-sep-2026 — `clan.html`: auditoría (accesibilidad, CSP y consola) y dos arreglos
+Auditoría pedida al reconciliar el plan (la página no estaba en ninguna sección). Se cargó
+con Chromium (360 y 1280 px) y un backend simulado (`webClanInfo`, `webRoster`,
+`webGuerraEnVivo`), más axe-core (WCAG 2 A/AA/2.1 AA y buenas prácticas).
+
+- **Sin `<h1>` (axe: `page-has-heading-one`):** el nombre del clan sale como `<h3>`
+  porque `clanCardHtml()` es compartido con Inicio y Directorio, donde cuelga de un
+  `<h2>`. `renderClanBasico()` ahora le pone `aria-level="1"` tras pintarlo. Cambia solo
+  lo que anuncia el lector de pantalla: no se tocó la etiqueta, el estilo ni `clan-card.js`.
+  Queda h1 → h2 → h2. Si la página muestra un error (clan no encontrado, falta `?clan=`)
+  sigue sin encabezado de nivel 1; no se tocó por ser un estado raro y la página es `noindex`.
+- **Enlace "Ver en el Directorio →" de 14 px de alto:** pasa a `display:inline-block` con
+  `padding:5px 0` (24 px), igual que ya tenía el enlace "← Volver al Directorio".
+- **Sin hallazgos:** contraste (axe), nombres accesibles, `alt`, ids duplicados, desborde
+  horizontal en 360 px y violaciones de la CSP (ninguna: los dominios que usa la página
+  —fuentes, `cdn.royaleapi.com`, `assets.cwstats.com`, Apps Script y GoatCounter— están en
+  su `img-src`/`connect-src`). `html-validate`, `eslint`, `npm test` (159) y
+  `check-links` siguen en verde.
+- **No verificado:** el backend real (los datos fueron simulados) y lector de pantalla
+  real. `clan.html` no está en `CORE_ASSETS` de `sw.js`, por eso no se subió el caché.
+
+### 30-sep-2026 — `api.js`: el comentario de `apiGet` describía un estado anterior
+Solo comentario; el código no cambió (se comparó el árbol sintáctico antes y después).
+Decía que ninguna llamada pasaba `staleIfError`, que no había interfaz para "última
+actualización" y que el TTL de 5 min estaba aplicado solo en cuatro endpoints. Ahora
+lista el estado real por página y deja claro qué llamadas usan `conSesion` (y por tanto
+no tienen modo sin conexión para un admin). No se sube `CACHE_NAME`: no hay cambio de
+comportamiento.
+
+---
+
 ## index.html, perfil.html y Lighthouse — sexta sesión de rendimiento (29-sep-2026)
 
 ### 29-sep-2026 — `index.html`: la imagen de "Cartas más usadas" pasa de 52×60 a 72×84
@@ -3169,6 +3202,15 @@ elixir o al menos la misma altura".
   (mono 11px); el ícono `assets/img/Gold.webp` mide 13 px de alto (igual que el
   de Elixir) con ancho automático. Si el archivo no existe, `onerror` lo
   reemplaza por 🪙.
+
+**CORRECCIÓN (30-sep-2026):** lo de arriba quedó desactualizado. El backend sí
+manda `costoOro` y `cartasSiguienteNivel` (`_webDatosDriveJugador()` y
+`_webConCostoSubida()` en las 4 listas de cartas, AVISO 8) y
+`COLECCION_ESPACIO_COSTO_MEJORA` está en `false` en `perfil.html`: las filas se
+muestran con el criterio normal de reserva de fila, no "siempre". El costo en oro
+es una cantidad fija por nivel de carta (confirmado por el usuario, 30-sep). Lo
+que no existe es el oro que tiene cada jugador: Supercell no lo publica, así que
+no se puede mostrar ni comparar contra el costo.
 
 ### 23-sep-2026 — Dos minigráficos de pastel (victorias/derrotas y donaciones)
 Pedido del usuario: "agrega dos minigráficos de estilo pastel: uno para el
