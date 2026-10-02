@@ -22,7 +22,7 @@ las fuentes se sirvieron desde paquetes locales (`@fontsource`) con 400 ms de re
   por Lighthouse (0.153-0.166).
 - **Aplicado (opción 1):** los 3 enlaces de Google Fonts de `index.html` (`preload`, `stylesheet` y `noscript`) usan
   `display=optional`, con una nota junto a los `<link>`. CLS **0** en las 10 corridas (móvil y escritorio).
-  **Costo visible:** si Rajdhani no está lista a los ~100 ms (primera visita con caché vacío), esa carga se queda con
+  **Costo visible (aceptado por el usuario, 30-sep):** si Rajdhani no está lista a los ~100 ms (primera visita con caché vacío), esa carga se queda con
   la fuente de respaldo (títulos más anchos, en 3 líneas) hasta la siguiente visita; la fuente se descarga igual y queda
   en caché. Solo afecta a `index.html`; las otras páginas siguen con `swap`. Para volver atrás basta cambiar
   `optional` por `swap` en esas 3 líneas.
