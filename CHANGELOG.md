@@ -11,7 +11,36 @@ el código hoy) cuando hace falta para mantenerlo; el "por qué histórico"
 
 ---
 
-## clan.html y comentarios de api.js — séptima sesión (30-sep-2026)
+## CLS del hero de index.html, clan.html y comentarios de api.js — séptima sesión (30-sep-2026)
+
+### 30-sep-2026 — `index.html` y `sw.js`: CLS del hero, `display=swap` → `display=optional` (v9)
+Cierra la entrada "Abierto: CLS 0.15 del hero" del 29-sep. A diferencia de entonces, esta vez sí se pudo comprobar:
+las fuentes se sirvieron desde paquetes locales (`@fontsource`) con 400 ms de retraso para imitar una carga lenta
+(Chromium, 5 corridas por caso, 412×823 y 1350×940; **no** es Lighthouse).
+- **Causa confirmada:** con `display=swap`, al llegar Rajdhani el título del hero pasa de 3 a 2 líneas y empuja el
+  párrafo y los botones. Línea base reproducida: CLS **0.151** en móvil (0.006 en escritorio), igual que lo medido
+  por Lighthouse (0.153-0.166).
+- **Aplicado (opción 1):** los 3 enlaces de Google Fonts de `index.html` (`preload`, `stylesheet` y `noscript`) usan
+  `display=optional`, con una nota junto a los `<link>`. CLS **0** en las 10 corridas (móvil y escritorio).
+  **Costo visible:** si Rajdhani no está lista a los ~100 ms (primera visita con caché vacío), esa carga se queda con
+  la fuente de respaldo (títulos más anchos, en 3 líneas) hasta la siguiente visita; la fuente se descarga igual y queda
+  en caché. Solo afecta a `index.html`; las otras páginas siguen con `swap`. Para volver atrás basta cambiar
+  `optional` por `swap` en esas 3 líneas.
+- **Opción 2 probada y descartada:** fuentes de respaldo con `size-adjust`/`ascent-override` calculados (Rajdhani sobre
+  Arial Bold: 85.79 % / 108.41 % / 40.33 %; Inter sobre Arial: 106.84 % / 90.67 % / 22.58 %). En el entorno de prueba el CLS
+  siguió en ~0.148 en 3 de 5 corridas, así que no basta; además dependería de qué fuente local tenga cada dispositivo
+  (`local('Arial')` no existe en Android). La opción 3 (reservar alto del título) no se probó.
+- **`sw.js` sube a v9** (`index.html` está en `CORE_ASSETS`). El comentario de versiones ahora incluye una línea para
+  **v8**, que se había subido sin dejar registro: se anota como "sin fecha ni motivo registrados" (hipótesis, sin
+  confirmar: el cambio de `index.html` del 29-sep).
+- **No verificado:** una corrida real de Lighthouse (CI) ni cómo se ve en dispositivos reales. `html-validate`, `eslint assets`,
+  159 pruebas y `check-links` en verde. (`eslint sw.js` da 19 errores `no-undef`, los mismos que antes del cambio: `sw.js` no
+  entra en `npm run lint`.)
+
+### 30-sep-2026 — Anotación sobre la entrada del 29-sep "Abierto: CLS 0.15"
+Quedó resuelta por la entrada de arriba; la original se conserva más abajo tal cual.
+
+
 
 ### 30-sep-2026 — `clan.html`: auditoría (accesibilidad, CSP y consola) y dos arreglos
 Auditoría pedida al reconciliar el plan (la página no estaba en ninguna sección). Se cargó
