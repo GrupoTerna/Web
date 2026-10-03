@@ -1221,8 +1221,10 @@ function render(data){
   // (activarBarraScrollTablas) para leer todos los anchos antes de
   // escribir ninguno y evitar el layout thrashing de llamar
   // activarBarraScrollTabla() una por una. Ver docblock en tables.js.
-  activarBarraScrollTablas(pendWrap.querySelectorAll('.table-scroll'));
+  // TBT (02-oct-2026): gestionarTabsClan() va ANTES de activarBarraScrollTablas() a propósito. Así los clanes que no están
+  // seleccionados ya están en display:none cuando se mide scrollWidth y el navegador no calcula el layout de sus tablas. Historial en CHANGELOG.md.
   gestionarTabsClan('pendClanTabs', 'pendWrap', () => clanSeleccionadoPend, v => clanSeleccionadoPend = v);
+  activarBarraScrollTablas(pendWrap.querySelectorAll('.table-scroll'));
   pintarFiltroLetra('pendLetraFilter', LETRAS_FILTRO, () => letraSeleccionadaPend, v => letraSeleccionadaPend = v, aplicarFiltroLetraPendientes);
   aplicarFiltroLetraPendientes();
   const resumen = Object.entries(data.resumenClanes || {});
@@ -1319,8 +1321,9 @@ function render(data){
     // assets/js/ui/tables.js. Historial en CHANGELOG.md.
     // FIX (pendiente #5 de B5.5, 19-sep-2026 — TBT): versión en lote, ver
     // el mismo cambio más arriba en Pendientes de Atacar.
-    activarBarraScrollTablas(wrapActivos.querySelectorAll('.table-scroll'));
+    // TBT (02-oct-2026): mismo orden que en Pendientes de Atacar (tabs primero, medición después).
     gestionarTabsClan('controlActivosClanTabs', 'controlActivosWrap', () => clanSeleccionadoActivos, v => clanSeleccionadoActivos = v);
+    activarBarraScrollTablas(wrapActivos.querySelectorAll('.table-scroll'));
     pintarFiltroLetra('controlActivosLetraFilter', LETRAS_FILTRO, () => letraSeleccionadaActivos, v => letraSeleccionadaActivos = v, () => aplicarFiltroLetraGrid('controlActivosWrap'));
   } else {
     controlActivosSection.style.display = 'none';
@@ -1389,8 +1392,9 @@ function render(data){
     // assets/js/ui/tables.js. Historial en CHANGELOG.md.
     // FIX (pendiente #5 de B5.5, 19-sep-2026 — TBT): versión en lote, ver
     // el mismo cambio más arriba en Pendientes de Atacar.
-    activarBarraScrollTablas(wrapTemporada.querySelectorAll('.table-scroll'));
+    // TBT (02-oct-2026): mismo orden que en Pendientes de Atacar (tabs primero, medición después).
     gestionarTabsClan('controlTemporadaClanTabs', 'controlTemporadaWrap', () => clanSeleccionadoTemporada, v => clanSeleccionadoTemporada = v);
+    activarBarraScrollTablas(wrapTemporada.querySelectorAll('.table-scroll'));
     pintarFiltroLetra('controlTemporadaLetraFilter', LETRAS_FILTRO, () => letraSeleccionadaTemporada, v => letraSeleccionadaTemporada = v, () => aplicarFiltroLetraGrid('controlTemporadaWrap'));
   } else {
     controlTemporadaSection.style.display = 'none';

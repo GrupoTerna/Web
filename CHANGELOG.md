@@ -11,6 +11,53 @@ el código hoy) cuando hace falta para mantenerlo; el "por qué histórico"
 
 ---
 
+## admin.html — Fase 11 verificada en navegador y nota de "Ingresar link" (octava sesión, 02-oct-2026)
+
+### 02-oct-2026 — `admin.html`: se prueba el bloqueo de Organizador (Fase 11) y se actualiza la nota de "Ingresar link" (Fase 12 ya en el backend)
+- **Fase 11, verificada en navegador (con backend simulado, no real):** Chromium con Playwright, sesión de admin simulada en
+  `localStorage`, respuestas interceptadas y 3 torneos de prueba con `organizadorFuente` `'API'`, `'Manual'` y `''`; se recorre
+  el asistente Modificar torneo → Torneo principal. Resultado: con `'API'` se oculta `#tAutorEditableModWrap` y sale
+  `#tAutorSoloLecturaMod` con "Organizador: <nombre> — detectado automáticamente, no editable."; con `'Manual'`, `''`,
+  "Ingresar link" o sin torneo elegido vuelve el bloque editable. Al enviar con un torneo `'API'` el payload manda `autor: ""`
+  (= no cambiar) y `link: ""`. Sin errores de JS. El texto del bloque de solo lectura queda con el nombre anterior mientras
+  está oculto; no se ve y se reescribe al volver a elegir un torneo `'API'`.
+- **Nota junto a `#tModificarLink` actualizada.** Decía que la corrección completa "todavía no está disponible"; ahora describe lo
+  que hace el backend (`_registrarTorneoDesdeBot()` + `_corregirLinkTorneoYaRegistrado()`, `24_Torneos_Core.gs`): la fila ya
+  registrada se localiza por **mismo día y misma hora:minuto** y se corrige en vez de duplicarse; si la fecha u hora no coinciden
+  con ninguna fila, **se registra un torneo nuevo**; si el link es de otro torneo se vuelve a detectar organizador y demás
+  datos; y en una corrección no se aplican organizador, semanas, requisitos ni comentario del formulario. Solo texto y un
+  comentario HTML; ningún cambio de lógica.
+- **`sw.js`:** sin cambio; `admin.html` no está en `CORE_ASSETS`.
+- **Pendiente de definir:** tras "Ingresar link" el mensaje de éxito sigue siendo "Torneo registrado (ID …)" aunque haya sido una
+  corrección. El backend devuelve `{ok:true, id}` en ambos casos, así que el frontend no puede distinguirlos; opciones: dejarlo,
+  poner un texto neutro ("Link guardado (ID …)") o que el backend devuelva un indicador.
+- **Sin probar:** nada contra el backend real; la Fase 12 sigue sin probarse en Apps Script real.
+
+## guerra.html y `sw.js` — TBT de guerra (octava sesión, 02-oct-2026)
+
+### 02-oct-2026 — `guerra.html`: se invierte el orden de `gestionarTabsClan()` y `activarBarraScrollTablas()` (TBT) (`sw.js` v10)
+Cierra el pendiente "TBT de `guerra`" (tarea larga de 582 ms al pintar y ~970 ms atribuidos a `tables.js`).
+Medido en Chromium con Playwright (412×823, CPU 4× más lenta, backend simulado con 4 clanes × 50 jugadores y 5 semanas
+de temporada, 3-5 corridas por caso); **no es Lighthouse** y las cifras son relativas, no comparables con las de CI.
+- **Causa confirmada:** el "arranque de `tables.js`" no es código de `tables.js`: es el **primer layout forzado**. `render()`
+  pintaba las tablas de los 4 clanes (≈ 11 200 nodos DOM) y llamaba a `activarBarraScrollTablas()` **antes** de
+  `gestionarTabsClan()`, que es la que oculta los clanes no seleccionados. Al leer `scrollWidth`, el navegador calculaba
+  el layout y los estilos de las tablas de **todos** los clanes aunque solo se ve uno. El perfilador lo mostraba como la
+  línea 161 de `tables.js` (≈ 660 ms propios de 1 000 ms en `render`). El arreglo de lecturas/escrituras en lote del
+  19-sep ya estaba aplicado y no era el cuello de botella.
+- **Aplicado:** en los 3 puntos (Pendientes de Atacar, Control de Activos, Control de Temporada) `gestionarTabsClan()`
+  va antes de `activarBarraScrollTablas()`, con un comentario junto a cada llamada. Sin otro cambio de lógica.
+- **Resultado (mismo banco de pruebas):** TBT de 960-1 390 ms → 470-530 ms; `render()` de ~900-1 010 ms → ~465 ms;
+  `activarBarraScrollTablas` de ~650-730 ms → ~190 ms; layout acumulado de 420-600 ms → 160-300 ms; recálculos de estilo
+  de 365-500 ms → ~110 ms.
+- **Comprobado:** al pulsar cada pestaña de clan (y "Todos") en las 3 secciones, el ancho de la barra superior coincide con
+  el de la tabla en las 24 tarjetas visibles (el `ResizeObserver` de `tables.js` la corrige al mostrarse), sin errores de JS.
+- **`sw.js`:** `CACHE_NAME` sube a `terna-static-v10` (`guerra.html` está en `CORE_ASSETS`).
+- **Sin hacer / sin comprobar:** no se corrió Lighthouse real; no se sabe cuántos jugadores tiene hoy cada clan en
+  producción (el banco usa 50 por clan). Queda una tarea de ~500 ms con CPU 4×. Idea sin probar para bajarla más:
+  no construir el `<tbody>` de los clanes ocultos hasta que se elija su pestaña, y/o repartir el pintado de Control de
+  Temporada (la sección más baja de la página) en una tarea posterior; por estimación del perfil ahorraría ~100 ms más.
+
 ## CLS del hero de index.html, clan.html y comentarios de api.js — séptima sesión (30-sep-2026)
 
 ### 30-sep-2026 — `index.html` y `sw.js`: CLS del hero, `display=swap` → `display=optional` (v9)

@@ -49,7 +49,9 @@
 // con el cambio de index.html del 29-sep-2026 (cartas de 72x84), sin confirmar.
 // v9 (30-sep-2026): index.html cambió (CORE_ASSETS) -- los enlaces de Google Fonts pasan de display=swap a display=optional
 // (CLS del hero). Se sube la versión para que 'activate' borre v8 y nadie se quede con el index.html viejo.
-const CACHE_NAME = 'terna-static-v9';
+// v10 (02-oct-2026): guerra.html cambió (CORE_ASSETS) -- se invierte el orden de gestionarTabsClan() y
+// activarBarraScrollTablas() para bajar el TBT. Se sube la versión para que 'activate' borre v9.
+const CACHE_NAME = 'terna-static-v10';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
