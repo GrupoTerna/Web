@@ -31,8 +31,7 @@ Cierra el pendiente "mensaje de éxito de Ingresar link" de la entrada de abajo.
   `html-validate admin.html` sin observaciones. `node --check` OK en los dos `.gs`.
 - **`sw.js`:** sin cambio; `admin.html` no está en `CORE_ASSETS`.
 - **Sin probar:** nada contra el backend real; los cambios de los dos `.gs` no se ejecutaron en Apps Script real (igual que la Fase 12).
-- **Pendiente de definir (nuevo):** el bot de WhatsApp (`29_BotWhatsApp.gs`, paso `TORNEOS_LINK_HORA`) sigue respondiendo
-  "Torneo registrado con ID …" también en una corrección. Ya recibe `corregido`, pero no se cambió su texto sin tu decisión.
+- **Bot de WhatsApp (RESUELTO el mismo día):** `29_BotWhatsApp.gs` (`TORNEOS_LINK_HORA`) ahora dice "Link corregido en el torneo con ID …" cuando `corregido` es `true`; sin el campo o en un registro nuevo sigue "Torneo registrado con ID …". Es backend; se anota acá por cercanía con el cambio de `admin.html`.
 
 ## admin.html — Fase 11 verificada en navegador y nota de "Ingresar link" (octava sesión, 02-oct-2026)
 
