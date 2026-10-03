@@ -4374,7 +4374,8 @@ document.getElementById('btnRegistrarTorneo').addEventListener('click', async ()
     });
     if(manejarRespuestaAuth(data)) return;
     if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
-    msgEl.innerHTML = `<div class="msg msg-ok">Torneo registrado (ID ${esc(data.id)}).</div>`;
+    // El backend manda `corregido:true` si el link corrigió una fila ya registrada (misma fecha y hora) en vez de crear otra. Historial en CHANGELOG.md.
+    msgEl.innerHTML = `<div class="msg msg-ok">${data.corregido === true ? 'Link corregido' : 'Torneo registrado'} (ID ${esc(data.id)}).</div>`;
     document.getElementById('tLink').value = '';
     limpiarCampoFechaAmigable('tFecha', 'tFechaTexto');
     limpiarCampoHoraAmigable('tHora', 'tHoraHH', 'tHoraMM', 'tHoraAmPm');
@@ -4442,8 +4443,9 @@ document.getElementById('btnModificarTorneo').addEventListener('click', async ()
     });
     if(manejarRespuestaAuth(data)) return;
     if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
+    // Con "Ingresar link", `corregido:true` = se corrigió una fila ya registrada; si no, torneo nuevo. Historial en CHANGELOG.md.
     msgEl.innerHTML = esOpcionLink
-      ? `<div class="msg msg-ok">Torneo registrado (ID ${esc(data.id)}).</div>`
+      ? `<div class="msg msg-ok">${data.corregido === true ? 'Link corregido' : 'Torneo registrado'} (ID ${esc(data.id)}).</div>`
       : '<div class="msg msg-ok">Torneo actualizado.</div>';
     document.getElementById('tModificarLink').value = '';
     document.getElementById('tAutorSelectMod').value = '';

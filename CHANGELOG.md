@@ -11,6 +11,29 @@ el código hoy) cuando hace falta para mantenerlo; el "por qué histórico"
 
 ---
 
+## admin.html — mensaje de éxito de "Ingresar link" (octava sesión, tanda 2, 02-oct-2026)
+
+### 02-oct-2026 — `admin.html`: "Link corregido (ID …)" cuando el backend avisa que fue una corrección (`corregido`)
+Cierra el pendiente "mensaje de éxito de Ingresar link" de la entrada de abajo. **Decisión del usuario:** que el backend devuelva el indicador.
+- **Backend (se entregan `24_Torneos_Core.gs` y `34_Web_API.gs`; el frontend solo lee el campo):** `_registrarTorneoDesdeBot()` devuelve
+  `{ok:true, id, corregido:true}` cuando la fecha/hora calzó con una fila que ya tenía Link_app y se corrigió esa fila
+  (rama de `_corregirLinkTorneoYaRegistrado()`), y `{ok:true, id, corregido:false}` cuando se creó una fila nueva o se completó una
+  fila "Planificado" con su primer link. `_webAdminTorneoModificar()` (modo link con `id` real) devuelve `corregido:true` al corregir
+  esa fila. El modo normal de Modificar (sin link) no cambia. `08_Web_Endpoints.gs` no necesitó cambios: ya serializa el resultado completo.
+- **Frontend (`admin.html`, dos listeners):** `btnRegistrarTorneo` y `btnModificarTorneo` (rama `esOpcionLink`) muestran
+  "Link corregido (ID …)." si `data.corregido === true` y "Torneo registrado (ID …)." en cualquier otro caso. Con un backend viejo
+  que no manda el campo, el mensaje queda igual que antes. "Torneo actualizado." (Modificar sin link) no cambia.
+- **También afecta a Registrar**, no solo a "Ingresar link": `_registrarTorneoDesdeBot()` redirige a la corrección cuando ya existe
+  una fila con la misma fecha y hora, así que el botón "Registrar torneo" también podía decir "registrado" tras una corrección.
+- **Verificado en navegador (Chromium con Playwright, backend simulado, no real):** 6 casos, Registrar y Modificar con "Ingresar link"
+  × `corregido:true` / `false` / ausente. Los textos coinciden con lo esperado, el payload enviado no cambia (`link`, `fecha`
+  `dd/mm/aaaa`, `hora` `HH:mm:ss`, `id:"__link__"`) y no hay errores de JS. Suite del repo: `node --test` 159 de 159, `eslint assets` y
+  `html-validate admin.html` sin observaciones. `node --check` OK en los dos `.gs`.
+- **`sw.js`:** sin cambio; `admin.html` no está en `CORE_ASSETS`.
+- **Sin probar:** nada contra el backend real; los cambios de los dos `.gs` no se ejecutaron en Apps Script real (igual que la Fase 12).
+- **Pendiente de definir (nuevo):** el bot de WhatsApp (`29_BotWhatsApp.gs`, paso `TORNEOS_LINK_HORA`) sigue respondiendo
+  "Torneo registrado con ID …" también en una corrección. Ya recibe `corregido`, pero no se cambió su texto sin tu decisión.
+
 ## admin.html — Fase 11 verificada en navegador y nota de "Ingresar link" (octava sesión, 02-oct-2026)
 
 ### 02-oct-2026 — `admin.html`: se prueba el bloqueo de Organizador (Fase 11) y se actualiza la nota de "Ingresar link" (Fase 12 ya en el backend)
@@ -28,7 +51,7 @@ el código hoy) cuando hace falta para mantenerlo; el "por qué histórico"
   datos; y en una corrección no se aplican organizador, semanas, requisitos ni comentario del formulario. Solo texto y un
   comentario HTML; ningún cambio de lógica.
 - **`sw.js`:** sin cambio; `admin.html` no está en `CORE_ASSETS`.
-- **Pendiente de definir:** tras "Ingresar link" el mensaje de éxito sigue siendo "Torneo registrado (ID …)" aunque haya sido una
+- **Pendiente de definir (RESUELTO el mismo día, ver la entrada de arriba):** tras "Ingresar link" el mensaje de éxito sigue siendo "Torneo registrado (ID …)" aunque haya sido una
   corrección. El backend devuelve `{ok:true, id}` en ambos casos, así que el frontend no puede distinguirlos; opciones: dejarlo,
   poner un texto neutro ("Link guardado (ID …)") o que el backend devuelva un indicador.
 - **Sin probar:** nada contra el backend real; la Fase 12 sigue sin probarse en Apps Script real.
