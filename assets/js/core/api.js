@@ -47,6 +47,18 @@
  * (webCompararJugadores) para que el admin siga viendo el estado "Inactivo".
  *  Sin sesión, es igual que no pasarlo.
  *
+ * CAMBIO (03-oct-2026, octava sesión, tanda 3, decisión del usuario: opción 2 de
+ * "Sesión de admin vencida A4/A6"): si la petición salió con sessionToken (opts.conSesion
+ * con admin logueado) y el backend responde sesionVencida:true (el token ya no es válido:
+ * pasaron las 6 h, o se cerró la sesión en otro dispositivo), apiGet() borra
+ * 'terna_admin_token' y 'terna_admin_info' del navegador, refresca el botón del nav
+ * ("Mi panel" vuelve a "Acceder") y muestra un aviso breve (_mostrarAvisoSesionVencida)
+ * pidiendo iniciar sesión en Admin. Se hace aquí, en un solo lugar, para las 4 páginas que
+ * usan conSesion (perfil, directorio, torneos, guerra). Solo se borra la sesión si el token
+ * guardado sigue siendo el que se mandó: si otra pestaña ya inició sesión de nuevo, no se
+ * toca (ni se avisa). Los datos de esa misma respuesta son los de un visitante y se
+ * devuelven tal cual. Un backend viejo que no manda el campo deja todo como estaba.
+ *
  * ACTUALIZADO (30-sep-2026, solo comentario; el código no cambió). Estado real
  * de las llamadas, verificado contra el código de cada página:
  * - ttlMs 5 min + staleIfError: webClanInfo (index, directorio, guerra, clan),
@@ -340,6 +352,63 @@ async function _fetchYParsearInterno(url, fetchOpts){
 const _peticionesEnVuelo = {};
 
 
+/**
+ * _manejarSesionVencida(tokenEnviado)
+ * Llamada por apiGet() cuando el backend marca sesionVencida:true (ver CAMBIO del
+ * 03-oct-2026 arriba). Borra la sesión de admin guardada SOLO si sigue siendo la que se
+ * mandó en esa petición; si ya no lo es (otra pestaña inició sesión de nuevo, o una
+ * respuesta anterior ya la borró), no hace nada y no vuelve a avisar. Nunca lanza.
+ */
+function _manejarSesionVencida(tokenEnviado){
+  try{
+    if (!tokenEnviado || localStorage.getItem('terna_admin_token') !== tokenEnviado) return;
+    localStorage.removeItem('terna_admin_token');
+    localStorage.removeItem('terna_admin_info');
+  }catch(e){ return; /* localStorage inaccesible: no hay sesión que limpiar ni aviso útil */ }
+  try{
+    if (typeof actualizarNavCta === 'function') actualizarNavCta(); // auth.js: "Mi panel" -> "Acceder"
+  }catch(e){ /* el nav no debe romper la carga */ }
+  _mostrarAvisoSesionVencida();
+}
+
+
+/**
+ * _mostrarAvisoSesionVencida()
+ * Aviso corto fijo al pie de la página, con enlace a admin.html y botón para cerrarlo.
+ * role="alert": un lector de pantalla lo anuncia al aparecer. No se oculta solo (un
+ * aviso que desaparece con temporizador no da tiempo a leerlo). Solo un aviso a la vez.
+ * Sin DOM (pruebas en Node sin document) no hace nada.
+ */
+function _mostrarAvisoSesionVencida(){
+  if (typeof document === 'undefined' || !document.body) return;
+  if (document.getElementById('avisoSesionVencida')) return;
+  const aviso = document.createElement('div');
+  aviso.id = 'avisoSesionVencida';
+  aviso.setAttribute('role', 'alert');
+  aviso.style.cssText = 'position:fixed;left:12px;right:12px;bottom:12px;z-index:9999;max-width:520px;margin:0 auto;padding:12px 14px;border-radius:10px;background:var(--bg-2,#090b12);color:var(--text,#fff);border:1px solid var(--line-gold,rgba(243,169,34,.45));box-shadow:0 8px 32px rgba(0,0,0,.5);font-size:14px;line-height:1.4;display:flex;gap:12px;align-items:center;';
+
+  const texto = document.createElement('span');
+  texto.style.cssText = 'flex:1;';
+  texto.textContent = 'Tu sesión de administrador venció. Inicia sesión en Admin para volver a ver los datos de admin. ';
+  const enlace = document.createElement('a');
+  enlace.href = 'admin.html';
+  enlace.textContent = 'Ir a Admin';
+  enlace.style.cssText = 'color:var(--gold,#f3a922);text-decoration:underline;white-space:nowrap;';
+  texto.appendChild(enlace);
+
+  const cerrar = document.createElement('button');
+  cerrar.type = 'button';
+  cerrar.setAttribute('aria-label', 'Cerrar aviso');
+  cerrar.textContent = '\u00d7';
+  cerrar.style.cssText = 'min-width:32px;min-height:32px;background:transparent;border:1px solid var(--line-strong,rgba(162,57,255,.45));border-radius:8px;color:inherit;font-size:18px;line-height:1;cursor:pointer;';
+  cerrar.addEventListener('click', function(){ aviso.remove(); });
+
+  aviso.appendChild(texto);
+  aviso.appendChild(cerrar);
+  document.body.appendChild(aviso);
+}
+
+
 async function apiGet(accion, params, opts){
   opts = opts || {};
   params = params || {};
@@ -350,9 +419,11 @@ async function apiGet(accion, params, opts){
   // sin guardarse en sessionStorage ni en el respaldo de localStorage, para que
   // un dato solo-admin no quede en el navegador después de cerrar sesión. Sin
   // sesión (visitante) no cambia nada: mismo caché y mismos parámetros de antes.
+  let tokenEnviado = null; // CAMBIO (03-oct-2026): para detectar sesionVencida en la respuesta (ver _manejarSesionVencida)
   if (opts.conSesion){
     const sessionToken = localStorage.getItem('terna_admin_token');
     if (sessionToken){
+      tokenEnviado = sessionToken;
       params = { ...params, sessionToken };
       opts = { ...opts, sinCache: true, staleIfError: false };
     }
@@ -382,6 +453,7 @@ async function apiGet(accion, params, opts){
       throw err;
     }
     if(data.error) throw new Error(data.error);
+    if(tokenEnviado && data.sesionVencida === true) _manejarSesionVencida(tokenEnviado); // 03-oct-2026: el backend dice que ese token ya no vale
     if(!opts.sinCache){
       try{ sessionStorage.setItem(cacheKey, JSON.stringify({ t: Date.now(), d: data })); }
       catch(e){ /* storage lleno: no debe romper la carga por no poder cachear */ }

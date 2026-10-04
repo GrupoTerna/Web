@@ -51,7 +51,10 @@
 // (CLS del hero). Se sube la versión para que 'activate' borre v8 y nadie se quede con el index.html viejo.
 // v10 (02-oct-2026): guerra.html cambió (CORE_ASSETS) -- se invierte el orden de gestionarTabsClan() y
 // activarBarraScrollTablas() para bajar el TBT. Se sube la versión para que 'activate' borre v9.
-const CACHE_NAME = 'terna-static-v10';
+// v11 (03-oct-2026): api.js cambió (CORE_ASSETS) -- apiGet() ahora detecta sesionVencida:true del backend, borra la sesión de admin
+// guardada y muestra un aviso (sesión de admin vencida, A4/A6). Se sube la versión para que 'activate' borre v10 y perfil/directorio/
+// torneos/guerra no sigan sirviendo el api.js viejo desde este caché.
+const CACHE_NAME = 'terna-static-v11';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
