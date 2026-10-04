@@ -54,7 +54,9 @@
 // v11 (03-oct-2026): api.js cambió (CORE_ASSETS) -- apiGet() ahora detecta sesionVencida:true del backend, borra la sesión de admin
 // guardada y muestra un aviso (sesión de admin vencida, A4/A6). Se sube la versión para que 'activate' borre v10 y perfil/directorio/
 // torneos/guerra no sigan sirviendo el api.js viejo desde este caché.
-const CACHE_NAME = 'terna-static-v11';
+// v12 (03-oct-2026): assets/styles.css cambió (CORE_ASSETS) -- el panel del menú móvil cerrado pasa a visibility:hidden para que sus
+// enlaces dejen de recibir foco con Tab estando fuera de pantalla. Se sube la versión para que 'activate' borre v11.
+const CACHE_NAME = 'terna-static-v12';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y

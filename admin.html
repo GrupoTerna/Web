@@ -1670,6 +1670,7 @@ document.getElementById('btnLogin').addEventListener('click', async () => {
   // Ahora el botón se bloquea (también evita doble envío por Enter) y se avisa
   // que se está conectando; si pasan 6 s se aclara que el servidor tarda.
   const textoBtn = btn.textContent;
+  const teniaFoco = document.activeElement === btn; // un botón deshabilitado pierde el foco: se devuelve en finally
   btn.disabled = true;
   btn.textContent = 'Ingresando…';
   msgEl.innerHTML = '<div class="msg">Conectando con el servidor…</div>';
@@ -1708,6 +1709,7 @@ document.getElementById('btnLogin').addEventListener('click', async () => {
     clearTimeout(avisoLento);
     btn.disabled = false;
     btn.textContent = textoBtn;
+    if(teniaFoco && document.activeElement === document.body) btn.focus(); // FIX (03-oct-2026): sin esto, tras un login fallido el foco caía en <body>
   }
 });
 document.getElementById('loginCelular').addEventListener('keydown', e => {

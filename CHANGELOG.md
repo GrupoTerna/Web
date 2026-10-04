@@ -11,6 +11,34 @@ el código hoy) cuando hace falta para mantenerlo; el "por qué histórico"
 
 ---
 
+## Teclado: menú móvil, `permisos.html`, `mensajes.html`, foco tras Guardar y tras un login fallido (octava sesión, tanda 5, 03-oct-2026)
+
+Auditoría con teclado en Chromium (Playwright, 412 px, sesión y backend simulados) de lo que la tanda 3 dejaba sin cubrir: `permisos.html`, `mensajes.html` y el contraste del indicador de foco. Tres defectos reales, corregidos con cambios mínimos (sin cambio de flujo ni de aspecto).
+
+### 03-oct-2026 — `assets/styles.css`: el menú móvil cerrado sale del orden de Tab (todas las páginas con menú)
+- **Defecto (medido antes de corregir):** en ≤768 px el panel `.nav .links` cerrado solo estaba desplazado (`translateX(100%)`; los enlaces quedaban en x=432 con la pantalla de 412 px). Seguían en el orden de Tab: en cada una de las 12 páginas con menú, el foco entraba a 6 enlaces invisibles, y un lector de pantalla podía leerlos aunque el menú estuviera cerrado.
+- **Cambio** (solo dentro de `@media (max-width:768px)`): `.nav .links` suma `visibility:hidden` y su `transition` suma `visibility 0s linear .3s`; `.nav .links.open` suma `visibility:visible; transition-delay:0s`. Al cerrar, el panel sigue visible 0,3 s para que termine la animación; al abrir es visible de inmediato. Escritorio no cambia.
+- **`sw.js`:** `CACHE_NAME` sube a `terna-static-v12` (`assets/styles.css` está en `CORE_ASSETS`; mismo criterio que la v6 y la v11).
+- **Verificado:** paradas de Tab sobre los enlaces del menú con el menú cerrado: 6 → 0 en las 12 páginas, a 412 y a 768 px; a 1280 px igual que antes (6 y 6). Con teclado (Enter en el botón del menú) en `permisos.html`: abierto, Tab va a "Inicio" y es visible (x=20); a los 100 ms de cerrar sigue visible (animación en curso) y a los 450 ms queda `hidden`; con el menú cerrado, Tab desde el botón ya no entra al menú (antes iba a "Inicio", fuera de pantalla). Capturas antes/después idénticas píxel a píxel con el menú abierto (412 y 768 px) y con el menú cerrado a 1280 px; con el menú cerrado a 412 px solo difiere `comunidad.html`, y esa diferencia también aparece al comparar el original contra sí mismo (animación de la página), así que no la causa el cambio.
+- **Dos falsos positivos de mi medición, descartados:** (1) en `index.html` y `directorio.html` el conteo "fuera de pantalla" daba paradas extra: es el desplazamiento suave (`scrollY` aún no se había actualizado al medir), no un defecto; (2) los enlaces del menú parecían sin indicador de foco porque tienen `transition:all`: el contorno pasa de 0 a 2 px en 0,2 s y existe (medido a 1280 px esperando 450 ms).
+- **No verificado:** lector de pantalla real; Firefox y Safari.
+
+### 03-oct-2026 — `permisos.html` y `admin.html`: el foco ya no se pierde tras "Guardar" ni tras un login fallido
+- **Defecto (medido antes de corregir):** estos botones se deshabilitan mientras dura la petición y un botón deshabilitado pierde el foco; al reactivarlo no se devolvía. Tras pulsar Enter en "Guardar" (`permisos.html`, handler de `[data-accion="guardar"]` dentro de `activarCardAdmin()`) o en "Ingresar" con credenciales erróneas (`admin.html`, listener de `btnLogin`), el foco quedaba en `<body>`: el siguiente Tab empezaba desde el principio de la página.
+- **Cambio:** cada handler recuerda si el botón tenía el foco antes de deshabilitarlo (`teniaFoco`) y, en el `finally`, tras reactivarlo, devuelve el foco solo si cayó en `<body>`. Si el usuario ya movió el foco a otro control, no se lo quita.
+- **Verificado (antes → después):** foco tras Guardar: `BODY` → "Guardar permisos de Diana" (mensaje "Guardado." intacto, sin errores de JS); foco tras login fallido: `BODY` → `btnLogin` (mensaje de error intacto).
+- **Revisado y sin defecto:** Enter en el campo Clave inicia sesión (hay un `keydown` en `admin.html`, línea ~1718); en ese caso el foco se queda en el campo, que no se deshabilita.
+- **No tocado (no medido):** el mismo patrón existe en otros botones que se deshabilitan durante una petición y se reactivan: `btnVjConfirmar` en `perfil.html` (veto, rama de error), `.btnMarcarGrupoManual` en `admin.html` (rama de error), `btnVerPdf` en `mensajes.html` y `refreshBtn` en `guerra.html`. No se midió si pierden el foco ni se cambiaron.
+
+### 03-oct-2026 — `permisos.html` y `mensajes.html` con teclado: medido, sin defectos propios
+- **`permisos.html`** (2 administradores simulados): 39 paradas de Tab en un ciclo, sin repetidas ni trampas; las 12 casillas (6 por administrador) con nombre accesible; Espacio alterna una casilla y "Marcar todo" funciona con Espacio; "Recargar" con Enter devuelve el foco a su propio botón; el mensaje "Guardado." está en una región `role="status"`; "Saltar al contenido" apunta a `#panelSec`; un solo `<h1>` visible.
+- **`mensajes.html`:** 31 paradas, sin repetidas; Enter y Espacio abren y cierran cada `<details>`; los botones "↻" dentro de `<summary>` con Enter y con Espacio actualizan sin cerrar la sección (el `preventDefault` funciona); las pestañas por clan y los botones de grupo alternan `aria-pressed` y conservan el foco; "Copiar" cambia a "✔ Copiado" y anuncia "Mensaje copiado al portapapeles" en `#anuncioSr`; "Colapsar" alterna `aria-expanded` y su `aria-label`; 0 botones visibles sin nombre; 0 errores de JS.
+- **Contraste del indicador de foco:** la regla global `:focus-visible` de `assets/styles.css` (contorno de 2 px, `--purple`) mide **4,43:1** contra el fondo del contenedor en las dos páginas (el mínimo de WCAG 1.4.11 es 3:1). Es una regla única para todo el sitio; se midió solo en estas dos páginas.
+- **Observación sin cambiar (decisión tuya):** la tecla Escape no cierra el menú móvil abierto (no hay manejador). No es un incumplimiento obligatorio; solo es una comodidad.
+- **No cubierto:** lector de pantalla real; Firefox y Safari; `admin.html` con teclado en "Ingresar link" de Modificar y en el contenido de `#panelCambioRangoAccion` (siguen sin probarse, ver la tanda 3); datos reales del backend.
+- **Verificado en el repo:** `node --test` 165/165, `eslint assets`, `html-validate *.html` y `check-local-links` (144 rutas) sin observaciones; `node --check sw.js` OK.
+- **Subir:** `assets/styles.css`, `permisos.html`, `admin.html`, `sw.js` y `CHANGELOG.md` al repositorio.
+
 ## Sesión de admin vencida (A4/A6) y foco al cambiar de paso (octava sesión, tanda 4, 03-oct-2026)
 
 ### 03-oct-2026 — `08_Web_Endpoints.gs`, `assets/js/core/api.js`, `sw.js`: aviso explícito cuando la sesión de admin venció (opción 2)

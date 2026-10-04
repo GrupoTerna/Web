@@ -562,6 +562,7 @@ function activarCardAdmin(a){
     const datos = { id: a.id, funciones, categorias };
     if(cambioClanes) datos.clanesAdmin = clanes;
 
+    const teniaFoco = document.activeElement === btn; // un botón deshabilitado pierde el foco: se devuelve en finally
     btn.disabled = true;
     const textoOriginal = btn.textContent;
     const etiquetaOriginal = btn.getAttribute('aria-label');
@@ -608,6 +609,7 @@ function activarCardAdmin(a){
       btn.disabled = false;
       btn.textContent = textoOriginal;
       if(etiquetaOriginal) btn.setAttribute('aria-label', etiquetaOriginal);
+      if(teniaFoco && document.activeElement === document.body) btn.focus(); // FIX (03-oct-2026): sin esto el foco caía en <body> tras cada Guardar
     }
   });
 }
