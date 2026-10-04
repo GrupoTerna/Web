@@ -11,6 +11,20 @@ el código hoy) cuando hace falta para mantenerlo; el "por qué histórico"
 
 ---
 
+## admin.html — teclado con sesión y 4 correcciones de accesibilidad (octava sesión, tanda 3, 03-oct-2026)
+
+### 03-oct-2026 — `admin.html`: nombre accesible en premios, `aria-pressed` en Torneos/Sorteos/Cambio de rango, `aria-live` en los mensajes y "Saltar al contenido" con sesión
+Auditoría con teclado de `admin.html` **con sesión simulada** (la que quedaba abierta desde la Fase 11). Cuatro defectos reales, corregidos con cambios mínimos (solo atributos y 3 líneas de JS; sin cambio de estilos ni de flujo):
+- **Premios sin nombre accesible:** `crearFilaPremioHTML()` genera un `<label>` sin `for` ni `id`, así que el select "Tipo de premio" (y los campos de monto y descripción) no tenían nombre accesible en Planificar y Modificar, de torneos y de sorteos. Ahora llevan `aria-label` y `renumerarPremios()` lo actualiza con el número de fila ("Tipo del premio 2", "Monto del premio 2, en soles", "Descripción del premio 2").
+- **Selector Torneos / Sorteos / Cambio de rango:** cambiaba de panel solo con la clase CSS `activo`, sin estado ARIA. Ahora los tres botones llevan `aria-pressed` (`true` en el activo) y el listener lo actualiza.
+- **Mensajes de éxito y error sin anunciar:** los 24 contenedores `#…Msg` no tenían `aria-live`. Se agrega `aria-live="polite"` a todos al cargar (ya existen vacíos en el HTML).
+- **"Saltar al contenido" con sesión:** apuntaba siempre a `#loginSec`, que está oculto con sesión (el enlace no llevaba a ningún lado). `mostrarPanel()` lo apunta a `#panelSec` y `mostrarLogin()` lo devuelve a `#loginSec`.
+- **Lo que ya estaba bien (medido, sin cambios):** 42 controles tabulables en el panel y 26 a 37 en el paso 3 de cada asistente, todos alcanzables con Tab en un ciclo y sin trampas de foco; indicador de foco distinto al desenfocado en el 100 %; las 6 secciones plegables abren con Enter y con Espacio; Enter en el botón final con el formulario vacío muestra el aviso y el foco se queda en el botón.
+- **Verificado en navegador (Chromium con Playwright, 412 px de ancho, backend simulado):** antes de corregir, 3 selects sin nombre por asistente, 0 `aria-live` y skip-link roto; después, 0 selects sin nombre, 24 contenedores con `aria-live`, skip-link a `#panelSec` con sesión y a `#loginSec` al volver al login, `aria-pressed` alterna bien con Espacio, y las etiquetas de premios se renumeran al agregar y quitar filas. Regresión: los 6 casos de `corregido`, `node --test` 159/159, `eslint assets`, `html-validate admin.html` y `check-local-links` sin observaciones.
+- **No cubierto:** lector de pantalla real (no se puede aquí; `aria-live` y `aria-pressed` están puestos pero no se escucharon); contraste del indicador de foco (solo se midió que exista y cambie); el contenido de `#panelCambioRangoAccion` (solo se probó el botón que lo abre); la opción "Ingresar link" de Modificar con teclado; Firefox y Safari; `permisos.html` y `mensajes.html`.
+- **Observación sin cambiar (decisión tuya):** al pulsar "Continuar" en un asistente el foco no se mueve al paso nuevo; con Tab se llega bien al siguiente control ("‹ Cambiar"), pero un lector de pantalla no anuncia el cambio de paso.
+- **`sw.js`:** sin cambio; `admin.html` no está en `CORE_ASSETS`.
+
 ## admin.html — mensaje de éxito de "Ingresar link" (octava sesión, tanda 2, 02-oct-2026)
 
 ### 02-oct-2026 — `admin.html`: "Link corregido (ID …)" cuando el backend avisa que fue una corrección (`corregido`)

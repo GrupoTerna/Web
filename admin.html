@@ -452,10 +452,10 @@
         <div class="admin-subseccion-body">
 
           <div class="contenido-tabs" style="margin-bottom:14px;">
-            <button type="button" class="tab-clan btn-toggle-torsor activo" data-panel="torneos">Torneos</button>
-            <button type="button" class="tab-clan btn-toggle-torsor" data-panel="sorteos">Sorteos</button>
+            <button type="button" class="tab-clan btn-toggle-torsor activo" data-panel="torneos" aria-pressed="true">Torneos</button>
+            <button type="button" class="tab-clan btn-toggle-torsor" data-panel="sorteos" aria-pressed="false">Sorteos</button>
             <!-- Tercer tab "Cambio de rango", mismo mecanismo .btn-toggle-torsor que Torneos/Sorteos. -->
-            <button type="button" class="tab-clan btn-toggle-torsor" data-panel="cambiorango">Cambio de rango</button>
+            <button type="button" class="tab-clan btn-toggle-torsor" data-panel="cambiorango" aria-pressed="false">Cambio de rango</button>
           </div>
 
           <div id="panelTorneosAccion">
@@ -1540,6 +1540,7 @@ let _clanesFamiliaCargando = null; // Promise en vuelo, evita 2 fetch en paralel
 function mostrarPanel(){
   document.getElementById('loginSec').style.display = 'none';
   document.getElementById('panelSec').style.display = 'block';
+  document.querySelector('.skip-link').setAttribute('href', '#panelSec'); // con sesión #loginSec está oculto: el atajo debe llevar al panel. Historial en CHANGELOG.md.
   const adminGuardado = localStorage.getItem(SESSION_ADMIN_KEY);
   const bienvenida = document.getElementById('adminBienvenida');
   if(adminGuardado){
@@ -1625,6 +1626,7 @@ function mostrarLogin(msg){
   localStorage.removeItem(SESSION_ADMIN_KEY);
   document.getElementById('panelSec').style.display = 'none';
   document.getElementById('loginSec').style.display = 'block';
+  document.querySelector('.skip-link').setAttribute('href', '#loginSec');
   document.getElementById('adminBienvenida').textContent = 'Gestión de miembros';
   if(msg) document.getElementById('loginMsg').innerHTML = `<div class="msg msg-error">${esc(msg)}</div>`;
 }
@@ -3070,7 +3072,7 @@ function crearFilaPremioHTML(id){
     </div>
     <div class="field">
       <label>Tipo de premio</label>
-      <select class="premioTipo">
+      <select class="premioTipo" aria-label="Tipo de premio">
         <option value="Pass Royale">Pass Royale</option>
         <option value="Dinero">Dinero</option>
         <option value="Manual">Ingresar manualmente</option>
@@ -3078,11 +3080,11 @@ function crearFilaPremioHTML(id){
     </div>
     <div class="field premioMontoWrap" style="display:none; margin-top:8px;">
       <label>Monto (S/)</label>
-      <input type="number" class="premioMonto" min="0" step="0.01" placeholder="Ej. 20">
+      <input type="number" class="premioMonto" min="0" step="0.01" placeholder="Ej. 20" aria-label="Monto del premio, en soles">
     </div>
     <div class="field premioManualWrap" style="display:none; margin-top:8px;">
       <label>Describe el premio</label>
-      <input type="text" class="premioManual" placeholder="Ej. Skin legendaria">
+      <input type="text" class="premioManual" placeholder="Ej. Skin legendaria" aria-label="Descripción del premio">
     </div>
   </div>`;
 }
@@ -3097,6 +3099,10 @@ function renumerarPremios(containerId = 'premiosEditor'){
   const filas = document.querySelectorAll(`#${containerId} .premio-fila`);
   filas.forEach((fila, i) => {
     fila.querySelector('.premio-num').textContent = String(i + 1);
+    // Los <label> de la fila no están asociados a su campo (no hay id/for): el nombre accesible lleva el número del premio. Historial en CHANGELOG.md.
+    fila.querySelector('.premioTipo').setAttribute('aria-label', 'Tipo del premio ' + (i + 1));
+    fila.querySelector('.premioMonto').setAttribute('aria-label', 'Monto del premio ' + (i + 1) + ', en soles');
+    fila.querySelector('.premioManual').setAttribute('aria-label', 'Descripción del premio ' + (i + 1));
     fila.querySelector('.btn-quitar-premio').style.display = filas.length > 1 ? '' : 'none';
   });
 }
@@ -5962,10 +5968,13 @@ document.getElementById('btnGuardarVigenteSorteo').addEventListener('click', () 
  * HTML. Todavía es un placeholder (ver ese div), el contenido real se
  * agrega en los próximos pasos.
  */
+// Los contenedores de resultado (#…Msg) ya existen vacíos en el HTML; con aria-live="polite" un lector de pantalla anuncia el éxito o el error al llenarse. Historial en CHANGELOG.md.
+document.querySelectorAll('[id$="Msg"]').forEach(el => el.setAttribute('aria-live', 'polite'));
+
 document.querySelectorAll('.btn-toggle-torsor').forEach(btn => {
   btn.addEventListener('click', () => {
     if(btn.classList.contains('activo')) return;
-    document.querySelectorAll('.btn-toggle-torsor').forEach(b => b.classList.toggle('activo', b === btn));
+    document.querySelectorAll('.btn-toggle-torsor').forEach(b => { b.classList.toggle('activo', b === btn); b.setAttribute('aria-pressed', b === btn ? 'true' : 'false'); }); // aria-pressed: el estado activo ya no depende solo de la clase CSS. Historial en CHANGELOG.md.
     document.getElementById('panelTorneosAccion').style.display = (btn.dataset.panel === 'torneos') ? '' : 'none';
     document.getElementById('panelSorteosAccion').style.display = (btn.dataset.panel === 'sorteos') ? '' : 'none';
     document.getElementById('panelCambioRangoAccion').style.display = (btn.dataset.panel === 'cambiorango') ? '' : 'none';
