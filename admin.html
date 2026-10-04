@@ -1222,7 +1222,7 @@
 
                     <!-- Cambio de rango, Paso 6: Barcos/Miembro activo/WhatsApp, un valor único por mitad del par (no por clan). Historial en CHANGELOG.md. -->
                     <h3 style="font-size:15px; color:var(--gold); margin:20px 0 4px;">Otros criterios</h3>
-                    <p class="text-dim" style="font-size:13px; margin:0 0 10px;">Es un promedio semanal, no la cantidad acumulada. Si no se desea excluir a nadie por ataques a barcos, selecciona 16. Si no se desea permitir ningún ataque a barcos, selecciona 0.</p>
+                    <p class="text-dim" style="font-size:13px; margin:0 0 10px;">Es el máximo permitido sobre la SUMA de ataques a barcos de todas las semanas evaluadas, no un promedio: el valor se compara tal cual, sin multiplicarlo por las semanas. Si no se desea permitir ningún ataque a barcos, selecciona 0.</p>
                     <div class="field">
                       <label for="crBarcosAscenso">Ataques a barcos permitidos por semana</label>
                       <select id="crBarcosAscenso">
@@ -1282,7 +1282,7 @@
                     <!-- Mismos 3 campos, mitad Descenso -- ver el comentario
                          grande junto a los de Ascenso arriba. -->
                     <h3 style="font-size:15px; color:var(--gold); margin:20px 0 4px;">Otros criterios</h3>
-                    <p class="text-dim" style="font-size:13px; margin:0 0 10px;">Es un promedio semanal, no la cantidad acumulada. Si no se desea excluir a nadie por ataques a barcos, selecciona 16. Si no se desea permitir ningún ataque a barcos, selecciona 0.</p>
+                    <p class="text-dim" style="font-size:13px; margin:0 0 10px;">Es el máximo permitido sobre la SUMA de ataques a barcos de todas las semanas evaluadas, no un promedio: el valor se compara tal cual, sin multiplicarlo por las semanas. Si no se desea permitir ningún ataque a barcos, selecciona 0.</p>
                     <div class="field">
                       <label for="crBarcosDescenso">Ataques a barcos permitidos por semana</label>
                       <select id="crBarcosDescenso">
@@ -5717,6 +5717,10 @@ function _round1CR(n){
  * 14_Directorio_HistorialAscensos.gs) -- solo cambia la ETIQUETA visible.
  */
 function _filaPropuestaCR(p, i){
+  // 4-oct-2026: la celda de Barcos muestra la SUMA de ataques a barcos de las semanas evaluadas (p.barcosSuma),
+  // que es lo que el backend compara contra el máximo de CR_Lista (_barcosCumplenRequisito(), 25_Torneos_Docs.gs).
+  // Si la propuesta no la trae (backend anterior), cae al promedio (p.barcosProm) como antes. Ataques y Puntaje
+  // siguen mostrando el promedio.
   // FIX (29-sep-2026, Fase 14 del plan): el backend ya manda tipoPropuesta
   // 'AscensoClan' (Colíder de cantera que sube de clan, con p.clanDestino);
   // antes caía en el 'else' y se pintaba como badge-purple con el texto
@@ -5740,7 +5744,7 @@ function _filaPropuestaCR(p, i){
       <td><span class="badge ${badgeClase}">${etiquetaTipo}</span>${destinoClan}</td>
       <td>${_celdaUmbralCR(p.ataquesProm, p.umbralAtaques, p.cumpleAtaques)}</td>
       <td>${_celdaUmbralCR(p.fameProm, p.umbralPuntaje, p.cumplePuntaje)}</td>
-      <td>${_celdaUmbralCR(p.barcosProm, p.umbralBarcos, p.cumpleBarcos)}</td>
+      <td>${_celdaUmbralCR((p.barcosSuma !== undefined && p.barcosSuma !== null) ? p.barcosSuma : p.barcosProm, p.umbralBarcos, p.cumpleBarcos)}</td>
       <td>${esc(p.detalle)}</td>
     </tr>`;
 }
@@ -5802,7 +5806,7 @@ function _tablaPropuestasCR(propuestas, diagnostico){
   }
   const propuestasOrdenadas = _ordenarPropuestasCR(propuestas);
   return `${avisoDiagnostico}${_resumenPropuestasCR(propuestasOrdenadas)}<div class="tabla-propuestas-cr-wrap" style="overflow-x:auto;"><table>
-    <thead><tr><th scope="col">N°</th><th scope="col">Nombre</th><th scope="col">Tag</th><th scope="col">Clan</th><th scope="col">Rango actual</th><th scope="col">Tipo</th><th scope="col">Ataques</th><th scope="col">Puntaje</th><th scope="col">Barcos</th><th scope="col">Detalle</th></tr></thead>
+    <thead><tr><th scope="col">N°</th><th scope="col">Nombre</th><th scope="col">Tag</th><th scope="col">Clan</th><th scope="col">Rango actual</th><th scope="col">Tipo</th><th scope="col">Ataques</th><th scope="col">Puntaje</th><th scope="col" title="Suma de ataques a barcos de las semanas evaluadas / máximo permitido">Barcos</th><th scope="col">Detalle</th></tr></thead>
     <tbody>${propuestasOrdenadas.map((p, i) => _filaPropuestaCR(p, i)).join('')}</tbody>
   </table></div>`;
 }
