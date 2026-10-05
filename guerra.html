@@ -247,6 +247,18 @@
   .hist-tabla td.hist-cero-celda{color:var(--danger);}
   .hist-nota{font-size:12px; color:var(--text-dim); margin:10px 0 0;}
   .hist-mas{margin-top:10px;}
+  /* Parte 7 (05-oct-2026): Top de la semana (ataques, puntaje, barcos) calculado con los mismos datos de Valores diarios. */
+  #topSemanaSection{display:none;}
+  .top-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:14px; margin-top:14px;}
+  .top-card{padding:14px;}
+  .top-card h3{margin:0 0 8px; font-size:15px;}
+  .top-lista{list-style:none; margin:0; padding:0; font-size:13px;}
+  .top-lista li{display:flex; align-items:baseline; gap:8px; padding:4px 0; border-bottom:1px solid var(--line);}
+  .top-pos{font-family:var(--f-mono); color:var(--text-dim); min-width:22px;}
+  .top-nombre{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .top-clan{font-family:var(--f-mono); font-size:10px; color:var(--text-dim);}
+  .top-valor{font-family:var(--f-mono); font-weight:700;}
+  .top-vacio{font-size:12px; color:var(--text-dim);}
   .btn-solo-cero{font-family:var(--f-mono); font-size:12px; background:var(--surface-card); color:var(--text-dim); border:1px solid var(--line-strong); border-radius:var(--radius-sm); padding:5px 12px; cursor:pointer;}
   .btn-solo-cero:hover{color:var(--text);}
   .btn-solo-cero[aria-pressed="true"]{color:var(--danger); border-color:var(--danger);}
@@ -507,6 +519,15 @@
       <div id="controlActivosWrap" style="margin-top:14px;"></div>
     </section>
 
+
+    <section id="topSemanaSection" style="padding:24px 0;">
+      <div class="sec-head" style="display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:10px; border-bottom:1px solid var(--line); padding-bottom:12px;">
+        <h2 style="font-size:22px;">🏆 Top de la semana</h2>
+        <select id="topSemanaClanSelect" aria-label="Clan del top de la semana" style="font-family:var(--f-mono); font-size:12px; background:var(--surface-card); color:var(--text); border:1px solid var(--line-strong); border-radius:var(--radius-sm); padding:5px 10px;"></select>
+      </div>
+      <div class="text-faint" id="topSemanaSub" style="font-family:var(--f-mono); font-size:11px; margin-top:10px;"></div>
+      <div class="top-grid" id="topSemanaWrap"></div>
+    </section>
 
     <!-- sección PÚBLICA (sin gate de admin, mismo criterio que la de arriba), una tarjeta por clan con Jugador + Ataques/Puntaje/Barcos, pero cada megacategoría trae una columna por SEMANA de guerra ya jugada en la temporada actual (sacadas de la hoja… Historial en CHANGELOG.md. -->
     <section id="controlTemporadaSection" style="padding:24px 0;">
@@ -1009,6 +1030,43 @@ document.addEventListener('click', ev => {
 });
 document.addEventListener('keydown', ev => { if (ev.key === 'Escape') histCerrar(); });
 
+/* Parte 7 (05-oct-2026): Top de la semana. Usa las mismas filas de Valores diarios (semana elegida arriba): ataques (total), puntaje (total) y barcos (total). Sin ceros ni vacíos. */
+let topSemanaDatos = {};
+let topSemanaClan = '';
+const TOP_SEMANA_N = 5;
+function etiquetaClanCorta(nombre){ return ['Principal','Clan 2','Clan 3','Mini'][ordenClanIndex(nombre)] || nombre; }
+function topSemanaPintar(){
+  const wrap = document.getElementById('topSemanaWrap');
+  const clanes = Object.keys(topSemanaDatos).sort((a, b) => ordenClanIndex(a) - ordenClanIndex(b));
+  const filas = [];
+  clanes.forEach(c => { if (topSemanaClan && c !== topSemanaClan) return; (topSemanaDatos[c] || []).forEach(f => filas.push({ f, c })); });
+  const metricas = [
+    { titulo:'⚔️ Más ataques', val: x => x.f.total, tope: 16 },
+    { titulo:'⭐ Más puntaje', val: x => x.f.puntaje && x.f.puntaje.total },
+    { titulo:'🚢 Más barcos', val: x => x.f.barcos && x.f.barcos.total }
+  ];
+  wrap.innerHTML = metricas.map(m => {
+    const top = filas.map(x => ({ x, v: Number(m.val(x)) || 0 })).filter(r => r.v > 0)
+      .sort((a, b) => b.v - a.v || String(a.x.f.nombre || '').localeCompare(String(b.x.f.nombre || ''), 'es')).slice(0, TOP_SEMANA_N);
+    const lis = top.map((r, i) => `<li><span class="top-pos">${i + 1}.</span><span class="top-nombre">${r.x.f.tag ? enlaceJugador(r.x.f.nombre || r.x.f.tag, r.x.f.tag) : esc(r.x.f.nombre || '')}</span><span class="top-clan">${esc(etiquetaClanCorta(r.x.c))}</span><span class="top-valor">${fmtNum(r.v)}${m.tope ? '<span class="top-clan">/' + m.tope + '</span>' : ''}</span></li>`).join('');
+    return `<div class="card top-card"><h3>${m.titulo}</h3>${lis ? `<ol class="top-lista">${lis}</ol>` : '<div class="top-vacio">Sin datos todavía.</div>'}</div>`;
+  }).join('');
+}
+function topSemanaRender(controlActivos){
+  const sec = document.getElementById('topSemanaSection');
+  const clanes = Object.keys(controlActivos || {}).sort((a, b) => ordenClanIndex(a) - ordenClanIndex(b));
+  if (!clanes.length){ sec.style.display = 'none'; return; }
+  topSemanaDatos = controlActivos;
+  const sel = document.getElementById('topSemanaClanSelect');
+  if (topSemanaClan && !clanes.includes(topSemanaClan)) topSemanaClan = '';
+  sel.innerHTML = '<option value="">Todos los clanes</option>' + clanes.map(c => `<option value="${esc(c)}"${c === topSemanaClan ? ' selected' : ''}>${esc(etiquetaClanCorta(c))}</option>`).join('');
+  sel.onchange = () => { topSemanaClan = sel.value; topSemanaPintar(); };
+  const selSem = document.getElementById('semanaActivosSelect');
+  const txtSem = (selSem && selSem.style.display !== 'none' && selSem.selectedIndex >= 0) ? selSem.options[selSem.selectedIndex].textContent : '';
+  document.getElementById('topSemanaSub').textContent = 'Top ' + TOP_SEMANA_N + ' de la semana que muestra Valores diarios' + (txtSem ? ' (' + txtSem + ')' : '') + '. Los jugadores sin ataques no aparecen.';
+  topSemanaPintar();
+  sec.style.display = 'block';
+}
 /* Insignia de rango (Líder/Colíder/Veterano). "Miembro" y los rangos desconocidos no llevan insignia. */
 function insigniaRango(rango){
   const clases = { 'Líder':'rango-lider', 'Colíder':'rango-colider', 'Veterano':'rango-veterano' };
@@ -1672,6 +1730,7 @@ function render(data){
       if (tabla) inicializarGridFiltro(gridId, tabla, columnasActivos, controlActivos[clanNombre], renderFilaActivos);
     });
     controlActivosSection.style.display = 'block';
+    topSemanaRender(controlActivos);
     // FIX (18-sep-2026, refactor): misma barra morada arriba/abajo/derecha
     // que el resto de tablas del sitio, ver activarBarraScrollTabla() en
     // assets/js/ui/tables.js. Historial en CHANGELOG.md.
@@ -1684,6 +1743,7 @@ function render(data){
   } else {
     controlActivosSection.style.display = 'none';
     document.getElementById('controlActivosClanTabs').innerHTML = '';
+    topSemanaRender(null);
   }
 
 // mismo patrón que controlActivos de arriba, pero con Sem 1..Sem N dinámicas en vez de J/V/S/D fijos (celdasSemanas() en vez de celdasMegacategoria(), ver docblock de esa función más arriba). data.controlTemporadaSemanas trae las etiquetas de columna (ej. ['Sem… Historial en CHANGELOG.md.
