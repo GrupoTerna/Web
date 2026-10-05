@@ -242,6 +242,9 @@
   .hist-tabla th, .hist-tabla td{padding:5px 8px; text-align:center; border-bottom:1px solid var(--line);}
   .hist-tabla td:first-child, .hist-tabla th:first-child{text-align:left;}
   .hist-tabla tr.hist-cero td{color:var(--danger);}
+  .hist-comparar{margin:0 0 10px; font-size:12px; color:var(--text-dim);}
+  .hist-comparar select{font-family:var(--f-mono); font-size:12px; background:var(--surface-card); color:var(--text); border:1px solid var(--line-strong); border-radius:var(--radius-sm); padding:4px 8px; max-width:100%;}
+  .hist-tabla td.hist-cero-celda{color:var(--danger);}
   .hist-nota{font-size:12px; color:var(--text-dim); margin:10px 0 0;}
   .hist-mas{margin-top:10px;}
   .btn-solo-cero{font-family:var(--f-mono); font-size:12px; background:var(--surface-card); color:var(--text-dim); border:1px solid var(--line-strong); border-radius:var(--radius-sm); padding:5px 12px; cursor:pointer;}
@@ -889,38 +892,101 @@ function histFechaCorta(iso){
   return `${dia} ${String(d).padStart(2,'0')}/${String(m).padStart(2,'0')}`;
 }
 function histCerrar(){ document.getElementById('histFondo').classList.remove('abierto'); histSolicitud++; }
+let histTag = '', histNombre = '', histRegsA = [];
+function histStats(regs){
+  const n = regs.length;
+  const t = (k) => regs.reduce((a, r) => a + (r[k] || 0), 0);
+  return { n, ceros: regs.filter(r => !r.ataques).length, atq: t('ataques'), fame: t('fame'), barcos: t('barcos') };
+}
+function histSelectorComparar(valor){
+  const vistos = {};
+  document.querySelectorAll('.btn-hist-jugador').forEach(b => { if (b.dataset.tag !== histTag) vistos[b.dataset.tag] = b.dataset.nombre; });
+  const opts = Object.keys(vistos).sort((a, b) => vistos[a].localeCompare(vistos[b], 'es'))
+    .map(t => `<option value="${esc(t)}" data-nombre="${esc(vistos[t])}"${t === valor ? ' selected' : ''}>${esc(vistos[t])}</option>`).join('');
+  return `<div class="hist-comparar"><label>Comparar con <select id="histSelComp"><option value="">— elegir jugador —</option>${opts}</select></label></div>`;
+}
+function histEnlazarSelector(){
+  const sel = document.getElementById('histSelComp');
+  if (!sel) return;
+  sel.addEventListener('change', () => {
+    if (!sel.value) histPintar(histRegsA, false);
+    else histComparar(sel.value, sel.options[sel.selectedIndex].dataset.nombre || sel.value);
+  });
+}
 function histPintar(registros, verTodos){
+  histRegsA = registros;
   const cuerpo = document.getElementById('histCuerpo');
   if (!registros.length){
-    cuerpo.innerHTML = '<p class="hist-nota">Sin registros de guerra para este jugador en los últimos 180 días (cuenta nueva o inactiva).</p>';
+    cuerpo.innerHTML = histSelectorComparar('') + '<p class="hist-nota">Sin registros de guerra para este jugador en los últimos 180 días (cuenta nueva o inactiva).</p>';
+    histEnlazarSelector();
     return;
   }
   const desc = registros.slice().sort((a, b) => b.fecha.localeCompare(a.fecha));
-  const n = desc.length;
-  const ceros = desc.filter(r => !r.ataques).length;
-  const totAtq = desc.reduce((t, r) => t + (r.ataques || 0), 0);
-  const totFame = desc.reduce((t, r) => t + (r.fame || 0), 0);
-  const totBar = desc.reduce((t, r) => t + (r.barcos || 0), 0);
+  const st = histStats(desc), n = st.n;
   const hoy = new Date(); const hoyIso = `${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}-${String(hoy.getDate()).padStart(2,'0')}`;
   const visibles = verTodos ? desc : desc.slice(0, HIST_FILAS_INICIALES);
   const filas = visibles.map(r => `<tr class="${r.ataques ? '' : 'hist-cero'}"><td>${histFechaCorta(r.fecha)}${r.fecha === hoyIso ? ' · en curso' : ''}</td><td>${fmtNum(r.ataques || 0)}</td><td>${fmtNum(r.fame || 0)}</td><td>${fmtNum(r.barcos || 0)}</td></tr>`).join('');
-  cuerpo.innerHTML = `
+  document.getElementById('histCuerpo').innerHTML = histSelectorComparar('') + `
     <div class="hist-resumen">
       <div><b>${n}</b>días de guerra</div>
-      <div><b>${fmtNum(totAtq)}</b>ataques</div>
-      <div class="${ceros ? 'hist-malo' : ''}"><b>${ceros}</b>días con 0 ataques</div>
-      <div><b>${fmtDec(totAtq / n)}</b>ataques por día</div>
-      <div><b>${fmtNum(totFame)}</b>fame</div>
-      <div><b>${fmtNum(totBar)}</b>barcos</div>
+      <div><b>${fmtNum(st.atq)}</b>ataques</div>
+      <div class="${st.ceros ? 'hist-malo' : ''}"><b>${st.ceros}</b>días con 0 ataques</div>
+      <div><b>${fmtDec(st.atq / n)}</b>ataques por día</div>
+      <div><b>${fmtNum(st.fame)}</b>fame</div>
+      <div><b>${fmtNum(st.barcos)}</b>barcos</div>
     </div>
     <table class="hist-tabla"><thead><tr><th>Día</th><th>Ataques</th><th>Fame</th><th>Barcos</th></tr></thead><tbody>${filas}</tbody></table>
     ${(!verTodos && n > HIST_FILAS_INICIALES) ? `<button type="button" class="btn-solo-cero hist-mas" id="histMas">Ver todos (${n})</button>` : ''}
     <p class="hist-nota">Un 0 es un día de guerra en el que estuvo registrado y no atacó. Los días anteriores a su ingreso al clan no aparecen. El día en curso puede tener ataques pendientes.</p>`;
+  histEnlazarSelector();
   const mas = document.getElementById('histMas');
   if (mas) mas.addEventListener('click', () => histPintar(registros, true));
 }
+/* Comparación lado a lado de dos jugadores (mismo endpoint, tag1 + tag2). Una celda vacía = ese jugador no tenía registro ese día. */
+async function histComparar(tag2, nombre2){
+  const cuerpo = document.getElementById('histCuerpo');
+  cuerpo.innerHTML = histSelectorComparar(tag2) + '<p class="hist-nota">Cargando comparación…</p>';
+  histEnlazarSelector();
+  const mia = ++histSolicitud;
+  try{
+    const data = await apiGet('webHistorialGuerraComparador', { tag1: histTag, tag2 }, { conSesion: true });
+    if (mia !== histSolicitud) return;
+    if (!data || data.error) throw new Error('sin respuesta');
+    histPintarComparacion(Array.isArray(data.a) ? data.a : [], Array.isArray(data.b) ? data.b : [], nombre2, false);
+  }catch(e){
+    if (mia !== histSolicitud) return;
+    cuerpo.innerHTML = histSelectorComparar(tag2) + '<p class="hist-nota">No se pudo cargar la comparación. Intenta de nuevo en un momento.</p>';
+    histEnlazarSelector();
+  }
+}
+function histPintarComparacion(ra, rb, nombre2, verTodos){
+  const cuerpo = document.getElementById('histCuerpo');
+  const tag2 = (document.getElementById('histSelComp') || {}).value || '';
+  const A = {}, B = {};
+  ra.forEach(r => A[r.fecha] = r); rb.forEach(r => B[r.fecha] = r);
+  const fechas = Object.keys(Object.assign({}, A, B)).sort((x, y) => y.localeCompare(x));
+  const sa = histStats(ra), sb = histStats(rb);
+  const prom = st => st.n ? fmtDec(st.atq / st.n) : '';
+  const fila = (tit, a, b) => `<tr><td>${tit}</td><td>${a}</td><td>${b}</td></tr>`;
+  const celda = (r, k) => r ? fmtNum(r[k] || 0) : '';
+  const visibles = verTodos ? fechas : fechas.slice(0, HIST_FILAS_INICIALES);
+  const claseAtq = r => r && !r.ataques ? ' class="hist-cero-celda"' : '';
+  const filasDia = visibles.map(f => `<tr><td>${histFechaCorta(f)}</td><td${claseAtq(A[f])}>${celda(A[f], 'ataques')}</td><td${claseAtq(B[f])}>${celda(B[f], 'ataques')}</td><td>${celda(A[f], 'fame')}</td><td>${celda(B[f], 'fame')}</td></tr>`).join('');
+  const na = esc(histNombre), nb = esc(nombre2);
+  cuerpo.innerHTML = histSelectorComparar(tag2) + `
+    <table class="hist-tabla"><thead><tr><th></th><th>${na}</th><th>${nb}</th></tr></thead><tbody>
+      ${fila('Días de guerra', sa.n, sb.n)}${fila('Ataques', fmtNum(sa.atq), fmtNum(sb.atq))}${fila('Días con 0', sa.ceros, sb.ceros)}${fila('Ataques por día', prom(sa), prom(sb))}${fila('Fame', fmtNum(sa.fame), fmtNum(sb.fame))}${fila('Barcos', fmtNum(sa.barcos), fmtNum(sb.barcos))}
+    </tbody></table>
+    <table class="hist-tabla" style="margin-top:12px;"><thead><tr><th rowspan="2">Día</th><th colspan="2">Ataques</th><th colspan="2">Fame</th></tr><tr><th>${na}</th><th>${nb}</th><th>${na}</th><th>${nb}</th></tr></thead><tbody>${filasDia || '<tr><td colspan="5">Sin registros</td></tr>'}</tbody></table>
+    ${(!verTodos && fechas.length > HIST_FILAS_INICIALES) ? `<button type="button" class="btn-solo-cero hist-mas" id="histMas">Ver todos (${fechas.length})</button>` : ''}
+    <p class="hist-nota">Celda vacía: ese jugador no tenía registro ese día (aún no estaba en el clan). Un 0 en rojo es que estuvo y no atacó.</p>`;
+  histEnlazarSelector();
+  const mas = document.getElementById('histMas');
+  if (mas) mas.addEventListener('click', () => histPintarComparacion(ra, rb, nombre2, true));
+}
 async function histAbrir(tag, nombre){
   const fondo = document.getElementById('histFondo');
+  histTag = tag; histNombre = nombre || tag; histRegsA = [];
   document.getElementById('histTitulo').textContent = nombre || tag;
   document.getElementById('histSub').textContent = tag;
   document.getElementById('histCuerpo').innerHTML = '<p class="hist-nota">Cargando historial…</p>';
