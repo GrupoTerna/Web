@@ -1552,6 +1552,26 @@ function enfocarPrimerControl(contenedor){
   return true;
 }
 
+/**
+ * conBotonOcupado(btn, fn)
+ * Ejecuta `fn` (el cuerpo async de un botón que envía datos al backend) con una guardia contra el doble envío:
+ * mientras la petición está en curso el botón queda deshabilitado, y un segundo clic o Enter se ignora. Antes, dos Enter
+ * seguidos mandaban dos peticiones idénticas (medido: 2 en Registrar, Modificar y Planificar torneo) y podían registrar
+ * dos veces lo mismo. Como un botón deshabilitado pierde el foco, se devuelve al terminar si cayó en <body> (mismo
+ * criterio que el resto de botones que se deshabilitan). Historial en CHANGELOG.md.
+ */
+async function conBotonOcupado(btn, fn){
+  if(!btn || btn.disabled) return;
+  const teniaFoco = document.activeElement === btn;
+  btn.disabled = true;
+  try{
+    return await fn();
+  }finally{
+    btn.disabled = false;
+    if(teniaFoco && document.activeElement === document.body) btn.focus({preventScroll:true});
+  }
+}
+
 // Declaraciones de _clanesFamiliaCache adelantadas al inicio del script para evitar un ReferenceError (TDZ) cuando ya hay sesión guardada. Historial en CHANGELOG.md.
 let CLANES_REQUISITOS = ['Grupo乂Terna™', 'GrupoXTerna™2', 'GrupoXTerna™3', 'Mini乂Ternas™']; // fallback si cargarClanesFamilia() falla
 let _clanesFamiliaCache = null;
@@ -3095,7 +3115,7 @@ function crearFilaPremioHTML(id){
   return `<div class="contenido-item premio-fila" data-premio-id="${id}">
     <div class="cab">
       <span class="etiqueta">Premio <span class="premio-num"></span></span>
-      <a href="#" class="text-dim btn-quitar-premio" style="font-size:12px;">Quitar</a>
+      <a href="#" role="button" class="text-dim btn-quitar-premio" style="font-size:12px;">Quitar</a>
     </div>
     <div class="field">
       <label>Tipo de premio</label>
@@ -3131,6 +3151,8 @@ function renumerarPremios(containerId = 'premiosEditor'){
     fila.querySelector('.premioMonto').setAttribute('aria-label', 'Monto del premio ' + (i + 1) + ', en soles');
     fila.querySelector('.premioManual').setAttribute('aria-label', 'Descripción del premio ' + (i + 1));
     fila.querySelector('.btn-quitar-premio').style.display = filas.length > 1 ? '' : 'none';
+    // Los tres "Quitar" se llamaban igual: el nombre accesible lleva el número del premio. Historial en CHANGELOG.md.
+    fila.querySelector('.btn-quitar-premio').setAttribute('aria-label', 'Quitar premio ' + (i + 1));
   });
 }
 
@@ -3148,11 +3170,28 @@ function agregarFilaPremio(containerId = 'premiosEditor'){
     manualWrap.style.display = selTipo.value === 'Manual' ? '' : 'none';
   });
 
-  fila.querySelector('.btn-quitar-premio').addEventListener('click', (ev) => {
+  const btnQuitarPremio = fila.querySelector('.btn-quitar-premio');
+  btnQuitarPremio.addEventListener('click', (ev) => {
     ev.preventDefault();
-    if(document.querySelectorAll(`#${containerId} .premio-fila`).length <= 1) return;
+    const antes = Array.from(document.querySelectorAll(`#${containerId} .premio-fila`));
+    if(antes.length <= 1) return;
+    const teniaFoco = document.activeElement === btnQuitarPremio;
+    const pos = antes.indexOf(fila);
     fila.remove();
     renumerarPremios(containerId);
+    // FIX (04-oct-2026): al quitar, el enlace enfocado se destruía y el foco caía en <body>; pasa al "Quitar" de la fila que ocupa su lugar (o de la anterior si era la última) y, si solo queda una fila (su "Quitar" se oculta), a su selector de tipo.
+    if(teniaFoco){
+      const filas = Array.from(document.querySelectorAll(`#${containerId} .premio-fila`));
+      const destinoFila = filas[Math.min(pos, filas.length - 1)];
+      if(destinoFila){
+        const q = destinoFila.querySelector('.btn-quitar-premio');
+        (q && q.style.display !== 'none' ? q : destinoFila.querySelector('.premioTipo')).focus();
+      }
+    }
+  });
+  // FIX (04-oct-2026): es un <a role="button">, y un enlace solo responde a Enter; con role="button" se espera que Espacio también lo active.
+  btnQuitarPremio.addEventListener('keydown', (ev) => {
+    if(ev.key === ' '){ ev.preventDefault(); btnQuitarPremio.click(); }
   });
 
   renumerarPremios(containerId);
@@ -4366,7 +4405,7 @@ document.getElementById('tSelectHoy').addEventListener('change', () => {
   }
 });
 
-document.getElementById('btnRegistrarTorneo').addEventListener('click', async () => {
+document.getElementById('btnRegistrarTorneo').addEventListener('click', () => conBotonOcupado(document.getElementById('btnRegistrarTorneo'), async () => {
   const msgEl = document.getElementById('registrarTorneoMsg');
   msgEl.innerHTML = '';
   const link  = document.getElementById('tLink').value.trim();
@@ -4426,9 +4465,9 @@ document.getElementById('btnRegistrarTorneo').addEventListener('click', async ()
   }catch(err){
     msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
   }
-});
+}));
 
-document.getElementById('btnModificarTorneo').addEventListener('click', async () => {
+document.getElementById('btnModificarTorneo').addEventListener('click', () => conBotonOcupado(document.getElementById('btnModificarTorneo'), async () => {
   const msgEl = document.getElementById('modificarTorneoMsg');
   msgEl.innerHTML = '';
   const id    = document.getElementById('tSelectHoy').value;
@@ -4498,7 +4537,7 @@ document.getElementById('btnModificarTorneo').addEventListener('click', async ()
   }catch(err){
     msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
   }
-});
+}));
 
 /**
  * FIX (05-sep-2026, pedido usuario — "Planificar torneo"): guarda Fecha +
@@ -4511,7 +4550,7 @@ document.getElementById('btnModificarTorneo').addEventListener('click', async ()
  * misma fila en vez de crear una aparte — de ahí el mensaje de éxito de
  * abajo, que lo recuerda explícitamente.
  */
-document.getElementById('btnPlanificarTorneo').addEventListener('click', async () => {
+document.getElementById('btnPlanificarTorneo').addEventListener('click', () => conBotonOcupado(document.getElementById('btnPlanificarTorneo'), async () => {
   const msgEl = document.getElementById('planificarTorneoMsg');
   msgEl.innerHTML = '';
   const fecha = fechaInputADDMMYYYY(document.getElementById('tFechaPlan').value);
@@ -4563,7 +4602,7 @@ document.getElementById('btnPlanificarTorneo').addEventListener('click', async (
   }catch(err){
     msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
   }
-});
+}));
 
 /**
  * btnPlanificarSorteo
@@ -5579,7 +5618,7 @@ document.getElementById('btnCrGuardar').addEventListener('click', async () => {
     });
     if(manejarRespuestaAuth(data)) return;
     if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
-    msgEl.innerHTML = `<div class="msg msg-success">Corrida guardada (${esc(data.idAscenso)} / ${esc(data.idDescenso)}).</div>`;
+    msgEl.innerHTML = `<div class="msg msg-ok">Corrida guardada (${esc(data.idAscenso)} / ${esc(data.idDescenso)}).</div>`;
     crIdExistenteActual = data.idAscenso;
     crIdDescensoActual = data.idDescenso; // PASO 5 -- ya se puede calcular/generar propuestas
     actualizarVisibilidadPropuestasCR();
@@ -5894,7 +5933,7 @@ document.getElementById('btnCrGenerarPropuestas').addEventListener('click', asyn
     const desglose = data.agregadasPorTipo
       ? ` (${esc(data.agregadasPorTipo.Ascenso)} Ascenso, ${esc(data.agregadasPorTipo.Descenso)} Descenso, ${esc(data.agregadasPorTipo.Admin)} Admin)`
       : '';
-    msgEl.innerHTML = `<div class="msg msg-success">${esc(data.agregadas)} propuesta(s) nueva(s) agregada(s) como Planificado${desglose}` +
+    msgEl.innerHTML = `<div class="msg msg-ok">${esc(data.agregadas)} propuesta(s) nueva(s) agregada(s) como Planificado${desglose}` +
       (data.saltadas ? `, ${esc(data.saltadas)} ya estaban pendientes (sin duplicar).` : '.') + '</div>';
     // Repinta la tabla con el estado recalculado, para que quede a la vista
     // qué se generó (mismo cálculo que calcularYPintarPropuestasCR() -- ver
@@ -5978,8 +6017,8 @@ async function guardarVigente(categoria){
     if(manejarRespuestaAuth(data)) return;
     if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
     msgEl.innerHTML = id
-      ? '<div class="msg msg-success">Guardado.</div>'
-      : '<div class="msg msg-success">Limpiado — vuelve a usarse el más reciente por fecha.</div>';
+      ? '<div class="msg msg-ok">Guardado.</div>'
+      : '<div class="msg msg-ok">Limpiado — vuelve a usarse el más reciente por fecha.</div>';
   }catch(err){
     msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
   }

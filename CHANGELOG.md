@@ -11,6 +11,38 @@ el código hoy) cuando hace falta para mantenerlo; el "por qué histórico"
 
 ---
 
+## Doble envío en torneos, `msg-success`, editor de premios y modos de Cambio de rango (octava sesión, tanda 7, 04-oct-2026)
+
+Atiende P-5 a P-8 de la tanda 6. Solo cambia `admin.html` (no está en `CORE_ASSETS`: `sw.js` se queda en v13). Pruebas con Chromium (Playwright), 412 px, sesión y backend simulados; cada defecto se midió antes de corregir.
+
+### 04-oct-2026 — `admin.html`: guardia contra el doble envío en Registrar, Modificar y Planificar torneo (P-5)
+- **Defecto (medido antes de corregir):** estos tres botones no se deshabilitaban durante la petición. Con dos Enter seguidos (80 ms) y la respuesta del backend retrasada 1,2 s, **cada uno envió 2 peticiones idénticas** (`webAdminTorneoRegistrar`, `webAdminTorneoModificar`, `webAdminTorneoPlanificarGuardar`); en Registrar y en "Ingresar link" eso puede registrar dos veces el mismo torneo.
+- **Cambio:** función nueva `conBotonOcupado(btn, fn)` (junto a `enfocarPrimerControl()`): deshabilita el botón mientras corre `fn`, ignora un segundo clic y devuelve el foco al terminar si cayó en `<body>` (mismo criterio que el resto). Los tres listeners pasan de `addEventListener('click', async () => {...})` a `addEventListener('click', () => conBotonOcupado(btn, async () => {...}))`; el cuerpo no cambia.
+- **Verificado (antes → después):** peticiones con doble Enter 2 → 1 en los tres; el mensaje de éxito sale igual y el foco queda en el propio botón. Sin errores de JS.
+- **Falso positivo de mi medición, para no perseguirlo otra vez:** un primer intento retrasaba la respuesta con `time.sleep()` dentro del simulador, lo que bloquea el navegador de pruebas; el segundo Enter llegaba con el formulario ya limpio y daba "1 petición" sin que hubiera guardia. El retraso debe aplicarse dentro de la página (envolviendo `fetch`) y solo a las acciones medidas: aplicado a todas, la cola de carga inicial se come el tiempo y no llega ninguna.
+- **No cubierto:** otros 9 botones de `admin.html` con el mismo patrón y sin guardia (ver P-9 en `Plan_Fases.md`); en esta tanda solo se midieron y corrigieron los tres de arriba.
+
+### 04-oct-2026 — `admin.html`: `msg-success` no existe en los estilos (P-6)
+- **Defecto (medido):** 4 mensajes de éxito usaban `class="msg msg-success"` ("Corrida guardada…", propuestas agregadas como Planificado, "Guardado." y "Limpiado…" de la hoja de ganadores). `assets/styles.css` solo define `msg-ok`, así que salían sin fondo ni borde (calculado: `rgba(0,0,0,0)` y 0 px, contra `rgba(16,185,129,.12)` y 1 px de `msg-ok`). El resto del sitio usa `msg-ok` 18 veces.
+- **Cambio:** las 4 pasan a `msg msg-ok`. No se tocó `styles.css`. Verificado: 0 apariciones de `msg-success` y el estilo calculado de `msg-ok` es el de las demás.
+
+### 04-oct-2026 — `admin.html`: editor de premios, "Quitar" (P-7)
+- **Defectos (medidos en el editor de Planificar):** (1) los 3 "Quitar" tenían exactamente el mismo nombre accesible; (2) Espacio no hacía nada (es un `<a href="#">` sin rol de botón; un enlace solo responde a Enter); (3) al quitar con Enter el foco caía en `<body>`.
+- **Cambio:** `crearFilaPremioHTML()` agrega `role="button"` (sin cambio visual); `renumerarPremios()` pone `aria-label="Quitar premio N"`; `agregarFilaPremio()` suma un `keydown` para Espacio y, tras quitar, pasa el foco al "Quitar" de la fila que ocupa su lugar (o de la anterior si era la última) y, si queda una sola fila (su "Quitar" se oculta), a su selector "Tipo del premio 1".
+- **Verificado (antes → después):** nombres "Quitar" ×3 → "Quitar premio 1/2/3"; Espacio 3 → 2 filas; foco `BODY` → "Quitar premio 1" y, con una fila, "Tipo del premio 1"; el último "Quitar" nunca queda activo. **No medido:** el editor de Modificar (`#premiosEditorMod`), que usa las mismas funciones con otro `containerId`.
+
+### 04-oct-2026 — `admin.html`, Cambio de rango: modos "Editar corrida existente", "Ver propuestas" y "Precargar última corrida": medidos, sin defectos propios (P-8)
+- **Editar corrida:** foco tras Continuar en el selector de corridas; tras elegir una, el paso 3 se muestra y el panel tiene 46 controles enfocables, 0 sin nombre accesible, 45 paradas de Tab dentro del panel, sin repetidas y sin caer en `<body>`.
+- **Ver propuestas:** foco en el selector; al elegir una corrida el paso 3 sigue oculto (correcto en este modo) y el único control nuevo es "Registrar en Sheets", con nombre.
+- **Precargar última corrida:** no se deshabilita; el foco se queda en el botón con éxito y con error del backend, y el mensaje de error aparece.
+- **Limitación importante:** son datos simulados mínimos, y varios intentos fallaron por la forma de mi dato (por ejemplo `semanas` como texto en vez de lista), no por el código. **No se midió** la tabla de propuestas con filas reales (la simulación devolvió una lista vacía) ni que "Quitar la temporada N" cambie al elegir otra temporada (el backend simulado devolvió una sola).
+
+### 04-oct-2026 — Observaciones nuevas, sin cambiar
+- **P-9:** 9 botones más de `admin.html` envían al backend sin guardia contra el doble envío (por lectura, no medidos): `btnGuardar`, `btnRegistrarSorteo`, `btnPlanificarSorteo`, `btnModificarSorteo`, `btnCrGuardar`, `btnCrGenerarPropuestas`, `btnGuardarResolucion`, `btnNmGuardar` y `btnVetar`. `conBotonOcupado()` ya existe, así que cada uno es un cambio de dos líneas, pero hay que medirlos antes y después. Nota: la tanda 6 dijo "11" y eran 12 sin guardia; 3 quedan resueltos.
+- **No verificado:** lector de pantalla real; Firefox y Safari; nada contra el backend real.
+- **Verificado en el repo:** `node --test` 165/165, `eslint assets`, `html-validate admin.html` y `check-local-links` (144 rutas) sin observaciones.
+- **Subir:** `admin.html`, `CHANGELOG.md` y `Plan_Fases.md` (los demás archivos de la tanda 6 no cambian).
+
 ## Foco en más botones que se deshabilitan y teclado en "Ingresar link" y Cambio de rango (octava sesión, tanda 6, 04-oct-2026)
 
 Cierra lo que la tanda 5 dejó como "No tocado (no medido)" (P-2) y "sin probar" (P-3). Pruebas con Chromium (Playwright), 412 px, sesión y backend simulados. Cada defecto se midió antes de corregir y se repitió la misma medición después.
