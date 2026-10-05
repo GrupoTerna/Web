@@ -220,6 +220,36 @@
     .cr-temporada-bloque{flex-direction:column;}
     .cr-temporada-bloque .cr-temporada-select{width:100%;}
   }
+  /* NOTICIAS DE LA SEMANA (5-oct-2026): tablero con tarjetas de resumen y graficos. Todo con los tokens de styles.css;
+     los colores de cada clan (--nt) son los pasos oscuros de la paleta categorica validada, asignados por clan y no por
+     posicion, para que un clan conserve su color en todas las tarjetas. Pistas y rejillas son blanco translucido. */
+  .nt-kpis{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin:16px 0 14px;}
+  .nt-kpi{border:1px solid var(--line); border-radius:var(--radius-sm); padding:12px 14px; background:rgba(255,255,255,.02); min-width:0;}
+  .nt-kpi-label{font-family:var(--f-mono); font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--text-dim);}
+  .nt-kpi-valor{font-family:var(--f-display); font-size:30px; line-height:1.1; margin-top:4px; color:var(--text); overflow-wrap:anywhere;}
+  .nt-kpi-sub{font-size:12px; color:var(--text-dim); margin-top:3px;}
+  .nt-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,330px),1fr)); gap:14px;}
+  .nt-span{grid-column:1/-1;}
+  .nt-panel{border:1px solid var(--line); border-radius:var(--radius-sm); padding:14px 16px; min-width:0;}
+  .nt-panel h4{font-family:var(--f-display); text-transform:uppercase; font-size:15px; letter-spacing:.03em; color:var(--gold); margin:0 0 2px;}
+  .nt-panel-sub{font-size:12px; color:var(--text-dim); margin:0 0 12px;}
+  .nt-bar{display:grid; grid-template-columns:minmax(64px,32%) 1fr auto; align-items:center; gap:8px; margin:8px 0; font-size:12px;}
+  .nt-bar-label{overflow:hidden; text-overflow:ellipsis; white-space:nowrap; color:var(--text-dim);}
+  .nt-bar-track{height:10px; border-radius:5px; background:rgba(255,255,255,.08); overflow:hidden;}
+  .nt-bar-fill{display:block; height:100%; border-radius:0 4px 4px 0; min-width:2px;}
+  .nt-bar-val{font-family:var(--f-mono); font-size:12px; color:var(--text); white-space:nowrap;}
+  .nt-clan-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px;}
+  .nt-clan-card{border:1px solid var(--line); border-top:3px solid var(--nt, var(--gold)); border-radius:var(--radius-sm); padding:10px 12px; min-width:0;}
+  .nt-clan-nombre{font-weight:700; font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .nt-puesto{font-family:var(--f-display); font-size:34px; line-height:1; margin:6px 0 2px;}
+  .nt-leyenda{display:flex; flex-wrap:wrap; gap:4px 14px; font-size:12px; color:var(--text-dim); margin-top:10px;}
+  .nt-dot{display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:5px; vertical-align:middle;}
+  .nt-chip{display:inline-block; font-family:var(--f-mono); font-size:11px; border:1px solid var(--line); border-radius:999px; padding:2px 9px; margin:0 6px 6px 0; color:var(--text-dim);}
+  .nt-nota{font-size:12px; color:var(--text-faint); margin:12px 0 0;}
+  .nt-up{color:var(--ok);} .nt-down{color:var(--danger);}
+  .nt-svg{width:100%; height:auto; display:block; overflow:visible;}
+  .nt-detalle summary{cursor:pointer; font-size:12px; color:var(--text-dim); margin-top:8px;}
+  .nt-linea{border-top:1px solid var(--line); padding:9px 0; font-size:12px;}
 </style>
 </head>
 <body data-page="admin">
@@ -1442,60 +1472,29 @@
       </details>
     </div>
 
-    <!-- TABLERO DE NOTICIAS (PLACEHOLDER, 5-oct-2026, Fase 9 punto (e) del plan "Lista_de_cambios.docx vs Base.md").
-         ESTADO: solo maqueta. NO llama a ningun endpoint ni muestra ningun dato: todavia no existe backend para esto
-         (no hay ninguna funcion web que lo alimente). Cada subseccion dice QUE mostrara y DE DONDE saldria el dato; los
-         textos «fuente prevista» son propuestas de Claude, NO estan confirmadas. Mismo patron visual que "Directorio" y
-         "Torneos y sorteos" (.admin-grupo / .admin-subseccion), asi que al conectar el backend basta con reemplazar el
-         contenido de cada .admin-subseccion-body.
-         PENDIENTE DE DEFINIR con la usuaria: (a) si lo ven todos los admins o solo ciertos permisos (Funciones);
-         (b) selector de semana (la misma lista de semanas recientes que ya usa Torneos/Sorteos) o solo la semana en curso;
-         (c) si las noticias se arman al vuelo o se guardan en un CSV de respaldo; (d) que otras noticias entran. -->
+    <!-- NOTICIAS DE LA SEMANA (5-oct-2026, Fase 9 punto (e) del plan "Lista_de_cambios.docx vs Base.md").
+         ESTADO: CONECTADO, en formato de TABLERO. Una sola llamada GET autenticada (webAdminNoticiasSemana,
+         47_Web_Noticias.gs) trae la semana elegida con cinco secciones (barcos, ascensos, posiciones, guerra,
+         movimientos); cada una viene con su propio ok/error, asi que si una falla las otras se siguen mostrando.
+         Todo se pinta por JS dentro de #noticiasDash (tarjetas de resumen + paneles con graficos). Solo LECTURA.
+         Se pide cuando el tablero entra en pantalla o al cambiar de semana.
+         PENDIENTE DE DEFINIR con la usuaria (hoy se asumio lo siguiente, ver AVISOS de 47_Web_Noticias.gs):
+         (a) lo ve cualquier admin con sesion (no hay Funcion nueva); (b) la semana se elige de la misma lista de
+         semanas recientes de Torneos/Sorteos; (c) se arma al vuelo, sin CSV de respaldo; (d) que otras noticias entran
+         (hoy: barcos, ascensos, posiciones, fame y participacion, ingresos y salidas). -->
     <div class="card admin-grupo" id="noticiasGrupo" style="margin-top:24px;">
       <div class="eyebrow">Noticias de la semana</div>
-      <p class="text-dim" style="font-size:13px; margin:10px 0 4px;">Un resumen de lo que pasó en los clanes durante la semana de guerra, para no tener que armarlo a mano. <span style="font-family:var(--f-mono); font-size:11px; border:1px solid var(--line); border-radius:6px; padding:2px 7px; margin-left:4px; color:var(--text-faint);">Próximamente</span></p>
-      <p class="text-faint" style="font-size:12px; margin:0 0 6px;">Maqueta: todavía no muestra datos. Cada apartado indica qué va a mostrar y de dónde saldría la información.</p>
+      <p class="text-dim" style="font-size:13px; margin:10px 0 12px;">El resumen de lo que pasó en los clanes durante la semana de guerra, para no tener que armarlo a mano. Elige la semana y el tablero se arma solo.</p>
 
-      <details class="admin-subseccion" id="noticiasBarcos">
-        <summary><span class="cat-titulo">Ataques a barcos</span></summary>
-        <div class="admin-subseccion-body">
-          <p class="text-dim" style="font-size:13px; margin:0 0 10px;">Quién atacó barcos esta semana, por clan: nombre del jugador, cuántos ataques hizo, cuántos ganó y quién se pasó del máximo permitido por semana.</p>
-          <ul class="text-dim" style="font-size:13px; margin:0 0 10px 18px; padding:0;">
-            <li>Una fila por jugador, agrupada por clan, con el total de ataques a barcos de la semana.</li>
-            <li>Solo ataques del propio jugador: las defensas (cuando atacan el barco del clan) no cuentan.</li>
-            <li>Aviso cuando alguien supera «Ataques a barcos permitidos por semana» (el mismo límite que se configura en Torneos).</li>
-          </ul>
-          <p class="text-faint" style="font-size:12px; margin:0;">Fuente prevista (sin confirmar): el registro de battlelogs (<code>Backup_Battlelogs.csv</code>), usando solo las filas con lado <code>attacker</code>. La columna Barcos de la hoja Guerra hoy no sirve para esto (está en 0).</p>
-          <div class="empty" style="margin-top:12px;">Sin datos todavía: falta programar el backend de esta sección.</div>
-        </div>
-      </details>
-
-      <details class="admin-subseccion" id="noticiasAscensos">
-        <summary><span class="cat-titulo">Ascensos y descensos de la semana</span></summary>
-        <div class="admin-subseccion-body">
-          <p class="text-dim" style="font-size:13px; margin:0 0 10px;">Los cambios de rango de la semana: quién subió o bajó, de qué rango a cuál, en qué clan y quién del equipo lo hizo.</p>
-          <ul class="text-dim" style="font-size:13px; margin:0 0 10px 18px; padding:0;">
-            <li>Una línea por cambio: jugador, rango anterior, rango nuevo, clan y autor.</li>
-            <li>Ascensos de clan resaltados aparte (en el documento de cambio de rango ya salen en azul).</li>
-            <li>Enlace al perfil del jugador.</li>
-          </ul>
-          <p class="text-faint" style="font-size:12px; margin:0;">Fuente prevista (sin confirmar): los registros de cambio de rango que ya usa «Editar autor de ascenso» y los documentos de Cambio de Rango, que ya guardan el autor.</p>
-          <div class="empty" style="margin-top:12px;">Sin datos todavía: falta programar el backend de esta sección.</div>
-        </div>
-      </details>
-
-      <details class="admin-subseccion" id="noticiasPosiciones">
-        <summary><span class="cat-titulo">Posiciones finales de la semana por clan</span></summary>
-        <div class="admin-subseccion-body">
-          <p class="text-dim" style="font-size:13px; margin:0 0 10px;">Cómo terminó cada clan la guerra de la semana: posición final, fame total y variación respecto de la semana anterior.</p>
-          <ul class="text-dim" style="font-size:13px; margin:0 0 10px 18px; padding:0;">
-            <li>Una tarjeta por clan de la familia, con su posición final y su fame.</li>
-            <li>Indicador de subida o bajada contra la semana anterior.</li>
-          </ul>
-          <p class="text-faint" style="font-size:12px; margin:0;">Fuente: por definir. No se ha confirmado qué dato guarda hoy el proyecto con la posición final de cada clan en la guerra; hay que revisarlo antes de prometer esta sección.</p>
-          <div class="empty" style="margin-top:12px;">Sin datos todavía: falta definir la fuente y programar el backend.</div>
-        </div>
-      </details>
+      <div class="field">
+        <label for="noticiasSemana">Semana</label>
+        <select id="noticiasSemana"><option value="">Cargando semanas…</option></select>
+      </div>
+      <div class="field-row">
+        <button type="button" class="btn btn-primary" id="btnRefrescarNoticias">↻ Actualizar</button>
+      </div>
+      <div id="noticiasMsg"></div>
+      <div id="noticiasDash"><div class="empty">Elige una semana para armar el tablero.</div></div>
     </div>
 
     <!-- Sección "Mensajes": migrada a mensajes.html (19-sep-2026), con su propio botón en el nav (solo visible con sesión de admin). -->
@@ -4277,6 +4276,336 @@ function renderAscensosEditablesLista(){
 
 document.getElementById('btnRefrescarAscensosEditables').addEventListener('click', cargarAscensosEditables);
 document.getElementById('ascEditBuscar').addEventListener('input', renderAscensosEditablesLista);
+
+/* ============================================================
+ * NOTICIAS DE LA SEMANA - TABLERO (5-oct-2026, Fase 9 punto (e)).
+ * Una sola llamada (webAdminNoticiasSemana, 47_Web_Noticias.gs) devuelve la semana
+ * elegida con cinco secciones: { semana, barcos, ascensos, posiciones, guerra,
+ * movimientos }, cada una con su propio { ok, error? }. Solo lectura. Se cachea
+ * por lunesIso mientras la pagina siga abierta; "Actualizar" vuelve a pedirla.
+ * Los graficos son HTML/SVG a mano (sin librerias): barras horizontales con el
+ * valor impreso al final, lineas con puntos que muestran su valor al pasar el mouse
+ * y mini-tendencias. El color de cada clan se asigna por clan, no por posicion.
+ * ============================================================ */
+const _noticiasCache = {};   // lunesIso -> respuesta del backend
+let _noticiasPedidoId = 0;   // descarta respuestas viejas si se cambia de semana rapido
+let _noticiasVisto = false;  // true cuando el tablero ya entro en pantalla (carga diferida)
+
+const NT_PALETA = ['#3987e5', '#d95926', '#199e70', '#c98500', '#d55181', '#9085e9']; // pasos oscuros de la paleta categorica
+const NT_INGRESO = '#3987e5', NT_SALIDA = '#e66767';                                    // par divergente azul/rojo
+let _ntColores = {};
+
+function ntColor(clan){
+  const k = String(clan || '').trim().toLowerCase();
+  if(!(k in _ntColores)) _ntColores[k] = Object.keys(_ntColores).length;
+  return NT_PALETA[_ntColores[k] % NT_PALETA.length];
+}
+function ntRegistrarClanes(d){
+  _ntColores = {};
+  [d.posiciones, d.guerra, d.barcos, d.movimientos].forEach(s => {
+    if(s && s.ok && Array.isArray(s.clanes)) s.clanes.forEach(c => ntColor(c.clan));
+  });
+}
+const ntN = n => Number(n || 0).toLocaleString('es-PE');
+const ntOk = s => !!(s && s.ok);
+
+function noticiasSemanaElegida(){ return document.getElementById('noticiasSemana').value || ''; }
+
+function poblarSelectorNoticias(){
+  const sel = document.getElementById('noticiasSemana');
+  const semanas = _semanasRecientesCache || [];
+  if(!semanas.length){ sel.innerHTML = '<option value="">Sin semanas disponibles</option>'; return; }
+  sel.innerHTML = semanas.map(s => {
+    const mes = MESES_ES[new Date(s.lunesIso + 'T00:00:00').getMonth()];
+    return `<option value="${esc(s.lunesIso)}">${esc(`Temporada ${s.temporada} (${mes}) Semana ${s.semana} (${fmtRangoSemana(s.lunesIso, s.domingoIso)})`)}</option>`;
+  }).join('');
+  if(_noticiasVisto) cargarNoticias(false);
+}
+
+async function cargarNoticias(forzar){
+  const lunes = noticiasSemanaElegida();
+  const msgEl = document.getElementById('noticiasMsg');
+  const dash = document.getElementById('noticiasDash');
+  msgEl.innerHTML = '';
+  if(!lunes) return;
+  if(!forzar && _noticiasCache[lunes]){ renderNoticias(_noticiasCache[lunes]); return; }
+
+  const miId = ++_noticiasPedidoId;
+  dash.innerHTML = '<div class="empty">Armando el tablero…</div>';
+  try{
+    const data = await apiGetAuth('webAdminNoticiasSemana', { lunesIso: lunes });
+    if(miId !== _noticiasPedidoId) return; // llego tarde: ya se pidio otra semana
+    if(manejarRespuestaAuth(data)) return;
+    if(!data.ok){
+      dash.innerHTML = '';
+      msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error || 'No se pudieron cargar las noticias.')}</div>`;
+      return;
+    }
+    _noticiasCache[lunes] = data;
+    renderNoticias(data);
+  }catch(err){
+    if(miId !== _noticiasPedidoId) return;
+    dash.innerHTML = '';
+    msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
+  }
+}
+
+/* ---------- piezas de graficos ---------- */
+
+/** Barras horizontales. items = [{label, valor, color, texto?, titulo?}]; todas comparten la misma escala. */
+function ntBarras(items, maxFijo){
+  const max = maxFijo || Math.max(1, ...items.map(i => Number(i.valor) || 0));
+  return items.map(i => {
+    const pct = Math.max(0, Math.min(100, (Number(i.valor) || 0) * 100 / max));
+    const tit = esc(i.titulo || `${i.label}: ${i.texto !== undefined ? i.texto : ntN(i.valor)}`);
+    return `<div class="nt-bar" title="${tit}">
+      <span class="nt-bar-label">${esc(i.label)}</span>
+      <span class="nt-bar-track"><span class="nt-bar-fill" style="width:${pct}%; background:${i.color}"></span></span>
+      <span class="nt-bar-val">${esc(i.texto !== undefined ? i.texto : ntN(i.valor))}</span>
+    </div>`;
+  }).join('');
+}
+
+/** Mini-tendencia (sparkline) de una serie numerica; el ultimo punto lleva marcador. */
+function ntSpark(valores, color){
+  const v = valores.filter(x => Number.isFinite(x));
+  if(v.length < 2) return '<span class="text-faint" style="font-size:11px;">sin historial</span>';
+  const w = 110, h = 30, p = 4, mn = Math.min(...v), mx = Math.max(...v), rg = (mx - mn) || 1;
+  const pts = v.map((y, i) => [p + i * (w - 2 * p) / (v.length - 1), h - p - (y - mn) * (h - 2 * p) / rg]);
+  const ult = pts[pts.length - 1];
+  return `<svg class="nt-svg" viewBox="0 0 ${w} ${h}" role="img" aria-label="Tendencia de las últimas ${v.length} semanas" style="max-width:${w}px;">
+    <polyline points="${pts.map(q => q.map(n => n.toFixed(1)).join(',')).join(' ')}" fill="none" stroke="${color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>
+    <circle cx="${ult[0].toFixed(1)}" cy="${ult[1].toFixed(1)}" r="3.5" fill="${color}" stroke="#0b0c10" stroke-width="2"/>
+  </svg>`;
+}
+
+/** Lineas con un punto por dia (hover = valor). series = [{nombre, color, valores}]; etiquetas = eje X. */
+function ntLineas(series, etiquetas){
+  const W = 360, H = 170, L = 46, R = 12, T = 10, B = 24;
+  const max = Math.max(1, ...series.flatMap(s => s.valores));
+  const X = i => L + i * (W - L - R) / (etiquetas.length - 1);
+  const Y = v => T + (H - T - B) * (1 - v / max);
+  const compacto = v => v >= 1000 ? (Math.round(v / 100) / 10).toLocaleString('es-PE') + ' mil' : String(v);
+  const grid = [0, .5, 1].map(f => {
+    const y = Y(max * f);
+    return `<line x1="${L}" x2="${W - R}" y1="${y.toFixed(1)}" y2="${y.toFixed(1)}" stroke="rgba(255,255,255,.10)" stroke-width="1"/>
+      <text x="${L - 6}" y="${(y + 3.5).toFixed(1)}" text-anchor="end" font-size="10" fill="#898781">${esc(compacto(Math.round(max * f)))}</text>`;
+  }).join('');
+  const xs = etiquetas.map((t, i) => `<text x="${X(i).toFixed(1)}" y="${H - 6}" text-anchor="middle" font-size="10" fill="#898781">${esc(t)}</text>`).join('');
+  const lineas = series.map(s => {
+    const pts = s.valores.map((v, i) => `${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join(' ');
+    const puntos = s.valores.map((v, i) => `<circle cx="${X(i).toFixed(1)}" cy="${Y(v).toFixed(1)}" r="4" fill="${s.color}" stroke="#0b0c10" stroke-width="2"><title>${esc(s.nombre)} · ${esc(etiquetas[i])}: ${ntN(v)}</title></circle>`).join('');
+    return `<polyline points="${pts}" fill="none" stroke="${s.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>${puntos}`;
+  }).join('');
+  const leyenda = series.map(s => `<span><span class="nt-dot" style="background:${s.color}"></span>${esc(s.nombre)}</span>`).join('');
+  return `<svg class="nt-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Fame acumulada por día de guerra">${grid}${xs}${lineas}</svg><div class="nt-leyenda">${leyenda}</div>`;
+}
+
+function ntPanel(titulo, sub, cuerpo, span){
+  return `<section class="nt-panel${span ? ' nt-span' : ''}"><h4>${esc(titulo)}</h4>${sub ? `<p class="nt-panel-sub">${sub}</p>` : ''}${cuerpo}</section>`;
+}
+function ntErrorSeccion(sec, titulo){
+  return ntPanel(titulo, '', `<div class="msg msg-error">${esc((sec && sec.error) || 'No se pudo cargar esta sección.')}</div>`, false);
+}
+function ntTile(label, valor, sub){
+  return `<div class="nt-kpi"><div class="nt-kpi-label">${esc(label)}</div><div class="nt-kpi-valor">${valor}</div><div class="nt-kpi-sub">${sub || ''}</div></div>`;
+}
+const ntClasificaTipo = t => /ascenso/i.test(t) ? 'asc' : /expulsi/i.test(t) ? 'exp' : /degradaci|descenso/i.test(t) ? 'desc' : 'otro';
+
+/* ---------- tarjetas de resumen ---------- */
+function ntResumen(d){
+  const t = [];
+  if(ntOk(d.guerra) && d.guerra.clanes.length){
+    const fame = d.guerra.clanes.reduce((a, c) => a + c.fame, 0);
+    const usados = d.guerra.clanes.reduce((a, c) => a + c.ataques, 0);
+    const posibles = d.guerra.clanes.reduce((a, c) => a + c.ataquesPosibles, 0);
+    const sin = d.guerra.clanes.reduce((a, c) => a + c.sinAtaquesTotal, 0);
+    t.push(ntTile('Fame de la familia', ntN(fame), 'suma de los clanes'));
+    t.push(ntTile('Participación', posibles ? (Math.round(usados * 1000 / posibles) / 10).toLocaleString('es-PE') + '%' : '—', `${ntN(usados)} de ${ntN(posibles)} ataques · ${ntN(sin)} sin atacar`));
+  }
+  if(ntOk(d.barcos)){
+    const tot = d.barcos.clanes.reduce((a, c) => a + c.totalAtaques, 0);
+    const pasados = d.barcos.clanes.reduce((a, c) => a + c.jugadores.filter(j => j.excede).length, 0);
+    t.push(ntTile('Ataques a barcos', ntN(tot), pasados ? `<span class="nt-down">⚠ ${ntN(pasados)} se pasaron del máximo</span>` : 'nadie se pasó del máximo'));
+  }
+  if(ntOk(d.ascensos)){
+    const n = { asc: 0, desc: 0, exp: 0, otro: 0 };
+    d.ascensos.cambios.forEach(c => n[ntClasificaTipo(c.tipo)]++);
+    t.push(ntTile('Cambios de rango', ntN(d.ascensos.cambios.length), `${n.asc} ascensos · ${n.desc} descensos${n.exp ? ' · ' + n.exp + ' expulsiones' : ''}`));
+  }
+  if(ntOk(d.movimientos)){
+    const ing = d.movimientos.clanes.reduce((a, c) => a + c.ingresos + c.reingresos, 0);
+    const sal = d.movimientos.clanes.reduce((a, c) => a + c.salidas + c.expulsiones, 0);
+    const neto = ing - sal;
+    t.push(ntTile('Ingresos y salidas', `<span class="${neto > 0 ? 'nt-up' : neto < 0 ? 'nt-down' : ''}">${neto > 0 ? '+' : ''}${ntN(neto)}</span>`, `${ntN(ing)} entraron · ${ntN(sal)} salieron`));
+  }
+  if(ntOk(d.posiciones)){
+    const primeros = d.posiciones.clanes.filter(c => !c.sinDatos && c.puesto === 1).map(c => c.clan);
+    t.push(ntTile('Clan en 1.º puesto', primeros.length ? esc(primeros.join(' · ')) : '—', primeros.length ? 'mejor puesto de la semana' : 'sin 1.º puesto entre los clanes'));
+  }
+  return t.length ? `<div class="nt-kpis">${t.join('')}</div>` : '';
+}
+
+/* ---------- paneles ---------- */
+function ntPanelPosiciones(sec){
+  if(!ntOk(sec)) return ntErrorSeccion(sec, 'Posiciones finales');
+  if(!sec.clanes.length) return ntPanel('Posiciones finales', '', '<div class="empty">Sin clanes para mostrar.</div>', true);
+  const tarjetas = sec.clanes.map(c => {
+    const col = ntColor(c.clan);
+    if(c.sinDatos) return `<div class="nt-clan-card" style="--nt:${col}"><div class="nt-clan-nombre">${enlaceClan(c.clan)}</div><div class="empty" style="margin-top:8px;">Sin datos de guerra esta semana.</div></div>`;
+    const puesto = c.puesto > 0 ? `${c.puestoEstimado ? '~' : ''}${c.puesto}.º` : 'Sin dato';
+    let variacion = '<span class="text-faint">sin semana anterior</span>';
+    if(c.variacionPuesto !== null && c.variacionPuesto !== undefined){
+      variacion = c.variacionPuesto > 0 ? `<span class="nt-up">▲ subió ${c.variacionPuesto}</span>`
+                : c.variacionPuesto < 0 ? `<span class="nt-down">▼ bajó ${Math.abs(c.variacionPuesto)}</span>`
+                : '= igual que la anterior';
+    }
+    const dT = c.variacionTrofeos > 0 ? `+${ntN(c.variacionTrofeos)}` : ntN(c.variacionTrofeos);
+    return `<div class="nt-clan-card" style="--nt:${col}" title="${esc(c.clan)}: puesto ${esc(puesto)}, ${ntN(c.trofeos)} trofeos">
+      <div class="nt-clan-nombre">${enlaceClan(c.clan)}</div>
+      <div class="nt-puesto">${esc(puesto)}</div>
+      <div class="text-dim" style="font-size:12px;">${variacion}</div>
+      <div style="margin:8px 0 2px;">${ntSpark((c.tendencia || []).map(x => x.trofeos), col)}</div>
+      <div class="text-dim" style="font-size:12px;">${ntN(c.trofeos)} trofeos (${esc(dT)})</div>
+      <div class="text-faint" style="font-size:11px; margin-top:2px;">${c.coliseo ? 'Coliseo: sin barco' : 'Barco: ' + ntN(c.barco)}</div>
+    </div>`;
+  }).join('');
+  return ntPanel('Posiciones finales', 'Puesto de cada clan al cerrar la semana y trofeos de las últimas semanas.',
+    `<div class="nt-clan-grid">${tarjetas}</div><p class="nt-nota">«~» = puesto estimado (semana en curso o de coliseo). La línea muestra los trofeos de hasta 6 semanas.</p>`, true);
+}
+
+function ntPanelFame(sec){
+  if(!ntOk(sec)) return ntErrorSeccion(sec, 'Fame de guerra');
+  if(!sec.clanes.length) return ntPanel('Fame de guerra', '', '<div class="empty">Sin datos de guerra para esta semana.</div>', false);
+  const barras = ntBarras(sec.clanes.map(c => ({ label: c.clan, valor: c.fame, color: ntColor(c.clan) })));
+  const lineas = ntLineas(sec.clanes.map(c => ({ nombre: c.clan, color: ntColor(c.clan), valores: c.fameDias })), ['Jue', 'Vie', 'Sáb', 'Dom']);
+  return ntPanel('Fame de guerra', 'Fame total de cada clan y cómo fue creciendo día a día.',
+    `${barras}<div style="margin-top:16px;">${lineas}</div>`, false);
+}
+
+function ntPanelParticipacion(sec){
+  if(!ntOk(sec)) return ntErrorSeccion(sec, 'Participación en guerra');
+  if(!sec.clanes.length) return ntPanel('Participación en guerra', '', '<div class="empty">Sin datos de guerra para esta semana.</div>', false);
+  const barras = ntBarras(sec.clanes.map(c => ({
+    label: c.clan, valor: c.participacion, color: ntColor(c.clan),
+    texto: `${c.participacion.toLocaleString('es-PE')}%`,
+    titulo: `${c.clan}: ${ntN(c.ataques)} de ${ntN(c.ataquesPosibles)} ataques (${c.participacion}%), ${c.completos} jugador(es) con los ${sec.ataquesMaxJugador}`
+  })), 100);
+  const detalle = sec.clanes.filter(c => c.sinAtaquesTotal > 0).map(c => `
+    <details class="nt-detalle"><summary>${esc(c.clan)}: ${ntN(c.sinAtaquesTotal)} sin ningún ataque</summary>
+      <div style="margin-top:6px;">${c.sinAtaques.map(j => `<span class="nt-chip">${enlaceJugador(j.nombre, j.tag)}</span>`).join('')}${c.sinAtaquesTotal > c.sinAtaques.length ? '<span class="text-faint" style="font-size:12px;">…y más</span>' : ''}</div>
+    </details>`).join('');
+  const comp = sec.clanes.map(c => `${esc(c.clan)}: ${ntN(c.completos)}`).join(' · ');
+  return ntPanel('Participación en guerra', `Ataques usados sobre los posibles (${sec.ataquesMaxJugador} por jugador).`,
+    `${barras}<p class="nt-nota" style="margin-top:6px;">Con los ${sec.ataquesMaxJugador} ataques completos → ${comp}</p>${detalle || '<p class="nt-nota">Todos los jugadores atacaron al menos una vez.</p>'}
+     <p class="nt-nota">El porcentaje no descuenta a quienes entraron o salieron a mitad de semana ni los ataques exonerados.</p>`, false);
+}
+
+function ntPanelTopFame(sec){
+  if(!ntOk(sec)) return ntErrorSeccion(sec, 'Top de fame');
+  if(!sec.topFame.length) return ntPanel('Top de fame', '', '<div class="empty">Sin fame registrada esta semana.</div>', false);
+  const cuerpo = ntBarras(sec.topFame.map((j, i) => ({
+    label: `${i + 1}. ${j.nombre}`, valor: j.fame, color: ntColor(j.clan),
+    titulo: `${j.nombre} (${j.clan}): ${ntN(j.fame)} de fame, ${j.ataques} ataque(s)`
+  })));
+  const clanes = [...new Set(sec.topFame.map(j => j.clan))].map(c => `<span><span class="nt-dot" style="background:${ntColor(c)}"></span>${esc(c)}</span>`).join('');
+  return ntPanel('Top de fame', 'Los jugadores que más fame aportaron en toda la familia.', `${cuerpo}<div class="nt-leyenda">${clanes}</div>`, false);
+}
+
+function ntPanelBarcos(sec){
+  if(!ntOk(sec)) return ntErrorSeccion(sec, 'Ataques a barcos');
+  const nota = [];
+  if(sec.limite !== null && sec.limite !== undefined) nota.push(`Máximo permitido por semana (torneo más reciente): <b>${esc(sec.limite)}</b>.`);
+  else nota.push('El torneo más reciente no tiene un máximo de ataques a barcos configurado.');
+  nota.push('Solo cuentan los ataques del propio jugador, no las defensas.');
+  if(sec.defensas) nota.push(`${esc(sec.defensas)} defensa(s) no se cuentan.`);
+  if(sec.sinLado) nota.push(`${esc(sec.sinLado)} registro(s) viejo(s) sin dato de lado no se suman (no concluyentes).`);
+  if(sec.dudosas) nota.push(`${esc(sec.dudosas)} batalla(s) del cambio de día no se suman porque no se pudo asegurar su semana.`);
+  nota.push('Sale de las descargas de battlelog: si a un jugador no se le descargó a tiempo, sus ataques pueden faltar.');
+  const pie = `<p class="nt-nota">${nota.join(' ')}</p>`;
+  if(!sec.clanes.length) return ntPanel('Ataques a barcos', '', `<div class="empty">Sin ataques a barcos registrados en esta semana.</div>${pie}`, false);
+
+  const barras = ntBarras(sec.clanes.map(c => ({ label: c.clan, valor: c.totalAtaques, color: ntColor(c.clan) })));
+  const pasados = sec.clanes.flatMap(c => c.jugadores.filter(j => j.excede).map(j => ({ j, clan: c.clan })));
+  const alerta = pasados.length
+    ? `<div style="margin-top:10px;">${pasados.map(p => `<span class="badge badge-warn" title="${esc(p.clan)}">${esc(p.j.nombre || p.j.tag)}: ${esc(p.j.ataques)}</span> `).join('')}<span class="text-faint" style="font-size:12px;">se pasaron del máximo</span></div>` : '';
+  const detalle = sec.clanes.map(c => `
+    <details class="nt-detalle"><summary>${esc(c.clan)}: detalle por jugador (${c.jugadores.length})</summary>
+      <div style="overflow-x:auto; margin-top:6px;"><table>
+        <thead><tr><th scope="col">Jugador</th><th scope="col">Ataques</th><th scope="col">Ganados</th><th scope="col">Perdidos</th></tr></thead>
+        <tbody>${c.jugadores.map(j => `<tr><td>${enlaceJugador(j.nombre || j.tag, j.tag)}</td><td><b>${esc(j.ataques)}</b>${j.excede ? ' <span class="badge badge-warn">Se pasó</span>' : ''}</td><td>${esc(j.ganados)}</td><td>${esc(j.perdidos)}</td></tr>`).join('')}</tbody>
+      </table></div>
+    </details>`).join('');
+  return ntPanel('Ataques a barcos', 'Total de ataques propios a barcos por clan.', `${barras}${alerta}${detalle}${pie}`, false);
+}
+
+function ntPanelAscensos(sec){
+  if(!ntOk(sec)) return ntErrorSeccion(sec, 'Ascensos y descensos');
+  if(!sec.cambios.length) return ntPanel('Ascensos y descensos', '', '<div class="empty">No hubo cambios de rango registrados en esta semana.</div>', false);
+  const n = { asc: 0, desc: 0, exp: 0, otro: 0 }, clanN = {};
+  sec.cambios.forEach(c => { n[ntClasificaTipo(c.tipo)]++; if(c.esAscensoClan) clanN.c = (clanN.c || 0) + 1; });
+  const chips = [
+    ['Ascensos', n.asc, NT_PALETA[2]], ['Descensos', n.desc, NT_SALIDA], ['Expulsiones', n.exp, NT_SALIDA], ['Otros', n.otro, '#898781']
+  ].filter(x => x[1] > 0);
+  const barras = ntBarras(chips.map(x => ({ label: x[0], valor: x[1], color: x[2] })));
+  const linea = c => `
+    <div class="nt-linea" ${c.esAscensoClan ? 'style="border-left:4px solid #b3e5fc; padding-left:10px;"' : ''}>
+      <div style="font-weight:700; font-size:13px;">${enlaceJugador(c.nombre || c.tag, c.tag)} <span class="text-faint" style="font-family:var(--f-mono); font-size:11px;">${esc(c.tag)}</span></div>
+      <div class="text-dim">${c.esAscensoClan ? 'Ascenso de clan' : `${esc(c.tipo)}: ${esc(c.rangoAnterior || '—')} → ${esc(c.rangoNuevo || '—')}`} · ${c.clan ? enlaceClan(c.clan) : '—'} · ${esc(c.fechaTxt)}</div>
+      <div class="text-dim">Hecho por: <b>${esc(c.autor || 'sin autor')}</b></div>
+    </div>`;
+  return ntPanel('Ascensos y descensos', `${ntN(sec.cambios.length)} cambio(s) de rango en la semana${clanN.c ? ` (${clanN.c} ascenso(s) de clan, resaltados en azul)` : ''}.`,
+    `${barras}<details class="nt-detalle"><summary>Ver los ${ntN(sec.cambios.length)} cambios</summary>${sec.cambios.map(linea).join('')}${sec.truncado ? '<p class="nt-nota">Se muestran solo los primeros cambios de la semana.</p>' : ''}</details>`, false);
+}
+
+function ntPanelMovimientos(sec){
+  if(!ntOk(sec)) return ntErrorSeccion(sec, 'Ingresos y salidas');
+  if(!sec.clanes.length) return ntPanel('Ingresos y salidas', '', '<div class="empty">Sin ingresos ni salidas registrados en esta semana.</div>', false);
+  const max = Math.max(1, ...sec.clanes.flatMap(c => [c.ingresos + c.reingresos, c.salidas + c.expulsiones]));
+  const bloques = sec.clanes.map(c => {
+    const ent = c.ingresos + c.reingresos, sal = c.salidas + c.expulsiones;
+    return `<div style="margin:10px 0 4px;"><div style="font-size:12px; font-weight:700;">${esc(c.clan)} <span class="${c.neto > 0 ? 'nt-up' : c.neto < 0 ? 'nt-down' : 'text-faint'}" style="font-weight:400;">· neto ${c.neto > 0 ? '+' : ''}${c.neto}</span></div>
+      ${ntBarras([
+        { label: 'Entraron', valor: ent, color: NT_INGRESO, titulo: `${c.clan}: ${c.ingresos} ingreso(s) y ${c.reingresos} reingreso(s)` },
+        { label: 'Salieron', valor: sal, color: NT_SALIDA, titulo: `${c.clan}: ${c.salidas} salida(s) y ${c.expulsiones} expulsión(es)` }
+      ], max)}</div>`;
+  }).join('');
+  const leyenda = `<div class="nt-leyenda"><span><span class="nt-dot" style="background:${NT_INGRESO}"></span>Ingresos y reingresos</span><span><span class="nt-dot" style="background:${NT_SALIDA}"></span>Salidas y expulsiones</span></div>`;
+  const lista = sec.lista.map(m => `<div class="nt-linea">${enlaceJugador(m.nombre || m.tag, m.tag)} · <b>${esc(m.movimiento)}</b> · ${m.clan ? enlaceClan(m.clan) : '—'} · ${esc(m.fechaTxt)}</div>`).join('');
+  return ntPanel('Ingresos y salidas', 'Quién entró y quién salió de los clanes esta semana.',
+    `${bloques}${leyenda}<details class="nt-detalle"><summary>Ver los ${ntN(sec.total)} movimientos</summary>${lista}${sec.total > sec.lista.length ? '<p class="nt-nota">Se muestran solo los primeros movimientos.</p>' : ''}</details>
+     <p class="nt-nota">Es lo que quedó registrado en el historial de ingresos y salidas.</p>`, false);
+}
+
+function renderNoticias(d){
+  ntRegistrarClanes(d);
+  document.getElementById('noticiasDash').innerHTML =
+    ntResumen(d) +
+    `<div class="nt-grid">
+      ${ntPanelPosiciones(d.posiciones)}
+      ${ntPanelFame(d.guerra)}
+      ${ntPanelParticipacion(d.guerra)}
+      ${ntPanelTopFame(d.guerra)}
+      ${ntPanelBarcos(d.barcos)}
+      ${ntPanelAscensos(d.ascensos)}
+      ${ntPanelMovimientos(d.movimientos)}
+    </div>`;
+}
+
+cargarSemanasRecientes().then(poblarSelectorNoticias);
+document.getElementById('btnRefrescarNoticias').addEventListener('click', () => cargarNoticias(true));
+document.getElementById('noticiasSemana').addEventListener('change', () => cargarNoticias(false));
+// Carga diferida: el tablero se pide recien cuando entra en pantalla (el panel de admin
+// esta oculto hasta iniciar sesion), para no leer hojas y CSV de Drive sin que nadie lo mire.
+(function(){
+  const marcarVisto = () => { if(_noticiasVisto) return; _noticiasVisto = true; cargarNoticias(false); };
+  if('IntersectionObserver' in window){
+    const io = new IntersectionObserver(es => { if(es.some(e => e.isIntersecting)){ io.disconnect(); marcarVisto(); } }, { rootMargin: '200px' });
+    io.observe(document.getElementById('noticiasGrupo'));
+  }else{
+    marcarVisto();
+  }
+})();
 
 document.getElementById('tAutorSelect').addEventListener('change', () => {
   const esOtro = document.getElementById('tAutorSelect').value === '__otro__';
