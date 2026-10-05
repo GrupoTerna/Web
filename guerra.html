@@ -1292,7 +1292,14 @@ function render(data){
   const avisoCong = document.getElementById('guerraCongeladoAviso');
   if(avisoCong){
     if(ctx.esDiaGuerra){ avisoCong.style.display = 'none'; avisoCong.textContent = ''; }
-    else { avisoCong.textContent = '❄️ Resultados congelados de la última guerra (domingo). No cambian hasta que empiece la siguiente guerra, el jueves.'; avisoCong.style.display = 'block'; }
+    else {
+      // 05-oct-2026: el backend dice qué día se está mostrando (guerraCongeladaLetra). Normalmente es el domingo; si el
+      // domingo no tiene ataques registrados, se muestra el último día que sí los tiene y se avisa.
+      const nomDia = { J:'jueves', V:'viernes', S:'sábado', D:'domingo' }[data.guerraCongeladaLetra] || 'domingo';
+      const nota = (data.guerraCongeladaLetra && data.guerraCongeladaLetra !== 'D') ? ` El domingo no tiene ataques registrados, por eso se muestra el ${nomDia}.` : '';
+      avisoCong.textContent = `❄️ Resultados congelados de la última guerra (${nomDia}). No cambian hasta que empiece la siguiente guerra, el jueves.${nota}`;
+      avisoCong.style.display = 'block';
+    }
   }
   const clanGrid = document.getElementById('clanGrid');
   // FIX (05-oct-2026, pedido usuario): orden fijo Principal, Clan 2, Clan 3, Mini (ordenClanIndex), no el orden en que llegan del backend.
