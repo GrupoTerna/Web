@@ -613,16 +613,21 @@ async function cargar(manual){
 function claseCeldaCA(n){ return n >= 4 ? 'ai-cell ai-cell-full' : (n > 0 ? 'ai-cell ai-cell-part' : 'ai-cell ai-cell-zero'); }
 /* celdasMegacategoria(m, gpClase, conColor, keyPrefix) Historial en CHANGELOG.md. */
 function celdasMegacategoria(m, gpClase, conColor, keyPrefix){
-  const j = m?.j ?? 0, v = m?.v ?? 0, s = m?.s ?? 0, d = m?.d ?? 0, total = m?.total ?? 0;
+  // FIX (05-oct-2026, pedido usuario): `null` = el jugador NO estuvo en el clan ese día -> celda VACÍA (no 0). El 0 queda solo para "estuvo y no atacó". `undefined` (otras fuentes, p. ej. Inactivos) se sigue leyendo como 0.
+  const val = (x) => x === null ? null : (x ?? 0);
+  const j = val(m?.j), v = val(m?.v), s = val(m?.s), d = val(m?.d), total = val(m?.total);
   const claseDia = (n) => `${gpClase} ${conColor ? claseCeldaCA(n) : 'ai-num'}`;
   const claseTotal = `${gpClase} ai-total ${conColor && total >= 16 ? 'ai-total-full' : ''}`;
-  const dc = (k, val) => keyPrefix ? ` data-col="${keyPrefix}-${k}" data-raw="${esc(String(val))}"` : '';
+  const dc = (k, x) => keyPrefix ? ` data-col="${keyPrefix}-${k}" data-raw="${x === null ? '' : esc(String(x))}"` : '';
+  const celdaDia = (k, n) => n === null
+    ? `<td class="${gpClase} ai-num"${dc(k, n)}></td>`
+    : `<td class="${claseDia(n)}"${dc(k, n)}>${conColor ? n : fmtNum(n)}</td>`;
   return `
-                <td class="${claseDia(j)}"${dc('j', j)}>${conColor ? j : fmtNum(j)}</td>
-                <td class="${claseDia(v)}"${dc('v', v)}>${conColor ? v : fmtNum(v)}</td>
-                <td class="${claseDia(s)}"${dc('s', s)}>${conColor ? s : fmtNum(s)}</td>
-                <td class="${claseDia(d)}"${dc('d', d)}>${conColor ? d : fmtNum(d)}</td>
-                <td class="${claseTotal}"${dc('total', total)}>${fmtNum(total)}</td>`;
+                ${celdaDia('j', j)}
+                ${celdaDia('v', v)}
+                ${celdaDia('s', s)}
+                ${celdaDia('d', d)}
+                <td class="${claseTotal}"${dc('total', total)}>${total === null ? '' : fmtNum(total)}</td>`;
 }
 
 /* celdasSemanas(megacat, gpClase, conColor) Equivalente a celdasMegacategoria() pero para el "Tipo Control_2" (Cuadrícula de Temporada): en vez de 4 columnas fijas J/V/S/D, pinta una columna por cada semana ya jugada de la temporada (megacat.semanas, Historial en CHANGELOG.md. */
@@ -630,18 +635,24 @@ function celdasMegacategoria(m, gpClase, conColor, keyPrefix){
 function celdasSemanas(megacat, gpClase, conColor, keyPrefix){
   const semanas = Array.isArray(megacat?.semanas) ? megacat.semanas : [];
 // _getControlTemporadaPorClan() (20_Control2_ GuerraSemanal.gs) nunca devuelve un campo `resumen` -- devuelve `total` para Ataques/Barcos y `prom` para Puntaje (ver docblock de esa función). Historial en CHANGELOG.md.
-  const resumen = Number(megacat?.resumen ?? megacat?.total ?? megacat?.prom) || 0;
-  const pct = Number(megacat?.pct) || 0;
+  // FIX (05-oct-2026, pedido usuario): `null` = no estuvo en el clan esa semana (o semana futura) -> celda VACÍA. Resumen/% también vacíos si no hubo ninguna semana presente (null); el 0 queda solo para "estuvo y no atacó".
+  const numONull = (x) => (x === null || x === undefined) ? null : (Number(x) || 0);
+  const resumenRaw = megacat?.resumen ?? megacat?.total ?? megacat?.prom;
+  const resumen = numONull(resumenRaw);
+  const pctRaw = megacat?.pct;
+  const pct = pctRaw === null ? null : (Number(pctRaw) || 0);
   const claseSemana = (n) => `${gpClase} ${conColor ? claseCeldaCA(n) : 'ai-num'}`;
-  const claseResumen = `${gpClase} ai-resumen ai-total ${conColor && resumen >= (semanas.length * 16) ? 'ai-total-full' : ''}`;
-  const dc = (k, val) => keyPrefix ? ` data-col="${keyPrefix}-${k}" data-raw="${esc(String(val))}"` : '';
+  const claseResumen = `${gpClase} ai-resumen ai-total ${conColor && resumen !== null && resumen >= (semanas.length * 16) ? 'ai-total-full' : ''}`;
+  const dc = (k, val) => keyPrefix ? ` data-col="${keyPrefix}-${k}" data-raw="${val === null ? '' : esc(String(val))}"` : '';
   const celdasSem = semanas.map((v, i) => {
-    const n = Number(v) || 0;
-    return `<td class="${claseSemana(n)}"${dc('sem' + i, n)}>${conColor ? n : fmtNum(n)}</td>`;
+    const n = numONull(v);
+    return n === null
+      ? `<td class="${gpClase} ai-num"${dc('sem' + i, n)}></td>`
+      : `<td class="${claseSemana(n)}"${dc('sem' + i, n)}>${conColor ? n : fmtNum(n)}</td>`;
   }).join('');
   return `${celdasSem}
-                <td class="${claseResumen}"${dc('resumen', resumen)}>${fmtNum(resumen)}</td>
-                <td class="${claseResumen}"${dc('pct', pct)}>${pct}%</td>`;
+                <td class="${claseResumen}"${dc('resumen', resumen)}>${resumen === null ? '' : fmtNum(resumen)}</td>
+                <td class="${claseResumen}"${dc('pct', pct)}>${pct === null ? '' : pct + '%'}</td>`;
 }
 
 /* widget genérico de filtro/orden por columna, calcado del de "Directorio por clan" (directorio.html, ver ROSTER_COLUMNAS/ abrirFiltroColumna() ahí) pero generalizado para poder colgarse de CUALQUIER tabla de esta página (hay una tabla POR CLAN, tanto en… Historial en CHANGELOG.md. */
@@ -678,7 +689,7 @@ function filaSubEncabezadosSemanas(gpClase, prefijo, semanasLabels, labelResumen
  * (J/V/S/D/Total) x 3 megacategorías. */
 function columnasActivosDef(){
   const porMega = (prefijo, campo) => ['j', 'v', 's', 'd', 'total'].map(k => ({
-    key: `${prefijo}-${k}`, raw: f => { const m = campo(f); return m ? Number(m[k]) || 0 : 0; },
+    key: `${prefijo}-${k}`, raw: f => { const m = campo(f); return (m && m[k] !== null && m[k] !== undefined) ? (Number(m[k]) || 0) : (m ? null : 0); }, // null = vacío (no estuvo en el clan)
   }));
   return [
     ...porMega('atq', f => ({ j: f.j, v: f.v, s: f.s, d: f.d, total: f.total })),
@@ -693,10 +704,10 @@ function columnasTemporadaDef(nSem){
   const porMega = (prefijo, campo) => {
     const cols = [];
     for (let i = 0; i < nSem; i++){
-      cols.push({ key: `${prefijo}-sem${i}`, raw: f => { const m = campo(f); return m && Array.isArray(m.semanas) ? (Number(m.semanas[i]) || 0) : 0; } });
+      cols.push({ key: `${prefijo}-sem${i}`, raw: f => { const m = campo(f); if (!(m && Array.isArray(m.semanas))) return 0; const x = m.semanas[i]; return (x === null || x === undefined) ? null : (Number(x) || 0); } }); // null = vacío
     }
-    cols.push({ key: `${prefijo}-resumen`, raw: f => { const m = campo(f); return m ? (Number(m.resumen) || 0) : 0; } });
-    cols.push({ key: `${prefijo}-pct`, raw: f => { const m = campo(f); return m ? (Number(m.pct) || 0) : 0; } });
+    cols.push({ key: `${prefijo}-resumen`, raw: f => { const m = campo(f); if (!m) return 0; const x = m.resumen ?? m.total ?? m.prom; return (x === null || x === undefined) ? null : (Number(x) || 0); } });
+    cols.push({ key: `${prefijo}-pct`, raw: f => { const m = campo(f); if (!m) return 0; return m.pct === null ? null : (Number(m.pct) || 0); } });
     return cols;
   };
   return [
@@ -718,12 +729,18 @@ function cerrarGridFiltroPopoverSiFuera(e){
 
 function valoresUnicosGridColumna(col, filas){
   const set = new Set();
-  filas.forEach(f => set.add(fmtNum(Number(col.raw(f)) || 0)));
+  filas.forEach(f => { const r = col.raw(f); if (r !== null && r !== undefined) set.add(fmtNum(Number(r) || 0)); }); // las celdas vacías no entran al checklist
   return [...set].sort((a, b) => a.localeCompare(b, 'es', { numeric:true, sensitivity:'base' }));
 }
 function compararPorGridColumna(col, dir){
   const signo = dir === 'desc' ? -1 : 1;
-  return (f1, f2) => signo * ((Number(col.raw(f1)) || 0) - (Number(col.raw(f2)) || 0));
+  // celdas vacías (null) siempre al final, sea asc o desc
+  return (f1, f2) => {
+    const r1 = col.raw(f1), r2 = col.raw(f2);
+    const n1 = r1 === null || r1 === undefined, n2 = r2 === null || r2 === undefined;
+    if (n1 || n2) return n1 && n2 ? 0 : (n1 ? 1 : -1);
+    return signo * ((Number(r1) || 0) - (Number(r2) || 0));
+  };
 }
 
 /** Repinta el <tbody> de `tabla` con `filasBase` ya ordenadas según el
@@ -1113,7 +1130,8 @@ function render(data){
   }).join('');
   if(focoLetra){ const bFoco = tl.querySelector(`.tl-day[data-letra="${focoLetra}"]`); if(bFoco) bFoco.focus({ preventScroll:true }); }
   const clanGrid = document.getElementById('clanGrid');
-  const clanes = Object.entries(data.guerraPorClan || {});
+  // FIX (05-oct-2026, pedido usuario): orden fijo Principal, Clan 2, Clan 3, Mini (ordenClanIndex), no el orden en que llegan del backend.
+  const clanes = Object.entries(data.guerraPorClan || {}).sort((a, b) => ordenClanIndex(a[0]) - ordenClanIndex(b[0]));
   document.getElementById('clanCount').textContent = clanes.length + (clanes.length === 1 ? ' clan' : ' clanes');
   clanGrid.innerHTML = clanes.length ? clanes.map(([nombre, g], idx) => {
     const pct = g.totalHoy ? Math.round((g.atacaron / g.totalHoy) * 100) : 0;
@@ -1133,7 +1151,7 @@ function render(data){
            agrega text-align:center a este renglón (antes quedaba pegado a
            la izquierda por default). -->
       <div class="clan-atq" style="margin-top:10px;font-size:12px;color:var(--text-dim);font-family:var(--f-mono);text-align:center;">
-        ${fmtNum(g.atacaron)}/${fmtNum(g.totalHoy)} atacaron hoy (${pct}%)
+        ${fmtNum(g.atacaron)}/${fmtNum(g.totalHoy)} atacaron ${ctx.esDiaGuerra ? 'hoy' : 'en la última guerra'} (${pct}%)
       </div>
       <div class="clan-pron" data-clan="${esc(nombre)}" hidden></div>
     </div>`;
