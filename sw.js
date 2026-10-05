@@ -56,7 +56,9 @@
 // torneos/guerra no sigan sirviendo el api.js viejo desde este caché.
 // v12 (03-oct-2026): assets/styles.css cambió (CORE_ASSETS) -- el panel del menú móvil cerrado pasa a visibility:hidden para que sus
 // enlaces dejen de recibir foco con Tab estando fuera de pantalla. Se sube la versión para que 'activate' borre v11.
-const CACHE_NAME = 'terna-static-v12';
+// v13 (04-oct-2026): guerra.html cambió (CORE_ASSETS) -- "Actualizar" (y la recarga automática de cada minuto) devuelve el foco al botón tras
+// rehabilitarlo, en vez de dejarlo en <body>. Se sube la versión para que 'activate' borre v12 y nadie siga con el guerra.html viejo.
+const CACHE_NAME = 'terna-static-v13';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y

@@ -587,6 +587,7 @@ function iniciarProgreso(){
 async function cargar(manual){
   const statusEl = document.getElementById('status');
   const refreshBtn = document.getElementById('refreshBtn');
+  const teniaFoco = !!refreshBtn && document.activeElement === refreshBtn; // un botón deshabilitado pierde el foco: se devuelve en finally (también en la recarga automática de cada minuto)
   if(refreshBtn){ refreshBtn.classList.add('spinning'); refreshBtn.disabled = true; }
   try{
 // antes esto pegaba directo a ?dashboard=json con un token de administradores hardcodeado acá mismo, visible para cualquiera con "Ver código fuente" de esta página PÚBLICA. Historial en CHANGELOG.md.
@@ -605,6 +606,7 @@ async function cargar(manual){
     }
   }finally{
     if(refreshBtn){ refreshBtn.classList.remove('spinning'); refreshBtn.disabled = false; }
+    if(teniaFoco && document.activeElement === document.body) refreshBtn.focus({preventScroll:true}); // FIX (04-oct-2026): sin esto el foco caía en <body> tras cada Actualizar y en cada recarga automática; preventScroll para no saltar de vuelta al botón si la persona ya se desplazó
   }
 }
 /* claseCeldaCA(n) / celdasMegacategoria(m, gpClase, conColor) Historial en CHANGELOG.md. */

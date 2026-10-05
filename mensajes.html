@@ -651,6 +651,7 @@ function _activarAccionesContenido(root, opciones){
     const docId = btnVerPdf.dataset.docId;
     item.classList.add('viendo-original'); // oculta .contenido-caja vía CSS, nunca quedan los dos a la vez
     btnVerPdf.textContent = '📄 Ocultar original';
+    const teniaFoco = document.activeElement === btnVerPdf; // un botón deshabilitado pierde el foco: se devuelve en finally
     btnVerPdf.disabled = true;
     pdfWrap.innerHTML = '<div class="doc-original-cargando">Cargando documento original…</div>';
     try{
@@ -669,6 +670,7 @@ function _activarAccionesContenido(root, opciones){
       }
     }finally{
       btnVerPdf.disabled = false;
+      if(teniaFoco && document.activeElement === document.body) btnVerPdf.focus({preventScroll:true}); // FIX (04-oct-2026): sin esto el foco caía en <body> al terminar de cargar el original
     }
   });
 

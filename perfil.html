@@ -5502,6 +5502,11 @@ async function enviarVeto(tag){
   if (!razon){ msgEl.innerHTML = '<div class="msg msg-error">Elige una Razón.</div>'; return; }
   if (!window.confirm(`¿Vetar a ${tag}? Esta acción no se puede deshacer desde la web.`)) return;
   const btnConfirmar = document.getElementById('btnVjConfirmar');
+  const teniaFoco = document.activeElement === btnConfirmar; // un botón deshabilitado pierde el foco: se devuelve al rehabilitarlo tras un error
+  const rehabilitarConfirmar = () => {
+    btnConfirmar.disabled = false;
+    if(teniaFoco && document.activeElement === document.body) btnConfirmar.focus({preventScroll:true}); // FIX (04-oct-2026): sin esto, tras un veto fallido el foco caía en <body>
+  };
   btnConfirmar.disabled = true;
   try{
     const data = await apiPost('webAdminVetar', {
@@ -5513,14 +5518,14 @@ async function enviarVeto(tag){
       document.getElementById('btnVetarJugador').style.display = 'none';
       return;
     }
-    if (!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; btnConfirmar.disabled = false; return; }
+    if (!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; rehabilitarConfirmar(); return; }
     msgEl.innerHTML = '<div class="msg msg-ok">Miembro vetado.</div>';
     const btnVetar = document.getElementById('btnVetarJugador');
     btnVetar.disabled = true;
     btnVetar.textContent = '🚫 Vetado';
   }catch(err){
     msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
-    btnConfirmar.disabled = false;
+    rehabilitarConfirmar();
   }
 }
 document.getElementById('btnVetarJugador').addEventListener('click', function(){

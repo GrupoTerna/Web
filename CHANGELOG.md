@@ -11,6 +11,40 @@ el código hoy) cuando hace falta para mantenerlo; el "por qué histórico"
 
 ---
 
+## Foco en más botones que se deshabilitan y teclado en "Ingresar link" y Cambio de rango (octava sesión, tanda 6, 04-oct-2026)
+
+Cierra lo que la tanda 5 dejó como "No tocado (no medido)" (P-2) y "sin probar" (P-3). Pruebas con Chromium (Playwright), 412 px, sesión y backend simulados. Cada defecto se midió antes de corregir y se repitió la misma medición después.
+
+### 04-oct-2026 — `perfil.html`, `admin.html`, `mensajes.html`, `guerra.html`: el foco ya no cae a `<body>` al rehabilitar un botón
+- **Defecto (medido antes de corregir; mismo patrón de la tanda 5):** un botón deshabilitado pierde el foco y al reactivarlo no se devolvía. Casos y resultado, todos `BODY` antes:
+  - `perfil.html`, `enviarVeto()`: "Confirmar veto" (`btnVjConfirmar`) con error del servidor y con conexión caída.
+  - `admin.html`, listener de `#ganadoresLista`, rama `.btnMarcarGrupoManual`: "Marcar visto en el grupo" con error y con conexión caída.
+  - `mensajes.html`, `_activarAccionesContenido()`, listener de `btnVerPdf`: "Ver original" siempre (con éxito y con error), porque el botón se deshabilita mientras carga el Doc.
+  - `guerra.html`, `cargar()`: "Actualizar" (`refreshBtn`), y también en la recarga automática de cada 60 s si el botón tenía el foco.
+- **Cambio:** cada handler recuerda `teniaFoco` antes de deshabilitar y, al reactivar, devuelve el foco solo si cayó en `<body>` (si la persona ya movió el foco a otro control, no se lo quita). Se usa `focus({preventScroll:true})` en los cuatro para que una recarga automática o un resultado tardío no haga saltar la página. En `perfil.html` y en `admin.html` se agregó un helper local (`rehabilitarConfirmar`, `restaurarBoton`) porque hay dos ramas de error.
+- **Verificado (antes → después):** `perfil.html` error y conexión: `BODY` → `btnVjConfirmar`; `admin.html` error y conexión: `BODY` → "Marcar visto en el grupo"; `mensajes.html` (éxito, error, conexión): `BODY` → "📄 Ocultar original"; `guerra.html` (respuesta ok y conexión caída, con y sin sesión): `BODY` → `refreshBtn`. Con el foco en otro control la recarga automática no lo mueve; con el foco en el botón y la página desplazada, `scrollY` no cambia (probado en una página corta; no es una prueba concluyente del salto de scroll en una página larga).
+- **`sw.js`:** `CACHE_NAME` sube a `terna-static-v13` (`guerra.html` está en `CORE_ASSETS`).
+- **Limitación de la medición:** `perfil.html` se midió llamando a `mostrarFormVetar()` sobre la página con un perfil simulado, no con un `webPerfil` real completo; `admin.html` y `mensajes.html` con respuestas simuladas mínimas.
+
+### 04-oct-2026 — `admin.html`, `#panelCambioRangoAccion`: nombres accesibles y foco al quitar una temporada
+- **Defectos (medidos antes de corregir):** de 45 controles enfocables del panel en modo Registrar, **25 no tenían nombre accesible**: los 24 campos de la grilla de requisitos de Ascenso y Descenso (solo tenían `placeholder="0"`, así que un lector de pantalla los anunciaría como "0, editar texto") y el selector de temporada de cada bloque de semanas. Además, al pulsar "✕ Quitar" se destruía el botón enfocado y el foco caía a `<body>`, y con varios bloques todos los botones se llamaban igual.
+- **Cambio:** `pintarGridCR()` agrega `aria-label` a cada campo con el formato "Ascenso, <clan>, <rol>, Trofeos|Ataques" (e igual para Descenso); el selector de temporada lleva `aria-label="Temporada a evaluar"`; en `agregarBloqueTemporadaCR()` el botón Quitar lleva "Quitar la temporada N" (en `aria-label` y `title`, actualizado si se cambia la temporada del bloque) y, tras quitar el bloque, el foco pasa a "+ Añadir temporada".
+- **Verificado (antes → después):** controles sin nombre accesible 25 → 0; foco tras Quitar `BODY` → "+ Añadir temporada"; ejemplos de nombre: "Ascenso, Grupo乂Terna™, Miembro, Trofeos" y "Descenso, Mini乂Ternas™, Colíder, Ataques". Sin errores de JS.
+- **Limitación de la medición:** el backend simulado devolvió una sola temporada, por lo que los dos bloques de la prueba se llamaron igual ("130"); la lógica de actualizar el nombre al cambiar de temporada se probó solo en el sentido de que no da error.
+
+### 04-oct-2026 — `admin.html`, "Ingresar link" de Modificar torneo con teclado: medido, sin defectos propios
+- Flujo completo con teclado (Torneo → Modificar → Principal → "Ingresar link"): 30 paradas de Tab hasta "Guardar cambios", sin trampas de foco y todas con nombre accesible. Único repetido: los 3 enlaces "Quitar" del editor de premios comparten exactamente el mismo nombre (ver P-7); el selector que sigue a cada uno sí se distingue ("Tipo del premio 1/2/3"). Los nombres se midieron truncados a 36 caracteres, así que no se comparó si las dos casillas "Usar el mismo valor para los 4 clanes" (trofeos y ataques) tienen nombre idéntico.
+- Envío con Enter en 5 escenarios (sin link, `corregido:true`, `corregido:false`, error del servidor, conexión caída): el mensaje correcto aparece en `#modificarTorneoMsg` (región `aria-live="polite"`) en cada uno, la máscara de fecha y hora funciona al teclear, el foco se queda en "Guardar cambios" y no hay errores de JS.
+
+### 04-oct-2026 — Observaciones nuevas, sin cambiar (detalle en `Plan_Fases.md`, tanda 6)
+- **P-4:** tras un veto exitoso (`perfil.html`) y tras un "Marcar visto" exitoso (`admin.html`) el foco sigue cayendo a `<body>`; en el segundo caso `cargarGanadoresTorneo()` repinta la lista y el botón deja de existir. Falta decidir a dónde debe ir el foco.
+- **P-5 (por lectura, no medido):** `btnModificarTorneo` no se deshabilita durante la petición; dos Enter seguidos podrían enviar dos veces.
+- **P-6:** `admin.html` usa la clase `msg-success` en 4 mensajes (por ejemplo "Corrida guardada") y no existe en `assets/styles.css` (solo `msg-ok`).
+- **P-7:** el editor de premios tiene varios enlaces "Quitar" con el mismo nombre accesible; no se midió si quitar una fila pierde el foco.
+- **No verificado:** lector de pantalla real; Firefox y Safari; nada contra el backend real.
+- **Verificado en el repo:** `node --test` 165/165 (hubo que instalar `jsdom` con `npm install`; sin `node_modules` las 11 suites fallan por eso), `eslint assets`, `html-validate *.html` y `check-local-links` (144 rutas) sin observaciones; `node --check sw.js` OK.
+- **Subir:** `perfil.html`, `admin.html`, `mensajes.html`, `guerra.html`, `sw.js` y `CHANGELOG.md` al repositorio.
+
 ## Teclado: menú móvil, `permisos.html`, `mensajes.html`, foco tras Guardar y tras un login fallido (octava sesión, tanda 5, 03-oct-2026)
 
 Auditoría con teclado en Chromium (Playwright, 412 px, sesión y backend simulados) de lo que la tanda 3 dejaba sin cubrir: `permisos.html`, `mensajes.html` y el contraste del indicador de foco. Tres defectos reales, corregidos con cambios mínimos (sin cambio de flujo ni de aspecto).
