@@ -225,6 +225,25 @@
   tr.ai-fila-cero{background:rgba(224,90,90,.08);}
   tr.ai-fila-cero td:first-child{box-shadow:inset 3px 0 0 var(--danger);}
   tr.ai-fila-cero .ai-cell-zero{color:var(--danger); opacity:1;}
+  /* Parte 6 (05-oct-2026): mini historial de guerra por jugador (botón 📈 junto al nombre + panel). */
+  .btn-hist-jugador{background:none; border:0; cursor:pointer; font-size:12px; padding:0 4px; margin-left:4px; opacity:.55; vertical-align:middle;}
+  .btn-hist-jugador:hover, .btn-hist-jugador:focus-visible{opacity:1;}
+  .hist-fondo{position:fixed; inset:0; z-index:1000; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; padding:16px;}
+  .hist-fondo.abierto{display:flex;}
+  .hist-panel{background:var(--surface-card); backdrop-filter:blur(10px); border:1px solid var(--line-strong); border-radius:var(--radius-sm); width:min(520px,100%); max-height:86vh; overflow:auto; padding:18px;}
+  .hist-cab{display:flex; justify-content:space-between; align-items:flex-start; gap:12px; margin-bottom:10px;}
+  .hist-cab h3{margin:0; font-size:17px;}
+  .hist-cerrar{background:none; border:1px solid var(--line-strong); color:var(--text-dim); border-radius:var(--radius-sm); cursor:pointer; padding:2px 10px; font-size:16px;}
+  .hist-resumen{display:grid; grid-template-columns:repeat(auto-fit,minmax(110px,1fr)); gap:8px; margin:10px 0;}
+  .hist-resumen div{border:1px solid var(--line); border-radius:var(--radius-sm); padding:8px; text-align:center; font-size:12px; color:var(--text-dim);}
+  .hist-resumen b{display:block; font-family:var(--f-mono); font-size:17px; color:var(--text);}
+  .hist-resumen .hist-malo b{color:var(--danger);}
+  .hist-tabla{width:100%; border-collapse:collapse; font-family:var(--f-mono); font-size:12px;}
+  .hist-tabla th, .hist-tabla td{padding:5px 8px; text-align:center; border-bottom:1px solid var(--line);}
+  .hist-tabla td:first-child, .hist-tabla th:first-child{text-align:left;}
+  .hist-tabla tr.hist-cero td{color:var(--danger);}
+  .hist-nota{font-size:12px; color:var(--text-dim); margin:10px 0 0;}
+  .hist-mas{margin-top:10px;}
   .btn-solo-cero{font-family:var(--f-mono); font-size:12px; background:var(--surface-card); color:var(--text-dim); border:1px solid var(--line-strong); border-radius:var(--radius-sm); padding:5px 12px; cursor:pointer;}
   .btn-solo-cero:hover{color:var(--text);}
   .btn-solo-cero[aria-pressed="true"]{color:var(--danger); border-color:var(--danger);}
@@ -536,6 +555,15 @@
     </div>
   </footer>
 </main>
+<div class="hist-fondo" id="histFondo" role="dialog" aria-modal="true" aria-labelledby="histTitulo">
+  <div class="hist-panel">
+    <div class="hist-cab">
+      <div><h3 id="histTitulo">Historial de guerra</h3><div class="hist-nota" id="histSub" style="margin:2px 0 0;"></div></div>
+      <button type="button" class="hist-cerrar" id="histCerrar" aria-label="Cerrar">×</button>
+    </div>
+    <div id="histCuerpo" aria-live="polite"></div>
+  </div>
+</div>
 
 <script src="assets/js/core/config.js"></script>
 <script src="assets/js/util.js"></script>
@@ -845,6 +873,76 @@ function gridAplicarFiltros(gridId, tabla){
 /* Partes 3-5 (05-oct-2026) ---------------------------------------------- */
 const GRUPOS_GRID = { atq:'ai-grp-atq', pje:'ai-grp-pje', brc:'ai-grp-brc' };
 const NOMBRES_GRUPO_GRID = { atq:'Ataques', pje:'Puntaje', brc:'Barcos' };
+/* Parte 6 (05-oct-2026): mini historial de guerra por jugador. Usa webHistorialGuerraComparador (público): solo días de guerra, últimos ~180 días.
+   Si el jugador no tiene registro en un día (aún no estaba en el clan), ese día simplemente no aparece: se distingue del 0 real igual que en las cuadrículas. */
+function botonHistJugador(f){
+  if (!f || !f.tag) return '';
+  return `<button type="button" class="btn-hist-jugador" data-tag="${esc(f.tag)}" data-nombre="${esc(f.nombre || f.tag)}" title="Ver historial de guerra" aria-label="Historial de guerra de ${esc(f.nombre || f.tag)}">📈</button>`;
+}
+const HIST_FILAS_INICIALES = 28;
+let histSolicitud = 0;
+function histFechaCorta(iso){
+  const [y, m, d] = String(iso).split('-').map(Number);
+  if (!y) return esc(iso);
+  const dt = new Date(y, m - 1, d);
+  const dia = ['dom','lun','mar','mié','jue','vie','sáb'][dt.getDay()];
+  return `${dia} ${String(d).padStart(2,'0')}/${String(m).padStart(2,'0')}`;
+}
+function histCerrar(){ document.getElementById('histFondo').classList.remove('abierto'); histSolicitud++; }
+function histPintar(registros, verTodos){
+  const cuerpo = document.getElementById('histCuerpo');
+  if (!registros.length){
+    cuerpo.innerHTML = '<p class="hist-nota">Sin registros de guerra para este jugador en los últimos 180 días (cuenta nueva o inactiva).</p>';
+    return;
+  }
+  const desc = registros.slice().sort((a, b) => b.fecha.localeCompare(a.fecha));
+  const n = desc.length;
+  const ceros = desc.filter(r => !r.ataques).length;
+  const totAtq = desc.reduce((t, r) => t + (r.ataques || 0), 0);
+  const totFame = desc.reduce((t, r) => t + (r.fame || 0), 0);
+  const totBar = desc.reduce((t, r) => t + (r.barcos || 0), 0);
+  const hoy = new Date(); const hoyIso = `${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}-${String(hoy.getDate()).padStart(2,'0')}`;
+  const visibles = verTodos ? desc : desc.slice(0, HIST_FILAS_INICIALES);
+  const filas = visibles.map(r => `<tr class="${r.ataques ? '' : 'hist-cero'}"><td>${histFechaCorta(r.fecha)}${r.fecha === hoyIso ? ' · en curso' : ''}</td><td>${fmtNum(r.ataques || 0)}</td><td>${fmtNum(r.fame || 0)}</td><td>${fmtNum(r.barcos || 0)}</td></tr>`).join('');
+  cuerpo.innerHTML = `
+    <div class="hist-resumen">
+      <div><b>${n}</b>días de guerra</div>
+      <div><b>${fmtNum(totAtq)}</b>ataques</div>
+      <div class="${ceros ? 'hist-malo' : ''}"><b>${ceros}</b>días con 0 ataques</div>
+      <div><b>${fmtDec(totAtq / n)}</b>ataques por día</div>
+      <div><b>${fmtNum(totFame)}</b>fame</div>
+      <div><b>${fmtNum(totBar)}</b>barcos</div>
+    </div>
+    <table class="hist-tabla"><thead><tr><th>Día</th><th>Ataques</th><th>Fame</th><th>Barcos</th></tr></thead><tbody>${filas}</tbody></table>
+    ${(!verTodos && n > HIST_FILAS_INICIALES) ? `<button type="button" class="btn-solo-cero hist-mas" id="histMas">Ver todos (${n})</button>` : ''}
+    <p class="hist-nota">Un 0 es un día de guerra en el que estuvo registrado y no atacó. Los días anteriores a su ingreso al clan no aparecen. El día en curso puede tener ataques pendientes.</p>`;
+  const mas = document.getElementById('histMas');
+  if (mas) mas.addEventListener('click', () => histPintar(registros, true));
+}
+async function histAbrir(tag, nombre){
+  const fondo = document.getElementById('histFondo');
+  document.getElementById('histTitulo').textContent = nombre || tag;
+  document.getElementById('histSub').textContent = tag;
+  document.getElementById('histCuerpo').innerHTML = '<p class="hist-nota">Cargando historial…</p>';
+  fondo.classList.add('abierto');
+  const mia = ++histSolicitud;
+  try{
+    const data = await apiGet('webHistorialGuerraComparador', { tag1: tag, tag2: '' }, { conSesion: true });
+    if (mia !== histSolicitud) return; // se cerró o se abrió otro jugador mientras cargaba
+    if (!data || data.error) throw new Error((data && data.error) || 'sin respuesta');
+    histPintar(Array.isArray(data.a) ? data.a : [], false);
+  }catch(e){
+    if (mia !== histSolicitud) return;
+    document.getElementById('histCuerpo').innerHTML = '<p class="hist-nota">No se pudo cargar el historial. Intenta de nuevo en un momento.</p>';
+  }
+}
+document.addEventListener('click', ev => {
+  const b = ev.target.closest && ev.target.closest('.btn-hist-jugador');
+  if (b){ ev.preventDefault(); histAbrir(b.dataset.tag, b.dataset.nombre); return; }
+  if (ev.target.id === 'histFondo' || ev.target.id === 'histCerrar') histCerrar();
+});
+document.addEventListener('keydown', ev => { if (ev.key === 'Escape') histCerrar(); });
+
 /* Insignia de rango (Líder/Colíder/Veterano). "Miembro" y los rangos desconocidos no llevan insignia. */
 function insigniaRango(rango){
   const clases = { 'Líder':'rango-lider', 'Colíder':'rango-colider', 'Veterano':'rango-veterano' };
@@ -1470,7 +1568,7 @@ function render(data){
 // claseCeldaCA()/celdasMegacategoria() ahora son helpers globales (ver arriba de render(), hoisteados para que Inactivos también los use). Historial en CHANGELOG.md.
     const renderFilaActivos = f => `
               <tr data-letra="${esc(primeraLetraFiltro(f.nombre || f.tag))}" data-rango="${esc(f.rango || '')}">
-                <td class="col-jugador">${f.tag ? enlaceJugador(f.nombre || f.tag, f.tag) : esc(f.nombre || f.tag)}${insigniaRango(f.rango)}</td>
+                <td class="col-jugador">${f.tag ? enlaceJugador(f.nombre || f.tag, f.tag) : esc(f.nombre || f.tag)}${insigniaRango(f.rango)}${botonHistJugador(f)}</td>
                 ${celdasMegacategoria({j:f.j, v:f.v, s:f.s, d:f.d, total:f.total}, 'ai-grp-atq', true, 'atq')}
                 ${celdasMegacategoria(f.puntaje, 'ai-grp-pje', false, 'pje')}
                 ${celdasMegacategoria(f.barcos, 'ai-grp-brc', false, 'brc')}
@@ -1543,7 +1641,7 @@ function render(data){
     // el <tbody> arranca vacío y lo llena inicializarGridFiltro() más abajo.
     const renderFilaTemporada = f => `
               <tr data-letra="${esc(primeraLetraFiltro(f.nombre || f.tag))}" data-rango="${esc(f.rango || '')}">
-                <td class="col-jugador">${f.tag ? enlaceJugador(f.nombre || f.tag, f.tag) : esc(f.nombre || f.tag)}${insigniaRango(f.rango)}</td>
+                <td class="col-jugador">${f.tag ? enlaceJugador(f.nombre || f.tag, f.tag) : esc(f.nombre || f.tag)}${insigniaRango(f.rango)}${botonHistJugador(f)}</td>
                 ${celdasSemanas(f.ataques, 'ai-grp-atq', true, 'atq')}
                 ${celdasSemanas(f.puntaje, 'ai-grp-pje', false, 'pje')}
                 ${celdasSemanas(f.barcos, 'ai-grp-brc', false, 'brc')}
