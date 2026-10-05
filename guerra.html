@@ -228,6 +228,20 @@
   .btn-solo-cero{font-family:var(--f-mono); font-size:12px; background:var(--surface-card); color:var(--text-dim); border:1px solid var(--line-strong); border-radius:var(--radius-sm); padding:5px 12px; cursor:pointer;}
   .btn-solo-cero:hover{color:var(--text);}
   .btn-solo-cero[aria-pressed="true"]{color:var(--danger); border-color:var(--danger);}
+  /* Partes 3-5 (05-oct-2026): fila de totales/promedio, botones Copiar/CSV e insignia de rango. */
+  .tbl-activos-grid tfoot td{font-family:var(--f-mono); font-size:12px; font-weight:700; text-align:center; border-top:1px solid var(--line-strong); color:var(--text-dim); white-space:nowrap;}
+  .tbl-activos-grid tfoot tr.ai-foot-total td{border-top:2px solid var(--line-strong); color:var(--text);}
+  .tbl-activos-grid tfoot td.col-jugador{text-align:left;}
+  .ai-clan-head{display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom:10px;}
+  .ai-clan-head h3{margin:0;}
+  .ai-acciones{display:flex; gap:6px;}
+  .btn-grid-export{font-family:var(--f-mono); font-size:11px; background:var(--surface-card); color:var(--text-dim); border:1px solid var(--line-strong); border-radius:var(--radius-sm); padding:4px 10px; cursor:pointer;}
+  .btn-grid-export:hover{color:var(--purple-light); border-color:var(--purple);}
+  .btn-grid-export.ok{color:var(--ok); border-color:var(--ok);}
+  .rango-badge{display:inline-block; margin-left:6px; padding:0 6px; border-radius:999px; font-family:var(--f-mono); font-size:10px; font-weight:700; line-height:16px; vertical-align:middle; border:1px solid var(--line-strong); color:var(--text-dim);}
+  .rango-badge.rango-lider{color:var(--gold); border-color:var(--gold);}
+  .rango-badge.rango-colider{color:var(--purple-light); border-color:var(--purple);}
+  .rango-badge.rango-veterano{color:var(--ok); border-color:var(--ok);}
   .ai-total{text-align:center; font-weight:700;}
   .ai-total-full{color:var(--ok); text-shadow:0 0 8px rgba(16,185,129,.4);}
   /* Puntaje y Barcos por día (J/V/S/D): a diferencia de Ataques (0-4
@@ -824,8 +838,102 @@ function gridAplicarFiltros(gridId, tabla){
     const pasaSoloCero = !soloCeroDeGridId(gridId) || tieneCero;
     fila.style.display = (pasaCols && pasaLetra && pasaSoloCero) ? '' : 'none';
   });
+  gridActualizarTotales(tabla);
   actualizarBotonSoloCero(gridId);
 }
+
+/* Partes 3-5 (05-oct-2026) ---------------------------------------------- */
+const GRUPOS_GRID = { atq:'ai-grp-atq', pje:'ai-grp-pje', brc:'ai-grp-brc' };
+const NOMBRES_GRUPO_GRID = { atq:'Ataques', pje:'Puntaje', brc:'Barcos' };
+/* Insignia de rango (Líder/Colíder/Veterano). "Miembro" y los rangos desconocidos no llevan insignia. */
+function insigniaRango(rango){
+  const clases = { 'Líder':'rango-lider', 'Colíder':'rango-colider', 'Veterano':'rango-veterano' };
+  const c = clases[rango];
+  return c ? `<span class="rango-badge ${c}" title="Rango en el clan">${esc(rango)}</span>` : '';
+}
+/* Botones Copiar/CSV de una tarjeta de clan. Exportan lo que se ve (respetan filtros). */
+function botonesExportGrid(gridId){
+  return `<div class="ai-acciones"><button type="button" class="btn-grid-export" data-accion="copiar" data-grid-id="${esc(gridId)}" data-label="⧉ Copiar" title="Copia las filas visibles para pegarlas en una hoja de cálculo">⧉ Copiar</button><button type="button" class="btn-grid-export" data-accion="csv" data-grid-id="${esc(gridId)}" data-label="⬇ CSV" title="Descarga las filas visibles en CSV">⬇ CSV</button></div>`;
+}
+const fmtDec = n => n.toLocaleString('es', { maximumFractionDigits:1 });
+/* Fila de Total y Promedio al pie de la tabla, sobre las filas visibles. Las celdas vacías (no estuvo) no cuentan, ni en el total ni en el promedio. */
+function gridActualizarTotales(tabla){
+  const cols = [...tabla.querySelectorAll('thead tr:nth-child(2) .rt-filtro-btn')].map(b => b.dataset.col);
+  if (!cols.length) return;
+  const visibles = [...tabla.querySelectorAll('tbody tr')].filter(tr => tr.style.display !== 'none');
+  let tfoot = tabla.querySelector('tfoot');
+  if (!tfoot){
+    tfoot = document.createElement('tfoot');
+    tabla.appendChild(tfoot);
+  }
+  if (!visibles.length){ tfoot.innerHTML = ''; return; }
+  const celdasTotal = ['<td class="col-jugador">Total (' + visibles.length + ')</td>'];
+  const celdasProm = ['<td class="col-jugador">Promedio</td>'];
+  cols.forEach(col => {
+    const pref = col.split('-')[0];
+    const clase = GRUPOS_GRID[pref] || '';
+    const vals = [];
+    visibles.forEach(tr => {
+      const c = tr.querySelector(`[data-col="${col}"]`);
+      if (c && c.dataset.raw !== undefined && c.dataset.raw !== ''){ const n = Number(c.dataset.raw); if (!isNaN(n)) vals.push(n); }
+    });
+    const esPct = col.endsWith('-pct');
+    // El Puntaje semanal ya viene como promedio y los % no se suman: en esos casos la fila Total queda vacía.
+    const sumable = !esPct && !(pref === 'pje' && (col.includes('-sem') || col.endsWith('-resumen')));
+    const suma = vals.reduce((a, b) => a + b, 0);
+    celdasTotal.push(`<td class="${clase}">${vals.length && sumable ? fmtNum(suma) : ''}</td>`);
+    celdasProm.push(`<td class="${clase}">${vals.length ? fmtDec(suma / vals.length) + (esPct ? '%' : '') : ''}</td>`);
+  });
+  tfoot.innerHTML = `<tr class="ai-foot-total">${celdasTotal.join('')}</tr><tr>${celdasProm.join('')}</tr>`;
+}
+/* Exportar la tabla visible: nombre, rango, y una columna por cada columna de la cuadrícula. Las celdas vacías quedan vacías. */
+function datosExportGrid(tabla){
+  const cols = [...tabla.querySelectorAll('thead tr:nth-child(2) .rt-filtro-btn')].map(b => ({
+    key: b.dataset.col,
+    label: (b.closest('th').querySelector('span') || {}).textContent || b.dataset.col,
+  }));
+  const encabezado = ['Nombre', 'Rango', ...cols.map(c => (NOMBRES_GRUPO_GRID[c.key.split('-')[0]] || '') + ' ' + c.label)];
+  const filas = [...tabla.querySelectorAll('tbody tr')].filter(tr => tr.style.display !== 'none').map(tr => [
+    ((tr.querySelector('.col-jugador a, .col-jugador') || {}).firstChild || {}).textContent || (tr.querySelector('.col-jugador') || {}).textContent || '',
+    tr.dataset.rango || '',
+    ...cols.map(c => { const td = tr.querySelector(`[data-col="${c.key}"]`); return td ? (td.dataset.raw || '') : ''; }),
+  ]);
+  return [encabezado, ...filas];
+}
+const csvEscapar = v => { v = String(v ?? ''); return /[",\n\r]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+async function copiarTextoGrid(texto){
+  try{ await navigator.clipboard.writeText(texto); return true; }
+  catch(e){
+    try{
+      const ta = document.createElement('textarea'); ta.value = texto; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select(); const ok = document.execCommand('copy'); ta.remove(); return ok;
+    }catch(e2){ return false; }
+  }
+}
+function slugExport(t){ return String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, ''); }
+document.addEventListener('click', async e => {
+  const btn = e.target.closest && e.target.closest('.btn-grid-export');
+  if (!btn) return;
+  const gridId = btn.dataset.gridId;
+  const tabla = document.querySelector(`table[data-grid-id="${CSS.escape(gridId)}"]`);
+  if (!tabla) return;
+  const datos = datosExportGrid(tabla);
+  const original = btn.dataset.label;
+  let ok = true;
+  if (btn.dataset.accion === 'copiar'){
+    ok = await copiarTextoGrid(datos.map(f => f.join('\t')).join('\n'));
+  } else {
+    const csv = '\ufeff' + datos.map(f => f.map(csvEscapar).join(',')).join('\r\n');
+    const [seccion, clan] = [gridId.split(':')[0], gridId.slice(gridId.indexOf(':') + 1)];
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([csv], { type:'text/csv;charset=utf-8' }));
+    a.download = `guerra-${seccion === 'activos' ? 'diarios' : 'semanales'}-${slugExport(clan)}-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }
+  btn.textContent = ok ? '✔ Listo' : 'No se pudo';
+  btn.classList.toggle('ok', ok);
+  setTimeout(() => { btn.textContent = original; btn.classList.remove('ok'); }, 1600);
+});
 
 function soloCeroDeGridId(gridId){
   if (gridId.startsWith('activos:')) return soloCeroActivos;
@@ -1354,8 +1462,8 @@ function render(data){
   if (clanesControlActivos.length){
 // claseCeldaCA()/celdasMegacategoria() ahora son helpers globales (ver arriba de render(), hoisteados para que Inactivos también los use). Historial en CHANGELOG.md.
     const renderFilaActivos = f => `
-              <tr data-letra="${esc(primeraLetraFiltro(f.nombre || f.tag))}">
-                <td class="col-jugador">${f.tag ? enlaceJugador(f.nombre || f.tag, f.tag) : esc(f.nombre || f.tag)}</td>
+              <tr data-letra="${esc(primeraLetraFiltro(f.nombre || f.tag))}" data-rango="${esc(f.rango || '')}">
+                <td class="col-jugador">${f.tag ? enlaceJugador(f.nombre || f.tag, f.tag) : esc(f.nombre || f.tag)}${insigniaRango(f.rango)}</td>
                 ${celdasMegacategoria({j:f.j, v:f.v, s:f.s, d:f.d, total:f.total}, 'ai-grp-atq', true, 'atq')}
                 ${celdasMegacategoria(f.puntaje, 'ai-grp-pje', false, 'pje')}
                 ${celdasMegacategoria(f.barcos, 'ai-grp-brc', false, 'brc')}
@@ -1364,7 +1472,7 @@ function render(data){
       const filas = controlActivos[clanNombre];
       return `
         <div class="card ai-clan-card" data-clan="${esc(clanNombre)}" style="padding:16px;">
-          <h3>${enlaceClan(clanNombre)} <span class="text-faint" style="font-family:var(--f-mono); font-size:12px; font-weight:400;">(${filas.length} activo${filas.length === 1 ? '' : 's'})</span></h3>
+          <div class="ai-clan-head"><h3>${enlaceClan(clanNombre)} <span class="text-faint" style="font-family:var(--f-mono); font-size:12px; font-weight:400;">(${filas.length} activo${filas.length === 1 ? '' : 's'})</span></h3>${botonesExportGrid('activos:' + clanNombre)}</div>
           <div class="table-scroll"><table class="tbl-activos-grid" data-grid-id="activos:${esc(clanNombre)}">
             <thead>
               <tr>
@@ -1427,8 +1535,8 @@ function render(data){
     // filaSubEncabezadosSemanas() (ver más arriba). Igual que en Activos,
     // el <tbody> arranca vacío y lo llena inicializarGridFiltro() más abajo.
     const renderFilaTemporada = f => `
-              <tr data-letra="${esc(primeraLetraFiltro(f.nombre || f.tag))}">
-                <td class="col-jugador">${f.tag ? enlaceJugador(f.nombre || f.tag, f.tag) : esc(f.nombre || f.tag)}</td>
+              <tr data-letra="${esc(primeraLetraFiltro(f.nombre || f.tag))}" data-rango="${esc(f.rango || '')}">
+                <td class="col-jugador">${f.tag ? enlaceJugador(f.nombre || f.tag, f.tag) : esc(f.nombre || f.tag)}${insigniaRango(f.rango)}</td>
                 ${celdasSemanas(f.ataques, 'ai-grp-atq', true, 'atq')}
                 ${celdasSemanas(f.puntaje, 'ai-grp-pje', false, 'pje')}
                 ${celdasSemanas(f.barcos, 'ai-grp-brc', false, 'brc')}
@@ -1437,7 +1545,7 @@ function render(data){
       const filas = controlTemporada[clanNombre];
       return `
         <div class="card ai-clan-card" data-clan="${esc(clanNombre)}" style="padding:16px;">
-          <h3>${enlaceClan(clanNombre)} <span class="text-faint" style="font-family:var(--f-mono); font-size:12px; font-weight:400;">(${filas.length} activo${filas.length === 1 ? '' : 's'})</span></h3>
+          <div class="ai-clan-head"><h3>${enlaceClan(clanNombre)} <span class="text-faint" style="font-family:var(--f-mono); font-size:12px; font-weight:400;">(${filas.length} activo${filas.length === 1 ? '' : 's'})</span></h3>${botonesExportGrid('temporada:' + clanNombre)}</div>
           <div class="table-scroll"><table class="tbl-activos-grid tbl-temporada-grid" data-grid-id="temporada:${esc(clanNombre)}">
             <thead>
               <tr>
