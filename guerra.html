@@ -375,6 +375,8 @@
         <h2 style="font-size:22px;">⚔️ Guerra de Hoy</h2>
         <span class="text-faint" id="clanCount" style="font-family:var(--f-mono); font-size:13px;"></span>
       </div>
+      <!-- Parte 1 (05-oct-2026): aviso visible solo fuera de día de guerra, cuando las tarjetas muestran los resultados congelados de la última guerra. Se llena en render(). -->
+      <div id="guerraCongeladoAviso" class="text-faint" style="display:none; font-family:var(--f-mono); font-size:12px; margin-top:14px; padding:8px 12px; border:1px solid var(--line); border-radius:var(--radius-sm); line-height:1.6;" role="status"></div>
       <div class="clan-grid" id="clanGrid" style="margin-top:20px;"></div>
       <div id="pronosticoNota" class="text-faint" style="font-family:var(--f-mono); font-size:12px; margin-top:6px; line-height:1.6;" hidden>📈 Pronóstico de hoy: la fila resaltada es el clan Terna y las demás son sus rivales en la carrera. La barra muestra la fame actual (sólida) y hasta dónde podría llegar hoy (tenue). «Techo» es una cota máxima, no una predicción: con un solo valor, juegan las cuentas que ya están en la carrera; con dos («roster – máx»), el segundo supone además que las cuentas sin atacar se reemplazan por cuentas de apoyo.</div>
     </section>
@@ -442,6 +444,13 @@
       <!-- aviso visible solo cuando esta cuadrícula está mostrando la foto guardada de la última guerra en vez de datos en vivo de entrenamiento, Y el usuario no eligió manualmente otra semana -- ver rama `else` dentro de render() más abajo. Historial en CHANGELOG.md. -->
       <div id="controlActivosCacheAviso" class="text-faint" style="display:none; font-family:var(--f-mono); font-size:11px; margin-top:10px;"></div>
       <!-- pestañas tipo .tabs-row/.tab-btn (mismo patrón ya usado en "Log de Guerra") que filtran, sin volver a pedir datos, cuál(es) tarjeta(s) .ai-clan-card se muestran. Historial en CHANGELOG.md. -->
+      <!-- Parte 1 (05-oct-2026): leyenda de colores y celdas vacías. -->
+      <div class="grid-leyenda text-faint" style="display:flex; flex-wrap:wrap; gap:6px 16px; font-family:var(--f-mono); font-size:11px; margin-top:12px; line-height:1.6;">
+        <span><b class="ai-cell ai-cell-full">4+</b> Ataques completos</span>
+        <span><b class="ai-cell ai-cell-part">1-3</b> Ataques parciales</span>
+        <span><b class="ai-cell ai-cell-zero">0</b> Estuvo en el clan y no atacó</span>
+        <span><b>(vacío)</b> No estuvo en el clan ese día o semana</span>
+      </div>
       <div class="tabs-row" id="controlActivosClanTabs" style="margin-top:20px;"></div>
       <!-- FIX (13-sep-2026, pedido usuario — "agrega los botones de letras
            en Valores diarios y Valores semanales"): mismo patrón A-Z/# que
@@ -465,6 +474,13 @@
       </div>
       <!-- Pestañas de clan -- mismo patrón y misma función
            gestionarTabsClan() que la Cuadrícula de Activos de arriba. -->
+      <!-- Parte 1 (05-oct-2026): leyenda de colores y celdas vacías. -->
+      <div class="grid-leyenda text-faint" style="display:flex; flex-wrap:wrap; gap:6px 16px; font-family:var(--f-mono); font-size:11px; margin-top:12px; line-height:1.6;">
+        <span><b class="ai-cell ai-cell-full">4+</b> Ataques completos</span>
+        <span><b class="ai-cell ai-cell-part">1-3</b> Ataques parciales</span>
+        <span><b class="ai-cell ai-cell-zero">0</b> Estuvo en el clan y no atacó</span>
+        <span><b>(vacío)</b> No estuvo en el clan ese día o semana</span>
+      </div>
       <div class="tabs-row" id="controlTemporadaClanTabs" style="margin-top:20px;"></div>
       <!-- FIX (13-sep-2026, pedido usuario — "agrega los botones de letras
            en Valores diarios y Valores semanales"): mismo patrón que
@@ -1129,6 +1145,12 @@ function render(data){
     </button>`;
   }).join('');
   if(focoLetra){ const bFoco = tl.querySelector(`.tl-day[data-letra="${focoLetra}"]`); if(bFoco) bFoco.focus({ preventScroll:true }); }
+  // Parte 1 (05-oct-2026): aviso de resultados congelados fuera de día de guerra (lun-mié). La guerra empieza el jueves.
+  const avisoCong = document.getElementById('guerraCongeladoAviso');
+  if(avisoCong){
+    if(ctx.esDiaGuerra){ avisoCong.style.display = 'none'; avisoCong.textContent = ''; }
+    else { avisoCong.textContent = '❄️ Resultados congelados de la última guerra (domingo). No cambian hasta que empiece la siguiente guerra, el jueves.'; avisoCong.style.display = 'block'; }
+  }
   const clanGrid = document.getElementById('clanGrid');
   // FIX (05-oct-2026, pedido usuario): orden fijo Principal, Clan 2, Clan 3, Mini (ordenClanIndex), no el orden en que llegan del backend.
   const clanes = Object.entries(data.guerraPorClan || {}).sort((a, b) => ordenClanIndex(a[0]) - ordenClanIndex(b[0]));
