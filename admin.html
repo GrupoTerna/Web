@@ -4751,14 +4751,16 @@ async function pintarGridCR(tipo){
   const tbody = document.getElementById(tipo === 'ascenso' ? 'crGridAscenso' : 'crGridDescenso');
   if(!tbody) return;
   // Mismo formato de miles que Torneos (type="text" + initInputMiles()) para los campos de Sorteos. Historial en CHANGELOG.md.
-  const inp = (idx, campo, rol) =>
-    `<td><input type="text" inputmode="numeric" class="cr-grid-input" id="${idCeldaCR(tipo, idx, campo, rol)}" placeholder="0"></td>`;
+  // FIX (04-oct-2026, accesibilidad): cada campo llevaba solo placeholder="0", así que un lector de pantalla lo anunciaba como "0, editar texto". Ahora lleva su nombre completo (Ascenso/Descenso, clan, rol y Trofeos/Ataques).
+  const ETIQUETA_ROL_CR = { miembro: 'Miembro', veterano: 'Veterano', colider: 'Colíder' };
+  const inp = (clan, idx, campo, rol) =>
+    `<td><input type="text" inputmode="numeric" class="cr-grid-input" id="${idCeldaCR(tipo, idx, campo, rol)}" placeholder="0" aria-label="${esc(`${tipo === 'ascenso' ? 'Ascenso' : 'Descenso'}, ${clan}, ${ETIQUETA_ROL_CR[rol]}, ${campo === 'min' ? 'Trofeos' : 'Ataques'}`)}"></td>`;
   tbody.innerHTML = clanes.map((clan, idx) => `
     <tr>
       <td>${esc(clan)}</td>
-      ${inp(idx, 'min', 'miembro')}${inp(idx, 'ataq', 'miembro')}
-      ${inp(idx, 'min', 'veterano')}${inp(idx, 'ataq', 'veterano')}
-      ${inp(idx, 'min', 'colider')}${inp(idx, 'ataq', 'colider')}
+      ${inp(clan, idx, 'min', 'miembro')}${inp(clan, idx, 'ataq', 'miembro')}
+      ${inp(clan, idx, 'min', 'veterano')}${inp(clan, idx, 'ataq', 'veterano')}
+      ${inp(clan, idx, 'min', 'colider')}${inp(clan, idx, 'ataq', 'colider')}
     </tr>`).join('');
   clanes.forEach((clan, idx) => {
     ['miembro', 'veterano', 'colider'].forEach(rol => {
@@ -5305,13 +5307,21 @@ async function agregarBloqueTemporadaCR(temporadaPreseleccionada, semanasPresele
   bloque.className = 'cr-temporada-bloque';
   bloque.id = id;
   bloque.innerHTML = `
-    <select class="cr-temporada-select">
+    <select class="cr-temporada-select" aria-label="Temporada a evaluar">
       ${opciones.map(t => `<option value="${esc(String(t))}" ${t === temporada ? 'selected' : ''}>Temporada ${esc(String(t))}</option>`).join('')}
     </select>
     <div class="semana-selector"></div>
-    <button type="button" class="cr-temporada-quitar" title="Quitar esta temporada" aria-label="Quitar esta temporada">✕</button>
+    <button type="button" class="cr-temporada-quitar">✕</button>
   `;
   cont.appendChild(bloque);
+  // FIX (04-oct-2026, accesibilidad): con varios bloques, todos los "✕" se llamaban igual ("Quitar esta temporada"); ahora el nombre incluye la temporada del bloque y se actualiza si se cambia.
+  const btnQuitar = bloque.querySelector('.cr-temporada-quitar');
+  const nombrarQuitar = t => {
+    const txt = `Quitar la temporada ${t}`;
+    btnQuitar.setAttribute('aria-label', txt);
+    btnQuitar.title = txt;
+  };
+  nombrarQuitar(temporada);
 
   pintarChecksTemporadaCR(bloque, map, temporada, semanasPreseleccionadas);
 
@@ -5320,9 +5330,12 @@ async function agregarBloqueTemporadaCR(temporadaPreseleccionada, semanasPresele
     // sin nada preseleccionado (la selección de antes correspondía a la
     // temporada anterior).
     pintarChecksTemporadaCR(bloque, map, ev.target.value, null);
+    nombrarQuitar(ev.target.value);
   });
-  bloque.querySelector('.cr-temporada-quitar').addEventListener('click', () => {
+  btnQuitar.addEventListener('click', () => {
     bloque.remove();
+    // FIX (04-oct-2026): el botón enfocado se destruye con el bloque y el foco caía en <body>; pasa al botón "+ Añadir temporada", que siempre existe.
+    document.getElementById('btnCrAgregarTemporada').focus();
   });
 }
 
@@ -6510,6 +6523,12 @@ document.getElementById('ganadoresLista').addEventListener('click', async (ev) =
   // usaban las otras acciones de este panel tras un guardado exitoso).
   const btnMarcar = ev.target.closest('.btnMarcarGrupoManual');
   if(btnMarcar){
+    const teniaFoco = document.activeElement === btnMarcar; // un botón deshabilitado pierde el foco: se devuelve al rehabilitarlo tras un error
+    const restaurarBoton = () => {
+      btnMarcar.disabled = false;
+      btnMarcar.textContent = 'Marcar visto en el grupo';
+      if(teniaFoco && document.activeElement === document.body) btnMarcar.focus({preventScroll:true}); // FIX (04-oct-2026): sin esto, tras un error el foco caía en <body>
+    };
     btnMarcar.disabled = true;
     btnMarcar.textContent = 'Guardando…';
     try{
@@ -6517,15 +6536,13 @@ document.getElementById('ganadoresLista').addEventListener('click', async (ev) =
       if(manejarRespuestaAuth(data)) return;
       if(!data.ok){
         document.getElementById('ganadoresMsg').innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`;
-        btnMarcar.disabled = false;
-        btnMarcar.textContent = 'Marcar visto en el grupo';
+        restaurarBoton();
         return;
       }
       cargarGanadoresTorneo();
     }catch(err){
       document.getElementById('ganadoresMsg').innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
-      btnMarcar.disabled = false;
-      btnMarcar.textContent = 'Marcar visto en el grupo';
+      restaurarBoton();
     }
     return;
   }
