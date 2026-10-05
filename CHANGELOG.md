@@ -11,6 +11,48 @@ el código hoy) cuando hace falta para mantenerlo; el "por qué histórico"
 
 ---
 
+## Noticias de la semana en admin, celdas vacías y congelado en guerra, y defensas de barco en perfil (05-oct-2026)
+
+Cambios de `admin.html`, `guerra.html` y `perfil.html` que estaban en el código y sin registrar aquí. Varios dependen de cambios en el backend de Apps Script (`08_Web_Endpoints.gs` y `47_Web_Noticias.gs`), que no viven en este repo. Nada se probó con datos reales ni en Apps Script; las pruebas fueron con datos simulados. No se tocó `sw.js` (ver la nota sobre `guerra.html` al final).
+
+### 05-oct-2026 — `admin.html`: sección "Noticias de la semana" (Fase 9 punto (e) del plan "Lista_de_cambios.docx vs Base.md")
+- **Antes:** maqueta con el texto "Próximamente". **Ahora:** tablero conectado dentro de `#noticiasGrupo`, con selector de semana (`#noticiasSemana`, la misma lista de semanas que usan Torneos y Sorteos) y botón "↻ Actualizar" (`#btnRefrescarNoticias`). Solo lectura.
+- **Datos:** una sola llamada autenticada, `webAdminNoticiasSemana` (`apiGetAuth`, backend en `47_Web_Noticias.gs`, enrutada en `08_Web_Endpoints.gs`), devuelve `{ semana, barcos, ascensos, posiciones, guerra, movimientos }` y cada sección trae su propio `ok`/`error`: si una falla, las otras se siguen mostrando. Se pide cuando el tablero entra en pantalla o al cambiar de semana, se cachea por `lunesIso` mientras la página siga abierta (`_noticiasCache`), y `_noticiasPedidoId` descarta respuestas viejas si se cambia de semana rápido.
+- **Contenido:** tarjetas de resumen arriba (fame de la familia, participación, ataques a barcos, cambios de rango, ingresos y salidas, clan en 1.er puesto); paneles con barras por clan, una línea de fame día a día y mini-gráficos de trofeos de las últimas 6 semanas. Las listas largas (jugadores, cambios de rango, movimientos) quedan en "Ver…". Cinco noticias: ataques a barcos (solo ataques propios, no defensas), ascensos y descensos (los "Ascenso de clan" aparte; las propuestas aún "Planificado" no entran), posiciones finales (el "~" marca un puesto estimado), fame y participación de guerra, e ingresos y salidas.
+- **Gráficos:** HTML/SVG a mano, sin librerías, con los tokens de `styles.css`. Cada clan conserva su color en todo el tablero (`ntColor()`, asignado por clan y no por posición).
+- **Pendiente de definir (anotado en los avisos de `47_Web_Noticias.gs`):** (a) hoy lo ve cualquier admin con sesión, sin una Función nueva de permisos; (b) se calcula al vuelo, sin CSV de respaldo; (c) la participación usa 16 ataques por jugador (4 días x 4 mazos) y no descuenta a quien entró o salió a mitad de semana ni los ataques exonerados; (d) el máximo de barcos sale del torneo más reciente de `T_Lista`, y si el vigente es otro el aviso "se pasó" puede no coincidir; (e) los ataques a barcos dependen de las descargas de battlelog, y si a un jugador no se le descargó a tiempo sus ataques pueden faltar; (f) "Ingresos y salidas" sale del historial, que ya tiene anotado que algunos movimientos pudieron no registrarse; (g) otras noticias posibles sin construir: torneos y sorteos de la semana, donaciones, jugadores en riesgo de descenso y avance del barco por día.
+- **Sin cambio:** `sw.js` (`admin.html` no está en `CORE_ASSETS`).
+
+### 05-oct-2026 — `guerra.html` (con `08_Web_Endpoints.gs`): celda vacía cuando el jugador no estuvo en el clan
+- **Pedido del usuario:** en Valores diarios y Valores semanales no mostrar 0 cuando el jugador no estuvo en el clan: 0 solo si estuvo y no atacó, y celda vacía si no estuvo, para distinguir a un jugador nuevo de uno irresponsable.
+- **Backend:** `08_Web_Endpoints.gs` manda `null` en vez de 0 cuando no hay registro de ese día o semana en `Guerra`/`Backup_Guerra` (el mismo criterio de presencia que ya usaba la hoja).
+- **Frontend:** `null` pinta la celda vacía; `undefined` (otras fuentes, como Inactivos) se sigue leyendo como 0. El Total diario, y el Resumen y el % semanal, también quedan vacíos si no hubo ningún día o semana de presencia. Las semanas futuras y los días aún no jugados de la semana en curso salen vacíos (antes salían en 0).
+- **Filtros y orden:** al filtrar una columna, las filas con celda vacía quedan ocultas; al ordenar, las celdas vacías van siempre al final. Inactivos no cambia.
+- **Por si aparece:** un jugador actual con celdas vacías en días que sí estuvo puede significar que el bot no registró ese día.
+
+### 05-oct-2026 — `guerra.html` (con `08_Web_Endpoints.gs`): "Guerra de hoy" congela los resultados del domingo y respeta el orden de los clanes
+- **Defecto:** el usuario había pedido congelar los resultados del domingo (no pasar a ceros el lunes) hasta que empiece la siguiente guerra, pero 3 clanes salían en ceros y solo el Clan 3 conservaba sus datos: de lunes a miércoles el backend sumaba solo las filas del día de hoy, y ese día algunos clanes tenían filas arrastradas y otros ninguna.
+- **Backend:** fuera de día de guerra, los cuatro clanes se suman desde el último día de guerra jugado (el domingo) y se quedan así hasta la guerra del jueves; en día de guerra el cálculo no cambia. Si el domingo anterior no tiene filas en la temporada vigente, se toma el último día de guerra con datos de la temporada anterior.
+- **Frontend:** mientras está congelado, la tarjeta dice "atacaron en la última guerra" en vez de "atacaron hoy" (`ctx.esDiaGuerra`).
+- **Orden de las tarjetas:** `Object.entries(data.guerraPorClan).sort(...)` usa `ordenClanIndex`, la misma función del resto de la página, en vez del orden en que llegan del backend. **No se confirmó** que `ordenClanIndex` (en `assets/common.js`) devuelva Principal, Clan 2, Clan 3, Mini; si el orden sigue mal, el defecto está en esa función.
+
+### 05-oct-2026 — `guerra.html`: aviso de congelado y leyenda (parte 1 de una serie de mejoras)
+- **Aviso:** `#guerraCongeladoAviso`, visible solo fuera de día de guerra (lun-mié): "Resultados congelados de la última guerra (domingo). No cambian hasta que empiece la siguiente guerra, el jueves." Se llena en `render()`.
+- **Leyenda:** bloque `.grid-leyenda` bajo las cuadrículas de Valores diarios y Valores semanales, que explica los colores y la celda vacía frente al 0.
+- **Propuestas aceptadas por el usuario ("todos, por partes pequeñas"), aún sin hacer:** insignia de rango junto al nombre, marca de "meta ya cruzada" (el backend la tiene desactivada en el dashboard desde el 19-sep por rendimiento: la página tardaba 28-39 s; habría que activarla y medir), mini historial por jugador (`webHistorialGuerraJugador`) y comparador (`webHistorialGuerraComparador`), top de la semana (`webRankings`), filtro "solo con 0 ataques", fila de totales por clan y exportar a CSV o copiar.
+
+### 05-oct-2026 — `perfil.html`: las defensas de barco ya no se muestran como Victoria o Derrota
+- **Defecto:** `pintarBatallasRecientes()` no usaba `barcoLado`, aunque `_webBattlelogJugador()` (`34_Web_API.gs`) ya lo enviaba. Una defensa de barco, donde el jugador no atacó, salía con insignia verde o roja como si fuera un ataque suyo. No afectaba a los totales de victorias, derrotas, ratio y racha del perfil, que vienen de otro dato del backend (`ext`).
+- **Cambio:** si la batalla es de barco y `barcoLado` es `defender`, la fila sale neutra (`bt-empate`), con el texto "Defensa" y un tooltip ("el barco del clan fue atacado; este jugador no atacó"). Los ataques (`attacker`), los barcos sin lado y los demás tipos de batalla se pintan igual que antes.
+- **Decisión por defecto:** no se muestra si la defensa aguantó o cayó, porque no se verificó que `boatBattleWon` signifique eso en una defensa. Ocultar las defensas o cambiar el texto es un ajuste de una línea.
+- **Sin cambio de datos:** la columna nueva `LadoBarco` de `Backup_Battlelogs.csv` no afecta a ningún lector del CSV (solo `45_`, `07_` y `46_Battlelogs_Hoja.gs` lo leen; `46_` arma las columnas desde `BLS_HEADERS`).
+- **No verificado en navegador:** conviene abrir un perfil con barcos para confirmar que se ve bien (la prueba fue en Node con el fragmento real de la función).
+
+### Nota para el despliegue: `sw.js`
+- `guerra.html` **sí está en `CORE_ASSETS`** (`perfil.html` no). Los cambios de `guerra.html` de arriba solo llegan a quien ya tiene la página precacheada si `CACHE_NAME` sube de `terna-static-v13` a `v14`, como se hizo el 02-oct-2026 con `guerra.html` (v10). Este cambio **no** tocó `sw.js`; si P-12 (barra de scroll de las tablas, `assets/js/ui/tables.js`) se atiende, el mismo `v14` sirve para ambos.
+
+---
+
 ## Doble envío en 9 botones más y tabla de propuestas con filas reales (octava sesión, tanda 8, 05-oct-2026)
 
 Atiende P-9 y P-10 de la tanda 7. Solo cambia `admin.html` (no está en `CORE_ASSETS`: `sw.js` se queda en v13). Pruebas con Chromium 141 (Playwright), 412 px, sesión y backend simulados; cada defecto se midió antes de corregir. Método del doble envío: se envuelve `fetch` dentro de la página para retrasar 1,2 s solo la acción medida (no con `time.sleep()` en el simulador; ver el falso positivo de la tanda 7), dos Enter a 80 ms, y tres escenarios por botón: éxito, error del backend y sin conexión.
