@@ -544,8 +544,8 @@
            gestionarTabsClan() que la Cuadrícula de Activos de arriba. -->
       <!-- Parte 1 (05-oct-2026): leyenda de colores y celdas vacías. -->
       <div class="grid-leyenda text-faint" style="display:flex; flex-wrap:wrap; gap:6px 16px; font-family:var(--f-mono); font-size:11px; margin-top:12px; line-height:1.6;">
-        <span><b class="ai-cell ai-cell-full">4+</b> Ataques completos</span>
-        <span><b class="ai-cell ai-cell-part">1-3</b> Ataques parciales</span>
+        <span><b class="ai-cell ai-cell-full">16</b> Semana completa (4 ataques x 4 días)</span>
+        <span><b class="ai-cell ai-cell-part">1-15</b> Ataques parciales</span>
         <span><b class="ai-cell ai-cell-zero">0</b> Estuvo en el clan y no atacó</span>
         <span><b>(vacío)</b> No estuvo en el clan ese día o semana</span>
         <span><b style="color:var(--danger);">▌</b> Fila resaltada: estuvo y tiene algún 0</span>
@@ -708,6 +708,9 @@ async function cargar(manual){
   }
 }
 /* claseCeldaCA(n) / celdasMegacategoria(m, gpClase, conColor) Historial en CHANGELOG.md. */
+/* Umbral del verde en Valores semanales (05-oct-2026): una semana tiene hasta 16 ataques (4 días x 4), así que verde = semana completa. Cambia este número para ajustar el criterio. */
+const UMBRAL_VERDE_SEMANAL = 16;
+function claseCeldaSemana(n){ return n >= UMBRAL_VERDE_SEMANAL ? 'ai-cell ai-cell-full' : (n > 0 ? 'ai-cell ai-cell-part' : 'ai-cell ai-cell-zero'); }
 function claseCeldaCA(n){ return n >= 4 ? 'ai-cell ai-cell-full' : (n > 0 ? 'ai-cell ai-cell-part' : 'ai-cell ai-cell-zero'); }
 /* celdasMegacategoria(m, gpClase, conColor, keyPrefix) Historial en CHANGELOG.md. */
 function celdasMegacategoria(m, gpClase, conColor, keyPrefix, opc){
@@ -743,7 +746,7 @@ function celdasSemanas(megacat, gpClase, conColor, keyPrefix){
   const resumen = numONull(resumenRaw);
   const pctRaw = megacat?.pct;
   const pct = pctRaw === null ? null : (Number(pctRaw) || 0);
-  const claseSemana = (n) => `${gpClase} ${conColor ? claseCeldaCA(n) : 'ai-num'}`;
+  const claseSemana = (n) => `${gpClase} ${conColor ? claseCeldaSemana(n) : 'ai-num'}`;
   const claseResumen = `${gpClase} ai-resumen ai-total ${conColor && resumen !== null && resumen >= (semanas.length * 16) ? 'ai-total-full' : ''}`;
   const dc = (k, val) => keyPrefix ? ` data-col="${keyPrefix}-${k}" data-raw="${val === null ? '' : esc(String(val))}"` : '';
   const celdasSem = semanas.map((v, i) => {
