@@ -221,6 +221,13 @@
   .ai-cell-zero{color:var(--text-dim); opacity:.5;}
   .ai-cell-part{color:var(--gold);}
   .ai-cell-full{color:var(--ok);}
+  /* Parte 2 (05-oct-2026): fila con al menos un 0 real (estuvo en el clan y no atacó). Las celdas vacías (no estuvo) NO cuentan. */
+  tr.ai-fila-cero{background:rgba(224,90,90,.08);}
+  tr.ai-fila-cero td:first-child{box-shadow:inset 3px 0 0 var(--danger);}
+  tr.ai-fila-cero .ai-cell-zero{color:var(--danger); opacity:1;}
+  .btn-solo-cero{font-family:var(--f-mono); font-size:12px; background:var(--surface-card); color:var(--text-dim); border:1px solid var(--line-strong); border-radius:var(--radius-sm); padding:5px 12px; cursor:pointer;}
+  .btn-solo-cero:hover{color:var(--text);}
+  .btn-solo-cero[aria-pressed="true"]{color:var(--danger); border-color:var(--danger);}
   .ai-total{text-align:center; font-weight:700;}
   .ai-total-full{color:var(--ok); text-shadow:0 0 8px rgba(16,185,129,.4);}
   /* Puntaje y Barcos por día (J/V/S/D): a diferencia de Ataques (0-4
@@ -450,6 +457,7 @@
         <span><b class="ai-cell ai-cell-part">1-3</b> Ataques parciales</span>
         <span><b class="ai-cell ai-cell-zero">0</b> Estuvo en el clan y no atacó</span>
         <span><b>(vacío)</b> No estuvo en el clan ese día o semana</span>
+        <span><b style="color:var(--danger);">▌</b> Fila resaltada: estuvo y tiene algún 0</span>
       </div>
       <div class="tabs-row" id="controlActivosClanTabs" style="margin-top:20px;"></div>
       <!-- FIX (13-sep-2026, pedido usuario — "agrega los botones de letras
@@ -459,6 +467,7 @@
            clan) de esta cuadrícula a la vez, vía aplicarFiltroLetraGrid()
            como callback. -->
       <div class="tabs-row" id="controlActivosLetraFilter" style="margin-top:10px;"></div>
+      <div style="margin-top:10px;"><button type="button" class="btn-solo-cero" id="soloCeroActivosBtn" aria-pressed="false" title="Muestra solo a quienes estuvieron en el clan y tienen al menos un 0 en Ataques (las celdas vacías no cuentan)">Solo con 0 ataques</button></div>
       <div id="controlActivosWrap" style="margin-top:14px;"></div>
     </section>
 
@@ -480,6 +489,7 @@
         <span><b class="ai-cell ai-cell-part">1-3</b> Ataques parciales</span>
         <span><b class="ai-cell ai-cell-zero">0</b> Estuvo en el clan y no atacó</span>
         <span><b>(vacío)</b> No estuvo en el clan ese día o semana</span>
+        <span><b style="color:var(--danger);">▌</b> Fila resaltada: estuvo y tiene algún 0</span>
       </div>
       <div class="tabs-row" id="controlTemporadaClanTabs" style="margin-top:20px;"></div>
       <!-- FIX (13-sep-2026, pedido usuario — "agrega los botones de letras
@@ -487,6 +497,7 @@
            Valores diarios de arriba (ver pintarFiltroLetra() en
            assets/common.js). -->
       <div class="tabs-row" id="controlTemporadaLetraFilter" style="margin-top:10px;"></div>
+      <div style="margin-top:10px;"><button type="button" class="btn-solo-cero" id="soloCeroTemporadaBtn" aria-pressed="false" title="Muestra solo a quienes estuvieron en el clan y tienen al menos un 0 en Ataques (las celdas vacías no cuentan)">Solo con 0 ataques</button></div>
       <div id="controlTemporadaWrap" style="margin-top:14px;"></div>
     </section>
 
@@ -550,6 +561,9 @@ let letraSeleccionadaPend = null;
 // mismo patrón/estado que letraSeleccionadaPend de arriba, uno por sección (cada cuadrícula tiene su propia tabla por clan, así que el filtro es independiente entre Activos y Temporada). Historial en CHANGELOG.md.
 let letraSeleccionadaActivos = null;
 let letraSeleccionadaTemporada = null;
+// Parte 2 (05-oct-2026): filtro rápido "Solo con 0 ataques" por sección (a nivel de módulo para sobrevivir a render()).
+let soloCeroActivos = false;
+let soloCeroTemporada = false;
 // antes solo existía sectionIndexSeleccionadoActivos (semana dentro de la temporada vigente); ahora se agregan anioSeleccionadoActivos/temporadaSeleccionadaActivos para poder elegir CUALQUIER combinación con datos. Historial en CHANGELOG.md.
 let anioSeleccionadoActivos = null;
 let temporadaSeleccionadaActivos = null;
@@ -804,8 +818,29 @@ function gridAplicarFiltros(gridId, tabla){
       }
     });
     const pasaLetra = !letraSel || fila.dataset.letra === letraSel;
-    fila.style.display = (pasaCols && pasaLetra) ? '' : 'none';
+    // Parte 2: 0 real = data-raw === '0' en una celda de ataques por día/semana (ni total/resumen/% ni celdas vacías).
+    const tieneCero = [...fila.querySelectorAll('[data-col^="atq-"]')].some(c => /^atq-(j|v|s|d|sem\d+)$/.test(c.dataset.col) && c.dataset.raw === '0');
+    fila.classList.toggle('ai-fila-cero', tieneCero);
+    const pasaSoloCero = !soloCeroDeGridId(gridId) || tieneCero;
+    fila.style.display = (pasaCols && pasaLetra && pasaSoloCero) ? '' : 'none';
   });
+  actualizarBotonSoloCero(gridId);
+}
+
+function soloCeroDeGridId(gridId){
+  if (gridId.startsWith('activos:')) return soloCeroActivos;
+  if (gridId.startsWith('temporada:')) return soloCeroTemporada;
+  return false;
+}
+/* Cuenta las filas con 0 real de toda la sección y lo muestra en el botón. */
+function actualizarBotonSoloCero(gridId){
+  const act = gridId.startsWith('activos:');
+  const btn = document.getElementById(act ? 'soloCeroActivosBtn' : 'soloCeroTemporadaBtn');
+  const wrap = document.getElementById(act ? 'controlActivosWrap' : 'controlTemporadaWrap');
+  if (!btn || !wrap) return;
+  const n = wrap.querySelectorAll('tbody tr.ai-fila-cero').length;
+  btn.textContent = 'Solo con 0 ataques' + (n ? ' (' + n + ')' : '');
+  btn.setAttribute('aria-pressed', String(act ? soloCeroActivos : soloCeroTemporada));
 }
 
 function gridActualizarIconos(gridId, tabla){
@@ -2011,6 +2046,10 @@ document.addEventListener('visibilitychange', () => {
 });
 
 setInterval(actualizarAgoText, 1000);
+
+/* Parte 2 (05-oct-2026): botones "Solo con 0 ataques" (uno por sección). Reaplican el filtro combinado sobre las tablas ya pintadas. */
+document.getElementById('soloCeroActivosBtn').addEventListener('click', () => { soloCeroActivos = !soloCeroActivos; aplicarFiltroLetraGrid('controlActivosWrap'); actualizarBotonSoloCero('activos:'); });
+document.getElementById('soloCeroTemporadaBtn').addEventListener('click', () => { soloCeroTemporada = !soloCeroTemporada; aplicarFiltroLetraGrid('controlTemporadaWrap'); actualizarBotonSoloCero('temporada:'); });
 </script>
 <!-- Analítica de visitas (Fase 4): GoatCounter, gratis y sin cookies. Solo en index, directorio, guerra y torneos.
      CSP: gc.zgo.at (script-src) y grupoterna.goatcounter.com (img-src/connect-src) en las 12 páginas. -->
