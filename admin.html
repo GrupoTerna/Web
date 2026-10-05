@@ -660,7 +660,7 @@
 
               <div style="margin-top:14px; padding-top:14px; border-top:1px solid var(--line);">
                 <label style="display:block; margin-bottom:4px;">Premios</label>
-                <p class="text-dim" style="font-size:12px; margin:0 0 10px;">Se muestran los premios ya registrados para este torneo (si todavía no tiene, no se muestra ninguno). Déjalos tal cual si no quieres cambiarlos, o edítalos — usualmente son 3, pero puedes agregar más o quitar los que no necesites.</p>
+                <p class="text-dim" style="font-size:12px; margin:0 0 10px;">Se muestran los premios ya registrados para este torneo (si todavía no tiene, no se muestra ninguno). Déjalos tal cual si no quieres cambiarlos, o edítalos — usualmente son 3, pero puedes agregar más o quitar los que no necesites. Si quitas todos, se conservan los ya registrados.</p>
                 <div id="premiosEditorMod"></div>
                 <button type="button" class="btn btn-ghost btn-block" id="btnAgregarPremioMod" style="margin-top:10px;">+ Agregar premio</button>
               </div>
@@ -966,7 +966,7 @@
                 <!-- Editor de premios de "Modificar sorteo", reutiliza las mismas funciones que Torneos; ya se puebla con los premios del sorteo elegido. -->
                 <div style="margin-top:14px; padding-top:14px; border-top:1px solid var(--line);">
                   <label style="display:block; margin-bottom:4px;">Premios</label>
-                  <p class="text-dim" style="font-size:12px; margin:0 0 10px;">Se muestran los premios ya registrados para este sorteo (o 3 filas en blanco si todavía no tiene). Déjalos tal cual si no quieres cambiarlos, o edítalos — usualmente son 3, pero puedes agregar más o quitar los que no necesites.</p>
+                  <p class="text-dim" style="font-size:12px; margin:0 0 10px;">Se muestran los premios ya registrados para este sorteo (si todavía no tiene, no se muestra ninguno). Déjalos tal cual si no quieres cambiarlos, o edítalos — usualmente son 3, pero puedes agregar más o quitar los que no necesites. Si quitas todos, se conservan los ya registrados.</p>
                   <div id="premiosEditorSorteoMod"></div>
                   <button type="button" class="btn btn-ghost btn-block" id="btnAgregarPremioSorteoMod" style="margin-top:10px;">+ Agregar premio</button>
                 </div>
@@ -3192,20 +3192,26 @@ function crearFilaPremioHTML(id){
 }
 
 /** Renumera "Premio N" de cada fila y esconde el "Quitar" de la única fila
- *  restante (siempre debe quedar al menos 1).
+ *  restante (siempre debe quedar al menos 1), salvo en los editores de
+ *  Modificar (PREMIOS_EDITORES_OPCIONALES), donde se puede quitar hasta la
+ *  última.
  *  FIX (09-sep-2026, pedido usuario — premios en "Modificar torneo"):
  *  todas las funciones de este editor ahora reciben `containerId` para
  *  poder operar tanto sobre #premiosEditor (Planificar) como sobre
  *  #premiosEditorMod (Modificar), que conviven en el mismo DOM. */
+// FIX (05-oct-2026, P-14/P-15, respuesta del usuario): en los editores de MODIFICAR (torneo y sorteo) cambiar los premios es opcional, así que se puede quitar hasta la última fila y volver a "sin premios" (editor vacío = '' = no cambiar lo ya registrado). En Planificar los premios son obligatorios y siempre queda al menos 1 fila. Historial en CHANGELOG.md.
+const PREMIOS_EDITORES_OPCIONALES = ['premiosEditorMod', 'premiosEditorSorteoMod'];
+
 function renumerarPremios(containerId = 'premiosEditor'){
   const filas = document.querySelectorAll(`#${containerId} .premio-fila`);
+  const puedeQuedarVacio = PREMIOS_EDITORES_OPCIONALES.includes(containerId);
   filas.forEach((fila, i) => {
     fila.querySelector('.premio-num').textContent = String(i + 1);
     // Los <label> de la fila no están asociados a su campo (no hay id/for): el nombre accesible lleva el número del premio. Historial en CHANGELOG.md.
     fila.querySelector('.premioTipo').setAttribute('aria-label', 'Tipo del premio ' + (i + 1));
     fila.querySelector('.premioMonto').setAttribute('aria-label', 'Monto del premio ' + (i + 1) + ', en soles');
     fila.querySelector('.premioManual').setAttribute('aria-label', 'Descripción del premio ' + (i + 1));
-    fila.querySelector('.btn-quitar-premio').style.display = filas.length > 1 ? '' : 'none';
+    fila.querySelector('.btn-quitar-premio').style.display = (filas.length > 1 || puedeQuedarVacio) ? '' : 'none';
     // Los tres "Quitar" se llamaban igual: el nombre accesible lleva el número del premio. Historial en CHANGELOG.md.
     fila.querySelector('.btn-quitar-premio').setAttribute('aria-label', 'Quitar premio ' + (i + 1));
   });
@@ -3229,7 +3235,7 @@ function agregarFilaPremio(containerId = 'premiosEditor'){
   btnQuitarPremio.addEventListener('click', (ev) => {
     ev.preventDefault();
     const antes = Array.from(document.querySelectorAll(`#${containerId} .premio-fila`));
-    if(antes.length <= 1) return;
+    if(antes.length <= 1 && !PREMIOS_EDITORES_OPCIONALES.includes(containerId)) return;
     const teniaFoco = document.activeElement === btnQuitarPremio;
     const pos = antes.indexOf(fila);
     fila.remove();
@@ -3238,7 +3244,11 @@ function agregarFilaPremio(containerId = 'premiosEditor'){
     if(teniaFoco){
       const filas = Array.from(document.querySelectorAll(`#${containerId} .premio-fila`));
       const destinoFila = filas[Math.min(pos, filas.length - 1)];
-      if(destinoFila){
+      if(!destinoFila){
+        // Se quitó la última fila (solo en Modificar): el foco pasa al "+ Agregar premio" de ese editor, que queda justo debajo.
+        const btnAgregar = cont.nextElementSibling;
+        if(btnAgregar && btnAgregar.tagName === 'BUTTON') btnAgregar.focus();
+      }else{
         const q = destinoFila.querySelector('.btn-quitar-premio');
         (q && q.style.display !== 'none' ? q : destinoFila.querySelector('.premioTipo')).focus();
       }
@@ -3319,8 +3329,8 @@ document.getElementById('btnAgregarPremioSorteoPlan').addEventListener('click', 
  * estado inicial que reiniciarPremiosEditor() en "Planificar"), salvo que
  * se pase `sinRelleno = true`: entonces el editor queda vacío (0 filas) y
  * armarPremiosCSV() devuelve '' (= no tocar lo guardado). Modificar torneo
- * usa `true` (05-oct-2026); Modificar sorteo y Planificar sorteo siguen
- * con el relleno. Historial en CHANGELOG.md.
+ * y Modificar sorteo usan `true` (05-oct-2026, P-11 y P-15); Planificar
+ * sorteo sigue con el relleno. Historial en CHANGELOG.md.
  */
 function parsearPremiosCSV(texto){
   if(!texto) return [];
@@ -4707,7 +4717,7 @@ document.getElementById('sSelectHoy').addEventListener('change', () => {
   document.getElementById('sCuentaOrgSelectMod').innerHTML = '<option value="">Elige la cuenta…</option>';
   document.getElementById('sCuentaOrgInfoMod').textContent = '';
 
-  poblarPremiosEditor('premiosEditorSorteoMod', opt && opt.dataset.premios);
+  poblarPremiosEditor('premiosEditorSorteoMod', opt && opt.dataset.premios, true);
 
   pintarSemanasSelector('semanasSelectorSorteoMod');
   preseleccionarSemanas('semanasSelectorSorteoMod', opt && opt.dataset.semanas);
@@ -5107,7 +5117,7 @@ document.getElementById('btnModificarSorteo').addEventListener('click', () => co
     document.getElementById('sCuentaOrgSelectMod').innerHTML = '<option value="">Elige la cuenta…</option>';
     document.getElementById('sCuentaOrgInfoMod').textContent = '';
     document.getElementById('sComentario').value = '';
-    poblarPremiosEditor('premiosEditorSorteoMod', '');
+    poblarPremiosEditor('premiosEditorSorteoMod', '', true);
     pintarSemanasSelector('semanasSelectorSorteoMod');
     actualizarEtiquetaSinCambiosAutorSorteo('');
     cargarSorteosHoy();
@@ -6539,7 +6549,7 @@ function mostrarPaso3Sorteo(){
   }
 
   if(esModificar && !document.getElementById('premiosEditorSorteoMod').children.length){
-    poblarPremiosEditor('premiosEditorSorteoMod', '');
+    poblarPremiosEditor('premiosEditorSorteoMod', '', true);
   }
   if(esPlanificar && !document.getElementById('premiosEditorSorteoPlan').children.length){
     poblarPremiosEditor('premiosEditorSorteoPlan', '');
@@ -7108,7 +7118,15 @@ document.getElementById('btnGuardarResolucion').addEventListener('click', () => 
     if(manejarRespuestaAuth(data)) return;
     if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
     document.getElementById('resolucionForm').style.display = 'none';
-    cargarGanadoresTorneo();
+    await cargarGanadoresTorneo();
+    // FIX (05-oct-2026, P-13): el formulario se oculta y el foco caía en <body>; pasa al botón "Gestionar" de la misma cuenta ya repintada (si está en la lista completa y esa lista está cerrada, a la lista). Historial en CHANGELOG.md.
+    const btnFila = Array.from(document.querySelectorAll('#ganadoresLista .btnGestionarResolucion')).find(b => b.dataset.tag === tag && b.offsetParent !== null);
+    if(btnFila){ btnFila.focus(); }
+    else{
+      const lista = document.getElementById('ganadoresLista');
+      lista.setAttribute('tabindex', '-1');
+      lista.focus();
+    }
   }catch(err){
     msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
   }
@@ -7364,11 +7382,13 @@ document.getElementById('btnNmGuardar').addEventListener('click', () => conBoton
     const data = await apiPost('webAdminRegistrarNuevo', payload);
     if(manejarRespuestaAuth(data)) return;
     if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
-    msgEl.innerHTML = '<div class="msg msg-ok">Miembro registrado correctamente.</div>';
+    // FIX (05-oct-2026, P-13): #nmGuardarMsg está DENTRO de #nmPaso2, que se oculta justo acá, así que el aviso de éxito nunca se veía; ahora va en #nmVerificarMsg (fuera de #nmPaso2, con aria-live). El foco, que caía en <body> al ocultarse el botón, pasa al campo Tag (listo para registrar a otro) o, si se usó \"Buscar en Directorio\" y ese campo está oculto, a la pastilla del modo activo. Historial en CHANGELOG.md.
     document.getElementById('nmTag').value = '';
     document.getElementById('nmPaso2').style.display = 'none';
-    document.getElementById('nmVerificarMsg').innerHTML = '';
     nmTagVerificado = null;
+    document.getElementById('nmVerificarMsg').innerHTML = '<div class="msg msg-ok">Miembro registrado correctamente.</div>';
+    const destinoFoco = document.getElementById('nmTag').offsetParent !== null ? document.getElementById('nmTag') : document.querySelector('.btn-toggle-nmmodo.activo');
+    if(destinoFoco) destinoFoco.focus();
   }catch(err){
     msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
   }
