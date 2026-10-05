@@ -222,6 +222,7 @@
   .ai-cell-part{color:var(--gold);}
   .ai-cell-full{color:var(--ok);}
   /* Parte 2 (05-oct-2026): fila con al menos un 0 real (estuvo en el clan y no atacó). Las celdas vacías (no estuvo) NO cuentan. */
+  .ai-cell-opc{color:var(--text-dim); opacity:.75; font-style:italic;}
   tr.ai-fila-cero{background:rgba(224,90,90,.08);}
   tr.ai-fila-cero td:first-child{box-shadow:inset 3px 0 0 var(--danger);}
   tr.ai-fila-cero .ai-cell-zero{color:var(--danger); opacity:1;}
@@ -504,6 +505,7 @@
         <span><b class="ai-cell ai-cell-full">4+</b> Ataques completos</span>
         <span><b class="ai-cell ai-cell-part">1-3</b> Ataques parciales</span>
         <span><b class="ai-cell ai-cell-zero">0</b> Estuvo en el clan y no atacó</span>
+        <span><b class="ai-cell ai-cell-opc">0</b> Meta ya cruzada por el clan: atacar era opcional (no cuenta como falta)</span>
         <span><b>(vacío)</b> No estuvo en el clan ese día o semana</span>
         <span><b style="color:var(--danger);">▌</b> Fila resaltada: estuvo y tiene algún 0</span>
       </div>
@@ -708,16 +710,20 @@ async function cargar(manual){
 /* claseCeldaCA(n) / celdasMegacategoria(m, gpClase, conColor) Historial en CHANGELOG.md. */
 function claseCeldaCA(n){ return n >= 4 ? 'ai-cell ai-cell-full' : (n > 0 ? 'ai-cell ai-cell-part' : 'ai-cell ai-cell-zero'); }
 /* celdasMegacategoria(m, gpClase, conColor, keyPrefix) Historial en CHANGELOG.md. */
-function celdasMegacategoria(m, gpClase, conColor, keyPrefix){
+function celdasMegacategoria(m, gpClase, conColor, keyPrefix, opc){
+  // NUEVO (05-oct-2026): `opc` = letras de días en que el clan ya había cruzado la meta (atacar era opcional). Solo cambia el color de un 0 en esa celda; el valor no se altera.
+  const diasOpc = Array.isArray(opc) ? opc : [];
   // FIX (05-oct-2026, pedido usuario): `null` = el jugador NO estuvo en el clan ese día -> celda VACÍA (no 0). El 0 queda solo para "estuvo y no atacó". `undefined` (otras fuentes, p. ej. Inactivos) se sigue leyendo como 0.
   const val = (x) => x === null ? null : (x ?? 0);
   const j = val(m?.j), v = val(m?.v), s = val(m?.s), d = val(m?.d), total = val(m?.total);
   const claseDia = (n) => `${gpClase} ${conColor ? claseCeldaCA(n) : 'ai-num'}`;
   const claseTotal = `${gpClase} ai-total ${conColor && total >= 16 ? 'ai-total-full' : ''}`;
   const dc = (k, x) => keyPrefix ? ` data-col="${keyPrefix}-${k}" data-raw="${x === null ? '' : esc(String(x))}"` : '';
-  const celdaDia = (k, n) => n === null
-    ? `<td class="${gpClase} ai-num"${dc(k, n)}></td>`
-    : `<td class="${claseDia(n)}"${dc(k, n)}>${conColor ? n : fmtNum(n)}</td>`;
+  const celdaDia = (k, n) => {
+    if (n === null) return `<td class="${gpClase} ai-num"${dc(k, n)}></td>`;
+    if (conColor && n === 0 && diasOpc.includes(k)) return `<td class="${gpClase} ai-cell ai-cell-opc"${dc(k, n)} data-opc="1" title="Meta ya cruzada: atacar era opcional">0</td>`;
+    return `<td class="${claseDia(n)}"${dc(k, n)}>${conColor ? n : fmtNum(n)}</td>`;
+  };
   return `
                 ${celdaDia('j', j)}
                 ${celdaDia('v', v)}
@@ -885,7 +891,7 @@ function gridAplicarFiltros(gridId, tabla){
     });
     const pasaLetra = !letraSel || fila.dataset.letra === letraSel;
     // Parte 2: 0 real = data-raw === '0' en una celda de ataques por día/semana (ni total/resumen/% ni celdas vacías).
-    const tieneCero = [...fila.querySelectorAll('[data-col^="atq-"]')].some(c => /^atq-(j|v|s|d|sem\d+)$/.test(c.dataset.col) && c.dataset.raw === '0');
+    const tieneCero = [...fila.querySelectorAll('[data-col^="atq-"]')].some(c => /^atq-(j|v|s|d|sem\d+)$/.test(c.dataset.col) && c.dataset.raw === '0' && !c.dataset.opc);
     fila.classList.toggle('ai-fila-cero', tieneCero);
     const pasaSoloCero = !soloCeroDeGridId(gridId) || tieneCero;
     fila.style.display = (pasaCols && pasaLetra && pasaSoloCero) ? '' : 'none';
@@ -1693,7 +1699,7 @@ function render(data){
     const renderFilaActivos = f => `
               <tr data-letra="${esc(primeraLetraFiltro(f.nombre || f.tag))}" data-rango="${esc(f.rango || '')}">
                 <td class="col-jugador">${f.tag ? enlaceJugador(f.nombre || f.tag, f.tag) : esc(f.nombre || f.tag)}${insigniaRango(f.rango)}${botonHistJugador(f)}</td>
-                ${celdasMegacategoria({j:f.j, v:f.v, s:f.s, d:f.d, total:f.total}, 'ai-grp-atq', true, 'atq')}
+                ${celdasMegacategoria({j:f.j, v:f.v, s:f.s, d:f.d, total:f.total}, 'ai-grp-atq', true, 'atq', f.opc)}
                 ${celdasMegacategoria(f.puntaje, 'ai-grp-pje', false, 'pje')}
                 ${celdasMegacategoria(f.barcos, 'ai-grp-brc', false, 'brc')}
               </tr>`;
