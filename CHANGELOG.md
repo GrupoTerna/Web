@@ -13,7 +13,7 @@ el código hoy) cuando hace falta para mantenerlo; el "por qué histórico"
 
 ## Noticias de la semana en admin, celdas vacías y congelado en guerra, y defensas de barco en perfil (05-oct-2026)
 
-Cambios de `admin.html`, `guerra.html` y `perfil.html` que estaban en el código y sin registrar aquí. Varios dependen de cambios en el backend de Apps Script (`08_Web_Endpoints.gs` y `47_Web_Noticias.gs`), que no viven en este repo. Nada se probó con datos reales ni en Apps Script; las pruebas fueron con datos simulados. No se tocó `sw.js` (ver la nota sobre `guerra.html` al final).
+Cambios de `admin.html`, `guerra.html` y `perfil.html` que estaban en el código y sin registrar aquí. Varios dependen de cambios en el backend de Apps Script (`08_Web_Endpoints.gs` y `47_Web_Noticias.gs`), que no viven en este repo. Nada se probó con datos reales ni en Apps Script; las pruebas fueron con datos simulados. `sw.js` sube a v14 por `guerra.html` (ver la última entrada).
 
 ### 05-oct-2026 — `admin.html`: sección "Noticias de la semana" (Fase 9 punto (e) del plan "Lista_de_cambios.docx vs Base.md")
 - **Antes:** maqueta con el texto "Próximamente". **Ahora:** tablero conectado dentro de `#noticiasGrupo`, con selector de semana (`#noticiasSemana`, la misma lista de semanas que usan Torneos y Sorteos) y botón "↻ Actualizar" (`#btnRefrescarNoticias`). Solo lectura.
@@ -48,8 +48,11 @@ Cambios de `admin.html`, `guerra.html` y `perfil.html` que estaban en el código
 - **Sin cambio de datos:** la columna nueva `LadoBarco` de `Backup_Battlelogs.csv` no afecta a ningún lector del CSV (solo `45_`, `07_` y `46_Battlelogs_Hoja.gs` lo leen; `46_` arma las columnas desde `BLS_HEADERS`).
 - **No verificado en navegador:** conviene abrir un perfil con barcos para confirmar que se ve bien (la prueba fue en Node con el fragmento real de la función).
 
-### Nota para el despliegue: `sw.js`
-- `guerra.html` **sí está en `CORE_ASSETS`** (`perfil.html` no). Los cambios de `guerra.html` de arriba solo llegan a quien ya tiene la página precacheada si `CACHE_NAME` sube de `terna-static-v13` a `v14`, como se hizo el 02-oct-2026 con `guerra.html` (v10). Este cambio **no** tocó `sw.js`; si P-12 (barra de scroll de las tablas, `assets/js/ui/tables.js`) se atiende, el mismo `v14` sirve para ambos.
+### 05-oct-2026 — `sw.js`: `CACHE_NAME` sube a `terna-static-v14`
+- **Motivo:** `guerra.html` está en `CORE_ASSETS` (`perfil.html` y `admin.html` no), así que sus cambios de arriba solo llegan a quien ya tiene la página precacheada si cambia la versión del caché; `activate` borra `v13`. Mismo criterio que el v10 del 02-oct-2026.
+- **Cambio:** solo la constante `CACHE_NAME` y un comentario `v14` en el historial de versiones de `sw.js`. `CORE_ASSETS` no cambia.
+- **Aún pendiente (P-12):** si se atiende, el mismo `v14` sirve, siempre que aún no se haya publicado; si ya se publicó, habría que subir a `v15`.
+- **No verificado:** que la actualización llegue al navegador de un visitante con el v13 instalado (no se probó el ciclo `install`/`activate`).
 
 ---
 

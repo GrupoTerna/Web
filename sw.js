@@ -58,7 +58,10 @@
 // enlaces dejen de recibir foco con Tab estando fuera de pantalla. Se sube la versión para que 'activate' borre v11.
 // v13 (04-oct-2026): guerra.html cambió (CORE_ASSETS) -- "Actualizar" (y la recarga automática de cada minuto) devuelve el foco al botón tras
 // rehabilitarlo, en vez de dejarlo en <body>. Se sube la versión para que 'activate' borre v12 y nadie siga con el guerra.html viejo.
-const CACHE_NAME = 'terna-static-v13';
+// v14 (05-oct-2026): guerra.html cambió (CORE_ASSETS) -- celdas vacías cuando el jugador no estuvo en el clan, resultados congelados de
+// la última guerra fuera de día de guerra, orden fijo de las tarjetas de clan, aviso de congelado y leyenda. Se sube la versión para que
+// 'activate' borre v13 y nadie siga con el guerra.html viejo.
+const CACHE_NAME = 'terna-static-v14';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
