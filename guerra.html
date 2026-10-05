@@ -506,6 +506,7 @@
         <span><b class="ai-cell ai-cell-part">1-3</b> Ataques parciales</span>
         <span><b class="ai-cell ai-cell-zero">0</b> Estuvo en el clan y no atacó</span>
         <span><b class="ai-cell ai-cell-opc">0</b> Meta ya cruzada por el clan: atacar era opcional (no cuenta como falta)</span>
+        <span><b class="ai-cell ai-cell-full">16</b> En Valores semanales el verde exige 16 ataques, menos 4 por cada día en que la meta ya estaba cruzada</span>
         <span><b>(vacío)</b> No estuvo en el clan ese día o semana</span>
         <span><b style="color:var(--danger);">▌</b> Fila resaltada: estuvo y tiene algún 0</span>
       </div>
@@ -710,7 +711,8 @@ async function cargar(manual){
 /* claseCeldaCA(n) / celdasMegacategoria(m, gpClase, conColor) Historial en CHANGELOG.md. */
 /* Umbral del verde en Valores semanales (05-oct-2026): una semana tiene hasta 16 ataques (4 días x 4), así que verde = semana completa. Cambia este número para ajustar el criterio. */
 const UMBRAL_VERDE_SEMANAL = 16;
-function claseCeldaSemana(n){ return n >= UMBRAL_VERDE_SEMANAL ? 'ai-cell ai-cell-full' : (n > 0 ? 'ai-cell ai-cell-part' : 'ai-cell ai-cell-zero'); }
+/* NUEVO (05-oct-2026): `umbral` = ataques que exige esa semana = 16 menos 4 por cada día en que el clan ya había cruzado la meta (atacar era opcional). Sin dato de días opcionales vale 16, igual que antes. */
+function claseCeldaSemana(n, umbral){ const u = umbral === undefined ? UMBRAL_VERDE_SEMANAL : umbral; return n >= u ? 'ai-cell ai-cell-full' : (n > 0 ? 'ai-cell ai-cell-part' : 'ai-cell ai-cell-zero'); }
 function claseCeldaCA(n){ return n >= 4 ? 'ai-cell ai-cell-full' : (n > 0 ? 'ai-cell ai-cell-part' : 'ai-cell ai-cell-zero'); }
 /* celdasMegacategoria(m, gpClase, conColor, keyPrefix) Historial en CHANGELOG.md. */
 function celdasMegacategoria(m, gpClase, conColor, keyPrefix, opc){
@@ -746,14 +748,21 @@ function celdasSemanas(megacat, gpClase, conColor, keyPrefix){
   const resumen = numONull(resumenRaw);
   const pctRaw = megacat?.pct;
   const pct = pctRaw === null ? null : (Number(pctRaw) || 0);
-  const claseSemana = (n) => `${gpClase} ${conColor ? claseCeldaSemana(n) : 'ai-num'}`;
-  const claseResumen = `${gpClase} ai-resumen ai-total ${conColor && resumen !== null && resumen >= (semanas.length * 16) ? 'ai-total-full' : ''}`;
+  // NUEVO (05-oct-2026): megacat.opc = arreglo paralelo a `semanas` con los días opcionales de cada semana (número, o arreglo de letras j/v/s/d). Si falta, todos los días cuentan (umbral 16).
+  const opcArr = Array.isArray(megacat?.opc) ? megacat.opc : [];
+  const diasOpcSem = (i) => { const o = opcArr[i]; const c = Array.isArray(o) ? o.length : (Number(o) || 0); return Math.max(0, Math.min(4, c)); };
+  const umbralSem = (i) => UMBRAL_VERDE_SEMANAL - 4 * diasOpcSem(i);
+  const umbralTotal = semanas.reduce((a, v, i) => a + (numONull(v) === null ? 0 : umbralSem(i)), 0);
+  const claseSemana = (n, i) => `${gpClase} ${conColor ? claseCeldaSemana(n, umbralSem(i)) : 'ai-num'}`;
+  const claseResumen = `${gpClase} ai-resumen ai-total ${conColor && resumen !== null && umbralTotal > 0 && resumen >= umbralTotal ? 'ai-total-full' : ''}`;
   const dc = (k, val) => keyPrefix ? ` data-col="${keyPrefix}-${k}" data-raw="${val === null ? '' : esc(String(val))}"` : '';
   const celdasSem = semanas.map((v, i) => {
     const n = numONull(v);
     return n === null
       ? `<td class="${gpClase} ai-num"${dc('sem' + i, n)}></td>`
-      : `<td class="${claseSemana(n)}"${dc('sem' + i, n)}>${conColor ? n : fmtNum(n)}</td>`;
+      : (conColor && n === 0 && diasOpcSem(i) === 4)
+        ? `<td class="${gpClase} ai-cell ai-cell-opc"${dc('sem' + i, n)} data-opc="1" title="Meta ya cruzada los 4 días: atacar era opcional">0</td>`
+        : `<td class="${claseSemana(n, i)}"${dc('sem' + i, n)}${conColor && diasOpcSem(i) ? ` title="${diasOpcSem(i)} día(s) opcional(es): verde desde ${umbralSem(i)} ataques"` : ''}>${conColor ? n : fmtNum(n)}</td>`;
   }).join('');
   return `${celdasSem}
                 <td class="${claseResumen}"${dc('resumen', resumen)}>${resumen === null ? '' : fmtNum(resumen)}</td>

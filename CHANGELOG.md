@@ -30,6 +30,11 @@ Cambios de `admin.html`, `guerra.html`, `perfil.html` y `tables.js`; los de `gue
 - **Filtros y orden:** al filtrar una columna, las filas con celda vacía quedan ocultas; al ordenar, las celdas vacías van siempre al final. Inactivos no cambia.
 - **Por si aparece:** un jugador actual con celdas vacías en días que sí estuvo puede significar que el bot no registró ese día.
 
+### 05-oct-2026 — `guerra.html` (con `08_Web_Endpoints.gs`): umbral del verde y % semanal descuentan los días opcionales
+- **Backend:** `_getControlTemporadaPorClan` manda `ataques.opc` (días opcionales de cada semana, paralelo a `semanas`) usando `_diasOpcionalesClanSemana_` (Guerra_Logs, sin lectura extra de Drive). El **%** de ataques usa ahora `16 x semanas presentes - 4 x días opcionales`, con tope 100%, igual que el Control.
+- **Frontend:** en Valores semanales el verde exige `16 - 4 x días opcionales`; una semana con los 4 días opcionales y 0 ataques sale en gris, no como falta. El verde del Resumen suma esos umbrales. Sin `opc` todo funciona como antes (16).
+- **Mini historial y comparador:** ya estaban en `guerra.html` (botón 📈 junto al nombre; `webHistorialGuerraComparador`, público). Se probó el pintado con datos de ejemplo; no se probó contra la hoja real. La nota de arriba que los listaba como pendientes ya no aplica.
+
 ### 05-oct-2026 — `guerra.html` (con `08_Web_Endpoints.gs`): "Guerra de hoy" congela los resultados del domingo y respeta el orden de los clanes
 - **Defecto:** el usuario había pedido congelar los resultados del domingo (no pasar a ceros el lunes) hasta que empiece la siguiente guerra, pero 3 clanes salían en ceros y solo el Clan 3 conservaba sus datos: de lunes a miércoles el backend sumaba solo las filas del día de hoy, y ese día algunos clanes tenían filas arrastradas y otros ninguna.
 - **Backend:** fuera de día de guerra, los cuatro clanes se suman desde el último día de guerra jugado (el domingo) y se quedan así hasta la guerra del jueves; en día de guerra el cálculo no cambia. Si el domingo anterior no tiene filas en la temporada vigente, se toma el último día de guerra con datos de la temporada anterior.
