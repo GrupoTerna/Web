@@ -5079,8 +5079,15 @@ function pintarBatallasRecientes(batallas){
 
   wrap.innerHTML = `<div class="bt-lista">${batallas.map(function(b){
     var esBoat = (b.tipo === 'boatBattle');
-    var colorResultado = COLOR_RESULTADO[b.resultado] || 'var(--text-dim)';
-    var txtResultado = TXT_RESULTADO[b.resultado] || b.resultado;
+    // FIX (5-oct-2026, hallazgo de la sesion 5 del plan -- Fase 15): un boatBattle con barcoLado 'defender' es una
+    // DEFENSA: el barco del clan fue atacado y el jugador NO atacó (su boatAttacks en RoyaleAPI es 0). Antes se pintaba como
+    // «Victoria»/«Derrota» del jugador, como si hubiera atacado. Ahora se muestra neutro como «Defensa» (sin color de
+    // resultado). A proposito NO se muestra si la defensa aguanto o no: no esta verificado que boatBattleWon signifique eso
+    // en una defensa. barcoLado lo manda _webBattlelogJugador() (34_Web_API.gs, ya existia); cualquier otro valor
+    // («attacker» o vacio) se pinta como siempre. Los totales de Victorias/Derrotas/Racha no salen de esta lista (vienen de ext).
+    var esDefensaBarco = esBoat && String(b.barcoLado || '').trim().toLowerCase() === 'defender';
+    var colorResultado = esDefensaBarco ? 'var(--text-dim)' : (COLOR_RESULTADO[b.resultado] || 'var(--text-dim)');
+    var txtResultado = esDefensaBarco ? 'Defensa' : (TXT_RESULTADO[b.resultado] || b.resultado);
 
     // arenaTxt/modoTxt: strings ya resueltos (mismo rol que antes b.arena/
     // b.modo). title="" con el detalle crudo del catálogo, si hay algo que
@@ -5164,7 +5171,7 @@ function pintarBatallasRecientes(batallas){
     var vsHtml = `<span class="bt-yo">${esc(miNombre)}${miClanHtml}</span> <span class="bt-vs-txt">vs.</span> <span class="bt-rival">${rivalHtml}</span>`;
     var modoHtml = `${iconoModoHtml ? `<span class="bt-modo-ico">${iconoModoHtml}</span>` : ''}<span title="${esc(modoTip)}">${esc(b.modoTxt || 'Modo no registrado')}</span>`;
     var arenaHtml = b.arenaTxt ? `<span title="${esc(arenaTip)}">${esc(b.arenaTxt)}</span>` : '<span>—</span>';
-    var claseResultado = 'bt-' + (b.resultado === 'victoria' || b.resultado === 'derrota' || b.resultado === 'empate' ? b.resultado : 'empate');
+    var claseResultado = esDefensaBarco ? 'bt-empate' : ('bt-' + (b.resultado === 'victoria' || b.resultado === 'derrota' || b.resultado === 'empate' ? b.resultado : 'empate'));
 
     return `
       <div class="bt-row ${claseResultado}">
@@ -5172,7 +5179,7 @@ function pintarBatallasRecientes(batallas){
         <div class="bt-modo">${modoHtml}</div>
         <div class="bt-arena">${arenaHtml}</div>
         <div class="bt-marcador">${marcadorHtml}</div>
-        <div class="bt-resultado">${esc(txtResultado)}</div>
+        <div class="bt-resultado"${esDefensaBarco ? ' title="Defensa de barco: el barco del clan fue atacado; este jugador no atacó."' : ''}>${esc(txtResultado)}</div>
         <div class="bt-fecha">${b.fecha ? esc(b.fecha) : 'Fecha no registrada'}${badgesExtra ? ` <span class="bt-meta">${badgesExtra}</span>` : ''}</div>
       </div>`;
   }).join('')}</div>`;
