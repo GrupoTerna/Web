@@ -176,6 +176,24 @@ test('_prepararBarraScrollTabla() crea una barra superior nueva justo antes del 
   assert.equal(r.inner.parentNode, r.barraSup);
 });
 
+test('_prepararBarraScrollTabla() deja la barra superior fuera del orden de Tab (tabindex=-1), sea nueva, reutilizada o pasada por opciones (P-12)', () => {
+  const { window, document } = montar();
+  const wrap = crearWrapConTabla(document);
+  const nueva = window._prepararBarraScrollTabla(wrap, {}).barraSup;
+  assert.equal(nueva.getAttribute('tabindex'), '-1');
+
+  const wrap2 = crearWrapConTabla(document);
+  const existente = document.createElement('div');
+  existente.className = 'tabla-scroll-top scroll-morado';
+  wrap2.parentNode.insertBefore(existente, wrap2);
+  assert.equal(window._prepararBarraScrollTabla(wrap2, {}).barraSup.getAttribute('tabindex'), '-1');
+
+  const wrap3 = crearWrapConTabla(document);
+  const propia = document.createElement('div');
+  document.body.appendChild(propia);
+  assert.equal(window._prepararBarraScrollTabla(wrap3, { barraSuperior: propia }).barraSup.getAttribute('tabindex'), '-1');
+});
+
 test('_prepararBarraScrollTabla() reutiliza el previousElementSibling si ya es .tabla-scroll-top (no crea una segunda barra)', () => {
   const { window, document } = montar();
   const wrap = crearWrapConTabla(document);

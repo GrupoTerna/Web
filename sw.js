@@ -61,7 +61,9 @@
 // v14 (05-oct-2026): guerra.html cambió (CORE_ASSETS) -- celdas vacías cuando el jugador no estuvo en el clan, resultados congelados de
 // la última guerra fuera de día de guerra, orden fijo de las tarjetas de clan, aviso de congelado y leyenda. Se sube la versión para que
 // 'activate' borre v13 y nadie siga con el guerra.html viejo.
-const CACHE_NAME = 'terna-static-v14';
+// v15 (05-oct-2026): tables.js cambió (CORE_ASSETS) -- P-12: la barra superior de scroll de las tablas (aria-hidden) ya no recibe foco con
+// Tab (tabindex=-1). Si v14 aún no se había publicado, v14 y v15 salen juntos; igual se sube para no depender de eso.
+const CACHE_NAME = 'terna-static-v15';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y

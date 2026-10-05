@@ -103,6 +103,12 @@ function _prepararBarraScrollTabla(wrap, opciones){
       wrap.parentNode.insertBefore(barraSup, wrap);
     }
   }
+  // FIX (05-oct-2026, P-12): Chromium (141 medido) vuelve enfocable con Tab a cualquier contenedor con scroll que no tenga hijos
+  // enfocables, y esta barra, que es solo un espejo visual del scroll de la tabla (aria-hidden), recibía foco: una parada de
+  // Tab sobre un elemento oculto a los lectores de pantalla. tabindex=-1 la saca del orden de Tab; el scroll con mouse o tactil
+  // no cambia, y la tabla real (el wrap) sigue siendo enfocable para desplazarla con el teclado.
+  barraSup.setAttribute('tabindex', '-1');
+
   let inner = barraSup.querySelector('.tabla-scroll-top-inner');
   if (!inner){
     inner = document.createElement('div');

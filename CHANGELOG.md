@@ -13,7 +13,7 @@ el código hoy) cuando hace falta para mantenerlo; el "por qué histórico"
 
 ## Noticias de la semana en admin, celdas vacías y congelado en guerra, y defensas de barco en perfil (05-oct-2026)
 
-Cambios de `admin.html`, `guerra.html` y `perfil.html` que estaban en el código y sin registrar aquí. Varios dependen de cambios en el backend de Apps Script (`08_Web_Endpoints.gs` y `47_Web_Noticias.gs`), que no viven en este repo. Nada se probó con datos reales ni en Apps Script; las pruebas fueron con datos simulados. `sw.js` sube a v14 por `guerra.html` (ver la última entrada).
+Cambios de `admin.html`, `guerra.html` y `perfil.html` que estaban en el código y sin registrar aquí. Varios dependen de cambios en el backend de Apps Script (`08_Web_Endpoints.gs` y `47_Web_Noticias.gs`), que no viven en este repo. Nada se probó con datos reales ni en Apps Script; las pruebas fueron con datos simulados. `sw.js` sube a v14 por `guerra.html` y a v15 por `tables.js` (ver las dos últimas entradas).
 
 ### 05-oct-2026 — `admin.html`: sección "Noticias de la semana" (Fase 9 punto (e) del plan "Lista_de_cambios.docx vs Base.md")
 - **Antes:** maqueta con el texto "Próximamente". **Ahora:** tablero conectado dentro de `#noticiasGrupo`, con selector de semana (`#noticiasSemana`, la misma lista de semanas que usan Torneos y Sorteos) y botón "↻ Actualizar" (`#btnRefrescarNoticias`). Solo lectura.
@@ -51,8 +51,16 @@ Cambios de `admin.html`, `guerra.html` y `perfil.html` que estaban en el código
 ### 05-oct-2026 — `sw.js`: `CACHE_NAME` sube a `terna-static-v14`
 - **Motivo:** `guerra.html` está en `CORE_ASSETS` (`perfil.html` y `admin.html` no), así que sus cambios de arriba solo llegan a quien ya tiene la página precacheada si cambia la versión del caché; `activate` borra `v13`. Mismo criterio que el v10 del 02-oct-2026.
 - **Cambio:** solo la constante `CACHE_NAME` y un comentario `v14` en el historial de versiones de `sw.js`. `CORE_ASSETS` no cambia.
-- **Aún pendiente (P-12):** si se atiende, el mismo `v14` sirve, siempre que aún no se haya publicado; si ya se publicó, habría que subir a `v15`.
+- **P-12:** atendido en la entrada siguiente; por eso `sw.js` queda en `v15` (no se sabía si v14 ya estaba publicado).
 - **No verificado:** que la actualización llegue al navegador de un visitante con el v13 instalado (no se probó el ciclo `install`/`activate`).
+
+### 05-oct-2026 — `assets/js/ui/tables.js` y `sw.js` v15: la barra superior de scroll de las tablas ya no recibe foco con Tab (P-12)
+- **Defecto (P-12, medido en Chromium 141):** `.tabla-scroll-top` es solo un espejo visual del scroll de la tabla (`aria-hidden="true"`), pero Chromium vuelve enfocable con Tab a cualquier contenedor con scroll sin hijos enfocables, así que el teclado paraba en un elemento oculto a los lectores de pantalla. Con 2 tablas, la secuencia de Tab era: barra, tabla 1, tabla 2, siguiente botón.
+- **Cambio:** `_prepararBarraScrollTabla()` pone `tabindex="-1"` a la barra superior, sea la que crea, una `.tabla-scroll-top` ya existente o la que pasa `opciones.barraSuperior` (el `#rosterTopScroll` de `directorio.html`, que no tiene `aria-hidden` pero era igual de enfocable por ser un contenedor con scroll). Un solo punto de cambio para las 5 páginas (`admin`, `clan`, `directorio`, `guerra`, `perfil`).
+- **Medido después:** la secuencia de Tab pasa a tabla 1, tabla 2, siguiente botón; la barra sigue sincronizada (scrollLeft=200 en la barra mueve la tabla a 200) y no hubo errores de JS. Las tablas reales (`wrap`) siguen enfocables, así que se pueden desplazar con el teclado.
+- **Límite de la medición:** se hizo con una página de prueba que carga el `tables.js` y el `styles.css` reales (con una barra creada por el componente y otra estática como la de `directorio.html`), no con las 5 páginas reales con backend. Como el componente y el CSS son compartidos, no debería variar por página, pero no se midió así.
+- **Prueba nueva:** `test/tables-dom.test.js` (barra nueva, reutilizada y pasada por opciones, las tres con `tabindex="-1"`). `node --test` 166/166; `eslint assets`, `html-validate` y `check-local-links` (144 rutas) sin observaciones.
+- **`sw.js`:** `CACHE_NAME` pasa a `terna-static-v15` (`tables.js` está en `CORE_ASSETS`), con comentario `v15` en el historial.
 
 ---
 
