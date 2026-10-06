@@ -1485,10 +1485,11 @@
          estuvo en el clan (el 0 es solo para quien estuvo y no ataco); en guerra solo cuentan y se muestran los dias de
          guerra (jue-dom), nunca los de entrenamiento; el maximo de barcos NO es unico: cambia segun el clan, la
          temporada, la corrida de Cambio de rango, el torneo o el sorteo, y en los tres casos es la suma de los barcos
-         de toda la semana.
-         SIGUE PENDIENTE (backend, 47_Web_Noticias.gs; detalle en CHANGELOG.md): que la participacion descuente a quien
-         entro o salio a mitad de semana y los ataques exonerados; que el maximo de barcos se evalue por clan/torneo y
-         no solo con el del torneo mas reciente; que los dias sin datos lleguen como null y no como 0. Tambien sigue
+         de toda la semana. HECHO (05-oct-2026): el backend manda `limites` (uno por evento de la semana) y la pantalla los lista.
+         HECHO en el backend (05-oct-2026, 47_Web_Noticias.gs; detalle en CHANGELOG.md): la participacion cuenta solo los dias de
+         guerra en que el jugador estuvo en el clan y descuenta los dias opcionales (meta ya cruzada); los dias sin datos
+         llegan como null. SIGUE PENDIENTE: ataques exonerados por otros motivos. El maximo de barcos ya se evalua por evento
+         (torneo, sorteo, cambio de rango) de la semana. Tambien sigue
          abierto que otras noticias entran (hoy: barcos, ascensos, posiciones, fame y participacion, ingresos y salidas). -->
     <div class="card admin-grupo" id="noticiasGrupo" style="margin-top:24px;">
       <div class="eyebrow">Noticias de la semana</div>
@@ -4455,10 +4456,10 @@ function ntResumen(d){
   if(ntOk(d.barcos)){
     const tot = d.barcos.clanes.reduce((a, c) => a + c.totalAtaques, 0);
     const pasados = d.barcos.clanes.reduce((a, c) => a + c.jugadores.filter(j => j.excede).length, 0);
-    // El máximo no es único (cambia por clan, temporada, corrida, torneo o sorteo): el aviso usa el del torneo más reciente y la tarjeta lo dice.
-    const hayLimite = d.barcos.limite !== null && d.barcos.limite !== undefined;
+    // El máximo no es único: el backend manda uno por cada torneo, sorteo o cambio de rango de la semana (d.barcos.limites). Se pasó = superó alguno.
+    const hayLimite = (d.barcos.limites || []).length > 0;
     t.push(ntTile('Ataques a barcos', ntN(tot), !hayLimite ? 'sin máximo configurado para comparar'
-      : pasados ? `<span class="nt-down">⚠ ${ntN(pasados)} se pasaron del máximo del torneo más reciente</span>` : 'nadie se pasó del máximo del torneo más reciente'));
+      : pasados ? `<span class="nt-down">⚠ ${ntN(pasados)} se pasaron de algún máximo de la semana</span>` : 'nadie se pasó de los máximos de la semana'));
   }
   if(ntOk(d.ascensos)){
     const n = { asc: 0, desc: 0, exp: 0, otro: 0 };
@@ -4521,16 +4522,19 @@ function ntPanelParticipacion(sec){
   const barras = ntBarras(sec.clanes.map(c => ({
     label: c.clan, valor: c.participacion, color: ntColor(c.clan),
     texto: `${c.participacion.toLocaleString('es-PE')}%`,
-    titulo: `${c.clan}: ${ntN(c.ataques)} de ${ntN(c.ataquesPosibles)} ataques (${c.participacion}%), ${c.completos} jugador(es) con los ${sec.ataquesMaxJugador}`
+    titulo: `${c.clan}: ${ntN(c.ataques)} de ${ntN(c.ataquesPosibles)} ataques exigidos (${c.participacion}%), ${c.completos} jugador(es) con todos sus ataques exigidos`
   })), 100);
   const detalle = sec.clanes.filter(c => c.sinAtaquesTotal > 0).map(c => `
     <details class="nt-detalle"><summary>${esc(c.clan)}: ${ntN(c.sinAtaquesTotal)} sin ningún ataque</summary>
       <div style="margin-top:6px;">${c.sinAtaques.map(j => `<span class="nt-chip">${enlaceJugador(j.nombre, j.tag)}</span>`).join('')}${c.sinAtaquesTotal > c.sinAtaques.length ? '<span class="text-faint" style="font-size:12px;">…y más</span>' : ''}</div>
     </details>`).join('');
   const comp = sec.clanes.map(c => `${esc(c.clan)}: ${ntN(c.completos)}`).join(' · ');
-  return ntPanel('Participación en guerra', `Ataques usados sobre los posibles (${sec.ataquesMaxJugador} por jugador).`,
-    `${barras}<p class="nt-nota" style="margin-top:6px;">Con los ${sec.ataquesMaxJugador} ataques completos → ${comp}</p>${detalle || '<p class="nt-nota">Todos los jugadores atacaron al menos una vez.</p>'}
-     <p class="nt-nota">El porcentaje no descuenta a quienes entraron o salieron a mitad de semana ni los ataques exonerados.</p>`, false);
+  const nomDia = { j: 'jue', v: 'vie', s: 'sáb', d: 'dom' };
+  const opc = sec.clanes.filter(c => (c.diasOpcionales || []).length)
+    .map(c => `${esc(c.clan)}: ${c.diasOpcionales.map(l => nomDia[l] || l).join(', ')}${c.ataquesEnOpcionales ? ` (${ntN(c.ataquesEnOpcionales)} ataques hechos esos días)` : ''}`).join(' · ');
+  return ntPanel('Participación en guerra', 'Ataques usados sobre los exigidos: 4 por cada día de guerra en que el jugador estuvo en el clan, sin contar los días con la meta ya cruzada.',
+    `${barras}<p class="nt-nota" style="margin-top:6px;">Con todos sus ataques exigidos → ${comp}</p>${opc ? `<p class="nt-nota">Días opcionales (meta ya cruzada, no se exigen): ${opc}</p>` : ''}${detalle || '<p class="nt-nota">Todos los jugadores atacaron al menos una vez.</p>'}
+     <p class="nt-nota">Solo cuentan los días de guerra (jue a dom) en que el jugador estuvo en el clan; quien no estaba no aparece con 0. Los ataques exonerados por otros motivos, distintos de la meta cruzada, todavía no se descuentan.</p>`, false);
 }
 
 function ntPanelTopFame(sec){
@@ -4547,8 +4551,9 @@ function ntPanelTopFame(sec){
 function ntPanelBarcos(sec){
   if(!ntOk(sec)) return ntErrorSeccion(sec, 'Ataques a barcos');
   const nota = [];
-  if(sec.limite !== null && sec.limite !== undefined) nota.push(`El aviso «se pasó» usa el máximo de barcos de la semana del torneo más reciente: <b>${esc(sec.limite)}</b>. Es la suma de los barcos de toda la semana, pero el máximo cambia según el clan, la temporada, la corrida de Cambio de rango, el torneo o el sorteo, así que en otros casos puede ser otro valor.`);
-  else nota.push('El torneo más reciente no tiene un máximo de ataques a barcos configurado, así que no se avisa de quién se pasó.');
+  const lims = sec.limites || [];
+  if(lims.length) nota.push(`Máximos de barcos de esta semana (suma de toda la semana; cada torneo, sorteo o cambio de rango tiene el suyo): ${lims.map(l => `<b>${esc(l.origen)}${l.nombre ? ' ' + esc(l.nombre) : ''}${l.id ? ' (' + esc(l.id) + ')' : ''}: ${esc(l.qty)}</b>`).join(' · ')}. «Se pasó» significa superar cualquiera de ellos.${sec.origenLimite === 'vigente' ? ' Ningún evento incluye esta semana, así que se usó el torneo vigente.' : ''}`);
+  else nota.push('Ningún torneo, sorteo ni cambio de rango de esta semana tiene un máximo de ataques a barcos configurado, así que no se avisa de quién se pasó.');
   nota.push('Solo cuentan los ataques del propio jugador, no las defensas.');
   if(sec.defensas) nota.push(`${esc(sec.defensas)} defensa(s) no se cuentan.`);
   if(sec.sinLado) nota.push(`${esc(sec.sinLado)} registro(s) viejo(s) sin dato de lado no se suman (no concluyentes).`);
@@ -4560,7 +4565,7 @@ function ntPanelBarcos(sec){
   const barras = ntBarras(sec.clanes.map(c => ({ label: c.clan, valor: c.totalAtaques, color: ntColor(c.clan) })));
   const pasados = sec.clanes.flatMap(c => c.jugadores.filter(j => j.excede).map(j => ({ j, clan: c.clan })));
   const alerta = pasados.length
-    ? `<div style="margin-top:10px;">${pasados.map(p => `<span class="badge badge-warn" title="${esc(p.clan)}">${esc(p.j.nombre || p.j.tag)}: ${esc(p.j.ataques)}</span> `).join('')}<span class="text-faint" style="font-size:12px;">se pasaron del máximo</span></div>` : '';
+    ? `<div style="margin-top:10px;">${pasados.map(p => `<span class="badge badge-warn" title="${esc(p.clan)}${(p.j.excedeEn || []).length ? ' · ' + esc(p.j.excedeEn.join(' | ')) : ''}">${esc(p.j.nombre || p.j.tag)}: ${esc(p.j.ataques)}</span> `).join('')}<span class="text-faint" style="font-size:12px;">se pasaron del máximo</span></div>` : '';
   const detalle = sec.clanes.map(c => `
     <details class="nt-detalle"><summary>${esc(c.clan)}: detalle por jugador (${c.jugadores.length})</summary>
       <div style="overflow-x:auto; margin-top:6px;"><table>
