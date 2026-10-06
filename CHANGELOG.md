@@ -11,6 +11,18 @@ el código hoy) cuando hace falta para mantenerlo; el "por qué histórico"
 
 ---
 
+## guerra.html y sw.js v16 — encabezados del Log de Guerra en español; respuestas del usuario a los pendientes de Noticias (06-oct-2026)
+
+- **`guerra.html`, `pintarTablaGuerraLog()` (última tabla de la página, Log de Guerra):** los encabezados pasan de `Temporada / Semana / Rank / Boat / Trophy` a `Temporada / Semana / Puesto / Barcos / Trofeos`. La nota de Coliseo (`notaLog`) ahora dice «la columna Barcos va en —». También se actualizaron los dos comentarios que citaban los nombres en inglés (CSS de `#guerraLogWrap` y comentario HTML de la sección). Los campos del backend (`rank`, `boat`, `trophy`) no cambian.
+- **`sw.js`:** `CACHE_NAME` sube a `terna-static-v16` porque `guerra.html` está en `CORE_ASSETS`.
+- **Decidido (usuario, 06-oct-2026) — tope de barcos:** es **uno solo por evento y el mismo para los 4 clanes**. Cierra el PENDIENTE de la entrada de `47_Web_Noticias.gs` (tope distinto por clan): no hace falta agregar columnas a las hojas.
+- **Decidido (usuario, 06-oct-2026) — ataques exonerados:** se exoneran **al ganar, al terminar el sábado**, y **solo se exoneran los ataques del día restante** (el domingo). **Pendiente de definir (para aplicar en `47_Web_Noticias.gs`, `_noticiasGuerra_()`):** cómo se detecta «ganar» (¿puesto 1 del clan al cierre del sábado, en `Guerra_Logs`?) y si el domingo pasa a contarse como opcional para ese clan igual que los días con meta cruzada. Hasta confirmarlo no se descuenta nada.
+- **Decidido (usuario, 06-oct-2026) — identificación de sorteos:** se identifican por **temporada evaluada, semanas y mes evaluado** (el mes que se evalúa, no el de la fecha del sorteo). Reemplaza «se identifican por su ID». **Pendiente de definir (backend y `admin.html`):** de dónde sale el «mes evaluado» (`S_Lista` no tiene columna de nombre y no se verificó que tenga una de mes) y cómo se muestra en la tarjeta de barcos de Noticias (`ntPanelBarcos()`).
+- **No se tocó el backend** (`47_Web_Noticias.gs`, `Base.md` no estaba subido): lo anterior queda documentado, no aplicado.
+- **Verificado:** `node --test` 166/166; `html-validate guerra.html`, `eslint assets` y `check-local-links` (144 rutas) sin observaciones. No se probó en navegador ni con backend real.
+
+---
+
 ## 47_Web_Noticias.gs + admin.html — máximo de barcos por evento y textos de participación (05-oct-2026)
 
 - **Backend (`_noticiasLimitesBarcos_()` nueva, usada por `_noticiasBarcos_()`):** el máximo de barcos ya no sale solo del torneo vigente/más reciente. Se toma uno por cada torneo (T_Lista), sorteo (S_Lista) y cambio de rango (CR_Lista) cuya columna Semanas incluye la temporada y semana consultadas; cada fila trae un solo tope, igual para los 4 clanes (0 vale como tope; celda vacía = sin tope). En los tres casos es la suma de la semana.

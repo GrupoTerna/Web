@@ -63,7 +63,9 @@
 // 'activate' borre v13 y nadie siga con el guerra.html viejo.
 // v15 (05-oct-2026): tables.js cambió (CORE_ASSETS) -- P-12: la barra superior de scroll de las tablas (aria-hidden) ya no recibe foco con
 // Tab (tabindex=-1). Si v14 aún no se había publicado, v14 y v15 salen juntos; igual se sube para no depender de eso.
-const CACHE_NAME = 'terna-static-v15';
+// v16 (06-oct-2026): guerra.html cambió (CORE_ASSETS) -- la tabla del Log de Guerra pasa a encabezados en español (Puesto, Barcos, Trofeos).
+// Se sube la versión para que 'activate' borre v15 y nadie siga con el guerra.html viejo.
+const CACHE_NAME = 'terna-static-v16';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y

@@ -298,7 +298,7 @@
   /* sin estos font-size, el <th> quedaba en el 11px genérico y el <td> en el 14px genérico (ambos de table/th en styles.css) — se fijan acá en 13px/13px para igualar exactamente a .roster-table (directorio.html) e .inactivos-table (styles.css). Historial en CHANGELOG.md. */
   .ai-clan-card table th{font-size:13px;}
   .ai-clan-card table td{font-size:13px;}
-  /* La tabla del Log de Guerra (Temporada/Semana/Rank/Boat/Trophy, pintada
+  /* La tabla del Log de Guerra (Temporada/Semana/Puesto/Barcos/Trofeos, pintada
      por pintarTablaGuerraLog() más abajo) es la única tabla de esta página
      sin clase propia — se ajusta acá vía su contenedor para el mismo
      13px/13px del resto de tablas del panel. */
@@ -561,7 +561,7 @@
       <div id="controlTemporadaWrap" style="margin-top:14px;"></div>
     </section>
 
-    <!-- Log de Guerra: histórico por clan (Temporada → Semana → Rank/Boat/Trophy), sección pública que se carga una sola vez al entrar a la página. Historial en CHANGELOG.md. -->
+    <!-- Log de Guerra: histórico por clan (Temporada → Semana → Puesto/Barcos/Trofeos), sección pública que se carga una sola vez al entrar a la página. Historial en CHANGELOG.md. -->
     <section id="guerraLogSection" style="padding:24px 0; display:none;">
       <div class="sec-head" style="border-bottom:1px solid var(--line); padding-bottom:12px;">
         <h2 style="font-size:22px;">📜 Log de Guerra (Histórico)</h2>
@@ -2345,11 +2345,11 @@ async function cargarGuerraLog(){
       const hayEstimado = semanas.some(s => s && s.rankEstimado && Number(s.rank) > 0);
       const hayColiseo  = semanas.some(s => s && s.coliseo);
       const notaLog = (hayEstimado || hayColiseo)
-        ? `<div class="tlp-nota">${hayEstimado ? NOTA_PUESTO_ESTIMADO + ' ' : ''}${hayColiseo ? 'Coliseo: los barcos no avanzan, por eso no hay Boat (—).' : ''}</div>`
+        ? `<div class="tlp-nota">${hayEstimado ? NOTA_PUESTO_ESTIMADO + ' ' : ''}${hayColiseo ? 'Coliseo: los barcos no avanzan, por eso la columna Barcos va en —.' : ''}</div>`
         : '';
       tableWrap.innerHTML = semanas.length ? `
         <div class="card" style="padding:12px;"><div class="table-scroll"><table>
-          <thead><tr><th scope="col">Temporada</th><th scope="col">Semana</th><th scope="col">Rank</th><th scope="col">Boat</th><th scope="col">Trophy</th></tr></thead>
+          <thead><tr><th scope="col">Temporada</th><th scope="col">Semana</th><th scope="col">Puesto</th><th scope="col">Barcos</th><th scope="col">Trofeos</th></tr></thead>
           <tbody>${semanas.map(s => {
             const delta = Number(s.trophyDelta) || 0;
             const deltaHtml = delta
