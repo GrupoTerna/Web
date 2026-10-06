@@ -11,6 +11,15 @@ el código hoy) cuando hace falta para mantenerlo; el "por qué histórico"
 
 ---
 
+## 47_Web_Noticias.gs + admin.html — máximo de barcos por evento y textos de participación (05-oct-2026)
+
+- **Backend (`_noticiasLimitesBarcos_()` nueva, usada por `_noticiasBarcos_()`):** el máximo de barcos ya no sale solo del torneo vigente/más reciente. Se toma uno por cada torneo (T_Lista), sorteo (S_Lista) y cambio de rango (CR_Lista) cuya columna Semanas incluye la temporada y semana consultadas; cada fila trae un solo tope, igual para los 4 clanes (0 vale como tope; celda vacía = sin tope). En los tres casos es la suma de la semana.
+- **Respuesta:** `limites` (lista con origen, id, nombre y qty), `limite` (el más estricto, por compatibilidad), `origenLimite` ('semana' | 'vigente' | 'ninguno') y, por jugador, `excedeEn` (de qué eventos se pasó). `excede` es verdadero si supera cualquiera. Si ningún evento incluye la semana, respaldo: torneo vigente (`_getConfigMasRecienteCategoria('Torneo')`).
+- **admin.html (Noticias):** la tarjeta de barcos lista todos los máximos de la semana y el aviso «se pasó» muestra de cuál(es) se pasó. Los textos de Participación en guerra ya hablan de ataques exigidos (4 por día en que estuvo en el clan, sin días con meta cruzada) en vez de «16 por jugador».
+- **PENDIENTE:** un tope distinto por clan dentro de la misma fila no es posible hoy (las hojas guardan una sola columna Barcos por evento); si hace falta, requiere cambiar las hojas. Ataques exonerados por otros motivos siguen sin descontarse. Probado solo con datos simulados; sin probar en Apps Script ni en navegador.
+
+---
+
 ## 47_Web_Noticias.gs — participación de guerra por días en el clan y días opcionales (05-oct-2026)
 
 - **Función `_noticiasGuerra_()`:** la participación ya no usa 16 ataques por jugador. Cada jugador exige 4 ataques por cada día de guerra (jueves a domingo) en que hay fila suyo en la hoja Guerra (sin fila = no estaba en el clan: no se exige y no aparece como 0). Los días con meta ya cruzada (`_clanYaCruzoMetaEnPeriodo()`, jueves y coliseo nunca) no se exigen; sus ataques salen aparte en `ataquesEnOpcionales`.
