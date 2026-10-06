@@ -11,6 +11,16 @@ el código hoy) cuando hace falta para mantenerlo; el "por qué histórico"
 
 ---
 
+## guerra.html — marca de "meta ya cruzada" en Guerra de Hoy (05-oct-2026)
+
+- **Decisión del usuario:** la meta ya cruzada **sí se debe considerar** (si el clan ya la cruzó, atacar es opcional y no cuenta como falta). Reemplaza el "habría que activarla y medir" de la entrada anterior.
+- **Frontend (`guerra.html`, render de tarjetas de clan en Guerra de Hoy):** si `guerraPorClan[clan].metaCruzada === true`, la tarjeta muestra la insignia "Meta ya cruzada · ataque opcional". Sin ese campo no se muestra nada (comportamiento anterior). Las tablas de Valores diarios/semanales ya usaban `opc`.
+- **PENDIENTE DE DEFINIR (backend, no probado):** el backend debe enviar `metaCruzada` por clan en el dashboard. Está desactivado desde el 19-sep porque la página tardaba 28-39 s; hay que activarlo y medir el tiempo. El nombre `metaCruzada` es una propuesta del frontend: confirmar o cambiar al ver `Base.md`.
+- **PENDIENTE DE DEFINIR:** mini historial por jugador: el día en curso cuenta como "día con 0 ataques"; además, un 0 en un día con meta cruzada no debería contarse como falta. Falta decidir si se excluye el día en curso y si el backend enviará el día como opcional.
+- No se probó en navegador ni con backend real.
+
+---
+
 ## Decisiones de Noticias, reglas de datos de guerra y comentarios desactualizados (05-oct-2026)
 
 Cambios de `admin.html` y `perfil.html` (comentarios, dos ajustes chicos en Noticias) y correcciones a este mismo archivo. `guerra.html` y `sw.js` no cambian: `sw.js` sigue en `terna-static-v15` (`admin.html` y `perfil.html` no están en `CORE_ASSETS`). El backend (`47_Web_Noticias.gs`, `08_Web_Endpoints.gs`) no se tocó porque `Base.md` no estaba subido. Nada se probó con datos reales ni en Apps Script: las pruebas fueron con datos simulados, usando las funciones reales extraídas de `admin.html`. `node --test` 166/166; `eslint assets`, `html-validate` y `check-local-links` (144 rutas) sin observaciones.
