@@ -1478,10 +1478,18 @@
          movimientos); cada una viene con su propio ok/error, asi que si una falla las otras se siguen mostrando.
          Todo se pinta por JS dentro de #noticiasDash (tarjetas de resumen + paneles con graficos). Solo LECTURA.
          Se pide cuando el tablero entra en pantalla o al cambiar de semana.
-         PENDIENTE DE DEFINIR con la usuaria (hoy se asumio lo siguiente, ver AVISOS de 47_Web_Noticias.gs):
-         (a) lo ve cualquier admin con sesion (no hay Funcion nueva); (b) la semana se elige de la misma lista de
-         semanas recientes de Torneos/Sorteos; (c) se arma al vuelo, sin CSV de respaldo; (d) que otras noticias entran
-         (hoy: barcos, ascensos, posiciones, fame y participacion, ingresos y salidas). -->
+         DECIDIDO por el usuario (05-oct-2026): lo ven TODOS los admin con sesion (no hay Funcion nueva de permisos);
+         sin CSV de respaldo por ahora, se arma al vuelo (el motivo y cuando revisarlo estan en CHANGELOG.md).
+         La semana se elige de la misma lista de semanas recientes de Torneos/Sorteos.
+         REGLAS DE DATOS (usuario, valen para todo dato de guerra por jugador): celda o valor VACIO si el jugador no
+         estuvo en el clan (el 0 es solo para quien estuvo y no ataco); en guerra solo cuentan y se muestran los dias de
+         guerra (jue-dom), nunca los de entrenamiento; el maximo de barcos NO es unico: cambia segun el clan, la
+         temporada, la corrida de Cambio de rango, el torneo o el sorteo, y en los tres casos es la suma de los barcos
+         de toda la semana.
+         SIGUE PENDIENTE (backend, 47_Web_Noticias.gs; detalle en CHANGELOG.md): que la participacion descuente a quien
+         entro o salio a mitad de semana y los ataques exonerados; que el maximo de barcos se evalue por clan/torneo y
+         no solo con el del torneo mas reciente; que los dias sin datos lleguen como null y no como 0. Tambien sigue
+         abierto que otras noticias entran (hoy: barcos, ascensos, posiciones, fame y participacion, ingresos y salidas). -->
     <div class="card admin-grupo" id="noticiasGrupo" style="margin-top:24px;">
       <div class="eyebrow">Noticias de la semana</div>
       <p class="text-dim" style="font-size:13px; margin:10px 0 12px;">El resumen de lo que pasó en los clanes durante la semana de guerra, para no tener que armarlo a mano. Elige la semana y el tablero se arma solo.</p>
@@ -4389,10 +4397,13 @@ function ntSpark(valores, color){
   </svg>`;
 }
 
-/** Lineas con un punto por dia (hover = valor). series = [{nombre, color, valores}]; etiquetas = eje X. */
+/** Lineas con un punto por dia (hover = valor). series = [{nombre, color, valores}]; etiquetas = eje X.
+ *  Un valor null/undefined/no numerico = dia sin dato (p. ej. un dia de guerra aun no jugado): no se dibuja punto y la linea se corta ahi.
+ *  Solo un 0 real se dibuja como 0. */
 function ntLineas(series, etiquetas){
   const W = 360, H = 170, L = 46, R = 12, T = 10, B = 24;
-  const max = Math.max(1, ...series.flatMap(s => s.valores));
+  const hayDato = v => v !== null && v !== undefined && v !== '' && Number.isFinite(Number(v));
+  const max = Math.max(1, ...series.flatMap(s => s.valores.filter(hayDato).map(Number)));
   const X = i => L + i * (W - L - R) / (etiquetas.length - 1);
   const Y = v => T + (H - T - B) * (1 - v / max);
   const compacto = v => v >= 1000 ? (Math.round(v / 100) / 10).toLocaleString('es-PE') + ' mil' : String(v);
@@ -4403,9 +4414,17 @@ function ntLineas(series, etiquetas){
   }).join('');
   const xs = etiquetas.map((t, i) => `<text x="${X(i).toFixed(1)}" y="${H - 6}" text-anchor="middle" font-size="10" fill="#898781">${esc(t)}</text>`).join('');
   const lineas = series.map(s => {
-    const pts = s.valores.map((v, i) => `${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join(' ');
-    const puntos = s.valores.map((v, i) => `<circle cx="${X(i).toFixed(1)}" cy="${Y(v).toFixed(1)}" r="4" fill="${s.color}" stroke="#0b0c10" stroke-width="2"><title>${esc(s.nombre)} · ${esc(etiquetas[i])}: ${ntN(v)}</title></circle>`).join('');
-    return `<polyline points="${pts}" fill="none" stroke="${s.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>${puntos}`;
+    // Tramos de dias consecutivos con dato: un dia sin dato corta la linea en vez de bajarla a 0.
+    const tramos = [];
+    let actual = [];
+    s.valores.forEach((v, i) => {
+      if(hayDato(v)) actual.push(`${X(i).toFixed(1)},${Y(Number(v)).toFixed(1)}`);
+      else if(actual.length){ tramos.push(actual); actual = []; }
+    });
+    if(actual.length) tramos.push(actual);
+    const trazos = tramos.filter(t => t.length > 1).map(t => `<polyline points="${t.join(' ')}" fill="none" stroke="${s.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`).join('');
+    const puntos = s.valores.map((v, i) => hayDato(v) ? `<circle cx="${X(i).toFixed(1)}" cy="${Y(Number(v)).toFixed(1)}" r="4" fill="${s.color}" stroke="#0b0c10" stroke-width="2"><title>${esc(s.nombre)} · ${esc(etiquetas[i])}: ${ntN(v)}</title></circle>` : '').join('');
+    return `${trazos}${puntos}`;
   }).join('');
   const leyenda = series.map(s => `<span><span class="nt-dot" style="background:${s.color}"></span>${esc(s.nombre)}</span>`).join('');
   return `<svg class="nt-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Fame acumulada por día de guerra">${grid}${xs}${lineas}</svg><div class="nt-leyenda">${leyenda}</div>`;
@@ -4436,7 +4455,10 @@ function ntResumen(d){
   if(ntOk(d.barcos)){
     const tot = d.barcos.clanes.reduce((a, c) => a + c.totalAtaques, 0);
     const pasados = d.barcos.clanes.reduce((a, c) => a + c.jugadores.filter(j => j.excede).length, 0);
-    t.push(ntTile('Ataques a barcos', ntN(tot), pasados ? `<span class="nt-down">⚠ ${ntN(pasados)} se pasaron del máximo</span>` : 'nadie se pasó del máximo'));
+    // El máximo no es único (cambia por clan, temporada, corrida, torneo o sorteo): el aviso usa el del torneo más reciente y la tarjeta lo dice.
+    const hayLimite = d.barcos.limite !== null && d.barcos.limite !== undefined;
+    t.push(ntTile('Ataques a barcos', ntN(tot), !hayLimite ? 'sin máximo configurado para comparar'
+      : pasados ? `<span class="nt-down">⚠ ${ntN(pasados)} se pasaron del máximo del torneo más reciente</span>` : 'nadie se pasó del máximo del torneo más reciente'));
   }
   if(ntOk(d.ascensos)){
     const n = { asc: 0, desc: 0, exp: 0, otro: 0 };
@@ -4525,8 +4547,8 @@ function ntPanelTopFame(sec){
 function ntPanelBarcos(sec){
   if(!ntOk(sec)) return ntErrorSeccion(sec, 'Ataques a barcos');
   const nota = [];
-  if(sec.limite !== null && sec.limite !== undefined) nota.push(`Máximo permitido por semana (torneo más reciente): <b>${esc(sec.limite)}</b>.`);
-  else nota.push('El torneo más reciente no tiene un máximo de ataques a barcos configurado.');
+  if(sec.limite !== null && sec.limite !== undefined) nota.push(`El aviso «se pasó» usa el máximo de barcos de la semana del torneo más reciente: <b>${esc(sec.limite)}</b>. Es la suma de los barcos de toda la semana, pero el máximo cambia según el clan, la temporada, la corrida de Cambio de rango, el torneo o el sorteo, así que en otros casos puede ser otro valor.`);
+  else nota.push('El torneo más reciente no tiene un máximo de ataques a barcos configurado, así que no se avisa de quién se pasó.');
   nota.push('Solo cuentan los ataques del propio jugador, no las defensas.');
   if(sec.defensas) nota.push(`${esc(sec.defensas)} defensa(s) no se cuentan.`);
   if(sec.sinLado) nota.push(`${esc(sec.sinLado)} registro(s) viejo(s) sin dato de lado no se suman (no concluyentes).`);
@@ -4679,11 +4701,9 @@ document.getElementById('sAutorSelectPlan').addEventListener('change', () => {
  * autor del sorteo elegido -- webAdminSorteosHoy ya manda esos 4 campos
  * (ver cargarSorteosHoy() más arriba).
  * SIN cuadro de "Ingresar link" (no existe para Sorteos, ver
- * cargarSorteosHoy()) y SIN recarga de requisitos por sorteo puntual
- * todavía: no existe un equivalente de cargarRequisitosPorClan()/
- * _webAdminRequisitosClanes() para la categoría "Sorteo" -- #requisitosSorteoBox
- * queda como nodo único compartido, sin precarga por ahora (pendiente
- * aparte, no forma parte de este cambio).
+ * cargarSorteosHoy()). Los requisitos del sorteo elegido SÍ se recargan:
+ * al final de este listener se llama cargarRequisitosSorteoPorClan(id)
+ * (acción webAdminRequisitosClanesSorteo, ya conectada; ver su docblock).
  */
 document.getElementById('sSelectHoy').addEventListener('change', () => {
   const opt = document.getElementById('sSelectHoy').selectedOptions[0];

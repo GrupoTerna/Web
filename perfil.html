@@ -1222,38 +1222,9 @@
       </div>
 
       <!-- ---------- CICLO DE COFRES ---------- -->
-      <!-- FIX (27-sep-2026, pedido usuario): sección placeholder, mismo patrón
-           visual de tarjeta+botón que "Ingresos recientes" en index.html
-           (ver .ingresos-cta ahí — acá se aplica el mismo estilo (flex +
-           margin-top:8px) inline en vez de por clase, porque .ingresos-cta
-           vive local al <style> de index.html, no en assets/styles.css
-           compartido), pero con una diferencia a propósito: el botón de
-           index.html es un <a> que LLEVA a otra página (directorio.html); acá
-           el pedido fue que el botón muestre el contenido DENTRO de
-           perfil.html, así que es un <button> real, no un link, pensado para
-           en el futuro abrir/pintar el ciclo de cofres sin salir de esta
-           página (probablemente un modal o un bloque que se despliega acá
-           mismo — todavía sin definir).
-           TODO: sin implementar todavía. Cuando se conecte, este botón debe
-           consumir un endpoint nuevo en el backend -- falta conectar el
-           frontend acá. Mientras tanto el botón queda deshabilitado
-           (disabled, mismo estilo opacado que .btn:disabled en
-           assets/styles.css) para no prometer una función que todavía no
-           hace nada al tocarla.
-           ACTUALIZACIÓN (27-sep-2026, pedido usuario): se conecta el botón
-           a 'upcomingchests' -- ya deja de ser placeholder.
-           FIX (27-sep-2026, mismo día): 'upcomingchests' NO era un endpoint
-           real del backend (solo existía descargarUpcomingChestsJugador(),
-           una función MANUAL que descarga a Drive, no un endpoint web) --
-           se corrige a la acción real 'webCofresJugador', servida por la
-           función nueva _webCofresJugador() (34_Web_API.gs, enrutada en
-           08_Web_Endpoints.gs). Esa función YA cruza cada cofre contra
-           Backup_Cofres.csv y manda `nombre` (columna Nombre, con fallback
-           al `name` en inglés) y `link` (columna Link, agregada a mano por
-           el usuario -- hoy vacía, "puede ser que luego consiga links de
-           los íconos"). El pintado (ver pintarCicloCofres()/verCicloCofres()
-           en el <script> de más abajo) no necesita ningún cambio: ya estaba
-           preparado para mostrar el ícono en cuanto `link` tenga valor. -->
+      <!-- CICLO DE COFRES: CONECTADO. El botón #mVerCicloCofresBtn pide la acción 'webCofresJugador' (_webCofresJugador(), 34_Web_API.gs,
+           enrutada en 08_Web_Endpoints.gs), que cruza cada cofre con Backup_Cofres.csv y manda `nombre` y `link` (ícono; sin link se pinta un 📦; las
+           imágenes de cofres están en assets/chests/). El pintado está en pintarCicloCofres()/verCicloCofres(). Historial en CHANGELOG.md. -->
       <div class="card pf-panel-datos" id="mCicloCofresCard">
         <div class="eyebrow">Actividad</div>
         <h2 class="pf-subtitulo">Ciclo de cofres</h2>
@@ -3034,7 +3005,7 @@ function pintarColeccion(cartas){
     const esHeroe = rk === 'campeon';
     const iconoHeroe = urls.heroMedium || '';
     const activaHero = !!(esHeroe && iconoHeroe && img === iconoHeroe);
-    // FIX (23-sep-2026): costo en oro y cartas para el siguiente nivel (backend pendiente, ver COLECCION_ESPACIO_COSTO_MEJORA más arriba). A nivel máximo no aplica.
+    // FIX (23-sep-2026): costo en oro y cartas para el siguiente nivel (backend ya conectado, ver COLECCION_ESPACIO_COSTO_MEJORA más arriba). A nivel máximo no aplica.
     const _num = v => (v !== undefined && v !== null && v !== '' && isFinite(Number(v))) ? Number(v) : null;
     const costoOro = alMax ? null : _num(c.costoOro);
     const cartasSig = alMax ? null : _num(c.cartasSiguienteNivel);
