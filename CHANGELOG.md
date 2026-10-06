@@ -11,6 +11,17 @@ el código hoy) cuando hace falta para mantenerlo; el "por qué histórico"
 
 ---
 
+## 47_Web_Noticias.gs — participación de guerra por días en el clan y días opcionales (05-oct-2026)
+
+- **Función `_noticiasGuerra_()`:** la participación ya no usa 16 ataques por jugador. Cada jugador exige 4 ataques por cada día de guerra (jueves a domingo) en que hay fila suyo en la hoja Guerra (sin fila = no estaba en el clan: no se exige y no aparece como 0). Los días con meta ya cruzada (`_clanYaCruzoMetaEnPeriodo()`, jueves y coliseo nunca) no se exigen; sus ataques salen aparte en `ataquesEnOpcionales`.
+- **«Sin ningún ataque» y `completos`:** solo miran días exigidos. Un jugador que solo estuvo en días opcionales no aparece en la lista.
+- **Días sin datos:** `fameDias` de un clan trae `null` (no 0) en un día sin ninguna fila. Campos nuevos por clan: `diasOpcionales` y `diasConDato` (letras j/v/s/d).
+- **Se mantiene:** `ataquesMaxJugador` (16), `participacion`, `ataquesPosibles`, `sinAtaquesTotal`.
+- **PENDIENTE DE VERIFICAR:** ataques exonerados por motivos distintos de la meta (no se encontró su fuente); en semana en curso el día de hoy cuenta como exigido; no se probó en Apps Script real (solo con datos simulados).
+- **PENDIENTE (admin.html):** los textos de «Participación en guerra» siguen diciendo «16 por jugador»; conviene ajustarlos a «según los días en el clan». Falta además el máximo de barcos por clan, torneo, sorteo o corrida (otra tanda).
+
+---
+
 ## guerra.html — marca de "meta ya cruzada" en Guerra de Hoy (05-oct-2026)
 
 - **Decisión del usuario:** la meta ya cruzada **sí se debe considerar** (si el clan ya la cruzó, atacar es opcional y no cuenta como falta). Reemplaza el "habría que activarla y medir" de la entrada anterior.
