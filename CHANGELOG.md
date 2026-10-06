@@ -16,7 +16,8 @@ el código hoy) cuando hace falta para mantenerlo; el "por qué histórico"
 - **Decisión del usuario:** la meta ya cruzada **sí se debe considerar** (si el clan ya la cruzó, atacar es opcional y no cuenta como falta). Reemplaza el "habría que activarla y medir" de la entrada anterior.
 - **Frontend (`guerra.html`, render de tarjetas de clan en Guerra de Hoy):** si `guerraPorClan[clan].metaCruzada === true`, la tarjeta muestra la insignia "Meta ya cruzada · ataque opcional". Sin ese campo no se muestra nada (comportamiento anterior). Las tablas de Valores diarios/semanales ya usaban `opc`.
 - **PENDIENTE DE DEFINIR (backend, no probado):** el backend debe enviar `metaCruzada` por clan en el dashboard. Está desactivado desde el 19-sep porque la página tardaba 28-39 s; hay que activarlo y medir el tiempo. El nombre `metaCruzada` es una propuesta del frontend: confirmar o cambiar al ver `Base.md`.
-- **PENDIENTE DE DEFINIR:** mini historial por jugador: el día en curso cuenta como "día con 0 ataques"; además, un 0 en un día con meta cruzada no debería contarse como falta. Falta decidir si se excluye el día en curso y si el backend enviará el día como opcional.
+- **DECIDIDO (usuario, 05-oct-2026) — mini historial y comparador (`histPintar()`, `histPintarComparacion()`, `histStats()`):** (1) solo se muestran y cuentan días de guerra (jueves a domingo); lunes a miércoles son entrenamiento y se filtran con `histSoloGuerra()`, así que hoy lunes no aparece ningún "en curso". El "en curso" solo sale si hoy es día de guerra. (2) Los días con meta cruzada **sí se muestran como opcionales** y su 0 no cuenta como falta (`histEsFalta()`).
+- **PENDIENTE (backend, sin probar):** `webHistorialGuerraComparador` debe enviar `opcional: true` en cada registro de un día con meta ya cruzada. Hasta entonces el frontend no puede marcarlos y esos 0 siguen contando como falta.
 - No se probó en navegador ni con backend real.
 
 ---

@@ -932,10 +932,21 @@ function histFechaCorta(iso){
 }
 function histCerrar(){ document.getElementById('histFondo').classList.remove('abierto'); histSolicitud++; }
 let histTag = '', histNombre = '', histRegsA = [];
+/* Solo días de guerra (jueves a domingo): un registro de lunes a miércoles es entrenamiento y no se muestra ni se cuenta. */
+function histSoloGuerra(regs){
+  return (Array.isArray(regs) ? regs : []).filter(r => {
+    const [y, m, d] = String(r.fecha).split('-').map(Number);
+    if (!y) return false;
+    const w = new Date(y, m - 1, d).getDay();
+    return w === 0 || w >= 4;
+  });
+}
+/* Un día con `opcional: true` (meta ya cruzada por el clan) con 0 ataques no cuenta como falta. */
+const histEsFalta = r => !r.ataques && r.opcional !== true;
 function histStats(regs){
   const n = regs.length;
   const t = (k) => regs.reduce((a, r) => a + (r[k] || 0), 0);
-  return { n, ceros: regs.filter(r => !r.ataques).length, atq: t('ataques'), fame: t('fame'), barcos: t('barcos') };
+  return { n, ceros: regs.filter(histEsFalta).length, atq: t('ataques'), fame: t('fame'), barcos: t('barcos') };
 }
 function histSelectorComparar(valor){
   const vistos = {};
@@ -953,6 +964,7 @@ function histEnlazarSelector(){
   });
 }
 function histPintar(registros, verTodos){
+  registros = histSoloGuerra(registros);
   histRegsA = registros;
   const cuerpo = document.getElementById('histCuerpo');
   if (!registros.length){
@@ -964,7 +976,7 @@ function histPintar(registros, verTodos){
   const st = histStats(desc), n = st.n;
   const hoy = new Date(); const hoyIso = `${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}-${String(hoy.getDate()).padStart(2,'0')}`;
   const visibles = verTodos ? desc : desc.slice(0, HIST_FILAS_INICIALES);
-  const filas = visibles.map(r => `<tr class="${r.ataques ? '' : 'hist-cero'}"><td>${histFechaCorta(r.fecha)}${r.fecha === hoyIso ? ' · en curso' : ''}</td><td>${fmtNum(r.ataques || 0)}</td><td>${fmtNum(r.fame || 0)}</td><td>${fmtNum(r.barcos || 0)}</td></tr>`).join('');
+  const filas = visibles.map(r => `<tr class="${histEsFalta(r) ? 'hist-cero' : ''}"><td>${histFechaCorta(r.fecha)}${r.fecha === hoyIso ? ' · en curso' : ''}${r.opcional === true ? ' · opcional (meta cruzada)' : ''}</td><td>${fmtNum(r.ataques || 0)}</td><td>${fmtNum(r.fame || 0)}</td><td>${fmtNum(r.barcos || 0)}</td></tr>`).join('');
   document.getElementById('histCuerpo').innerHTML = histSelectorComparar('') + `
     <div class="hist-resumen">
       <div><b>${n}</b>días de guerra</div>
@@ -976,7 +988,7 @@ function histPintar(registros, verTodos){
     </div>
     <table class="hist-tabla"><thead><tr><th>Día</th><th>Ataques</th><th>Fame</th><th>Barcos</th></tr></thead><tbody>${filas}</tbody></table>
     ${(!verTodos && n > HIST_FILAS_INICIALES) ? `<button type="button" class="btn-solo-cero hist-mas" id="histMas">Ver todos (${n})</button>` : ''}
-    <p class="hist-nota">Un 0 es un día de guerra en el que estuvo registrado y no atacó. Los días anteriores a su ingreso al clan no aparecen. El día en curso puede tener ataques pendientes.</p>`;
+    <p class="hist-nota">Un 0 es un día de guerra en el que estuvo registrado y no atacó. Los días anteriores a su ingreso al clan no aparecen. Un día marcado como opcional (meta ya cruzada) no cuenta como falta. Solo se muestran días de guerra, no de entrenamiento. El día de guerra en curso puede tener ataques pendientes.</p>`;
   histEnlazarSelector();
   const mas = document.getElementById('histMas');
   if (mas) mas.addEventListener('click', () => histPintar(registros, true));
@@ -999,6 +1011,7 @@ async function histComparar(tag2, nombre2){
   }
 }
 function histPintarComparacion(ra, rb, nombre2, verTodos){
+  ra = histSoloGuerra(ra); rb = histSoloGuerra(rb);
   const cuerpo = document.getElementById('histCuerpo');
   const tag2 = (document.getElementById('histSelComp') || {}).value || '';
   const A = {}, B = {};
@@ -1009,7 +1022,7 @@ function histPintarComparacion(ra, rb, nombre2, verTodos){
   const fila = (tit, a, b) => `<tr><td>${tit}</td><td>${a}</td><td>${b}</td></tr>`;
   const celda = (r, k) => r ? fmtNum(r[k] || 0) : '';
   const visibles = verTodos ? fechas : fechas.slice(0, HIST_FILAS_INICIALES);
-  const claseAtq = r => r && !r.ataques ? ' class="hist-cero-celda"' : '';
+  const claseAtq = r => r && histEsFalta(r) ? ' class="hist-cero-celda"' : '';
   const filasDia = visibles.map(f => `<tr><td>${histFechaCorta(f)}</td><td${claseAtq(A[f])}>${celda(A[f], 'ataques')}</td><td${claseAtq(B[f])}>${celda(B[f], 'ataques')}</td><td>${celda(A[f], 'fame')}</td><td>${celda(B[f], 'fame')}</td></tr>`).join('');
   const na = esc(histNombre), nb = esc(nombre2);
   cuerpo.innerHTML = histSelectorComparar(tag2) + `
