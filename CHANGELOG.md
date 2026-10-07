@@ -11,6 +11,19 @@ el código hoy) cuando hace falta para mantenerlo; el "por qué histórico"
 
 ---
 
+## perfil.html + 34_Web_API.gs — costo en monedas de héroe en héroes por desbloquear (07-oct-2026)
+
+- **Regla de negocio (aclarada por el usuario):** desbloquear un héroe cuesta siempre **200 monedas de héroe**. Las monedas **no desbloquean cartas** (ni Campeones ni otras): solo el héroe de una carta que ya se tiene. Los Campeones traen sus habilidades al desbloquearse y su `MaxEvolutionLevel` viene vacío, así que **nunca muestran este costo**. Solo se muestra el costo (la API no dice cuántas monedas tiene el jugador).
+- **Escalas:** `MaxEvolutionLevel` (`Backup_Cards.csv`, catálogo general): vacío = solo base, 1 = base+evolución, 2 = solo héroe (no existe evolución para nadie), 3 = evolución y héroe. `EvolutionLevel` (`Backup_Cards_2.csv`, por jugador, se une por ID): 1 = solo evolución, 2 = solo héroe, 3 = evolución y héroe.
+- **`perfil.html`, `_heroePorDesbloquear()` / `_filaHeroCoin()` / `_heroCoinHtml()` / `COSTO_DESBLOQUEO_HEROE` (nuevos):** en Colección completa y Mazo actual, carta que el jugador tiene, con héroe (max 2 o 3) y sin él (evolutionLevel distinto de 2 y 3) → fila con `HeroCoin.webp` y «200», mismo formato que el oro. Fila reservada solo si alguna ficha de la sección la usa.
+- **`perfil.html`, `_cartaBloqueadaHtml()`:** en cartas que aún no se tienen y cuyo `maxEvolutionLevel` es 2 o 3 (no Campeón) se muestra el mismo costo con una nota visible: «Las monedas de héroe no desbloquean cartas». Corrige la primera versión del mismo día, que mostraba el costo en los Campeones por desbloquear.
+- **`34_Web_API.gs`, `_webCartasBloqueadas()`:** ahora cada carta lleva `maxEvolutionLevel` (columna 5 de `Backup_Cards.csv`) cuando es numérico. Hasta publicar el backend, las cartas por desbloquear no muestran el costo (sin dato, no se muestra nada).
+- **No se usó** `ICONO_HEROCOIN_HTML` (`clan-badges.js`): su `margin-right` en línea deja más espacio que el ícono de oro dentro de `.cc-oro`.
+- **Pendiente de definir (usuario):** el resto de `perfil.html` sigue leyendo `evolutionLevel > 0` como «evolución desbloqueada» (`tieneEvo`, filtro «Evolución», conteo «con evolución desbloqueada», ícono). Con las escalas de arriba, quien tiene SOLO el héroe (nivel 2) cuenta como si tuviera evolución; y el botón «Héroe» solo sale en Campeones (Colección) o por `hasHero` del catálogo (Mazo), sin mirar si el jugador lo desbloqueó. No se tocó.
+- **Verificado:** diff contra los originales y revisión de sintaxis. No se probó en navegador ni con backend real. `sw.js` sin cambios (`perfil.html` no está en `CORE_ASSETS`).
+
+---
+
 ## guerra.html y sw.js v16 — encabezados del Log de Guerra en español; respuestas del usuario a los pendientes de Noticias (06-oct-2026)
 
 - **`guerra.html`, `pintarTablaGuerraLog()` (última tabla de la página, Log de Guerra):** los encabezados pasan de `Temporada / Semana / Rank / Boat / Trophy` a `Temporada / Semana / Puesto / Barcos / Trofeos`. La nota de Coliseo (`notaLog`) ahora dice «la columna Barcos va en —». También se actualizaron los dos comentarios que citaban los nombres en inglés (CSS de `#guerraLogWrap` y comentario HTML de la sección). Los campos del backend (`rank`, `boat`, `trophy`) no cambian.
