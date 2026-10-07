@@ -3299,6 +3299,10 @@ function _pastelMiniHtml(titulo, porciones, extra, opts){
   if (vals.some(v => !isFinite(v) || v < 0)) return '';
   const total = vals.reduce((a, b) => a + b, 0);
   if (!(total > 0)) return '';
+  /* 06-oct-2026: opts.centroValor permite que el número del centro sea distinto de la suma de las porciones (p. ej. Batallas
+   * reales de la API, que incluyen empates). Solo se usa si es un número válido y no menor que la suma; si no, se muestra la suma. */
+  const cv = Number(opts.centroValor);
+  const centroNum = (opts.centroValor !== null && opts.centroValor !== undefined && opts.centroValor !== '' && isFinite(cv) && cv >= total) ? cv : total;
   const C = 50, R = 38, GROSOR = 13;
   const CIRC = 2 * Math.PI * R;
   const activas = porciones.filter((p, i) => vals[i] > 0);
@@ -3323,6 +3327,7 @@ function _pastelMiniHtml(titulo, porciones, extra, opts){
     .filter(e => e && e.valor !== null && e.valor !== undefined && e.valor !== '');
   let resumen = porciones.map((p, i) => `${p.etiqueta}: ${fmtNum(vals[i])} (${(vals[i] / total * 100).toFixed(1)}%)`).join('; ');
   extras.forEach(e => { resumen += `; ${e.etiqueta}: ${e.valor}`; });
+  if (centroNum !== total) resumen += `; ${opts.centroEtiqueta || 'Total'}: ${fmtNum(centroNum)}`;
   const leyenda = porciones.map((p, i) => `
         <div class="fila"><span class="punto" style="background:${p.color}; color:${p.color};"></span>${esc(p.etiqueta)} <b>${esc(fmtNum(vals[i]))}</b> <span class="pct">${(vals[i] / total * 100).toFixed(1)}%</span></div>`).join('');
   const extraHtml = extras.length ? `
@@ -3338,7 +3343,7 @@ function _pastelMiniHtml(titulo, porciones, extra, opts){
             <circle cx="${C}" cy="${C}" r="${R}" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="${GROSOR}"/>
             <g transform="rotate(-90 ${C} ${C})">${segmentos}</g>
           </svg>
-          <div class="mini-pie-donut-centro" aria-hidden="true"><b>${esc(fmtNum(total))}</b><span>${esc(opts.centroEtiqueta || 'Total')}</span></div>
+          <div class="mini-pie-donut-centro" aria-hidden="true"><b>${esc(fmtNum(centroNum))}</b><span>${esc(opts.centroEtiqueta || 'Total')}</span></div>
         </div>
         <div class="mini-pie-leyenda">${leyenda}
         </div>
@@ -3504,13 +3509,11 @@ function renderExtendido(ext, j){
    * el minigráfico "Victorias y derrotas" muestra en su centro la suma de
    * las dos porciones que recibe (Victorias + Derrotas), con la etiqueta
    * "Batallas" (centroEtiqueta:'Batallas', ver el arreglo `pies`).
-   * PENDIENTE DE VERIFICAR (no se tiene Base.md en esta sesión para
-   * confirmarlo): se asume que ext.batallas es siempre igual a
-   * ext.victorias + ext.derrotas. Si el backend llegara a contar ahí algo
-   * más (por ejemplo empates u otro tipo de partida que no sea
-   * victoria/derrota), el número del centro del donut podría no coincidir
-   * exactamente con el valor real de ext.batallas — avisar si se nota esa
-   * diferencia en algún perfil. */
+   * VERIFICADO (06-oct-2026, 34_Web_API.gs ~línea 2045): ext.batallas NO se calcula como victorias + derrotas; sale tal cual de la
+   * columna BATALLAS (DC.BATALLAS) de Datos Clash, un contador propio que puede incluir empates u otras partidas. Por eso el
+   * centro del donut ahora muestra ext.batallas (opts.centroValor de _pastelMiniHtml()) y solo cae a victorias + derrotas si
+   * ext.batallas falta, es 0 o es menor que esa suma. Las porciones y sus % siguen siendo victorias y derrotas.
+   * Sin confirmar: de qué campo de la API sale DC.BATALLAS (07_API_ClashRoyale.gs no está en esta sesión). */
   /* FIX (23-sep-2026, pedido usuario — "las donaciones ya se muestran en
    * los minigráficos, no se deben repetir en los cuadritos; en el otro
    * minigráfico faltaría agregar el ratio y sacar todos los campos
@@ -3577,7 +3580,7 @@ function renderExtendido(ext, j){
     ], [
       { etiqueta: 'Ratio V/D', valor: ratioVD },
       { etiqueta: 'Racha', valor: ext.racha },
-    ], { icono: '⚔️', centroEtiqueta: 'Batallas' }) : '',
+    ], { icono: '⚔️', centroEtiqueta: 'Batallas', centroValor: ext.batallas }) : '',
     (ext.donacionesRealizadas != null && ext.donacionesRecibidas != null) ? _pastelMiniHtml('Donaciones hechas y recibidas', [
       { etiqueta: 'Hechas', valor: ext.donacionesRealizadas, color: 'var(--gold)' },
       { etiqueta: 'Recibidas', valor: ext.donacionesRecibidas, color: 'var(--purple)' },
