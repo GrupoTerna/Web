@@ -513,6 +513,17 @@
    * ya no necesita flex:1/min-width:200px para repartirse el espacio con
    * el resumen+filtros — eso ahora vive en su propia fila, debajo. Se
    * queda solo con flex-shrink:0 para que conserve su tamaño natural. */
+  /* FIX (07-oct-2026): sub-filtros de Héroe/Evolución, encabezados de grupo en la grilla y columna de oro del gráfico. */
+  .coleccion-var-tit{font-family:var(--f-mono); font-size:11px; color:var(--text-faint); align-self:center;}
+  .coleccion-grupo-tit{grid-column:1 / -1; font-family:var(--f-mono); font-size:11px; font-weight:600; color:var(--text-dim); text-transform:uppercase; letter-spacing:.1em; padding-top:6px; border-bottom:1px solid var(--line);}
+  .coleccion-grupo-tit:first-child{padding-top:0;}
+  .cc-badge--bloq{opacity:.55; filter:grayscale(.6); cursor:default; pointer-events:none;}
+  .mini-pie-leyenda.con-col{display:grid; grid-template-columns:auto auto auto auto auto; column-gap:9px; row-gap:10px; align-items:center;}
+  .mini-pie-leyenda.con-col .fila{display:contents;}
+  .mini-pie-leyenda.con-col .col-oro{justify-self:end; white-space:nowrap;}
+  .cc-oro--cero{color:var(--text-faint);}
+  .mini-pie-nota{margin-top:10px; font-family:var(--f-mono); font-size:9px; color:var(--text-faint); text-align:center; display:flex; align-items:center; justify-content:center; gap:4px;}
+  .mini-pie-nota img{height:11px; width:auto;}
   .coleccion-nivel-pie-wrap{flex-shrink:0; display:flex; justify-content:center;}
   .coleccion-nivel-pie-wrap .mini-pie{min-height:0; padding:14px 18px 12px;}
   .coleccion-nivel-pie-wrap .mini-pie-titulo{margin-bottom:10px;}
@@ -1112,6 +1123,8 @@
                  en vez de ese estilo, para conservar el mismo formato de píldora
                  (🦸 Héroe / ✨ Evolución) que ya se usa en el resto de la web. -->
             <div class="coleccion-filtros" id="mColeccionFiltrosTipo"></div>
+            <!-- FIX (07-oct-2026, pedido usuario): sub-filtros Desbloqueado / Por desbloquear de Héroe y Evolución (solo visibles con esas pastillas activas). -->
+            <div class="coleccion-filtros" id="mColeccionFiltrosVariante" style="display:none;"></div>
             <!-- FIX (23-sep-2026, pedido usuario — "agrega una tercera fila de
                  filtros para nivel (16 a la izquierda y 1 a la derecha),
                  mostrando solo las pastillas de niveles que haya en las
@@ -2222,7 +2235,45 @@ function renderStatsAvanzadasCabecera(j){
 // evolución). Categorías distintas se combinan con AND entre sí (ver
 // _colCartaPasaFiltro): p.ej. rareza=Legendaria Y tipo=Tropa Y nivel=14.
 // Una categoría vacía (ningún botón de esa fila activo) no restringe nada.
-const _colFiltrosActivos = { rareza: new Set(), tipo: new Set(), nivel: new Set(), heroe: false, evolucion: false, mejora: false };
+const _colFiltrosActivos = { rareza: new Set(), tipo: new Set(), nivel: new Set(), heroe: false, evolucion: false, mejora: false,
+  // FIX (07-oct-2026, pedido usuario): sub-filtros 'si' (desbloqueado) / 'no' (por desbloquear) de Héroe y Evolución.
+  // Vacío = ambos; solo se usan mientras la pastilla Héroe/Evolución correspondiente esté activa.
+  heroeEst: new Set(), evoEst: new Set() };
+/**
+ * _heroeDisponible/_heroeTiene/_evoDisponible/_evoTiene (c)
+ * FIX (07-oct-2026, pedido usuario — "cuando seleccione Evolución o Héroe se debe mostrar todas las cartas que lo
+ * tienen disponible en su catálogo, no solo las que ya han desbloqueado"): antes los filtros Héroe/Evolución solo
+ * dejaban pasar lo YA desbloqueado (evolutionLevel). Ahora "disponible" sale de maxEvolutionLevel (catálogo:
+ * 1 = evolución, 2 = héroe, 3 = ambos; ver _heroePorDesbloquear()) y "tiene" de evolutionLevel (lo desbloqueado).
+ * Se suma también lo ya desbloqueado por si maxEvolutionLevel no llegara. Los Campeones traen el héroe por defecto.
+ */
+function _heroeTiene(c){ return rarezaKey(c.rarity) === 'campeon' || _heroeDesbloqueado(c.evolutionLevel); }
+function _heroeDisponible(c){ const m = Number(c.maxEvolutionLevel); return _heroeTiene(c) || m === 2 || m === 3; }
+function _evoTiene(c){ return _evoDesbloqueada(c.evolutionLevel); }
+function _evoDisponible(c){ const m = Number(c.maxEvolutionLevel); return _evoTiene(c) || m === 1 || m === 3; }
+/** Oro acumulado para subir TODAS las cartas de `cartas` que estén por debajo de `nivelObjetivo` hasta ese nivel,
+ * sumando las filas costosNiveles ({desde,hasta,oro}, ya en nivel de la app) de cada carta. Devuelve {oro, incompleto}:
+ * incompleto = alguna carta por debajo del nivel no trae tabla de costos (rareza fuera de catálogo) o su tabla viene
+ * con costoCompleto === false, así que el oro real es MAYOR o igual al mostrado. */
+function _oroHastaNivel(cartas, nivelObjetivo){
+  let oro = 0, incompleto = false;
+  cartas.forEach(c => {
+    const nv = nivelAppAjustado(c.level, c.maxLevel, c.rarity).nivel;
+    if (nv == null || nv >= nivelObjetivo) return;
+    if (!Array.isArray(c.costosNiveles) || !c.costosNiveles.length){ incompleto = true; return; }
+    if (c.costoCompleto === false) incompleto = true;
+    c.costosNiveles.forEach(r => {
+      if (Number(r.desde) >= nv && Number(r.hasta) <= nivelObjetivo) oro += Number(r.oro) || 0;
+    });
+  });
+  return { oro, incompleto };
+}
+/** 1.482.000 -> "1.48M", 420.000 -> "420K" (compacto para la leyenda del gráfico; el número completo va en el title). */
+function _oroCompacto(n){
+  if (n >= 1e6) return (Math.round(n / 1e4) / 100).toString() + 'M';
+  if (n >= 1e3) return (Math.round(n / 100) / 10).toString() + 'K';
+  return String(n);
+}
 /** FIX (27-sep-2026, pedido usuario — "en la colección completa de cartas
  * ponle un botón para ordenar por nombre ... y por nivel ..., como el botón
  * o filtro que está en insignias"): mismo patrón que _insigniasOrden/
@@ -2317,8 +2368,16 @@ function _colCartaPasaFiltro(c){
     const nvl = nivelAppAjustado(c.level, c.maxLevel, c.rarity).nivel;
     if (nvl == null || !f.nivel.has(nvl)) return false;
   }
-  if (f.heroe && !(rarezaKey(c.rarity) === 'campeon' || _heroeDesbloqueado(c.evolutionLevel))) return false;
-  if (f.evolucion && !_evoDesbloqueada(c.evolutionLevel)) return false;
+  // FIX (07-oct-2026): Héroe/Evolución = todas las cartas que lo tienen DISPONIBLE; el sub-filtro (si/no) separa
+  // desbloqueados de por desbloquear.
+  if (f.heroe){
+    if (!_heroeDisponible(c)) return false;
+    if (f.heroeEst.size && !f.heroeEst.has(_heroeTiene(c) ? 'si' : 'no')) return false;
+  }
+  if (f.evolucion){
+    if (!_evoDisponible(c)) return false;
+    if (f.evoEst.size && !f.evoEst.has(_evoTiene(c) ? 'si' : 'no')) return false;
+  }
   if (f.mejora && !_cartaMejoraDisponible(c)) return false;
   return true;
 }
@@ -2374,6 +2433,8 @@ function renderColeccion(j){
   _colFiltrosActivos.heroe = false;
   _colFiltrosActivos.evolucion = false;
   _colFiltrosActivos.mejora = false;
+  _colFiltrosActivos.heroeEst.clear();
+  _colFiltrosActivos.evoEst.clear();
 
   // FIX (26-sep-2026, pedido usuario): "Todas" y la nueva "Mejora disponible"
   // se pintan en mColeccionFiltrosTop (esquina superior derecha de la
@@ -2402,7 +2463,8 @@ function renderColeccion(j){
   // en _colCartaPasaFiltro() más arriba.
   const tiposCarta = cartas.map(c => _tipoCartaKey(c, _datosCarta(_nombreCartaEs(c))));
   const presentesTipo = TIPOS_CARTA_FILTRO.filter(t => tiposCarta.includes(t));
-  const cantHeroe = cartas.filter(c => rarezaKey(c.rarity) === 'campeon' || _heroeDesbloqueado(c.evolutionLevel)).length;
+  const cantHeroe = cartas.filter(_heroeDisponible).length;
+  const cantEvo = cartas.filter(_evoDisponible).length;
   const filtrosTipo = document.getElementById('mColeccionFiltrosTipo');
   filtrosTipo.innerHTML = presentesTipo
     .map(t => `<button type="button" data-cat="tipo" data-f="${t}">${t.charAt(0).toUpperCase() + t.slice(1)} (${tiposCarta.filter(x => x === t).length})</button>`)
@@ -2413,7 +2475,7 @@ function renderColeccion(j){
     // "activo" de estas dos usa la clase .is-activa (la que ya trae
     // .cc-badge-btn) en vez de .activo (ver listener combinado más abajo).
     + (cantHeroe ? `<button type="button" data-cat="heroe" class="cc-badge cc-badge-btn">\u{1f9b8} H\u00e9roe (${cantHeroe})</button>` : '')
-    + (conEvo ? `<button type="button" data-cat="evolucion" class="cc-badge cc-badge-btn">\u2728 Evoluci\u00f3n (${conEvo})</button>` : '');
+    + (cantEvo ? `<button type="button" data-cat="evolucion" class="cc-badge cc-badge-btn">\u2728 Evoluci\u00f3n (${cantEvo})</button>` : '');
   // FIX (23-sep-2026, pedido usuario — "agrega una tercera fila de filtros
   // para nivel (16 a la izquierda y 1 a la derecha), mostrando solo las
   // pastillas de niveles que haya en las cartas ... si la carta de menor
@@ -2441,14 +2503,47 @@ function renderColeccion(j){
    * página. Se oculta sola si no hay niveles (no debería pasar si ya
    * llegamos hasta acá con `cartas.length`, pero _pastelMiniHtml() ya
    * devuelve '' de por sí en ese caso). */
+  // FIX (07-oct-2026, pedido usuario): fila de sub-filtros que separa desbloqueados de por desbloquear. Solo aparece
+  // mientras Héroe y/o Evolución estén activas; cada pastilla se prende/apaga sola (vacío = ambos).
+  const filtrosVar = document.getElementById('mColeccionFiltrosVariante');
+  const pintarFiltrosVariante = () => {
+    const f = _colFiltrosActivos;
+    const grupo = (cat, ico, nombre, disp, tiene, set) => {
+      const nSi = cartas.filter(c => disp(c) && tiene(c)).length;
+      const nNo = cartas.filter(c => disp(c) && !tiene(c)).length;
+      const b = (v, txt, n) => `<button type="button" data-cat="${cat}" data-f="${v}" class="${set.has(v) ? 'activo' : ''}">${txt} (${n})</button>`;
+      return `<span class="coleccion-var-tit">${ico} ${nombre}:</span>${b('si', '\u2705 Desbloqueado', nSi)}${b('no', '\u{1f512} Por desbloquear', nNo)}`;
+    };
+    filtrosVar.innerHTML = (f.heroe ? grupo('heroeEst', '\u{1f9b8}', 'H\u00e9roe', _heroeDisponible, _heroeTiene, f.heroeEst) : '')
+      + (f.evolucion ? grupo('evoEst', '\u2728', 'Evoluci\u00f3n', _evoDisponible, _evoTiene, f.evoEst) : '');
+    filtrosVar.style.display = (f.heroe || f.evolucion) ? '' : 'none';
+  };
+  filtrosVar.addEventListener('click', e => {
+    const b = e.target.closest('button[data-cat]');
+    if (!b) return;
+    const set = _colFiltrosActivos[b.dataset.cat];
+    if (set.has(b.dataset.f)) set.delete(b.dataset.f); else set.add(b.dataset.f);
+    pintarFiltrosVariante();
+    pintarColeccion(cartas);
+  });
+  pintarFiltrosVariante();
   const nivelPieWrap = document.getElementById('mColeccionNivelPie');
   if (nivelPieWrap){
     const paletaNiveles = _paletaNivelesColeccion(presentesNivel.length);
     nivelPieWrap.innerHTML = _pastelMiniHtml('Cartas por nivel', presentesNivel.map((n, i) => ({
       etiqueta: `Nv. ${n}`,
       valor: nivelesCarta.filter(x => x === n).length,
-      color: paletaNiveles[i]
-    })), null, { icono: '📊', centroEtiqueta: 'Cartas' });
+      color: paletaNiveles[i],
+      // FIX (07-oct-2026, pedido usuario): oro acumulado para subir todas las cartas de niveles menores hasta este nivel
+      // (nivel más bajo = —; nivel 16 = oro total para dejar todo en 16). Sale de costosNiveles de cada carta, no de una tabla fija.
+      columna: (() => {
+        const r = _oroHastaNivel(cartas, n);
+        if (!r.oro && !r.incompleto) return '<span class="cc-oro cc-oro--cero" title="Ninguna carta por debajo de este nivel">\u2014</span>';
+        const pre = r.incompleto ? '\u2265 ' : '';
+        const tip = `Oro para subir todas las cartas de niveles menores hasta el nivel ${n}: ${fmtNum(r.oro)}${r.incompleto ? ' (m\u00ednimo: faltan costos de alguna carta)' : ''}`;
+        return `<span class="cc-oro" title="${esc(tip)}">${_ICONO_ORO_HTML}${pre}${esc(_oroCompacto(r.oro))}</span>`;
+      })()
+    })), null, { icono: '📊', centroEtiqueta: 'Cartas', nota: `${_ICONO_ORO_HTML} Oro acumulado para subir todo hasta cada nivel` });
   }
   // Las 3 filas comparten el mismo estado de filtros (_colFiltrosActivos):
   // cada pastilla se prende/apaga sola (opción múltiple, sin desmarcar las
@@ -2475,11 +2570,14 @@ function renderColeccion(j){
       _colFiltrosActivos.heroe = false;
       _colFiltrosActivos.evolucion = false;
       _colFiltrosActivos.mejora = false;
+      _colFiltrosActivos.heroeEst.clear();
+      _colFiltrosActivos.evoEst.clear();
       botonesFiltroColeccion().forEach(x => { x.classList.remove('activo'); x.classList.remove('is-activa'); });
       b.classList.add('activo');
     } else if (cat === 'heroe' || cat === 'evolucion' || cat === 'mejora'){
       _colFiltrosActivos[cat] = !_colFiltrosActivos[cat];
       b.classList.toggle('is-activa', _colFiltrosActivos[cat]);
+      if (!_colFiltrosActivos[cat]){ if (cat === 'heroe') _colFiltrosActivos.heroeEst.clear(); if (cat === 'evolucion') _colFiltrosActivos.evoEst.clear(); }
       sincronizarBotonTodos();
     } else {
       // rareza / tipo / nivel: Set de la categoría, valor tal como quedó
@@ -2491,6 +2589,7 @@ function renderColeccion(j){
       else { set.add(valor); b.classList.add('activo'); }
       sincronizarBotonTodos();
     }
+    pintarFiltrosVariante();
     pintarColeccion(cartas);
   }));
   pintarColeccion(cartas);
@@ -3039,6 +3138,12 @@ function pintarColeccion(cartas){
   // el orden era fijo (rareza → nivel descendente → nombre); ahora lo
   // decide el <select> "Ordenar por" (mismas 4 opciones que Insignias).
   visibles.sort((a, b) => _compararColeccion(a, b, _coleccionOrden));
+  // FIX (07-oct-2026, pedido usuario): con Héroe y/o Evolución activas, las cartas se agrupan (manteniendo el orden elegido
+  // dentro de cada grupo): primero las que ya lo tienen desbloqueado y luego las por desbloquear, con un encabezado cada una.
+  const _fv = _colFiltrosActivos;
+  const _variantesActivas = _fv.heroe || _fv.evolucion;
+  const _pendiente = c => (_fv.heroe && !_heroeTiene(c)) || (_fv.evolucion && !_evoTiene(c));
+  if (_variantesActivas) visibles.sort((a, b) => (_pendiente(a) ? 1 : 0) - (_pendiente(b) ? 1 : 0)); // sort estable
   // FIX (23-sep-2026, pedido usuario — "en todo perfil.html hay varias
   // secciones. si el dato se menciona para alguna ficha en una determinada
   // sección, se le reserva una fila. si no se menciona, no se debe
@@ -3112,8 +3217,9 @@ function pintarColeccion(cartas){
       c, rk, img, nombreEs, nvl, alMax, iconoBase, iconoEvo, tieneEvo, activaEvo, tipoTxt, esHeroe, iconoHeroe, activaHero,
       costoOro, cartasSig,
       heroePorDesbloq: _heroePorDesbloquear(c.maxEvolutionLevel, c.evolutionLevel, rk === 'campeon'),
-      mostrarHeroe: esHeroe,
-      mostrarEvo: tieneEvo,
+      // FIX (07-oct-2026): con el filtro activo también se muestra la píldora (atenuada) de la variante AÚN por desbloquear.
+      mostrarHeroe: esHeroe || (_colFiltrosActivos.heroe && _heroeDisponible(c)),
+      mostrarEvo: tieneEvo || (_colFiltrosActivos.evolucion && _evoDisponible(c)),
       mostrarRareza: !!rk,
       mostrarTipo: !!tipoTxt,
       mostrarElixir: !!(c.elixirCost != null || c.starLevel)
@@ -3125,9 +3231,15 @@ function pintarColeccion(cartas){
   const seccionColOro = COLECCION_ESPACIO_COSTO_MEJORA || datosCol.some(x => x.costoOro != null);
   const seccionColHeroCoin = datosCol.some(x => x.heroePorDesbloq);
 
-  cont.innerHTML = datosCol.map(x => {
+  const _nPend = _variantesActivas ? datosCol.filter(x => _pendiente(x.c)).length : 0;
+  const _baseVar = _fv.heroe && _fv.evolucion ? 'H\u00e9roe y Evoluci\u00f3n' : (_fv.heroe ? 'H\u00e9roe' : 'Evoluci\u00f3n');
+  const _tituloGrupo = (pend, n) => `<div class="coleccion-grupo-tit">${pend ? '\u{1f512} ' + _baseVar + (_fv.heroe && _fv.evolucion ? ' (alguno por desbloquear)' : ' por desbloquear') : '\u2705 ' + _baseVar + (_fv.heroe && _fv.evolucion ? ' (todo desbloqueado)' : ' desbloqueado')} \u00b7 ${n}</div>`;
+  const _hayDosGrupos = _variantesActivas && _nPend > 0 && _nPend < datosCol.length;
+  cont.innerHTML = datosCol.map((x, i) => {
     const { c, rk, img, nombreEs, nvl, alMax, iconoBase, iconoEvo, activaEvo, tipoTxt, iconoHeroe, activaHero } = x;
-    return `
+    const _pend = _variantesActivas && _pendiente(c);
+    const _encab = (_hayDosGrupos && (i === 0 || _pend !== _pendiente(datosCol[i - 1].c))) ? _tituloGrupo(_pend, _pend ? _nPend : datosCol.length - _nPend) : '';
+    return _encab + `
     <div class="col-card col-card--grande${alMax ? ' max-level' : ''}" title="${esc(nombreEs)}" data-icon-base="${esc(iconoBase)}">
       <div class="col-nombre">
         <span class="col-nombre-txt">${esc(nombreEs)}</span>
@@ -3149,9 +3261,11 @@ function pintarColeccion(cartas){
           ${_filaCostoMejora(seccionColOro, x.costoOro != null, _oroHtml(x.costoOro), _oroHtml(null))}
           ${_filaHeroCoin(seccionColHeroCoin, x.heroePorDesbloq)}
           ${_filaHeroeEvo(x.mostrarHeroe,
-            `<button type="button" class="cc-badge cc-badge-btn${activaHero ? ' is-activa' : ''}" data-icon-variante="${esc(iconoHeroe)}" onclick="cambiarVarianteCarta(this)">\u{1f9b8} H\u00e9roe</button>`,
+            x.esHeroe ? `<button type="button" class="cc-badge cc-badge-btn${activaHero ? ' is-activa' : ''}" data-icon-variante="${esc(iconoHeroe)}" onclick="cambiarVarianteCarta(this)">\u{1f9b8} H\u00e9roe</button>`
+              : `<span class="cc-badge cc-badge--bloq" title="H\u00e9roe por desbloquear">\u{1f512} H\u00e9roe</span>`,
             x.mostrarEvo,
-            `<button type="button" class="cc-badge cc-badge-btn${activaEvo ? ' is-activa' : ''}" data-icon-variante="${esc(iconoEvo)}" onclick="cambiarVarianteCarta(this)">\u2728 Evoluci\u00f3n</button>`)}
+            x.tieneEvo ? `<button type="button" class="cc-badge cc-badge-btn${activaEvo ? ' is-activa' : ''}" data-icon-variante="${esc(iconoEvo)}" onclick="cambiarVarianteCarta(this)">\u2728 Evoluci\u00f3n</button>`
+              : `<span class="cc-badge cc-badge--bloq" title="Evoluci\u00f3n por desbloquear">\u{1f512} Evoluci\u00f3n</span>`)}
         </div>
       </div>
     </div>`;
@@ -3430,8 +3544,12 @@ function _pastelMiniHtml(titulo, porciones, extra, opts){
   let resumen = porciones.map((p, i) => `${p.etiqueta}: ${fmtNum(vals[i])} (${(vals[i] / total * 100).toFixed(1)}%)`).join('; ');
   extras.forEach(e => { resumen += `; ${e.etiqueta}: ${e.valor}`; });
   if (centroNum !== total) resumen += `; ${opts.centroEtiqueta || 'Total'}: ${fmtNum(centroNum)}`;
+  // FIX (07-oct-2026): `porciones[i].columna` (HTML opcional) agrega una columna alineada al final de cada fila de la
+  // leyenda (p. ej. el oro acumulado por nivel). Con columna, la leyenda pasa a grilla (.con-col) para alinear las 5.
+  const hayColumna = porciones.some(p => p.columna);
   const leyenda = porciones.map((p, i) => `
-        <div class="fila"><span class="punto" style="background:${p.color}; color:${p.color};"></span>${esc(p.etiqueta)} <b>${esc(fmtNum(vals[i]))}</b> <span class="pct">${(vals[i] / total * 100).toFixed(1)}%</span></div>`).join('');
+        <div class="fila"><span class="punto" style="background:${p.color}; color:${p.color};"></span>${hayColumna ? `<span class="et">${esc(p.etiqueta)}</span>` : esc(p.etiqueta) + ' '}<b>${esc(fmtNum(vals[i]))}</b> <span class="pct">${(vals[i] / total * 100).toFixed(1)}%</span>${hayColumna ? `<span class="col-oro">${p.columna || ''}</span>` : ''}</div>`).join('');
+  const notaHtml = opts.nota ? `<div class="mini-pie-nota">${opts.nota}</div>` : '';
   const extraHtml = extras.length ? `
       <div class="mini-pie-extras">${extras.map(e => `<div class="mini-pie-extra">${esc(e.etiqueta)} <b>${esc(String(e.valor))}</b></div>`).join('')}
       </div>` : '';
@@ -3447,9 +3565,9 @@ function _pastelMiniHtml(titulo, porciones, extra, opts){
           </svg>
           <div class="mini-pie-donut-centro" aria-hidden="true"><b>${esc(fmtNum(centroNum))}</b><span>${esc(opts.centroEtiqueta || 'Total')}</span></div>
         </div>
-        <div class="mini-pie-leyenda">${leyenda}
+        <div class="mini-pie-leyenda${hayColumna ? ' con-col' : ''}">${leyenda}
         </div>
-      </div>${extraHtml}
+      </div>${notaHtml}${extraHtml}
     </div>`;
 }
 
