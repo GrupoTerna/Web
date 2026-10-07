@@ -44,20 +44,17 @@ const ICONO_XP_HTML = '<img src="assets/img/XP.webp" alt="Nivel de XP" width="13
 
 /**
  * ICONO_HEROCOIN_HTML
- * NUEVO (27-sep-2026, pedido usuario — "hero coin puede usarse como costo de
- * monedas de héroe, para desbloquear un héroe siempre se paga 200 monedas de
- * héroe, se puede mostrar como costo en las cartas que ya tienen héroe pero
- * el jugador aún no los ha desbloqueado"): ningún listado de cartas de la
- * web de hoy distingue todavía "el jugador no tiene esta carta" (Colección
- * en perfil.html solo pinta las cartas que la cuenta SÍ tiene, ver
- * pintarColeccion(); el ranking de index.html —cargarEstadisticasCartas()—
- * es un Top 10 de uso en mazos, no un catálogo completo) — por eso esta
- * constante queda preparada acá, junto a ICONO_XP_HTML, para cuando exista
- * esa sección. Uso previsto: en la ficha de una carta con rarity==='Champion'
- * que el jugador no tiene desbloqueada, un <span class="cc-oro"> gemelo del
- * de _oroHtml() (perfil.html) pero con ICONO_HEROCOIN_HTML + "200" fijo (el
- * costo de desbloqueo NUNCA varía, a diferencia del oro de mejora). Mismo
- * tamaño (13px) y mismo criterio de onerror que ICONO_XP_HTML.
+ * NUEVO (27-sep-2026, pedido usuario): ícono de monedas de héroe (assets/img/HeroCoin.webp),
+ * mismo tamaño (13px) y mismo criterio de onerror que ICONO_XP_HTML.
+ * CORRECCIÓN (07-oct-2026, aclaración del usuario) a lo que decía este comentario antes
+ * (que el costo iba en cartas Campeón no desbloqueadas): desbloquear un héroe cuesta
+ * SIEMPRE 200 monedas de héroe, pero las monedas NO desbloquean cartas (ni Campeones ni
+ * otras), solo el héroe de una carta que ya se tiene; los Campeones traen sus habilidades
+ * al desbloquearse y no llevan este costo. El costo se muestra en perfil.html
+ * (_heroCoinHtml(), COSTO_DESBLOQUEO_HEROE) en cartas con héroe sin desbloquear.
+ * perfil.html NO usa esta constante: arma su propio <img> (igual que _ICONO_ORO_HTML)
+ * porque el margin-right en línea de abajo deja más espacio que el ícono de oro dentro
+ * de .cc-oro. Queda disponible para otras páginas que muestren texto suelto con este ícono.
  */
 const ICONO_HEROCOIN_HTML = '<img src="assets/img/HeroCoin.webp" alt="Monedas de héroe" width="13" height="13" loading="lazy" decoding="async" style="vertical-align:-2px; margin-right:3px;" onerror="this.replaceWith(document.createTextNode(\'\u{1FA99}\'));">';
 

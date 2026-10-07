@@ -2045,6 +2045,11 @@ function renderCartaFavorita(j){
   // FIX (07-oct-2026): escala de EvolutionLevel (ver _evoDesbloqueada()); Campeón = héroe por defecto.
   const esHeroe = rk === 'campeon' || _heroeDesbloqueado(evoLevel);
   const tieneEvo = _evoDesbloqueada(evoLevel);
+  // NUEVO (07-oct-2026): costo de 200 monedas de héroe si la carta tiene héroe y el jugador no lo ha desbloqueado
+  // (mismo criterio que Colección y Mazo actual, ver _heroePorDesbloquear()). maxEvolutionLevel viene de cards[]/currentFavouriteCard.
+  const heroePorDesbloq = _heroePorDesbloquear(
+    cartaReal && cartaReal.maxEvolutionLevel != null ? cartaReal.maxEvolutionLevel : (cartaCol ? cartaCol.maxEvolutionLevel : fav.maxEvolutionLevel),
+    evoLevel, rk === 'campeon');
   const evoIcon = (cartaReal && cartaReal.iconUrls && cartaReal.iconUrls.evolutionMedium) || (cartaCol && cartaCol.iconUrls && cartaCol.iconUrls.evolutionMedium) || '';
   const starLevel = cartaReal ? cartaReal.starLevel : null;
   const alMax = !!(cartaReal && cartaReal.maxLevel != null && cartaReal.level != null && cartaReal.level >= cartaReal.maxLevel);
@@ -2082,6 +2087,7 @@ function renderCartaFavorita(j){
             <span class="cc-badge">Nv. ${esc(String(nvl.nivel != null ? nvl.nivel : '\u2014'))}</span>
           </div>` : ''}
           ${(!alMax && oroSubida != null) ? _oroHtml(oroSubida) : ''}
+          ${heroePorDesbloq ? _heroCoinHtml() : ''}
         </div>
       </div>
     </div>`;
