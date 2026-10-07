@@ -11,6 +11,16 @@ el código hoy) cuando hace falta para mantenerlo; el "por qué histórico"
 
 ---
 
+## admin.html — Cambio de Rango usa webAdminSemanasDeTemporada y se cierran pendientes de Noticias (07-oct-2026)
+
+- **Endpoint nuevo en el frontend (`semanasCompletasDeTemporadaCR()`, `claveTemporadaEnMapaCR()`):** el selector de semanas de Cambio de Rango pide `webAdminSemanasDeTemporada(temporada)` al elegir una temporada y al precargar una corrida vieja, así los checkboxes salen con todas las semanas y su rango de fechas. Cierra la «POSIBLE MEJORA FUTURA» del docblock de `agregarBloqueTemporadaCR()`. La temporada vigente no se pide (`todasSemanasVigente` ya la trae completa). Respuestas buenas se cachean por temporada; ante error o vacío se usa el caché de semanas de siempre. Mientras carga, el bloque muestra «Cargando semanas…», y si se cambia de temporada a mitad de carga se descarta la respuesta vieja.
+- **Contrato asumido (backend no subido):** `{ok:true, semanas:[{lunesIso, domingoIso, temporada, semana}]}`, igual que `webAdminSemanasRecientes`; parámetro `temporada`. Si el backend usa otro shape, hay que ajustar `semanasCompletasDeTemporadaCR()`.
+- **Decidido (usuario, 07-oct-2026) — Noticias:** no quedan otros motivos de exoneración por definir, y las noticias actuales (barcos, ascensos, posiciones, fame y participación, ingresos y salidas) no son un pendiente: se pueden sumar más después.
+- **Comentarios de `admin.html` corregidos por estar desactualizados:** nota de Noticias (ya no dice «SIGUE PENDIENTE»); panel de Cambio de Rango y Paso 3 de Sorteos (decían «placeholder» y ya están completos); «cierre de conexión pendiente» → «cierre de conexión» (2 lugares); «endpoint todavía no conectado» (2 lugares).
+- **Sin cambios:** `sw.js` (`admin.html` no está en `CORE_ASSETS`). No se probó en navegador ni con backend real.
+
+---
+
 ## perfil.html + 37_Web_API.gs — costo en monedas de héroe y escala de EvolutionLevel en héroes por desbloquear (07-oct-2026)
 
 - **Regla de negocio (aclarada por el usuario):** desbloquear un héroe cuesta siempre **200 monedas de héroe**. Las monedas **no desbloquean cartas** (ni Campeones ni otras): solo el héroe de una carta que ya se tiene. Los Campeones traen sus habilidades al desbloquearse y su `MaxEvolutionLevel` viene vacío, así que **nunca muestran este costo**. Solo se muestra el costo (la API no dice cuántas monedas tiene el jugador).

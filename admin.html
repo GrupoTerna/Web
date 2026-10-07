@@ -1135,7 +1135,7 @@
 
           </div>
 
-          <!-- Panel del tercer tab (Cambio de Rango); placeholder inicial, el contenido real se agrega en los pasos siguientes. -->
+          <!-- Panel del tercer tab (Cambio de Rango). -->
           <div id="panelCambioRangoAccion" style="display:none;">
 
             <!-- Wizard de Cambio de Rango: Registrar o Editar corrida (sin tercer paso de "tipo" como Torneos). -->
@@ -1488,9 +1488,9 @@
          de toda la semana. HECHO (05-oct-2026): el backend manda `limites` (uno por evento de la semana) y la pantalla los lista.
          HECHO en el backend (05-oct-2026, 47_Web_Noticias.gs; detalle en CHANGELOG.md): la participacion cuenta solo los dias de
          guerra en que el jugador estuvo en el clan y descuenta los dias opcionales (meta ya cruzada); los dias sin datos
-         llegan como null. SIGUE PENDIENTE: ataques exonerados por otros motivos. El maximo de barcos ya se evalua por evento
-         (torneo, sorteo, cambio de rango) de la semana. Tambien sigue
-         abierto que otras noticias entran (hoy: barcos, ascensos, posiciones, fame y participacion, ingresos y salidas). -->
+         llegan como null. CERRADO (usuario, 07-oct-2026): no quedan otros motivos de exoneracion por definir. El maximo de barcos ya se evalua por evento
+         (torneo, sorteo, cambio de rango) de la semana. Las noticias de hoy son barcos, ascensos, posiciones, fame y participacion, ingresos y salidas;
+         se pueden sumar mas despues, no es algo que falte (usuario, 07-oct-2026). -->
     <div class="card admin-grupo" id="noticiasGrupo" style="margin-top:24px;">
       <div class="eyebrow">Noticias de la semana</div>
       <p class="text-dim" style="font-size:13px; margin:10px 0 12px;">El resumen de lo que pasó en los clanes durante la semana de guerra, para no tener que armarlo a mano. Elige la semana y el tablero se arma solo.</p>
@@ -3467,7 +3467,7 @@ async function cargarSorteosHoy(){
         sorteosHoyData.map(s => {
           const fechaTxt = new Date(s.fecha).toLocaleString('es-PE', { hour12:false });
           const semanasCsv = Array.isArray(s.semanas) ? s.semanas.join(',') : '';
-          // AMPLIADO (15-sep-2026, cierre de conexión pendiente): data-comentario,
+          // AMPLIADO (15-sep-2026, cierre de conexión): data-comentario,
           // mismo criterio que data-autor/data-premios/data-semanas, para
           // precargar #sComentario con lo ya guardado (ver _listarSorteosDeHoy(),
           // 24_Torneos_Core.gs).
@@ -3984,7 +3984,7 @@ async function precargarUltimoRegistroTorneo(){
     await aplicarAutorYCuentaPrecargados(r, '', 't');
     if(r.comentario !== undefined) document.getElementById('tComentario').value = r.comentario || '';
   }catch(err){
-    // Error de red/parseo, o endpoint todavía no conectado: se deja el
+    // Error de red/parseo: se deja el
     // formulario tal cual estaba -- mismo criterio de tolerancia a fallos
     // que el resto de los `cargarXxx()`/`precargarXxx()` de este archivo.
   }
@@ -4014,7 +4014,7 @@ async function precargarUltimoRegistroSorteo(){
     await aplicarAutorYCuentaPrecargados(r, '', 's');
     if(r.comentario !== undefined) document.getElementById('sComentario').value = r.comentario || '';
   }catch(err){
-    // Error de red/parseo, o endpoint todavía no conectado: mismo criterio
+    // Error de red/parseo: mismo criterio
     // de tolerancia a fallos que precargarUltimoRegistroTorneo().
   }
 }
@@ -4747,7 +4747,7 @@ document.getElementById('sSelectHoy').addEventListener('change', () => {
   pintarSemanasSelector('semanasSelectorSorteoMod');
   preseleccionarSemanas('semanasSelectorSorteoMod', opt && opt.dataset.semanas);
 
-  // AMPLIADO (15-sep-2026, cierre de conexión pendiente): mismo criterio
+  // AMPLIADO (15-sep-2026, cierre de conexión): mismo criterio
   // que #tComentario en el listener de #tSelectHoy más abajo -- precarga
   // #sComentario con el Comentario ya guardado del sorteo elegido (o vacío
   // si no hay sorteo elegido o no tiene comentario).
@@ -5661,19 +5661,15 @@ document.getElementById('btnCrPrecargarUltimo').addEventListener('click', precar
  * checkboxes con las semanas que tenga esa temporada, también un botón
  * para añadir otra temporada")
  * ============================================================
- * Reusa el mismo caché de las 5 semanas más recientes que ya usan
- * Torneos/Sorteos (cargarSemanasRecientes(), más arriba en este mismo
- * <script>) -- por eso el <select> de temporada normalmente solo ofrece 1
- * o 2 temporadas (las que caen dentro de esas 5 semanas). Al editar una
- * corrida vieja que apunta a una temporada fuera de ese rango, esa
- * temporada igual se agrega como opción del <select> (ver
- * mapaTemporadasCR()), pero sus checkboxes se pintan solo con las semanas
- * puntuales que esa corrida ya tenía marcadas -- sin rango de fechas,
- * porque ese dato no está fuera del caché de recientes.
- * POSIBLE MEJORA FUTURA (no es una conexión pendiente): si más adelante hace falta elegir semanas de CUALQUIER
- * temporada pasada con su rango de fechas completo, se necesita un
- * endpoint nuevo tipo webAdminSemanasDeTemporada(temporada) -- por ahora
- * alcanza con lo de acá para el caso normal (corridas recientes).
+ * El <select> de temporada se arma con las temporadas del caché de semanas
+ * (ver el FIX del 16-sep más abajo); al editar una corrida vieja, su
+ * temporada igual se agrega como opción (ver mapaTemporadasCR()).
+ * Las semanas de cada temporada, con su rango de fechas completo, se piden
+ * a webAdminSemanasDeTemporada(temporada) (ver
+ * semanasCompletasDeTemporadaCR(), más abajo), tanto al cambiar de
+ * temporada como al precargar una corrida vieja. La temporada vigente ya
+ * viene completa en el caché (todasSemanasVigente) y no se vuelve a pedir.
+ * Si el endpoint falla o devuelve vacío, se usan las semanas del caché.
  *
  * obtenerSemanasCR() arma el mismo string "T{temporada}_S{semana},..."
  * que antes tipeaba el admin a mano en el viejo #crSemanas -- el resto de
@@ -5719,6 +5715,43 @@ async function cargarSemanasParaCR(){
   return _semanasCRCargando;
 }
 
+// Caché de webAdminSemanasDeTemporada: temporada (string) -> [{lunesIso,
+// domingoIso, semana}, ...]. Solo se guardan respuestas buenas, para que un
+// fallo de red se pueda reintentar al volver a elegir la temporada.
+const _semanasTemporadaCache = new Map();
+
+/** Busca la entrada de `temporada` en `map` sin importar si la clave es número o texto. */
+function claveTemporadaEnMapaCR(map, temporada){
+  for(const k of map.keys()){
+    if(String(k) === String(temporada)) return k;
+  }
+  return temporada;
+}
+
+/** Deja en `map` TODAS las semanas de `temporada` (con rango de fechas).
+ *  Pide webAdminSemanasDeTemporada y espera {ok, semanas:[{lunesIso,
+ *  domingoIso, temporada, semana}]}, mismo shape que webAdminSemanasRecientes.
+ *  La vigente (la mayor del caché) ya viene completa y no se pide. Ante
+ *  error o respuesta vacía, `map` queda como estaba. */
+async function semanasCompletasDeTemporadaCR(map, temporada){
+  const clave = String(temporada);
+  const key = claveTemporadaEnMapaCR(map, temporada);
+  const cache = await cargarSemanasParaCR();
+  const vigente = cache.reduce((m, s) => Math.max(m, Number(s.temporada)), -Infinity);
+  if(Number(temporada) === vigente) return;
+  if(!_semanasTemporadaCache.has(clave)){
+    try{
+      const data = await apiGetAuth('webAdminSemanasDeTemporada', { temporada: clave });
+      if(data && data.ok && Array.isArray(data.semanas) && data.semanas.length){
+        _semanasTemporadaCache.set(clave, data.semanas.map(s => ({ lunesIso: s.lunesIso, domingoIso: s.domingoIso, semana: s.semana })));
+      }
+    }catch(err){
+      // Sin red o endpoint caído: se queda con lo que ya había en el mapa.
+    }
+  }
+  if(_semanasTemporadaCache.has(clave)) map.set(key, _semanasTemporadaCache.get(clave));
+}
+
 async function mapaTemporadasCR(extra){
   const cache = await cargarSemanasParaCR();
   const map = new Map();
@@ -5736,10 +5769,10 @@ function temporadasOrdenadasCR(map){
 
 function pintarChecksTemporadaCR(bloqueEl, map, temporada, semanasPreseleccionadas){
   const cont = bloqueEl.querySelector('.semana-selector');
-  const semanas = map.get(temporada) || [];
+  const semanas = map.get(claveTemporadaEnMapaCR(map, temporada)) || [];
   const pre = semanasPreseleccionadas || new Set();
   if(!semanas.length){
-    cont.innerHTML = '<p class="text-dim" style="font-size:12px; margin:0; padding:4px 2px;">No hay semanas recientes para esta temporada.</p>';
+    cont.innerHTML = '<p class="text-dim" style="font-size:12px; margin:0; padding:4px 2px;">No se encontraron semanas para esta temporada.</p>';
     return;
   }
   cont.innerHTML = semanas.map((s, i) => {
@@ -5784,14 +5817,21 @@ async function agregarBloqueTemporadaCR(temporadaPreseleccionada, semanasPresele
   };
   nombrarQuitar(temporada);
 
+  const msgCargandoCR = '<p class="text-dim" style="font-size:12px; margin:0; padding:4px 2px;">Cargando semanas…</p>';
+  bloque.querySelector('.semana-selector').innerHTML = msgCargandoCR;
+  await semanasCompletasDeTemporadaCR(map, temporada);
   pintarChecksTemporadaCR(bloque, map, temporada, semanasPreseleccionadas);
 
-  bloque.querySelector('.cr-temporada-select').addEventListener('change', (ev) => {
+  bloque.querySelector('.cr-temporada-select').addEventListener('change', async (ev) => {
     // Se cambió de temporada dentro del mismo bloque: repinta desde cero,
     // sin nada preseleccionado (la selección de antes correspondía a la
     // temporada anterior).
-    pintarChecksTemporadaCR(bloque, map, ev.target.value, null);
-    nombrarQuitar(ev.target.value);
+    const t = ev.target.value;
+    nombrarQuitar(t);
+    bloque.querySelector('.semana-selector').innerHTML = msgCargandoCR;
+    await semanasCompletasDeTemporadaCR(map, t);
+    if(ev.target.value !== t) return; // se eligió otra temporada mientras cargaba
+    pintarChecksTemporadaCR(bloque, map, t, null);
   });
   btnQuitar.addEventListener('click', () => {
     bloque.remove();
@@ -6473,16 +6513,15 @@ document.getElementById('btnGuardarVigenteSorteo').addEventListener('click', () 
  * muestra/oculta los dos paneles ya pintados en el HTML (#panelTorneosAccion/
  * #panelSorteosAccion) — no pide nada al backend, así que no reutiliza
  * cargarGrupoToggle() de mensajes.html (esa función sí pide contenido de categorías reales).
- * FIX (10-sep-2026): "Sorteos" ya tiene su Paso 1 y Paso 2 reales (ver
+ * FIX (10-sep-2026): "Sorteos" tiene sus tres pasos reales (ver
  * #panelSorteosAccion en el HTML y los listeners de
- * btnSorteoPaso1/btnSorteoPaso2 más abajo) -- el Paso 3 (campos del
- * formulario) todavía no existe, así que el segundo "Continuar" solo
- * revela el aviso de #sorteoPaso3.
+ * btnSorteoPaso1/btnSorteoPaso2 más abajo); el segundo "Continuar"
+ * revela #sorteoPaso3 con los campos del formulario.
  * FIX (13-sep-2026, pedido del usuario -- Fase 7 del plan de Cambio de
  * Rango, PASO 1): se suma el tercer panel (#panelCambioRangoAccion) al
  * mismo switcher -- ver el nuevo botón data-panel="cambiorango" en el
- * HTML. Todavía es un placeholder (ver ese div), el contenido real se
- * agrega en los próximos pasos.
+ * HTML. Su contenido (wizard de Registrar/Editar corrida) ya está
+ * completo, más abajo en este mismo <script>.
  */
 // Los contenedores de resultado (#…Msg) ya existen vacíos en el HTML; con aria-live="polite" un lector de pantalla anuncia el éxito o el error al llenarse. Historial en CHANGELOG.md.
 document.querySelectorAll('[id$="Msg"]').forEach(el => el.setAttribute('aria-live', 'polite'));
@@ -6503,9 +6542,8 @@ document.querySelectorAll('.btn-toggle-torsor').forEach(btn => {
  *  de initTorneoWizard(): cada "Continuar" solo revela el paso siguiente si
  *  ya se eligió una opción, y ni #sorteoPaso1 ni #sorteoPaso2 se ocultan
  *  una vez revelados (igual que sus equivalentes de Torneos) -- "‹ Cambiar"
- *  solo esconde el paso siguiente, nunca el actual. #sorteoPaso3 por ahora
- *  es un placeholder (ver HTML) -- el Paso 3 real (campos del formulario)
- *  queda para otra sesión. */
+ *  solo esconde el paso siguiente, nunca el actual. #sorteoPaso3 ya tiene
+ *  el Paso 3 real (campos del formulario, ver HTML). */
 document.getElementById('btnSorteoPaso1').addEventListener('click', () => {
   if(!document.getElementById('sorteoAccion').value) return;
   document.getElementById('sorteoPaso2').style.display = '';
