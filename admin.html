@@ -6914,7 +6914,7 @@ function filaParticipanteResolucion(p){
       <div style="margin-top:8px; display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
         <span class="badge">Sin número registrado</span>
         ${verificadoManual
-          ? '<span class="badge badge-ok">Visto en el grupo (manual)</span>'
+          ? `<span class="badge badge-ok" data-visto-tag="${esc(p.tag)}">Visto en el grupo (manual)</span>`
           : `<button type="button" class="btn-icono btnMarcarGrupoManual" data-tag="${esc(p.tag)}" data-nombre="${esc(p.nombre)}">Marcar visto en el grupo</button>`}
         <button type="button" class="btn-icono btnDescalificarSinGrupo" data-tag="${esc(p.tag)}" data-nombre="${esc(p.nombre)}" style="border-color:var(--danger); color:var(--danger);">Descalificar: no está en el grupo</button>
       </div>`;
@@ -7005,7 +7005,14 @@ document.getElementById('ganadoresLista').addEventListener('click', async (ev) =
         restaurarBoton();
         return;
       }
-      cargarGanadoresTorneo();
+      // Foco (06-oct-2026, decisión de Claude): al repintar, el botón desaparece y el foco caía en <body>. Se lleva a la
+      // insignia «Visto en el grupo (manual)» de la MISMA fila (tabindex=-1) para que el lector la anuncie y el teclado siga ahí.
+      const tagMarcado = btnMarcar.dataset.tag;
+      await cargarGanadoresTorneo();
+      if(teniaFoco || document.activeElement === document.body){
+        const insignia = [...document.querySelectorAll('#ganadoresLista [data-visto-tag]')].find(e => e.dataset.vistoTag === tagMarcado);
+        if(insignia){ insignia.setAttribute('tabindex', '-1'); insignia.focus({preventScroll:true}); }
+      }
     }catch(err){
       document.getElementById('ganadoresMsg').innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
       restaurarBoton();

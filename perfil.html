@@ -5501,6 +5501,12 @@ async function enviarVeto(tag){
     const btnVetar = document.getElementById('btnVetarJugador');
     btnVetar.disabled = true;
     btnVetar.textContent = '🚫 Vetado';
+    // Foco (06-oct-2026, decisión de Claude): el botón Confirmar queda deshabilitado y el foco caería en <body>. Se lleva al mensaje
+    // de confirmación (tabindex=-1) para que el lector de pantalla lo lea y el teclado siga en el formulario, sin saltar al inicio.
+    if(teniaFoco && document.activeElement === document.body){
+      const ok = msgEl.firstElementChild;
+      if(ok){ ok.setAttribute('tabindex', '-1'); ok.focus({preventScroll:true}); }
+    }
   }catch(err){
     msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
     rehabilitarConfirmar();
