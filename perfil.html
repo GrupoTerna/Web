@@ -2040,10 +2040,11 @@ function renderCartaFavorita(j){
   // currentFavouriteCard por sí solo no trae esos campos.
   const d = _datosCarta(nombreEs);
   const tipoTxt = _tipoCartaTxt(fav, d);
-  const esHeroe = rk === 'campeon';
   const heroIcon = (fav.iconUrls && fav.iconUrls.heroMedium) || '';
   const evoLevel = cartaReal ? (cartaReal.evolutionLevel || 0) : 0;
-  const tieneEvo = evoLevel > 0;
+  // FIX (07-oct-2026): escala de EvolutionLevel (ver _evoDesbloqueada()); Campeón = héroe por defecto.
+  const esHeroe = rk === 'campeon' || _heroeDesbloqueado(evoLevel);
+  const tieneEvo = _evoDesbloqueada(evoLevel);
   const evoIcon = (cartaReal && cartaReal.iconUrls && cartaReal.iconUrls.evolutionMedium) || (cartaCol && cartaCol.iconUrls && cartaCol.iconUrls.evolutionMedium) || '';
   const starLevel = cartaReal ? cartaReal.starLevel : null;
   const alMax = !!(cartaReal && cartaReal.maxLevel != null && cartaReal.level != null && cartaReal.level >= cartaReal.maxLevel);
@@ -2310,8 +2311,8 @@ function _colCartaPasaFiltro(c){
     const nvl = nivelAppAjustado(c.level, c.maxLevel, c.rarity).nivel;
     if (nvl == null || !f.nivel.has(nvl)) return false;
   }
-  if (f.heroe && rarezaKey(c.rarity) !== 'campeon') return false;
-  if (f.evolucion && !((c.evolutionLevel || 0) > 0)) return false;
+  if (f.heroe && !(rarezaKey(c.rarity) === 'campeon' || _heroeDesbloqueado(c.evolutionLevel))) return false;
+  if (f.evolucion && !_evoDesbloqueada(c.evolutionLevel)) return false;
   if (f.mejora && !_cartaMejoraDisponible(c)) return false;
   return true;
 }
@@ -2341,7 +2342,7 @@ function _cartaMejoraDisponible(c){
  *  - count se muestra como "×N" (cantidad de cartas disponibles de ese
  *    nombre, tal como explica el usuario).
  *  - starLevel se muestra con estrellitas doradas.
- *  - La carta se dibuja con el ícono de evolución si evolutionLevel > 0.
+ *  - La carta se dibuja con el ícono de evolución si la tiene desbloqueada (evolutionLevel 1 o 3) y, si no, con el de héroe si lo tiene (2 o 3, o Campeón).
  *  - Las de level >= maxLevel se remarcan con borde dorado.
  * BACKEND CONECTADO: cards[] ya llega dentro de jugador.rawClash.
  */
@@ -2356,7 +2357,7 @@ function renderColeccion(j){
   pintarColeccionBloqueadas();
   document.getElementById('mColeccionOrden').innerHTML = _selectorOrdenHtml('selColeccionOrden', _coleccionOrden, 'cambiarOrdenColeccion', [['calidad', 'Calidad (Campeón→Común)']]);
   const enMax = cartas.filter(c => c.maxLevel != null && c.level >= c.maxLevel).length;
-  const conEvo = cartas.filter(c => (c.evolutionLevel || 0) > 0).length;
+  const conEvo = cartas.filter(c => _evoDesbloqueada(c.evolutionLevel)).length;
   document.getElementById('mColeccionResumen').innerHTML =
     `Colecci\u00f3n: <b>${cartas.length}</b> cartas \u00b7 <b>${enMax}</b> al nivel m\u00e1ximo (${cartas.length ? Math.round(enMax / cartas.length * 100) : 0}%) \u00b7 <b>${conEvo}</b> con evoluci\u00f3n desbloqueada`;
   // Al volver a pintar (p.ej. si el jugador se recarga) se reinicia toda
@@ -2395,7 +2396,7 @@ function renderColeccion(j){
   // en _colCartaPasaFiltro() más arriba.
   const tiposCarta = cartas.map(c => _tipoCartaKey(c, _datosCarta(_nombreCartaEs(c))));
   const presentesTipo = TIPOS_CARTA_FILTRO.filter(t => tiposCarta.includes(t));
-  const cantHeroe = cartas.filter(c => rarezaKey(c.rarity) === 'campeon').length;
+  const cantHeroe = cartas.filter(c => rarezaKey(c.rarity) === 'campeon' || _heroeDesbloqueado(c.evolutionLevel)).length;
   const filtrosTipo = document.getElementById('mColeccionFiltrosTipo');
   filtrosTipo.innerHTML = presentesTipo
     .map(t => `<button type="button" data-cat="tipo" data-f="${t}">${t.charAt(0).toUpperCase() + t.slice(1)} (${tiposCarta.filter(x => x === t).length})</button>`)
@@ -2610,6 +2611,26 @@ function _heroCoinHtml(aclarar){
  * (mismo criterio que _filaCostoMejora(): se reserva solo si ALGUNA ficha de la
  * sección la muestra) para que las filas sigan alineadas entre tarjetas.
  */
+/**
+ * _evoDesbloqueada(n) / _heroeDesbloqueado(n)
+ * FIX (07-oct-2026, pedido usuario -- "corrige también el resto de perfil.html"):
+ * EvolutionLevel del jugador (Backup_Cards_2.csv; en la web c.evolutionLevel)
+ * NO es "mayor que 0 = tiene evolución": 1 = solo evolución, 2 = solo héroe,
+ * 3 = evolución y héroe. Antes todo el archivo leía `evolutionLevel > 0` como
+ * evolución, así que quien tenía SOLO el héroe (2) figuraba con evolución.
+ * Estas dos funciones son el único lugar que interpreta esa escala: evolución
+ * desbloqueada = 1 o 3; héroe desbloqueado = 2 o 3. Los Campeones no usan esta
+ * escala (traen el héroe por defecto): quien llama los suma aparte con
+ * rarezaKey(...) === 'campeon'.
+ */
+function _evoDesbloqueada(n){
+  const v = Number(n) || 0;
+  return v === 1 || v === 3;
+}
+function _heroeDesbloqueado(n){
+  const v = Number(n) || 0;
+  return v === 2 || v === 3;
+}
 function _heroePorDesbloquear(maxEvo, evoNivel, esCampeon){
   if (esCampeon) return false;
   const mx = Number(maxEvo);
@@ -3027,8 +3048,10 @@ function pintarColeccion(cartas){
   const datosCol = visibles.map(c => {
     const rk = rarezaKey(c.rarity);
     const urls = c.iconUrls || {};
-    const img = ((c.evolutionLevel || 0) > 0 && urls.evolutionMedium) ? urls.evolutionMedium
-      : (rk === 'campeon' && urls.heroMedium) ? urls.heroMedium
+    // FIX (07-oct-2026): escala de EvolutionLevel (ver _evoDesbloqueada()); el
+    // ícono de héroe también sale en cartas con héroe desbloqueado (2 o 3), no solo en Campeones.
+    const img = (_evoDesbloqueada(c.evolutionLevel) && urls.evolutionMedium) ? urls.evolutionMedium
+      : ((rk === 'campeon' || _heroeDesbloqueado(c.evolutionLevel)) && urls.heroMedium) ? urls.heroMedium
       : urls.medium || '';
     // cards[] (colección completa) también viene crudo del JSON de Supercell.
     const nombreEs = _nombreCartaEs(c);
@@ -3062,7 +3085,7 @@ function pintarColeccion(cartas){
     // coincide con lo que ya se ve, igual que en Mazo actual.
     const iconoBase = urls.medium || '';
     const iconoEvo = urls.evolutionMedium || '';
-    const tieneEvo = (c.evolutionLevel || 0) > 0;
+    const tieneEvo = _evoDesbloqueada(c.evolutionLevel);
     const activaEvo = !!(tieneEvo && iconoEvo && img === iconoEvo);
     // FIX (21-sep-2026, pedido usuario — orden estándar de fichas de carta en
     // toda la web: Nombre/Héroe/Evolución/Rareza/Tipo/Elixir+Estrellas/
@@ -3072,7 +3095,7 @@ function pintarColeccion(cartas){
     // no trae un flag hasHero propio como sí lo hace mazoActual.cartas).
     const d = _datosCarta(nombreEs);
     const tipoTxt = _tipoCartaTxt(c, d);
-    const esHeroe = rk === 'campeon';
+    const esHeroe = rk === 'campeon' || _heroeDesbloqueado(c.evolutionLevel);
     const iconoHeroe = urls.heroMedium || '';
     const activaHero = !!(esHeroe && iconoHeroe && img === iconoHeroe);
     // FIX (23-sep-2026): costo en oro y cartas para el siguiente nivel (backend ya conectado, ver COLECCION_ESPACIO_COSTO_MEJORA más arriba). A nivel máximo no aplica.
@@ -3082,7 +3105,7 @@ function pintarColeccion(cartas){
     return {
       c, rk, img, nombreEs, nvl, alMax, iconoBase, iconoEvo, tieneEvo, activaEvo, tipoTxt, esHeroe, iconoHeroe, activaHero,
       costoOro, cartasSig,
-      heroePorDesbloq: _heroePorDesbloquear(c.maxEvolutionLevel, c.evolutionLevel, esHeroe),
+      heroePorDesbloq: _heroePorDesbloquear(c.maxEvolutionLevel, c.evolutionLevel, rk === 'campeon'),
       mostrarHeroe: esHeroe,
       mostrarEvo: tieneEvo,
       mostrarRareza: !!rk,
@@ -3200,7 +3223,7 @@ function renderCartasTorre(j){
     const tipoTxt = _tipoCartaTxt(t, d);
     const esHeroe = rk === 'campeon';
     const heroIcon = (t.iconUrls && t.iconUrls.heroMedium) || '';
-    const tieneEvo = (t.evolutionLevel || 0) > 0;
+    const tieneEvo = _evoDesbloqueada(t.evolutionLevel);
     const evoIcon = (t.iconUrls && t.iconUrls.evolutionMedium) || '';
     // FIX (23-sep-2026, AVISO 8): oro para subir de nivel (no aplica a nivel máximo).
     const costoOro = alMax ? null : _numOrNull(t.costoOro);
@@ -3888,16 +3911,20 @@ function _tipoCartaTxt(carta, d){
   const t = _tipoCartaKey(carta, d);
   return t ? t.charAt(0).toUpperCase() + t.slice(1) : '';
 }
+/** Nivel de evolución (escala 0-3) de una carta de mazoActual.cartas[]: el backend lo manda como evoLevel. */
+function _evoNivelMazo(c){
+  return Number(c && (c.evolutionLevel != null ? c.evolutionLevel : c.evoLevel)) || 0;
+}
 function _ordenarCartasMazo(cartas){
   return cartas.slice().sort((a, b) => {
     const da = _datosCarta(a.name), db = _datosCarta(b.name);
-    // 1) Héroe (Campeón) primero: prioriza a.hasHero/b.hasHero (dato real del catálogo) sobre la tabla estática DATOS_CARTAS_MAZO. Historial en CHANGELOG.md.
-    const heroeA = (a.hasHero || (da && da.rareza === 'campeon')) ? 0 : 1;
-    const heroeB = (b.hasHero || (db && db.rareza === 'campeon')) ? 0 : 1;
+    // 1) Héroe primero: Campeón o héroe DESBLOQUEADO por el jugador (EvolutionLevel 2 o 3). FIX (07-oct-2026): antes usaba a.hasHero, que es "el catálogo tiene variante héroe", no si el jugador la desbloqueó. Historial en CHANGELOG.md.
+    const heroeA = (rarezaKey(a.rarity) === 'campeon' || (da && da.rareza === 'campeon') || _heroeDesbloqueado(_evoNivelMazo(a))) ? 0 : 1;
+    const heroeB = (rarezaKey(b.rarity) === 'campeon' || (db && db.rareza === 'campeon') || _heroeDesbloqueado(_evoNivelMazo(b))) ? 0 : 1;
     if (heroeA !== heroeB) return heroeA - heroeB;
     // 2) Evolución primero (flag ya viene de _webMazoActualDesdeCards2()).
-    const evoA = a.hasEvolution ? 0 : 1;
-    const evoB = b.hasEvolution ? 0 : 1;
+    const evoA = _evoDesbloqueada(_evoNivelMazo(a)) ? 0 : 1;
+    const evoB = _evoDesbloqueada(_evoNivelMazo(b)) ? 0 : 1;
     if (evoA !== evoB) return evoA - evoB;
     // 3) Tipo: Tropa, Hechizo, Estructura.
     const tipoA = da ? (ORDEN_TIPO_CARTA[da.tipo] ?? 9) : 9;
@@ -3951,10 +3978,11 @@ function _cartaMazoFallback(rc){
     // cruda del JSON — igual que pintarColeccion() y el resto de secciones.
     alTope:        !!(rc.maxLevel != null && rc.level != null && rc.level >= rc.maxLevel),
     evoLevel:      rc.evolutionLevel || 0,
-    hasEvolution:  (rc.evolutionLevel || 0) > 0,
+    hasEvolution:  _evoDesbloqueada(rc.evolutionLevel),
     evolutionIcon: urls.evolutionMedium || null,
-    hasHero:       false,
-    heroIcon:      null
+    // FIX (07-oct-2026): hasHero = héroe usable (Campeón o desbloqueado, EvolutionLevel 2/3), con su ícono.
+    hasHero:       rarezaKey(rc.rarity) === 'campeon' || _heroeDesbloqueado(rc.evolutionLevel),
+    heroIcon:      urls.heroMedium || null
   };
 }
 
@@ -4073,13 +4101,17 @@ function renderMazoActual(mazoActual, ext, j){
     const alTope = (typeof c.alTope === 'boolean')
       ? c.alTope
       : !!(rc.maxLevel != null && rc.level != null && rc.level >= rc.maxLevel);
-    const evoLvl = c.evolutionLevel != null ? c.evolutionLevel : (rc.evolutionLevel || 0);
-    const hasEvo = c.hasEvolution || evoLvl > 0;
+    // FIX (07-oct-2026): escala de EvolutionLevel (ver _evoDesbloqueada()). Se ignora c.hasEvolution
+    // del backend (cuenta cualquier nivel > 0, incluido "solo héroe") y c.hasHero (el catálogo
+    // tiene variante héroe, no que el jugador la desbloqueó).
+    const evoLvl = c.evolutionLevel != null ? c.evolutionLevel : (c.evoLevel != null ? c.evoLevel : (rc.evolutionLevel || 0));
+    const hasEvo = _evoDesbloqueada(evoLvl);
+    const heroOk = !!((d && d.rareza === 'campeon') || rarezaKey(c.rarity) === 'campeon' || _heroeDesbloqueado(evoLvl));
     const evoIcon = c.evolutionIcon || urlsRc.evolutionMedium || '';
     const heroIcon = c.heroIcon || '';
     // Prioridad de imagen: Héroe > Evolución (solo si la tiene desbloqueada)
     // > básica — misma prioridad que usa _ordenarCartasMazo() para el orden.
-    const imgSrc = (c.hasHero && heroIcon) ? heroIcon
+    const imgSrc = (heroOk && heroIcon) ? heroIcon
       : (hasEvo && evoIcon) ? evoIcon
       : c.icon;
     // FIX (21-sep-2026, pedido usuario — "se debe imitar el botón de héroe
@@ -4092,7 +4124,7 @@ function renderMazoActual(mazoActual, ext, j){
     // sobre el básico (ver arriba), se marca is-activa de entrada en el
     // botón que corresponde a esa variante, para que el estado visual del
     // botón siempre coincida con lo que se ve en el ícono del chip.
-    const activaHero = !!(c.hasHero && heroIcon && imgSrc === heroIcon);
+    const activaHero = !!(heroOk && heroIcon && imgSrc === heroIcon);
     const activaEvo = !!(hasEvo && evoIcon && imgSrc === evoIcon);
     return {
       c, d, tipoTxt, starLevel, count, cartasSig, alTope, hasEvo, evoIcon, heroIcon, imgSrc, activaHero, activaEvo,
@@ -4104,7 +4136,7 @@ function renderMazoActual(mazoActual, ext, j){
       rc,
       costoOro: alTope ? null : _numOrNull(costoOroBruto),
       heroePorDesbloq: _heroePorDesbloquear(c.maxEvolutionLevel != null ? c.maxEvolutionLevel : rc.maxEvolutionLevel, evoLvl, !!(d && d.rareza === 'campeon')),
-      mostrarHeroe: !!(c.hasHero || (d && d.rareza === 'campeon')),
+      mostrarHeroe: heroOk,
       mostrarEvo: hasEvo,
       mostrarRareza: !!d,
       mostrarTipo: !!tipoTxt,
@@ -4215,7 +4247,7 @@ function renderMazoActual(mazoActual, ext, j){
       const tipoTxt = _tipoCartaTxt(t, d);
       const esHeroe = rk === 'campeon';
       const heroIcon = (t.iconUrls && t.iconUrls.heroMedium) || '';
-      const tieneEvo = (t.evolutionLevel || 0) > 0;
+      const tieneEvo = _evoDesbloqueada(t.evolutionLevel);
       const evoIcon = (t.iconUrls && t.iconUrls.evolutionMedium) || '';
       const alMax = t.maxLevel != null && t.level != null && t.level >= t.maxLevel;
       // FIX (23-sep-2026, AVISO 8): oro para subir de nivel (no aplica a nivel máximo).
