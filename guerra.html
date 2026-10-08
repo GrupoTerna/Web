@@ -598,6 +598,12 @@ const DIAS = [
   {letra:'S', label:'Sáb'}, {letra:'D', label:'Dom'}
 ];
 let lastFetchAt = null;
+/* NUEVO (08-oct-2026): lastFetchAt = cuándo ESTA página consultó con éxito al servidor (archivo estático o Apps Script).
+ * lastApiAt = cuándo el bot consultó por última vez la API del juego (tiempos.api.ultimaConsultaTs dentro de los datos).
+ * lastPublicadoAt = cuándo se publicó guerra.json (solo con archivo estático). Separarlos evita confundir "la página
+ * preguntó hace 10 s" con "los datos del juego tienen 50 min": el servidor puede responder bien con datos viejos. */
+let lastApiAt = null;
+let lastPublicadoAt = null;
 let prevValues  = {};
 // estado de los selectores, a nivel de módulo para que sobrevivan a cada repintado de render() (cada REFRESH_INTERVAL_MS). null = "vigente" (semana/temporada). Historial en CHANGELOG.md.
 const TAB_TODOS = '__todos__';
@@ -654,10 +660,33 @@ function setNum(id, val){
 // localStorage de apiGetUltimaActualizacion(), pero el texto ya sale de la
 // misma función compartida en vez de una copia local — una sola definición
 // de "actualizado hace X" en todo el sitio.
+/* CAMBIO (08-oct-2026): ahora muestra dos tiempos, "API" (datos del juego) y "Consulta" (la de esta página al servidor).
+ * Formato propio (_haceCorto) en vez de fmtTiempoRelativo(): no tengo util.js a la vista y su texto lleva el prefijo
+ * "Actualizado", que no sirve dentro de "API: … · Consulta: …". */
+function _haceCorto(d){
+  const s = Math.max(0, Math.floor((Date.now() - d.getTime()) / 1000));
+  if(s < 60) return 'hace ' + s + ' s';
+  const m = Math.floor(s / 60);
+  if(m < 60) return 'hace ' + m + ' min';
+  const h = Math.floor(m / 60), rm = m % 60;
+  return 'hace ' + h + ' h' + (rm ? ' ' + rm + ' min' : '');
+}
+function _horaLima(d){
+  try{ return d.toLocaleTimeString('es-PE', {hour:'2-digit', minute:'2-digit', second:'2-digit', timeZone:'America/Lima'}); }
+  catch(e){ return d.toLocaleTimeString(); }
+}
 function actualizarAgoText(){
   const el = document.getElementById('agoText');
   if(!el || !lastFetchAt) return;
-  el.textContent = fmtTiempoRelativo(lastFetchAt);
+  const partes = [];
+  if(lastApiAt) partes.push('API: ' + _haceCorto(lastApiAt));
+  partes.push('Consulta: ' + _haceCorto(lastFetchAt));
+  el.textContent = partes.join(' · ');
+  const det = [];
+  if(lastApiAt) det.push('Última consulta del bot a la API del juego: ' + _horaLima(lastApiAt));
+  if(lastPublicadoAt) det.push('Archivo publicado: ' + _horaLima(lastPublicadoAt));
+  det.push('Esta página consultó al servidor: ' + _horaLima(lastFetchAt));
+  el.title = det.join(' | ');
 }
 function iniciarProgreso(){
   const fill = document.getElementById('progressFill');
@@ -704,7 +733,10 @@ async function cargar(manual){
     const data = r.data;
     render(data);
     cargarPronosticoGuerra(data.ctx || {}, manual); // sin await: no retrasa ni rompe el resto de la página
-    lastFetchAt = r.desde;
+    lastFetchAt = new Date(); // cuándo esta página obtuvo la respuesta (antes: r.desde = hora de publicación del archivo)
+    lastPublicadoAt = r.estatico ? r.desde : null;
+    const tApi = data && data.tiempos && data.tiempos.api ? Number(data.tiempos.api.ultimaConsultaTs) : NaN;
+    lastApiAt = (tApi > 0) ? new Date(tApi) : null;
     if(r.estatico) completarPendientesAdmin(data); // sin await: solo hace algo si hay sesión de admin
     actualizarAgoText();
     iniciarProgreso();
