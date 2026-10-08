@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://gc.zgo.at; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://assets.cwstats.com https://cdn.royaleapi.com https://www.google.com https://grupoterna.goatcounter.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://grupoterna.goatcounter.com; object-src 'none'; base-uri 'self'; form-action 'self';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://gc.zgo.at; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://assets.cwstats.com https://cdn.royaleapi.com https://www.google.com https://grupoterna.goatcounter.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://raw.githubusercontent.com https://grupoterna.goatcounter.com; object-src 'none'; base-uri 'self'; form-action 'self';">
 <title>Comunidad — Familia Terna</title>
 <meta name="description" content="Conoce la historia de la Familia Terna, la comunidad de Clash Royale fundada en 2024 por ᴳ乂ᵀ ⚜️ Caandre.">
 <link rel="canonical" href="https://grupoterna.github.io/Web/comunidad.html">
@@ -420,10 +420,24 @@
  * de cuentas que hoy son Administradores, así que acá no hace falta volver
  * a filtrar nada, solo pintar la lista tal cual llega.
  */
+/* NUEVO (08-oct-2026): los ascensos salen primero de home.json (rama `data` de GitHub, clave `ascensos`; lo publica el bot desde Apps Script, ver 52_Publicar_Home.gs). Si el archivo no existe, falla, tiene más de ESTATICO_EDAD_MAX_MS o no trae la clave, se pide webAscensosRecientes a Apps Script como antes. Ajusta el repo en la URL si no es GrupoTerna/Web. */
+const HOME_ESTATICO_URL = 'https://raw.githubusercontent.com/GrupoTerna/Web/data/home.json';
+const ESTATICO_EDAD_MAX_MS = 3 * 60 * 60 * 1000; // el bot lo reescribe al menos cada hora; 3 h = algo falló
+async function obtenerAscensos(){
+  try{
+    // ?t= por bloques de 5 min: GitHub ya sirve el archivo con ~5 min de caché; esto solo evita que el navegador se quede con uno más viejo.
+    const est = await apiGetEstatico(HOME_ESTATICO_URL + '?t=' + Math.floor(Date.now() / 300000));
+    const pub = est && est._publicadoEn ? new Date(est._publicadoEn) : null;
+    const asc = est && est.ascensos;
+    if(asc && !asc.error && Array.isArray(asc.ascensos) && pub && !isNaN(pub) && (Date.now() - pub.getTime()) < ESTATICO_EDAD_MAX_MS) return asc;
+  }catch(e){ /* sin archivo o sin red a GitHub: se sigue con Apps Script */ }
+  return apiGet('webAscensosRecientes', null, { ttlMs: 300000, staleIfError: true }); // D-9 (b): 5 min; B4/B-10: si falla la red, usar el último dato guardado
+}
+
 async function cargarAscensos(){
   const wrap = document.getElementById('ascensosWrap');
   try{
-    const data = await apiGet('webAscensosRecientes', null, { ttlMs: 300000, staleIfError: true }); // D-9 (b): 5 min; B4/B-10: si falla la red, usar el último dato guardado
+    const data = await obtenerAscensos();
     const ascensos = data.ascensos || [];
     if (!ascensos.length){
       wrap.innerHTML = '<div class="empty">Todavía no hay ascensos registrados.</div>';

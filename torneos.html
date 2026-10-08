@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://gc.zgo.at; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://assets.cwstats.com https://cdn.royaleapi.com https://www.google.com https://grupoterna.goatcounter.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://grupoterna.goatcounter.com; object-src 'none'; base-uri 'self'; form-action 'self';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://gc.zgo.at; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://assets.cwstats.com https://cdn.royaleapi.com https://www.google.com https://grupoterna.goatcounter.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://raw.githubusercontent.com https://grupoterna.goatcounter.com; object-src 'none'; base-uri 'self'; form-action 'self';">
 <title>Torneos — Familia Terna</title>
 <meta name="description" content="Torneos de la Familia Terna: calendario, resultados y ganadores de cada edición. Las inscripciones se comparten solo en nuestros grupos de WhatsApp.">
 <link rel="canonical" href="https://grupoterna.github.io/Web/torneos.html">
@@ -418,7 +418,33 @@ function idTorneoPrincipalDe(t){
 // perfil.html y directorio.html. Sin sesión, es igual que no pasarlo (el
 // caché de 5 min y el respaldo de red siguen aplicando normal, mismo
 // criterio que conSesion en esas otras páginas).
-function apiGetTorneosCompartido(accion){
+/* NUEVO (08-oct-2026): sin sesión de admin, webTorneos y webHistorialTorneos salen primero de torneos.json (rama `data` de GitHub, lo publica el bot desde Apps Script, ver 53_Publicar_Torneos.gs; es la versión de visitante, con los Tags de ex-miembros ocultos). Con un admin logueado NO se usa el archivo: se pide a Apps Script con su sessionToken, como antes, para que vea los Tags reales (aviso A9). Si el archivo no existe, falla, tiene más de ESTATICO_EDAD_MAX_MS o no trae esa clave, también se pide a Apps Script. Ajusta el repo en la URL si no es GrupoTerna/Web. */
+const TORNEOS_ESTATICO_URL = 'https://raw.githubusercontent.com/GrupoTerna/Web/data/torneos.json';
+const ESTATICO_EDAD_MAX_MS = 3 * 60 * 60 * 1000; // el bot lo reescribe al menos cada hora; 3 h = algo falló
+const TORNEOS_ESTATICO_CLAVE = { webTorneos: 'torneos', webHistorialTorneos: 'historial' };
+const torneosEstaticoDesde = {}; // accion -> Date de publicación, solo cuando esa respuesta salió del archivo estático
+let _torneosEstaticoPromesa = null;
+function torneosHaySesionAdmin(){
+  try{ return !!localStorage.getItem('terna_admin_token'); }catch(e){ return false; }
+}
+function cargarTorneosEstatico(){ // una sola petición compartida por las dos acciones
+  if(!_torneosEstaticoPromesa){
+    // ?t= por bloques de 5 min: GitHub ya sirve el archivo con ~5 min de caché; esto solo evita que el navegador se quede con uno más viejo.
+    _torneosEstaticoPromesa = apiGetEstatico(TORNEOS_ESTATICO_URL + '?t=' + Math.floor(Date.now() / 300000)).then(est => {
+      const pub = est && est._publicadoEn ? new Date(est._publicadoEn) : null;
+      return (pub && !isNaN(pub) && (Date.now() - pub.getTime()) < ESTATICO_EDAD_MAX_MS) ? { est, pub } : null;
+    }).catch(() => null);
+  }
+  return _torneosEstaticoPromesa;
+}
+async function apiGetTorneosCompartido(accion){
+  const clave = TORNEOS_ESTATICO_CLAVE[accion];
+  if(clave && !torneosHaySesionAdmin()){
+    const e = await cargarTorneosEstatico();
+    const d = e && e.est[clave];
+    if(d && !d.error){ torneosEstaticoDesde[accion] = e.pub; return d; }
+  }
+  delete torneosEstaticoDesde[accion];
   return apiGet(accion, null, { ttlMs: 300000, staleIfError: true, conSesion: true }); // B-11: 5 min; B4/B-10: si falla la red, usar el último dato guardado
 }
 
@@ -435,7 +461,7 @@ async function cargarTorneos(){
       apiGetTorneosCompartido('webHistorialTorneos').catch(() => null)
     ]);
     document.getElementById('torneosActualizadoTxt').textContent =
-      fmtTiempoRelativo(apiGetUltimaActualizacion('webTorneos', null));
+      fmtTiempoRelativo(torneosEstaticoDesde.webTorneos || apiGetUltimaActualizacion('webTorneos', null)); // con archivo estático: hora de publicación del JSON
 
     // ---- Ganadores del torneo más reciente ----
     const g = data.ganadores;
