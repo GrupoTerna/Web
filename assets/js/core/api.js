@@ -292,15 +292,17 @@ const _MAX_INTENTOS_FETCH = 5;
  * @param {RequestInit} [fetchOpts]
  * @returns {Promise<Object>} JSON ya parseado.
  */
-async function _fetchYParsear(url, fetchOpts, prioridad){
+async function _fetchYParsear(url, fetchOpts, prioridad, maxIntentos){
   return _encolarPeticion(function(){
-    return _fetchYParsearInterno(url, fetchOpts);
+    return _fetchYParsearInterno(url, fetchOpts, maxIntentos);
   }, !!prioridad);
 }
 
 
-async function _fetchYParsearInterno(url, fetchOpts){
-  for (let intento = 1; intento <= _MAX_INTENTOS_FETCH; intento++){
+/* CAMBIO (08-oct-2026): `maxIntentos` opcional (por defecto _MAX_INTENTOS_FETCH = 5). Las respuestas lentas y pesadas (webGuerraEnVivo, 15-35 s por intento) pasan 2: cada reintento lanza otra ejecución en Apps Script y 5 seguidos mantenían la cola ocupada ~3 min. */
+async function _fetchYParsearInterno(url, fetchOpts, maxIntentos){
+  const tope = maxIntentos >= 1 ? maxIntentos : _MAX_INTENTOS_FETCH;
+  for (let intento = 1; intento <= tope; intento++){
     let res;
     try{
       res = await fetch(url, fetchOpts);
@@ -314,7 +316,7 @@ async function _fetchYParsearInterno(url, fetchOpts){
     try{
       return await res.json();
     }catch(parseErr){
-      if (intento >= _MAX_INTENTOS_FETCH) throw new Error(_mensajeErrorRed(), { cause: parseErr });
+      if (intento >= tope) throw new Error(_mensajeErrorRed(), { cause: parseErr });
       await new Promise(function(r){ setTimeout(r, _REINTENTO_ESPERA_MS * intento); });
     }
   }
@@ -443,7 +445,7 @@ async function apiGet(accion, params, opts){
   const promesa = (async function(){
     let data;
     try{
-      data = await _fetchYParsear(`${WEBAPP_URL}?${qs.toString()}`, { cache:'no-store' }, !!opts.prioridad); // opts.prioridad: ver _encolarPeticion()
+      data = await _fetchYParsear(`${WEBAPP_URL}?${qs.toString()}`, { cache:'no-store' }, !!opts.prioridad, opts.maxIntentos); // opts.prioridad: ver _encolarPeticion(); opts.maxIntentos: ver _fetchYParsearInterno()
     }catch(err){
       // FIX (B4/B-10): stale-if-error, solo si se pidió explícitamente.
       if(opts.staleIfError){
@@ -485,4 +487,25 @@ async function apiGetAuth(accion, params){
   const token = localStorage.getItem('terna_admin_token');
   const qs = new URLSearchParams({ accion, sessionToken: token || '', ...(params||{}) });
   return await _fetchYParsear(`${WEBAPP_URL}?${qs.toString()}`, { cache:'no-store' });
+}
+
+
+/**
+ * apiGetEstatico(url, opts)
+ * NUEVO (08-oct-2026): GET de un archivo JSON estático (hoy: guerra.json en la rama `data` de
+ * GitHub, ver 39_Publicar_Guerra.gs). NO pasa por _encolarPeticion(): no es Apps Script, así que no
+ * debe esperar detrás de sus peticiones ni ocupar su único lugar. Sin reintentos ni caché propia
+ * (quien llama decide); aborta a los opts.timeoutMs (15 s por defecto) y lanza si no es 200 o no es JSON.
+ */
+async function apiGetEstatico(url, opts){
+  opts = opts || {};
+  const ctrl = (typeof AbortController !== 'undefined') ? new AbortController() : null;
+  const timer = ctrl ? setTimeout(function(){ ctrl.abort(); }, opts.timeoutMs || 15000) : null;
+  try{
+    const res = await fetch(url, { cache:'no-store', signal: ctrl ? ctrl.signal : undefined });
+    if(!res.ok) throw new Error('HTTP ' + res.status);
+    return await res.json();
+  }finally{
+    if(timer) clearTimeout(timer);
+  }
 }

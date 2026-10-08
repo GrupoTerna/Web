@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://gc.zgo.at; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://assets.cwstats.com https://cdn.royaleapi.com https://www.google.com https://grupoterna.goatcounter.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://grupoterna.goatcounter.com; object-src 'none'; base-uri 'self'; form-action 'self';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://gc.zgo.at; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://assets.cwstats.com https://cdn.royaleapi.com https://www.google.com https://grupoterna.goatcounter.com; connect-src 'self' https://raw.githubusercontent.com https://script.google.com https://script.googleusercontent.com https://grupoterna.goatcounter.com; object-src 'none'; base-uri 'self'; form-action 'self';">
 <title>Guerra en Vivo — Familia Terna</title>
 <meta name="description" content="Estado en vivo de la guerra de clanes de la Familia Terna: puntos, ataques restantes y ranking de los 4 clanes actualizados en tiempo real.">
 <link rel="canonical" href="https://grupoterna.github.io/Web/guerra.html">
@@ -668,6 +668,31 @@ function iniciarProgreso(){
     fill.style.width = '100%';
   }));
 }
+/* NUEVO (08-oct-2026): los datos de guerra salen primero de un archivo estático (guerra.json en la rama `data` de GitHub, lo publica el bot desde Apps Script, ver 39_Publicar_Guerra.gs). Apps Script tardaba 15-35 s y fallaba con el 404 del redirect 'echo' al entregar ~920 KB. Si el archivo no existe, falla o tiene más de GUERRA_ESTATICO_EDAD_MAX_MS, se pide a Apps Script como antes (con 2 intentos en vez de 5). Ajusta el repo en la URL si no es GrupoTerna/Web. */
+const GUERRA_ESTATICO_URL = 'https://raw.githubusercontent.com/GrupoTerna/Web/data/guerra.json';
+const GUERRA_ESTATICO_EDAD_MAX_MS = 3 * 60 * 60 * 1000; // el bot lo reescribe al menos cada hora; 3 h = algo falló
+async function obtenerDatosGuerra(){
+  try{
+    // ?t= por bloques de 5 min: GitHub ya sirve el archivo con ~5 min de caché; esto solo evita que el navegador se quede con uno más viejo.
+    const est = await apiGetEstatico(GUERRA_ESTATICO_URL + '?t=' + Math.floor(Date.now() / 300000));
+    const pub = est && est._publicadoEn ? new Date(est._publicadoEn) : null;
+    if(est && est.ctx && pub && !isNaN(pub) && (Date.now() - pub.getTime()) < GUERRA_ESTATICO_EDAD_MAX_MS){
+      return { data: est, desde: pub, estatico: true };
+    }
+  }catch(e){ /* sin archivo o sin red a GitHub: se sigue con Apps Script */ }
+  const data = await apiGet('webGuerraEnVivo', null, { sinCache: true, conSesion: true, maxIntentos: 2 }); // Fase 5b tanda C (28-sep-2026): con sesión de admin el backend manda nomMulti/prestamo de los pendientes; a un visitante no.
+  return { data, desde: new Date(), estatico: false };
+}
+/* El archivo estático lleva los pendientes SIN nomMulti/prestamo (es público). Un admin con sesión los pide aparte (acción pequeña, ~26 KB) y se repinta. */
+async function completarPendientesAdmin(data){
+  let tieneSesion = false;
+  try{ tieneSesion = !!localStorage.getItem('terna_admin_token'); }catch(e){ return; }
+  if(!tieneSesion) return;
+  try{
+    const r = await apiGet('webGuerraPendientes', null, { sinCache: true, conSesion: true, maxIntentos: 2 });
+    if(r && Array.isArray(r.pendientes) && ultimoDataGuerra === data){ data.pendientes = r.pendientes; render(data); }
+  }catch(e){ /* sin esos campos solo se ve la versión de visitante; no debe romper la página */ }
+}
 async function cargar(manual){
   const statusEl = document.getElementById('status');
   const refreshBtn = document.getElementById('refreshBtn');
@@ -675,10 +700,12 @@ async function cargar(manual){
   if(refreshBtn){ refreshBtn.classList.add('spinning'); refreshBtn.disabled = true; }
   try{
 // antes esto pegaba directo a ?dashboard=json con un token de administradores hardcodeado acá mismo, visible para cualquiera con "Ver código fuente" de esta página PÚBLICA. Historial en CHANGELOG.md.
-    const data = await apiGet('webGuerraEnVivo', null, { sinCache: true, conSesion: true }); // Fase 5b tanda C (28-sep-2026): con sesión de admin el backend manda nomMulti/prestamo de los pendientes; a un visitante no.
+    const r = await obtenerDatosGuerra();
+    const data = r.data;
     render(data);
     cargarPronosticoGuerra(data.ctx || {}, manual); // sin await: no retrasa ni rompe el resto de la página
-    lastFetchAt = new Date();
+    lastFetchAt = r.desde;
+    if(r.estatico) completarPendientesAdmin(data); // sin await: solo hace algo si hay sesión de admin
     actualizarAgoText();
     iniciarProgreso();
   }catch(err){
