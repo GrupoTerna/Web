@@ -1087,7 +1087,8 @@ function cambiarVarianteCarta(btn){
  * Top de la semana (ataques, puntaje, barcos) — movido desde guerra.html (07-oct-2026, pedido usuario).
  * Usa 'webGuerraEnVivo' (misma llamada que guerra.html, con caché de 2 min) y la semana por defecto de Valores diarios
  * (valoresDiariosSelectores.porDefecto → valoresDiariosPorSemana[temporada][sectionIndex]): ataques (total), puntaje (total) y
- * barcos (total) por jugador. Sin ceros ni vacíos. Si el backend no manda esa semana, la sección queda oculta.
+ * barcos (total) por jugador, las tres de la MISMA semana (08-oct-2026: antes barcos retrocedía a la última semana con barcos > 0, p. ej. la
+ * S3 de la temporada pasada; ahora no). Sin ceros ni vacíos. Si el backend no manda esa semana, la sección queda oculta.
  */
 let topSemanaDatos = {};
 let topSemanaClan = '';
@@ -1127,20 +1128,9 @@ async function cargarTopSemana(){
     const clanes = Object.keys(datos || {}).sort((a, b) => ordenClanIndex(a) - ordenClanIndex(b));
     if (!clanes.length){ sec.style.display = 'none'; return; }
     topSemanaDatos = datos;
-    // Barcos: es un acumulado semanal que no avanza en coliseo ni en los primeros días de entrenamiento.
-    // Se toma la semana más reciente (esta temporada o anteriores) que tenga barcos > 0.
-    topSemanaBarcos = { datos: {}, label: '' };
-    const hayBarcos = d => Object.keys(d || {}).some(c => (d[c] || []).some(f => f && f.barcos && Number(f.barcos.total) > 0));
-    const temps = Object.keys(porSemana).sort((a, b) => (Number(b) - Number(a)) || String(b).localeCompare(String(a)));
-    buscar: for (const t of temps){
-      const idxs = Object.keys(porSemana[t] || {}).sort((a, b) => Number(b) - Number(a));
-      for (const i of idxs){
-        if (!hayBarcos(porSemana[t][i])) continue;
-        const sm = ((sel.semanasPorTemporada && sel.semanasPorTemporada[t]) || []).find(x => String(x.sectionIndex) === String(i));
-        topSemanaBarcos = { datos: porSemana[t][i], label: (sm && sm.label) ? sm.label : ('Temporada ' + t + ' · sem. ' + i) };
-        break buscar;
-      }
-    }
+    // Barcos: MISMA semana que ataques y puntaje (la semana por defecto), sin retroceder a semanas anteriores.
+    // Si todavía no hay barcos esta semana (ej. primer día de guerra), la tarjeta muestra "Sin datos todavía".
+    topSemanaBarcos = { datos: datos, label: '' };
     const selClan = document.getElementById('topSemanaClanSelect');
     selClan.innerHTML = '<option value="">Todos los clanes</option>' + clanes.map(c => `<option value="${esc(c)}">${esc(etiquetaClanCorta(c))}</option>`).join('');
     selClan.onchange = () => { topSemanaClan = selClan.value; topSemanaPintar(); };
