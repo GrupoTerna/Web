@@ -1060,23 +1060,29 @@ function cambiarVarianteCarta(btn){
  */
 let topSemanaDatos = {};
 let topSemanaClan = '';
+let topSemanaBarcos = { datos: {}, label: '' };
 const TOP_SEMANA_N = 5;
 function etiquetaClanCorta(nombre){ return ['Principal','Clan 2','Clan 3','Mini'][ordenClanIndex(nombre)] || nombre; }
 function topSemanaPintar(){
   const wrap = document.getElementById('topSemanaWrap');
   const clanes = Object.keys(topSemanaDatos).sort((a, b) => ordenClanIndex(a) - ordenClanIndex(b));
-  const filas = [];
-  clanes.forEach(c => { if (topSemanaClan && c !== topSemanaClan) return; (topSemanaDatos[c] || []).forEach(f => filas.push({ f, c })); });
+  const juntar = datos => {
+    const out = [];
+    Object.keys(datos || {}).sort((a, b) => ordenClanIndex(a) - ordenClanIndex(b)).forEach(c => { if (topSemanaClan && c !== topSemanaClan) return; (datos[c] || []).forEach(f => { if (f) out.push({ f, c }); }); });
+    return out;
+  };
+  const filas = juntar(topSemanaDatos);
+  const filasBarcos = juntar(topSemanaBarcos.datos);
   const metricas = [
     { titulo:'⚔️ Más ataques', val: x => x.f.total, tope: 16 },
     { titulo:'⭐ Más puntaje', val: x => x.f.puntaje && x.f.puntaje.total },
-    { titulo:'🚢 Más barcos', val: x => x.f.barcos && x.f.barcos.total }
+    { titulo:'🚢 Más barcos', val: x => x.f.barcos && x.f.barcos.total, filas: filasBarcos, sub: topSemanaBarcos.label }
   ];
   wrap.innerHTML = metricas.map(m => {
-    const top = filas.map(x => ({ x, v: Number(m.val(x)) || 0 })).filter(r => r.v > 0)
+    const top = (m.filas || filas).map(x => ({ x, v: Number(m.val(x)) || 0 })).filter(r => r.v > 0)
       .sort((a, b) => b.v - a.v || String(a.x.f.nombre || '').localeCompare(String(b.x.f.nombre || ''), 'es')).slice(0, TOP_SEMANA_N);
     const lis = top.map((r, i) => `<li><span class="top-pos">${i + 1}.</span><span class="top-nombre">${r.x.f.tag ? enlaceJugador(r.x.f.nombre || r.x.f.tag, r.x.f.tag) : esc(r.x.f.nombre || '')}</span><span class="top-clan">${esc(etiquetaClanCorta(r.x.c))}</span><span class="top-valor">${fmtNum(r.v)}${m.tope ? '<span class="top-clan">/' + m.tope + '</span>' : ''}</span></li>`).join('');
-    return `<div class="card top-card"><h3>${m.titulo}</h3>${lis ? `<ol class="top-lista">${lis}</ol>` : '<div class="top-vacio">Sin datos todavía.</div>'}</div>`;
+    return `<div class="card top-card"><h3>${m.titulo}</h3>${m.sub ? `<div class="text-faint" style="font-family:var(--f-mono); font-size:10px; margin:-4px 0 6px;">${esc(m.sub)}</div>` : ''}${lis ? `<ol class="top-lista">${lis}</ol>` : '<div class="top-vacio">Sin datos todavía.</div>'}</div>`;
   }).join('');
 }
 async function cargarTopSemana(){
@@ -1090,6 +1096,20 @@ async function cargarTopSemana(){
     const clanes = Object.keys(datos || {}).sort((a, b) => ordenClanIndex(a) - ordenClanIndex(b));
     if (!clanes.length){ sec.style.display = 'none'; return; }
     topSemanaDatos = datos;
+    // Barcos: es un acumulado semanal que no avanza en coliseo ni en los primeros días de entrenamiento.
+    // Se toma la semana más reciente (esta temporada o anteriores) que tenga barcos > 0.
+    topSemanaBarcos = { datos: {}, label: '' };
+    const hayBarcos = d => Object.keys(d || {}).some(c => (d[c] || []).some(f => f && f.barcos && Number(f.barcos.total) > 0));
+    const temps = Object.keys(porSemana).sort((a, b) => (Number(b) - Number(a)) || String(b).localeCompare(String(a)));
+    buscar: for (const t of temps){
+      const idxs = Object.keys(porSemana[t] || {}).sort((a, b) => Number(b) - Number(a));
+      for (const i of idxs){
+        if (!hayBarcos(porSemana[t][i])) continue;
+        const sm = ((sel.semanasPorTemporada && sel.semanasPorTemporada[t]) || []).find(x => String(x.sectionIndex) === String(i));
+        topSemanaBarcos = { datos: porSemana[t][i], label: (sm && sm.label) ? sm.label : ('Temporada ' + t + ' · sem. ' + i) };
+        break buscar;
+      }
+    }
     const selClan = document.getElementById('topSemanaClanSelect');
     selClan.innerHTML = '<option value="">Todos los clanes</option>' + clanes.map(c => `<option value="${esc(c)}">${esc(etiquetaClanCorta(c))}</option>`).join('');
     selClan.onchange = () => { topSemanaClan = selClan.value; topSemanaPintar(); };
