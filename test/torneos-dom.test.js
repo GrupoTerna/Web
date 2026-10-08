@@ -65,7 +65,10 @@ function armarRespuestas(esAdmin){
   };
 }
 
-async function cargarPagina({ esAdmin }){
+// `estatico`: qué hace apiGetEstatico() (el torneos.json de la rama `data`).
+//   undefined -> falla (como si GitHub no respondiera): la página cae a apiGet(), ruta de los tests de abajo.
+//   función   -> se usa tal cual (para probar la ruta estática de visitante).
+async function cargarPagina({ esAdmin, estatico }){
   const window = loadBrowserScriptsWithDom(['assets/js/util.js'], BODY);
   const llamadas = [];
   if (esAdmin) window.localStorage.setItem('terna_admin_token', 'token-de-prueba');
@@ -74,11 +77,17 @@ async function cargarPagina({ esAdmin }){
     const conAdmin = !!(opts && opts.conSesion && window.localStorage.getItem('terna_admin_token'));
     return armarRespuestas(conAdmin)[accion];
   };
+  window.estaticoLlamadas = [];
+  window.apiGetEstatico = async (url) => {
+    window.estaticoLlamadas.push(url);
+    if (!estatico) throw new Error('sin torneos.json (simulado)');
+    return estatico(url);
+  };
   window.apiGetUltimaActualizacion = () => null;
   window.fmtTiempoRelativo = () => 'hace un momento';
   window.eval(SCRIPT_INLINE);
   await new Promise(r => setTimeout(r, 30)); // deja terminar cargarTorneos()/cargarSalonDeLaFama()
-  return { window, doc: window.document, llamadas };
+  return { window, doc: window.document, llamadas, estaticoLlamadas: window.estaticoLlamadas };
 }
 
 const linksDe = (el) => [...el.querySelectorAll('a.participante-link')].map(a => a.textContent);
@@ -152,4 +161,42 @@ test('enlaceParticipante() escapa el nombre y no arma link sin tag', async () =>
   const { window } = await cargarPagina({ esAdmin: false });
   assert.equal(window.enlaceParticipante('<b>x</b>', null), '&lt;b&gt;x&lt;/b&gt;');
   assert.match(window.enlaceParticipante('<b>x</b>', '#T'), /&lt;b&gt;x&lt;\/b&gt;<\/a>$/);
+});
+
+// NUEVO (08-oct-2026): sin sesión de admin, torneos.html lee primero torneos.json
+// (rama `data`) y solo cae a apiGet() si falta, está vencido (>3 h) o trae error.
+function estaticoCon(esAdminDatos, publicadoEn){
+  const r = armarRespuestas(esAdminDatos);
+  return () => ({ _publicadoEn: publicadoEn, torneos: r.webTorneos, historial: r.webHistorialTorneos });
+}
+
+test('torneos.html — visitante con torneos.json vigente: pinta desde el archivo y NO llama a apiGet()', async () => {
+  const { doc, llamadas, estaticoLlamadas } = await cargarPagina({
+    esAdmin: false,
+    estatico: estaticoCon(false, new Date().toISOString())
+  });
+  assert.equal(llamadas.length, 0, 'no debe pedir apiGet() si el JSON estático sirve');
+  assert.equal(estaticoLlamadas.length, 1, 'una sola petición compartida para las dos acciones');
+  assert.match(estaticoLlamadas[0], /^https:\/\/raw\.githubusercontent\.com\/GrupoTerna\/Web\/data\/torneos\.json\?t=\d+$/);
+  assert.ok(doc.getElementById('ganadoresWrap').textContent.includes(ACTIVO.nombre));
+  assert.ok(linksDe(doc.getElementById('ganadoresWrap')).includes(ACTIVO.nombre));
+  const ex = doc.getElementById('torneosWrap');
+  assert.ok(!linksDe(ex).includes(EXMIEMBRO.nombre), 'visitante: el ex-miembro sin link');
+});
+
+test('torneos.html — visitante con torneos.json vencido (>3 h): cae a apiGet() con conSesion:true', async () => {
+  const viejo = new Date(Date.now() - 4 * 60 * 60 * 1000).toISOString();
+  const { doc, llamadas } = await cargarPagina({ esAdmin: false, estatico: estaticoCon(false, viejo) });
+  assert.ok(llamadas.length >= 2);
+  assert.ok(llamadas.every(l => l.opts && l.opts.conSesion === true));
+  assert.ok(doc.getElementById('ganadoresWrap').textContent.includes(ACTIVO.nombre));
+});
+
+test('torneos.html — admin con sesión: ni siquiera pide torneos.json', async () => {
+  const { llamadas, estaticoLlamadas } = await cargarPagina({
+    esAdmin: true,
+    estatico: estaticoCon(false, new Date().toISOString())
+  });
+  assert.equal(estaticoLlamadas.length, 0);
+  assert.ok(llamadas.length >= 2);
 });
