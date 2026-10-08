@@ -42,6 +42,10 @@
      se reserva un piso conservador de 260 px para no dejar hueco si el contenido real es menor. */
   .chart-card.clan-card-skel{min-height:187px;}
   #clanGrid > .clan-card-skel{min-height:260px;}
+  /* FIX (07-oct-2026, pedido usuario): el líder de cada tarjeta de clan es un enlace a su perfil (ver enlazarLideresClanes en clan-card.js). */
+  .clan-lider-link{ color:inherit; text-decoration:none; cursor:pointer; border-bottom:1px dashed transparent; transition:color .15s, border-color .15s; }
+  .clan-lider-link:hover, .clan-lider-link:focus-visible{ color:var(--gold); border-bottom-color:currentColor; }
+  .clan-lider-link:hover b, .clan-lider-link:focus-visible b{ color:var(--gold) !important; }
   /* FIX (16-sep-2026 v6, pedido usuario — "me parece que los nombres y
      valores resaltan más que el título, no se ve correcto"): el título
      usaba var(--text-dim) (gris) mientras que .chart-label-fuerte y
@@ -902,6 +906,7 @@ async function cargarClanInfoYCharts(){
     // Tarjeta adicional (5ª) con cuentas inactivas — SOLO si hay un admin
     // con sesión iniciada en este navegador.
     agregarTarjetaCuentasInactivasSiAdmin(clanGrid);
+    enlazarLideresClanes(clanGrid, clanes); // FIX (07-oct-2026): líder de cada clan enlaza a su perfil (clan-card.js)
   }catch(err){
     chartsGrid.innerHTML = `<div class="card" style="grid-column:1/-1; text-align:center; padding:32px;">
       <p class="text-dim">No se pudieron cargar las estadísticas: ${esc(err.message)}</p>

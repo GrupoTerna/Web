@@ -141,3 +141,63 @@ function chartCardHtml(titulo, icono, clanes, campo, formatFn){
       ${filas}
     </div>`;
 }
+
+
+/**
+ * enlazarLideresClanes(grid, clanes)
+ * FIX (07-oct-2026, pedido usuario — "en index, al pasar el mouse por el líder del clan, debe poder hacer clic a su perfil"):
+ * webClanInfo solo manda el NOMBRE del líder (c.lider), sin tag. El tag se busca en webRoster (misma caché de 5 min que usan
+ * index.html y directorio.html): primero por nombre dentro del clan y, si no coincide, el miembro con rango Líder de ese clan. Luego se
+ * envuelve en un <a href="perfil.html?tag=..."> el texto que sigue a "Líder:" en la tarjeta. Es DOM sobre lo que ya pintó
+ * clanCardHtml(), así que no depende de su marcado exacto; si no encuentra algo, deja la tarjeta como estaba.
+ */
+async function enlazarLideresClanes(grid, clanes){
+  try{
+    const roster = await apiGet('webRoster', null, { ttlMs: 300000, staleIfError: true });
+    const norm = s => String(s || '').trim().toLowerCase();
+    const sinTilde = s => norm(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const grupos = (roster && roster.clanes) || [];
+    clanes.forEach((c, i) => {
+      const card = grid.children[i];
+      if (!card || !c.lider || card.querySelector('a.clan-lider-link')) return;
+      const grupo = grupos.find(g => norm(g.nombre) === norm(c.nombre));
+      const miembros = (grupo && grupo.miembros) || [];
+      const lider = miembros.find(m => norm(m.nombre) === norm(c.lider))
+                 || miembros.find(m => sinTilde(m.rango) === 'lider');
+      if (!lider || !lider.tag) return;
+      envolverLiderEnTarjeta(card, 'perfil.html?tag=' + encodeURIComponent(lider.tag), 'Ver perfil de ' + (lider.nombre || c.lider));
+    });
+  }catch(e){ /* sin roster no hay enlace; la tarjeta queda igual que antes */ }
+}
+function envolverLiderEnTarjeta(card, href, titulo){
+  const w = document.createTreeWalker(card, NodeFilter.SHOW_TEXT);
+  let tn, m;
+  while ((tn = w.nextNode())){ m = /L[ií]der\s*:\s*/i.exec(tn.nodeValue); if (m) break; }
+  if (!tn || !m) return;
+  let contenedor = tn.parentNode, primero;
+  const resto = tn.nodeValue.slice(m.index + m[0].length);
+  if (resto.trim()){
+    primero = tn.splitText(m.index + m[0].length);        // "Líder: Nombre" en un mismo texto
+  } else if (tn.nextSibling){
+    primero = tn.nextSibling;                              // "Líder:" suelto y el nombre en el siguiente nodo
+  } else if (contenedor !== card){
+    primero = contenedor.nextSibling;                      // "Líder:" dentro de su propio <span>/<b>
+    contenedor = contenedor.parentNode;
+  }
+  if (!primero) return;
+  const mover = [];
+  for (let n = primero; n; n = n.nextSibling){
+    if (n.nodeType === 1){
+      if (n.tagName === 'BR') break;
+      const d = getComputedStyle(n).display;
+      if (d === 'block' || d === 'flex' || d === 'grid' || d === 'list-item') break;
+    }
+    mover.push(n);
+  }
+  if (!mover.some(n => (n.textContent || '').trim()) || mover.some(n => n.nodeType === 1 && (n.tagName === 'A' || n.querySelector('a')))) return;
+  const a = document.createElement('a');
+  a.className = 'clan-lider-link';
+  a.href = href; a.target = '_blank'; a.rel = 'noopener'; a.title = titulo;
+  contenedor.insertBefore(a, mover[0]);
+  mover.forEach(n => a.appendChild(n));
+}
