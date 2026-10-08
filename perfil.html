@@ -2268,12 +2268,6 @@ function _oroHastaNivel(cartas, nivelObjetivo){
   });
   return { oro, incompleto };
 }
-/** 1.482.000 -> "1.48M", 420.000 -> "420K" (compacto para la leyenda del gráfico; el número completo va en el title). */
-function _oroCompacto(n){
-  if (n >= 1e6) return (Math.round(n / 1e4) / 100).toString() + 'M';
-  if (n >= 1e3) return (Math.round(n / 100) / 10).toString() + 'K';
-  return String(n);
-}
 /** FIX (27-sep-2026, pedido usuario — "en la colección completa de cartas
  * ponle un botón para ordenar por nombre ... y por nivel ..., como el botón
  * o filtro que está en insignias"): mismo patrón que _insigniasOrden/
@@ -2541,7 +2535,7 @@ function renderColeccion(j){
         if (!r.oro && !r.incompleto) return '<span class="cc-oro cc-oro--cero" title="Ninguna carta por debajo de este nivel">\u2014</span>';
         const pre = r.incompleto ? '\u2265 ' : '';
         const tip = `Oro para subir todas las cartas de niveles menores hasta el nivel ${n}: ${fmtNum(r.oro)}${r.incompleto ? ' (m\u00ednimo: faltan costos de alguna carta)' : ''}`;
-        return `<span class="cc-oro" title="${esc(tip)}">${_ICONO_ORO_HTML}${pre}${esc(_oroCompacto(r.oro))}</span>`;
+        return `<span class="cc-oro" title="${esc(tip)}">${_ICONO_ORO_HTML}${pre}${esc(fmtNum(r.oro))}</span>`;
       })()
     })), null, { icono: '📊', centroEtiqueta: 'Cartas', nota: `${_ICONO_ORO_HTML} Oro acumulado para subir todo hasta cada nivel` });
   }
