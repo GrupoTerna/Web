@@ -468,6 +468,10 @@
      nunca envuelven a 2 líneas. min-height:32px en .mini-disp-leyenda no
      afecta a los donuts (esa clase solo existe en las tarjetas de
      dispersión). */
+  /* FIX (07-oct-2026, pedido usuario): nota cuando las gráficas muestran la última guerra terminada y no la del día. */
+  .pf-nota-guerra{ display:flex; gap:8px; align-items:flex-start; margin:10px 0 0; padding:8px 12px; border:1px solid var(--border); border-left:3px solid var(--gold); border-radius:8px; font-size:12.5px; line-height:1.4; color:var(--text-dim); background:rgba(255,255,255,.03); }
+  .pf-nota-guerra:empty{ display:none; }
+  #mMiniGraficosWrap > .pf-nota-guerra{ grid-column:1 / -1; margin:0; }
   #mMiniGraficosWrap .mini-pie-titulo{ min-height:26px; }
   #mMiniGraficosWrap .mini-disp-leyenda{ min-height:32px; align-items:center; align-content:center; }
   .badge-item .b-prog{font-family:var(--f-mono); font-size:10px; color:var(--text-faint);}
@@ -1214,6 +1218,7 @@
       <div class="card" style="padding:28px; margin-top:20px;">
         <div class="eyebrow">Evolución</div>
         <h2 class="pf-subtitulo">Ranking en el clan</h2>
+        <div class="pf-nota-guerra" data-nota-guerra></div>
         <div id="mRankingChart"></div>
       </div>
 
@@ -1221,16 +1226,19 @@
       <div class="card pf-panel-datos" id="mAtaquesChartCard" style="display:none;">
         <div class="eyebrow">Evolución</div>
         <h2 class="pf-subtitulo">Ataques por semana</h2>
+        <div class="pf-nota-guerra" data-nota-guerra></div>
         <div id="mAtaquesChart"></div>
       </div>
       <div class="card pf-panel-datos" id="mPuntajeChartCard" style="display:none;">
         <div class="eyebrow">Evolución</div>
         <h2 class="pf-subtitulo">Puntaje por semana</h2>
+        <div class="pf-nota-guerra" data-nota-guerra></div>
         <div id="mPuntajeChart"></div>
       </div>
       <div class="card pf-panel-datos" id="mBarcosChartCard" style="display:none;">
         <div class="eyebrow">Evolución</div>
         <h2 class="pf-subtitulo">Barcos por semana</h2>
+        <div class="pf-nota-guerra" data-nota-guerra></div>
         <div id="mBarcosChart"></div>
       </div>
 
@@ -3843,6 +3851,9 @@ function renderExtendido(ext, j){
   const _guerraYaEmpezo = !!_ctxGuerraPerfil && (_ctxGuerraPerfil.esDiaGuerra === true || (_ctxGuerraPerfil.periodIndex != null && Number(_ctxGuerraPerfil.periodIndex) % 7 >= 3));
   if ((!gsd || ![0, 1, 2, 3].some(i => gsd.ataques && gsd.ataques[i] != null)) && !_guerraYaEmpezo){
     gsd = _guerraDiasDesdeHistorial(ext.historialRanking) || gsd;
+    _minisCongeladas = !!gsd;
+  } else {
+    _minisCongeladas = false;
   }
   const idxDiasJugados = gsd ? [0, 1, 2, 3].filter(i => gsd.ataques[i] != null) : [];
   const diasJugadosLbl = idxDiasJugados.map(i => String(gsd.dias[i] || '').charAt(0).toUpperCase());
@@ -3880,7 +3891,7 @@ function renderExtendido(ext, j){
   const cuadritosWrap = document.getElementById('mCuadritosWrap');
   if (cuadritosWrap) cuadritosWrap.innerHTML = items ? `<div class="ext-grid">${items}</div>` : '';
   const miniGraficosWrap = document.getElementById('mMiniGraficosWrap');
-  if (miniGraficosWrap) miniGraficosWrap.innerHTML = graficosGuerra + piesDonuts;
+  if (miniGraficosWrap) miniGraficosWrap.innerHTML = (_minisCongeladas && graficosGuerra ? `<div class="pf-nota-guerra">${_textoNotaGuerraTerminada(ext)}</div>` : '') + graficosGuerra + piesDonuts;
   wrap.innerHTML = camino;
 }
 
@@ -4702,14 +4713,44 @@ function _historialDiasGuerra(historial){
  * (caché de 2 min de apiGet) y, al llegar, se vuelven a pintar las minigráficas. Si falla, se asume que no se sabe y se
  * congela mientras no haya días jugados.
  */
-let _ctxGuerraPerfil = null, _ctxGuerraPerfilPedido = false, _jPerfilActual = null;
+let _ctxGuerraPerfil = null, _ctxGuerraPerfilPedido = false, _jPerfilActual = null, _minisCongeladas = false;
+/**
+ * Nota "datos de la última guerra terminada". FIX (07-oct-2026, pedido usuario): cuando los registros mostrados no son del día
+ * (guerra vigente sin datos todavía) se avisa que se ve la última guerra terminada. Se guía solo por periodIndex (% 7: 0=lun … 3=jue … 6=dom).
+ */
+function _fechaUltimaGuerraTerminada(ext){
+  const hist = ext && Array.isArray(ext.historialRanking) ? _historialDiasGuerra(ext.historialRanking) : [];
+  const ts = hist.map(h => parseFechaDDMMYYYY(h.semana)).filter(t => !isNaN(t));
+  return ts.length ? fmtFechaLargaDDMMYYYYPerfil(Math.max(...ts)) : '';
+}
+function _textoNotaGuerraTerminada(ext){
+  const f = _fechaUltimaGuerraTerminada(ext);
+  return `<span aria-hidden="true">ℹ️</span><span>Estos registros no son del día: se muestran los datos de la última guerra terminada${f ? ` (hasta el domingo ${esc(String(f))})` : ''}. Se actualizan cuando se juegue el primer día de la guerra nueva (jueves).</span>`;
+}
+function _guerraCongeladaGraficas(ext){
+  const ctx = _ctxGuerraPerfil;
+  if (!ctx || ctx.periodIndex == null || !isFinite(Number(ctx.periodIndex))) return false;
+  const pic = Number(ctx.periodIndex);
+  if (ctx.esDiaGuerra !== true && ((pic % 7) + 7) % 7 < 3) return true; // lunes a miércoles: la guerra ya terminó
+  // Jueves en adelante: si el último registro trae periodIndex de una semana anterior, aún no hay datos de la guerra vigente.
+  const hist = ext && Array.isArray(ext.historialRanking) ? ext.historialRanking : [];
+  const pis = hist.map(_periodIndexRegistro).filter(v => v != null);
+  return pis.length > 0 && Math.floor(Math.max(...pis) / 7) < Math.floor(pic / 7);
+}
+function actualizarNotasGuerraCongelada(ext){
+  const html = _guerraCongeladaGraficas(ext) ? _textoNotaGuerraTerminada(ext) : '';
+  document.querySelectorAll('[data-nota-guerra]').forEach(el => { el.innerHTML = html; });
+}
 function cargarCtxGuerraPerfil(){
   if (_ctxGuerraPerfilPedido) return;
   _ctxGuerraPerfilPedido = true;
   Promise.resolve(apiGet('webGuerraEnVivo', null, { ttlMs: 120000, staleIfError: true })).then(d => {
     if (d && d.ctx){
       _ctxGuerraPerfil = d.ctx;
-      if (_jPerfilActual) renderExtendido(_jPerfilActual.extendido, _jPerfilActual);
+      if (_jPerfilActual){
+        renderExtendido(_jPerfilActual.extendido, _jPerfilActual);
+        actualizarNotasGuerraCongelada(_jPerfilActual.extendido);
+      }
     }
   }).catch(() => {});
 }
@@ -5087,6 +5128,7 @@ function renderMiembro(j){
   perfilGraficaCtx = { nombre: j.nombre || '', tag: j.tag || '', clan: j.clan || '' }; // FIX (20-sep-2026): datos del tooltip de las gráficas
   renderRankingChart(j.extendido);
   renderMetricasSemanales(j.extendido); // FIX (08-sep-2026)
+  actualizarNotasGuerraCongelada(j.extendido); // FIX (07-oct-2026): nota de última guerra terminada
   renderMazoActual(j.mazoActual, j.extendido, j); // FASE 10 (06-sep-2026); FIX 08-sep-2026: botones de sugerencia de mazo se arman acá ahora; FIX 12-sep-2026: se pasa j completo para cruzar con rawClash (starLevel/count/currentDeckSupportCards)
   renderCartaFavorita(j);        // FIX 12-sep-2026 — currentFavouriteCard
   renderCaminoLeyendas(j);       // FIX 12-sep-2026 — Path of Legends + leagueStatistics + legacyTrophyRoadHighScore + expLevel/kingTowerLevel/starPoints
