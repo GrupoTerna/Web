@@ -2099,12 +2099,29 @@ function clanIdxDesdeQuery(){
   return rosterData.findIndex(c => (c.nombre || '').trim().toLowerCase() === q);
 }
 
+/* NUEVO (08-oct-2026): el roster sale primero de un archivo estático (roster.json en la rama `data` de GitHub, lo publica el bot desde Apps Script, ver 51_Publicar_Roster.gs), igual que guerra.html con guerra.json. Si el archivo no existe, falla o tiene más de ROSTER_ESTATICO_EDAD_MAX_MS, se pide a Apps Script (webRoster) como antes. Ajusta el repo en la URL si no es GrupoTerna/Web. */
+const ROSTER_ESTATICO_URL = 'https://raw.githubusercontent.com/GrupoTerna/Web/data/roster.json';
+const ROSTER_ESTATICO_EDAD_MAX_MS = 3 * 60 * 60 * 1000; // el bot lo reescribe al menos cada hora; 3 h = algo falló
+async function obtenerRoster(){
+  try{
+    // ?t= por bloques de 5 min: GitHub ya sirve el archivo con ~5 min de caché; esto solo evita que el navegador se quede con uno más viejo.
+    const est = await apiGetEstatico(ROSTER_ESTATICO_URL + '?t=' + Math.floor(Date.now() / 300000));
+    const pub = est && est._publicadoEn ? new Date(est._publicadoEn) : null;
+    if(est && Array.isArray(est.clanes) && est.clanes.length && pub && !isNaN(pub) && (Date.now() - pub.getTime()) < ROSTER_ESTATICO_EDAD_MAX_MS){
+      return { data: est, desde: pub, estatico: true };
+    }
+  }catch(e){ /* sin archivo o sin red a GitHub: se sigue con Apps Script */ }
+  const data = await apiGet('webRoster', null, { ttlMs: 300000, staleIfError: true }); // B-11: 5 min; B4/B-10: si falla la red, usar el último dato guardado
+  return { data, desde: null, estatico: false };
+}
+
 async function cargarRoster(){
   const wrap = document.getElementById('rosterWrap');
   try{
-    const data = await apiGet('webRoster', null, { ttlMs: 300000, staleIfError: true }); // B-11: 5 min; B4/B-10: si falla la red, usar el último dato guardado
+    const r = await obtenerRoster();
+    const data = r.data;
     document.getElementById('rosterActualizadoTxt').textContent =
-      fmtTiempoRelativo(apiGetUltimaActualizacion('webRoster', null));
+      fmtTiempoRelativo(r.estatico ? r.desde.getTime() : apiGetUltimaActualizacion('webRoster', null)); // con archivo estático: hora de publicación del JSON
     rosterData = ordenarClanes(data.clanes || []);
     const idxDesdeQuery = clanIdxDesdeQuery();
     clanActivoIdx = idxDesdeQuery >= 0 ? idxDesdeQuery : 0;
@@ -2771,7 +2788,7 @@ async function cargarIngresosRecientes(){
   try{
     const [data, dataRoster] = await Promise.all([
       apiGet('webIngresosRecientes', null, { ttlMs: 300000, staleIfError: true, conSesion: true }), // D-9 (b): 5 min; B4/B-10: si falla la red, usar el último dato guardado
-      apiGet('webRoster', null, { ttlMs: 300000, staleIfError: true }).catch(() => null) // defensivo: si falla y no hay respaldo, no filtra ni completa datos en vez de romper la sección
+      obtenerRoster().then(r => r.data).catch(() => null) // defensivo: si falla y no hay respaldo, no filtra ni completa datos en vez de romper la sección
     ]);
     const roster = dataRoster ? indexarRosterParaIngresos(dataRoster) : null;
     let ingresos = (data.ingresos || []).slice();
