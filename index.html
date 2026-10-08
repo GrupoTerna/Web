@@ -285,6 +285,10 @@
    * cortarse en "Batallas de torneo". El markup lo arma ahora
    * renderRankingRow() (ver <script> más abajo). */
   .ranking-row .rk-main{flex:1 1 auto; min-width:0; display:flex; flex-direction:column; gap:3px;}
+  /* FIX (07-oct-2026, pedido usuario): el líder de cada tarjeta de clan es un enlace a su perfil. */
+  .clan-lider-link{ color:inherit; text-decoration:none; cursor:pointer; border-bottom:1px dashed transparent; transition:color .15s, border-color .15s; }
+  .clan-lider-link:hover, .clan-lider-link:focus-visible{ color:var(--gold); border-bottom-color:currentColor; }
+  .clan-lider-link:hover b, .clan-lider-link:focus-visible b{ color:var(--gold) !important; } /* el <b> de clanCardHtml() lleva color inline */
   .ranking-row .rk-nombre{color:var(--text); font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-decoration:none; display:block; max-width:100%;}
   .ranking-row .rk-nombre:hover{text-decoration:underline; color:var(--purple-light);}
   /* FIX (08-sep-2026, pedido usuario — "hay clanes que salen incompletos"):
@@ -723,11 +727,71 @@ async function cargarClanes(){
     // Tarjeta adicional (5ª) con cuentas inactivas — SOLO si hay un admin
     // con sesión iniciada en este navegador. Ver agregarTarjetaCuentasInactivasSiAdmin() en common.js.
     agregarTarjetaCuentasInactivasSiAdmin(grid);
+    enlazarLideresClanes(grid, clanes); // sin await: la tarjeta ya se ve; el enlace se agrega cuando llega el roster
   }catch(err){
     grid.innerHTML = `<div class="card" style="grid-column:1/-1; text-align:center; padding:32px;">
       <p class="text-dim">No se pudo cargar la info de los clanes: ${esc(err.message)}</p>
     </div>`;
   }
+}
+
+/**
+ * enlazarLideresClanes(grid, clanes)
+ * FIX (07-oct-2026, pedido usuario — "en index, al pasar el mouse por el líder del clan, debe poder hacer clic a su perfil"):
+ * webClanInfo solo manda el NOMBRE del líder (c.lider), sin tag. El tag se busca en webRoster (misma caché de 5 min que usa
+ * directorio.html): primero por nombre dentro del clan y, si no coincide, el miembro con rango Líder de ese clan. Luego se
+ * envuelve en un <a href="perfil.html?tag=..."> el texto que sigue a "Líder:" en la tarjeta. Es DOM sobre lo que ya pintó
+ * clanCardHtml(), así que no depende de su marcado exacto; si no encuentra algo, deja la tarjeta como estaba.
+ */
+async function enlazarLideresClanes(grid, clanes){
+  try{
+    const roster = await apiGet('webRoster', null, { ttlMs: 300000, staleIfError: true });
+    const norm = s => String(s || '').trim().toLowerCase();
+    const sinTilde = s => norm(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+    const grupos = (roster && roster.clanes) || [];
+    clanes.forEach((c, i) => {
+      const card = grid.children[i];
+      if (!card || !c.lider || card.querySelector('a.clan-lider-link')) return;
+      const grupo = grupos.find(g => norm(g.nombre) === norm(c.nombre));
+      const miembros = (grupo && grupo.miembros) || [];
+      const lider = miembros.find(m => norm(m.nombre) === norm(c.lider))
+                 || miembros.find(m => sinTilde(m.rango) === 'lider');
+      if (!lider || !lider.tag) return;
+      envolverLiderEnTarjeta(card, 'perfil.html?tag=' + encodeURIComponent(lider.tag), 'Ver perfil de ' + (lider.nombre || c.lider));
+    });
+  }catch(e){ /* sin roster no hay enlace; la tarjeta queda igual que antes */ }
+}
+function envolverLiderEnTarjeta(card, href, titulo){
+  const w = document.createTreeWalker(card, NodeFilter.SHOW_TEXT);
+  let tn, m;
+  while ((tn = w.nextNode())){ m = /L[ií]der\s*:\s*/i.exec(tn.nodeValue); if (m) break; }
+  if (!tn || !m) return;
+  let contenedor = tn.parentNode, primero;
+  const resto = tn.nodeValue.slice(m.index + m[0].length);
+  if (resto.trim()){
+    primero = tn.splitText(m.index + m[0].length);        // "Líder: Nombre" en un mismo texto
+  } else if (tn.nextSibling){
+    primero = tn.nextSibling;                              // "Líder:" suelto y el nombre en el siguiente nodo
+  } else if (contenedor !== card){
+    primero = contenedor.nextSibling;                      // "Líder:" dentro de su propio <span>/<b>
+    contenedor = contenedor.parentNode;
+  }
+  if (!primero) return;
+  const mover = [];
+  for (let n = primero; n; n = n.nextSibling){
+    if (n.nodeType === 1){
+      if (n.tagName === 'BR') break;
+      const d = getComputedStyle(n).display;
+      if (d === 'block' || d === 'flex' || d === 'grid' || d === 'list-item') break;
+    }
+    mover.push(n);
+  }
+  if (!mover.some(n => (n.textContent || '').trim()) || mover.some(n => n.nodeType === 1 && (n.tagName === 'A' || n.querySelector('a')))) return;
+  const a = document.createElement('a');
+  a.className = 'clan-lider-link';
+  a.href = href; a.target = '_blank'; a.rel = 'noopener'; a.title = titulo;
+  contenedor.insertBefore(a, mover[0]);
+  mover.forEach(n => a.appendChild(n));
 }
 
 cargarClanes();
