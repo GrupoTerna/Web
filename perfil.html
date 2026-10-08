@@ -3835,7 +3835,13 @@ function renderExtendido(ext, j){
    * calcula sobre los 4 días fijos en orden (no solo sobre
    * idxDiasJugados), para que siempre reste contra el corrido real del día
    * jugado anterior, sin importar si hay huecos en medio. */
-  const gsd = j.guerraSemanaDias;
+  // FIX (07-oct-2026, pedido usuario — "no se muestran las minigráficas de fame y ataques ... debe congelarse lo del domingo"):
+  // si la semana actual todavía no tiene ningún día jugado (lunes ~5 am hasta que se juegue el jueves), se muestra la última semana
+  // de guerra completa armada desde el historial en vez de ocultar las minigráficas.
+  let gsd = j.guerraSemanaDias;
+  if (!gsd || ![0, 1, 2, 3].some(i => gsd.ataques && gsd.ataques[i] != null)){
+    gsd = _guerraDiasDesdeHistorial(ext.historialRanking) || gsd;
+  }
   const idxDiasJugados = gsd ? [0, 1, 2, 3].filter(i => gsd.ataques[i] != null) : [];
   const diasJugadosLbl = idxDiasJugados.map(i => String(gsd.dias[i] || '').charAt(0).toUpperCase());
   let _corridoAnterior = 0;
@@ -4619,6 +4625,84 @@ function completarSemanasSinDato(puntos){
   return out;
 }
 
+/**
+ * _historialDiasGuerra(historial)
+ * FIX (07-oct-2026, pedido usuario — "las gráficas grandes aparecen sin datos y debe congelarse lo del domingo (lunes a
+ * las 5 am aprox)"): el corte de la semana de guerra se guarda con fecha de LUNES (~5 am), pero esas gráficas solo dibujan
+ * jueves-domingo y descartaban el registro del lunes; así, de lunes a miércoles se quedaban sin ningún punto y el eje se
+ * rompía. Ahora, antes de graficar, el historial se reduce a días de guerra así:
+ *  - jueves a domingo: se conservan tal cual (con la fecha sin hora).
+ *  - lunes: es el cierre del domingo. Se fusiona con el registro del domingo (los contadores ataques/puntaje/barcos toman el
+ *    valor del lunes solo si no bajó; si bajó es que la semana ya se reinició y se conserva el del domingo; el ranking se
+ *    queda con el del domingo). Si no hay registro del domingo, el del lunes pasa a ser el domingo, salvo que sea un registro
+ *    ya reiniciado (contadores en 0), que se descarta.
+ *  - martes y miércoles (entrenamiento): se descartan, como antes.
+ * Los registros cuya fecha no se puede leer se dejan al final, sin tocar (igual que antes).
+ */
+function _historialDiasGuerra(historial){
+  const CONTADORES = ['ataques', 'puntaje', 'barcos'];
+  const diaAnterior = t => { const d = new Date(t); d.setDate(d.getDate() - 1); return d.getTime(); };
+  const porDia = new Map(), sinFecha = [];
+  ordenarHistorialPorSemana(historial || []).forEach(h => {
+    const t = parseFechaDDMMYYYY(h.semana);
+    if (isNaN(t)){ sinFecha.push(h); return; }
+    const dia = new Date(t).getDay(); // 0=domingo … 6=sábado
+    if (dia === 1){
+      const dom = diaAnterior(t);
+      const prev = porDia.get(dom);
+      if (prev){
+        const mezcla = Object.assign({}, prev);
+        CONTADORES.forEach(c => {
+          const a = Number(prev[c]), b = Number(h[c]);
+          if (h[c] != null && isFinite(b) && (!isFinite(a) || b >= a)) mezcla[c] = h[c];
+        });
+        porDia.set(dom, mezcla);
+      } else {
+        const reiniciado = CONTADORES.some(c => h[c] != null) && !CONTADORES.some(c => Number(h[c]) > 0);
+        if (!reiniciado) porDia.set(dom, Object.assign({}, h, { semana: fmtFechaLargaDDMMYYYYPerfil(dom) }));
+      }
+      return;
+    }
+    if (dia === 0 || dia >= 4) porDia.set(t, Object.assign({}, h, { semana: fmtFechaLargaDDMMYYYYPerfil(t) }));
+  });
+  return Array.from(porDia.keys()).sort((a, b) => a - b).map(k => porDia.get(k)).concat(sinFecha);
+}
+/**
+ * _guerraDiasDesdeHistorial(historial)
+ * FIX (07-oct-2026, pedido usuario — minigráficas de Ataques/Fama que no se mostraban): j.guerraSemanaDias viene con los 4
+ * días en null apenas arranca la semana nueva (lunes ~5 am) y hasta que se juegue el primer día (jueves), así que
+ * esas dos minigráficas desaparecían de lunes a jueves. Esto arma el mismo objeto { dias, ataques, puntaje, barcos } con los
+ * 4 días de guerra (jueves-domingo) de la ÚLTIMA semana con registros del historial, para "congelar" lo del domingo.
+ * ataques/barcos del historial son contadores acumulados de la semana (ver _valoresDiariosDesdeAcumulado), así que se pasan a
+ * valor de ese día restando el día anterior; puntaje se deja como corrido (es lo que ya espera la minigráfica de fama).
+ * Devuelve null si no hay ningún registro de guerra.
+ */
+function _guerraDiasDesdeHistorial(historial){
+  const dias = _historialDiasGuerra(historial).map(h => ({ t: parseFechaDDMMYYYY(h.semana), h })).filter(x => !isNaN(x.t));
+  if (!dias.length) return null;
+  const tMax = Math.max(...dias.map(x => x.t));
+  const fin = new Date(tMax); fin.setDate(fin.getDate() + ((7 - fin.getDay()) % 7)); // domingo de esa semana de guerra
+  const porT = new Map(dias.map(x => [x.t, x.h]));
+  const reg = [0, 1, 2, 3].map(i => { const d = new Date(fin); d.setDate(d.getDate() - (3 - i)); return porT.get(d.getTime()) || null; });
+  if (!reg.some(Boolean)) return null;
+  const diario = campo => {
+    let ant = 0;
+    return reg.map(h => {
+      if (!h || h[campo] == null || !isFinite(Number(h[campo]))) return null;
+      const act = Number(h[campo]);
+      const v = act >= ant ? act - ant : act;
+      ant = act;
+      return v;
+    });
+  };
+  return {
+    dias: ['Jueves', 'Viernes', 'Sábado', 'Domingo'],
+    ataques: diario('ataques'),
+    puntaje: reg.map(h => (h && h.puntaje != null && isFinite(Number(h.puntaje))) ? Number(h.puntaje) : null),
+    barcos: diario('barcos')
+  };
+}
+
 function etiquetaPuntoPerfil(pt){
   const d = pt.dataset;
   return `${d.nombre || ''}${d.tag ? ' (' + d.tag + ')' : ''}: ${d.prefijo || ''}${fmtNum(d.valor)} ${d.unidad || ''} — ${d.clan || ''} · ${d.semana || ''}`;
@@ -4649,6 +4733,8 @@ function perfilLineChartSvg(puntos, opts){
     const dia = new Date(t).getDay(); // 0=domingo … 6=sábado
     return dia === 0 || dia >= 4; // jueves(4), viernes(5), sábado(6), domingo(0)
   });
+  // FIX (07-oct-2026): si tras el filtro no queda ningún punto real no se dibuja el eje (salía "#NaN"/"-Infinity"), se avisa.
+  if (!puntos.some(p => p.real)) return `<div class="chart-empty">Todavía no hay d\u00edas de guerra registrados para graficar.</div>`;
   const W = 960, H = 460, PAD_R = 20, PAD_T = 20, PAD_B = 90;
   const base = opts.base || 0, pasos = 4, prefijo = opts.prefijo || '';
   const max = Math.max(...puntos.filter(p => p.real).map(p => p.valor));
@@ -4785,7 +4871,7 @@ function pintarGraficaPerfil(wrap, puntos, opts, nota){
 
 function renderRankingChart(ext){
   const wrap = document.getElementById('mRankingChart');
-  const historial = ext && Array.isArray(ext.historialRanking) ? ext.historialRanking.filter(h => h && h.ranking != null) : [];
+  const historial = ext && Array.isArray(ext.historialRanking) ? _historialDiasGuerra(ext.historialRanking.filter(h => h && h.ranking != null)) : []; // FIX (07-oct-2026): lunes = cierre del domingo
   if (!historial.length){
     wrap.innerHTML = `<div class="chart-empty">
       Todavía no hay historial de ranking disponible para graficar${ext && ext.rankingClan != null ? ` — ranking actual: <b style="color:var(--text);">#${esc(String(ext.rankingClan))}</b>` : ''}.
@@ -4838,7 +4924,10 @@ function _valoresDiariosDesdeAcumulado(datosOrdenados, campo){
   let anterior = null;
   return datosOrdenados.map(h => {
     const actual = Number(h[campo]);
-    const diario = (anterior != null && isFinite(anterior) && isFinite(actual) && actual >= anterior)
+    // FIX (07-oct-2026): el jueves arranca la semana de guerra (los registros de lun-mié ya no llegan acá), así que su valor es el total del día, aunque no sea menor al del domingo anterior.
+    const tReg = parseFechaDDMMYYYY(h.semana);
+    const esInicioSemana = !isNaN(tReg) && new Date(tReg).getDay() === 4;
+    const diario = (!esInicioSemana && anterior != null && isFinite(anterior) && isFinite(actual) && actual >= anterior)
       ? actual - anterior
       : actual;
     anterior = actual;
@@ -4851,7 +4940,7 @@ function renderMetricaSemanal(elId, historial, campo, opts){
   const wrap = document.getElementById(elId);
   if (!card || !wrap) return;
 
-  const datos = (historial || []).filter(h => h && h[campo] != null);
+  const datos = _historialDiasGuerra((historial || []).filter(h => h && h[campo] != null)); // FIX (07-oct-2026): lunes = cierre del domingo
   if (!datos.length){
     card.style.display = 'none';
     wrap.innerHTML = '';
