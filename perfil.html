@@ -3839,7 +3839,9 @@ function renderExtendido(ext, j){
   // si la semana actual todavía no tiene ningún día jugado (lunes ~5 am hasta que se juegue el jueves), se muestra la última semana
   // de guerra completa armada desde el historial en vez de ocultar las minigráficas.
   let gsd = j.guerraSemanaDias;
-  if (!gsd || ![0, 1, 2, 3].some(i => gsd.ataques && gsd.ataques[i] != null)){
+  // periodIndex % 7 >= 3 = ya empezó la guerra nueva (jueves en adelante): sin días jugados todavía, no se muestra lo anterior.
+  const _guerraYaEmpezo = !!_ctxGuerraPerfil && (_ctxGuerraPerfil.esDiaGuerra === true || (_ctxGuerraPerfil.periodIndex != null && Number(_ctxGuerraPerfil.periodIndex) % 7 >= 3));
+  if ((!gsd || ![0, 1, 2, 3].some(i => gsd.ataques && gsd.ataques[i] != null)) && !_guerraYaEmpezo){
     gsd = _guerraDiasDesdeHistorial(ext.historialRanking) || gsd;
   }
   const idxDiasJugados = gsd ? [0, 1, 2, 3].filter(i => gsd.ataques[i] != null) : [];
@@ -4639,14 +4641,31 @@ function completarSemanasSinDato(puntos){
  *  - martes y miércoles (entrenamiento): se descartan, como antes.
  * Los registros cuya fecha no se puede leer se dejan al final, sin tocar (igual que antes).
  */
+/** periodIndex del registro (número) o null si el backend no lo manda en historialRanking. */
+function _periodIndexRegistro(h){
+  const v = h ? (h.periodIndex != null ? h.periodIndex : h.PeriodIndex) : null;
+  const n = Number(v);
+  return (v == null || v === '' || !isFinite(n)) ? null : n;
+}
 function _historialDiasGuerra(historial){
   const CONTADORES = ['ataques', 'puntaje', 'barcos'];
   const diaAnterior = t => { const d = new Date(t); d.setDate(d.getDate() - 1); return d.getTime(); };
   const porDia = new Map(), sinFecha = [];
   ordenarHistorialPorSemana(historial || []).forEach(h => {
-    const t = parseFechaDDMMYYYY(h.semana);
+    let t = parseFechaDDMMYYYY(h.semana);
     if (isNaN(t)){ sinFecha.push(h); return; }
-    const dia = new Date(t).getDay(); // 0=domingo … 6=sábado
+    let dia = new Date(t).getDay(); // 0=domingo … 6=sábado
+    // FIX (07-oct-2026, pedido usuario — "guíate solo del periodIndex, la hora del cambio (~5 am del lunes) no es exacta"):
+    // si el registro trae periodIndex, el día de guerra sale de ahí (periodIndex % 7: 0=lun … 3=jue … 6=dom, igual que
+    // guerra.html: periodIndex = semana*7 + 3 + 0..3 para jue-dom) y NO de la fecha calendario. Un registro tomado después de
+    // medianoche pero antes del cambio de periodIndex (ej. domingo 00:30 con fecha de lunes) sigue siendo del domingo: se
+    // le resta un día a la fecha para que cuadre con su periodIndex.
+    const pi = _periodIndexRegistro(h);
+    if (pi != null){
+      const diaPI = (((pi % 7) + 7) % 7 + 1) % 7; // lun=0 → getDay() 1 … dom=6 → getDay() 0
+      if (dia !== diaPI && dia === (diaPI + 1) % 7) t = diaAnterior(t);
+      dia = diaPI;
+    }
     if (dia === 1){
       const dom = diaAnterior(t);
       const prev = porDia.get(dom);
@@ -4677,6 +4696,23 @@ function _historialDiasGuerra(historial){
  * valor de ese día restando el día anterior; puntaje se deja como corrido (es lo que ya espera la minigráfica de fama).
  * Devuelve null si no hay ningún registro de guerra.
  */
+/**
+ * Contexto de la guerra vigente (ctx de webGuerraEnVivo: periodIndex, esDiaGuerra, diaLetra…), el mismo que usa guerra.html.
+ * FIX (07-oct-2026, pedido usuario): decide hasta cuándo se congela lo del domingo. Se pide una sola vez al abrir el perfil
+ * (caché de 2 min de apiGet) y, al llegar, se vuelven a pintar las minigráficas. Si falla, se asume que no se sabe y se
+ * congela mientras no haya días jugados.
+ */
+let _ctxGuerraPerfil = null, _ctxGuerraPerfilPedido = false, _jPerfilActual = null;
+function cargarCtxGuerraPerfil(){
+  if (_ctxGuerraPerfilPedido) return;
+  _ctxGuerraPerfilPedido = true;
+  Promise.resolve(apiGet('webGuerraEnVivo', null, { ttlMs: 120000, staleIfError: true })).then(d => {
+    if (d && d.ctx){
+      _ctxGuerraPerfil = d.ctx;
+      if (_jPerfilActual) renderExtendido(_jPerfilActual.extendido, _jPerfilActual);
+    }
+  }).catch(() => {});
+}
 function _guerraDiasDesdeHistorial(historial){
   const dias = _historialDiasGuerra(historial).map(h => ({ t: parseFechaDDMMYYYY(h.semana), h })).filter(x => !isNaN(x.t));
   if (!dias.length) return null;
@@ -5045,7 +5081,9 @@ function renderMiembro(j){
     ? bloques.join('')
     : '<div class="empty">Este clan todavía no tiene requisitos configurados.</div>';
 
+  _jPerfilActual = j;
   renderExtendido(j.extendido, j);
+  cargarCtxGuerraPerfil(); // FIX (07-oct-2026): periodIndex de la guerra vigente para saber hasta cuándo se congela el domingo
   perfilGraficaCtx = { nombre: j.nombre || '', tag: j.tag || '', clan: j.clan || '' }; // FIX (20-sep-2026): datos del tooltip de las gráficas
   renderRankingChart(j.extendido);
   renderMetricasSemanales(j.extendido); // FIX (08-sep-2026)
