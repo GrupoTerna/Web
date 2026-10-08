@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://gc.zgo.at; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://assets.cwstats.com https://cdn.royaleapi.com https://www.google.com https://grupoterna.goatcounter.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://grupoterna.goatcounter.com; object-src 'none'; base-uri 'self'; form-action 'self';">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://gc.zgo.at; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://assets.cwstats.com https://cdn.royaleapi.com https://www.google.com https://grupoterna.goatcounter.com; connect-src 'self' https://script.google.com https://script.googleusercontent.com https://raw.githubusercontent.com https://grupoterna.goatcounter.com; object-src 'none'; base-uri 'self'; form-action 'self';">
 <title>Clan — Familia Terna</title>
 <meta name="description" content="Dashboard de un clan de la Familia Terna: información general, roster completo y el resumen de guerra de esta semana.">
 <link rel="canonical" href="https://grupoterna.github.io/Web/clan.html">
@@ -136,6 +136,10 @@
  * clan.html — dashboard de un clan (nuevo, 21-sep-2026, pedido usuario).
  * Lee ?clan=NombreDelClan de la URL (mismo parámetro que ya usaba
  * directorio.html?clan=...#roster desde el botón "Ver clan" de Inicio).
+ * CAMBIO (08-oct-2026): las 3 fuentes salen primero de archivos estáticos de la rama `data` de GitHub (los publica el bot desde
+ * Apps Script: home.json -> clanInfo, roster.json, guerra.json). Si un archivo falta, falla o tiene más de ESTATICO_EDAD_MAX_MS, esa
+ * fuente se pide a Apps Script como antes. El resumen de guerra se carga APARTE (es el archivo grande, ~940 KB): la página se pinta con
+ * info + roster sin esperarlo, y un fallo de guerra solo afecta a su tarjeta.
  * Combina 3 llamadas ya existentes en el sitio, ninguna nueva del backend:
  *   - webClanInfo:    básico (líder, liga, escudo, links, métricas totales)
  *   - webRoster:      roster completo del clan
@@ -260,24 +264,69 @@ function aplicarFiltroLetraClanRoster(){
   });
 }
 
+/* Archivos estáticos (rama `data`). ?t= por bloques de 5 min: GitHub ya sirve el archivo con ~5 min de caché; esto solo evita que el navegador se quede con uno más viejo. Ajusta el repo en las URL si no es GrupoTerna/Web. */
+const HOME_ESTATICO_URL = 'https://raw.githubusercontent.com/GrupoTerna/Web/data/home.json';
+const ROSTER_ESTATICO_URL = 'https://raw.githubusercontent.com/GrupoTerna/Web/data/roster.json';
+const GUERRA_ESTATICO_URL = 'https://raw.githubusercontent.com/GrupoTerna/Web/data/guerra.json';
+const ESTATICO_EDAD_MAX_MS = 3 * 60 * 60 * 1000; // el bot los reescribe al menos cada hora; 3 h = algo falló
+
+/** Lee un archivo estático. Devuelve { est, pub } si existe y no es viejo; null en cualquier otro caso (el llamador cae a Apps Script). */
+async function clanLeerEstatico(url){
+  try{
+    const est = await apiGetEstatico(url + '?t=' + Math.floor(Date.now() / 300000));
+    const pub = est && est._publicadoEn ? new Date(est._publicadoEn) : null;
+    if(est && pub && !isNaN(pub) && (Date.now() - pub.getTime()) < ESTATICO_EDAD_MAX_MS) return { est, pub };
+  }catch(e){ /* sin archivo o sin red a GitHub: se sigue con Apps Script */ }
+  return null;
+}
+async function clanObtenerInfo(){
+  const e = await clanLeerEstatico(HOME_ESTATICO_URL);
+  const info = e && e.est.clanInfo;
+  if(info && !info.error && Array.isArray(info.clanes) && info.clanes.length) return { data: info, desde: e.pub, estatico: true };
+  const data = await apiGet('webClanInfo', null, { ttlMs: 300000, staleIfError: true });
+  return { data, desde: null, estatico: false };
+}
+async function clanObtenerRoster(){
+  const e = await clanLeerEstatico(ROSTER_ESTATICO_URL);
+  if(e && Array.isArray(e.est.clanes) && e.est.clanes.length) return { data: e.est, desde: e.pub, estatico: true };
+  const data = await apiGet('webRoster', null, { ttlMs: 300000, staleIfError: true });
+  return { data, desde: null, estatico: false };
+}
+async function clanObtenerGuerra(){
+  const e = await clanLeerEstatico(GUERRA_ESTATICO_URL);
+  if(e && e.est.ctx) return { data: e.est, desde: e.pub, estatico: true };
+  const data = await apiGet('webGuerraEnVivo', null, { ttlMs: 120000, staleIfError: true, maxIntentos: 2 }); // maxIntentos: ver _fetchYParsearInterno() en api.js (respuesta lenta y pesada)
+  return { data, desde: null, estatico: false };
+}
+
+/** Resumen de guerra: se carga aparte para no retrasar la página (es el archivo grande). Un fallo aquí solo afecta a esta tarjeta. */
+async function cargarGuerraClan(nombreClan){
+  const wrap = document.getElementById('clanGuerraWrap');
+  wrap.innerHTML = '<div class="loading-block"><div class="spinner"></div></div>';
+  try{
+    const r = await clanObtenerGuerra();
+    renderClanGuerra(r.data || {}, nombreClan);
+  }catch(err){
+    wrap.innerHTML = `<div class="empty">No se pudo cargar el resumen de guerra: ${esc(err.message)}</div>`;
+  }
+}
+
 async function cargarClan(){
   if (!NOMBRE_CLAN_QUERY){
     mostrarErrorClan('Falta el nombre del clan en el link (?clan=...).');
     return;
   }
+  let clanInfo;
   try{
-    const [dataInfo, dataRoster, dataGuerra] = await Promise.all([
-      apiGet('webClanInfo', null, { ttlMs: 300000, staleIfError: true }),
-      apiGet('webRoster', null, { ttlMs: 300000, staleIfError: true }),
-      apiGet('webGuerraEnVivo', null, { ttlMs: 120000, staleIfError: true })
-    ]);
+    const [rInfo, rRoster] = await Promise.all([clanObtenerInfo(), clanObtenerRoster()]);
+    const dataInfo = rInfo.data, dataRoster = rRoster.data;
     const clanesInfo = ordenarClanes(dataInfo.clanes || []);
     const idx = clanesInfo.findIndex(c => clanCoincide(c.nombre));
     if (idx < 0){
       mostrarErrorClan('No se encontró este clan.');
       return;
     }
-    const clanInfo = clanesInfo[idx];
+    clanInfo = clanesInfo[idx];
     document.title = `${clanInfo.nombre || 'Clan'} — Familia Terna`;
 
     const clanRoster = (dataRoster.clanes || []).find(c => clanCoincide(c.nombre)) || { nombre: clanInfo.nombre, miembros: [] };
@@ -285,14 +334,15 @@ async function cargarClan(){
     document.getElementById('clanCargando').style.display = 'none';
     document.getElementById('clanContenido').style.display = 'block';
     document.getElementById('clanActualizadoTxt').textContent =
-      fmtTiempoRelativo(apiGetUltimaActualizacion('webClanInfo', null));
+      fmtTiempoRelativo(rInfo.estatico ? rInfo.desde : apiGetUltimaActualizacion('webClanInfo', null)); // con archivo estático: hora de publicación del JSON
 
     renderClanBasico(clanInfo, idx);
-    renderClanGuerra(dataGuerra || {}, clanInfo.nombre);
     renderClanRoster(clanRoster);
   }catch(err){
     mostrarErrorClan('Error de conexión: ' + err.message);
+    return;
   }
+  cargarGuerraClan(clanInfo.nombre); // sin await: la página ya se ve; la tarjeta de guerra se llena cuando llega
 }
 cargarClan();
 </script>
