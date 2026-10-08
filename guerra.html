@@ -306,6 +306,10 @@
      la tabla de Activos con una línea punteada y una etiqueta chica.
      ":empty" lo colapsa por completo (sin línea ni espacio de más) cuando
      no hay sesión de admin o el clan no tiene inactivos esta semana. */
+  /* NUEVO 08-oct-2026: filas de quienes participaron en la temporada pero ya no son Activos (campo activo:false del backend); van al final de cada clan, atenuadas y con etiqueta. */
+  tr.fila-inactivo td{opacity:.72;}
+  tr.fila-inactivo.fila-inactivo-primera td{border-top:2px dashed var(--line);}
+  .inactivo-badge{margin-left:6px; padding:1px 6px; border-radius:999px; font-family:var(--f-mono); font-size:10px; font-weight:700; letter-spacing:.04em; border:1px solid var(--line); color:var(--text-faint,#888);}
   .ai-inactivos-wrap:empty{display:none;}
   .ai-inactivos-block{margin-top:14px; padding-top:14px; border-top:1px dashed var(--line);}
   .ai-inactivos-block .ai-sub-label{
@@ -1043,6 +1047,14 @@ document.addEventListener('click', ev => {
 document.addEventListener('keydown', ev => { if (ev.key === 'Escape') histCerrar(); });
 
 /* Insignia de rango (Líder/Colíder/Veterano). "Miembro" y los rangos desconocidos no llevan insignia. */
+/* NUEVO 08-oct-2026: etiqueta 'Inactivo' y contador 'N activos · M inactivos' para las cuadrículas de Valores diarios/semanales. */
+function insigniaInactivo(f){ return f && f.activo === false ? '<span class="inactivo-badge" title="Participó en esta temporada pero hoy ya no está en el clan">Inactivo</span>' : ''; }
+function textoContadorClan(filas){
+  const nAct = filas.filter(f => f.activo !== false).length;
+  const nIna = filas.length - nAct;
+  return `(${nAct} activo${nAct === 1 ? '' : 's'}${nIna ? ' · ' + nIna + ' inactivo' + (nIna === 1 ? '' : 's') : ''})`;
+}
+let _gridDiarioTraeInactivos = false;
 function insigniaRango(rango){
   const clases = { 'Líder':'rango-lider', 'Colíder':'rango-colider', 'Veterano':'rango-veterano' };
   const c = clases[rango];
@@ -1706,9 +1718,10 @@ function render(data){
   const controlActivosSection = document.getElementById('controlActivosSection');
   if (clanesControlActivos.length){
 // claseCeldaCA()/celdasMegacategoria() ahora son helpers globales (ver arriba de render(), hoisteados para que Inactivos también los use). Historial en CHANGELOG.md.
+    _gridDiarioTraeInactivos = clanesControlActivos.some(c => (controlActivos[c] || []).some(f => f.activo === false));
     const renderFilaActivos = f => `
-              <tr data-letra="${esc(primeraLetraFiltro(f.nombre || f.tag))}" data-rango="${esc(f.rango || '')}">
-                <td class="col-jugador">${f.tag ? enlaceJugador(f.nombre || f.tag, f.tag) : esc(f.nombre || f.tag)}${insigniaRango(f.rango)}${botonHistJugador(f)}</td>
+              <tr data-letra="${esc(primeraLetraFiltro(f.nombre || f.tag))}" data-rango="${esc(f.rango || '')}" class="${f.activo === false ? 'fila-inactivo' : ''}">
+                <td class="col-jugador">${f.tag ? enlaceJugador(f.nombre || f.tag, f.tag) : esc(f.nombre || f.tag)}${insigniaRango(f.rango)}${insigniaInactivo(f)}${botonHistJugador(f)}</td>
                 ${celdasMegacategoria({j:f.j, v:f.v, s:f.s, d:f.d, total:f.total}, 'ai-grp-atq', true, 'atq', f.opc)}
                 ${celdasMegacategoria(f.puntaje, 'ai-grp-pje', false, 'pje')}
                 ${celdasMegacategoria(f.barcos, 'ai-grp-brc', false, 'brc')}
@@ -1717,7 +1730,7 @@ function render(data){
       const filas = controlActivos[clanNombre];
       return `
         <div class="card ai-clan-card" data-clan="${esc(clanNombre)}" style="padding:16px;">
-          <div class="ai-clan-head"><h3>${enlaceClan(clanNombre)} <span class="text-faint" style="font-family:var(--f-mono); font-size:12px; font-weight:400;">(${filas.length} activo${filas.length === 1 ? '' : 's'})</span></h3>${botonesExportGrid('activos:' + clanNombre)}</div>
+          <div class="ai-clan-head"><h3>${enlaceClan(clanNombre)} <span class="text-faint" style="font-family:var(--f-mono); font-size:12px; font-weight:400;">${textoContadorClan(filas)}</span></h3>${botonesExportGrid('activos:' + clanNombre)}</div>
           <div class="table-scroll"><table class="tbl-activos-grid" data-grid-id="activos:${esc(clanNombre)}">
             <thead>
               <tr>
@@ -1780,8 +1793,8 @@ function render(data){
     // filaSubEncabezadosSemanas() (ver más arriba). Igual que en Activos,
     // el <tbody> arranca vacío y lo llena inicializarGridFiltro() más abajo.
     const renderFilaTemporada = f => `
-              <tr data-letra="${esc(primeraLetraFiltro(f.nombre || f.tag))}" data-rango="${esc(f.rango || '')}">
-                <td class="col-jugador">${f.tag ? enlaceJugador(f.nombre || f.tag, f.tag) : esc(f.nombre || f.tag)}${insigniaRango(f.rango)}${botonHistJugador(f)}</td>
+              <tr data-letra="${esc(primeraLetraFiltro(f.nombre || f.tag))}" data-rango="${esc(f.rango || '')}" class="${f.activo === false ? 'fila-inactivo' : ''}">
+                <td class="col-jugador">${f.tag ? enlaceJugador(f.nombre || f.tag, f.tag) : esc(f.nombre || f.tag)}${insigniaRango(f.rango)}${insigniaInactivo(f)}${botonHistJugador(f)}</td>
                 ${celdasSemanas(f.ataques, 'ai-grp-atq', true, 'atq')}
                 ${celdasSemanas(f.puntaje, 'ai-grp-pje', false, 'pje')}
                 ${celdasSemanas(f.barcos, 'ai-grp-brc', false, 'brc')}
@@ -1790,7 +1803,7 @@ function render(data){
       const filas = controlTemporada[clanNombre];
       return `
         <div class="card ai-clan-card" data-clan="${esc(clanNombre)}" style="padding:16px;">
-          <div class="ai-clan-head"><h3>${enlaceClan(clanNombre)} <span class="text-faint" style="font-family:var(--f-mono); font-size:12px; font-weight:400;">(${filas.length} activo${filas.length === 1 ? '' : 's'})</span></h3>${botonesExportGrid('temporada:' + clanNombre)}</div>
+          <div class="ai-clan-head"><h3>${enlaceClan(clanNombre)} <span class="text-faint" style="font-family:var(--f-mono); font-size:12px; font-weight:400;">${textoContadorClan(filas)}</span></h3>${botonesExportGrid('temporada:' + clanNombre)}</div>
           <div class="table-scroll"><table class="tbl-activos-grid tbl-temporada-grid" data-grid-id="temporada:${esc(clanNombre)}">
             <thead>
               <tr>
@@ -1879,7 +1892,8 @@ async function cargarAportesInactivosSiAdmin(ctx){
   const limpiarWraps = () => {
     document.querySelectorAll('.ai-inactivos-wrap').forEach(w => { w.innerHTML = ''; });
   };
-  if (!ctx.esDiaGuerra || !esAdminLogueado()){ limpiarWraps(); return; }
+  // 08-oct-2026: si la cuadrícula ya trae a los inactivos (campo activo:false), este bloque solo-admin duplicaría las mismas filas.
+  if (!ctx.esDiaGuerra || !esAdminLogueado() || _gridDiarioTraeInactivos){ limpiarWraps(); return; }
   try{
     const data = await apiGetAuth('webAportesInactivos', {});
     const aportes = (data && data.ok && data.aportesInactivos) || {};
