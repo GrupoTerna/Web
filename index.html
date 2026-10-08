@@ -289,6 +289,18 @@
   .clan-lider-link{ color:inherit; text-decoration:none; cursor:pointer; border-bottom:1px dashed transparent; transition:color .15s, border-color .15s; }
   .clan-lider-link:hover, .clan-lider-link:focus-visible{ color:var(--gold); border-bottom-color:currentColor; }
   .clan-lider-link:hover b, .clan-lider-link:focus-visible b{ color:var(--gold) !important; } /* el <b> de clanCardHtml() lleva color inline */
+  /* Top de la semana (ataques, puntaje, barcos), movido desde guerra.html el 07-oct-2026 (pedido usuario); mismos datos de Valores diarios. */
+  #topSemanaSection{display:none;}
+  .top-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:14px; margin-top:14px;}
+  .top-card{padding:14px;}
+  .top-card h3{margin:0 0 8px; font-size:15px;}
+  .top-lista{list-style:none; margin:0; padding:0; font-size:13px;}
+  .top-lista li{display:flex; align-items:baseline; gap:8px; padding:4px 0; border-bottom:1px solid var(--line);}
+  .top-pos{font-family:var(--f-mono); color:var(--text-dim); min-width:22px;}
+  .top-nombre{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .top-clan{font-family:var(--f-mono); font-size:10px; color:var(--text-dim);}
+  .top-valor{font-family:var(--f-mono); font-weight:700;}
+  .top-vacio{font-size:12px; color:var(--text-dim);}
   .ranking-row .rk-nombre{color:var(--text); font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-decoration:none; display:block; max-width:100%;}
   .ranking-row .rk-nombre:hover{text-decoration:underline; color:var(--purple-light);}
   /* FIX (08-sep-2026, pedido usuario — "hay clanes que salen incompletos"):
@@ -487,6 +499,22 @@
     </div>
   </div>
 </section>
+
+<!-- ---------- TOP DE LA SEMANA (movido desde guerra.html, 07-oct-2026) ---------- -->
+<section id="topSemanaSection" style="display:none;">
+  <div class="wrap">
+    <div class="sec-head" data-reveal style="display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:10px;">
+      <div>
+        <a class="eyebrow" href="guerra.html" style="text-decoration:none;">⚔️ Guerra de la Familia</a>
+        <h2>🏆 Top de la semana</h2>
+      </div>
+      <select id="topSemanaClanSelect" aria-label="Clan del top de la semana" style="font-family:var(--f-mono); font-size:12px; background:var(--surface-card); color:var(--text); border:1px solid var(--line-strong); border-radius:var(--radius-sm); padding:5px 10px;"></select>
+    </div>
+    <div class="text-faint" id="topSemanaSub" style="font-family:var(--f-mono); font-size:11px; margin-top:10px;"></div>
+    <div class="top-grid" id="topSemanaWrap" aria-live="polite"></div>
+  </div>
+</section>
+
 
 <!-- ---------- SOBRE LA COMUNIDAD ---------- -->
 <section style="padding-top:24px;">
@@ -1024,7 +1052,57 @@ function cambiarVarianteCarta(btn){
   pre.src = urlVariante;
 }
 
+/**
+ * Top de la semana (ataques, puntaje, barcos) — movido desde guerra.html (07-oct-2026, pedido usuario).
+ * Usa 'webGuerraEnVivo' (misma llamada que guerra.html, con caché de 2 min) y la semana por defecto de Valores diarios
+ * (valoresDiariosSelectores.porDefecto → valoresDiariosPorSemana[temporada][sectionIndex]): ataques (total), puntaje (total) y
+ * barcos (total) por jugador. Sin ceros ni vacíos. Si el backend no manda esa semana, la sección queda oculta.
+ */
+let topSemanaDatos = {};
+let topSemanaClan = '';
+const TOP_SEMANA_N = 5;
+function etiquetaClanCorta(nombre){ return ['Principal','Clan 2','Clan 3','Mini'][ordenClanIndex(nombre)] || nombre; }
+function topSemanaPintar(){
+  const wrap = document.getElementById('topSemanaWrap');
+  const clanes = Object.keys(topSemanaDatos).sort((a, b) => ordenClanIndex(a) - ordenClanIndex(b));
+  const filas = [];
+  clanes.forEach(c => { if (topSemanaClan && c !== topSemanaClan) return; (topSemanaDatos[c] || []).forEach(f => filas.push({ f, c })); });
+  const metricas = [
+    { titulo:'⚔️ Más ataques', val: x => x.f.total, tope: 16 },
+    { titulo:'⭐ Más puntaje', val: x => x.f.puntaje && x.f.puntaje.total },
+    { titulo:'🚢 Más barcos', val: x => x.f.barcos && x.f.barcos.total }
+  ];
+  wrap.innerHTML = metricas.map(m => {
+    const top = filas.map(x => ({ x, v: Number(m.val(x)) || 0 })).filter(r => r.v > 0)
+      .sort((a, b) => b.v - a.v || String(a.x.f.nombre || '').localeCompare(String(b.x.f.nombre || ''), 'es')).slice(0, TOP_SEMANA_N);
+    const lis = top.map((r, i) => `<li><span class="top-pos">${i + 1}.</span><span class="top-nombre">${r.x.f.tag ? enlaceJugador(r.x.f.nombre || r.x.f.tag, r.x.f.tag) : esc(r.x.f.nombre || '')}</span><span class="top-clan">${esc(etiquetaClanCorta(r.x.c))}</span><span class="top-valor">${fmtNum(r.v)}${m.tope ? '<span class="top-clan">/' + m.tope + '</span>' : ''}</span></li>`).join('');
+    return `<div class="card top-card"><h3>${m.titulo}</h3>${lis ? `<ol class="top-lista">${lis}</ol>` : '<div class="top-vacio">Sin datos todavía.</div>'}</div>`;
+  }).join('');
+}
+async function cargarTopSemana(){
+  const sec = document.getElementById('topSemanaSection');
+  try{
+    const data = await apiGet('webGuerraEnVivo', null, { ttlMs: 120000, staleIfError: true });
+    const sel = data && data.valoresDiariosSelectores;
+    const def = sel && sel.porDefecto;
+    const porSemana = (data && data.valoresDiariosPorSemana) || {};
+    const datos = def && porSemana[def.temporada] && porSemana[def.temporada][def.sectionIndex];
+    const clanes = Object.keys(datos || {}).sort((a, b) => ordenClanIndex(a) - ordenClanIndex(b));
+    if (!clanes.length){ sec.style.display = 'none'; return; }
+    topSemanaDatos = datos;
+    const selClan = document.getElementById('topSemanaClanSelect');
+    selClan.innerHTML = '<option value="">Todos los clanes</option>' + clanes.map(c => `<option value="${esc(c)}">${esc(etiquetaClanCorta(c))}</option>`).join('');
+    selClan.onchange = () => { topSemanaClan = selClan.value; topSemanaPintar(); };
+    const semanas = (sel.semanasPorTemporada && sel.semanasPorTemporada[def.temporada]) || [];
+    const sem = semanas.find(s => String(s.sectionIndex) === String(def.sectionIndex));
+    document.getElementById('topSemanaSub').textContent = 'Top ' + TOP_SEMANA_N + ' de la última semana con datos de guerra' + (sem && sem.label ? ' (' + sem.label + ')' : '') + '. Los jugadores sin ataques no aparecen.';
+    topSemanaPintar();
+    sec.style.display = '';
+  }catch(e){ sec.style.display = 'none'; /* sin datos de guerra no hay top; el resto de la página sigue igual */ }
+}
+
 cargarRankings();
+cargarTopSemana();
 cargarEstadisticasCartas();
 </script>
 <!-- Analítica de visitas (Fase 4): GoatCounter, gratis y sin cookies. Solo en index, directorio, guerra y torneos.
