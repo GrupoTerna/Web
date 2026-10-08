@@ -739,12 +739,43 @@
 <script src="assets/js/features/join-modal.js"></script>
 <script src="assets/common.js"></script>
 <script>
+/* NUEVO (08-oct-2026): la portada lee primero archivos estáticos de la rama `data` de GitHub (los publica el bot desde Apps Script, ver 50_Publicar_Guerra.gs y 52_Publicar_Home.gs), igual que guerra.html: home.json (clanInfo, aniversarios, rankings y estadisticasCartas en UNA sola petición) y guerra_top.json (para el top semanal). Si un archivo no existe, falla, tiene más de ESTATICO_EDAD_MAX_MS, o home.json no trae la clave pedida, se pide a Apps Script como antes. Ajusta el repo en las URL si no es GrupoTerna/Web. */
+const HOME_ESTATICO_URL = 'https://raw.githubusercontent.com/GrupoTerna/Web/data/home.json';
+const GUERRA_TOP_ESTATICO_URL = 'https://raw.githubusercontent.com/GrupoTerna/Web/data/guerra_top.json'; // solo valoresDiariosSelectores + las 2 semanas que usa el top (ver _guerraTopRecortado_ en 50_Publicar_Guerra.gs)
+const ESTATICO_EDAD_MAX_MS = 3 * 60 * 60 * 1000; // el bot los reescribe al menos cada hora; 3 h = algo falló
+let _homeEstaticoPromesa = null;
+function cargarHomeEstatico(){ // una sola petición compartida por las 4 secciones
+  if(!_homeEstaticoPromesa){
+    // ?t= por bloques de 5 min: GitHub ya sirve el archivo con ~5 min de caché; esto solo evita que el navegador se quede con uno más viejo.
+    _homeEstaticoPromesa = apiGetEstatico(HOME_ESTATICO_URL + '?t=' + Math.floor(Date.now() / 300000)).then(est => {
+      const pub = est && est._publicadoEn ? new Date(est._publicadoEn) : null;
+      return (pub && !isNaN(pub) && (Date.now() - pub.getTime()) < ESTATICO_EDAD_MAX_MS) ? { data: est, desde: pub } : null;
+    }).catch(() => null);
+  }
+  return _homeEstaticoPromesa;
+}
+async function obtenerHome(clave, accion){
+  const h = await cargarHomeEstatico();
+  if(h && h.data[clave] != null && !h.data[clave].error) return { data: h.data[clave], desde: h.desde, estatico: true };
+  const data = await apiGet(accion, null, { ttlMs: 300000, staleIfError: true }); // B-11/D-9 (b): 5 min; B4/B-10: si falla la red, usar el último dato guardado
+  return { data, desde: null, estatico: false };
+}
+async function obtenerGuerraTop(){
+  try{
+    const est = await apiGetEstatico(GUERRA_TOP_ESTATICO_URL + '?t=' + Math.floor(Date.now() / 300000));
+    const pub = est && est._publicadoEn ? new Date(est._publicadoEn) : null;
+    if(est && est.valoresDiariosSelectores && pub && !isNaN(pub) && (Date.now() - pub.getTime()) < ESTATICO_EDAD_MAX_MS) return est;
+  }catch(e){ /* sin archivo o sin red a GitHub: se sigue con Apps Script */ }
+  return apiGet('webGuerraEnVivo', null, { ttlMs: 120000, staleIfError: true });
+}
+
 async function cargarClanes(){
   const grid = document.getElementById('clanGrid');
   try{
-    const data = await apiGet('webClanInfo', null, { ttlMs: 300000, staleIfError: true }); // B-11: 5 min; B4/B-10: si falla la red, usar el último dato guardado
+    const r = await obtenerHome('clanInfo', 'webClanInfo');
+    const data = r.data;
     document.getElementById('clanInfoActualizadoTxt').textContent =
-      fmtTiempoRelativo(apiGetUltimaActualizacion('webClanInfo', null));
+      fmtTiempoRelativo(r.estatico ? r.desde : apiGetUltimaActualizacion('webClanInfo', null)); // con archivo estático: hora de publicación del JSON
     // Orden fijo de la Familia (no alfabético), asignado antes del índice para que insignia/rol queden sincronizados con el backend. Historial en CHANGELOG.md.
     const clanes = ordenarClanes(data.clanes || []);
     grid.innerHTML = clanes.map((c, i) => clanCardHtml(c, i, { mostrarVerClan: true, mostrarUnirse: true })).join('');
@@ -782,7 +813,7 @@ async function cargarAniversarios(){
   const section = document.getElementById('aniversarios');
   const wrap = document.getElementById('aniversariosWrap');
   try{
-    const data = await apiGet('webAniversarios', null, { ttlMs: 300000, staleIfError: true }); // D-9 (b): 5 min; B4/B-10: si falla la red, usar el último dato guardado
+    const data = (await obtenerHome('aniversarios', 'webAniversarios')).data;
     const lista = data.aniversarios || [];
     if (!lista.length){ section.style.display = 'none'; return; }
 
@@ -863,7 +894,7 @@ function pintarRanking(elId, lista, sufijo){
  */
 async function cargarRankings(){
   try{
-    const data = await apiGet('webRankings', null, { ttlMs: 300000, staleIfError: true }); // D-9 (b): 5 min; B4/B-10: si falla la red, usar el último dato guardado
+    const data = (await obtenerHome('rankings', 'webRankings')).data;
     // FIX (21-sep-2026, pedido usuario — "falta agregar igual que en
     // batallas de torneo que sí indica que son batallas, las otras
     // tarjetas solo tienen números"): pintarRanking() ya soportaba un
@@ -974,7 +1005,7 @@ function rarezaHtml(rarity){
 async function cargarEstadisticasCartas(){
   const wrap = document.getElementById('cartasWrap');
   try{
-    const data = await apiGet('webEstadisticasCartas', null, { ttlMs: 300000, staleIfError: true }); // D-9 (b): 5 min; B4/B-10: si falla la red, usar el último dato guardado
+    const data = (await obtenerHome('estadisticasCartas', 'webEstadisticasCartas')).data;
     if (!data.top10 || !data.top10.length){
       wrap.innerHTML = '<div class="empty" style="padding:8px 0;">Todavía no hay datos de mazos disponibles.</div>';
       return;
@@ -1088,7 +1119,7 @@ function topSemanaPintar(){
 async function cargarTopSemana(){
   const sec = document.getElementById('topSemanaSection');
   try{
-    const data = await apiGet('webGuerraEnVivo', null, { ttlMs: 120000, staleIfError: true });
+    const data = await obtenerGuerraTop();
     const sel = data && data.valoresDiariosSelectores;
     const def = sel && sel.porDefecto;
     const porSemana = (data && data.valoresDiariosPorSemana) || {};
