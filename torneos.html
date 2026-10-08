@@ -430,7 +430,8 @@ function torneosHaySesionAdmin(){
 function cargarTorneosEstatico(){ // una sola petición compartida por las dos acciones
   if(!_torneosEstaticoPromesa){
     // ?t= por bloques de 5 min: GitHub ya sirve el archivo con ~5 min de caché; esto solo evita que el navegador se quede con uno más viejo.
-    _torneosEstaticoPromesa = apiGetEstatico(TORNEOS_ESTATICO_URL + '?t=' + Math.floor(Date.now() / 300000)).then(est => {
+    // Promise.resolve().then(...): si apiGetEstatico no existe o lanza de forma síncrona, el error cae en el .catch de abajo (→ null → se usa apiGet) en vez de romper toda la carga.
+    _torneosEstaticoPromesa = Promise.resolve().then(() => apiGetEstatico(TORNEOS_ESTATICO_URL + '?t=' + Math.floor(Date.now() / 300000))).then(est => {
       const pub = est && est._publicadoEn ? new Date(est._publicadoEn) : null;
       return (pub && !isNaN(pub) && (Date.now() - pub.getTime()) < ESTATICO_EDAD_MAX_MS) ? { est, pub } : null;
     }).catch(() => null);

@@ -68,7 +68,7 @@ function armarRespuestas(esAdmin){
 // `estatico`: qué hace apiGetEstatico() (el torneos.json de la rama `data`).
 //   undefined -> falla (como si GitHub no respondiera): la página cae a apiGet(), ruta de los tests de abajo.
 //   función   -> se usa tal cual (para probar la ruta estática de visitante).
-async function cargarPagina({ esAdmin, estatico }){
+async function cargarPagina({ esAdmin, estatico, sinApiEstatico }){
   const window = loadBrowserScriptsWithDom(['assets/js/util.js'], BODY);
   const llamadas = [];
   if (esAdmin) window.localStorage.setItem('terna_admin_token', 'token-de-prueba');
@@ -78,7 +78,7 @@ async function cargarPagina({ esAdmin, estatico }){
     return armarRespuestas(conAdmin)[accion];
   };
   window.estaticoLlamadas = [];
-  window.apiGetEstatico = async (url) => {
+  if (!sinApiEstatico) window.apiGetEstatico = async (url) => {
     window.estaticoLlamadas.push(url);
     if (!estatico) throw new Error('sin torneos.json (simulado)');
     return estatico(url);
@@ -199,4 +199,12 @@ test('torneos.html — admin con sesión: ni siquiera pide torneos.json', async 
   });
   assert.equal(estaticoLlamadas.length, 0);
   assert.ok(llamadas.length >= 2);
+});
+
+test('torneos.html — si apiGetEstatico no existe, la página igual carga por apiGet()', async () => {
+  const { window, doc, llamadas } = await cargarPagina({ esAdmin: false, sinApiEstatico: true });
+  assert.equal(typeof window.apiGetEstatico, 'undefined');
+  assert.ok(llamadas.length >= 2);
+  assert.ok(llamadas.every(l => l.opts && l.opts.conSesion === true));
+  assert.ok(doc.getElementById('ganadoresWrap').textContent.includes(ACTIVO.nombre));
 });
