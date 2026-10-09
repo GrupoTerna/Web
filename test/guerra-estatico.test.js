@@ -47,7 +47,8 @@ const DE_APPS = { ctx: { periodIndex: 18 }, origen: 'apps-script' };
 
 // `estatico`: undefined -> apiGetEstatico rechaza (sin archivo / sin red a GitHub); función -> se usa tal cual.
 // `apiGetImpl`: comportamiento de apiGet (por defecto devuelve DE_APPS); lanzar para simular Apps Script caído.
-function montar({ estatico, apiGetImpl } = {}){
+// `extra`: código adicional que se evalúa en el MISMO eval (jsdom no comparte los const/let de un window.eval con el siguiente).
+function montar({ estatico, apiGetImpl, extra = '' } = {}){
   const window = loadBrowserScriptsWithDom(['assets/js/util.js', 'assets/js/core/api.js'], '<span id="agoText"></span>'); // util.js: actualizarAgoText() usa fmtTresTiempos()
   const llamadasApiGet = [], llamadasEstatico = [];
   window.apiGetEstatico = async (url) => {
@@ -59,7 +60,7 @@ function montar({ estatico, apiGetImpl } = {}){
     llamadasApiGet.push({ accion, opts });
     return apiGetImpl ? apiGetImpl() : DE_APPS;
   };
-  window.eval(PRELUDIO + TRAMO_OBTENER + TRAMO_AGO + EPILOGO);
+  window.eval(PRELUDIO + TRAMO_OBTENER + TRAMO_AGO + extra + EPILOGO);
   return { t: window.__t, window, llamadasApiGet, llamadasEstatico };
 }
 const appsScriptCaido = () => { throw new Error('No pudimos conectar con el servidor. Intenta de nuevo en un momento.'); };
@@ -198,9 +199,9 @@ assert.ok(I3 >= 0 && F3 > I3, 'marcadores de cargarClanInfoGuerra() no encontrad
 const TRAMO_CLANINFO = grande.slice(I3, F3);
 
 function montarClanInfo(opts){
-  const m = montar(opts);
-  m.window.eval('let clanInfoGuerra = null; let __cab = 0; function actualizarCabecerasClanes(){ __cab++; }\n' + TRAMO_CLANINFO +
-    '\nwindow.__c = { cargarClanInfoGuerra, info: () => clanInfoGuerra, cab: () => __cab };');
+  // Un solo eval: cargarClanInfoGuerra() usa HOME_ESTATICO_URL, un const del tramo de obtenerDatosGuerra().
+  const m = montar({ ...opts, extra: '\nlet clanInfoGuerra = null; let __cab = 0; function actualizarCabecerasClanes(){ __cab++; }\n' + TRAMO_CLANINFO +
+    '\nwindow.__c = { cargarClanInfoGuerra, info: () => clanInfoGuerra, cab: () => __cab };\n' });
   m.c = m.window.__c;
   return m;
 }
