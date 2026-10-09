@@ -224,3 +224,81 @@ test('perfil.html ctx de guerra — archivo vigente + Apps Script caído: ni siq
   assert.deepEqual(d.ctx, CTX);
   assert.equal(llamadasApiGet.length, 0);
 });
+
+// ---------------------------------------------------------------- Límite de edad del ctx: 24 h (09-oct-2026, decisión del usuario)
+//
+// El día de guerra (periodIndex) cambia a diario, así que un ctx de más de CTX_GUERRA_EDAD_MAX_MS (24 h) se ignora
+// aunque venga del archivo viejo o del respaldo local: obtenerCtxGuerra() devuelve null y la ficha sigue como sin ctx.
+// El límite se mide con la fecha del dato: `desde` de apiGetConRespaldoEstatico() (archivo viejo o respaldo local) y, cuando
+// apiGet() responde "sano" pero pudo haber devuelto su respaldo sin avisar (origen 'apps-script'), con la hora real del
+// último guardado (horaConsultaApiGet() de util.js). Con el archivo vigente (<3 h) o con Apps Script respondiendo de verdad no se mide nada.
+
+test('límite 24 h — archivo viejo de 30 h + Apps Script caído: el ctx se ignora (null)', async () => {
+  const { t } = cargar({ estatico: archivo(hace(30 * HORA)), apiGetImpl: appsScriptCaido });
+  assert.equal(await t.obtenerCtxGuerra(), null);
+});
+
+test('límite 24 h — archivo viejo de 23 h + Apps Script caído: todavía se usa', async () => {
+  const { t } = cargar({ estatico: archivo(hace(23 * HORA)), apiGetImpl: appsScriptCaido });
+  const d = await t.obtenerCtxGuerra();
+  assert.deepEqual(d.ctx, CTX);
+});
+
+test('límite 24 h — el corte es 24 h: 1 min antes se usa, 1 min después se ignora', async () => {
+  const dentro = cargar({ estatico: archivo(hace(24 * HORA - 60 * 1000)), apiGetImpl: appsScriptCaido });
+  assert.deepEqual((await dentro.t.obtenerCtxGuerra()).ctx, CTX);
+  const fuera = cargar({ estatico: archivo(hace(24 * HORA + 60 * 1000)), apiGetImpl: appsScriptCaido });
+  assert.equal(await fuera.t.obtenerCtxGuerra(), null);
+});
+
+test('límite 24 h — respaldo local de 30 h (más nuevo que el archivo de 40 h) + Apps Script caído: se ignora', async () => {
+  const RESP = { ctx: { periodIndex: 50 }, otro: 'del respaldo' };
+  const { t } = cargar({ estatico: archivo(hace(40 * HORA)), apiGetImpl: appsScriptCaido, respaldo: { t: Date.now() - 30 * HORA, d: RESP } });
+  assert.equal(await t.obtenerCtxGuerra(), null);
+});
+
+test('límite 24 h — respaldo local de 20 h + Apps Script caído: todavía se usa', async () => {
+  const RESP = { ctx: { periodIndex: 50 }, otro: 'del respaldo' };
+  const { t } = cargar({ estatico: archivo(hace(40 * HORA)), apiGetImpl: appsScriptCaido, respaldo: { t: Date.now() - 20 * HORA, d: RESP } });
+  const d = await t.obtenerCtxGuerra();
+  assert.deepEqual(JSON.parse(JSON.stringify(d)), RESP);
+});
+
+test('límite 24 h — SIN archivo, apiGet() devuelve en silencio su respaldo de 30 h (origen apps-script): se ignora', async () => {
+  // El caso silencioso: apiGet(..., staleIfError:true) no avisa que usó el respaldo. Se detecta con la hora real del último guardado.
+  const RESP = { ctx: { periodIndex: 50 } };
+  const { t } = cargar({ estatico: undefined, apiGetImpl: () => RESP, respaldo: { t: Date.now() - 30 * HORA, d: RESP } });
+  assert.equal(await t.obtenerCtxGuerra(), null);
+});
+
+test('límite 24 h — SIN archivo, Apps Script sano (último guardado de hace 1 h o sin respaldo): se usa', async () => {
+  const reciente = cargar({ estatico: undefined, respaldo: { t: Date.now() - HORA, d: RESPUESTA_APS } });
+  assert.deepEqual(await reciente.t.obtenerCtxGuerra(), RESPUESTA_APS);
+  const sinRespaldo = cargar({ estatico: undefined });
+  assert.deepEqual(await sinRespaldo.t.obtenerCtxGuerra(), RESPUESTA_APS);
+});
+
+test('límite 24 h — archivo vigente (<3 h): no se mide nada y se usa', async () => {
+  const { t } = cargar({ estatico: archivo(hace(2 * HORA)), apiGetImpl: appsScriptCaido, respaldo: { t: Date.now() - 90 * HORA, d: RESPUESTA_APS } });
+  assert.deepEqual((await t.obtenerCtxGuerra()).ctx, CTX);
+});
+
+test('límite 24 h — cargarCtxGuerraPerfil() con un ctx ignorado: no guarda el ctx, no vuelve a pintar y no revienta', async () => {
+  const { t, renders, notas } = cargar({ estatico: archivo(hace(30 * HORA)), apiGetImpl: appsScriptCaido });
+  t.setJ({ extendido: { x: 1 } });
+  t.cargarCtxGuerraPerfil();
+  await espera();
+  assert.equal(t.ctx(), null);
+  assert.equal(renders.length, 0);
+  assert.equal(notas.length, 0);
+});
+
+test('límite 24 h — cargarCtxGuerraPerfil() con un ctx de 23 h: se guarda y se vuelve a pintar', async () => {
+  const { t, renders, notas } = cargar({ estatico: archivo(hace(23 * HORA)), apiGetImpl: appsScriptCaido });
+  t.setJ({ extendido: { x: 1 } });
+  t.cargarCtxGuerraPerfil();
+  await espera();
+  assert.deepEqual(t.ctx(), CTX);
+  assert.equal(renders.length, 1);
+  assert.equal(notas.length, 1);
+});

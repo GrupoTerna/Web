@@ -4739,7 +4739,17 @@ function actualizarNotasGuerraCongelada(ext){
 /* NUEVO (08-oct-2026): perfil.html solo necesita `ctx` de webGuerraEnVivo (~920 KB en total), así que lee guerra_ctx.json (~1 KB, rama `data` de GitHub, lo publica el bot junto a guerra.json, ver 50_Publicar_Guerra.gs). Si el archivo no existe, falla o tiene más de CTX_GUERRA_ESTATICO_EDAD_MAX_MS, se pide a Apps Script como antes. Ajusta el repo en la URL si no es GrupoTerna/Web. */
 const CTX_GUERRA_ESTATICO_URL = 'https://raw.githubusercontent.com/GrupoTerna/Web/data/guerra_ctx.json';
 const CTX_GUERRA_ESTATICO_EDAD_MAX_MS = 3 * 60 * 60 * 1000; // el bot lo reescribe al menos cada hora; 3 h = algo falló
-/* CAMBIO (09-oct-2026, Fase 4 JSON estático como último recurso): un guerra_ctx.json vencido (>3 h, con `ctx`) ya no se tira: se guarda y se usa SOLO si Apps Script falla, y solo si es más nuevo que el respaldo local (ver apiGetConRespaldoEstatico() en api.js). Con el archivo vigente o con Apps Script sano nada cambia. Devuelve el mismo objeto de siempre (con `ctx`). Límite: con un archivo viejo el ctx es el de ese momento (por ejemplo, el día de guerra de entonces); esta página no muestra aviso de eso (ver CHANGELOG.md, pendiente de definir). */
+const CTX_GUERRA_EDAD_MAX_MS = 24 * 60 * 60 * 1000; // el día de guerra cambia a diario: un ctx de más de 24 h describe otro día
+/* CAMBIO (09-oct-2026, Fase 4 JSON estático como último recurso): un guerra_ctx.json vencido (>3 h, con `ctx`) ya no se tira: se guarda y se usa SOLO si Apps Script falla, y solo si es más nuevo que el respaldo local (ver apiGetConRespaldoEstatico() en api.js). Con el archivo vigente o con Apps Script sano nada cambia. Devuelve el mismo objeto de siempre (con `ctx`).
+   CAMBIO (09-oct-2026, decisión del usuario): se ignora un ctx de más de CTX_GUERRA_EDAD_MAX_MS (24 h), venga del archivo viejo o del respaldo local: devuelve null y la página sigue como sin ctx (no sabe el día y congela mientras no haya días jugados), mejor que decidir con un día equivocado. No muestra aviso (ver CHANGELOG.md). */
+function _edadCtxGuerraMs(x){
+  // x.desde: fecha del dato cuando salió del archivo viejo o del respaldo local. Con origen 'apps-script' (desde null) apiGet() pudo devolver su
+  // respaldo local sin avisar: horaConsultaApiGet() da la hora real del último guardado (ahora, si Apps Script respondió bien).
+  let desde = x && x.desde;
+  if (!desde && x && x.origen === 'apps-script' && typeof horaConsultaApiGet === 'function') desde = horaConsultaApiGet('webGuerraEnVivo');
+  const t = desde && typeof desde.getTime === 'function' ? desde.getTime() : NaN;
+  return isNaN(t) ? 0 : Date.now() - t;
+}
 async function obtenerCtxGuerra(){
   let viejo = null; // último recurso: archivo estático descargado bien pero ya vencido
   try{
@@ -4751,6 +4761,7 @@ async function obtenerCtxGuerra(){
     }
   }catch(e){ /* sin archivo o sin red a GitHub: se sigue con Apps Script */ }
   const x = await apiGetConRespaldoEstatico('webGuerraEnVivo', null, { ttlMs: 120000, staleIfError: true }, viejo);
+  if (_edadCtxGuerraMs(x) > CTX_GUERRA_EDAD_MAX_MS) return null; // ctx de otro día de guerra: se ignora
   return x.data;
 }
 function cargarCtxGuerraPerfil(){
