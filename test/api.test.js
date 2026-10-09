@@ -186,3 +186,61 @@ test('sesionVencida:true sin document (Node puro): borra la sesión y no revient
   await apiGet('webPerfil', { tag: '#AAA' }, { conSesion: true });
   assert.equal(local.datos.terna_admin_token, undefined);
 });
+
+
+/*
+ * apiGetEstaticoConEdad() — NUEVO (09-oct-2026, Fase 1 del plan "JSON estático como último recurso").
+ * Devuelve el JSON estático JUNTO con su edad (vigente o no) en vez de decidir sola si sirve.
+ * LÍMITE: se prueba con un fetch simulado; no se probó contra GitHub real ni en un navegador.
+ */
+function armarApiEstatico(respuestaFetch){
+  const sandbox = {
+    localStorage: { getItem: () => null, setItem: () => {}, removeItem: () => {} },
+    sessionStorage: { getItem: () => null, setItem: () => {}, removeItem: () => {} },
+    URLSearchParams, setTimeout, clearTimeout, console, AbortController,
+    fetch: async (url) => respuestaFetch(url)
+  };
+  vm.createContext(sandbox);
+  vm.runInContext("const WEBAPP_URL = 'https://ejemplo.test/exec'; const WEB_MEMBER_TOKEN = 'TOKEN_PUBLICO';", sandbox);
+  const codigo = fs.readFileSync(path.join(__dirname, '..', 'assets/js/core/api.js'), 'utf8');
+  vm.runInContext(codigo, sandbox, { filename: 'api.js' });
+  return sandbox.apiGetEstaticoConEdad;
+}
+const HORA_MS = 60 * 60 * 1000;
+const haceMs = (ms) => new Date(Date.now() - ms).toISOString();
+const okJson = (cuerpo) => ({ ok: true, status: 200, json: async () => cuerpo });
+
+test('apiGetEstaticoConEdad(): archivo de 1 h -> vigente:true, con el JSON y la fecha de publicación', async () => {
+  const f = armarApiEstatico(() => okJson({ _publicadoEn: haceMs(1 * HORA_MS), ctx: { a: 1 } }));
+  const r = await f('https://ejemplo.test/guerra.json');
+  assert.equal(r.vigente, true);
+  assert.equal(r.est.ctx.a, 1);
+  assert.ok(Math.abs(Date.now() - r.pub.getTime() - 1 * HORA_MS) < 5000);
+});
+
+test('apiGetEstaticoConEdad(): archivo de 5 h -> vigente:false pero SÍ se devuelve (último recurso)', async () => {
+  const f = armarApiEstatico(() => okJson({ _publicadoEn: haceMs(5 * HORA_MS), ctx: { a: 1 } }));
+  const r = await f('https://ejemplo.test/guerra.json');
+  assert.equal(r.vigente, false);
+  assert.equal(r.est.ctx.a, 1);
+});
+
+test('apiGetEstaticoConEdad(): el umbral por defecto es 3 h y opts.edadMaxMs lo cambia', async () => {
+  const f = armarApiEstatico(() => okJson({ _publicadoEn: haceMs(2 * HORA_MS) }));
+  assert.equal((await f('u')).vigente, true, '2 h < 3 h por defecto');
+  assert.equal((await f('u', { edadMaxMs: 1 * HORA_MS })).vigente, false, '2 h > 1 h pedido');
+});
+
+test('apiGetEstaticoConEdad(): sin _publicadoEn o con fecha inválida -> null (no se sabe su edad)', async () => {
+  for (const cuerpo of [{ ctx: {} }, { _publicadoEn: 'no-es-fecha', ctx: {} }, { _publicadoEn: '' }, null]){
+    const f = armarApiEstatico(() => okJson(cuerpo));
+    assert.equal(await f('u'), null);
+  }
+});
+
+test('apiGetEstaticoConEdad(): HTTP distinto de 200 o sin red -> lanza (igual que apiGetEstatico)', async () => {
+  const f404 = armarApiEstatico(() => ({ ok: false, status: 404, json: async () => ({}) }));
+  await assert.rejects(() => f404('u'), /HTTP 404/);
+  const fRed = armarApiEstatico(() => { throw new TypeError('Failed to fetch'); });
+  await assert.rejects(() => fRed('u'), /Failed to fetch/);
+});

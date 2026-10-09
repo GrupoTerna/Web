@@ -509,3 +509,38 @@ async function apiGetEstatico(url, opts){
     if(timer) clearTimeout(timer);
   }
 }
+
+
+/**
+ * ESTATICO_EDAD_MAX_MS_DEFECTO / apiGetEstaticoConEdad(url, opts)
+ * NUEVO (09-oct-2026, Fase 1 del plan "JSON estático como último recurso"): apiGetEstatico() solo
+ * baja el archivo; cada página decidía sola si era "vigente" (menos de 3 h desde `_publicadoEn`)
+ * y, si no lo era, lo TIRABA y pedía a Apps Script. Si Apps Script también fallaba (Sheets o la
+ * cuota caídos, que es justo cuando el bot deja de republicar y el archivo envejece), la página
+ * quedaba sin datos aunque el archivo viejo sí existía.
+ *
+ * Esta función hace la misma lectura pero devuelve también la edad, para que quien llama pueda
+ * usar el archivo vigente de inmediato y guardar el viejo como ÚLTIMO RECURSO:
+ *   { est, pub, vigente }  -> est: el JSON; pub: Date de `_publicadoEn`; vigente: pub más nuevo que edadMaxMs.
+ *   null                   -> el JSON no trae `_publicadoEn` válido (no se sabe qué edad tiene: no se usa ni como último recurso).
+ * Lanza lo mismo que apiGetEstatico() (sin archivo, sin red a GitHub, HTTP distinto de 200, JSON inválido).
+ * NO valida el contenido (claves como `ctx`, `clanes`, etc.): eso sigue siendo de cada página, que
+ * conoce su forma. El umbral de 3 h NO cambia: sigue sirviendo para preferir a Apps Script cuando
+ * Sheets sí responde.
+ * El nombre de la constante lleva el sufijo _DEFECTO a propósito: index/clan/comunidad/torneos ya
+ * declaran su propio `const ESTATICO_EDAD_MAX_MS` en un <script> inline y una segunda declaración
+ * con el mismo nombre en el ámbito global daría error de redeclaración.
+ * @param {string} url
+ * @param {{edadMaxMs?: number, timeoutMs?: number}} [opts]
+ * @returns {Promise<{est: Object, pub: Date, vigente: boolean}|null>}
+ */
+const ESTATICO_EDAD_MAX_MS_DEFECTO = 3 * 60 * 60 * 1000;
+
+async function apiGetEstaticoConEdad(url, opts){
+  opts = opts || {};
+  const edadMax = (typeof opts.edadMaxMs === 'number' && opts.edadMaxMs >= 0) ? opts.edadMaxMs : ESTATICO_EDAD_MAX_MS_DEFECTO;
+  const est = await apiGetEstatico(url, opts);
+  const pub = est && est._publicadoEn ? new Date(est._publicadoEn) : null;
+  if(!pub || isNaN(pub.getTime())) return null;
+  return { est, pub, vigente: (Date.now() - pub.getTime()) < edadMax };
+}

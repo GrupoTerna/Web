@@ -11,6 +11,34 @@ el código hoy) cuando hace falta para mantenerlo; el "por qué histórico"
 
 ---
 
+## api.js, guerra.html y sw.js v17 — Fase 1: el JSON estático vencido sirve como último recurso (09-oct-2026)
+
+Contexto (revisión pedida por el usuario: «que consulte los CSV o JSON si Sheets no está disponible»). El frontend nunca habla con Sheets ni con los CSV de Drive: habla con el Web App de Apps Script. Lo único independiente de Google son los JSON de la rama `data` de GitHub. Hallazgo: las páginas descartan el JSON a las 3 h y piden a Apps Script; si Apps Script también falla (justo cuando el bot deja de republicar y el archivo envejece), la página quedaba sin datos aunque el archivo viejo existía. Reproducido con una prueba desechable sobre `comunidad.html` (JSON de 1 h + Apps Script caído: pinta; JSON de 5 h + Apps Script caído: error).
+
+- **`assets/js/core/api.js`, `apiGetEstaticoConEdad(url, opts)` y `ESTATICO_EDAD_MAX_MS_DEFECTO` (nuevas):** misma lectura que `apiGetEstatico()` pero devuelve `{ est, pub, vigente }` (o `null` si el JSON no trae `_publicadoEn` válido), para que cada página use el archivo vigente de inmediato y guarde el vencido como último recurso. No valida el contenido (eso sigue en cada página). El umbral de 3 h no cambia. La constante lleva sufijo `_DEFECTO` porque index, clan, comunidad y torneos ya declaran su propio `const ESTATICO_EDAD_MAX_MS` (una segunda con el mismo nombre daría error de redeclaración).
+- **`guerra.html`, `obtenerDatosGuerra()`:** si `guerra.json` está vencido pero trae `ctx`, se guarda; solo si `apiGet('webGuerraEnVivo')` falla se devuelve ese archivo con `viejo: true`. Con Apps Script sano no cambia nada. Sin `ctx`, sin `_publicadoEn` o sin archivo, el error sube como antes.
+- **`guerra.html`, `lastEsViejo`, `cargar()` y `actualizarAgoText()`:** con datos viejos la barra de estado suma «⚠ Datos guardados: el servidor no responde» (y el tooltip lo explica). Se apaga solo cuando una carga posterior sale bien. La recarga automática de cada minuto sigue reintentando Apps Script, así que se recupera sola.
+- **`sw.js`:** `CACHE_NAME` sube a `terna-static-v17` (`api.js` y `guerra.html` están en `CORE_ASSETS`).
+- **Pruebas:** 14 nuevas: 5 en `test/api.test.js` (`apiGetEstaticoConEdad`) y 9 en `test/guerra-estatico.test.js` (archivo nuevo, con el código real de `guerra.html` extraído del `<script>` inline y el `api.js` real; solo se simulan GitHub y Apps Script). Se comprobó que la prueba de regresión FALLA contra el `guerra.html` original.
+- **Límite:** al mostrar datos viejos, la página pinta lo publicado tal cual (por ejemplo, el día de guerra de ese momento); el aviso lo indica, no lo corrige. Pendientes de admin: con un archivo viejo, `completarPendientesAdmin()` falla en silencio y el admin ve la versión de visitante.
+- **No se probó** en navegador real ni contra GitHub/Apps Script reales.
+
+### 09-oct-2026 — Pendientes de este plan (no aplicados todavía)
+- **Fase 2:** `index.html` (`cargarHomeEstatico()`, `obtenerGuerraTop()`) y `clan.html` (`clanLeerEstatico()`): mismo último recurso con `apiGetEstaticoConEdad()`.
+- **Fase 3:** `directorio.html` (`obtenerRoster()`; además `cargarClanInfoYCharts()` llama a `webClanInfo` directo y se salta `home.json`, que ya trae `clanInfo`) y `comunidad.html` (`obtenerAscensos()`).
+- **Fase 4:** `torneos.html` (`cargarTorneosEstatico()`) y `perfil.html` (`obtenerCtxGuerra()`).
+- **Fase 5 (opcional):** `guerra.html`, `cargarClanInfoGuerra()` (cabeceras de clan) y `assets/js/features/clan-card.js`, `enlazarLideresClanes()` (enlace al líder, pide `webRoster` directo): pasarlos a `home.json` / `roster.json`.
+- **Pendiente de definir (decisión del usuario):** las cargas que salen de un JSON estático no guardan nada en el respaldo local (`_backupLocalGuardar()` solo se llama dentro de `apiGet()`), así que `staleIfError` no ayuda a quien siempre recibe datos por JSON, ni sin conexión. Riesgo: `guerra.json` pesa unos 920 KB y localStorage tiene unos 5 MB; habría que decidir qué archivos sí guardar.
+- **Sin JSON hoy (dependen 100 % de Apps Script):** `webPronosticoGuerra`, `webGuerraPuestosDia` (este con respaldo local), `webGuerraLog`, `webCompararJugadores`, `webHistorialGuerraComparador`, `webIngresosRecientes`, `webPerfil`, `webTorneosJugador`. `webCofresJugador` y `webBattlelogJugador` van en vivo a Supercell y no se publicarían. Publicar cualquiera de los otros requiere cambios en el bot (backend).
+- **Pendiente de verificar en el backend (requiere subir `Base.md`):** que `doGet` caiga a los `Backup_*.csv` cuando falla la lectura de Sheets (el usuario indica que debería); qué claves publican realmente `50_` a `53_Publicar_*.gs`; y si el bot sigue republicando cuando Sheets falla. El usuario enviará el backend cuando se terminen estas fases.
+
+### 09-oct-2026 — Registro retroactivo de la tanda del 08-oct (no estaba en este archivo)
+El código del 08-oct-2026 ya traía lectura de JSON estáticos de la rama `data` (`https://raw.githubusercontent.com/GrupoTerna/Web/data/…`) con `?t=` por bloques de 5 min, vigencia de 3 h por `_publicadoEn` y caída a Apps Script, sin entrada aquí. Estado verificado leyendo el código: `apiGetEstatico()` en `api.js`; `guerra.json` en `guerra.html` (`obtenerDatosGuerra()`) y `clan.html`; `guerra_ctx.json` en `perfil.html` (`obtenerCtxGuerra()`); `guerra_top.json` y `home.json` (`clanInfo`, `aniversarios`, `rankings`, `estadisticasCartas`) en `index.html`; `home.json` también en `clan.html` y, clave `ascensos`, en `comunidad.html`; `roster.json` en `directorio.html` y `clan.html`; `torneos.json` en `torneos.html` (solo visitantes: un admin con sesión pide a Apps Script). La CSP de esas 7 páginas permite `raw.githubusercontent.com`; `sw.js` no intercepta orígenes cruzados, así que no cachea estos JSON. Los publica el bot desde el backend (`50_` a `53_Publicar_*.gs`, no verificados aquí).
+
+- **Verificado (09-oct-2026):** `node --test` 202/202 (antes 188; 14 nuevas), `eslint assets`, `html-validate guerra.html` y `check-local-links` (145 rutas) sin observaciones.
+
+---
+
 ## admin.html — Cambio de Rango usa webAdminSemanasDeTemporada y se cierran pendientes de Noticias (07-oct-2026)
 
 - **Endpoint nuevo en el frontend (`semanasCompletasDeTemporadaCR()`, `claveTemporadaEnMapaCR()`):** el selector de semanas de Cambio de Rango pide `webAdminSemanasDeTemporada(temporada)` al elegir una temporada y al precargar una corrida vieja, así los checkboxes salen con todas las semanas y su rango de fechas. Cierra la «POSIBLE MEJORA FUTURA» del docblock de `agregarBloqueTemporadaCR()`. La temporada vigente no se pide (`todasSemanasVigente` ya la trae completa). Respuestas buenas se cachean por temporada; ante error o vacío se usa el caché de semanas de siempre. Mientras carga, el bloque muestra «Cargando semanas…», y si se cambia de temporada a mitad de carga se descarta la respuesta vieja.

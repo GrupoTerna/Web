@@ -65,7 +65,10 @@
 // Tab (tabindex=-1). Si v14 aún no se había publicado, v14 y v15 salen juntos; igual se sube para no depender de eso.
 // v16 (06-oct-2026): guerra.html cambió (CORE_ASSETS) -- la tabla del Log de Guerra pasa a encabezados en español (Puesto, Barcos, Trofeos).
 // Se sube la versión para que 'activate' borre v15 y nadie siga con el guerra.html viejo.
-const CACHE_NAME = 'terna-static-v16';
+// v17 (09-oct-2026): api.js (nueva apiGetEstaticoConEdad) y guerra.html cambiaron (CORE_ASSETS) -- si Apps Script no responde, guerra.html
+// usa el último guerra.json publicado aunque tenga más de 3 h y avisa que son datos guardados (Fase 1 del plan "JSON estático como último
+// recurso"). Se sube la versión para que 'activate' borre v16 y nadie siga con el api.js/guerra.html viejos.
+const CACHE_NAME = 'terna-static-v17';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
