@@ -11,6 +11,21 @@ el código hoy) cuando hace falta para mantenerlo; el "por qué histórico"
 
 ---
 
+## Aviso «⚠ Datos guardados» (portada, `clan.html`) y sw.js v24 — `apiGet()` informa cuando devuelve su respaldo local (09-oct-2026)
+
+Resuelve el pendiente «aviso `⚠ Datos guardados` cuando `apiGet()` devolvió en silencio su respaldo local» y el «aviso común en las otras 4 secciones de la portada, el roster y la tarjeta de guerra de `clan.html`» (entrada «`guerra.html` y `sw.js` v23», abajo). Pedido del usuario («hazlo»). Verificar el backend sigue fuera de alcance (solo se tocó el repo Web).
+
+- **`assets/js/core/api.js`, `apiGetRespaldoUsado(accion, params)` (nueva) y `_respaldoUsadoApiGet`:** `apiGet()` sigue devolviendo solo el dato (ningún llamador cambia), pero cuando con `staleIfError` devuelve el respaldo local anota su fecha de guardado por clave de caché (acción + parámetros). `apiGetRespaldoUsado()` la da, o `null` si la última llamada obtuvo respuesta del servidor (o de su caché de sesión) o nunca se llamó. Cada nuevo intento de red borra la nota. Vive solo en memoria de la pestaña.
+- **`apiGetConRespaldoEstatico()`:** sin `viejo`, si `apiGet()` devolvió su respaldo en silencio ahora devuelve `origen: 'respaldo-local'` con su fecha en `desde` (antes `'apps-script'` con `desde: null`, y la página lo mostraba como dato fresco). Con `viejo` nada cambia (ahí `staleIfError` se apaga y la comparación ya existía). Como las páginas ya tratan `'respaldo-local'` (texto «Respaldo guardado» y «⚠ Datos guardados»), directorio, comunidad, torneos y la cabecera de clanes lo reciben sin más cambios.
+- **`assets/js/util.js`, `marcarDatosGuardados(el, desde, estiloExtra)` (nueva):** pone o quita, justo después de `el`, un `<div class="text-faint js-aviso-guardado" role="status">` con «⚠ Datos guardados: el servidor no responde (actualizado hace X)», el mismo texto de la tarjeta de guerra de `clan.html`. No se duplica al repetir la llamada; con `desde` nulo o inválido solo quita el aviso.
+- **`index.html`:** `obtenerHome()` y `obtenerGuerraTop()` devuelven también `guardadoDesde` (fecha del dato guardado, o `null`). **`obtenerGuerraTop()` ahora devuelve `{ data, guardadoDesde }` en vez del dato suelto**; el único llamador, `cargarTopSemana()`, se ajustó. Aviso en aniversarios, rankings, cartas y top semanal.
+- **`clan.html`:** `clanPedirConRespaldo()` suma `guardadoDesde`. Aviso en el roster, y la tarjeta de guerra lo muestra también con el respaldo local (antes solo con el JSON vencido). La cabecera de info ya lo mostraba por `esViejo`.
+- **`sw.js`:** `CACHE_NAME` sube a `terna-static-v24` (`api.js`, `util.js` e `index.html` están en `CORE_ASSETS`; `clan.html` no).
+- **Pruebas:** 5 nuevas en `test/api.test.js` (apiGet real con red simulada: la fecha, que una respuesta buena la borra, sin respaldo o sin `staleIfError`, distinción por parámetros, y `apiGetConRespaldoEstatico` sin `viejo`), 3 en `test/util.test.js` (`marcarDatosGuardados`) y 4 en `test/index-clan-estatico.test.js` (`guardadoDesde` en index y clan, y aviso en la tarjeta de guerra con respaldo local); además 3 pruebas de `obtenerGuerraTop()` ajustadas a la nueva forma del resultado.
+- **Límites:** no hay aviso en `perfil.html` (su `ctx` de guerra viejo ya se ignora pasadas 24 h) ni en `guerra.html` (pide sin caché ni respaldo). No se probó en navegador real ni contra GitHub/Apps Script reales; solo con red simulada.
+
+---
+
 ## guerra.html y sw.js v23 — la barra de estado usa `fmtTresTiempos()` (09-oct-2026)
 
 Resuelve el pendiente «unificar `guerra.html` con `fmtTresTiempos()`» de las fases anteriores. Pedido del usuario; se le avisó de antemano que cambiaba el orden y el texto de lo que se ve.
@@ -22,7 +37,7 @@ Resuelve el pendiente «unificar `guerra.html` con `fmtTresTiempos()`» de las f
 - **`sw.js`:** `CACHE_NAME` sube a `terna-static-v23` (`guerra.html` está en `CORE_ASSETS`).
 - **Pruebas (`test/guerra-estatico.test.js`, 15 en total, eran 9):** 6 nuevas (orden y partes con archivo vigente, sin archivo, sin hora de la API, archivo viejo con el aviso, sin `lastFetchAt`, y que `guerra.html` ya no define su propio formato) y 3 existentes ajustadas al texto compartido («API Supercell», «el servidor no respondió»); el marcador del tramo pasó de `_haceCorto` a `actualizarAgoText` y la prueba ahora también carga `util.js`. Contra el `guerra.html` anterior fallan 6.
 - **No se probó** en navegador real ni contra GitHub/Apps Script reales; solo con red simulada.
-- **Sigue pendiente (decisión del usuario):** el aviso «⚠ Datos guardados» cuando `apiGet()` devolvió en silencio su respaldo local (portada, `clan.html` y el resto), que necesita que `apiGet()` informe que usó el respaldo; y el aviso común en las otras 4 secciones de la portada, el roster y la tarjeta de guerra de `clan.html`.
+- **Sigue pendiente (decisión del usuario):** el aviso «⚠ Datos guardados» cuando `apiGet()` devolvió en silencio su respaldo local (portada, `clan.html` y el resto), que necesita que `apiGet()` informe que usó el respaldo; y el aviso común en las otras 4 secciones de la portada, el roster y la tarjeta de guerra de `clan.html`. **Resuelto el 09-oct-2026**, ver la entrada «Aviso «⚠ Datos guardados» … y `sw.js` v24», arriba.
 
 ---
 

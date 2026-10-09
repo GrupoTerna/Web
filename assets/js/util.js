@@ -276,6 +276,32 @@ function fmtTresTiemposDeResultado(r){
 
 
 /**
+ * marcarDatosGuardados(el, desde, estiloExtra)
+ * NUEVO (09-oct-2026, Fase 5, pedido del usuario): aviso común «⚠ Datos guardados» para cuando una sección muestra el último dato guardado
+ * (respaldo local o JSON vencido) porque el servidor no respondió. Pone (o quita) un <div class="text-faint js-aviso-guardado"> justo
+ * DESPUÉS de `el`; si ya había uno de una llamada anterior lo reemplaza, y con `desde` nulo solo lo quita. Mismo texto que el aviso de la
+ * tarjeta de guerra de clan.html. Llamar después de pintar la sección (si se repinta `el` con innerHTML el aviso, que es hermano, no se pierde).
+ * @param {Element|null} el Elemento tras el que va el aviso.
+ * @param {Date|null} desde Fecha del dato guardado, o null/inválida para quitar el aviso.
+ * @param {string} [estiloExtra] CSS extra (ej. márgenes laterales).
+ * @returns {Element|null} el aviso puesto, o null.
+ */
+function marcarDatosGuardados(el, desde, estiloExtra){
+  if (!el || !el.parentNode) return null;
+  const previo = el.nextElementSibling;
+  if (previo && previo.classList && previo.classList.contains('js-aviso-guardado')) previo.remove();
+  if (!_esFechaValida(desde)) return null;
+  const aviso = el.ownerDocument.createElement('div');
+  aviso.className = 'text-faint js-aviso-guardado';
+  aviso.setAttribute('role', 'status');
+  aviso.style.cssText = 'text-align:center; margin-top:12px; font-size:12px;' + (estiloExtra || '');
+  aviso.textContent = '⚠ Datos guardados: el servidor no responde (' + fmtTiempoRelativo(desde) + ').';
+  el.insertAdjacentElement('afterend', aviso);
+  return aviso;
+}
+
+
+/**
  * fmtFechaVigenciaCorta(v)
  * Fecha corta CON hora en zona Lima (ej. "05 set 2026, 4:46 a. m."). Antes
  * había dos copias idénticas: fmtFechaVigenciaCorta() en index.html y

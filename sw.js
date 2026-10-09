@@ -89,7 +89,10 @@
 // 'activate' borre v21 y nadie siga con el util.js y las páginas viejas.
 // v23 (09-oct-2026): guerra.html cambió (CORE_ASSETS) -- su barra de estado ahora usa fmtTresTiempos() de util.js (mismo formato que el resto del sitio:
 // «Consulta · JSON publicado · API Supercell») en vez de su propio formato. Se sube la versión para que 'activate' borre v22 y nadie siga con el guerra.html viejo.
-const CACHE_NAME = 'terna-static-v23';
+// v24 (09-oct-2026): api.js (nueva apiGetRespaldoUsado; apiGetConRespaldoEstatico informa 'respaldo-local' cuando apiGet() devolvió su respaldo en silencio), util.js
+// (nueva marcarDatosGuardados) e index.html cambiaron (CORE_ASSETS); clan.html también cambió pero NO está en CORE_ASSETS. Se sube la versión para que
+// 'activate' borre v23 y nadie siga con el api.js, el util.js y la portada viejos.
+const CACHE_NAME = 'terna-static-v24';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y

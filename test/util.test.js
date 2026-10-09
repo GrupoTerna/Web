@@ -182,3 +182,39 @@ test('fmtTresTiemposDeResultado() — si el resultado trae `consulta` válida se
   const ahora = new window.Date();
   assert.match(window.fmtTresTiemposDeResultado({ origen: 'apps-script', accion: 'webRoster', consulta: ahora }).texto, /^Consulta: hace \d+ s$/);
 });
+
+
+/*
+ * marcarDatosGuardados() — NUEVO (09-oct-2026, Fase 5, pedido del usuario): aviso común «⚠ Datos guardados».
+ */
+test('marcarDatosGuardados(): pone el aviso justo después del elemento, con la antigüedad del dato', () => {
+  const window = loadBrowserScriptsWithDom(['assets/js/util.js'], '<div id="caja"><div id="sec"></div><p id="otro"></p></div>');
+  const sec = window.document.getElementById('sec');
+  const aviso = window.marcarDatosGuardados(sec, new Date(Date.now() - 2 * 3600 * 1000));
+  assert.equal(sec.nextElementSibling, aviso);
+  assert.ok(aviso.classList.contains('js-aviso-guardado'));
+  assert.equal(aviso.getAttribute('role'), 'status');
+  assert.match(aviso.textContent, /^⚠ Datos guardados: el servidor no responde \(actualizado hace 2 h\)\.$/);
+  assert.equal(window.document.getElementById('otro').previousElementSibling, aviso);
+});
+
+test('marcarDatosGuardados(): una segunda llamada reemplaza el aviso (no se duplica) y con null o fecha inválida lo quita', () => {
+  const window = loadBrowserScriptsWithDom(['assets/js/util.js'], '<div id="caja"><div id="sec"></div></div>');
+  const sec = window.document.getElementById('sec');
+  window.marcarDatosGuardados(sec, new Date(Date.now() - 3600 * 1000));
+  window.marcarDatosGuardados(sec, new Date(Date.now() - 5 * 3600 * 1000));
+  assert.equal(window.document.querySelectorAll('.js-aviso-guardado').length, 1);
+  assert.match(window.document.querySelector('.js-aviso-guardado').textContent, /hace 5 h/);
+  assert.equal(window.marcarDatosGuardados(sec, null), null);
+  assert.equal(window.document.querySelectorAll('.js-aviso-guardado').length, 0);
+  window.marcarDatosGuardados(sec, new Date(Date.now() - 3600 * 1000));
+  assert.equal(window.marcarDatosGuardados(sec, new window.Date('x')), null);
+  assert.equal(window.document.querySelectorAll('.js-aviso-guardado').length, 0);
+});
+
+test('marcarDatosGuardados(): sin elemento no revienta y admite estilo extra', () => {
+  const window = loadBrowserScriptsWithDom(['assets/js/util.js'], '<div id="caja"><div id="sec"></div></div>');
+  assert.equal(window.marcarDatosGuardados(null, new Date()), null);
+  const aviso = window.marcarDatosGuardados(window.document.getElementById('sec'), new Date(), ' margin:0 20px 16px;');
+  assert.match(aviso.style.cssText.replace(/\s+/g, ' '), /margin: 0px 20px 16px/);
+});

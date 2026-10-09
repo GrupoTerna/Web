@@ -88,6 +88,15 @@ test('index: home.json vigente (1 h) se usa y NO se llama a Apps Script', async 
   assert.equal(llamadasApiGet.length, 0);
 });
 
+test('index (Fase 5): sin aviso «Datos guardados» (guardadoDesde nulo) con archivo vigente o con Apps Script sano; con el archivo viejo trae su fecha', async () => {
+  const vigente = await montarIndex({ archivos: { 'home.json': HOME(1) } }).t.obtenerHome('clanInfo', 'webClanInfo');
+  assert.equal(vigente.guardadoDesde, null);
+  const sano = await montarIndex({ archivos: { 'home.json': HOME(5) } }).t.obtenerHome('clanInfo', 'webClanInfo');
+  assert.equal(sano.guardadoDesde, null);
+  const caido = await montarIndex({ archivos: { 'home.json': HOME(5) }, apiGetImpl: appsScriptCaido }).t.obtenerHome('clanInfo', 'webClanInfo');
+  assert.ok(Math.abs(Date.now() - caido.guardadoDesde.getTime() - 5 * HORA) < 5000);
+});
+
 test('index: home.json vencido (5 h) con Apps Script sano -> gana Apps Script (el umbral de 3 h se mantiene)', async () => {
   const { t, llamadasApiGet } = montarIndex({ archivos: { 'home.json': HOME(5) } });
   const r = await t.obtenerHome('clanInfo', 'webClanInfo');
@@ -115,6 +124,7 @@ test('index: home.json vencido + Apps Script caído + respaldo local MÁS NUEVO 
   assert.equal(r.desde, null);
   assert.equal(r.data.clanes[0].nombre, 'Terna Uno (respaldo)');
   assert.equal(window.apiGetUltimaActualizacion('webClanInfo', null).getTime(), tRespaldo);
+  assert.equal(r.guardadoDesde.getTime(), tRespaldo, 'Fase 5: con el respaldo local la sección avisa «Datos guardados» con la fecha del respaldo');
 });
 
 test('index: home.json vencido + Apps Script caído + respaldo local de hace 3 días -> gana el archivo (más nuevo)', async () => {
@@ -165,19 +175,21 @@ const TOP = (horasAtras, origen) => ({ _publicadoEn: hace(horasAtras * HORA), va
 
 test('index top: guerra_top.json vigente se usa sin llamar a Apps Script', async () => {
   const { t, llamadasApiGet } = montarIndex({ archivos: { 'guerra_top.json': TOP(1, 'archivo') } });
-  assert.equal((await t.obtenerGuerraTop()).origen, 'archivo');
+  assert.equal((await t.obtenerGuerraTop()).data.origen, 'archivo');
   assert.equal(llamadasApiGet.length, 0);
 });
 
 test('index top: guerra_top.json vencido + Apps Script sano -> gana Apps Script', async () => {
   const { t, llamadasApiGet } = montarIndex({ archivos: { 'guerra_top.json': TOP(5, 'archivo') } });
-  assert.equal((await t.obtenerGuerraTop()).origen, 'apps-script:webGuerraEnVivo');
+  assert.equal((await t.obtenerGuerraTop()).data.origen, 'apps-script:webGuerraEnVivo');
   assert.equal(llamadasApiGet[0].opts.ttlMs, 120000);
 });
 
 test('REGRESIÓN index top: guerra_top.json vencido + Apps Script caído -> se usa el archivo viejo', async () => {
   const { t } = montarIndex({ archivos: { 'guerra_top.json': TOP(5, 'archivo-viejo') }, apiGetImpl: appsScriptCaido });
-  assert.equal((await t.obtenerGuerraTop()).origen, 'archivo-viejo');
+  const r = await t.obtenerGuerraTop();
+  assert.equal(r.data.origen, 'archivo-viejo');
+  assert.ok(Math.abs(Date.now() - r.guardadoDesde.getTime() - 5 * HORA) < 5000, 'guardadoDesde = fecha de publicación del archivo viejo (Fase 5: aviso «Datos guardados»)');
 });
 
 test('index top: archivo vencido sin valoresDiariosSelectores + Apps Script caído -> el error sube (la sección se oculta, como antes)', async () => {
@@ -274,6 +286,24 @@ test('clan, tarjeta de guerra: con guerra.json vencido y Apps Script caído se v
   assert.ok(aviso.textContent.includes('Datos guardados: el servidor no responde'));
   assert.ok(aviso.textContent.includes('hace 5 h'));
   assert.ok(wrap.textContent.includes('120'), 'igual se muestran los números del archivo');
+});
+
+test('clan, tarjeta de guerra (Fase 5): con guerra.json vencido, Apps Script caído y respaldo local más nuevo también hay aviso, con la edad del respaldo', async () => {
+  const { t, window, sembrarRespaldo } = montarClan({ archivos: { 'guerra.json': GUERRA_CLAN(5) }, apiGetImpl: appsScriptCaido });
+  sembrarRespaldo('webGuerraEnVivo', GUERRA_CLAN(0), Date.now() - 30 * 60 * 1000);
+  await t.cargarGuerraClan('Terna Uno');
+  const aviso = window.document.getElementById('clanGuerraWrap').querySelector('.js-guerra-aviso-viejo');
+  assert.ok(aviso, 'debe haber aviso también con el respaldo local');
+  assert.ok(aviso.textContent.includes('hace 30 min'));
+});
+
+test('clan (Fase 5): guardadoDesde es nulo con archivo vigente o Apps Script sano, y trae la fecha con archivo viejo o respaldo local', async () => {
+  const vigente = await montarClan({ archivos: { 'roster.json': { _publicadoEn: hace(HORA), clanes: [{ nombre: 'Terna Uno', miembros: [] }] } } }).t.clanObtenerRoster();
+  assert.ok(!vigente.guardadoDesde);
+  const sano = await montarClan({ archivos: { 'roster.json': { _publicadoEn: hace(5 * HORA), clanes: [{ nombre: 'Terna Uno', miembros: [] }] } } }).t.clanObtenerRoster();
+  assert.equal(sano.guardadoDesde, null);
+  const viejo = await montarClan({ archivos: { 'roster.json': { _publicadoEn: hace(5 * HORA), clanes: [{ nombre: 'Terna Uno', miembros: [] }] } }, apiGetImpl: appsScriptCaido }).t.clanObtenerRoster();
+  assert.ok(Math.abs(Date.now() - viejo.guardadoDesde.getTime() - 5 * HORA) < 5000);
 });
 
 test('clan, tarjeta de guerra: con guerra.json vigente NO hay aviso', async () => {

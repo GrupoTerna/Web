@@ -372,3 +372,65 @@ test('apiGetConRespaldoEstatico(): la clave del respaldo que lee es la MISMA que
     assert.equal(r.data.ok, true);
   }
 });
+
+
+/*
+ * apiGetRespaldoUsado() — NUEVO (09-oct-2026, Fase 5, pedido del usuario): aviso «⚠ Datos guardados» cuando apiGet() devuelve en silencio
+ * su respaldo local. Aquí se usa el apiGet() REAL con un fetch simulado que cae (maxIntentos: 1 para no esperar reintentos).
+ * LÍMITE: red simulada; no se probó contra Apps Script real ni en un navegador.
+ */
+const caeRed = async () => { throw new TypeError('Failed to fetch'); };
+
+test('apiGetRespaldoUsado(): apiGet() real devuelve el respaldo local por caída -> da su fecha; con respuesta buena vuelve a null', async () => {
+  const { sandbox, sembrarRespaldo } = armarApiRespaldo();
+  assert.equal(sandbox.apiGetRespaldoUsado('webClanInfo', null), null, 'sin llamadas previas: null');
+  const t = Date.now() - 2 * 24 * HORA_MS;
+  sembrarRespaldo('webClanInfo', null, { clanes: [{ nombre: 'Viejo' }] }, t);
+  sandbox.fetch = caeRed;
+  const d = await sandbox.apiGet('webClanInfo', null, { ttlMs: 0, staleIfError: true, maxIntentos: 1 });
+  assert.equal(d.clanes[0].nombre, 'Viejo');
+  assert.equal(sandbox.apiGetRespaldoUsado('webClanInfo', null).getTime(), t);
+  sandbox.fetch = async () => ({ ok: true, status: 200, text: async () => '{"clanes":[]}', json: async () => ({ clanes: [] }) });
+  await sandbox.apiGet('webClanInfo', null, { ttlMs: 0, staleIfError: true, maxIntentos: 1 });
+  assert.equal(sandbox.apiGetRespaldoUsado('webClanInfo', null), null, 'una respuesta buena borra el aviso');
+});
+
+test('apiGetRespaldoUsado(): sin respaldo local apiGet() lanza y no queda ningún aviso; sin staleIfError tampoco', async () => {
+  const { sandbox, sembrarRespaldo } = armarApiRespaldo();
+  sandbox.fetch = caeRed;
+  await assert.rejects(() => sandbox.apiGet('webRoster', null, { ttlMs: 0, staleIfError: true, maxIntentos: 1 }));
+  assert.equal(sandbox.apiGetRespaldoUsado('webRoster', null), null);
+  sembrarRespaldo('webRoster', null, { clanes: [] }, Date.now() - HORA_MS);
+  await assert.rejects(() => sandbox.apiGet('webRoster', null, { ttlMs: 0, maxIntentos: 1 }));
+  assert.equal(sandbox.apiGetRespaldoUsado('webRoster', null), null, 'sin staleIfError el respaldo no se usa');
+});
+
+test('apiGetRespaldoUsado(): distingue por parámetros (misma acción, otro tag)', async () => {
+  const { sandbox, sembrarRespaldo } = armarApiRespaldo();
+  sembrarRespaldo('webPerfil', { tag: '#AAA' }, { ok: 1 }, Date.now() - HORA_MS);
+  sandbox.fetch = caeRed;
+  await sandbox.apiGet('webPerfil', { tag: '#AAA' }, { ttlMs: 0, staleIfError: true, maxIntentos: 1 });
+  assert.ok(sandbox.apiGetRespaldoUsado('webPerfil', { tag: '#AAA' }));
+  assert.equal(sandbox.apiGetRespaldoUsado('webPerfil', { tag: '#BBB' }), null);
+  assert.equal(sandbox.apiGetRespaldoUsado('webPerfil', null), null);
+});
+
+test('REGRESIÓN apiGetConRespaldoEstatico(): sin `viejo`, si apiGet() devolvió su respaldo en silencio se informa como respaldo-local con su fecha', async () => {
+  const { sandbox, sembrarRespaldo } = armarApiRespaldo();
+  const t = Date.now() - 3 * 24 * HORA_MS;
+  sembrarRespaldo('webRankings', null, { donadores: [] }, t);
+  sandbox.fetch = caeRed;
+  const r = await sandbox.apiGetConRespaldoEstatico('webRankings', null, { ttlMs: 0, staleIfError: true, maxIntentos: 1 }, null);
+  assert.equal(r.origen, 'respaldo-local');
+  assert.equal(r.desde.getTime(), t);
+  assert.equal(JSON.stringify(r.data), '{"donadores":[]}');
+});
+
+test('apiGetConRespaldoEstatico(): sin `viejo` y con Apps Script sano sigue siendo apps-script (sin aviso)', async () => {
+  const { sandbox, sembrarRespaldo } = armarApiRespaldo();
+  sembrarRespaldo('webRankings', null, { donadores: ['viejo'] }, Date.now() - 3 * 24 * HORA_MS);
+  sandbox.fetch = async () => ({ ok: true, status: 200, text: async () => '{"donadores":[]}', json: async () => ({ donadores: [] }) });
+  const r = await sandbox.apiGetConRespaldoEstatico('webRankings', null, { ttlMs: 0, staleIfError: true, maxIntentos: 1 }, null);
+  assert.equal(r.origen, 'apps-script');
+  assert.equal(r.desde, null);
+});

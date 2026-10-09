@@ -127,6 +127,20 @@ function apiGetUltimaActualizacion(accion, params){
 
 
 /**
+ * apiGetRespaldoUsado(accion, params)
+ * NUEVO (09-oct-2026, Fase 5, pedido del usuario): si la ÚLTIMA llamada a apiGet(accion, params) devolvió el respaldo local porque el
+ * servidor no respondió (opts.staleIfError), da la fecha en que se guardó ese respaldo; si devolvió una respuesta del servidor (o de su caché
+ * de sesión), o nunca se llamó, da null. Sirve para que la página avise «⚠ Datos guardados» en vez de mostrar el dato viejo como si fuera nuevo.
+ * Mismos `accion` y `params` que la llamada (sin sesión de admin: con sesión no hay respaldo). No dispara ninguna petición.
+ * @returns {Date|null}
+ */
+function apiGetRespaldoUsado(accion, params){
+  const qs = new URLSearchParams({ accion, token: WEB_MEMBER_TOKEN, ...(params || {}) });
+  return _respaldoUsadoApiGet['terna_cache_' + qs.toString()] || null;
+}
+
+
+/**
  * _esErrorDeRed(err)
  * FIX (30-ago-2026, pedido de revisión): true si `err` es un fallo de RED
  * (no pudo llegar al servidor) y no un error de la aplicación (ej. sesión
@@ -352,6 +366,11 @@ async function _fetchYParsearInterno(url, fetchOpts, maxIntentos){
  * endpoint al mismo tiempo, así que no es un caso real todavía.
  */
 const _peticionesEnVuelo = {};
+/* NUEVO (09-oct-2026, Fase 5, pedido del usuario): cacheKey -> Date del respaldo local que apiGet() devolvió EN SILENCIO la última vez que
+ * el servidor no respondió (opts.staleIfError). Se borra al intentar la red de nuevo y se vuelve a llenar solo si otra vez falla y se usa el
+ * respaldo. Así apiGet() sigue devolviendo solo el dato (ningún llamador cambia) y quien quiera avisar «Datos guardados» lo consulta con
+ * apiGetRespaldoUsado(). Vive solo en memoria de la pestaña. */
+const _respaldoUsadoApiGet = {};
 
 
 /**
@@ -444,13 +463,18 @@ async function apiGet(accion, params, opts){
 
   const promesa = (async function(){
     let data;
+    delete _respaldoUsadoApiGet[cacheKey]; // nuevo intento de red: lo anterior ya no vale
     try{
       data = await _fetchYParsear(`${WEBAPP_URL}?${qs.toString()}`, { cache:'no-store' }, !!opts.prioridad, opts.maxIntentos); // opts.prioridad: ver _encolarPeticion(); opts.maxIntentos: ver _fetchYParsearInterno()
     }catch(err){
       // FIX (B4/B-10): stale-if-error, solo si se pidió explícitamente.
       if(opts.staleIfError){
         const backup = _backupLocalLeer(cacheKey);
-        if(backup) return backup.d;
+        if(backup){
+          const t = new Date(backup.t);
+          if(!isNaN(t.getTime())) _respaldoUsadoApiGet[cacheKey] = t; // NUEVO (09-oct-2026, Fase 5): ver apiGetRespaldoUsado()
+          return backup.d;
+        }
       }
       throw err;
     }
@@ -572,8 +596,9 @@ function _claveCacheApiGet(accion, params){
  *
  * Devuelve { data, desde, origen }:
  *   origen 'apps-script'    -> respondió Apps Script (o su caché de sesión); desde: null.
- *   origen 'respaldo-local' -> Apps Script falló y el respaldo de localStorage es más nuevo (o igual) que `viejo`;
- *                              desde: Date en que se guardó. Es lo mismo que daría apiGetUltimaActualizacion().
+ *   origen 'respaldo-local' -> Apps Script falló y el respaldo de localStorage es más nuevo (o igual) que `viejo`, o (sin `viejo`)
+ *                              apiGet() lo devolvió en silencio (ver apiGetRespaldoUsado()); desde: Date en que se guardó.
+ *                              Es lo mismo que daría apiGetUltimaActualizacion().
  *   origen 'estatico-viejo' -> Apps Script falló y gana `viejo`; desde: su fecha de publicación.
  * Cualquier error de apiGet() (de red, o un `error` de aplicación del backend) cuenta como "Apps Script falló"
  * cuando hay `viejo`: peor que mostrar datos guardados con su fecha es dejar la página sin datos.
@@ -588,6 +613,9 @@ async function apiGetConRespaldoEstatico(accion, params, opts, viejo){
   const desdeViejo = viejo && viejo.desde && typeof viejo.desde.getTime === 'function' ? viejo.desde.getTime() : NaN;
   if(!viejo || viejo.data == null || isNaN(desdeViejo)){
     const data = await apiGet(accion, params, opts);
+    // CAMBIO (09-oct-2026, Fase 5): sin `viejo`, apiGet() puede haber devuelto su respaldo local sin avisar; ahora se informa como 'respaldo-local'.
+    const guardado = apiGetRespaldoUsado(accion, params);
+    if(guardado) return { data, desde: guardado, origen: 'respaldo-local' };
     return { data, desde: null, origen: 'apps-script' };
   }
   try{

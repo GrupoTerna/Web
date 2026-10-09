@@ -758,11 +758,11 @@ async function obtenerHome(clave, accion){
   const h = await cargarHomeEstatico();
   const valor = h && h.data[clave];
   const valido = valor != null && !valor.error;
-  if(valido && h.vigente) return { data: valor, desde: h.desde, estatico: true, origen: 'estatico', api: tsApiDeDatos(valor) || tsApiDeDatos(h.data) };
+  if(valido && h.vigente) return { data: valor, desde: h.desde, guardadoDesde: null, estatico: true, origen: 'estatico', api: tsApiDeDatos(valor) || tsApiDeDatos(h.data) };
   // B-11/D-9 (b): 5 min; B4/B-10: si falla la red, usar el último dato guardado (el más nuevo entre el respaldo local y el archivo vencido)
   const r = await apiGetConRespaldoEstatico(accion, null, { ttlMs: 300000, staleIfError: true }, valido ? { data: valor, desde: h.desde } : null);
   const usaArchivo = r.origen === 'estatico-viejo'; // con 'respaldo-local' no hace falta desde: la página lee apiGetUltimaActualizacion(), que es la misma fecha
-  return { data: r.data, desde: usaArchivo ? r.desde : null, estatico: usaArchivo, origen: r.origen, api: tsApiDeDatos(r.data) || (usaArchivo ? tsApiDeDatos(h.data) : null) }; // CAMBIO (09-oct-2026): origen y api (momento de consulta a Supercell, si el dato lo trae) para mostrar los tres tiempos
+  return { data: r.data, desde: usaArchivo ? r.desde : null, guardadoDesde: r.origen === 'apps-script' ? null : r.desde, estatico: usaArchivo, origen: r.origen, api: tsApiDeDatos(r.data) || (usaArchivo ? tsApiDeDatos(h.data) : null) }; // CAMBIO (09-oct-2026): origen y api (momento de consulta a Supercell, si el dato lo trae) para mostrar los tres tiempos
 }
 /* CAMBIO (09-oct-2026, Fase 2): igual que obtenerHome(): un guerra_top.json vencido (pero con valoresDiariosSelectores) se guarda y solo se usa si Apps Script falla y es más nuevo que el respaldo local. */
 async function obtenerGuerraTop(){
@@ -770,11 +770,12 @@ async function obtenerGuerraTop(){
   try{
     const r = await apiGetEstaticoConEdad(GUERRA_TOP_ESTATICO_URL + '?t=' + Math.floor(Date.now() / 300000), { edadMaxMs: ESTATICO_EDAD_MAX_MS });
     if(r && r.est && r.est.valoresDiariosSelectores){
-      if(r.vigente) return r.est;
+      if(r.vigente) return { data: r.est, guardadoDesde: null };
       viejo = { data: r.est, desde: r.pub };
     }
   }catch(e){ /* sin archivo o sin red a GitHub: se sigue con Apps Script */ }
-  return (await apiGetConRespaldoEstatico('webGuerraEnVivo', null, { ttlMs: 120000, staleIfError: true }, viejo)).data;
+  const r = await apiGetConRespaldoEstatico('webGuerraEnVivo', null, { ttlMs: 120000, staleIfError: true }, viejo);
+  return { data: r.data, guardadoDesde: r.origen === 'apps-script' ? null : r.desde }; // CAMBIO (09-oct-2026, Fase 5): devuelve también desde cuándo es el dato guardado, para el aviso «⚠ Datos guardados»
 }
 
 async function cargarClanes(){
@@ -830,7 +831,9 @@ async function cargarAniversarios(){
   const section = document.getElementById('aniversarios');
   const wrap = document.getElementById('aniversariosWrap');
   try{
-    const data = (await obtenerHome('aniversarios', 'webAniversarios')).data;
+    const rAniv = await obtenerHome('aniversarios', 'webAniversarios');
+    const data = rAniv.data;
+    marcarDatosGuardados(wrap, rAniv.guardadoDesde); // CAMBIO (09-oct-2026, Fase 5): «⚠ Datos guardados» si se muestra el respaldo local o el JSON vencido
     const lista = data.aniversarios || [];
     if (!lista.length){ section.style.display = 'none'; return; }
 
@@ -911,7 +914,9 @@ function pintarRanking(elId, lista, sufijo){
  */
 async function cargarRankings(){
   try{
-    const data = (await obtenerHome('rankings', 'webRankings')).data;
+    const rRank = await obtenerHome('rankings', 'webRankings');
+    const data = rRank.data;
+    marcarDatosGuardados(document.getElementById('rkDonadores').closest('.rankings-grid'), rRank.guardadoDesde); // CAMBIO (09-oct-2026, Fase 5): «⚠ Datos guardados»
     // FIX (21-sep-2026, pedido usuario — "falta agregar igual que en
     // batallas de torneo que sí indica que son batallas, las otras
     // tarjetas solo tienen números"): pintarRanking() ya soportaba un
@@ -1022,7 +1027,9 @@ function rarezaHtml(rarity){
 async function cargarEstadisticasCartas(){
   const wrap = document.getElementById('cartasWrap');
   try{
-    const data = (await obtenerHome('estadisticasCartas', 'webEstadisticasCartas')).data;
+    const rCartas = await obtenerHome('estadisticasCartas', 'webEstadisticasCartas');
+    const data = rCartas.data;
+    marcarDatosGuardados(wrap, rCartas.guardadoDesde); // CAMBIO (09-oct-2026, Fase 5): «⚠ Datos guardados»
     if (!data.top10 || !data.top10.length){
       wrap.innerHTML = '<div class="empty" style="padding:8px 0;">Todavía no hay datos de mazos disponibles.</div>';
       return;
@@ -1137,7 +1144,9 @@ function topSemanaPintar(){
 async function cargarTopSemana(){
   const sec = document.getElementById('topSemanaSection');
   try{
-    const data = await obtenerGuerraTop();
+    const rTop = await obtenerGuerraTop();
+    const data = rTop.data;
+    marcarDatosGuardados(document.getElementById('topSemanaWrap'), rTop.guardadoDesde); // CAMBIO (09-oct-2026, Fase 5): «⚠ Datos guardados»
     const sel = data && data.valoresDiariosSelectores;
     const def = sel && sel.porDefecto;
     const porSemana = (data && data.valoresDiariosPorSemana) || {};

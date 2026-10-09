@@ -289,7 +289,7 @@ async function clanLeerEstatico(url){
 async function clanPedirConRespaldo(accion, opts, viejo){
   const r = await apiGetConRespaldoEstatico(accion, null, opts, viejo);
   const usaArchivo = r.origen === 'estatico-viejo';
-  return { data: r.data, desde: usaArchivo ? r.desde : null, estatico: usaArchivo, viejo: usaArchivo, origen: r.origen, api: tsApiDeDatos(r.data) }; // CAMBIO (09-oct-2026): origen y api (momento de consulta a Supercell, si el dato lo trae)
+  return { data: r.data, desde: usaArchivo ? r.desde : null, guardadoDesde: r.origen === 'apps-script' ? null : r.desde, estatico: usaArchivo, viejo: usaArchivo, origen: r.origen, api: tsApiDeDatos(r.data) }; // CAMBIO (09-oct-2026): origen y api (momento de consulta a Supercell, si el dato lo trae)
 }
 async function clanObtenerInfo(){
   const e = await clanLeerEstatico(HOME_ESTATICO_URL);
@@ -318,7 +318,7 @@ async function cargarGuerraClan(nombreClan){
   wrap.innerHTML = '<div class="loading-block"><div class="spinner"></div></div>';
   try{
     const r = await clanObtenerGuerra();
-    renderClanGuerra(r.data || {}, nombreClan, r.viejo ? r.desde : null);
+    renderClanGuerra(r.data || {}, nombreClan, r.guardadoDesde || null); // CAMBIO (09-oct-2026, Fase 5): también con el respaldo local (antes solo con el JSON vencido)
   }catch(err){
     wrap.innerHTML = `<div class="empty">No se pudo cargar el resumen de guerra: ${esc(err.message)}</div>`;
   }
@@ -360,6 +360,7 @@ async function cargarClan(){
 
     renderClanBasico(clanInfo, idx);
     renderClanRoster(clanRoster);
+    marcarDatosGuardados(document.getElementById('clanRosterWrap'), rRoster.guardadoDesde, ' margin:0 20px 16px;'); // CAMBIO (09-oct-2026, Fase 5): «⚠ Datos guardados» si el roster es el respaldo local o el JSON vencido
   }catch(err){
     mostrarErrorClan('Error de conexión: ' + err.message);
     return;
