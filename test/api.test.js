@@ -244,3 +244,131 @@ test('apiGetEstaticoConEdad(): HTTP distinto de 200 o sin red -> lanza (igual qu
   const fRed = armarApiEstatico(() => { throw new TypeError('Failed to fetch'); });
   await assert.rejects(() => fRed('u'), /Failed to fetch/);
 });
+
+
+/*
+ * apiGetConRespaldoEstatico() — NUEVO (09-oct-2026, Fase 2 del plan "JSON estático como último recurso").
+ * Pide a Apps Script y, solo si falla, elige el MÁS NUEVO entre el JSON estático vencido (`viejo`) y el
+ * respaldo de localStorage de apiGet() (si opts.staleIfError).
+ * Aquí se usa el api.js real con un localStorage en memoria; `apiGet` se reemplaza en el sandbox para simular a
+ * Apps Script sin pasar por los reintentos con espera de _fetchYParsear(). Una prueba usa el apiGet REAL para
+ * comprobar que la clave del respaldo que lee el ayudante es la misma que guarda apiGet().
+ * LÍMITE: red simulada; no se probó contra Apps Script ni GitHub reales ni en un navegador.
+ */
+function armarApiRespaldo(){
+  const guardar = () => {
+    const datos = {};
+    return { datos, getItem: (k) => (k in datos ? datos[k] : null), setItem: (k, v) => { datos[k] = String(v); }, removeItem: (k) => { delete datos[k]; } };
+  };
+  const local = guardar(), sesion = guardar();
+  const sandbox = {
+    localStorage: local, sessionStorage: sesion, URLSearchParams, setTimeout, clearTimeout, console, AbortController,
+    fetch: async () => ({ json: async () => ({ ok: true }) })
+  };
+  vm.createContext(sandbox);
+  vm.runInContext("const WEBAPP_URL = 'https://ejemplo.test/exec'; const WEB_MEMBER_TOKEN = 'TOKEN_PUBLICO';", sandbox);
+  vm.runInContext(fs.readFileSync(path.join(__dirname, '..', 'assets/js/core/api.js'), 'utf8'), sandbox, { filename: 'api.js' });
+  const llamadas = [];
+  const simular = (impl) => { sandbox.apiGet = async (accion, params, opts) => { llamadas.push({ accion, params, opts }); return impl(); }; };
+  // Deja un respaldo local como lo dejaría apiGet(): clave terna_backup_ + terna_cache_<qs>, con { t, d }.
+  const sembrarRespaldo = (accion, params, d, t) => { local.setItem('terna_backup_' + sandbox._claveCacheApiGet(accion, params), JSON.stringify({ t, d })); };
+  return { sandbox, local, llamadas, simular, sembrarRespaldo };
+}
+const caido = () => { throw new Error('No pudimos conectar con el servidor. Intenta de nuevo en un momento.'); };
+const VIEJO = () => ({ data: { clanes: [{ nombre: 'DelArchivo' }] }, desde: new Date(Date.now() - 5 * HORA_MS) });
+
+test('apiGetConRespaldoEstatico(): sin `viejo` es exactamente apiGet() (mismas opciones, staleIfError incluido)', async () => {
+  const { sandbox, llamadas, simular } = armarApiRespaldo();
+  simular(() => ({ clanes: [{ nombre: 'DeApps' }] }));
+  const r = await sandbox.apiGetConRespaldoEstatico('webClanInfo', null, { ttlMs: 300000, staleIfError: true }, null);
+  assert.equal(r.origen, 'apps-script');
+  assert.equal(r.desde, null);
+  assert.equal(r.data.clanes[0].nombre, 'DeApps');
+  assert.equal(llamadas.length, 1);
+  assert.equal(llamadas[0].opts.staleIfError, true, 'sin archivo viejo, apiGet conserva su respaldo local de siempre');
+  assert.equal(llamadas[0].opts.ttlMs, 300000);
+});
+
+test('apiGetConRespaldoEstatico(): sin `viejo` y Apps Script caído, el error sube igual que antes', async () => {
+  const { sandbox, simular } = armarApiRespaldo();
+  simular(caido);
+  await assert.rejects(() => sandbox.apiGetConRespaldoEstatico('webClanInfo', null, { staleIfError: true }, null), /No pudimos conectar/);
+});
+
+test('apiGetConRespaldoEstatico(): con `viejo` y Apps Script sano gana Apps Script (staleIfError se apaga para poder comparar)', async () => {
+  const { sandbox, llamadas, simular } = armarApiRespaldo();
+  simular(() => ({ clanes: [{ nombre: 'DeApps' }] }));
+  const r = await sandbox.apiGetConRespaldoEstatico('webClanInfo', null, { ttlMs: 300000, staleIfError: true }, VIEJO());
+  assert.equal(r.origen, 'apps-script');
+  assert.equal(r.data.clanes[0].nombre, 'DeApps');
+  assert.equal(llamadas[0].opts.staleIfError, false);
+  assert.equal(llamadas[0].opts.ttlMs, 300000, 'el resto de las opciones se conserva');
+});
+
+test('REGRESIÓN apiGetConRespaldoEstatico(): con `viejo`, Apps Script caído y SIN respaldo local -> gana el archivo viejo con su fecha', async () => {
+  const { sandbox, simular } = armarApiRespaldo();
+  simular(caido);
+  const viejo = VIEJO();
+  const r = await sandbox.apiGetConRespaldoEstatico('webClanInfo', null, { staleIfError: true }, viejo);
+  assert.equal(r.origen, 'estatico-viejo');
+  assert.equal(r.data.clanes[0].nombre, 'DelArchivo');
+  assert.equal(r.desde.getTime(), viejo.desde.getTime());
+});
+
+test('apiGetConRespaldoEstatico(): respaldo local MÁS NUEVO que el archivo viejo -> gana el respaldo, con la fecha en que se guardó', async () => {
+  const { sandbox, simular, sembrarRespaldo } = armarApiRespaldo();
+  simular(caido);
+  const tRespaldo = Date.now() - 10 * 60 * 1000; // hace 10 min, el archivo es de hace 5 h
+  sembrarRespaldo('webClanInfo', null, { clanes: [{ nombre: 'DelRespaldo' }] }, tRespaldo);
+  const r = await sandbox.apiGetConRespaldoEstatico('webClanInfo', null, { staleIfError: true }, VIEJO());
+  assert.equal(r.origen, 'respaldo-local');
+  assert.equal(r.data.clanes[0].nombre, 'DelRespaldo');
+  assert.equal(r.desde.getTime(), tRespaldo);
+});
+
+test('apiGetConRespaldoEstatico(): respaldo local MÁS VIEJO que el archivo -> gana el archivo (antes habría ganado el respaldo de hace días)', async () => {
+  const { sandbox, simular, sembrarRespaldo } = armarApiRespaldo();
+  simular(caido);
+  sembrarRespaldo('webClanInfo', null, { clanes: [{ nombre: 'DelRespaldo' }] }, Date.now() - 3 * 24 * HORA_MS);
+  const r = await sandbox.apiGetConRespaldoEstatico('webClanInfo', null, { staleIfError: true }, VIEJO());
+  assert.equal(r.origen, 'estatico-viejo');
+  assert.equal(r.data.clanes[0].nombre, 'DelArchivo');
+});
+
+test('apiGetConRespaldoEstatico(): sin opts.staleIfError el respaldo local se ignora aunque exista', async () => {
+  const { sandbox, simular, sembrarRespaldo } = armarApiRespaldo();
+  simular(caido);
+  sembrarRespaldo('webClanInfo', null, { clanes: [{ nombre: 'DelRespaldo' }] }, Date.now() - 1000);
+  const r = await sandbox.apiGetConRespaldoEstatico('webClanInfo', null, {}, VIEJO());
+  assert.equal(r.origen, 'estatico-viejo');
+});
+
+test('apiGetConRespaldoEstatico(): un `error` de aplicación del backend también cuenta como "Apps Script falló" cuando hay archivo', async () => {
+  const { sandbox, simular } = armarApiRespaldo();
+  simular(() => { throw new Error('Error interno del backend'); });
+  const r = await sandbox.apiGetConRespaldoEstatico('webRoster', null, { staleIfError: true }, VIEJO());
+  assert.equal(r.origen, 'estatico-viejo');
+});
+
+test('apiGetConRespaldoEstatico(): `viejo` mal formado (sin data o con fecha inválida) se trata como si no hubiera', async () => {
+  for (const malo of [{ data: null, desde: new Date() }, { data: {}, desde: new Date('no-es-fecha') }, { data: {} }, {}]){
+    const { sandbox, llamadas, simular } = armarApiRespaldo();
+    simular(caido);
+    await assert.rejects(() => sandbox.apiGetConRespaldoEstatico('webClanInfo', null, { staleIfError: true }, malo), /No pudimos conectar/);
+    assert.equal(llamadas[0].opts.staleIfError, true, 'se pidió como un apiGet normal');
+  }
+});
+
+test('apiGetConRespaldoEstatico(): la clave del respaldo que lee es la MISMA que guarda el apiGet() real (con y sin parámetros)', async () => {
+  for (const params of [null, { tag: '#AAA' }]){
+    const { sandbox, local, simular } = armarApiRespaldo();
+    await sandbox.apiGet('webRoster', params, { ttlMs: 300000, staleIfError: true }); // apiGet REAL: deja el respaldo
+    const claves = Object.keys(local.datos).filter(k => k.startsWith('terna_backup_'));
+    assert.equal(claves.length, 1);
+    assert.equal(claves[0], 'terna_backup_' + sandbox._claveCacheApiGet('webRoster', params));
+    simular(caido); // ahora Apps Script cae: el ayudante debe encontrar ese respaldo (es más nuevo que un archivo de hace 5 h)
+    const r = await sandbox.apiGetConRespaldoEstatico('webRoster', params, { staleIfError: true }, VIEJO());
+    assert.equal(r.origen, 'respaldo-local');
+    assert.equal(r.data.ok, true);
+  }
+});

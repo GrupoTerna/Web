@@ -544,3 +544,61 @@ async function apiGetEstaticoConEdad(url, opts){
   if(!pub || isNaN(pub.getTime())) return null;
   return { est, pub, vigente: (Date.now() - pub.getTime()) < edadMax };
 }
+
+
+/** Clave de caché de apiGet() para una llamada sin sesión; solo la usa apiGetConRespaldoEstatico(). */
+function _claveCacheApiGet(accion, params){
+  // Misma clave que arma apiGet() para una llamada SIN sesión (ver también apiGetUltimaActualizacion()).
+  const qs = new URLSearchParams({ accion, token: WEB_MEMBER_TOKEN, ...(params || {}) });
+  return 'terna_cache_' + qs.toString();
+}
+
+/**
+ * apiGetConRespaldoEstatico(accion, params, opts, viejo)
+ * NUEVO (09-oct-2026, Fase 2 del plan "JSON estático como último recurso"): pide `accion` a Apps
+ * Script con apiGet() y, SOLO si falla, elige entre dos respaldos el MÁS NUEVO:
+ *   - `viejo`: el JSON estático que la página ya bajó pero estaba vencido (más de 3 h), con su fecha de publicación;
+ *   - el respaldo de localStorage de apiGet() (solo si opts.staleIfError, como siempre).
+ * Por qué hace falta: index y clan piden con staleIfError, y apiGet() devuelve ese respaldo sin avisar
+ * de cuándo es. Si el JSON vencido solo se probara cuando NO hay respaldo local, un respaldo de hace días
+ * ganaría siempre a un JSON de hace unas horas; y si el JSON vencido tuviera prioridad fija, ganaría
+ * a un respaldo local de hace 5 minutos. Aquí se compara y gana el más reciente. Si ninguno de los dos existe, el error de
+ * Apps Script sube igual que antes.
+ *
+ * `viejo` = { data, desde } (data: la parte del JSON que usa esa acción, YA validada por la página; desde: Date de
+ * `_publicadoEn`), o null/undefined si la página no tiene JSON vencido que ofrecer. Con `viejo` nulo esta
+ * función es exactamente apiGet(accion, params, opts), con sus mismas opciones y su mismo respaldo.
+ * NO es para llamadas con opts.conSesion (esas salen sin caché ni respaldo y no se usan con el JSON público).
+ *
+ * Devuelve { data, desde, origen }:
+ *   origen 'apps-script'    -> respondió Apps Script (o su caché de sesión); desde: null.
+ *   origen 'respaldo-local' -> Apps Script falló y el respaldo de localStorage es más nuevo (o igual) que `viejo`;
+ *                              desde: Date en que se guardó. Es lo mismo que daría apiGetUltimaActualizacion().
+ *   origen 'estatico-viejo' -> Apps Script falló y gana `viejo`; desde: su fecha de publicación.
+ * Cualquier error de apiGet() (de red, o un `error` de aplicación del backend) cuenta como "Apps Script falló"
+ * cuando hay `viejo`: peor que mostrar datos guardados con su fecha es dejar la página sin datos.
+ * @param {string} accion
+ * @param {Object|null} params
+ * @param {Object} [opts] las mismas de apiGet()
+ * @param {{data: *, desde: Date}|null} [viejo]
+ * @returns {Promise<{data: *, desde: Date|null, origen: string}>}
+ */
+async function apiGetConRespaldoEstatico(accion, params, opts, viejo){
+  opts = opts || {};
+  const desdeViejo = viejo && viejo.desde && typeof viejo.desde.getTime === 'function' ? viejo.desde.getTime() : NaN;
+  if(!viejo || viejo.data == null || isNaN(desdeViejo)){
+    const data = await apiGet(accion, params, opts);
+    return { data, desde: null, origen: 'apps-script' };
+  }
+  try{
+    // staleIfError se apaga aquí para poder comparar el respaldo local con `viejo` en vez de que apiGet() lo devuelva a ciegas.
+    const data = await apiGet(accion, params, { ...opts, staleIfError: false });
+    return { data, desde: null, origen: 'apps-script' };
+  }catch(err){
+    const backup = opts.staleIfError ? _backupLocalLeer(_claveCacheApiGet(accion, params)) : null;
+    if(backup && backup.d != null && typeof backup.t === 'number' && backup.t >= desdeViejo){
+      return { data: backup.d, desde: new Date(backup.t), origen: 'respaldo-local' };
+    }
+    return { data: viejo.data, desde: viejo.desde, origen: 'estatico-viejo' };
+  }
+}

@@ -68,7 +68,11 @@
 // v17 (09-oct-2026): api.js (nueva apiGetEstaticoConEdad) y guerra.html cambiaron (CORE_ASSETS) -- si Apps Script no responde, guerra.html
 // usa el último guerra.json publicado aunque tenga más de 3 h y avisa que son datos guardados (Fase 1 del plan "JSON estático como último
 // recurso"). Se sube la versión para que 'activate' borre v16 y nadie siga con el api.js/guerra.html viejos.
-const CACHE_NAME = 'terna-static-v17';
+// v18 (09-oct-2026): api.js (nueva apiGetConRespaldoEstatico) e index.html cambiaron (CORE_ASSETS) -- si Apps Script no responde, la portada
+// usa el último home.json / guerra_top.json publicado aunque tenga más de 3 h, salvo que el respaldo local sea más nuevo (Fase 2 del plan
+// "JSON estático como último recurso"). clan.html también cambió, pero no está en CORE_ASSETS: se renueva por la revalidación en segundo plano.
+// Se sube la versión para que 'activate' borre v17 y nadie siga con el api.js/index.html viejos.
+const CACHE_NAME = 'terna-static-v18';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y

@@ -744,29 +744,37 @@ const HOME_ESTATICO_URL = 'https://raw.githubusercontent.com/GrupoTerna/Web/data
 const GUERRA_TOP_ESTATICO_URL = 'https://raw.githubusercontent.com/GrupoTerna/Web/data/guerra_top.json'; // solo valoresDiariosSelectores + las 2 semanas que usa el top (ver _guerraTopRecortado_ en 50_Publicar_Guerra.gs)
 const ESTATICO_EDAD_MAX_MS = 3 * 60 * 60 * 1000; // el bot los reescribe al menos cada hora; 3 h = algo falló
 let _homeEstaticoPromesa = null;
+/* CAMBIO (09-oct-2026, Fase 2 JSON estático como último recurso): antes un home.json con más de ESTATICO_EDAD_MAX_MS se tiraba (devolvía null) y, si Apps Script tampoco respondía y no había respaldo local, las 4 secciones quedaban con error aunque el archivo viejo existía. Ahora se devuelve también el archivo vencido, con vigente:false; obtenerHome() lo usa SOLO si Apps Script falla y es más nuevo que el respaldo local (ver apiGetConRespaldoEstatico() en api.js). Con el archivo vigente o con Apps Script sano todo sigue igual. */
 function cargarHomeEstatico(){ // una sola petición compartida por las 4 secciones
   if(!_homeEstaticoPromesa){
     // ?t= por bloques de 5 min: GitHub ya sirve el archivo con ~5 min de caché; esto solo evita que el navegador se quede con uno más viejo.
-    _homeEstaticoPromesa = apiGetEstatico(HOME_ESTATICO_URL + '?t=' + Math.floor(Date.now() / 300000)).then(est => {
-      const pub = est && est._publicadoEn ? new Date(est._publicadoEn) : null;
-      return (pub && !isNaN(pub) && (Date.now() - pub.getTime()) < ESTATICO_EDAD_MAX_MS) ? { data: est, desde: pub } : null;
-    }).catch(() => null);
+    _homeEstaticoPromesa = apiGetEstaticoConEdad(HOME_ESTATICO_URL + '?t=' + Math.floor(Date.now() / 300000), { edadMaxMs: ESTATICO_EDAD_MAX_MS })
+      .then(r => r ? { data: r.est, desde: r.pub, vigente: r.vigente } : null) // null: sin _publicadoEn válido (edad desconocida)
+      .catch(() => null);
   }
   return _homeEstaticoPromesa;
 }
 async function obtenerHome(clave, accion){
   const h = await cargarHomeEstatico();
-  if(h && h.data[clave] != null && !h.data[clave].error) return { data: h.data[clave], desde: h.desde, estatico: true };
-  const data = await apiGet(accion, null, { ttlMs: 300000, staleIfError: true }); // B-11/D-9 (b): 5 min; B4/B-10: si falla la red, usar el último dato guardado
-  return { data, desde: null, estatico: false };
+  const valor = h && h.data[clave];
+  const valido = valor != null && !valor.error;
+  if(valido && h.vigente) return { data: valor, desde: h.desde, estatico: true };
+  // B-11/D-9 (b): 5 min; B4/B-10: si falla la red, usar el último dato guardado (el más nuevo entre el respaldo local y el archivo vencido)
+  const r = await apiGetConRespaldoEstatico(accion, null, { ttlMs: 300000, staleIfError: true }, valido ? { data: valor, desde: h.desde } : null);
+  const usaArchivo = r.origen === 'estatico-viejo'; // con 'respaldo-local' no hace falta desde: la página lee apiGetUltimaActualizacion(), que es la misma fecha
+  return { data: r.data, desde: usaArchivo ? r.desde : null, estatico: usaArchivo };
 }
+/* CAMBIO (09-oct-2026, Fase 2): igual que obtenerHome(): un guerra_top.json vencido (pero con valoresDiariosSelectores) se guarda y solo se usa si Apps Script falla y es más nuevo que el respaldo local. */
 async function obtenerGuerraTop(){
+  let viejo = null; // último recurso: archivo estático descargado bien pero ya vencido
   try{
-    const est = await apiGetEstatico(GUERRA_TOP_ESTATICO_URL + '?t=' + Math.floor(Date.now() / 300000));
-    const pub = est && est._publicadoEn ? new Date(est._publicadoEn) : null;
-    if(est && est.valoresDiariosSelectores && pub && !isNaN(pub) && (Date.now() - pub.getTime()) < ESTATICO_EDAD_MAX_MS) return est;
+    const r = await apiGetEstaticoConEdad(GUERRA_TOP_ESTATICO_URL + '?t=' + Math.floor(Date.now() / 300000), { edadMaxMs: ESTATICO_EDAD_MAX_MS });
+    if(r && r.est && r.est.valoresDiariosSelectores){
+      if(r.vigente) return r.est;
+      viejo = { data: r.est, desde: r.pub };
+    }
   }catch(e){ /* sin archivo o sin red a GitHub: se sigue con Apps Script */ }
-  return apiGet('webGuerraEnVivo', null, { ttlMs: 120000, staleIfError: true });
+  return (await apiGetConRespaldoEstatico('webGuerraEnVivo', null, { ttlMs: 120000, staleIfError: true }, viejo)).data;
 }
 
 async function cargarClanes(){
