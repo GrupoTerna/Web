@@ -53,4 +53,14 @@ jobs:
       - run: npm run check-links
       - run: npm run lint
       - run: npm run validate-html
-      - run: npm test
+      - name: npm test (DIAGNÓSTICO TEMPORAL: copia los fallos a una anotación)
+        run: |
+          set +e
+          node --test > /tmp/test.log 2>&1
+          code=$?
+          if [ $code -ne 0 ]; then
+            msg=$(grep -B1 -A14 -E "^\s*not ok" /tmp/test.log | head -90 | sed 's/%/%25/g' | awk '{printf "%s%%0A", $0}')
+            echo "::error title=FALLOS DE npm test::$msg"
+          fi
+          cat /tmp/test.log
+          exit $code
