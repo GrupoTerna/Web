@@ -49,7 +49,7 @@ const DE_APPS = { ctx: { periodIndex: 18 }, origen: 'apps-script' };
 // `apiGetImpl`: comportamiento de apiGet (por defecto devuelve DE_APPS); lanzar para simular Apps Script caído.
 // `extra`: código adicional que se evalúa en el MISMO eval (jsdom no comparte los const/let de un window.eval con el siguiente).
 function montar({ estatico, apiGetImpl, extra = '' } = {}){
-  const window = loadBrowserScriptsWithDom(['assets/js/util.js', 'assets/js/core/api.js'], '<span id="agoText"></span>'); // util.js: actualizarAgoText() usa fmtTresTiempos()
+  const window = loadBrowserScriptsWithDom(['assets/js/core/config.js', 'assets/js/util.js', 'assets/js/core/api.js'], '<span id="agoText"></span>'); // config.js: api.js usa WEB_MEMBER_TOKEN (sin él apiGetRespaldoUsado() lanza ReferenceError); util.js: actualizarAgoText() usa fmtTresTiempos()
   const llamadasApiGet = [], llamadasEstatico = [];
   window.apiGetEstatico = async (url) => {
     llamadasEstatico.push(url);
