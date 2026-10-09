@@ -233,7 +233,7 @@
   <!-- Ganadores del torneo más reciente -->
   <section class="torneos-sec" data-reveal>
     <div class="eyebrow">🏆 Ganadores del torneo más reciente</div>
-    <!-- B4/B-10: apiGetUltimaActualizacion() lee el respaldo en localStorage, no dispara ninguna petición. Cubre ambas secciones (Ganadores y Torneos recientes), que comparten el mismo endpoint webTorneos. -->
+    <!-- B4/B-10: apiGetUltimaActualizacion() lee el respaldo en localStorage, no dispara ninguna petición. Cubre ambas secciones (Ganadores y Torneos recientes), que comparten el mismo endpoint webTorneos. Fase 4 (09-oct-2026): el texto muestra los tres momentos (consulta, JSON publicado, API Supercell si el dato la trae), ver textoActualizadoTorneos(). -->
     <div class="text-faint" id="torneosActualizadoTxt" style="font-size:12px; margin-top:4px;"></div>
     <div id="ganadoresWrap" class="ganadores-grid" data-reveal-stagger>
       <!-- FIX (pendiente #1 de B5.5, ver <style> arriba): esqueleto con la
@@ -422,31 +422,43 @@ function idTorneoPrincipalDe(t){
 const TORNEOS_ESTATICO_URL = 'https://raw.githubusercontent.com/GrupoTerna/Web/data/torneos.json';
 const ESTATICO_EDAD_MAX_MS = 3 * 60 * 60 * 1000; // el bot lo reescribe al menos cada hora; 3 h = algo falló
 const TORNEOS_ESTATICO_CLAVE = { webTorneos: 'torneos', webHistorialTorneos: 'historial' };
-const torneosEstaticoDesde = {}; // accion -> Date de publicación, solo cuando esa respuesta salió del archivo estático
+/* CAMBIO (09-oct-2026, Fase 4 JSON estático como último recurso): un torneos.json vencido (>3 h) ya no se tira: se guarda y se usa SOLO si Apps Script falla, y solo si es más nuevo que el respaldo local (ver apiGetConRespaldoEstatico() en api.js). Con el archivo vigente, con Apps Script sano o con sesión de admin (que nunca usa el archivo), nada cambia. torneosResultado[accion] = { origen, desde, api } (ver fmtTresTiemposDeResultado() en util.js): origen 'estatico' | 'estatico-viejo' | 'respaldo-local' | 'apps-script'; desde = fecha de publicación del archivo o de guardado del respaldo local; api = momento de consulta a Supercell si el dato lo trae. */
+const torneosResultado = {};
 let _torneosEstaticoPromesa = null;
 function torneosHaySesionAdmin(){
   try{ return !!localStorage.getItem('terna_admin_token'); }catch(e){ return false; }
 }
-function cargarTorneosEstatico(){ // una sola petición compartida por las dos acciones
+function cargarTorneosEstatico(){ // una sola petición compartida por las dos acciones; devuelve { est, pub, vigente } o null
   if(!_torneosEstaticoPromesa){
     // ?t= por bloques de 5 min: GitHub ya sirve el archivo con ~5 min de caché; esto solo evita que el navegador se quede con uno más viejo.
-    // Promise.resolve().then(...): si apiGetEstatico no existe o lanza de forma síncrona, el error cae en el .catch de abajo (→ null → se usa apiGet) en vez de romper toda la carga.
-    _torneosEstaticoPromesa = Promise.resolve().then(() => apiGetEstatico(TORNEOS_ESTATICO_URL + '?t=' + Math.floor(Date.now() / 300000))).then(est => {
-      const pub = est && est._publicadoEn ? new Date(est._publicadoEn) : null;
-      return (pub && !isNaN(pub) && (Date.now() - pub.getTime()) < ESTATICO_EDAD_MAX_MS) ? { est, pub } : null;
-    }).catch(() => null);
+    // Promise.resolve().then(...): si apiGetEstaticoConEdad no existe o lanza de forma síncrona, el error cae en el .catch de abajo (→ null → se usa apiGet) en vez de romper toda la carga.
+    _torneosEstaticoPromesa = Promise.resolve().then(() => apiGetEstaticoConEdad(TORNEOS_ESTATICO_URL + '?t=' + Math.floor(Date.now() / 300000), { edadMaxMs: ESTATICO_EDAD_MAX_MS })).catch(() => null);
   }
   return _torneosEstaticoPromesa;
 }
 async function apiGetTorneosCompartido(accion){
   const clave = TORNEOS_ESTATICO_CLAVE[accion];
+  let viejo = null; // último recurso: archivo estático descargado bien pero ya vencido
   if(clave && !torneosHaySesionAdmin()){
     const e = await cargarTorneosEstatico();
-    const d = e && e.est[clave];
-    if(d && !d.error){ torneosEstaticoDesde[accion] = e.pub; return d; }
+    const d = e && e.est && e.est[clave];
+    if(d && !d.error){
+      const api = tsApiDeDatos(d) || tsApiDeDatos(e.est);
+      if(e.vigente){ torneosResultado[accion] = { origen: 'estatico', desde: e.pub, api }; return d; }
+      viejo = { data: d, desde: e.pub, api };
+    }
   }
-  delete torneosEstaticoDesde[accion];
-  return apiGet(accion, null, { ttlMs: 300000, staleIfError: true, conSesion: true }); // B-11: 5 min; B4/B-10: si falla la red, usar el último dato guardado
+  delete torneosResultado[accion];
+  const x = await apiGetConRespaldoEstatico(accion, null, { ttlMs: 300000, staleIfError: true, conSesion: true }, viejo); // B-11: 5 min; B4/B-10: si falla la red, usar el último dato guardado
+  torneosResultado[accion] = { origen: x.origen, desde: x.desde, api: tsApiDeDatos(x.data) || (x.origen === 'estatico-viejo' && viejo ? viejo.api : null) };
+  return x.data;
+}
+/* CAMBIO (09-oct-2026, Fase 4): tres momentos (consulta, JSON publicado, API de Supercell si el dato la trae). Con origen 'apps-script' la hora de «consulta» sigue siendo la del último guardado en el respaldo local (apiGetUltimaActualizacion, como antes): si apiGet() devolvió ese respaldo sin avisar porque el servidor no respondió, la hora real es la vieja, no «ahora». */
+function textoActualizadoTorneos(accion){
+  const r = torneosResultado[accion] || { origen: 'apps-script' };
+  if(r.origen !== 'apps-script') return fmtTresTiemposDeResultado(r);
+  const ult = apiGetUltimaActualizacion(accion, null);
+  return fmtTresTiempos({ consulta: (ult && !isNaN(ult.getTime())) ? ult : new Date(), api: r.api });
 }
 
 async function cargarTorneos(){
@@ -461,8 +473,11 @@ async function cargarTorneos(){
       apiGetTorneosCompartido('webTorneos'),
       apiGetTorneosCompartido('webHistorialTorneos').catch(() => null)
     ]);
-    document.getElementById('torneosActualizadoTxt').textContent =
-      fmtTiempoRelativo(torneosEstaticoDesde.webTorneos || apiGetUltimaActualizacion('webTorneos', null)); // con archivo estático: hora de publicación del JSON
+    // CAMBIO (09-oct-2026, Fase 4): tres momentos en vez de solo «actualizado hace…» (ver textoActualizadoTorneos()).
+    const txtActualizado = document.getElementById('torneosActualizadoTxt');
+    const tt = textoActualizadoTorneos('webTorneos');
+    txtActualizado.textContent = tt.texto;
+    txtActualizado.title = tt.titulo;
 
     // ---- Ganadores del torneo más reciente ----
     const g = data.ganadores;

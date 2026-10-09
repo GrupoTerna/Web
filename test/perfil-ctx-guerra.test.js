@@ -18,6 +18,11 @@ const { loadBrowserScriptsWithDom } = require('./load-browser-script');
 //
 // LÍMITE: prueba el FRONTEND. No prueba el bot que publica guerra_ctx.json
 // ni Apps Script, ni el dibujo de la ficha (renderExtendido se simula).
+//
+// CAMBIO (09-oct-2026, Fase 4): obtenerCtxGuerra() ahora usa apiGetEstaticoConEdad()
+// y apiGetConRespaldoEstatico() (api.js), así que el cargador trae config.js,
+// util.js y api.js REALES (solo se simulan apiGet(), apiGetEstatico() y el
+// localStorage de jsdom). Las pruebas nuevas están al final del archivo.
 
 const html = fs.readFileSync(path.join(__dirname, '..', 'perfil.html'), 'utf8');
 const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1]);
@@ -39,9 +44,11 @@ const hace = (ms) => new Date(Date.now() - ms).toISOString();
 const HORA = 60 * 60 * 1000;
 
 // `estatico`: undefined -> apiGetEstatico rechaza; 'ausente' -> no existe; función -> se usa tal cual.
-function cargar({ estatico, apiGetImpl } = {}){
-  const window = loadBrowserScriptsWithDom(['assets/js/util.js'], '');
+function cargar({ estatico, apiGetImpl, respaldo } = {}){
+  const window = loadBrowserScriptsWithDom(['assets/js/core/config.js', 'assets/js/util.js', 'assets/js/core/api.js'], '');
   const llamadasApiGet = [], llamadasEstatico = [], renders = [], notas = [];
+  // `respaldo`: { t, d } -> respaldo local de webGuerraEnVivo (lo que guarda apiGet() al responder bien).
+  if (respaldo) window.localStorage.setItem('terna_backup_' + window._claveCacheApiGet('webGuerraEnVivo', null), JSON.stringify(respaldo));
   window.apiGet = async (accion, params, opts) => {
     llamadasApiGet.push({ accion, opts });
     return apiGetImpl ? apiGetImpl() : RESPUESTA_APS;
@@ -52,6 +59,8 @@ function cargar({ estatico, apiGetImpl } = {}){
       if (!estatico) throw new Error('sin guerra_ctx.json (simulado)');
       return estatico(url);
     };
+  } else {
+    window.apiGetEstatico = undefined; // simula que la función no existe
   }
   window.renderExtendido = (ext, j) => renders.push({ ext, j });
   window.actualizarNotasGuerraCongelada = (ext) => notas.push(ext);
@@ -77,7 +86,16 @@ test('perfil.html ctx de guerra — archivo vencido (>3 h): cae a apiGet(webGuer
   assert.equal(llamadasApiGet.length, 1);
   assert.equal(llamadasApiGet[0].accion, 'webGuerraEnVivo');
   assert.equal(llamadasApiGet[0].opts.ttlMs, 120000);
+  // CAMBIO (09-oct-2026, Fase 4): con un archivo vencido, apiGetConRespaldoEstatico() apaga staleIfError en la llamada interna para poder comparar
+  // el respaldo local con el archivo (gana el más nuevo); el respaldo sigue usándose, lo decide el ayudante y no apiGet().
+  assert.equal(llamadasApiGet[0].opts.staleIfError, false);
+});
+
+test('perfil.html ctx de guerra — sin archivo utilizable: apiGet() conserva staleIfError:true (respaldo local como siempre)', async () => {
+  const { t, llamadasApiGet } = cargar({ estatico: undefined });
+  await t.obtenerCtxGuerra();
   assert.equal(llamadasApiGet[0].opts.staleIfError, true);
+  assert.equal(llamadasApiGet[0].opts.ttlMs, 120000);
 });
 
 test('perfil.html ctx de guerra — sin `ctx`, sin _publicadoEn o fecha inválida: cae a apiGet()', async () => {
@@ -149,4 +167,60 @@ test('cargarCtxGuerraPerfil() — respuesta sin `ctx`: no cambia nada', async ()
   await espera();
   assert.equal(t.ctx(), null);
   assert.equal(renders.length, 0);
+});
+
+// ---------------------------------------------------------------- Fase 4: último recurso (09-oct-2026)
+
+const appsScriptCaido = () => { throw new Error('No pudimos conectar con el servidor.'); };
+
+test('REGRESIÓN perfil.html ctx de guerra — guerra_ctx.json vencido (5 h) + Apps Script caído: se usa el archivo viejo', async () => {
+  const { t, llamadasApiGet } = cargar({ estatico: archivo(hace(5 * HORA)), apiGetImpl: appsScriptCaido });
+  const d = await t.obtenerCtxGuerra();
+  assert.deepEqual(d.ctx, CTX);
+  assert.equal(llamadasApiGet.length, 1, 'primero intenta Apps Script');
+});
+
+test('REGRESIÓN cargarCtxGuerraPerfil() — archivo vencido + Apps Script caído: guarda el ctx viejo y vuelve a pintar la ficha', async () => {
+  const { t, renders, notas } = cargar({ estatico: archivo(hace(5 * HORA)), apiGetImpl: appsScriptCaido });
+  const j = { extendido: { x: 1 } };
+  t.setJ(j);
+  t.cargarCtxGuerraPerfil();
+  await espera();
+  assert.deepEqual(t.ctx(), CTX);
+  assert.equal(renders.length, 1);
+  assert.equal(notas.length, 1);
+});
+
+test('perfil.html ctx de guerra — archivo vencido SIN `ctx` (o sin _publicadoEn) + Apps Script caído: no hay nada que usar, el error sube', async () => {
+  for (const est of [() => ({ _publicadoEn: hace(5 * HORA) }), () => ({ ctx: CTX })]){
+    const { t } = cargar({ estatico: est, apiGetImpl: appsScriptCaido });
+    await assert.rejects(() => t.obtenerCtxGuerra(), /No pudimos conectar/);
+  }
+});
+
+test('perfil.html ctx de guerra — respaldo local más nuevo que el archivo vencido: gana el respaldo local', async () => {
+  const RESP = { ctx: { periodIndex: 50, esDiaGuerra: false }, otro: 'del respaldo' };
+  const { t } = cargar({ estatico: archivo(hace(5 * HORA)), apiGetImpl: appsScriptCaido, respaldo: { t: Date.now() - 10 * 60 * 1000, d: RESP } });
+  const d = await t.obtenerCtxGuerra();
+  assert.deepEqual(JSON.parse(JSON.stringify(d)), RESP); // el respaldo lo crea el JSON.parse de jsdom (otro realm): se compara por contenido
+});
+
+test('perfil.html ctx de guerra — respaldo local más viejo que el archivo vencido: gana el archivo', async () => {
+  const RESP = { ctx: { periodIndex: 50 }, otro: 'del respaldo' };
+  const { t } = cargar({ estatico: archivo(hace(5 * HORA)), apiGetImpl: appsScriptCaido, respaldo: { t: Date.now() - 9 * HORA, d: RESP } });
+  const d = await t.obtenerCtxGuerra();
+  assert.deepEqual(d.ctx, CTX);
+});
+
+test('perfil.html ctx de guerra — archivo vencido + Apps Script sano: manda Apps Script (el archivo viejo no se usa)', async () => {
+  const { t } = cargar({ estatico: archivo(hace(5 * HORA)) });
+  const d = await t.obtenerCtxGuerra();
+  assert.deepEqual(d, RESPUESTA_APS);
+});
+
+test('perfil.html ctx de guerra — archivo vigente + Apps Script caído: ni siquiera se pide a Apps Script', async () => {
+  const { t, llamadasApiGet } = cargar({ estatico: archivo(hace(1000)), apiGetImpl: appsScriptCaido });
+  const d = await t.obtenerCtxGuerra();
+  assert.deepEqual(d.ctx, CTX);
+  assert.equal(llamadasApiGet.length, 0);
 });

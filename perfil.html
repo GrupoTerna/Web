@@ -4739,13 +4739,19 @@ function actualizarNotasGuerraCongelada(ext){
 /* NUEVO (08-oct-2026): perfil.html solo necesita `ctx` de webGuerraEnVivo (~920 KB en total), así que lee guerra_ctx.json (~1 KB, rama `data` de GitHub, lo publica el bot junto a guerra.json, ver 50_Publicar_Guerra.gs). Si el archivo no existe, falla o tiene más de CTX_GUERRA_ESTATICO_EDAD_MAX_MS, se pide a Apps Script como antes. Ajusta el repo en la URL si no es GrupoTerna/Web. */
 const CTX_GUERRA_ESTATICO_URL = 'https://raw.githubusercontent.com/GrupoTerna/Web/data/guerra_ctx.json';
 const CTX_GUERRA_ESTATICO_EDAD_MAX_MS = 3 * 60 * 60 * 1000; // el bot lo reescribe al menos cada hora; 3 h = algo falló
+/* CAMBIO (09-oct-2026, Fase 4 JSON estático como último recurso): un guerra_ctx.json vencido (>3 h, con `ctx`) ya no se tira: se guarda y se usa SOLO si Apps Script falla, y solo si es más nuevo que el respaldo local (ver apiGetConRespaldoEstatico() en api.js). Con el archivo vigente o con Apps Script sano nada cambia. Devuelve el mismo objeto de siempre (con `ctx`). Límite: con un archivo viejo el ctx es el de ese momento (por ejemplo, el día de guerra de entonces); esta página no muestra aviso de eso (ver CHANGELOG.md, pendiente de definir). */
 async function obtenerCtxGuerra(){
+  let viejo = null; // último recurso: archivo estático descargado bien pero ya vencido
   try{
-    const est = await apiGetEstatico(CTX_GUERRA_ESTATICO_URL + '?t=' + Math.floor(Date.now() / 300000)); // ?t= por bloques de 5 min, ver guerra.html
-    const pub = est && est._publicadoEn ? new Date(est._publicadoEn) : null;
-    if (est && est.ctx && pub && !isNaN(pub) && (Date.now() - pub.getTime()) < CTX_GUERRA_ESTATICO_EDAD_MAX_MS) return est;
+    // ?t= por bloques de 5 min, ver guerra.html
+    const r = await apiGetEstaticoConEdad(CTX_GUERRA_ESTATICO_URL + '?t=' + Math.floor(Date.now() / 300000), { edadMaxMs: CTX_GUERRA_ESTATICO_EDAD_MAX_MS });
+    if (r && r.est && r.est.ctx){
+      if (r.vigente) return r.est;
+      viejo = { data: r.est, desde: r.pub };
+    }
   }catch(e){ /* sin archivo o sin red a GitHub: se sigue con Apps Script */ }
-  return apiGet('webGuerraEnVivo', null, { ttlMs: 120000, staleIfError: true });
+  const x = await apiGetConRespaldoEstatico('webGuerraEnVivo', null, { ttlMs: 120000, staleIfError: true }, viejo);
+  return x.data;
 }
 function cargarCtxGuerraPerfil(){
   if (_ctxGuerraPerfilPedido) return;
