@@ -170,3 +170,23 @@ test('roster: informa la fecha de Supercell solo si el JSON la trae', async () =
   const sin = montar({ archivos: { 'roster.json': { _publicadoEn: hace(HORA), ...ROSTER('A') } } });
   assert.equal((await sin.t.obtenerRoster()).api, null);
 });
+
+// ---------------------------------------------------------------- Fase 4: hora real de «Consulta» (09-oct-2026)
+
+test('roster e info: con origen apps-script el resultado trae `accion` y «Consulta» es la hora real del último guardado, no «ahora»', async () => {
+  const { t, window, sembrarRespaldo } = montar({});
+  sembrarRespaldo('webRoster', ROSTER('x'), Date.now() - 2 * 24 * HORA);
+  sembrarRespaldo('webClanInfo', CLAN_INFO('x'), Date.now() - 6 * HORA);
+  const rr = await t.obtenerRoster();
+  assert.equal(rr.origen, 'apps-script');
+  assert.equal(rr.accion, 'webRoster');
+  assert.match(window.fmtTresTiemposDeResultado(rr).texto, /^Consulta: hace 2 d$/);
+  const ri = await t.obtenerClanInfoDirectorio();
+  assert.equal(ri.accion, 'webClanInfo');
+  assert.match(window.fmtTresTiemposDeResultado(ri).texto, /^Consulta: hace 6 h$/);
+});
+
+test('roster: con el archivo vigente «Consulta» sigue siendo ahora (la página acaba de bajarlo)', async () => {
+  const { t, window } = montar({ archivos: { 'roster.json': { _publicadoEn: hace(HORA), clanes: [{ nombre: 'A', miembros: [] }] } } });
+  assert.match(window.fmtTresTiemposDeResultado(await t.obtenerRoster()).texto, /^Consulta: hace \d+ s · JSON publicado: hace 1 h$/);
+});

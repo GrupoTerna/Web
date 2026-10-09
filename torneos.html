@@ -453,12 +453,10 @@ async function apiGetTorneosCompartido(accion){
   torneosResultado[accion] = { origen: x.origen, desde: x.desde, api: tsApiDeDatos(x.data) || (x.origen === 'estatico-viejo' && viejo ? viejo.api : null) };
   return x.data;
 }
-/* CAMBIO (09-oct-2026, Fase 4): tres momentos (consulta, JSON publicado, API de Supercell si el dato la trae). Con origen 'apps-script' la hora de «consulta» sigue siendo la del último guardado en el respaldo local (apiGetUltimaActualizacion, como antes): si apiGet() devolvió ese respaldo sin avisar porque el servidor no respondió, la hora real es la vieja, no «ahora». */
+/* CAMBIO (09-oct-2026, Fase 4): tres momentos (consulta, JSON publicado, API de Supercell si el dato la trae). Con origen 'apps-script' la hora de «Consulta» es la real del último guardado (ver horaConsultaApiGet() en util.js): si apiGet() devolvió su respaldo local sin avisar porque el servidor no respondió, es la hora vieja y no «ahora». Con sesión de admin no hay respaldo con esa clave (la llamada va sin caché ni respaldo), así que ahí es ahora. Misma regla en directorio, comunidad, portada y clan. */
 function textoActualizadoTorneos(accion){
   const r = torneosResultado[accion] || { origen: 'apps-script' };
-  if(r.origen !== 'apps-script') return fmtTresTiemposDeResultado(r);
-  const ult = apiGetUltimaActualizacion(accion, null);
-  return fmtTresTiempos({ consulta: (ult && !isNaN(ult.getTime())) ? ult : new Date(), api: r.api });
+  return fmtTresTiemposDeResultado({ ...r, accion, consulta: torneosHaySesionAdmin() ? new Date() : null });
 }
 
 async function cargarTorneos(){

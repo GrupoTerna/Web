@@ -234,17 +234,39 @@ function fmtTresTiempos(t){
 
 
 /**
+ * horaConsultaApiGet(accion)
+ * NUEVO (09-oct-2026, Fase 4, pedido del usuario): hora REAL en que se obtuvo un dato que salió de apiGet() (Apps Script). apiGet() guarda un
+ * respaldo local con la hora de cada respuesta buena; si devolvió ese respaldo sin avisar porque el servidor no respondió, la hora real es la
+ * vieja y no «ahora». Con una respuesta fresca (o del caché de 5 min) esa hora es ahora o de hace unos minutos. Sin respaldo, sin api.js o con
+ * una fecha inválida devuelve la hora actual. Solo vale para llamadas SIN sesión de admin (con sesión no hay respaldo con esa clave: ahí la
+ * página pasa `consulta` ya resuelta). No dispara ninguna petición.
+ * @param {string} accion Ej. 'webRoster'.
+ * @returns {Date}
+ */
+function horaConsultaApiGet(accion){
+  try{
+    const d = (typeof apiGetUltimaActualizacion === 'function') ? apiGetUltimaActualizacion(accion, null) : null;
+    if (_esFechaValida(d)) return d;
+  }catch(e){ /* sin respaldo legible: se usa la hora actual */ }
+  return new Date();
+}
+
+/**
  * fmtTresTiemposDeResultado(r)
  * NUEVO (09-oct-2026, Fase 3): atajo de fmtTresTiempos() para las funciones que devuelven { origen, desde, api } (directorio.html,
- * comunidad.html). `origen`: 'estatico' (JSON vigente), 'apps-script', 'respaldo-local' o 'estatico-viejo'; `desde`: fecha de
+ * comunidad.html, torneos.html). `origen`: 'estatico' (JSON vigente), 'apps-script', 'respaldo-local' o 'estatico-viejo'; `desde`: fecha de
  * publicación del JSON (estatico / estatico-viejo) o de guardado del respaldo (respaldo-local); `api`: ver tsApiDeDatos().
- * La hora de consulta es la de ahora (cuándo esta página obtuvo la respuesta). Con 'respaldo-local' y 'estatico-viejo' suma el aviso.
+ * CAMBIO (09-oct-2026, Fase 4): la hora de «Consulta» ya no es siempre «ahora». Si el resultado trae `consulta` (Date) se usa esa; si el origen
+ * es 'apps-script' y trae `accion`, es la hora real del último guardado de esa acción (ver horaConsultaApiGet()); en los demás casos (archivo
+ * descargado ahora, respaldo local que ya se muestra aparte) es ahora. Con 'respaldo-local' y 'estatico-viejo' suma el aviso.
  */
 function fmtTresTiemposDeResultado(r){
   r = r || {};
   const archivo = r.origen === 'estatico' || r.origen === 'estatico-viejo';
+  let consulta = _esFechaValida(r.consulta) ? r.consulta : null;
+  if (!consulta) consulta = (r.origen === 'apps-script' && r.accion) ? horaConsultaApiGet(r.accion) : new Date();
   return fmtTresTiempos({
-    consulta: new Date(),
+    consulta,
     publicado: archivo ? r.desde : null,
     respaldo: r.origen === 'respaldo-local' ? r.desde : null,
     api: r.api,

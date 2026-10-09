@@ -185,3 +185,13 @@ test('comunidad.html — Apps Script sano (archivo vencido): solo «Consulta», 
   const { txt } = await cargarPagina({ estatico: homeJson(hace(5 * HORA)) });
   assert.match(txt.textContent, /^Consulta: hace \d+ s$/);
 });
+
+test('comunidad.html — sin archivo y apiGet() devolvió su respaldo de hace 2 días sin avisar: «Consulta» muestra esa hora vieja, no «ahora» (Fase 4)', async () => {
+  const window = loadBrowserScriptsWithDom(['assets/js/core/config.js', 'assets/js/util.js', 'assets/js/core/api.js'], BODY);
+  window.apiGet = async () => RESPUESTA; // simula el respaldo devuelto en silencio por staleIfError
+  window.apiGetEstatico = async () => { throw new Error('sin home.json (simulado)'); };
+  window.localStorage.setItem('terna_backup_' + window._claveCacheApiGet('webAscensosRecientes', null), JSON.stringify({ t: Date.now() - 2 * 24 * HORA, d: RESPUESTA }));
+  window.eval(SCRIPT_INLINE);
+  await new Promise(r => setTimeout(r, 30));
+  assert.match(window.document.getElementById('ascensosActualizadoTxt').textContent, /^Consulta: hace 2 d$/);
+});

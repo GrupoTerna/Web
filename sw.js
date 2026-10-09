@@ -83,7 +83,11 @@
 // torneos usa el último torneos.json publicado aunque tenga más de 3 h (salvo que el respaldo local sea más nuevo) y muestra los tres momentos de
 // actualización, y perfil usa el último guerra_ctx.json igual (Fase 4 del plan "JSON estático como último recurso"). Se sube la versión para que
 // 'activate' borre v20 y nadie siga con el torneos.html viejo.
-const CACHE_NAME = 'terna-static-v21';
+// v22 (09-oct-2026): util.js (nueva horaConsultaApiGet; fmtTresTiemposDeResultado ya no usa siempre «ahora»), index.html, directorio.html, comunidad.html y
+// torneos.html cambiaron (CORE_ASSETS); clan.html también cambió pero NO está en CORE_ASSETS -- la hora de «Consulta» es ahora la real del último guardado
+// cuando el dato salió de Apps Script (si apiGet() devolvió su respaldo local sin avisar, ya no dice «hace unos segundos»). Se sube la versión para que
+// 'activate' borre v21 y nadie siga con el util.js y las páginas viejas.
+const CACHE_NAME = 'terna-static-v22';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y

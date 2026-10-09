@@ -321,3 +321,9 @@ test('torneos.html — sin archivo y apiGet() devolvió su respaldo de hace 2 d�
   const { txt } = await cargarPagina({ esAdmin: false, ultimaReal: true, respaldos: { webTorneos: { t, d: r.webTorneos } } });
   assert.match(txt.textContent, /^Consulta: hace 2 d$/);
 });
+
+test('torneos.html — admin con sesión: «Consulta» es ahora aunque exista un respaldo viejo de visitante (la llamada de admin no usa ese respaldo)', async () => {
+  const r = armarRespuestas(false);
+  const { txt } = await cargarPagina({ esAdmin: true, ultimaReal: true, respaldos: { webTorneos: { t: Date.now() - 2 * 24 * HORA, d: r.webTorneos } } });
+  assert.match(txt.textContent, /^Consulta: hace \d+ s$/);
+});

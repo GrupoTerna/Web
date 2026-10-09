@@ -2,7 +2,7 @@
 
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { loadBrowserScript } = require('./load-browser-script');
+const { loadBrowserScript, loadBrowserScriptsWithDom } = require('./load-browser-script');
 
 const {
   esc, fmtNum, ordenClanIndex, ordenarClanes,
@@ -148,4 +148,37 @@ test('fmtTresTiemposDeResultado() traduce el origen: estático vigente, archivo 
   assert.match(local, /Datos guardados/);
   assert.match(fmtTresTiemposDeResultado({ origen: 'apps-script', desde: null }).texto, /^Consulta: hace \d+ s$/);
   assert.match(fmtTresTiemposDeResultado().texto, /^Consulta: hace \d+ s$/);
+});
+
+// ---------------------------------------------------------------- Fase 4: hora real de «Consulta» (09-oct-2026)
+
+test('horaConsultaApiGet() — sin api.js (apiGetUltimaActualizacion no existe) devuelve la hora actual, sin romper', () => {
+  const { horaConsultaApiGet } = loadBrowserScript('assets/js/util.js');
+  assert.ok(Math.abs(Date.now() - horaConsultaApiGet('webRoster').getTime()) < 2000);
+});
+
+test('horaConsultaApiGet() — con respaldo local devuelve la hora de ese guardado; sin respaldo, ahora', () => {
+  const window = loadBrowserScriptsWithDom(['assets/js/core/config.js', 'assets/js/util.js', 'assets/js/core/api.js'], '');
+  assert.ok(Math.abs(Date.now() - window.horaConsultaApiGet('webRoster').getTime()) < 2000, 'sin respaldo: ahora');
+  const t = Date.now() - 2 * 24 * 60 * 60 * 1000;
+  window.localStorage.setItem('terna_backup_' + window._claveCacheApiGet('webRoster', null), JSON.stringify({ t, d: {} }));
+  assert.equal(window.horaConsultaApiGet('webRoster').getTime(), t);
+  window.localStorage.setItem('terna_backup_' + window._claveCacheApiGet('webRoster', null), '{"t":"no-es-fecha"}');
+  assert.ok(Math.abs(Date.now() - window.horaConsultaApiGet('webRoster').getTime()) < 2000, 'fecha inválida: ahora');
+});
+
+test('fmtTresTiemposDeResultado() — origen apps-script con `accion` usa la hora real del último guardado; sin `accion` o con otro origen, ahora', () => {
+  const window = loadBrowserScriptsWithDom(['assets/js/core/config.js', 'assets/js/util.js', 'assets/js/core/api.js'], '');
+  const t = Date.now() - 3 * 60 * 60 * 1000;
+  window.localStorage.setItem('terna_backup_' + window._claveCacheApiGet('webRoster', null), JSON.stringify({ t, d: {} }));
+  assert.match(window.fmtTresTiemposDeResultado({ origen: 'apps-script', accion: 'webRoster' }).texto, /^Consulta: hace 3 h$/);
+  assert.match(window.fmtTresTiemposDeResultado({ origen: 'apps-script' }).texto, /^Consulta: hace \d+ s$/);
+  assert.match(window.fmtTresTiemposDeResultado({ origen: 'estatico', accion: 'webRoster', desde: new Date() }).texto, /^Consulta: hace \d+ s · JSON publicado/);
+});
+
+test('fmtTresTiemposDeResultado() — si el resultado trae `consulta` válida se usa tal cual (p. ej. admin con sesión: ahora)', () => {
+  const window = loadBrowserScriptsWithDom(['assets/js/core/config.js', 'assets/js/util.js', 'assets/js/core/api.js'], '');
+  window.localStorage.setItem('terna_backup_' + window._claveCacheApiGet('webRoster', null), JSON.stringify({ t: Date.now() - 86400000, d: {} }));
+  const ahora = new window.Date();
+  assert.match(window.fmtTresTiemposDeResultado({ origen: 'apps-script', accion: 'webRoster', consulta: ahora }).texto, /^Consulta: hace \d+ s$/);
 });

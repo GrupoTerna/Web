@@ -338,3 +338,13 @@ test('clan: clanObtenerInfo() informa origen y fecha de Supercell en las tres ru
   const rc = await c.t.clanObtenerInfo();
   assert.deepEqual([rc.origen, rc.api], ['estatico-viejo', null]);
 });
+
+// ---------------------------------------------------------------- Fase 4: hora real de «Consulta» (09-oct-2026)
+
+test('index y clan: con origen apps-script la «Consulta» usa horaConsultaApiGet() (hora real del último guardado) y no «ahora»', () => {
+  for (const [archivo, origen] of [['index.html', 'r.origen'], ['clan.html', 'rInfo.origen']]){
+    const html = fs.readFileSync(path.join(__dirname, '..', archivo), 'utf8');
+    assert.ok(html.includes(`consulta: ${origen} === 'apps-script' ? horaConsultaApiGet('webClanInfo') : new Date()`), `${archivo} debe usar horaConsultaApiGet() para el origen apps-script`);
+    assert.ok(!/consulta: new Date\(\),/.test(html), `${archivo} no debe quedar con «consulta: new Date()» fijo`);
+  }
+});
