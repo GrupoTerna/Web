@@ -11,6 +11,25 @@ el código hoy) cuando hace falta para mantenerlo; el "por qué histórico"
 
 ---
 
+## util.js, directorio.html, comunidad.html y sw.js v20 — Fase 3: último recurso en directorio y comunidad, con los tres momentos (09-oct-2026)
+
+Continúa la Fase 2 (misma idea: si Apps Script no responde, usar el último JSON publicado aunque tenga más de 3 h, salvo que el respaldo local sea más nuevo) y aplica el pedido de mostrar los tres momentos de actualización (ver la entrada de abajo, v19).
+
+- **`assets/js/util.js`, `fmtTresTiemposDeResultado(r)` (nueva):** atajo de `fmtTresTiempos()` para las funciones que devuelven `{ origen, desde, api }`. Traduce `origen` (`'estatico'`, `'estatico-viejo'`, `'respaldo-local'`, `'apps-script'`) a «JSON publicado» / «Respaldo guardado» y suma el aviso «⚠ Datos guardados» con archivo viejo o respaldo local.
+- **`directorio.html`, `obtenerClanInfoDirectorio()` (nueva) y `cargarClanInfoYCharts()`:** antes esta parte (gráficos y tarjetas de clanes) pedía `webClanInfo` directo a Apps Script y se saltaba `home.json`, que ya trae `clanInfo`. Ahora lee `home.json`: vigente -> sin llamar a Apps Script; vencido -> Apps Script y, solo si falla, el más nuevo entre el archivo y el respaldo local. Cumple el recordatorio de la Fase 2 (pasar la fecha de publicación del JSON): el resultado trae `desde`, así que ya no sale «sin datos guardados». Se agregan `HOME_ESTATICO_URL` y `HOME_ESTATICO_EDAD_MAX_MS` en el `<script>` inline (esta página no los tenía).
+- **`directorio.html`, `obtenerRoster()` y `cargarRoster()`:** un `roster.json` vencido ya no se tira: se guarda y se usa solo si Apps Script falla (y si es más nuevo que el respaldo local). Devuelve además `origen` y `api`; `estatico` sigue siendo `true` cuando el dato salió de un archivo. `cargarIngresosRecientes()` usa `obtenerRoster().data` y no cambia.
+- **`comunidad.html`, `obtenerAscensos()` y `cargarAscensos()`:** igual con la clave `ascensos` de `home.json` (el archivo vencido solo sirve si la clave es válida: sin `error` y con lista). `obtenerAscensos()` ahora devuelve `{ data, desde, origen, api }` y no el dato suelto. Se agrega `#ascensosActualizadoTxt` sobre la lista; el código lo protege por si el elemento no existe.
+- **Los tres momentos:** las tres secciones (info de clanes y roster en directorio, ascensos en comunidad) pintan «Consulta: … · JSON publicado: … · API Supercell: …» (la última solo si el dato trae `tiempos.api.ultimaConsultaTs`, en la sección o en la raíz del JSON) y el tooltip con las horas en Lima.
+- **Efecto a tener en cuenta:** con un archivo vencido, `apiGetConRespaldoEstatico()` apaga `staleIfError` en la llamada interna para poder comparar; el respaldo local se sigue usando, pero lo decide el ayudante. Sin archivo utilizable, `apiGet()` conserva `staleIfError: true` como siempre. Por eso se cambió una prueba existente de `comunidad-dom.test.js` (ahora espera `staleIfError:false` en ese caso) y se agregó otra que comprueba que sin archivo sigue en `true`.
+- **`sw.js`:** `CACHE_NAME` sube a `terna-static-v20` (`util.js`, `directorio.html` y `comunidad.html` están en `CORE_ASSETS`).
+- **Pruebas:** 21 nuevas (266 en total, eran 245): 1 en `util.test.js`, 6 en `comunidad-dom.test.js` (+1 ajustada; ahora carga `config.js` y `api.js` reales) y 14 en `directorio-estatico.test.js` (archivo nuevo, con los tramos reales de `directorio.html`). Contra las páginas originales fallan las pruebas de comportamiento nuevas (6 de comunidad; la de directorio falla al cargar porque no existe `obtenerClanInfoDirectorio()`). `eslint assets`, `html-validate *.html` y `check-local-links` (145 rutas) sin observaciones.
+- **No se probó** en navegador real ni contra GitHub/Apps Script reales; solo con red simulada. Tampoco se probó el dibujo de `directorio.html` (no se cargó la página entera).
+- **Pendiente de definir (decisión del usuario): `directorio.html` y datos de admin.** `cargarIngresosRecientes()` (`webIngresosRecientes`, con `conSesion`) y `webCompararJugadores` siguen yendo solo a Apps Script (no tienen JSON). Con un admin con sesión, la info de clanes y el roster salen del JSON público igual que antes; no se cambió.
+- **Pendiente de definir:** el aviso común en las otras 4 secciones de la portada, el roster y la tarjeta de guerra de `clan.html`, `torneos.html` y `perfil.html` (Fase 4), y unificar `guerra.html` con `fmtTresTiempos()`. Sigue pendiente confirmar en el backend si los JSON traen `tiempos.api.ultimaConsultaTs`.
+- **Pendiente de definir:** `index.html` y `clan.html` (Fase 2) calculan los tres momentos por su cuenta; podrían pasar a `fmtTresTiemposDeResultado()` para tener una sola forma. No se tocó para no abarcar de más.
+
+---
+
 ## util.js, index.html, clan.html y sw.js v19 — Tres momentos de actualización: consulta de la web, JSON publicado y API de Supercell (09-oct-2026)
 
 Pedido del usuario: debe indicarse la fecha de actualización de la web (cuándo hace la consulta), la del JSON (su última actualización) y, de preferencia, el momento en que se consultó la API de Supercell.
@@ -62,7 +81,7 @@ Contexto (revisión pedida por el usuario: «que consulte los CSV o JSON si Shee
 
 ### 09-oct-2026 — Pendientes de este plan (no aplicados todavía)
 - **Fase 2: APLICADA el 09-oct-2026** (ver la entrada de arriba): `index.html` y `clan.html`. Para esto se agregó `apiGetConRespaldoEstatico()` (compara con el respaldo local), no solo `apiGetEstaticoConEdad()`.
-- **Fase 3:** `directorio.html` (`obtenerRoster()`; además `cargarClanInfoYCharts()` llama a `webClanInfo` directo y se salta `home.json`, que ya trae `clanInfo`) y `comunidad.html` (`obtenerAscensos()`). Reutilizan `apiGetConRespaldoEstatico()` donde la página ya pide con `staleIfError`.
+- **Fase 3: APLICADA el 09-oct-2026** (ver la entrada de arriba, v20). Plan original: `directorio.html` (`obtenerRoster()`; además `cargarClanInfoYCharts()` llama a `webClanInfo` directo y se salta `home.json`, que ya trae `clanInfo`) y `comunidad.html` (`obtenerAscensos()`). Reutilizan `apiGetConRespaldoEstatico()` donde la página ya pide con `staleIfError`.
 - **Fase 4:** `torneos.html` (`cargarTorneosEstatico()`) y `perfil.html` (`obtenerCtxGuerra()`).
 - **Fase 5 (opcional):** `guerra.html`, `cargarClanInfoGuerra()` (cabeceras de clan) y `assets/js/features/clan-card.js`, `enlazarLideresClanes()` (enlace al líder, pide `webRoster` directo): pasarlos a `home.json` / `roster.json`.
 - **Pendiente de definir (decisión del usuario):** las cargas que salen de un JSON estático no guardan nada en el respaldo local (`_backupLocalGuardar()` solo se llama dentro de `apiGet()`), así que `staleIfError` no ayuda a quien siempre recibe datos por JSON, ni sin conexión. Riesgo: `guerra.json` pesa unos 920 KB y localStorage tiene unos 5 MB; habría que decidir qué archivos sí guardar.

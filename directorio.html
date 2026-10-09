@@ -878,13 +878,36 @@
 /* =========================================================================
  * Gráficos + tarjetas de clan (parte superior de la página)
  * ========================================================================= */
+/* CAMBIO (09-oct-2026, Fase 3 JSON estático como último recurso): antes esta parte pedía webClanInfo directo a Apps Script y se saltaba home.json (que ya trae `clanInfo`). Ahora lee primero home.json (rama `data` de GitHub) igual que index.html y clan.html: si está vigente (menos de 3 h) lo usa sin llamar a Apps Script; si está vencido, pide a Apps Script y, solo si este falla, usa el más nuevo entre el archivo vencido y el respaldo local. Devuelve { data, desde, origen, api } (ver fmtTresTiemposDeResultado() en util.js). Ajusta el repo en la URL si no es GrupoTerna/Web. */
+const HOME_ESTATICO_URL = 'https://raw.githubusercontent.com/GrupoTerna/Web/data/home.json';
+const HOME_ESTATICO_EDAD_MAX_MS = 3 * 60 * 60 * 1000; // el bot lo reescribe al menos cada hora; 3 h = algo falló
+async function obtenerClanInfoDirectorio(){
+  let viejo = null; // último recurso: archivo estático descargado bien pero ya vencido
+  try{
+    // ?t= por bloques de 5 min: GitHub ya sirve el archivo con ~5 min de caché; esto solo evita que el navegador se quede con uno más viejo.
+    const r = await apiGetEstaticoConEdad(HOME_ESTATICO_URL + '?t=' + Math.floor(Date.now() / 300000), { edadMaxMs: HOME_ESTATICO_EDAD_MAX_MS });
+    const info = r && r.est && r.est.clanInfo;
+    if(info && !info.error && Array.isArray(info.clanes) && info.clanes.length){
+      const api = tsApiDeDatos(info) || tsApiDeDatos(r.est);
+      if(r.vigente) return { data: info, desde: r.pub, origen: 'estatico', api };
+      viejo = { data: info, desde: r.pub, api };
+    }
+  }catch(e){ /* sin archivo o sin red a GitHub: se sigue con Apps Script */ }
+  const x = await apiGetConRespaldoEstatico('webClanInfo', null, { ttlMs: 300000, staleIfError: true }, viejo); // B-11: 5 min; B4/B-10: si falla la red, usar el último dato guardado
+  return { data: x.data, desde: x.desde, origen: x.origen, api: tsApiDeDatos(x.data) || (x.origen === 'estatico-viejo' ? viejo.api : null) };
+}
+
 async function cargarClanInfoYCharts(){
   const chartsGrid = document.getElementById('chartsGrid');
   const clanGrid   = document.getElementById('clanGrid');
   try{
-    const data = await apiGet('webClanInfo', null, { ttlMs: 300000, staleIfError: true }); // B-11: 5 min; B4/B-10: si falla la red, usar el último dato guardado
-    document.getElementById('clanInfoActualizadoTxt').textContent =
-      fmtTiempoRelativo(apiGetUltimaActualizacion('webClanInfo', null));
+    const r = await obtenerClanInfoDirectorio();
+    const data = r.data;
+    // CAMBIO (09-oct-2026): tres momentos (consulta de esta página, publicación del JSON, consulta del bot a Supercell si el dato la trae) en vez de solo la fecha del respaldo local.
+    const tt = fmtTresTiemposDeResultado(r);
+    const txtActualizado = document.getElementById('clanInfoActualizadoTxt');
+    txtActualizado.textContent = tt.texto;
+    txtActualizado.title = tt.titulo;
     // Orden fijo de la Familia (no alfabético), se ordena antes de asignar la insignia de rol al clan correcto. Historial en CHANGELOG.md.
     const clanes = ordenarClanes(data.clanes || []);
 
@@ -2102,17 +2125,20 @@ function clanIdxDesdeQuery(){
 /* NUEVO (08-oct-2026): el roster sale primero de un archivo estático (roster.json en la rama `data` de GitHub, lo publica el bot desde Apps Script, ver 51_Publicar_Roster.gs), igual que guerra.html con guerra.json. Si el archivo no existe, falla o tiene más de ROSTER_ESTATICO_EDAD_MAX_MS, se pide a Apps Script (webRoster) como antes. Ajusta el repo en la URL si no es GrupoTerna/Web. */
 const ROSTER_ESTATICO_URL = 'https://raw.githubusercontent.com/GrupoTerna/Web/data/roster.json';
 const ROSTER_ESTATICO_EDAD_MAX_MS = 3 * 60 * 60 * 1000; // el bot lo reescribe al menos cada hora; 3 h = algo falló
+/* CAMBIO (09-oct-2026, Fase 3): un roster.json vencido ya no se tira: se guarda y se usa SOLO si Apps Script falla, y solo si es más nuevo que el respaldo local (ver apiGetConRespaldoEstatico() en api.js). Con Apps Script sano, o con el archivo vigente, nada cambia. Devuelve { data, desde, estatico, origen, api }: estatico = true cuando el dato salió de un archivo (vigente o vencido); desde = fecha de publicación del archivo o de guardado del respaldo local; api = momento de consulta a Supercell si el dato lo trae. */
 async function obtenerRoster(){
+  let viejo = null; // último recurso: archivo estático descargado bien pero ya vencido
   try{
     // ?t= por bloques de 5 min: GitHub ya sirve el archivo con ~5 min de caché; esto solo evita que el navegador se quede con uno más viejo.
-    const est = await apiGetEstatico(ROSTER_ESTATICO_URL + '?t=' + Math.floor(Date.now() / 300000));
-    const pub = est && est._publicadoEn ? new Date(est._publicadoEn) : null;
-    if(est && Array.isArray(est.clanes) && est.clanes.length && pub && !isNaN(pub) && (Date.now() - pub.getTime()) < ROSTER_ESTATICO_EDAD_MAX_MS){
-      return { data: est, desde: pub, estatico: true };
+    const r = await apiGetEstaticoConEdad(ROSTER_ESTATICO_URL + '?t=' + Math.floor(Date.now() / 300000), { edadMaxMs: ROSTER_ESTATICO_EDAD_MAX_MS });
+    if(r && r.est && Array.isArray(r.est.clanes) && r.est.clanes.length){
+      const api = tsApiDeDatos(r.est);
+      if(r.vigente) return { data: r.est, desde: r.pub, estatico: true, origen: 'estatico', api };
+      viejo = { data: r.est, desde: r.pub, api };
     }
   }catch(e){ /* sin archivo o sin red a GitHub: se sigue con Apps Script */ }
-  const data = await apiGet('webRoster', null, { ttlMs: 300000, staleIfError: true }); // B-11: 5 min; B4/B-10: si falla la red, usar el último dato guardado
-  return { data, desde: null, estatico: false };
+  const x = await apiGetConRespaldoEstatico('webRoster', null, { ttlMs: 300000, staleIfError: true }, viejo); // B-11: 5 min; B4/B-10: si falla la red, usar el último dato guardado
+  return { data: x.data, desde: x.desde, estatico: x.origen === 'estatico-viejo', origen: x.origen, api: tsApiDeDatos(x.data) || (x.origen === 'estatico-viejo' ? viejo.api : null) };
 }
 
 async function cargarRoster(){
@@ -2120,8 +2146,11 @@ async function cargarRoster(){
   try{
     const r = await obtenerRoster();
     const data = r.data;
-    document.getElementById('rosterActualizadoTxt').textContent =
-      fmtTiempoRelativo(r.estatico ? r.desde : apiGetUltimaActualizacion('webRoster', null)); // con archivo estático: hora de publicación del JSON
+    // CAMBIO (09-oct-2026): tres momentos (consulta de esta página, publicación del JSON, consulta del bot a Supercell si el dato la trae).
+    const tt = fmtTresTiemposDeResultado(r);
+    const txtRoster = document.getElementById('rosterActualizadoTxt');
+    txtRoster.textContent = tt.texto;
+    txtRoster.title = tt.titulo;
     rosterData = ordenarClanes(data.clanes || []);
     const idxDesdeQuery = clanIdxDesdeQuery();
     clanActivoIdx = idxDesdeQuery >= 0 ? idxDesdeQuery : 0;

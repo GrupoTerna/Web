@@ -330,6 +330,7 @@
          nunca cambios de rango de cuentas que hoy son Administradores. -->
     <div class="card" style="margin-top:16px; padding:24px;">
       <div class="eyebrow" style="margin-bottom:14px;">Ascensos recientes</div>
+      <div class="text-faint" id="ascensosActualizadoTxt" style="font-size:12px; margin-bottom:8px;"></div>
       <div id="ascensosWrap" data-reveal-stagger>
         <div class="text-faint" style="font-family:var(--f-mono); font-size:12px;">Cargando ascensos…</div>
       </div>
@@ -423,21 +424,35 @@
 /* NUEVO (08-oct-2026): los ascensos salen primero de home.json (rama `data` de GitHub, clave `ascensos`; lo publica el bot desde Apps Script, ver 52_Publicar_Home.gs). Si el archivo no existe, falla, tiene más de ESTATICO_EDAD_MAX_MS o no trae la clave, se pide webAscensosRecientes a Apps Script como antes. Ajusta el repo en la URL si no es GrupoTerna/Web. */
 const HOME_ESTATICO_URL = 'https://raw.githubusercontent.com/GrupoTerna/Web/data/home.json';
 const ESTATICO_EDAD_MAX_MS = 3 * 60 * 60 * 1000; // el bot lo reescribe al menos cada hora; 3 h = algo falló
+/* CAMBIO (09-oct-2026, Fase 3 JSON estático como último recurso): un home.json vencido (con la clave `ascensos` válida) ya no se tira: se guarda y se usa SOLO si Apps Script falla, y solo si es más nuevo que el respaldo local (ver apiGetConRespaldoEstatico() en api.js). Con el archivo vigente o con Apps Script sano, nada cambia. Devuelve { data, desde, origen, api } (ver fmtTresTiemposDeResultado() en util.js). */
 async function obtenerAscensos(){
+  let viejo = null; // último recurso: archivo estático descargado bien pero ya vencido
   try{
     // ?t= por bloques de 5 min: GitHub ya sirve el archivo con ~5 min de caché; esto solo evita que el navegador se quede con uno más viejo.
-    const est = await apiGetEstatico(HOME_ESTATICO_URL + '?t=' + Math.floor(Date.now() / 300000));
-    const pub = est && est._publicadoEn ? new Date(est._publicadoEn) : null;
-    const asc = est && est.ascensos;
-    if(asc && !asc.error && Array.isArray(asc.ascensos) && pub && !isNaN(pub) && (Date.now() - pub.getTime()) < ESTATICO_EDAD_MAX_MS) return asc;
+    const r = await apiGetEstaticoConEdad(HOME_ESTATICO_URL + '?t=' + Math.floor(Date.now() / 300000), { edadMaxMs: ESTATICO_EDAD_MAX_MS });
+    const asc = r && r.est && r.est.ascensos;
+    if(asc && !asc.error && Array.isArray(asc.ascensos)){
+      const api = tsApiDeDatos(asc) || tsApiDeDatos(r.est);
+      if(r.vigente) return { data: asc, desde: r.pub, origen: 'estatico', api };
+      viejo = { data: asc, desde: r.pub, api };
+    }
   }catch(e){ /* sin archivo o sin red a GitHub: se sigue con Apps Script */ }
-  return apiGet('webAscensosRecientes', null, { ttlMs: 300000, staleIfError: true }); // D-9 (b): 5 min; B4/B-10: si falla la red, usar el último dato guardado
+  const x = await apiGetConRespaldoEstatico('webAscensosRecientes', null, { ttlMs: 300000, staleIfError: true }, viejo); // D-9 (b): 5 min; B4/B-10: si falla la red, usar el último dato guardado
+  return { data: x.data, desde: x.desde, origen: x.origen, api: tsApiDeDatos(x.data) || (x.origen === 'estatico-viejo' ? viejo.api : null) };
 }
 
 async function cargarAscensos(){
   const wrap = document.getElementById('ascensosWrap');
   try{
-    const data = await obtenerAscensos();
+    const r = await obtenerAscensos();
+    const data = r.data;
+    // CAMBIO (09-oct-2026): tres momentos (consulta de esta página, publicación del JSON, consulta del bot a Supercell si el dato la trae).
+    const txtActualizado = document.getElementById('ascensosActualizadoTxt');
+    if(txtActualizado){
+      const tt = fmtTresTiemposDeResultado(r);
+      txtActualizado.textContent = tt.texto;
+      txtActualizado.title = tt.titulo;
+    }
     const ascensos = data.ascensos || [];
     if (!ascensos.length){
       wrap.innerHTML = '<div class="empty">Todavía no hay ascensos registrados.</div>';

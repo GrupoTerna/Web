@@ -7,7 +7,7 @@ const { loadBrowserScript } = require('./load-browser-script');
 const {
   esc, fmtNum, ordenClanIndex, ordenarClanes,
   urlValida, normalizarTag, enlaceJugador, fmtTiempoRelativo,
-  fmtHaceCorto, fmtFechaHoraLima, tsApiDeDatos, fmtTresTiempos
+  fmtHaceCorto, fmtFechaHoraLima, tsApiDeDatos, fmtTresTiempos, fmtTresTiemposDeResultado
 } = loadBrowserScript('assets/js/util.js');
 
 test('esc() escapa los 5 caracteres especiales de HTML', () => {
@@ -134,4 +134,18 @@ test('fmtTresTiempos() con datos guardados suma el respaldo y el aviso de que el
   const r = fmtTresTiempos({ consulta: haceMs(1000), respaldo: haceMs(2 * HORA_MS), esViejo: true });
   assert.equal(r.texto, 'Consulta: hace 1 s · Respaldo guardado: hace 2 h · ⚠ Datos guardados: el servidor no responde');
   assert.match(r.titulo, /Respaldo local guardado/);
+});
+
+test('fmtTresTiemposDeResultado() traduce el origen: estático vigente, archivo viejo, respaldo local y Apps Script', () => {
+  const desde = haceMs(40 * 60 * 1000), api = haceMs(55 * 60 * 1000);
+  assert.match(fmtTresTiemposDeResultado({ origen: 'estatico', desde, api }).texto, /^Consulta: hace \d+ s · JSON publicado: hace 40 min · API Supercell: hace 55 min$/);
+  const viejo = fmtTresTiemposDeResultado({ origen: 'estatico-viejo', desde, api: null }).texto;
+  assert.match(viejo, /JSON publicado: hace 40 min/);
+  assert.match(viejo, /Datos guardados: el servidor no responde/);
+  const local = fmtTresTiemposDeResultado({ origen: 'respaldo-local', desde }).texto;
+  assert.match(local, /Respaldo guardado: hace 40 min/);
+  assert.ok(!local.includes('JSON publicado'));
+  assert.match(local, /Datos guardados/);
+  assert.match(fmtTresTiemposDeResultado({ origen: 'apps-script', desde: null }).texto, /^Consulta: hace \d+ s$/);
+  assert.match(fmtTresTiemposDeResultado().texto, /^Consulta: hace \d+ s$/);
 });

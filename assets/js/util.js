@@ -234,6 +234,26 @@ function fmtTresTiempos(t){
 
 
 /**
+ * fmtTresTiemposDeResultado(r)
+ * NUEVO (09-oct-2026, Fase 3): atajo de fmtTresTiempos() para las funciones que devuelven { origen, desde, api } (directorio.html,
+ * comunidad.html). `origen`: 'estatico' (JSON vigente), 'apps-script', 'respaldo-local' o 'estatico-viejo'; `desde`: fecha de
+ * publicación del JSON (estatico / estatico-viejo) o de guardado del respaldo (respaldo-local); `api`: ver tsApiDeDatos().
+ * La hora de consulta es la de ahora (cuándo esta página obtuvo la respuesta). Con 'respaldo-local' y 'estatico-viejo' suma el aviso.
+ */
+function fmtTresTiemposDeResultado(r){
+  r = r || {};
+  const archivo = r.origen === 'estatico' || r.origen === 'estatico-viejo';
+  return fmtTresTiempos({
+    consulta: new Date(),
+    publicado: archivo ? r.desde : null,
+    respaldo: r.origen === 'respaldo-local' ? r.desde : null,
+    api: r.api,
+    esViejo: r.origen === 'estatico-viejo' || r.origen === 'respaldo-local'
+  });
+}
+
+
+/**
  * fmtFechaVigenciaCorta(v)
  * Fecha corta CON hora en zona Lima (ej. "05 set 2026, 4:46 a. m."). Antes
  * había dos copias idénticas: fmtFechaVigenciaCorta() en index.html y

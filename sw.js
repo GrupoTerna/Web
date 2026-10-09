@@ -75,7 +75,11 @@
 // v19 (09-oct-2026): util.js (nuevos fmtTresTiempos / tsApiDeDatos) e index.html cambiaron (CORE_ASSETS) -- la portada y clan.html muestran
 // tres momentos: consulta de la página, publicación del JSON y consulta del bot a Supercell (si el dato la trae). Se sube la versión para
 // que 'activate' borre v18 y nadie siga con el util.js/index.html viejos.
-const CACHE_NAME = 'terna-static-v19';
+// v20 (09-oct-2026): util.js (nueva fmtTresTiemposDeResultado), directorio.html y comunidad.html cambiaron (CORE_ASSETS) -- si Apps Script no
+// responde, el directorio (info de clanes y roster) y los ascensos de comunidad usan el último JSON publicado aunque tenga más de 3 h, salvo que
+// el respaldo local sea más nuevo, y muestran los tres momentos de actualización (Fase 3 del plan "JSON estático como último recurso").
+// Se sube la versión para que 'activate' borre v19 y nadie siga con el util.js/directorio.html/comunidad.html viejos.
+const CACHE_NAME = 'terna-static-v20';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
