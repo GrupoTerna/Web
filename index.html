@@ -758,11 +758,11 @@ async function obtenerHome(clave, accion){
   const h = await cargarHomeEstatico();
   const valor = h && h.data[clave];
   const valido = valor != null && !valor.error;
-  if(valido && h.vigente) return { data: valor, desde: h.desde, estatico: true };
+  if(valido && h.vigente) return { data: valor, desde: h.desde, estatico: true, origen: 'estatico', api: tsApiDeDatos(valor) || tsApiDeDatos(h.data) };
   // B-11/D-9 (b): 5 min; B4/B-10: si falla la red, usar el último dato guardado (el más nuevo entre el respaldo local y el archivo vencido)
   const r = await apiGetConRespaldoEstatico(accion, null, { ttlMs: 300000, staleIfError: true }, valido ? { data: valor, desde: h.desde } : null);
   const usaArchivo = r.origen === 'estatico-viejo'; // con 'respaldo-local' no hace falta desde: la página lee apiGetUltimaActualizacion(), que es la misma fecha
-  return { data: r.data, desde: usaArchivo ? r.desde : null, estatico: usaArchivo };
+  return { data: r.data, desde: usaArchivo ? r.desde : null, estatico: usaArchivo, origen: r.origen, api: tsApiDeDatos(r.data) || (usaArchivo ? tsApiDeDatos(h.data) : null) }; // CAMBIO (09-oct-2026): origen y api (momento de consulta a Supercell, si el dato lo trae) para mostrar los tres tiempos
 }
 /* CAMBIO (09-oct-2026, Fase 2): igual que obtenerHome(): un guerra_top.json vencido (pero con valoresDiariosSelectores) se guarda y solo se usa si Apps Script falla y es más nuevo que el respaldo local. */
 async function obtenerGuerraTop(){
@@ -782,8 +782,17 @@ async function cargarClanes(){
   try{
     const r = await obtenerHome('clanInfo', 'webClanInfo');
     const data = r.data;
-    document.getElementById('clanInfoActualizadoTxt').textContent =
-      fmtTiempoRelativo(r.estatico ? r.desde : apiGetUltimaActualizacion('webClanInfo', null)); // con archivo estático: hora de publicación del JSON
+    // CAMBIO (09-oct-2026, pedido del usuario): tres momentos distintos (consulta de esta página, publicación del JSON y consulta del bot a Supercell, si el dato la trae); ver fmtTresTiempos() en util.js.
+    const tt = fmtTresTiempos({
+      consulta: new Date(),
+      publicado: r.estatico ? r.desde : null,
+      respaldo: r.origen === 'respaldo-local' ? apiGetUltimaActualizacion('webClanInfo', null) : null,
+      api: r.api,
+      esViejo: r.origen === 'estatico-viejo' || r.origen === 'respaldo-local'
+    });
+    const txtActualizado = document.getElementById('clanInfoActualizadoTxt');
+    txtActualizado.textContent = tt.texto;
+    txtActualizado.title = tt.titulo;
     // Orden fijo de la Familia (no alfabético), asignado antes del índice para que insignia/rol queden sincronizados con el backend. Historial en CHANGELOG.md.
     const clanes = ordenarClanes(data.clanes || []);
     grid.innerHTML = clanes.map((c, i) => clanCardHtml(c, i, { mostrarVerClan: true, mostrarUnirse: true })).join('');

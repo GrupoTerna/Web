@@ -302,3 +302,39 @@ test('clan, tarjeta de guerra: sin el tercer argumento (llamada de siempre) no h
   t.renderClanGuerra(GUERRA_CLAN(1), 'Terna Uno');
   assert.equal(window.document.querySelector('.js-guerra-aviso-viejo'), null);
 });
+
+// ---------------------------------------------------------------- tres momentos (origen y fecha de Supercell)
+
+test('index: obtenerHome() informa el origen y la fecha de Supercell del dato (si lo trae)', async () => {
+  const ts = Date.now() - 50 * 60 * 1000;
+  const vigente = { _publicadoEn: hace(HORA), clanInfo: { ...CLAN_INFO('Terna Uno'), tiempos: { api: { ultimaConsultaTs: ts } } } };
+  const a = montarIndex({ archivos: { 'home.json': vigente } });
+  const r = await a.t.obtenerHome('clanInfo', 'webClanInfo');
+  assert.equal(r.origen, 'estatico');
+  assert.equal(r.api.getTime(), ts);
+
+  const b = montarIndex({ archivos: { 'home.json': HOME(1) } }); // sin tiempos en el JSON: api null, no se inventa
+  assert.equal((await b.t.obtenerHome('clanInfo', 'webClanInfo')).api, null);
+
+  const c = montarIndex({ archivos: { 'home.json': HOME(5) }, apiGetImpl: appsScriptCaido });
+  assert.equal((await c.t.obtenerHome('clanInfo', 'webClanInfo')).origen, 'estatico-viejo');
+
+  const d = montarIndex({ archivos: {} });
+  assert.equal((await d.t.obtenerHome('clanInfo', 'webClanInfo')).origen, 'apps-script');
+});
+
+test('clan: clanObtenerInfo() informa origen y fecha de Supercell en las tres rutas (estático, Apps Script, archivo viejo)', async () => {
+  const ts = Date.now() - 30 * 60 * 1000;
+  const info = { ...CLAN_INFO('Terna Uno'), tiempos: { api: { ultimaConsultaTs: ts } } };
+  const a = montarClan({ archivos: { 'home.json': { _publicadoEn: hace(HORA), clanInfo: info } } });
+  const ra = await a.t.clanObtenerInfo();
+  assert.deepEqual([ra.origen, ra.api.getTime()], ['estatico', ts]);
+
+  const b = montarClan({ archivos: {}, apiGetImpl: () => info });
+  const rb = await b.t.clanObtenerInfo();
+  assert.deepEqual([rb.origen, rb.api.getTime()], ['apps-script', ts]);
+
+  const c = montarClan({ archivos: { 'home.json': { _publicadoEn: hace(5 * HORA), clanInfo: CLAN_INFO('Terna Uno') } }, apiGetImpl: appsScriptCaido });
+  const rc = await c.t.clanObtenerInfo();
+  assert.deepEqual([rc.origen, rc.api], ['estatico-viejo', null]);
+});

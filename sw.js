@@ -72,7 +72,10 @@
 // usa el último home.json / guerra_top.json publicado aunque tenga más de 3 h, salvo que el respaldo local sea más nuevo (Fase 2 del plan
 // "JSON estático como último recurso"). clan.html también cambió, pero no está en CORE_ASSETS: se renueva por la revalidación en segundo plano.
 // Se sube la versión para que 'activate' borre v17 y nadie siga con el api.js/index.html viejos.
-const CACHE_NAME = 'terna-static-v18';
+// v19 (09-oct-2026): util.js (nuevos fmtTresTiempos / tsApiDeDatos) e index.html cambiaron (CORE_ASSETS) -- la portada y clan.html muestran
+// tres momentos: consulta de la página, publicación del JSON y consulta del bot a Supercell (si el dato la trae). Se sube la versión para
+// que 'activate' borre v18 y nadie siga con el util.js/index.html viejos.
+const CACHE_NAME = 'terna-static-v19';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y

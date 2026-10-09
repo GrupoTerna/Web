@@ -6,7 +6,8 @@ const { loadBrowserScript } = require('./load-browser-script');
 
 const {
   esc, fmtNum, ordenClanIndex, ordenarClanes,
-  urlValida, normalizarTag, enlaceJugador, fmtTiempoRelativo
+  urlValida, normalizarTag, enlaceJugador, fmtTiempoRelativo,
+  fmtHaceCorto, fmtFechaHoraLima, tsApiDeDatos, fmtTresTiempos
 } = loadBrowserScript('assets/js/util.js');
 
 test('esc() escapa los 5 caracteres especiales de HTML', () => {
@@ -83,4 +84,54 @@ test('fmtTiempoRelativo(null) avisa que no hay datos guardados', () => {
 
 test('fmtTiempoRelativo() responde "ahora mismo" para una fecha recién creada', () => {
   assert.equal(fmtTiempoRelativo(new Date()), 'actualizado ahora mismo');
+});
+
+// NUEVO (09-oct-2026): los tres momentos (consulta de la página, publicación del JSON, consulta del bot a Supercell).
+const HORA_MS = 60 * 60 * 1000;
+const haceMs = (ms) => new Date(Date.now() - ms);
+
+test('fmtHaceCorto() da segundos, minutos, horas con minutos y días; con algo que no es fecha devuelve \"—\"', () => {
+  assert.equal(fmtHaceCorto(haceMs(5000)), 'hace 5 s');
+  assert.equal(fmtHaceCorto(haceMs(12 * 60 * 1000)), 'hace 12 min');
+  assert.equal(fmtHaceCorto(haceMs(3 * HORA_MS + 20 * 60 * 1000)), 'hace 3 h 20 min');
+  assert.equal(fmtHaceCorto(haceMs(2 * 24 * HORA_MS)), 'hace 2 d');
+  assert.equal(fmtHaceCorto(null), '—');
+  assert.equal(fmtHaceCorto(new Date('x')), '—');
+});
+
+test('fmtFechaHoraLima() usa la zona de Lima (UTC-5) y no revienta con una fecha inválida', () => {
+  const txt = fmtFechaHoraLima(new Date('2026-10-09T15:30:00Z'));
+  assert.match(txt, /10:30/);
+  assert.equal(fmtFechaHoraLima(undefined), '—');
+});
+
+test('tsApiDeDatos() lee tiempos.api.ultimaConsultaTs y devuelve null si falta o no es válido (no inventa fechas)', () => {
+  const ts = Date.now() - 60000;
+  assert.equal(tsApiDeDatos({ tiempos: { api: { ultimaConsultaTs: ts } } }).getTime(), ts);
+  assert.equal(tsApiDeDatos({ tiempos: { api: { ultimaConsultaTs: String(ts) } } }).getTime(), ts);
+  for (const malo of [null, undefined, {}, { tiempos: {} }, { tiempos: { api: {} } }, { tiempos: { api: { ultimaConsultaTs: 0 } } }, { tiempos: { api: { ultimaConsultaTs: 'x' } } }, { _publicadoEn: new Date().toISOString() }]){
+    assert.equal(tsApiDeDatos(malo), null);
+  }
+});
+
+test('fmtTresTiempos() con los tres momentos: texto y tooltip llevan los tres', () => {
+  const r = fmtTresTiempos({ consulta: haceMs(3000), publicado: haceMs(40 * 60 * 1000), api: haceMs(52 * 60 * 1000) });
+  assert.equal(r.texto, 'Consulta: hace 3 s · JSON publicado: hace 40 min · API Supercell: hace 52 min');
+  assert.match(r.titulo, /Esta página consultó/);
+  assert.match(r.titulo, /Archivo JSON publicado/);
+  assert.match(r.titulo, /API de Supercell/);
+});
+
+test('fmtTresTiempos() omite lo que no existe: sin JSON ni API queda solo la consulta', () => {
+  assert.equal(fmtTresTiempos({ consulta: haceMs(1000) }).texto, 'Consulta: hace 1 s');
+  assert.equal(fmtTresTiempos({ consulta: haceMs(1000), publicado: haceMs(60000) }).texto, 'Consulta: hace 1 s · JSON publicado: hace 1 min');
+  const vacio = fmtTresTiempos();
+  assert.equal(vacio.texto, '');
+  assert.equal(vacio.titulo, '');
+});
+
+test('fmtTresTiempos() con datos guardados suma el respaldo y el aviso de que el servidor no responde', () => {
+  const r = fmtTresTiempos({ consulta: haceMs(1000), respaldo: haceMs(2 * HORA_MS), esViejo: true });
+  assert.equal(r.texto, 'Consulta: hace 1 s · Respaldo guardado: hace 2 h · ⚠ Datos guardados: el servidor no responde');
+  assert.match(r.titulo, /Respaldo local guardado/);
 });

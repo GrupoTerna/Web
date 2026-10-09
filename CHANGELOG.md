@@ -11,6 +11,24 @@ el código hoy) cuando hace falta para mantenerlo; el "por qué histórico"
 
 ---
 
+## util.js, index.html, clan.html y sw.js v19 — Tres momentos de actualización: consulta de la web, JSON publicado y API de Supercell (09-oct-2026)
+
+Pedido del usuario: debe indicarse la fecha de actualización de la web (cuándo hace la consulta), la del JSON (su última actualización) y, de preferencia, el momento en que se consultó la API de Supercell.
+
+- **Qué fechas existen realmente (verificado leyendo el código, 09-oct-2026):** (1) la consulta de la web siempre se conoce (es «ahora» cuando la página obtiene la respuesta); (2) la del JSON es `_publicadoEn`, presente en todos los JSON que leen las páginas; (3) la de Supercell solo se sabe que existe en un lugar: `data.tiempos.api.ultimaConsultaTs` (milisegundos) dentro de `guerra.json`, que `guerra.html` ya lee desde el 08-oct (muestra «API: … · Consulta: …» y, en el tooltip, «Archivo publicado»). Para `home.json`, `roster.json`, `torneos.json`, `guerra_ctx.json` y `guerra_top.json` **no se sabe** si traen ese campo: depende del bot (backend), que aún no se revisó. Por eso el frontend lo lee con tolerancia y, si no está, **no lo muestra ni lo reemplaza por otra fecha**.
+- **`assets/js/util.js`, `fmtHaceCorto()`, `fmtFechaHoraLima()`, `tsApiDeDatos()` y `fmtTresTiempos()` (nuevas):** `fmtTresTiempos({ consulta, publicado, api, respaldo, esViejo })` devuelve `{ texto, titulo }`: el texto es «Consulta: hace 3 s · JSON publicado: hace 40 min · API Supercell: hace 52 min» (cada parte se omite si no existe; con datos guardados suma «Respaldo guardado: …» y «⚠ Datos guardados: el servidor no responde») y el tooltip trae las horas exactas en zona Lima. `tsApiDeDatos(datos)` lee `tiempos.api.ultimaConsultaTs` (en la sección o en la raíz) y devuelve `null` si falta. Las fechas se validan por forma y no con `instanceof Date`, que falla con fechas creadas en otro contexto (la primera versión lo usaba y 5 pruebas lo delataron).
+- **`index.html`, `obtenerHome()` y `cargarClanes()`:** `obtenerHome()` devuelve además `origen` (`'estatico'`, `'apps-script'`, `'respaldo-local'` o `'estatico-viejo'`) y `api`. La tarjeta de clanes pinta los tres momentos (antes solo «actualizado hace X», sin la hora de la consulta de la web).
+- **`clan.html`, `clanPedirConRespaldo()`, `clanObtenerInfo()` y `cargarClan()`:** igual para la cabecera del clan (`clanActualizadoTxt`).
+- **`sw.js`:** `CACHE_NAME` sube a `terna-static-v19` (`util.js` e `index.html` están en `CORE_ASSETS`; `clan.html` no, pero cambió).
+- **Pruebas:** 8 nuevas (245 en total): 6 en `test/util.test.js` y 2 en `test/index-clan-estatico.test.js` (con el código real de `index.html` y `clan.html`). Las 2 de las páginas fallan contra las páginas originales. `eslint assets`, `html-validate` y `check-local-links` sin observaciones.
+- **No se probó** en navegador real ni contra GitHub/Apps Script reales; solo con red simulada.
+- **Pendiente de definir (decisión del usuario) — dónde más mostrar los tres momentos.** Hoy solo en la tarjeta de clanes de la portada y en la cabecera de `clan.html`. Falta: las otras 4 secciones de la portada (aniversarios, rankings, cartas, top semanal), el roster y la tarjeta de guerra de `clan.html`, y `directorio.html`, `comunidad.html`, `torneos.html` y `perfil.html` (las fases 3 y 4 del plan podrían hacerlo al tocar esas páginas).
+- **Pendiente de definir — `guerra.html`.** Ya muestra los tres momentos con su propio `_haceCorto()` / `_horaLima()`. Podría pasar a usar `fmtTresTiempos()` para tener un solo formato en todo el sitio; no se tocó porque ya funciona y para no abarcar de más.
+- **Pendiente de verificar en el backend (requiere subir `Base.md`):** si el bot puede incluir `tiempos.api.ultimaConsultaTs` (o un campo equivalente) en `home.json`, `roster.json`, `torneos.json`, `guerra_ctx.json` y `guerra_top.json`. En cuanto exista, el frontend ya lo muestra solo en las páginas de esta entrada (si el nombre del campo es otro, solo hay que cambiar `tsApiDeDatos()`).
+- **Recordatorio de la Fase 3:** `directorio.html:887` lee solo el respaldo local; al pasarlo a `home.json` hay que pasarle también la fecha de publicación del JSON.
+
+---
+
 ## api.js, index.html, clan.html y sw.js v18 — Fase 2: último recurso en portada y en clan (09-oct-2026)
 
 Continúa la Fase 1 (misma idea: si Apps Script no responde, usar el último JSON publicado aunque tenga más de 3 h). Diferencia con `guerra.html`: `index.html` y `clan.html` ya pedían a Apps Script con `staleIfError`, o sea que ya tenían un respaldo local (localStorage) que `apiGet()` devuelve sin decir de cuándo es. Si el JSON vencido solo se probara cuando no hay respaldo local, un respaldo de hace días ganaría siempre a un JSON de hace unas horas; si tuviera prioridad fija, ganaría a un respaldo de hace 5 minutos. Por eso esta fase agrega un segundo ayudante que compara y deja ganar el más nuevo.

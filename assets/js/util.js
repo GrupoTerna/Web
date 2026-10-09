@@ -171,6 +171,69 @@ function fmtTiempoRelativo(fecha){
 
 
 /**
+ * fmtHaceCorto(fecha) / fmtFechaHoraLima(fecha)
+ * NUEVO (09-oct-2026, pedido del usuario: mostrar TRES momentos distintos). Misma forma corta que usa guerra.html
+ * (_haceCorto): «hace 5 s», «hace 12 min», «hace 3 h 20 min». fmtFechaHoraLima() da fecha y hora absolutas en zona
+ * Lima para los tooltips. Ambas devuelven '—' si no reciben una fecha válida.
+ */
+// Por forma y no con `instanceof Date`: una Date creada en otro contexto (iframe, pruebas con vm) no pasa ese chequeo.
+function _esFechaValida(f){ return !!f && typeof f.getTime === 'function' && !isNaN(f.getTime()); }
+function fmtHaceCorto(fecha){
+  if (!_esFechaValida(fecha)) return '—';
+  const s = Math.max(0, Math.floor((Date.now() - fecha.getTime()) / 1000));
+  if (s < 60) return 'hace ' + s + ' s';
+  const m = Math.floor(s / 60);
+  if (m < 60) return 'hace ' + m + ' min';
+  const h = Math.floor(m / 60), rm = m % 60;
+  if (h < 24) return 'hace ' + h + ' h' + (rm ? ' ' + rm + ' min' : '');
+  return 'hace ' + Math.floor(h / 24) + ' d';
+}
+function fmtFechaHoraLima(fecha){
+  if (!_esFechaValida(fecha)) return '—';
+  try{
+    return fecha.toLocaleString('es-PE', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit', second:'2-digit', timeZone:'America/Lima' });
+  }catch(e){ return fecha.toLocaleString(); }
+}
+
+/**
+ * tsApiDeDatos(datos)
+ * NUEVO (09-oct-2026): momento en que el bot consultó la API de Supercell, si el dato lo trae. Hoy el único campo
+ * que se sabe que existe es `tiempos.api.ultimaConsultaTs` (milisegundos), el que ya lee guerra.html. Se acepta
+ * tanto en el objeto de una sección como en la raíz de un JSON. Si no está (o no es válido) devuelve null: NO se
+ * inventa ni se reemplaza por otra fecha. Los demás JSON (home, roster, torneos...) no se sabe si lo traen: eso
+ * depende del bot (backend), que aún no se revisó.
+ * @param {*} datos
+ * @returns {Date|null}
+ */
+function tsApiDeDatos(datos){
+  const ts = datos && datos.tiempos && datos.tiempos.api ? Number(datos.tiempos.api.ultimaConsultaTs) : NaN;
+  return (ts > 0) ? new Date(ts) : null;
+}
+
+/**
+ * fmtTresTiempos({ consulta, publicado, api, respaldo, esViejo })
+ * NUEVO (09-oct-2026, pedido del usuario): una línea con los momentos que el visitante necesita distinguir, y un
+ * tooltip con las horas exactas (Lima). Cada parte se omite si no existe:
+ *   consulta  -> cuándo ESTA página obtuvo la respuesta (siempre hay).
+ *   publicado -> cuándo se publicó el JSON estático (`_publicadoEn`); solo si el dato salió de un JSON.
+ *   api       -> cuándo el bot consultó a Supercell (ver tsApiDeDatos()); solo si el dato lo trae.
+ *   respaldo  -> cuándo se guardó el respaldo local, si se mostró ese (el servidor no respondió).
+ *   esViejo   -> true si se muestra un dato guardado porque el servidor no respondió: suma el aviso.
+ * @returns {{texto: string, titulo: string}}
+ */
+function fmtTresTiempos(t){
+  t = t || {};
+  const partes = [], det = [];
+  if (t.consulta){ partes.push('Consulta: ' + fmtHaceCorto(t.consulta)); det.push('Esta página consultó: ' + fmtFechaHoraLima(t.consulta)); }
+  if (t.publicado){ partes.push('JSON publicado: ' + fmtHaceCorto(t.publicado)); det.push('Archivo JSON publicado: ' + fmtFechaHoraLima(t.publicado)); }
+  if (t.respaldo){ partes.push('Respaldo guardado: ' + fmtHaceCorto(t.respaldo)); det.push('Respaldo local guardado: ' + fmtFechaHoraLima(t.respaldo)); }
+  if (t.api){ partes.push('API Supercell: ' + fmtHaceCorto(t.api)); det.push('Última consulta del bot a la API de Supercell: ' + fmtFechaHoraLima(t.api)); }
+  if (t.esViejo){ partes.push('⚠ Datos guardados: el servidor no responde'); det.push('Se muestra el último dato guardado porque el servidor no respondió; puede estar atrasado.'); }
+  return { texto: partes.join(' · '), titulo: det.join(' | ') };
+}
+
+
+/**
  * fmtFechaVigenciaCorta(v)
  * Fecha corta CON hora en zona Lima (ej. "05 set 2026, 4:46 a. m."). Antes
  * había dos copias idénticas: fmtFechaVigenciaCorta() en index.html y

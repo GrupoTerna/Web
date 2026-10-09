@@ -289,13 +289,13 @@ async function clanLeerEstatico(url){
 async function clanPedirConRespaldo(accion, opts, viejo){
   const r = await apiGetConRespaldoEstatico(accion, null, opts, viejo);
   const usaArchivo = r.origen === 'estatico-viejo';
-  return { data: r.data, desde: usaArchivo ? r.desde : null, estatico: usaArchivo, viejo: usaArchivo };
+  return { data: r.data, desde: usaArchivo ? r.desde : null, estatico: usaArchivo, viejo: usaArchivo, origen: r.origen, api: tsApiDeDatos(r.data) }; // CAMBIO (09-oct-2026): origen y api (momento de consulta a Supercell, si el dato lo trae)
 }
 async function clanObtenerInfo(){
   const e = await clanLeerEstatico(HOME_ESTATICO_URL);
   const info = e && e.est.clanInfo;
   const valido = !!(info && !info.error && Array.isArray(info.clanes) && info.clanes.length);
-  if(valido && e.vigente) return { data: info, desde: e.pub, estatico: true, viejo: false };
+  if(valido && e.vigente) return { data: info, desde: e.pub, estatico: true, viejo: false, origen: 'estatico', api: tsApiDeDatos(info) || tsApiDeDatos(e.est) };
   return clanPedirConRespaldo('webClanInfo', { ttlMs: 300000, staleIfError: true }, valido ? { data: info, desde: e.pub } : null);
 }
 async function clanObtenerRoster(){
@@ -346,8 +346,17 @@ async function cargarClan(){
 
     document.getElementById('clanCargando').style.display = 'none';
     document.getElementById('clanContenido').style.display = 'block';
-    document.getElementById('clanActualizadoTxt').textContent =
-      fmtTiempoRelativo(rInfo.estatico ? rInfo.desde : apiGetUltimaActualizacion('webClanInfo', null)); // con archivo estático: hora de publicación del JSON
+    // CAMBIO (09-oct-2026, pedido del usuario): tres momentos distintos (consulta de esta página, publicación del JSON y consulta del bot a Supercell, si el dato la trae); ver fmtTresTiempos() en util.js.
+    const tt = fmtTresTiempos({
+      consulta: new Date(),
+      publicado: rInfo.estatico ? rInfo.desde : null,
+      respaldo: rInfo.origen === 'respaldo-local' ? apiGetUltimaActualizacion('webClanInfo', null) : null,
+      api: rInfo.api,
+      esViejo: rInfo.origen === 'estatico-viejo' || rInfo.origen === 'respaldo-local'
+    });
+    const txtActualizado = document.getElementById('clanActualizadoTxt');
+    txtActualizado.textContent = tt.texto;
+    txtActualizado.title = tt.titulo;
 
     renderClanBasico(clanInfo, idx);
     renderClanRoster(clanRoster);
