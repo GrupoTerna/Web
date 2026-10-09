@@ -434,3 +434,81 @@ test('apiGetConRespaldoEstatico(): sin `viejo` y con Apps Script sano sigue sien
   assert.equal(r.origen, 'apps-script');
   assert.equal(r.desde, null);
 });
+
+
+/*
+ * apiGetPublicoConEstatico() — NUEVO (09-oct-2026, Fase 5): JSON estático vigente -> sin Apps Script; vencido -> último recurso; mal formado -> se ignora.
+ * Se simulan apiGetEstatico (red a GitHub) y apiGet (Apps Script) en el sandbox de api.js real. LÍMITE: red simulada.
+ */
+const URL_JSON = 'https://ejemplo.test/data/roster.json';
+const extraerClanes = j => (j && Array.isArray(j.clanes) && j.clanes.length ? j : null);
+const JSON_ROSTER = (horasAtras, nombre) => ({ _publicadoEn: new Date(Date.now() - horasAtras * HORA_MS).toISOString(), clanes: [{ nombre: nombre || 'DelArchivo', miembros: [] }] });
+function armarPublico({ archivo, apps }){
+  const ctx = armarApiRespaldo();
+  const urls = [];
+  ctx.sandbox.apiGetEstatico = async (url) => { urls.push(url); if (archivo === undefined) throw new Error('HTTP 404'); return archivo; };
+  ctx.simular(apps || (() => ({ clanes: [{ nombre: 'DeApps', miembros: [] }] })));
+  return { ...ctx, urls };
+}
+
+test('apiGetPublicoConEstatico(): archivo vigente (1 h) -> se usa, origen estatico, con su fecha, y NO se llama a Apps Script', async () => {
+  const { sandbox, llamadas, urls } = armarPublico({ archivo: JSON_ROSTER(1) });
+  const r = await sandbox.apiGetPublicoConEstatico(URL_JSON, 'webRoster', extraerClanes);
+  assert.equal(r.origen, 'estatico');
+  assert.equal(r.data.clanes[0].nombre, 'DelArchivo');
+  assert.ok(Math.abs(Date.now() - r.desde.getTime() - HORA_MS) < 5000);
+  assert.equal(llamadas.length, 0);
+  assert.match(urls[0], /^https:\/\/ejemplo\.test\/data\/roster\.json\?t=\d+$/);
+});
+
+test('apiGetPublicoConEstatico(): archivo vencido (5 h) con Apps Script sano -> gana Apps Script, con la caché de 5 min y staleIfError de siempre', async () => {
+  const { sandbox, llamadas } = armarPublico({ archivo: JSON_ROSTER(5) });
+  const r = await sandbox.apiGetPublicoConEstatico(URL_JSON, 'webRoster', extraerClanes);
+  assert.equal(r.origen, 'apps-script');
+  assert.equal(r.data.clanes[0].nombre, 'DeApps');
+  assert.equal(llamadas.length, 1);
+  assert.equal(llamadas[0].accion, 'webRoster');
+  assert.equal(llamadas[0].opts.ttlMs, 300000);
+  assert.equal(llamadas[0].opts.staleIfError, false, 'con archivo vencido se apaga para poder comparar');
+});
+
+test('REGRESIÓN apiGetPublicoConEstatico(): archivo vencido + Apps Script caído + sin respaldo local -> se usa el archivo viejo con su fecha', async () => {
+  const { sandbox } = armarPublico({ archivo: JSON_ROSTER(5), apps: caido });
+  const r = await sandbox.apiGetPublicoConEstatico(URL_JSON, 'webRoster', extraerClanes);
+  assert.equal(r.origen, 'estatico-viejo');
+  assert.equal(r.data.clanes[0].nombre, 'DelArchivo');
+  assert.ok(Math.abs(Date.now() - r.desde.getTime() - 5 * HORA_MS) < 5000);
+});
+
+test('apiGetPublicoConEstatico(): archivo vencido + Apps Script caído + respaldo local más nuevo -> gana el respaldo local', async () => {
+  const { sandbox, sembrarRespaldo } = armarPublico({ archivo: JSON_ROSTER(5), apps: caido });
+  const t = Date.now() - 10 * 60 * 1000;
+  sembrarRespaldo('webRoster', null, { clanes: [{ nombre: 'DelRespaldo', miembros: [] }] }, t);
+  const r = await sandbox.apiGetPublicoConEstatico(URL_JSON, 'webRoster', extraerClanes);
+  assert.equal(r.origen, 'respaldo-local');
+  assert.equal(r.desde.getTime(), t);
+});
+
+test('apiGetPublicoConEstatico(): archivo sin la forma esperada (extraer -> null) se ignora: con Apps Script sano gana Apps Script; caído, el error sube', async () => {
+  const malo = { _publicadoEn: new Date().toISOString(), clanes: [] };
+  const sano = armarPublico({ archivo: malo });
+  assert.equal((await sano.sandbox.apiGetPublicoConEstatico(URL_JSON, 'webRoster', extraerClanes)).origen, 'apps-script');
+  const caidoApps = armarPublico({ archivo: malo, apps: caido });
+  await assert.rejects(() => caidoApps.sandbox.apiGetPublicoConEstatico(URL_JSON, 'webRoster', extraerClanes), /No pudimos conectar/);
+});
+
+test('apiGetPublicoConEstatico(): sin archivo (404) -> Apps Script; sin archivo y Apps Script caído -> el error sube igual que antes', async () => {
+  const sano = armarPublico({ archivo: undefined });
+  assert.equal((await sano.sandbox.apiGetPublicoConEstatico(URL_JSON, 'webRoster', extraerClanes)).origen, 'apps-script');
+  const caidoApps = armarPublico({ archivo: undefined, apps: caido });
+  await assert.rejects(() => caidoApps.sandbox.apiGetPublicoConEstatico(URL_JSON, 'webRoster', extraerClanes), /No pudimos conectar/);
+});
+
+test('apiGetPublicoConEstatico(): sin `opts` usa { ttlMs: 300000, staleIfError: true } y respeta los que se le pasen', async () => {
+  const sinArchivo = armarPublico({ archivo: undefined });
+  await sinArchivo.sandbox.apiGetPublicoConEstatico(URL_JSON, 'webRoster', extraerClanes);
+  assert.deepEqual([sinArchivo.llamadas[0].opts.ttlMs, sinArchivo.llamadas[0].opts.staleIfError], [300000, true]);
+  const conOpts = armarPublico({ archivo: undefined });
+  await conOpts.sandbox.apiGetPublicoConEstatico(URL_JSON, 'webRoster', extraerClanes, { ttlMs: 1000, staleIfError: true, maxIntentos: 2 });
+  assert.equal(conOpts.llamadas[0].opts.maxIntentos, 2);
+});

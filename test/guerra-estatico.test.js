@@ -188,3 +188,60 @@ test('guerra.html ya no trae su propio formato de hora: usa fmtTresTiempos() de 
   assert.ok(!grande.includes('function _haceCorto') && !grande.includes('function _horaLima'));
   assert.ok(TRAMO_AGO.includes('fmtTresTiempos('));
 });
+
+
+// ---------------------------------------------------------------- Fase 5 (09-oct-2026): cabeceras de clan desde home.json
+// cargarClanInfoGuerra() lee home.json (clave clanInfo) primero y cae a apiGet('webClanInfo'); ver apiGetPublicoConEstatico() en api.js.
+const I3 = grande.indexOf('async function cargarClanInfoGuerra');
+const F3 = grande.indexOf('/* cargarPronosticoGuerra');
+assert.ok(I3 >= 0 && F3 > I3, 'marcadores de cargarClanInfoGuerra() no encontrados (¿se reorganizó guerra.html?)');
+const TRAMO_CLANINFO = grande.slice(I3, F3);
+
+function montarClanInfo(opts){
+  const m = montar(opts);
+  m.window.eval('let clanInfoGuerra = null; let __cab = 0; function actualizarCabecerasClanes(){ __cab++; }\n' + TRAMO_CLANINFO +
+    '\nwindow.__c = { cargarClanInfoGuerra, info: () => clanInfoGuerra, cab: () => __cab };');
+  m.c = m.window.__c;
+  return m;
+}
+const HOME_JSON = (horasAtras) => ({ _publicadoEn: hace(horasAtras * HORA), clanInfo: { clanes: [{ nombre: 'Terna Uno (archivo)' }, null] } });
+const INFO_APPS = () => ({ clanes: [{ nombre: 'Terna Uno (apps)' }] });
+
+test('Fase 5, cabeceras de clan: home.json vigente se usa (sin nulos) y NO se llama a Apps Script', async () => {
+  const { c, llamadasApiGet, llamadasEstatico } = montarClanInfo({ estatico: () => HOME_JSON(1), apiGetImpl: INFO_APPS });
+  await c.cargarClanInfoGuerra();
+  assert.equal(c.info().length, 1);
+  assert.equal(c.info()[0].nombre, 'Terna Uno (archivo)');
+  assert.equal(c.cab(), 1, 'se repintan las cabeceras');
+  assert.equal(llamadasApiGet.length, 0);
+  assert.match(llamadasEstatico[0], /^https:\/\/raw\.githubusercontent\.com\/GrupoTerna\/Web\/data\/home\.json\?t=\d+$/);
+});
+
+test('Fase 5, cabeceras de clan: sin home.json o con home.json vencido y Apps Script sano -> webClanInfo (5 min de caché)', async () => {
+  for (const estatico of [undefined, () => HOME_JSON(5)]){
+    const { c, llamadasApiGet } = montarClanInfo({ estatico, apiGetImpl: INFO_APPS });
+    await c.cargarClanInfoGuerra();
+    assert.equal(c.info()[0].nombre, 'Terna Uno (apps)');
+    assert.equal(llamadasApiGet[0].accion, 'webClanInfo');
+    assert.equal(llamadasApiGet[0].opts.ttlMs, 300000);
+  }
+});
+
+test('Fase 5, cabeceras de clan: home.json vencido + Apps Script caído -> se usa el archivo viejo; sin nada, no revienta y las tarjetas quedan como antes', async () => {
+  const viejo = montarClanInfo({ estatico: () => HOME_JSON(5), apiGetImpl: appsScriptCaido });
+  await viejo.c.cargarClanInfoGuerra();
+  assert.equal(viejo.c.info()[0].nombre, 'Terna Uno (archivo)');
+  const nada = montarClanInfo({ estatico: undefined, apiGetImpl: appsScriptCaido });
+  await nada.c.cargarClanInfoGuerra();
+  assert.equal(nada.c.info(), null);
+  assert.equal(nada.c.cab(), 0);
+});
+
+test('Fase 5, cabeceras de clan: home.json sin clanInfo válido (vacío o con error) se ignora y se pide a Apps Script', async () => {
+  for (const clanInfo of [{ clanes: [] }, { error: 'x', clanes: [{ nombre: 'Mal' }] }, undefined]){
+    const { c, llamadasApiGet } = montarClanInfo({ estatico: () => ({ _publicadoEn: hace(HORA), clanInfo }), apiGetImpl: INFO_APPS });
+    await c.cargarClanInfoGuerra();
+    assert.equal(c.info()[0].nombre, 'Terna Uno (apps)');
+    assert.equal(llamadasApiGet.length, 1);
+  }
+});

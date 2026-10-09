@@ -630,3 +630,34 @@ async function apiGetConRespaldoEstatico(accion, params, opts, viejo){
     return { data: viejo.data, desde: viejo.desde, origen: 'estatico-viejo' };
   }
 }
+
+
+/**
+ * apiGetPublicoConEstatico(url, accion, extraer, opts)
+ * NUEVO (09-oct-2026, Fase 5 del plan "JSON estático como último recurso"): el patrón que repetía cada página para un dato PÚBLICO que
+ * también publica el bot como JSON en la rama `data`. 1) Baja el archivo; si está vigente (menos de 3 h desde `_publicadoEn`) lo usa y NO llama
+ * a Apps Script. 2) Si está vencido, lo guarda como último recurso. 3) Si no hay archivo utilizable, o está vencido, pide `accion` con
+ * apiGetConRespaldoEstatico() (5 min de caché y staleIfError, como siempre): gana Apps Script, y si falla, el más nuevo entre el archivo vencido y
+ * el respaldo local. Los errores de apiGet() suben igual que antes cuando no hay nada que mostrar.
+ * `extraer(json)` devuelve la parte del archivo que corresponde a la acción, YA validada (misma forma que la respuesta de Apps Script), o null si
+ * no sirve (así un archivo mal formado no se usa). Sin sesión de admin: no es para llamadas con opts.conSesion.
+ * Devuelve { data, desde, origen } como apiGetConRespaldoEstatico(); con el archivo vigente, origen 'estatico' y desde = su fecha de publicación.
+ * @param {string} url Archivo JSON (sin el ?t=, que se agrega aquí por bloques de 5 min).
+ * @param {string} accion Acción de Apps Script equivalente (ej. 'webRoster').
+ * @param {function(Object): (Object|null)} extraer
+ * @param {Object} [opts] las de apiGet(); por defecto { ttlMs: 300000, staleIfError: true }.
+ * @returns {Promise<{data: *, desde: Date|null, origen: string}>}
+ */
+async function apiGetPublicoConEstatico(url, accion, extraer, opts){
+  let viejo = null;
+  try{
+    // ?t= por bloques de 5 min: GitHub ya sirve el archivo con ~5 min de caché; esto solo evita que el navegador se quede con uno más viejo.
+    const r = await apiGetEstaticoConEdad(url + '?t=' + Math.floor(Date.now() / 300000), {});
+    const valor = r && r.est ? extraer(r.est) : null;
+    if(valor != null){
+      if(r.vigente) return { data: valor, desde: r.pub, origen: 'estatico' };
+      viejo = { data: valor, desde: r.pub };
+    }
+  }catch(e){ /* sin archivo o sin red a GitHub: se sigue con Apps Script */ }
+  return apiGetConRespaldoEstatico(accion, null, opts || { ttlMs: 300000, staleIfError: true }, viejo);
+}

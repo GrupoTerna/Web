@@ -92,7 +92,9 @@
 // v24 (09-oct-2026): api.js (nueva apiGetRespaldoUsado; apiGetConRespaldoEstatico informa 'respaldo-local' cuando apiGet() devolvió su respaldo en silencio), util.js
 // (nueva marcarDatosGuardados) e index.html cambiaron (CORE_ASSETS); clan.html también cambió pero NO está en CORE_ASSETS. Se sube la versión para que
 // 'activate' borre v23 y nadie siga con el api.js, el util.js y la portada viejos.
-const CACHE_NAME = 'terna-static-v24';
+// v25 (09-oct-2026): Fase 5 -- api.js (nueva apiGetPublicoConEstatico), clan-card.js (enlazarLideresClanes lee roster.json) y guerra.html (las cabeceras de clan leen
+// home.json) cambiaron (CORE_ASSETS). Se sube la versión para que 'activate' borre v24 y nadie siga con esos tres archivos viejos.
+const CACHE_NAME = 'terna-static-v25';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y

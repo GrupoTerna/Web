@@ -111,3 +111,51 @@ test('chartCardHtml() trata valores no numéricos/ausentes como 0 en vez de romp
   const html = chartCardHtml('Miembros', '👥', clanes, 'miembros');
   assert.match(html, /<span class="chart-val">0<\/span>/g);
 });
+
+
+/*
+ * enlazarLideresClanes() — Fase 5 (09-oct-2026): el roster sale de roster.json (rama `data`) y solo cae a webRoster si el archivo falta o no sirve.
+ * Se carga api.js real; solo se simulan apiGetEstatico (red a GitHub) y apiGet (Apps Script). LÍMITE: red simulada, sin navegador real.
+ */
+const { loadBrowserScriptsWithDom } = require('./load-browser-script');
+const HORA_CC = 60 * 60 * 1000;
+const ROSTER_CC = (horasAtras) => ({ _publicadoEn: new Date(Date.now() - horasAtras * HORA_CC).toISOString(), clanes: [{ nombre: 'Terna Uno', miembros: [{ nombre: 'Ana', tag: '#AAA111', rango: 'Colíder' }, { nombre: 'Otro', tag: '#BBB222', rango: 'Líder' }] }] });
+
+function montarLideres({ archivo, apiGetImpl } = {}){
+  const window = loadBrowserScriptsWithDom(
+    ['assets/js/core/config.js', 'assets/js/util.js', 'assets/js/data/clan-badges.js', 'assets/js/core/api.js', 'assets/js/features/clan-card.js'],
+    '<div id="grid"><div class="card"><div>Terna Uno</div><div>Líder: Ana</div></div></div>');
+  const llamadas = [], urls = [];
+  window.apiGetEstatico = async (url) => { urls.push(url); if (!archivo) throw new Error('HTTP 404 (simulado)'); return archivo(); };
+  window.apiGet = async (accion, params, opts) => { llamadas.push({ accion, opts }); if (!apiGetImpl) throw new Error('No pudimos conectar con el servidor.'); return apiGetImpl(); };
+  return { window, llamadas, urls, grid: window.document.getElementById('grid') };
+}
+const CLANES_CC = [{ nombre: 'Terna Uno', lider: 'Ana' }];
+
+test('enlazarLideresClanes(): con roster.json vigente enlaza al líder por su nombre y NO llama a Apps Script', async () => {
+  const { window, llamadas, urls, grid } = montarLideres({ archivo: () => ROSTER_CC(1) });
+  await window.enlazarLideresClanes(grid, CLANES_CC);
+  const a = grid.querySelector('a.clan-lider-link');
+  assert.ok(a, 'debe envolver el nombre del líder');
+  assert.equal(a.getAttribute('href'), 'perfil.html?tag=%23AAA111');
+  assert.equal(llamadas.length, 0);
+  assert.match(urls[0], /^https:\/\/raw\.githubusercontent\.com\/GrupoTerna\/Web\/data\/roster\.json\?t=\d+$/);
+});
+
+test('enlazarLideresClanes(): sin roster.json cae a webRoster (5 min de caché y staleIfError)', async () => {
+  const { window, llamadas, grid } = montarLideres({ apiGetImpl: () => ROSTER_CC(0) });
+  await window.enlazarLideresClanes(grid, CLANES_CC);
+  assert.ok(grid.querySelector('a.clan-lider-link'));
+  assert.equal(llamadas[0].accion, 'webRoster');
+  assert.equal(llamadas[0].opts.ttlMs, 300000);
+});
+
+test('enlazarLideresClanes(): roster.json vencido + Apps Script caído -> usa el archivo viejo; sin nada, la tarjeta queda igual y no revienta', async () => {
+  const viejo = montarLideres({ archivo: () => ROSTER_CC(5) });
+  await viejo.window.enlazarLideresClanes(viejo.grid, CLANES_CC);
+  assert.ok(viejo.grid.querySelector('a.clan-lider-link'));
+  const nada = montarLideres({});
+  await nada.window.enlazarLideresClanes(nada.grid, CLANES_CC);
+  assert.equal(nada.grid.querySelector('a.clan-lider-link'), null);
+  assert.equal(nada.grid.textContent.includes('Líder: Ana'), true);
+});

@@ -146,14 +146,16 @@ function chartCardHtml(titulo, icono, clanes, campo, formatFn){
 /**
  * enlazarLideresClanes(grid, clanes)
  * FIX (07-oct-2026, pedido usuario — "en index, al pasar el mouse por el líder del clan, debe poder hacer clic a su perfil"):
- * webClanInfo solo manda el NOMBRE del líder (c.lider), sin tag. El tag se busca en webRoster (misma caché de 5 min que usan
- * index.html y directorio.html): primero por nombre dentro del clan y, si no coincide, el miembro con rango Líder de ese clan. Luego se
+ * webClanInfo solo manda el NOMBRE del líder (c.lider), sin tag. El tag se busca en el roster (roster.json si está vigente; si no, webRoster con la
+ * misma caché de 5 min que usan index.html y directorio.html; Fase 5, 09-oct-2026): primero por nombre dentro del clan y, si no coincide, el miembro con rango Líder de ese clan. Luego se
  * envuelve en un <a href="perfil.html?tag=..."> el texto que sigue a "Líder:" en la tarjeta. Es DOM sobre lo que ya pintó
  * clanCardHtml(), así que no depende de su marcado exacto; si no encuentra algo, deja la tarjeta como estaba.
  */
+const CLAN_CARD_ROSTER_URL = 'https://raw.githubusercontent.com/GrupoTerna/Web/data/roster.json'; // nombre propio: index/directorio/clan ya declaran el suyo en su <script>
 async function enlazarLideresClanes(grid, clanes){
   try{
-    const roster = await apiGet('webRoster', null, { ttlMs: 300000, staleIfError: true });
+    // CAMBIO (09-oct-2026, Fase 5): roster.json (rama `data`) primero, con Apps Script como respaldo; ver apiGetPublicoConEstatico() en api.js.
+    const roster = (await apiGetPublicoConEstatico(CLAN_CARD_ROSTER_URL, 'webRoster', j => (j && Array.isArray(j.clanes) && j.clanes.length ? j : null))).data;
     const norm = s => String(s || '').trim().toLowerCase();
     const sinTilde = s => norm(s).normalize('NFD').replace(/[\u0300-\u036f]/g, '');
     const grupos = (roster && roster.clanes) || [];

@@ -672,6 +672,7 @@ function iniciarProgreso(){
 }
 /* NUEVO (08-oct-2026): los datos de guerra salen primero de un archivo estático (guerra.json en la rama `data` de GitHub, lo publica el bot desde Apps Script, ver 39_Publicar_Guerra.gs). Apps Script tardaba 15-35 s y fallaba con el 404 del redirect 'echo' al entregar ~920 KB. Si el archivo no existe, falla o tiene más de GUERRA_ESTATICO_EDAD_MAX_MS, se pide a Apps Script como antes (con 2 intentos en vez de 5). Ajusta el repo en la URL si no es GrupoTerna/Web. */
 const GUERRA_ESTATICO_URL = 'https://raw.githubusercontent.com/GrupoTerna/Web/data/guerra.json';
+const HOME_ESTATICO_URL = 'https://raw.githubusercontent.com/GrupoTerna/Web/data/home.json'; // Fase 5 (09-oct-2026): cabeceras de clan, ver cargarClanInfoGuerra()
 const GUERRA_ESTATICO_EDAD_MAX_MS = 3 * 60 * 60 * 1000; // el bot lo reescribe al menos cada hora; 3 h = algo falló
 /* CAMBIO (09-oct-2026, Fase 1 JSON estático como último recurso): antes un guerra.json con más de GUERRA_ESTATICO_EDAD_MAX_MS se tiraba y, si Apps Script tampoco respondía, la página quedaba con error aunque el archivo viejo existía (y aquí no hay respaldo local: la llamada a Apps Script va con sinCache). Ahora el archivo viejo (solo si trae `ctx`) se guarda y se usa ÚNICAMENTE si Apps Script falla; con Apps Script sano todo sigue igual. Devuelve viejo:true en ese caso para que cargar() avise. */
 async function obtenerDatosGuerra(){
@@ -2210,8 +2211,9 @@ function actualizarCabecerasClanes(){
 }
 async function cargarClanInfoGuerra(){
   try{
-    const data = await apiGet('webClanInfo', null, { ttlMs: 300000, staleIfError: true }); // misma llamada (y misma caché de 5 min) que index/directorio
-    clanInfoGuerra = (data.clanes || []).filter(c => c);
+    // CAMBIO (09-oct-2026, Fase 5): home.json (rama `data`, clave clanInfo) primero y Apps Script como respaldo (misma caché de 5 min que index/directorio); ver apiGetPublicoConEstatico() en api.js.
+    const r = await apiGetPublicoConEstatico(HOME_ESTATICO_URL, 'webClanInfo', h => (h && h.clanInfo && !h.clanInfo.error && Array.isArray(h.clanInfo.clanes) && h.clanInfo.clanes.length ? h.clanInfo : null));
+    clanInfoGuerra = (r.data.clanes || []).filter(c => c);
     actualizarCabecerasClanes();
   }catch(err){
     // Sin datos de clan: las tarjetas conservan solo el nombre, como antes.

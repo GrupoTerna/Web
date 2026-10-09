@@ -11,6 +11,23 @@ el código hoy) cuando hace falta para mantenerlo; el "por qué histórico"
 
 ---
 
+## Fase 5 — cabeceras de clan de `guerra.html` y enlace al líder leen JSON estático, y sw.js v25 (09-oct-2026)
+
+Cierra la «Fase 5 (opcional)» del plan «JSON estático como último recurso» (ver «Pendientes de este plan», abajo). Pedido del usuario («continúa con la fase 5 o lo que quede pendiente»). Solo se tocó el repo Web.
+
+- **`assets/js/core/api.js`, `apiGetPublicoConEstatico(url, accion, extraer, opts)` (nueva):** el patrón que cada página repetía a mano, en un solo lugar. Archivo vigente (menos de 3 h) -> se usa y no se llama a Apps Script; vencido -> queda como último recurso y se pide `accion` con `apiGetConRespaldoEstatico()` (5 min de caché y `staleIfError`, como siempre); sin archivo o con forma inválida -> Apps Script. `extraer(json)` devuelve la parte ya validada o `null`. Devuelve `{ data, desde, origen }`. Las páginas ya migradas (portada, clan, directorio, comunidad, torneos) **no** se refactorizaron para usarla: no hacía falta y era más riesgo.
+- **`guerra.html`, `cargarClanInfoGuerra()`:** las cabeceras de clan de «Guerra de Hoy» salen de `home.json` (clave `clanInfo`) y solo caen a `webClanInfo` si el archivo falta, está vencido o no sirve. Constante nueva `HOME_ESTATICO_URL`. El CSP de la página ya permitía `raw.githubusercontent.com`.
+- **`assets/js/features/clan-card.js`, `enlazarLideresClanes()`:** el roster para buscar el tag del líder sale de `roster.json`, con `webRoster` como respaldo. Constante nueva `CLAN_CARD_ROSTER_URL` (nombre propio: portada, directorio y clan ya declaran el suyo en su `<script>` y un `const` repetido rompería la página). Si no hay roster, la tarjeta queda igual que antes.
+- **`eslint.config.js`:** `apiGetPublicoConEstatico` se suma a `GLOBALES_COMPARTIDOS` (la usa `clan-card.js`).
+- **Efecto:** menos llamadas a Apps Script en cada visita a la portada, directorio y guerra (el roster y la info de clanes ya salen del JSON si está vigente), y esas cabeceras y enlaces también funcionan con Apps Script caído.
+- **Sin aviso «Datos guardados» aquí a propósito:** son datos de apoyo (cabecera y enlace); si faltan, la tarjeta queda como antes.
+- **`sw.js`:** `CACHE_NAME` sube a `terna-static-v25` (`api.js`, `clan-card.js` y `guerra.html` están en `CORE_ASSETS`).
+- **Pruebas:** 7 en `test/api.test.js` (el ayudante: vigente, vencido con Apps sano, vencido con Apps caído, respaldo local más nuevo, archivo mal formado, sin archivo, opciones), 4 en `test/guerra-estatico.test.js` (cabeceras) y 3 en `test/clan-card.test.js` (`enlazarLideresClanes`).
+- **No se probó** en navegador real ni contra GitHub/Apps Script reales; solo con red simulada.
+- **Sigue pendiente (decisión del usuario):** las cargas que salen de un JSON estático no guardan nada en el respaldo local (ver «Pendientes de este plan»), y el backend (qué claves publican `50_` a `53_Publicar_*.gs`, si `doGet` cae a los `Backup_*.csv`, si los JSON traen `tiempos.api.ultimaConsultaTs`), que queda fuera mientras el trabajo sea solo del repo Web.
+
+---
+
 ## Aviso «⚠ Datos guardados» (portada, `clan.html`) y sw.js v24 — `apiGet()` informa cuando devuelve su respaldo local (09-oct-2026)
 
 Resuelve el pendiente «aviso `⚠ Datos guardados` cuando `apiGet()` devolvió en silencio su respaldo local» y el «aviso común en las otras 4 secciones de la portada, el roster y la tarjeta de guerra de `clan.html`» (entrada «`guerra.html` y `sw.js` v23», abajo). Pedido del usuario («hazlo»). Verificar el backend sigue fuera de alcance (solo se tocó el repo Web).
@@ -157,7 +174,7 @@ Contexto (revisión pedida por el usuario: «que consulte los CSV o JSON si Shee
 - **Fase 2: APLICADA el 09-oct-2026** (ver la entrada de arriba): `index.html` y `clan.html`. Para esto se agregó `apiGetConRespaldoEstatico()` (compara con el respaldo local), no solo `apiGetEstaticoConEdad()`.
 - **Fase 3: APLICADA el 09-oct-2026** (ver la entrada de arriba, v20). Plan original: `directorio.html` (`obtenerRoster()`; además `cargarClanInfoYCharts()` llama a `webClanInfo` directo y se salta `home.json`, que ya trae `clanInfo`) y `comunidad.html` (`obtenerAscensos()`). Reutilizan `apiGetConRespaldoEstatico()` donde la página ya pide con `staleIfError`.
 - **Fase 4: APLICADA el 09-oct-2026** (ver la entrada de arriba, v21): `torneos.html` (`cargarTorneosEstatico()` y `apiGetTorneosCompartido()`) y `perfil.html` (`obtenerCtxGuerra()`). Reutilizan `apiGetConRespaldoEstatico()` donde la página ya usa `staleIfError`.
-- **Fase 5 (opcional):** `guerra.html`, `cargarClanInfoGuerra()` (cabeceras de clan) y `assets/js/features/clan-card.js`, `enlazarLideresClanes()` (enlace al líder, pide `webRoster` directo): pasarlos a `home.json` / `roster.json`.
+- **Fase 5: APLICADA el 09-oct-2026** (ver la entrada de arriba, v25). Plan original (opcional): `guerra.html`, `cargarClanInfoGuerra()` (cabeceras de clan) y `assets/js/features/clan-card.js`, `enlazarLideresClanes()` (enlace al líder, pide `webRoster` directo): pasarlos a `home.json` / `roster.json`.
 - **Pendiente de definir (decisión del usuario):** las cargas que salen de un JSON estático no guardan nada en el respaldo local (`_backupLocalGuardar()` solo se llama dentro de `apiGet()`), así que `staleIfError` no ayuda a quien siempre recibe datos por JSON, ni sin conexión. Riesgo: `guerra.json` pesa unos 920 KB y localStorage tiene unos 5 MB; habría que decidir qué archivos sí guardar.
 - **Sin JSON hoy (dependen 100 % de Apps Script):** `webPronosticoGuerra`, `webGuerraPuestosDia` (este con respaldo local), `webGuerraLog`, `webCompararJugadores`, `webHistorialGuerraComparador`, `webIngresosRecientes`, `webPerfil`, `webTorneosJugador`. `webCofresJugador` y `webBattlelogJugador` van en vivo a Supercell y no se publicarían. Publicar cualquiera de los otros requiere cambios en el bot (backend).
 - **Pendiente de verificar en el backend (requiere subir `Base.md`):** que `doGet` caiga a los `Backup_*.csv` cuando falla la lectura de Sheets (el usuario indica que debería); qué claves publican realmente `50_` a `53_Publicar_*.gs`; y si el bot sigue republicando cuando Sheets falla. El usuario enviará el backend cuando se terminen estas fases.
