@@ -653,44 +653,13 @@ function setNum(id, val){
   if(changed){ el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash'); }
   prevValues[id] = val;
 }
-// FIX (20-sep-2026, D-10 b): antes esta función repetía acá las mismas
-// franjas de segundos/minutos que ya calcula fmtTiempoRelativo() (util.js),
-// el componente único que index/directorio/perfil/torneos usan para
-// "actualizado hace X" sobre el respaldo en localStorage. Esta página sigue
-// necesitando su propia función porque su fuente es lastFetchAt (en
-// memoria, se auto-refresca sola cada REFRESH_INTERVAL_MS) y no el
-// localStorage de apiGetUltimaActualizacion(), pero el texto ya sale de la
-// misma función compartida en vez de una copia local — una sola definición
-// de "actualizado hace X" en todo el sitio.
-/* CAMBIO (08-oct-2026): ahora muestra dos tiempos, "API" (datos del juego) y "Consulta" (la de esta página al servidor).
- * Formato propio (_haceCorto) en vez de fmtTiempoRelativo(): no tengo util.js a la vista y su texto lleva el prefijo
- * "Actualizado", que no sirve dentro de "API: … · Consulta: …". */
-function _haceCorto(d){
-  const s = Math.max(0, Math.floor((Date.now() - d.getTime()) / 1000));
-  if(s < 60) return 'hace ' + s + ' s';
-  const m = Math.floor(s / 60);
-  if(m < 60) return 'hace ' + m + ' min';
-  const h = Math.floor(m / 60), rm = m % 60;
-  return 'hace ' + h + ' h' + (rm ? ' ' + rm + ' min' : '');
-}
-function _horaLima(d){
-  try{ return d.toLocaleTimeString('es-PE', {hour:'2-digit', minute:'2-digit', second:'2-digit', timeZone:'America/Lima'}); }
-  catch(e){ return d.toLocaleTimeString(); }
-}
+/* CAMBIO (09-oct-2026, pedido del usuario): la barra de estado usa fmtTresTiempos() de util.js, el mismo componente que el resto del sitio, en vez de su propio formato (antes _haceCorto()/_horaLima()). Muestra «Consulta · JSON publicado · API Supercell» (cada parte solo si existe) y, con datos guardados, «⚠ Datos guardados: el servidor no responde». «Consulta» es siempre la hora real: la llamada a Apps Script va con sinCache y sin staleIfError, así que nunca devuelve un respaldo en silencio. Historial en CHANGELOG.md. */
 function actualizarAgoText(){
   const el = document.getElementById('agoText');
   if(!el || !lastFetchAt) return;
-  const partes = [];
-  if(lastApiAt) partes.push('API: ' + _haceCorto(lastApiAt));
-  partes.push('Consulta: ' + _haceCorto(lastFetchAt));
-  if(lastEsViejo) partes.push('⚠ Datos guardados: el servidor no responde');
-  el.textContent = partes.join(' · ');
-  const det = [];
-  if(lastApiAt) det.push('Última consulta del bot a la API del juego: ' + _horaLima(lastApiAt));
-  if(lastPublicadoAt) det.push('Archivo publicado: ' + _horaLima(lastPublicadoAt));
-  det.push('Esta página consultó al servidor: ' + _horaLima(lastFetchAt));
-  if(lastEsViejo) det.push('Se muestra el último archivo publicado porque Apps Script no respondió; los datos pueden estar atrasados.');
-  el.title = det.join(' | ');
+  const t = fmtTresTiempos({ consulta: lastFetchAt, publicado: lastPublicadoAt, api: lastApiAt, esViejo: lastEsViejo });
+  el.textContent = t.texto;
+  el.title = t.titulo;
 }
 function iniciarProgreso(){
   const fill = document.getElementById('progressFill');

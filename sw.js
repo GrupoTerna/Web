@@ -87,7 +87,9 @@
 // torneos.html cambiaron (CORE_ASSETS); clan.html también cambió pero NO está en CORE_ASSETS -- la hora de «Consulta» es ahora la real del último guardado
 // cuando el dato salió de Apps Script (si apiGet() devolvió su respaldo local sin avisar, ya no dice «hace unos segundos»). Se sube la versión para que
 // 'activate' borre v21 y nadie siga con el util.js y las páginas viejas.
-const CACHE_NAME = 'terna-static-v22';
+// v23 (09-oct-2026): guerra.html cambió (CORE_ASSETS) -- su barra de estado ahora usa fmtTresTiempos() de util.js (mismo formato que el resto del sitio:
+// «Consulta · JSON publicado · API Supercell») en vez de su propio formato. Se sube la versión para que 'activate' borre v22 y nadie siga con el guerra.html viejo.
+const CACHE_NAME = 'terna-static-v23';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y

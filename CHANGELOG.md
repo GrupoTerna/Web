@@ -11,6 +11,21 @@ el código hoy) cuando hace falta para mantenerlo; el "por qué histórico"
 
 ---
 
+## guerra.html y sw.js v23 — la barra de estado usa `fmtTresTiempos()` (09-oct-2026)
+
+Resuelve el pendiente «unificar `guerra.html` con `fmtTresTiempos()`» de las fases anteriores. Pedido del usuario; se le avisó de antemano que cambiaba el orden y el texto de lo que se ve.
+
+- **`guerra.html`, `actualizarAgoText()`:** pasa a `fmtTresTiempos({ consulta, publicado, api, esViejo })` de `util.js` y se eliminan `_haceCorto()` y `_horaLima()` (formato propio). Las variables `lastFetchAt`, `lastPublicadoAt`, `lastApiAt` y `lastEsViejo` y su origen no cambian.
+- **Lo que se ve cambia:** antes «API: hace X · Consulta: hace X» (el archivo publicado solo salía en el tooltip); ahora «Consulta: hace X · JSON publicado: hace X · API Supercell: hace X», cada parte solo si existe (sin archivo, como con Apps Script, no sale «JSON publicado»). Con datos guardados sigue el aviso «⚠ Datos guardados: el servidor no responde». Los tooltips pasan a los textos compartidos (p. ej. «Última consulta del bot a la API de Supercell», y con datos guardados «Se muestra el último dato guardado porque el servidor no respondió…» en vez de nombrar a Apps Script). Pasadas 24 h el «hace» sale en días («hace 2 d»); antes seguía en horas.
+- **«Consulta» sigue siendo la hora real, sin ayudante:** la llamada a Apps Script de esta página va con `sinCache: true` y sin `staleIfError`, así que nunca devuelve un respaldo local en silencio; `lastFetchAt` es la hora en que la página obtuvo la respuesta. Por eso no hace falta `horaConsultaApiGet()` aquí.
+- **`assets/js/util.js`:** solo un comentario (ya no dice que `fmtHaceCorto()` copia a `_haceCorto()`).
+- **`sw.js`:** `CACHE_NAME` sube a `terna-static-v23` (`guerra.html` está en `CORE_ASSETS`).
+- **Pruebas (`test/guerra-estatico.test.js`, 15 en total, eran 9):** 6 nuevas (orden y partes con archivo vigente, sin archivo, sin hora de la API, archivo viejo con el aviso, sin `lastFetchAt`, y que `guerra.html` ya no define su propio formato) y 3 existentes ajustadas al texto compartido («API Supercell», «el servidor no respondió»); el marcador del tramo pasó de `_haceCorto` a `actualizarAgoText` y la prueba ahora también carga `util.js`. Contra el `guerra.html` anterior fallan 6.
+- **No se probó** en navegador real ni contra GitHub/Apps Script reales; solo con red simulada.
+- **Sigue pendiente (decisión del usuario):** el aviso «⚠ Datos guardados» cuando `apiGet()` devolvió en silencio su respaldo local (portada, `clan.html` y el resto), que necesita que `apiGet()` informe que usó el respaldo; y el aviso común en las otras 4 secciones de la portada, el roster y la tarjeta de guerra de `clan.html`.
+
+---
+
 ## perfil.html — se ignora un `ctx` de guerra de más de 24 h (09-oct-2026)
 
 Resuelve el pendiente «`ctx` viejo en `perfil.html`» de la entrada de la Fase 4 (más abajo). Decisión del usuario: opción (b), con un límite de 24 h (propuesta del asistente; no se sabe a qué hora exacta cambia el día de guerra, así que es un margen, no una hora exacta).
@@ -41,7 +56,7 @@ Continúa la Fase 3 (misma idea: si Apps Script no responde, usar el último JSO
 - **Límite (perfil.html):** con un `guerra_ctx.json` viejo el `ctx` es el de ese momento (por ejemplo, el día de guerra de entonces) y la página lo usa tal cual para decidir si congela lo del domingo; no muestra ningún aviso de eso. **Actualizado (09-oct-2026):** ya no es así con más de 24 h; ver la entrada «`perfil.html` — se ignora un `ctx` de guerra de más de 24 h», arriba. Antes, en el mismo caso, `apiGet()` devolvía su respaldo local con cualquier antigüedad, así que no es un empeoramiento, pero tampoco está resuelto.
 - **Resuelto (usuario, 09-oct-2026): `ctx` viejo en `perfil.html`.** Se eligió la opción (b) con límite de 24 h (ver la entrada de arriba). Texto original del pendiente: `periodIndex` cambia cada día, así que un `guerra_ctx.json` de hace varios días puede congelar o descongelar mal las minigráficas. Opciones: (a) dejarlo así (lo que hay ahora); (b) ignorar un `ctx` más viejo que un límite que defina el usuario (hoy no existe ese límite y no se inventó uno; sin `ctx` la página asume que no se sabe y congela mientras no haya días jugados); (c) mostrar un aviso en la ficha. Contexto: la ficha no tiene hoy ningún texto de hora para el `ctx`.
 - **Resuelto (usuario, 09-oct-2026): convención de «Consulta» con `origen: 'apps-script'`.** Se unificó: siempre la hora real (ver el ajuste más abajo). Ya no es un pendiente.
-- **Pendiente de definir (viene de la Fase 3, sigue abierto):** el aviso común en las otras 4 secciones de la portada, el roster y la tarjeta de guerra de `clan.html`, y unificar `guerra.html` con `fmtTresTiempos()`. De los tres sitios que la Fase 3 nombraba junto con la Fase 4, `torneos.html` queda resuelto con esta fase; `perfil.html` no muestra hora del `ctx` (ver arriba). Sigue pendiente confirmar en el backend si los JSON traen `tiempos.api.ultimaConsultaTs`.
+- **Pendiente de definir (viene de la Fase 3, sigue abierto):** el aviso común en las otras 4 secciones de la portada, el roster y la tarjeta de guerra de `clan.html`, y unificar `guerra.html` con `fmtTresTiempos()` (**resuelto el 09-oct-2026**, ver la entrada «`guerra.html` y `sw.js` v23», arriba). De los tres sitios que la Fase 3 nombraba junto con la Fase 4, `torneos.html` queda resuelto con esta fase; `perfil.html` no muestra hora del `ctx` (ver arriba). Sigue pendiente confirmar en el backend si los JSON traen `tiempos.api.ultimaConsultaTs`.
 - **Sigue igual (admin en torneos):** con un admin con sesión, `webTorneos` y `webHistorialTorneos` van solo a Apps Script y no tienen respaldo en JSON (necesitan los Tags reales).
 
 

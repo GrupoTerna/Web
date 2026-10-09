@@ -12,7 +12,7 @@ const { loadBrowserScriptsWithDom } = require('./load-browser-script');
 // falla, se muestra el archivo viejo (viejo:true) y la barra de estado avisa "Datos guardados".
 //
 // guerra.html tiene miles de líneas de script, así que NO se carga entero: se extraen del <script> inline
-// REAL (a) obtenerDatosGuerra() con sus constantes y (b) _haceCorto()/_horaLima()/actualizarAgoText().
+// REAL (a) obtenerDatosGuerra() con sus constantes y (b) actualizarAgoText().
 // Si alguien reorganiza esos tramos, los marcadores de abajo fallan a propósito. api.js se carga de verdad
 // para usar la apiGetEstaticoConEdad() real; solo se simulan apiGetEstatico (red a GitHub) y apiGet (Apps Script).
 //
@@ -30,7 +30,7 @@ assert.ok(I1 >= 0 && F1 > I1, 'marcadores de obtenerDatosGuerra() no encontrados
 const TRAMO_OBTENER = grande.slice(I1, F1);
 assert.ok(TRAMO_OBTENER.includes('async function obtenerDatosGuerra'));
 
-const I2 = grande.indexOf('function _haceCorto');
+const I2 = grande.indexOf('function actualizarAgoText');
 const F2 = grande.indexOf('function iniciarProgreso');
 assert.ok(I2 >= 0 && F2 > I2, 'marcadores de actualizarAgoText() no encontrados (¿se reorganizó guerra.html?)');
 const TRAMO_AGO = grande.slice(I2, F2);
@@ -48,7 +48,7 @@ const DE_APPS = { ctx: { periodIndex: 18 }, origen: 'apps-script' };
 // `estatico`: undefined -> apiGetEstatico rechaza (sin archivo / sin red a GitHub); función -> se usa tal cual.
 // `apiGetImpl`: comportamiento de apiGet (por defecto devuelve DE_APPS); lanzar para simular Apps Script caído.
 function montar({ estatico, apiGetImpl } = {}){
-  const window = loadBrowserScriptsWithDom(['assets/js/core/api.js'], '<span id="agoText"></span>');
+  const window = loadBrowserScriptsWithDom(['assets/js/util.js', 'assets/js/core/api.js'], '<span id="agoText"></span>'); // util.js: actualizarAgoText() usa fmtTresTiempos()
   const llamadasApiGet = [], llamadasEstatico = [];
   window.apiGetEstatico = async (url) => {
     llamadasEstatico.push(url);
@@ -130,10 +130,61 @@ test('barra de estado: con datos guardados avisa; sin ellos, no', () => {
   t.set({ f: new Date(), a: new Date(Date.now() - 5 * HORA), v: true });
   t.actualizarAgoText();
   assert.ok(ago().textContent.includes('Datos guardados: el servidor no responde'));
-  assert.ok(ago().textContent.includes('API: hace 5 h'));
-  assert.ok(ago().title.includes('Apps Script no respondió'));
+  assert.ok(ago().textContent.includes('API Supercell: hace 5 h'));
+  assert.ok(ago().title.includes('el servidor no respondió'));
   t.set({ v: false });
   t.actualizarAgoText();
   assert.ok(!ago().textContent.includes('Datos guardados'));
-  assert.ok(!ago().title.includes('Apps Script no respondió'));
+  assert.ok(!ago().title.includes('el servidor no respondió'));
+});
+
+// ---------------------------------------------------------------- Unificación con fmtTresTiempos() (09-oct-2026, pedido del usuario)
+// La barra de estado ya no tiene formato propio: usa el mismo componente que el resto del sitio (util.js).
+
+test('barra de estado — archivo vigente: «Consulta · JSON publicado · API Supercell», en ese orden', () => {
+  const { t, window } = montar({ estatico: () => VIGENTE });
+  const ago = () => window.document.getElementById('agoText');
+  t.set({ f: new Date(Date.now() - 3000), p: new Date(Date.now() - 40 * 60 * 1000), a: new Date(Date.now() - 52 * 60 * 1000), v: false });
+  t.actualizarAgoText();
+  assert.match(ago().textContent, /^Consulta: hace 3 s · JSON publicado: hace 40 min · API Supercell: hace 52 min$/);
+  assert.ok(ago().title.includes('Última consulta del bot a la API de Supercell'));
+  assert.ok(ago().title.includes('Archivo JSON publicado'));
+  assert.ok(ago().title.includes('Esta página consultó'));
+});
+
+test('barra de estado — datos de Apps Script (sin archivo): no sale «JSON publicado»', () => {
+  const { t, window } = montar({ estatico: undefined });
+  const ago = () => window.document.getElementById('agoText');
+  t.set({ f: new Date(Date.now() - 2000), p: null, a: new Date(Date.now() - 10 * 60 * 1000), v: false });
+  t.actualizarAgoText();
+  assert.match(ago().textContent, /^Consulta: hace 2 s · API Supercell: hace 10 min$/);
+  assert.ok(!ago().textContent.includes('JSON publicado'));
+});
+
+test('barra de estado — sin la hora de la API (el dato no la trae): solo se omite esa parte', () => {
+  const { t, window } = montar({ estatico: () => VIGENTE });
+  const ago = () => window.document.getElementById('agoText');
+  t.set({ f: new Date(Date.now() - 1000), p: new Date(Date.now() - 60 * 1000), a: null, v: false });
+  t.actualizarAgoText();
+  assert.match(ago().textContent, /^Consulta: hace 1 s · JSON publicado: hace 1 min$/);
+});
+
+test('barra de estado — archivo viejo + Apps Script caído: Consulta real, JSON publicado de hace horas y el aviso', async () => {
+  const { t, window } = montar({ estatico: () => VENCIDO, apiGetImpl: appsScriptCaido });
+  const r = await t.obtenerDatosGuerra();
+  assert.equal(r.viejo, true);
+  t.set({ f: new Date(Date.now() - 1000), p: r.desde, a: null, v: r.viejo });
+  t.actualizarAgoText();
+  assert.match(window.document.getElementById('agoText').textContent, /^Consulta: hace 1 s · JSON publicado: hace 5 h( \d+ min)? · ⚠ Datos guardados: el servidor no responde$/);
+});
+
+test('barra de estado — sin lastFetchAt no pinta nada (como antes)', () => {
+  const { t, window } = montar({ estatico: () => VIGENTE });
+  t.actualizarAgoText();
+  assert.equal(window.document.getElementById('agoText').textContent, '');
+});
+
+test('guerra.html ya no trae su propio formato de hora: usa fmtTresTiempos() de util.js', () => {
+  assert.ok(!grande.includes('function _haceCorto') && !grande.includes('function _horaLima'));
+  assert.ok(TRAMO_AGO.includes('fmtTresTiempos('));
 });

@@ -172,8 +172,8 @@ function fmtTiempoRelativo(fecha){
 
 /**
  * fmtHaceCorto(fecha) / fmtFechaHoraLima(fecha)
- * NUEVO (09-oct-2026, pedido del usuario: mostrar TRES momentos distintos). Misma forma corta que usa guerra.html
- * (_haceCorto): «hace 5 s», «hace 12 min», «hace 3 h 20 min». fmtFechaHoraLima() da fecha y hora absolutas en zona
+ * NUEVO (09-oct-2026, pedido del usuario: mostrar TRES momentos distintos). Es la forma corta que usa todo el sitio,
+ * incluida guerra.html: «hace 5 s», «hace 12 min», «hace 3 h 20 min». fmtFechaHoraLima() da fecha y hora absolutas en zona
  * Lima para los tooltips. Ambas devuelven '—' si no reciben una fecha válida.
  */
 // Por forma y no con `instanceof Date`: una Date creada en otro contexto (iframe, pruebas con vm) no pasa ese chequeo.
