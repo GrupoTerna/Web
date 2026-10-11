@@ -120,6 +120,21 @@ function _prepararBarraScrollTabla(wrap, opciones){
 }
 
 
+/**
+ * _fijarTopEncabezados(tabla)
+ * Encabezados inmovilizados con varias filas (ej. grupo Ataques/Medallas/Barcos + fila J/V/S/D): cada fila de <thead>
+ * se pega justo debajo de la anterior, así que su `top` es la suma de las alturas de las filas previas.
+ */
+function _fijarTopEncabezados(tabla){
+  const filas = tabla.tHead ? Array.from(tabla.tHead.rows) : [];
+  let acumulado = 0;
+  filas.forEach(tr => {
+    Array.from(tr.cells).forEach(th => { th.style.top = acumulado + 'px'; });
+    acumulado += tr.offsetHeight;
+  });
+}
+
+
 function activarBarraScrollTabla(wrap, opciones = {}){
   activarBarraScrollTablas([wrap], opciones);
 }
@@ -170,7 +185,7 @@ function activarBarraScrollTablas(wraps, opciones = {}){
   preparados.forEach(p => { p.inner.style.width = p._anchoInicial + 'px'; });
 
   preparados.forEach(p => {
-    const fijarAncho = () => { p.inner.style.width = p.tabla.scrollWidth + 'px'; };
+    const fijarAncho = () => { p.inner.style.width = p.tabla.scrollWidth + 'px'; _fijarTopEncabezados(p.tabla); };
     requestAnimationFrame(fijarAncho);
     if (document.fonts && document.fonts.ready) document.fonts.ready.then(fijarAncho).catch(() => {});
     if (window.ResizeObserver){
