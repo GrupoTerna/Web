@@ -2237,24 +2237,41 @@ function _polTxt(r){
  * jugador" — ver renderStatsAvanzadasCabecera() justo debajo de esta
  * función, y los <span> mNivelExpWrap/mTorreReyWrap/mPuntosEstelaresWrap/
  * mPuntosExpWrap agregados en el <html> más arriba.
+ * FIX (11-oct-2026, pedido usuario — "Camino de Leyendas sube escalones,
+ * Camino de Trofeos sube copas"): la subsección "Ligas" pasa a llamarse
+ * "Camino de Trofeos" (leagueStatistics son temporadas de copas, no ligas) y
+ * recibe también "Mejor ladder histórico", que estaba en Camino de Leyendas.
+ * Camino de Leyendas queda solo con Liga N. Cada fila lleva su fecha
+ * (octubre, 2026) deducida de leagueStatistics.previousSeason.id; la API no
+ * da fecha de la mejor Liga, así que esa fila va sin fecha.
+ * [→ Contexto_Base_Web.md §PF032]
  */
 function renderCaminoLeyendas(j){
   const raw = rawClash(j);
   const ls = raw.leagueStatistics || {};
   const filasLeyendas = [];
-  const filasLiga = [];
+  const filasTrofeos = [];
   const add = (arr, lbl, val) => { if (val != null && val !== '') arr.push(`<tr><td>${esc(lbl)}</td><td>${esc(String(val))}</td></tr>`); };
+  // 11-oct-2026: id de temporada de leagueStatistics ("2026-09") -> "septiembre, 2026"; null si no tiene ese formato.
+  const idATxt = id => { const m = /^(\d{4})-(\d{2})$/.exec(String(id == null ? '' : id)); return (m && +m[2] >= 1 && +m[2] <= 12) ? `${MESES_ES[+m[2] - 1]}, ${m[1]}` : null; };
+  const idSiguiente = id => { const m = /^(\d{4})-(\d{2})$/.exec(String(id == null ? '' : id)); if (!m) return null; let a = +m[1], mm = +m[2] + 1; if (mm > 12){ mm = 1; a++; } return `${a}-${String(mm).padStart(2, '0')}`; };
+  // La temporada actual no trae id: se deduce como el mes siguiente al de previousSeason (o su propio id si lo trajera). Sin ninguno de los dos, no se inventa fecha.
+  const fechaAnterior = idATxt(ls.previousSeason && ls.previousSeason.id);
+  const fechaActual = idATxt((ls.currentSeason && ls.currentSeason.id) || idSiguiente(ls.previousSeason && ls.previousSeason.id));
+  const conFecha = (txt, fecha) => (txt && fecha) ? `${txt} \u00b7 ${fecha}` : txt;
+  // Camino de Leyendas (escalones): Liga N. La API no trae fecha para estos resultados; la de actual/anterior se toma de leagueStatistics (mismo mes).
   add(filasLeyendas, 'Mejor temporada', _polTxt(raw.bestPathOfLegendSeasonResult));
-  add(filasLeyendas, 'Temporada actual', _polTxt(raw.currentPathOfLegendSeasonResult));
-  add(filasLeyendas, 'Temporada anterior', _polTxt(raw.lastPathOfLegendSeasonResult));
-  add(filasLeyendas, 'Mejor ladder hist\u00f3rico (Camino de Trofeos)', raw.legacyTrophyRoadHighScore != null ? `${fmtNum(raw.legacyTrophyRoadHighScore)} \ud83c\udfc6` : null);
-  const lsTxt = s => (s && (s.trophies != null || s.id)) ? `${s.id ? esc(String(s.id)) + ' \u00b7 ' : ''}${fmtNum(s.trophies)} \ud83c\udfc6${s.bestTrophies ? ` (mejor ${fmtNum(s.bestTrophies)})` : ''}` : null;
-  add(filasLiga, 'Mejor temporada', lsTxt(ls.bestSeason));
-  add(filasLiga, 'Temporada actual', lsTxt(ls.currentSeason));
-  add(filasLiga, 'Temporada anterior', lsTxt(ls.previousSeason));
+  add(filasLeyendas, 'Temporada actual', conFecha(_polTxt(raw.currentPathOfLegendSeasonResult), fechaActual));
+  add(filasLeyendas, 'Temporada anterior', conFecha(_polTxt(raw.lastPathOfLegendSeasonResult), fechaAnterior));
+  // Camino de Trofeos (copas): leagueStatistics + legacyTrophyRoadHighScore.
+  const lsTxt = (s, fecha) => (s && s.trophies != null) ? conFecha(`${fmtNum(s.trophies)} \ud83c\udfc6${s.bestTrophies ? ` (mejor ${fmtNum(s.bestTrophies)})` : ''}`, fecha) : null;
+  add(filasTrofeos, 'Mejor temporada', lsTxt(ls.bestSeason, idATxt(ls.bestSeason && ls.bestSeason.id)));
+  add(filasTrofeos, 'Temporada actual', lsTxt(ls.currentSeason, fechaActual));
+  add(filasTrofeos, 'Temporada anterior', lsTxt(ls.previousSeason, fechaAnterior));
+  add(filasTrofeos, 'Mejor ladder hist\u00f3rico', raw.legacyTrophyRoadHighScore != null ? `${fmtNum(raw.legacyTrophyRoadHighScore)} \ud83c\udfc6` : null);
   const card = document.getElementById('mLeyendasCard');
   const cont = document.getElementById('mLeyendasContenido');
-  if (!filasLeyendas.length && !filasLiga.length){ card.style.display = 'none'; cont.innerHTML = ''; return; }
+  if (!filasLeyendas.length && !filasTrofeos.length){ card.style.display = 'none'; cont.innerHTML = ''; return; }
   card.style.display = '';
   const tabla = filas => `<table class="panel-stats"><tbody>${filas.join('')}</tbody></table>`;
   const seccionLeyendas = filasLeyendas.length ? `
@@ -2262,12 +2279,12 @@ function renderCaminoLeyendas(j){
       <h3 class="leyendas-subcat">${_ICONO_LEYENDAS_HTML}Camino de Leyendas</h3>
       ${tabla(filasLeyendas)}
     </div>` : '';
-  const seccionLiga = filasLiga.length ? `
+  const seccionTrofeos = filasTrofeos.length ? `
     <div class="leyendas-bloque">
-      <h3 class="leyendas-subcat">Ligas</h3>
-      ${tabla(filasLiga)}
+      <h3 class="leyendas-subcat">Camino de Trofeos</h3>
+      ${tabla(filasTrofeos)}
     </div>` : '';
-  cont.innerHTML = `${seccionLeyendas}${seccionLiga}`;
+  cont.innerHTML = `${seccionLeyendas}${seccionTrofeos}`;
 }
 
 /**
