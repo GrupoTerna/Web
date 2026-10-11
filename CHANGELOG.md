@@ -4,7 +4,7 @@ Lista corta de lo que se hizo, de más reciente a más antiguo. Cada entrada tra
 
 **Cómo funciona el código hoy, por qué se decidió así, qué se probó y se descartó: no va aquí, va en `Contexto_Base_Web.md`.** Las reglas de redacción están en `Consolidados de cambios/Reglas_Consolidados.md` (repo `Backend`), sección 5. Los pendientes tampoco viven en cada entrada: están en «Abiertos». El detalle largo anterior sigue en el historial de git.
 
-*Traslado en curso (desde el 11-oct-2026):* las entradas desde el 04-oct-2026 ya están en formato corto y su contenido pasó a `§PF025` (8 y 9-oct), `§PF027` (5 a 7-oct) y `§PF018` (octava sesión, 2 al 5-oct). Las tandas 4 a 2 del 03 y 02-oct, la Fase 11 y el TBT de `guerra` (02-oct) también pasaron a `§PF018`, y la séptima y la sexta sesión (30 y 29-sep), las tandas D, C, B y A de la Fase 5b (28-sep), la Fase 11 del plan T_Lista (26-sep) y los comentarios desactualizados (21-sep) a `§PF017`. Del 20-sep ya pasaron a `§PF016` las de «Rendimiento (Lighthouse)». El resto del 20-sep (en «CSS compartido», `permisos`, `mensajes`, `admin`, `comunidad`, `perfil`, `directorio`, `index` y `guerra`) y todo lo anterior (hoy ordenado por tema y archivo, no por fecha) conservan su texto largo hasta que se trasladen, por tandas y de la fecha más reciente a la más antigua.
+*Traslado en curso (desde el 11-oct-2026):* las entradas desde el 04-oct-2026 ya están en formato corto y su contenido pasó a `§PF025` (8 y 9-oct), `§PF027` (5 a 7-oct) y `§PF018` (octava sesión, 2 al 5-oct). Las tandas 4 a 2 del 03 y 02-oct, la Fase 11 y el TBT de `guerra` (02-oct) también pasaron a `§PF018`, y la séptima y la sexta sesión (30 y 29-sep), las tandas D, C, B y A de la Fase 5b (28-sep), la Fase 11 del plan T_Lista (26-sep) y los comentarios desactualizados (21-sep) a `§PF017`. Del 20-sep ya pasaron a `§PF016` las de «Rendimiento (Lighthouse)» y «CSS compartido». El resto del 20-sep (en `permisos`, `mensajes`, `admin`, `comunidad`, `perfil`, `directorio`, `index` y `guerra`) y todo lo anterior (hoy ordenado por tema y archivo, no por fecha) conservan su texto largo hasta que se trasladen, por tandas y de la fecha más reciente a la más antigua.
 
 ---
 
@@ -149,6 +149,10 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 - **`sw.js` v4 · `config.js` rotado no llegaba al navegador.** `CACHE_NAME` pasa a `terna-static-v4`; el precaché de `install` usa `new Request(ruta, { cache: 'reload' })`. → §PF016
 - **`index.html` · Hero con `srcset` (LCP).** `assets/img/banner-hero-1000.webp` (nueva); el `<source>` del hero con `srcset` de 1000w y 1600w. → §PF016
 - **`sw.js` v3 y `robots.txt`.** `CORE_ASSETS` suma `assets/js/features/join-modal.js` y `CACHE_NAME` pasa a `terna-static-v3`. `robots.txt`: `Disallow: /permisos.html`. → §PF016
+- **`assets/styles.css` · `.buscador input` salía sin estilo (fondo blanco, 21 px).** `.buscador input` toma el aspecto de `.field input` (con su `:focus` y `::placeholder`) en 6 campos: `#tagInput`, `#compTag1` y `#compTag2` de `directorio`; `#tagInput`, `#infTagInput` y `#ascEditBuscar` de `admin`. → §PF016
+- **`assets/styles.css` · Fase 3 cerrada (D-3 c): `.admin-subseccion-body` centralizada.** `.admin-subseccion-body{padding:2px 2px 14px}` (`admin` y `mensajes`). Conteo de CSS rehecho con `conteo-css.py`. → §PF016
+- **`assets/styles.css`, `admin.html`, `directorio.html` y `perfil.html` · `.perfil-cabecera .stats-mini b` centralizada (D-3 b2).** La regla pasa a `styles.css`; `admin.html` fija `font-family:inherit` en su regla local. → §PF016
+- **`assets/styles.css` y `guerra.html` · Contraste de enlaces de texto en párrafos (B-21).** `styles.css`: `p a:not([class])` con `--purple-light` y su `:hover` dorado. `guerra.html`: `.refresh-row` pasa a `--text-dim` (`#agoText`). `--text-faint` no se toca. → §PF016
 
 ---
 
@@ -216,87 +220,6 @@ actualizarlo a mano cuando cambie una página pública.
 ---
 
 ## CSS compartido (assets/styles.css)
-
-### 20-sep-2026 — `.buscador input` salía sin estilo (fondo blanco, 21 px)
-Hallado con la auditoría de tamaño de objetivos táctiles en Chromium: 6 campos
-(los 3 buscadores de `directorio`: `#tagInput`, `#compTag1`, `#compTag2`, y
-`#tagInput`, `#infTagInput`, `#ascEditBuscar` de `admin`) no están dentro de
-`.field`, así que no recibían su estilo y se veían con el aspecto por defecto del
-navegador (fondo blanco, borde gris, 21 px de alto) sobre el sitio oscuro. Los
-otros 42 inputs de admin sí tienen estilo. `.buscador input` solo definía
-`flex` y `min-width`.
-- **Ya venía así en el zip original** (capturas idénticas, 0 px de diferencia). La
-  nota de Fase 3 dice que la regla era idéntica en admin y directorio, así que
-  no se puede saber desde cuándo ocurre ni si fue una regresión.
-- **Arreglo:** `.buscador input` toma el mismo aspecto que `.field input`
-  (fondo `--bg-2`, borde `--line`, padding 13×16, radio, `--f-body` 15 px) más su
-  `:focus` (borde y aro morados), y `::placeholder` con `--text-faint` (el color
-  por defecto daba 4.27:1; ahora ≈5:1). Alto 21 → 46 px; en escritorio input y
-  botón miden ambos 46 px y quedan en el mismo renglón.
-- Efecto medido: `directorio` +2 px de alto de página, `admin` +1 px; `index`,
-  `perfil`, `guerra`, `torneos` y `comunidad` sin cambios (0 px). El desplegable de
-  sugerencias de admin se ancla al fondo de `.buscador-wrap`, así que baja con la
-  fila. No se probó el panel de admin con sesión real.
-
-### 20-sep-2026 — Fase 3 cerrada: conteo rehecho y `.admin-subseccion-body` centralizada (D-3 c)
-Conteo con un script que analiza el CSS real (`conteo-css.py`, reproducible; las
-cifras anteriores no eran comparables entre cortes y quedan sustituidas):
-`styles.css` 939 líneas / 51 KB / 247 reglas; `<style>` locales 2 555 líneas en 11
-páginas (directorio 540, sorteo 552, index 496, guerra 248, admin 205…);
-`style=""` estático 290; `style=""` dentro de plantillas JS 440 (407 en los
-`<script>` de las páginas, 33 en `assets/js`; admin concentra 271).
-- **Duplicados literales entre páginas: solo quedaban 2.** `.admin-subseccion-body{padding:2px 2px 14px}`
-  (admin + mensajes; 29 usos) se movía a mano de `styles.css` solo porque en
-  mensajes chocaba con la regla muerta que se borró en D-3 a1; sin ese choque
-  se centraliza ahora. Padding calculado idéntico antes/después en ambas
-  páginas, 0 px distintos. La otra, `.linechart-svg .grid-line` (index +
-  directorio), **no se mueve a propósito**: el resto de esa familia
-  (`.linechart-svg`, `.axis-label`, `.axis-title`) difiere entre las dos páginas y
-  `styles.css` ya lo documenta; sacar una sola línea la fragmentaría.
-- `sorteo.html` no enlaza `styles.css`, así que sus `* {box-sizing}` y
-  `html,body{margin:0}` (idénticas a las globales) no son redundantes.
-- 9 selectores locales redefinen uno global con otro cuerpo (casi todos de
-  `sorteo`; en admin, `.field textarea` y `.stats-mini b`; en index,
-  `.ingreso-row`): son overrides, no duplicados, y no se pueden mover a ciegas.
-- **Conclusión:** la consolidación por duplicados está agotada. Los 2 555
-  líneas locales son específicas de cada página; lo único que las movería es
-  modularizar (B-16), que las cambia de sitio, no las elimina.
-
-### 20-sep-2026 — `.perfil-cabecera .stats-mini b` centralizada (D-3 b2)
-La regla (16 px, `--f-display`) estaba repetida carácter por carácter en
-`directorio.html` y `perfil.html`; pasa a `styles.css`. Las sesiones anteriores
-la habían dejado sin mover porque `admin.html` usa 15 px con la fuente del cuerpo
-y, al ir el `<link>` antes del `<style>` local, el `font-family` compartido se le
-habría filtrado. Se resuelve fijando `font-family:inherit` en la regla local de
-`admin.html` (lo que ese número ya usaba). `.stats-mini` (el contenedor) sigue en
-cada página porque difiere. Solo esas 4 páginas usan `.perfil-cabecera`.
-Verificación: estilos calculados idénticos antes/después en las 3 páginas
-(estructura inyectada, porque la pinta JS con datos del backend); control
-negativo: sin el `inherit`, admin pasaba de IBM Plex Mono a Rajdhani. Capturas:
-0 px distintos en `directorio`, `perfil`, `admin`, `guerra` e `index`.
-
-### 20-sep-2026 — Contraste de enlaces de texto en párrafos (B-21, primera medición real)
-Auditoría de contraste en Chromium (color de texto contra fondo efectivo
-compuesto, umbral 4.5:1 o 3:1 para texto grande) sobre `index`, `comunidad`,
-`torneos`, `directorio`, `guerra`, `404` y `perfil`, solo contenido estático
-(lo que pinta JS con datos del backend no se evaluó). Resultado:
-- **1 fallo real:** el enlace "Directorio" dentro de un párrafo de `index`
-  (`a{color:var(--purple)}`, #a239ff) daba 4.03:1 sobre la tarjeta. Nueva
-  regla `p a:not([class])` con `--purple-light` (>7:1) y su `:hover` dorado
-  repetido (por especificidad). Nav, botones y enlaces con clase no cambian.
-  Comparación de capturas: 377 px distintos, todos en esa palabra; el resto
-  de páginas, 0.
-- **Segundo fallo real, resuelto en `guerra.html`:** `#agoText` ("—" antes de
-  cargar; luego "Actualizado hace X s") daba 4.27:1 con `--text-faint`. La
-  primera lectura fue que el token era demasiado tenue sobre las tarjetas, pero
-  era incorrecta: sobre la tarjeta lisa el token da 4.83:1 (pasa); el texto va
-  dentro de un `.eyebrow`, cuyo tinte dorado (`rgba(243,169,34,.08)`) aclara el
-  fondo. Por eso `.refresh-row` (solo se usa en `guerra.html`) pasa a
-  `--text-dim` (6.39:1) y el token global **no** se toca. Captura: 8 px
-  distintos (el guion).
-- Ojo al repetir esta medición: las tarjetas con `data-reveal` están en
-  `opacity:0` hasta su animación y dan falsos "1:1"; hay que quitar la clase
-  `js-reveal` de `<html>` antes de medir.
 
 ### 19-sep-2026 — Fase 3, sub-lote 2: un duplicado muerto menos y tres que se dejan a propósito
 - **`perfil.html`**: se quita `.field textarea` (la base). Era idéntica
