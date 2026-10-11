@@ -4,7 +4,7 @@ Lista corta de lo que se hizo, de más reciente a más antiguo. Cada entrada tra
 
 **Cómo funciona el código hoy, por qué se decidió así, qué se probó y se descartó: no va aquí, va en `Contexto_Base_Web.md`.** Las reglas de redacción están en `Consolidados de cambios/Reglas_Consolidados.md` (repo `Backend`), sección 5. Los pendientes tampoco viven en cada entrada: están en «Abiertos». El detalle largo anterior sigue en el historial de git.
 
-*Traslado en curso (desde el 11-oct-2026):* las entradas desde el 04-oct-2026 ya están en formato corto y su contenido pasó a `§PF025` (8 y 9-oct), `§PF027` (5 a 7-oct) y `§PF018` (octava sesión, 2 al 5-oct). Las tandas 4 a 2 del 03 y 02-oct, la Fase 11 y el TBT de `guerra` (02-oct) también pasaron a `§PF018`, y la séptima y la sexta sesión (30 y 29-sep), las tandas D, C, B y A de la Fase 5b (28-sep), la Fase 11 del plan T_Lista (26-sep) y los comentarios desactualizados (21-sep) a `§PF017`. Las anteriores (desde «CI y herramientas», y antes; hoy están ordenadas por tema y archivo, no por fecha) conservan su texto largo hasta que se trasladen, por tandas.
+*Traslado en curso (desde el 11-oct-2026):* las entradas desde el 04-oct-2026 ya están en formato corto y su contenido pasó a `§PF025` (8 y 9-oct), `§PF027` (5 a 7-oct) y `§PF018` (octava sesión, 2 al 5-oct). Las tandas 4 a 2 del 03 y 02-oct, la Fase 11 y el TBT de `guerra` (02-oct) también pasaron a `§PF018`, y la séptima y la sexta sesión (30 y 29-sep), las tandas D, C, B y A de la Fase 5b (28-sep), la Fase 11 del plan T_Lista (26-sep) y los comentarios desactualizados (21-sep) a `§PF017`. Del 20-sep ya pasaron a `§PF016` las de «Rendimiento (Lighthouse)». El resto del 20-sep (en «CSS compartido», `permisos`, `mensajes`, `admin`, `comunidad`, `perfil`, `directorio`, `index` y `guerra`) y todo lo anterior (hoy ordenado por tema y archivo, no por fecha) conservan su texto largo hasta que se trasladen, por tandas y de la fecha más reciente a la más antigua.
 
 ---
 
@@ -23,6 +23,7 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 - **Sin comprobar, TBT de `guerra` (02-oct-2026):** no se corrió Lighthouse real y no se sabe cuántos jugadores tiene hoy cada clan en producción (el banco usó 50). Idea sin probar para bajar más la tarea larga (~500 ms con CPU 4×): no construir el `<tbody>` de los clanes ocultos hasta elegir su pestaña, o repartir el pintado de Control de Temporada. → §PF018
 - **Sin verificar, cartas (29-sep-2026):** que en `perfil.html` se vean la carta favorita, el mazo y la colección tras el cambio de la CSP (abrir un perfil y mirar F12 → Consola; `perfil.html` no lo audita Lighthouse); al publicar, pulsar los dos botones Héroe/Evolución de una carta de `index.html` (`cambiarVarianteCarta()` cambia el `src` de la imagen, ahora de 72×84); y el alto real del chip con las 10 cartas y sus filas de Héroe/Evolución. Sin explicar: la primera corrida de cada tanda de Lighthouse sale mucho peor (parece arranque en frío). → §PF017
 - **Sin probar, Fase 5b tandas D y B (28-sep-2026):** nada en Apps Script real ni en navegador real. Falta confirmar que un ex-miembro sale con `tag:null` (nombre sin enlace) y un activo con su Tag real (nombre con enlace), con y sin sesión de admin, y revisar los 5 lugares de `torneos.html` en escritorio y móvil; y que el aviso de «clan rival» no llegue a un visitante (backend: `_webTorneos()` y `_webIngresosRecientes()` en `37_Web_API.gs`). → §PF017
+- **Por definir (la usuaria):** el `target-size` de los enlaces del nombre en «Ingresos recientes» (`a.jugador-link` en `index.html`, menos de 24 px de alto). Se dejó sin tocar porque cambiaría el aspecto de la tarjeta. (20-sep-2026) → §PF016
 
 ---
 
@@ -134,6 +135,21 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 
 - **Comentarios desactualizados: tres «pendiente de conectar» que ya estaban conectados.** Solo comentarios, sin cambio de código. `admin.html`: `cargarCuentasDelAutor()` y la subsección «Registrar miembro nuevo» (modo «Buscar en Directorio»). `assets/js/data/clan-badges.js`: comentario sobre `badgeId` de `webClanInfo`. Backend: `13_Directorio_Inactivos_Vetados.gs`, `_obtenerCuentasDeNomMulti()` (docblock). → §PF017
 
+
+## 20-sep-2026
+
+- **`assets/js/data/clan-badges.js` y `assets/badges/Skull_05.png` · Badge de clan deformado y su peso.** `iconoBadgeClanHtml()`: `object-fit:contain`. `Skull_05.png`: de 127×151 a 66×78 px (de 29 664 a 9 955 bytes). → §PF016
+- **`directorio.html` · Se reserva la altura de los esqueletos (CLS 0,306).** `<style>`: `.chart-card.clan-card-skel{min-height:187px}` y `#clanGrid > .clan-card-skel{min-height:260px}`. → §PF016
+- **`index.html` y `directorio.html` · Accesibilidad (`label-content-name-mismatch` y `heading-order`).** `index.html`: la tarjeta `.js-ingreso-row` de «Ingresos recientes» pasa de `role="link"` a `role="group"` («Ingreso reciente: X»), sin `tabindex` y sin el listener de Enter y Espacio. `directorio.html`: `<h2 class="h2-solo-sr">Tarjetas de los clanes</h2>` antes de `#clanGrid`. → §PF016
+- **Inter e IBM Plex Mono sin el peso 500 (D-7 b).** Los 3 enlaces de Google Fonts (`preload`, `stylesheet`, `noscript`) de las 10 páginas: `wght@400;500;600;700` pasa a `wght@400;600;700`. → §PF016
+- **`assets/js/core/api.js` · Interruptor de prueba para `_MAX_PETICIONES_SIMULTANEAS` (D-13).** Lee `localStorage['terna_max_simultaneas']` (entero de 1 a 4); el valor por defecto sigue en 1. → §PF016
+- **`sw.js` · La revalidación de assets salta el caché HTTP.** `fetch` de assets estáticos: `fetch(req, { cache: 'no-cache' })`. `CACHE_NAME` no cambia. → §PF016
+- **5 endpoints pasan a 5 min con `staleIfError` (D-9 b).** `{ ttlMs: 300000, staleIfError: true }` en `webRankings`, `webAniversarios`, `webEstadisticasCartas` (`index.html`), `webIngresosRecientes` (`index.html` y `directorio.html`) y `webAscensosRecientes` (`comunidad.html`). → §PF016
+- **`perfil.html` y `assets/styles.css` · Objetivo táctil del enlace «Volver» y `::placeholder` global (D-22).** `perfil.html`: «← Volver al Directorio» con `display:inline-block; padding:5px 0`. `styles.css`: `.field input::placeholder` y `.field textarea::placeholder` con `--text-faint` y `opacity:1`. → §PF016
+- **`sw.js` v4 · `config.js` rotado no llegaba al navegador.** `CACHE_NAME` pasa a `terna-static-v4`; el precaché de `install` usa `new Request(ruta, { cache: 'reload' })`. → §PF016
+- **`index.html` · Hero con `srcset` (LCP).** `assets/img/banner-hero-1000.webp` (nueva); el `<source>` del hero con `srcset` de 1000w y 1600w. → §PF016
+- **`sw.js` v3 y `robots.txt`.** `CORE_ASSETS` suma `assets/js/features/join-modal.js` y `CACHE_NAME` pasa a `terna-static-v3`. `robots.txt`: `Disallow: /permisos.html`. → §PF016
+
 ---
 
 ## CI y herramientas (raíz del repo: `.github/`, `package.json`, `.htmlvalidate.js`)
@@ -165,157 +181,6 @@ Pendientes que quedaban de B-15, resueltos en la misma tanda:
 ---
 
 ## Rendimiento (Lighthouse)
-
-### 20-sep-2026 — Badge de clan deformado (`Skull_05`) y su peso
-Lighthouse marcó "Displays images with incorrect aspect ratio" (Buenas prácticas 96) en `index`,
-`directorio` y `guerra`: `Skull_05.png` mide 127×151 px (0.84) pero se dibuja en una caja de 26×26,
-así que se veía aplastado; además pesaba 29.6 KB para un ícono de 26 px (Lighthouse: ~26 KB de ahorro).
-- **`assets/js/data/clan-badges.js`** (`iconoBadgeClanHtml`): el `<img>` suma `object-fit:contain`. La caja
-  sigue siendo `size × size`, así que el layout no cambia (a 26 px el badge se dibuja de ~22×26 px, centrado).
-  Lighthouse no evalúa la proporción de las imágenes con `object-fit` distinto de `fill`.
-- **`assets/badges/Skull_05.png`**: 127×151 → **66×78** px (unos 3× la altura a la que se dibuja),
-  29 664 → **9 955 bytes**, sin pérdida de color (la comparación píxel a píxel con el original reducido
-  con el mismo filtro da 0). Mismo nombre y ruta, sin cambios de código para eso.
-- **Verificación (Chromium, `directorio` con `webClanInfo` simulado y badges 16000028):** caja 26×26
-  antes y después; altura de página igual (3995 px); `object-fit: contain`; 0 errores de JS. Comparación
-  visual a 26 px con densidad 3×: el badge nuevo es proporcional y nítido.
-- **Al publicar:** `sw.js` precachea `clan-badges.js`; la primera visita puede verse aún con el `<img>`
-  anterior hasta la segunda carga. **Badges nuevos:** exportarlos a `assets/badges/` de ~78 px de alto
-  (solo existe `Skull_05` hoy; los otros 179 IDs no tienen archivo y el `<img>` se quita solo).
-
-### 20-sep-2026 — `directorio.html`: se reserva la altura de los esqueletos (CLS 0.306)
-La primera corrida de Lighthouse dio CLS **0.306** en `directorio` (las 3 corridas), a cargo de
-`#chartsGrid`. Las 4 tarjetas de "Cargando estadísticas…" medían 86 px y las reales
-(título + 4 barras) miden 187 px; al llegar `webClanInfo` todo lo de abajo saltaba ~400 px en
-móvil (grilla de 392 → 794 px a 412 px de ancho). Cambio (2 reglas en el `<style>` de la página):
-- `.chart-card.clan-card-skel{min-height:187px}` — la tarjeta real mide 187 px en 360, 412, 600, 768,
-  1024 y 1280 px de ancho (medido en Chromium con datos simulados; a 412 px la grilla real da 794 px,
-  igual que el rect de Lighthouse, 798 px).
-- `#clanGrid > .clan-card-skel{min-height:260px}` — las tarjetas de clan reales miden entre 271 y 328 px
-  según el ancho y el contenido; se usa un piso de 260 px para que, si el contenido real fuera menor,
-  no quede un hueco.
-**Medición (PerformanceObserver de `layout-shift`, respuesta simulada tras 1.2 s):** 412×823:
-CLS 0.301 → **0.021**; 1280×800: 0.167 → **0.022**. Con los datos ya cargados la página es idéntica
-píxel por píxel (412 y 1280 px) y sin errores de JS. **Límites:** el modelo reproduce el valor de Lighthouse
-(0.301 vs 0.306), pero no se probó con el backend real; si `webClanInfo` falla, el bloque de error
-(más bajo que el esqueleto) colapsa y la página sube de golpe (caso raro, con `staleIfError`).
-No se tocó `index.html` (su CLS fue 0.003 en 2 de 3 corridas; la 0.151 de la otra es otra causa).
-
-### 20-sep-2026 — Accesibilidad de `index` y `directorio` (Lighthouse: `label-content-name-mismatch` y `heading-order`)
-Primera corrida real de Lighthouse (accesibilidad 96 en `index`, 98 en `directorio`).
-- **`index.html`, "Ingresos recientes":** la tarjeta `.js-ingreso-row` era un
-  `role="link"` con `tabindex="0"` y `aria-label="Ver perfil de X"` (B-6,
-  18-sep). Ese nombre no contenía el texto visible de la tarjeta (nombre, tag,
-  fecha, estadísticas), y la tarjeta anidaba enlaces reales (nombre,
-  RoyaleAPI, CWStats). Ahora es `role="group"` con nombre "Ingreso reciente: X",
-  sin `tabindex`, y se quitó el listener de Enter/Espacio (ya nada lo dispara).
-  **Efecto:** con teclado o lector de pantalla se llega al mismo perfil con el
-  enlace del nombre (`enlaceJugador`: misma URL, misma pestaña nueva); el clic
-  del mouse sobre la tarjeta se mantiene. Se pierde el tope de Tab en la
-  tarjeta completa (que era un 4.º por tarjeta). Es reversible si prefieres el
-  comportamiento de B-6.
-- **`directorio.html`:** las tarjetas de clan usan `<h3>` y venían justo tras el
-  `<h1>`. Se agrega `<h2 class="h2-solo-sr">Tarjetas de los clanes</h2>` antes de
-  `#clanGrid`, oculto visualmente con el recorte de 1x1 px (mismo patrón que
-  `.anuncio-sr` de `mensajes.html`).
-- **Verificación (Chromium, API simulada):** sin errores de JS; `index` con
-  `role="group"`, sin `tabindex`, y el clic sigue abriendo `perfil.html?tag=…`;
-  `directorio` con jerarquía H1 → H2 → H3 y **0 px de diferencia** en la captura de
-  página completa (misma altura, 4265 px). No se probó con un lector de pantalla
-  real ni con el backend.
-- **Sin tocar (pendiente de tu decisión):** el `target-size` de los enlaces del
-  nombre en "Ingresos recientes" (`a.jugador-link`, menos de 24 px de alto) cambiaría el
-  aspecto de la tarjeta.
-
-### 20-sep-2026 — D-7 (b): se quita el peso 500 de Inter y de IBM Plex Mono
-Medido en Chromium (texto renderizado de las 10 páginas que cargan las 3
-familias) y en el código: ningún `font-weight:500` ni `font:` con 500 existe
-en `assets/` ni en esas páginas (los 3 únicos están en `sorteo.html`, que
-tiene su propio enlace de fuentes y no se toca). Inter y IBM Plex Mono se
-renderizan solo en 400, 600 y 700, así que `wght@400;500;600;700` pasa a
-`wght@400;600;700` en los 3 enlaces de cada página (`preload`, `stylesheet`,
-`noscript`): 12 pesos → 10. Sin cambio visual esperable, porque ningún texto
-pedía 500. Se dejan a propósito **Rajdhani 500** (los elementos de `admin`
-con Rajdhani sin peso, 400, se dibujan con el 500 por ser el más cercano;
-quitarlo los pasaría a 600) y **Rajdhani 600/800** (usados en `admin` e
-`index`/`404`). Ahorro esperable: 1 archivo de fuente (IBM Plex Mono es
-estática); Inter en Google Fonts es variable, así que ahí el ahorro puede ser
-nulo. Límite: el barrido cubre el HTML renderizado y el código, no el
-contenido que el backend inyecte con estilos propios (no se vio ninguno).
-
-### 20-sep-2026 — D-13: interruptor de prueba para `_MAX_PETICIONES_SIMULTANEAS`
-El valor sigue en **1** para todos (se mantiene la decisión del 13-sep: con
-2 simultáneas volvían los 404 de entrega de Apps Script y los "Cargando…"
-colgados). Subirlo exige medir contra el backend real, que este entorno no
-tiene. `assets/js/core/api.js` lee ahora `localStorage['terna_max_simultaneas']`
-(entero 1–4; cualquier otro valor o un fallo de `localStorage` → 1) para poder
-probar en un solo navegador sin publicar nada distinto: `localStorage.setItem(
-'terna_max_simultaneas','2')` + recargar; `removeItem` para volver. Sin
-efecto para los visitantes que no lo fijen.
-
-### 20-sep-2026 — `sw.js`: la revalidación de assets salta el caché HTTP
-En el `fetch` de assets estáticos (caché primero + actualización en segundo
-plano) la petición a la red ahora es `fetch(req, { cache: 'no-cache' })`.
-Antes podía resolverse desde el caché HTTP del navegador (GitHub Pages
-publica `max-age=600`), de modo que un `config.js`, CSS o JS recién
-publicado tardaba hasta ~10 min en actualizar el caché del Service Worker.
-Con `no-cache` el navegador valida contra el servidor en cada visita (304 si
-no cambió). **Límite:** sigue siendo caché primero, así que la carga que
-dispara la actualización todavía muestra la copia anterior; el archivo
-nuevo se ve en la carga siguiente. `CACHE_NAME` no sube (`CORE_ASSETS` no
-cambió).
-
-### 20-sep-2026 — D-9 (b): 5 min + `staleIfError` en 5 endpoints que cambian poco
-`webRankings`, `webAniversarios`, `webEstadisticasCartas` (`index.html`),
-`webIngresosRecientes` (`index.html` y `directorio.html`) y
-`webAscensosRecientes` (`comunidad.html`) usaban el TTL por defecto (60 s) y
-sin respaldo. Ahora pasan `{ ttlMs: 300000, staleIfError: true }`, igual que
-`webClanInfo`/`webRoster`. Efecto: menos peticiones al backend y, si este
-falla, se muestra el último dato guardado en `localStorage` en vez del error
-(si no hay respaldo, el error se lanza como antes). Sin cambios en
-`webGuerraLog` ni en el comparador (`webCompararJugadores`,
-`webHistorialGuerraComparador`), que se dejan a propósito con el TTL por
-defecto. Un ingreso, ascenso o ranking nuevo puede tardar hasta 5 min en
-verse en una pestaña que ya lo tenía cargado.
-
-### 20-sep-2026 — D-22: objetivo táctil del enlace "Volver" y `::placeholder` global
-- **`perfil.html`:** el enlace "← Volver al Directorio" medía 159×14 px (por
-  debajo de los 24 px de WCAG 2.5.8). Se le agrega `display:inline-block;
-  padding:5px 0` (alto ≈ 24 px; empuja ~10 px el contenido).
-- **`assets/styles.css`:** `.field input::placeholder` y
-  `.field textarea::placeholder` con `--text-faint` y `opacity:1` (antes
-  color por defecto del navegador, ~4.27:1; ahora 5.12:1 sobre `--bg-2`).
-  Afecta al texto de ayuda de los formularios de `admin`, `mensajes`, etc.
-  que usan `.field`. `sorteo.html` no enlaza `styles.css` y conserva sus
-  propios placeholders.
-
-### 20-sep-2026 — `sw.js` v4: `config.js` rotado no llegaba al navegador
-Tras rotar los tokens del backend, `config.js` ya tenía el `WEB_MEMBER_TOKEN`
-nuevo pero el sitio seguía respondiendo "no autorizado": `sw.js` sirve los
-assets propios desde caché primero, así que el navegador seguía usando el
-`config.js` viejo. `CACHE_NAME` sube a `terna-static-v4` (`activate` borra
-`v3`) y el precaché de `install` usa `new Request(ruta, { cache: 'reload' })`
-para no copiar al caché una versión vieja que aún esté en el caché HTTP.
-Efecto: tras publicar `sw.js`, la primera visita instala el Service Worker
-nuevo y la siguiente ya carga el `config.js` correcto.
-
-### 20-sep-2026 — Hero de `index.html` con `srcset` y precaché de `join-modal.js`
-- **Hero (LCP de `index`, 4.5-4.7 s en la primera corrida):** todos los
-  dispositivos bajaban `banner-hero.webp` de 1600 px (240 KB). Se agrega
-  `assets/img/banner-hero-1000.webp` (1000×602, 108 KB, calidad 78) y el
-  `<source>` pasa a `srcset="… 1000w, … 1600w" sizes="100vw"` (el `<img>`
-  mide siempre 100 % del ancho, aunque `object-fit:cover` recorte). El
-  fallback `.jpg` no cambia. Comprobado en Chromium: 412 px a 1.75× y 360 px a
-  2× eligen la de 1000 px; 390 px a 3×, tablet y escritorio, la de 1600 px.
-  Captura móvil antes/después: diferencia media 0.53/255, el escudo se
-  conserva. Falta re-medir con Lighthouse tras publicar.
-- **`sw.js`:** `CORE_ASSETS` no incluía `assets/js/features/join-modal.js`
-  (B-5, lo cargan `index` y `directorio`). Se agrega y `CACHE_NAME` sube a
-  `terna-static-v3` (cambia `CORE_ASSETS`, así que `activate` borra `v2`).
-  Se comprobó que todo `<script src>` local de las 6 páginas públicas está
-  precacheado y que ninguna ruta de `CORE_ASSETS` deja de existir.
-- `robots.txt`: `Disallow: /permisos.html` (consistencia con `mensajes.html`;
-  la protección real sigue siendo el `noindex` de la página).
 
 ### 19-sep-2026 — Peticiones duplicadas en torneos y reserva de alto en guerra
 Primera corrida de `lighthouse.yml` (móvil simulado): `guerra.html` y
