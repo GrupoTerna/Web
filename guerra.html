@@ -256,6 +256,10 @@
   .hist-mas{margin-top:10px;}
   .btn-solo-cero{font-family:var(--f-mono); font-size:12px; background:var(--surface-card); color:var(--text-dim); border:1px solid var(--line-strong); border-radius:var(--radius-sm); padding:5px 12px; cursor:pointer;}
   .btn-solo-cero:hover{color:var(--text);}
+  .btn-ver-pron{font-family:var(--f-mono); font-size:12px; background:var(--surface-card); color:var(--text-dim); border:1px solid var(--line-strong); border-radius:var(--radius-sm); padding:5px 12px; cursor:pointer;}
+  .btn-ver-pron:hover{color:var(--purple-light); border-color:var(--purple);}
+  .btn-ver-pron[aria-pressed="true"]{color:var(--purple-light); border-color:var(--purple);}
+  .btn-ver-pron:disabled{opacity:.6; cursor:progress;}
   .btn-solo-cero[aria-pressed="true"]{color:var(--danger); border-color:var(--danger);}
   /* Partes 3-5 (05-oct-2026): fila de totales/promedio, botones Copiar/CSV e insignia de rango. */
   .tbl-activos-grid tfoot td{font-family:var(--f-mono); font-size:12px; font-weight:700; text-align:center; border-top:1px solid var(--line-strong); color:var(--text-dim); white-space:nowrap;}
@@ -427,7 +431,11 @@
     <section style="padding:40px 0 24px;">
       <div class="sec-head" style="display:flex; align-items:baseline; justify-content:space-between; border-bottom:1px solid var(--line); padding-bottom:12px;">
         <h2 style="font-size:22px;">⚔️ Guerra de Hoy</h2>
-        <span class="text-faint" id="clanCount" style="font-family:var(--f-mono); font-size:13px;"></span>
+        <span style="display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; justify-content:flex-end;">
+          <!-- 11-oct-2026 (pedido usuario): las tarjetas cargan primero sin pronóstico; este botón (solo en día de guerra) lo pide y lo muestra. -->
+          <button type="button" class="btn-ver-pron" id="btnVerPronostico" aria-pressed="false" hidden>📈 Ver pronóstico</button>
+          <span class="text-faint" id="clanCount" style="font-family:var(--f-mono); font-size:13px;"></span>
+        </span>
       </div>
       <!-- Parte 1 (05-oct-2026): aviso visible solo fuera de día de guerra, cuando las tarjetas muestran los resultados congelados de la última guerra. Se llena en render(). -->
       <div id="guerraCongeladoAviso" class="text-faint" style="display:none; font-family:var(--f-mono); font-size:12px; margin-top:14px; padding:8px 12px; border:1px solid var(--line); border-radius:var(--radius-sm); line-height:1.6;" role="status"></div>
@@ -712,7 +720,7 @@ async function cargar(manual){
     const r = await obtenerDatosGuerra();
     const data = r.data;
     render(data);
-    cargarPronosticoGuerra(data.ctx || {}, manual); // sin await: no retrasa ni rompe el resto de la página
+    if(pronosticoVisible || ultimoPronosticoData) cargarPronosticoGuerra(data.ctx || {}, manual); // sin await. 11-oct-2026: la primera carga ya no es automática, la pide «Ver pronóstico»; después sí se refresca sola
     lastFetchAt = new Date(); // cuándo esta página obtuvo la respuesta (antes: r.desde = hora de publicación del archivo)
     lastPublicadoAt = r.estatico ? r.desde : null;
     lastEsViejo = !!r.viejo;
@@ -1622,6 +1630,8 @@ function render(data){
   // FIX (05-oct-2026, pedido usuario): orden fijo Principal, Clan 2, Clan 3, Mini (ordenClanIndex), no el orden en que llegan del backend.
   const clanes = Object.entries(data.guerraPorClan || {}).sort((a, b) => ordenClanIndex(a[0]) - ordenClanIndex(b[0]));
   document.getElementById('clanCount').textContent = clanes.length + (clanes.length === 1 ? ' clan' : ' clanes');
+  const btnPron = document.getElementById('btnVerPronostico'); // solo en día de guerra
+  if(btnPron){ btnPron.hidden = !ctx.esDiaGuerra; if(!ctx.esDiaGuerra) pronosticoVisible = false; actualizarBotonPronostico(); }
   clanGrid.innerHTML = clanes.length ? clanes.map(([nombre, g], idx) => {
     const pct = g.totalHoy ? Math.round((g.atacaron / g.totalHoy) * 100) : 0;
     const slug = 'clan' + idx;
@@ -2143,6 +2153,7 @@ function cabeceraClanGuerraHtml(nombre){
 }
 /* Pronóstico dentro de cada tarjeta de "Guerra de Hoy": el clan Terna y los rivales de SU carrera, ordenados por fame actual. Une cada rival con su clan Terna por clanTernaTag (o clanTernaNombre) en webPronosticoGuerra. CONTRATO CERRADO (20-sep-2026): el backend (38_Pronostico_Guerra.gs, caché v3 en adelante) ya manda clanTernaTag y clanTernaNombre en cada rival de webPronosticoGuerra. Si algún día ningún rival trajera ese campo, pronosticoFusionado queda en false y se conserva la tabla suelta de siempre (sección "Pronóstico de Hoy"), sin perder información. Historial en CHANGELOG.md. */
 let pronosticoFusionado = false;
+let pronosticoVisible = false; // 11-oct-2026: el pronóstico solo se muestra (y se refresca solo) después de pulsar «Ver pronóstico»
 function agruparPronosticoPorClan(data){
   const clanes = ((data && data.clanes) || []).filter(c => c && c.nombre);
   const porTag = {};
@@ -2180,7 +2191,7 @@ function pronosticoClanHtml(grupo){
     </li>`; }).join('')}</ul>`;
 }
 function pintarPronosticoEnTarjetas(){
-  const g = ultimoPronosticoData ? agruparPronosticoPorClan(ultimoPronosticoData) : { porTag: {}, hay: false };
+  const g = (pronosticoVisible && ultimoPronosticoData) ? agruparPronosticoPorClan(ultimoPronosticoData) : { porTag: {}, hay: false };
   let alguna = false;
   document.querySelectorAll('#clanGrid .clan-pron').forEach(el => {
     const info = infoClanGuerraPorNombre(el.dataset.clan);
@@ -2249,16 +2260,16 @@ async function cargarPronosticoGuerra(ctx, manual){
   const wrap    = document.getElementById('pronosticoWrap');
   if(!section || !wrap) return;
   const ocultar = () => { section.style.display = 'none'; wrap.innerHTML = ''; ultimoPronosticoHtml = ''; ultimoPronosticoData = null; actualizarPuestosClanes(); };
-  if(!ctx.esDiaGuerra){ ocultar(); return; }
+  if(!ctx.esDiaGuerra){ ocultar(); return false; }
   try{
     const data = await apiGet('webPronosticoGuerra', null, manual ? { sinCache: true } : { ttlMs: 120000 });
     const clanes = (data.clanes || []).filter(c => c && c.nombre);
-    if(!clanes.length){ ocultar(); return; }
+    if(!clanes.length){ ocultar(); return false; }
     ultimoPronosticoData = data;
     actualizarPuestosClanes();
-    if(pronosticoFusionado){ // el pronóstico ya está dentro de cada tarjeta: la tabla suelta sobra
+    if(!pronosticoVisible || pronosticoFusionado){ // sin pulsar «Ver pronóstico» solo se guardan los datos (puestos); si ya está dentro de cada tarjeta, la tabla suelta sobra
       section.style.display = 'none'; wrap.innerHTML = ''; ultimoPronosticoHtml = '';
-      return;
+      return true;
     }
     const html = `
       <div class="card" style="padding:12px;"><div class="table-scroll"><table>
@@ -2281,9 +2292,11 @@ async function cargarPronosticoGuerra(ctx, manual){
       ultimoPronosticoHtml = html;
     }
     section.style.display = '';
+    return true;
   }catch(err){
     // Defensivo, igual que cargarGuerraLog(): sin datos frescos y sin nada pintado, la sección no aparece.
     if(!ultimoPronosticoHtml && !pronosticoFusionado) ocultar(); // ya fusionado: se conserva lo último pintado en las tarjetas
+    return !!ultimoPronosticoData;
   }
 }
 
@@ -2321,6 +2334,9 @@ function seleccionarDiaPuestos(letra){
   });
   pintarPanelPuestosDia();
   if(diaPuestosSel) cargarPuestosDia(false, true);
+  // el puesto en vivo de hoy sale de webPronosticoGuerra: si aún no se cargó, se trae solo para este panel (sin mostrar el pronóstico en las tarjetas)
+  const ctxHoy = (ultimoDataGuerra && ultimoDataGuerra.ctx) || {};
+  if(diaPuestosSel && ctxHoy.esDiaGuerra && ctxHoy.diaLetra === diaPuestosSel && !ultimoPronosticoData) cargarPronosticoGuerra(ctxHoy, false);
 }
 function pintarPanelPuestosDia(){
   const panel = document.getElementById('tlPanel');
@@ -2454,6 +2470,26 @@ async function cargarGuerraLog(){
   }
 }
 
+/* 11-oct-2026 (pedido usuario): botón «Ver pronóstico» de «Guerra de Hoy». Primera pulsación: pide webPronosticoGuerra y lo muestra en cada tarjeta; segunda: lo oculta. */
+function actualizarBotonPronostico(){
+  const btn = document.getElementById('btnVerPronostico');
+  if(!btn) return;
+  btn.textContent = pronosticoVisible ? '🙈 Ocultar pronóstico' : '📈 Ver pronóstico';
+  btn.setAttribute('aria-pressed', pronosticoVisible ? 'true' : 'false');
+}
+(function(){
+  const btn = document.getElementById('btnVerPronostico');
+  if(!btn) return;
+  btn.addEventListener('click', async () => {
+    if(pronosticoVisible){ pronosticoVisible = false; actualizarPuestosClanes(); actualizarBotonPronostico(); return; }
+    pronosticoVisible = true;
+    btn.disabled = true; btn.textContent = 'Cargando pronóstico…';
+    const ok = await cargarPronosticoGuerra((ultimoDataGuerra && ultimoDataGuerra.ctx) || {}, false);
+    btn.disabled = false;
+    if(!ok){ pronosticoVisible = false; actualizarPuestosClanes(); btn.textContent = '⚠ No se pudo cargar · Reintentar'; return; }
+    actualizarBotonPronostico();
+  });
+})();
 cargarClanInfoGuerra(); // antes que cargar(): así la cabecera ya está lista cuando se pintan las tarjetas y no hay salto de layout
 cargar();
 cargarGuerraLog();

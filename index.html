@@ -298,7 +298,8 @@
   .top-lista li{display:flex; align-items:baseline; gap:8px; padding:4px 0; border-bottom:1px solid var(--line);}
   .top-pos{font-family:var(--f-mono); color:var(--text-dim); min-width:22px;}
   .top-nombre{flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-  .top-clan{font-family:var(--f-mono); font-size:10px; color:var(--text-dim);}
+  .top-clan{font-family:var(--f-mono); font-size:10px; color:var(--text-dim); max-width:48%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .top-clan-extra{opacity:.75;}
   .top-valor{font-family:var(--f-mono); font-weight:700;}
   .top-vacio{font-size:12px; color:var(--text-dim);}
   .ranking-row .rk-nombre{color:var(--text); font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; text-decoration:none; display:block; max-width:100%;}
@@ -1118,7 +1119,10 @@ let topSemanaDatos = {};
 let topSemanaClan = '';
 let topSemanaBarcos = { datos: {}, label: '' };
 const TOP_SEMANA_N = 5;
-function etiquetaClanCorta(nombre){ return ['Principal','Clan 2','Clan 3','Mini'][ordenClanIndex(nombre)] || nombre; }
+/* 11-oct-2026 (pedido usuario): el sobrenombre (Principal, Clan 2…) es solo un EXTRA que acompaña al nombre real del clan, nunca lo reemplaza. etiquetaClanCorta() devuelve solo el extra; clanConExtraHtml()/clanConExtraTxt() lo juntan con el nombre real. */
+function etiquetaClanCorta(nombre){ return ['Principal','Clan 2','Clan 3','Mini'][ordenClanIndex(nombre)] || ''; }
+function clanConExtraHtml(nombre){ const ex = etiquetaClanCorta(nombre); return esc(nombre) + (ex ? ` <span class="top-clan-extra">· ${esc(ex)}</span>` : ''); }
+function clanConExtraTxt(nombre){ const ex = etiquetaClanCorta(nombre); return nombre + (ex ? ' · ' + ex : ''); }
 function topSemanaPintar(){
   const wrap = document.getElementById('topSemanaWrap');
   const clanes = Object.keys(topSemanaDatos).sort((a, b) => ordenClanIndex(a) - ordenClanIndex(b));
@@ -1137,7 +1141,7 @@ function topSemanaPintar(){
   wrap.innerHTML = metricas.map(m => {
     const top = (m.filas || filas).map(x => ({ x, v: Number(m.val(x)) || 0 })).filter(r => r.v > 0)
       .sort((a, b) => b.v - a.v || String(a.x.f.nombre || '').localeCompare(String(b.x.f.nombre || ''), 'es')).slice(0, TOP_SEMANA_N);
-    const lis = top.map((r, i) => `<li><span class="top-pos">${i + 1}.</span><span class="top-nombre">${r.x.f.tag ? enlaceJugador(r.x.f.nombre || r.x.f.tag, r.x.f.tag) : esc(r.x.f.nombre || '')}</span><span class="top-clan">${esc(etiquetaClanCorta(r.x.c))}</span><span class="top-valor">${fmtNum(r.v)}${m.tope ? '<span class="top-clan">/' + m.tope + '</span>' : ''}</span></li>`).join('');
+    const lis = top.map((r, i) => `<li><span class="top-pos">${i + 1}.</span><span class="top-nombre">${r.x.f.tag ? enlaceJugador(r.x.f.nombre || r.x.f.tag, r.x.f.tag) : esc(r.x.f.nombre || '')}</span><span class="top-clan" title="${esc(clanConExtraTxt(r.x.c))}">${clanConExtraHtml(r.x.c)}</span><span class="top-valor">${fmtNum(r.v)}${m.tope ? '<span class="top-clan">/' + m.tope + '</span>' : ''}</span></li>`).join('');
     return `<div class="card top-card"><h3>${m.titulo}</h3>${m.sub ? `<div class="text-faint" style="font-family:var(--f-mono); font-size:10px; margin:-4px 0 6px;">${esc(m.sub)}</div>` : ''}${lis ? `<ol class="top-lista">${lis}</ol>` : '<div class="top-vacio">Sin datos todavía.</div>'}</div>`;
   }).join('');
 }
@@ -1158,7 +1162,7 @@ async function cargarTopSemana(){
     // Si todavía no hay barcos esta semana (ej. primer día de guerra), la tarjeta muestra "Sin datos todavía".
     topSemanaBarcos = { datos: datos, label: '' };
     const selClan = document.getElementById('topSemanaClanSelect');
-    selClan.innerHTML = '<option value="">Todos los clanes</option>' + clanes.map(c => `<option value="${esc(c)}">${esc(etiquetaClanCorta(c))}</option>`).join('');
+    selClan.innerHTML = '<option value="">Todos los clanes</option>' + clanes.map(c => `<option value="${esc(c)}">${esc(clanConExtraTxt(c))}</option>`).join('');
     selClan.onchange = () => { topSemanaClan = selClan.value; topSemanaPintar(); };
     const semanas = (sel.semanasPorTemporada && sel.semanasPorTemporada[def.temporada]) || [];
     const sem = semanas.find(s => String(s.sectionIndex) === String(def.sectionIndex));
