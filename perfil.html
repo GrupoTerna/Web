@@ -973,7 +973,7 @@
             <span><b id="mCopas">0</b>Copas</span>
             <span><b id="mVGuerra">0</b>V. Guerra</span>
             <!-- FIX (26-sep-2026, pedido usuario — "el cuadrito de ataques semanales que actualmente dice 8 ya no debe ir porque se está mostrando abajo"): se quita de la cabecera; el mismo dato (guerraSemana.ataques) ya se ve en la barra "Ataques/semana" de Requisitos para mantener el rango (antes "descender de rango" — ver FIX 27-sep-2026 en bloqueRequisitos()). mAtaques ya no existe en el DOM: si algún día se necesita de nuevo, ojo con el textContent de más abajo (renderMiembro()) que todavía intentaba escribirle. -->
-            <span id="mFameSemanaWrap" style="display:none;"><b id="mFameSemana">0</b>Fame de la semana actual</span>
+            <span id="mFameSemanaWrap" style="display:none;"><b id="mFameSemana">0</b>Medallas de la semana actual</span>
             <!-- Vigencia (Última conexión) queda oculta hasta que el backend mande j.vigencia. Historial en CHANGELOG.md. -->
             <span id="mVigenciaWrap" style="display:none;"><b id="mVigencia">—</b>Vigencia</span>
           </div>
@@ -1231,7 +1231,7 @@
       </div>
       <div class="card pf-panel-datos" id="mPuntajeChartCard" style="display:none;">
         <div class="eyebrow">Evolución</div>
-        <h2 class="pf-subtitulo">Puntaje por semana</h2>
+        <h2 class="pf-subtitulo">Medallas por semana</h2>
         <div class="pf-nota-guerra" data-nota-guerra></div>
         <div id="mPuntajeChart"></div>
       </div>
@@ -1444,7 +1444,7 @@ function bloqueRequisitos(j, key){
   const campoAtaques = campoAtaquesSegunRango(j.rango);
   const ataques = req[campoAtaques];
   let html = '';
-  if (minT) html += barraRequisito('Trofeos guerra', minT.actual, minT.requerido, minT.activo, '🏆');
+  if (minT) html += barraRequisito('Medallas guerra', minT.actual, minT.requerido, minT.activo, '🏆');
   if (ataques) html += barraRequisito('Ataques/semana', ataques.actual, ataques.requerido, ataques.activo, '');
   if (!html) return '';
   const titulo = key === 'ascensos' ? 'Requisitos para ascender de rango' : 'Requisitos para mantener el rango';
@@ -3865,8 +3865,8 @@ function renderExtendido(ext, j){
       { etiqueta: 'Ataques', color: 'var(--gold)', valores: idxDiasJugados.map(i => gsd.ataques[i]) },
       { etiqueta: 'Barcos', color: 'var(--purple)', valores: idxDiasJugados.map(i => gsd.barcos[i]) },
     ], { icono: '⚔️' }),
-    _dispersionMiniHtml('Trofeos de guerra por día', diasJugadosLbl, [
-      { etiqueta: 'Trofeos de guerra', color: 'var(--gold)', valores: idxDiasJugados.map(i => trofeosGuerraPorDia[i]) },
+    _dispersionMiniHtml('Medallas de guerra por día', diasJugadosLbl, [
+      { etiqueta: 'Medallas de guerra', color: 'var(--gold)', valores: idxDiasJugados.map(i => trofeosGuerraPorDia[i]) },
       { etiqueta: 'Acumulado', color: 'var(--purple)', valores: idxDiasJugados.map(i => gsd.puntaje[i]) },
     ], { icono: '🔥' }),
   ].join('') : '';
@@ -5057,7 +5057,7 @@ function renderMetricaSemanal(elId, historial, campo, opts){
   const puntos = completarSemanasSinDato(
     diarios.map(h => ({ semana: String(h.semana), valor: Number(h[campo]), real: true, clan: h.clan }))
   );
-  const unidades = { Ataques: 'ataques', Puntaje: 'de puntaje', Barcos: 'barcos' };
+  const unidades = { Ataques: 'ataques', Medallas: 'de medallas', Barcos: 'barcos' };
   pintarGraficaPerfil(wrap, puntos, { ejeY: opts.tituloEje || '', unidad: unidades[opts.tituloEje] || '', base: 0 });
 }
 
@@ -5071,7 +5071,7 @@ function renderMetricaSemanal(elId, historial, campo, opts){
 function renderMetricasSemanales(ext){
   const historial = ext && Array.isArray(ext.historialRanking) ? ext.historialRanking : [];
   renderMetricaSemanal('mAtaquesChart', historial, 'ataques', { tituloEje: 'Ataques' });
-  renderMetricaSemanal('mPuntajeChart', historial, 'puntaje', { tituloEje: 'Puntaje' });
+  renderMetricaSemanal('mPuntajeChart', historial, 'puntaje', { tituloEje: 'Medallas' });
   renderMetricaSemanal('mBarcosChart', historial, 'barcos', { tituloEje: 'Barcos' });
 }
 
@@ -5836,7 +5836,7 @@ async function verHistorialGuerra(tag){
               <th scope="col" style="padding:6px 8px;">Semana</th>
               <th scope="col" style="padding:6px 8px;">Clan</th>
               <th scope="col" style="padding:6px 8px;">Ataques</th>
-              <th scope="col" style="padding:6px 8px;">Puntaje</th>
+              <th scope="col" style="padding:6px 8px;">Medallas</th>
               <th scope="col" style="padding:6px 8px;">Barcos</th>
               <th scope="col" style="padding:6px 8px;">Comentario</th>
             </tr>

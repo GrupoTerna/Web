@@ -101,7 +101,9 @@
 // Se sube la versión para que 'activate' borre v26 y nadie siga con el effects.js viejo.
 // v28 (11-oct-2026): guerra.html cambió (CORE_ASSETS) -- en entrenamiento el aviso «Entrenamiento en curso» de «Valores diarios» sale para todos (semana por defecto del backend) y se quita la copia en localStorage.
 // Se sube la versión para que 'activate' borre v27 y nadie siga con el guerra.html viejo.
-const CACHE_NAME = 'terna-static-v28';
+// v29 (11-oct-2026): index.html, directorio.html y guerra.html cambiaron (CORE_ASSETS) -- en los textos visibles el fame del jugador pasa de «Puntaje» a «Medallas».
+// Se sube la versión para que 'activate' borre v28 y nadie siga con el index/directorio/guerra viejos.
+const CACHE_NAME = 'terna-static-v29';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
