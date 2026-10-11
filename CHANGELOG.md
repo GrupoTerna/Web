@@ -4,7 +4,7 @@ Lista corta de lo que se hizo, de más reciente a más antiguo. Cada entrada tra
 
 **Cómo funciona el código hoy, por qué se decidió así, qué se probó y se descartó: no va aquí, va en `Contexto_Base_Web.md`.** Las reglas de redacción están en `Consolidados de cambios/Reglas_Consolidados.md` (repo `Backend`), sección 5. Los pendientes tampoco viven en cada entrada: están en «Abiertos». El detalle largo anterior sigue en el historial de git.
 
-*Traslado en curso (desde el 11-oct-2026):* las entradas desde el 04-oct-2026 ya están en formato corto y su contenido pasó a `§PF025` (8 y 9-oct), `§PF027` (5 a 7-oct) y `§PF018` (octava sesión, 2 al 5-oct). Las tandas 4 a 2 del 03 y 02-oct, la Fase 11 y el TBT de `guerra` (02-oct) también pasaron a `§PF018`, y la séptima y la sexta sesión (30 y 29-sep), las tandas D, C, B y A de la Fase 5b (28-sep), la Fase 11 del plan T_Lista (26-sep) y los comentarios desactualizados (21-sep) a `§PF017`. Del 20-sep pasaron a `§PF016` «Rendimiento (Lighthouse)», «CSS compartido», `permisos`, `mensajes` y `comunidad`. Quedó trasladado todo el 20-sep (`admin`, `perfil`, `directorio`, `index` y `guerra`) a `§PF016`. Quedó trasladado todo el 19-sep a `§PF016`: «CI y herramientas», «Rendimiento (Lighthouse)» y «SEO», «CSS compartido», `permisos`, `mensajes` y `guerra`. Con esta tanda quedaron trasladadas también las entradas de `guerra.html` del 21-sep (`§PF017`) y del 18-sep (`§PF016`). Los bloques «Línea original N (estilo)» de `guerra.html` (4 a 16-sep) pasaron a `§PF028`. Todo lo anterior (hoy ordenado por tema y archivo, no por fecha, incluidos los bloques «Línea original N» y las demás secciones por archivo) conserva su texto largo hasta que se trasladen, por tandas y de la fecha más reciente a la más antigua.
+*Traslado en curso (desde el 11-oct-2026):* las entradas desde el 04-oct-2026 ya están en formato corto y su contenido pasó a `§PF025` (8 y 9-oct), `§PF027` (5 a 7-oct) y `§PF018` (octava sesión, 2 al 5-oct). Las tandas 4 a 2 del 03 y 02-oct, la Fase 11 y el TBT de `guerra` (02-oct) también pasaron a `§PF018`, y la séptima y la sexta sesión (30 y 29-sep), las tandas D, C, B y A de la Fase 5b (28-sep), la Fase 11 del plan T_Lista (26-sep) y los comentarios desactualizados (21-sep) a `§PF017`. Del 20-sep pasaron a `§PF016` «Rendimiento (Lighthouse)», «CSS compartido», `permisos`, `mensajes` y `comunidad`. Quedó trasladado todo el 20-sep (`admin`, `perfil`, `directorio`, `index` y `guerra`) a `§PF016`. Quedó trasladado todo el 19-sep a `§PF016`: «CI y herramientas», «Rendimiento (Lighthouse)» y «SEO», «CSS compartido», `permisos`, `mensajes` y `guerra`. Con esta tanda quedaron trasladadas también las entradas de `guerra.html` del 21-sep (`§PF017`) y del 18-sep (`§PF016`). Los bloques «Línea original N (estilo)» de `guerra.html` (4 a 16-sep) y sus 10 bloques «(HTML)» (31-ago a 13-sep) pasaron a `§PF028`; en `guerra.html` quedan los bloques «(script)». Todo lo anterior (hoy ordenado por tema y archivo, no por fecha, incluidos los bloques «Línea original N» y las demás secciones por archivo) conserva su texto largo hasta que se trasladen, por tandas y de la fecha más reciente a la más antigua.
 
 ---
 
@@ -25,6 +25,7 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 - **Sin probar, Fase 5b tandas D y B (28-sep-2026):** nada en Apps Script real ni en navegador real. Falta confirmar que un ex-miembro sale con `tag:null` (nombre sin enlace) y un activo con su Tag real (nombre con enlace), con y sin sesión de admin, y revisar los 5 lugares de `torneos.html` en escritorio y móvil; y que el aviso de «clan rival» no llegue a un visitante (backend: `_webTorneos()` y `_webIngresosRecientes()` en `37_Web_API.gs`). → §PF017
 - **Por definir (la usuaria):** el `target-size` de los enlaces del nombre en «Ingresos recientes» (`a.jugador-link` en `index.html`, menos de 24 px de alto). Se dejó sin tocar porque cambiaría el aspecto de la tarjeta. (20-sep-2026) → §PF016
 - **Por definir (la usuaria):** cuatro comentarios de `guerra.html` todavía citan `assets/common.js` como casa de `pintarFiltroLetra()` y `primeraLetraFiltro()`; hoy están en `assets/js/ui/filters.js` (y `sincronizarScrollHorizontal()` en `ui/tables.js`). Es solo texto: corregirlo no cambia el comportamiento. (18-sep-2026) → §PF016
+- **Por definir (la usuaria), sin probar en navegador:** el aviso de la «última guerra» de «Valores diarios» (`guerra.html`, `render()`) guarda la «foto» en `localStorage` (`ternaUltimaGuerraActivos`), así que solo existe en el navegador que ya vio una guerra: quien entra por primera vez en un entrenamiento, o borró los datos del sitio, vería los datos en vivo sin aviso. Falta verificar si el backend ya entrega en entrenamiento los valores de la última guerra y qué papel juega `periodIndex`, que el pedido del 07-sep mencionaba y la rama no usa (usa `ctx.esDiaGuerra`). (11-oct-2026) → §PF028
 
 ---
 
@@ -3901,195 +3902,24 @@ Lista corta de los ajustes de `<style>` que traían comentario largo. El porqué
 - **04 y 05-sep · Botones de copiar los mensajes de guerra (solo admin) sobre «Pendientes de Atacar».** `#msjGuerraWrap`, `cargarMensajesGuerraSiAdmin()`. → §PF028
 - **04-sep · `.clan-card .stat{text-align:center}`.** Número y etiqueta sobre el mismo eje. → §PF028
 
-### Línea original 553 (HTML)
+### guerra.html — estructura de la página (31-ago a 13-sep-2026)
 
-```
- FIX (03-sep-2026, pedido usuario — "Pendientes de Atacar: ocultar
-         la sección cuando no es día de guerra (hoy igual se muestra con
-         '1 jugador(es)' y la fila 'No es día de guerra')"): la sección
-         siempre se pintaba sin importar ctx.esDiaGuerra, así que en día de
-         entrenamiento se veía una tabla con una fila "placeholder" que
-         confunde en vez de información real de ataques pendientes. Ahora
-         esta sección se oculta cuando no es día de guerra — ver
-         toggle en render() (id="pendSection").
-         FIX (04-sep-2026, pedido usuario — orden del Panel de Guerra):
-         "Miembros Activos por Clan" pasa a mostrarse ANTES que "Pendientes
-         de Atacar" (orden pedido: Guerra de hoy / Miembros activos /
-         Pendientes de atacar) — antes iba al revés.
-         FIX (10-sep-2026, pedido usuario — orden del Panel de Guerra):
-         "Pendientes de Atacar" y "Participación de Hoy (Reemplazos)" pasan
-         a mostrarse ENTRE "Miembros Activos por Clan" y "Valores diarios"
-         (antes iban después de "Log de Guerra"). 
-```
+Lista corta de los comentarios del `<body>` (orden de secciones, selectores, pestañas, avisos, Log, footer). El porqué de cada uno está en `§PF028` (Parte 2) de `Contexto_Base_Web.md`.
 
-### Línea original 574 (HTML)
-
-```
- FIX (04-sep-2026 / 05-sep-2026, pedido usuario — ver comentario
-           completo en el <style> de arriba y en cargarMensajesGuerraSiAdmin()
-           más abajo): fila de botones "Copiar" por clan (+ Chat General),
-           visible solo para admins logueados, integrada acá mismo (antes
-           era una sección aparte más arriba en la página). Arranca vacía;
-           si no hay sesión de admin o no hay contenido, se queda vacía y
-           no ocupa espacio. 
-```
-
-### Línea original 588 (HTML)
-
-```
- FIX (13-sep-2026, pedido usuario — "botones clickeables de letras
-           para filtrar el nombre por cada letra o # para números y
-           cualquier otro carácter"): fila A-Z + # debajo de las pestañas de
-           clan, se pinta una sola vez (ver pintarFiltroLetraPendientes()) y
-           solo oculta/muestra filas ya pintadas en #pendWrap -- no vuelve a
-           pedir nada al backend, mismo criterio que gestionarTabsClan(). 
-```
-
-### Línea original 598 (HTML)
-
-```
-         FIX (12-sep-2026, pedido usuario): versión final de esta sección
-         (antes duplicada por error en directorio.html) — ver comentario
-         completo en el <style> de arriba y en
-         renderParticipacionHoyGuerra() más abajo en el <script>. 
-```
-
-### Línea original 623 (HTML)
-
-```
- FIX (05-sep-2026, pedido usuario — "Se debe agregar un panel, tipo
-         hoja Control, con algunos datos de la sección que viene de la hoja
-         Directorio pero debe priorizar las cuadrículas"): sección NUEVA y
-         aparte de "Miembros Activos por Clan" de arriba (esa solo muestra
-         un conteo/barra por clan) — acá se pinta la cuadrícula completa
-         Jugador/J/V/S/D/Total/Puntaje/Barcos de CADA miembro Activo de
-         Directorio, agrupado por su clan. PÚBLICA (visible para todos, sin
-         gate de admin, igual que el resto del contenido de esta sección de
-         la página) y se listan TODOS los Activos aunque tengan 0/0/0/0 —
-         mismo criterio que la cuadrícula real de la hoja Control. Ver
-         render() más abajo y _getControlActivosGridPorTemporada()
-         (08_Web_Endpoints.gs).
-         FIX (05-sep-2026, pedido usuario — "solo consideró ataques, falta
-         Puntaje (fame) y barcos [...] los clanes no están en el orden
-         establecido [...] Mejor dentro del primer cuadro, en cada clan,
-         primero escribe las filas de los activos y luego una sección para
-         inactivos"): 1) la tabla de cada tarjeta suma las columnas Puntaje
-         y Barcos (además de J/V/S/D/Total de ataques, que ya existían);
-         2) las tarjetas se ordenan con ordenClanIndex() (assets/common.js)
-         en vez de alfabético; 3) cada tarjeta de clan ahora también carga,
-         debajo de la tabla de Activos, el bloque de Inactivos (solo-admin
-         — ver cargarAportesInactivosSiAdmin() más abajo), en vez de vivir
-         en una sección aparte debajo de "Pendientes de Atacar".
-         FIX (09-sep-2026, pedido usuario — "reestructurar, ya no es solo
-         semana actual, sino 'Valores diarios' [...] añade un selector de
-         año [...] selector de temporada [...] y el tercero es el selector
-         de semana [...] por defecto se debe seleccionar el año, temporada
-         y semana más recientes disponibles"): la sección se renombra de
-         "Cuadrícula de Activos (Semana Actual)" a "Valores diarios" y el
-         único <select> de semana (limitado a la temporada vigente) se
-         reemplaza por 3 selectores encadenados -- año, temporada (mes) y
-         semana -- que cubren CUALQUIER combinación con datos, no solo la
-         temporada en curso. Base.md ya manda data.valoresDiariosSelectores
-         ({anios, temporadasPorAnio, semanasPorTemporada, porDefecto}) y
-         data.valoresDiariosPorSemana ({[temporada]:{[sectionIndex]: mismo
-         shape que antes traía controlActivosSemanaActual}}) -- ver
-         pintarSelectoresValoresDiarios() más abajo, que ya los consume.
-         Los 3 <select> arrancan ocultos por CSS y solo cuando esos 2
-         campos no llegan (ej. Web App vieja) se quedan así en vez de
-         romper. 
-```
-
-### Línea original 672 (HTML)
-
-```
- FIX (07-sep-2026, pedido usuario — "que se siga mostrando los
-           valores de la última guerra mientras se esté en entrenamiento
-           [...] hasta el cambio de periodIndex [...] y se debe actualizar
-           recién cuando empiece la guerra del jueves"): aviso visible solo
-           cuando esta cuadrícula está mostrando la foto guardada de la
-           última guerra en vez de datos en vivo de entrenamiento, Y el
-           usuario no eligió manualmente otra semana -- ver rama `else`
-           dentro de render() más abajo. 
-```
-
-### Línea original 681 (HTML)
-
-```
- FIX (07-sep-2026, pedido usuario — "botones horizontales para
-           seleccionar el clan"): pestañas tipo .tabs-row/.tab-btn (mismo
-           patrón ya usado en "Log de Guerra") que filtran, sin volver a
-           pedir datos, cuál(es) tarjeta(s) .ai-clan-card se muestran.
-           Arranca vacío; gestionarTabsClan() (más abajo) la llena en cuanto
-           hay al menos una tarjeta de clan pintada en #controlActivosWrap. 
-```
-
-### Línea original 698 (HTML)
-
-```
- FIX (05-sep-2026, pedido usuario — "haz una sección como la hoja
-         Control_2, solo por referencia visual, ya que la hoja Control_2
-         trae datos de otra parte y debes basarte en los csv, igual que en
-         la sección tipo hoja Control... 'Tipo Control_2' muestra valores
-         semanales de toda la temporada, mientras que 'Tipo Control' es de
-         valores diarios para la semana actual. Va debajo de 🗂️ Cuadrícula
-         de Activos"): sección PÚBLICA (sin gate de admin, mismo criterio
-         que la de arriba), una tarjeta por clan con Jugador +
-         Ataques/Puntaje/Barcos, pero cada megacategoría trae una columna
-         por SEMANA de guerra ya jugada en la temporada actual (sacadas de
-         la hoja Guerra/Backup_Guerra.csv — misma fuente que ya usa
-         _webHistorialGuerraComparador() para el Cara a cara, NO la hoja
-         Control_2 real de la Sheet, que arma sus semanas con datos de otra
-         parte fuera del alcance de este sitio) + Resumen (Total para
-         Ataques/Barcos, Prom para Puntaje) y % al final de cada una.
-         FIX (09-sep-2026, pedido usuario — "🗓️ Cuadrícula de Temporada
-         (Semanal) también puede cambiar de nombre si es apropiado, se le
-         debe añadir el selector de año y reemplazar el selector de
-         temporada por el de mes, tal como se definió para la otra
-         cuadrícula"): la sección se renombra a "Valores semanales"
-         (pareja de "Valores diarios" de arriba) y el único <select> de
-         temporada se reemplaza por 2 selectores encadenados -- año y
-         temporada (mostrada como mes) -- mismo patrón visual y de datos
-         que "Valores diarios" (año/temporada de
-         data.controlTemporadaSelectores, ver
-         _getControlTemporadaSelectores(), 08_Web_Endpoints.gs), sin nivel
-         de semana porque esta cuadrícula siempre muestra las 5 semanas de
-         la temporada elegida juntas. Ver render() más abajo —
-         data.controlTemporadaPorClan/data.controlTemporadaSemanas siguen
-         siendo la temporada vigente, y data.controlTemporadaPorTemporada
-         sigue trayendo el resto de temporadas (sin cambios en esos 3
-         campos, solo en cómo se eligen). 
-```
-
-### Línea original 748 (HTML)
-
-```
- FASE 13 punto 1 del plan de cambios web (07-sep-2026) -- vista (a)
-         del tab "Log" de guerra de RoyaleAPI (royaleapi.com/clan/<TAG>/war/log),
-         recreada con datos propios: histórico Temporada -> Semana ->
-         Rank/Boat/Trophy de cada clan Terna, leído de la hoja Guerra_Logs
-         (acumulativa, nunca se purga -- cubre TODAS las temporadas, no
-         solo la actual). Sección PÚBLICA (sin gate de admin, mismo
-         criterio que "Cuadrícula de Activos"/"Cuadrícula de Temporada" de
-         arriba: son datos de guerra de los propios clanes Terna, no
-         información sensible). Se carga UNA sola vez al entrar a la
-         página (ver cargarGuerraLog() más abajo) -- es histórico
-         acumulado, no un dato en vivo, así que no necesita refrescarse
-         cada REFRESH_INTERVAL_MS como el resto del dashboard. Arranca
-         oculta; si el backend no devuelve ningún clan con historial (o la
-         carga falla), se queda oculta sin ocupar espacio ni romper el
-         resto de la página pública. 
-```
-
-### Línea original 781 (HTML)
-
-```
- FIX (31-ago-2026, pedido usuario — "la sección negra tiene el
-         texto muy pegado al contenedor, debe tener cierto margen"): este
-         footer traía style="padding:0" que anulaba el padding:0 24px de
-         .wrap (única página del sitio que lo hacía), pegando el texto al
-         borde izquierdo/derecho. Se quita el override y queda igual que
-         el footer de todas las demás páginas. 
-```
+- **13-sep · Filtro A-Z/# en «Pendientes de Atacar».** `#pendLetraFilter`; hoy es `pintarFiltroLetra()` (antes `pintarFiltroLetraPendientes()`), en `assets/js/ui/filters.js`. → §PF028
+- **12-sep · «Participación de Hoy» queda solo en Guerra.** Estaba duplicada por error en `directorio.html`; `renderParticipacionHoyGuerra()`. → §PF028
+- **10-sep · Orden del panel.** «Pendientes de Atacar» y «Participación de Hoy» pasan entre «Miembros Activos por Clan» y «Valores diarios». → §PF028
+- **09-sep · «Valores semanales»: selectores de año y mes.** Reemplazan al único selector de temporada; `data.controlTemporadaSelectores`, `_getControlTemporadaSelectores()` (`38_Web_Endpoints.gs`). → §PF028
+- **09-sep · «Valores diarios»: selectores año → temporada → semana.** `pintarSelectoresValoresDiarios()`, `data.valoresDiariosSelectores` y `data.valoresDiariosPorSemana`; la sección deja de llamarse «Cuadrícula de Activos (Semana Actual)». → §PF028
+- **07-sep · Aviso de la «última guerra» en «Valores diarios».** `#controlActivosCacheAviso` y `render()` (copia en `localStorage`). → §PF028
+- **07-sep · Pestañas de clan.** `.tabs-row`/`.tab-btn` y `gestionarTabsClan()`, sin volver a pedir datos. → §PF028
+- **07-sep · «Log de Guerra (Histórico)» (Fase 13, punto 1).** `#guerraLogSection` y `cargarGuerraLog()`; lee `Guerra_Logs` y se carga una sola vez. → §PF028
+- **05-sep · «Valores semanales» (`#controlTemporadaSection`).** Una columna por semana jugada; fuente `Backup_Guerra.csv`. → §PF028
+- **05-sep · «Valores diarios» como sección nueva y pública (`#controlActivosSection`).** `render()` con `_getControlActivosGridPorTemporada()`; tarjetas ordenadas con `ordenClanIndex()`. → §PF028
+- **04 y 05-sep · Fila «Copiar» dentro de `#pendSection`.** `#msjGuerraWrap`; antes era una sección aparte. → §PF028
+- **04-sep · Orden del panel.** «Miembros Activos por Clan» antes de «Pendientes de Atacar». → §PF028
+- **03-sep · «Pendientes de Atacar» se oculta fuera de día de guerra.** `render()`: `#pendSection` según `ctx.esDiaGuerra`. → §PF028
+- **31-ago · Footer sin `style="padding:0"`.** El texto ya no queda pegado a los bordes. → §PF028
 
 ### Línea original 810 (script)
 
