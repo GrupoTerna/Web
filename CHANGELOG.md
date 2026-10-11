@@ -4,7 +4,7 @@ Lista corta de lo que se hizo, de más reciente a más antiguo. Cada entrada tra
 
 **Cómo funciona el código hoy, por qué se decidió así, qué se probó y se descartó: no va aquí, va en `Contexto_Base_Web.md`.** Las reglas de redacción están en `Consolidados de cambios/Reglas_Consolidados.md` (repo `Backend`), sección 5. Los pendientes tampoco viven en cada entrada: están en «Abiertos». El detalle largo anterior sigue en el historial de git.
 
-*Traslado en curso (desde el 11-oct-2026):* las entradas desde el 04-oct-2026 ya están en formato corto y su contenido pasó a `§PF025` (8 y 9-oct), `§PF027` (5 a 7-oct) y `§PF018` (octava sesión, 2 al 5-oct). Las anteriores (del 03-oct hacia atrás) conservan su texto largo hasta que se trasladen, por tandas.
+*Traslado en curso (desde el 11-oct-2026):* las entradas desde el 04-oct-2026 ya están en formato corto y su contenido pasó a `§PF025` (8 y 9-oct), `§PF027` (5 a 7-oct) y `§PF018` (octava sesión, 2 al 5-oct). Las anteriores (tandas 4 a 2 del 03 y 02-oct, y antes) conservan su texto largo hasta que se trasladen, por tandas.
 
 ---
 
@@ -16,6 +16,7 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 - **Por verificar en el backend (requiere subir `Base.md`):** si `doGet` cae a los `Backup_*.csv` cuando falla la lectura de Sheets; qué claves publican realmente `50_` a `53_Publicar_*.gs`; si el bot sigue republicando cuando Sheets falla; y si `home.json`, `roster.json`, `torneos.json`, `guerra_ctx.json` y `guerra_top.json` traen `tiempos.api.ultimaConsultaTs` (hoy solo se sabe de `guerra.json`; el frontend ya lo muestra solo si existe). El usuario enviará el backend cuando terminen estas fases.
 - **Por definir:** `index.html` y `clan.html` calculan los tres momentos por su cuenta; podrían pasar a `fmtTresTiemposDeResultado()` para tener una sola forma. No se tocó para no abarcar de más.
 - **Por definir (la usuaria), P-4:** a dónde debe ir el foco tras un veto exitoso (`perfil.html`) y tras «Marcar visto» (`admin.html`; `cargarGanadoresTorneo()` repinta la lista y el botón deja de existir). Hoy cae en `<body>`. (04-oct-2026) → §PF018
+- **Por definir (la usuaria), P-1:** si la tecla Escape debe cerrar el menú móvil abierto (hoy no hay manejador; no es un incumplimiento obligatorio, es una comodidad). (03-oct-2026) → §PF018
 - **Por verificar al desplegar el backend (requiere subir `Base.md`):** (a) el tiempo de `?dashboard=json` en día de guerra con `metaCruzada` (estuvo desactivada desde el 19-sep por tardar 28 a 39 s; si vuelve a ser lenta, revisar `_getMapaCruceMetaGuerraLogs_()`); (b) que viernes y sábado no salgan como opcionales por error y que `_diasOpcionalesClanSemana_()` recorra viernes a domingo (07-oct-2026). → §PF027
 - **Por verificar con `Base.md`:** comentario de `alMax` en `pintarColeccion()` (`perfil.html`): falta documentar en el backend el comportamiento del nivel máximo; y que `ext.batallas` sea siempre victorias más derrotas. → §PF027
 - **Sin probar:** que `sw.js` v14 a v16 llegue a un visitante con la versión anterior (ciclo `install`/`activate`), y los cambios del 5 al 7-oct de `perfil.html`, `guerra.html` y Noticias en navegador con backend real. → §PF027
@@ -86,33 +87,11 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 - **`sw.js` v13 · `perfil.html`, `admin.html`, `mensajes.html`, `guerra.html`: el foco ya no cae a `<body>` al rehabilitar un botón.** `perfil.html`, `enviarVeto()` (`rehabilitarConfirmar`); `admin.html`, listener de `#ganadoresLista`, rama `.btnMarcarGrupoManual` (`restaurarBoton`); `mensajes.html`, `_activarAccionesContenido()`, `btnVerPdf`; `guerra.html`, `cargar()`, `refreshBtn`. → §PF018
 - **Medido, sin cambios de código (P-8).** `admin.html`: «Ingresar link» de Modificar torneo con teclado; Cambio de Rango en los modos «Editar corrida existente», «Ver propuestas» y «Precargar última corrida». → §PF018
 
-## Teclado: menú móvil, `permisos.html`, `mensajes.html`, foco tras Guardar y tras un login fallido (octava sesión, tanda 5, 03-oct-2026)
+## 03-oct-2026
 
-Auditoría con teclado en Chromium (Playwright, 412 px, sesión y backend simulados) de lo que la tanda 3 dejaba sin cubrir: `permisos.html`, `mensajes.html` y el contraste del indicador de foco. Tres defectos reales, corregidos con cambios mínimos (sin cambio de flujo ni de aspecto).
-
-### 03-oct-2026 — `assets/styles.css`: el menú móvil cerrado sale del orden de Tab (todas las páginas con menú)
-- **Defecto (medido antes de corregir):** en ≤768 px el panel `.nav .links` cerrado solo estaba desplazado (`translateX(100%)`; los enlaces quedaban en x=432 con la pantalla de 412 px). Seguían en el orden de Tab: en cada una de las 12 páginas con menú, el foco entraba a 6 enlaces invisibles, y un lector de pantalla podía leerlos aunque el menú estuviera cerrado.
-- **Cambio** (solo dentro de `@media (max-width:768px)`): `.nav .links` suma `visibility:hidden` y su `transition` suma `visibility 0s linear .3s`; `.nav .links.open` suma `visibility:visible; transition-delay:0s`. Al cerrar, el panel sigue visible 0,3 s para que termine la animación; al abrir es visible de inmediato. Escritorio no cambia.
-- **`sw.js`:** `CACHE_NAME` sube a `terna-static-v12` (`assets/styles.css` está en `CORE_ASSETS`; mismo criterio que la v6 y la v11).
-- **Verificado:** paradas de Tab sobre los enlaces del menú con el menú cerrado: 6 → 0 en las 12 páginas, a 412 y a 768 px; a 1280 px igual que antes (6 y 6). Con teclado (Enter en el botón del menú) en `permisos.html`: abierto, Tab va a "Inicio" y es visible (x=20); a los 100 ms de cerrar sigue visible (animación en curso) y a los 450 ms queda `hidden`; con el menú cerrado, Tab desde el botón ya no entra al menú (antes iba a "Inicio", fuera de pantalla). Capturas antes/después idénticas píxel a píxel con el menú abierto (412 y 768 px) y con el menú cerrado a 1280 px; con el menú cerrado a 412 px solo difiere `comunidad.html`, y esa diferencia también aparece al comparar el original contra sí mismo (animación de la página), así que no la causa el cambio.
-- **Dos falsos positivos de mi medición, descartados:** (1) en `index.html` y `directorio.html` el conteo "fuera de pantalla" daba paradas extra: es el desplazamiento suave (`scrollY` aún no se había actualizado al medir), no un defecto; (2) los enlaces del menú parecían sin indicador de foco porque tienen `transition:all`: el contorno pasa de 0 a 2 px en 0,2 s y existe (medido a 1280 px esperando 450 ms).
-- **No verificado:** lector de pantalla real; Firefox y Safari.
-
-### 03-oct-2026 — `permisos.html` y `admin.html`: el foco ya no se pierde tras "Guardar" ni tras un login fallido
-- **Defecto (medido antes de corregir):** estos botones se deshabilitan mientras dura la petición y un botón deshabilitado pierde el foco; al reactivarlo no se devolvía. Tras pulsar Enter en "Guardar" (`permisos.html`, handler de `[data-accion="guardar"]` dentro de `activarCardAdmin()`) o en "Ingresar" con credenciales erróneas (`admin.html`, listener de `btnLogin`), el foco quedaba en `<body>`: el siguiente Tab empezaba desde el principio de la página.
-- **Cambio:** cada handler recuerda si el botón tenía el foco antes de deshabilitarlo (`teniaFoco`) y, en el `finally`, tras reactivarlo, devuelve el foco solo si cayó en `<body>`. Si el usuario ya movió el foco a otro control, no se lo quita.
-- **Verificado (antes → después):** foco tras Guardar: `BODY` → "Guardar permisos de Diana" (mensaje "Guardado." intacto, sin errores de JS); foco tras login fallido: `BODY` → `btnLogin` (mensaje de error intacto).
-- **Revisado y sin defecto:** Enter en el campo Clave inicia sesión (hay un `keydown` en `admin.html`, línea ~1718); en ese caso el foco se queda en el campo, que no se deshabilita.
-- **No tocado (no medido):** el mismo patrón existe en otros botones que se deshabilitan durante una petición y se reactivan: `btnVjConfirmar` en `perfil.html` (veto, rama de error), `.btnMarcarGrupoManual` en `admin.html` (rama de error), `btnVerPdf` en `mensajes.html` y `refreshBtn` en `guerra.html`. No se midió si pierden el foco ni se cambiaron.
-
-### 03-oct-2026 — `permisos.html` y `mensajes.html` con teclado: medido, sin defectos propios
-- **`permisos.html`** (2 administradores simulados): 39 paradas de Tab en un ciclo, sin repetidas ni trampas; las 12 casillas (6 por administrador) con nombre accesible; Espacio alterna una casilla y "Marcar todo" funciona con Espacio; "Recargar" con Enter devuelve el foco a su propio botón; el mensaje "Guardado." está en una región `role="status"`; "Saltar al contenido" apunta a `#panelSec`; un solo `<h1>` visible.
-- **`mensajes.html`:** 31 paradas, sin repetidas; Enter y Espacio abren y cierran cada `<details>`; los botones "↻" dentro de `<summary>` con Enter y con Espacio actualizan sin cerrar la sección (el `preventDefault` funciona); las pestañas por clan y los botones de grupo alternan `aria-pressed` y conservan el foco; "Copiar" cambia a "✔ Copiado" y anuncia "Mensaje copiado al portapapeles" en `#anuncioSr`; "Colapsar" alterna `aria-expanded` y su `aria-label`; 0 botones visibles sin nombre; 0 errores de JS.
-- **Contraste del indicador de foco:** la regla global `:focus-visible` de `assets/styles.css` (contorno de 2 px, `--purple`) mide **4,43:1** contra el fondo del contenedor en las dos páginas (el mínimo de WCAG 1.4.11 es 3:1). Es una regla única para todo el sitio; se midió solo en estas dos páginas.
-- **Observación sin cambiar (decisión tuya):** la tecla Escape no cierra el menú móvil abierto (no hay manejador). No es un incumplimiento obligatorio; solo es una comodidad.
-- **No cubierto:** lector de pantalla real; Firefox y Safari; `admin.html` con teclado en "Ingresar link" de Modificar y en el contenido de `#panelCambioRangoAccion` (siguen sin probarse, ver la tanda 3); datos reales del backend.
-- **Verificado en el repo:** `node --test` 165/165, `eslint assets`, `html-validate *.html` y `check-local-links` (144 rutas) sin observaciones; `node --check sw.js` OK.
-- **Subir:** `assets/styles.css`, `permisos.html`, `admin.html`, `sw.js` y `CHANGELOG.md` al repositorio.
+- **`sw.js` v12 · `assets/styles.css`: el menú móvil cerrado sale del orden de Tab.** `@media (max-width:768px)`: `.nav .links` y `.nav .links.open` (`visibility` con retraso de 0,3 s). Afecta a las 12 páginas con menú. → §PF018
+- **`permisos.html` y `admin.html`: el foco ya no se pierde tras «Guardar» ni tras un login fallido.** `permisos.html`, handler de `[data-accion="guardar"]` en `activarCardAdmin()`; `admin.html`, listener de `btnLogin` (`teniaFoco`). → §PF018
+- **Medido, sin cambios de código.** `permisos.html` y `mensajes.html` con teclado; contraste del indicador de foco (4,43:1). → §PF018
 
 ## Sesión de admin vencida (A4/A6) y foco al cambiar de paso (octava sesión, tanda 4, 03-oct-2026)
 
