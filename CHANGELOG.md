@@ -30,6 +30,8 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 
 ## 11-oct-2026
 
+- **`sw.js` v46 · `perfil.html` · Minigráficas de pastel: la leyenda sube y el donut baja.** Solo CSS: `#mMiniGraficosWrap .mini-pie-cuerpo` pasa a `flex-direction:column-reverse` (sin cambiar el HTML de `_pastelMiniHtml()`); «Cartas por nivel» de la colección no cambia. Pruebas (336), lint y `html-validate` en verde; sin probar en navegador real. → §PF035
+
 - **`sw.js` v45 · `perfil.html` · Minigráficas: los donuts van a la izquierda y las de dispersión llevan marcas en el eje Y.** `renderExtendido()`: `piesDonuts` se concatena antes que `graficosGuerra` en `#mMiniGraficosWrap`. `_dispersionMiniHtml()`: la escala pasa a marcas enteras (0 más 3 o 4 tramos: de 4 a 5 marcas) con rótulo a la izquierda y una línea por marca; el margen izquierdo se calcula según el rótulo más largo; clase nueva `.md-y-label`. Pruebas (336), lint y `html-validate` en verde; escala comprobada con valores de 1 a 3,000; sin probar en navegador real. → §PF035
 
 - **`sw.js` v44 · `guerra.html` · Encabezado de guerra: «Ver pronóstico», conteo de clanes y nota del día suben; se quita el título «Guerra de Hoy».** `#btnVerPronostico` y `#clanCount` pasan a la fila del título (`.gh-fila`, `.gh-acciones`); `#puestoDiaNota` pasa a la derecha del subtítulo (`.gh-sub`, sin recuadro; en pantallas de 860 px o menos baja a su propia línea); el `<h2>` «Guerra de Hoy» queda solo para lectores de pantalla (`.sr-solo`) y se reduce el espacio sobre las tarjetas (de 40 a 28 px). Pruebas (336), lint y `html-validate` en verde; sin probar en navegador real. → §PF034
