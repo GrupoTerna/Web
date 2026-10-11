@@ -4,7 +4,7 @@ Lista corta de lo que se hizo, de más reciente a más antiguo. Cada entrada tra
 
 **Cómo funciona el código hoy, por qué se decidió así, qué se probó y se descartó: no va aquí, va en `Contexto_Base_Web.md`.** Las reglas de redacción están en `Consolidados de cambios/Reglas_Consolidados.md` (repo `Backend`), sección 5. Los pendientes tampoco viven en cada entrada: están en «Abiertos». El detalle largo anterior sigue en el historial de git.
 
-*Traslado en curso (desde el 11-oct-2026):* las entradas desde el 04-oct-2026 ya están en formato corto y su contenido pasó a `§PF025` (8 y 9-oct), `§PF027` (5 a 7-oct) y `§PF018` (octava sesión, 2 al 5-oct). Las tandas 4 a 2 del 03 y 02-oct, la Fase 11 y el TBT de `guerra` (02-oct) también pasaron a `§PF018`, y la séptima sesión (30-sep) a `§PF017`. Las anteriores (desde «index.html, perfil.html y Lighthouse» del 29-sep, y antes) conservan su texto largo hasta que se trasladen, por tandas.
+*Traslado en curso (desde el 11-oct-2026):* las entradas desde el 04-oct-2026 ya están en formato corto y su contenido pasó a `§PF025` (8 y 9-oct), `§PF027` (5 a 7-oct) y `§PF018` (octava sesión, 2 al 5-oct). Las tandas 4 a 2 del 03 y 02-oct, la Fase 11 y el TBT de `guerra` (02-oct) también pasaron a `§PF018`, y la séptima y la sexta sesión (30 y 29-sep) a `§PF017`. Las anteriores (desde «Fase 5b tanda D» del 28-sep, y antes) conservan su texto largo hasta que se trasladen, por tandas.
 
 ---
 
@@ -21,6 +21,7 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 - **Sin probar:** que `sw.js` v14 a v16 llegue a un visitante con la versión anterior (ciclo `install`/`activate`), y los cambios del 5 al 7-oct de `perfil.html`, `guerra.html` y Noticias en navegador con backend real. → §PF027
 - **Sin probar contra el backend real ni en Apps Script real:** `sesionVencida` (que un token vencido o cerrado desde otro dispositivo traiga la marca, y que con sesión válida o como visitante no aparezca el aviso; `38_Web_Endpoints.gs`) y `corregido` de «Ingresar link» (`26_Torneos_Core.gs`, `37_Web_API.gs`, `44_BotWhatsApp.gs`); además, lector de pantalla real, Firefox y Safari en esas pantallas. (02 y 03-oct-2026) → §PF018
 - **Sin comprobar, TBT de `guerra` (02-oct-2026):** no se corrió Lighthouse real y no se sabe cuántos jugadores tiene hoy cada clan en producción (el banco usó 50). Idea sin probar para bajar más la tarea larga (~500 ms con CPU 4×): no construir el `<tbody>` de los clanes ocultos hasta elegir su pestaña, o repartir el pintado de Control de Temporada. → §PF018
+- **Sin verificar, cartas (29-sep-2026):** que en `perfil.html` se vean la carta favorita, el mazo y la colección tras el cambio de la CSP (abrir un perfil y mirar F12 → Consola; `perfil.html` no lo audita Lighthouse); al publicar, pulsar los dos botones Héroe/Evolución de una carta de `index.html` (`cambiarVarianteCarta()` cambia el `src` de la imagen, ahora de 72×84); y el alto real del chip con las 10 cartas y sus filas de Héroe/Evolución. Sin explicar: la primera corrida de cada tanda de Lighthouse sale mucho peor (parece arranque en frío). → §PF017
 
 ---
 
@@ -110,66 +111,11 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 - **`clan.html` · Auditoría de accesibilidad.** `renderClanBasico()`: `aria-level="1"` en el nombre del clan; el enlace «Ver en el Directorio →» (`#clanVerDirectorioLink`) pasa a 24 px de alto. → §PF017
 - **`assets/js/core/api.js` · Comentario de `apiGet()` actualizado.** Solo comentario, sin cambio de código ni de `CACHE_NAME`. → §PF017
 
----
+## 29-sep-2026
 
-## index.html, perfil.html y Lighthouse — sexta sesión de rendimiento (29-sep-2026)
-
-### 29-sep-2026 — `index.html`: la imagen de "Cartas más usadas" pasa de 52×60 a 72×84
-Pedido del usuario, al ver las imágenes ya cargadas: se veían muy pequeñas y debían tener el mismo
-tamaño que en `perfil.html`. Ahí las fichas de carta (Carta favorita, Mazo actual, Colección completa)
-usan `.col-card--grande`, con la imagen a **72×84 px**; `.carta-chip .cc-img` en `styles.css` la dejaba en 52×60.
-- **`index.html`** (`<style>`): `#cartasWrap .carta-chip .cc-img{width:72px; height:84px;}`. Se acota a
-  `#cartasWrap` y no se toca `styles.css`: `index.html` es el único sitio que todavía pinta `.carta-chip`
-  (`perfil.html` migró a `.col-card`; solo conserva un ayudante que busca `.carta-chip, .col-card`).
-- **Verificación (Chromium, 5 chips con la CSS real de `styles.css` + la de `index.html`, imagen de prueba):**
-  imagen 72×84 y chip de 230×102 px. No se probó con el backend real ni con las 10 cartas y sus filas de
-  Héroe/Evolución; con esas filas el texto ya era más alto que la imagen, así que el alto de cada chip
-  debería cambiar poco o nada, pero no está medido.
-- **Efecto secundario a vigilar:** `cambiarVarianteCarta()` cambia el `src` de la misma imagen (Héroe/Evolución);
-  no se tocó, pero conviene pulsar los dos botones en una carta al publicar.
-
-### 29-sep-2026 — La CSP bloqueaba las imágenes de cartas (`index.html`, `perfil.html`)
-Las 12 páginas llevan una CSP por `<meta>` cuyo `img-src` era `'self' data: assets.cwstats.com cdn.royaleapi.com
-www.google.com grupoterna.goatcounter.com`. Las imágenes de las cartas vienen del backend (URL de Supercell,
-`https://api-assets.clashroyale.com/cards/300/…png`), así que el navegador las bloqueaba (`errors-in-console`:
-"violates the following Content Security Policy directive… has been blocked"; `inspector-issues`: 10 imágenes) y
-el `onerror` de `index.html` las ocultaba. Esa CSP no constaba en este `CHANGELOG.md`; en las páginas solo hay un
-comentario sobre `gc.zgo.at`/goatcounter.
-- **`index.html` y `perfil.html`:** se añade `https://api-assets.clashroyale.com` al `img-src` (única diferencia
-  respecto a la versión anterior de cada archivo, 1 línea). Las otras 10 páginas no usan esos íconos (búsqueda
-  de `iconUrls`, `c.icon` y `.icon` en `.html` y `assets/js`) y no se tocaron.
-- **Medido (Lighthouse, 29-sep, 21:19-21:31 UTC):** Buenas prácticas de `index` 93 → **100** en las 3 corridas;
-  0 errores de consola. El usuario confirmó a ojo que las cartas ya se ven en `index`.
-- **Sin verificar:** `perfil.html` no está entre las páginas que audita Lighthouse; no se ha comprobado que ahí
-  se vean la carta favorita, el mazo y la colección (abrir un perfil y mirar F12 → Consola).
-
-### 29-sep-2026 — Lighthouse tras publicar las tandas 1-5, `directorio` y `Skull_05`
-Dos corridas (5 páginas × 3): 20:54-21:05 UTC (con la CSP bloqueando las cartas) y 21:19-21:31 UTC (ya corregida).
-Aserciones: vacías (ninguna falló). Rangos de las 3 corridas de la segunda tanda:
-
-| Página | Rendim. | A11y / BP / SEO | CLS | LCP |
-|---|---|---|---|---|
-| `index` | 75 / 92 / 91 | 100 / 100 / 100 | 0 / 0.153 / 0.166 | 4.4 / 2.0 / 2.2 s |
-| `directorio` | 95-98 | 100 / 100 / 100 | 0.022 | 1.9 s |
-| `guerra` | 88-95 | 100 / 100 / 100 | 0.021-0.022 | 1.7 s |
-| `torneos` | 99 | 100 / 100 / 100 | 0.053 | 1.6 s |
-| `comunidad` | 83 / 99 / 99 | 100 / 100 / 100 | 0.02-0.035 | 1.55 s (la primera, 3.56 s) |
-
-- `directorio`: CLS **0.306 → 0.022** (las 3 corridas) y BP 96 → 100 (fix de `clan-card-skel` y de `Skull_05`
-  confirmados con datos reales). `guerra`: BP 96 → 100 (`Skull_05`).
-- `index`: LCP 2.8-4.4 s → 1.75-2.2 s en las corridas normales. La primera corrida de cada tanda fue la peor
-  (65 y 75 de rendimiento, LCP 4.4-4.6 s, Render Delay 3.4-3.8 s); `comunidad` repitió el patrón. Causa no
-  identificada; parece arranque en frío del laboratorio o de GitHub Pages. No afecta a las aserciones (el
-  agregado es "optimistic").
-
-### 29-sep-2026 — Abierto: CLS 0.15 del hero de `index.html` (causa: petición de fuente)
-Las dos corridas con CLS ≈ 0.153-0.166 lo atribuyen a `section.hero-banner > div.wrap > p.text-dim` (y 0.013 a
-`div.hero-cta-row` en una), con causa "Font request" (Rajdhani, la del `h1`). Probable mecanismo: al aplicarse
-la fuente cambia el alto del título y empuja el párrafo y los botones. **No comprobado** (sin salida a internet
-para cargar las fuentes). `fitOneLineAll()` no interviene: solo está definida, no se invoca en `index.html`.
-Opciones sin aplicar: (1) `display=swap` → `display=optional` en el enlace de Google Fonts (sin salto, pero la
-primera visita puede verse con la fuente de respaldo); (2) `@font-face` de respaldo local con `size-adjust`/
-`ascent-override` medidos sobre Rajdhani; (3) reservar el alto del título (frágil con `clamp()`).
+- **`index.html` · Imagen de «Cartas más usadas» de 52×60 a 72×84.** `<style>`: `#cartasWrap .carta-chip .cc-img`. `styles.css` sin cambios. → §PF017
+- **`index.html` y `perfil.html` · La CSP bloqueaba las imágenes de cartas.** `<meta>` de CSP: se añade `https://api-assets.clashroyale.com` al `img-src` (Buenas prácticas de `index` de 93 a 100). → §PF017
+- **Medido, sin cambios de código: Lighthouse tras las tandas 1 a 5, `directorio` y `Skull_05`.** `directorio` CLS de 0,306 a 0,022; `guerra` y `directorio` Buenas prácticas de 96 a 100; CLS de 0,15 del hero de `index` anotado y resuelto el 30-sep. → §PF017
 
 ---
 
