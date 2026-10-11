@@ -1738,7 +1738,7 @@ function render(data){
 // a diferencia del bloque de arriba (solo conteo por clan), acá se pinta la cuadrícula J/V/S/D por cada Activo de Directorio. Historial en CHANGELOG.md.
   pintarSelectoresValoresDiarios(data);
   let controlActivos = {};
-  let mostrandoUltimaGuerraCacheada = false;
+  let mostrandoUltimaGuerraCacheada = false; // true = entrenamiento y semana por defecto (la última guerra jugada)
   const porSemanaSeleccionada = data.valoresDiariosPorSemana || {};
   const esComboVigente = String(temporadaSeleccionadaActivos) === String(ctx.temporada) &&
     String(sectionIndexSeleccionadoActivos) === String(ctx.sectionIndex);
@@ -1747,19 +1747,11 @@ function render(data){
       porSemanaSeleccionada[temporadaSeleccionadaActivos] && porSemanaSeleccionada[temporadaSeleccionadaActivos][sectionIndexSeleccionadoActivos]){
     controlActivos = porSemanaSeleccionada[temporadaSeleccionadaActivos][sectionIndexSeleccionadoActivos];
   }
-  if (esComboVigente && ctx.esDiaGuerra){
-    try{
-      localStorage.setItem('ternaUltimaGuerraActivos', JSON.stringify({ temporada: ctx.temporada, sectionIndex: ctx.sectionIndex, datos: controlActivos }));
-    }catch(e){ /* localStorage lleno o bloqueado -- no crítico, se ignora */ }
-  } else if (esComboVigente && !ctx.esDiaGuerra){
-    try{
-      const cache = JSON.parse(localStorage.getItem('ternaUltimaGuerraActivos') || 'null');
-      if (cache && cache.datos && Object.keys(cache.datos).length){
-        controlActivos = cache.datos;
-        mostrandoUltimaGuerraCacheada = true;
-      }
-    }catch(e){ /* JSON corrupto u otro fallo de localStorage -- se usa el dato en vivo (en ceros) */ }
-  }
+  // 11-oct-2026: en entrenamiento la semana por defecto (data.valoresDiariosSelectores.porDefecto) ya es la última guerra jugada: el backend no lista la vigente hasta que empieza la guerra. Todo navegador la recibe, sin copia en localStorage. [→ Contexto_Base_Web.md §PF028]
+  const defSel = data.valoresDiariosSelectores && data.valoresDiariosSelectores.porDefecto;
+  mostrandoUltimaGuerraCacheada = !ctx.esDiaGuerra && !!defSel && Object.keys(controlActivos).length > 0 &&
+    String(temporadaSeleccionadaActivos) === String(defSel.temporada) &&
+    String(sectionIndexSeleccionadoActivos) === String(defSel.sectionIndex);
   if (mostrandoUltimaGuerraCacheada){
     cacheAviso.style.display = '';
     cacheAviso.textContent = '⏳ Entrenamiento en curso — mostrando los valores de la última guerra jugada. Se actualizará al empezar la guerra del jueves.';

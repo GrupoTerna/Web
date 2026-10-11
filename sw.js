@@ -99,7 +99,9 @@
 // nadie siga con el guerra.html viejo.
 // v27 (11-oct-2026): assets/js/ui/effects.js cambió (CORE_ASSETS) -- la tecla Escape cierra el menú móvil abierto y devuelve el foco al botón ☰ (P-1).
 // Se sube la versión para que 'activate' borre v26 y nadie siga con el effects.js viejo.
-const CACHE_NAME = 'terna-static-v27';
+// v28 (11-oct-2026): guerra.html cambió (CORE_ASSETS) -- en entrenamiento el aviso «Entrenamiento en curso» de «Valores diarios» sale para todos (semana por defecto del backend) y se quita la copia en localStorage.
+// Se sube la versión para que 'activate' borre v27 y nadie siga con el guerra.html viejo.
+const CACHE_NAME = 'terna-static-v28';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
