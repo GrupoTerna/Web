@@ -4,7 +4,7 @@ Lista corta de lo que se hizo, de más reciente a más antiguo. Cada entrada tra
 
 **Cómo funciona el código hoy, por qué se decidió así, qué se probó y se descartó: no va aquí, va en `Contexto_Base_Web.md`.** Las reglas de redacción están en `Consolidados de cambios/Reglas_Consolidados.md` (repo `Backend`), sección 5. Los pendientes tampoco viven en cada entrada: están en «Abiertos». El detalle largo anterior sigue en el historial de git.
 
-*Traslado en curso (desde el 11-oct-2026):* las entradas desde el 04-oct-2026 ya están en formato corto y su contenido pasó a `§PF025` (8 y 9-oct), `§PF027` (5 a 7-oct) y `§PF018` (octava sesión, 2 al 5-oct). Las tandas 4 a 2 del 03 y 02-oct, la Fase 11 y el TBT de `guerra` (02-oct) también pasaron a `§PF018`, y la séptima y la sexta sesión (30 y 29-sep), las tandas D, C, B y A de la Fase 5b (28-sep), la Fase 11 del plan T_Lista (26-sep) y los comentarios desactualizados (21-sep) a `§PF017`. Del 20-sep pasaron a `§PF016` «Rendimiento (Lighthouse)», «CSS compartido», `permisos`, `mensajes` y `comunidad`. Con esta tanda quedó trasladado todo el 20-sep (`admin`, `perfil`, `directorio`, `index` y `guerra`) a `§PF016`. Del 19-sep ya pasaron a `§PF016` «CI y herramientas», «Rendimiento (Lighthouse)» y «SEO», «CSS compartido» y `permisos`. El resto del 19-sep (`mensajes` y `guerra`) y todo lo anterior (hoy ordenado por tema y archivo, no por fecha) conservan su texto largo hasta que se trasladen, por tandas y de la fecha más reciente a la más antigua.
+*Traslado en curso (desde el 11-oct-2026):* las entradas desde el 04-oct-2026 ya están en formato corto y su contenido pasó a `§PF025` (8 y 9-oct), `§PF027` (5 a 7-oct) y `§PF018` (octava sesión, 2 al 5-oct). Las tandas 4 a 2 del 03 y 02-oct, la Fase 11 y el TBT de `guerra` (02-oct) también pasaron a `§PF018`, y la séptima y la sexta sesión (30 y 29-sep), las tandas D, C, B y A de la Fase 5b (28-sep), la Fase 11 del plan T_Lista (26-sep) y los comentarios desactualizados (21-sep) a `§PF017`. Del 20-sep pasaron a `§PF016` «Rendimiento (Lighthouse)», «CSS compartido», `permisos`, `mensajes` y `comunidad`. Con esta tanda quedó trasladado todo el 20-sep (`admin`, `perfil`, `directorio`, `index` y `guerra`) a `§PF016`. Del 19-sep ya pasaron a `§PF016` «CI y herramientas», «Rendimiento (Lighthouse)» y «SEO», «CSS compartido», `permisos` y `mensajes`. El resto del 19-sep (`guerra`) y todo lo anterior (hoy ordenado por tema y archivo, no por fecha) conservan su texto largo hasta que se trasladen, por tandas y de la fecha más reciente a la más antigua.
 
 ---
 
@@ -175,6 +175,8 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 - **`permisos.html` · Accesibilidad de la lista.** `role="group"` con `aria-labelledby` en cada tarjeta y sección, `aria-label` en «Marcar/Desmarcar todo» y «Guardar» («Guardando permisos…» durante el guardado), `role="status"` en el mensaje de cada tarjeta, nombre accesible en el buscador y «Recargar». → §PF016
 - **`permisos.html` · Casillas de «Clanes donde puede tomar decisiones» (Clanes_Admin).** Tercera sección entre Funciones y Categorías; `datos.clanesAdmin` solo se envía si cambió; aviso si el servidor no lo confirma; valores fuera del catálogo marcados. El backend (catálogo `clanes` y `clanesAdmin`) quedaba pendiente ese día. → §PF016
 - **`permisos.html` · Se quita el `.btn-icono` duplicado del `<style>`.** → §PF016
+- **`mensajes.html` · Accesibilidad: nombres de botones y estado de los selectores.** 10 botones «↻» con `aria-label="Actualizar contenido: <categoría>"`; `aria-pressed` en los botones de categoría y de opción por clan (en los 3 sitios donde cambia el estado activo); se retira `role="tablist"`, `role="tab"` y `aria-selected` de las pestañas dinámicas; el botón colapsar alterna su `aria-label`. → §PF016
+- **`mensajes.html` (nueva), `admin.html`, `assets/js/core/auth.js`, 8 páginas con nav y `robots.txt` · «Mensajes» sale de `admin.html` a su propia página.** `mensajes.html`: solo admin (`location.replace('admin.html?volver=mensajes')`, eventos `storage` y `pageshow`). `auth.js`: `cerrarSesionAdmin()` (nueva) y `actualizarNavCta()` (muestra el link con sesión). `admin.html`: `btnLogin` con indicador de carga y retorno por `?volver=mensajes`; se eliminan la tarjeta, la llamada en `mostrarPanel()`, 6 funciones (`initMensajesAutomaticos()`, `cargarGrupoToggle()`, `cargarContenidoCategoria()`, `renderContenidoHtml()`, `_pintarOpcionContenido()` y `_activarAccionesContenido()`) y el CSS que ya nadie usa. `robots.txt`: `Disallow: /mensajes.html`. → §PF016
 
 ---
 
@@ -254,98 +256,6 @@ compartan nombre en clanes distintos.
 Pedido del usuario: la página pasa a consumir `webTorneos`
 (`34_Web_API.gs`), el mismo endpoint que ya usaba `admin.html` para la
 tarjeta "Ver ganadores" del panel.
-
----
-
-## mensajes.html
-
-### 19-sep-2026 — Accesibilidad: nombres de botones y estado de los selectores
-Primera revisión de accesibilidad de la página (no la cubría ninguna
-auditoría anterior).
-- **10 botones "↻"** dentro de los `<summary>`: su nombre accesible salía del
-  contenido ("↻"), no del `title`, y no decía de qué categoría. Ahora
-  `aria-label="Actualizar contenido: <categoría>"` (único por botón).
-- **Botones de categoría** (Guerra/Entrenamiento/Mazos, Participantes/
-  Ganadores ×2) y **botones de opción por clan** (los que arma
-  `renderContenidoHtml`): el estado activo solo lo daba la clase `.activo`.
-  Ahora llevan `aria-pressed` que acompaña a `.activo` en los 3 sitios donde
-  cambia (clic en el toggle, clic en la pestaña dinámica y el reajuste de
-  `initMensajesAutomaticos()` cuando el botón activo está oculto por permisos;
-  este último se detectó al probar y quedaba desfasado). Los grupos de
-  botones son `role="group"` con etiqueta.
-- **Se retira `role="tablist"`/`role="tab"`/`aria-selected`** de las pestañas
-  dinámicas: el patrón estaba a medias (sin flechas de teclado, sin
-  `tabpanel` ni `aria-controls`), así que anunciaba "pestaña" prometiendo un
-  teclado que no existe. Son botones normales con `aria-pressed`, operables
-  con Tab/Enter.
-- **Botón colapsar (▾/▸)**: `aria-label` que alterna "Colapsar texto" /
-  "Expandir texto" junto con `title` y `aria-expanded`.
-- No se tocó (queda como límite conocido): el salto de `h1` a `h3` en los
-  títulos de grupo, los botones dentro de `<summary>` (contenido interactivo
-  anidado) y que "✔ Copiado" no se anuncia.
-
-### 19-sep-2026 — La sección "Mensajes" sale de `admin.html` y pasa a su propia página
-Pedido del usuario: "migra la sección de mensajes a su propio botón entre
-comunidad y 'acceder' o 'mi panel'". Decisiones tomadas con el usuario antes
-de tocar código:
-- **Página nueva propia** (`mensajes.html`), no una pestaña dentro de admin.
-- **Solo admin**: el link del nav nace oculto (`style="display:none"`) en las
-  8 páginas con nav (`index`, `comunidad`, `directorio`, `guerra`, `torneos`,
-  `perfil`, `admin`, `404`) y `actualizarNavCta()` (`assets/js/core/auth.js`)
-  lo muestra solo con `terna_admin_token`. `sorteo.html` no tiene nav, no
-  cambia. Si alguien entra por URL sin sesión, `mensajes.html` no pinta nada
-  y hace `location.replace('admin.html')`, que muestra el login. Lo mismo si
-  el token venció (`manejarRespuestaAuth()` de la página nueva). La redirección
-  va a `admin.html?volver=mensajes`: tras iniciar sesión, `btnLogin` de
-  `admin.html` regresa a `mensajes.html` en vez de quedarse en el panel
-  (comparación exacta con `'mensajes'`; el parámetro nunca se usa como URL, y
-  una primera versión con un objeto de destinos aceptaba claves heredadas como
-  `?volver=constructor`). Además `mensajes.html` se cierra sola si otra
-  pestaña cierra sesión (evento `storage`) o si se vuelve con "Atrás" a una
-  copia restaurada desde caché del navegador (`pageshow`). El backend
-  (`webAdminContenido`/`webAdminCategorias`) sigue exigiendo el token en cada
-  petición: ocultar el link es solo UX.
-- **Cerrar sesión instantáneo** (19-sep-2026, "no me deja cerrar sesión"):
-  el botón esperaba `await apiPost('webAuthLogout')` antes de borrar el token,
-  pero `api.js` manda las peticiones en serie (`_MAX_PETICIONES_SIMULTANEAS = 1`)
-  y `fetch` no tiene tiempo límite (hasta 5 reintentos), así que el aviso de
-  logout quedaba detrás de todas las peticiones pendientes del panel y la
-  pantalla no cambiaba. Nuevo `cerrarSesionAdmin()` en `auth.js`: borra el
-  token en el acto y manda `webAuthLogout` SIN esperarlo (devuelve la promesa,
-  que nunca rechaza). `admin.html` no la espera; `mensajes.html` la espera
-  hasta 3 s antes de ir a `admin.html` (sin `?volver=`), para que la
-  navegación no corte el aviso. En admin, la bandera `cerrandoSesion` evita
-  que respuestas aún en vuelo muestren un error de "sesión" sobre el login.
-  Afectaba también a `admin.html` desde antes de esta migración.
-  Una primera versión mandaba el aviso con un `fetch` propio `keepalive` FUERA
-  de la cola de `api.js`; se descartó porque rompe la garantía de
-  `_encolarPeticion()` (Apps Script nunca recibe 2 peticiones a la vez) y un
-  login inmediato podía coincidir con el logout en curso.
-- **Login con indicador de carga** (19-sep-2026, "no hay mensaje de que esté
-  cargando ni nada"): `btnLogin` ahora se bloquea, muestra "Ingresando…" y
-  "Conectando con el servidor…", y a los 6 s avisa que el servidor tarda. El
-  silencio venía de que el login nunca tuvo feedback y, con la cola en serie
-  y hasta 5 reintentos silenciosos (~12 s si Apps Script devuelve algo que no
-  es JSON), la espera podía ser larga sin señal alguna.
-- **Se elimina de `admin.html`** (no queda respaldo duplicado): la tarjeta
-  HTML, la llamada `initMensajesAutomaticos()` de `mostrarPanel()` y las 6
-  funciones (`initMensajesAutomaticos`, `cargarGrupoToggle`,
-  `cargarContenidoCategoria`, `renderContenidoHtml`, `_pintarOpcionContenido`,
-  `_activarAccionesContenido`), movidas tal cual a `mensajes.html`.
-
-CSS: en `admin.html` se quitaron solo las reglas que ya nadie usa allá
-(`.btn-refrescar-categoria`, `.categoria-contenido-body`, `.admin-toggle-*`,
-`.contenido-caja`, `.contenido-acciones`, `.contenido-item pre`, el visor de
-Doc original `.contenido-pdf-wrap`/`.doc-original*`/`.viendo-original`, y
-`.contenido-item .cab-info`/`.btn-icono.copiado`). Se conservan `.contenido-item`,
-`.cab`, `.etiqueta`, `.clan-chip`, `.contenido-tabs`, `.tab-clan`, `.btn-icono`,
-`.admin-subseccion*`, `.admin-grupo` y `.cat-titulo` porque Torneos, Sorteos,
-Cambio de rango y Ganadores las siguen usando; en `mensajes.html` se
-duplican (copia, no movimiento).
-
-`robots.txt`: se agrega `Disallow: /mensajes.html` junto a `admin.html` y
-`sorteo.html`. `sw.js` y `sitemap.xml` no cambian: igual que `admin.html`, es
-una página interna `noindex` que no se precachea.
 
 ---
 
