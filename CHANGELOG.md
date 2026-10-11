@@ -4,7 +4,7 @@ Lista corta de lo que se hizo, de más reciente a más antiguo. Cada entrada tra
 
 **Cómo funciona el código hoy, por qué se decidió así, qué se probó y se descartó: no va aquí, va en `Contexto_Base_Web.md`.** Las reglas de redacción están en `Consolidados de cambios/Reglas_Consolidados.md` (repo `Backend`), sección 5. Los pendientes tampoco viven en cada entrada: están en «Abiertos». El detalle largo anterior sigue en el historial de git.
 
-*Traslado en curso (desde el 11-oct-2026):* las entradas desde el 04-oct-2026 ya están en formato corto y su contenido pasó a `§PF025` (8 y 9-oct), `§PF027` (5 a 7-oct) y `§PF018` (octava sesión, 2 al 5-oct). Las tandas 4 a 2 del 03 y 02-oct, la Fase 11 y el TBT de `guerra` (02-oct) también pasaron a `§PF018`, y la séptima y la sexta sesión (30 y 29-sep), las tandas D, C, B y A de la Fase 5b (28-sep), la Fase 11 del plan T_Lista (26-sep) y los comentarios desactualizados (21-sep) a `§PF017`. Del 20-sep ya pasaron a `§PF016` las de «Rendimiento (Lighthouse)», «CSS compartido», `permisos`, `mensajes` y `comunidad`. El resto del 20-sep (en `admin`, `perfil`, `directorio`, `index` y `guerra`) y todo lo anterior (hoy ordenado por tema y archivo, no por fecha) conservan su texto largo hasta que se trasladen, por tandas y de la fecha más reciente a la más antigua.
+*Traslado en curso (desde el 11-oct-2026):* las entradas desde el 04-oct-2026 ya están en formato corto y su contenido pasó a `§PF025` (8 y 9-oct), `§PF027` (5 a 7-oct) y `§PF018` (octava sesión, 2 al 5-oct). Las tandas 4 a 2 del 03 y 02-oct, la Fase 11 y el TBT de `guerra` (02-oct) también pasaron a `§PF018`, y la séptima y la sexta sesión (30 y 29-sep), las tandas D, C, B y A de la Fase 5b (28-sep), la Fase 11 del plan T_Lista (26-sep) y los comentarios desactualizados (21-sep) a `§PF017`. Del 20-sep pasaron a `§PF016` «Rendimiento (Lighthouse)», «CSS compartido», `permisos`, `mensajes` y `comunidad`. Con esta tanda quedó trasladado todo el 20-sep (`admin`, `perfil`, `directorio`, `index` y `guerra`) a `§PF016`. Lo anterior (del 19-sep hacia atrás, hoy ordenado por tema y archivo, no por fecha) conserva su texto largo hasta que se traslade, por tandas y de la fecha más reciente a la más antigua.
 
 ---
 
@@ -157,6 +157,13 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 - **`mensajes.html` · Regla muerta `.categoria-contenido-body` borrada (D-3 a1).** Se borra `.categoria-contenido-body{padding:0 2px 14px 26px}`; la clase queda como gancho de JS. → §PF016
 - **`mensajes.html` · Accesibilidad: encabezados, `<main>` y anuncio de «Copiado».** Los 3 títulos de tarjeta pasan de `h3` a `h2`; `<main id="main-content">` envuelve `#panelSec`; nueva región `#anuncioSr` (`.anuncio-sr`) y `anunciarSr()` para anunciar «✔ Copiado» y «No se pudo copiar el mensaje». → §PF016
 - **`comunidad.html` · Dos `style=""` repetidos pasan a clases locales (D-21 b).** `.hist-seccion` (9 `<section>` de historia y comunidad) y la regla `.historia-card` (9 tarjetas). → §PF016
+- **`admin.html` · 26 campos con nombre accesible.** `aria-label` en los minutos y el AM/PM de los 7 grupos de fecha/hora, en los 6 campos de autor/organizador manual de torneos y sorteos, y en `#tagInput`, `#infTagInput`, `#nmNomMultiNuevo`, `#tModificarLink` y `#ascEditBuscar`. Solo atributos. → §PF016
+- **`directorio.html` · Nombre accesible en los buscadores.** `aria-label` en `#tagInput`, `#compTag1` y `#compTag2`. → §PF016
+- **`index.html` · «¿Nuevo en la Familia Terna?» pasa de `h3` a `h2`.** Mismo estilo inline. → §PF016
+- **`guerra.html` · `actualizarAgoText()` usa `fmtTiempoRelativo()` (D-10 b).** El texto sale de `util.js`; el mensaje «sin conexión» de `cargar()` no se tocó. Sustituido el 09-oct por `fmtTresTiempos()`. → §PF016
+- **`guerra.html` · Nombre accesible en los 5 selectores de temporada.** `aria-label` en `#anioActivosSelect`, `#temporadaActivosSelect`, `#semanaActivosSelect`, `#anioTemporadaSelect` y `#temporadaSelect`. → §PF016
+- **`perfil.html` · Dos `style=""` repetidos pasan a clases locales (D-21 b).** `.pf-subtitulo` (12 `<h2>`) y `.pf-panel-datos` (11 tarjetas); el `display:none` de las tarjetas queda inline. → §PF016
+- **`37_Web_API.gs` (entonces `34_Web_API.gs`) y `perfil.html` · `nombreEs` en cartas e insignias del perfil.** `_webDatosDriveJugador()`: `nombreEs` desde `Backup_Cards.csv` (por ID) y `Backup_Insignias_2.csv` (por Tag y Name) en `currentFavouriteCard`, `cards[]`, `supportCards[]`, `currentDeck[]`, `currentDeckSupportCards[]` y `badges[]`. `perfil.html`: solo comentarios (bloque «PENDIENTE DE BACKEND» y nota del `<head>`). → §PF016
 
 ---
 
@@ -507,17 +514,6 @@ una página interna `noindex` que no se precachea.
 > Esta página es la más grande del sitio (~8,760 líneas). El historial se
 > va agregando por tramos a medida que se aligeran sus comentarios; los
 > tramos siguientes se agregarán debajo de este a medida que se procesen.
-
-### 20-sep-2026 — 26 campos con nombre accesible
-Auditoría automática en Chromium: 40 campos sin nombre accesible. 14 eran los
-`<input type="date|time">` nativos, que ya llevan `aria-hidden="true"` y
-`tabindex="-1"` (detrás del campo de texto amigable): falso positivo. Los 26
-reales reciben `aria-label`: minutos (`…HoraMM`, "Minutos") y `select` AM/PM
-(`…HoraAmPm`) de los 7 grupos de fecha/hora, los 6 campos de autor/organizador
-manual (torneos y sorteos), y los buscadores `#tagInput`, `#infTagInput`,
-`#nmNomMultiNuevo`, `#tModificarLink` y `#ascEditBuscar`. Solo atributos:
-captura de la pantalla de login idéntica y sin errores de JS. No se probó el
-panel con sesión real.
 
 ### Tramo 1 — bloque `<style>` (líneas ~16-430)
 
@@ -2954,61 +2950,6 @@ alcanza a cualquier `.col-card` que lleve el modificador, sin importar la
 sección. `Colección completa` (`pintarColeccion()`) no se toca: sigue en
 52x60, que es el tamaño que ya tenía y que nadie pidió agrandar acá.
 
-
-El 20-sep se dejó en `perfil.html` un bloque "PENDIENTE DE BACKEND" (pedido: "se
-traduce mal, esas traducciones se quedaron como fallback, no debe ser la fuente
-principal"). `Base.md` se estaba editando en otra sesión y no se tocó entonces.
-Motivo: solo el mazo actual salía bien traducido (`_webMazoActualDesdeCards2()`
-ya cruza contra `Backup_Cards.csv`); el resto de categorías de `rawClash` se
-copiaban tal cual del JSON de Supercell, en inglés.
-
-**Backend (`34_Web_API.gs`, `_webDatosDriveJugador()`):** se agrega `nombreEs`
-(nunca se reemplaza `name`) a:
-- `currentFavouriteCard`, `cards[]`, `supportCards[]`, `currentDeck[]` y
-  `currentDeckSupportCards[]`:
-  columna "Nombre" de `Backup_Cards.csv`, cruzada por **ID** (nunca por nombre).
-- `badges[]`: columna "Nombre" de `Backup_Insignias_2.csv`, cruzada por
-  **(Tag, Name)**; el Tag se compara con `cleanTag()` en ambos lados.
-
-Decisiones que se apartan de lo que decía el bloque pendiente:
-- **Se copia, no se muta.** El bloque proponía `obj.nombreEs = es`, pero
-  `_cargarPlayerDesideDrive()` deja el JSON en `_DRIVE_CACHE_MEM`, compartido con
-  otras funciones; mutarlo llenaría de `nombreEs` objetos que no son de esta función.
-- **"Nombre" vacío = sin `nombreEs`.** El bloque proponía usar la columna "Name"
-  (inglés) como reemplazo. Si eso pasara, `perfil.html` preferiría ese inglés y dejaría de
-  usar el diccionario local (`cards-es.js`), que sí podría tener la traducción.
-  Sin `nombreEs`, las cartas caen a ese diccionario y las insignias muestran el
-  nombre crudo de Supercell.
-- Si el CSV no se puede leer, el mapa queda vacío y el perfil se ve como antes.
-  El CSV se lee una sola vez por perfil, y ninguna si el JSON no trae esas categorías.
-- `currentDeck[]` se agregó en una segunda pasada del mismo día. `perfil.html` lo
-  usa como lista definitiva de las 8 cartas del mazo; si a una le falta la fila
-  `Currentdeck='Sí'` en `Backup_Cards_2.csv`, `_cartaMazoFallback()` la arma
-  desde el objeto crudo y ahí `nombreEs` evita caer al diccionario local.
-
-**Frontend (`perfil.html`):** sin cambios de código (`_nombreCartaEs()` y
-`_nombreInsigniaEs()` ya preferían `nombreEs`). Solo se reemplazó el bloque
-pendiente por una nota funcional corta y se corrigieron las referencias a él. Se
-corrigió también la nota del `<head>`, que decía "pendiente que webPerfil adjunte el
-snapshot JSON crudo" cuando ese enlace ya estaba conectado desde el 15-sep. Se
-comprobó que el AST del JavaScript inline es idéntico antes y después.
-
-**Al publicar:** hay que volver a desplegar el web app del backend para que llegue
-`nombreEs`. Las insignias solo se traducen donde `Backup_Insignias_2.csv` tenga
-"Nombre" completo (las "Mastery…" se autocompletan; el resto es manual).
-
-### 20-sep-2026 — Dos `style=""` repetidos pasan a clases locales (D-21 b)
-`style="font-size:19px; margin-top:8px;"` (12 veces, en el `<h2>` de cada
-panel de estadísticas de Clash) y `style="padding:28px; margin-top:20px;
-display:none;"` (11 veces, en la tarjeta `.card` de cada uno de esos
-paneles) pasan a `.pf-subtitulo` y `.pf-panel-datos`, clases nuevas y
-locales de esta página. El `display:none;` de las 11 tarjetas se dejó
-como `style=""` aparte, fuera de `.pf-panel-datos`: varias funciones de
-`<script>` las muestran con `card.style.display = ''`, que solo limpia el
-inline y deja que la cascada decida — si `display:none` viviera en la
-clase, esa línea ya no alcanzaría para revelarlas. Sin cambio visual
-esperado.
-
 ### Línea original 18 (HTML)
 
 ```
@@ -3357,10 +3298,6 @@ PENDIENTE BACKEND: categoría supportCards[] del JSON (las
 
 
 ## directorio.html — historial trasladado
-
-### 20-sep-2026 — Nombre accesible en los campos de búsqueda
-`#tagInput`, `#compTag1` y `#compTag2` solo tenían `placeholder`; ahora llevan
-`aria-label` (el placeholder no cuenta como etiqueta y desaparece al escribir).
 
 ### 18-sep-2026 (refactor CSS, Fase 2 — tablas) — Restyle manual de `.roster-table-wrap` eliminado por duplicado
 El restyle morado de la barra de scroll (thumb `var(--purple-light)`,
@@ -3812,11 +3749,6 @@ el clic del usuario.
 
 ## index.html — historial trasladado
 
-### 20-sep-2026 — Hero con `srcset` y encabezado `h2`
-Ver "Rendimiento (Lighthouse)" para el `srcset` del hero. Además,
-"¿Nuevo en la Familia Terna?" pasa de `h3` a `h2` (el esquema saltaba de `h1`
-a `h3`); mismo estilo inline, no está dentro de `.ingreso-clan`, captura idéntica.
-
 ### Línea original 592 (HTML)
 
 ```
@@ -4234,30 +4166,6 @@ manda campos nuevos. La página los usa así:
   versión (las páginas se piden primero a la red).
 - **Formato confirmado por el usuario** (`~#N`, guion y nota al pie);
   cambiarlo es tocar solo estas dos plantillas.
-
-### 20-sep-2026 — `actualizarAgoText()` usa `fmtTiempoRelativo()` (D-10 b)
-Repetía en solitario las mismas franjas de segundos/minutos que ya calcula
-`fmtTiempoRelativo()` (`assets/js/util.js`), el componente que
-`index`/`directorio`/`perfil`/`torneos` ya comparten para "actualizado hace
-X" sobre el respaldo en `localStorage`. Esta página sigue necesitando su
-propia función porque su fuente es `lastFetchAt` en memoria (se
-auto-refresca sola cada `REFRESH_INTERVAL_MS`), no ese respaldo, pero el
-texto ya sale de la función centralizada en vez de una copia local. El
-mensaje de "sin conexión, mostrando última carga" (rama de error de
-`cargar()`) no se tocó: sigue siendo un estado propio de esta página, no
-un texto de `fmtTiempoRelativo()`. Sin cambio visual esperado.
-
-### 20-sep-2026 — Contraste de "Actualizado hace X s" (`.refresh-row`)
-`color:var(--text-faint)` → `var(--text-dim)`: sobre el tinte dorado de
-`.eyebrow` el token daba 4.27:1 (mín. 4.5:1). Detalle y corrección del
-diagnóstico inicial en "CSS compartido (assets/styles.css)". Comentario en el
-propio CSS. Mismo día que el cambio de accesibilidad de abajo.
-
-### 20-sep-2026 — Nombre accesible en los 5 selectores de temporada
-`#anioActivosSelect`, `#temporadaActivosSelect`, `#semanaActivosSelect`
-("Valores diarios") y `#anioTemporadaSelect`, `#temporadaSelect` ("Valores
-semanales") empiezan ocultos y los llena JS; ahora llevan `aria-label` que
-indica de cuál cuadrícula son. Sin cambio visual.
 
 ### 19-sep-2026 — "Pronóstico de Hoy" fusionado con "Guerra de Hoy" (continuación de cada tarjeta)
 Pedido usuario: el pronóstico se veía como una lista aparte y no se entendía
