@@ -676,6 +676,14 @@
   /* NUEVO (27-sep-2026, pedido usuario): línea guía vertical en cada
      domingo (cierre de semana de guerra) y el rótulo J/V/S/D sin rotar,
      pegado al eje, encima de la fila de fechas -- ver perfilLineChartSvg(). */
+  /* 11-oct-2026 (pedido usuario): tope de ataques (4) y de medallas (900) por día; lo que lo supera se marca como anomalía. [→ Contexto_Base_Web.md §PF036] */
+  .ing-linechart-svg .linea-tope{stroke:var(--gold); stroke-width:1.8; stroke-dasharray:7 5; opacity:.9;}
+  .ing-linechart-svg .tope-label{fill:var(--gold); font-family:var(--f-mono); font-size:13px; font-weight:700; paint-order:stroke; stroke:var(--bg); stroke-width:4px; stroke-linejoin:round;}
+  .ing-linechart-svg .serie-pt-anomalia{filter:drop-shadow(0 0 5px var(--danger));}
+  .pf-tope-resumen{margin-top:8px; font-family:var(--f-mono); font-size:12px; line-height:1.5;}
+  .pf-tope-alerta{color:var(--danger);}
+  .pf-tope-alerta b{color:var(--text);}
+  .pf-tope-ok{color:var(--text-faint);}
   .ing-linechart-svg .linea-domingo{stroke:var(--purple); stroke-width:1; stroke-dasharray:3 4; opacity:.35;}
   .ing-linechart-svg .ing-axis-label-dia{font-size:12px; opacity:.8;}
   .pf-panel-datos{padding:28px; margin-top:20px;}
@@ -4698,6 +4706,9 @@ function parseFechaDDMMYYYY(s){
  * tramos punteados con puntos huecos para semanas sin dato, y el mismo
  * tooltip/teclado. Historial en CHANGELOG.md.
  * ========================================================================= */
+// Topes por día de guerra (pedido de la usuaria, 11-oct-2026): lo que los supere es una anomalía. Barcos no tiene tope definido.
+const TOPE_ATAQUES_DIA = 4;
+const TOPE_MEDALLAS_DIA = 900;
 const COLOR_SERIE_PERFIL = '#a239ff'; // primer color de PALETA_SERIES de directorio.html
 let perfilGraficaCtx = { nombre: '', tag: '', clan: '' }; // lo fija renderMiembro() antes de pintar
 
@@ -4918,11 +4929,28 @@ function _guerraDiasDesdeHistorial(historial){
 
 function etiquetaPuntoPerfil(pt){
   const d = pt.dataset;
-  return `${d.nombre || ''}${d.tag ? ' (' + d.tag + ')' : ''}: ${d.prefijo || ''}${fmtNum(d.valor)} ${d.unidad || ''} — ${d.clan || ''} · ${d.semana || ''}`;
+  return `${d.nombre || ''}${d.tag ? ' (' + d.tag + ')' : ''}: ${d.prefijo || ''}${fmtNum(d.valor)} ${d.unidad || ''} — ${d.clan || ''} · ${d.semana || ''}${d.tope ? ' — supera el tope de ' + fmtNum(d.tope) : ''}`;
 }
 function htmlTooltipPuntoPerfil(pt){
   const d = pt.dataset;
-  return `<b>${esc(d.nombre || '')}${d.tag ? ' (' + esc(d.tag) + ')' : ''}</b><br><span style="color:var(--text-faint);">${esc((d.prefijo || '') + fmtNum(d.valor))} ${esc(d.unidad || '')} — ${esc(d.clan || '')} · ${esc(d.semana || '')}</span>`;
+  return `<b>${esc(d.nombre || '')}${d.tag ? ' (' + esc(d.tag) + ')' : ''}</b><br><span style="color:var(--text-faint);">${esc((d.prefijo || '') + fmtNum(d.valor))} ${esc(d.unidad || '')} — ${esc(d.clan || '')} · ${esc(d.semana || '')}</span>${d.tope ? `<br><span style="color:var(--danger);">⚠ Supera el tope de ${esc(fmtNum(d.tope))}</span>` : ''}`;
+}
+
+/**
+ * filtrarDiasGuerraPerfil(puntos) / puntosSobreTope(puntos, tope)
+ * FIX (11-oct-2026, pedido usuario -- "en las medallas por semana pon una línea punteada para 900 y en la de ataques en los 4 ataques; esos son los topes, lo que se exceda es una anomalía y quiero poder detectarlas"): el filtro de días de guerra (jueves a domingo) que antes vivía dentro de perfilLineChartSvg() pasa a una función propia para que el aviso de anomalías (pintarGraficaPerfil) use exactamente los mismos puntos que se dibujan. puntosSobreTope() devuelve los puntos con dato real (real:true) cuyo valor es MAYOR que el tope; igual al tope no es anomalía, y un hueco sin dato (real:false, valor 0) nunca cuenta. [→ Contexto_Base_Web.md §PF036]
+ */
+function filtrarDiasGuerraPerfil(puntos){
+  return puntos.filter(p => {
+    const t = parseFechaDDMMYYYY(p.semana);
+    if (isNaN(t)) return true;
+    const dia = new Date(t).getDay(); // 0=domingo … 6=sábado
+    return dia === 0 || dia >= 4; // jueves(4), viernes(5), sábado(6), domingo(0)
+  });
+}
+function puntosSobreTope(puntos, tope){
+  if (!(tope > 0)) return [];
+  return puntos.filter(p => p.real && Number(p.valor) > tope);
 }
 
 /**
@@ -4930,6 +4958,7 @@ function htmlTooltipPuntoPerfil(pt){
  * puntos: [{ semana, valor, real, clan? }] en orden cronológico (real:false = semana sin dato).
  * opts.ejeY: título del eje Y · opts.unidad: texto del tooltip · opts.prefijo: "#" en ranking
  * opts.base: valor mínimo del eje (0 en métricas, 1 en ranking) · opts.invertido: true = el valor más BAJO va arriba (ranking).
+ * opts.tope (11-oct-2026): valor máximo esperable; dibuja una línea punteada ahí, la escala siempre lo incluye y los puntos reales por encima se pintan en rojo (anomalía).
  */
 function perfilLineChartSvg(puntos, opts){
   opts = opts || {};
@@ -4940,17 +4969,13 @@ function perfilLineChartSvg(puntos, opts){
   // seguían dibujándose; ahora se filtran del todo, antes de calcular
   // escala, posiciones, línea y tooltips. Si una fecha no se puede leer se
   // deja tal cual (no hay forma de saber si cae en día de guerra).
-  puntos = puntos.filter(p => {
-    const t = parseFechaDDMMYYYY(p.semana);
-    if (isNaN(t)) return true;
-    const dia = new Date(t).getDay(); // 0=domingo … 6=sábado
-    return dia === 0 || dia >= 4; // jueves(4), viernes(5), sábado(6), domingo(0)
-  });
+  puntos = filtrarDiasGuerraPerfil(puntos);
   // FIX (07-oct-2026): si tras el filtro no queda ningún punto real no se dibuja el eje (salía "#NaN"/"-Infinity"), se avisa.
   if (!puntos.some(p => p.real)) return `<div class="chart-empty">Todavía no hay d\u00edas de guerra registrados para graficar.</div>`;
   const W = 960, H = 320, PAD_R = 20, PAD_T = 20, PAD_B = 90;
   const base = opts.base || 0, pasos = 4, prefijo = opts.prefijo || '';
-  const max = Math.max(...puntos.filter(p => p.real).map(p => p.valor));
+  const tope = opts.tope > 0 ? Number(opts.tope) : 0;
+  const max = Math.max(tope, ...puntos.filter(p => p.real).map(p => p.valor));
   const rango = Math.ceil(((max - base) || pasos) / pasos) * pasos || pasos;
   const techo = base + rango;
   const valorMarca = i => base + (rango / pasos) * i;
@@ -5022,28 +5047,36 @@ function perfilLineChartSvg(puntos, opts){
     return `<text class="ing-axis-label" x="${x}" y="${y}" text-anchor="end" transform="rotate(-45 ${x} ${y})">${esc(etiqueta)}</text>`;
   }).join('');
 
+  // Línea punteada del tope (color oro, distinta de los tramos punteados grises de «sin dato») con su rótulo a la derecha.
+  const lineaTope = tope ? (() => {
+    const y = yPos(tope).toFixed(1);
+    return `<line class=\"linea-tope\" x1=\"${PAD_L}\" y1=\"${y}\" x2=\"${W - PAD_R}\" y2=\"${y}\"></line><text class=\"tope-label\" x=\"${W - PAD_R}\" y=\"${(yPos(tope) - 7).toFixed(1)}\" text-anchor=\"end\">Tope: ${esc(fmtNum(tope))}</text>`;
+  })() : '';
   let path = '';
   for (let i = 0; i < n - 1; i++){
     const a = puntos[i], b = puntos[i + 1];
     const dashed = !(a.real && b.real);
     path += `<path class="ing-serie-line${dashed ? ' ing-serie-line-dashed' : ''}" d="M ${xPos(i).toFixed(1)} ${yPos(a.valor).toFixed(1)} L ${xPos(i + 1).toFixed(1)} ${yPos(b.valor).toFixed(1)}" stroke="${COLOR_SERIE_PERFIL}"></path>`;
   }
-  const circles = puntos.map((p, i) => `
-      <circle class="ing-serie-pt${p.real ? '' : ' serie-pt-vacio'}" cx="${xPos(i).toFixed(1)}" cy="${yPos(p.valor).toFixed(1)}" r="5"
-        fill="${p.real ? COLOR_SERIE_PERFIL : 'none'}" stroke="${p.real ? 'var(--bg)' : COLOR_SERIE_PERFIL}" stroke-width="${p.real ? 1.5 : 2}"
+  const circles = puntos.map((p, i) => {
+    const anomalia = !!tope && p.real && Number(p.valor) > tope;
+    return `
+      <circle class="ing-serie-pt${p.real ? '' : ' serie-pt-vacio'}${anomalia ? ' serie-pt-anomalia' : ''}" cx="${xPos(i).toFixed(1)}" cy="${yPos(p.valor).toFixed(1)}" r="${anomalia ? 6.5 : 5}"
+        fill="${p.real ? (anomalia ? 'var(--danger)' : COLOR_SERIE_PERFIL) : 'none'}" stroke="${p.real ? 'var(--bg)' : COLOR_SERIE_PERFIL}" stroke-width="${p.real ? 1.5 : 2}"
         data-nombre="${esc(perfilGraficaCtx.nombre)}" data-tag="${esc(perfilGraficaCtx.tag)}" data-valor="${p.valor}" data-prefijo="${esc(p.real ? prefijo : '')}"
         data-clan="${esc(p.real ? (p.clan || perfilGraficaCtx.clan || '—') : (p.motivo || 'Sin dato — sin clan o sin participar'))}"
-        data-semana="${esc(p.semana)}" data-unidad="${esc(opts.unidad || '')}"></circle>`).join('');
+        data-semana="${esc(p.semana)}" data-unidad="${esc(opts.unidad || '')}"${anomalia ? ` data-tope="${tope}"` : ''}></circle>`;
+  }).join('');
 
   const ejeXTitle = `<text class="ing-axis-title" x="${PAD_L + plotW / 2}" y="${H - 8}" text-anchor="middle">Fecha</text>`;
   const ejeYTitle = opts.ejeY
     ? `<text class="ing-axis-title" x="14" y="${PAD_T + plotH / 2}" text-anchor="middle" transform="rotate(-90 14 ${PAD_T + plotH / 2})">${esc(opts.ejeY)}</text>`
     : '';
-  return `<svg class="ing-linechart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">${gridLines.join('')}${gridMedios}${lineasTemporales}${lineasDomingo}${xLetrasDia}${xLabels}${path}${circles}${ejeXTitle}${ejeYTitle}</svg>`;
+  return `<svg class="ing-linechart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">${gridLines.join('')}${gridMedios}${lineasTemporales}${lineasDomingo}${xLetrasDia}${xLabels}${lineaTope}${path}${circles}${ejeXTitle}${ejeYTitle}</svg>`;
 }
 
 /** Mini-leyenda de arriba de cada gráfica (idéntica a la de directorio.html). */
-function leyendaPuntosGraficaHtml(conHuecos){
+function leyendaPuntosGraficaHtml(conHuecos, tope){
   return `
     <div class="ing-chart-leyenda">
       <div class="ing-chart-leyenda-fila">
@@ -5054,12 +5087,29 @@ function leyendaPuntosGraficaHtml(conHuecos){
         <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><circle cx="5" cy="5" r="3.4" fill="none" stroke="var(--text-dim)" stroke-width="1.6"></circle></svg>
         Punto solo con borde = sin dato esa semana
       </div>`}
+      ${tope ? `<div class="ing-chart-leyenda-fila">
+        <svg width="22" height="10" viewBox="0 0 22 10" aria-hidden="true"><line x1="0" y1="5" x2="22" y2="5" stroke="var(--gold)" stroke-width="1.8" stroke-dasharray="4 3"></line></svg>
+        Línea punteada = tope (${esc(fmtNum(tope))}) · punto rojo = supera el tope (anomalía)
+      </div>` : ''}
     </div>`;
 }
 
 /** Pinta la gráfica dentro de `wrap` y activa tooltip de mouse + teclado (mismo comportamiento que directorio.html). */
 function pintarGraficaPerfil(wrap, puntos, opts, nota){
-  wrap.innerHTML = `${leyendaPuntosGraficaHtml(!opts.sinHuecos)}${perfilLineChartSvg(puntos, opts)}${nota || ''}`;
+  let notaTope = '';
+  if (opts.tope > 0){
+    const anom = puntosSobreTope(filtrarDiasGuerraPerfil(puntos), opts.tope);
+    const unidad = opts.unidad || '';
+    if (!anom.length){
+      notaTope = `<div class="pf-tope-resumen pf-tope-ok">Ningún día supera el tope de ${esc(fmtNum(opts.tope))} ${esc(unidad)}.</div>`;
+    } else {
+      const MAX_LISTA = 10;
+      const lista = anom.slice(-MAX_LISTA).map(p => `${esc(semanaLabelCortaPerfil(p.semana))} (<b>${esc(fmtNum(p.valor))}</b>)`).join(', ');
+      const mas = anom.length > MAX_LISTA ? ` y ${anom.length - MAX_LISTA} más antiguos` : '';
+      notaTope = `<div class="pf-tope-resumen pf-tope-alerta">⚠ ${anom.length} ${anom.length === 1 ? 'día supera' : 'días superan'} el tope de ${esc(fmtNum(opts.tope))} ${esc(unidad)}: ${lista}${mas}.</div>`;
+    }
+  }
+  wrap.innerHTML = `${leyendaPuntosGraficaHtml(!opts.sinHuecos, opts.tope)}${perfilLineChartSvg(puntos, opts)}${notaTope}${nota || ''}`;
   const svg = wrap.querySelector('.ing-linechart-svg');
   if (!svg) return;
   const tip = obtenerTooltipGrafica();
@@ -5176,7 +5226,7 @@ function renderMetricaSemanal(elId, historial, campo, opts){
     })
   );
   const unidades = { Ataques: 'ataques', Medallas: 'de medallas', Barcos: 'barcos' };
-  pintarGraficaPerfil(wrap, puntos, { ejeY: opts.tituloEje || '', unidad: unidades[opts.tituloEje] || '', base: 0 });
+  pintarGraficaPerfil(wrap, puntos, { ejeY: opts.tituloEje || '', unidad: unidades[opts.tituloEje] || '', base: 0, tope: opts.tope || 0 });
 }
 
 /**
@@ -5188,8 +5238,8 @@ function renderMetricaSemanal(elId, historial, campo, opts){
  */
 function renderMetricasSemanales(ext){
   const historial = ext && Array.isArray(ext.historialRanking) ? ext.historialRanking : [];
-  renderMetricaSemanal('mAtaquesChart', historial, 'ataques', { tituloEje: 'Ataques' });
-  renderMetricaSemanal('mPuntajeChart', historial, 'puntaje', { tituloEje: 'Medallas' });
+  renderMetricaSemanal('mAtaquesChart', historial, 'ataques', { tituloEje: 'Ataques', tope: TOPE_ATAQUES_DIA });
+  renderMetricaSemanal('mPuntajeChart', historial, 'puntaje', { tituloEje: 'Medallas', tope: TOPE_MEDALLAS_DIA });
   renderMetricaSemanal('mBarcosChart', historial, 'barcos', { tituloEje: 'Barcos' });
 }
 
