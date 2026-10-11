@@ -4,7 +4,7 @@ Lista corta de lo que se hizo, de más reciente a más antiguo. Cada entrada tra
 
 **Cómo funciona el código hoy, por qué se decidió así, qué se probó y se descartó: no va aquí, va en `Contexto_Base_Web.md`.** Las reglas de redacción están en `Consolidados de cambios/Reglas_Consolidados.md` (repo `Backend`), sección 5. Los pendientes tampoco viven en cada entrada: están en «Abiertos». El detalle largo anterior sigue en el historial de git.
 
-*Traslado en curso (desde el 11-oct-2026):* las entradas desde el 04-oct-2026 ya están en formato corto y su contenido pasó a `§PF025` (8 y 9-oct), `§PF027` (5 a 7-oct) y `§PF018` (octava sesión, 2 al 5-oct). Las tandas 4 a 2 del 03 y 02-oct, la Fase 11 y el TBT de `guerra` (02-oct) también pasaron a `§PF018`. Las anteriores (desde «CLS del hero…» del 30-sep, y antes) conservan su texto largo hasta que se trasladen, por tandas.
+*Traslado en curso (desde el 11-oct-2026):* las entradas desde el 04-oct-2026 ya están en formato corto y su contenido pasó a `§PF025` (8 y 9-oct), `§PF027` (5 a 7-oct) y `§PF018` (octava sesión, 2 al 5-oct). Las tandas 4 a 2 del 03 y 02-oct, la Fase 11 y el TBT de `guerra` (02-oct) también pasaron a `§PF018`, y la séptima sesión (30-sep) a `§PF017`. Las anteriores (desde «index.html, perfil.html y Lighthouse» del 29-sep, y antes) conservan su texto largo hasta que se trasladen, por tandas.
 
 ---
 
@@ -104,65 +104,11 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 - **`admin.html` · Nota de «Ingresar link» actualizada y bloqueo de Organizador (Fase 11) medido.** `#tModificarLink` (texto y comentario HTML); medido `#tAutorEditableModWrap` y `#tAutorSoloLecturaMod`. Sin cambio de lógica. → §PF018
 - **`sw.js` v10 · `guerra.html` · Menos TBT al pintar.** `render()`: `gestionarTabsClan()` va antes de `activarBarraScrollTablas()` en Pendientes de Atacar, Control de Activos y Control de Temporada. → §PF018, §PF017
 
-## CLS del hero de index.html, clan.html y comentarios de api.js — séptima sesión (30-sep-2026)
+## 30-sep-2026
 
-### 30-sep-2026 — `index.html` y `sw.js`: CLS del hero, `display=swap` → `display=optional` (v9)
-Cierra la entrada "Abierto: CLS 0.15 del hero" del 29-sep. A diferencia de entonces, esta vez sí se pudo comprobar:
-las fuentes se sirvieron desde paquetes locales (`@fontsource`) con 400 ms de retraso para imitar una carga lenta
-(Chromium, 5 corridas por caso, 412×823 y 1350×940; **no** es Lighthouse).
-- **Causa confirmada:** con `display=swap`, al llegar Rajdhani el título del hero pasa de 3 a 2 líneas y empuja el
-  párrafo y los botones. Línea base reproducida: CLS **0.151** en móvil (0.006 en escritorio), igual que lo medido
-  por Lighthouse (0.153-0.166).
-- **Aplicado (opción 1):** los 3 enlaces de Google Fonts de `index.html` (`preload`, `stylesheet` y `noscript`) usan
-  `display=optional`, con una nota junto a los `<link>`. CLS **0** en las 10 corridas (móvil y escritorio).
-  **Costo visible (aceptado por el usuario, 30-sep):** si Rajdhani no está lista a los ~100 ms (primera visita con caché vacío), esa carga se queda con
-  la fuente de respaldo (títulos más anchos, en 3 líneas) hasta la siguiente visita; la fuente se descarga igual y queda
-  en caché. Solo afecta a `index.html`; las otras páginas siguen con `swap`. Para volver atrás basta cambiar
-  `optional` por `swap` en esas 3 líneas.
-- **Opción 2 probada y descartada:** fuentes de respaldo con `size-adjust`/`ascent-override` calculados (Rajdhani sobre
-  Arial Bold: 85.79 % / 108.41 % / 40.33 %; Inter sobre Arial: 106.84 % / 90.67 % / 22.58 %). En el entorno de prueba el CLS
-  siguió en ~0.148 en 3 de 5 corridas, así que no basta; además dependería de qué fuente local tenga cada dispositivo
-  (`local('Arial')` no existe en Android). La opción 3 (reservar alto del título) no se probó.
-- **`sw.js` sube a v9** (`index.html` está en `CORE_ASSETS`). El comentario de versiones ahora incluye una línea para
-  **v8**, que se había subido sin dejar registro: se anota como "sin fecha ni motivo registrados" (hipótesis, sin
-  confirmar: el cambio de `index.html` del 29-sep).
-- **No verificado:** una corrida real de Lighthouse (CI) ni cómo se ve en dispositivos reales. `html-validate`, `eslint assets`,
-  159 pruebas y `check-links` en verde. (`eslint sw.js` da 19 errores `no-undef`, los mismos que antes del cambio: `sw.js` no
-  entra en `npm run lint`.)
-
-### 30-sep-2026 — Anotación sobre la entrada del 29-sep "Abierto: CLS 0.15"
-Quedó resuelta por la entrada de arriba; la original se conserva más abajo tal cual.
-
-
-
-### 30-sep-2026 — `clan.html`: auditoría (accesibilidad, CSP y consola) y dos arreglos
-Auditoría pedida al reconciliar el plan (la página no estaba en ninguna sección). Se cargó
-con Chromium (360 y 1280 px) y un backend simulado (`webClanInfo`, `webRoster`,
-`webGuerraEnVivo`), más axe-core (WCAG 2 A/AA/2.1 AA y buenas prácticas).
-
-- **Sin `<h1>` (axe: `page-has-heading-one`):** el nombre del clan sale como `<h3>`
-  porque `clanCardHtml()` es compartido con Inicio y Directorio, donde cuelga de un
-  `<h2>`. `renderClanBasico()` ahora le pone `aria-level="1"` tras pintarlo. Cambia solo
-  lo que anuncia el lector de pantalla: no se tocó la etiqueta, el estilo ni `clan-card.js`.
-  Queda h1 → h2 → h2. Si la página muestra un error (clan no encontrado, falta `?clan=`)
-  sigue sin encabezado de nivel 1; no se tocó por ser un estado raro y la página es `noindex`.
-- **Enlace "Ver en el Directorio →" de 14 px de alto:** pasa a `display:inline-block` con
-  `padding:5px 0` (24 px), igual que ya tenía el enlace "← Volver al Directorio".
-- **Sin hallazgos:** contraste (axe), nombres accesibles, `alt`, ids duplicados, desborde
-  horizontal en 360 px y violaciones de la CSP (ninguna: los dominios que usa la página
-  —fuentes, `cdn.royaleapi.com`, `assets.cwstats.com`, Apps Script y GoatCounter— están en
-  su `img-src`/`connect-src`). `html-validate`, `eslint`, `npm test` (159) y
-  `check-links` siguen en verde.
-- **No verificado:** el backend real (los datos fueron simulados) y lector de pantalla
-  real. `clan.html` no está en `CORE_ASSETS` de `sw.js`, por eso no se subió el caché.
-
-### 30-sep-2026 — `api.js`: el comentario de `apiGet` describía un estado anterior
-Solo comentario; el código no cambió (se comparó el árbol sintáctico antes y después).
-Decía que ninguna llamada pasaba `staleIfError`, que no había interfaz para "última
-actualización" y que el TTL de 5 min estaba aplicado solo en cuatro endpoints. Ahora
-lista el estado real por página y deja claro qué llamadas usan `conSesion` (y por tanto
-no tienen modo sin conexión para un admin). No se sube `CACHE_NAME`: no hay cambio de
-comportamiento.
+- **`sw.js` v9 · `index.html` · CLS del hero: `display=swap` pasa a `display=optional`.** Los 3 enlaces de Google Fonts (`preload`, `stylesheet` y `noscript`). Cierra el «Abierto: CLS 0.15» de la entrada del 29-sep. `sw.js`: el comentario de versiones suma la línea de v8 («sin fecha ni motivo registrados»). → §PF017
+- **`clan.html` · Auditoría de accesibilidad.** `renderClanBasico()`: `aria-level="1"` en el nombre del clan; el enlace «Ver en el Directorio →» (`#clanVerDirectorioLink`) pasa a 24 px de alto. → §PF017
+- **`assets/js/core/api.js` · Comentario de `apiGet()` actualizado.** Solo comentario, sin cambio de código ni de `CACHE_NAME`. → §PF017
 
 ---
 
