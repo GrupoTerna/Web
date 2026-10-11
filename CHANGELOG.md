@@ -30,6 +30,8 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 
 ## 11-oct-2026
 
+- **`sw.js` v43 · `guerra.html` · Los botones Jue–Dom cambian el puesto de las tarjetas y se quita el panel «Puesto en vivo».** Se elimina `#tlPanel` y su CSS (`.tl-panel`, `.tlp-head`, `.tlp-x`, `.tlp-list`); `pintarPanelPuestosDia()` pasa a `pintarPuestosDiaEnTarjetas()`, que pinta `.clan-puesto` (en vivo, o al cierre del día elegido) y la nota `#puestoDiaNota`; `actualizarPuestosClanes()`, `seleccionarDiaPuestos()` y `cargarPuestosDia()` la llaman. Solo cambia el puesto: ataques, medallas y barcos siguen siendo los de hoy. Pruebas (336) y lint en verde; función comprobada en jsdom; sin probar en navegador real. → §PF034
+
 - **`sw.js` v42 · `perfil.html` · «Competitivo»: Camino de Leyendas (escalones) y Camino de Trofeos (copas) separados.** `renderCaminoLeyendas()`: la subsección «Ligas» pasa a «Camino de Trofeos» y recibe «Mejor ladder histórico» (antes en Leyendas); cada fila lleva su fecha (octubre, 2026) deducida de `leagueStatistics.previousSeason.id`; Leyendas queda solo con Liga N. Pruebas (336) y lint en verde; función comprobada con el JSON real de `#2GG8PJ8GC`; sin probar en navegador real. → §PF033
 
 - **`sw.js` v41 · `perfil.html` · Medallas en 0 con ataques ya no se dibujan como 0 real.** `renderMetricaSemanal()`: en la gráfica de Medallas, un día con ataques > 0 pero medallas = 0 (la última captura trajo los ataques sin la fama acreditada; caso Chistris `#2GG8PJ8GC`, domingo 4-oct) pasa a punto hueco «sin dato». `perfilLineChartSvg()`: el tooltip de ese punto usa `p.motivo`. No corrige la fila en el backend (pendiente). Sin probar en navegador con el perfil real.

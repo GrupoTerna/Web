@@ -64,23 +64,12 @@
     background:var(--purple); color:#fff; font-family:var(--f-mono); font-size:9px; font-weight:700;
     letter-spacing:.1em; padding:2px 8px; border-radius:999px; box-shadow:0 2px 8px rgba(162,57,255,.4);
   }
-  /* Botones Jue–Dom: cada cuadro de día es un <button> que abre #tlPanel con el puesto de cada clan. */
+  /* Botones Jue–Dom: cada cuadro de día es un <button> que cambia el puesto que muestran las tarjetas de "Guerra de Hoy" (11-oct-2026: ya no abren un panel aparte). */
   button.tl-day{font:inherit; color:inherit; cursor:pointer; -webkit-appearance:none; appearance:none;}
   .tl-day .lbl, .tl-day .mark{display:block;}
   button.tl-day:hover{border-color:var(--purple-light);}
   button.tl-day:focus-visible{outline:2px solid var(--purple-light); outline-offset:2px;}
   .tl-day.sel{border-color:var(--gold); box-shadow:0 0 12px rgba(243,169,34,.25);}
-  .tl-panel{margin-top:12px; border:1px solid var(--line-strong); background:var(--surface-card); border-radius:var(--radius-sm); padding:12px 14px;}
-  .tl-panel[hidden]{display:none;}
-  .tlp-head{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:10px; font-family:var(--f-mono); font-size:12px; color:var(--text-dim);}
-  .tlp-head b{font-family:var(--f-display); font-size:15px; letter-spacing:.04em; text-transform:uppercase; color:var(--text);}
-  .tlp-x{background:none; border:0; color:var(--text-faint); cursor:pointer; font-size:14px; padding:2px 6px; margin-left:6px;}
-  .tlp-x:hover{color:var(--text);}
-  .tlp-list{list-style:none; margin:0; padding:0; display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:8px;}
-  .tlp-list li{display:flex; align-items:center; justify-content:space-between; gap:8px; border:1px solid var(--line); border-radius:var(--radius-sm); padding:8px 10px;}
-  .tlp-list .n{font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
-  .tlp-list .p{font-family:var(--f-mono); font-weight:700; white-space:nowrap; text-align:right;}
-  .tlp-list .p small{display:block; font-weight:400; font-size:10px; color:var(--text-faint);}
   .tlp-nota{margin-top:8px; font-family:var(--f-mono); font-size:11px; color:var(--text-faint);}
   .clan-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:16px;}
   /* Continuación de cada tarjeta de "Guerra de Hoy": pronóstico del clan y de sus rivales en la misma carrera (pronosticoClanHtml()). Historial en CHANGELOG.md. */
@@ -425,7 +414,6 @@
     <h1 style="font-size:clamp(30px,5vw,44px); margin-top:14px;">Control de guerra</h1>
     <div class="text-dim" id="sub" data-fit-line style="margin-top:6px; font-size:16px; white-space:nowrap;">Cargando estado de la temporada…</div>
     <div class="timeline" id="timeline"></div>
-    <div class="tl-panel" id="tlPanel" hidden></div>
     <div class="progress-track"><i id="progressFill"></i></div>
   </div>
 
@@ -450,6 +438,8 @@
       </div>
       <!-- Parte 1 (05-oct-2026): aviso visible solo fuera de día de guerra, cuando las tarjetas muestran los resultados congelados de la última guerra. Se llena en render(). -->
       <div id="guerraCongeladoAviso" class="text-faint" style="display:none; font-family:var(--f-mono); font-size:12px; margin-top:14px; padding:8px 12px; border:1px solid var(--line); border-radius:var(--radius-sm); line-height:1.6;" role="status"></div>
+      <!-- 11-oct-2026 (pedido usuario): al elegir Jue/Vie/Sáb en la línea de tiempo, las tarjetas muestran el puesto al cierre de ese día y esta nota lo explica. Se llena en pintarPuestosDiaEnTarjetas(). -->
+      <div id="puestoDiaNota" class="text-faint" style="display:none; font-family:var(--f-mono); font-size:12px; margin-top:14px; padding:8px 12px; border:1px solid var(--line); border-radius:var(--radius-sm); line-height:1.6;"></div>
       <div class="clan-grid" id="clanGrid" style="margin-top:20px;"></div>
       <div id="pronosticoNota" class="text-faint" style="font-family:var(--f-mono); font-size:12px; margin-top:6px; line-height:1.6;" hidden>📈 Pronóstico de hoy: la fila resaltada es el clan Terna y las demás son sus rivales en la carrera. La barra muestra las medallas actuales (sólida) y hasta dónde podría llegar hoy (tenue). «Techo» es una cota máxima, no una predicción: con un solo valor, juegan las cuentas que ya están en la carrera; con dos («roster – máx»), el segundo supone además que las cuentas sin atacar se reemplazan por cuentas de apoyo.</div>
     </section>
@@ -1594,13 +1584,13 @@ function pintarSelectoresControlTemporada(data){
 }
 
 let ultimoDataGuerra = null;
-// Botones Jue–Dom: día abierto en #tlPanel (null = cerrado), última respuesta de webGuerraPuestosDia y último HTML pintado. A nivel de módulo para que sobrevivan a cada render() (que recrea el timeline).
+// Botones Jue–Dom: día elegido para el puesto de las tarjetas (null = el de hoy, en vivo), última respuesta de webGuerraPuestosDia y última nota pintada. A nivel de módulo para que sobrevivan a cada render() (que recrea el timeline).
 let diaPuestosSel = null;
 let puestosDiaData = null;
 let puestosDiaError = false;
 // Nota al pie del "~" (puesto estimado), única para el panel Jue–Dom y el historial semanal. Historial en CHANGELOG.md.
 const NOTA_PUESTO_ESTIMADO = '~ Puesto estimado: la API no lo entrega cerrado, así que se calcula (en coliseo, por fama acumulada; el domingo en curso, con los puntos del día).';
-let ultimoPanelHtml = '';
+let ultimaNotaPuestoDia = '';
 
 function render(data){
   ultimoDataGuerra = data;
@@ -1627,7 +1617,7 @@ function render(data){
     const fechaDia = diasBackend[i] ? diasBackend[i].fecha : null;
     const sel = d.letra === diaPuestosSel;
     return `
-    <button type="button" class="tl-day ${d.letra === ctx.diaLetra ? 'active' : ''}${sel ? ' sel' : ''}" data-letra="${d.letra}" aria-pressed="${sel}" aria-controls="tlPanel" title="Ver el puesto de cada clan en este día">
+    <button type="button" class="tl-day ${d.letra === ctx.diaLetra ? 'active' : ''}${sel ? ' sel' : ''}" data-letra="${d.letra}" aria-pressed="${sel}" aria-controls="clanGrid" title="Ver el puesto de cada clan en este día">
       <span class="lbl">${d.label}</span><span class="mark">${fmtDiaMes(fechaDia)}</span>
     </button>`;
   }).join('');
@@ -1680,7 +1670,7 @@ function render(data){
     setNum(slug + '-atq', g.ataques); setNum(slug + '-fame', g.fame); setNum(slug + '-barc', g.barcos);
   });
   actualizarPuestosClanes(); // las tarjetas se recrean en cada render(): se vuelve a pintar el puesto en el mismo ciclo, sin parpadeo
-  if(diaPuestosSel) cargarPuestosDia(false); // panel abierto: refresca los puestos cerrados (apiGet cachea 2 min)
+  if(diaPuestosSel) cargarPuestosDia(false); // día elegido: refresca los puestos cerrados (apiGet cachea 2 min)
   // FIX (03-sep-2026, pedido usuario): la sección completa se oculta en
   // día de entrenamiento — antes se pintaba igual con lo que mandara
   // data.pendientes (a veces una fila "placeholder" tipo "No es día de
@@ -2254,24 +2244,7 @@ function pintarPronosticoEnTarjetas(){
 }
 function actualizarPuestosClanes(){
   pintarPronosticoEnTarjetas();
-  document.querySelectorAll('#clanGrid .clan-puesto').forEach(el => {
-    const info = infoClanGuerraPorNombre(el.dataset.clan);
-    const tag  = info ? _normTagGuerra(info.c.clanTag) : '';
-    const p = (ultimoPronosticoData && tag)
-      ? (ultimoPronosticoData.clanes || []).find(x => x && !x.esRival && _normTagGuerra(x.clanTag) === tag)
-      : null;
-    if(p && Number(p.puesto) > 0){
-      const color = Number(p.puesto) === 1 ? 'var(--gold)' : 'var(--text)';
-      const estim = !!p.estimado; // coliseo: la API no entrega puestos, el backend lo calcula por fama acumulada
-      el.title = estim ? 'Puesto estimado por las medallas acumuladas de la semana (en coliseo la API no entrega puestos)' : 'Según las medallas acumuladas de la semana en la carrera de guerra';
-      el.innerHTML = `🏁 Puesto <b style="color:${color};">${estim ? '~' : ''}#${fmtNum(p.puesto)}</b> de ${fmtNum(p.clanesEnCarrera)}`;
-      el.style.display = '';
-    }else{
-      el.innerHTML = '';
-      el.style.display = 'none';
-    }
-  });
-  pintarPanelPuestosDia(); // el puesto en vivo del día en curso sale del mismo ultimoPronosticoData
+  pintarPuestosDiaEnTarjetas(); // el puesto de cada tarjeta: en vivo (hoy) o al cierre del día elegido en Jue–Dom
 }
 function actualizarCabecerasClanes(){
   document.querySelectorAll('#clanGrid .clan-cab').forEach(el => { el.innerHTML = cabeceraClanGuerraHtml(el.dataset.clan); });
@@ -2337,7 +2310,7 @@ async function cargarPronosticoGuerra(ctx, manual){
   }
 }
 
-/* Botones Jue–Dom: cada cuadro de día abre #tlPanel con el puesto de cada clan al cierre de ese día (webGuerraPuestosDia = EndOfDayRank de Guerra_Logs, semana más reciente con filas: de lun a mié sigue mostrando el último Jue–Dom). El día en curso muestra el puesto EN VIVO de webPronosticoGuerra, porque su EndOfDayRank sigue en 0 hasta que cierra. Si un día quedó en 0 (ej. domingos de Guerra_Logs con ceros, pendiente del backend) se muestra "—", nunca un puesto inventado. */
+/* Botones Jue–Dom: cada cuadro de día cambia el puesto de las tarjetas de "Guerra de Hoy" al cierre de ese día (11-oct-2026: antes abrían un panel «Puesto en vivo» aparte; webGuerraPuestosDia = EndOfDayRank de Guerra_Logs, semana más reciente con filas: de lun a mié sigue mostrando el último Jue–Dom). El día en curso muestra el puesto EN VIVO de webPronosticoGuerra, porque su EndOfDayRank sigue en 0 hasta que cierra. Si un día quedó en 0 (ej. domingos de Guerra_Logs con ceros, pendiente del backend) se muestra "—", nunca un puesto inventado. */
 const NOMBRES_DIA_GUERRA = { J:'Jueves', V:'Viernes', S:'Sábado', D:'Domingo' };
 /* prioridad=true (clic del visitante en un día): la petición pasa al frente de la cola de api.js en vez de esperar detrás de webGuerraEnVivo y las demás cargas. Las recargas automáticas de render() no la piden. Historial en CHANGELOG.md. */
 async function cargarPuestosDia(manual, prioridad){
@@ -2349,7 +2322,7 @@ async function cargarPuestosDia(manual, prioridad){
   }catch(err){
     puestosDiaError = !puestosDiaData; // si ya había datos, se conservan los últimos
   }
-  pintarPanelPuestosDia();
+  pintarPuestosDiaEnTarjetas();
 }
 function puestoEnVivoPorTag(tag){
   const t = _normTagGuerra(tag);
@@ -2363,80 +2336,96 @@ function nombreClanPorTag(tag){
   return c ? (c.nombre || '') : '';
 }
 function seleccionarDiaPuestos(letra){
-  diaPuestosSel = (letra && letra !== diaPuestosSel) ? letra : null; // pulsar el día abierto lo cierra
+  diaPuestosSel = (letra && letra !== diaPuestosSel) ? letra : null; // pulsar el día elegido otra vez vuelve al puesto de hoy
   document.querySelectorAll('#timeline .tl-day').forEach(b => {
     const on = b.dataset.letra === diaPuestosSel;
     b.classList.toggle('sel', on);
     b.setAttribute('aria-pressed', on ? 'true' : 'false');
   });
-  pintarPanelPuestosDia();
+  pintarPuestosDiaEnTarjetas();
   if(diaPuestosSel) cargarPuestosDia(false, true);
-  // el puesto en vivo de hoy sale de webPronosticoGuerra: si aún no se cargó, se trae solo para este panel (sin mostrar el pronóstico en las tarjetas)
+  // el puesto en vivo de hoy sale de webPronosticoGuerra: si aún no se cargó, se trae solo para el puesto (sin mostrar el pronóstico en las tarjetas)
   const ctxHoy = (ultimoDataGuerra && ultimoDataGuerra.ctx) || {};
   if(diaPuestosSel && ctxHoy.esDiaGuerra && ctxHoy.diaLetra === diaPuestosSel && !ultimoPronosticoData) cargarPronosticoGuerra(ctxHoy, false);
 }
-function pintarPanelPuestosDia(){
-  const panel = document.getElementById('tlPanel');
-  if(!panel) return;
-  if(!diaPuestosSel){ panel.hidden = true; panel.innerHTML = ''; ultimoPanelHtml = ''; return; }
-  const idx = DIAS.findIndex(d => d.letra === diaPuestosSel);
-  const nombreDia = NOMBRES_DIA_GUERRA[diaPuestosSel] || diaPuestosSel;
+function pintarPuestosDiaEnTarjetas(){
   const ctx = (ultimoDataGuerra && ultimoDataGuerra.ctx) || {};
   const diasBk = (ultimoDataGuerra && ultimoDataGuerra.diasSemanaGuerra) || [];
+  const hoyLetra = ctx.esDiaGuerra ? ctx.diaLetra : null;
+  const verDia = !!diaPuestosSel && diaPuestosSel !== hoyLetra; // otro día: puesto al cierre; hoy (o ninguno): puesto en vivo
+  const idx = verDia ? DIAS.findIndex(d => d.letra === diaPuestosSel) : -1;
   const pd = puestosDiaData;
-  const dia = (pd && Array.isArray(pd.dias)) ? pd.dias[idx] : null;
-  const esHoy = !!ctx.esDiaGuerra && ctx.diaLetra === diaPuestosSel;
+  const dia = (verDia && pd && Array.isArray(pd.dias)) ? pd.dias[idx] : null;
   const semVig = !!dia && Number(dia.periodIndex) === (Number(ctx.sectionIndex) || 0) * 7 + 3 + idx; // la semana devuelta es la vigente
-  const temporada = esHoy ? ctx.temporada : (pd && pd.temporada);
-  const semana = esHoy ? (Number(ctx.sectionIndex) || 0) + 1 : (pd && pd.semana);
-  const fechaIso = (esHoy || semVig) ? ((diasBk[idx] && diasBk[idx].fecha) || (dia && dia.fecha)) : (dia && dia.fecha);
-  const fecha = fechaIso ? fmtDiaMes(fechaIso) : '';
-  const titulo = `🏁 Puesto ${esHoy ? 'en vivo' : 'al cierre'} · ${nombreDia}${fecha && fecha !== '—' ? ' ' + fecha : ''}${esHoy ? ' (hoy)' : ''}`;
-  const semTxt = (temporada && semana) ? `T${fmtNum(temporada)} · S${fmtNum(semana)}` : '';
-  const cab = `<div class="tlp-head"><b>${esc(titulo)}</b><span>${esc(semTxt)}<button type="button" class="tlp-x" aria-label="Cerrar">✕</button></span></div>`;
-  let html;
-  if(!dia){
-    // Tres casos distintos (antes los dos últimos se veían igual, como un "Cargando…" eterno): la petición falló; ya respondió pero sin datos de ESTE día; o todavía no responde.
-    const txt = puestosDiaError ? 'No se pudieron cargar los puestos.'
-      : (pd ? 'Sin puesto registrado para este día.' : 'Cargando… (puede tardar unos segundos)');
-    html = cab + `<div class="empty">${txt}</div>`;
-  }else{
-    let hayDato = false;
-    const estDia = !!dia.estimado; // algún puesto de ese día es estimado; cada clan trae además su propio `estimado` (si falta, se usa este)
-    let hayEstim = false;
-    const filas = (dia.clanes || []).map(c => {
-      const nombre = c.clan || nombreClanPorTag(c.tag) || ('#' + c.tag);
-      let puesto = 0, sub = '', estim = false;
-      if(esHoy){
-        const p = puestoEnVivoPorTag(c.tag);
-        if(p){ puesto = Number(p.puesto); sub = `de ${fmtNum(p.clanesEnCarrera)} · en vivo`; estim = !!p.estimado; }
-      }else if(Number(c.rank) > 0){
-        puesto = Number(c.rank);
-        estim = (typeof c.estimado === 'boolean') ? c.estimado : estDia;
+  const nombreDia = NOMBRES_DIA_GUERRA[diaPuestosSel] || diaPuestosSel;
+  let hayDato = false, hayEstim = false;
+  document.querySelectorAll('#clanGrid .clan-puesto').forEach(el => {
+    const info = infoClanGuerraPorNombre(el.dataset.clan);
+    const tag  = info ? _normTagGuerra(info.c.clanTag) : '';
+    if(!verDia){
+      // Puesto en vivo de hoy (webPronosticoGuerra); fuera de día de guerra no hay y la línea se oculta.
+      const p = (ultimoPronosticoData && tag)
+        ? (ultimoPronosticoData.clanes || []).find(x => x && !x.esRival && _normTagGuerra(x.clanTag) === tag)
+        : null;
+      if(p && Number(p.puesto) > 0){
+        const color = Number(p.puesto) === 1 ? 'var(--gold)' : 'var(--text)';
+        const estim = !!p.estimado; // coliseo: la API no entrega puestos, el backend lo calcula por fama acumulada
+        el.title = estim ? 'Puesto estimado por las medallas acumuladas de la semana (en coliseo la API no entrega puestos)' : 'Según las medallas acumuladas de la semana en la carrera de guerra';
+        el.innerHTML = `🏁 Puesto <b style="color:${color};">${estim ? '~' : ''}#${fmtNum(p.puesto)}</b> de ${fmtNum(p.clanesEnCarrera)}`;
+        el.style.display = '';
+      }else{
+        el.innerHTML = '';
+        el.style.display = 'none';
       }
-      if(puesto > 0) hayDato = true;
-      if(puesto > 0 && estim) hayEstim = true;
+      return;
+    }
+    // Día elegido en Jue–Dom: puesto al cierre (EndOfDayRank de Guerra_Logs). Sin dato se muestra "—", nunca un puesto inventado.
+    const n = _normNombreClanGuerra(el.dataset.clan);
+    const c = dia ? (dia.clanes || []).find(x => x && ((tag && _normTagGuerra(x.tag) === tag) || (x.clan && _normNombreClanGuerra(x.clan) === n))) : null;
+    const puesto = c ? Number(c.rank) : 0;
+    if(puesto > 0){
+      hayDato = true;
+      const estim = (typeof c.estimado === 'boolean') ? c.estimado : !!dia.estimado;
+      if(estim) hayEstim = true;
+      const vivo = (semVig && tag) ? puestoEnVivoPorTag(tag) : null; // "de N" solo si se conoce la carrera de esta semana
       const color = puesto === 1 ? 'var(--gold)' : 'var(--text)';
-      const valor = puesto > 0 ? `<span style="color:${color};"${estim ? ' title="Puesto estimado"' : ''}>${estim ? '~' : ''}#${fmtNum(puesto)}</span>${sub ? `<small>${esc(sub)}</small>` : ''}` : '—';
-      return `<li><span class="n">${esc(nombre)}</span><span class="p">${valor}</span></li>`;
-    }).join('');
-    const futuro = semVig && !esHoy && Number(dia.periodIndex) > Number(ctx.periodIndex);
-    const notaEstimado = (hayDato && hayEstim) ? `<div class="tlp-nota">${NOTA_PUESTO_ESTIMADO}</div>` : '';
-    const nota = hayDato ? notaEstimado : `<div class="tlp-nota">${futuro ? 'Este día todavía no se juega.' : (esHoy ? 'Sin puesto en vivo por ahora.' : 'Sin puesto registrado para este día.')}</div>`;
-    html = cab + `<ul class="tlp-list">${filas}</ul>` + nota;
+      el.title = estim ? `Puesto estimado al cierre del ${nombreDia}` : `Puesto al cierre del ${nombreDia}`;
+      el.innerHTML = `🏁 Puesto <b style="color:${color};">${estim ? '~' : ''}#${fmtNum(puesto)}</b>${vivo ? ` de ${fmtNum(vivo.clanesEnCarrera)}` : ''}`;
+    }else{
+      el.title = '';
+      el.innerHTML = '🏁 Puesto <b>—</b>';
+    }
+    el.style.display = '';
+  });
+  // Nota única sobre el día elegido (reemplaza el título y las notas del panel que había arriba).
+  const notaEl = document.getElementById('puestoDiaNota');
+  if(!notaEl) return;
+  if(!verDia){
+    if(ultimaNotaPuestoDia){ notaEl.style.display = 'none'; notaEl.textContent = ''; ultimaNotaPuestoDia = ''; }
+    return;
   }
-  if(html !== ultimoPanelHtml){ // no repintar si nada cambió (cada render() y cada carga de pronóstico llegan aquí)
-    panel.innerHTML = html;
-    ultimoPanelHtml = html;
+  const fechaIso = semVig ? ((diasBk[idx] && diasBk[idx].fecha) || (dia && dia.fecha)) : (dia && dia.fecha);
+  const fecha = fechaIso ? fmtDiaMes(fechaIso) : '';
+  const titulo = `🏁 Puesto de cada clan al cierre del ${nombreDia}${fecha && fecha !== '—' ? ' ' + fecha : ''}`;
+  const semTxt = (pd && pd.temporada && pd.semana) ? ` · T${fmtNum(pd.temporada)} · S${fmtNum(pd.semana)}` : '';
+  let txt;
+  if(!dia){
+    txt = puestosDiaError ? 'No se pudieron cargar los puestos.' : (pd ? 'Sin puesto registrado para este día.' : 'Cargando puestos… (puede tardar unos segundos)');
+  }else if(hayDato){
+    txt = `${titulo}${semTxt}. Ataques, medallas y barcos siguen siendo los ${ctx.esDiaGuerra ? 'de hoy' : 'de la última guerra'}.${hayEstim ? ' ' + NOTA_PUESTO_ESTIMADO : ''}`;
+  }else{
+    const futuro = semVig && Number(dia.periodIndex) > Number(ctx.periodIndex);
+    txt = `${titulo}${semTxt}. ${futuro ? 'Este día todavía no se juega.' : 'Sin puesto registrado para este día.'}`;
   }
-  panel.hidden = false;
+  if(txt !== ultimaNotaPuestoDia){ // no repintar si nada cambió (cada render() y cada carga de pronóstico llegan aquí)
+    notaEl.textContent = txt;
+    ultimaNotaPuestoDia = txt;
+  }
+  notaEl.style.display = 'block';
 }
 document.getElementById('timeline').addEventListener('click', ev => {
   const btn = ev.target.closest ? ev.target.closest('.tl-day[data-letra]') : null;
   if(btn) seleccionarDiaPuestos(btn.dataset.letra);
-});
-document.getElementById('tlPanel').addEventListener('click', ev => {
-  if(ev.target.closest && ev.target.closest('.tlp-x')) seleccionarDiaPuestos(null);
 });
 
 /* cargarGuerraLog() Historial en CHANGELOG.md. */
