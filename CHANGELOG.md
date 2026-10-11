@@ -4,7 +4,7 @@ Lista corta de lo que se hizo, de más reciente a más antiguo. Cada entrada tra
 
 **Cómo funciona el código hoy, por qué se decidió así, qué se probó y se descartó: no va aquí, va en `Contexto_Base_Web.md`.** Las reglas de redacción están en `Consolidados de cambios/Reglas_Consolidados.md` (repo `Backend`), sección 5. Los pendientes tampoco viven en cada entrada: están en «Abiertos». El detalle largo anterior sigue en el historial de git.
 
-*Traslado en curso (desde el 11-oct-2026):* las entradas desde el 04-oct-2026 ya están en formato corto y su contenido pasó a `§PF025` (8 y 9-oct), `§PF027` (5 a 7-oct) y `§PF018` (octava sesión, 2 al 5-oct). Las tandas 4 a 2 del 03 y 02-oct, la Fase 11 y el TBT de `guerra` (02-oct) también pasaron a `§PF018`, y la séptima y la sexta sesión (30 y 29-sep), las tandas D, C, B y A de la Fase 5b (28-sep), la Fase 11 del plan T_Lista (26-sep) y los comentarios desactualizados (21-sep) a `§PF017`. Del 20-sep pasaron a `§PF016` «Rendimiento (Lighthouse)», «CSS compartido», `permisos`, `mensajes` y `comunidad`. Con esta tanda quedó trasladado todo el 20-sep (`admin`, `perfil`, `directorio`, `index` y `guerra`) a `§PF016`. Del 19-sep ya pasaron a `§PF016` «CI y herramientas», «Rendimiento (Lighthouse)» y «SEO». El resto del 19-sep (`CSS compartido`, `permisos`, `mensajes` y `guerra`) y todo lo anterior (hoy ordenado por tema y archivo, no por fecha) conservan su texto largo hasta que se trasladen, por tandas y de la fecha más reciente a la más antigua.
+*Traslado en curso (desde el 11-oct-2026):* las entradas desde el 04-oct-2026 ya están en formato corto y su contenido pasó a `§PF025` (8 y 9-oct), `§PF027` (5 a 7-oct) y `§PF018` (octava sesión, 2 al 5-oct). Las tandas 4 a 2 del 03 y 02-oct, la Fase 11 y el TBT de `guerra` (02-oct) también pasaron a `§PF018`, y la séptima y la sexta sesión (30 y 29-sep), las tandas D, C, B y A de la Fase 5b (28-sep), la Fase 11 del plan T_Lista (26-sep) y los comentarios desactualizados (21-sep) a `§PF017`. Del 20-sep pasaron a `§PF016` «Rendimiento (Lighthouse)», «CSS compartido», `permisos`, `mensajes` y `comunidad`. Con esta tanda quedó trasladado todo el 20-sep (`admin`, `perfil`, `directorio`, `index` y `guerra`) a `§PF016`. Del 19-sep ya pasaron a `§PF016` «CI y herramientas», «Rendimiento (Lighthouse)» y «SEO», «CSS compartido» y `permisos`. El resto del 19-sep (`mensajes` y `guerra`) y todo lo anterior (hoy ordenado por tema y archivo, no por fecha) conservan su texto largo hasta que se trasladen, por tandas y de la fecha más reciente a la más antigua.
 
 ---
 
@@ -170,60 +170,11 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 - **`.github/workflows/ci.yml`, `lighthouse.yml`, `dependabot.yml`, `lighthouserc.json`, `package.json`, `.htmlvalidate.js` y 9 páginas · B-15 completo.** `ci.yml` pasa a Node 22 (`html-validate` desde 11.1.0 usa `fs.globSync`) y sus Actions quedan fijadas por SHA con `permissions: contents: read`; `package.json`: `engines` `>=22.16`. Nuevo `lighthouse.yml` (lunes 13:00 UTC y manual) con umbrales `warn` en `lighthouserc.json`. 34 `<button>` pasan a `type="button"` y `no-implicit-button-type` sale de `.htmlvalidate.js` (vuelve a error). Nuevo `dependabot.yml` (`npm` y `github-actions`, semanal). → §PF016
 - **`torneos.html` y `guerra.html` · Peticiones duplicadas y alto reservado.** `torneos.html`: `apiGetTorneosCompartido(accion)` (nueva) usada por `cargarTorneos()` y `cargarSalonDeLaFama()`; sustituida en el 09-oct por la versión de la Fase 4. `guerra.html`: `#status:not(.err){min-height:80vh}`. → §PF016
 - **`directorio.html`, `guerra.html`, `torneos.html` y `sitemap.xml` · JSON-LD y `lastmod` (B-23).** Bloque `WebPage` con `BreadcrumbList` e `isPartOf` en las tres páginas; `lastmod` de las 5 URLs a 2026-09-19. → §PF016
-
----
-
-## CSS compartido (assets/styles.css)
-
-### 19-sep-2026 — Fase 3, sub-lote 2: un duplicado muerto menos y tres que se dejan a propósito
-- **`perfil.html`**: se quita `.field textarea` (la base). Era idéntica
-  carácter por carácter a la de `styles.css` y la nota de al lado ya
-  declaraba muertas las demás copias (`:focus`, `.vetar-form`,
-  `.vetar-form-titulo`); esa se había quedado sin quitar en el séptimo lote.
-  Entre la copia de `styles.css` y la de la página no hay ninguna regla de la
-  misma especificidad con propiedades en común que pueda tocar un
-  `<textarea>`, así que el efecto es nulo.
-- **Se dejan donde están, a propósito** (ya estaba decidido en notas previas;
-  se revalidó):
-  - `.perfil-cabecera .stats-mini b` (directorio + perfil): `admin.html`
-    tiene una variante distinta (15px, sin `font-family`); centralizar la de
-    directorio+perfil filtraría el `font-family` hacia admin.
-  - `.linechart-svg .grid-line` (directorio + index): copia adaptada a
-    propósito para otro gráfico (nota en `styles.css`).
-  - `*` y `html,body` de `sorteo.html`: **no son duplicados**. Esa página no
-    carga `styles.css` (solo su propio `<style>` y Google Fonts), así que
-    esas reglas son su única base. Borrarlas le quitaría el
-    `box-sizing:border-box`.
-
-### 19-sep-2026 — Fase 3, sub-lote 1: 15 reglas de `admin.html` y `mensajes.html` pasan a `styles.css`
-Al migrar la sección Mensajes a su propia página, `mensajes.html` copió tal
-cual varias reglas del `<style>` de `admin.html`, y su nota de cabecera dejó
-esa consolidación como pendiente. Se comprobó que 15 reglas eran idénticas
-carácter por carácter en ambas páginas y que ninguna otra página ni
-`styles.css` usa esas clases: `.contenido-item` (+ `.cab`, `.etiqueta`,
-`.clan-chip`), `.contenido-tabs`, `.tab-clan` (+ `:hover`, `.activo`),
-`.admin-grupo > .eyebrow` y `.admin-subseccion` (+ `> summary`, su marcador
-`::-webkit-details-marker`, `::before`, `[open]::before` y `.cat-titulo`).
-Se borraron de las dos páginas y viven en un bloque nuevo al **final** de
-`styles.css` (mismo orden relativo frente al resto de `styles.css` que
-tenían dentro del `<style>` de cada página).
-- **No se movió `.admin-subseccion-body{padding:2px 2px 14px}`**, a
-  propósito. En `mensajes.html` esos mismos elementos llevan también
-  `.categoria-contenido-body` (`padding:0 2px 14px 26px`), definida antes en
-  esa página; hoy gana `.admin-subseccion-body` solo por ir después. En
-  `styles.css` iría antes y ganaría el otro `padding`. Verificado con un
-  control negativo: moverla sí invierte el ganador.
-- Verificación: el conjunto de reglas efectivas (`styles.css` + `<style>`
-  de la página) es el mismo antes y después en ambas páginas, y ninguna
-  regla que pudiera afectar al mismo elemento con igual especificidad y
-  propiedades en común cambió de orden. `html-validate`, `check-links` y
-  `eslint` siguen en verde. No se probó en un navegador real.
-- Efecto en líneas: `<style>` de `admin.html` 229 → 202, de `mensajes.html`
-  113 → 82; `styles.css` 880 → 924.
-- Al publicar: `sw.js` sirve `styles.css` desde caché primero
-  (stale-while-revalidate), así que la primera visita a `admin.html` o
-  `mensajes.html` tras el deploy puede verse sin estos estilos hasta
-  recargar una vez.
+- **`assets/styles.css`, `admin.html` y `mensajes.html` · Fase 3, sub-lote 1: 15 reglas pasan a `styles.css`.** `.contenido-item`, `.contenido-tabs`, `.tab-clan`, `.admin-grupo > .eyebrow` y `.admin-subseccion` (con sus variantes) salen de las dos páginas a un bloque nuevo al final de `styles.css`. `.admin-subseccion-body` se queda en las páginas; se centralizó el 20-sep. → §PF016
+- **`perfil.html` · Fase 3, sub-lote 2: se quita `.field textarea`.** Duplicado idéntico al de `styles.css`. `.perfil-cabecera .stats-mini b`, `.linechart-svg .grid-line` y los `*` y `html,body` de `sorteo.html` se dejan a propósito. → §PF016
+- **`permisos.html` · Accesibilidad de la lista.** `role="group"` con `aria-labelledby` en cada tarjeta y sección, `aria-label` en «Marcar/Desmarcar todo» y «Guardar» («Guardando permisos…» durante el guardado), `role="status"` en el mensaje de cada tarjeta, nombre accesible en el buscador y «Recargar». → §PF016
+- **`permisos.html` · Casillas de «Clanes donde puede tomar decisiones» (Clanes_Admin).** Tercera sección entre Funciones y Categorías; `datos.clanesAdmin` solo se envía si cambió; aviso si el servidor no lo confirma; valores fuera del catálogo marcados. El backend (catálogo `clanes` y `clanesAdmin`) quedaba pendiente ese día. → §PF016
+- **`permisos.html` · Se quita el `.btn-icono` duplicado del `<style>`.** → §PF016
 
 ---
 
@@ -303,60 +254,6 @@ compartan nombre en clanes distintos.
 Pedido del usuario: la página pasa a consumir `webTorneos`
 (`34_Web_API.gs`), el mismo endpoint que ya usaba `admin.html` para la
 tarjeta "Ver ganadores" del panel.
-
----
-
-## permisos.html
-
-### 19-sep-2026 — Accesibilidad de la lista de permisos
-Con decenas de casillas repetidas por administrador, un lector de pantalla
-solo oía "Vetar, casilla" sin saber de quién.
-- Cada tarjeta es `role="group"` con `aria-labelledby` al nombre del admin
-  (un `<span>` propio, para que no salga "AnaTú" por el distintivo); cada
-  sección (Funciones, Clanes, Categorías) es otro grupo con su título.
-  Los ids se sanean porque `a.id` viene del backend.
-- Los 3 pares de botones "Marcar/Desmarcar todo" y "Guardar" llevan
-  `aria-label` con el nombre del admin y la sección; durante el guardado el
-  `aria-label` pasa a "Guardando permisos…" y se restaura al terminar.
-- El mensaje de resultado de cada tarjeta es `role="status"` (existe vacío
-  desde el pintado, requisito para que se anuncie). `#permisosLista` no es
-  región viva a propósito: se repinta con cada tecla del buscador.
-- El buscador y "Recargar" tienen nombre accesible propio (el placeholder no
-  es etiqueta). Sin cambios visuales.
-
-### 19-sep-2026 — Casillas de "Clanes donde puede tomar decisiones" (Clanes_Admin)
-La página solo tenía casillas de Funciones y de Categorías (Cat_disp); los
-clanes en los que cada administrador puede decidir se mostraban como una
-línea de texto sin poder editarse. Ahora hay una tercera sección con una
-casilla por clan (+ "Marcar/Desmarcar todo"), entre Funciones y Categorías.
-- **Catálogo**: si el backend manda `clanes` en `webPermisosListar`
-  (texto o `{id|nombre, etiqueta}`), manda ese y conserva su orden. Mientras
-  no lo mande se arma con los valores que ya figuran en el Clanes_Admin de
-  algún administrador, tal cual están guardados (para no inventar un formato
-  distinto al de la hoja), ordenados con `ordenarClanes()`; en ese modo la
-  sección lo aclara. Se calcula una vez por carga, no en cada filtro.
-- **Guardado**: `datos.clanesAdmin` (arreglo) solo se envía si la sección se
-  pintó y la selección cambió. Guardar solo funciones o categorías nunca
-  toca los clanes de nadie. Desmarcar todo envía `[]` (explícito).
-- **Confirmación**: si se envió un cambio de clanes y el servidor no lo
-  devuelve en `resp.clanesAdmin`, no se muestra "Guardado": se avisa que las
-  funciones y categorías sí se guardaron pero los clanes no se confirmaron, y
-  la copia local queda como estaba.
-- **Valores fuera del catálogo** (p. ej. un clan que cambió de nombre) se
-  muestran marcados y con aviso, para que un "Guardar" no los borre en
-  silencio.
-- Pendiente en el backend (`Base.md` no estaba subido al hacer esto): que
-  `_webPermisosListar` devuelva el catálogo `clanes` y `_webPermisosGuardar`
-  acepte y devuelva `clanesAdmin`. Formato asumido de Clanes_Admin: nombres
-  de clan separados por coma; sin verificar.
-
-### 19-sep-2026 — Se quita el `.btn-icono` duplicado del `<style>`
-La nota del propio archivo decía que la versión local de `.btn-icono` se
-descartaba a favor de la de `styles.css`, pero la regla seguía escrita y,
-al cargar después, pisaba la compartida. Se borró. Los botones "Recargar" y
-"Marcar/Desmarcar todo" ahora lucen como los de `admin.html`/`mensajes.html`
-(fondo de superficie, sin mayúsculas). `permisos.html` ya no repite ningún
-selector de `styles.css` ni de otra página.
 
 ---
 
