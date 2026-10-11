@@ -130,7 +130,11 @@
   /* 11-oct-2026 (pedido usuario): en la columna Nombre de las cuadrículas, el nombre (con sus insignias) va pegado a la izquierda y el 📈 pegado a la derecha, dentro de la misma celda. */
   .col-jugador-inner{display:flex; align-items:center; justify-content:space-between; gap:10px;}
   .col-jugador-nombre{min-width:0; text-align:left;}
-  .col-jugador-inner .btn-hist-jugador{margin-left:auto; flex-shrink:0;}
+  /* 11-oct-2026: la pastilla de rango, «Inactivo» y el 📈 forman un solo grupo pegado a la derecha de la celda. */
+  .col-jugador-extras{margin-left:auto; display:flex; align-items:center; gap:6px; flex-shrink:0;}
+  .col-jugador-extras .rango-badge, .col-jugador-extras .inactivo-badge, .col-jugador-extras .btn-hist-jugador{margin-left:0;}
+  /* 11-oct-2026: «Participación de Hoy» con alto limitado y barra de desplazamiento morada propia dentro de su recuadro, como las tablas (clases de assets/styles.css). */
+  .part-scroll{--tabla-scroll-alto:360px; padding-right:4px;}
   /* Tabla de "Ataques pendientes": con nombres/clanes largos en pantallas
      angostas, se habilita scroll horizontal dentro de su propia tarjeta en
      vez de forzar overflow en toda la página. */
@@ -1098,7 +1102,7 @@ document.addEventListener('keydown', ev => { if (ev.key === 'Escape') histCerrar
 /* 11-oct-2026: celda Nombre de las cuadrículas — nombre + insignias a la izquierda, botón 📈 (historial de guerra) a la derecha de la misma celda. */
 function celdaJugadorGrid(f){
   const nombre = f.tag ? enlaceJugador(f.nombre || f.tag, f.tag) : esc(f.nombre || f.tag);
-  return `<td class="col-jugador"><div class="col-jugador-inner"><span class="col-jugador-nombre">${nombre}${insigniaRango(f.rango)}${insigniaInactivo(f)}</span>${botonHistJugador(f)}</div></td>`;
+  return `<td class="col-jugador"><div class="col-jugador-inner"><span class="col-jugador-nombre">${nombre}</span><span class="col-jugador-extras">${insigniaRango(f.rango)}${insigniaInactivo(f)}${botonHistJugador(f)}</span></div></td>`;
 }
 /* 11-oct-2026: numeración automática de la columna N° — cuenta solo las filas visibles de la tabla, así que se recalcula al filtrar, ordenar o elegir letra. */
 function renumerarFilas(tabla){
@@ -2061,6 +2065,7 @@ function renderParticipacionHoyGuerra(clanes, multiClan){
     return `
     <div class="card ai-clan-card" data-clan="${esc(c.clan)}" style="padding:16px;">
       <div class="part-clan-nombre">${enlaceClan(c.clan)}</div>
+      <div class="part-scroll tabla-scroll-wrap scroll-morado" tabindex="0" role="region" aria-label="Participación de hoy de ${esc(c.clan)}">
       <div class="part-grid">
         <div>
           <div class="part-col-header">🔒 Reservadas (${c.reservadas.length})</div>
@@ -2074,15 +2079,18 @@ function renderParticipacionHoyGuerra(clanes, multiClan){
           ${_listaCuentasHtml(c.disponibles, () => ATAQUES_MAX_HOY)}
         </div>
       </div>
+      </div>
     </div>`;
   }).join('');
 
   const multiClanHtml = !multiClan.length ? '' : `
     <div class="card" style="padding:16px;">
       <span class="badge badge-warn">Ataques en más de un clan hoy</span>
+      <div class="part-scroll tabla-scroll-wrap scroll-morado" tabindex="0" role="region" aria-label="Cuentas con ataques en más de un clan hoy">
       <ul class="part-lista" style="margin-top:8px;">
         ${multiClan.map(m => `<li>${m.tag ? enlaceJugador(m.nombre || m.tag, m.tag) : esc(m.nombre || m.tag)} <span class="text-faint" style="font-family:var(--f-mono);">${esc(m.tag || '')}</span> — ${m.clanes.map(esc).join(' y ')} (${fmtNum(m.totalAtaquesHoy)} ataques hoy)</li>`).join('')}
       </ul>
+      </div>
     </div>`;
 
   return clanesHtml + multiClanHtml;

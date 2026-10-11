@@ -107,7 +107,9 @@
 // Se sube la versión para que 'activate' borre v29 y nadie siga con el directorio/guerra viejos.
 // v31 (11-oct-2026): admin.html y guerra.html cambiaron (CORE_ASSETS) -- «Trofeos guerra» pasa a «Victorias de guerra» en admin; en guerra se retira «Miembros Activos por Clan», se añade la columna N° (automática) a todas las tablas y el 📈 queda a la derecha de la columna Nombre.
 // Se sube la versión para que 'activate' borre v30 y nadie siga con el admin/guerra viejos.
-const CACHE_NAME = 'terna-static-v31';
+// v32 (11-oct-2026): guerra.html cambió (CORE_ASSETS) -- «Participación de Hoy» con alto limitado y barra de desplazamiento morada propia; la pastilla de rango y «Inactivo» van a la derecha junto al 📈.
+// Se sube la versión para que 'activate' borre v31 y nadie siga con el guerra.html viejo.
+const CACHE_NAME = 'terna-static-v32';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
