@@ -4,7 +4,7 @@ Lista corta de lo que se hizo, de más reciente a más antiguo. Cada entrada tra
 
 **Cómo funciona el código hoy, por qué se decidió así, qué se probó y se descartó: no va aquí, va en `Contexto_Base_Web.md`.** Las reglas de redacción están en `Consolidados de cambios/Reglas_Consolidados.md` (repo `Backend`), sección 5. Los pendientes tampoco viven en cada entrada: están en «Abiertos». El detalle largo anterior sigue en el historial de git.
 
-*Traslado en curso (desde el 11-oct-2026):* las entradas desde el 04-oct-2026 ya están en formato corto y su contenido pasó a `§PF025` (8 y 9-oct), `§PF027` (5 a 7-oct) y `§PF018` (octava sesión, 2 al 5-oct). Las tandas 4 a 2 del 03 y 02-oct, la Fase 11 y el TBT de `guerra` (02-oct) también pasaron a `§PF018`, y la séptima y la sexta sesión (30 y 29-sep), las tandas D, C, B y A de la Fase 5b (28-sep), la Fase 11 del plan T_Lista (26-sep) y los comentarios desactualizados (21-sep) a `§PF017`. Del 20-sep pasaron a `§PF016` «Rendimiento (Lighthouse)», «CSS compartido», `permisos`, `mensajes` y `comunidad`. Quedó trasladado todo el 20-sep (`admin`, `perfil`, `directorio`, `index` y `guerra`) a `§PF016`. Quedó trasladado todo el 19-sep a `§PF016`: «CI y herramientas», «Rendimiento (Lighthouse)» y «SEO», «CSS compartido», `permisos`, `mensajes` y `guerra`. Con esta tanda quedaron trasladadas también las entradas de `guerra.html` del 21-sep (`§PF017`) y del 18-sep (`§PF016`). Los bloques «Línea original N (estilo)» de `guerra.html` (4 a 16-sep) y sus 10 bloques «(HTML)» (31-ago a 13-sep) pasaron a `§PF028`; en `guerra.html` quedan los bloques «(script)». Todo lo anterior (hoy ordenado por tema y archivo, no por fecha, incluidos los bloques «Línea original N» y las demás secciones por archivo) conserva su texto largo hasta que se trasladen, por tandas y de la fecha más reciente a la más antigua.
+*Traslado en curso (desde el 11-oct-2026):* las entradas desde el 04-oct-2026 ya están en formato corto y su contenido pasó a `§PF025` (8 y 9-oct), `§PF027` (5 a 7-oct) y `§PF018` (octava sesión, 2 al 5-oct). Las tandas 4 a 2 del 03 y 02-oct, la Fase 11 y el TBT de `guerra` (02-oct) también pasaron a `§PF018`, y la séptima y la sexta sesión (30 y 29-sep), las tandas D, C, B y A de la Fase 5b (28-sep), la Fase 11 del plan T_Lista (26-sep) y los comentarios desactualizados (21-sep) a `§PF017`. Del 20-sep pasaron a `§PF016` «Rendimiento (Lighthouse)», «CSS compartido», `permisos`, `mensajes` y `comunidad`. Quedó trasladado todo el 20-sep (`admin`, `perfil`, `directorio`, `index` y `guerra`) a `§PF016`. Quedó trasladado todo el 19-sep a `§PF016`: «CI y herramientas», «Rendimiento (Lighthouse)» y «SEO», «CSS compartido», `permisos`, `mensajes` y `guerra`. Con esta tanda quedaron trasladadas también las entradas de `guerra.html` del 21-sep (`§PF017`) y del 18-sep (`§PF016`). Los bloques «Línea original N (estilo)» de `guerra.html` (4 a 16-sep) y sus 10 bloques «(HTML)» (31-ago a 13-sep) pasaron a `§PF028`; sus 15 primeros bloques «(script)» (30-ago a 17-sep) pasaron a `§PF029`. En `guerra.html` quedan 15 bloques «(script)». Todo lo anterior (hoy ordenado por tema y archivo, no por fecha, incluidos los bloques «Línea original N» y las demás secciones por archivo) conserva su texto largo hasta que se trasladen, por tandas y de la fecha más reciente a la más antigua.
 
 ---
 
@@ -25,7 +25,8 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 - **Sin probar, Fase 5b tandas D y B (28-sep-2026):** nada en Apps Script real ni en navegador real. Falta confirmar que un ex-miembro sale con `tag:null` (nombre sin enlace) y un activo con su Tag real (nombre con enlace), con y sin sesión de admin, y revisar los 5 lugares de `torneos.html` en escritorio y móvil; y que el aviso de «clan rival» no llegue a un visitante (backend: `_webTorneos()` y `_webIngresosRecientes()` en `37_Web_API.gs`). → §PF017
 - **Por definir (la usuaria):** el `target-size` de los enlaces del nombre en «Ingresos recientes» (`a.jugador-link` en `index.html`, menos de 24 px de alto). Se dejó sin tocar porque cambiaría el aspecto de la tarjeta. (20-sep-2026) → §PF016
 - **Por definir (la usuaria):** cuatro comentarios de `guerra.html` todavía citan `assets/common.js` como casa de `pintarFiltroLetra()` y `primeraLetraFiltro()`; hoy están en `assets/js/ui/filters.js` (y `sincronizarScrollHorizontal()` en `ui/tables.js`). Es solo texto: corregirlo no cambia el comportamiento. (18-sep-2026) → §PF016
-- **Por definir (la usuaria), sin probar en navegador:** el aviso de la «última guerra» de «Valores diarios» (`guerra.html`, `render()`) guarda la «foto» en `localStorage` (`ternaUltimaGuerraActivos`), así que solo existe en el navegador que ya vio una guerra: quien entra por primera vez en un entrenamiento, o borró los datos del sitio, vería los datos en vivo sin aviso. Falta verificar si el backend ya entrega en entrenamiento los valores de la última guerra y qué papel juega `periodIndex`, que el pedido del 07-sep mencionaba y la rama no usa (usa `ctx.esDiaGuerra`). (11-oct-2026) → §PF028
+- **Decisión de la usuaria (11-oct-2026), por implementar:** todo navegador debe ver lo congelado del domingo, aunque no haya guardado datos del sitio. Hoy no se cumple (sin probar en navegador): el aviso de la «última guerra» de «Valores diarios» (`guerra.html`, `render()`) guarda la «foto» en `localStorage` (`ternaUltimaGuerraActivos`), así que solo existe en el navegador que ya vio una guerra. Falta verificar si el backend ya entrega en entrenamiento los valores de la última guerra y qué papel juega `periodIndex`, que el pedido del 07-sep mencionaba y la rama no usa (usa `ctx.esDiaGuerra`). (11-oct-2026) → §PF028
+- **Urgente (la usuaria): rotar el token de administradores que estuvo escrito en `guerra.html`, si sigue vigente.** El código ya no lo usa (30-ago) y se quitó de este archivo el 11-oct, pero este repo es público y el texto **sigue en su historial de git**; solo cambiarlo en el backend lo deja inservible. No se verificó si sigue activo; no se escribe aquí. (11-oct-2026) → §PF029
 
 ---
 
@@ -3921,243 +3922,18 @@ Lista corta de los comentarios del `<body>` (orden de secciones, selectores, pes
 - **03-sep · «Pendientes de Atacar» se oculta fuera de día de guerra.** `render()`: `#pendSection` según `ctx.esDiaGuerra`. → §PF028
 - **31-ago · Footer sin `style="padding:0"`.** El texto ya no queda pegado a los bordes. → §PF028
 
-### Línea original 810 (script)
+### guerra.html — script, parte 1 (30-ago a 17-sep-2026)
 
-```
-// FIX (07-sep-2026, pedido usuario — filtros de clan/semana/temporada de
-// las cuadrículas "Activos" y "Temporada"): estado de los selectores,
-// a nivel de módulo para que sobrevivan a cada repintado de render()
-// (cada REFRESH_INTERVAL_MS). null = "vigente" (semana/temporada). Ver
-// pintarSelectoresValoresDiarios() y pintarSelectoresControlTemporada() más abajo.
-// FIX (07-sep-2026, pedido usuario — "mueve el botón de Todos a la
-// derecha de Mini Ternas para que cargue por defecto el clan principal en
-// las dos secciones"): clanSeleccionadoActivos/Temporada ya NO usan null
-// para representar "Todos" — null ahora significa exclusivamente "sin
-// elegir todavía" y gestionarTabsClan() lo resuelve cayendo al primer clan
-// (Principal) en vez de a Todos. "Todos" pasa a ser un valor propio y
-// explícito, TAB_TODOS, que solo se fija cuando el usuario hace clic en
-// ese botón. Ver gestionarTabsClan() más abajo para el detalle completo.
-```
+Lista corta de los comentarios del `<script>` (estado de módulo, carga, cuadrículas, filtros y pestañas). El porqué de cada uno está en `§PF029` de `Contexto_Base_Web.md`.
 
-### Línea original 833 (script)
-
-```
-// FIX (13-sep-2026, pedido usuario — "botones clickeables de letras para
-// filtrar el nombre"): estado del filtro por letra de Pendientes, a nivel
-// de módulo para que sobreviva a cada repintado de render() (mismo
-// criterio que clanSeleccionadoPend de arriba). null = "todas las letras"
-// (sin filtrar). Ver pintarFiltroLetraPendientes()/aplicarFiltroLetraPendientes()
-// más abajo.
-```
-
-### Línea original 840 (script)
-
-```
-// FIX (13-sep-2026, pedido usuario — "agrega los botones de letras en
-// 🗂️ Valores diarios y 🗓️ Valores semanales"): mismo patrón/estado que
-// letraSeleccionadaPend de arriba, uno por sección (cada cuadrícula tiene
-// su propia tabla por clan, así que el filtro es independiente entre
-// Activos y Temporada). Ver pintarFiltroLetraGrid()/letraFiltroDeGridId()
-// más abajo, que generalizan pintarFiltroLetraPendientes() para poder
-// aplicarse sobre varias tablas (una por clan) a la vez.
-```
-
-### Línea original 849 (script)
-
-```
-// FIX (09-sep-2026, pedido usuario — selectores de año/temporada(mes)/
-// semana para "Valores diarios"): antes solo existía
-// sectionIndexSeleccionadoActivos (semana dentro de la temporada vigente);
-// ahora se agregan anioSeleccionadoActivos/temporadaSeleccionadaActivos
-// para poder elegir CUALQUIER combinación con datos. Los 3 arrancan en
-// null ("todavía no se aplicó ningún default") y pintarSelectoresValoresDiarios()
-// (más abajo) los fija al año/temporada/semana más recientes disponibles
-// la primera vez que llegan data.valoresDiariosSelectores.
-```
-
-### Línea original 907 (script)
-
-```
-    // FIX (30-ago-2026, pedido usuario — revisión de seguridad): antes esto
-    // pegaba directo a ?dashboard=json con un token de administradores
-    // (fm7qterna9x) hardcodeado acá mismo, visible para cualquiera con "Ver
-    // código fuente" de esta página PÚBLICA. Ahora usa apiGet() (mismo
-    // WEB_MEMBER_TOKEN de solo-lectura que ya usan index.html/directorio.html/
-    // etc., ver assets/common.js) contra el nuevo endpoint webGuerraEnVivo
-    // (34_Web_API.gs), que devuelve exactamente los mismos datos.
-```
-
-### Línea original 930 (script)
-
-```
- * FIX (05-sep-2026, pedido usuario — "los inactivos estaban trayendo solo
- * la categoría ataques, faltaba puntaje y barcos"): antes vivían como
- * const LOCALES dentro de render() (solo para la Cuadrícula de Activos).
- * Se hoistean a nivel de módulo para que cargarAportesInactivosSiAdmin()
- * (más abajo) pueda pintar el mismo bloque de 3 megacategorías
- * (Ataques/Puntaje/Barcos) para Inactivos sin duplicar esta lógica.
- 
-```
-
-### Línea original 940 (script)
-
-```
- * FIX (10-sep-2026, pedido usuario — filtro/orden por columna en la
- * segunda fila de encabezados): se agrega el 4° parámetro `keyPrefix`
- * (opcional, ej. 'atq'/'pje'/'brc') SOLO para que cada <td> lleve
- * data-col="{keyPrefix}-j|v|s|d|total" + data-raw="{valor crudo}" — así
- * el widget genérico de filtro (gridFiltroAplicar()/gridFiltroColumnas()
- * más abajo) puede encontrar la celda de cada columna y su valor sin
- * volver a tocar los datos originales. Si no se pasa keyPrefix (llamadas
- * ya existentes, ej. el bloque de Inactivos) el comportamiento no cambia
- * en nada: ningún data-col/data-raw, mismo HTML de siempre.
- 
-```
-
-### Línea original 965 (script)
-
-```
- * array), más las 2 columnas de Resumen al final. FIX (17-sep-2026): el
- * backend NUNCA manda un campo `resumen` -- manda `megacat.total`
- * (Ataques/Barcos) o `megacat.prom` (Puntaje), más `megacat.pct`. Esta
- * función normaliza ambos nombres a una sola variable local `resumen`
- * para pintar la columna, sin importar cuál mandó el backend. conColor=true aplica el mismo semáforo
- * ai-cell-zero/part/full que usa Ataques en la Cuadrícula de Activos
- * (0/parcial/16); Puntaje y Barcos van sin semáforo, igual que en esa
- * tabla.
- 
-```
-
-### Línea original 988 (script)
-
-```
-  // FIX (17-sep-2026, pedido usuario -- Total/Prom siempre en 0 en
-  // "Valores semanales"): _getControlTemporadaPorClan() (20_Control2_
-  // GuerraSemanal.gs) nunca devuelve un campo `resumen` -- devuelve
-  // `total` para Ataques/Barcos y `prom` para Puntaje (ver docblock de esa
-  // función). Esta celda leía `megacat.resumen`, que siempre es
-  // `undefined`, así que la columna Total/Prom quedaba en 0 sin importar
-  // los datos reales. Se usa `??` (no `||`) para no pisar un total/prom
-  // que legítimamente sea 0.
-```
-
-### Línea original 1010 (script)
-
-```
- =========================================================================
- * FIX (10-sep-2026, pedido usuario — "a las cuadrículas de valores
- * semanales y diarios agregales botones de filtro, con las mismas
- * funciones que la hoja directorio pero en la segunda fila de
- * encabezados"): widget genérico de filtro/orden por columna, calcado del
- * de "Directorio por clan" (directorio.html, ver ROSTER_COLUMNAS/
- * abrirFiltroColumna() ahí) pero generalizado para poder colgarse de
- * CUALQUIER tabla de esta página (hay una tabla POR CLAN, tanto en
- * Valores diarios como en Valores semanales) en vez de una sola tabla
- * global. Cada tabla se identifica con un `gridId` propio (ej.
- * "activos:Terna 2", "temporada:Mini Ternas") — el estado de filtro/orden
- * de cada una vive aparte en `gridEstados[gridId]` y SOBREVIVE a los
- * refrescos automáticos (REFRESH_INTERVAL_MS, ver cargar()) porque
- * inicializarGridFiltro() se llama de nuevo en cada render() y reusa el
- * estado ya guardado en vez de reiniciarlo.
- *
- * Cada "columna" de este widget es un objeto { key, raw(fila) } — `raw`
- * es una función que, dado el objeto de datos de una fila (el mismo `f`
- * que ya arma celdasMegacategoria()/celdasSemanas()), devuelve el valor
- * numérico crudo de esa columna. columnasActivosDef()/columnasTemporadaDef()
- * más abajo arman esa lista para cada tabla; los <td> ya traen ese mismo
- * valor en data-raw (ver dc() dentro de celdasMegacategoria/celdasSemanas)
- * así que no hace falta volver a calcularlo al filtrar.
- * ========================================================================= 
-```
-
-### Línea original 1131 (script)
-
-```
- * renderFilaTemporada más abajo). FIX (13-sep-2026, pedido usuario —
- * "agrega los botones de letras en Valores diarios y Valores semanales").
- 
-```
-
-### Línea original 1147 (script)
-
-```
-  // FIX (13-sep-2026, pedido usuario): además de los filtros numéricos por
-  // columna (estado.filtros), cada fila también debe pasar el filtro por
-  // letra de la sección (si hay alguno elegido) para que ambos filtros se
-  // puedan combinar sin pisarse -- ver letraFiltroDeGridId() arriba y
-  // pintarFiltroLetraGrid() más abajo, que dispara este mismo chequeo al
-  // hacer clic en una letra (sin volver a pedir nada al backend).
-```
-
-### Línea original 1326 (script)
-
-```
- * FIX (07-sep-2026, pedido usuario — "botones horizontales para
- * seleccionar el clan" en Activos y en Temporada): botonera .tabs-row/
- * .tab-btn (mismo patrón visual ya usado en "Log de Guerra") que agrega un
- * botón por cada clan que YA tiene una tarjeta .ai-clan-card pintada
- * dentro de `wrapId` (data-clan de cada tarjeta) + "Todos" y, al hacer
- * clic, solo oculta/muestra tarjetas ya existentes en el DOM -- no vuelve
- * a pedir nada al backend. Se reconstruye cada vez que cambia el set de
- * tarjetas visibles (cada render() y, en Activos, también cuando
- * cargarAportesInactivosSiAdmin() agrega una tarjeta nueva para un clan
- * sin Activos) para no dejar afuera ningún clan nuevo, y conserva la
- * selección vigente entre repintados -- si el clan seleccionado deja de
- * tener tarjeta (ej. cambia el orden o ya no tiene datos esta semana),
- * cae al default de abajo (clan Principal) en vez de dejar la cuadrícula
- * vacía por error.
- *
- * FIX (07-sep-2026, pedido usuario — "mueve el botón de Todos a la
- * derecha de Mini Ternas para que cargue por defecto el clan principal en
- * las dos secciones"): dos cambios sobre la versión anterior:
- *   1) El botón "Todos" ahora se pinta AL FINAL de la fila (después del
- *      último clan, ej. Mini Ternas), no al principio -- `clanes` ya
- *      llega ordenado con ordenClanIndex() (mismo orden oficial Principal/
- *      Terna 2/Terna 3/Mini Ternas, ver render() más arriba), así que solo
- *      se movió TAB_TODOS al final del array antes de mapear los <button>.
- *   2) "Todos" deja de ser el default de carga: si `obtenerSel()` todavía
- *      no tiene nada elegido (null, primera carga de la página), se cae
- *      al primer clan de `clanes` -- el Principal -- en vez de a Todos.
- *      Esto requirió separar "sin elegir todavía" (null) de "Todos
- *      elegido a propósito" (ahora el valor propio TAB_TODOS, ver arriba)
- *      -- antes ambos casos compartían `null` y por eso la carga inicial
- *      siempre arrancaba mostrando todos los clanes.
- 
-```
-
-### Línea original 1359 (script)
-
-```
- * FIX (09-sep-2026, pedido usuario — "barra de navegación al inicio y
- * final de cada cuadrícula si hay que desplazarse horizontalmente"):
- * recorre cada .ai-clan-card dentro de `wrapId` y, si trae las franjas
- * .grid-hscroll-top/.grid-hscroll-bottom (ver plantilla en render() y el
- * <style> .grid-hscroll de más arriba), las sincroniza con el scroll
- * real de la tabla (.table-scroll): mover cualquiera de las 3 — la
- * franja de arriba, la de abajo, o la propia tabla — mueve a las otras
- * dos. `.grid-hscroll-inner` no tiene contenido propio; su único trabajo
- * es fijar el ancho del "carrete" de scroll (igual a tabla.scrollWidth)
- * para que la franja fina se sienta como una barra de scroll de verdad.
- * IMPORTANTE: se llama ANTES de gestionarTabsClan() (que oculta con
- * display:none las tarjetas de clan no seleccionadas) — un elemento
- * oculto mide scrollWidth 0, así que medir después dejaría las barras de
- * las tarjetas no visibles en el primer render rotas para cuando el
- * usuario cambie de pestaña.
- 
-```
-
-### Línea original 1434 (script)
-
-```
- * FIX (13-sep-2026, pedido usuario — "botones clickeables de letras para
- * filtrar el nombre por cada letra o # para números y cualquier otro
- * carácter"): clasifica cada fila de Pendientes según el primer carácter
- * de su nombre visible, para que el filtro por letra (ver
- * pintarFiltroLetraPendientes()/aplicarFiltroLetraPendientes() abajo)
- * sepa qué botón le corresponde a cada <tr>. Cualquier carácter que no
- * sea letra A-Z/Ñ (dígito, símbolo, emoji, o nombre vacío) cae en '#'.
- 
-```
+- **17-sep · «Valores semanales»: Total/Prom dejan de salir siempre en 0.** `celdasSemanas()` lee `total`/`prom` (el backend no manda `resumen`) con `??`; `_getControlTemporadaPorClan()` (`38_Web_Endpoints.gs`). → §PF029
+- **13-sep · Filtro por letra: estado, clasificación y combinación con el filtro por columna.** `letraSeleccionadaPend`/`Activos`/`Temporada`, `aplicarFiltroLetraPendientes()`, `aplicarFiltroLetraGrid()`, `gridAplicarFiltros()`, `data-letra` en `renderFilaActivos()` y `renderFilaTemporada()`; `primeraLetraFiltro()` hoy en `assets/js/ui/filters.js`. → §PF029
+- **10-sep · Filtro y orden por columna (widget genérico por `gridId`).** `gridEstados`, `inicializarGridFiltro()`, `columnasActivosDef()` y `columnasTemporadaDef()`; `celdasMegacategoria()` y `celdasSemanas()` con `keyPrefix` (`data-col`/`data-raw`). → §PF029
+- **09-sep · Estado de año, temporada y semana de «Valores diarios».** `anioSeleccionadoActivos`, `temporadaSeleccionadaActivos`, `sectionIndexSeleccionadoActivos`; el default lo fija `pintarSelectoresValoresDiarios()`. → §PF029
+- **09-sep · Franjas de scroll horizontal sincronizadas.** `.grid-hscroll-*` y `enlazarScrollsHorizontales()`; retiradas el 18-sep. → §PF029
+- **07-sep · Pestañas de clan: «Todos» al final y el Principal por defecto.** `gestionarTabsClan()`, `TAB_TODOS`, `clanSeleccionadoActivos` y `clanSeleccionadoTemporada`. → §PF029
+- **05-sep · Helpers de celdas a nivel de módulo (Inactivos con las 3 megacategorías).** `claseCeldaCA()` y `celdasMegacategoria()` salen de `render()`; los usa `cargarAportesInactivosSiAdmin()`. → §PF029
+- **30-ago · `guerra.html` deja de llevar el token de administradores.** `cargar()` usa `apiGet('webGuerraEnVivo')`. Pendiente: rotar ese token si sigue vigente (ver «Abiertos»). → §PF029
 
 ### Línea original 1492 (script)
 
