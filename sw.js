@@ -94,7 +94,10 @@
 // 'activate' borre v23 y nadie siga con el api.js, el util.js y la portada viejos.
 // v25 (09-oct-2026): Fase 5 -- api.js (nueva apiGetPublicoConEstatico), clan-card.js (enlazarLideresClanes lee roster.json) y guerra.html (las cabeceras de clan leen
 // home.json) cambiaron (CORE_ASSETS). Se sube la versión para que 'activate' borre v24 y nadie siga con esos tres archivos viejos.
-const CACHE_NAME = 'terna-static-v25';
+// v26 (11-oct-2026): guerra.html cambió (CORE_ASSETS) -- en el mini historial y el comparador de un jugador, el día de guerra en curso se sombrea y, si lleva
+// menos de 4 ataques y no es opcional, el número lleva un asterisco en superíndice con su nota al pie. Se sube la versión para que 'activate' borre v25 y
+// nadie siga con el guerra.html viejo.
+const CACHE_NAME = 'terna-static-v26';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y

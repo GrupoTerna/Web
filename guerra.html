@@ -243,6 +243,10 @@
   .hist-tabla th, .hist-tabla td{padding:5px 8px; text-align:center; border-bottom:1px solid var(--line);}
   .hist-tabla td:first-child, .hist-tabla th:first-child{text-align:left;}
   .hist-tabla tr.hist-cero td{color:var(--danger);}
+  .hist-tabla tr.hist-hoy td{background:rgba(243,169,34,.10);}
+  .hist-tabla tr.hist-hoy td:first-child{box-shadow:inset 3px 0 0 var(--gold);}
+  .hist-ast{color:var(--gold); font-weight:700; margin-left:1px; cursor:help;}
+  .hist-sr{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap;}
   .hist-comparar{margin:0 0 10px; font-size:12px; color:var(--text-dim);}
   .hist-comparar select{font-family:var(--f-mono); font-size:12px; background:var(--surface-card); color:var(--text); border:1px solid var(--line-strong); border-radius:var(--radius-sm); padding:4px 8px; max-width:100%;}
   .hist-tabla td.hist-cero-celda{color:var(--danger);}
@@ -969,6 +973,14 @@ function histSoloGuerra(regs){
 }
 /* Un día con `opcional: true` (meta ya cruzada por el clan) con 0 ataques no cuenta como falta. */
 const histEsFalta = r => !r.ataques && r.opcional !== true;
+/* Día en curso (aún no cerrado): su fila se sombrea. Si tiene menos de 4 ataques y no es opcional, el número lleva un asterisco en superíndice con su nota al pie. El 0 se sigue mostrando tal como está registrado. */
+function histHoyIso(){ const h = new Date(); return `${h.getFullYear()}-${String(h.getMonth()+1).padStart(2,'0')}-${String(h.getDate()).padStart(2,'0')}`; }
+const histPendiente = (r, hoyIso) => !!r && r.fecha === hoyIso && r.opcional !== true && (r.ataques || 0) < ATAQUES_MAX_HOY;
+const HIST_ASTERISCO = '<sup class="hist-ast" title="Día en curso: todavía tiene ataques pendientes" aria-hidden="true">*</sup><span class="hist-sr"> (día en curso, con ataques pendientes)</span>';
+function histNotasDiaEnCurso(hayHoy, hayPend){
+  return (hayHoy ? ' La fila sombreada es el día en curso: todavía no se cierra.' : '')
+       + (hayPend ? '</p><p class="hist-nota"><sup class="hist-ast" aria-hidden="true">*</sup> Día en curso: todavía tiene ataques pendientes.' : '');
+}
 function histStats(regs){
   const n = regs.length;
   const t = (k) => regs.reduce((a, r) => a + (r[k] || 0), 0);
@@ -1000,9 +1012,10 @@ function histPintar(registros, verTodos){
   }
   const desc = registros.slice().sort((a, b) => b.fecha.localeCompare(a.fecha));
   const st = histStats(desc), n = st.n;
-  const hoy = new Date(); const hoyIso = `${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}-${String(hoy.getDate()).padStart(2,'0')}`;
+  const hoyIso = histHoyIso();
   const visibles = verTodos ? desc : desc.slice(0, HIST_FILAS_INICIALES);
-  const filas = visibles.map(r => `<tr class="${histEsFalta(r) ? 'hist-cero' : ''}"><td>${histFechaCorta(r.fecha)}${r.fecha === hoyIso ? ' · en curso' : ''}${r.opcional === true ? ' · opcional (meta cruzada)' : ''}</td><td>${fmtNum(r.ataques || 0)}</td><td>${fmtNum(r.fame || 0)}</td><td>${fmtNum(r.barcos || 0)}</td></tr>`).join('');
+  const hayHoy = visibles.some(r => r.fecha === hoyIso), hayPend = visibles.some(r => histPendiente(r, hoyIso));
+  const filas = visibles.map(r => `<tr class="${[histEsFalta(r) ? 'hist-cero' : '', r.fecha === hoyIso ? 'hist-hoy' : ''].filter(Boolean).join(' ')}"><td>${histFechaCorta(r.fecha)}${r.fecha === hoyIso ? ' · en curso' : ''}${r.opcional === true ? ' · opcional (meta cruzada)' : ''}</td><td>${fmtNum(r.ataques || 0)}${histPendiente(r, hoyIso) ? HIST_ASTERISCO : ''}</td><td>${fmtNum(r.fame || 0)}</td><td>${fmtNum(r.barcos || 0)}</td></tr>`).join('');
   document.getElementById('histCuerpo').innerHTML = histSelectorComparar('') + `
     <div class="hist-resumen">
       <div><b>${n}</b>días de guerra</div>
@@ -1014,7 +1027,7 @@ function histPintar(registros, verTodos){
     </div>
     <table class="hist-tabla"><thead><tr><th>Día</th><th>Ataques</th><th>Fame</th><th>Barcos</th></tr></thead><tbody>${filas}</tbody></table>
     ${(!verTodos && n > HIST_FILAS_INICIALES) ? `<button type="button" class="btn-solo-cero hist-mas" id="histMas">Ver todos (${n})</button>` : ''}
-    <p class="hist-nota">Un 0 es un día de guerra en el que estuvo registrado y no atacó. Los días anteriores a su ingreso al clan no aparecen. Un día marcado como opcional (meta ya cruzada) no cuenta como falta. Solo se muestran días de guerra, no de entrenamiento. El día de guerra en curso puede tener ataques pendientes.</p>`;
+    <p class="hist-nota">Un 0 es un día de guerra en el que estuvo registrado y no atacó. Los días anteriores a su ingreso al clan no aparecen. Un día marcado como opcional (meta ya cruzada) no cuenta como falta. Solo se muestran días de guerra, no de entrenamiento.${histNotasDiaEnCurso(hayHoy, hayPend)}</p>`;
   histEnlazarSelector();
   const mas = document.getElementById('histMas');
   if (mas) mas.addEventListener('click', () => histPintar(registros, true));
@@ -1049,7 +1062,10 @@ function histPintarComparacion(ra, rb, nombre2, verTodos){
   const celda = (r, k) => r ? fmtNum(r[k] || 0) : '';
   const visibles = verTodos ? fechas : fechas.slice(0, HIST_FILAS_INICIALES);
   const claseAtq = r => r && histEsFalta(r) ? ' class="hist-cero-celda"' : '';
-  const filasDia = visibles.map(f => `<tr><td>${histFechaCorta(f)}</td><td${claseAtq(A[f])}>${celda(A[f], 'ataques')}</td><td${claseAtq(B[f])}>${celda(B[f], 'ataques')}</td><td>${celda(A[f], 'fame')}</td><td>${celda(B[f], 'fame')}</td></tr>`).join('');
+  const hoyIso = histHoyIso();
+  const hayHoy = visibles.includes(hoyIso), hayPend = visibles.some(f => histPendiente(A[f], hoyIso) || histPendiente(B[f], hoyIso));
+  const astAtq = r => histPendiente(r, hoyIso) ? HIST_ASTERISCO : '';
+  const filasDia = visibles.map(f => `<tr${f === hoyIso ? ' class="hist-hoy"' : ''}><td>${histFechaCorta(f)}${f === hoyIso ? ' · en curso' : ''}</td><td${claseAtq(A[f])}>${celda(A[f], 'ataques')}${astAtq(A[f])}</td><td${claseAtq(B[f])}>${celda(B[f], 'ataques')}${astAtq(B[f])}</td><td>${celda(A[f], 'fame')}</td><td>${celda(B[f], 'fame')}</td></tr>`).join('');
   const na = esc(histNombre), nb = esc(nombre2);
   cuerpo.innerHTML = histSelectorComparar(tag2) + `
     <table class="hist-tabla"><thead><tr><th></th><th>${na}</th><th>${nb}</th></tr></thead><tbody>
@@ -1057,7 +1073,7 @@ function histPintarComparacion(ra, rb, nombre2, verTodos){
     </tbody></table>
     <table class="hist-tabla" style="margin-top:12px;"><thead><tr><th rowspan="2">Día</th><th colspan="2">Ataques</th><th colspan="2">Fame</th></tr><tr><th>${na}</th><th>${nb}</th><th>${na}</th><th>${nb}</th></tr></thead><tbody>${filasDia || '<tr><td colspan="5">Sin registros</td></tr>'}</tbody></table>
     ${(!verTodos && fechas.length > HIST_FILAS_INICIALES) ? `<button type="button" class="btn-solo-cero hist-mas" id="histMas">Ver todos (${fechas.length})</button>` : ''}
-    <p class="hist-nota">Celda vacía: ese jugador no tenía registro ese día (aún no estaba en el clan). Un 0 en rojo es que estuvo y no atacó.</p>`;
+    <p class="hist-nota">Celda vacía: ese jugador no tenía registro ese día (aún no estaba en el clan). Un 0 en rojo es que estuvo y no atacó.${histNotasDiaEnCurso(hayHoy, hayPend)}</p>`;
   histEnlazarSelector();
   const mas = document.getElementById('histMas');
   if (mas) mas.addEventListener('click', () => histPintarComparacion(ra, rb, nombre2, true));
