@@ -3924,25 +3924,21 @@ function renderExtendido(ext, j){
   }
   const idxDiasJugados = gsd ? [0, 1, 2, 3].filter(i => gsd.ataques[i] != null) : [];
   const diasJugadosLbl = idxDiasJugados.map(i => String(gsd.dias[i] || '').charAt(0).toUpperCase());
-  // FIX (11-oct-2026, pedido usuario — "en las medallas de guerra por día el viernes parece tener un valor negativo"): el corrido semanal
-  // (`gsd.puntaje`) nunca puede bajar dentro de una semana, pero un día sin registro de medallas llega como 0 (o menor que el día anterior),
-  // y restarlo daba un valor negativo ese día (y arrastraba el "Acumulado" a 0). Ahora el corrido se sanea: si un día trae un valor menor que el
-  // máximo ya alcanzado (o no trae dato), se conserva el máximo anterior, de modo que ese día suma 0 medallas y el acumulado no retrocede.
-  let _corridoAnterior = 0;
-  const corridoSaneadoPorDia = [0, 1, 2, 3].map(i => {
+  // FIX (11-oct-2026, pedido usuario — "el sábado hay ataques pero no medallas"; corrige mi arreglo anterior del mismo día): `gsd.puntaje` ya llega
+  // como medallas GANADAS ESE DÍA. El backend las pasa de acumulado a día con _diarioDesdeAcumuladoGuerra_() (37_Web_API.gs, §37B262C) y la ruta
+  // del historial (_guerraDiasDesdeHistorial()) también las devuelve por día. El código de aquí abajo las trataba como corrido semanal y volvía a
+  // restar: daba negativos (viernes) y, tras "sanearlo" con el máximo, borraba las medallas de cualquier día que no superara al jueves (sábado).
+  // Ahora la serie dorada es `gsd.puntaje` tal cual y «Acumulado» es su suma corrida.
+  let _sumaMedallas = 0;
+  const trofeosGuerraPorDia = [0, 1, 2, 3].map(i => {
     const bruto = gsd ? gsd.puntaje[i] : null;
-    const corrido = bruto == null ? NaN : Number(bruto);
-    if (!isFinite(corrido)) return null;
-    const saneado = Math.max(corrido, _corridoAnterior);
-    _corridoAnterior = saneado;
-    return saneado;
+    const v = bruto == null ? NaN : Number(bruto);
+    return isFinite(v) ? Math.max(0, v) : null;
   });
-  let _corridoPrevio = 0;
-  const trofeosGuerraPorDia = corridoSaneadoPorDia.map(c => {
-    if (c == null) return null;
-    const delta = c - _corridoPrevio;
-    _corridoPrevio = c;
-    return delta;
+  const corridoSaneadoPorDia = trofeosGuerraPorDia.map(v => {
+    if (v == null) return null;
+    _sumaMedallas += v;
+    return _sumaMedallas;
   });
   const graficosGuerra = idxDiasJugados.length ? [
     _dispersionMiniHtml('Ataques y barcos por día', diasJugadosLbl, [
@@ -4882,7 +4878,7 @@ function _guerraDiasDesdeHistorial(historial){
   return {
     dias: ['Jueves', 'Viernes', 'Sábado', 'Domingo'],
     ataques: diario('ataques'),
-    puntaje: reg.map(h => (h && h.puntaje != null && isFinite(Number(h.puntaje))) ? Number(h.puntaje) : null),
+    puntaje: diario('puntaje'), // 11-oct-2026: el historial trae el corrido de la semana; se pasa a medallas de cada día (igual que ataques y barcos) porque la minigráfica espera valores por día
     barcos: diario('barcos')
   };
 }
