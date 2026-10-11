@@ -4,7 +4,7 @@ Lista corta de lo que se hizo, de más reciente a más antiguo. Cada entrada tra
 
 **Cómo funciona el código hoy, por qué se decidió así, qué se probó y se descartó: no va aquí, va en `Contexto_Base_Web.md`.** Las reglas de redacción están en `Consolidados de cambios/Reglas_Consolidados.md` (repo `Backend`), sección 5. Los pendientes tampoco viven en cada entrada: están en «Abiertos». El detalle largo anterior sigue en el historial de git.
 
-*Traslado en curso (desde el 11-oct-2026):* las entradas desde el 04-oct-2026 ya están en formato corto y su contenido pasó a `§PF025` (8 y 9-oct), `§PF027` (5 a 7-oct) y `§PF018` (octava sesión, 2 al 5-oct). Las tandas 4 a 2 del 03 y 02-oct, la Fase 11 y el TBT de `guerra` (02-oct) también pasaron a `§PF018`, y la séptima y la sexta sesión (30 y 29-sep) a `§PF017`. Las anteriores (desde «Fase 5b tanda D» del 28-sep, y antes) conservan su texto largo hasta que se trasladen, por tandas.
+*Traslado en curso (desde el 11-oct-2026):* las entradas desde el 04-oct-2026 ya están en formato corto y su contenido pasó a `§PF025` (8 y 9-oct), `§PF027` (5 a 7-oct) y `§PF018` (octava sesión, 2 al 5-oct). Las tandas 4 a 2 del 03 y 02-oct, la Fase 11 y el TBT de `guerra` (02-oct) también pasaron a `§PF018`, y la séptima y la sexta sesión (30 y 29-sep) y las tandas D y B de la Fase 5b (28-sep) a `§PF017`. Las anteriores (desde «Fase 5b tanda C» del 28-sep, y antes) conservan su texto largo hasta que se trasladen, por tandas.
 
 ---
 
@@ -22,6 +22,7 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 - **Sin probar contra el backend real ni en Apps Script real:** `sesionVencida` (que un token vencido o cerrado desde otro dispositivo traiga la marca, y que con sesión válida o como visitante no aparezca el aviso; `38_Web_Endpoints.gs`) y `corregido` de «Ingresar link» (`26_Torneos_Core.gs`, `37_Web_API.gs`, `44_BotWhatsApp.gs`); además, lector de pantalla real, Firefox y Safari en esas pantallas. (02 y 03-oct-2026) → §PF018
 - **Sin comprobar, TBT de `guerra` (02-oct-2026):** no se corrió Lighthouse real y no se sabe cuántos jugadores tiene hoy cada clan en producción (el banco usó 50). Idea sin probar para bajar más la tarea larga (~500 ms con CPU 4×): no construir el `<tbody>` de los clanes ocultos hasta elegir su pestaña, o repartir el pintado de Control de Temporada. → §PF018
 - **Sin verificar, cartas (29-sep-2026):** que en `perfil.html` se vean la carta favorita, el mazo y la colección tras el cambio de la CSP (abrir un perfil y mirar F12 → Consola; `perfil.html` no lo audita Lighthouse); al publicar, pulsar los dos botones Héroe/Evolución de una carta de `index.html` (`cambiarVarianteCarta()` cambia el `src` de la imagen, ahora de 72×84); y el alto real del chip con las 10 cartas y sus filas de Héroe/Evolución. Sin explicar: la primera corrida de cada tanda de Lighthouse sale mucho peor (parece arranque en frío). → §PF017
+- **Sin probar, Fase 5b tandas D y B (28-sep-2026):** nada en Apps Script real ni en navegador real. Falta confirmar que un ex-miembro sale con `tag:null` (nombre sin enlace) y un activo con su Tag real (nombre con enlace), con y sin sesión de admin, y revisar los 5 lugares de `torneos.html` en escritorio y móvil; y que el aviso de «clan rival» no llegue a un visitante (backend: `_webTorneos()` y `_webIngresosRecientes()` en `37_Web_API.gs`). → §PF017
 
 ---
 
@@ -117,101 +118,11 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 - **`index.html` y `perfil.html` · La CSP bloqueaba las imágenes de cartas.** `<meta>` de CSP: se añade `https://api-assets.clashroyale.com` al `img-src` (Buenas prácticas de `index` de 93 a 100). → §PF017
 - **Medido, sin cambios de código: Lighthouse tras las tandas 1 a 5, `directorio` y `Skull_05`.** `directorio` CLS de 0,306 a 0,022; `guerra` y `directorio` Buenas prácticas de 96 a 100; CLS de 0,15 del hero de `index` anotado y resuelto el 30-sep. → §PF017
 
----
+## 28-sep-2026 (Fase 5b, tandas D y B)
 
-## torneos.html, `34_Web_API.gs`, `08_Web_Endpoints.gs` y `sw.js` — Fase 5b tanda D del Consolidado de mejoras (28-sep-2026)
-
-### 28-sep-2026 — Se cierra el pendiente de ex-miembros en torneos.html; el nombre de un participante activo enlaza a su perfil
-Quedaban dos pendientes anotados al cerrar las tandas A, B y C: revisar si
-`webTorneos`/`webHistorialTorneos` muestran a ex-miembros, y actualizar este
-CHANGELOG con las decisiones A5 (renombrado a A8, ver más abajo), A6 y A7.
-
-**Revisión (sin cambio de comportamiento):** `_webTorneos()` y
-`_webHistorialTorneos()` (`34_Web_API.gs`) SÍ muestran a ex-miembros en sus
-listas — nombre/clan/puesto/victorias salen de `T_Asistencia` (la foto del
-día del torneo) sin cruzar con el Directorio actual. Confirmado por el
-usuario que así debe quedar: es un registro histórico ("el ganador sigue
-siendo el ganador de esa fecha"), mismo criterio que ya declaraba el
-docblock de `_webHistorialTorneos()` desde antes. Con esto queda cerrado el
-pendiente — no hizo falta tocar código para esta parte.
-
-**Cambio (pedido del usuario):** el nombre de un participante SIGUE
-apareciendo en la lista aunque sea ex-miembro, pero deja de poder hacerse
-clic para ir a su `perfil.html` — solo los participantes activos (o
-cualquiera, con sesión de admin) quedan con el nombre enlazado.
-
-- **`34_Web_API.gs` — `_webTorneos()`, `_webGanadoresTorneoMasReciente()`,
-  `_webHistorialTorneos()`:** ahora reciben `opciones.esAdmin` y agregan un
-  campo `tag` a cada participante (`top3` y `participantes`), usando
-  `_webCuentaOcultaParaVisitante()` (mismo criterio de siempre: Inactivos o
-  Directorio Estado='Inactivo') para decidir si sale el Tag real o `null`.
-  El Tag sigue sin exponerse sin condición para nadie oculto — antes no
-  viajaba en absoluto, ahora viaja condicional. Ver AVISO A9 en el bloque
-  `AVISOS ABIERTOS` del archivo.
-- **`08_Web_Endpoints.gs` — `doGet`:** las rutas de `webTorneos` y
-  `webHistorialTorneos` pasan `{esAdmin: _webAuthValidar(e.parameter.sessionToken)}`,
-  mismo patrón que ya usaba `webTorneosJugador`.
-- **`torneos.html`:** `apiGetTorneosCompartido()` agrega `conSesion:true`
-  (así un admin logueado recibe el Tag real también de los inactivos).
-  Nueva función `enlaceParticipante(nombre, tag)` que arma el link
-  `perfil.html?tag=...` cuando `tag` llega, o texto plano si no — aplicada
-  en los 5 lugares donde se pinta un nombre: podio del torneo más reciente,
-  "ver todos los resultados", filas de "Torneos recientes", tarjetas del
-  Salón de la fama y el ranking de victorias acumuladas.
-  `calcularRankingVictoriasTorneos()` ahora arrastra el `tag` de cada
-  jugador (el agrupamiento del ranking sigue siendo por nombre+clan, sin
-  cambios ahí). CSS nuevo `.participante-link` (hereda el color de su
-  contenedor, subrayado solo al pasar el mouse — mismo patrón visual que
-  `.rk-nombre` de `index.html`).
-- **`sw.js`:** `CACHE_NAME` sube a `terna-static-v7` (torneos.html está en
-  `CORE_ASSETS` y cambió).
-- **Corrección de numeración de avisos (regla 9):** `34_Web_API.gs` traía
-  **dos AVISO A5 distintos** desde antes de esta tanda (uno de la tanda A2,
-  "pruebas pendientes en Apps Script real", y otro de la tanda C/A3, la
-  decisión sobre `_webTorneosJugador`/`_webHistorialGuerraComparador`) — un
-  choque de numeración de una sesión anterior, no algo de esta tanda. El
-  segundo se renombró a **AVISO A8** (se corrigieron sus referencias
-  cruzadas en `_webHistorialGuerraComparador()`, `_webTorneosJugador()` y
-  `_webCuentaOcultaParaVisitante()`, y se actualizó esta última porque decía
-  "solo la usan" dos funciones que ya no son las únicas). El aviso nuevo de
-  esta tanda, que había quedado mal etiquetado "A7" (chocando con el AVISO
-  A7 real de la tanda C, nomMulti/prestamo), se renombró a **AVISO A9**.
-  Ningún criterio ni decisión cambió, solo los números.
-- **Sin probar:** no se probó en Apps Script real ni en navegador real —
-  falta confirmar que un ex-miembro sale con `tag:null` (nombre sin link) y
-  un activo con su Tag real (nombre con link), con y sin sesión de admin, y
-  revisar visualmente los 5 lugares en escritorio y en el layout móvil.
-
----
-
-## directorio.html y `34_Web_API.gs` — Fase 5b tanda B del Consolidado de mejoras (28-sep-2026)
-
-### 28-sep-2026 — El aviso de "clan rival" de Ingresos recientes solo lo ve un admin
-**Nota:** esta entrada se agrega recién en la tanda D (ver más arriba) — el
-cambio ya estaba aplicado al código desde la tanda B, pero nunca se había
-escrito en este CHANGELOG.
-
-Decisión del usuario: el aviso de que un ingreso reciente viene de un clan
-rival de temporada es información sensible del clan (estrategia de
-reclutamiento), solo para admins.
-
-- **`34_Web_API.gs`, `_webIngresosRecientes(opciones)`:** la caché de 60 s
-  (`_webCacheado()`) sigue guardando la respuesta COMPLETA (con
-  `esRivalTemporada`/`clanRivalDetectado`), compartida entre admins y
-  visitantes. El recorte para no-admins se hace DESPUÉS de leer la caché,
-  nunca antes de guardarla — así un visitante nunca puede recibir el aviso
-  de una respuesta que cacheó un admin, ni al revés. Sin sesión de admin,
-  ambos campos se quitan de cada ingreso por completo (no viajan ni como
-  `false`/`null`, para no poder distinguir a quién se le marcó).
-- **`08_Web_Endpoints.gs`, `doGet`:** la ruta de `webIngresosRecientes` pasa
-  `{esAdmin: _webAuthValidar(e.parameter.sessionToken)}`.
-- **`directorio.html`:** `apiGet('webIngresosRecientes', ...)` manda
-  `conSesion: true`.
-- **`webGuerraEnVivo` no necesitó cambio:** su lista `nuevos` solo toma
-  `tag`, `nombre`, `clan`, `fecha` y links — nunca copió esos dos campos.
-- **Pendiente de definir (mismo caso que el aviso A4 de la tanda A):** un
-  admin con la sesión vencida en el servidor (6 h) pero guardada en el
-  navegador ve el aviso desaparecer hasta volver a iniciar sesión.
+- **`sw.js` v7 · `torneos.html` · El nombre de un ex-miembro ya no enlaza a su perfil (tanda D).** `apiGetTorneosCompartido()` (`conSesion:true`), `enlaceParticipante()` (nueva, en los 5 lugares donde se pinta un nombre), `calcularRankingVictoriasTorneos()` (arrastra `tag`) y CSS `.participante-link`. Backend: `34_Web_API.gs`, `_webTorneos()`, `_webGanadoresTorneoMasReciente()` y `_webHistorialTorneos()` (campo `tag` según `esAdmin`); `08_Web_Endpoints.gs`, `doGet`. Los ex-miembros siguen en el histórico (confirmado). → §PF017
+- **Backend · Avisos renumerados (tanda D).** `34_Web_API.gs`: el segundo AVISO A5 pasó a A8 y el nuevo de la tanda D a A9; el 2-oct se volvió a numerar (el que chocaba pasó a A10). → §PF017
+- **`directorio.html` · El aviso de «clan rival» de Ingresos recientes solo lo ve un admin (tanda B).** `apiGet('webIngresosRecientes')` con `conSesion:true`. Backend: `34_Web_API.gs`, `_webIngresosRecientes()` (recorta después de leer la caché, no antes de guardarla); `08_Web_Endpoints.gs`, `doGet`. Anotado en la tanda D; el código ya estaba desde la tanda B. → §PF017
 
 ---
 
