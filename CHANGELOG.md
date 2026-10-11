@@ -4,7 +4,7 @@ Lista corta de lo que se hizo, de más reciente a más antiguo. Cada entrada tra
 
 **Cómo funciona el código hoy, por qué se decidió así, qué se probó y se descartó: no va aquí, va en `Contexto_Base_Web.md`.** Las reglas de redacción están en `Consolidados de cambios/Reglas_Consolidados.md` (repo `Backend`), sección 5. Los pendientes tampoco viven en cada entrada: están en «Abiertos». El detalle largo anterior sigue en el historial de git.
 
-*Traslado en curso (desde el 11-oct-2026):* las entradas desde el 05-oct-2026 ya están en formato corto y su contenido pasó a `§PF025` (8 y 9-oct) y a `§PF027` (5 a 7-oct; las de la octava sesión, además, a `§PF018`). Las anteriores (del 04-oct hacia atrás) conservan su texto largo hasta que se trasladen, por tandas.
+*Traslado en curso (desde el 11-oct-2026):* las entradas desde el 04-oct-2026 ya están en formato corto y su contenido pasó a `§PF025` (8 y 9-oct), `§PF027` (5 a 7-oct) y `§PF018` (octava sesión, 2 al 5-oct). Las anteriores (del 03-oct hacia atrás) conservan su texto largo hasta que se trasladen, por tandas.
 
 ---
 
@@ -15,6 +15,7 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 - **Decisión del usuario: respaldo local para las cargas que salen de un JSON estático.** Hoy no guardan nada en el respaldo local (`_backupLocalGuardar()` solo se llama dentro de `apiGet()`), así que `staleIfError` no ayuda a quien siempre recibe datos por JSON, ni sin conexión. Riesgo: `guerra.json` pesa unos 920 KB y localStorage tiene unos 5 MB; habría que decidir qué archivos sí guardar. (Plan «JSON estático como último recurso», 09-oct-2026.)
 - **Por verificar en el backend (requiere subir `Base.md`):** si `doGet` cae a los `Backup_*.csv` cuando falla la lectura de Sheets; qué claves publican realmente `50_` a `53_Publicar_*.gs`; si el bot sigue republicando cuando Sheets falla; y si `home.json`, `roster.json`, `torneos.json`, `guerra_ctx.json` y `guerra_top.json` traen `tiempos.api.ultimaConsultaTs` (hoy solo se sabe de `guerra.json`; el frontend ya lo muestra solo si existe). El usuario enviará el backend cuando terminen estas fases.
 - **Por definir:** `index.html` y `clan.html` calculan los tres momentos por su cuenta; podrían pasar a `fmtTresTiemposDeResultado()` para tener una sola forma. No se tocó para no abarcar de más.
+- **Por definir (la usuaria), P-4:** a dónde debe ir el foco tras un veto exitoso (`perfil.html`) y tras «Marcar visto» (`admin.html`; `cargarGanadoresTorneo()` repinta la lista y el botón deja de existir). Hoy cae en `<body>`. (04-oct-2026) → §PF018
 - **Por verificar al desplegar el backend (requiere subir `Base.md`):** (a) el tiempo de `?dashboard=json` en día de guerra con `metaCruzada` (estuvo desactivada desde el 19-sep por tardar 28 a 39 s; si vuelve a ser lenta, revisar `_getMapaCruceMetaGuerraLogs_()`); (b) que viernes y sábado no salgan como opcionales por error y que `_diasOpcionalesClanSemana_()` recorra viernes a domingo (07-oct-2026). → §PF027
 - **Por verificar con `Base.md`:** comentario de `alMax` en `pintarColeccion()` (`perfil.html`): falta documentar en el backend el comportamiento del nivel máximo; y que `ext.batallas` sea siempre victorias más derrotas. → §PF027
 - **Sin probar:** que `sw.js` v14 a v16 llegue a un visitante con la versión anterior (ciclo `install`/`activate`), y los cambios del 5 al 7-oct de `perfil.html`, `guerra.html` y Noticias en navegador con backend real. → §PF027
@@ -76,71 +77,14 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 
 ---
 
-## Doble envío en torneos, `msg-success`, editor de premios y modos de Cambio de rango (octava sesión, tanda 7, 04-oct-2026)
+## 04-oct-2026
 
-Atiende P-5 a P-8 de la tanda 6. Solo cambia `admin.html` (no está en `CORE_ASSETS`: `sw.js` se queda en v13). Pruebas con Chromium (Playwright), 412 px, sesión y backend simulados; cada defecto se midió antes de corregir.
-
-### 04-oct-2026 — `admin.html`: guardia contra el doble envío en Registrar, Modificar y Planificar torneo (P-5)
-- **Defecto (medido antes de corregir):** estos tres botones no se deshabilitaban durante la petición. Con dos Enter seguidos (80 ms) y la respuesta del backend retrasada 1,2 s, **cada uno envió 2 peticiones idénticas** (`webAdminTorneoRegistrar`, `webAdminTorneoModificar`, `webAdminTorneoPlanificarGuardar`); en Registrar y en "Ingresar link" eso puede registrar dos veces el mismo torneo.
-- **Cambio:** función nueva `conBotonOcupado(btn, fn)` (junto a `enfocarPrimerControl()`): deshabilita el botón mientras corre `fn`, ignora un segundo clic y devuelve el foco al terminar si cayó en `<body>` (mismo criterio que el resto). Los tres listeners pasan de `addEventListener('click', async () => {...})` a `addEventListener('click', () => conBotonOcupado(btn, async () => {...}))`; el cuerpo no cambia.
-- **Verificado (antes → después):** peticiones con doble Enter 2 → 1 en los tres; el mensaje de éxito sale igual y el foco queda en el propio botón. Sin errores de JS.
-- **Falso positivo de mi medición, para no perseguirlo otra vez:** un primer intento retrasaba la respuesta con `time.sleep()` dentro del simulador, lo que bloquea el navegador de pruebas; el segundo Enter llegaba con el formulario ya limpio y daba "1 petición" sin que hubiera guardia. El retraso debe aplicarse dentro de la página (envolviendo `fetch`) y solo a las acciones medidas: aplicado a todas, la cola de carga inicial se come el tiempo y no llega ninguna.
-- **No cubierto:** otros 9 botones de `admin.html` con el mismo patrón y sin guardia (ver P-9 en `Plan_Fases.md`); en esta tanda solo se midieron y corrigieron los tres de arriba.
-
-### 04-oct-2026 — `admin.html`: `msg-success` no existe en los estilos (P-6)
-- **Defecto (medido):** 4 mensajes de éxito usaban `class="msg msg-success"` ("Corrida guardada…", propuestas agregadas como Planificado, "Guardado." y "Limpiado…" de la hoja de ganadores). `assets/styles.css` solo define `msg-ok`, así que salían sin fondo ni borde (calculado: `rgba(0,0,0,0)` y 0 px, contra `rgba(16,185,129,.12)` y 1 px de `msg-ok`). El resto del sitio usa `msg-ok` 18 veces.
-- **Cambio:** las 4 pasan a `msg msg-ok`. No se tocó `styles.css`. Verificado: 0 apariciones de `msg-success` y el estilo calculado de `msg-ok` es el de las demás.
-
-### 04-oct-2026 — `admin.html`: editor de premios, "Quitar" (P-7)
-- **Defectos (medidos en el editor de Planificar):** (1) los 3 "Quitar" tenían exactamente el mismo nombre accesible; (2) Espacio no hacía nada (es un `<a href="#">` sin rol de botón; un enlace solo responde a Enter); (3) al quitar con Enter el foco caía en `<body>`.
-- **Cambio:** `crearFilaPremioHTML()` agrega `role="button"` (sin cambio visual); `renumerarPremios()` pone `aria-label="Quitar premio N"`; `agregarFilaPremio()` suma un `keydown` para Espacio y, tras quitar, pasa el foco al "Quitar" de la fila que ocupa su lugar (o de la anterior si era la última) y, si queda una sola fila (su "Quitar" se oculta), a su selector "Tipo del premio 1".
-- **Verificado (antes → después):** nombres "Quitar" ×3 → "Quitar premio 1/2/3"; Espacio 3 → 2 filas; foco `BODY` → "Quitar premio 1" y, con una fila, "Tipo del premio 1"; el último "Quitar" nunca queda activo. **No medido:** el editor de Modificar (`#premiosEditorMod`), que usa las mismas funciones con otro `containerId`.
-
-### 04-oct-2026 — `admin.html`, Cambio de rango: modos "Editar corrida existente", "Ver propuestas" y "Precargar última corrida": medidos, sin defectos propios (P-8)
-- **Editar corrida:** foco tras Continuar en el selector de corridas; tras elegir una, el paso 3 se muestra y el panel tiene 46 controles enfocables, 0 sin nombre accesible, 45 paradas de Tab dentro del panel, sin repetidas y sin caer en `<body>`.
-- **Ver propuestas:** foco en el selector; al elegir una corrida el paso 3 sigue oculto (correcto en este modo) y el único control nuevo es "Registrar en Sheets", con nombre.
-- **Precargar última corrida:** no se deshabilita; el foco se queda en el botón con éxito y con error del backend, y el mensaje de error aparece.
-- **Limitación importante:** son datos simulados mínimos, y varios intentos fallaron por la forma de mi dato (por ejemplo `semanas` como texto en vez de lista), no por el código. **No se midió** la tabla de propuestas con filas reales (la simulación devolvió una lista vacía) ni que "Quitar la temporada N" cambie al elegir otra temporada (el backend simulado devolvió una sola).
-
-### 04-oct-2026 — Observaciones nuevas, sin cambiar
-- **P-9:** 9 botones más de `admin.html` envían al backend sin guardia contra el doble envío (por lectura, no medidos): `btnGuardar`, `btnRegistrarSorteo`, `btnPlanificarSorteo`, `btnModificarSorteo`, `btnCrGuardar`, `btnCrGenerarPropuestas`, `btnGuardarResolucion`, `btnNmGuardar` y `btnVetar`. `conBotonOcupado()` ya existe, así que cada uno es un cambio de dos líneas, pero hay que medirlos antes y después. Nota: la tanda 6 dijo "11" y eran 12 sin guardia; 3 quedan resueltos.
-- **No verificado:** lector de pantalla real; Firefox y Safari; nada contra el backend real.
-- **Verificado en el repo:** `node --test` 165/165, `eslint assets`, `html-validate admin.html` y `check-local-links` (144 rutas) sin observaciones.
-- **Subir:** `admin.html`, `CHANGELOG.md` y `Plan_Fases.md` (los demás archivos de la tanda 6 no cambian).
-
-## Foco en más botones que se deshabilitan y teclado en "Ingresar link" y Cambio de rango (octava sesión, tanda 6, 04-oct-2026)
-
-Cierra lo que la tanda 5 dejó como "No tocado (no medido)" (P-2) y "sin probar" (P-3). Pruebas con Chromium (Playwright), 412 px, sesión y backend simulados. Cada defecto se midió antes de corregir y se repitió la misma medición después.
-
-### 04-oct-2026 — `perfil.html`, `admin.html`, `mensajes.html`, `guerra.html`: el foco ya no cae a `<body>` al rehabilitar un botón
-- **Defecto (medido antes de corregir; mismo patrón de la tanda 5):** un botón deshabilitado pierde el foco y al reactivarlo no se devolvía. Casos y resultado, todos `BODY` antes:
-  - `perfil.html`, `enviarVeto()`: "Confirmar veto" (`btnVjConfirmar`) con error del servidor y con conexión caída.
-  - `admin.html`, listener de `#ganadoresLista`, rama `.btnMarcarGrupoManual`: "Marcar visto en el grupo" con error y con conexión caída.
-  - `mensajes.html`, `_activarAccionesContenido()`, listener de `btnVerPdf`: "Ver original" siempre (con éxito y con error), porque el botón se deshabilita mientras carga el Doc.
-  - `guerra.html`, `cargar()`: "Actualizar" (`refreshBtn`), y también en la recarga automática de cada 60 s si el botón tenía el foco.
-- **Cambio:** cada handler recuerda `teniaFoco` antes de deshabilitar y, al reactivar, devuelve el foco solo si cayó en `<body>` (si la persona ya movió el foco a otro control, no se lo quita). Se usa `focus({preventScroll:true})` en los cuatro para que una recarga automática o un resultado tardío no haga saltar la página. En `perfil.html` y en `admin.html` se agregó un helper local (`rehabilitarConfirmar`, `restaurarBoton`) porque hay dos ramas de error.
-- **Verificado (antes → después):** `perfil.html` error y conexión: `BODY` → `btnVjConfirmar`; `admin.html` error y conexión: `BODY` → "Marcar visto en el grupo"; `mensajes.html` (éxito, error, conexión): `BODY` → "📄 Ocultar original"; `guerra.html` (respuesta ok y conexión caída, con y sin sesión): `BODY` → `refreshBtn`. Con el foco en otro control la recarga automática no lo mueve; con el foco en el botón y la página desplazada, `scrollY` no cambia (probado en una página corta; no es una prueba concluyente del salto de scroll en una página larga).
-- **`sw.js`:** `CACHE_NAME` sube a `terna-static-v13` (`guerra.html` está en `CORE_ASSETS`).
-- **Limitación de la medición:** `perfil.html` se midió llamando a `mostrarFormVetar()` sobre la página con un perfil simulado, no con un `webPerfil` real completo; `admin.html` y `mensajes.html` con respuestas simuladas mínimas.
-
-### 04-oct-2026 — `admin.html`, `#panelCambioRangoAccion`: nombres accesibles y foco al quitar una temporada
-- **Defectos (medidos antes de corregir):** de 45 controles enfocables del panel en modo Registrar, **25 no tenían nombre accesible**: los 24 campos de la grilla de requisitos de Ascenso y Descenso (solo tenían `placeholder="0"`, así que un lector de pantalla los anunciaría como "0, editar texto") y el selector de temporada de cada bloque de semanas. Además, al pulsar "✕ Quitar" se destruía el botón enfocado y el foco caía a `<body>`, y con varios bloques todos los botones se llamaban igual.
-- **Cambio:** `pintarGridCR()` agrega `aria-label` a cada campo con el formato "Ascenso, <clan>, <rol>, Trofeos|Ataques" (e igual para Descenso); el selector de temporada lleva `aria-label="Temporada a evaluar"`; en `agregarBloqueTemporadaCR()` el botón Quitar lleva "Quitar la temporada N" (en `aria-label` y `title`, actualizado si se cambia la temporada del bloque) y, tras quitar el bloque, el foco pasa a "+ Añadir temporada".
-- **Verificado (antes → después):** controles sin nombre accesible 25 → 0; foco tras Quitar `BODY` → "+ Añadir temporada"; ejemplos de nombre: "Ascenso, Grupo乂Terna™, Miembro, Trofeos" y "Descenso, Mini乂Ternas™, Colíder, Ataques". Sin errores de JS.
-- **Limitación de la medición:** el backend simulado devolvió una sola temporada, por lo que los dos bloques de la prueba se llamaron igual ("130"); la lógica de actualizar el nombre al cambiar de temporada se probó solo en el sentido de que no da error.
-
-### 04-oct-2026 — `admin.html`, "Ingresar link" de Modificar torneo con teclado: medido, sin defectos propios
-- Flujo completo con teclado (Torneo → Modificar → Principal → "Ingresar link"): 30 paradas de Tab hasta "Guardar cambios", sin trampas de foco y todas con nombre accesible. Único repetido: los 3 enlaces "Quitar" del editor de premios comparten exactamente el mismo nombre (ver P-7); el selector que sigue a cada uno sí se distingue ("Tipo del premio 1/2/3"). Los nombres se midieron truncados a 36 caracteres, así que no se comparó si las dos casillas "Usar el mismo valor para los 4 clanes" (trofeos y ataques) tienen nombre idéntico.
-- Envío con Enter en 5 escenarios (sin link, `corregido:true`, `corregido:false`, error del servidor, conexión caída): el mensaje correcto aparece en `#modificarTorneoMsg` (región `aria-live="polite"`) en cada uno, la máscara de fecha y hora funciona al teclear, el foco se queda en "Guardar cambios" y no hay errores de JS.
-
-### 04-oct-2026 — Observaciones nuevas, sin cambiar (detalle en `Plan_Fases.md`, tanda 6)
-- **P-4:** tras un veto exitoso (`perfil.html`) y tras un "Marcar visto" exitoso (`admin.html`) el foco sigue cayendo a `<body>`; en el segundo caso `cargarGanadoresTorneo()` repinta la lista y el botón deja de existir. Falta decidir a dónde debe ir el foco.
-- **P-5 (por lectura, no medido):** `btnModificarTorneo` no se deshabilita durante la petición; dos Enter seguidos podrían enviar dos veces.
-- **P-6:** `admin.html` usa la clase `msg-success` en 4 mensajes (por ejemplo "Corrida guardada") y no existe en `assets/styles.css` (solo `msg-ok`).
-- **P-7:** el editor de premios tiene varios enlaces "Quitar" con el mismo nombre accesible; no se midió si quitar una fila pierde el foco.
-- **No verificado:** lector de pantalla real; Firefox y Safari; nada contra el backend real.
-- **Verificado en el repo:** `node --test` 165/165 (hubo que instalar `jsdom` con `npm install`; sin `node_modules` las 11 suites fallan por eso), `eslint assets`, `html-validate *.html` y `check-local-links` (144 rutas) sin observaciones; `node --check sw.js` OK.
-- **Subir:** `perfil.html`, `admin.html`, `mensajes.html`, `guerra.html`, `sw.js` y `CHANGELOG.md` al repositorio.
+- **`admin.html` · Doble envío en Registrar, Modificar y Planificar torneo (P-5).** `conBotonOcupado(btn, fn)` (nueva, junto a `enfocarPrimerControl()`); los tres listeners pasan a `addEventListener('click', () => conBotonOcupado(btn, async () => {...}))`. `sw.js` no cambia. → §PF018
+- **`admin.html` · `msg-success` pasa a `msg-ok` (P-6).** Los 4 mensajes de éxito («Corrida guardada…», propuestas agregadas como Planificado, «Guardado.» y «Limpiado…» de la hoja de ganadores); `assets/styles.css` no cambia. → §PF018
+- **`admin.html` · Editor de premios, «Quitar» (P-7).** `crearFilaPremioHTML()` (`role="button"`), `renumerarPremios()` (`aria-label="Quitar premio N"`) y `agregarFilaPremio()` (Espacio y foco tras quitar). → §PF018
+- **`admin.html` · `#panelCambioRangoAccion`: nombres accesibles y foco al quitar una temporada.** `pintarGridCR()` (`aria-label` en los 24 campos de la grilla) y `agregarBloqueTemporadaCR()` («Temporada a evaluar», «Quitar la temporada N» y foco a «+ Añadir temporada»). → §PF018
+- **`sw.js` v13 · `perfil.html`, `admin.html`, `mensajes.html`, `guerra.html`: el foco ya no cae a `<body>` al rehabilitar un botón.** `perfil.html`, `enviarVeto()` (`rehabilitarConfirmar`); `admin.html`, listener de `#ganadoresLista`, rama `.btnMarcarGrupoManual` (`restaurarBoton`); `mensajes.html`, `_activarAccionesContenido()`, `btnVerPdf`; `guerra.html`, `cargar()`, `refreshBtn`. → §PF018
+- **Medido, sin cambios de código (P-8).** `admin.html`: «Ingresar link» de Modificar torneo con teclado; Cambio de Rango en los modos «Editar corrida existente», «Ver propuestas» y «Precargar última corrida». → §PF018
 
 ## Teclado: menú móvil, `permisos.html`, `mensajes.html`, foco tras Guardar y tras un login fallido (octava sesión, tanda 5, 03-oct-2026)
 
