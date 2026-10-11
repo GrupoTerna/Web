@@ -4,7 +4,7 @@ Lista corta de lo que se hizo, de más reciente a más antiguo. Cada entrada tra
 
 **Cómo funciona el código hoy, por qué se decidió así, qué se probó y se descartó: no va aquí, va en `Contexto_Base_Web.md`.** Las reglas de redacción están en `Consolidados de cambios/Reglas_Consolidados.md` (repo `Backend`), sección 5. Los pendientes tampoco viven en cada entrada: están en «Abiertos». El detalle largo anterior sigue en el historial de git.
 
-*Traslado en curso (desde el 11-oct-2026):* las entradas desde el 04-oct-2026 ya están en formato corto y su contenido pasó a `§PF025` (8 y 9-oct), `§PF027` (5 a 7-oct) y `§PF018` (octava sesión, 2 al 5-oct). Las anteriores (tandas 4 a 2 del 03 y 02-oct, y antes) conservan su texto largo hasta que se trasladen, por tandas.
+*Traslado en curso (desde el 11-oct-2026):* las entradas desde el 04-oct-2026 ya están en formato corto y su contenido pasó a `§PF025` (8 y 9-oct), `§PF027` (5 a 7-oct) y `§PF018` (octava sesión, 2 al 5-oct). Las tandas 4 a 2 del 03 y 02-oct también pasaron a `§PF018`. Las anteriores (desde «admin.html — Fase 11 verificada…» del 02-oct, y antes) conservan su texto largo hasta que se trasladen, por tandas.
 
 ---
 
@@ -19,6 +19,7 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 - **Por verificar al desplegar el backend (requiere subir `Base.md`):** (a) el tiempo de `?dashboard=json` en día de guerra con `metaCruzada` (estuvo desactivada desde el 19-sep por tardar 28 a 39 s; si vuelve a ser lenta, revisar `_getMapaCruceMetaGuerraLogs_()`); (b) que viernes y sábado no salgan como opcionales por error y que `_diasOpcionalesClanSemana_()` recorra viernes a domingo (07-oct-2026). → §PF027
 - **Por verificar con `Base.md`:** comentario de `alMax` en `pintarColeccion()` (`perfil.html`): falta documentar en el backend el comportamiento del nivel máximo; y que `ext.batallas` sea siempre victorias más derrotas. → §PF027
 - **Sin probar:** que `sw.js` v14 a v16 llegue a un visitante con la versión anterior (ciclo `install`/`activate`), y los cambios del 5 al 7-oct de `perfil.html`, `guerra.html` y Noticias en navegador con backend real. → §PF027
+- **Sin probar contra el backend real ni en Apps Script real:** `sesionVencida` (que un token vencido o cerrado desde otro dispositivo traiga la marca, y que con sesión válida o como visitante no aparezca el aviso; `38_Web_Endpoints.gs`) y `corregido` de «Ingresar link» (`26_Torneos_Core.gs`, `37_Web_API.gs`, `44_BotWhatsApp.gs`); además, lector de pantalla real, Firefox y Safari en esas pantallas. (02 y 03-oct-2026) → §PF018
 
 ---
 
@@ -92,83 +93,13 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 - **`sw.js` v12 · `assets/styles.css`: el menú móvil cerrado sale del orden de Tab.** `@media (max-width:768px)`: `.nav .links` y `.nav .links.open` (`visibility` con retraso de 0,3 s). Afecta a las 12 páginas con menú. → §PF018
 - **`permisos.html` y `admin.html`: el foco ya no se pierde tras «Guardar» ni tras un login fallido.** `permisos.html`, handler de `[data-accion="guardar"]` en `activarCardAdmin()`; `admin.html`, listener de `btnLogin` (`teniaFoco`). → §PF018
 - **Medido, sin cambios de código.** `permisos.html` y `mensajes.html` con teclado; contraste del indicador de foco (4,43:1). → §PF018
+- **`sw.js` v11 · `assets/js/core/api.js` · Aviso cuando la sesión de admin venció (A4/A6).** `apiGet()` (`tokenEnviado`), `_manejarSesionVencida()` y `_mostrarAvisoSesionVencida()` (nuevas). Backend: `08_Web_Endpoints.gs`, `_webMarcarSesionVencida()` (nueva) y `doGet()` (10 endpoints con `sessionToken`). Pruebas: 6 nuevas en `test/api.test.js`. → §PF018
+- **`admin.html` · El foco pasa al primer control del paso nuevo en los tres asistentes.** `enfocarPrimerControl()` (nueva), `initTorneoWizard()`, `btnSorteoPaso1`, `btnSorteoPaso2`, `btnCrPaso1`, `btnCrContinuarAscenso` y los enlaces «‹ Cambiar» y «‹ Volver…». Corrige lo dicho en la tanda 3 sobre la causa del defecto. → §PF018
+- **`admin.html` · Cuatro correcciones de accesibilidad con sesión.** `crearFilaPremioHTML()` y `renumerarPremios()` (`aria-label` en los campos de premio), `aria-pressed` en el selector Torneos/Sorteos/Cambio de rango, `aria-live="polite"` en los 24 `#…Msg`, y `mostrarPanel()`/`mostrarLogin()` (destino de «Saltar al contenido»). → §PF018
 
-## Sesión de admin vencida (A4/A6) y foco al cambiar de paso (octava sesión, tanda 4, 03-oct-2026)
+## 02-oct-2026
 
-### 03-oct-2026 — `08_Web_Endpoints.gs`, `assets/js/core/api.js`, `sw.js`: aviso explícito cuando la sesión de admin venció (opción 2)
-**Decisión del usuario:** opción 2 (aviso explícito). Las opciones 1 (dejarlo, A4 lo documenta) y 3 (reloj de 6 h solo en el frontend, que no detecta un cierre de sesión desde otro dispositivo) quedan descartadas.
-- **Backend (`08_Web_Endpoints.gs`, se entrega completo; sin cambios en ningún otro `.gs`):**
-  - Función nueva `_webMarcarSesionVencida(resultado, sessionToken, esAdminValido)`: si llegó un `sessionToken` no vacío que no es válido, devuelve una copia superficial de la respuesta con `sesionVencida:true`. Sin token, con token válido, con respuesta de error o con una respuesta que no es un objeto, devuelve la respuesta tal cual. Si algo falla por dentro, registra en el log y devuelve la respuesta original.
-  - `doGet()`: los 10 endpoints que aceptan `sessionToken` opcional envuelven su resultado con esa función: `webGuerraEnVivo`, `webPerfil`, `webTorneos`, `webHistorialTorneos`, `webCompararJugadores`, `webHistorialGuerraComparador`, `webIngresosRecientes`, `webTorneosJugador`, `webCofresJugador` y `webBattlelogJugador`. Reutiliza `esAdminValidoGet` (ya calculado en `doGet()` para el rate limit), así que **no agrega lecturas de `CacheService`**.
-  - La marca se agrega en `doGet()`, después de las cachés del backend (por ejemplo la de `webGuerraEnVivo`): nunca queda guardada en ellas. El resto de la respuesta es la de un visitante, igual que antes.
-  - Bloque `AVISOS ABIERTOS` del encabezado de `08_Web_Endpoints.gs`: entrada nueva con la prueba pendiente en Apps Script real.
-- **Frontend (`assets/js/core/api.js`):** `apiGet()` recuerda el token que mandó (`tokenEnviado`). Si la respuesta trae `sesionVencida:true`, llama a `_manejarSesionVencida(tokenEnviado)`: borra `terna_admin_token` y `terna_admin_info`, llama a `actualizarNavCta()` (el botón pasa de "Mi panel" a "Acceder") y muestra el aviso con `_mostrarAvisoSesionVencida()`. Es un solo lugar para las 4 páginas (`perfil`, `directorio`, `torneos`, `guerra`).
-  - **Solo borra si el token guardado sigue siendo el que se mandó.** Si otra pestaña ya inició sesión de nuevo, no toca la sesión nueva ni avisa. Si dos peticiones en vuelo reciben la marca, solo la primera avisa.
-  - **Aviso:** barra fija al pie, `role="alert"`, texto "Tu sesión de administrador venció. Inicia sesión en Admin para volver a ver los datos de admin.", enlace "Ir a Admin" (`admin.html`) y botón "×" (`aria-label="Cerrar aviso"`). No se oculta solo. Usa los colores del sitio (`--bg-2`, `--text`, `--gold`) con respaldo. **El texto es mío (partí del propuesto en el plan): se puede cambiar.**
-  - Los datos de esa misma respuesta son los de un visitante y la página los pinta igual que antes; el aviso no recarga nada.
-  - Un backend viejo que no manda el campo deja todo como estaba; un backend nuevo con un `api.js` viejo solo trae un campo de más. **No importa el orden en que se publiquen.**
-- **`sw.js`:** `CACHE_NAME` sube a `terna-static-v11` (`api.js` está en `CORE_ASSETS`, mismo criterio que la v6).
-- **Pruebas nuevas en `test/api.test.js` (6; el archivo se entrega completo):** borra token e info, refresca el nav y muestra el aviso (con su botón de cerrar); dos respuestas seguidas dan un solo aviso; otra pestaña con sesión nueva no se pisa; sin sesión o sin `conSesion` se ignora; sin el campo no cambia nada; sin `document` (Node puro) no revienta.
-- **Verificado:**
-  - Lectura del código de `doGet()` y del helper; `node --check` OK en el `.gs` (copiado a `.js`).
-  - El helper de `08_Web_Endpoints.gs`, extraído y ejecutado en Node con 10 casos (sin token, token vacío, válido, vencido —con copia, sin tocar el original—, con error, arreglo, `null`, sin booleano vencido y válido, y `_webAuthValidar` que lanza).
-  - `node --test` 165/165 (159 + 6 nuevas), `eslint assets` y `html-validate admin.html` sin observaciones, `check-local-links` OK.
-  - Chromium (Playwright, 412 px, backend simulado) en `perfil.html`, `directorio.html`, `torneos.html` y `guerra.html`: sin la marca, el token se conserva y no hay aviso; con la marca, token e info borrados, nav en "Acceder", un solo aviso con `role="alert"`, y los mismos errores de JS que sin la marca (cero en las 4). Capturada la vista en `guerra.html`.
-- **No verificado:** nada contra el backend real ni en Apps Script real (que un token vencido o cerrado desde otro dispositivo traiga `sesionVencida:true`, y que con sesión válida y como visitante no aparezca); **no se leyó `34_Web_API.gs`**, así que `_webOpcionesCofresBattlelog()` (la usan `webCofresJugador` y `webBattlelogJugador`) y `_webAuthValidar()` se dan por sabidos solo por cómo los usa `doGet()`; lector de pantalla real (el aviso con `role="alert"` no se escuchó); otros navegadores; el aviso en un perfil, torneo o clan con datos reales.
-- **Límite conocido (decisión ya aceptada con la opción 2):** el aviso salta cuando el admin entra a una de esas 4 páginas y se hace una de esas peticiones, no en el momento exacto en que vence. En `directorio.html` la vista de inactivos (`inactivos.js`) y en `perfil.html` las acciones solo-admin (`apiGetAuth`/`apiPost`) ya muestran su propio mensaje de sesión inválida; no se tocaron.
-- **Subir:** `08_Web_Endpoints.gs` a Apps Script (y publicar una versión nueva del Web App); `api.js`, `sw.js` y `test/api.test.js` al repositorio.
-
-### 03-oct-2026 — `admin.html`: el foco pasa al primer campo del paso nuevo en los tres asistentes
-**Decisión del usuario:** hacerlo (lo que quedaba como "Decisión pendiente" de la tanda 3). Cambio solo de comportamiento del foco, sin cambio de estilos ni de flujo.
-- **Función nueva `enfocarPrimerControl(contenedor)`:** mueve el foco al primer `input`, `select` o `textarea` visible del contenedor y, si no hay, al primer botón o enlace visible. Ignora lo deshabilitado, oculto, con `tabindex="-1"` o `aria-hidden` (por ejemplo el `<input type="date">` auxiliar de las fechas).
-- **Dónde se llama (`admin.html`):**
-  - `initTorneoWizard()`: "Continuar" del paso 1 va a `#torneoTipo`; el del paso 2 va al primer campo del paso 3 de la rama elegida (Registrar: `#tLink`; Modificar: `#tSelectHoy`; Planificar: `#tFechaPlanTexto`).
-  - Listeners de `btnSorteoPaso1` y `btnSorteoPaso2`: igual, a `#sorteoTipo` y al primer campo del paso 3 (Registrar: `#sFechaTexto`).
-  - `btnCrPaso1`: al primer campo de `#crPaso2` (Editar o Ver: `#crSelectPar`; Registrar: `#crFechaTexto`, después de `limpiarFormularioCR()`).
-  - `btnCrContinuarAscenso`: al primer campo de Requisitos de Descenso (la grilla pasa a ser el destino; si no hubiera grilla, el enlace "‹ Volver…").
-  - **Se incluyeron también los enlaces de retorno** (`‹ Cambiar` de los 3 asistentes y `‹ Volver a Requisitos de Ascenso`), que no estaban en el pedido pero tienen el mismo defecto (el foco se queda en un enlace que se acaba de ocultar). Vuelven al selector del paso anterior (`#torneoAccion`, `#torneoTipo`, `#sorteoAccion`, `#sorteoTipo`, `#crAccion`) o al primer campo de Ascenso. Si no se quieren, se retiran esas líneas sin afectar lo demás.
-  - "Continuar" sin haber elegido una opción **no mueve el foco** (se queda en el botón, como antes).
-- **Corrección a lo dicho en la tanda 3 (regla 9):** la nota decía que en un asistente "el foco queda en un botón que se oculta". Medido en Chromium **antes** del cambio, solo ocurre en **Cambio de rango**, donde "Continuar" oculta el paso 1 y el foco cae al `body` (en Continuar del paso 1, Continuar de Ascenso y "‹ Volver…"). En **Torneos y Sorteos** "Continuar" no se oculta (ni `#…Paso1` ni `#…Paso2` se ocultan una vez revelados): el foco se quedaba en ese botón, **sin moverse al paso nuevo**. El defecto para el lector de pantalla era el mismo en los tres, pero la causa no.
-- **Verificado en Chromium (Playwright, 412 px, sesión y backend simulados), antes y después:** 16 comprobaciones del foco en los tres asistentes (Continuar y retornos, las 3 ramas de Torneos, Registrar y Editar de Cambio de rango, y Ascenso → Descenso → Ascenso). Antes: foco en el botón, en el enlace oculto o en el `body`; después: en el control esperado en las 16. Cero errores de JS. `eslint assets`, `html-validate admin.html`, `node --test` 165/165 y `check-local-links` sin observaciones.
-- **No verificado:** lector de pantalla real (que anuncie el paso nuevo al llegar el foco no se pudo escuchar); Firefox y Safari; el foco con el backend real (por ejemplo cuando `#crSelectPar` se llena después de enfocarlo); "Ingresar link" de Modificar con teclado (sigue sin cubrirse).
-- **`sw.js`:** `admin.html` no está en `CORE_ASSETS`; la subida a v11 es por `api.js`.
-- **Subir:** `admin.html` al repositorio.
-
-## admin.html — teclado con sesión y 4 correcciones de accesibilidad (octava sesión, tanda 3, 03-oct-2026)
-
-### 03-oct-2026 — `admin.html`: nombre accesible en premios, `aria-pressed` en Torneos/Sorteos/Cambio de rango, `aria-live` en los mensajes y "Saltar al contenido" con sesión
-Auditoría con teclado de `admin.html` **con sesión simulada** (la que quedaba abierta desde la Fase 11). Cuatro defectos reales, corregidos con cambios mínimos (solo atributos y 3 líneas de JS; sin cambio de estilos ni de flujo):
-- **Premios sin nombre accesible:** `crearFilaPremioHTML()` genera un `<label>` sin `for` ni `id`, así que el select "Tipo de premio" (y los campos de monto y descripción) no tenían nombre accesible en Planificar y Modificar, de torneos y de sorteos. Ahora llevan `aria-label` y `renumerarPremios()` lo actualiza con el número de fila ("Tipo del premio 2", "Monto del premio 2, en soles", "Descripción del premio 2").
-- **Selector Torneos / Sorteos / Cambio de rango:** cambiaba de panel solo con la clase CSS `activo`, sin estado ARIA. Ahora los tres botones llevan `aria-pressed` (`true` en el activo) y el listener lo actualiza.
-- **Mensajes de éxito y error sin anunciar:** los 24 contenedores `#…Msg` no tenían `aria-live`. Se agrega `aria-live="polite"` a todos al cargar (ya existen vacíos en el HTML).
-- **"Saltar al contenido" con sesión:** apuntaba siempre a `#loginSec`, que está oculto con sesión (el enlace no llevaba a ningún lado). `mostrarPanel()` lo apunta a `#panelSec` y `mostrarLogin()` lo devuelve a `#loginSec`.
-- **Lo que ya estaba bien (medido, sin cambios):** 42 controles tabulables en el panel y 26 a 37 en el paso 3 de cada asistente, todos alcanzables con Tab en un ciclo y sin trampas de foco; indicador de foco distinto al desenfocado en el 100 %; las 6 secciones plegables abren con Enter y con Espacio; Enter en el botón final con el formulario vacío muestra el aviso y el foco se queda en el botón.
-- **Verificado en navegador (Chromium con Playwright, 412 px de ancho, backend simulado):** antes de corregir, 3 selects sin nombre por asistente, 0 `aria-live` y skip-link roto; después, 0 selects sin nombre, 24 contenedores con `aria-live`, skip-link a `#panelSec` con sesión y a `#loginSec` al volver al login, `aria-pressed` alterna bien con Espacio, y las etiquetas de premios se renumeran al agregar y quitar filas. Regresión: los 6 casos de `corregido`, `node --test` 159/159, `eslint assets`, `html-validate admin.html` y `check-local-links` sin observaciones.
-- **No cubierto:** lector de pantalla real (no se puede aquí; `aria-live` y `aria-pressed` están puestos pero no se escucharon); contraste del indicador de foco (solo se midió que exista y cambie); el contenido de `#panelCambioRangoAccion` (solo se probó el botón que lo abre); la opción "Ingresar link" de Modificar con teclado; Firefox y Safari; `permisos.html` y `mensajes.html`.
-- **Observación sin cambiar (decisión tuya):** al pulsar "Continuar" en un asistente el foco no se mueve al paso nuevo; con Tab se llega bien al siguiente control ("‹ Cambiar"), pero un lector de pantalla no anuncia el cambio de paso. **(RESUELTO el 03-oct-2026, tanda 4: ver la entrada de arriba; además, la causa no era la misma en los tres asistentes).**
-- **`sw.js`:** sin cambio; `admin.html` no está en `CORE_ASSETS`.
-
-## admin.html — mensaje de éxito de "Ingresar link" (octava sesión, tanda 2, 02-oct-2026)
-
-### 02-oct-2026 — `admin.html`: "Link corregido (ID …)" cuando el backend avisa que fue una corrección (`corregido`)
-Cierra el pendiente "mensaje de éxito de Ingresar link" de la entrada de abajo. **Decisión del usuario:** que el backend devuelva el indicador.
-- **Backend (se entregan `24_Torneos_Core.gs` y `34_Web_API.gs`; el frontend solo lee el campo):** `_registrarTorneoDesdeBot()` devuelve
-  `{ok:true, id, corregido:true}` cuando la fecha/hora calzó con una fila que ya tenía Link_app y se corrigió esa fila
-  (rama de `_corregirLinkTorneoYaRegistrado()`), y `{ok:true, id, corregido:false}` cuando se creó una fila nueva o se completó una
-  fila "Planificado" con su primer link. `_webAdminTorneoModificar()` (modo link con `id` real) devuelve `corregido:true` al corregir
-  esa fila. El modo normal de Modificar (sin link) no cambia. `08_Web_Endpoints.gs` no necesitó cambios: ya serializa el resultado completo.
-- **Frontend (`admin.html`, dos listeners):** `btnRegistrarTorneo` y `btnModificarTorneo` (rama `esOpcionLink`) muestran
-  "Link corregido (ID …)." si `data.corregido === true` y "Torneo registrado (ID …)." en cualquier otro caso. Con un backend viejo
-  que no manda el campo, el mensaje queda igual que antes. "Torneo actualizado." (Modificar sin link) no cambia.
-- **También afecta a Registrar**, no solo a "Ingresar link": `_registrarTorneoDesdeBot()` redirige a la corrección cuando ya existe
-  una fila con la misma fecha y hora, así que el botón "Registrar torneo" también podía decir "registrado" tras una corrección.
-- **Verificado en navegador (Chromium con Playwright, backend simulado, no real):** 6 casos, Registrar y Modificar con "Ingresar link"
-  × `corregido:true` / `false` / ausente. Los textos coinciden con lo esperado, el payload enviado no cambia (`link`, `fecha`
-  `dd/mm/aaaa`, `hora` `HH:mm:ss`, `id:"__link__"`) y no hay errores de JS. Suite del repo: `node --test` 159 de 159, `eslint assets` y
-  `html-validate admin.html` sin observaciones. `node --check` OK en los dos `.gs`.
-- **`sw.js`:** sin cambio; `admin.html` no está en `CORE_ASSETS`.
-- **Sin probar:** nada contra el backend real; los cambios de los dos `.gs` no se ejecutaron en Apps Script real (igual que la Fase 12).
-- **Bot de WhatsApp (RESUELTO el mismo día):** `29_BotWhatsApp.gs` (`TORNEOS_LINK_HORA`) ahora dice "Link corregido en el torneo con ID …" cuando `corregido` es `true`; sin el campo o en un registro nuevo sigue "Torneo registrado con ID …". Es backend; se anota acá por cercanía con el cambio de `admin.html`.
+- **`admin.html` · «Link corregido (ID …)» cuando el backend avisa `corregido`.** Listeners `btnRegistrarTorneo` y `btnModificarTorneo` (rama `esOpcionLink`). Backend: `24_Torneos_Core.gs`, `_registrarTorneoDesdeBot()`; `34_Web_API.gs`, `_webAdminTorneoModificar()`; `29_BotWhatsApp.gs`, `TORNEOS_LINK_HORA`. → §PF018
 
 ## admin.html — Fase 11 verificada en navegador y nota de "Ingresar link" (octava sesión, 02-oct-2026)
 
