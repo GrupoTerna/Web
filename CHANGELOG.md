@@ -4,7 +4,7 @@ Lista corta de lo que se hizo, de más reciente a más antiguo. Cada entrada tra
 
 **Cómo funciona el código hoy, por qué se decidió así, qué se probó y se descartó: no va aquí, va en `Contexto_Base_Web.md`.** Las reglas de redacción están en `Consolidados de cambios/Reglas_Consolidados.md` (repo `Backend`), sección 5. Los pendientes tampoco viven en cada entrada: están en «Abiertos». El detalle largo anterior sigue en el historial de git.
 
-*Traslado en curso (desde el 11-oct-2026):* las entradas desde el 04-oct-2026 ya están en formato corto y su contenido pasó a `§PF025` (8 y 9-oct), `§PF027` (5 a 7-oct) y `§PF018` (octava sesión, 2 al 5-oct). Las tandas 4 a 2 del 03 y 02-oct, la Fase 11 y el TBT de `guerra` (02-oct) también pasaron a `§PF018`, y la séptima y la sexta sesión (30 y 29-sep) y las tandas D, C, B y A de la Fase 5b (28-sep) a `§PF017`. Las anteriores (desde «Fase 11 del plan T_Lista» del 26-sep, y antes) conservan su texto largo hasta que se trasladen, por tandas.
+*Traslado en curso (desde el 11-oct-2026):* las entradas desde el 04-oct-2026 ya están en formato corto y su contenido pasó a `§PF025` (8 y 9-oct), `§PF027` (5 a 7-oct) y `§PF018` (octava sesión, 2 al 5-oct). Las tandas 4 a 2 del 03 y 02-oct, la Fase 11 y el TBT de `guerra` (02-oct) también pasaron a `§PF018`, y la séptima y la sexta sesión (30 y 29-sep) las tandas D, C, B y A de la Fase 5b (28-sep), la Fase 11 del plan T_Lista (26-sep) y los comentarios desactualizados (21-sep) a `§PF017`. Las anteriores (desde «CI y herramientas», y antes; hoy están ordenadas por tema y archivo, no por fecha) conservan su texto largo hasta que se trasladen, por tandas.
 
 ---
 
@@ -126,107 +126,13 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 - **`sw.js` v6 · `api.js` · El estado «Inactivo» de un Tag solo lo ve un admin (tanda A).** `apiGet()`: opción `opts.conSesion` (sin caché ni `staleIfError`). `perfil.html`: `webPerfil` con `conSesion:true`. `directorio.html`: `webCompararJugadores` con `conSesion:true`. Backend: `34_Web_API.gs`, `_webPerfilJugador()`. → §PF017
 - **`guerra.html` · `nomMulti` y `prestamo` de los pendientes solo los ve un admin (tanda C).** `apiGet('webGuerraEnVivo')` con `conSesion:true`; sin `nombre`, el visitante ve el Tag. Backend: `34_Web_API.gs`, `_webGuerraEnVivo()` (recorta después de leer la caché); `08_Web_Endpoints.gs`, `doGet`. Anotado en la tanda D; el código ya estaba desde la tanda C. → §PF017
 
----
+## 26-sep-2026
 
----
+- **`admin.html` · «Modificar torneo» refleja el bloqueo del Organizador cuando viene de la API (Fase 11 del plan T_Lista).** `cargarTorneosHoy()`: cada `<option>` de `#tSelectHoy` trae `data-organizador-fuente`. `aplicarBloqueoOrganizadorMod()` (nueva): oculta `#tAutorEditableModWrap` y muestra `#tAutorSoloLecturaMod`; se llama desde el listener `change` de `#tSelectHoy` y se reinicia tras un envío exitoso de «Modificar torneo». Texto de ayuda en `#tAutorSelect` y `#tAutorSelectPlan`; nota en la opción «Ingresar link» de `#tSelectHoy` (reescrita el 2-oct). Solo UI: el servidor ya validaba (`37_Web_API.gs`, `_webAdminTorneoModificar()`). → §PF017
 
-## admin.html — Fase 11 del plan T_Lista (26-sep-2026)
+## 21-sep-2026
 
-### 26-sep-2026 — Modificar torneo: refleja el bloqueo del Organizador cuando viene de la API
-Fase 11 del plan "PLAN EN CURSO — Rediseño T_Lista" documentado en
-`24_Torneos_Core.gs` (`Base.md`). Las Fases 9 y 10 (columna
-`Organizador_Fuente` en T_Lista y el bloqueo real del lado del servidor en
-`_webAdminTorneoModificar()`, `34_Web_API.gs`) ya estaban implementadas;
-esta fase es solo frontend, para que el panel deje de mostrar un campo
-editable que el backend igual iba a rechazar:
-
-- **`cargarTorneosHoy()`:** cada `<option>` de `#tSelectHoy` ahora también
-  trae `data-organizador-fuente` (`'API'|'Manual'|''`), tomado de
-  `organizadorFuente` que ya devuelve `_listarTorneosDeHoy()`
-  (`24_Torneos_Core.gs`) y que el frontend todavía no leía.
-- **Nueva función `aplicarBloqueoOrganizadorMod(organizadorFuente,
-  nombreActual)`:** si el torneo elegido en "Modificar" tiene
-  `organizadorFuente==='API'`, oculta el bloque editable
-  (`#tAutorEditableModWrap`, que envuelve `#tAutorSelectMod` +
-  `#tAutorManualMod`) y muestra en su lugar `#tAutorSoloLecturaMod` con el
-  texto "Organizador: {nombre} — detectado automáticamente, no editable."
-  En cualquier otro caso (`'Manual'`, `''`, o ningún torneo elegido todavía)
-  se muestra el bloque editable de siempre. Se llama desde el listener de
-  `'change'` de `#tSelectHoy`, y se resetea a editable tras un envío
-  exitoso de "Modificar torneo" (mismo punto donde ya se resetean
-  autor/premios/semanas).
-- Esto es solo UI: aunque este bloque quedara desactualizado o alguien
-  llame al endpoint directo, `_webAdminTorneoModificar()` sigue validando
-  igual del lado del servidor (Fase 10, ya implementada).
-- **Registrar (`#tAutorSelect`) y Planificar (`#tAutorSelectPlan`):** sin
-  cambios de comportamiento — se les agregó solo un texto de ayuda ("Solo
-  se usa si el torneo no trae organizador en su propio registro de
-  RoyaleAPI.") para que quede claro que es un fallback, ya que estos dos
-  flujos no tienen `Organizador_Fuente` que consultar todavía (el torneo
-  recién se está registrando/planificando).
-- **`#tSelectHoy`, opción "Ingresar link":** se agregó una nota aclarando
-  que también sirve para corregir el link de un torneo ya registrado
-  (incluyendo cuando el organizador quedó mal detectado), pero que esa
-  corrección completa todavía no está disponible — la re-resolución real
-  al corregir un Link_app ya asignado es la Fase 12 del mismo plan
-  (`24_Torneos_Core.gs`), que además documenta un bug latente: hoy
-  "Ingresar link" sobre un torneo que YA tiene Link_app no encuentra fila
-  "Planificado" que calce y termina creando una fila duplicada en vez de
-  corregir la existente. La nota se agregó ahora, en la Fase 11, para no
-  dejar al usuario del panel sin ninguna pista de que esa opción cambiará
-  de alcance pronto.
-- **Verificación:** revisado a mano el árbol de nodos alrededor de las 4
-  zonas editadas (Registrar, Planificar, `#tSelectHoy`, y el
-  `#tAutorEditableModWrap`/`#tAutorSoloLecturaMod` de Modificar) y
-  extraído + validado con `node --check` el bloque `<script>` completo del
-  archivo: sin errores de sintaxis. **No se probó en navegador real** (no
-  hay acceso a Apps Script/Sheets reales desde esta sesión) — falta que el
-  usuario confirme visualmente que, al elegir en "Modificar" un torneo con
-  `Organizador_Fuente='API'`, el bloque de solo lectura aparece con el
-  nombre correcto y el editable queda oculto, y que con `'Manual'`/vacío
-  el comportamiento de siempre no cambió.
-
----
-
-## Comentarios desactualizados (limpieza, 21-sep-2026)
-
-### 21-sep-2026 — Tres "pendiente de conectar" que ya estaban conectados
-Al revisar Web-main y `Base.md` en busca de trabajo pendiente real (a raíz
-del cierre del "PENDIENTE DE BACKEND" de `perfil.html`, ver esa sección más
-abajo), aparecieron 3 comentarios que documentaban una conexión backend
-como pendiente cuando el backend ya la había resuelto en una sesión
-posterior — el mismo patrón que perfil.html, solo que sin nadie que los
-corrigiera todavía. Ningún código cambió en ninguno de los tres; solo el
-comentario:
-
-- **`admin.html`, `cargarCuentasDelAutor()`:** decía "Ver el bloque de
-  comentarios grande de arriba para el endpoint pendiente — mientras no
-  exista, deja un aviso en vez de inventar datos". El propio bloque grande
-  que menciona ya decía "YA RESUELTO (12-sep-2026)", y el cuerpo de la
-  función de abajo ya llamaba a `apiGetAuth('webAdminCuentasDeNomMulti', ...)`
-  sin ninguna rama de "si no existe" — el comentario había quedado un paso
-  atrás del propio código que describe.
-- **`admin.html`, subsección "Registrar miembro nuevo" (modo "Buscar en
-  Directorio"):** decía que la acción `webAdminListaMiembrosClan` estaba
-  "pendiente de conectar en el backend". Se conectó el 18-sep-2026 (ver
-  `_webAdminListaMiembrosClan()`, `34_Web_API.gs`) y `admin.html` ya la
-  llama unas líneas más abajo del propio comentario.
-- **`assets/js/data/clan-badges.js`:** decía que el backend "debe reenviar
-  `badgeId` tal cual lo entrega Supercell" en `webClanInfo`, como si
-  siguiera pendiente. `_webClanInfo()` (`34_Web_API.gs`) ya lo hace desde el
-  16-sep-2026 (`c.badgeId`, consumido por `clan-card.js` en las 4 tarjetas
-  de clan). Lo único que de verdad seguía sin pedirse era el badge por
-  miembro del roster/ingresos — eso se deja anotado como posibilidad futura,
-  ya no como pendiente de backend.
-
-También se corrigió el mismo tipo de comentario en `Base.md`
-(`13_Directorio_Inactivos_Vetados.gs`, `_obtenerCuentasDeNomMulti()`): decía
-"todavía NO está conectado a ningún endpoint", pero `_webAdminCuentasDeNomMulti()`
-(`34_Web_API.gs`) lo envuelve desde el 12-sep-2026 — ese archivo no tiene
-changelog propio, así que el detalle queda solo en su propio docblock.
-
-Se comprobó que el AST del JavaScript de los tres archivos (`admin.html`,
-`clan-badges.js`) y la sintaxis del `.gs` son idénticos antes y después.
+- **Comentarios desactualizados: tres «pendiente de conectar» que ya estaban conectados.** Solo comentarios, sin cambio de código. `admin.html`: `cargarCuentasDelAutor()` y la subsección «Registrar miembro nuevo» (modo «Buscar en Directorio»). `assets/js/data/clan-badges.js`: comentario sobre `badgeId` de `webClanInfo`. Backend: `13_Directorio_Inactivos_Vetados.gs`, `_obtenerCuentasDeNomMulti()` (docblock). → §PF017
 
 ---
 
