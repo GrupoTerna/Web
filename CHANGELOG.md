@@ -4,7 +4,7 @@ Lista corta de lo que se hizo, de más reciente a más antiguo. Cada entrada tra
 
 **Cómo funciona el código hoy, por qué se decidió así, qué se probó y se descartó: no va aquí, va en `Contexto_Base_Web.md`.** Las reglas de redacción están en `Consolidados de cambios/Reglas_Consolidados.md` (repo `Backend`), sección 5. Los pendientes tampoco viven en cada entrada: están en «Abiertos». El detalle largo anterior sigue en el historial de git.
 
-*Traslado en curso (desde el 11-oct-2026):* las entradas desde el 04-oct-2026 ya están en formato corto y su contenido pasó a `§PF025` (8 y 9-oct), `§PF027` (5 a 7-oct) y `§PF018` (octava sesión, 2 al 5-oct). Las tandas 4 a 2 del 03 y 02-oct, la Fase 11 y el TBT de `guerra` (02-oct) también pasaron a `§PF018`, y la séptima y la sexta sesión (30 y 29-sep), las tandas D, C, B y A de la Fase 5b (28-sep), la Fase 11 del plan T_Lista (26-sep) y los comentarios desactualizados (21-sep) a `§PF017`. Del 20-sep pasaron a `§PF016` «Rendimiento (Lighthouse)», «CSS compartido», `permisos`, `mensajes` y `comunidad`. Con esta tanda quedó trasladado todo el 20-sep (`admin`, `perfil`, `directorio`, `index` y `guerra`) a `§PF016`. Lo anterior (del 19-sep hacia atrás, hoy ordenado por tema y archivo, no por fecha) conserva su texto largo hasta que se traslade, por tandas y de la fecha más reciente a la más antigua.
+*Traslado en curso (desde el 11-oct-2026):* las entradas desde el 04-oct-2026 ya están en formato corto y su contenido pasó a `§PF025` (8 y 9-oct), `§PF027` (5 a 7-oct) y `§PF018` (octava sesión, 2 al 5-oct). Las tandas 4 a 2 del 03 y 02-oct, la Fase 11 y el TBT de `guerra` (02-oct) también pasaron a `§PF018`, y la séptima y la sexta sesión (30 y 29-sep), las tandas D, C, B y A de la Fase 5b (28-sep), la Fase 11 del plan T_Lista (26-sep) y los comentarios desactualizados (21-sep) a `§PF017`. Del 20-sep pasaron a `§PF016` «Rendimiento (Lighthouse)», «CSS compartido», `permisos`, `mensajes` y `comunidad`. Con esta tanda quedó trasladado todo el 20-sep (`admin`, `perfil`, `directorio`, `index` y `guerra`) a `§PF016`. Del 19-sep ya pasaron a `§PF016` «CI y herramientas», «Rendimiento (Lighthouse)» y «SEO». El resto del 19-sep (`CSS compartido`, `permisos`, `mensajes` y `guerra`) y todo lo anterior (hoy ordenado por tema y archivo, no por fecha) conservan su texto largo hasta que se trasladen, por tandas y de la fecha más reciente a la más antigua.
 
 ---
 
@@ -165,68 +165,11 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 - **`perfil.html` · Dos `style=""` repetidos pasan a clases locales (D-21 b).** `.pf-subtitulo` (12 `<h2>`) y `.pf-panel-datos` (11 tarjetas); el `display:none` de las tarjetas queda inline. → §PF016
 - **`37_Web_API.gs` (entonces `34_Web_API.gs`) y `perfil.html` · `nombreEs` en cartas e insignias del perfil.** `_webDatosDriveJugador()`: `nombreEs` desde `Backup_Cards.csv` (por ID) y `Backup_Insignias_2.csv` (por Tag y Name) en `currentFavouriteCard`, `cards[]`, `supportCards[]`, `currentDeck[]`, `currentDeckSupportCards[]` y `badges[]`. `perfil.html`: solo comentarios (bloque «PENDIENTE DE BACKEND» y nota del `<head>`). → §PF016
 
----
+## 19-sep-2026
 
-## CI y herramientas (raíz del repo: `.github/`, `package.json`, `.htmlvalidate.js`)
-
-### 19-sep-2026 — B-15 completo: CI en Node 22, Lighthouse semanal, `type="button"` y Dependabot
-El job de CI fallaba en `npm run validate-html` con un error dentro de
-`expandFiles()` de html-validate. Causa: desde html-validate 11.1.0 el CLI
-usa `fs.globSync` nativo de Node (existe desde Node 22) en lugar del paquete
-`glob`, y `ci.yml` corría en Node 20. Se sube a Node 22, `package.json`
-declara `"engines": {"node": ">=22.16"}` y las Actions (`checkout`,
-`setup-node`, `lighthouse-ci-action`) quedan fijadas por commit SHA con
-`permissions: contents: read`. El glob `*.html` no era el problema.
-
-Pendientes que quedaban de B-15, resueltos en la misma tanda:
-- **Lighthouse**: workflow aparte (`lighthouse.yml`, lunes 13:00 UTC y
-  `workflow_dispatch`) sobre `https://grupoterna.github.io/Web/`, no en
-  `ci.yml`, porque necesita el sitio ya publicado. Umbrales en
-  `lighthouserc.json` como `warn` (Rendimiento 0.7; Accesibilidad, Buenas
-  prácticas y SEO 0.9) hasta tener línea base.
-- **34 `<button>` sin `type`**: agregado `type="button"` en las 9 páginas
-  (`admin` 14, `sorteo` 11, `directorio` 3, y 1 en `404`, `comunidad`,
-  `guerra`, `index`, `perfil` y `torneos`). No hay ningún `<form>` en el
-  sitio, así que no cambia el comportamiento. `no-implicit-button-type`
-  salió de `.htmlvalidate.js` y vuelve a error, para que un botón nuevo sin
-  `type` rompa el CI.
-- **Dependabot**: `.github/dependabot.yml`, revisión semanal de `npm` y de
-  `github-actions`, PRs agrupados por menores/parches.
-
----
-
-## Rendimiento (Lighthouse)
-
-### 19-sep-2026 — Peticiones duplicadas en torneos y reserva de alto en guerra
-Primera corrida de `lighthouse.yml` (móvil simulado): `guerra.html` y
-`torneos.html` sacaron 0.66-0.67 en Rendimiento (mínimo 0.7, en `warn`).
-Ver detalle y pendientes en `Plan_Fases.md` › B5.5.
-- **`torneos.html`**: `cargarTorneos()` y `cargarSalonDeLaFama()` se
-  disparaban a la vez y ambas pedían `webTorneos` y `webHistorialTorneos`;
-  como `apiGet` no comparte peticiones en curso, se hacían 4 llamadas y la
-  cola las procesaba de a una (~40 s en el laboratorio en vez de ~20 s).
-  Nuevo `apiGetTorneosCompartido(accion)`: reutiliza la petición en vuelo y
-  la descarta al terminar, así un reintento posterior sí vuelve a pedir.
-  El manejo de errores de cada función quedó igual (`historial` sigue
-  siendo opcional en `cargarTorneos`).
-- **`guerra.html`**: `#status:not(.err){min-height:80vh}`. Mientras llegaba
-  `webGuerraEnVivo` (28-39 s en el laboratorio) el `footer` estaba a la
-  vista junto al "Conectando…" y saltaba al aparecer el contenido
-  (CLS 0.141). El estado de error no reserva alto.
-
----
-
-## SEO (sitemap y datos estructurados)
-
-### 19-sep-2026 — JSON-LD en directorio, guerra y torneos; `lastmod` del sitemap (B-23)
-`index.html` ya tenía JSON-LD de `Organization`. Se agrega a `directorio.html`,
-`guerra.html` y `torneos.html` un bloque `WebPage` con `breadcrumb`
-(`BreadcrumbList`: Inicio › página) e `isPartOf` hacia el `WebSite`, con
-`name`/`url`/`description` iguales al `<title>`, al canonical y a la meta
-description de cada página. No se repite la `Organization` (vive solo en
-`index.html`) y `comunidad.html` se deja fuera a propósito (prioridad baja).
-En `sitemap.xml` el `lastmod` de las 5 URLs pasa a 2026-09-19; hay que
-actualizarlo a mano cuando cambie una página pública.
+- **`.github/workflows/ci.yml`, `lighthouse.yml`, `dependabot.yml`, `lighthouserc.json`, `package.json`, `.htmlvalidate.js` y 9 páginas · B-15 completo.** `ci.yml` pasa a Node 22 (`html-validate` desde 11.1.0 usa `fs.globSync`) y sus Actions quedan fijadas por SHA con `permissions: contents: read`; `package.json`: `engines` `>=22.16`. Nuevo `lighthouse.yml` (lunes 13:00 UTC y manual) con umbrales `warn` en `lighthouserc.json`. 34 `<button>` pasan a `type="button"` y `no-implicit-button-type` sale de `.htmlvalidate.js` (vuelve a error). Nuevo `dependabot.yml` (`npm` y `github-actions`, semanal). → §PF016
+- **`torneos.html` y `guerra.html` · Peticiones duplicadas y alto reservado.** `torneos.html`: `apiGetTorneosCompartido(accion)` (nueva) usada por `cargarTorneos()` y `cargarSalonDeLaFama()`; sustituida en el 09-oct por la versión de la Fase 4. `guerra.html`: `#status:not(.err){min-height:80vh}`. → §PF016
+- **`directorio.html`, `guerra.html`, `torneos.html` y `sitemap.xml` · JSON-LD y `lastmod` (B-23).** Bloque `WebPage` con `BreadcrumbList` e `isPartOf` en las tres páginas; `lastmod` de las 5 URLs a 2026-09-19. → §PF016
 
 ---
 
