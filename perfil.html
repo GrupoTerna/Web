@@ -438,6 +438,7 @@
   .mini-disp-svg .md-linea{fill:none; stroke-width:2; opacity:.85;}
   .mini-disp-svg .md-punto{cursor:pointer; transition:r .15s ease;}
   .mini-disp-svg .md-punto:hover{r:7;}
+  .mini-disp-svg .md-y-label{fill:var(--text-faint); font-family:var(--f-mono); font-size:9.5px; text-anchor:end;}
   .mini-disp-svg .md-eje-label{fill:var(--text-dim); font-family:var(--f-mono); font-size:11px; text-anchor:middle;}
   .mini-disp-svg .md-valor-label{fill:var(--text); font-family:var(--f-mono); font-size:9.5px; font-weight:700; text-anchor:middle;}
   /* FIX (27-sep-2026, pedido usuario — "las gráficas no tienen la misma
@@ -3689,22 +3690,35 @@ function _dispersionMiniHtml(titulo, dias, series, opts){
   if (!Array.isArray(dias) || !dias.length || !Array.isArray(series) || !series.length) return '';
   const todosVals = series.flatMap(s => (s.valores || []).map(Number).filter(v => isFinite(v)));
   if (!todosVals.length) return '';
-  const max = Math.max(1, ...todosVals);
-  const W = 260, H = 152, PAD_L = 14, PAD_R = 14, PAD_TOP = 20, PAD_BOTTOM = 22;
+  const maxDatos = Math.max(1, ...todosVals);
+  // FIX (11-oct-2026, pedido usuario -- "en las minigráficas de medallas y ataques se debe mostrar indicadores en el eje Y, al menos unas 4"): escala con marcas ENTERAS (nunca 2.5 ni 7.5). Si el máximo es 3 o menos, el paso es 1 con 3 tramos (0,1,2,3: 4 marcas); si no, 4 tramos con un paso redondo (1,2,3,4,5,6,8 x potencia de 10) que cubra el máximo (0 y 4 marcas más: 5 marcas). `max` pasa a ser el tope de la escala, no el dato mayor, así los puntos y las marcas usan la misma regla.
+  let tramos = 4, paso = 1;
+  if (maxDatos <= 3){ tramos = 3; paso = 1; }
+  else {
+    const crudo = Math.ceil(maxDatos / 4);
+    const pot = Math.pow(10, Math.floor(Math.log10(crudo)));
+    paso = [1, 2, 3, 4, 5, 6, 8, 10].map(m => m * pot).find(v => v >= crudo);
+  }
+  const marcasY = Array.from({ length: tramos + 1 }, (_, i) => i * paso);
+  const max = paso * tramos;
+  const etiquetasY = marcasY.map(v => fmtNum(v));
+  const W = 260, H = 152, PAD_R = 14, PAD_TOP = 20, PAD_BOTTOM = 22;
+  const PAD_L = Math.max(24, Math.ceil(Math.max(...etiquetasY.map(t => t.length)) * 5.6) + 10);
   const plotW = W - PAD_L - PAD_R, plotH = H - PAD_TOP - PAD_BOTTOM;
   const groupW = plotW / dias.length;
   const OFFSET = series.length > 1 ? 8 : 0;
   const unaSerie = series.length === 1;
   const R = 5;
 
-  // 3 líneas de referencia horizontales (25/50/75% de la escala) + la base (0%), igual de tenues que .ing-grid-line de las gráficas grandes — solo para que el ojo pueda comparar alturas entre puntos, no llevan rótulo.
+  // Líneas de referencia horizontales, una por marca del eje Y (la de 0 es la base), con su rótulo a la izquierda. Igual de tenues que .ing-grid-line de las gráficas grandes.
   let grid = '';
-  [0.25, 0.5, 0.75].forEach(frac => {
-    const y = PAD_TOP + plotH * (1 - frac);
-    grid += `<line class="md-grid" x1="${PAD_L}" y1="${y.toFixed(1)}" x2="${W - PAD_R}" y2="${y.toFixed(1)}"/>`;
+  marcasY.forEach((v, i) => {
+    const y = PAD_TOP + plotH * (1 - v / max);
+    if (i > 0) grid += `<line class=\"md-grid\" x1=\"${PAD_L}\" y1=\"${y.toFixed(1)}\" x2=\"${W - PAD_R}\" y2=\"${y.toFixed(1)}\"/>`;
+    grid += `<text class=\"md-y-label\" x=\"${PAD_L - 6}\" y=\"${(y + 3).toFixed(1)}\">${esc(etiquetasY[i])}</text>`;
   });
   const baseY = PAD_TOP + plotH;
-  grid += `<line class="md-base" x1="${PAD_L}" y1="${baseY}" x2="${W - PAD_R}" y2="${baseY}"/>`;
+  grid += `<line class=\"md-base\" x1=\"${PAD_L}\" y1=\"${baseY}\" x2=\"${W - PAD_R}\" y2=\"${baseY}\"/>`;
 
   let puntos = '';
   // FIX (27-sep-2026, pedido usuario -- "agrega las líneas que unan los
@@ -3983,7 +3997,7 @@ function renderExtendido(ext, j){
   const cuadritosWrap = document.getElementById('mCuadritosWrap');
   if (cuadritosWrap) cuadritosWrap.innerHTML = items ? `<div class="ext-grid">${items}</div>` : '';
   const miniGraficosWrap = document.getElementById('mMiniGraficosWrap');
-  if (miniGraficosWrap) miniGraficosWrap.innerHTML = (_minisCongeladas && graficosGuerra ? `<div class="pf-nota-guerra">${_textoNotaGuerraTerminada(ext)}</div>` : '') + graficosGuerra + piesDonuts;
+  if (miniGraficosWrap) miniGraficosWrap.innerHTML = (_minisCongeladas && graficosGuerra ? `<div class="pf-nota-guerra">${_textoNotaGuerraTerminada(ext)}</div>` : '') + piesDonuts + graficosGuerra;
   wrap.innerHTML = camino;
 }
 
