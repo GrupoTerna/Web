@@ -4999,7 +4999,7 @@ function perfilLineChartSvg(puntos, opts){
       <circle class="ing-serie-pt${p.real ? '' : ' serie-pt-vacio'}" cx="${xPos(i).toFixed(1)}" cy="${yPos(p.valor).toFixed(1)}" r="5"
         fill="${p.real ? COLOR_SERIE_PERFIL : 'none'}" stroke="${p.real ? 'var(--bg)' : COLOR_SERIE_PERFIL}" stroke-width="${p.real ? 1.5 : 2}"
         data-nombre="${esc(perfilGraficaCtx.nombre)}" data-tag="${esc(perfilGraficaCtx.tag)}" data-valor="${p.valor}" data-prefijo="${esc(p.real ? prefijo : '')}"
-        data-clan="${esc(p.real ? (p.clan || perfilGraficaCtx.clan || '—') : 'Sin dato — sin clan o sin participar')}"
+        data-clan="${esc(p.real ? (p.clan || perfilGraficaCtx.clan || '—') : (p.motivo || 'Sin dato — sin clan o sin participar'))}"
         data-semana="${esc(p.semana)}" data-unidad="${esc(opts.unidad || '')}"></circle>`).join('');
 
   const ejeXTitle = `<text class="ing-axis-title" x="${PAD_L + plotW / 2}" y="${H - 8}" text-anchor="middle">Fecha</text>`;
@@ -5134,8 +5134,13 @@ function renderMetricaSemanal(elId, historial, campo, opts){
   // _valoresDiariosDesdeAcumulado() justo arriba.
   const ordenados = ordenarHistorialPorSemana(datos);
   const diarios = _valoresDiariosDesdeAcumulado(ordenados, campo);
+  // FIX (11-oct-2026, pedido usuario — "el domingo 4 de octubre hay 0 medallas con 4 ataques", caso Chistris #2GG8PJ8GC): la última captura de un día puede traer los ataques ya contados pero la fama todavía sin acreditar (el API de Supercell lo hace a veces; ejemplo en Backend/Datos descargados/JSON, corte del 17-08-2026, #9G80CLJ08: 4 mazos y fama 0). Entonces el acumulado de medallas queda igual al del día anterior y la resta da 0 con ataques > 0. Ese 0 no es real: se dibuja como punto hueco ("sin dato") en vez de un 0 que parece cierto.
+  const ataquesDiarios = campo === 'puntaje' ? _valoresDiariosDesdeAcumulado(ordenados, 'ataques') : null;
   const puntos = completarSemanasSinDato(
-    diarios.map(h => ({ semana: String(h.semana), valor: Number(h[campo]), real: true, clan: h.clan }))
+    diarios.map((h, i) => {
+      const medallasSinAcreditar = !!ataquesDiarios && Number(h[campo]) === 0 && Number(ataquesDiarios[i].ataques) > 0;
+      return { semana: String(h.semana), valor: Number(h[campo]), real: !medallasSinAcreditar, clan: h.clan, motivo: medallasSinAcreditar ? 'Sin dato — ese día hay ataques, pero las medallas no llegaron a registrarse' : '' };
+    })
   );
   const unidades = { Ataques: 'ataques', Medallas: 'de medallas', Barcos: 'barcos' };
   pintarGraficaPerfil(wrap, puntos, { ejeY: opts.tituloEje || '', unidad: unidades[opts.tituloEje] || '', base: 0 });
