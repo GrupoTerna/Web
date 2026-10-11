@@ -4,7 +4,7 @@ Lista corta de lo que se hizo, de más reciente a más antiguo. Cada entrada tra
 
 **Cómo funciona el código hoy, por qué se decidió así, qué se probó y se descartó: no va aquí, va en `Contexto_Base_Web.md`.** Las reglas de redacción están en `Consolidados de cambios/Reglas_Consolidados.md` (repo `Backend`), sección 5. Los pendientes tampoco viven en cada entrada: están en «Abiertos». El detalle largo anterior sigue en el historial de git.
 
-*Traslado en curso (desde el 11-oct-2026):* las entradas desde el 04-oct-2026 ya están en formato corto y su contenido pasó a `§PF025` (8 y 9-oct), `§PF027` (5 a 7-oct) y `§PF018` (octava sesión, 2 al 5-oct). Las tandas 4 a 2 del 03 y 02-oct, la Fase 11 y el TBT de `guerra` (02-oct) también pasaron a `§PF018`, y la séptima y la sexta sesión (30 y 29-sep), las tandas D, C, B y A de la Fase 5b (28-sep), la Fase 11 del plan T_Lista (26-sep) y los comentarios desactualizados (21-sep) a `§PF017`. Del 20-sep pasaron a `§PF016` «Rendimiento (Lighthouse)», «CSS compartido», `permisos`, `mensajes` y `comunidad`. Con esta tanda quedó trasladado todo el 20-sep (`admin`, `perfil`, `directorio`, `index` y `guerra`) a `§PF016`. Del 19-sep ya pasaron a `§PF016` «CI y herramientas», «Rendimiento (Lighthouse)» y «SEO», «CSS compartido», `permisos` y `mensajes`. El resto del 19-sep (`guerra`) y todo lo anterior (hoy ordenado por tema y archivo, no por fecha) conservan su texto largo hasta que se trasladen, por tandas y de la fecha más reciente a la más antigua.
+*Traslado en curso (desde el 11-oct-2026):* las entradas desde el 04-oct-2026 ya están en formato corto y su contenido pasó a `§PF025` (8 y 9-oct), `§PF027` (5 a 7-oct) y `§PF018` (octava sesión, 2 al 5-oct). Las tandas 4 a 2 del 03 y 02-oct, la Fase 11 y el TBT de `guerra` (02-oct) también pasaron a `§PF018`, y la séptima y la sexta sesión (30 y 29-sep), las tandas D, C, B y A de la Fase 5b (28-sep), la Fase 11 del plan T_Lista (26-sep) y los comentarios desactualizados (21-sep) a `§PF017`. Del 20-sep pasaron a `§PF016` «Rendimiento (Lighthouse)», «CSS compartido», `permisos`, `mensajes` y `comunidad`. Quedó trasladado todo el 20-sep (`admin`, `perfil`, `directorio`, `index` y `guerra`) a `§PF016`. Con esta tanda quedó trasladado todo el 19-sep a `§PF016`: «CI y herramientas», «Rendimiento (Lighthouse)» y «SEO», «CSS compartido», `permisos`, `mensajes` y `guerra`. Todo lo anterior (hoy ordenado por tema y archivo, no por fecha) conserva su texto largo hasta que se trasladen, por tandas y de la fecha más reciente a la más antigua.
 
 ---
 
@@ -177,6 +177,10 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 - **`permisos.html` · Se quita el `.btn-icono` duplicado del `<style>`.** → §PF016
 - **`mensajes.html` · Accesibilidad: nombres de botones y estado de los selectores.** 10 botones «↻» con `aria-label="Actualizar contenido: <categoría>"`; `aria-pressed` en los botones de categoría y de opción por clan (en los 3 sitios donde cambia el estado activo); se retira `role="tablist"`, `role="tab"` y `aria-selected` de las pestañas dinámicas; el botón colapsar alterna su `aria-label`. → §PF016
 - **`mensajes.html` (nueva), `admin.html`, `assets/js/core/auth.js`, 8 páginas con nav y `robots.txt` · «Mensajes» sale de `admin.html` a su propia página.** `mensajes.html`: solo admin (`location.replace('admin.html?volver=mensajes')`, eventos `storage` y `pageshow`). `auth.js`: `cerrarSesionAdmin()` (nueva) y `actualizarNavCta()` (muestra el link con sesión). `admin.html`: `btnLogin` con indicador de carga y retorno por `?volver=mensajes`; se eliminan la tarjeta, la llamada en `mostrarPanel()`, 6 funciones (`initMensajesAutomaticos()`, `cargarGrupoToggle()`, `cargarContenidoCategoria()`, `renderContenidoHtml()`, `_pintarOpcionContenido()` y `_activarAccionesContenido()`) y el CSS que ya nadie usa. `robots.txt`: `Disallow: /mensajes.html`. → §PF016
+- **`guerra.html` · «Pronóstico de Hoy» conectada a `webPronosticoGuerra`.** Tabla por clan (propios y rivales) con fame actual, techo con roster, techo máximo y ataques de 200; solo en día de guerra, caché de 2 min y sin `staleIfError`; oculta si el backend no responde; sin `aria-live`. → §PF016
+- **`assets/js/features/clan-card.js` y `guerra.html` · «Guerra de Hoy»: cabecera de Directorio y puesto actual.** `clanCardCabeceraHtml()` (nueva, separada de `clanCardHtml()`, que no cambia); `guerra.html` pide `webClanInfo` antes que `webGuerraEnVivo`, une cada tarjeta por nombre normalizado o `ordenClanIndex()` y pinta «🏁 Puesto #N de M» desde `puesto` y `clanesEnCarrera`. → §PF016
+- **`assets/js/core/api.js` y `guerra.html` · Botones Jue–Dom: el panel «Puesto al cierre» se quedaba en «Cargando…».** `apiGet()` acepta `opts.prioridad` (también `_encolarPeticion()` y `_fetchYParsear()`) para que el clic pase al frente de la cola; `pintarPanelPuestosDia()` distingue «Cargando… (puede tardar unos segundos)», «Sin puesto registrado para este día.» y el fallo. → §PF016
+- **`guerra.html` · «Pronóstico de Hoy» fusionado con «Guerra de Hoy».** `pintarPronosticoEnTarjetas()` (dentro de `actualizarPuestosClanes()`) continúa cada tarjeta con el clan y los rivales de su carrera, unidos por `clanTernaTag` o `clanTernaNombre`; si no llegan, queda la tabla suelta. El 20-sep: filas rediseñadas con barra, `subgrid` en `@supports` y `min-width:0` en la cadena tarjeta → nombre. → §PF016
 
 ---
 
@@ -3916,99 +3920,6 @@ manda campos nuevos. La página los usa así:
   versión (las páginas se piden primero a la red).
 - **Formato confirmado por el usuario** (`~#N`, guion y nota al pie);
   cambiarlo es tocar solo estas dos plantillas.
-
-### 19-sep-2026 — "Pronóstico de Hoy" fusionado con "Guerra de Hoy" (continuación de cada tarjeta)
-Pedido usuario: el pronóstico se veía como una lista aparte y no se entendía
-qué clanes enfrentaba cada clan Terna. Ahora cada tarjeta de "Guerra de Hoy"
-continúa (debajo de la línea "X/Y atacaron hoy") con el clan y los rivales de
-SU carrera, ordenados por fame actual, con puesto, fame, techo "Roster",
-techo "Máx" y ataques de 200. La fila del clan propio va resaltada. La nota
-que explicaba "solo roster"/"techo máximo" pasó a un pie bajo la grilla.
-- Une cada rival con su clan Terna por `clanTernaTag` (o `clanTernaNombre`)
-  en cada elemento de `clanes` de `webPronosticoGuerra`. **CONTRATO
-  PENDIENTE (backend, `38_Pronostico_Guerra.gs`)**: si ningún rival trae ese
-  campo, no hay forma de saber en qué carrera está cada uno; en ese caso todo
-  queda como antes (tabla suelta "Pronóstico de Hoy") para no perder
-  información. En cuanto el backend lo mande, la tabla suelta se oculta sola.
-- `pintarPronosticoEnTarjetas()` corre dentro de `actualizarPuestosClanes()`,
-  así que se repinta en cada `render()` (las tarjetas se recrean cada 60 s)
-  y al llegar `webPronosticoGuerra` o `webClanInfo`, sin parpadeo.
-- Rediseño de las filas (20-sep-2026, captura del usuario: "se ve
-  desorganizado"): cada fila es #puesto | nombre | fame, una barra fina
-  (fame actual sólida y hasta dónde podría llegar, tenue; misma escala dentro
-  de la tarjeta) y una línea "Techo … · ataques". Se quitó la etiqueta
-  "rival" de cada fila (el clan Terna va resaltado, el resto son sus rivales)
-  y Roster/Máx pasan a un solo valor cuando coinciden, o a "roster–máx" si
-  difieren. Las secciones de las 4 tarjetas (cabecera, puesto, números,
-  barra, asistencia, pronóstico) quedan alineadas entre sí con `subgrid`
-  (con `@supports`; sin soporte queda el layout anterior). Probado con
-  Chromium en 1280 px y 390 px con datos simulados.
-- Corrección de layout (20-sep-2026, captura del usuario): las filas del
-  primer clan se salían de la tarjeta y cortaban la fame. Faltaba
-  `min-width:0` en la cadena tarjeta -> continuación -> lista -> fila ->
-  nombre (los nombres largos ensanchaban la fila). Además Roster/Máx van en
-  la primera línea y los ataques siempre en la segunda, para que todas las
-  filas midan igual entre tarjetas.
-- Observación (resuelta el 20-sep-2026 en `38_Pronostico_Guerra.gs`): el
-  techo Roster salía mayor que el Máx porque no respetaba los topes de 200
-  ataques / 50 cuentas.
-
-### 19-sep-2026 — Botones Jue–Dom: el panel "Puesto al cierre" se quedaba en "Cargando…"
-Pedido usuario: al pulsar Jue/Vie/Sáb/Dom el panel no terminaba de cargar.
-Con lo que se puede ver en el frontend hay dos causas y una tercera que solo
-se puede descartar mirando el backend:
-- `api.js` atiende las peticiones de a una (`_MAX_PETICIONES_SIMULTANEAS = 1`)
-  y `webGuerraPuestosDia` entraba al FINAL de la cola, detrás de
-  `webGuerraEnVivo` (lenta), sus recargas de cada 60 s y las demás cargas de
-  la página. Se agrega `opts.prioridad` a `apiGet()` (y `prioridad` a
-  `_encolarPeticion()`/`_fetchYParsear()`): el clic en un día pasa al frente
-  de la cola. No interrumpe la petición que ya está en vuelo; sin
-  `prioridad` todo se comporta como antes.
-- `pintarPanelPuestosDia()` mostraba "Cargando…" tanto cuando la petición
-  seguía en curso como cuando ya había respondido pero sin datos de ese día
-  (ej. `dias` vacío o más corto que 4). Ahora distingue: sin respuesta →
-  "Cargando… (puede tardar unos segundos)"; respuesta sin ese día → "Sin
-  puesto registrado para este día."; fallo → "No se pudieron cargar…".
-- Pendiente de verificar en `Base.md`: qué devuelve `webGuerraPuestosDia`
-  para la semana vigente (la revisión de `Guerra_Logs` sigue pendiente).
-
-### 19-sep-2026 — "Guerra de Hoy": cabecera de Directorio y puesto actual en la carrera
-Pedido usuario: las tarjetas de "Guerra de Hoy" ya no muestran solo el nombre
-del clan, sino la misma cabecera de las tarjetas de Directorio (insignia de
-rol, escudo real, nombre y tag debajo). Solo cambia esa parte: los números,
-la barra y el resto de la tarjeta siguen igual.
-- `assets/js/features/clan-card.js`: la cabecera se separó de `clanCardHtml()`
-  en `clanCardCabeceraHtml()`, que reutilizan Inicio, Directorio y esta
-  página. La salida de `clanCardHtml()` es idéntica a la de antes (comparada
-  carácter por carácter en 4 casos).
-- `guerra.html` pide `webClanInfo` con la misma llamada y caché de 5 min que
-  index/directorio, y la pide antes que `webGuerraEnVivo` para que las
-  tarjetas nazcan ya con la cabecera y no salten de tamaño. Une cada tarjeta
-  con su clan por nombre normalizado (NFC) y, si no coincide, por
-  `ordenClanIndex()`. Si `webClanInfo` falla, queda solo el nombre.
-- Puesto actual ("🏁 Puesto #2 de 5"): sale de `webPronosticoGuerra`
-  (`puesto`/`clanesEnCarrera`, solo clanes propios). Ordena los clanes de
-  `currentriverrace` por fame acumulada de la semana; los empates comparten
-  puesto. No cuenta `repairPoints` ni la posición de los barcos. Solo en día
-  de guerra; si el endpoint no responde, no se muestra.
-- Pendiente (siguiente tanda): botones Jue–Dom con el puesto que cerró cada
-  clan en cada día (`EndOfDayRank` de `Guerra_Logs`).
-
-### 19-sep-2026 — Sección "Pronóstico de Hoy" conectada a `webPronosticoGuerra`
-El backend ya tenía la acción `webPronosticoGuerra` (`38_Pronostico_Guerra.gs`,
-ruta en `doGet` de `08_Web_Endpoints.gs`) pero ninguna página la consumía, y
-además devolvía siempre "No hay datos de currentriverrace en caché": en una
-ejecución web `CACHE_CLAN_DATA` está vacío. El backend ahora lee el checkpoint
-de clanes que deja el bot en Drive (tope 70 min) y cachea 120 s. Esta página
-pinta una tabla por clan (propios y rivales): fama actual, techo solo con el
-roster, techo máximo (con cuentas de apoyo) y ataques usados de 200.
-- Solo se pide en día de guerra (`ctx.esDiaGuerra`), sin `await` dentro de
-  `cargar()`, con caché de `apiGet` de 2 min; el botón "Actualizar" fuerza dato
-  fresco. No usa `staleIfError` a propósito: un pronóstico de "hoy" de otro día
-  sería engañoso.
-- Si el backend no responde o no hay checkpoint vigente, la sección queda
-  oculta (o conserva lo último pintado); nunca rompe el resto de la página.
-- Sin `aria-live`: la página se auto-refresca (ver B-7).
 
 ### 18-sep-2026 (refactor CSS, Fase 2 — tablas) — `.grid-hscroll-*`/`.table-scroll-oculta-nativa` unificados con `activarBarraScrollTabla()`
 Pedido usuario, confirmando el criterio ya usado en el resto del sitio:
