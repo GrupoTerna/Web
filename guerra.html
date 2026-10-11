@@ -249,6 +249,14 @@
   .btn-ver-pron:hover{color:var(--purple-light); border-color:var(--purple);}
   .btn-ver-pron[aria-pressed="true"]{color:var(--purple-light); border-color:var(--purple);}
   .btn-ver-pron:disabled{opacity:.6; cursor:progress;}
+  /* 11-oct-2026 (pedido usuario): «Ver pronóstico» y el conteo de clanes suben a la fila del título; la nota del día elegido (Jue–Dom) va a la derecha del subtítulo. En pantallas angostas todo pasa a una columna. */
+  .gh-fila{display:flex; align-items:baseline; justify-content:space-between; gap:8px 16px; flex-wrap:wrap; margin-top:14px;}
+  .gh-acciones{display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; justify-content:flex-end;}
+  .gh-sub{display:flex; align-items:baseline; justify-content:space-between; gap:6px 16px; flex-wrap:wrap; margin-top:6px;}
+  .gh-sub > #sub{flex:0 1 auto; max-width:100%;}
+  #puestoDiaNota{margin-left:auto; text-align:right; max-width:100%;}
+  @media (max-width:860px){ #puestoDiaNota{margin-left:0; text-align:left;} }
+  .sr-solo{position:absolute; width:1px; height:1px; margin:-1px; padding:0; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; border:0;}
   .btn-solo-cero[aria-pressed="true"]{color:var(--danger); border-color:var(--danger);}
   /* Partes 3-5 (05-oct-2026): fila de totales/promedio, botones Copiar/CSV e insignia de rango. */
   .tbl-activos-grid tfoot td{font-family:var(--f-mono); font-size:12px; font-weight:700; text-align:center; border-top:1px solid var(--line-strong); color:var(--text-dim); white-space:nowrap;}
@@ -411,8 +419,19 @@
         <button id="refreshBtn" type="button" onclick="cargar(true)">🔄 Actualizar</button>
       </span>
     </div>
-    <h1 style="font-size:clamp(30px,5vw,44px); margin-top:14px;">Control de guerra</h1>
-    <div class="text-dim" id="sub" data-fit-line style="margin-top:6px; font-size:16px; white-space:nowrap;">Cargando estado de la temporada…</div>
+    <div class="gh-fila">
+      <h1 style="font-size:clamp(30px,5vw,44px); margin:0;">Control de guerra</h1>
+      <span class="gh-acciones">
+        <!-- 11-oct-2026 (pedido usuario): las tarjetas cargan primero sin pronóstico; este botón (solo en día de guerra) lo pide y lo muestra. Antes vivía en el encabezado de «Guerra de Hoy». -->
+        <button type="button" class="btn-ver-pron" id="btnVerPronostico" aria-pressed="false" hidden>📈 Ver pronóstico</button>
+        <span class="text-faint" id="clanCount" style="font-family:var(--f-mono); font-size:13px;"></span>
+      </span>
+    </div>
+    <div class="gh-sub">
+      <div class="text-dim" id="sub" data-fit-line style="font-size:16px; white-space:nowrap;">Cargando estado de la temporada…</div>
+      <!-- 11-oct-2026 (pedido usuario): al elegir Jue/Vie/Sáb en la línea de tiempo, las tarjetas muestran el puesto al cierre de ese día y esta nota lo explica. Se llena en pintarPuestosDiaEnTarjetas(). -->
+      <div id="puestoDiaNota" class="text-faint" style="display:none; font-family:var(--f-mono); font-size:12px; line-height:1.6;"></div>
+    </div>
     <div class="timeline" id="timeline"></div>
     <div class="progress-track"><i id="progressFill"></i></div>
   </div>
@@ -427,19 +446,11 @@
 
   <div id="content" style="display:none">
 
-    <section style="padding:40px 0 24px;">
-      <div class="sec-head" style="display:flex; align-items:baseline; justify-content:space-between; border-bottom:1px solid var(--line); padding-bottom:12px;">
-        <h2 style="font-size:22px;">⚔️ Guerra de Hoy</h2>
-        <span style="display:flex; align-items:baseline; gap:12px; flex-wrap:wrap; justify-content:flex-end;">
-          <!-- 11-oct-2026 (pedido usuario): las tarjetas cargan primero sin pronóstico; este botón (solo en día de guerra) lo pide y lo muestra. -->
-          <button type="button" class="btn-ver-pron" id="btnVerPronostico" aria-pressed="false" hidden>📈 Ver pronóstico</button>
-          <span class="text-faint" id="clanCount" style="font-family:var(--f-mono); font-size:13px;"></span>
-        </span>
-      </div>
+    <section style="padding:28px 0 24px;">
+      <!-- 11-oct-2026 (pedido usuario): se quita el encabezado visible «Guerra de Hoy»; queda solo para lectores de pantalla. «Ver pronóstico» y el conteo de clanes subieron a la fila del título. -->
+      <h2 class="sr-solo">Guerra de Hoy</h2>
       <!-- Parte 1 (05-oct-2026): aviso visible solo fuera de día de guerra, cuando las tarjetas muestran los resultados congelados de la última guerra. Se llena en render(). -->
       <div id="guerraCongeladoAviso" class="text-faint" style="display:none; font-family:var(--f-mono); font-size:12px; margin-top:14px; padding:8px 12px; border:1px solid var(--line); border-radius:var(--radius-sm); line-height:1.6;" role="status"></div>
-      <!-- 11-oct-2026 (pedido usuario): al elegir Jue/Vie/Sáb en la línea de tiempo, las tarjetas muestran el puesto al cierre de ese día y esta nota lo explica. Se llena en pintarPuestosDiaEnTarjetas(). -->
-      <div id="puestoDiaNota" class="text-faint" style="display:none; font-family:var(--f-mono); font-size:12px; margin-top:14px; padding:8px 12px; border:1px solid var(--line); border-radius:var(--radius-sm); line-height:1.6;"></div>
       <div class="clan-grid" id="clanGrid" style="margin-top:20px;"></div>
       <div id="pronosticoNota" class="text-faint" style="font-family:var(--f-mono); font-size:12px; margin-top:6px; line-height:1.6;" hidden>📈 Pronóstico de hoy: la fila resaltada es el clan Terna y las demás son sus rivales en la carrera. La barra muestra las medallas actuales (sólida) y hasta dónde podría llegar hoy (tenue). «Techo» es una cota máxima, no una predicción: con un solo valor, juegan las cuentas que ya están en la carrera; con dos («roster – máx»), el segundo supone además que las cuentas sin atacar se reemplazan por cuentas de apoyo.</div>
     </section>
