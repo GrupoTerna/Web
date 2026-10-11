@@ -4,7 +4,7 @@ Lista corta de lo que se hizo, de más reciente a más antiguo. Cada entrada tra
 
 **Cómo funciona el código hoy, por qué se decidió así, qué se probó y se descartó: no va aquí, va en `Contexto_Base_Web.md`.** Las reglas de redacción están en `Consolidados de cambios/Reglas_Consolidados.md` (repo `Backend`), sección 5. Los pendientes tampoco viven en cada entrada: están en «Abiertos». El detalle largo anterior sigue en el historial de git.
 
-*Traslado en curso (desde el 11-oct-2026):* las entradas desde el 04-oct-2026 ya están en formato corto y su contenido pasó a `§PF025` (8 y 9-oct), `§PF027` (5 a 7-oct) y `§PF018` (octava sesión, 2 al 5-oct). Las tandas 4 a 2 del 03 y 02-oct, la Fase 11 y el TBT de `guerra` (02-oct) también pasaron a `§PF018`, y la séptima y la sexta sesión (30 y 29-sep), las tandas D, C, B y A de la Fase 5b (28-sep), la Fase 11 del plan T_Lista (26-sep) y los comentarios desactualizados (21-sep) a `§PF017`. Del 20-sep pasaron a `§PF016` «Rendimiento (Lighthouse)», «CSS compartido», `permisos`, `mensajes` y `comunidad`. Quedó trasladado todo el 20-sep (`admin`, `perfil`, `directorio`, `index` y `guerra`) a `§PF016`. Con esta tanda quedó trasladado todo el 19-sep a `§PF016`: «CI y herramientas», «Rendimiento (Lighthouse)» y «SEO», «CSS compartido», `permisos`, `mensajes` y `guerra`. Todo lo anterior (hoy ordenado por tema y archivo, no por fecha) conserva su texto largo hasta que se trasladen, por tandas y de la fecha más reciente a la más antigua.
+*Traslado en curso (desde el 11-oct-2026):* las entradas desde el 04-oct-2026 ya están en formato corto y su contenido pasó a `§PF025` (8 y 9-oct), `§PF027` (5 a 7-oct) y `§PF018` (octava sesión, 2 al 5-oct). Las tandas 4 a 2 del 03 y 02-oct, la Fase 11 y el TBT de `guerra` (02-oct) también pasaron a `§PF018`, y la séptima y la sexta sesión (30 y 29-sep), las tandas D, C, B y A de la Fase 5b (28-sep), la Fase 11 del plan T_Lista (26-sep) y los comentarios desactualizados (21-sep) a `§PF017`. Del 20-sep pasaron a `§PF016` «Rendimiento (Lighthouse)», «CSS compartido», `permisos`, `mensajes` y `comunidad`. Quedó trasladado todo el 20-sep (`admin`, `perfil`, `directorio`, `index` y `guerra`) a `§PF016`. Quedó trasladado todo el 19-sep a `§PF016`: «CI y herramientas», «Rendimiento (Lighthouse)» y «SEO», «CSS compartido», `permisos`, `mensajes` y `guerra`. Con esta tanda quedaron trasladadas también las entradas de `guerra.html` del 21-sep (`§PF017`) y del 18-sep (`§PF016`). Todo lo anterior (hoy ordenado por tema y archivo, no por fecha, incluidos los bloques «Línea original N» y las demás secciones por archivo) conserva su texto largo hasta que se trasladen, por tandas y de la fecha más reciente a la más antigua.
 
 ---
 
@@ -24,6 +24,7 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 - **Sin verificar, cartas (29-sep-2026):** que en `perfil.html` se vean la carta favorita, el mazo y la colección tras el cambio de la CSP (abrir un perfil y mirar F12 → Consola; `perfil.html` no lo audita Lighthouse); al publicar, pulsar los dos botones Héroe/Evolución de una carta de `index.html` (`cambiarVarianteCarta()` cambia el `src` de la imagen, ahora de 72×84); y el alto real del chip con las 10 cartas y sus filas de Héroe/Evolución. Sin explicar: la primera corrida de cada tanda de Lighthouse sale mucho peor (parece arranque en frío). → §PF017
 - **Sin probar, Fase 5b tandas D y B (28-sep-2026):** nada en Apps Script real ni en navegador real. Falta confirmar que un ex-miembro sale con `tag:null` (nombre sin enlace) y un activo con su Tag real (nombre con enlace), con y sin sesión de admin, y revisar los 5 lugares de `torneos.html` en escritorio y móvil; y que el aviso de «clan rival» no llegue a un visitante (backend: `_webTorneos()` y `_webIngresosRecientes()` en `37_Web_API.gs`). → §PF017
 - **Por definir (la usuaria):** el `target-size` de los enlaces del nombre en «Ingresos recientes» (`a.jugador-link` en `index.html`, menos de 24 px de alto). Se dejó sin tocar porque cambiaría el aspecto de la tarjeta. (20-sep-2026) → §PF016
+- **Por definir (la usuaria):** cuatro comentarios de `guerra.html` todavía citan `assets/common.js` como casa de `pintarFiltroLetra()` y `primeraLetraFiltro()`; hoy están en `assets/js/ui/filters.js` (y `sincronizarScrollHorizontal()` en `ui/tables.js`). Es solo texto: corregirlo no cambia el comportamiento. (18-sep-2026) → §PF016
 
 ---
 
@@ -134,6 +135,8 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 ## 21-sep-2026
 
 - **Comentarios desactualizados: tres «pendiente de conectar» que ya estaban conectados.** Solo comentarios, sin cambio de código. `admin.html`: `cargarCuentasDelAutor()` y la subsección «Registrar miembro nuevo» (modo «Buscar en Directorio»). `assets/js/data/clan-badges.js`: comentario sobre `badgeId` de `webClanInfo`. Backend: `13_Directorio_Inactivos_Vetados.gs`, `_obtenerCuentasDeNomMulti()` (docblock). → §PF017
+- **`guerra.html` · Coliseo: puesto estimado y sin barcos (Tanda 11b).** `pintarTablaGuerraLog()` y el panel de los botones Jue–Dom pintan `~#N` con `title="Puesto estimado"` según `rankEstimado`, `coliseo` y `estimado`; la columna de barcos va en `—` en coliseo; nota bajo la tabla solo si hay filas de ese tipo. → §PF017
+- **`guerra.html` · Puesto estimado también en vivo y nota al pie única (Tandas 13c y 14b).** La tarjeta de «Guerra de Hoy» y el panel Jue–Dom marcan `~#N` con `estimado` de `webPronosticoGuerra` y de cada clan en `webGuerraPuestosDia`; nueva constante `NOTA_PUESTO_ESTIMADO` para el panel y el historial. → §PF017
 
 
 ## 20-sep-2026
@@ -181,6 +184,11 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 - **`assets/js/features/clan-card.js` y `guerra.html` · «Guerra de Hoy»: cabecera de Directorio y puesto actual.** `clanCardCabeceraHtml()` (nueva, separada de `clanCardHtml()`, que no cambia); `guerra.html` pide `webClanInfo` antes que `webGuerraEnVivo`, une cada tarjeta por nombre normalizado o `ordenClanIndex()` y pinta «🏁 Puesto #N de M» desde `puesto` y `clanesEnCarrera`. → §PF016
 - **`assets/js/core/api.js` y `guerra.html` · Botones Jue–Dom: el panel «Puesto al cierre» se quedaba en «Cargando…».** `apiGet()` acepta `opts.prioridad` (también `_encolarPeticion()` y `_fetchYParsear()`) para que el clic pase al frente de la cola; `pintarPanelPuestosDia()` distingue «Cargando… (puede tardar unos segundos)», «Sin puesto registrado para este día.» y el fallo. → §PF016
 - **`guerra.html` · «Pronóstico de Hoy» fusionado con «Guerra de Hoy».** `pintarPronosticoEnTarjetas()` (dentro de `actualizarPuestosClanes()`) continúa cada tarjeta con el clan y los rivales de su carrera, unidos por `clanTernaTag` o `clanTernaNombre`; si no llegan, queda la tabla suelta. El 20-sep: filas rediseñadas con barra, `subgrid` en `@supports` y `min-width:0` en la cadena tarjeta → nombre. → §PF016
+
+## 18-sep-2026
+
+- **`guerra.html` · «Valores diarios» y «Valores por temporada» usan la barra morada común (Fase 2, tablas).** Se eliminan `enlazarScrollsHorizontales()` y el CSS de `.grid-hscroll-*` y `.table-scroll-oculta-nativa`; las tarjetas de clan pasan a `<div class="table-scroll">` y a `activarBarraScrollTabla()`. Sin cambio de comportamiento (480 px, barra morada en 3 lados). → §PF016
+- **`guerra.html`, `directorio.html` y `assets/js/ui/*` · Helpers de filtro por letra y de scroll sincronizado consolidados.** `pintarFiltroLetra()`, `primeraLetraFiltro()` y `LETRAS_FILTRO` (hoy en `ui/filters.js`) y `sincronizarScrollHorizontal()` (hoy en `ui/tables.js`) reemplazan copias repetidas; `aria-label` en los botones A-Z. `guerra.html`: el refresco de 60 s se pausa con `visibilitychange`. Sin tocar: `gestionarTabsClan()` y el popover de columna. → §PF016
 
 ---
 
@@ -3876,122 +3884,6 @@ FIX (03-sep-2026, pedido usuario — "Vigencia [última
 
 
 ## guerra.html
-
-### 21-sep-2026 — Puesto estimado también en vivo y nota al pie general (Tandas 13c y 14b)
-Pedido usuario. El backend (`17_GuerraSheet.gs`, Tandas 13c y 14; `38_Pronostico_Guerra.gs`)
-ya sabe qué puestos son estimados y lo manda en campos nuevos. La página los usa así:
-- **Puesto en vivo** (`webPronosticoGuerra`, campo `estimado` del clan propio): la
-  tarjeta de "Guerra de Hoy" y el panel de los botones Jue–Dom pintan `~#N` cuando
-  `estimado` es `true` (hoy, solo en la semana de coliseo, donde la API no entrega
-  puestos). Con `estimado` en `false` o ausente se ve igual que antes.
-- **Botones Jue–Dom** (`webGuerraPuestosDia`): cada clan trae ahora su propio
-  `estimado`; se usa ese y, si falta, el `estimado` del día (como en la Tanda 11b).
-  Antes solo se marcaba en coliseo; ahora también sale `~` en el domingo en curso
-  de una semana normal, cuyo puesto es una estimación por los puntos del día.
-- **Nota al pie**: el texto era "estimado por fama acumulada (coliseo)" y ya no
-  era cierto para el domingo en curso. Ahora hay una sola constante,
-  `NOTA_PUESTO_ESTIMADO`, que usan el panel y el historial semanal: la API no
-  entrega ese puesto cerrado y se calcula (en coliseo, por fama acumulada; el
-  domingo en curso, con los puntos del día). El panel la muestra también en el
-  día en curso si hay algún puesto estimado.
-- **Compatibilidad**: no cambió el nombre ni el significado de ningún campo que ya
-  se leía (`puesto`, `clanesEnCarrera`, `rank`, `rankEstimado`, `coliseo`,
-  `estimado` por día). Con el Apps Script sin actualizar faltan los campos nuevos
-  y la página se ve como antes; se puede publicar en cualquier orden. `sw.js` no
-  necesita subir de versión (las páginas se piden primero a la red).
-
-### 21-sep-2026 — Coliseo: puesto marcado como estimado y sin "Boat" (Tanda 11b)
-Pedido usuario. En la semana de coliseo (la última de cada temporada, de lunes
-a domingo aunque cruce de mes) la API no entrega puestos diarios ni hay barco
-que avance; el backend (`17_GuerraSheet.gs`, Tanda 11) ya lo distingue y
-manda campos nuevos. La página los usa así:
-- **Historial semanal** (`webGuerraLog`, campos `coliseo` y `rankEstimado`): el
-  puesto estimado se pinta `~#N` (con `title="Puesto estimado"`) y la columna
-  Boat muestra `—` en coliseo en vez de `0`. Bajo la tabla sale una nota corta
-  que explica `~` y el guion, solo si hay filas de ese tipo.
-- **Botones Jue–Dom** (`webGuerraPuestosDia`, campos `coliseo` y `estimado` por
-  día): los puestos al cierre de un día de coliseo salen como `~#N` con la
-  misma nota. El puesto "en vivo" del día en curso no cambia: sigue saliendo
-  del pronóstico.
-- **Compatibilidad**: los campos `rank`, `boat`, `trophy` y `trophyDelta` no
-  cambiaron de nombre ni de significado. Si el Apps Script aún no está
-  actualizado, faltan los campos nuevos y la página se ve exactamente igual que
-  antes; se puede publicar en cualquier orden. `sw.js` no necesita subir de
-  versión (las páginas se piden primero a la red).
-- **Formato confirmado por el usuario** (`~#N`, guion y nota al pie);
-  cambiarlo es tocar solo estas dos plantillas.
-
-### 18-sep-2026 (refactor CSS, Fase 2 — tablas) — `.grid-hscroll-*`/`.table-scroll-oculta-nativa` unificados con `activarBarraScrollTabla()`
-Pedido usuario, confirmando el criterio ya usado en el resto del sitio:
-la barra de scroll de toda tabla debe ser la morada (arriba, abajo y
-derecha), nunca la nativa gris del navegador. Las grillas de "Valores
-diarios" y "Valores por temporada" (`.tbl-activos-grid`/
-`.tbl-temporada-grid`) tenían su propia implementación hecha a mano —
-`.grid-hscroll-top`/`.grid-hscroll-bottom` (barras sintéticas propias) +
-`.table-scroll-oculta-nativa` (oculta la barra nativa) + la función
-`enlazarScrollsHorizontales()` — construida el mismo día, en paralelo,
-sin enterarse de que `activarBarraScrollTabla()` (assets/js/ui/tables.js)
-ya resolvía exactamente lo mismo (barra superior sintética + inferior y
-derecha nativas restyleadas en morado, vía `.scroll-morado`/
-`.tabla-scroll-wrap` en `assets/styles.css`) para el resto de tablas del
-sitio (Pendientes de Atacar, Inactivos, roster de Directorio, cuadros de
-CR en admin.html, historial de perfil.html).
-
-Se elimina el sistema propio: las tarjetas de clan de Activos/Temporada
-pasan a usar el `<div class="table-scroll">` simple (sin
-`table-scroll-oculta-nativa`, sin los divs `.grid-hscroll-top`/`-bottom`
-en el HTML) y se les llama `activarBarraScrollTabla()` igual que a las
-demás tablas de la página — se quitan `enlazarScrollsHorizontales()` y
-las ~40 líneas de CSS de `.grid-hscroll-*`/`.table-scroll-oculta-nativa`,
-sin comportamiento nuevo: mismo alto máximo (480px, mismo
-`--tabla-scroll-alto` que ya usaban), misma barra morada en los 3 lados,
-solo que ahora por el único camino que ya usa el resto del sitio.
-
-### 18-sep-2026 — Helpers de filtro por letra y de scroll sincronizado consolidados en common.js
-Revisión de código repetido entre páginas: `pintarFiltroLetraPendientes()`,
-`pintarFiltroLetraGrid()` (acá) y `pintarFiltroLetraRoster()` de
-directorio.html eran, en la práctica, la misma función tres veces — la
-única diferencia real era el id del wrap, la variable de módulo de la
-letra elegida y el callback de re-filtrado. Se reemplazan por
-`pintarFiltroLetra(wrapId, letras, obtenerSel, fijarSel, onCambio)` en
-`assets/common.js`, ya parametrizada igual que lo estaba
-`pintarFiltroLetraGrid()` acá mismo (reusada para "Activos" y
-"Temporada"). De paso se agrega `aria-label="Filtrar por letra X"` a cada
-botón A-Z/#, que antes solo llevaba el texto visual de la letra.
-`LETRAS_FILTRO_PEND` (acá) y `LETRAS_FILTRO` (directorio.html) eran
-además el mismo array letra por letra, igual que `primeraLetraFiltro()`
-— ambos se unifican también en `common.js`.
-
-`enlazarScrollsHorizontales()` seguía acá (es específica de la estructura
-`.ai-clan-card`/`.grid-hscroll` de esta página, con N barras por tarjeta),
-pero su núcleo — sincronizar `scrollLeft` entre varios elementos con una
-bandera para no entrar en loop de eventos `scroll` — es el mismo patrón
-que directorio.html tenía escrito a mano para su propio par
-topScroll/tableWrap. Se extrae ese núcleo a
-`sincronizarScrollHorizontal(elementos)` en `common.js`, que ahora usan
-ambas páginas.
-
-También se agrega: el `setInterval(() => cargar(false), REFRESH_INTERVAL_MS)`
-(cada 60s) seguía disparando aunque la pestaña estuviera en segundo plano
-o el celular bloqueado. Se pausa con un listener de `visibilitychange`
-mientras `document.visibilityState === 'hidden'` y se reanuda (con una
-carga inmediata, sin esperar el intervalo completo) al volver a foco.
-`setInterval(actualizarAgoText, 1000)` no golpea el backend (solo
-refresca un texto relativo tipo "hace 3 min"), así que se deja corriendo
-siempre.
-
-No se tocaron, por ahora: `gestionarTabsClan()` (no tiene un duplicado
-real en directorio.html — `renderClanTabs()` ahí es una función distinta,
-más simple, sin la opción "Todos") ni el popover de filtro/orden por
-columna (`abrirGridFiltroColumna()` acá vs `abrirFiltroColumna()` de
-directorio.html) — comparten el mismo HTML/clases `rt-*` y buena parte de
-la lógica, pero cada uno está entrelazado con un modelo de estado
-distinto (`gridEstados[gridId]`, con varias tablas, acá; variables sueltas
-de una sola tabla en directorio.html) y con funcionalidad que no es 1:1
-(tipo fecha, columnas no ordenables, debounce del buscador). Fusionarlos
-de un tirón tenía más riesgo de introducir un bug sutil que beneficio en
-esta pasada; queda pendiente para una revisión aparte, con más tiempo
-para probar cada caso.
 
 ### Línea original 62 (estilo)
 
