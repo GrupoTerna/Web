@@ -16,7 +16,6 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 - **Por verificar en el backend (requiere subir `Base.md`):** si `doGet` cae a los `Backup_*.csv` cuando falla la lectura de Sheets; qué claves publican realmente `50_` a `53_Publicar_*.gs`; si el bot sigue republicando cuando Sheets falla; y si `home.json`, `roster.json`, `torneos.json`, `guerra_ctx.json` y `guerra_top.json` traen `tiempos.api.ultimaConsultaTs` (hoy solo se sabe de `guerra.json`; el frontend ya lo muestra solo si existe). El usuario enviará el backend cuando terminen estas fases.
 - **Por definir:** `index.html` y `clan.html` calculan los tres momentos por su cuenta; podrían pasar a `fmtTresTiemposDeResultado()` para tener una sola forma. No se tocó para no abarcar de más.
 - **Por definir (la usuaria), P-4:** a dónde debe ir el foco tras un veto exitoso (`perfil.html`) y tras «Marcar visto» (`admin.html`; `cargarGanadoresTorneo()` repinta la lista y el botón deja de existir). Hoy cae en `<body>`. (04-oct-2026) → §PF018
-- **Por definir (la usuaria), P-1:** si la tecla Escape debe cerrar el menú móvil abierto (hoy no hay manejador; no es un incumplimiento obligatorio, es una comodidad). (03-oct-2026) → §PF018
 - **Por verificar al desplegar el backend (requiere subir `Base.md`):** (a) el tiempo de `?dashboard=json` en día de guerra con `metaCruzada` (estuvo desactivada desde el 19-sep por tardar 28 a 39 s; si vuelve a ser lenta, revisar `_getMapaCruceMetaGuerraLogs_()`); (b) que viernes y sábado no salgan como opcionales por error y que `_diasOpcionalesClanSemana_()` recorra viernes a domingo (07-oct-2026). → §PF027
 - **Por verificar con `Base.md`:** comentario de `alMax` en `pintarColeccion()` (`perfil.html`): falta documentar en el backend el comportamiento del nivel máximo; y que `ext.batallas` sea siempre victorias más derrotas. → §PF027
 - **Sin probar:** que `sw.js` v14 a v16 llegue a un visitante con la versión anterior (ciclo `install`/`activate`), y los cambios del 5 al 7-oct de `perfil.html`, `guerra.html` y Noticias en navegador con backend real. → §PF027
@@ -25,6 +24,7 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 
 ## 11-oct-2026
 
+- **`sw.js` v27 · `assets/js/ui/effects.js` · Escape cierra el menú móvil (P-1).** `marcarNavActiva()`: `keydown` en `document`; con el menú abierto, Escape quita `open`, restablece `aria-expanded` y `aria-label` y devuelve el foco a `#navToggle`. → §PF018
 - **`sw.js` v26 · `guerra.html` · Día en curso del mini historial.** `histPintar()` y `histPintarComparacion()`: la fila del día en curso se sombrea (`hist-hoy`) y, si lleva menos de 4 ataques y no es opcional, el número lleva un asterisco en superíndice con su nota al pie; el 0 se sigue mostrando como está registrado. Nuevas: `histHoyIso()`, `histPendiente()` y `histNotasDiaEnCurso()`; reutiliza `ATAQUES_MAX_HOY`. Cierra el pendiente de `histStats()`. → §PF027
 
 ## 09-oct-2026

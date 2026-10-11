@@ -21,6 +21,17 @@ function marcarNavActiva(){
       toggle.setAttribute('aria-expanded', abierto ? 'true' : 'false');
       toggle.setAttribute('aria-label', abierto ? 'Cerrar menú' : 'Abrir menú');
     });
+    // MEJORA (11-oct-2026, accesibilidad — P-1, decidido por Claude por encargo
+    // de la usuaria): Escape cierra el menú móvil abierto y devuelve el foco al
+    // botón ☰, para que quien usa teclado o lector de pantalla no quede dentro
+    // de un panel que no puede cerrar sin el mouse. [→ Contexto_Base_Web.md §PF018]
+    document.addEventListener('keydown', (e) => {
+      if (e.key !== 'Escape' || !links.classList.contains('open')) return;
+      links.classList.remove('open');
+      toggle.setAttribute('aria-expanded', 'false');
+      toggle.setAttribute('aria-label', 'Abrir menú');
+      toggle.focus();
+    });
   }
 }
 

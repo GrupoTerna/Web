@@ -97,7 +97,9 @@
 // v26 (11-oct-2026): guerra.html cambió (CORE_ASSETS) -- en el mini historial y el comparador de un jugador, el día de guerra en curso se sombrea y, si lleva
 // menos de 4 ataques y no es opcional, el número lleva un asterisco en superíndice con su nota al pie. Se sube la versión para que 'activate' borre v25 y
 // nadie siga con el guerra.html viejo.
-const CACHE_NAME = 'terna-static-v26';
+// v27 (11-oct-2026): assets/js/ui/effects.js cambió (CORE_ASSETS) -- la tecla Escape cierra el menú móvil abierto y devuelve el foco al botón ☰ (P-1).
+// Se sube la versión para que 'activate' borre v26 y nadie siga con el effects.js viejo.
+const CACHE_NAME = 'terna-static-v27';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
