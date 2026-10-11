@@ -297,12 +297,19 @@
   .ai-clan-card table th{font-size:13px;}
   .ai-clan-card table td{font-size:13px;}
   /* La tabla del Log de Guerra (Temporada/Semana/Puesto/Barcos/Trofeos, pintada
-     por pintarTablaGuerraLog() más abajo) es la única tabla de esta página
+     por cargarGuerraLog() más abajo) es la única tabla de esta página
      sin clase propia — se ajusta acá vía su contenedor para el mismo
      13px/13px del resto de tablas del panel. */
   #guerraLogWrap table th{font-size:13px;}
   #guerraLogWrap table td{font-size:13px;}
   .ai-clan-card table td.col-jugador{text-align:left;}
+  /* 11-oct-2026 (pedido usuario): Log de Guerra en una sola tabla, centrada, con valores centrados y una línea divisoria entre clanes. */
+  .tbl-log-guerra{margin:0 auto; width:auto;}
+  .tbl-log-guerra th, .tbl-log-guerra td{text-align:center; white-space:nowrap; font-size:13px;}
+  .tbl-log-guerra th.log-sep, .tbl-log-guerra td.log-sep{box-shadow:inset 1px 0 0 var(--line-strong);}
+  /* 11-oct-2026 (pedido usuario): todas las tablas de esta página muestran siempre sus barras (arriba, abajo y a la derecha), aunque la tabla quepa sin desbordar. */
+  .tabla-scroll-wrap{overflow:scroll !important;}
+  .tabla-scroll-top{overflow-x:scroll !important;}
   /* La tabla de Activos pasó de 6 a 16 columnas (Jugador + 3 megacategorías de 5 columnas c/u) — el min-width:420px genérico de .table-scroll (pensado para tablas angostas como "Pendientes de Atacar" y también usado por la tabla, más chica, de Inactivos de abajo)… */
   .ai-clan-card .tbl-activos-grid{min-width:760px;}
   /* sección NUEVA #controlTemporadaSection, debajo de Cuadrícula de Activos — mismo criterio visual (tarjeta por clan, 3 megacategorías Ataques/Puntaje/Barcos con .ai-grp-atq/pje/brc) pero con una columna POR SEMANA de guerra ya jugada en la temporada (en vez de… Historial en CHANGELOG.md. */
@@ -816,8 +823,8 @@ function gridEstadoDe(gridId){
  * la flechita de orden — mismo patrón visual que .rt-th-inner en
  * directorio.html. Los <th colspan> de la 1ª fila (Ataques/Puntaje/
  * Barcos) NUNCA pasan por acá — se siguen pintando planos, sin botón. */
-function thFiltroGrid(claseTh, label, colKey){
-  return `<th class="${claseTh}" scope="col"><div class="rt-th-inner"><span>${esc(label)}</span><span class="rt-orden-indicador" data-col="${colKey}"></span><button type="button" class="rt-filtro-btn" data-col="${colKey}" title="Ordenar o filtrar por ${esc(label)}" aria-label="Ordenar o filtrar por ${esc(label)}">${ICONO_FILTRO_GRID}</button></div></th>`;
+function thFiltroGrid(claseTh, label, colKey, attrs){
+  return `<th class="${claseTh}" scope="col"${attrs ? ' ' + attrs : ''}><div class="rt-th-inner"><span>${esc(label)}</span><span class="rt-orden-indicador" data-col="${colKey}"></span><button type="button" class="rt-filtro-btn" data-col="${colKey}" title="Ordenar o filtrar por ${esc(label)}" aria-label="Ordenar o filtrar por ${esc(label)}">${ICONO_FILTRO_GRID}</button></div></th>`;
 }
 /** 5 columnas fijas J/V/S/D/Total de una megacategoría (Valores diarios). */
 function filaSubEncabezadosMega(gpClase, prefijo){
@@ -876,7 +883,8 @@ function cerrarGridFiltroPopoverSiFuera(e){
 
 function valoresUnicosGridColumna(col, filas){
   const set = new Set();
-  filas.forEach(f => { const r = col.raw(f); if (r !== null && r !== undefined) set.add(fmtNum(Number(r) || 0)); }); // las celdas vacías no entran al checklist
+  // 11-oct-2026: columnas de texto (tipo:'texto', p. ej. Tag/Nombre/Rango de Pendientes) listan el texto tal cual; las numéricas, el número formateado
+  filas.forEach(f => { const r = col.raw(f); if (r !== null && r !== undefined) set.add(col.tipo === 'texto' ? String(r) : fmtNum(Number(r) || 0)); }); // las celdas vacías no entran al checklist
   return [...set].sort((a, b) => a.localeCompare(b, 'es', { numeric:true, sensitivity:'base' }));
 }
 function compararPorGridColumna(col, dir){
@@ -886,6 +894,11 @@ function compararPorGridColumna(col, dir){
     const r1 = col.raw(f1), r2 = col.raw(f2);
     const n1 = r1 === null || r1 === undefined, n2 = r2 === null || r2 === undefined;
     if (n1 || n2) return n1 && n2 ? 0 : (n1 ? 1 : -1);
+    if (col.tipo === 'texto'){
+      // `ord` (opcional) da el valor de orden cuando no es alfabético (p. ej. Rango: Líder, Colíder, Veterano, Miembro)
+      if (col.ord) return signo * ((Number(col.ord(f1)) || 0) - (Number(col.ord(f2)) || 0));
+      return signo * String(r1).localeCompare(String(r2), 'es', { numeric:true, sensitivity:'base' });
+    }
     return signo * ((Number(r1) || 0) - (Number(r2) || 0));
   };
 }
@@ -910,6 +923,7 @@ function gridRepintar(gridId, tabla, columnas, filasBase, renderFila){
 function letraFiltroDeGridId(gridId){
   if (gridId.startsWith('activos:')) return letraSeleccionadaActivos;
   if (gridId.startsWith('temporada:')) return letraSeleccionadaTemporada;
+  if (gridId.startsWith('pend:')) return letraSeleccionadaPend; // 11-oct-2026: Pendientes de Atacar ahora usa el mismo filtro de columnas
   return null;
 }
 
@@ -922,6 +936,7 @@ function gridAplicarFiltros(gridId, tabla){
     const pasaCols = cols.every(colKey => {
       const celda = fila.querySelector(`[data-col="${colKey}"]`);
       const filtro = estado.filtros[colKey];
+      if (celda && celda.dataset.tipo === 't') return filtro instanceof Set ? filtro.has(celda.dataset.raw || '') : true; // columna de texto: solo checklist
       const raw = celda && celda.dataset.raw !== undefined && celda.dataset.raw !== '' ? Number(celda.dataset.raw) : null;
       if (raw === null || isNaN(raw)) return false;
       if (filtro instanceof Set) return filtro.has(fmtNum(raw));
@@ -1142,6 +1157,7 @@ function botonesExportGrid(gridId){
 const fmtDec = n => n.toLocaleString('es', { maximumFractionDigits:1 });
 /* Fila de Total y Promedio al pie de la tabla, sobre las filas visibles. Las celdas vacías (no estuvo) no cuentan, ni en el total ni en el promedio. */
 function gridActualizarTotales(tabla){
+  if (tabla.hasAttribute('data-sin-totales')) return; // Log de Guerra: sumar puestos/barcos de semanas distintas no tiene sentido
   const cols = [...tabla.querySelectorAll('thead tr:nth-child(2) .rt-filtro-btn')].map(b => b.dataset.col);
   if (!cols.length) return;
   const visibles = [...tabla.querySelectorAll('tbody tr')].filter(tr => tr.style.display !== 'none');
@@ -1226,6 +1242,7 @@ function soloCeroDeGridId(gridId){
 }
 /* Cuenta las filas con 0 real de toda la sección y lo muestra en el botón. */
 function actualizarBotonSoloCero(gridId){
+  if (!gridId.startsWith('activos:') && !gridId.startsWith('temporada:')) return; // las demás tablas (Pendientes, Log) no tienen este botón
   const act = gridId.startsWith('activos:');
   const btn = document.getElementById(act ? 'soloCeroActivosBtn' : 'soloCeroTemporadaBtn');
   const wrap = document.getElementById(act ? 'controlActivosWrap' : 'controlTemporadaWrap');
@@ -1271,12 +1288,12 @@ function abrirGridFiltroColumna(gridId, col, btnEl, tabla, filasBase, columnas, 
   pop.dataset.col = col.key;
   pop.innerHTML = `
     <div class="rt-filtro-orden">
-      <button type="button" class="rt-orden-btn${ordenActivo === 'asc' ? ' activo' : ''}" data-dir="asc">↑ Menor a mayor</button>
-      <button type="button" class="rt-orden-btn${ordenActivo === 'desc' ? ' activo' : ''}" data-dir="desc">↓ Mayor a menor</button>
+      <button type="button" class="rt-orden-btn${ordenActivo === 'asc' ? ' activo' : ''}" data-dir="asc">${col.tipo === 'texto' ? (col.ord ? '↑ Primero' : '↑ A → Z') : '↑ Menor a mayor'}</button>
+      <button type="button" class="rt-orden-btn${ordenActivo === 'desc' ? ' activo' : ''}" data-dir="desc">${col.tipo === 'texto' ? (col.ord ? '↓ Último' : '↓ Z → A') : '↓ Mayor a menor'}</button>
       ${ordenActivo ? '<button type="button" class="rt-orden-quitar">✕ Quitar orden</button>' : ''}
     </div>
     <div class="rt-filtro-divisor"></div>
-    <div class="rt-filtro-comparar">
+    <div class="rt-filtro-comparar"${col.tipo === 'texto' ? ' hidden' : ''}>
       <select class="rt-comparar-operador" aria-label="Condición de comparación">
         <option value="">Sin condición de comparación</option>
         <option value="gt">Mayor que…</option>
@@ -1287,7 +1304,7 @@ function abrirGridFiltroColumna(gridId, col, btnEl, tabla, filasBase, columnas, 
       </select>
       <input type="number" class="rt-comparar-valor" placeholder="Valor…" aria-label="Valor a comparar">
     </div>
-    <div class="rt-filtro-divisor"></div>
+    <div class="rt-filtro-divisor"${col.tipo === 'texto' ? ' hidden' : ''}></div>
     <input type="text" class="rt-filtro-buscar" placeholder="Buscar valor…" aria-label="Buscar valor">
     <div class="rt-filtro-todos">
       <button type="button" class="rt-filtro-todos-btn" data-modo="todo">Seleccionar todo</button>
@@ -1427,10 +1444,8 @@ function gestionarTabsClan(tabsWrapId, wrapId, obtenerSel, fijarSel){
 function aplicarFiltroLetraPendientes(){
   const wrap = document.getElementById('pendWrap');
   if (!wrap) return;
-  wrap.querySelectorAll('tr[data-letra]').forEach(tr => {
-    tr.style.display = (!letraSeleccionadaPend || tr.dataset.letra === letraSeleccionadaPend) ? '' : 'none';
-  });
-  wrap.querySelectorAll('table').forEach(renumerarFilas); // N° automático: se recalcula con la letra elegida
+  // 11-oct-2026: la letra se combina con los filtros por columna de cada tabla (gridAplicarFiltros() lee ambos y renumera la columna N°)
+  wrap.querySelectorAll('table[data-grid-id]').forEach(tabla => gridAplicarFiltros(tabla.dataset.gridId, tabla));
 }
 
 /** aplicarFiltroLetraGrid(tablasWrapId) → reaplica, en cada tabla ya
@@ -1701,35 +1716,53 @@ function render(data){
   const clanesPend = Object.keys(pendPorClan).sort((a, b) => ordenClanIndex(a) - ordenClanIndex(b));
   const pendWrap = document.getElementById('pendWrap');
   const pendEsAdmin = esAdminLogueado();
+  // 11-oct-2026 (pedido usuario): Pendientes de Atacar usa el mismo filtro/orden por columna que las demás cuadrículas (inicializarGridFiltro) y N° automático. El <tbody> arranca vacío y lo llena gridRepintar().
+  const _nombreMostradoPend = (p) => p.nombre || p.nomMulti || p.tag;
+  const colsPend = [
+    { key:'tag', tipo:'texto', raw: p => p.tag || '—' },
+    { key:'nombre', tipo:'texto', raw: p => _nombreMostradoPend(p) || '—' },
+    ...(pendEsAdmin ? [
+      { key:'jugador', tipo:'texto', raw: p => p.nomMulti || '—' },
+      { key:'prestamo', tipo:'texto', raw: p => p.prestamo || '—' },
+    ] : []),
+    { key:'rango', tipo:'texto', raw: p => p.rango || '—', ord: p => _idxRangoPend(p.rango) },
+    { key:'faltantes', raw: p => Number(p.faltantes) || 0 },
+  ];
+  const renderFilaPend = p => {
+    const nombreMostrado = _nombreMostradoPend(p);
+    const letra = primeraLetraFiltro(nombreMostrado);
+    const royaleOk = urlValida(p.royaleApi);
+    const cwOk = urlValida(p.cwStats);
+    const t = (key, val, cls) => `<td${cls ? ` class="${cls}"` : ''} data-col="${key}" data-tipo="t" data-raw="${esc(val)}">`;
+    return `
+            <tr data-letra="${esc(letra)}">
+              <td class="col-n"></td>
+              ${t('tag', p.tag || '—', 'col-tag')}${esc(p.tag || '—')}</td>
+              ${t('nombre', nombreMostrado || '—', 'col-nombre')}${p.tag ? enlaceJugador(nombreMostrado, p.tag) : esc(nombreMostrado)}</td>
+              ${pendEsAdmin ? `${t('jugador', p.nomMulti || '—')}${esc(p.nomMulti || '—')}</td>${t('prestamo', p.prestamo || '—')}${esc(p.prestamo || '—')}</td>` : ''}
+              ${t('rango', p.rango || '—')}${esc(p.rango || '—')}</td>
+              <td class="falt" data-col="faltantes" data-raw="${Number(p.faltantes) || 0}">${fmtNum(p.faltantes)}</td>
+              <td class="col-perfil-icons">${royaleOk ? `<a href="${esc(p.royaleApi)}" target="_blank" rel="noopener" aria-label="RoyaleAPI" title="RoyaleAPI">${ICONO_ROYALEAPI}</a>` : ''}${cwOk ? `<a href="${esc(p.cwStats)}" target="_blank" rel="noopener" aria-label="CWStats" title="CWStats">${ICONO_CWSTATS}</a>` : ''}</td>
+            </tr>`;
+  };
   pendWrap.innerHTML = clanesPend.length ? clanesPend.map(clanNombre => {
     const filas = pendPorClan[clanNombre];
     return `
     <div class="card ai-clan-card" data-clan="${esc(clanNombre)}" style="padding:16px;">
       <h3>${enlaceClan(clanNombre)} <span class="text-faint" style="font-family:var(--f-mono); font-size:12px; font-weight:400;">(${filas.length} pendiente${filas.length === 1 ? '' : 's'})</span></h3>
-      <div class="table-scroll"><table class="tbl-pendientes">
+      <div class="table-scroll"><table class="tbl-pendientes" data-grid-id="pend:${esc(clanNombre)}">
         <thead><tr>
-          <th scope="col">N°</th><th scope="col">Tag</th><th scope="col">Nombre</th>${pendEsAdmin ? '<th scope="col">Jugador</th><th scope="col">Préstamo</th>' : ''}<th scope="col">Rango</th><th scope="col">Faltantes</th><th scope="col">Perfil</th>
+          <th class="col-n" scope="col">N°</th>${thFiltroGrid('', 'Tag', 'tag')}${thFiltroGrid('', 'Nombre', 'nombre')}${pendEsAdmin ? thFiltroGrid('', 'Jugador', 'jugador') + thFiltroGrid('', 'Préstamo', 'prestamo') : ''}${thFiltroGrid('', 'Rango', 'rango')}${thFiltroGrid('', 'Faltantes', 'faltantes')}<th scope="col">Perfil</th>
         </tr></thead>
-        <tbody>${filas.map((p, i) => {
-          const nombreMostrado = p.nombre || p.nomMulti || p.tag;
-          const letra = primeraLetraFiltro(nombreMostrado);
-          const royaleOk = urlValida(p.royaleApi);
-          const cwOk = urlValida(p.cwStats);
-          return `
-            <tr data-letra="${esc(letra)}">
-              <td class="col-n">${i + 1}</td>
-              <td class="col-tag">${esc(p.tag || '—')}</td>
-              <td class="col-nombre">${p.tag ? enlaceJugador(nombreMostrado, p.tag) : esc(nombreMostrado)}</td>
-              ${pendEsAdmin ? `<td>${esc(p.nomMulti || '—')}</td><td>${esc(p.prestamo || '—')}</td>` : ''}
-              <td>${esc(p.rango || '—')}</td>
-              <td class="falt">${fmtNum(p.faltantes)}</td>
-              <td class="col-perfil-icons">${royaleOk ? `<a href="${esc(p.royaleApi)}" target="_blank" rel="noopener" aria-label="RoyaleAPI" title="RoyaleAPI">${ICONO_ROYALEAPI}</a>` : ''}${cwOk ? `<a href="${esc(p.cwStats)}" target="_blank" rel="noopener" aria-label="CWStats" title="CWStats">${ICONO_CWSTATS}</a>` : ''}</td>
-            </tr>`;
-        }).join('')}
-        </tbody>
+        <tbody></tbody>
       </table></div>
     </div>`;
   }).join('') : '<div class="empty">Nadie tiene ataques pendientes 🎉</div>';
+  clanesPend.forEach(clanNombre => {
+    const gridId = `pend:${clanNombre}`;
+    const tabla = pendWrap.querySelector(`table[data-grid-id="${CSS.escape(gridId)}"]`);
+    if (tabla) inicializarGridFiltro(gridId, tabla, colsPend, pendPorClan[clanNombre], renderFilaPend);
+  });
   // FIX (18-sep-2026, pedido usuario — "ninguna tabla debe tener la barra
   // nativa, todas deben tener barra superior, inferior y vertical, todas
   // moradas"): misma barra morada (arriba sintética + abajo/derecha
@@ -2412,54 +2445,73 @@ async function cargarGuerraLog(){
     const clanes = (data.clanes || []).filter(c => c && c.clan);
     if (!clanes.length){ section.style.display = 'none'; return; }
 
-    let idxActivo = 0;
-
-    function pintarTablaGuerraLog(){
-      const c = clanes[idxActivo];
-      const semanas = c.semanas || [];
-      const hayEstimado = semanas.some(s => s && s.rankEstimado && Number(s.rank) > 0);
-      const hayColiseo  = semanas.some(s => s && s.coliseo);
-      const notaLog = (hayEstimado || hayColiseo)
-        ? `<div class="tlp-nota">${hayEstimado ? NOTA_PUESTO_ESTIMADO + ' ' : ''}${hayColiseo ? 'Coliseo: los barcos no avanzan, por eso la columna Barcos va en —.' : ''}</div>`
-        : '';
-      tableWrap.innerHTML = semanas.length ? `
-        <div class="card" style="padding:12px;"><div class="table-scroll"><table>
-          <thead><tr><th class="col-n" scope="col">N°</th><th scope="col">Temporada</th><th scope="col">Semana</th><th scope="col">Puesto</th><th scope="col">Barcos</th><th scope="col">Trofeos de guerra</th></tr></thead>
-          <tbody>${semanas.map((s, i) => {
-            const delta = Number(s.trophyDelta) || 0;
-            const deltaHtml = delta
-              ? ` <span style="font-family:var(--f-mono); font-size:11px; color:${delta > 0 ? 'var(--ok)' : 'var(--danger)'};">(${delta > 0 ? '+' : ''}${fmtNum(delta)})</span>`
-              : '';
-            return `
+    // 11-oct-2026 (pedido usuario): una sola tabla con todos los clanes (antes una pestaña por clan). Una fila por Temporada/Semana (la más reciente arriba) y, por cada clan, Puesto / Barcos / Trofeos de guerra; con N° automático, filtro/orden por columna y barras de desplazamiento.
+    tabsWrap.innerHTML = '';
+    tabsWrap.style.display = 'none';
+    const clanesLog = clanes.slice().sort((a, b) => ordenClanIndex(a.clan) - ordenClanIndex(b.clan));
+    const filasMap = new Map();
+    clanesLog.forEach((c, ci) => (c.semanas || []).forEach(s => {
+      if (!s) return;
+      const k = `${s.temporada}|${s.semana}`;
+      if (!filasMap.has(k)) filasMap.set(k, { temporada: Number(s.temporada) || 0, semana: Number(s.semana) || 0, porClan: {} });
+      filasMap.get(k).porClan[ci] = s;
+    }));
+    const filasLog = [...filasMap.values()].sort((a, b) => (b.temporada - a.temporada) || (b.semana - a.semana));
+    const hayEstimado = filasLog.some(f => Object.values(f.porClan).some(s => s.rankEstimado && Number(s.rank) > 0));
+    const hayColiseo  = filasLog.some(f => Object.values(f.porClan).some(s => s.coliseo));
+    const notaLog = (hayEstimado || hayColiseo)
+      ? `<div class="tlp-nota">${hayEstimado ? NOTA_PUESTO_ESTIMADO + ' ' : ''}${hayColiseo ? 'Coliseo: los barcos no avanzan, por eso la columna Barcos va en —.' : ''}</div>`
+      : '';
+    const colsLog = [
+      { key:'temp', raw: f => f.temporada },
+      { key:'sem', raw: f => f.semana },
+    ];
+    clanesLog.forEach((c, ci) => {
+      colsLog.push({ key:`c${ci}-puesto`, raw: f => { const s = f.porClan[ci]; return (s && Number(s.rank) > 0) ? Number(s.rank) : null; } });
+      colsLog.push({ key:`c${ci}-barcos`, raw: f => { const s = f.porClan[ci]; return (s && !s.coliseo && s.boat !== null && s.boat !== undefined) ? (Number(s.boat) || 0) : null; } });
+      colsLog.push({ key:`c${ci}-trofeos`, raw: f => { const s = f.porClan[ci]; return (s && s.trophy !== null && s.trophy !== undefined) ? (Number(s.trophy) || 0) : null; } });
+    });
+    const renderFilaLog = f => {
+      const celdas = clanesLog.map((c, ci) => {
+        const s = f.porClan[ci];
+        const sep = ' class="log-sep"';
+        if (!s) return `<td${sep} data-col="c${ci}-puesto" data-raw="">—</td><td data-col="c${ci}-barcos" data-raw="">—</td><td data-col="c${ci}-trofeos" data-raw="">—</td>`;
+        const rank = Number(s.rank) > 0 ? Number(s.rank) : null;
+        const delta = Number(s.trophyDelta) || 0;
+        const deltaHtml = delta
+          ? ` <span style="font-family:var(--f-mono); font-size:11px; color:${delta > 0 ? 'var(--ok)' : 'var(--danger)'};">(${delta > 0 ? '+' : ''}${fmtNum(delta)})</span>`
+          : '';
+        const boat = colsLog.find(x => x.key === `c${ci}-barcos`).raw(f);
+        const trof = colsLog.find(x => x.key === `c${ci}-trofeos`).raw(f);
+        return `<td${sep} data-col="c${ci}-puesto" data-raw="${rank === null ? '' : rank}"${s.rankEstimado && rank ? ' title="Puesto estimado"' : ''}>${rank ? (s.rankEstimado ? '~' : '') + '#' + fmtNum(rank) : '—'}</td>`
+          + `<td data-col="c${ci}-barcos" data-raw="${boat === null ? '' : boat}">${boat === null ? '—' : fmtNum(boat)}</td>`
+          + `<td data-col="c${ci}-trofeos" data-raw="${trof === null ? '' : trof}">${trof === null ? (deltaHtml ? deltaHtml.trim() : '—') : fmtNum(trof) + deltaHtml}</td>`;
+      }).join('');
+      return `<tr><td class="col-n"></td><td data-col="temp" data-raw="${f.temporada}">${fmtNum(f.temporada)}</td><td data-col="sem" data-raw="${f.semana}">${fmtNum(f.semana)}</td>${celdas}</tr>`;
+    };
+    if (filasLog.length){
+      tableWrap.innerHTML = `
+        <div class="card" style="padding:12px;"><div class="table-scroll"><table class="tbl-log-guerra" data-grid-id="log:todos" data-sin-totales>
+          <thead>
             <tr>
-              <td class="col-n">${i + 1}</td>
-              <td>${fmtNum(s.temporada)}</td>
-              <td>${fmtNum(s.semana)}</td>
-              <td${s.rankEstimado && Number(s.rank) > 0 ? ' title="Puesto estimado"' : ''}>${Number(s.rank) > 0 ? (s.rankEstimado ? '~' : '') + '#' + fmtNum(s.rank) : '—'}</td>
-              <td>${s.coliseo ? '—' : fmtNum(s.boat)}</td>
-              <td>${fmtNum(s.trophy)}${deltaHtml}</td>
-            </tr>`;
-          }).join('')}
-          </tbody>
-        </table></div></div>${notaLog}` : '<div class="empty">Sin historial registrado todavía para este clan.</div>';
-      // FIX (18-sep-2026, pedido usuario): esta era la 3ra tabla pendiente
-      // de la tanda de "ninguna tabla debe tener la barra nativa" -- las
-      // otras dos de esta misma página (Pendientes de Atacar e Inactivos)
-      // ya llaman a activarBarraScrollTabla() más abajo/arriba.
+              <th class="col-n" rowspan="2" scope="col">N°</th>
+              ${thFiltroGrid('', 'Temporada', 'temp', 'rowspan="2"')}
+              ${thFiltroGrid('', 'Semana', 'sem', 'rowspan="2"')}
+              ${clanesLog.map(c => `<th class="log-sep" colspan="3" scope="colgroup">${enlaceClan(c.clan)}</th>`).join('')}
+            </tr>
+            <tr>
+              ${clanesLog.map((c, ci) => thFiltroGrid('log-sep', 'Puesto', `c${ci}-puesto`) + thFiltroGrid('', 'Barcos', `c${ci}-barcos`) + thFiltroGrid('', 'Trofeos de guerra', `c${ci}-trofeos`)).join('')}
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table></div></div>${notaLog}`;
+      const tablaLog = tableWrap.querySelector('table[data-grid-id="log:todos"]');
+      inicializarGridFiltro('log:todos', tablaLog, colsLog, filasLog, renderFilaLog);
       const twrap = tableWrap.querySelector('.table-scroll');
       if (twrap) activarBarraScrollTabla(twrap);
+    } else {
+      tableWrap.innerHTML = '<div class="empty">Sin historial registrado todavía.</div>';
     }
-
-    tabsWrap.innerHTML = clanes.map((c, i) => `
-      <button type="button" class="tab-btn guerra-log-tab${i === idxActivo ? ' active' : ''}" data-idx="${i}">${esc(c.clan)}</button>`).join('');
-    tabsWrap.querySelectorAll('.guerra-log-tab').forEach(btn => {
-      btn.addEventListener('click', () => {
-        idxActivo = Number(btn.dataset.idx);
-        tabsWrap.querySelectorAll('.guerra-log-tab').forEach(b => b.classList.toggle('active', Number(b.dataset.idx) === idxActivo));
-        pintarTablaGuerraLog();
-      });
-    });
-    pintarTablaGuerraLog();
     section.style.display = '';
   }catch(err){
     // Defensivo: mismo criterio que el resto de secciones de esta página

@@ -111,7 +111,9 @@
 // Se sube la versión para que 'activate' borre v31 y nadie siga con el guerra.html viejo.
 // v33 (11-oct-2026): index.html y guerra.html cambiaron (CORE_ASSETS) -- el sobrenombre del clan (Principal, Clan 2…) solo acompaña al nombre real en el Top de la semana de index; «Guerra de Hoy» trae un botón «Ver pronóstico» que carga el pronóstico a pedido.
 // Se sube la versión para que 'activate' borre v32 y nadie siga con el index/guerra viejos.
-const CACHE_NAME = 'terna-static-v33';
+// v34 (11-oct-2026): guerra.html cambió (CORE_ASSETS) -- Pendientes de Atacar con filtros por columna, Log de Guerra en una sola tabla centrada con filtros y barras de desplazamiento siempre visibles en todas las tablas.
+// Se sube la versión para que 'activate' borre v33 y nadie siga con el guerra.html viejo.
+const CACHE_NAME = 'terna-static-v34';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
