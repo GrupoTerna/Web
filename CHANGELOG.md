@@ -4,7 +4,7 @@ Lista corta de lo que se hizo, de más reciente a más antiguo. Cada entrada tra
 
 **Cómo funciona el código hoy, por qué se decidió así, qué se probó y se descartó: no va aquí, va en `Contexto_Base_Web.md`.** Las reglas de redacción están en `Consolidados de cambios/Reglas_Consolidados.md` (repo `Backend`), sección 5. Los pendientes tampoco viven en cada entrada: están en «Abiertos». El detalle largo anterior sigue en el historial de git.
 
-*Traslado en curso (desde el 11-oct-2026):* las entradas desde el 04-oct-2026 ya están en formato corto y su contenido pasó a `§PF025` (8 y 9-oct), `§PF027` (5 a 7-oct) y `§PF018` (octava sesión, 2 al 5-oct). Las tandas 4 a 2 del 03 y 02-oct, la Fase 11 y el TBT de `guerra` (02-oct) también pasaron a `§PF018`, y la séptima y la sexta sesión (30 y 29-sep) y las tandas D, B y A de la Fase 5b (28-sep) a `§PF017`. Las anteriores (desde «Fase 5b tanda C» del 28-sep, y antes; la tanda A ya pasó) conservan su texto largo hasta que se trasladen, por tandas.
+*Traslado en curso (desde el 11-oct-2026):* las entradas desde el 04-oct-2026 ya están en formato corto y su contenido pasó a `§PF025` (8 y 9-oct), `§PF027` (5 a 7-oct) y `§PF018` (octava sesión, 2 al 5-oct). Las tandas 4 a 2 del 03 y 02-oct, la Fase 11 y el TBT de `guerra` (02-oct) también pasaron a `§PF018`, y la séptima y la sexta sesión (30 y 29-sep) y las tandas D, C, B y A de la Fase 5b (28-sep) a `§PF017`. Las anteriores (desde «Fase 11 del plan T_Lista» del 26-sep, y antes) conservan su texto largo hasta que se trasladen, por tandas.
 
 ---
 
@@ -118,52 +118,13 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 - **`index.html` y `perfil.html` · La CSP bloqueaba las imágenes de cartas.** `<meta>` de CSP: se añade `https://api-assets.clashroyale.com` al `img-src` (Buenas prácticas de `index` de 93 a 100). → §PF017
 - **Medido, sin cambios de código: Lighthouse tras las tandas 1 a 5, `directorio` y `Skull_05`.** `directorio` CLS de 0,306 a 0,022; `guerra` y `directorio` Buenas prácticas de 96 a 100; CLS de 0,15 del hero de `index` anotado y resuelto el 30-sep. → §PF017
 
-## 28-sep-2026 (Fase 5b, tandas D, B y A)
+## 28-sep-2026 (Fase 5b, tandas D, C, B y A)
 
 - **`sw.js` v7 · `torneos.html` · El nombre de un ex-miembro ya no enlaza a su perfil (tanda D).** `apiGetTorneosCompartido()` (`conSesion:true`), `enlaceParticipante()` (nueva, en los 5 lugares donde se pinta un nombre), `calcularRankingVictoriasTorneos()` (arrastra `tag`) y CSS `.participante-link`. Backend: `34_Web_API.gs`, `_webTorneos()`, `_webGanadoresTorneoMasReciente()` y `_webHistorialTorneos()` (campo `tag` según `esAdmin`); `08_Web_Endpoints.gs`, `doGet`. Los ex-miembros siguen en el histórico (confirmado). → §PF017
 - **Backend · Avisos renumerados (tanda D).** `34_Web_API.gs`: el segundo AVISO A5 pasó a A8 y el nuevo de la tanda D a A9; el 2-oct se volvió a numerar (el que chocaba pasó a A10). → §PF017
 - **`directorio.html` · El aviso de «clan rival» de Ingresos recientes solo lo ve un admin (tanda B).** `apiGet('webIngresosRecientes')` con `conSesion:true`. Backend: `34_Web_API.gs`, `_webIngresosRecientes()` (recorta después de leer la caché, no antes de guardarla); `08_Web_Endpoints.gs`, `doGet`. Anotado en la tanda D; el código ya estaba desde la tanda B. → §PF017
 - **`sw.js` v6 · `api.js` · El estado «Inactivo» de un Tag solo lo ve un admin (tanda A).** `apiGet()`: opción `opts.conSesion` (sin caché ni `staleIfError`). `perfil.html`: `webPerfil` con `conSesion:true`. `directorio.html`: `webCompararJugadores` con `conSesion:true`. Backend: `34_Web_API.gs`, `_webPerfilJugador()`. → §PF017
-
----
-
-## guerra.html y `34_Web_API.gs` — Fase 5b tanda C del Consolidado de mejoras (28-sep-2026)
-
-### 28-sep-2026 — `nomMulti` y `prestamo` de los pendientes de guerra solo los ve un admin
-**Nota:** igual que la tanda B de arriba, esta entrada se agrega recién en
-la tanda D — el cambio ya estaba aplicado desde la tanda C.
-
-Decisión del usuario: "a los no-admin no se les muestra el nommulti ni
-préstamo de nadie, sin excepciones". La tabla "Ataques pendientes" de
-`guerra.html` traía, para cada jugador que todavía no usó todos sus ataques,
-el nombre de quien tiene prestada la cuenta (`Nom_Multi`) y si está prestada
-(`prestamo`) — visible para cualquiera con el token público.
-
-- **`34_Web_API.gs`, `_webGuerraEnVivo(opciones)`:** quita `nomMulti` y
-  `prestamo` de cada pendiente cuando no hay sesión de admin, DESPUÉS de
-  leer la caché grande (la misma caché que también llena el bot con la
-  respuesta completa, sin recortar).
-- **`08_Web_Endpoints.gs`, `doGet`:** la ruta de `webGuerraEnVivo` pasa
-  `{esAdmin: _webAuthValidar(e.parameter.sessionToken)}`.
-- **`guerra.html`:** `apiGet('webGuerraEnVivo', ...)` manda `conSesion: true`.
-- **Efecto visible para visitantes:** en la tabla de pendientes,
-  `guerra.html` pinta `p.nombre || p.nomMulti || p.tag`; si un pendiente no
-  trae `nombre` (poco frecuente), el visitante ahora ve el Tag en vez del
-  `Nom_Multi`. Antes de esta decisión se había preguntado si mostrar el Tag
-  en ese caso era lo correcto — el usuario confirmó que sí.
-- **`clan.html`** también consume `webGuerraEnVivo` pero solo cuenta
-  pendientes (no usa `nomMulti` ni `prestamo`), así que no necesitó cambio.
-- **El dashboard de admins** (`?dashboard=1`/`json`, con `DASHBOARD_TOKEN`)
-  usa `_getDatosDashboard()` directo, sin pasar por `_webGuerraEnVivo()`, así
-  que no cambia.
-- **Corrección a un comentario viejo (regla 9):** el docblock de
-  `_webGuerraEnVivo()` decía que `guerra.html` "nunca" leía celular ni
-  préstamo — eso era incorrecto (sí traía `nomMulti`/`prestamo`, y
-  `guerra.html` los pintaba a los admins). El comentario ya se corrigió en
-  `34_Web_API.gs`.
-- **Pendiente de revisar:** `ctx`, `nuevos` y los demás campos del mismo
-  objeto de `_webGuerraEnVivo()` no se auditaron en esta tanda por si
-  exponen algo similar.
+- **`guerra.html` · `nomMulti` y `prestamo` de los pendientes solo los ve un admin (tanda C).** `apiGet('webGuerraEnVivo')` con `conSesion:true`; sin `nombre`, el visitante ve el Tag. Backend: `34_Web_API.gs`, `_webGuerraEnVivo()` (recorta después de leer la caché); `08_Web_Endpoints.gs`, `doGet`. Anotado en la tanda D; el código ya estaba desde la tanda C. → §PF017
 
 ---
 
