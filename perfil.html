@@ -480,9 +480,24 @@
   .pf-nota-guerra:empty{ display:none; }
   #mMiniGraficosWrap > .pf-nota-guerra{ grid-column:1 / -1; margin:0; }
   #mMiniGraficosWrap .mini-pie-titulo{ min-height:26px; }
-  #mMiniGraficosWrap .mini-disp-leyenda{ min-height:32px; align-items:center; align-content:center; }
   /* FIX (11-oct-2026, pedido usuario -- "en las gráficas de pastel, mueve los indicadores para arriba y la gráfica abajo, igual que en la de ataques y medallas"): en las dos tarjetas de pastel de este grid la leyenda (Victorias/Derrotas, Hechas/Recibidas) va arriba y el donut abajo, como la leyenda de chips va sobre el SVG en las de dispersión. Solo se invierte el orden visual con column-reverse (el HTML de _pastelMiniHtml() no cambia, así que el lector de pantalla sigue leyendo donut y luego leyenda); nowrap para que en columna no se parta en dos. Acotado a #mMiniGraficosWrap: «Cartas por nivel» (coleccion-nivel-pie-wrap) usa el mismo componente y queda como estaba. [→ Contexto_Base_Web.md §PF035] */
-  #mMiniGraficosWrap .mini-pie-cuerpo{ flex-direction:column-reverse; flex-wrap:nowrap; gap:14px; }
+  /* FIX (11-oct-2026, pedido usuario — "las minigráficas no empiezan ni terminan a la misma altura, sus contenedores sí están alineados pero las gráficas no"): antes cada cuerpo se centraba por su cuenta en el alto sobrante (flex:1 + justify-content:center), así que el donut y el SVG de dispersión quedaban a alturas distintas, y el donut mide menos que el trazado. Ahora las 4 tarjetas tienen la misma estructura vertical, arriba hacia abajo: título (26 + 16) · zona de leyenda de alto fijo (50 px, alineada arriba) · 10 px · zona de gráfica del alto del SVG de dispersión (243 x 142 px). Dentro de esa zona el donut se coloca para que su ANILLO coincida con el trazado de la dispersión: la línea de arriba (y = 20 de 152) y la base (y = 130 de 152). El anillo (r 38 + grosor 13 sobre un viewBox de 100) ocupa el 89 % de la caja del donut, de ahí que la caja sea de 115 px y no de 103. Medidas en función del ancho real del SVG (--mg-w = min(243px, ancho de la tarjeta)): alto de la zona 0.5846·w, trazado 0.4231·w, caja del donut 0.4754·w (mínimo 100 px para que quepa el número del centro), margen superior 0.0508·w. Las proporciones con cqw se aplican solo si el navegador las entiende (@supports); si no, valen las medidas fijas para 243 px. Acotado a #mMiniGraficosWrap: «Cartas por nivel» queda igual. [→ Contexto_Base_Web.md §PF039] */
+  #mMiniGraficosWrap .mini-pie-cuerpo, #mMiniGraficosWrap .mini-disp-cuerpo{ flex:none; flex-wrap:nowrap; justify-content:flex-start; gap:10px; }
+  #mMiniGraficosWrap .mini-pie-cuerpo{ flex-direction:column; }
+  #mMiniGraficosWrap .mini-pie-cuerpo > .mini-pie-leyenda{ order:-1; }
+  #mMiniGraficosWrap .mini-pie-leyenda, #mMiniGraficosWrap .mini-disp-leyenda{ height:50px; min-height:0; justify-content:center; align-items:flex-start; align-content:flex-start; }
+  #mMiniGraficosWrap .mini-pie-leyenda{ flex-direction:column; justify-content:flex-start; }
+  #mMiniGraficosWrap .mini-pie-donut-wrap{ width:115px; height:115px; margin:12px 0 14px; }
+  #mMiniGraficosWrap .mini-pie-extras{ margin-top:4px; }
+  @supports (width:1cqw){
+    #mMiniGraficosWrap .mini-pie{ container-type:inline-size; }
+    #mMiniGraficosWrap .mini-pie-cuerpo{ --mg-w:min(243px, 100cqw); }
+    #mMiniGraficosWrap .mini-pie-donut-wrap{
+      width:max(100px, calc(var(--mg-w) * .4754)); height:max(100px, calc(var(--mg-w) * .4754));
+      margin-top:calc(var(--mg-w) * .0508);
+      margin-bottom:max(0px, calc(var(--mg-w) * .5338 - max(100px, var(--mg-w) * .4754)));
+    }
+  }
   .badge-item .b-prog{font-family:var(--f-mono); font-size:10px; color:var(--text-faint);}
   .badge-item .progress{width:100%; height:5px; margin-top:2px;}
   .star-level{color:var(--gold); font-size:11px; letter-spacing:1px; white-space:nowrap;}
@@ -3878,12 +3893,6 @@ function renderExtendido(ext, j){
   // grilla; ahora es el primer cuadrito (ver arriba, justo antes de "Copas
   // máx."), pedido usuario.
 
-  let camino = '';
-  if (ext.caminoLeyendas){
-    const cl = ext.caminoLeyendas;
-    const partes = [cl.liga, cl.trofeos, cl.rango].filter(v => v !== undefined && v !== null && v !== '');
-    if (partes.length) camino = `<div style="margin-top:16px;"><span class="badge badge-gold">🏔️ Camino de Leyendas · ${partes.map(esc).join(' · ')}</span></div>`;
-  }
 
   /* FIX (01-sep-2026, pedido usuario — "se muestra dos veces la fila de
    * botones"): esta sección llegó a armar su propia fila chica de enlaces
@@ -4006,12 +4015,12 @@ function renderExtendido(ext, j){
   // minigráficos de dispersión). Los 4 minigráficos se juntan en un solo
   // grid (#mMiniGraficosWrap), en el orden Ataques y barcos por día / Fama
   // por día / Victorias y derrotas / Donaciones hechas y recibidas.
-  // #mExtWrap ahora solo pinta el badge de Camino de Leyendas (si aplica).
+  // #mExtWrap pintaba el badge de Camino de Leyendas; desde el 11-oct-2026 ya no pinta nada.
   const cuadritosWrap = document.getElementById('mCuadritosWrap');
   if (cuadritosWrap) cuadritosWrap.innerHTML = items ? `<div class="ext-grid">${items}</div>` : '';
   const miniGraficosWrap = document.getElementById('mMiniGraficosWrap');
   if (miniGraficosWrap) miniGraficosWrap.innerHTML = (_minisCongeladas && graficosGuerra ? `<div class="pf-nota-guerra">${_textoNotaGuerraTerminada(ext)}</div>` : '') + piesDonuts + graficosGuerra;
-  wrap.innerHTML = camino;
+  wrap.innerHTML = ''; // 11-oct-2026 (pedido usuario): se quitó la pastilla «Camino de Leyendas · N» (repetía la sección Competitivo); #mExtWrap queda vacío. [→ Contexto_Base_Web.md §PF038]
 }
 
 /**

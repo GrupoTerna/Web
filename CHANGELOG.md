@@ -30,6 +30,8 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 
 ## 11-oct-2026
 
+- **`sw.js` v50 · `perfil.html` · Se quita la pastilla «Camino de Leyendas · N» y se alinean las 4 minigráficas.** `renderExtendido()`: se elimina el bloque `camino` y `#mExtWrap` queda vacío (la información sigue en «Competitivo»). CSS de `#mMiniGraficosWrap`: las 4 tarjetas tienen la misma estructura vertical (título, leyenda de 50 px alineada arriba, zona de gráfica del alto del SVG de dispersión) y el anillo de los donuts coincide con el trazado de las dispersiones; las medidas escalan con el ancho de la tarjeta (`cqw`, bajo `@supports`). Pruebas (346) y lint en verde; medidas calculadas, sin probar en navegador real. → §PF038, §PF039
+
 - **`sw.js` v49 · `perfil.html` · «Evolución» (las gráficas) va después de la Colección completa de cartas.** HTML: el recuadro `.pf-evolucion` (Ranking, Ataques, Medallas y Barcos) pasa de estar después de «Progreso de eventos y modos» a ir entre `#mColeccionCard` e `#mInsigniasCard`; no cambian contenido ni ids. Orden actual: Mazo actual, Favorita, Colección, Evolución, Insignias, Competitivo, Logros, Progreso, Ciclo de cofres, Batallas. Pruebas (346) y lint en verde; sin probar en navegador real. → §PF038
 
 - **`sw.js` v48 · `perfil.html` · «Ciclo de cofres» y «Batallas más recientes»: los botones pasan a pastillas.** HTML de `#mCicloCofresCard` y `#mBatallasRecientesCard`: el contenedor pasa a `.ext-links` y los botones (`#mVerCicloCofresBtn`, `#mForzarCofresBtn`, `#mVerBatallasRecientesBtn`, `#mForzarBatallasBtn`) pierden las clases `btn`/`btn-primary` y el `margin-left` en línea; los ids y el JS no cambian. Pruebas (346) y lint en verde; sin probar en navegador real. → §PF037

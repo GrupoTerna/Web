@@ -115,7 +115,7 @@
 // Se sube la versión para que 'activate' borre v33 y nadie siga con el guerra.html viejo.
 // v35 (11-oct-2026): perfil.html cambió (CORE_ASSETS) -- las gráficas de línea del perfil (Ranking, Ataques, Medallas, Barcos) se acotan a 400 px de alto máximo para que quepan junto a su título.
 // Se sube la versión para que 'activate' borre v34 y nadie siga con el perfil.html viejo.
-const CACHE_NAME = 'terna-static-v49';
+const CACHE_NAME = 'terna-static-v50';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
