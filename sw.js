@@ -113,7 +113,9 @@
 // Se sube la versión para que 'activate' borre v32 y nadie siga con el index/guerra viejos.
 // v34 (11-oct-2026): guerra.html cambió (CORE_ASSETS) -- Pendientes de Atacar con filtros por columna, Log de Guerra en una sola tabla centrada con filtros y barras de desplazamiento siempre visibles en todas las tablas.
 // Se sube la versión para que 'activate' borre v33 y nadie siga con el guerra.html viejo.
-const CACHE_NAME = 'terna-static-v34';
+// v35 (11-oct-2026): perfil.html cambió (CORE_ASSETS) -- las gráficas de línea del perfil (Ranking, Ataques, Medallas, Barcos) se acotan a 400 px de alto máximo para que quepan junto a su título.
+// Se sube la versión para que 'activate' borre v34 y nadie siga con el perfil.html viejo.
+const CACHE_NAME = 'terna-static-v35';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
