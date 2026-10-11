@@ -248,6 +248,12 @@
   .bloq-toggle .bloq-flecha{display:inline-block; color:var(--text-faint); transition:transform .15s;}
   .bloq-toggle[aria-expanded="true"] .bloq-flecha{transform:rotate(90deg);}
   .bloq-cuerpo[hidden]{display:none;}
+  /* 11-oct-2026 (pedido usuario — "en la colección completa de cartas, insignias y maestrías muestra por defecto solo las dos primeras filas, con una pastilla de Ver más"): la cuadrícula se recorta a 2 filas (max-height calculado por _verMasEvaluar()) y la pastilla la expande o la vuelve a recortar. */
+  .ver-mas-grid{overflow:hidden;}
+  .ver-mas-btn{display:inline-flex; align-items:center; gap:8px; margin:14px 0 0; padding:6px 16px; font-family:var(--f-mono); font-size:12px; font-weight:700; letter-spacing:.06em; color:var(--gold); background:rgba(243,169,34,.08); border:1px solid rgba(243,169,34,.25); border-radius:999px; cursor:pointer;}
+  .ver-mas-btn:hover{border-color:var(--gold);}
+  .ver-mas-btn[hidden]{display:none;}
+  .ver-mas-btn .cuenta{font-weight:400; color:var(--text-faint);}
   .badge-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(132px,1fr)); gap:10px; margin-top:14px;}
   .badge-item{background:var(--bg-2); border:1px solid var(--line); border-radius:var(--radius-sm); padding:10px 8px; text-align:center; display:flex; flex-direction:column; align-items:center; gap:4px;}
   /* FIX (23-sep-2026, pedido usuario — "las insignias y cartas de torre
@@ -672,6 +678,9 @@
   .pf-panel-datos{padding:28px; margin-top:20px;}
   /* 11-oct-2026: secciones de gráficas dentro del recuadro único de Evolución, separadas por una línea. */
   .pf-evo-seccion + .pf-evo-seccion{margin-top:28px; padding-top:24px; border-top:1px solid var(--line);}
+  /* 11-oct-2026 (pedido usuario — "reducir el espacio entre la pastilla de Evolución y Ranking en el clan"): la pastilla era inline-flex dentro de una línea alta y el título sumaba su margin-top de 8px; ahora la pastilla es un bloque ajustado a su contenido y el primer título va pegado debajo. */
+  .pf-evolucion > .eyebrow{display:flex; width:fit-content; margin-bottom:6px;}
+  .pf-evolucion > .eyebrow + .pf-evo-seccion .pf-subtitulo{margin-top:0;}
   /* FIX (24-sep-2026, pedido usuario — "haz que el backend mande un json con
      la carta, el costo en oro y de cartas para subir los niveles restantes
      ... para que al hacer clic en una carta, se muestre una tabla con los
@@ -1845,6 +1854,64 @@ let _ultimasCartasBloqueadas = [];
 let _ultimasTorresBloqueadas = [];
 let _ultimasTorres = null;
 
+/**
+ * "Ver más" de las cuadrículas largas (Colección completa, Insignias y Maestrías desbloqueadas) — 11-oct-2026, pedido usuario.
+ * _verMasAplicar(grid, clave) marca la cuadrícula; _verMasEvaluar(grid) mide sus filas reales (las columnas dependen del ancho de pantalla)
+ * y, si hay más de VER_MAS_FILAS, la recorta a esas filas con max-height y muestra la pastilla "Ver más" / "Ver menos". El estado abierto
+ * sobrevive a re-pintados (cambiar orden o filtros) porque se guarda por clave en _verMasAbiertas. Se vuelve a evaluar solo cuando cambia
+ * el ancho de la cuadrícula (ResizeObserver) o cargan sus imágenes. Las cuadrículas "Por desbloquear" no se tocan: ya van plegadas.
+ */
+const VER_MAS_FILAS = 2;
+const _verMasAbiertas = {};
+const _verMasObs = (typeof ResizeObserver !== 'undefined') ? new ResizeObserver(entradas => entradas.forEach(e => {
+  const g = e.target, w = Math.round(e.contentRect.width);
+  if (g._vmAncho === w) return; // solo el ancho cambia las filas; el max-height propio no debe reencadenar el cálculo
+  g._vmAncho = w;
+  _verMasEvaluar(g);
+})) : null;
+function _verMasEvaluar(grid){
+  if (!grid || !grid.isConnected) return;
+  const clave = grid.dataset.vm;
+  let btn = grid._vmBtn;
+  if (!btn){
+    btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'ver-mas-btn';
+    btn.hidden = true;
+    btn.addEventListener('click', () => { _verMasAbiertas[clave] = !_verMasAbiertas[clave]; _verMasEvaluar(grid); });
+    grid.insertAdjacentElement('afterend', btn);
+    grid._vmBtn = btn;
+  }
+  grid.style.maxHeight = '';
+  const base = grid.getBoundingClientRect();
+  if (!base.width) return; // oculta (display:none): se vuelve a evaluar cuando aparezca (ResizeObserver)
+  const items = Array.from(grid.children).map(el => {
+    const r = el.getBoundingClientRect();
+    return { el, top: Math.round(r.top - base.top), bottom: r.bottom - base.top };
+  });
+  const tops = Array.from(new Set(items.map(i => i.top))).sort((a, b) => a - b);
+  if (tops.length <= VER_MAS_FILAS){ btn.hidden = true; return; }
+  const limiteTop = tops[VER_MAS_FILAS - 1];
+  const alturaVisible = Math.max(...items.filter(i => i.top <= limiteTop).map(i => i.bottom));
+  const ocultas = items.filter(i => i.top > limiteTop && !i.el.classList.contains('coleccion-grupo-tit')).length;
+  const abierta = !!_verMasAbiertas[clave];
+  if (!abierta) grid.style.maxHeight = Math.ceil(alturaVisible) + 'px';
+  btn.hidden = false;
+  btn.setAttribute('aria-expanded', abierta ? 'true' : 'false');
+  btn.innerHTML = abierta ? 'Ver menos' : `Ver m&aacute;s<span class="cuenta">${ocultas}</span>`;
+}
+function _verMasAplicar(grid, clave){
+  if (!grid) return;
+  grid.dataset.vm = clave;
+  grid.classList.add('ver-mas-grid');
+  if (!grid._vmListo){
+    grid._vmListo = true;
+    grid.addEventListener('load', () => requestAnimationFrame(() => _verMasEvaluar(grid)), true); // imágenes que cargan tarde cambian la altura de las filas
+    if (_verMasObs) _verMasObs.observe(grid);
+  }
+  requestAnimationFrame(() => _verMasEvaluar(grid));
+}
+
 /** Secciones "Por desbloquear" abiertas (clave -> true). Por defecto todas
  * quedan plegadas; el estado sobrevive a re-pintados (p. ej. al cambiar el
  * orden), porque _bloqSeccionHtml() lo consulta cada vez que se arma. */
@@ -1983,13 +2050,14 @@ function _pintarInsignias(badges){
   const maestrias = desbl.filter(insigniaEsMaestria).sort((a, b) => _compararInsignias(a, b, _maestriasOrden));
   const bloqGen = bloq.filter(b => !insigniaEsMaestria(b)).sort(porNombre);
   const bloqMae = bloq.filter(insigniaEsMaestria).sort(porNombre);
-  const gridHtml = lista => `<div class="badge-grid">${lista.map(_insigniaItemHtml).join('')}</div>`;
+  // 11-oct-2026: las cuadrículas de desbloqueadas llevan data-vm (clave de "Ver más"); las de "Por desbloquear" no.
+  const gridHtml = (lista, vm) => `<div class="badge-grid"${vm ? ` data-vm="${vm}"` : ''}>${lista.map(_insigniaItemHtml).join('')}</div>`;
   // Un grupo (generales o maestrías): "Desbloqueadas" + "Por desbloquear".
   // Los subtítulos solo aparecen si el grupo tiene insignias por desbloquear.
   const grupoHtml = (lista, listaBloq, selectorHtml, claveBloq) => `
     ${lista.length ? selectorHtml : ''}
     ${listaBloq.length ? `<h4 class="desbloqueo-tit">Desbloqueadas<span class="cuenta">${lista.length}</span></h4>` : ''}
-    ${lista.length ? gridHtml(lista) : (listaBloq.length ? '<div class="text-faint" style="font-size:11px; margin-top:8px;">Ninguna todavía.</div>' : '')}
+    ${lista.length ? gridHtml(lista, 'vm-' + claveBloq) : (listaBloq.length ? '<div class="text-faint" style="font-size:11px; margin-top:8px;">Ninguna todavía.</div>' : '')}
     ${listaBloq.length ? _bloqSeccionHtml(claveBloq, listaBloq.length, gridHtml(listaBloq)) : ''}`;
   const hayGenerales = generales.length || bloqGen.length;
   const seccionMaestrias = (maestrias.length || bloqMae.length) ? `
@@ -2001,6 +2069,7 @@ function _pintarInsignias(badges){
     <div class="text-faint" style="font-family:var(--f-mono); font-size:11px; margin-top:12px;">
       Insignias desbloqueadas: ${desbl.length}${maestrias.length ? ` (${maestrias.length} de maestría)` : ''}${bloq.length ? `. Por desbloquear: ${bloq.length}, mostradas con su primer nivel` : ''}.
     </div>`;
+  cont.querySelectorAll('.badge-grid[data-vm]').forEach(g => _verMasAplicar(g, g.dataset.vm));
 }
 
 function renderInsignias(j){
@@ -3274,6 +3343,7 @@ function pintarColeccion(cartas){
   // cruda de rawClash(j).cards, ya trae costosNiveles/costoTotal/
   // costoCompleto directo (mismo objeto que manda 34_Web_API.gs).
   _activarClickCosto(cont.querySelectorAll('.col-card'), datosCol, x => x.c, x => x.nombreEs, x => (x.nvl && x.nvl.nivel != null) ? x.nvl.nivel : null);
+  _verMasAplicar(cont, 'vm-coleccion'); // 11-oct-2026: solo 2 filas por defecto + pastilla "Ver más"
 }
 
 /**
@@ -3854,12 +3924,24 @@ function renderExtendido(ext, j){
   }
   const idxDiasJugados = gsd ? [0, 1, 2, 3].filter(i => gsd.ataques[i] != null) : [];
   const diasJugadosLbl = idxDiasJugados.map(i => String(gsd.dias[i] || '').charAt(0).toUpperCase());
+  // FIX (11-oct-2026, pedido usuario — "en las medallas de guerra por día el viernes parece tener un valor negativo"): el corrido semanal
+  // (`gsd.puntaje`) nunca puede bajar dentro de una semana, pero un día sin registro de medallas llega como 0 (o menor que el día anterior),
+  // y restarlo daba un valor negativo ese día (y arrastraba el "Acumulado" a 0). Ahora el corrido se sanea: si un día trae un valor menor que el
+  // máximo ya alcanzado (o no trae dato), se conserva el máximo anterior, de modo que ese día suma 0 medallas y el acumulado no retrocede.
   let _corridoAnterior = 0;
-  const trofeosGuerraPorDia = [0, 1, 2, 3].map(i => {
-    const corrido = gsd ? Number(gsd.puntaje[i]) : NaN;
+  const corridoSaneadoPorDia = [0, 1, 2, 3].map(i => {
+    const bruto = gsd ? gsd.puntaje[i] : null;
+    const corrido = bruto == null ? NaN : Number(bruto);
     if (!isFinite(corrido)) return null;
-    const delta = corrido - _corridoAnterior;
-    _corridoAnterior = corrido;
+    const saneado = Math.max(corrido, _corridoAnterior);
+    _corridoAnterior = saneado;
+    return saneado;
+  });
+  let _corridoPrevio = 0;
+  const trofeosGuerraPorDia = corridoSaneadoPorDia.map(c => {
+    if (c == null) return null;
+    const delta = c - _corridoPrevio;
+    _corridoPrevio = c;
     return delta;
   });
   const graficosGuerra = idxDiasJugados.length ? [
@@ -3869,7 +3951,7 @@ function renderExtendido(ext, j){
     ], { icono: '⚔️' }),
     _dispersionMiniHtml('Medallas de guerra por día', diasJugadosLbl, [
       { etiqueta: 'Medallas de guerra', color: 'var(--gold)', valores: idxDiasJugados.map(i => trofeosGuerraPorDia[i]) },
-      { etiqueta: 'Acumulado', color: 'var(--purple)', valores: idxDiasJugados.map(i => gsd.puntaje[i]) },
+      { etiqueta: 'Acumulado', color: 'var(--purple)', valores: idxDiasJugados.map(i => corridoSaneadoPorDia[i]) },
     ], { icono: '🔥' }),
   ].join('') : '';
   // FIX (26-sep-2026, pedido usuario): graficosGuerra (Ataques/Fama por día)
