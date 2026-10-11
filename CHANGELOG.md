@@ -4,7 +4,7 @@ Lista corta de lo que se hizo, de más reciente a más antiguo. Cada entrada tra
 
 **Cómo funciona el código hoy, por qué se decidió así, qué se probó y se descartó: no va aquí, va en `Contexto_Base_Web.md`.** Las reglas de redacción están en `Consolidados de cambios/Reglas_Consolidados.md` (repo `Backend`), sección 5. Los pendientes tampoco viven en cada entrada: están en «Abiertos». El detalle largo anterior sigue en el historial de git.
 
-*Traslado en curso (desde el 11-oct-2026):* las entradas desde el 04-oct-2026 ya están en formato corto y su contenido pasó a `§PF025` (8 y 9-oct), `§PF027` (5 a 7-oct) y `§PF018` (octava sesión, 2 al 5-oct). Las tandas 4 a 2 del 03 y 02-oct, la Fase 11 y el TBT de `guerra` (02-oct) también pasaron a `§PF018`, y la séptima y la sexta sesión (30 y 29-sep), las tandas D, C, B y A de la Fase 5b (28-sep), la Fase 11 del plan T_Lista (26-sep) y los comentarios desactualizados (21-sep) a `§PF017`. Del 20-sep ya pasaron a `§PF016` las de «Rendimiento (Lighthouse)» y «CSS compartido». El resto del 20-sep (en `permisos`, `mensajes`, `admin`, `comunidad`, `perfil`, `directorio`, `index` y `guerra`) y todo lo anterior (hoy ordenado por tema y archivo, no por fecha) conservan su texto largo hasta que se trasladen, por tandas y de la fecha más reciente a la más antigua.
+*Traslado en curso (desde el 11-oct-2026):* las entradas desde el 04-oct-2026 ya están en formato corto y su contenido pasó a `§PF025` (8 y 9-oct), `§PF027` (5 a 7-oct) y `§PF018` (octava sesión, 2 al 5-oct). Las tandas 4 a 2 del 03 y 02-oct, la Fase 11 y el TBT de `guerra` (02-oct) también pasaron a `§PF018`, y la séptima y la sexta sesión (30 y 29-sep), las tandas D, C, B y A de la Fase 5b (28-sep), la Fase 11 del plan T_Lista (26-sep) y los comentarios desactualizados (21-sep) a `§PF017`. Del 20-sep ya pasaron a `§PF016` las de «Rendimiento (Lighthouse)», «CSS compartido», `permisos`, `mensajes` y `comunidad`. El resto del 20-sep (en `admin`, `perfil`, `directorio`, `index` y `guerra`) y todo lo anterior (hoy ordenado por tema y archivo, no por fecha) conservan su texto largo hasta que se trasladen, por tandas y de la fecha más reciente a la más antigua.
 
 ---
 
@@ -153,6 +153,10 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 - **`assets/styles.css` · Fase 3 cerrada (D-3 c): `.admin-subseccion-body` centralizada.** `.admin-subseccion-body{padding:2px 2px 14px}` (`admin` y `mensajes`). Conteo de CSS rehecho con `conteo-css.py`. → §PF016
 - **`assets/styles.css`, `admin.html`, `directorio.html` y `perfil.html` · `.perfil-cabecera .stats-mini b` centralizada (D-3 b2).** La regla pasa a `styles.css`; `admin.html` fija `font-family:inherit` en su regla local. → §PF016
 - **`assets/styles.css` y `guerra.html` · Contraste de enlaces de texto en párrafos (B-21).** `styles.css`: `p a:not([class])` con `--purple-light` y su `:hover` dorado. `guerra.html`: `.refresh-row` pasa a `--text-dim` (`#agoText`). `--text-faint` no se toca. → §PF016
+- **`permisos.html` · Landmark `<main>`.** `sinAccesoSec` y `panelSec` quedan dentro de `<main id="main-content">`. → §PF016
+- **`mensajes.html` · Regla muerta `.categoria-contenido-body` borrada (D-3 a1).** Se borra `.categoria-contenido-body{padding:0 2px 14px 26px}`; la clase queda como gancho de JS. → §PF016
+- **`mensajes.html` · Accesibilidad: encabezados, `<main>` y anuncio de «Copiado».** Los 3 títulos de tarjeta pasan de `h3` a `h2`; `<main id="main-content">` envuelve `#panelSec`; nueva región `#anuncioSr` (`.anuncio-sr`) y `anunciarSr()` para anunciar «✔ Copiado» y «No se pudo copiar el mensaje». → §PF016
+- **`comunidad.html` · Dos `style=""` repetidos pasan a clases locales (D-21 b).** `.hist-seccion` (9 `<section>` de historia y comunidad) y la regla `.historia-card` (9 tarjetas). → §PF016
 
 ---
 
@@ -354,10 +358,6 @@ tarjeta "Ver ganadores" del panel.
 
 ## permisos.html
 
-### 20-sep-2026 — Landmark `<main>`
-`sinAccesoSec` y `panelSec` quedan dentro de `<main id="main-content">`
-(la página no tenía landmark principal). Sin cambio visual (captura idéntica).
-
 ### 19-sep-2026 — Accesibilidad de la lista de permisos
 Con decenas de casillas repetidas por administrador, un lector de pantalla
 solo oía "Vetar, casilla" sin saber de quién.
@@ -411,34 +411,6 @@ selector de `styles.css` ni de otra página.
 ---
 
 ## mensajes.html
-
-### 20-sep-2026 — Regla muerta `.categoria-contenido-body` borrada (D-3 a1)
-`.categoria-contenido-body{padding:0 2px 14px 26px}` nunca se aplicó: las 7 cajas
-que la usan llevan también `.admin-subseccion-body`, que va después con la misma
-especificidad y gana por orden (padding real medido en Chromium: `2px 2px 14px`).
-Se borró la regla; la clase queda solo como gancho de JS. Sin cambio visual (0 px
-distintos). Si algún día se quiere la sangría de 26 px, hay que decidirlo como
-cambio de diseño, no como "restaurar" algo que existía.
-
-### 20-sep-2026 — Accesibilidad: encabezados, `<main>` y anuncio de "Copiado"
-Tres de los límites que la revisión anterior dejó anotados.
-- **Salto `h1` → `h3`:** los 3 títulos de tarjeta pasan a `h2`. Se comprobó
-  antes que no hay regla global de `h2` (`styles.css:244` trata `h1`–`h4`
-  igual y `.sec-head h2` solo aplica dentro de `.sec-head`), y los estilos
-  inline (15 px, dorado) no cambian: medido en Chromium, idéntico.
-- **`<main id="main-content">`** envolviendo `#panelSec` (antes la página no
-  tenía landmark principal). No se cambió `<section>` por `<main>` porque
-  `section{padding:72px 0}` (`styles.css:284`) habría quitado el relleno.
-- **"✔ Copiado" ahora se anuncia:** el cambio de texto de un botón con foco
-  no siempre se lee. Nueva región `#anuncioSr` (`role="status"`,
-  `aria-live="polite"`, clase `.anuncio-sr` con recorte de 1×1 px, no
-  `display:none`) y helper `anunciarSr()` que la vacía y reescribe para que
-  copiar dos veces seguidas vuelva a anunciarse. También avisa "No se pudo
-  copiar el mensaje".
-- Sigue pendiente: los botones "↻" dentro de `<summary>` (requiere rediseñar
-  la cabecera del `<details>`).
-- Prueba: Chromium con sesión y backend simulados; portapapeles y región
-  viva verificados. Sin cambios de píxeles.
 
 ### 19-sep-2026 — Accesibilidad: nombres de botones y estado de los selectores
 Primera revisión de accesibilidad de la página (no la cubría ninguna
@@ -790,15 +762,6 @@ suelta arriba del panel.
 ---
 
 ## comunidad.html
-
-### 20-sep-2026 — Dos `style=""` repetidos pasan a clases locales (D-21 b)
-`style="padding:40px 0 0;"` (9 veces, en cada `<section data-reveal>` de
-historia/comunidad) y `style="margin-top:20px; padding:32px;"` (9 veces,
-en cada `.card.historia-card`) pasan a `.hist-seccion` y a la propia regla
-`.historia-card`, ambas locales de esta página. No se generalizó por el
-atributo `data-reveal` que comparten las 9 `<section>` porque
-`.comunidad-header` y `.ascenso-row` también lo usan con otro padding.
-Sin cambio visual esperado.
 
 ### 13-sep-2026 — Íconos de WhatsApp y Discord en "Redes"
 Pedido usuario: "falta el icono de wsp" / "el de discord también agrégalo".
