@@ -4,7 +4,7 @@ Lista corta de lo que se hizo, de más reciente a más antiguo. Cada entrada tra
 
 **Cómo funciona el código hoy, por qué se decidió así, qué se probó y se descartó: no va aquí, va en `Contexto_Base_Web.md`.** Las reglas de redacción están en `Consolidados de cambios/Reglas_Consolidados.md` (repo `Backend`), sección 5. Los pendientes tampoco viven en cada entrada: están en «Abiertos». El detalle largo anterior sigue en el historial de git.
 
-*Traslado en curso (desde el 11-oct-2026):* las entradas desde el 04-oct-2026 ya están en formato corto y su contenido pasó a `§PF025` (8 y 9-oct), `§PF027` (5 a 7-oct) y `§PF018` (octava sesión, 2 al 5-oct). Las tandas 4 a 2 del 03 y 02-oct, la Fase 11 y el TBT de `guerra` (02-oct) también pasaron a `§PF018`, y la séptima y la sexta sesión (30 y 29-sep) y las tandas D y B de la Fase 5b (28-sep) a `§PF017`. Las anteriores (desde «Fase 5b tanda C» del 28-sep, y antes) conservan su texto largo hasta que se trasladen, por tandas.
+*Traslado en curso (desde el 11-oct-2026):* las entradas desde el 04-oct-2026 ya están en formato corto y su contenido pasó a `§PF025` (8 y 9-oct), `§PF027` (5 a 7-oct) y `§PF018` (octava sesión, 2 al 5-oct). Las tandas 4 a 2 del 03 y 02-oct, la Fase 11 y el TBT de `guerra` (02-oct) también pasaron a `§PF018`, y la séptima y la sexta sesión (30 y 29-sep) y las tandas D, B y A de la Fase 5b (28-sep) a `§PF017`. Las anteriores (desde «Fase 5b tanda C» del 28-sep, y antes; la tanda A ya pasó) conservan su texto largo hasta que se trasladen, por tandas.
 
 ---
 
@@ -118,11 +118,12 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 - **`index.html` y `perfil.html` · La CSP bloqueaba las imágenes de cartas.** `<meta>` de CSP: se añade `https://api-assets.clashroyale.com` al `img-src` (Buenas prácticas de `index` de 93 a 100). → §PF017
 - **Medido, sin cambios de código: Lighthouse tras las tandas 1 a 5, `directorio` y `Skull_05`.** `directorio` CLS de 0,306 a 0,022; `guerra` y `directorio` Buenas prácticas de 96 a 100; CLS de 0,15 del hero de `index` anotado y resuelto el 30-sep. → §PF017
 
-## 28-sep-2026 (Fase 5b, tandas D y B)
+## 28-sep-2026 (Fase 5b, tandas D, B y A)
 
 - **`sw.js` v7 · `torneos.html` · El nombre de un ex-miembro ya no enlaza a su perfil (tanda D).** `apiGetTorneosCompartido()` (`conSesion:true`), `enlaceParticipante()` (nueva, en los 5 lugares donde se pinta un nombre), `calcularRankingVictoriasTorneos()` (arrastra `tag`) y CSS `.participante-link`. Backend: `34_Web_API.gs`, `_webTorneos()`, `_webGanadoresTorneoMasReciente()` y `_webHistorialTorneos()` (campo `tag` según `esAdmin`); `08_Web_Endpoints.gs`, `doGet`. Los ex-miembros siguen en el histórico (confirmado). → §PF017
 - **Backend · Avisos renumerados (tanda D).** `34_Web_API.gs`: el segundo AVISO A5 pasó a A8 y el nuevo de la tanda D a A9; el 2-oct se volvió a numerar (el que chocaba pasó a A10). → §PF017
 - **`directorio.html` · El aviso de «clan rival» de Ingresos recientes solo lo ve un admin (tanda B).** `apiGet('webIngresosRecientes')` con `conSesion:true`. Backend: `34_Web_API.gs`, `_webIngresosRecientes()` (recorta después de leer la caché, no antes de guardarla); `08_Web_Endpoints.gs`, `doGet`. Anotado en la tanda D; el código ya estaba desde la tanda B. → §PF017
+- **`sw.js` v6 · `api.js` · El estado «Inactivo» de un Tag solo lo ve un admin (tanda A).** `apiGet()`: opción `opts.conSesion` (sin caché ni `staleIfError`). `perfil.html`: `webPerfil` con `conSesion:true`. `directorio.html`: `webCompararJugadores` con `conSesion:true`. Backend: `34_Web_API.gs`, `_webPerfilJugador()`. → §PF017
 
 ---
 
@@ -165,30 +166,6 @@ el nombre de quien tiene prestada la cuenta (`Nom_Multi`) y si está prestada
   exponen algo similar.
 
 ---
-
-## perfil.html, directorio.html y `assets/js/core/api.js` — Fase 5b tanda A del Consolidado de mejoras (28-sep-2026)
-
-### 28-sep-2026 — El estado "Inactivo" de un Tag solo lo ve un admin
-Decisión del usuario (punto 3 de la Fase 5): a quien no sea admin, una cuenta
-de la hoja Inactivos se le muestra como "Sin registro con nosotros" (antes, desde
-el 24-sep-2026, `webPerfil` respondía con estado "Inactivo" a cualquiera con el
-token público, que es visible en este repo). La regla vive en el backend
-(`_webPerfilJugador()`, `34_Web_API.gs`): el navegador solo avisa quién es.
-
-- **`api.js`, `apiGet()`:** nueva opción `opts.conSesion`. Si hay un admin con
-  sesión (`localStorage['terna_admin_token']`), la petición agrega su
-  `sessionToken` y sale **sin caché**: no se lee ni se guarda en `sessionStorage` ni
-  en el respaldo de `localStorage`, y tampoco se usa `staleIfError`. Motivo: que un
-  dato solo-admin no quede guardado en el navegador después de cerrar sesión. Sin sesión
-  no cambia nada.
-- **`perfil.html`:** `webPerfil` se pide con `conSesion: true`. El texto
-  "actualizado ..." del admin dice "ahora mismo", porque su petición no se guarda en
-  el respaldo del que lo leería `apiGetUltimaActualizacion()`.
-- **`directorio.html`:** el comparador pide `webCompararJugadores` con `conSesion: true`.
-- **`sw.js`:** `CACHE_NAME` sube a `terna-static-v6` (cambió `api.js`).
-- **Límite conocido:** si la sesión del admin venció en el servidor (6 h) pero sigue
-  guardada en el navegador, el backend la trata como visitante y el admin verá "Sin
-  registro con nosotros" hasta volver a iniciar sesión.
 
 ---
 
