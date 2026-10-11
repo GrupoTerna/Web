@@ -105,7 +105,9 @@
 // Se sube la versión para que 'activate' borre v28 y nadie siga con el index/directorio/guerra viejos.
 // v30 (11-oct-2026): directorio.html y guerra.html cambiaron (CORE_ASSETS) -- segunda tanda de «Medallas»: «Fame» de las tablas pasa a «Medallas» y el «Trofeos» del Log de Guerra y de la gráfica de clanes pasa a «Trofeos de guerra».
 // Se sube la versión para que 'activate' borre v29 y nadie siga con el directorio/guerra viejos.
-const CACHE_NAME = 'terna-static-v30';
+// v31 (11-oct-2026): admin.html y guerra.html cambiaron (CORE_ASSETS) -- «Trofeos guerra» pasa a «Victorias de guerra» en admin; en guerra se retira «Miembros Activos por Clan», se añade la columna N° (automática) a todas las tablas y el 📈 queda a la derecha de la columna Nombre.
+// Se sube la versión para que 'activate' borre v30 y nadie siga con el admin/guerra viejos.
+const CACHE_NAME = 'terna-static-v31';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y

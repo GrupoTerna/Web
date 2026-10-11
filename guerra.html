@@ -124,15 +124,13 @@
   .bar{height:6px; background:var(--bg-2); margin-top:14px; border-radius:3px; overflow:hidden; border:1px solid var(--line);}
   .bar i{display:block; height:100%; background:linear-gradient(90deg, var(--violet), var(--purple));}
   .falt{font-family:var(--f-mono); font-weight:700; color:var(--danger);}
-  .resumen-row{display:flex; align-items:center; gap:14px; margin-bottom:12px; flex-wrap:wrap;}
-  .resumen-row .clan-n{width:160px; font-size:14px; flex-shrink:0; font-weight:600;}
-  .resumen-row .track{flex:1; min-width:80px; height:16px; background:var(--bg-2); border-radius:4px; position:relative; overflow:hidden; border:1px solid var(--line);}
-  .resumen-row .fill{height:100%; background:linear-gradient(90deg, var(--violet), var(--purple));}
-  .resumen-row .val{width:40px; text-align:right; font-family:var(--f-mono); font-size:13px; color:var(--gold); font-weight:700;}
-  /* RESPONSIVE (pedido usuario, 31-ago-2026 — "haz que la web sea responsive"): en pantallas angostas .clan-n (160px fijo) + .val (40px fijo) dejaban muy poco espacio para .track, que quedaba casi invisible. flex-wrap arriba ya permite que .track baje a su propia… */
-  @media (max-width:380px){
-    .resumen-row .clan-n{width:100%;}
-  }
+  /* 11-oct-2026 (pedido usuario): primera columna "N°" en todas las tablas de la página, numeración automática (se recalcula con filtros/orden, ver renumerarFilas()). */
+  th.col-n, td.col-n{text-align:center; width:1%; white-space:nowrap;}
+  td.col-n{color:var(--text-faint); font-family:var(--f-mono);}
+  /* 11-oct-2026 (pedido usuario): en la columna Nombre de las cuadrículas, el nombre (con sus insignias) va pegado a la izquierda y el 📈 pegado a la derecha, dentro de la misma celda. */
+  .col-jugador-inner{display:flex; align-items:center; justify-content:space-between; gap:10px;}
+  .col-jugador-nombre{min-width:0; text-align:left;}
+  .col-jugador-inner .btn-hist-jugador{margin-left:auto; flex-shrink:0;}
   /* Tabla de "Ataques pendientes": con nombres/clanes largos en pantallas
      angostas, se habilita scroll horizontal dentro de su propia tarjeta en
      vez de forzar overflow en toda la página. */
@@ -442,13 +440,6 @@
       <div id="pronosticoWrap" style="margin-top:20px;"></div>
     </section>
 
-    <section style="padding:24px 0;">
-      <div class="sec-head" style="border-bottom:1px solid var(--line); padding-bottom:12px;">
-        <h2 style="font-size:22px;">📊 Miembros Activos por Clan</h2>
-      </div>
-      <div id="resumenWrap" style="margin-top:20px;"></div>
-    </section>
-
     <!-- la sección siempre se pintaba sin importar ctx.esDiaGuerra, así que en día de entrenamiento se veía una tabla con una fila "placeholder" que confunde en vez de información real de ataques pendientes. Historial en CHANGELOG.md. -->
     <section id="pendSection" style="padding:24px 0;">
       <div class="sec-head" style="display:flex; align-items:baseline; justify-content:space-between; border-bottom:1px solid var(--line); padding-bottom:12px;">
@@ -483,7 +474,7 @@
       <div id="participacionHoyWrap" style="margin-top:14px;"></div>
     </section>
 
-    <!-- sección NUEVA y aparte de "Miembros Activos por Clan" de arriba (esa solo muestra un conteo/barra por clan) — acá se pinta la cuadrícula completa Jugador/J/V/S/D/Total/Puntaje/Barcos de CADA miembro Activo de Directorio, agrupado por su clan. Historial en CHANGELOG.md. -->
+    <!-- sección NUEVA — acá se pinta la cuadrícula completa Jugador/J/V/S/D/Total/Puntaje/Barcos de CADA miembro Activo de Directorio, agrupado por su clan. Historial en CHANGELOG.md. -->
     <section id="controlActivosSection" style="padding:24px 0;">
       <div class="sec-head" style="display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:10px; border-bottom:1px solid var(--line); padding-bottom:12px;">
         <h2 style="font-size:22px;">🗂️ Valores diarios</h2>
@@ -938,6 +929,7 @@ function gridAplicarFiltros(gridId, tabla){
     const pasaSoloCero = !soloCeroDeGridId(gridId) || tieneCero;
     fila.style.display = (pasaCols && pasaLetra && pasaSoloCero) ? '' : 'none';
   });
+  renumerarFilas(tabla);
   gridActualizarTotales(tabla);
   actualizarBotonSoloCero(gridId);
 }
@@ -1103,6 +1095,20 @@ document.addEventListener('click', ev => {
 });
 document.addEventListener('keydown', ev => { if (ev.key === 'Escape') histCerrar(); });
 
+/* 11-oct-2026: celda Nombre de las cuadrículas — nombre + insignias a la izquierda, botón 📈 (historial de guerra) a la derecha de la misma celda. */
+function celdaJugadorGrid(f){
+  const nombre = f.tag ? enlaceJugador(f.nombre || f.tag, f.tag) : esc(f.nombre || f.tag);
+  return `<td class="col-jugador"><div class="col-jugador-inner"><span class="col-jugador-nombre">${nombre}${insigniaRango(f.rango)}${insigniaInactivo(f)}</span>${botonHistJugador(f)}</div></td>`;
+}
+/* 11-oct-2026: numeración automática de la columna N° — cuenta solo las filas visibles de la tabla, así que se recalcula al filtrar, ordenar o elegir letra. */
+function renumerarFilas(tabla){
+  let n = 0;
+  tabla.querySelectorAll('tbody tr').forEach(tr => {
+    const c = tr.querySelector('td.col-n');
+    if (!c) return;
+    c.textContent = tr.style.display === 'none' ? '' : String(++n);
+  });
+}
 /* Insignia de rango (Líder/Colíder/Veterano). "Miembro" y los rangos desconocidos no llevan insignia. */
 /* NUEVO 08-oct-2026: etiqueta 'Inactivo' y contador 'N activos · M inactivos' para las cuadrículas de Valores diarios/semanales. */
 function insigniaInactivo(f){ return f && f.activo === false ? '<span class="inactivo-badge" title="Participó en esta temporada pero hoy ya no está en el clan">Inactivo</span>' : ''; }
@@ -1133,8 +1139,8 @@ function gridActualizarTotales(tabla){
     tabla.appendChild(tfoot);
   }
   if (!visibles.length){ tfoot.innerHTML = ''; return; }
-  const celdasTotal = ['<td class="col-jugador">Total (' + visibles.length + ')</td>'];
-  const celdasProm = ['<td class="col-jugador">Promedio</td>'];
+  const celdasTotal = ['<td class="col-n"></td><td class="col-jugador">Total (' + visibles.length + ')</td>'];
+  const celdasProm = ['<td class="col-n"></td><td class="col-jugador">Promedio</td>'];
   cols.forEach(col => {
     const pref = col.split('-')[0];
     const clase = GRUPOS_GRID[pref] || '';
@@ -1160,7 +1166,7 @@ function datosExportGrid(tabla){
   }));
   const encabezado = ['Nombre', 'Rango', ...cols.map(c => (NOMBRES_GRUPO_GRID[c.key.split('-')[0]] || '') + ' ' + c.label)];
   const filas = [...tabla.querySelectorAll('tbody tr')].filter(tr => tr.style.display !== 'none').map(tr => [
-    ((tr.querySelector('.col-jugador a, .col-jugador') || {}).firstChild || {}).textContent || (tr.querySelector('.col-jugador') || {}).textContent || '',
+    ((tr.querySelector('.col-jugador-nombre a, .col-jugador-nombre') || {}).firstChild || {}).textContent || (tr.querySelector('.col-jugador-nombre') || {}).textContent || '',
     tr.dataset.rango || '',
     ...cols.map(c => { const td = tr.querySelector(`[data-col="${c.key}"]`); return td ? (td.dataset.raw || '') : ''; }),
   ]);
@@ -1412,6 +1418,7 @@ function aplicarFiltroLetraPendientes(){
   wrap.querySelectorAll('tr[data-letra]').forEach(tr => {
     tr.style.display = (!letraSeleccionadaPend || tr.dataset.letra === letraSeleccionadaPend) ? '' : 'none';
   });
+  wrap.querySelectorAll('table').forEach(renumerarFilas); // N° automático: se recalcula con la letra elegida
 }
 
 /** aplicarFiltroLetraGrid(tablasWrapId) → reaplica, en cada tabla ya
@@ -1726,16 +1733,7 @@ function render(data){
   activarBarraScrollTablas(pendWrap.querySelectorAll('.table-scroll'));
   pintarFiltroLetra('pendLetraFilter', LETRAS_FILTRO, () => letraSeleccionadaPend, v => letraSeleccionadaPend = v, aplicarFiltroLetraPendientes);
   aplicarFiltroLetraPendientes();
-  const resumen = Object.entries(data.resumenClanes || {});
-  const maxResumen = Math.max(1, ...resumen.map(([,v]) => v));
-  const resumenWrap = document.getElementById('resumenWrap');
-  resumenWrap.innerHTML = resumen.length ? `<div class="card">` + resumen.map(([nombre, count]) => `
-    <div class="resumen-row">
-      <div class="clan-n">${enlaceClan(nombre)}</div>
-      <div class="track"><div class="fill" style="width:${(count/maxResumen)*100}%"></div></div>
-      <div class="val">${fmtNum(count)}</div>
-    </div>`).join('') + `</div>` : '<div class="empty">Sin datos de directorio.</div>';
-// a diferencia del bloque de arriba (solo conteo por clan), acá se pinta la cuadrícula J/V/S/D por cada Activo de Directorio. Historial en CHANGELOG.md.
+// acá se pinta la cuadrícula J/V/S/D por cada Activo de Directorio. Historial en CHANGELOG.md.
   pintarSelectoresValoresDiarios(data);
   let controlActivos = {};
   let mostrandoUltimaGuerraCacheada = false; // true = entrenamiento y semana por defecto (la última guerra jugada)
@@ -1770,7 +1768,8 @@ function render(data){
     _gridDiarioTraeInactivos = clanesControlActivos.some(c => (controlActivos[c] || []).some(f => f.activo === false));
     const renderFilaActivos = f => `
               <tr data-letra="${esc(primeraLetraFiltro(f.nombre || f.tag))}" data-rango="${esc(f.rango || '')}" class="${f.activo === false ? 'fila-inactivo' : ''}">
-                <td class="col-jugador">${f.tag ? enlaceJugador(f.nombre || f.tag, f.tag) : esc(f.nombre || f.tag)}${insigniaRango(f.rango)}${insigniaInactivo(f)}${botonHistJugador(f)}</td>
+                <td class="col-n"></td>
+                ${celdaJugadorGrid(f)}
                 ${celdasMegacategoria({j:f.j, v:f.v, s:f.s, d:f.d, total:f.total}, 'ai-grp-atq', true, 'atq', f.opc)}
                 ${celdasMegacategoria(f.puntaje, 'ai-grp-pje', false, 'pje')}
                 ${celdasMegacategoria(f.barcos, 'ai-grp-brc', false, 'brc')}
@@ -1783,6 +1782,7 @@ function render(data){
           <div class="table-scroll"><table class="tbl-activos-grid" data-grid-id="activos:${esc(clanNombre)}">
             <thead>
               <tr>
+                <th class="col-n" rowspan="2" scope="col">N°</th>
                 <th class="col-jugador" rowspan="2" scope="col">Nombre</th>
                 <th class="ai-grp-atq" colspan="5" scope="colgroup"><span class="ai-grp-label">Ataques</span></th>
                 <th class="ai-grp-pje" colspan="5" scope="colgroup"><span class="ai-grp-label">Medallas</span></th>
@@ -1843,7 +1843,8 @@ function render(data){
     // el <tbody> arranca vacío y lo llena inicializarGridFiltro() más abajo.
     const renderFilaTemporada = f => `
               <tr data-letra="${esc(primeraLetraFiltro(f.nombre || f.tag))}" data-rango="${esc(f.rango || '')}" class="${f.activo === false ? 'fila-inactivo' : ''}">
-                <td class="col-jugador">${f.tag ? enlaceJugador(f.nombre || f.tag, f.tag) : esc(f.nombre || f.tag)}${insigniaRango(f.rango)}${insigniaInactivo(f)}${botonHistJugador(f)}</td>
+                <td class="col-n"></td>
+                ${celdaJugadorGrid(f)}
                 ${celdasSemanas(f.ataques, 'ai-grp-atq', true, 'atq')}
                 ${celdasSemanas(f.puntaje, 'ai-grp-pje', false, 'pje')}
                 ${celdasSemanas(f.barcos, 'ai-grp-brc', false, 'brc')}
@@ -1856,6 +1857,7 @@ function render(data){
           <div class="table-scroll"><table class="tbl-activos-grid tbl-temporada-grid" data-grid-id="temporada:${esc(clanNombre)}">
             <thead>
               <tr>
+                <th class="col-n" rowspan="2" scope="col">N°</th>
                 <th class="col-jugador" rowspan="2" scope="col">Nombre</th>
                 <th class="ai-grp-atq" colspan="${nSem + 2}" scope="colgroup"><span class="ai-grp-label">Ataques</span></th>
                 <th class="ai-grp-pje" colspan="${nSem + 2}" scope="colgroup"><span class="ai-grp-label">Medallas</span></th>
@@ -1956,6 +1958,7 @@ async function cargarAportesInactivosSiAdmin(ctx){
         <div class="table-scroll"><table class="tbl-activos-grid">
           <thead>
             <tr>
+              <th class="col-n" rowspan="2" scope="col">N°</th>
               <th class="col-jugador" rowspan="2" scope="col">Nombre</th>
               <th class="ai-grp-atq" colspan="5" scope="colgroup"><span class="ai-grp-label">Ataques</span></th>
               <th class="ai-grp-pje" colspan="5" scope="colgroup"><span class="ai-grp-label">Medallas</span></th>
@@ -1967,8 +1970,9 @@ async function cargarAportesInactivosSiAdmin(ctx){
               <th class="ai-grp-brc" scope="col">J</th><th class="ai-grp-brc" scope="col">V</th><th class="ai-grp-brc" scope="col">S</th><th class="ai-grp-brc" scope="col">D</th><th class="ai-grp-brc" scope="col">Total</th>
             </tr>
           </thead>
-          <tbody>${filas.map(f => `
+          <tbody>${filas.map((f, i) => `
             <tr>
+              <td class="col-n">${i + 1}</td>
               <td class="col-jugador">${f.tag ? enlaceJugador(f.nombre || f.tag, f.tag) : esc(f.nombre || f.tag)}</td>
               ${celdasMegacategoria({j:f.j, v:f.v, s:f.s, d:f.d, total:f.total}, 'ai-grp-atq', true)}
               ${celdasMegacategoria(f.puntaje, 'ai-grp-pje', false)}
@@ -2250,9 +2254,10 @@ async function cargarPronosticoGuerra(ctx, manual){
     }
     const html = `
       <div class="card" style="padding:12px;"><div class="table-scroll"><table>
-        <thead><tr><th scope="col">Clan</th><th scope="col">Fama actual</th><th scope="col">Techo (solo roster)</th><th scope="col">Techo máximo</th><th scope="col">Ataques hoy</th></tr></thead>
-        <tbody>${clanes.map(c => `
+        <thead><tr><th class="col-n" scope="col">N°</th><th scope="col">Clan</th><th scope="col">Fama actual</th><th scope="col">Techo (solo roster)</th><th scope="col">Techo máximo</th><th scope="col">Ataques hoy</th></tr></thead>
+        <tbody>${clanes.map((c, i) => `
           <tr>
+            <td class="col-n">${i + 1}</td>
             <td>${c.esRival ? esc(c.nombre) : enlaceClan(c.nombre)}${c.esRival ? ' <span class="text-faint" style="font-family:var(--f-mono); font-size:11px;">(rival)</span>' : ''}</td>
             <td>${fmtNum(c.fameActual)}</td>
             <td>${fmtNum(c.fameTechoRoster)}</td>
@@ -2395,14 +2400,15 @@ async function cargarGuerraLog(){
         : '';
       tableWrap.innerHTML = semanas.length ? `
         <div class="card" style="padding:12px;"><div class="table-scroll"><table>
-          <thead><tr><th scope="col">Temporada</th><th scope="col">Semana</th><th scope="col">Puesto</th><th scope="col">Barcos</th><th scope="col">Trofeos de guerra</th></tr></thead>
-          <tbody>${semanas.map(s => {
+          <thead><tr><th class="col-n" scope="col">N°</th><th scope="col">Temporada</th><th scope="col">Semana</th><th scope="col">Puesto</th><th scope="col">Barcos</th><th scope="col">Trofeos de guerra</th></tr></thead>
+          <tbody>${semanas.map((s, i) => {
             const delta = Number(s.trophyDelta) || 0;
             const deltaHtml = delta
               ? ` <span style="font-family:var(--f-mono); font-size:11px; color:${delta > 0 ? 'var(--ok)' : 'var(--danger)'};">(${delta > 0 ? '+' : ''}${fmtNum(delta)})</span>`
               : '';
             return `
             <tr>
+              <td class="col-n">${i + 1}</td>
               <td>${fmtNum(s.temporada)}</td>
               <td>${fmtNum(s.semana)}</td>
               <td${s.rankEstimado && Number(s.rank) > 0 ? ' title="Puesto estimado"' : ''}>${Number(s.rank) > 0 ? (s.rankEstimado ? '~' : '') + '#' + fmtNum(s.rank) : '—'}</td>
