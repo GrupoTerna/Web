@@ -430,7 +430,7 @@
       <!-- Parte 1 (05-oct-2026): aviso visible solo fuera de día de guerra, cuando las tarjetas muestran los resultados congelados de la última guerra. Se llena en render(). -->
       <div id="guerraCongeladoAviso" class="text-faint" style="display:none; font-family:var(--f-mono); font-size:12px; margin-top:14px; padding:8px 12px; border:1px solid var(--line); border-radius:var(--radius-sm); line-height:1.6;" role="status"></div>
       <div class="clan-grid" id="clanGrid" style="margin-top:20px;"></div>
-      <div id="pronosticoNota" class="text-faint" style="font-family:var(--f-mono); font-size:12px; margin-top:6px; line-height:1.6;" hidden>📈 Pronóstico de hoy: la fila resaltada es el clan Terna y las demás son sus rivales en la carrera. La barra muestra la fame actual (sólida) y hasta dónde podría llegar hoy (tenue). «Techo» es una cota máxima, no una predicción: con un solo valor, juegan las cuentas que ya están en la carrera; con dos («roster – máx»), el segundo supone además que las cuentas sin atacar se reemplazan por cuentas de apoyo.</div>
+      <div id="pronosticoNota" class="text-faint" style="font-family:var(--f-mono); font-size:12px; margin-top:6px; line-height:1.6;" hidden>📈 Pronóstico de hoy: la fila resaltada es el clan Terna y las demás son sus rivales en la carrera. La barra muestra las medallas actuales (sólida) y hasta dónde podría llegar hoy (tenue). «Techo» es una cota máxima, no una predicción: con un solo valor, juegan las cuentas que ya están en la carrera; con dos («roster – máx»), el segundo supone además que las cuentas sin atacar se reemplazan por cuentas de apoyo.</div>
     </section>
 
     <!-- Pronóstico de Hoy: pública, solo en día de guerra; oculta si el backend no responde. Sin aria-live (se refresca sola). Historial en CHANGELOG.md. -->
@@ -1022,10 +1022,10 @@ function histPintar(registros, verTodos){
       <div><b>${fmtNum(st.atq)}</b>ataques</div>
       <div class="${st.ceros ? 'hist-malo' : ''}"><b>${st.ceros}</b>días con 0 ataques</div>
       <div><b>${fmtDec(st.atq / n)}</b>ataques por día</div>
-      <div><b>${fmtNum(st.fame)}</b>fame</div>
+      <div><b>${fmtNum(st.fame)}</b>medallas</div>
       <div><b>${fmtNum(st.barcos)}</b>barcos</div>
     </div>
-    <table class="hist-tabla"><thead><tr><th>Día</th><th>Ataques</th><th>Fame</th><th>Barcos</th></tr></thead><tbody>${filas}</tbody></table>
+    <table class="hist-tabla"><thead><tr><th>Día</th><th>Ataques</th><th>Medallas</th><th>Barcos</th></tr></thead><tbody>${filas}</tbody></table>
     ${(!verTodos && n > HIST_FILAS_INICIALES) ? `<button type="button" class="btn-solo-cero hist-mas" id="histMas">Ver todos (${n})</button>` : ''}
     <p class="hist-nota">Un 0 es un día de guerra en el que estuvo registrado y no atacó. Los días anteriores a su ingreso al clan no aparecen. Un día marcado como opcional (meta ya cruzada) no cuenta como falta. Solo se muestran días de guerra, no de entrenamiento.${histNotasDiaEnCurso(hayHoy, hayPend)}</p>`;
   histEnlazarSelector();
@@ -1069,9 +1069,9 @@ function histPintarComparacion(ra, rb, nombre2, verTodos){
   const na = esc(histNombre), nb = esc(nombre2);
   cuerpo.innerHTML = histSelectorComparar(tag2) + `
     <table class="hist-tabla"><thead><tr><th></th><th>${na}</th><th>${nb}</th></tr></thead><tbody>
-      ${fila('Días de guerra', sa.n, sb.n)}${fila('Ataques', fmtNum(sa.atq), fmtNum(sb.atq))}${fila('Días con 0', sa.ceros, sb.ceros)}${fila('Ataques por día', prom(sa), prom(sb))}${fila('Fame', fmtNum(sa.fame), fmtNum(sb.fame))}${fila('Barcos', fmtNum(sa.barcos), fmtNum(sb.barcos))}
+      ${fila('Días de guerra', sa.n, sb.n)}${fila('Ataques', fmtNum(sa.atq), fmtNum(sb.atq))}${fila('Días con 0', sa.ceros, sb.ceros)}${fila('Ataques por día', prom(sa), prom(sb))}${fila('Medallas', fmtNum(sa.fame), fmtNum(sb.fame))}${fila('Barcos', fmtNum(sa.barcos), fmtNum(sb.barcos))}
     </tbody></table>
-    <table class="hist-tabla" style="margin-top:12px;"><thead><tr><th rowspan="2">Día</th><th colspan="2">Ataques</th><th colspan="2">Fame</th></tr><tr><th>${na}</th><th>${nb}</th><th>${na}</th><th>${nb}</th></tr></thead><tbody>${filasDia || '<tr><td colspan="5">Sin registros</td></tr>'}</tbody></table>
+    <table class="hist-tabla" style="margin-top:12px;"><thead><tr><th rowspan="2">Día</th><th colspan="2">Ataques</th><th colspan="2">Medallas</th></tr><tr><th>${na}</th><th>${nb}</th><th>${na}</th><th>${nb}</th></tr></thead><tbody>${filasDia || '<tr><td colspan="5">Sin registros</td></tr>'}</tbody></table>
     ${(!verTodos && fechas.length > HIST_FILAS_INICIALES) ? `<button type="button" class="btn-solo-cero hist-mas" id="histMas">Ver todos (${fechas.length})</button>` : ''}
     <p class="hist-nota">Celda vacía: ese jugador no tenía registro ese día (aún no estaba en el clan). Un 0 en rojo es que estuvo y no atacó.${histNotasDiaEnCurso(hayHoy, hayPend)}</p>`;
   histEnlazarSelector();
@@ -1620,7 +1620,7 @@ function render(data){
       <div class="clan-puesto" data-clan="${esc(nombre)}" style="display:none; margin-top:10px; font-family:var(--f-mono); font-size:12px; color:var(--text-dim); text-align:center;"></div>
       <div class="stats">
         <div class="stat"><b id="${slug}-atq">${fmtNum(g.ataques)}</b><span>Ataques</span></div>
-        <div class="stat"><b id="${slug}-fame">${fmtNum(g.fame)}</b><span>Fame</span></div>
+        <div class="stat"><b id="${slug}-fame">${fmtNum(g.fame)}</b><span>Medallas</span></div>
         <div class="stat"><b id="${slug}-barc">${fmtNum(g.barcos)}</b><span>Barcos</span></div>
       </div>
       <div class="bar"><i style="width:${pct}%"></i></div>
@@ -2203,7 +2203,7 @@ function actualizarPuestosClanes(){
     if(p && Number(p.puesto) > 0){
       const color = Number(p.puesto) === 1 ? 'var(--gold)' : 'var(--text)';
       const estim = !!p.estimado; // coliseo: la API no entrega puestos, el backend lo calcula por fama acumulada
-      el.title = estim ? 'Puesto estimado por la fame acumulada de la semana (en coliseo la API no entrega puestos)' : 'Según la fame acumulada de la semana en la carrera de guerra';
+      el.title = estim ? 'Puesto estimado por las medallas acumuladas de la semana (en coliseo la API no entrega puestos)' : 'Según las medallas acumuladas de la semana en la carrera de guerra';
       el.innerHTML = `🏁 Puesto <b style="color:${color};">${estim ? '~' : ''}#${fmtNum(p.puesto)}</b> de ${fmtNum(p.clanesEnCarrera)}`;
       el.style.display = '';
     }else{
@@ -2395,7 +2395,7 @@ async function cargarGuerraLog(){
         : '';
       tableWrap.innerHTML = semanas.length ? `
         <div class="card" style="padding:12px;"><div class="table-scroll"><table>
-          <thead><tr><th scope="col">Temporada</th><th scope="col">Semana</th><th scope="col">Puesto</th><th scope="col">Barcos</th><th scope="col">Trofeos</th></tr></thead>
+          <thead><tr><th scope="col">Temporada</th><th scope="col">Semana</th><th scope="col">Puesto</th><th scope="col">Barcos</th><th scope="col">Trofeos de guerra</th></tr></thead>
           <tbody>${semanas.map(s => {
             const delta = Number(s.trophyDelta) || 0;
             const deltaHtml = delta

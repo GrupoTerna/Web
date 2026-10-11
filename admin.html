@@ -1078,7 +1078,7 @@
                 <div id="reqTorneosGridSorteo"></div>
 
                 <h3 style="font-size:15px; color:var(--gold); margin:20px 0 4px;">Delta</h3>
-                <p class="text-dim" style="font-size:13px; margin:0 0 8px;">Escalón de trofeos extra que suma un ticket adicional en la ruleta — un solo valor para los 4 clanes (no hay Delta por clan, ver sección 5.1.1 del consolidado).</p>
+                <p class="text-dim" style="font-size:13px; margin:0 0 8px;">Escalón de medallas extra que suma un ticket adicional en la ruleta — un solo valor para los 4 clanes (no hay Delta por clan, ver sección 5.1.1 del consolidado).</p>
                 <div class="field">
                   <label for="reqDeltaSorteo">Delta</label>
                   <input type="text" id="reqDeltaSorteo" inputmode="numeric" placeholder="Ejm: 100">
@@ -1410,7 +1410,7 @@
                 <option value="No está en el grupo de WhatsApp de ganadores">No está en el grupo de WhatsApp de ganadores</option>
                 <option value="No reaccionó a la publicación">No reaccionó a la publicación</option>
                 <option value="No se encuentra en el clan">No se encuentra en el clan</option>
-                <option value="No alcanzó el mínimo de trofeos de guerra">No alcanzó el mínimo de trofeos de guerra</option>
+                <option value="No alcanzó el mínimo de medallas de guerra">No alcanzó el mínimo de medallas de guerra</option>
                 <option value="No realizó la cantidad de ataques requeridos para este torneo">No realizó la cantidad de ataques requeridos para este torneo</option>
                 <option value="__otro__">Otro (especificar)</option>
               </select>
@@ -1421,7 +1421,7 @@
               <select id="resMotivoRepartoSelect">
                 <option value="">-- Seleccionar --</option>
                 <option value="Premio se reparte en partes iguales entre los empatados">Premio se reparte en partes iguales entre los empatados</option>
-                <option value="Premio se reparte proporcional al puntaje">Premio se reparte proporcional al puntaje</option>
+                <option value="Premio se reparte proporcional a las medallas">Premio se reparte proporcional a las medallas</option>
                 <option value="__otro__">Otro (especificar)</option>
               </select>
             </div>
@@ -4428,7 +4428,7 @@ function ntLineas(series, etiquetas){
     return `${trazos}${puntos}`;
   }).join('');
   const leyenda = series.map(s => `<span><span class="nt-dot" style="background:${s.color}"></span>${esc(s.nombre)}</span>`).join('');
-  return `<svg class="nt-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Fame acumulada por día de guerra">${grid}${xs}${lineas}</svg><div class="nt-leyenda">${leyenda}</div>`;
+  return `<svg class="nt-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Medallas acumuladas por día de guerra">${grid}${xs}${lineas}</svg><div class="nt-leyenda">${leyenda}</div>`;
 }
 
 function ntPanel(titulo, sub, cuerpo, span){
@@ -4450,7 +4450,7 @@ function ntResumen(d){
     const usados = d.guerra.clanes.reduce((a, c) => a + c.ataques, 0);
     const posibles = d.guerra.clanes.reduce((a, c) => a + c.ataquesPosibles, 0);
     const sin = d.guerra.clanes.reduce((a, c) => a + c.sinAtaquesTotal, 0);
-    t.push(ntTile('Fame de la familia', ntN(fame), 'suma de los clanes'));
+    t.push(ntTile('Medallas de la familia', ntN(fame), 'suma de los clanes'));
     t.push(ntTile('Participación', posibles ? (Math.round(usados * 1000 / posibles) / 10).toLocaleString('es-PE') + '%' : '—', `${ntN(usados)} de ${ntN(posibles)} ataques · ${ntN(sin)} sin atacar`));
   }
   if(ntOk(d.barcos)){
@@ -4494,25 +4494,25 @@ function ntPanelPosiciones(sec){
                 : '= igual que la anterior';
     }
     const dT = c.variacionTrofeos > 0 ? `+${ntN(c.variacionTrofeos)}` : ntN(c.variacionTrofeos);
-    return `<div class="nt-clan-card" style="--nt:${col}" title="${esc(c.clan)}: puesto ${esc(puesto)}, ${ntN(c.trofeos)} trofeos">
+    return `<div class="nt-clan-card" style="--nt:${col}" title="${esc(c.clan)}: puesto ${esc(puesto)}, ${ntN(c.trofeos)} trofeos de guerra">
       <div class="nt-clan-nombre">${enlaceClan(c.clan)}</div>
       <div class="nt-puesto">${esc(puesto)}</div>
       <div class="text-dim" style="font-size:12px;">${variacion}</div>
       <div style="margin:8px 0 2px;">${ntSpark((c.tendencia || []).map(x => x.trofeos), col)}</div>
-      <div class="text-dim" style="font-size:12px;">${ntN(c.trofeos)} trofeos (${esc(dT)})</div>
+      <div class="text-dim" style="font-size:12px;">${ntN(c.trofeos)} trofeos de guerra (${esc(dT)})</div>
       <div class="text-faint" style="font-size:11px; margin-top:2px;">${c.coliseo ? 'Coliseo: sin barco' : 'Barco: ' + ntN(c.barco)}</div>
     </div>`;
   }).join('');
-  return ntPanel('Posiciones finales', 'Puesto de cada clan al cerrar la semana y trofeos de las últimas semanas.',
-    `<div class="nt-clan-grid">${tarjetas}</div><p class="nt-nota">«~» = puesto estimado (semana en curso o de coliseo). La línea muestra los trofeos de hasta 6 semanas.</p>`, true);
+  return ntPanel('Posiciones finales', 'Puesto de cada clan al cerrar la semana y trofeos de guerra de las últimas semanas.',
+    `<div class="nt-clan-grid">${tarjetas}</div><p class="nt-nota">«~» = puesto estimado (semana en curso o de coliseo). La línea muestra los trofeos de guerra de hasta 6 semanas.</p>`, true);
 }
 
 function ntPanelFame(sec){
-  if(!ntOk(sec)) return ntErrorSeccion(sec, 'Fame de guerra');
-  if(!sec.clanes.length) return ntPanel('Fame de guerra', '', '<div class="empty">Sin datos de guerra para esta semana.</div>', false);
+  if(!ntOk(sec)) return ntErrorSeccion(sec, 'Medallas de guerra');
+  if(!sec.clanes.length) return ntPanel('Medallas de guerra', '', '<div class="empty">Sin datos de guerra para esta semana.</div>', false);
   const barras = ntBarras(sec.clanes.map(c => ({ label: c.clan, valor: c.fame, color: ntColor(c.clan) })));
   const lineas = ntLineas(sec.clanes.map(c => ({ nombre: c.clan, color: ntColor(c.clan), valores: c.fameDias })), ['Jue', 'Vie', 'Sáb', 'Dom']);
-  return ntPanel('Fame de guerra', 'Fame total de cada clan y cómo fue creciendo día a día.',
+  return ntPanel('Medallas de guerra', 'Medallas totales de cada clan y cómo fueron creciendo día a día.',
     `${barras}<div style="margin-top:16px;">${lineas}</div>`, false);
 }
 
@@ -4538,14 +4538,14 @@ function ntPanelParticipacion(sec){
 }
 
 function ntPanelTopFame(sec){
-  if(!ntOk(sec)) return ntErrorSeccion(sec, 'Top de fame');
-  if(!sec.topFame.length) return ntPanel('Top de fame', '', '<div class="empty">Sin fame registrada esta semana.</div>', false);
+  if(!ntOk(sec)) return ntErrorSeccion(sec, 'Top de medallas');
+  if(!sec.topFame.length) return ntPanel('Top de medallas', '', '<div class="empty">Sin medallas registradas esta semana.</div>', false);
   const cuerpo = ntBarras(sec.topFame.map((j, i) => ({
     label: `${i + 1}. ${j.nombre}`, valor: j.fame, color: ntColor(j.clan),
-    titulo: `${j.nombre} (${j.clan}): ${ntN(j.fame)} de fame, ${j.ataques} ataque(s)`
+    titulo: `${j.nombre} (${j.clan}): ${ntN(j.fame)} medallas, ${j.ataques} ataque(s)`
   })));
   const clanes = [...new Set(sec.topFame.map(j => j.clan))].map(c => `<span><span class="nt-dot" style="background:${ntColor(c)}"></span>${esc(c)}</span>`).join('');
-  return ntPanel('Top de fame', 'Los jugadores que más fame aportaron en toda la familia.', `${cuerpo}<div class="nt-leyenda">${clanes}</div>`, false);
+  return ntPanel('Top de medallas', 'Los jugadores que más medallas aportaron en toda la familia.', `${cuerpo}<div class="nt-leyenda">${clanes}</div>`, false);
 }
 
 function ntPanelBarcos(sec){
@@ -5215,7 +5215,7 @@ async function pintarGridCR(tipo){
   // FIX (04-oct-2026, accesibilidad): cada campo llevaba solo placeholder="0", así que un lector de pantalla lo anunciaba como "0, editar texto". Ahora lleva su nombre completo (Ascenso/Descenso, clan, rol y Trofeos/Ataques).
   const ETIQUETA_ROL_CR = { miembro: 'Miembro', veterano: 'Veterano', colider: 'Colíder' };
   const inp = (clan, idx, campo, rol) =>
-    `<td><input type="text" inputmode="numeric" class="cr-grid-input" id="${idCeldaCR(tipo, idx, campo, rol)}" placeholder="0" aria-label="${esc(`${tipo === 'ascenso' ? 'Ascenso' : 'Descenso'}, ${clan}, ${ETIQUETA_ROL_CR[rol]}, ${campo === 'min' ? 'Trofeos' : 'Ataques'}`)}"></td>`;
+    `<td><input type="text" inputmode="numeric" class="cr-grid-input" id="${idCeldaCR(tipo, idx, campo, rol)}" placeholder="0" aria-label="${esc(`${tipo === 'ascenso' ? 'Ascenso' : 'Descenso'}, ${clan}, ${ETIQUETA_ROL_CR[rol]}, ${campo === 'min' ? 'Medallas' : 'Ataques'}`)}"></td>`;
   tbody.innerHTML = clanes.map((clan, idx) => `
     <tr>
       <td>${esc(clan)}</td>
