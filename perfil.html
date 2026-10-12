@@ -928,6 +928,13 @@
     .bt-row{padding:14px 14px 14px 18px;}
     .bt-vs{flex-basis:100%;}
   }
+  /* 12-oct-2026 (pedido usuario, decoración con banners del Fan Kit): cinta de fondo difuminada en la parte alta de algunas tarjetas.
+     Va detrás del eyebrow y el título (z-index), con opacidad baja y degradado para no restar lectura. [→ Contexto_Base_Web.md §PF056] */
+  .pf-cinta{position:relative;}
+  .pf-cinta::before{content:""; position:absolute; top:0; left:0; right:0; height:76px; border-radius:var(--radius) var(--radius) 0 0; background:var(--cinta) center/cover no-repeat; opacity:.5; -webkit-mask-image:linear-gradient(to bottom,#000 35%,transparent); mask-image:linear-gradient(to bottom,#000 35%,transparent); pointer-events:none;}
+  .pf-cinta > .eyebrow, .pf-cinta > .pf-subtitulo{position:relative; z-index:1; text-shadow:0 1px 3px rgba(0,0,0,.6);}
+  .pf-vacio-emote{display:flex; align-items:center; gap:10px; font-size:11px; margin-top:8px;}
+  .pf-vacio-emote img{height:44px; width:auto;}
 </style>
 </head>
 <body data-page="perfil">
@@ -1176,7 +1183,7 @@
            alejaba visualmente de "Carta de torre del mazo" (que se pinta
            dentro de mMazoActualCard, justo arriba). Se mueve acá, pegada a
            Mazo actual, ANTES de las gráficas. Historial en CHANGELOG.md. -->
-      <div class="card pf-panel-datos" id="mFavoritaCard" style="display:none;">
+      <div class="card pf-panel-datos pf-cinta" id="mFavoritaCard" style="display:none; --cinta:url(assets/img/cinta-favorita.webp);">
         <div class="eyebrow">Personal</div>
         <h2 class="pf-subtitulo">Carta favorita</h2>
         <div id="mFavoritaContenido"></div>
@@ -1341,13 +1348,13 @@
         </div>
       </div>
 
-      <div class="card pf-panel-datos" id="mInsigniasCard" style="display:none;">
+      <div class="card pf-panel-datos pf-cinta" id="mInsigniasCard" style="display:none; --cinta:url(assets/img/cinta-insignias.webp);">
         <div class="eyebrow">Insignias y logros</div>
         <h2 class="pf-subtitulo">Insignias</h2>
         <div id="mInsigniasContenido"></div>
       </div>
 
-      <div class="card pf-panel-datos" id="mLogrosCard" style="display:none;">
+      <div class="card pf-panel-datos pf-cinta" id="mLogrosCard" style="display:none; --cinta:url(assets/img/cinta-logros.webp);">
         <div class="eyebrow">Insignias y logros</div>
         <h2 class="pf-subtitulo">Logros</h2>
         <div id="mLogrosContenido" style="margin-top:14px;"></div>
@@ -2124,7 +2131,7 @@ function _pintarInsignias(badges){
   const grupoHtml = (lista, listaBloq, selectorHtml, claveBloq) => `
     ${lista.length ? selectorHtml : ''}
     ${listaBloq.length ? `<h4 class="desbloqueo-tit">Desbloqueadas<span class="cuenta">${lista.length}</span></h4>` : ''}
-    ${lista.length ? gridHtml(lista, 'vm-' + claveBloq) : (listaBloq.length ? '<div class="text-faint" style="font-size:11px; margin-top:8px;">Ninguna todavía.</div>' : '')}
+    ${lista.length ? gridHtml(lista, 'vm-' + claveBloq) : (listaBloq.length ? '<div class="text-faint pf-vacio-emote"><img src="assets/img/emote-vacio.webp" alt="" loading="lazy" decoding="async" onerror="this.remove();">Ninguna todavía.</div>' : '')}
     ${listaBloq.length ? _bloqSeccionHtml(claveBloq, listaBloq.length, gridHtml(listaBloq)) : ''}`;
   const hayGenerales = generales.length || bloqGen.length;
   const seccionMaestrias = (maestrias.length || bloqMae.length) ? `
