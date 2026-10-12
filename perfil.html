@@ -939,6 +939,9 @@
   .pf-cinta > .eyebrow, .pf-cinta > .pf-subtitulo{position:relative; z-index:1; text-shadow:0 1px 3px rgba(0,0,0,.6);}
   /* 12-oct-2026 (pedido usuario — "dale un poco de opacidad a las pastillas del título de sección, ya que no se ve «INSIGNIAS Y LOGROS»"): sobre la cinta la pastilla (.eyebrow) pasa a fondo oscuro semiopaco. */
   .pf-cinta > .eyebrow{background:rgba(12,12,24,.78); border-color:rgba(243,169,34,.45);}
+  /* 12-oct-2026 (pedido usuario — cintas en el resto de las tarjetas): en Mazo actual y Colección completa el eyebrow y el título no son hijos directos de la tarjeta (van dentro de un contenedor flex junto a botones o gráfico), así que la clase pf-cinta--anidada aplica la misma regla a sus descendientes. La llevan tres tarjetas: Mazo actual y Colección (eyebrow y título únicos) y Evolución (el título de cada gráfica va dentro de su sección; solo el primero cae sobre la cinta). [→ Contexto_Base_Web.md §PF056] */
+  .pf-cinta--anidada .eyebrow, .pf-cinta--anidada .pf-subtitulo{position:relative; z-index:1; text-shadow:0 1px 3px rgba(0,0,0,.6);}
+  .pf-cinta--anidada .eyebrow{background:rgba(12,12,24,.78); border-color:rgba(243,169,34,.45);}
   .pf-vacio-emote{display:flex; align-items:center; gap:10px; font-size:11px; margin-top:8px;}
   .pf-vacio-emote img{height:44px; width:auto;}
   /* 12-oct-2026 (pedido usuario — "al nombre del jugador ponlo en dorado brillante"): nombre de la cabecera con degradado dorado claro y un leve brillo. Los emojis del nombre conservan sus colores. [→ Contexto_Base_Web.md §PF058] */
@@ -1148,7 +1151,7 @@
            antes de "Colección completa de cartas" (justo después de las
            gráficas de Evolución); se mueve tal cual, sin cambios de
            contenido, a esta posición. -->
-      <div class="card pf-panel-datos" id="mLeyendasCard" style="display:none;">
+      <div class="card pf-panel-datos pf-cinta" id="mLeyendasCard" style="display:none; --cinta:url(assets/img/cinta-competitivo-2.webp);">
         <!-- FIX (23-sep-2026, pedido usuario — "quita el texto de 'Camino de leyendas y ligas', que quede como competitivo desglosándose en camino de leyendas y en ligas"): se quita el <h2> "Camino de Leyendas y ligas" y se conserva el eyebrow "Competitivo" con su estilo original; las dos subsecciones las arma renderCaminoLeyendas(). Historial en CHANGELOG.md. -->
         <div class="eyebrow">Competitivo</div>
         <div id="mLeyendasContenido"></div>
@@ -1164,7 +1167,7 @@
            del perfil, después de "Progreso de eventos y modos". -->
       <!-- ---------- RANKING EN EL CLAN (nuevo, 31-ago-2026) ---------- -->
       <!-- 11-oct-2026 (pedido usuario): las 4 gráficas comparten UN solo recuadro con la pastilla "Evolución" una sola vez; cada una es una sección (los ids ...ChartCard se mantienen: renderMetricaSemanal() las oculta si no hay datos). -->
-      <div class="card pf-panel-datos pf-evolucion">
+      <div class="card pf-panel-datos pf-evolucion pf-cinta pf-cinta--anidada" style="--cinta:url(assets/img/cinta-evolucion-2.webp);">
         <div class="eyebrow">Evolución</div>
         <section class="pf-evo-seccion">
           <h2 class="pf-subtitulo">Ranking en el clan</h2>
@@ -1190,7 +1193,7 @@
       </div>
 
       <!-- "Mazo actual" es pd.currentDeck real de la API; los botones "Sugerencias de mazo" viven en la esquina superior derecha de esta card, junto al eyebrow/título. Historial en CHANGELOG.md. -->
-      <div class="card pf-panel-datos" id="mMazoActualCard" style="display:none;">
+      <div class="card pf-panel-datos pf-cinta pf-cinta--anidada" id="mMazoActualCard" style="display:none; --cinta:url(assets/img/cinta-mazo-2.webp);">
         <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:14px; flex-wrap:wrap;">
           <div>
             <div class="eyebrow">Mazo actual</div>
@@ -1227,7 +1230,7 @@
            _resolverModoDesdeCatalogo(), 07_API_ClashRoyale.gs) -- mismos
            helpers que usa _webPerfilExtendido() para el resto del perfil, no
            hizo falta escribir nada nuevo de ese lado. -->
-      <div class="card pf-panel-datos" id="mBatallasRecientesCard">
+      <div class="card pf-panel-datos pf-cinta" id="mBatallasRecientesCard" style="--cinta:url(assets/img/cinta-batallas-2.webp);">
         <div class="eyebrow">Actividad</div>
         <h2 class="pf-subtitulo">Batallas más recientes</h2>
         <p class="text-dim" style="margin-top:6px; font-size:14px;">El historial de batallas más reciente de este jugador.</p>
@@ -1244,7 +1247,7 @@
       <!-- CICLO DE COFRES: CONECTADO. El botón #mVerCicloCofresBtn pide la acción 'webCofresJugador' (_webCofresJugador(), 34_Web_API.gs,
            enrutada en 08_Web_Endpoints.gs), que cruza cada cofre con Backup_Cofres.csv y manda `nombre` y `link` (ícono; sin link se pinta un 📦; las
            imágenes de cofres están en assets/chests/). El pintado está en pintarCicloCofres()/verCicloCofres(). Historial en CHANGELOG.md. -->
-      <div class="card pf-panel-datos" id="mCicloCofresCard">
+      <div class="card pf-panel-datos pf-cinta" id="mCicloCofresCard" style="--cinta:url(assets/img/cinta-cofres-2.webp);">
         <div class="eyebrow">Actividad</div>
         <h2 class="pf-subtitulo">Ciclo de cofres</h2>
         <p class="text-dim" style="margin-top:6px; font-size:14px;">Los próximos cofres que este jugador va a abrir, en orden.</p>
@@ -1257,7 +1260,7 @@
       </div>
 
       <!-- Secciones nuevas que leen jugador.rawClash() (snapshot JSON crudo con los nombres de categoría de Supercell, ya adjuntado por webPerfil). Historial en CHANGELOG.md. -->
-      <div class="card pf-panel-datos" id="mColeccionCard" style="display:none;">
+      <div class="card pf-panel-datos pf-cinta pf-cinta--anidada" id="mColeccionCard" style="display:none; --cinta:url(assets/img/cinta-coleccion-2.webp);">
         <!-- FIX (26-sep-2026, pedido usuario — "añade una pastilla ... llamada
              'Mejora disponible' ... sube esos dos botones [Todas y Mejora
              disponible] a la esquina superior derecha de su sección, al
@@ -1375,7 +1378,7 @@
         <div id="mLogrosContenido" style="margin-top:14px;"></div>
       </div>
 
-      <div class="card pf-panel-datos" id="mProgresoCard" style="display:none;">
+      <div class="card pf-panel-datos pf-cinta" id="mProgresoCard" style="display:none; --cinta:url(assets/img/cinta-batallas-2.webp);">
         <div class="eyebrow">Actividad</div>
         <h2 class="pf-subtitulo">Progreso de eventos y modos</h2>
         <div id="mProgresoContenido"></div>
