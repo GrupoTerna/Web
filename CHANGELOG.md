@@ -30,6 +30,7 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 
 ## 12-oct-2026
 
+- **`perfil.html` · «Banners» pasa a «Estandartes».** `renderExtendido()`: etiqueta y `alt` del cuadrito (el dato sigue siendo `ext.banners`; el nombre de la columna «Banners» de la hoja y los CSV no se tocó). [→ Contexto_Base_Web.md §PF055]
 - **`perfil.html` · Escudo del clan e insignia de guerra junto al nombre.** Nuevo contenedor `.perfil-cabecera-izq` (nombre, `#mClanIconoWrap`, `#mInsigniaGuerraWrap`): como hijos sueltos de `.perfil-cabecera` (`space-between`) las imágenes se repartían por la fila y la insignia quedaba en el extremo derecho. Tamaños máximos: escudo 84 px, insignia 72 px. [→ Contexto_Base_Web.md §PF059]
 - **`perfil.html` · Línea «Estado · Rango (Tag)» e insignia de guerra junto al escudo.** `renderMiembro()`: `mSub` pasa de «#TAG · Rango · Estado» a «Estado · Rango (#TAG)»; nuevo `#mInsigniaGuerraWrap`, a la derecha del escudo del clan, con el ícono de la insignia `ClanWarWins` del jugador (tooltip con nivel y progreso; oculta si no la tiene). [→ Contexto_Base_Web.md §PF059]
 - **`perfil.html` · Nombre del jugador en dorado brillante y cintas con nombre nuevo.** CSS `#mNombre`: degradado dorado con leve brillo. `assets/img/cinta-*.webp` pasan a `cinta-*-2.webp`: el service worker sirve primero la copia guardada, así que con el mismo nombre se seguía viendo la cinta vieja con muesca. [→ Contexto_Base_Web.md §PF058]
