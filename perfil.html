@@ -1176,6 +1176,12 @@
           <div class="pf-nota-guerra" data-nota-guerra></div>
           <div id="mRankingChart"></div>
         </section>
+        <!-- 12-oct-2026 (pedido usuario): gráfica de copas después de Ranking. Lee `copas` de ext.historialRanking (hoja Guerra, columna Copas, [→ Contexto_Base_Web.md §PF061]); se ve siempre y, sin datos todavía, explica por qué. -->
+        <section class="pf-evo-seccion" id="mCopasChartCard">
+          <h2 class="pf-subtitulo">Copas</h2>
+          <div class="pf-nota-guerra" data-nota-guerra></div>
+          <div id="mCopasChart"></div>
+        </section>
         <!-- Ataques/Puntaje/Barcos por semana usan el mismo array que "Ranking en el clan"; cada sección arranca oculta y se muestra sola si el backend trae datos para ese campo. -->
         <section class="pf-evo-seccion" id="mAtaquesChartCard" style="display:none;">
           <h2 class="pf-subtitulo">Ataques por semana</h2>
@@ -5316,6 +5322,28 @@ function renderRankingChart(ext){
 }
 
 /**
+ * renderCopasChart(ext) — 12-oct-2026 (pedido usuario: "en las gráficas, después del ranking agrega uno de copas").
+ * Copas del jugador por día de guerra, desde ext.historialRanking[].copas (hoja Guerra, columna Copas; el backend
+ * empezó a guardarla el 12-oct-2026, así que no hay historial anterior y no se inventa: un 0 o un campo ausente es
+ * «sin dato» y no se grafica). Las copas no son un contador de la semana: se grafican tal cual, sin pasar por
+ * _valoresDiariosDesdeAcumulado(). Eje desde un piso redondo bajo el mínimo (con base 0 la línea sería plana).
+ * [→ Contexto_Base_Web.md §PF061]
+ */
+function renderCopasChart(ext, copasActuales){
+  const wrap = document.getElementById('mCopasChart');
+  if (!wrap) return;
+  const historial = ext && Array.isArray(ext.historialRanking) ? _historialDiasGuerra(ext.historialRanking.filter(h => h && Number(h.copas) > 0)) : [];
+  if (!historial.length){
+    wrap.innerHTML = `<div class="chart-empty">Todavía no hay historial de copas: se empezó a guardar el 12-oct-2026 y aparecerá desde el próximo día de guerra${copasActuales != null && Number(copasActuales) > 0 ? ` — copas actuales: <b style="color:var(--text);">${esc(fmtNum(copasActuales))}</b>` : ''}.</div>`;
+    return;
+  }
+  const puntos = ordenarHistorialPorSemana(historial).map(h => ({ semana: String(h.semana), valor: Number(h.copas), real: true, clan: h.clan }));
+  const minimo = Math.min(...puntos.map(p => p.valor));
+  const base = Math.max(0, Math.floor((minimo - 200) / 100) * 100);
+  pintarGraficaPerfil(wrap, puntos, { ejeY: 'Copas', unidad: 'copas', base, sinHuecos: true });
+}
+
+/**
  * renderMetricaSemanal(elId, historial, campo, opts)
  * FIX (08-sep-2026, pedido usuario — "solo se está mostrando evolución de
  * ranking, falta de ataques, puntaje y barcos"): gráfica de una métrica
@@ -5500,6 +5528,7 @@ function renderMiembro(j){
   cargarCtxGuerraPerfil(); // FIX (07-oct-2026): periodIndex de la guerra vigente para saber hasta cuándo se congela el domingo
   perfilGraficaCtx = { nombre: j.nombre || '', tag: j.tag || '', clan: j.clan || '' }; // FIX (20-sep-2026): datos del tooltip de las gráficas
   renderRankingChart(j.extendido);
+  renderCopasChart(j.extendido, j.copas); // 12-oct-2026
   renderMetricasSemanales(j.extendido); // FIX (08-sep-2026)
   actualizarNotasGuerraCongelada(j.extendido); // FIX (07-oct-2026): nota de última guerra terminada
   renderMazoActual(j.mazoActual, j.extendido, j); // FASE 10 (06-sep-2026); FIX 08-sep-2026: botones de sugerencia de mazo se arman acá ahora; FIX 12-sep-2026: se pasa j completo para cruzar con rawClash (starLevel/count/currentDeckSupportCards)
