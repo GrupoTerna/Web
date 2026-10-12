@@ -485,19 +485,25 @@
   #mMiniGraficosWrap .mini-pie-titulo{ min-height:26px; }
   /* FIX (11-oct-2026, pedido usuario -- "en las gráficas de pastel, mueve los indicadores para arriba y la gráfica abajo, igual que en la de ataques y medallas"): en las dos tarjetas de pastel de este grid la leyenda (Victorias/Derrotas, Hechas/Recibidas) va arriba y el donut abajo, como la leyenda de chips va sobre el SVG en las de dispersión. Solo se invierte el orden visual con column-reverse (el HTML de _pastelMiniHtml() no cambia, así que el lector de pantalla sigue leyendo donut y luego leyenda); nowrap para que en columna no se parta en dos. Acotado a #mMiniGraficosWrap: «Cartas por nivel» (coleccion-nivel-pie-wrap) usa el mismo componente y queda como estaba. [→ Contexto_Base_Web.md §PF035] */
   /* FIX (11-oct-2026, pedido usuario — "las minigráficas no empiezan ni terminan a la misma altura, sus contenedores sí están alineados pero las gráficas no"): antes cada cuerpo se centraba por su cuenta en el alto sobrante (flex:1 + justify-content:center), así que el donut y el SVG de dispersión quedaban a alturas distintas, y el donut mide menos que el trazado. Ahora las 4 tarjetas tienen la misma estructura vertical, arriba hacia abajo: título (26 + 16) · zona de leyenda de alto fijo (50 px, alineada arriba) · 10 px · zona de gráfica del alto del SVG de dispersión (243 x 142 px). Dentro de esa zona el donut se coloca para que su ANILLO coincida con el trazado de la dispersión: la línea de arriba (y = 20 de 152) y la base (y = 130 de 152). El anillo (r 38 + grosor 13 sobre un viewBox de 100) ocupa el 89 % de la caja del donut, de ahí que la caja sea de 115 px y no de 103. Medidas en función del ancho real del SVG (--mg-w = min(243px, ancho de la tarjeta)): alto de la zona 0.5846·w, trazado 0.4231·w, caja del donut 0.4754·w (mínimo 100 px para que quepa el número del centro), margen superior 0.0508·w. Las proporciones con cqw se aplican solo si el navegador las entiende (@supports); si no, valen las medidas fijas para 243 px. Acotado a #mMiniGraficosWrap: «Cartas por nivel» queda igual. [→ Contexto_Base_Web.md §PF039] */
-  #mMiniGraficosWrap .mini-pie-cuerpo, #mMiniGraficosWrap .mini-disp-cuerpo{ flex:none; flex-wrap:nowrap; justify-content:flex-start; gap:10px; }
-  #mMiniGraficosWrap .mini-pie-cuerpo{ flex-direction:column; }
+  /* FIX (12-oct-2026, pedido usuario -- "aumenta el ancho de las minigráficas, están desperdiciando espacio ... mueve las pastillas de ratio y racha debajo de derrotas, para que las 4 gráficas puedan alinearse inferiormente al fondo de sus contenedores"): (1) la grilla pasa de auto-fit/minmax(230px) a 4 columnas iguales: la nota .pf-nota-guerra ocupa toda la fila (grid-column:1/-1), así que auto-fit nunca colapsaba la 5.ª columna vacía y las 4 tarjetas medían ~235 px dejando un hueco a la derecha; con 4 columnas fijas se reparten todo el ancho (2 columnas bajo 1100 px, 1 bajo 560 px). (2) El SVG de dispersión y el donut ya no tienen tope de 243 px: escalan con la tarjeta (tope 340 px, centrados). (3) Ratio V/D y Racha se pintan dentro de la leyenda, bajo la fila de Derrotas (ver _pastelMiniHtml()), no bajo el donut. (4) Como la leyenda ya no tiene alto fijo (la de pastel crece con las pastillas), la zona de la gráfica (alto 0.5846·ancho, igual en donut y dispersión, ver PF039) se ancla al fondo de la tarjeta con margin-top:auto: las 4 gráficas terminan en la misma línea inferior y, al tener la misma zona, también empiezan a la misma altura. [→ Contexto_Base_Web.md §PF039] */
+  #mMiniGraficosWrap{ display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; margin-top:16px; }
+  @media (max-width:1100px){ #mMiniGraficosWrap{ grid-template-columns:repeat(2,minmax(0,1fr)); } }
+  @media (max-width:560px){ #mMiniGraficosWrap{ grid-template-columns:minmax(0,1fr); } }
+  #mMiniGraficosWrap .mini-pie-cuerpo, #mMiniGraficosWrap .mini-disp-cuerpo{ flex:1; flex-wrap:nowrap; justify-content:flex-start; gap:10px; }
+  #mMiniGraficosWrap .mini-pie-cuerpo{ flex-direction:column; align-items:center; }
   #mMiniGraficosWrap .mini-pie-cuerpo > .mini-pie-leyenda{ order:-1; }
-  #mMiniGraficosWrap .mini-pie-leyenda, #mMiniGraficosWrap .mini-disp-leyenda{ height:50px; min-height:0; justify-content:center; align-items:flex-start; align-content:flex-start; }
+  #mMiniGraficosWrap .mini-pie-leyenda, #mMiniGraficosWrap .mini-disp-leyenda{ min-height:50px; justify-content:center; align-items:flex-start; align-content:flex-start; }
   #mMiniGraficosWrap .mini-pie-leyenda{ flex-direction:column; justify-content:flex-start; }
-  #mMiniGraficosWrap .mini-pie-donut-wrap{ width:115px; height:115px; margin:12px 0 14px; }
-  #mMiniGraficosWrap .mini-pie-extras{ margin-top:4px; }
+  #mMiniGraficosWrap .mini-pie-leyenda .mini-pie-extras{ margin-top:2px; }
+  #mMiniGraficosWrap .mini-pie-extra{ padding:5px 11px; }
+  #mMiniGraficosWrap .mini-pie-donut-wrap{ width:115px; height:115px; margin:auto 0 14px; }
+  #mMiniGraficosWrap .mini-disp-svg{ width:100%; max-width:340px; margin-top:auto; }
   @supports (width:1cqw){
     #mMiniGraficosWrap .mini-pie{ container-type:inline-size; }
-    #mMiniGraficosWrap .mini-pie-cuerpo{ --mg-w:min(243px, 100cqw); }
+    #mMiniGraficosWrap .mini-pie-cuerpo{ --mg-w:min(340px, 100cqw); }
     #mMiniGraficosWrap .mini-pie-donut-wrap{
       width:max(100px, calc(var(--mg-w) * .4754)); height:max(100px, calc(var(--mg-w) * .4754));
-      margin-top:calc(var(--mg-w) * .0508);
+      margin-top:auto;
       margin-bottom:max(0px, calc(var(--mg-w) * .5338 - max(100px, var(--mg-w) * .4754)));
     }
   }
@@ -1085,7 +1091,7 @@
              .mini-pie (min-height:260px), así quedan a la misma altura sin
              importar cuál sea donut y cuál dispersión. Se pinta desde
              renderExtendido(). -->
-        <div id="mMiniGraficosWrap" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:16px; margin-top:16px;"></div>
+        <div id="mMiniGraficosWrap"></div>
         <div id="mExtWrap"></div>
 
       </div>
@@ -3685,9 +3691,9 @@ function _pastelMiniHtml(titulo, porciones, extra, opts){
           </svg>
           <div class="mini-pie-donut-centro" aria-hidden="true"><b>${esc(fmtNum(centroNum))}</b><span>${esc(opts.centroEtiqueta || 'Total')}</span></div>
         </div>
-        <div class="mini-pie-leyenda${hayColumna ? ' con-col' : ''}">${leyenda}
+        <div class="mini-pie-leyenda${hayColumna ? ' con-col' : ''}">${leyenda}${extraHtml}
         </div>
-      </div>${notaHtml}${extraHtml}
+      </div>${notaHtml}
     </div>`;
 }
 
