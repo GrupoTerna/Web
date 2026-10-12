@@ -26,7 +26,7 @@ const GLOBALES_COMPARTIDOS = [
   'chartCardHtml', 'clanCardHtml', 'debounce', 'enlaceClan', 'enlaceJugador', 'esAdminLogueado', 'esInicioAnio',
   'esInicioSemana', 'esInicioTemporada', 'esc', 'etiquetaPuntoSerie', 'fitOneLine', 'fitOneLineAll',
   'fmtFechaVigenciaCorta', 'fmtNum', 'gridHorizontalMediosSvg', 'htmlTooltipPuntoSerie', 'iconoBadgeClanHtml', 'initJoinModal',
-  'joinModalTriggerEl', 'lineasTemporalesSvg', 'marcarNavActiva', 'normalizarTag', 'obtenerTooltipGrafica', 'ordenClanIndex',
+  'joinModalTriggerEl', 'lineasTemporalesSvg', 'marcarNavActiva', 'normalizarTag', 'obtenerTooltipGrafica', 'posicionarTooltipGrafica', 'ordenClanIndex',
   'ordenarClanes', 'pintarFiltroLetra', 'primerLunesDelMesJS', 'primeraLetraFiltro', 'sincronizarScrollHorizontal', 'traducirNombreCarta',
   'urlValida'
 ];

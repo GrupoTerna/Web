@@ -32,10 +32,10 @@ function montar(){
     ['assets/js/util.js', 'assets/js/features/timeline-svg.js'],
     HTML_BODY
   );
-  const { document, activarTecladoPuntosGrafica, obtenerTooltipGrafica } = window;
+  const { document, activarTecladoPuntosGrafica, obtenerTooltipGrafica, posicionarTooltipGrafica } = window;
   const svg = document.getElementById('miSvg');
   const puntos = Array.from(svg.querySelectorAll('circle'));
-  return { window, document, activarTecladoPuntosGrafica, obtenerTooltipGrafica, svg, puntos };
+  return { window, document, activarTecladoPuntosGrafica, obtenerTooltipGrafica, posicionarTooltipGrafica, svg, puntos };
 }
 
 test('obtenerTooltipGrafica() crea #chartTooltip en document.body si no existe', () => {
@@ -178,4 +178,42 @@ test('opts.titulo tiene prioridad sobre el título de la tarjeta para el aria-la
   const { svg, activarTecladoPuntosGrafica } = montar();
   activarTecladoPuntosGrafica(svg, { titulo: 'Gráfica personalizada' });
   assert.match(svg.getAttribute('aria-label'), /^Gráfica personalizada\. /);
+});
+
+// posicionarTooltipGrafica(): jsdom no calcula medidas, así que se fija el tamaño del tooltip a mano
+// (ventana por defecto de jsdom: 1024 x 768).
+function tooltipDe(ancho, alto){
+  const m = montar();
+  const tip = m.obtenerTooltipGrafica();
+  Object.defineProperty(tip, 'offsetWidth', { value: ancho });
+  Object.defineProperty(tip, 'offsetHeight', { value: alto });
+  return { ...m, tip };
+}
+
+test('posicionarTooltipGrafica() deja el tooltip abajo a la derecha del cursor si cabe', () => {
+  const { tip, posicionarTooltipGrafica } = tooltipDe(200, 60);
+  posicionarTooltipGrafica(tip, 100, 100);
+  assert.equal(tip.style.left, '114px');
+  assert.equal(tip.style.top, '114px');
+});
+
+test('posicionarTooltipGrafica() se voltea a la izquierda del cursor cerca del borde derecho', () => {
+  const { tip, posicionarTooltipGrafica } = tooltipDe(200, 60);
+  posicionarTooltipGrafica(tip, 1000, 100);
+  assert.equal(tip.style.left, '786px'); // 1000 - 14 - 200
+  assert.equal(tip.style.top, '114px');
+});
+
+test('posicionarTooltipGrafica() se voltea hacia arriba cerca del borde inferior', () => {
+  const { tip, posicionarTooltipGrafica } = tooltipDe(200, 60);
+  posicionarTooltipGrafica(tip, 100, 750);
+  assert.equal(tip.style.left, '114px');
+  assert.equal(tip.style.top, '676px'); // 750 - 14 - 60
+});
+
+test('posicionarTooltipGrafica() nunca deja el tooltip fuera de la pantalla por la izquierda ni por arriba', () => {
+  const { tip, posicionarTooltipGrafica } = tooltipDe(900, 700);
+  posicionarTooltipGrafica(tip, 300, 300);
+  assert.equal(tip.style.left, '8px');
+  assert.equal(tip.style.top, '8px');
 });

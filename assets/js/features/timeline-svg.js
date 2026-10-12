@@ -149,6 +149,23 @@ function obtenerTooltipGrafica(){
 }
 
 /**
+ * Posiciona el tooltip junto al cursor (mouse). Por defecto va abajo a la derecha;
+ * si no cabe, se voltea a la izquierda del cursor (puntos del borde derecho) o
+ * arriba (puntos del borde inferior), igual que el de teclado. El tooltip debe
+ * estar visible (display:block) para poder medirlo. Historial en CHANGELOG.md.
+ */
+function posicionarTooltipGrafica(tip, clientX, clientY){
+  const ancho = document.documentElement.clientWidth || window.innerWidth;
+  const alto = window.innerHeight;
+  const w = tip.offsetWidth, h = tip.offsetHeight;
+  let x = clientX + 14, y = clientY + 14;
+  if (x + w > ancho - 8) x = clientX - 14 - w;
+  if (y + h > alto - 8) y = clientY - 14 - h;
+  tip.style.left = Math.max(8, x) + 'px';
+  tip.style.top  = Math.max(8, y) + 'px';
+}
+
+/**
  * activarTecladoPuntosGrafica(svg, opts)
  * opts.selector     selector CSS de los puntos dentro del svg (por defecto 'circle').
  * opts.serieDe(pt)  clave de la serie a la que pertenece el punto (por defecto pt.dataset.serie).
