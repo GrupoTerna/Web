@@ -3938,7 +3938,8 @@ function renderExtendido(ext, j){
   // FIX (27-sep-2026, pedido usuario — "puntos de experiencia debe ocupar
   // dos columnas"): mismo mecanismo que ya usa Arena (ancho=2, ver extItem()
   // más arriba), porque el valor "actual / total" puede ser bastante largo.
-  items += extItem(raw.expPoints != null ? `${fmtNum(raw.expPoints)} / ${fmtNum(raw.totalExpPoints)}` : null, 'Puntos de experiencia', false, 2);
+  // FIX (12-oct-2026, pedido usuario -- "en vez de '162,523 / 4,581,293' haz que muestre '162,523'"): solo se muestra expPoints; totalExpPoints sigue llegando en rawClash pero ya no se pinta. Se mantiene ancho=2 (decisión del 27-sep) aunque el valor ahora sea corto. [→ Contexto_Base_Web.md §PF054]
+  items += extItem(raw.expPoints != null ? fmtNum(raw.expPoints) : null, 'Puntos de experiencia', false, 2);
   items += extItem(raw.starPoints, 'Puntos estelares', true, undefined, _ICONO_PUNTOS_ESTELARES_HTML);
   /* FIX (23-sep-2026, pedido usuario — "falta retirar el cuadrito de
    * batallas"): Batallas ya no se pinta como cuadrito suelto. En su lugar,
