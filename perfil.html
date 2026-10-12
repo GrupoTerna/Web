@@ -69,6 +69,9 @@
    * renderMiembro()) lo agranda para ocupar ese alto completo, con
    * width:auto para no deformarlo. display:flex + centrado acá adentro
    * también centra el ícono verticalmente dentro de ese alto ya estirado. */
+  /* 12-oct-2026: columna derecha de la cabecera = datos (.stats-mini) + fila de botones debajo, alineada a la derecha. */
+  .perfil-cabecera-der{display:flex; flex-direction:column; align-items:flex-end; gap:14px; flex:1 1 auto; min-width:0;}
+  .perfil-cabecera-der .ext-links{justify-content:flex-end; margin-top:0;}
   #mClanIconoWrap{display:flex; align-items:center; justify-content:center; align-self:stretch;}
   #mClanIconoWrap img{width:auto; height:100%; max-height:90px; margin-right:0 !important;}
   /* 20-sep-2026 (D-3 b2): .perfil-cabecera .stats-mini b se movió a assets/styles.css (16px + --f-display).
@@ -970,6 +973,7 @@
                oculto solo si el badgeId no está en la tabla o el PNG no
                existe en assets/badges/, igual que en el resto del sitio. -->
           <span id="mClanIconoWrap" style="display:none; flex-shrink:0;"></span>
+          <div class="perfil-cabecera-der">
           <div class="stats-mini">
             <!-- FIX (23-sep-2026, pedido usuario — "en la parte de arriba solo se debe mostrar nivel de torre del rey, nivel de XP, copas, victorias de guerra, ataques en la semana actual y fame de la semana actual, y vigencia. todo lo demás debe ir en los cuadritos debajo"): la cabecera queda con estos 7 datos, en este orden. Torneos, Puntos estelares y Puntos de experiencia pasan a la grilla de cuadritos (renderExtendido()). Cada <span> con "Wrap" se oculta sola si el dato no llega (ver renderStatsAvanzadasCabecera() y renderMiembro()). Historial en CHANGELOG.md. -->
             <span id="mTorreReyWrap" style="display:none;"><b id="mTorreRey">0</b>Nivel de torre del rey</span>
@@ -1015,7 +1019,21 @@
             <!-- Vigencia (Última conexión) queda oculta hasta que el backend mande j.vigencia. Historial en CHANGELOG.md. -->
             <span id="mVigenciaWrap" style="display:none;"><b id="mVigencia">—</b>Vigencia</span>
           </div>
+            <!-- 12-oct-2026 (pedido usuario — "se puede subir los botones?"): la fila de acciones sube de abajo de la card a la columna derecha de la cabecera, debajo de los datos (nivel, copas, vigencia). Los ids no cambian. Los paneles que abren (torneos, otras cuentas, historial, vetar) suben con ella, justo debajo de la cabecera. -->
+            <div class="ext-links" id="mAccionesRow" style="margin-top:0;">
+              <div id="mRoyaleCwstatsBtns" style="display:contents;"></div>
+              <button type="button" id="btnVetarJugador" style="display:none; border-color:var(--danger); color:var(--danger);">🚫 Vetar</button>
+              <button type="button" id="btnVerTorneosJugador">🏆 Ver torneos</button>
+              <button type="button" id="btnVerOtrasCuentas" style="display:none;">Ver otras cuentas</button>
+              <!-- Historial completo de guerra del jugador, solo admin — mismo patrón visible/oculto que "Ver otras cuentas". Historial en CHANGELOG.md. -->
+              <button type="button" id="btnVerHistorialGuerra" style="display:none;">📜 Historial de guerra</button>
+            </div>
+          </div>
         </div>
+        <div id="mTorneosWrap" style="display:none; margin-top:14px;" aria-live="polite"></div>
+        <div id="mOtrasCuentasWrap" style="margin-top:14px;"></div>
+        <div id="mHistorialGuerraWrap" style="display:none; margin-top:14px;" aria-live="polite"></div>
+        <div id="mVetarWrap" style="display:none; margin-top:14px;"></div>
 
         <!-- FIX (26-sep-2026, pedido usuario — "sube los dos minigráficos de
              ataques y fame a la derecha de la sección de requisitos de
@@ -1070,19 +1088,6 @@
         <div id="mMiniGraficosWrap" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(230px,1fr)); gap:16px; margin-top:16px;"></div>
         <div id="mExtWrap"></div>
 
-        <!-- Una sola fila de acciones, formato ".ext-links" (pill chico). Historial en CHANGELOG.md. -->
-        <div class="ext-links" id="mAccionesRow" style="margin-top:18px;">
-          <div id="mRoyaleCwstatsBtns" style="display:contents;"></div>
-          <button type="button" id="btnVetarJugador" style="display:none; border-color:var(--danger); color:var(--danger);">🚫 Vetar</button>
-          <button type="button" id="btnVerTorneosJugador">🏆 Ver torneos</button>
-          <button type="button" id="btnVerOtrasCuentas" style="display:none;">Ver otras cuentas</button>
-          <!-- Historial completo de guerra del jugador, solo admin — mismo patrón visible/oculto que "Ver otras cuentas". Historial en CHANGELOG.md. -->
-          <button type="button" id="btnVerHistorialGuerra" style="display:none;">📜 Historial de guerra</button>
-        </div>
-        <div id="mTorneosWrap" style="display:none; margin-top:14px;" aria-live="polite"></div>
-        <div id="mOtrasCuentasWrap" style="margin-top:14px;"></div>
-        <div id="mHistorialGuerraWrap" style="display:none; margin-top:14px;" aria-live="polite"></div>
-        <div id="mVetarWrap" style="display:none; margin-top:14px;"></div>
       </div>
 
       <!-- "Mazo actual" es pd.currentDeck real de la API; los botones "Sugerencias de mazo" viven en la esquina superior derecha de esta card, junto al eyebrow/título. Historial en CHANGELOG.md. -->
