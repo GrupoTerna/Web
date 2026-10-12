@@ -118,7 +118,8 @@
 // v51 (11-oct-2026): timeline-svg.js, perfil.html y directorio.html cambiaron (CORE_ASSETS) -- el tooltip de las gráficas se voltea a la izquierda cerca del borde derecho.
 // Se sube la versión para que 'activate' borre v50 y nadie siga con esos tres archivos viejos.
 // v52 (12-oct-2026): guerra.html cambió (CORE_ASSETS) -- más espacio entre filas de .part-lista (objetivo táctil de 24 px, §PF050).
-const CACHE_NAME = 'terna-static-v52';
+// v53 (12-oct-2026): guerra.html cambió (CORE_ASSETS) -- subrayado punteado en los enlaces de jugador dentro de .part-lista (§PF050, Q-1).
+const CACHE_NAME = 'terna-static-v53';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
