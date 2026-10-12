@@ -125,7 +125,7 @@
 // v57 (12-oct-2026): admin.html cambió (CORE_ASSETS) -- al abrir el formulario de Resolución el foco pasa a «Tipo de resolución» y «Cancelar» devuelve el foco al botón que lo abrió (§PF050, H-1 y H-2).
 // v58 (12-oct-2026): perfil.html cambió (CORE_ASSETS) -- cintas decorativas en las 7 tarjetas restantes del perfil (Competitivo, Evolución, Mazo actual, Batallas más recientes, Ciclo de cofres, Colección completa y Progreso de eventos y modos; §PF056). Las imágenes cinta-*-2.webp nuevas no se precachean.
 // v59 (12-oct-2026): perfil.html cambió (CORE_ASSETS) -- se quita el relleno de 72 px que cada gráfica de Evolución heredaba de `section{padding:72px 0}` (§PF060).
-const CACHE_NAME = 'terna-static-v59';
+const CACHE_NAME = 'terna-static-v60';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
