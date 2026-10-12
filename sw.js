@@ -120,8 +120,9 @@
 // v52 (12-oct-2026): guerra.html cambió (CORE_ASSETS) -- más espacio entre filas de .part-lista (objetivo táctil de 24 px, §PF050).
 // v53 (12-oct-2026): guerra.html cambió (CORE_ASSETS) -- subrayado punteado en los enlaces de jugador dentro de .part-lista (§PF050, Q-1).
 // v54 (12-oct-2026): assets/styles.css y assets/js/util.js cambiaron (CORE_ASSETS) -- clase .sr-only y aviso «se abre en una pestaña nueva» en enlaceJugador() y enlaceClan() (§PF050, Q-2).
+// v56 (12-oct-2026): admin.html cambió (CORE_ASSETS) -- más espacio entre el enlace del clan y el del jugador en la tarjeta de cuentas (objetivo de 24 px, §PF050).
 // v55 (12-oct-2026): guerra.html cambió (CORE_ASSETS) -- los ceros de las cuadrículas (.ai-cell-zero) suben de 2.7:1 a ~5:1 de contraste (§PF050, D-20).
-const CACHE_NAME = 'terna-static-v55';
+const CACHE_NAME = 'terna-static-v56';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
