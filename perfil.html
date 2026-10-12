@@ -1097,6 +1097,41 @@
 
       </div>
 
+      <!-- FIX (12-oct-2026, pedido usuario -- reordenar las secciones del perfil, de lo más útil o frecuente a lo menos): orden actual = Evolución (gráficas) · Mazo actual · Carta favorita · Batallas más recientes · Competitivo · Ciclo de cofres · Colección completa y Cartas de torre · Insignias · Logros · Progreso de eventos y modos. Esto REEMPLAZA los comentarios de ubicación de más abajo (23-sep, 21-sep y 11-oct-2026), que quedan solo como historial. Cada bloque se llena por su id: mover el HTML no toca el JS. [→ Contexto_Base_Web.md §PF052] -->
+      <!-- FIX (11-oct-2026, pedido usuario — "luego de la colección completa de cartas debe ir evolución (las gráficas)"): el recuadro de Evolución (Ranking, Ataques, Medallas y Barcos) pasa de estar al final del perfil (23-sep-2026) a ir justo después de la card de Colección completa de cartas, antes de Insignias. Se mueve tal cual, sin cambios de contenido ni de ids. [→ Contexto_Base_Web.md §PF038] -->
+      <!-- Historial (23-sep-2026, pedido usuario — "mueve las gráficas en perfil al
+           último"): Ranking/Ataques/Puntaje/Barcos vivían justo después de
+           "Mazo actual"/"Carta favorita" (ver comentario de mFavoritaCard más
+           arriba, que sigue siendo válido como historial de esa reubicación
+           puntual). Se mueven tal cual, sin cambios de contenido, al final
+           del perfil, después de "Progreso de eventos y modos". -->
+      <!-- ---------- RANKING EN EL CLAN (nuevo, 31-ago-2026) ---------- -->
+      <!-- 11-oct-2026 (pedido usuario): las 4 gráficas comparten UN solo recuadro con la pastilla "Evolución" una sola vez; cada una es una sección (los ids ...ChartCard se mantienen: renderMetricaSemanal() las oculta si no hay datos). -->
+      <div class="card pf-panel-datos pf-evolucion">
+        <div class="eyebrow">Evolución</div>
+        <section class="pf-evo-seccion">
+          <h2 class="pf-subtitulo">Ranking en el clan</h2>
+          <div class="pf-nota-guerra" data-nota-guerra></div>
+          <div id="mRankingChart"></div>
+        </section>
+        <!-- Ataques/Puntaje/Barcos por semana usan el mismo array que "Ranking en el clan"; cada sección arranca oculta y se muestra sola si el backend trae datos para ese campo. -->
+        <section class="pf-evo-seccion" id="mAtaquesChartCard" style="display:none;">
+          <h2 class="pf-subtitulo">Ataques por semana</h2>
+          <div class="pf-nota-guerra" data-nota-guerra></div>
+          <div id="mAtaquesChart"></div>
+        </section>
+        <section class="pf-evo-seccion" id="mPuntajeChartCard" style="display:none;">
+          <h2 class="pf-subtitulo">Medallas por semana</h2>
+          <div class="pf-nota-guerra" data-nota-guerra></div>
+          <div id="mPuntajeChart"></div>
+        </section>
+        <section class="pf-evo-seccion" id="mBarcosChartCard" style="display:none;">
+          <h2 class="pf-subtitulo">Barcos por semana</h2>
+          <div class="pf-nota-guerra" data-nota-guerra></div>
+          <div id="mBarcosChart"></div>
+        </section>
+      </div>
+
       <!-- "Mazo actual" es pd.currentDeck real de la API; los botones "Sugerencias de mazo" viven en la esquina superior derecha de esta card, junto al eyebrow/título. Historial en CHANGELOG.md. -->
       <div class="card pf-panel-datos" id="mMazoActualCard" style="display:none;">
         <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:14px; flex-wrap:wrap;">
@@ -1120,6 +1155,58 @@
         <div class="eyebrow">Personal</div>
         <h2 class="pf-subtitulo">Carta favorita</h2>
         <div id="mFavoritaContenido"></div>
+      </div>
+
+      <!-- ---------- BATALLAS MÁS RECIENTES ---------- -->
+      <!-- FIX (27-sep-2026, pedido usuario): igual que "Ciclo de cofres" más
+           arriba, este botón apuntaba a un endpoint 'battlelog' que NUNCA
+           existió como acción web (solo existía descargarBattlelogJugador(),
+           MANUAL, que guarda el JSON crudo en Drive -- no un endpoint web).
+           Se conecta acá a la acción real 'webBattlelogJugador', servida por
+           la función nueva _webBattlelogJugador() (34_Web_API.gs, enrutada
+           en 08_Web_Endpoints.gs), que SÍ llama en vivo a /battlelog y
+           traduce arena/modo al español reutilizando los catálogos que
+           descargarBattlelogJugador() ya alimenta (_resolverArenaDesdeCatalogo()/
+           _resolverModoDesdeCatalogo(), 07_API_ClashRoyale.gs) -- mismos
+           helpers que usa _webPerfilExtendido() para el resto del perfil, no
+           hizo falta escribir nada nuevo de ese lado. -->
+      <div class="card pf-panel-datos" id="mBatallasRecientesCard">
+        <div class="eyebrow">Actividad</div>
+        <h2 class="pf-subtitulo">Batallas más recientes</h2>
+        <p class="text-dim" style="margin-top:6px; font-size:14px;">El historial de batallas más reciente de este jugador.</p>
+        <!-- 11-oct-2026 (pedido usuario): pastillas .ext-links, igual que arriba. Los ids no cambian. -->
+        <div class="ext-links" style="margin-top:14px;">
+          <button type="button" id="mVerBatallasRecientesBtn">⚔️ Ver batallas más recientes</button>
+          <button type="button" id="mForzarBatallasBtn" style="display:none;" title="Solo administradores con panel de permisos: descarga de nuevo desde Clash Royale, ignorando la copia guardada hoy.">🔄 Forzar descarga</button>
+        </div>
+        <div id="mBatallasRecientesWrap" style="display:none;"></div>
+      </div>
+
+      <!-- FIX (21-sep-2026, pedido usuario — "mueve Camino de Leyendas y
+           ligas debajo de las insignias en perfil"): esta tarjeta vivía
+           antes de "Colección completa de cartas" (justo después de las
+           gráficas de Evolución); se mueve tal cual, sin cambios de
+           contenido, a esta posición. -->
+      <div class="card pf-panel-datos" id="mLeyendasCard" style="display:none;">
+        <!-- FIX (23-sep-2026, pedido usuario — "quita el texto de 'Camino de leyendas y ligas', que quede como competitivo desglosándose en camino de leyendas y en ligas"): se quita el <h2> "Camino de Leyendas y ligas" y se conserva el eyebrow "Competitivo" con su estilo original; las dos subsecciones las arma renderCaminoLeyendas(). Historial en CHANGELOG.md. -->
+        <div class="eyebrow">Competitivo</div>
+        <div id="mLeyendasContenido"></div>
+      </div>
+
+      <!-- ---------- CICLO DE COFRES ---------- -->
+      <!-- CICLO DE COFRES: CONECTADO. El botón #mVerCicloCofresBtn pide la acción 'webCofresJugador' (_webCofresJugador(), 34_Web_API.gs,
+           enrutada en 08_Web_Endpoints.gs), que cruza cada cofre con Backup_Cofres.csv y manda `nombre` y `link` (ícono; sin link se pinta un 📦; las
+           imágenes de cofres están en assets/chests/). El pintado está en pintarCicloCofres()/verCicloCofres(). Historial en CHANGELOG.md. -->
+      <div class="card pf-panel-datos" id="mCicloCofresCard">
+        <div class="eyebrow">Actividad</div>
+        <h2 class="pf-subtitulo">Ciclo de cofres</h2>
+        <p class="text-dim" style="margin-top:6px; font-size:14px;">Los próximos cofres que este jugador va a abrir, en orden.</p>
+        <!-- 11-oct-2026 (pedido usuario): los botones pasan a pastillas con el formato de la fila de acciones (.ext-links: RoyaleAPI, CWStats, Ver torneos). Los ids no cambian. -->
+        <div class="ext-links" style="margin-top:14px;">
+          <button type="button" id="mVerCicloCofresBtn">📦 Ver ciclo de cofres</button>
+          <button type="button" id="mForzarCofresBtn" style="display:none;" title="Solo administradores con panel de permisos: descarga de nuevo desde Clash Royale, ignorando la copia guardada hoy.">🔄 Forzar descarga</button>
+        </div>
+        <div id="mCicloCofresWrap" style="display:none;"></div>
       </div>
 
       <!-- Secciones nuevas que leen jugador.rawClash() (snapshot JSON crudo con los nombres de categoría de Supercell, ya adjuntado por webPerfil). Historial en CHANGELOG.md. -->
@@ -1229,55 +1316,10 @@
         </div>
       </div>
 
-      <!-- FIX (11-oct-2026, pedido usuario — "luego de la colección completa de cartas debe ir evolución (las gráficas)"): el recuadro de Evolución (Ranking, Ataques, Medallas y Barcos) pasa de estar al final del perfil (23-sep-2026) a ir justo después de la card de Colección completa de cartas, antes de Insignias. Se mueve tal cual, sin cambios de contenido ni de ids. [→ Contexto_Base_Web.md §PF038] -->
-      <!-- Historial (23-sep-2026, pedido usuario — "mueve las gráficas en perfil al
-           último"): Ranking/Ataques/Puntaje/Barcos vivían justo después de
-           "Mazo actual"/"Carta favorita" (ver comentario de mFavoritaCard más
-           arriba, que sigue siendo válido como historial de esa reubicación
-           puntual). Se mueven tal cual, sin cambios de contenido, al final
-           del perfil, después de "Progreso de eventos y modos". -->
-      <!-- ---------- RANKING EN EL CLAN (nuevo, 31-ago-2026) ---------- -->
-      <!-- 11-oct-2026 (pedido usuario): las 4 gráficas comparten UN solo recuadro con la pastilla "Evolución" una sola vez; cada una es una sección (los ids ...ChartCard se mantienen: renderMetricaSemanal() las oculta si no hay datos). -->
-      <div class="card pf-panel-datos pf-evolucion">
-        <div class="eyebrow">Evolución</div>
-        <section class="pf-evo-seccion">
-          <h2 class="pf-subtitulo">Ranking en el clan</h2>
-          <div class="pf-nota-guerra" data-nota-guerra></div>
-          <div id="mRankingChart"></div>
-        </section>
-        <!-- Ataques/Puntaje/Barcos por semana usan el mismo array que "Ranking en el clan"; cada sección arranca oculta y se muestra sola si el backend trae datos para ese campo. -->
-        <section class="pf-evo-seccion" id="mAtaquesChartCard" style="display:none;">
-          <h2 class="pf-subtitulo">Ataques por semana</h2>
-          <div class="pf-nota-guerra" data-nota-guerra></div>
-          <div id="mAtaquesChart"></div>
-        </section>
-        <section class="pf-evo-seccion" id="mPuntajeChartCard" style="display:none;">
-          <h2 class="pf-subtitulo">Medallas por semana</h2>
-          <div class="pf-nota-guerra" data-nota-guerra></div>
-          <div id="mPuntajeChart"></div>
-        </section>
-        <section class="pf-evo-seccion" id="mBarcosChartCard" style="display:none;">
-          <h2 class="pf-subtitulo">Barcos por semana</h2>
-          <div class="pf-nota-guerra" data-nota-guerra></div>
-          <div id="mBarcosChart"></div>
-        </section>
-      </div>
-
       <div class="card pf-panel-datos" id="mInsigniasCard" style="display:none;">
         <div class="eyebrow">Insignias y logros</div>
         <h2 class="pf-subtitulo">Insignias</h2>
         <div id="mInsigniasContenido"></div>
-      </div>
-
-      <!-- FIX (21-sep-2026, pedido usuario — "mueve Camino de Leyendas y
-           ligas debajo de las insignias en perfil"): esta tarjeta vivía
-           antes de "Colección completa de cartas" (justo después de las
-           gráficas de Evolución); se mueve tal cual, sin cambios de
-           contenido, a esta posición. -->
-      <div class="card pf-panel-datos" id="mLeyendasCard" style="display:none;">
-        <!-- FIX (23-sep-2026, pedido usuario — "quita el texto de 'Camino de leyendas y ligas', que quede como competitivo desglosándose en camino de leyendas y en ligas"): se quita el <h2> "Camino de Leyendas y ligas" y se conserva el eyebrow "Competitivo" con su estilo original; las dos subsecciones las arma renderCaminoLeyendas(). Historial en CHANGELOG.md. -->
-        <div class="eyebrow">Competitivo</div>
-        <div id="mLeyendasContenido"></div>
       </div>
 
       <div class="card pf-panel-datos" id="mLogrosCard" style="display:none;">
@@ -1290,47 +1332,6 @@
         <div class="eyebrow">Actividad</div>
         <h2 class="pf-subtitulo">Progreso de eventos y modos</h2>
         <div id="mProgresoContenido"></div>
-      </div>
-
-      <!-- ---------- CICLO DE COFRES ---------- -->
-      <!-- CICLO DE COFRES: CONECTADO. El botón #mVerCicloCofresBtn pide la acción 'webCofresJugador' (_webCofresJugador(), 34_Web_API.gs,
-           enrutada en 08_Web_Endpoints.gs), que cruza cada cofre con Backup_Cofres.csv y manda `nombre` y `link` (ícono; sin link se pinta un 📦; las
-           imágenes de cofres están en assets/chests/). El pintado está en pintarCicloCofres()/verCicloCofres(). Historial en CHANGELOG.md. -->
-      <div class="card pf-panel-datos" id="mCicloCofresCard">
-        <div class="eyebrow">Actividad</div>
-        <h2 class="pf-subtitulo">Ciclo de cofres</h2>
-        <p class="text-dim" style="margin-top:6px; font-size:14px;">Los próximos cofres que este jugador va a abrir, en orden.</p>
-        <!-- 11-oct-2026 (pedido usuario): los botones pasan a pastillas con el formato de la fila de acciones (.ext-links: RoyaleAPI, CWStats, Ver torneos). Los ids no cambian. -->
-        <div class="ext-links" style="margin-top:14px;">
-          <button type="button" id="mVerCicloCofresBtn">📦 Ver ciclo de cofres</button>
-          <button type="button" id="mForzarCofresBtn" style="display:none;" title="Solo administradores con panel de permisos: descarga de nuevo desde Clash Royale, ignorando la copia guardada hoy.">🔄 Forzar descarga</button>
-        </div>
-        <div id="mCicloCofresWrap" style="display:none;"></div>
-      </div>
-
-      <!-- ---------- BATALLAS MÁS RECIENTES ---------- -->
-      <!-- FIX (27-sep-2026, pedido usuario): igual que "Ciclo de cofres" más
-           arriba, este botón apuntaba a un endpoint 'battlelog' que NUNCA
-           existió como acción web (solo existía descargarBattlelogJugador(),
-           MANUAL, que guarda el JSON crudo en Drive -- no un endpoint web).
-           Se conecta acá a la acción real 'webBattlelogJugador', servida por
-           la función nueva _webBattlelogJugador() (34_Web_API.gs, enrutada
-           en 08_Web_Endpoints.gs), que SÍ llama en vivo a /battlelog y
-           traduce arena/modo al español reutilizando los catálogos que
-           descargarBattlelogJugador() ya alimenta (_resolverArenaDesdeCatalogo()/
-           _resolverModoDesdeCatalogo(), 07_API_ClashRoyale.gs) -- mismos
-           helpers que usa _webPerfilExtendido() para el resto del perfil, no
-           hizo falta escribir nada nuevo de ese lado. -->
-      <div class="card pf-panel-datos" id="mBatallasRecientesCard">
-        <div class="eyebrow">Actividad</div>
-        <h2 class="pf-subtitulo">Batallas más recientes</h2>
-        <p class="text-dim" style="margin-top:6px; font-size:14px;">El historial de batallas más reciente de este jugador.</p>
-        <!-- 11-oct-2026 (pedido usuario): pastillas .ext-links, igual que arriba. Los ids no cambian. -->
-        <div class="ext-links" style="margin-top:14px;">
-          <button type="button" id="mVerBatallasRecientesBtn">⚔️ Ver batallas más recientes</button>
-          <button type="button" id="mForzarBatallasBtn" style="display:none;" title="Solo administradores con panel de permisos: descarga de nuevo desde Clash Royale, ignorando la copia guardada hoy.">🔄 Forzar descarga</button>
-        </div>
-        <div id="mBatallasRecientesWrap" style="display:none;"></div>
       </div>
     </div>
   </section>
