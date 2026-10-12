@@ -26,12 +26,13 @@ for(const w of [390,1280]){
   async function tabsHasta(tagBtn){
     await p.evaluate((t)=>{document.querySelector('#ganadoresLista .btnGestionarResolucion[data-tag="'+t+'"]').focus();},tagBtn);
     await p.keyboard.press('Enter');await sleep(300);
-    const foco0=await p.evaluate(()=>document.activeElement.className);
-    let n=0;for(;n<80;n++){await p.keyboard.press('Tab');const id=await p.evaluate(()=>document.activeElement.id);if(id==='resTipo')break;}
-    return {foco0,tabs:n+1};
+    // desde el 12-oct-2026 (H-1) el foco ya pasa solo a #resTipo: se mide el foco inmediato y, si no esta ahi, los Tab que faltan
+    const foco0=await p.evaluate(()=>document.activeElement.id||document.activeElement.className);
+    let n=0;if(foco0!=='resTipo'){for(;n<80;n++){await p.keyboard.press('Tab');const id=await p.evaluate(()=>document.activeElement.id);if(id==='resTipo'){n++;break;}}}
+    return {focoInmediato:foco0,tabsExtra:n};
   }
-  console.log('Tabs desde Gestionar de #A1 (top3, 1.a fila) hasta #resTipo:',JSON.stringify(await tabsHasta('#A1')));
-  console.log('Tabs desde Gestionar de #A8 (última fila) hasta #resTipo:',JSON.stringify(await tabsHasta('#A8')));
+  console.log('Foco/Tabs tras Gestionar de #A1 (1.a fila):',JSON.stringify(await tabsHasta('#A1')));
+  console.log('Foco/Tabs tras Gestionar de #A8 (última fila):',JSON.stringify(await tabsHasta('#A8')));
   // una cuenta que solo esta en la lista completa: #A8. Gestionar con teclado
   await p.evaluate(()=>document.querySelector('#ganadoresLista details .btnGestionarResolucion[data-tag="#A8"]').focus());
   await p.keyboard.press('Enter');await sleep(400);
