@@ -30,7 +30,7 @@ const WEB_MEMBER_TOKEN = '8adb26e9c98bd188ac4572997bdd38f1fc252f57'; // debe ser
  * puede rotar (rotarTokensDesdeCodigo(), última vez 20-sep-2026). El backend lo
  * guarda en la Script Property WEB_MEMBER_TOKEN.
  *
- * QUÉ ALCANZA (19 acciones, todas GET, en doGet): webRoster, webClanInfo,
+ * QUÉ ALCANZA (20 acciones, todas GET, en doGet): webRoster, webClanInfo, webClanCopas,
  * webGuerraEnVivo, webPronosticoGuerra, webGuerraLog, webGuerraPuestosDia,
  * webPerfil, webCompararJugadores, webHistorialGuerraComparador, webTorneos,
  * webHistorialTorneos, webTorneosJugador, webRankings, webAniversarios,

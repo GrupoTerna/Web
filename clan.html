@@ -48,6 +48,14 @@
   .cd-guerra-stats .stat b{display:block; font-size:22px; color:var(--text); font-family:var(--f-display);}
   .cd-guerra-stats .stat span{font-size:10px; color:var(--text-faint); text-transform:uppercase; letter-spacing:.08em;}
   .cd-roster-header{display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px; padding:16px 20px;}
+  /* 12-oct-2026 (pedido usuario): gráfica «Copas» del clan, desde Guerra_Logs (webClanCopas). [→ Contexto_Base_Web.md §PF062] */
+  .cd-copas-svg{width:100%; height:auto; display:block; max-width:960px; margin:0 auto;}
+  .cd-copas-grid{stroke:var(--line); stroke-width:1;}
+  .cd-copas-label{font-family:var(--f-mono); font-size:11px; fill:var(--text-faint);}
+  .cd-copas-titulo-eje{font-family:var(--f-mono); font-size:11px; fill:var(--text-dim); letter-spacing:.08em;}
+  .cd-copas-linea{fill:none; stroke:#a239ff; stroke-width:2.5; stroke-linejoin:round; stroke-linecap:round;}
+  .cd-copas-pt{fill:#a239ff; stroke:var(--bg); stroke-width:1.5; cursor:default;}
+  .cd-copas-pt:focus{outline:2px solid var(--text); outline-offset:2px;}
 </style>
 </head>
 <body data-page="clan">
@@ -96,6 +104,13 @@
         <div class="eyebrow">Guerra</div>
         <h2 class="pf-subtitulo" id="clanGuerraTitulo">Resumen de guerra de esta semana</h2>
         <div id="clanGuerraWrap" style="margin-top:8px;"></div>
+      </div>
+
+      <!-- ---------- Evolución: copas del clan (12-oct-2026, pedido usuario) ---------- -->
+      <div class="card" id="clanCopasCard" style="padding:24px; margin-top:20px;">
+        <div class="eyebrow">Evolución</div>
+        <h2 class="pf-subtitulo">Copas del clan</h2>
+        <div id="clanCopasWrap" style="margin-top:8px;"><div class="loading-block"><div class="spinner"></div></div></div>
       </div>
 
       <!-- ---------- Roster ---------- -->
@@ -324,6 +339,72 @@ async function cargarGuerraClan(nombreClan){
   }
 }
 
+/**
+ * clanCopasSvg(puntos) — 12-oct-2026 (pedido usuario: gráfica de copas en clan.html, después del resumen de guerra).
+ * puntos = [{ fecha: 'dd/MM/yyyy', copas }] en orden cronológico (webClanCopas, Guerra_Logs: una fila por día y por clan).
+ * Una serie, eje Y con 5 marcas de paso «redondo» (con base 0 la línea sería plana: las copas de un clan varían ±1 %),
+ * rótulos de fecha rotados (se saltan algunos si hay más de 24). Sin dependencias; los puntos son enfocables con Tab y
+ * llevan aria-label y <title> con la fecha y las copas. [→ Contexto_Base_Web.md §PF062]
+ */
+function clanCopasSvg(puntos){
+  const W = 960, H = 320, PAD_R = 20, PAD_T = 20, PAD_B = 70;
+  const vals = puntos.map(p => p.copas);
+  const min = Math.min(...vals), max = Math.max(...vals);
+  const relleno = Math.max((max - min) * 0.2, 50);
+  const crudo = Math.max((max - min + 2 * relleno) / 4, 1);
+  const magnitud = Math.pow(10, Math.floor(Math.log10(crudo)));
+  let paso = ([1, 2, 5, 10].find(f => f * magnitud >= crudo) || 10) * magnitud;
+  let base = Math.max(0, Math.floor((min - relleno) / paso) * paso);
+  while (base + 4 * paso < max) paso *= 2;
+  const marcas = [0, 1, 2, 3, 4].map(i => base + paso * i);
+  const techo = marcas[4];
+  const anchoMarca = Math.max(...marcas.map(v => fmtNum(v).length)) * 9;
+  const PAD_L = Math.max(74, Math.ceil(anchoMarca + 46));
+  const plotW = W - PAD_L - PAD_R, plotH = H - PAD_T - PAD_B;
+  const n = puntos.length;
+  const xPos = i => PAD_L + (n <= 1 ? plotW / 2 : (i / (n - 1)) * plotW);
+  const yPos = v => PAD_T + plotH - ((Math.min(Math.max(v, base), techo) - base) / (techo - base)) * plotH;
+  const grid = marcas.map(v => {
+    const y = yPos(v).toFixed(1);
+    return `<line class="cd-copas-grid" x1="${PAD_L}" y1="${y}" x2="${W - PAD_R}" y2="${y}"></line>` +
+      `<text class="cd-copas-label" x="${PAD_L - 10}" y="${(yPos(v) + 4).toFixed(1)}" text-anchor="end">${esc(fmtNum(v))}</text>`;
+  }).join('');
+  const salto = Math.max(1, Math.ceil(n / 24));
+  const etiquetas = puntos.map((p, i) => {
+    if ((n - 1 - i) % salto !== 0) return '';
+    const x = xPos(i), y = H - PAD_B + 18;
+    return `<text class="cd-copas-label" x="${x.toFixed(1)}" y="${y}" text-anchor="end" transform="rotate(-45 ${x.toFixed(1)} ${y})">${esc(String(p.fecha).slice(0, 5))}</text>`;
+  }).join('');
+  const linea = n > 1
+    ? `<path class="cd-copas-linea" d="${puntos.map((p, i) => `${i ? 'L' : 'M'} ${xPos(i).toFixed(1)} ${yPos(p.copas).toFixed(1)}`).join(' ')}"></path>`
+    : '';
+  const circulos = puntos.map((p, i) => {
+    const txt = `${p.fecha}: ${fmtNum(p.copas)} copas`;
+    return `<circle class="cd-copas-pt" cx="${xPos(i).toFixed(1)}" cy="${yPos(p.copas).toFixed(1)}" r="5" tabindex="0" role="img" aria-label="${esc(txt)}"><title>${esc(txt)}</title></circle>`;
+  }).join('');
+  const tituloY = `<text class="cd-copas-titulo-eje" x="14" y="${PAD_T + plotH / 2}" text-anchor="middle" transform="rotate(-90 14 ${PAD_T + plotH / 2})">COPAS</text>`;
+  return `<svg class="cd-copas-svg" viewBox="0 0 ${W} ${H}" role="group" aria-label="Copas del clan por día de guerra, de ${esc(fmtNum(vals[0]))} a ${esc(fmtNum(vals[n - 1]))}">${grid}${linea}${circulos}${etiquetas}${tituloY}</svg>`;
+}
+function clanCopasAviso(texto){
+  return `<div class="chart-empty">${texto}</div>`;
+}
+async function cargarCopasClan(clanInfo){
+  const wrap = document.getElementById('clanCopasWrap');
+  if (!wrap) return;
+  const tag = clanInfo && (clanInfo.clanTag || clanInfo.tag);
+  if (!tag){ wrap.innerHTML = clanCopasAviso('No se pudo identificar el clan para graficar sus copas.'); return; }
+  try{
+    const data = await apiGet('webClanCopas', { tag }, { ttlMs: 300000, staleIfError: true });
+    const puntos = (data && Array.isArray(data.puntos) ? data.puntos : []).filter(p => p && Number(p.copas) > 0).map(p => ({ fecha: String(p.fecha), copas: Number(p.copas) }));
+    if (!puntos.length){
+      wrap.innerHTML = clanCopasAviso('Todavía no hay historial de copas de este clan en Guerra_Logs.');
+      return;
+    }
+    wrap.innerHTML = clanCopasSvg(puntos);
+  }catch(err){
+    wrap.innerHTML = clanCopasAviso('No se pudo cargar el historial de copas: ' + esc(err && err.message ? err.message : 'error de conexión') + '.');
+  }
+}
 async function cargarClan(){
   if (!NOMBRE_CLAN_QUERY){
     mostrarErrorClan('Falta el nombre del clan en el link (?clan=...).');
@@ -366,6 +447,7 @@ async function cargarClan(){
     return;
   }
   cargarGuerraClan(clanInfo.nombre); // sin await: la página ya se ve; la tarjeta de guerra se llena cuando llega
+  cargarCopasClan(clanInfo); // 12-oct-2026, sin await igual que la de guerra
 }
 cargarClan();
 </script>
