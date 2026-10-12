@@ -550,6 +550,8 @@
   }
   .switch input:checked + .slider{background:var(--pointer);}
   .switch input:checked + .slider:before{transform:translateX(16px);}
+  /* ACCESIBILIDAD (12-oct-2026): el input real mide 0x0 con opacity:0, así que con Tab no se veía dónde estaba el foco. Contorno solo con teclado (:focus-visible); el aspecto con mouse no cambia. [→ Contexto_Base_Web.md §PF049] */
+  .switch input:focus-visible + .slider{outline:2px solid var(--ink);outline-offset:2px;}
 
   .export-btn{
     width:100%;
@@ -593,8 +595,8 @@
   <div class="stage">
     <div class="stage-head">
       <p class="eyebrow">Sorteo en vivo</p>
-      <input id="titleInput" type="text" class="title-input" placeholder="Título del sorteo" value="Sorteo Familia Terna">
-      <input id="descInput" type="text" class="desc-input" placeholder="Descripción (opcional)" value="Se transmite en vivo">
+      <input id="titleInput" type="text" class="title-input" placeholder="Título del sorteo" aria-label="Título del sorteo" value="Sorteo Familia Terna">
+      <input id="descInput" type="text" class="desc-input" placeholder="Descripción (opcional)" aria-label="Descripción (opcional)" value="Se transmite en vivo">
     </div>
 
     <div class="wheel-wrap">
@@ -647,12 +649,12 @@
         </div>
         <p class="manual-label">¿Falta alguien o falló la carga automática? Agregalo a mano:</p>
         <div class="import-row">
-          <input id="newParticipant" type="text" placeholder="Agregar nombre y Enter…">
+          <input id="newParticipant" type="text" placeholder="Agregar nombre y Enter…" aria-label="Agregar nombre">
           <button type="button" id="addBtn" class="btn-add">Agregar</button>
         </div>
         <button type="button" id="bulkToggle" class="bulk-toggle">+ Importar lista completa (uno por línea)</button>
         <div id="bulkBox" class="bulk-box">
-          <textarea id="bulkText" placeholder="Nombre 1&#10;Nombre 2&#10;Nombre 3…"></textarea>
+          <textarea id="bulkText" placeholder="Nombre 1&#10;Nombre 2&#10;Nombre 3…" aria-label="Lista completa de nombres, uno por línea"></textarea>
           <div class="bulk-actions">
             <button type="button" id="bulkReplace" class="btn-ghost">Reemplazar lista</button>
             <button type="button" id="bulkAppend" class="btn-ghost">Agregar a la lista</button>
@@ -672,21 +674,21 @@
       <div class="panel-head"><h2>Reglas del sorteo</h2></div>
       <div class="panel-body">
         <div class="setting-row">
-          <span>Cantidad de premios<span class="hint">Cuántos ganadores tiene el sorteo hoy (0 = sin límite)</span></span>
-          <input id="prizeCountInput" type="number" min="0" step="1" value="0" style="width:56px;text-align:center;border:1px solid var(--panel-line);border-radius:8px;padding:5px 4px;font-weight:600;">
+          <span>Cantidad de premios<span class="hint" id="prizeCountHint">Cuántos ganadores tiene el sorteo hoy (0 = sin límite)</span></span>
+          <input id="prizeCountInput" type="number" min="0" step="1" value="0" aria-label="Cantidad de premios" aria-describedby="prizeCountHint" style="width:56px;text-align:center;border:1px solid var(--panel-line);border-radius:8px;padding:5px 4px;font-weight:600;">
         </div>
         <div class="setting-row">
-          <span>Descartar ganadores<span class="hint">Excluye a quien ya ganó de los próximos premios de hoy</span></span>
-          <label class="switch"><input id="discardToggle" type="checkbox" checked><span class="slider"></span></label>
+          <span>Descartar ganadores<span class="hint" id="discardHint">Excluye a quien ya ganó de los próximos premios de hoy</span></span>
+          <label class="switch"><input id="discardToggle" type="checkbox" checked aria-label="Descartar ganadores" aria-describedby="discardHint"><span class="slider"></span></label>
         </div>
         <div class="setting-row">
-          <span>Descartar intentos de prueba<span class="hint">Si el 3° es el ganador, saca de la ruleta también al 1° y 2° (no ganaron, pero ya "salieron")</span></span>
-          <label class="switch"><input id="discardTrialsToggle" type="checkbox"><span class="slider"></span></label>
+          <span>Descartar intentos de prueba<span class="hint" id="discardTrialsHint">Si el 3° es el ganador, saca de la ruleta también al 1° y 2° (no ganaron, pero ya "salieron")</span></span>
+          <label class="switch"><input id="discardTrialsToggle" type="checkbox" aria-label="Descartar intentos de prueba" aria-describedby="discardTrialsHint"><span class="slider"></span></label>
         </div>
         <!-- #removeTicketPerSpinToggle, DESMARCADO por defecto (como pidió el usuario, es opcional, no cambia el comportamiento actual si no se activa). Historial en CHANGELOG.md. -->
         <div class="setting-row">
-          <span>Quitar un ticket por cada giro<span class="hint">Cada vez que gira la ruleta, resta 1 ticket a quien salió en ese giro (gane o no el premio) — reduce su probabilidad en los próximos giros, como al ir sacando boletos de una tómbola</span></span>
-          <label class="switch"><input id="removeTicketPerSpinToggle" type="checkbox"><span class="slider"></span></label>
+          <span>Quitar un ticket por cada giro<span class="hint" id="removeTicketHint">Cada vez que gira la ruleta, resta 1 ticket a quien salió en ese giro (gane o no el premio) — reduce su probabilidad en los próximos giros, como al ir sacando boletos de una tómbola</span></span>
+          <label class="switch"><input id="removeTicketPerSpinToggle" type="checkbox" aria-label="Quitar un ticket por cada giro" aria-describedby="removeTicketHint"><span class="slider"></span></label>
         </div>
       </div>
     </div>
