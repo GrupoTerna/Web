@@ -557,6 +557,7 @@
   .cc-badge--bloq{opacity:.55; filter:grayscale(.6); cursor:default; pointer-events:none;}
   .mini-pie-leyenda.con-col{display:grid; grid-template-columns:auto auto auto auto auto; column-gap:9px; row-gap:10px; align-items:center;}
   .mini-pie-leyenda.con-col .fila{display:contents;}
+  .mini-pie-leyenda.con-col .mini-pie-extras{grid-column:1 / -1; margin-top:2px;}
   .mini-pie-leyenda.con-col .col-oro{justify-self:end; white-space:nowrap;}
   .cc-oro--cero{color:var(--text-faint);}
   .mini-pie-nota{margin-top:10px; font-family:var(--f-mono); font-size:9px; color:var(--text-faint); text-align:center; display:flex; align-items:center; justify-content:center; gap:4px;}
@@ -2660,6 +2661,15 @@ function renderColeccion(j){
   const nivelPieWrap = document.getElementById('mColeccionNivelPie');
   if (nivelPieWrap){
     const paletaNiveles = _paletaNivelesColeccion(presentesNivel.length);
+    // FIX (12-oct-2026, pedido usuario -- "en las cartas por nivel, agrega el nivel promedio ... promedio ponderado, usando la cantidad de cartas como pesos"): promedio = suma(nivel x cartas de ese nivel) / total de cartas, con los mismos `nivelesCarta` del pastel. Se trunca (no se redondea) a 2 decimales para que 13.996 no se lea "14.00" cuando el nivel base (máximo entero) es 13. [→ Contexto_Base_Web.md §PF051]
+    const _sumaNiveles = presentesNivel.reduce((a, n) => a + n * nivelesCarta.filter(x => x === n).length, 0);
+    const nivelPromedio = nivelesCarta.length ? _sumaNiveles / nivelesCarta.length : null;
+    const nivelBase = nivelPromedio != null ? Math.floor(nivelPromedio) : null;
+    const extrasNivel = nivelPromedio != null ? [{
+      etiqueta: 'Nivel promedio',
+      valor: (Math.floor(nivelPromedio * 100) / 100).toFixed(2),
+      titulo: `Promedio ponderado: cada nivel pesa por la cantidad de cartas que tienes en él (${nivelesCarta.length} cartas). Parte entera: ${nivelBase}.`
+    }] : [];
     nivelPieWrap.innerHTML = _pastelMiniHtml('Cartas por nivel', presentesNivel.map((n, i) => ({
       etiqueta: `Nv. ${n}`,
       valor: nivelesCarta.filter(x => x === n).length,
@@ -2673,7 +2683,7 @@ function renderColeccion(j){
         const tip = `Oro para subir todas las cartas de niveles menores hasta el nivel ${n}: ${fmtNum(r.oro)}${r.incompleto ? ' (m\u00ednimo: faltan costos de alguna carta)' : ''}`;
         return `<span class="cc-oro" title="${esc(tip)}">${_ICONO_ORO_HTML}${pre}${esc(fmtNum(r.oro))}</span>`;
       })()
-    })), null, { icono: '📊', centroEtiqueta: 'Cartas', nota: `${_ICONO_ORO_HTML} Oro acumulado para subir todo hasta cada nivel` });
+    })), extrasNivel, { icono: '📊', centroEtiqueta: 'Cartas', nota: `${_ICONO_ORO_HTML} Oro acumulado para subir todo hasta cada nivel` });
   }
   // Las 3 filas comparten el mismo estado de filtros (_colFiltrosActivos):
   // cada pastilla se prende/apaga sola (opción múltiple, sin desmarcar las
@@ -3677,7 +3687,7 @@ function _pastelMiniHtml(titulo, porciones, extra, opts){
         <div class="fila"><span class="punto" style="background:${p.color}; color:${p.color};"></span>${hayColumna ? `<span class="et">${esc(p.etiqueta)}</span>` : esc(p.etiqueta) + ' '}<b>${esc(fmtNum(vals[i]))}</b> <span class="pct">${(vals[i] / total * 100).toFixed(1)}%</span>${hayColumna ? `<span class="col-oro">${p.columna || ''}</span>` : ''}</div>`).join('');
   const notaHtml = opts.nota ? `<div class="mini-pie-nota">${opts.nota}</div>` : '';
   const extraHtml = extras.length ? `
-      <div class="mini-pie-extras">${extras.map(e => `<div class="mini-pie-extra">${esc(e.etiqueta)} <b>${esc(String(e.valor))}</b></div>`).join('')}
+      <div class="mini-pie-extras">${extras.map(e => `<div class="mini-pie-extra"${e.titulo ? ` title="${esc(e.titulo)}"` : ''}>${esc(e.etiqueta)} <b>${esc(String(e.valor))}</b></div>`).join('')}
       </div>` : '';
   const icoHtml = opts.icono ? `<span class="ico">${esc(opts.icono)}</span>` : '';
   return `
@@ -4281,8 +4291,8 @@ function _cartaMazoFallback(rc){
  *    en j.mazoActual.cartas (_webMazoActualDesdeCards2()), por eso el cruce.
  *  - currentDeckSupportCards → bloque "Carta de torre del mazo" debajo del
  *    grid (BACKEND CONECTADO: categoría currentDeckSupportCards).
- * Distinto de "Sugerencias de mazo"/"Sugerencias de mazo (2)" (botones del
- * encabezado, búsquedas en RoyaleAPI desde ext.deck/ext.deck2).
+ * Distinto de "Sugerencias de mazo"/"(2)"/"(3)" (botones del
+ * encabezado, búsquedas en RoyaleAPI desde ext.deck/ext.deck2/ext.deck3).
  */
 function renderMazoActual(mazoActual, ext, j){
   ext = ext || {};
@@ -4292,11 +4302,15 @@ function renderMazoActual(mazoActual, ext, j){
   // Mismos títulos/tooltips que ya explicaban RoyaleAPI/CWStats en su ubicación anterior; se mudan tal cual. Historial en CHANGELOG.md.
   const deckOkBtn = urlValida(ext.deck);
   const deck2OkBtn = urlValida(ext.deck2);
+  const deck3OkBtn = urlValida(ext.deck3);
   const deckTitle = 'Búsqueda en RoyaleAPI de mazos que solo usan cartas que esta cuenta tiene desbloqueadas, forzando la inclusión de esas cartas (no distingue el nivel de cada carta).';
   const deck2Title = 'Búsqueda en RoyaleAPI de mazos que solo usan cartas que esta cuenta tiene desbloqueadas, sin forzar cuáles incluir (no distingue el nivel de cada carta, puede mezclar cartas al máximo con cartas de nivel bajo).';
+  // Sugerencias de mazo (3) (12-oct-2026): el backend (generarMazo3()) manda ext.deck3 y ext.deck3Nivel = máximo entero del nivel promedio ponderado. [→ Contexto_Base_Web.md §PF051]
+  const deck3Title = `Búsqueda en RoyaleAPI de mazos que solo usan cartas de nivel ${esc(String(ext.deck3Nivel))} o más (el nivel promedio de tus cartas, sin decimales), sin forzar cuáles incluir.`;
   document.getElementById('mMazoActualBtns').innerHTML = `
     ${deckOkBtn ? `<a href="${esc(ext.deck)}" target="_blank" rel="noopener" title="${esc(deckTitle)}">🃏 Sugerencias de mazo</a>` : ''}
-    ${deck2OkBtn ? `<a href="${esc(ext.deck2)}" target="_blank" rel="noopener" title="${esc(deck2Title)}">🃏 Sugerencias de mazo (2)</a>` : ''}`;
+    ${deck2OkBtn ? `<a href="${esc(ext.deck2)}" target="_blank" rel="noopener" title="${esc(deck2Title)}">🃏 Sugerencias de mazo (2)</a>` : ''}
+    ${deck3OkBtn ? `<a href="${esc(ext.deck3)}" target="_blank" rel="noopener" title="${deck3Title}">🃏 Sugerencias de mazo (3)</a>` : ''}`;
 
   // FIX (20-sep-2026, pedido usuario — "el mazo es de 8 cartas, se ven 7
   // en mi perfil"): mazoActual.cartas (_webMazoActualDesdeCards2(),
@@ -4337,7 +4351,7 @@ function renderMazoActual(mazoActual, ext, j){
   }
 
   const hayCartas = listaCartas.length > 0;
-  if (!hayCartas && !deckOkBtn && !deck2OkBtn){
+  if (!hayCartas && !deckOkBtn && !deck2OkBtn && !deck3OkBtn){
     card.style.display = 'none';
     cont.innerHTML = '';
     return;
