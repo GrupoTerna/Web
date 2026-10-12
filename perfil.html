@@ -289,6 +289,31 @@
   .insignias-subcat--sola, .leyendas-subcat--sola{margin-top:0; padding-top:0; border-top:0;}
   /* FIX (23-sep-2026, pedido usuario — "camino de leyendas no parece tener el mismo tamaño o peso que ligas"): en la card "Competitivo" las dos subsecciones usan exactamente el mismo encabezado, sin variante "--sola" (que quitaba la línea divisoria solo a la primera y la hacía verse distinta). El espaciado va en el bloque contenedor, no en el <h3>. */
   .leyendas-bloque{margin-top:18px;}
+  /* FIX (12-oct-2026, pedido usuario -- "competitivo podría verse de una forma más gráfica ... como las minigráficas"): Camino de Leyendas y Camino de Trofeos pasan de dos tablas de texto a dos tarjetas .mini-pie (mismo vidrio y brillo que las minigráficas): anillos de liga y barras de trofeos. [→ Contexto_Base_Web.md §PF053] */
+  .leyendas-grid{display:grid; grid-template-columns:minmax(0,1.2fr) minmax(0,1fr); gap:16px; margin-top:6px;}
+  .leyendas-grid--solo{grid-template-columns:minmax(0,1fr);}
+  @media (max-width:900px){ .leyendas-grid{grid-template-columns:minmax(0,1fr);} }
+  .leyendas-grid .mini-pie{min-height:0;}
+  .liga-anillos{flex:1; display:flex; align-items:flex-start; justify-content:space-around; flex-wrap:wrap; gap:16px 12px;}
+  .liga-anillo{display:flex; flex-direction:column; align-items:center; gap:6px; min-width:96px; flex:1;}
+  .liga-anillo-ring{position:relative; width:96px; height:96px;}
+  .liga-anillo-ring svg{display:block; width:100%; height:100%;}
+  .liga-anillo-centro{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; line-height:1.1;}
+  .liga-anillo-centro b{font-family:var(--f-mono); font-size:24px; color:var(--text);}
+  .liga-anillo-centro span{font-family:var(--f-mono); font-size:9px; letter-spacing:.1em; text-transform:uppercase; color:var(--text-dim);}
+  .liga-anillo--mejor .liga-anillo-centro b{color:var(--gold);}
+  .liga-anillo-et{margin-top:4px; font-family:var(--f-mono); font-size:10px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:var(--text-dim); text-align:center;}
+  .liga-anillo-dato{font-family:var(--f-mono); font-size:11px; color:var(--text-dim); text-align:center;}
+  .liga-anillo-dato--fuerte{color:var(--text);}
+  .trofeos-lista{flex:1; display:flex; flex-direction:column; justify-content:center; gap:16px;}
+  .trofeos-cab{display:flex; align-items:baseline; justify-content:space-between; gap:10px; margin-bottom:6px; font-family:var(--f-mono);}
+  .trofeos-et{font-size:11px; color:var(--text-dim);}
+  .trofeos-et small{margin-left:6px; font-size:10px; color:var(--text-faint);}
+  .trofeos-val{font-size:13px; color:var(--text); white-space:nowrap;}
+  .trofeos-val small{margin-left:6px; font-size:10px; font-weight:400; color:var(--text-dim);}
+  .trofeos-pista{position:relative; height:10px; border-radius:999px; background:rgba(255,255,255,.06);}
+  .trofeos-barra{display:block; height:100%; border-radius:999px; background:var(--c); box-shadow:0 0 8px var(--c);}
+  .trofeos-tope{position:absolute; top:-3px; width:2px; height:16px; margin-left:-1px; border-radius:1px; background:var(--text);}
   .leyendas-bloque > .leyendas-subcat{margin:0; padding:0; border:0; font-size:15px; font-weight:700;}
   .insignias-subcat .cuenta, .leyendas-subcat .cuenta{font-family:var(--f-mono); font-size:11px; font-weight:400; color:var(--text-faint); margin-left:6px;}
   /* FIX (23-sep-2026, pedido usuario — "en las insignias y maestrías, agrega
@@ -2230,16 +2255,6 @@ function renderCartaFavorita(j){
   _activarClickCosto(cont.querySelectorAll('.col-card'), [_fuenteCosto], x => x, () => nombreEs, () => nvl.nivel);
 }
 
-/** _polTxt(r) → texto "Liga N · X 🏆 · Rango #R" para un resultado Path of
- * Legends ({leagueNumber, trophies, rank}); null si no trae nada. */
-function _polTxt(r){
-  if (!r) return null;
-  const partes = [];
-  if (r.leagueNumber != null) partes.push(`Liga ${r.leagueNumber}`);
-  if (r.trophies) partes.push(`${fmtNum(r.trophies)} \ud83c\udfc6`);
-  if (r.rank != null) partes.push(`Rango #${fmtNum(r.rank)}`);
-  return partes.length ? partes.join(' \u00b7 ') : null;
-}
 /**
  * renderCaminoLeyendas(j)
  * 24-sep-2026: best/current/last PathOfLegendSeasonResult y legacyTrophyRoadHighScore
@@ -2286,47 +2301,97 @@ function _polTxt(r){
  * Camino de Leyendas queda solo con Liga N. Cada fila lleva su fecha
  * (octubre, 2026) deducida de leagueStatistics.previousSeason.id; la API no
  * da fecha de la mejor Liga, así que esa fila va sin fecha.
- * [→ Contexto_Base_Web.md §PF033]
+ * FIX (12-oct-2026, pedido usuario): las dos tablas pasan a tarjetas gráficas (anillos de liga y barras de trofeos).
+ * [→ Contexto_Base_Web.md §PF033 y §PF053]
  */
 function renderCaminoLeyendas(j){
   const raw = rawClash(j);
   const ls = raw.leagueStatistics || {};
-  const filasLeyendas = [];
-  const filasTrofeos = [];
-  const add = (arr, lbl, val) => { if (val != null && val !== '') arr.push(`<tr><td>${esc(lbl)}</td><td>${esc(String(val))}</td></tr>`); };
+  // FIX (12-oct-2026, pedido usuario -- "competitivo podría verse de una forma más gráfica"): las dos tablas pasan a dos tarjetas gráficas (anillos de liga y barras de trofeos); mismos datos y mismas fechas que antes. [→ Contexto_Base_Web.md §PF053]
   // 11-oct-2026: id de temporada de leagueStatistics ("2026-09") -> "septiembre, 2026"; null si no tiene ese formato.
   const idATxt = id => { const m = /^(\d{4})-(\d{2})$/.exec(String(id == null ? '' : id)); return (m && +m[2] >= 1 && +m[2] <= 12) ? `${MESES_ES[+m[2] - 1]}, ${m[1]}` : null; };
   const idSiguiente = id => { const m = /^(\d{4})-(\d{2})$/.exec(String(id == null ? '' : id)); if (!m) return null; let a = +m[1], mm = +m[2] + 1; if (mm > 12){ mm = 1; a++; } return `${a}-${String(mm).padStart(2, '0')}`; };
   // La temporada actual no trae id: se deduce como el mes siguiente al de previousSeason (o su propio id si lo trajera). Sin ninguno de los dos, no se inventa fecha.
   const fechaAnterior = idATxt(ls.previousSeason && ls.previousSeason.id);
   const fechaActual = idATxt((ls.currentSeason && ls.currentSeason.id) || idSiguiente(ls.previousSeason && ls.previousSeason.id));
-  const conFecha = (txt, fecha) => (txt && fecha) ? `${txt} \u00b7 ${fecha}` : txt;
-  // Camino de Leyendas (escalones): Liga N. La API no trae fecha para estos resultados; la de actual/anterior se toma de leagueStatistics (mismo mes).
-  add(filasLeyendas, 'Mejor temporada', _polTxt(raw.bestPathOfLegendSeasonResult));
-  add(filasLeyendas, 'Temporada actual', conFecha(_polTxt(raw.currentPathOfLegendSeasonResult), fechaActual));
-  add(filasLeyendas, 'Temporada anterior', conFecha(_polTxt(raw.lastPathOfLegendSeasonResult), fechaAnterior));
-  // Camino de Trofeos (copas): leagueStatistics + legacyTrophyRoadHighScore.
-  const lsTxt = (s, fecha) => (s && s.trophies != null) ? conFecha(`${fmtNum(s.trophies)} \ud83c\udfc6${s.bestTrophies ? ` (mejor ${fmtNum(s.bestTrophies)})` : ''}`, fecha) : null;
-  add(filasTrofeos, 'Mejor temporada', lsTxt(ls.bestSeason, idATxt(ls.bestSeason && ls.bestSeason.id)));
-  add(filasTrofeos, 'Temporada actual', lsTxt(ls.currentSeason, fechaActual));
-  add(filasTrofeos, 'Temporada anterior', lsTxt(ls.previousSeason, fechaAnterior));
-  add(filasTrofeos, 'Mejor ladder hist\u00f3rico', raw.legacyTrophyRoadHighScore != null ? `${fmtNum(raw.legacyTrophyRoadHighScore)} \ud83c\udfc6` : null);
   const card = document.getElementById('mLeyendasCard');
   const cont = document.getElementById('mLeyendasContenido');
-  if (!filasLeyendas.length && !filasTrofeos.length){ card.style.display = 'none'; cont.innerHTML = ''; return; }
+  const num = v => (v != null && v !== '' && isFinite(Number(v))) ? Number(v) : null;
+
+  // Camino de Leyendas: un anillo por temporada. Escala 1 a MAX_LIGA (10; si la API trajera una liga mayor, la escala sube).
+  const polDatos = r => {
+    if (!r) return null;
+    const liga = num(r.leagueNumber), trofeos = num(r.trophies) || 0, rango = num(r.rank);
+    return (liga == null && !trofeos && rango == null) ? null : { liga, trofeos, rango };
+  };
+  const temporadasPol = [
+    { et: 'Temporada anterior', d: polDatos(raw.lastPathOfLegendSeasonResult), fecha: fechaAnterior, color: 'var(--purple-light)' },
+    { et: 'Temporada actual', d: polDatos(raw.currentPathOfLegendSeasonResult), fecha: fechaActual, color: 'var(--purple)' },
+    { et: 'Mejor temporada', d: polDatos(raw.bestPathOfLegendSeasonResult), fecha: null, color: 'var(--gold)', mejor: true }
+  ].filter(t => t.d);
+  const MAX_LIGA = Math.max(10, ...temporadasPol.map(t => t.d.liga || 0));
+  const C = 50, R = 38, GROSOR = 11, CIRC = 2 * Math.PI * R;
+  const anillo = t => {
+    const frac = t.d.liga != null ? Math.min(1, Math.max(0, t.d.liga / MAX_LIGA)) : 0;
+    const largo = (frac * CIRC).toFixed(2);
+    const datos = [];
+    if (t.d.trofeos) datos.push(`${esc(fmtNum(t.d.trofeos))} 🏆`);
+    if (t.d.rango != null) datos.push(`Rango #${esc(fmtNum(t.d.rango))}`);
+    const aria = `${t.et}: ${t.d.liga != null ? `Liga ${t.d.liga} de ${MAX_LIGA}` : 'sin liga'}`;
+    return `
+      <div class="liga-anillo${t.mejor ? ' liga-anillo--mejor' : ''}">
+        <div class="liga-anillo-ring" role="img" aria-label="${esc(aria)}">
+          <svg viewBox="0 0 100 100" aria-hidden="true">
+            <circle cx="${C}" cy="${C}" r="${R}" fill="none" stroke="rgba(255,255,255,.06)" stroke-width="${GROSOR}"/>
+            <g transform="rotate(-90 ${C} ${C})"><circle cx="${C}" cy="${C}" r="${R}" fill="none" stroke="${t.color}" stroke-width="${GROSOR}" stroke-linecap="round" stroke-dasharray="${largo} ${CIRC.toFixed(2)}" style="filter:drop-shadow(0 0 4px ${t.color});"/></g>
+          </svg>
+          <div class="liga-anillo-centro" aria-hidden="true"><b>${t.d.liga != null ? esc(String(t.d.liga)) : '\u2014'}</b><span>Liga</span></div>
+        </div>
+        <div class="liga-anillo-et">${esc(t.et)}</div>
+        ${t.fecha ? `<div class="liga-anillo-dato">${esc(t.fecha)}</div>` : ''}
+        ${datos.length ? `<div class="liga-anillo-dato liga-anillo-dato--fuerte">${datos.join(' \u00b7 ')}</div>` : ''}
+      </div>`;
+  };
+  const cardLeyendas = temporadasPol.length ? `
+    <div class="mini-pie">
+      <div class="mini-pie-titulo">${_ICONO_LEYENDAS_HTML}Camino de Leyendas</div>
+      <div class="liga-anillos">${temporadasPol.map(anillo).join('')}</div>
+      <div class="mini-pie-nota">El anillo marca la liga alcanzada, de 1 a ${MAX_LIGA}</div>
+    </div>` : '';
+
+  // Camino de Trofeos: una barra por registro, todas a la misma escala (la mayor cifra de la tarjeta = barra llena). La marca vertical es el máximo que alcanzó en esa temporada.
+  const tf = sx => { const t = sx ? num(sx.trophies) : null; return t == null ? null : { trofeos: t, tope: (num(sx.bestTrophies) || 0) > t ? num(sx.bestTrophies) : null }; };
+  const historico = num(raw.legacyTrophyRoadHighScore);
+  const filasTrofeos = [
+    { et: 'Temporada anterior', d: tf(ls.previousSeason), fecha: fechaAnterior, color: 'var(--purple-light)' },
+    { et: 'Temporada actual', d: tf(ls.currentSeason), fecha: fechaActual, color: 'var(--purple)' },
+    { et: 'Mejor temporada', d: tf(ls.bestSeason), fecha: idATxt(ls.bestSeason && ls.bestSeason.id), color: 'var(--gold)' },
+    { et: 'Mejor ladder hist\u00f3rico', d: historico != null ? { trofeos: historico, tope: null } : null, fecha: null, color: 'var(--gold)' }
+  ].filter(f => f.d);
+  const refMax = Math.max(1, ...filasTrofeos.map(f => Math.max(f.d.trofeos, f.d.tope || 0)));
+  const hayTope = filasTrofeos.some(f => f.d.tope != null);
+  const filaTrofeos = f => {
+    const pct = f.d.trofeos > 0 ? Math.max(2, f.d.trofeos / refMax * 100) : 0;
+    const tope = f.d.tope != null ? `<i class="trofeos-tope" style="left:${(f.d.tope / refMax * 100).toFixed(2)}%;" aria-hidden="true"></i>` : '';
+    return `
+      <div class="trofeos-fila">
+        <div class="trofeos-cab">
+          <span class="trofeos-et">${esc(f.et)}${f.fecha ? `<small>${esc(f.fecha)}</small>` : ''}</span>
+          <b class="trofeos-val">${esc(fmtNum(f.d.trofeos))} 🏆${f.d.tope != null ? `<small>m\u00e1x. ${esc(fmtNum(f.d.tope))}</small>` : ''}</b>
+        </div>
+        <div class="trofeos-pista" aria-hidden="true"><i class="trofeos-barra" style="--c:${f.color}; width:${pct.toFixed(2)}%;"></i>${tope}</div>
+      </div>`;
+  };
+  const cardTrofeos = filasTrofeos.length ? `
+    <div class="mini-pie">
+      <div class="mini-pie-titulo"><span class="ico">🏆</span>Camino de Trofeos</div>
+      <div class="trofeos-lista">${filasTrofeos.map(filaTrofeos).join('')}</div>
+      ${hayTope ? '<div class="mini-pie-nota">La marca vertical es el máximo alcanzado en esa temporada</div>' : ''}
+    </div>` : '';
+
+  if (!cardLeyendas && !cardTrofeos){ card.style.display = 'none'; cont.innerHTML = ''; return; }
   card.style.display = '';
-  const tabla = filas => `<table class="panel-stats"><tbody>${filas.join('')}</tbody></table>`;
-  const seccionLeyendas = filasLeyendas.length ? `
-    <div class="leyendas-bloque">
-      <h3 class="leyendas-subcat">${_ICONO_LEYENDAS_HTML}Camino de Leyendas</h3>
-      ${tabla(filasLeyendas)}
-    </div>` : '';
-  const seccionTrofeos = filasTrofeos.length ? `
-    <div class="leyendas-bloque">
-      <h3 class="leyendas-subcat">Camino de Trofeos</h3>
-      ${tabla(filasTrofeos)}
-    </div>` : '';
-  cont.innerHTML = `${seccionLeyendas}${seccionTrofeos}`;
+  cont.innerHTML = `<div class="leyendas-grid${(cardLeyendas && cardTrofeos) ? '' : ' leyendas-grid--solo'}">${cardLeyendas}${cardTrofeos}</div>`;
 }
 
 /**
