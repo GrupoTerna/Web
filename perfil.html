@@ -1008,7 +1008,7 @@
           <div class="perfil-cabecera-der">
           <div class="stats-mini">
             <!-- FIX (23-sep-2026, pedido usuario — "en la parte de arriba solo se debe mostrar nivel de torre del rey, nivel de XP, copas, victorias de guerra, ataques en la semana actual y fame de la semana actual, y vigencia. todo lo demás debe ir en los cuadritos debajo"): la cabecera queda con estos 7 datos, en este orden. Torneos, Puntos estelares y Puntos de experiencia pasan a la grilla de cuadritos (renderExtendido()). Cada <span> con "Wrap" se oculta sola si el dato no llega (ver renderStatsAvanzadasCabecera() y renderMiembro()). Historial en CHANGELOG.md. -->
-            <span id="mTorreReyWrap" style="display:none;"><b id="mTorreRey">0</b>Nivel de torre del rey</span>
+            <span id="mTorreReyWrap" style="display:none;"><b id="mTorreRey">0</b><span style="display:inline-flex; flex-direction:row; align-items:center; gap:4px;"><img src="assets/img/ico-torre.webp" alt="" width="11" height="14" loading="lazy" decoding="async" onerror="this.remove();">Nivel de torre del rey</span></span>
             <!-- FIX (27-sep-2026, pedido usuario — "experience icon [...] es
                  para el nivel de XP [...] debe ser pequeño, como el tamaño de
                  los íconos de oro y elixir"): esta etiqueta es HTML estático
@@ -1043,9 +1043,9 @@
                  más de la cabecera, mismo patrón que mNivelExpWrap/
                  mTorreReyWrap (se oculta solo si falta el dato — ver
                  renderStatsAvanzadasCabecera() más abajo). -->
-            <span id="mNivelColeccionWrap" style="display:none;"><b id="mNivelColeccion">0</b>Nivel de colección</span>
+            <span id="mNivelColeccionWrap" style="display:none;"><b id="mNivelColeccion">0</b><span style="display:inline-flex; flex-direction:row; align-items:center; gap:4px;"><img id="mIcoColeccion" src="assets/img/ico-cartas.webp" alt="" width="14" height="14" loading="lazy" decoding="async" style="object-fit:contain;">Nivel de colección</span></span>
             <span><b id="mCopas">0</b>Copas</span>
-            <span><b id="mVGuerra">0</b>V. Guerra</span>
+            <span><b id="mVGuerra">0</b><span style="display:inline-flex; flex-direction:row; align-items:center; gap:4px;"><img id="mIcoVGuerra" src="assets/img/Guerra.webp" alt="" width="14" height="14" loading="lazy" decoding="async" style="object-fit:contain;">V. Guerra</span></span>
             <!-- FIX (26-sep-2026, pedido usuario — "el cuadrito de ataques semanales que actualmente dice 8 ya no debe ir porque se está mostrando abajo"): se quita de la cabecera; el mismo dato (guerraSemana.ataques) ya se ve en la barra "Ataques/semana" de Requisitos para mantener el rango (antes "descender de rango" — ver FIX 27-sep-2026 en bloqueRequisitos()). mAtaques ya no existe en el DOM: si algún día se necesita de nuevo, ojo con el textContent de más abajo (renderMiembro()) que todavía intentaba escribirle. -->
             <span id="mFameSemanaWrap" style="display:none;"><b id="mFameSemana">0</b>Medallas de la semana actual</span>
             <!-- Vigencia (Última conexión) queda oculta hasta que el backend mande j.vigencia. Historial en CHANGELOG.md. -->
@@ -2425,6 +2425,20 @@ function renderStatsAvanzadasCabecera(j){
       wrap.style.display = 'none';
     }
   });
+  /* FIX (12-oct-2026, pedido usuario — "en las victorias de guerra se puede buscar el ícono de su insignia correspondiente"):
+   * V. Guerra y Nivel de colección muestran el ícono de SU insignia (ClanWarWins / CollectionLevel, rawClash.badges[].iconUrls),
+   * que cambia según el nivel de la insignia. Sin esa insignia o si la URL falla, vuelve al ícono local del HTML (data-base).
+   * [→ Contexto_Base_Web.md §PF055] */
+  const _insig = Array.isArray(raw.badges) ? raw.badges : [];
+  [['mIcoVGuerra', 'ClanWarWins'], ['mIcoColeccion', 'CollectionLevel']].forEach(([id, nombre]) => {
+    const img = document.getElementById(id);
+    if (!img) return;
+    if (!img.dataset.base) img.dataset.base = img.getAttribute('src');
+    const b = _insig.find(x => x && x.name === nombre);
+    const u = (b && b.iconUrls) ? (urlValida(b.iconUrls.large) ? b.iconUrls.large : (urlValida(b.iconUrls.medium) ? b.iconUrls.medium : '')) : '';
+    img.onerror = function(){ if (this.getAttribute('src') !== this.dataset.base) this.src = this.dataset.base; };
+    img.src = u || img.dataset.base;
+  });
 }
 
 // FIX (23-sep-2026, pedido usuario — "las pastillas de filtro por tipo o
@@ -3020,6 +3034,28 @@ const _ICONO_BATALLA_HTML = '<img src="assets/img/Batalla.webp" alt="Camino de t
  * de coronas (14px, junto a texto de 11px dentro de .badge-gold).
  */
 const _ICONO_PUNTOS_ESTELARES_HTML = '<img src="assets/img/PuntosEstelares.webp" alt="Puntos estelares" style="height:12px; width:auto; vertical-align:-2px; margin-right:4px;" onerror="this.replaceWith(document.createTextNode(\'\\u{2B50}\'));">';
+/**
+ * _icoCuadritoHtml(archivo, alt, emoji) + constantes _ICO_CUADRITO_*
+ * FIX (12-oct-2026, pedido usuario — "añade algún emoji o ícono a cada cuadrito ... íconos pequeños, como el de nivel de xp y puntos estelares"):
+ * cada cuadrito de renderExtendido() recibe un ícono a la izquierda de su etiqueta (5to parámetro de extItem()).
+ * Los archivos son WebP chicos (alto 40 px, ~1 a 2 KB) generados desde el Fan Kit de Supercell (icon_menu_*, Item_Header_Banner_Small,
+ * Tower Power icon, emote del cerdito real) y se muestran a 14 px de alto. Si el archivo no carga, onerror lo cambia por el emoji
+ * (mismo patrón que _ICONO_ORO_HTML/_ICONO_PUNTOS_ESTELARES_HTML). Arena lleva solo emoji: las arenas actuales (rawName Arena_L15,
+ * Arena_L17...) no tienen ícono en assets/arenas/ (solo arena0..24). [→ Contexto_Base_Web.md §PF055]
+ */
+function _icoCuadritoHtml(archivo, alt, emoji){
+  return `<img src="assets/img/${archivo}" alt="${alt}" style="height:14px; width:auto; vertical-align:-3px; margin-right:4px;" data-e="${emoji}" onerror="this.replaceWith(document.createTextNode(this.dataset.e));">`;
+}
+const _ICO_CUADRITO_RANKING = _icoCuadritoHtml('ico-clan.webp', 'Ranking en el clan', '\u{1F465}');
+const _ICO_CUADRITO_COPAS_MAX = '<img src="assets/img/Batalla.webp" alt="Copas máx." style="height:14px; width:auto; vertical-align:-3px; margin-right:4px;" data-e="\u{1F3C6}" onerror="this.replaceWith(document.createTextNode(this.dataset.e));">';
+const _ICO_CUADRITO_ARENA = '<span aria-hidden="true" style="margin-right:4px;">\u{1F3DF}\u{FE0F}</span>';
+const _ICO_CUADRITO_TORNEOS = _icoCuadritoHtml('ico-torneos.webp', 'Torneos', '\u{1F3AB}');
+const _ICO_CUADRITO_DESAFIOS = _icoCuadritoHtml('ico-desafios.webp', 'Desafíos', '\u{2694}\u{FE0F}');
+const _ICO_CUADRITO_3_CORONAS = '<img src="assets/img/BlueCrown.webp" alt="3 coronas" style="height:14px; width:auto; vertical-align:-3px; margin-right:4px;" data-e="\u{1F451}" onerror="this.replaceWith(document.createTextNode(this.dataset.e));">';
+const _ICO_CUADRITO_XP = '<img src="assets/img/XP.webp" alt="Puntos de experiencia" style="height:13px; width:auto; vertical-align:-2px; margin-right:4px;" data-e="\u{2728}" onerror="this.replaceWith(document.createTextNode(this.dataset.e));">';
+const _ICO_CUADRITO_EMOTES = _icoCuadritoHtml('ico-emotes.webp', 'Emotes', '\u{1F600}');
+const _ICO_CUADRITO_BANNERS = _icoCuadritoHtml('ico-banners.webp', 'Banners', '\u{1F6A9}');
+const _ICO_CUADRITO_CARTAS = _icoCuadritoHtml('ico-cartas.webp', 'Cartas', '\u{1F0CF}');
 const _ICONO_LEYENDAS_HTML = '<img src="assets/img/Leyendas.webp" alt="Camino de Leyendas" style="height:14px; width:auto; vertical-align:-3px; margin-right:5px;" onerror="this.replaceWith(document.createTextNode(\'\\u{1F396}\\u{FE0F}\'));">';
 
 /**
@@ -3921,8 +3957,8 @@ function renderExtendido(ext, j){
   // cuántos entran por fila depende del ancho de pantalla — el orden de
   // abajo es el que se ve tal cual en pantallas anchas (una fila por cada
   // línea de este bloque).
-  items += extItem(ext.rankingClan, 'Ranking en el clan', true);
-  items += extItem(ext.copasMax, 'Copas máx.', true);
+  items += extItem(ext.rankingClan, 'Ranking en el clan', true, undefined, _ICO_CUADRITO_RANKING);
+  items += extItem(ext.copasMax, 'Copas máx.', true, undefined, _ICO_CUADRITO_COPAS_MAX);
   /* FIX (27-sep-2026): con el fix de _resolverArenaDesdeCatalogo() (archivo
    * 7, 07_API_ClashRoyale.gs — ver conversación con el usuario), ext.arena
    * ya llega combinado como "Nombre (Nombre_2)" desde el backend (o solo
@@ -3931,15 +3967,15 @@ function renderExtendido(ext, j){
    * falta, el frontend solo muestra ext.arena tal cual. Sigue ocupando 2
    * columnas del grid (pedido usuario) porque "Nombre (Nombre_2)" puede
    * ser bastante largo. */
-  items += extItem(ext.arena, 'Arena', false, 2);
-  items += extItem(j ? j.torneos : null, 'Torneos', true);
-  items += extItem(ext.maxVictoriasDesafios, 'Máx. victorias desafío', true);
-  items += extItem(ext.victorias3Coronas, '3 coronas', true);
+  items += extItem(ext.arena, 'Arena', false, 2, _ICO_CUADRITO_ARENA);
+  items += extItem(j ? j.torneos : null, 'Torneos', true, undefined, _ICO_CUADRITO_TORNEOS);
+  items += extItem(ext.maxVictoriasDesafios, 'Máx. victorias desafío', true, undefined, _ICO_CUADRITO_DESAFIOS);
+  items += extItem(ext.victorias3Coronas, '3 coronas', true, undefined, _ICO_CUADRITO_3_CORONAS);
   // FIX (27-sep-2026, pedido usuario — "puntos de experiencia debe ocupar
   // dos columnas"): mismo mecanismo que ya usa Arena (ancho=2, ver extItem()
   // más arriba), porque el valor "actual / total" puede ser bastante largo.
   // FIX (12-oct-2026, pedido usuario -- "en vez de '162,523 / 4,581,293' haz que muestre '162,523'"): solo se muestra expPoints; totalExpPoints sigue llegando en rawClash pero ya no se pinta. Se mantiene ancho=2 (decisión del 27-sep) aunque el valor ahora sea corto. [→ Contexto_Base_Web.md §PF054]
-  items += extItem(raw.expPoints != null ? fmtNum(raw.expPoints) : null, 'Puntos de experiencia', false, 2);
+  items += extItem(raw.expPoints != null ? fmtNum(raw.expPoints) : null, 'Puntos de experiencia', false, 2, _ICO_CUADRITO_XP);
   items += extItem(raw.starPoints, 'Puntos estelares', true, undefined, _ICONO_PUNTOS_ESTELARES_HTML);
   /* FIX (23-sep-2026, pedido usuario — "falta retirar el cuadrito de
    * batallas"): Batallas ya no se pinta como cuadrito suelto. En su lugar,
@@ -3970,10 +4006,10 @@ function renderExtendido(ext, j){
    * pastilla del minigráfico "Victorias y derrotas", al lado de Ratio V/D
    * (ver el arreglo `extra` que se le pasa a _pastelMiniHtml() dentro del
    * arreglo `pies` más abajo). */
-  items += extItem(ext.emotes, 'Emotes', true);
-  items += extItem(ext.banners, 'Banners', true);
-  items += extItem(ext.cartasDesafios, 'Cartas de desafíos', true);
-  items += extItem(ext.cartasTorneos, 'Cartas de torneos', true);
+  items += extItem(ext.emotes, 'Emotes', true, undefined, _ICO_CUADRITO_EMOTES);
+  items += extItem(ext.banners, 'Banners', true, undefined, _ICO_CUADRITO_BANNERS);
+  items += extItem(ext.cartasDesafios, 'Cartas de desafíos', true, undefined, _ICO_CUADRITO_CARTAS);
+  items += extItem(ext.cartasTorneos, 'Cartas de torneos', true, undefined, _ICO_CUADRITO_CARTAS);
   /* FIX (23-sep-2026, pedido usuario): Donaciones recibidas/hechas ya no se
    * pintan como cuadritos sueltos: los mismos datos se muestran en el
    * minigráfico "Donaciones hechas y recibidas" de más abajo (ver el
