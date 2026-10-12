@@ -122,7 +122,8 @@
 // v54 (12-oct-2026): assets/styles.css y assets/js/util.js cambiaron (CORE_ASSETS) -- clase .sr-only y aviso «se abre en una pestaña nueva» en enlaceJugador() y enlaceClan() (§PF050, Q-2).
 // v56 (12-oct-2026): admin.html cambió (CORE_ASSETS) -- más espacio entre el enlace del clan y el del jugador en la tarjeta de cuentas (objetivo de 24 px, §PF050).
 // v55 (12-oct-2026): guerra.html cambió (CORE_ASSETS) -- los ceros de las cuadrículas (.ai-cell-zero) suben de 2.7:1 a ~5:1 de contraste (§PF050, D-20).
-const CACHE_NAME = 'terna-static-v56';
+// v57 (12-oct-2026): admin.html cambió (CORE_ASSETS) -- al abrir el formulario de Resolución el foco pasa a «Tipo de resolución» y «Cancelar» devuelve el foco al botón que lo abrió (§PF050, H-1 y H-2).
+const CACHE_NAME = 'terna-static-v57';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y

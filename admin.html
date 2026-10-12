@@ -1393,7 +1393,7 @@
             <div id="resolucionParaTexto" class="text-dim" style="font-size:13px; margin-bottom:10px;"></div>
             <div class="field">
               <label for="resTipo">Tipo de resolución</label>
-              <select id="resTipo">
+              <select id="resTipo" aria-describedby="resolucionParaTexto">
                 <option value="Descalificado">Descalificado</option>
                 <option value="Empate - Reparto de premio">Empate - Reparto de premio</option>
                 <option value="Empate - Partida de desempate">Empate - Partida de desempate</option>
@@ -7095,7 +7095,12 @@ document.getElementById('ganadoresLista').addEventListener('click', async (ev) =
   }
 });
 
+// Botón de #ganadoresLista que abrió el formulario (null si el foco no estaba ahí, p. ej. Safari no enfoca un botón al pulsarlo): «Cancelar» le devuelve el foco. [→ Contexto_Base_Web.md §PF050, H-1 y H-2]
+let resolucionBotonOrigen = null;
+
 function abrirResolucionForm(tag, nombre, resolucionActual){
+  const enfocado = document.activeElement;
+  resolucionBotonOrigen = (enfocado && enfocado.closest && enfocado.closest('#ganadoresLista')) ? enfocado : null;
   document.getElementById('resolucionForm').dataset.tagActual = tag;
   document.getElementById('resolucionParaTexto').textContent = `Registrar resolución para: ${nombre}`;
   const tipoActual = (resolucionActual && resolucionActual.tipoResolucion) || 'Descalificado';
@@ -7115,6 +7120,8 @@ function abrirResolucionForm(tag, nombre, resolucionActual){
   const form = document.getElementById('resolucionForm');
   form.style.display = 'block';
   form.scrollIntoView({ behavior:'smooth', block:'nearest' });
+  // H-1 (12-oct-2026): el formulario sale después de toda la lista; sin esto un teclado necesitaba hasta 51 Tab para llegar y el lector no avisaba de que apareció. preventScroll: el desplazamiento ya lo hace scrollIntoView.
+  document.getElementById('resTipo').focus({ preventScroll:true });
 }
 
 // Dropdowns de motivos fijos para "Descalificado" y las dos variantes de "Empate". Historial en CHANGELOG.md.
@@ -7159,6 +7166,15 @@ document.getElementById('resTipo').addEventListener('change', () => {
 
 document.getElementById('btnCancelarResolucion').addEventListener('click', () => {
   document.getElementById('resolucionForm').style.display = 'none';
+  // H-2 (12-oct-2026): el botón enfocado se oculta con el formulario y el foco caía en <body>. Vuelve al botón que lo abrió; si ya no está visible (p. ej. se cerró la lista completa), a la lista.
+  const origen = resolucionBotonOrigen;
+  resolucionBotonOrigen = null;
+  if(origen && origen.isConnected && origen.offsetParent !== null){ origen.focus(); }
+  else{
+    const lista = document.getElementById('ganadoresLista');
+    lista.setAttribute('tabindex', '-1');
+    lista.focus();
+  }
 });
 
 document.getElementById('btnGuardarResolucion').addEventListener('click', () => conBotonOcupado(document.getElementById('btnGuardarResolucion'), async () => {
