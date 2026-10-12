@@ -3745,9 +3745,10 @@ function _dispersionMiniHtml(titulo, dias, series, opts){
   const PAD_L = Math.max(24, Math.ceil(Math.max(...etiquetasY.map(t => t.length)) * 5.6) + 10);
   const plotW = W - PAD_L - PAD_R, plotH = H - PAD_TOP - PAD_BOTTOM;
   const groupW = plotW / dias.length;
-  const OFFSET = series.length > 1 ? 8 : 0;
+  // FIX (12-oct-2026, pedido usuario -- "los puntos no están alineados con los días ... los morados están a la derecha de los amarillos"): se quita el desplazamiento horizontal entre series (antes OFFSET=8, cada serie quedaba 4 px a un lado del centro del día). Todas las series se dibujan centradas sobre la etiqueta de su día (cx). Para que, cuando dos valores coinciden, el punto de abajo siga viéndose, las series posteriores a la primera usan un radio menor (R_SERIE_2) y se dibujan encima.
+  const OFFSET = 0;
   const unaSerie = series.length === 1;
-  const R = 5;
+  const R = 5, R_SERIE_2 = 3.5;
 
   // Líneas de referencia horizontales, una por marca del eje Y (la de 0 es la base), con su rótulo a la izquierda. Igual de tenues que .ing-grid-line de las gráficas grandes.
   let grid = '';
@@ -3796,7 +3797,7 @@ function _dispersionMiniHtml(titulo, dias, series, opts){
       const val = Number((s.valores || [])[dIdx]) || 0;
       const y = max > 0 ? PAD_TOP + plotH * (1 - val / max) : baseY;
       const x = cx + (sIdx - (series.length - 1) / 2) * OFFSET;
-      puntos += `<circle class="md-punto" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${R}" fill="${s.color}" stroke="var(--bg)" stroke-width="1.5" style="filter:drop-shadow(0 0 4px ${s.color})"><title>${esc(dia)} · ${esc(s.etiqueta)}: ${esc(fmtNum(val))}</title></circle>`;
+      puntos += `<circle class="md-punto" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${sIdx === 0 ? R : R_SERIE_2}" fill="${s.color}" stroke="var(--bg)" stroke-width="1.5" style="filter:drop-shadow(0 0 4px ${s.color})"><title>${esc(dia)} · ${esc(s.etiqueta)}: ${esc(fmtNum(val))}</title></circle>`;
       if (unaSerie){
         puntos += `<text class="md-valor-label" x="${x.toFixed(1)}" y="${Math.max(PAD_TOP - 6, y - 10).toFixed(1)}">${esc(fmtNum(val))}</text>`;
       }
