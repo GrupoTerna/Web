@@ -74,6 +74,8 @@
   .perfil-cabecera-der .ext-links{justify-content:flex-end; margin-top:0;}
   #mClanIconoWrap{display:flex; align-items:center; justify-content:center; align-self:stretch;}
   #mClanIconoWrap img{width:auto; height:100%; max-height:90px; margin-right:0 !important;}
+  #mInsigniaGuerraWrap{display:flex; align-items:center; justify-content:center; align-self:stretch;}
+  #mInsigniaGuerraWrap img{width:auto; height:100%; max-height:90px; min-height:48px;}
   /* 20-sep-2026 (D-3 b2): .perfil-cabecera .stats-mini b se movió a assets/styles.css (16px + --f-display).
      Lo que dice el comentario de arriba ya no aplica: admin.html ahora fija font-family:inherit. */
   /* FIX (18-sep-2026, Fase 3 del refactor CSS): .req-row/.lbl/.progress
@@ -1017,6 +1019,8 @@
                oculto solo si el badgeId no está en la tabla o el PNG no
                existe en assets/badges/, igual que en el resto del sitio. -->
           <span id="mClanIconoWrap" style="display:none; flex-shrink:0;"></span>
+          <!-- 12-oct-2026 (pedido usuario — "a la derecha del escudo del clan, muestra la insignia de victorias de guerra correspondiente al jugador"): insignia ClanWarWins del propio jugador (rawClash.badges), se pinta en renderMiembro(); oculta si no la tiene. [→ Contexto_Base_Web.md §PF059] -->
+          <span id="mInsigniaGuerraWrap" style="display:none; flex-shrink:0;"></span>
           <div class="perfil-cabecera-der">
           <div class="stats-mini">
             <!-- FIX (23-sep-2026, pedido usuario — "en la parte de arriba solo se debe mostrar nivel de torre del rey, nivel de XP, copas, victorias de guerra, ataques en la semana actual y fame de la semana actual, y vigencia. todo lo demás debe ir en los cuadritos debajo"): la cabecera queda con estos 7 datos, en este orden. Torneos, Puntos estelares y Puntos de experiencia pasan a la grilla de cuadritos (renderExtendido()). Cada <span> con "Wrap" se oculta sola si el dato no llega (ver renderStatsAvanzadasCabecera() y renderMiembro()). Historial en CHANGELOG.md. -->
@@ -5431,8 +5435,23 @@ function renderMiembro(j){
     iconoClanWrap.innerHTML = iconoClanHtml;
     iconoClanWrap.style.display = iconoClanHtml ? '' : 'none';
   }
+  const insigGuerraWrap = document.getElementById('mInsigniaGuerraWrap');
+  if (insigGuerraWrap){
+    const bGuerra = (Array.isArray(rawClash(j).badges) ? rawClash(j).badges : []).find(x => x && x.name === 'ClanWarWins');
+    const uG = (bGuerra && bGuerra.iconUrls) ? (urlValida(bGuerra.iconUrls.large) ? bGuerra.iconUrls.large : (urlValida(bGuerra.iconUrls.medium) ? bGuerra.iconUrls.medium : '')) : '';
+    if (uG){
+      const nivG = (bGuerra.level != null && bGuerra.maxLevel != null) ? ` — Nv. ${bGuerra.level}/${bGuerra.maxLevel}` : '';
+      const progG = (bGuerra.target > 0) ? ` — ${fmtNum(bGuerra.progress)}/${fmtNum(bGuerra.target)}` : '';
+      const tipG = `${_nombreInsigniaEs(bGuerra)}${nivG}${progG}`;
+      insigGuerraWrap.innerHTML = `<img src="${esc(uG)}" alt="${esc(tipG)}" title="${esc(tipG)}" width="48" height="48" decoding="async" onerror="this.parentNode.style.display='none';">`;
+      insigGuerraWrap.style.display = '';
+    } else {
+      insigGuerraWrap.innerHTML = '';
+      insigGuerraWrap.style.display = 'none';
+    }
+  }
   document.getElementById('mSub').innerHTML = `
-    <div>${esc(j.tag)} · ${esc(j.rango || '—')} · ${esc(j.estado || '—')}</div>
+    <div>${esc(j.estado || '—')} · ${esc(j.rango || '—')} (${esc(j.tag)})</div>
     <div style="margin-top:4px;">${j.clan ? enlaceClan(j.clan) : '—'}${clanTagRaw ? ` (${esc(clanTagRaw)})` : ''}</div>
   `;
   document.getElementById('mCopas').textContent = fmtNum(j.copas);

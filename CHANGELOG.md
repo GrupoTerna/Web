@@ -30,6 +30,7 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 
 ## 12-oct-2026
 
+- **`perfil.html` · Línea «Estado · Rango (Tag)» e insignia de guerra junto al escudo.** `renderMiembro()`: `mSub` pasa de «#TAG · Rango · Estado» a «Estado · Rango (#TAG)»; nuevo `#mInsigniaGuerraWrap`, a la derecha del escudo del clan, con el ícono de la insignia `ClanWarWins` del jugador (tooltip con nivel y progreso; oculta si no la tiene). [→ Contexto_Base_Web.md §PF059]
 - **`perfil.html` · Nombre del jugador en dorado brillante y cintas con nombre nuevo.** CSS `#mNombre`: degradado dorado con leve brillo. `assets/img/cinta-*.webp` pasan a `cinta-*-2.webp`: el service worker sirve primero la copia guardada, así que con el mismo nombre se seguía viendo la cinta vieja con muesca. [→ Contexto_Base_Web.md §PF058]
 - **`perfil.html` · Cintas decorativas hasta el borde derecho y pastilla legible.** `assets/img/cinta-*.webp` se rehacen recortando solo el arte interior (sin el marco ni la muesca de la cinta del Fan Kit, que dejaba un hueco a la derecha), a 1000 px de ancho (10 a 18 KB); CSS `.pf-cinta > .eyebrow`: fondo oscuro semiopaco para que se lea «Insignias y logros». [→ Contexto_Base_Web.md §PF056]
 - **`perfil.html` · «Competitivo» sube debajo de las minigráficas.** La tarjeta `#mLeyendasCard` pasa de ir después de «Batallas más recientes» a ir justo después de la tarjeta de cabecera (que termina con `#mMiniGraficosWrap`), antes de Evolución. Solo se movió HTML; sin cambios en JS ni CSS. [→ Contexto_Base_Web.md §PF057]
