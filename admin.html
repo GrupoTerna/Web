@@ -7047,7 +7047,9 @@ document.getElementById('ganadoresLista').addEventListener('click', async (ev) =
       // insignia «Visto en el grupo (manual)» de la MISMA fila (tabindex=-1) para que el lector la anuncie y el teclado siga ahí.
       const tagMarcado = btnMarcar.dataset.tag;
       await cargarGanadoresTorneo();
-      if(teniaFoco || document.activeElement === document.body){
+      // FIX (12-oct-2026): antes la condición era `teniaFoco || activeElement === body` y le quitaba el foco a quien ya había pasado a otro control mientras
+      // esperaba la respuesta (robo de foco). Ahora solo se mueve si el foco cayó en <body>, que es lo que ocurre cuando el botón desaparece al repintar.
+      if(document.activeElement === document.body){
         const insignia = [...document.querySelectorAll('#ganadoresLista [data-visto-tag]')].find(e => e.dataset.vistoTag === tagMarcado);
         if(insignia){ insignia.setAttribute('tabindex', '-1'); insignia.focus({preventScroll:true}); }
       }
