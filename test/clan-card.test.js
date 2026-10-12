@@ -16,7 +16,7 @@ const { clanCardCabeceraHtml, clanCardHtml, chartCardHtml } = loadBrowserScripts
 
 test('clanCardCabeceraHtml() con c.nombre real arma el link clickeable a clan.html (enlaceClan)', () => {
   const html = clanCardCabeceraHtml({ nombre: 'Familia Terna', clanTag: '#ABC123' }, 0);
-  assert.match(html, /<a class="clan-link" href="clan\.html\?clan=Familia(%20|\+)Terna" target="_blank" rel="noopener">Familia Terna<\/a>/);
+  assert.match(html, /<a class="clan-link" href="clan\.html\?clan=Familia(%20|\+)Terna" target="_blank" rel="noopener">Familia Terna<span class="sr-only"> \(se abre en una pestaña nueva\)<\/span><\/a>/);
   assert.match(html, /#ABC123/);
 });
 

@@ -6,7 +6,7 @@ const { loadBrowserScript, loadBrowserScriptsWithDom } = require('./load-browser
 
 const {
   esc, fmtNum, ordenClanIndex, ordenarClanes,
-  urlValida, normalizarTag, enlaceJugador, fmtTiempoRelativo,
+  urlValida, normalizarTag, enlaceJugador, enlaceClan, fmtTiempoRelativo,
   fmtHaceCorto, fmtFechaHoraLima, tsApiDeDatos, fmtTresTiempos, fmtTresTiemposDeResultado
 } = loadBrowserScript('assets/js/util.js');
 
@@ -70,12 +70,27 @@ test('enlaceJugador() sin tag devuelve el nombre escapado, sin <a> (mejor texto 
 
 test('enlaceJugador() con tag arma el link a perfil.html, target=_blank por defecto', () => {
   const html = enlaceJugador('Jugador', '#R09228V');
-  assert.equal(html, '<a class="jugador-link" href="perfil.html?tag=%23R09228V" target="_blank" rel="noopener">Jugador</a>');
+  assert.equal(html, '<a class="jugador-link" href="perfil.html?tag=%23R09228V" target="_blank" rel="noopener">Jugador<span class="sr-only"> (se abre en una pestaña nueva)</span></a>');
 });
 
 test('enlaceJugador() con opts.mismaVentana no agrega target', () => {
   const html = enlaceJugador('Jugador', '#R09228V', { mismaVentana: true });
   assert.ok(!html.includes('target='));
+});
+
+test('enlaceJugador() con mismaVentana no avisa de pestaña nueva (no abre ninguna)', () => {
+  const html = enlaceJugador('Jugador', '#R09228V', { mismaVentana: true });
+  assert.ok(!html.includes('sr-only'));
+});
+
+test('enlaceJugador(): el aviso va después del nombre y en un span sr-only (guerra.html lee el firstChild del <a>)', () => {
+  const html = enlaceJugador('Ana', '#A1');
+  assert.ok(html.indexOf('>Ana<span class="sr-only">') > 0);
+});
+
+test('enlaceClan() abre pestaña nueva con aviso para lector de pantalla, y sin aviso con mismaVentana', () => {
+  assert.ok(enlaceClan('Terna', {}).includes('<span class="sr-only"> (se abre en una pestaña nueva)</span>'));
+  assert.ok(!enlaceClan('Terna', { mismaVentana: true }).includes('sr-only'));
 });
 
 test('fmtTiempoRelativo(null) avisa que no hay datos guardados', () => {

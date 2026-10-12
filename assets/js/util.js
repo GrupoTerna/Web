@@ -117,7 +117,10 @@ function enlaceJugador(nombre, tag, opts){
   if (!tag) return nombreEsc;
   const clase = 'jugador-link' + (opts.clase ? ' ' + opts.clase : '');
   const target = opts.mismaVentana ? '' : ' target="_blank" rel="noopener"';
-  return `<a class="${clase}" href="perfil.html?tag=${encodeURIComponent(tag)}"${target}>${nombreEsc}</a>`;
+  // Q-2 (12-oct-2026, §PF050): si abre pestaña nueva, se avisa solo al lector de pantalla; va DESPUÉS del nombre
+  // (guerra.html lee el firstChild del <a> para el nombre).
+  const aviso = opts.mismaVentana ? '' : '<span class="sr-only"> (se abre en una pestaña nueva)</span>';
+  return `<a class="${clase}" href="perfil.html?tag=${encodeURIComponent(tag)}"${target}>${nombreEsc}${aviso}</a>`;
 }
 
 
@@ -140,7 +143,8 @@ function enlaceClan(nombre, opts){
   if (!nombre) return nombreEsc;
   const clase = 'clan-link' + (opts.clase ? ' ' + opts.clase : '');
   const target = opts.mismaVentana ? '' : ' target="_blank" rel="noopener"';
-  return `<a class="${clase}" href="clan.html?clan=${encodeURIComponent(nombre)}"${target}>${nombreEsc}</a>`;
+  const aviso = opts.mismaVentana ? '' : '<span class="sr-only"> (se abre en una pestaña nueva)</span>'; // Q-2 (§PF050)
+  return `<a class="${clase}" href="clan.html?clan=${encodeURIComponent(nombre)}"${target}>${nombreEsc}${aviso}</a>`;
 }
 
 
