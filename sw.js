@@ -127,7 +127,8 @@
 // v59 (12-oct-2026): perfil.html cambió (CORE_ASSETS) -- se quita el relleno de 72 px que cada gráfica de Evolución heredaba de `section{padding:72px 0}` (§PF060).
 // v63 (12-oct-2026): perfil.html cambió (CORE_ASSETS) -- banner (cinta azul de Mazo actual, sin imagen nueva) en la tarjeta de cabecera del perfil (§PF064).
 // v64 (12-oct-2026): assets/styles.css, perfil.html y torneos.html cambiaron (CORE_ASSETS) -- las reglas de las cintas pasan a styles.css, la variable --cinta ahora lleva url(img/...) (relativa a styles.css) y entran las cintas de torneos y clan (§PF065). Las imágenes cinta-*.webp nuevas no se precachean.
-const CACHE_NAME = 'terna-static-v64';
+// v65 (12-oct-2026): index.html cambió (CORE_ASSETS) -- banners en las 7 secciones de la página de inicio (§PF065, tanda 2). Las imágenes cinta-index-*.webp nuevas no se precachean.
+const CACHE_NAME = 'terna-static-v65';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
