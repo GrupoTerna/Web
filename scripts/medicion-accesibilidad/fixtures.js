@@ -11,7 +11,13 @@ const part=(k)=>nm.map((n,i)=>({puesto:i+1,nombre:n+' Prueba',tag:'#'+(i+1)+'ABC
 const dia=(d)=>new Date(Date.UTC(2026,9,12-d,20,0,0)).toISOString();
 const torneosLista=[0,2,5,9].map((d,i)=>({idTorneo:'T'+(i+1),fecha:dia(d),clan:clanes[i%2].nombre,organizador:'Organizador '+(i+1)}));
 const ingresos=miembros.slice(0,4).map((m,i)=>({nombre:m.nombre,tag:m.tag,clan:m.clan,copas:m.copas,nivelXp:m.nivelXp,vGuerra:m.vGuerra,diasInactivo:i*3,vigencia:m.vigencia,guerraSemana:{ataques:8+i,ataquesMax:16},historialSemanal:m.historialSemanal}));
+// mensajes.html: las categorias salen del propio HTML (data-categoria), para que el fixture no se desactualice
+const fs=require('fs'),path=require('path');
+const categorias=[...new Set([...fs.readFileSync(path.join(__dirname,'..','..','mensajes.html'),'utf8').matchAll(/data-categoria="([^"$]+)"/g)].map(m=>m[1]))];
+const opcionesMsg=['Opcion A','Opcion B'].map((e,i)=>({etiqueta:e,subcategoria:'Sub '+(i+1),clan:clanes[i].nombre,contenido:'Texto de prueba de la categoria.\nSegunda linea con *negrita* y enlace https://ejemplo.invalid/x',docId:i?'':'doc-simulado'}));
 const FIX={
+ webAdminCategorias:{ok:true,categorias},
+ webAdminContenido:{ok:true,opciones:opcionesMsg},
  webIngresosRecientes:{ok:true,ingresos},
  webAscensosRecientes:{ok:true,ascensos:[{nombre:'Ana Prueba',tag:'#1ABCD',rangoAnterior:'Miembro',rangoNuevo:'Veterano',clan:clanes[0].nombre,fechaTxt:'12/10/2026'},{nombre:'Beto Prueba',tag:'#2ABCD',rangoAnterior:'Veterano',rangoNuevo:'Colider',clan:clanes[1].nombre,fechaTxt:'05/10/2026'}]},
  webTorneos:{ok:true,ganadores:{top3:part(0).slice(0,3),participantes:part(0)},torneos:torneosLista},
