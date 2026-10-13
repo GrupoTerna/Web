@@ -5140,6 +5140,30 @@ function perfilLineChartSvg(puntos, opts){
   puntos = filtrarDiasGuerraPerfil(puntos);
   // FIX (07-oct-2026): si tras el filtro no queda ningún punto real no se dibuja el eje (salía "#NaN"/"-Infinity"), se avisa.
   if (!puntos.some(p => p.real)) return `<div class="chart-empty">Todavía no hay d\u00edas de guerra registrados para graficar.</div>`;
+  // NUEVO (12-oct-2026, pedido usuaria -- «si no hay domingo, se pone un placeholder interpolando la fecha», mismo criterio que la gráfica de copas de
+  // clan.html): si una semana de guerra no trae su domingo (ni real ni como hueco sin dato) se inserta un punto placeholder con esa fecha: real:false (punto
+  // hueco, tramo punteado) con el valor interpolado por fecha entre sus vecinos REALES; sin vecino posterior (semana en curso) se mantiene el último valor.
+  // Los huecos real:false que ya venían (valor 0) no cuentan como vecinos. Una fecha que no se puede leer se deja tal cual. Todo vive aquí dentro (sin
+  // helpers de nivel superior) porque test/perfil-*-grafica.test.js extrae las funciones por nombre. [→ Contexto_Base_Web.md §PF066]
+  const _claveDom = t => { const d = new Date(t); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + ((7 - d.getDay()) % 7)); return d.getTime(); };
+  puntos = puntos.slice();
+  for (let i = puntos.length - 1; i >= 0; i--){
+    const t = parseFechaDDMMYYYY(puntos[i].semana);
+    if (isNaN(t)) continue;
+    const k = _claveDom(t);
+    const tSig = i + 1 < puntos.length ? parseFechaDDMMYYYY(puntos[i + 1].semana) : NaN;
+    if (!isNaN(tSig) && _claveDom(tSig) === k) continue; // no es el último punto de su semana
+    let hayDomingo = false;
+    for (let m = i; m >= 0; m--){ const tm = parseFechaDDMMYYYY(puntos[m].semana); if (isNaN(tm) || _claveDom(tm) !== k) break; if (new Date(tm).getDay() === 0) hayDomingo = true; }
+    if (hayDomingo) continue;
+    let ant = null; for (let m = i; m >= 0; m--){ if (puntos[m].real){ ant = puntos[m]; break; } }
+    const sig = puntos.slice(i + 1).find(q => q.real && !isNaN(parseFechaDDMMYYYY(q.semana)));
+    let valor = ant ? Number(ant.valor) : (sig ? Number(sig.valor) : 0);
+    if (ant && sig){ const f0 = parseFechaDDMMYYYY(ant.semana), f1 = parseFechaDDMMYYYY(sig.semana); valor = Number(ant.valor) + (Number(sig.valor) - Number(ant.valor)) * ((k - f0) / Math.max(f1 - f0, 1)); }
+    const dom = new Date(k);
+    const fecha = `${String(dom.getDate()).padStart(2, '0')}/${String(dom.getMonth() + 1).padStart(2, '0')}/${dom.getFullYear()}`;
+    puntos.splice(i + 1, 0, { semana: fecha, valor: Math.round(valor * 100) / 100, real: false, motivo: 'Sin dato todavía — domingo con valor estimado' });
+  }
   const W = 960, H = 320, PAD_R = 20, PAD_T = 20, PAD_B = 90;
   const base = opts.base || 0, pasos = 4, prefijo = opts.prefijo || '';
   const tope = opts.tope > 0 ? Number(opts.tope) : 0;
@@ -5204,10 +5228,14 @@ function perfilLineChartSvg(puntos, opts){
   // misma fecha ya rotulada (el bug de "la fecha más a la izquierda se
   // repite"), se salta cualquier etiqueta idéntica a la anterior que sí se
   // dibujó.
+  // 12-oct-2026 (pedido usuaria): con 7 puntos o menos se rotulan las fechas de todos los días; con más, solo las de los domingos (los placeholders de
+  // arriba garantizan que cada semana tenga el suyo). Si ninguna fecha se puede leer se mantiene el salto de antes.
+  const esDomingoI = i => !!fechasEje[i] && fechasEje[i].getDay() === 0;
+  const soloDomingos = n > 7 && fechasEje.some((f, i) => esDomingoI(i));
   const paso = Math.max(1, Math.ceil(n / 24));
   let ultimaEtiqueta = null;
   const xLabels = puntos.map((p, i) => {
-    if ((n - 1 - i) % paso !== 0) return '';
+    if (soloDomingos ? !esDomingoI(i) : (n - 1 - i) % paso !== 0) return '';
     const etiqueta = semanaLabelCortaPerfil(p.semana);
     if (etiqueta === ultimaEtiqueta) return '';
     ultimaEtiqueta = etiqueta;
