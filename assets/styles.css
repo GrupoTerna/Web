@@ -1064,3 +1064,22 @@ footer .wrap span{text-align:justify; text-justify:inter-word;}
 .admin-subseccion[open] > summary::before{content:'–';}
 .admin-subseccion > summary .cat-titulo{flex:1;}
 .admin-subseccion-body{padding:2px 2px 14px;}
+
+/* ===== Cintas decorativas (banners del Fan Kit) — antes solo en perfil.html; movidas aquí el 12-oct-2026 para usarlas en toda la web. [→ Contexto_Base_Web.md §PF056 y §PF065] =====
+ Uso: clase .pf-cinta + variable --cinta:url(img/cinta-xxx.webp) en la tarjeta o sección (la ruta es relativa a ESTA hoja, assets/styles.css, no a la página: con assets/img/ saldría assets/assets/img/). La cinta se dibuja en los 76 px de arriba, con opacidad baja y degradado hacia transparente. */
+/* Va detrás del eyebrow y el título (z-index), con opacidad baja y degradado para no restar lectura. [→ Contexto_Base_Web.md §PF056] */
+/* Los archivos cinta-*-2.webp llevan «-2» para saltar la copia vieja que el service worker (sw.js, caché primero) y el navegador ya tenían guardada con el nombre anterior. */
+.pf-cinta{position:relative;}
+.pf-cinta::before{content:""; position:absolute; top:0; left:0; right:0; height:76px; border-radius:var(--radius) var(--radius) 0 0; background:var(--cinta) center/cover no-repeat; opacity:.5; -webkit-mask-image:linear-gradient(to bottom,#000 35%,transparent); mask-image:linear-gradient(to bottom,#000 35%,transparent); pointer-events:none;}
+.pf-cinta > .eyebrow, .pf-cinta > .pf-subtitulo{position:relative; z-index:1; text-shadow:0 1px 3px rgba(0,0,0,.6);}
+/* 12-oct-2026 (pedido usuario — "dale un poco de opacidad a las pastillas del título de sección, ya que no se ve «INSIGNIAS Y LOGROS»"): sobre la cinta la pastilla (.eyebrow) pasa a fondo oscuro semiopaco. */
+.pf-cinta > .eyebrow{background:rgba(12,12,24,.78); border-color:rgba(243,169,34,.45);}
+/* 12-oct-2026 (pedido usuario — cintas en el resto de las tarjetas): en Mazo actual y Colección completa el eyebrow y el título no son hijos directos de la tarjeta (van dentro de un contenedor flex junto a botones o gráfico), así que la clase pf-cinta--anidada aplica la misma regla a sus descendientes. La llevan tres tarjetas: Mazo actual y Colección (eyebrow y título únicos) y Evolución (el título de cada gráfica va dentro de su sección; solo el primero cae sobre la cinta). [→ Contexto_Base_Web.md §PF056] */
+.pf-cinta--anidada .eyebrow, .pf-cinta--anidada .pf-subtitulo{position:relative; z-index:1; text-shadow:0 1px 3px rgba(0,0,0,.6);}
+.pf-cinta--anidada .eyebrow{background:rgba(12,12,24,.78); border-color:rgba(243,169,34,.45);}
+/* Sección o bloque SIN tarjeta (p. ej. cabecera de página o <section> suelta): la cinta cubre todo el ancho de la columna y cualquier hijo directo se pinta sobre ella. Lo usan torneos.html y las demás páginas por tandas (§PF065). */
+.pf-cinta--seccion{padding-top:18px;}
+.pf-cinta--seccion::before{border-radius:var(--radius);}
+.pf-cinta--seccion > *{position:relative; z-index:1;}
+.pf-cinta--seccion > .eyebrow{margin-left:14px;}
+.pf-cinta--seccion h1, .pf-cinta--seccion h2{text-shadow:0 1px 3px rgba(0,0,0,.6);}
