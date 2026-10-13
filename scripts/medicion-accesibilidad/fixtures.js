@@ -17,6 +17,19 @@ const categorias=[...new Set([...fs.readFileSync(path.join(__dirname,'..','..','
 const opcionesMsg=['Opcion A','Opcion B'].map((e,i)=>({etiqueta:e,subcategoria:'Sub '+(i+1),clan:clanes[i].nombre,contenido:'Texto de prueba de la categoria.\nSegunda linea con *negrita* y enlace https://ejemplo.invalid/x',docId:i?'':'doc-simulado'}));
 const funcionesPerm=['Registrar miembro nuevo','Vetar','Modificar torneo','Corregir autor','Actualizar roster'].map(id=>({id,etiqueta:id,descripcion:'Descripcion de prueba de la funcion '+id+'.'}));
 const adminsPerm=['Diana','Ana','Beto'].map((n,i)=>({id:'ADM'+(i+1),nombre:n+' Prueba',esTu:i===0,funciones:funcionesPerm.slice(0,i+2).map(f=>f.id),categorias:categorias.slice(0,i+1),clanesAdmin:clanes[i%2].nombre,cuentas:[{nombre:n+' Principal',tag:'#'+(i+1)+'ABCD',clan:clanes[0].nombre},{nombre:n+' Alt',tag:'#'+(i+5)+'ABCD',clan:clanes[1].nombre}]}));
+// guerra.html: control diario (J/V/S/D) y control de temporada (Sem 1..N), por clan
+const dd=(k,t)=>({j:Math.min(4,t),v:(k+1)%5,s:k%4,d:null,total:Math.min(4,t)+(k+1)%5+k%4});
+const filasDia=(c)=>miembros.map((m,k)=>({tag:m.tag,nombre:m.nombre,rango:m.rango==='Lider'?'Líder':(m.rango==='Colider'?'Colíder':m.rango),activo:k!==9,ataques:dd(k,4),barcos:{j:k%3,v:(k+1)%3,s:0,d:null,total:k%3+(k+1)%3,opc:k%2?['j']:[]},puntaje:{j:1400-k*60,v:1300-k*50,s:900,d:null,total:3600-k*110}}));
+const sw=(k,base)=>[0,1,2,3].map(i=>k===9&&i<2?null:Math.max(0,base-(i+k)%5));
+const filasTemp=(c)=>miembros.map((m,k)=>({tag:m.tag,nombre:m.nombre,rango:m.rango==='Lider'?'Líder':(m.rango==='Colider'?'Colíder':m.rango),activo:k!==9,ataques:{semanas:sw(k,16),total:60-k,pct:Math.round((60-k)/64*100)},barcos:{semanas:sw(k,3),total:9-k%5,pct:Math.round((9-k%5)/12*100)},puntaje:{semanas:sw(k,3000),prom:2500-k*40,pct:null}}));
+const porClanF=(fn)=>Object.fromEntries(clanes.map(c=>[c.nombre,fn(c)]));
+const FIXGUERRA={
+ valoresDiariosSelectores:{anios:[2026],temporadasPorAnio:{2026:[130]},semanasPorTemporada:{130:[0,1,2,3]},porDefecto:{anio:2026,temporada:130,sectionIndex:2}},
+ valoresDiariosPorSemana:{130:{2:porClanF(filasDia)}},
+ controlTemporadaSelectores:{anios:[2026],temporadasPorAnio:{2026:[{temporada:130,etiqueta:'Temporada 130'}]},porDefecto:{anio:2026,temporada:130}},
+ controlTemporadaSemanas:['Sem 1','Sem 2','Sem 3','Sem 4'],
+ controlTemporadaPorClan:porClanF(filasTemp),
+};
 const FIX={
  webAdminMisPermisos:{ok:true,panelPermisos:true,funciones:funcionesPerm.map(f=>f.id),categorias},
  webPermisosListar:{ok:true,admins:adminsPerm,funciones:funcionesPerm,categorias,clanes:clanes.map(c=>c.nombre)},
@@ -32,6 +45,6 @@ const FIX={
  webClanCopas:{ok:true,puntos},
  webClanInfo:{ok:true,clanes},
  webRoster:{ok:true,clanes:clanes.map(c=>({nombre:c.nombre,miembros}))},
- webGuerraEnVivo:{ok:true,ctx:{temporada:130,sectionIndex:2},guerraPorClan:{'Terna Uno':{ataques:180,fame:52000,barcos:3,atacaron:38,totalHoy:50},'Terna Dos':{ataques:150,fame:41000,barcos:2,atacaron:30,totalHoy:50}},pendientes:miembros.map((m,i)=>({clan:clanes[i%2].nombre,nombre:m.nombre,tag:m.tag,rango:m.rango==='Lider'?'Líder':(m.rango==='Colider'?'Colíder':m.rango),faltantes:(i%4)+1,royaleApi:m.royaleApi,cwStats:m.cwStats}))},
+ webGuerraEnVivo:{ok:true,...FIXGUERRA,ctx:{temporada:130,sectionIndex:2},guerraPorClan:{'Terna Uno':{ataques:180,fame:52000,barcos:3,atacaron:38,totalHoy:50},'Terna Dos':{ataques:150,fame:41000,barcos:2,atacaron:30,totalHoy:50}},pendientes:miembros.map((m,i)=>({clan:clanes[i%2].nombre,nombre:m.nombre,tag:m.tag,rango:m.rango==='Lider'?'Líder':(m.rango==='Colider'?'Colíder':m.rango),faltantes:(i%4)+1,royaleApi:m.royaleApi,cwStats:m.cwStats}))},
 };
 module.exports={FIX};
