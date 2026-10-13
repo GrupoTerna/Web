@@ -82,3 +82,23 @@ test('sin datos, sin tag o con error de red muestra un aviso en vez de una gráf
   const salida = w.document.getElementById('clanCopasWrap').innerHTML;
   assert.ok(salida.includes('No se pudo cargar') && salida.includes('Sin conexión') && !salida.includes('<svg'));
 });
+
+// NUEVO (12-oct-2026, pedido de la usuaria): eje X como el de perfil.html. 01/10/2026 es jueves.
+test('con más de 7 días solo rotula las fechas de los domingos, pone letra a cada día y una línea por domingo', () => {
+  const w = cargar();
+  const svg = w.__t.clanCopasSvg(pts(Array.from({ length: 14 }, (_, i) => 138000 + i * 10)));
+  assert.equal((svg.match(/class="cd-copas-domingo"/g) || []).length, 2, 'domingos 04/10 y 11/10');
+  assert.equal((svg.match(/cd-copas-label-dia/g) || []).length, 14, 'una letra por día');
+  assert.ok(svg.includes('>J</text>') && svg.includes('>V</text>') && svg.includes('>S</text>') && svg.includes('>D</text>'));
+  const fechasRotuladas = [...svg.matchAll(/rotate\(-45[^>]*>(\d\d\/\d\d)</g)].map(m => m[1]);
+  assert.equal(JSON.stringify(fechasRotuladas), JSON.stringify(['04/10', '11/10']));
+});
+
+test('con 7 días o menos rotula todas las fechas; trae el título «Fecha» y la leyenda de series', () => {
+  const w = cargar();
+  const svg = w.__t.clanCopasSvg(pts([138000, 138100, 138200])); // jueves a sábado: sin domingo
+  assert.equal(([...svg.matchAll(/rotate\(-45[^>]*>(\d\d\/\d\d)</g)]).length, 3);
+  assert.ok(svg.includes('>Fecha</text>'));
+  assert.ok(svg.includes('cd-copas-leyenda') && svg.includes('Copas del clan'));
+  assert.ok(!svg.includes('cd-copas-domingo'), 'sin domingos no hay línea ni su leyenda');
+});
