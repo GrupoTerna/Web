@@ -5,7 +5,14 @@ const clanes=['Terna Uno','Terna Dos'].map((nombre,i)=>({nombre,clanTag:'#CL'+i,
 const puntos=[];for(let d=0;d<28;d++){const f=new Date(2026,8,10+d);if(![0,4,5,6].includes(f.getDay()))continue;puntos.push({fecha:String(f.getDate()).padStart(2,'0')+'/'+String(f.getMonth()+1).padStart(2,'0')+'/2026',copas:30000+d*120});}
 const rk=(n)=>Array.from({length:5},(_,i)=>({nombre:['Ana','Beto','Carla','Diego','Elena'][i]+' Prueba',tag:'#'+(i+1)+'ABCD',clan:clanes[i%2].nombre,valor:n-i*7}));
 const cartas=['Caballero','Arqueras','Bola de fuego','Mago','Gigante','Esqueletos','Mosquetera','Valquiria','Cohete','Barril'].map((name,i)=>({name,rarity:['common','rare','epic','legendary','champion'][i%5],usos:900-i*40,hasHero:i%3===0,hasEvolution:i%4===0,heroIcon:'',icon:'',tipo:'Tropa',elixirCost:(i%6)+2}));
+const nm=['Ana','Beto','Carla','Diego','Elena','Fabio'];
+const part=(k)=>nm.map((n,i)=>({puesto:i+1,nombre:n+' Prueba',tag:'#'+(i+1)+'ABCD',clan:clanes[(i+k)%2].nombre,victorias:12-i*2,premioRepartido:i===1,descalificado:i===5}));
+const dia=(d)=>new Date(Date.UTC(2026,9,12-d,20,0,0)).toISOString();
+const torneosLista=[0,2,5,9].map((d,i)=>({idTorneo:'T'+(i+1),fecha:dia(d),clan:clanes[i%2].nombre,organizador:'Organizador '+(i+1)}));
 const FIX={
+ webAscensosRecientes:{ok:true,ascensos:[{nombre:'Ana Prueba',tag:'#1ABCD',rangoAnterior:'Miembro',rangoNuevo:'Veterano',clan:clanes[0].nombre,fechaTxt:'12/10/2026'},{nombre:'Beto Prueba',tag:'#2ABCD',rangoAnterior:'Veterano',rangoNuevo:'Colider',clan:clanes[1].nombre,fechaTxt:'05/10/2026'}]},
+ webTorneos:{ok:true,ganadores:{top3:part(0).slice(0,3),participantes:part(0)},torneos:torneosLista},
+ webHistorialTorneos:{ok:true,historial:torneosLista.map((t,i)=>({...t,top3:part(i).slice(0,3),participantes:part(i)}))},
  webAniversarios:{ok:true,aniversarios:[{nombre:'Ana Prueba',tag:'#1ABCD',clan:clanes[0].nombre,fechaIngTxt:'12/10/2025',hitoMeses:12,diasFaltantes:0},{nombre:'Beto Prueba',tag:'#2ABCD',clan:clanes[1].nombre,fechaIngTxt:'20/10/2025',hitoMeses:12,diasFaltantes:8},{nombre:'Carla Prueba',tag:'#3ABCD',clan:clanes[0].nombre,fechaIngTxt:'13/04/2026',hitoMeses:6,diasFaltantes:1}]},
  webRankings:{ok:true,donadores:rk(4000),racha:rk(60),torneos:rk(300),victorias3c:rk(120)},
  webEstadisticasCartas:{ok:true,top10:cartas},
