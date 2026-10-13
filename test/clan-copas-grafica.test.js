@@ -83,22 +83,47 @@ test('sin datos, sin tag o con error de red muestra un aviso en vez de una gráf
   assert.ok(salida.includes('No se pudo cargar') && salida.includes('Sin conexión') && !salida.includes('<svg'));
 });
 
-// NUEVO (12-oct-2026, pedido de la usuaria): eje X como el de perfil.html. 01/10/2026 es jueves.
-test('con más de 7 días solo rotula las fechas de los domingos, pone letra a cada día y una línea por domingo', () => {
+// NUEVO (12-oct-2026, pedido de la usuaria): eje X como el de perfil.html, solo días de guerra (jueves a domingo).
+// 01/10/2026 es jueves: 01-04 y 08-11 son jueves a domingo; 05-07 y 12-14 son lunes a miércoles (entrenamiento).
+const dia = (d, copas) => ({ fecha: `${String(d).padStart(2, '0')}/10/2026`, copas });
+const fechasRotuladas = svg => [...svg.matchAll(/rotate\(-45[^>]*>(\d\d\/\d\d)</g)].map(m => m[1]);
+
+test('descarta lunes a miércoles; con más de 7 días rotula solo domingos, letra J V S D por punto y una línea por domingo', () => {
   const w = cargar();
-  const svg = w.__t.clanCopasSvg(pts(Array.from({ length: 14 }, (_, i) => 138000 + i * 10)));
+  const svg = w.__t.clanCopasSvg(Array.from({ length: 14 }, (_, i) => dia(i + 1, 138000 + i * 10)));
+  assert.equal((svg.match(/class="cd-copas-pt"/g) || []).length, 8, 'solo los 8 días de guerra');
   assert.equal((svg.match(/class="cd-copas-domingo"/g) || []).length, 2, 'domingos 04/10 y 11/10');
-  assert.equal((svg.match(/cd-copas-label-dia/g) || []).length, 14, 'una letra por día');
+  assert.equal((svg.match(/cd-copas-label-dia/g) || []).length, 8, 'una letra por día de guerra');
   assert.ok(svg.includes('>J</text>') && svg.includes('>V</text>') && svg.includes('>S</text>') && svg.includes('>D</text>'));
-  const fechasRotuladas = [...svg.matchAll(/rotate\(-45[^>]*>(\d\d\/\d\d)</g)].map(m => m[1]);
-  assert.equal(JSON.stringify(fechasRotuladas), JSON.stringify(['04/10', '11/10']));
+  assert.ok(!svg.includes('>L</text>') && !svg.includes('>M</text>') && !svg.includes('>X</text>'), 'sin letras de entrenamiento');
+  assert.equal(JSON.stringify(fechasRotuladas(svg)), JSON.stringify(['04/10', '11/10']));
+  assert.ok(!svg.includes('cd-copas-pt-vacio'), 'no hace falta placeholder: ambas semanas traen domingo');
 });
 
-test('con 7 días o menos rotula todas las fechas; trae el título «Fecha» y la leyenda de series', () => {
+test('si la semana no trae domingo deja un placeholder con esa fecha, hueco y con valor interpolado', () => {
   const w = cargar();
-  const svg = w.__t.clanCopasSvg(pts([138000, 138100, 138200])); // jueves a sábado: sin domingo
-  assert.equal(([...svg.matchAll(/rotate\(-45[^>]*>(\d\d\/\d\d)</g)]).length, 3);
-  assert.ok(svg.includes('>Fecha</text>'));
-  assert.ok(svg.includes('cd-copas-leyenda') && svg.includes('Copas del clan'));
-  assert.ok(!svg.includes('cd-copas-domingo'), 'sin domingos no hay línea ni su leyenda');
+  const svg = w.__t.clanCopasSvg([dia(1, 138000), dia(2, 138100), dia(3, 138200)]); // jueves a sábado
+  assert.equal((svg.match(/class="cd-copas-pt"/g) || []).length, 3);
+  assert.equal((svg.match(/cd-copas-pt cd-copas-pt-vacio/g) || []).length, 1, 'placeholder del domingo 04/10');
+  assert.ok(svg.includes('04/10/2026: sin dato todavía'));
+  assert.equal((svg.match(/class="cd-copas-domingo"/g) || []).length, 1);
+  assert.ok(svg.includes('>D</text>'));
+  assert.equal(JSON.stringify(fechasRotuladas(svg)), JSON.stringify(['01/10', '02/10', '03/10', '04/10']), 'con 7 o menos se rotulan todas');
+  assert.ok(svg.includes('cd-copas-linea cd-copas-linea-disc'), 'el tramo hacia el placeholder va punteado');
+  assert.ok(svg.includes('Punto solo con borde'));
+  assert.ok(svg.includes('>Fecha</text>') && svg.includes('cd-copas-leyenda'));
+});
+
+test('el domingo que falta entre dos semanas se interpola entre el sábado y el jueves siguiente', () => {
+  const w = cargar();
+  const svg = w.__t.clanCopasSvg([dia(1, 138000), dia(2, 138000), dia(3, 138000), dia(8, 138400), dia(9, 138400), dia(10, 138400), dia(11, 138400)]);
+  assert.ok(svg.includes('04/10/2026: sin dato todavía (valor estimado, 138,0') || svg.includes('04/10/2026: sin dato todavía (valor estimado, 138.0'), 'domingo 04/10 interpolado: ~138 080 (1 de los 5 días entre el sábado 03 y el jueves 08)');
+  assert.equal((svg.match(/cd-copas-pt cd-copas-pt-vacio/g) || []).length, 1);
+  assert.equal((svg.match(/class="cd-copas-domingo"/g) || []).length, 2);
+});
+
+test('solo con lunes a miércoles no hay días de guerra y muestra un aviso', () => {
+  const w = cargar();
+  const svg = w.__t.clanCopasSvg([dia(5, 138000), dia(6, 138100)]);
+  assert.ok(svg.includes('chart-empty') && !svg.includes('<svg'));
 });

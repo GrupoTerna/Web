@@ -62,7 +62,9 @@
   .cd-copas-leyenda-fila{display:flex; align-items:center; gap:8px;}
   .cd-copas-leyenda svg{flex-shrink:0;}
   .cd-copas-linea{fill:none; stroke:#a239ff; stroke-width:2.5; stroke-linejoin:round; stroke-linecap:round;}
+  .cd-copas-linea-disc{stroke-dasharray:5 4; opacity:.55;}
   .cd-copas-pt{fill:#a239ff; stroke:var(--bg); stroke-width:1.5; cursor:default;}
+  .cd-copas-pt-vacio{fill:none; stroke:#a239ff; stroke-width:2;}
   .cd-copas-pt:focus{outline:2px solid var(--text); outline-offset:2px;}
 </style>
 </head>
@@ -354,10 +356,35 @@ async function cargarGuerraClan(nombreClan){
  * clanCopasSvg(puntos) — 12-oct-2026 (pedido usuario: gráfica de copas en clan.html, después del resumen de guerra).
  * puntos = [{ fecha: 'dd/MM/yyyy', copas }] en orden cronológico (webClanCopas, Guerra_Logs: una fila por día y por clan).
  * Una serie, eje Y con 5 marcas de paso «redondo» (con base 0 la línea sería plana: las copas de un clan varían ±1 %),
- * rótulos de fecha rotados (solo domingos si hay más de 7 puntos), letra de día sin rotar, línea punteada en cada domingo, títulos de ejes y leyenda de series. Sin dependencias; los puntos son enfocables con Tab y
+ * rótulos de fecha rotados (solo domingos si hay más de 7 puntos), solo jueves a domingo (lunes a miércoles se descarta), placeholder interpolado si falta el domingo, letra J V S D sin rotar, línea punteada en cada domingo, títulos de ejes y leyenda de series. Sin dependencias; los puntos son enfocables con Tab y
  * llevan aria-label y <title> con la fecha y las copas. [→ Contexto_Base_Web.md §PF062]
  */
 function clanCopasSvg(puntos){
+  // 12-oct-2026 (pedido usuaria): solo se grafican días de guerra (jueves a domingo; lunes a miércoles es entrenamiento y se descarta). Si una semana
+  // no trae su domingo, se deja un placeholder con esa fecha: sin dato real (punto hueco, tramo punteado) y con el valor interpolado entre sus vecinos.
+  // Una fecha que no se puede leer se deja tal cual. [→ Contexto_Base_Web.md §PF062]
+  const leerFecha = f => { const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(String(f)); return m ? new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1])) : null; };
+  const fmtDM = d => `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
+  const reales = puntos.filter(p => { const f = leerFecha(p.fecha); return !f || f.getDay() === 0 || f.getDay() >= 4; });
+  if (!reales.length) return `<div class="chart-empty">Todavía no hay días de guerra registrados para graficar.</div>`;
+  const claveSemana = f => { const d = new Date(f); d.setDate(d.getDate() + ((7 - d.getDay()) % 7)); return d.getTime(); }; // domingo de esa semana de guerra
+  const serie = reales.map(p => ({ fecha: p.fecha, copas: p.copas, real: true }));
+  for (let i = serie.length - 1; i >= 0; i--){ // de atrás hacia delante para no desfasar los índices al insertar
+    const f = leerFecha(serie[i].fecha);
+    if (!f) continue;
+    const k = claveSemana(f);
+    const sig = serie[i + 1], fSig = sig && leerFecha(sig.fecha);
+    if (sig && fSig && claveSemana(fSig) === k) continue; // no es el último punto de su semana
+    let hayDomingo = false;
+    for (let m = i; m >= 0; m--){ const fm = leerFecha(serie[m].fecha); if (!fm || claveSemana(fm) !== k) break; if (fm.getDay() === 0 && serie[m].real) hayDomingo = true; }
+    if (hayDomingo) continue;
+    const dom = new Date(k);
+    const sigReal = serie.slice(i + 1).find(q => q.real);
+    let valor = serie[i].copas;
+    if (sigReal){ const f0 = f.getTime(), f1 = leerFecha(sigReal.fecha).getTime(); valor = serie[i].copas + (sigReal.copas - serie[i].copas) * ((k - f0) / Math.max(f1 - f0, 1)); }
+    serie.splice(i + 1, 0, { fecha: fmtDM(dom), copas: Math.round(valor), real: false });
+  }
+  puntos = serie;
   const W = 960, H = 320, PAD_R = 20, PAD_T = 20, PAD_B = 90;
   const vals = puntos.map(p => p.copas);
   const min = Math.min(...vals), max = Math.max(...vals);
@@ -380,15 +407,17 @@ function clanCopasSvg(puntos){
     return `<line class="cd-copas-grid" x1="${PAD_L}" y1="${y}" x2="${W - PAD_R}" y2="${y}"></line>` +
       `<text class="cd-copas-label" x="${PAD_L - 10}" y="${(yPos(v) + 4).toFixed(1)}" text-anchor="end">${esc(fmtNum(v))}</text>`;
   }).join('');
-  // 12-oct-2026 (pedido usuario): con varias fechas solo se rotulan los domingos; cada punto lleva su letra de día (L M X J V S D) sin rotar,
-  // pegada al eje, y cada domingo una línea vertical punteada (cierre de la semana de guerra). Con 7 puntos o menos se rotulan todas las fechas.
-  const fechas = puntos.map(p => { const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(String(p.fecha)); return m ? new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1])) : null; });
-  const LETRA_DIA = { 1: 'L', 2: 'M', 3: 'X', 4: 'J', 5: 'V', 6: 'S', 0: 'D' };
-  const hayDomingos = fechas.some(f => f && f.getDay() === 0);
+  // Con más de 7 puntos solo se rotulan los domingos; con 7 o menos, todas las fechas. Cada punto lleva su letra J V S D sin rotar, pegada al eje,
+  // y cada domingo una línea vertical punteada (cierre de la semana de guerra).
+  const fechas = puntos.map(p => leerFecha(p.fecha));
+  const LETRA_DIA = { 4: 'J', 5: 'V', 6: 'S', 0: 'D' };
+  const esDom = i => !!fechas[i] && fechas[i].getDay() === 0;
+  const hayDomingos = fechas.some((f, i) => esDom(i));
   const soloDomingos = n > 7 && hayDomingos;
-  const salto = soloDomingos ? 1 : Math.max(1, Math.ceil(n / 24));
+  const salto = Math.max(1, Math.ceil(n / 24));
+  const hayPlaceholder = puntos.some(p => !p.real);
   const lineasDomingo = puntos.map((p, i) => {
-    if (!fechas[i] || fechas[i].getDay() !== 0) return '';
+    if (!esDom(i)) return '';
     const x = xPos(i).toFixed(1);
     return `<line class="cd-copas-domingo" x1="${x}" y1="${PAD_T}" x2="${x}" y2="${H - PAD_B}"></line>`;
   }).join('');
@@ -398,22 +427,26 @@ function clanCopasSvg(puntos){
     return `<text class="cd-copas-label cd-copas-label-dia" x="${xPos(i).toFixed(1)}" y="${H - PAD_B + 14}" text-anchor="middle">${esc(letra)}</text>`;
   }).join('');
   const etiquetas = puntos.map((p, i) => {
-    if (soloDomingos ? !(fechas[i] && fechas[i].getDay() === 0) : (n - 1 - i) % salto !== 0) return '';
+    if (soloDomingos ? !esDom(i) : (n - 1 - i) % salto !== 0) return '';
     const x = xPos(i), y = H - PAD_B + 32;
     return `<text class="cd-copas-label" x="${x.toFixed(1)}" y="${y}" text-anchor="end" transform="rotate(-45 ${x.toFixed(1)} ${y})">${esc(String(p.fecha).slice(0, 5))}</text>`;
   }).join('');
-  const linea = n > 1
-    ? `<path class="cd-copas-linea" d="${puntos.map((p, i) => `${i ? 'L' : 'M'} ${xPos(i).toFixed(1)} ${yPos(p.copas).toFixed(1)}`).join(' ')}"></path>`
-    : '';
+  let linea = '';
+  for (let i = 0; i < n - 1; i++){
+    const disc = !(puntos[i].real && puntos[i + 1].real);
+    linea += `<path class="cd-copas-linea${disc ? ' cd-copas-linea-disc' : ''}" d="M ${xPos(i).toFixed(1)} ${yPos(puntos[i].copas).toFixed(1)} L ${xPos(i + 1).toFixed(1)} ${yPos(puntos[i + 1].copas).toFixed(1)}"></path>`;
+  }
   const circulos = puntos.map((p, i) => {
-    const txt = `${p.fecha}: ${fmtNum(p.copas)} copas`;
-    return `<circle class="cd-copas-pt" cx="${xPos(i).toFixed(1)}" cy="${yPos(p.copas).toFixed(1)}" r="5" tabindex="0" role="img" aria-label="${esc(txt)}"><title>${esc(txt)}</title></circle>`;
+    const txt = p.real ? `${p.fecha}: ${fmtNum(p.copas)} copas` : `${p.fecha}: sin dato todavía (valor estimado, ${fmtNum(p.copas)} copas)`;
+    return `<circle class="cd-copas-pt${p.real ? '' : ' cd-copas-pt-vacio'}" cx="${xPos(i).toFixed(1)}" cy="${yPos(p.copas).toFixed(1)}" r="5" tabindex="0" role="img" aria-label="${esc(txt)}"><title>${esc(txt)}</title></circle>`;
   }).join('');
   const tituloX = `<text class="cd-copas-titulo-eje" x="${PAD_L + plotW / 2}" y="${H - 8}" text-anchor="middle">Fecha</text>`;
   const leyenda = `<div class="cd-copas-leyenda"><div class="cd-copas-leyenda-fila"><svg width="22" height="10" viewBox="0 0 22 10" aria-hidden="true"><line x1="0" y1="5" x2="22" y2="5" stroke="#a239ff" stroke-width="2.5" stroke-linecap="round"></line><circle cx="11" cy="5" r="3.4" fill="#a239ff"></circle></svg>Copas del clan (un punto por día de guerra)</div>` +
-    (hayDomingos ? `<div class="cd-copas-leyenda-fila"><svg width="22" height="10" viewBox="0 0 22 10" aria-hidden="true"><line x1="11" y1="0" x2="11" y2="10" stroke="var(--purple)" stroke-width="1.4" stroke-dasharray="2 2"></line></svg>Línea punteada = domingo (cierre de la semana de guerra) · L M X J V S D = día</div>` : '') + `</div>`;
+    (hayDomingos ? `<div class="cd-copas-leyenda-fila"><svg width="22" height="10" viewBox="0 0 22 10" aria-hidden="true"><line x1="11" y1="0" x2="11" y2="10" stroke="var(--purple)" stroke-width="1.4" stroke-dasharray="2 2"></line></svg>Línea punteada = domingo (cierre de la semana de guerra) · J V S D = día</div>` : '') +
+    (hayPlaceholder ? `<div class="cd-copas-leyenda-fila"><svg width="22" height="10" viewBox="0 0 22 10" aria-hidden="true"><circle cx="11" cy="5" r="3.4" fill="none" stroke="#a239ff" stroke-width="1.6"></circle></svg>Punto solo con borde = domingo sin dato todavía (valor estimado)</div>` : '') + `</div>`;
   const tituloY = `<text class="cd-copas-titulo-eje" x="14" y="${PAD_T + plotH / 2}" text-anchor="middle" transform="rotate(-90 14 ${PAD_T + plotH / 2})">COPAS</text>`;
-  return leyenda + `<svg class="cd-copas-svg" viewBox="0 0 ${W} ${H}" role="group" aria-label="Copas del clan por día de guerra, de ${esc(fmtNum(vals[0]))} a ${esc(fmtNum(vals[n - 1]))}">${grid}${lineasDomingo}${letras}${etiquetas}${linea}${circulos}${tituloX}${tituloY}</svg>`;
+  const vReal = reales.map(p => p.copas);
+  return leyenda + `<svg class="cd-copas-svg" viewBox="0 0 ${W} ${H}" role="group" aria-label="Copas del clan por día de guerra, de ${esc(fmtNum(vReal[0]))} a ${esc(fmtNum(vReal[vReal.length - 1]))}">${grid}${lineasDomingo}${letras}${etiquetas}${linea}${circulos}${tituloX}${tituloY}</svg>`;
 }
 function clanCopasAviso(texto){
   return `<div class="chart-empty">${texto}</div>`;
