@@ -15,7 +15,11 @@ const ingresos=miembros.slice(0,4).map((m,i)=>({nombre:m.nombre,tag:m.tag,clan:m
 const fs=require('fs'),path=require('path');
 const categorias=[...new Set([...fs.readFileSync(path.join(__dirname,'..','..','mensajes.html'),'utf8').matchAll(/data-categoria="([^"$]+)"/g)].map(m=>m[1]))];
 const opcionesMsg=['Opcion A','Opcion B'].map((e,i)=>({etiqueta:e,subcategoria:'Sub '+(i+1),clan:clanes[i].nombre,contenido:'Texto de prueba de la categoria.\nSegunda linea con *negrita* y enlace https://ejemplo.invalid/x',docId:i?'':'doc-simulado'}));
+const funcionesPerm=['Registrar miembro nuevo','Vetar','Modificar torneo','Corregir autor','Actualizar roster'].map(id=>({id,etiqueta:id,descripcion:'Descripcion de prueba de la funcion '+id+'.'}));
+const adminsPerm=['Diana','Ana','Beto'].map((n,i)=>({id:'ADM'+(i+1),nombre:n+' Prueba',esTu:i===0,funciones:funcionesPerm.slice(0,i+2).map(f=>f.id),categorias:categorias.slice(0,i+1),clanesAdmin:clanes[i%2].nombre,cuentas:[{nombre:n+' Principal',tag:'#'+(i+1)+'ABCD',clan:clanes[0].nombre},{nombre:n+' Alt',tag:'#'+(i+5)+'ABCD',clan:clanes[1].nombre}]}));
 const FIX={
+ webAdminMisPermisos:{ok:true,panelPermisos:true,funciones:funcionesPerm.map(f=>f.id),categorias},
+ webPermisosListar:{ok:true,admins:adminsPerm,funciones:funcionesPerm,categorias,clanes:clanes.map(c=>c.nombre)},
  webAdminCategorias:{ok:true,categorias},
  webAdminContenido:{ok:true,opciones:opcionesMsg},
  webIngresosRecientes:{ok:true,ingresos},

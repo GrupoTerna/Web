@@ -11,6 +11,7 @@ const PAGS={
  torneos:{url:'torneos.html',sel:['.medalla','.g-nombre','.todos-resultados-fila','.t-clan','.tg-fila','.rk-victorias-nombre']},
  directorio:{url:'directorio.html',clic:['#ingGraficasToggle'],sel:['#clanGrid > *','#rosterTableWrap tbody tr','#nuevoGrid > *','#chartsGrid .chart-card','#ingresosChartsWrap > *','#ingresosChartsWrap svg']},
  mensajes:{url:'mensajes.html',admin:true,abrir:true,sel:['details.categoria-contenido-simple','.btn-toggle-cat','.contenido-item','.contenido-tabs .tab-clan','.btn-copiar']},
+ permisos:{url:'permisos.html',admin:true,abrir:true,sel:['.admin-permiso-card','.nombre-adm','.permiso-item','.permiso-item.sensible','.tag-tu']},
 };
 (async()=>{const s=await serve(),base='http://localhost:'+s.address().port+'/',b=await launch();
  const sel=process.argv.slice(2),lista=sel.length?sel:Object.keys(PAGS);
