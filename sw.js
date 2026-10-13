@@ -130,7 +130,8 @@
 // v65 (12-oct-2026): index.html cambió (CORE_ASSETS) -- banners en las 7 secciones de la página de inicio (§PF065, tanda 2). Las imágenes cinta-index-*.webp nuevas no se precachean.
 // v66 (12-oct-2026): comunidad.html cambió (CORE_ASSETS) -- banners en la cabecera y las 10 secciones de la página (§PF065, tanda 3). Las imágenes cinta-comunidad-*.webp nuevas no se precachean.
 // v67 (12-oct-2026): directorio.html cambió (CORE_ASSETS) -- banners en la cabecera y las 4 secciones de la página (§PF065, tanda 4). Las imágenes cinta-directorio-*.webp nuevas no se precachean.
-const CACHE_NAME = 'terna-static-v67';
+// v68 (12-oct-2026): 404.html cambió (CORE_ASSETS) -- banner en la tarjeta de error; permisos.html y mensajes.html también llevan cintas (§PF065, tanda 5). Las imágenes cinta-*.webp nuevas no se precachean.
+const CACHE_NAME = 'terna-static-v68';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
