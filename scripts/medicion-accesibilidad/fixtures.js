@@ -32,6 +32,6 @@ const FIX={
  webClanCopas:{ok:true,puntos},
  webClanInfo:{ok:true,clanes},
  webRoster:{ok:true,clanes:clanes.map(c=>({nombre:c.nombre,miembros}))},
- webGuerraEnVivo:{ok:true,ctx:{temporada:130,sectionIndex:2},guerraPorClan:{'Terna Uno':{ataques:180,fame:52000,barcos:3,atacaron:38,totalHoy:50},'Terna Dos':{ataques:150,fame:41000,barcos:2,atacaron:30,totalHoy:50}},pendientes:[{clan:'Terna Uno',nombre:'Ana Prueba',tag:'#1ABCD',ataques:2}]},
+ webGuerraEnVivo:{ok:true,ctx:{temporada:130,sectionIndex:2},guerraPorClan:{'Terna Uno':{ataques:180,fame:52000,barcos:3,atacaron:38,totalHoy:50},'Terna Dos':{ataques:150,fame:41000,barcos:2,atacaron:30,totalHoy:50}},pendientes:miembros.map((m,i)=>({clan:clanes[i%2].nombre,nombre:m.nombre,tag:m.tag,rango:m.rango==='Lider'?'Líder':(m.rango==='Colider'?'Colíder':m.rango),faltantes:(i%4)+1,royaleApi:m.royaleApi,cwStats:m.cwStats}))},
 };
 module.exports={FIX};
