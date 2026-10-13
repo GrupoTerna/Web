@@ -129,7 +129,8 @@
 // v64 (12-oct-2026): assets/styles.css, perfil.html y torneos.html cambiaron (CORE_ASSETS) -- las reglas de las cintas pasan a styles.css, la variable --cinta ahora lleva url(img/...) (relativa a styles.css) y entran las cintas de torneos y clan (§PF065). Las imágenes cinta-*.webp nuevas no se precachean.
 // v65 (12-oct-2026): index.html cambió (CORE_ASSETS) -- banners en las 7 secciones de la página de inicio (§PF065, tanda 2). Las imágenes cinta-index-*.webp nuevas no se precachean.
 // v66 (12-oct-2026): comunidad.html cambió (CORE_ASSETS) -- banners en la cabecera y las 10 secciones de la página (§PF065, tanda 3). Las imágenes cinta-comunidad-*.webp nuevas no se precachean.
-const CACHE_NAME = 'terna-static-v66';
+// v67 (12-oct-2026): directorio.html cambió (CORE_ASSETS) -- banners en la cabecera y las 4 secciones de la página (§PF065, tanda 4). Las imágenes cinta-directorio-*.webp nuevas no se precachean.
+const CACHE_NAME = 'terna-static-v67';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
