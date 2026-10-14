@@ -137,7 +137,8 @@
 // v72 (13-oct-2026): directorio.html cambió (CORE_ASSETS) -- menos espacio entre el subtítulo y el recuadro de cada sección con cinta (§PF069).
 // v73 (13-oct-2026): styles.css, index.html, directorio.html y guerra.html cambiaron (CORE_ASSETS) -- espacio de 20 px entre el subtítulo de cada encabezado con cinta y su contenido (§PF069).
 // v74 (13-oct-2026): styles.css e index.html cambiaron (CORE_ASSETS) -- botón de ingresos recientes en forma de pastilla (§PF069).
-const CACHE_NAME = 'terna-static-v74';
+// v75 (13-oct-2026): styles.css, torneos.html y perfil.html cambiaron (CORE_ASSETS) -- nombre del clan en morado claro y pastilla dorada compartida .ver-mas-btn (§PF069).
+const CACHE_NAME = 'terna-static-v75';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
