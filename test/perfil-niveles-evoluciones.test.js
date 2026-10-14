@@ -7,7 +7,7 @@ const path = require('node:path');
 const { loadBrowserScriptsWithDom } = require('./load-browser-script');
 
 // NUEVO (14-oct-2026, pedido de la usuaria; §PF071): ventana «Niveles y evoluciones» de la colección de perfil.html (diagrama de evoluciones y héroes, tabla de fragmentos y monedas,
-// y dona sin leyenda en la página). Funciones extraídas del <script> inline real. LÍMITE: prueba el HTML/SVG generado en jsdom, no cómo se ve en un navegador.
+// y dona sin leyenda en la página) y, en la dona, el oro de las cartas por desbloquear. Funciones extraídas del <script> inline real. LÍMITE: prueba el HTML/SVG generado en jsdom, no cómo se ve en un navegador.
 
 const html = fs.readFileSync(path.join(__dirname, '..', 'perfil.html'), 'utf8');
 const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1]);
@@ -28,11 +28,15 @@ function extraerFuncion(src, nombre){
 const CONST_RAREZA = grande.match(/const RAREZA_RAW_A_KEY = [^\n]+/)[0];
 const CONST_HEROE = grande.match(/const COSTO_DESBLOQUEO_HEROE = \d+;/)[0];
 const CONST_EVO = grande.match(/const COSTO_FRAGMENTOS_EVO = \d+;/)[0];
+const CONST_FRAG = grande.match(/const _ICONO_FRAGMENTO_HTML = [^\n]+/)[0];
 const FUNCIONES = ['rarezaKey', '_evoDesbloqueada', '_heroeDesbloqueado', '_heroeTiene', '_heroeDisponible', '_evoTiene', '_evoDisponible',
-  '_evoHeroeResumen', '_vennEvoHeroeHtml', '_tablaEvoHeroeHtml', '_pastelMiniHtml', 'abrirModalColeccion', 'cerrarModalColeccion'].map(n => extraerFuncion(grande, n)).join('\n');
-const CODIGO = `${CONST_RAREZA}\n${CONST_HEROE}\n${CONST_EVO}\nlet _nivelPieModalHtml = '<div class="mini-pie" id="pie-prueba">PIE</div>'; let _coleccionModalOpener = null;\n` +
+  '_evoHeroeResumen', '_vennEvoHeroeHtml', '_tablaEvoHeroeHtml', '_pastelMiniHtml', 'abrirModalColeccion', 'cerrarModalColeccion',
+  '_diferenciaNivelRareza', '_infoCartasBloqueadas', '_indiceCostosOro', '_oroBloqueadasHastaNivel'].map(n => extraerFuncion(grande, n)).join('\n');
+const CODIGO = `${CONST_RAREZA}\n${CONST_HEROE}\n${CONST_EVO}\n${CONST_FRAG}\nlet _difNivelPorRareza = {}; let _nivelMaxAbsoluto = null;\nlet _nivelPieModalHtml = '<div class="mini-pie" id="pie-prueba">PIE</div>'; let _coleccionModalOpener = null;\n` +
   'let _ultimasCartasColeccion = []; let _ultimasCartasBloqueadas = [];\n' + FUNCIONES +
   '\nwindow.__t = { _evoHeroeResumen, _vennEvoHeroeHtml, _tablaEvoHeroeHtml, _pastelMiniHtml, abrirModalColeccion, cerrarModalColeccion,' +
+  ' _infoCartasBloqueadas, _indiceCostosOro, _oroBloqueadasHastaNivel,' +
+  ' niveles: (dif, max) => { _difNivelPorRareza = dif; _nivelMaxAbsoluto = max; },' +
   ' poner: (a, b) => { _ultimasCartasColeccion = a; _ultimasCartasBloqueadas = b; } };';
 
 const MODAL = html.match(/<div class="costo-modal-overlay" id="coleccionModalOverlay"[\s\S]*?\n<\/div>\n(?=\n|<script)/)[0];
@@ -50,14 +54,14 @@ const CARTAS = [
   { name: 'Caballero', rarity: 'common', maxEvolutionLevel: 3, evolutionLevel: 3 },    // ambos, tiene los dos
   { name: 'Minero', rarity: 'legendary', maxEvolutionLevel: 3, evolutionLevel: 1 },    // ambos, solo la evolución
   { name: 'Gigante', rarity: 'rare', maxEvolutionLevel: 2, evolutionLevel: 2 },        // solo héroe, lo tiene
-  { name: 'Rey Esqueleto', rarity: 'champion', maxEvolutionLevel: null },              // Campeón: héroe por defecto
+  { name: 'Rey Esqueleto', rarity: 'champion', maxEvolutionLevel: null },              // Campeón: como cualquier otra carta, el backend no le manda evolución ni héroe -> base
   { name: 'Bandida', rarity: 'epic' },                                                 // base
   { name: 'Duendes', rarity: 'common' }                                                // base
 ];
 const BLOQUEADAS = [
   { name: 'Bruja', rarity: 'epic', maxEvolutionLevel: 3 },                             // ambos, sin desbloquear
   { name: 'Cohete', rarity: 'rare', maxEvolutionLevel: 2 },                            // solo héroe, sin desbloquear
-  { name: 'Monje', rarity: 'champion' },                                               // Campeón sin desbloquear
+  { name: 'Monje', rarity: 'champion' },                                               // Campeón sin desbloquear -> base
   { name: 'Zap', rarity: 'common' }                                                    // base
 ];
 
@@ -66,23 +70,24 @@ test('_evoHeroeResumen reparte las cartas en los cuatro conjuntos', () => {
   const r = t._evoHeroeResumen(CARTAS, BLOQUEADAS);
   assert.deepEqual(JSON.parse(JSON.stringify(r.soloEvo)), { tot: 2, tiene: 1 });
   assert.deepEqual(JSON.parse(JSON.stringify(r.ambos)), { tot: 3, evo: 2, heroe: 1 });
-  assert.deepEqual(JSON.parse(JSON.stringify(r.soloHeroe)), { tot: 4, tiene: 2 });    // Gigante, Rey Esqueleto, Cohete, Monje
-  assert.deepEqual(JSON.parse(JSON.stringify(r.base)), { tot: 3, tiene: 2 });
+  assert.deepEqual(JSON.parse(JSON.stringify(r.soloHeroe)), { tot: 2, tiene: 1 });    // Gigante (lo tiene), Cohete
+  assert.deepEqual(JSON.parse(JSON.stringify(r.base)), { tot: 5, tiene: 3 });         // Bandida, Duendes, Rey Esqueleto, Zap y Monje (los dos Campeones cuentan como carta base)
   assert.equal(r.soloEvo.tot + r.ambos.tot + r.soloHeroe.tot + r.base.tot, CARTAS.length + BLOQUEADAS.length);
 });
 
-test('totales por variante: el héroe no cuenta a los Campeones', () => {
+test('totales por variante; los Campeones no tienen un caso aparte', () => {
   const t = cargar().__t;
   const r = t._evoHeroeResumen(CARTAS, BLOQUEADAS);
   assert.deepEqual(JSON.parse(JSON.stringify(r.evo)), { tot: 5, tiene: 3 });          // Arqueras, Mago, Caballero, Minero, Bruja; tiene Arqueras, Caballero, Minero
   assert.deepEqual(JSON.parse(JSON.stringify(r.heroe)), { tot: 5, tiene: 2 });        // Caballero, Minero, Gigante, Bruja, Cohete; tiene Caballero y Gigante
-  assert.equal(r.campeones, 2);
+  assert.equal(r.campeones, undefined);
 });
 
-test('una carta por desbloquear nunca cuenta como desbloqueada, ni siquiera un Campeón', () => {
+test('una carta por desbloquear nunca cuenta como desbloqueada; un Campeón sin variantes es carta base', () => {
   const t = cargar().__t;
   const r = t._evoHeroeResumen([], [{ name: 'Monje', rarity: 'champion' }, { name: 'Bruja', rarity: 'epic', maxEvolutionLevel: 3 }]);
-  assert.deepEqual(JSON.parse(JSON.stringify(r.soloHeroe)), { tot: 1, tiene: 0 });
+  assert.deepEqual(JSON.parse(JSON.stringify(r.base)), { tot: 1, tiene: 0 });
+  assert.deepEqual(JSON.parse(JSON.stringify(r.soloHeroe)), { tot: 0, tiene: 0 });
   assert.deepEqual(JSON.parse(JSON.stringify(r.ambos)), { tot: 1, evo: 0, heroe: 0 });
 });
 
@@ -99,9 +104,9 @@ test('el diagrama muestra x/y de cada región y el centro con evolución y héro
   assert.match(svg, /class="venn-num" x="150" y="136">1\/2</);       // solo evolución
   assert.match(svg, /✨ 2\/3/);                                        // centro: evoluciones
   assert.match(svg, /🦸 1\/3/);                                        // centro: héroes
-  assert.match(svg, /class="venn-num" x="370" y="136">2\/4</);       // solo héroe
-  assert.match(svg, /class="venn-num" x="450" y="230">2\/3</);       // carta base
-  assert.match(svg, /los Campeones traen su héroe/);
+  assert.match(svg, /class="venn-num" x="370" y="136">1\/2</);       // solo héroe
+  assert.match(svg, /class="venn-num" x="450" y="230">3\/5</);       // carta base (con los dos Campeones)
+  assert.ok(!svg.includes('Campeones'));
   // los nombres de los conjuntos quedan a los lados, fuera de los círculos (x de la Evolución < borde izquierdo 113; Héroe > borde derecho 407)
   const xEvo = Number(svg.match(/venn-lbl--evo" x="(\d+)"/)[1]); const xHeroe = Number(svg.match(/venn-lbl--heroe" x="(\d+)"/)[1]);
   assert.ok(xEvo + 40 < 113 && xHeroe - 40 > 407, `etiquetas dentro de los círculos: ${xEvo}, ${xHeroe}`);
@@ -111,7 +116,7 @@ test('la tabla calcula lo que falta: 6 fragmentos por evolución y 200 monedas p
   const t = cargar().__t;
   const tabla = t._tablaEvoHeroeHtml(t._evoHeroeResumen(CARTAS, BLOQUEADAS));
   // evolución: 5 existen, 3 tienes, faltan 2 -> 12 fragmentos; héroe: 5 existen, 2 tienes, faltan 3 -> 600 monedas
-  assert.match(tabla, /Evolución<\/td><td class="num">5<\/td><td class="num">3<\/td><td class="num">2<\/td>\s*<td class="num">6 fragmentos<\/td><td class="num"><b>12<\/b> fragmentos/);
+  assert.match(tabla, /Evolución<\/td><td class="num">5<\/td><td class="num">3<\/td><td class="num">2<\/td>\s*<td class="num">6 <img class="ico-frag"[^>]*>fragmentos<\/td><td class="num"><b>12<\/b> <img class="ico-frag"[^>]*>fragmentos/);
   assert.match(tabla, /Héroe<\/td><td class="num">5<\/td><td class="num">2<\/td><td class="num">3<\/td>\s*<td class="num">200 monedas<\/td><td class="num"><b>600<\/b> monedas/);
 });
 
@@ -119,7 +124,7 @@ test('si ya tiene todo, faltan 0 y el total es 0', () => {
   const t = cargar().__t;
   const todo = [{ name: 'A', rarity: 'common', maxEvolutionLevel: 3, evolutionLevel: 3 }];
   const tabla = t._tablaEvoHeroeHtml(t._evoHeroeResumen(todo, []));
-  assert.match(tabla, /<b>0<\/b> fragmentos/);
+  assert.match(tabla, /<b>0<\/b> <img class="ico-frag"[^>]*>fragmentos/);
   assert.match(tabla, /<b>0<\/b> monedas/);
 });
 
@@ -168,4 +173,60 @@ test('perfil.html: la pastilla queda junto a la dona y la ventana existe', () =>
   assert.match(html, /id="mColeccionNivelBtn"[^>]*>Ver niveles y evoluciones</);
   assert.match(html, /id="coleccionModalOverlay"/);
   assert.match(html, /soloDonut: true/);
+});
+
+test('el ícono de los fragmentos es una copia WebP de Wild Shard y la tabla lo usa', () => {
+  assert.ok(fs.existsSync(path.join(__dirname, '..', 'assets', 'img', 'WildShard.webp')));
+  assert.match(html, /src="assets\/img\/WildShard\.webp"/);
+});
+
+// ---- Oro de las cartas por desbloquear (aparte, bajo el oro de las desbloqueadas) ----
+// Desfase por rareza (nivel máximo absoluto 16): común 0, rara 2, épica 5, legendaria 8, campeón 10 -> se desbloquean en el nivel 1, 3, 6, 9 y 11 de la app.
+const DIF = { common: 0, rare: 2, epic: 5, legendary: 8, champion: 10 };
+const filasOro = (desde, hasta) => { const f = []; for (let l = desde; l < hasta; l++) f.push({ desde: l, hasta: l + 1, oro: l * 100, cartas: 1 }); return f; };
+const J = x => JSON.parse(JSON.stringify(x));
+
+test('_infoCartasBloqueadas: nivel inicial = 1 + desfase de la rareza; tope = maxLevel + desfase; el Campeón es una carta más', () => {
+  const t = cargar().__t; t.niveles(DIF, 16);
+  const info = t._infoCartasBloqueadas([
+    { rarity: 'epic', maxLevel: 11 }, { rarity: 'champion', maxLevel: 6 }, { rarity: 'common' }, { rarity: 'mitica', maxLevel: 4 }, { rarity: 'rara-sin-datos' }
+  ]);
+  assert.deepEqual(J(info[0]), { rk: 'epic', inicio: 6, max: 16 });
+  assert.deepEqual(J(info[1]), { rk: 'champion', inicio: 11, max: 16 });
+  assert.deepEqual(J(info[2]), { rk: 'common', inicio: 1, max: 16 });          // sin maxLevel: usa el nivel máximo absoluto
+  assert.deepEqual(J(info[3]), { rk: 'mitica', inicio: 13, max: 16 });         // rareza que el jugador no tiene: 16 - maxLevel
+  assert.deepEqual(J(info[4]), { rk: 'rara-sin-datos', inicio: null, max: null }); // ni desfase ni maxLevel: no se puede calcular
+});
+
+test('_oroBloqueadasHastaNivel suma las subidas desde el nivel inicial de cada rareza hasta el nivel pedido', () => {
+  const t = cargar().__t; t.niveles(DIF, 16);
+  const idx = t._indiceCostosOro([{ rarity: 'common', costosNiveles: filasOro(1, 16) }]);
+  const info = t._infoCartasBloqueadas([{ rarity: 'epic', maxLevel: 11 }]);       // empieza en el 6
+  assert.deepEqual(J(t._oroBloqueadasHastaNivel(info, idx, 8)), { oro: 600 + 700, incompleto: false });
+  assert.deepEqual(J(t._oroBloqueadasHastaNivel(info, idx, 6)), { oro: 0, incompleto: false });   // ya está en ese nivel
+  assert.deepEqual(J(t._oroBloqueadasHastaNivel(info, idx, 16)), { oro: 600 + 700 + 800 + 900 + 1000 + 1100 + 1200 + 1300 + 1400 + 1500, incompleto: false });
+  assert.deepEqual(J(t._oroBloqueadasHastaNivel(info, idx, 20)), J(t._oroBloqueadasHastaNivel(info, idx, 16))); // no pasa de su nivel máximo
+});
+
+test('el desfase cambia el costo: la misma tabla cuesta menos para una carta que se desbloquea más arriba', () => {
+  const t = cargar().__t; t.niveles(DIF, 16);
+  const idx = t._indiceCostosOro([{ rarity: 'common', costosNiveles: filasOro(1, 16) }]);
+  const total = rareza => t._oroBloqueadasHastaNivel(t._infoCartasBloqueadas([{ rarity: rareza, maxLevel: 16 - DIF[rareza] }]), idx, 16).oro;
+  assert.ok(total('common') > total('rare') && total('rare') > total('epic') && total('epic') > total('legendary') && total('legendary') > total('champion'));
+  assert.equal(total('champion'), 1100 + 1200 + 1300 + 1400 + 1500);
+});
+
+test('prefiere el costo de la misma rareza y cae al de cualquier rareza; si falta un nivel avisa con incompleto', () => {
+  const t = cargar().__t; t.niveles(DIF, 16);
+  const info = t._infoCartasBloqueadas([{ rarity: 'epic', maxLevel: 11 }]);
+  const propio = t._indiceCostosOro([{ rarity: 'common', costosNiveles: filasOro(6, 8) }, { rarity: 'epic', costosNiveles: [{ desde: 6, hasta: 7, oro: 999 }] }]);
+  assert.deepEqual(J(t._oroBloqueadasHastaNivel(info, propio, 8)), { oro: 999 + 700, incompleto: false });
+  const sinNivel7 = t._indiceCostosOro([{ rarity: 'common', costosNiveles: filasOro(6, 7) }]);
+  assert.deepEqual(J(t._oroBloqueadasHastaNivel(info, sinNivel7, 9)), { oro: 600, incompleto: true });   // sube del 6 al 7 y se detiene: no hay costo del 7 al 8
+  assert.equal(t._oroBloqueadasHastaNivel(t._infoCartasBloqueadas([{ rarity: 'rara-sin-datos' }]), propio, 9).incompleto, true);
+});
+
+test('perfil.html: el oro de las bloqueadas va en la misma celda, debajo del de las desbloqueadas', () => {
+  assert.match(html, /\$\{_oroBloqHtml\(_oroBloqueadasHastaNivel\(_infoBloq, _idxOro, n\), n\)\}/);
+  assert.match(html, /\.cc-oro-bloq\{/);
 });

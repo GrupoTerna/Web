@@ -586,6 +586,11 @@
   .mini-pie-leyenda.con-col .mini-pie-extras{grid-column:1 / -1; margin-top:2px;}
   .mini-pie-leyenda.con-col .col-oro{justify-self:end; white-space:nowrap;}
   .cc-oro--cero{color:var(--text-faint);}
+  /* 14-oct-2026 (pedido de la usuaria; §PF071): bajo el oro de cada nivel, en una línea aparte, el oro de las cartas por desbloquear; y el ícono de los fragmentos (Wild Shard) en la tabla de costos. */
+  .mini-pie-leyenda.con-col .col-oro{display:flex; flex-direction:column; align-items:flex-end; gap:2px;}
+  .cc-oro-bloq{display:inline-flex; align-items:center; gap:3px; justify-content:flex-end; font-family:var(--f-mono); font-size:10px; color:var(--text-dim);}
+  .cc-oro-bloq img{height:11px; width:auto; vertical-align:-2px;}
+  .ico-frag{height:14px; width:auto; vertical-align:-3px; margin:0 1px;}
   .mini-pie-nota{margin-top:10px; font-family:var(--f-mono); font-size:9px; color:var(--text-faint); text-align:center; display:flex; align-items:center; justify-content:center; gap:4px;}
   .mini-pie-nota img{height:11px; width:auto;}
   .coleccion-nivel-pie-wrap{flex-shrink:0; display:flex; flex-direction:column; align-items:center; gap:0;}
@@ -2598,6 +2603,59 @@ function _oroHastaNivel(cartas, nivelObjetivo){
   });
   return { oro, incompleto };
 }
+/**
+ * _infoCartasBloqueadas(bloqueadas) / _indiceCostosOro(cartas) / _oroBloqueadasHastaNivel(info, indice, nivelObjetivo)
+ * NUEVO (14-oct-2026, pedido de la usuaria; §PF071): el oro de «Cartas por nivel» solo contaba las cartas desbloqueadas. Ahora, debajo de cada
+ * nivel y aparte, se muestra el oro que costaría subir las cartas por desbloquear (rawClash.cardsBloqueadas) hasta ese nivel, con el desfase entre
+ * niveles: una carta se desbloquea en el nivel 1 de la API, que en el nivel de la app es 1 + el desfase de su rareza (la misma resta de
+ * nivelAppAjustado(): nivel máximo absoluto − maxLevel de su rareza), y no puede pasar de su nivel máximo (maxLevel + desfase).
+ * El costo de cada subida sale de las filas costosNiveles ({desde, hasta, oro}) de las cartas desbloqueadas: primero las de la misma rareza y, si no
+ * hay, las de cualquier rareza para ese mismo nivel (el oro depende del nivel de la app). Si falta alguna subida (p. ej. el jugador no tiene ninguna
+ * carta en un nivel bajo), el total es un mínimo y `incompleto` vale true. Los Campeones se tratan como cualquier otra carta. Sin cambios en el backend.
+ */
+function _infoCartasBloqueadas(bloqueadas){
+  const info = [];
+  (Array.isArray(bloqueadas) ? bloqueadas : []).forEach(c => {
+    if (!c) return;
+    const rk = String(c.rarity || '').trim().toLowerCase();
+    const mx = Number(c.maxLevel);
+    let diff = _diferenciaNivelRareza(rk);
+    if (diff == null && _nivelMaxAbsoluto != null && mx >= 1) diff = _nivelMaxAbsoluto - mx;
+    if (diff == null || _nivelMaxAbsoluto == null){ info.push({ rk, inicio: null, max: null }); return; }
+    info.push({ rk, inicio: 1 + diff, max: mx >= 1 ? mx + diff : _nivelMaxAbsoluto });
+  });
+  return info;
+}
+function _indiceCostosOro(cartas){
+  const porRareza = {}, general = {};
+  (Array.isArray(cartas) ? cartas : []).forEach(c => {
+    if (!c || !Array.isArray(c.costosNiveles)) return;
+    const rk = String(c.rarity || '').trim().toLowerCase();
+    c.costosNiveles.forEach(r => {
+      const d = Number(r.desde), h = Number(r.hasta), o = Number(r.oro);
+      if (!(d >= 1) || !(h > d) || !isFinite(o)) return;
+      const fila = { hasta: h, oro: o };
+      if (!porRareza[rk + '|' + d]) porRareza[rk + '|' + d] = fila;
+      if (!general[d]) general[d] = fila;
+    });
+  });
+  return { porRareza, general };
+}
+function _oroBloqueadasHastaNivel(info, indice, nivelObjetivo){
+  let oro = 0, incompleto = false;
+  (Array.isArray(info) ? info : []).forEach(b => {
+    if (b.inicio == null){ incompleto = true; return; }
+    const meta = Math.min(nivelObjetivo, b.max);
+    let l = b.inicio;
+    while (l < meta){
+      const fila = indice.porRareza[b.rk + '|' + l] || indice.general[l];
+      if (!fila || fila.hasta > meta){ incompleto = true; break; }
+      oro += fila.oro;
+      l = fila.hasta;
+    }
+  });
+  return { oro, incompleto };
+}
 /** FIX (27-sep-2026, pedido usuario — "en la colección completa de cartas
  * ponle un botón para ordenar por nombre ... y por nivel ..., como el botón
  * o filtro que está en insignias"): mismo patrón que _insigniasOrden/
@@ -2863,6 +2921,14 @@ function renderColeccion(j){
       valor: (Math.floor(nivelPromedio * 100) / 100).toFixed(2),
       titulo: `Promedio ponderado: cada nivel pesa por la cantidad de cartas que tienes en él (${nivelesCarta.length} cartas). Parte entera: ${nivelBase}.`
     }] : [];
+    // 14-oct-2026 (§PF071): oro de las cartas por desbloquear, en una línea aparte bajo el de las desbloqueadas.
+    const _infoBloq = _infoCartasBloqueadas(_ultimasCartasBloqueadas);
+    const _idxOro = _indiceCostosOro(cartas);
+    const _oroBloqHtml = (b, n) => {
+      if (!_infoBloq.length || (!b.oro && !b.incompleto)) return '';
+      const tip = `Oro para subir las ${_infoBloq.length} cartas por desbloquear hasta el nivel ${n}, desde el nivel con el que se desbloquean (cada rareza el suyo) y sin pasar de su nivel m\u00e1ximo: ${fmtNum(b.oro)}${b.incompleto ? ' (m\u00ednimo: faltan costos de alg\u00fan nivel)' : ''}. No est\u00e1 incluido en el oro de arriba.`;
+      return `<span class="cc-oro-bloq" title="${esc(tip)}">\u{1F512} ${_ICONO_ORO_HTML}${b.incompleto ? '\u2265 ' : ''}${esc(fmtNum(b.oro))}</span>`;
+    };
     const _porcionesNivel = presentesNivel.map((n, i) => ({
       etiqueta: `Nv. ${n}`,
       valor: nivelesCarta.filter(x => x === n).length,
@@ -2874,11 +2940,11 @@ function renderColeccion(j){
         if (!r.oro && !r.incompleto) return '<span class="cc-oro cc-oro--cero" title="Ninguna carta por debajo de este nivel">\u2014</span>';
         const pre = r.incompleto ? '\u2265 ' : '';
         const tip = `Oro para subir todas las cartas de niveles menores hasta el nivel ${n}: ${fmtNum(r.oro)}${r.incompleto ? ' (m\u00ednimo: faltan costos de alguna carta)' : ''}`;
-        return `<span class="cc-oro" title="${esc(tip)}">${_ICONO_ORO_HTML}${pre}${esc(fmtNum(r.oro))}</span>`;
+        return `<span class="cc-oro" title="${esc(tip)}">${_ICONO_ORO_HTML}${pre}${esc(fmtNum(r.oro))}</span>${_oroBloqHtml(_oroBloqueadasHastaNivel(_infoBloq, _idxOro, n), n)}`;
       })()
     }));
     // 14-oct-2026 (pedido de la usuaria; §PF071): en la página queda solo la dona y una pastilla; la tabla de niveles con el oro, el diagrama de evoluciones y héroes y la tabla de costos van en una ventana.
-    const _optsNivel = { icono: '📊', centroEtiqueta: 'Cartas', nota: `${_ICONO_ORO_HTML} Oro acumulado para subir todo hasta cada nivel` };
+    const _optsNivel = { icono: '📊', centroEtiqueta: 'Cartas', nota: `${_ICONO_ORO_HTML} Oro acumulado para subir todo hasta cada nivel${_infoBloq.length ? ' · \u{1F512} aparte, el de las cartas por desbloquear' : ''}` };
     _nivelPieModalHtml = _pastelMiniHtml('Cartas por nivel', _porcionesNivel, extrasNivel, _optsNivel);
     nivelPieWrap.innerHTML = _pastelMiniHtml('Cartas por nivel', _porcionesNivel, extrasNivel, Object.assign({ soloDonut: true }, _optsNivel))
       + '<button type="button" class="ver-mas-btn" id="mColeccionNivelBtn" aria-haspopup="dialog">Ver niveles y evoluciones</button>';
@@ -3498,32 +3564,35 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarModalM
  * Junta la dona y la tabla de «Cartas por nivel» (con el oro), un diagrama de conjuntos de evoluciones y héroes, y la tabla de lo que falta
  * (fragmentos de evolución y monedas de héroe). Todo sale de lo que ya llega: rawClash.cards (desbloqueadas) y rawClash.cardsBloqueadas. */
 const COSTO_FRAGMENTOS_EVO = 6;
+// 14-oct-2026: ícono de los fragmentos (Wild Shard, copia en WebP de assets/img/Wild Shard.png); si faltara, cae al ✨.
+const _ICONO_FRAGMENTO_HTML = '<img class="ico-frag" src="assets/img/WildShard.webp" alt="" onerror="this.replaceWith(document.createTextNode(\'\\u2728\'));">';
 let _nivelPieModalHtml = '';
 let _coleccionModalOpener = null;
 
 /**
  * _evoHeroeResumen(cartas, bloqueadas)
  * Reparte TODAS las cartas (desbloqueadas y por desbloquear; las de torre no entran) en los conjuntos del diagrama:
- *  - soloEvo: tienen evolución y no héroe (maxEvolutionLevel 1); ambos: evolución y héroe (3); soloHeroe: héroe y no evolución (2, y los Campeones, que traen su héroe);
+ *  - soloEvo: tienen evolución y no héroe (maxEvolutionLevel 1); ambos: evolución y héroe (3); soloHeroe: héroe y no evolución (2);
  *  - base: sin evolución ni héroe (la carta en su forma base).
  * Cada conjunto trae `tot` (existentes) y `tiene` (desbloqueadas); `ambos` trae `evo` y `heroe` por separado, porque una carta puede tener una variante y no la otra.
- * Una carta por desbloquear no tiene ninguna variante desbloqueada. `evo` y `heroe` son los totales de cada variante; el héroe NO cuenta a los Campeones (no cuesta monedas).
+ * Una carta por desbloquear no tiene ninguna variante desbloqueada. `evo` y `heroe` son los totales de cada variante.
+ * 14-oct-2026 (decisión de la usuaria; §PF071): los Campeones se tratan como cualquier otra carta, solo según lo que mande el backend: traen evolutionLevel y
+ * maxEvolutionLevel como una carta sin evolución ni héroe, así que cuentan como carta base. Ya no hay un caso aparte ni «campeones» en el resultado.
  */
 function _evoHeroeResumen(cartas, bloqueadas){
   const r = {
     soloEvo: { tot: 0, tiene: 0 }, ambos: { tot: 0, evo: 0, heroe: 0 }, soloHeroe: { tot: 0, tiene: 0 }, base: { tot: 0, tiene: 0 },
-    evo: { tot: 0, tiene: 0 }, heroe: { tot: 0, tiene: 0 }, campeones: 0
+    evo: { tot: 0, tiene: 0 }, heroe: { tot: 0, tiene: 0 }
   };
   const procesar = (c, desbloqueada) => {
     if (!c) return;
-    const campeon = rarezaKey(c.rarity) === 'campeon';
-    const conEvo = _evoDisponible(c);
-    const conHeroe = _heroeDisponible(c);
+    const mx = Number(c.maxEvolutionLevel);
     const evoOk = desbloqueada && _evoTiene(c);
-    const heroeOk = desbloqueada && _heroeTiene(c);
+    const heroeOk = desbloqueada && _heroeDesbloqueado(c.evolutionLevel); // sin _heroeTiene(): ahí el Campeón cuenta como héroe por defecto
+    const conEvo = evoOk || mx === 1 || mx === 3;
+    const conHeroe = heroeOk || mx === 2 || mx === 3;
     if (conEvo){ r.evo.tot++; if (evoOk) r.evo.tiene++; }
-    if (conHeroe && !campeon){ r.heroe.tot++; if (heroeOk) r.heroe.tiene++; }
-    if (campeon) r.campeones++;
+    if (conHeroe){ r.heroe.tot++; if (heroeOk) r.heroe.tiene++; }
     if (conEvo && conHeroe){ r.ambos.tot++; if (evoOk) r.ambos.evo++; if (heroeOk) r.ambos.heroe++; }
     else if (conEvo){ r.soloEvo.tot++; if (evoOk) r.soloEvo.tiene++; }
     else if (conHeroe){ r.soloHeroe.tot++; if (heroeOk) r.soloHeroe.tiene++; }
@@ -3555,29 +3624,29 @@ function _vennEvoHeroeHtml(r){
     <ul class="venn-leyenda">
       <li>✨ <b>Solo evolución</b>: ${esc(f(r.soloEvo.tiene, r.soloEvo.tot))} evoluciones desbloqueadas.</li>
       <li>✨🦸 <b>Evolución y héroe</b> (centro): ${esc(f(r.ambos.evo, r.ambos.tot))} evoluciones y ${esc(f(r.ambos.heroe, r.ambos.tot))} héroes desbloqueados.</li>
-      <li>🦸 <b>Solo héroe</b>: ${esc(f(r.soloHeroe.tiene, r.soloHeroe.tot))} héroes desbloqueados${r.campeones ? ' (los Campeones traen su héroe)' : ''}.</li>
+      <li>🦸 <b>Solo héroe</b>: ${esc(f(r.soloHeroe.tiene, r.soloHeroe.tot))} héroes desbloqueados.</li>
       <li>🃏 <b>Solo carta base</b> (sin evolución ni héroe): ${esc(f(r.base.tiene, r.base.tot))} cartas desbloqueadas.</li>
     </ul>`;
 }
 
-/** Tabla de lo que falta: existentes, desbloqueadas, faltan, costo de cada una y total. Evolución: 6 fragmentos; héroe: 200 monedas (los Campeones no cuestan). */
+/** Tabla de lo que falta: existentes, desbloqueadas, faltan, costo de cada una y total. Evolución: 6 fragmentos; héroe: 200 monedas. */
 function _tablaEvoHeroeHtml(r){
   const faltaEvo = Math.max(0, r.evo.tot - r.evo.tiene);
   const faltaHeroe = Math.max(0, r.heroe.tot - r.heroe.tiene);
-  const fila = (ico, nombre, v, falta, costoUnid, unidad, total) => `
+  const fila = (ico, nombre, v, falta, costoUnid, unidad, total, icoUnidad) => `
         <tr><td>${ico} ${nombre}</td><td class="num">${esc(fmtNum(v.tot))}</td><td class="num">${esc(fmtNum(v.tiene))}</td><td class="num">${esc(fmtNum(falta))}</td>
-          <td class="num">${esc(fmtNum(costoUnid))} ${unidad}</td><td class="num"><b>${esc(fmtNum(total))}</b> ${unidad}</td></tr>`;
+          <td class="num">${esc(fmtNum(costoUnid))} ${icoUnidad || ''}${unidad}</td><td class="num"><b>${esc(fmtNum(total))}</b> ${icoUnidad || ''}${unidad}</td></tr>`;
   return `
     <div class="col-modal-scroll">
       <table class="costo-tabla">
         <thead><tr><th>Variante</th><th class="num">Existen</th><th class="num">Tienes</th><th class="num">Faltan</th><th class="num">Cada una</th><th class="num">Para las que faltan</th></tr></thead>
         <tbody>
-        ${fila('✨', 'Evolución', r.evo, faltaEvo, COSTO_FRAGMENTOS_EVO, 'fragmentos', faltaEvo * COSTO_FRAGMENTOS_EVO)}
+        ${fila('✨', 'Evolución', r.evo, faltaEvo, COSTO_FRAGMENTOS_EVO, 'fragmentos', faltaEvo * COSTO_FRAGMENTOS_EVO, _ICONO_FRAGMENTO_HTML)}
         ${fila('\u{1F9B8}', 'Héroe', r.heroe, faltaHeroe, COSTO_DESBLOQUEO_HEROE, 'monedas', faltaHeroe * COSTO_DESBLOQUEO_HEROE)}
         </tbody>
       </table>
     </div>
-    <div class="col-modal-nota">Se cuentan también las cartas que aún no desbloqueas. Los Campeones traen su héroe y no cuestan monedas; las monedas de héroe no desbloquean cartas, solo su héroe.</div>`;
+    <div class="col-modal-nota">Se cuentan también las cartas que aún no desbloqueas. Las monedas de héroe no desbloquean cartas, solo su héroe.</div>`;
 }
 
 function abrirModalColeccion(opener){
