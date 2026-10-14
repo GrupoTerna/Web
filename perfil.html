@@ -776,6 +776,10 @@
     border-radius:var(--radius-sm); transition:all .15s ease; display:flex; align-items:center; justify-content:center;
   }
   .costo-modal-close:hover{color:var(--text); border-color:var(--purple); background:rgba(162,57,255,.2);}
+  /* 14-oct-2026 (pedido usuario — "a los popups de perfil ponle una franja pequeña superior de los banners"): las tres ventanas (costo de mejora, sugerencias de mazo, niveles y evoluciones) llevan la cinta del Fan Kit (.pf-cinta, assets/styles.css) en una versión más baja, 56 px en vez de 76 px; el botón de cerrar queda por encima. [→ Contexto_Base_Web.md §PF056 y §PF065] */
+  .costo-modal.pf-cinta--modal::before{height:56px;}
+  .costo-modal.pf-cinta--modal > .costo-modal-close{z-index:2;}
+  .costo-modal.pf-cinta--modal > h3{position:relative; z-index:1; text-shadow:0 1px 3px rgba(0,0,0,.6);}
   .costo-modal-sub{font-family:var(--f-mono); font-size:12px; color:var(--text-dim); margin-top:4px; min-height:16px;}
   /* 14-oct-2026 (pedido de la usuaria): ventana única «Sugerencias de mazo». Reusa .costo-modal-overlay/.costo-modal; solo agrega los campos. [→ Contexto_Base_Web.md §PF070] */
   .mazo-modal-campo{margin-top:18px;}
@@ -1446,7 +1450,7 @@
      que manda el backend (ver .costo-modal-overlay en el <style> y
      abrirModalCostoCarta() en el <script>). -->
 <div class="costo-modal-overlay" id="costoModalOverlay" role="dialog" aria-modal="true" aria-labelledby="costoModalTitulo" aria-hidden="true">
-  <div class="costo-modal" id="costoModal">
+  <div class="costo-modal pf-cinta pf-cinta--modal" id="costoModal" style="--cinta:url(img/cinta-mazo-2.webp);">
     <button type="button" class="costo-modal-close" id="costoModalClose" aria-label="Cerrar">&times;</button>
     <div class="eyebrow">Costo de mejora</div>
     <h3 style="margin-top:6px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;" id="costoModalTitulo">—</h3>
@@ -1458,7 +1462,7 @@
 <!-- ---------- MODAL "SUGERENCIAS DE MAZO" (14-oct-2026, §PF070) ----------
      Una sola pastilla en la card «Mazo actual» abre esta ventana; el enlace de RoyaleAPI se arma en el navegador con ext.mazoCartas. -->
 <div class="costo-modal-overlay" id="mazoModalOverlay" role="dialog" aria-modal="true" aria-labelledby="mazoModalTitulo" aria-hidden="true">
-  <div class="costo-modal" id="mazoModal">
+  <div class="costo-modal pf-cinta pf-cinta--modal" id="mazoModal" style="--cinta:url(img/cinta-mazo-2.webp);">
     <button type="button" class="costo-modal-close" id="mazoModalClose" aria-label="Cerrar">&times;</button>
     <div class="eyebrow">Sugerencias de mazo</div>
     <h3 style="margin-top:6px;" id="mazoModalTitulo">Busca mazos en RoyaleAPI</h3>
@@ -1486,7 +1490,7 @@
 <!-- ---------- MODAL "NIVELES Y EVOLUCIONES" (14-oct-2026, §PF071) ----------
      Lo abre la pastilla «Ver niveles y evoluciones» que queda junto a la dona de «Cartas por nivel» (renderColeccion()). -->
 <div class="costo-modal-overlay" id="coleccionModalOverlay" role="dialog" aria-modal="true" aria-labelledby="coleccionModalTitulo" aria-hidden="true">
-  <div class="costo-modal costo-modal--ancho" id="coleccionModal">
+  <div class="costo-modal costo-modal--ancho pf-cinta pf-cinta--modal" id="coleccionModal" style="--cinta:url(img/cinta-coleccion-2.webp);">
     <button type="button" class="costo-modal-close" id="coleccionModalClose" aria-label="Cerrar">&times;</button>
     <div class="eyebrow">Colección</div>
     <h3 style="margin-top:6px;" id="coleccionModalTitulo">Niveles, evoluciones y héroes</h3>
