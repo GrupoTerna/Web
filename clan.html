@@ -491,13 +491,8 @@ async function cargarClan(){
     document.getElementById('clanCargando').style.display = 'none';
     document.getElementById('clanContenido').style.display = 'block';
     // CAMBIO (09-oct-2026, pedido del usuario): tres momentos distintos (consulta de esta página, publicación del JSON y consulta del bot a Supercell, si el dato la trae); ver fmtTresTiempos() en util.js.
-    const tt = fmtTresTiempos({
-      consulta: rInfo.origen === 'apps-script' ? horaConsultaApiGet('webClanInfo') : new Date(), // CAMBIO (09-oct-2026, Fase 4): hora real del último guardado, no «ahora»
-      publicado: rInfo.estatico ? rInfo.desde : null,
-      respaldo: rInfo.origen === 'respaldo-local' ? apiGetUltimaActualizacion('webClanInfo', null) : null,
-      api: rInfo.api,
-      esViejo: rInfo.origen === 'estatico-viejo' || rInfo.origen === 'respaldo-local'
-    });
+    // CAMBIO (14-oct-2026): se calcula con fmtTresTiemposDeResultado() (util.js), igual que directorio, comunidad y torneos; la «Consulta» sigue siendo la hora real del último guardado (accion) y el respaldo local sale de guardadoDesde.
+    const tt = fmtTresTiemposDeResultado({ ...rInfo, accion: 'webClanInfo' });
     const txtActualizado = document.getElementById('clanActualizadoTxt');
     txtActualizado.textContent = tt.texto;
     txtActualizado.title = tt.titulo;

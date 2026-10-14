@@ -263,6 +263,8 @@ function horaConsultaApiGet(accion){
  * CAMBIO (09-oct-2026, Fase 4): la hora de «Consulta» ya no es siempre «ahora». Si el resultado trae `consulta` (Date) se usa esa; si el origen
  * es 'apps-script' y trae `accion`, es la hora real del último guardado de esa acción (ver horaConsultaApiGet()); en los demás casos (archivo
  * descargado ahora, respaldo local que ya se muestra aparte) es ahora. Con 'respaldo-local' y 'estatico-viejo' suma el aviso.
+ * CAMBIO (14-oct-2026): con 'respaldo-local' la fecha del respaldo es `desde` o, si no viene, `guardadoDesde` (así lo devuelven obtenerHome() de
+ * index.html y clanObtenerInfo() de clan.html, que dejan `desde` solo para el JSON publicado); las dos páginas pasan a usar este atajo en vez de armar los tres momentos a mano.
  */
 function fmtTresTiemposDeResultado(r){
   r = r || {};
@@ -272,7 +274,7 @@ function fmtTresTiemposDeResultado(r){
   return fmtTresTiempos({
     consulta,
     publicado: archivo ? r.desde : null,
-    respaldo: r.origen === 'respaldo-local' ? r.desde : null,
+    respaldo: r.origen === 'respaldo-local' ? (r.desde || r.guardadoDesde || null) : null,
     api: r.api,
     esViejo: r.origen === 'estatico-viejo' || r.origen === 'respaldo-local'
   });

@@ -371,10 +371,65 @@ test('clan: clanObtenerInfo() informa origen y fecha de Supercell en las tres ru
 
 // ---------------------------------------------------------------- Fase 4: hora real de «Consulta» (09-oct-2026)
 
-test('index y clan: con origen apps-script la «Consulta» usa horaConsultaApiGet() (hora real del último guardado) y no «ahora»', () => {
-  for (const [archivo, origen] of [['index.html', 'r.origen'], ['clan.html', 'rInfo.origen']]){
+test('index y clan: los tres momentos se calculan con fmtTresTiemposDeResultado() (util.js), no a mano', () => {
+  for (const [archivo, variable] of [['index.html', 'r'], ['clan.html', 'rInfo']]){
     const html = fs.readFileSync(path.join(__dirname, '..', archivo), 'utf8');
-    assert.ok(html.includes(`consulta: ${origen} === 'apps-script' ? horaConsultaApiGet('webClanInfo') : new Date()`), `${archivo} debe usar horaConsultaApiGet() para el origen apps-script`);
+    assert.ok(html.includes(`fmtTresTiemposDeResultado({ ...${variable}, accion: 'webClanInfo' })`), `${archivo} debe usar fmtTresTiemposDeResultado() con accion 'webClanInfo'`);
+    assert.ok(!html.includes('fmtTresTiempos({'), `${archivo} ya no debe armar fmtTresTiempos({...}) por su cuenta`);
     assert.ok(!/consulta: new Date\(\),/.test(html), `${archivo} no debe quedar con «consulta: new Date()» fijo`);
   }
+});
+
+// Fórmula que index.html y clan.html tenían escrita a mano antes del 14-oct-2026; el atajo debe dar EXACTAMENTE el mismo texto y tooltip en los cuatro orígenes.
+function tresTiemposAnterior(window, r){
+  return window.fmtTresTiempos({
+    consulta: r.origen === 'apps-script' ? window.horaConsultaApiGet('webClanInfo') : new Date(),
+    publicado: r.estatico ? r.desde : null,
+    respaldo: r.origen === 'respaldo-local' ? window.apiGetUltimaActualizacion('webClanInfo', null) : null,
+    api: r.api,
+    esViejo: r.origen === 'estatico-viejo' || r.origen === 'respaldo-local'
+  });
+}
+const igual = (a, b) => { assert.equal(a.texto, b.texto); assert.equal(a.titulo, b.titulo); };
+
+test('index: el atajo da el mismo texto que la fórmula anterior con JSON vigente, Apps Script, archivo viejo y respaldo local', async () => {
+  const casos = [
+    { nombre: 'estatico', o: { archivos: { 'home.json': { ...HOME(1), clanInfo: { clanes: [{ nombre: 'A' }], tiempos: { api: { ultimaConsultaTs: Date.now() - 55 * 60 * 1000 } } } } } }, origen: 'estatico' },
+    { nombre: 'apps-script', o: { archivos: { 'home.json': HOME(5) } }, origen: 'apps-script' },
+    { nombre: 'estatico-viejo', o: { archivos: { 'home.json': HOME(5) }, apiGetImpl: appsScriptCaido }, origen: 'estatico-viejo' },
+    { nombre: 'respaldo-local', o: { archivos: { 'home.json': HOME(5) }, apiGetImpl: appsScriptCaido }, origen: 'respaldo-local', respaldo: true }
+  ];
+  for (const c of casos){
+    const { t, window, sembrarRespaldo } = montarIndex(c.o);
+    if (c.respaldo) sembrarRespaldo('webClanInfo', CLAN_INFO('respaldo'), Date.now() - 10 * 60 * 1000);
+    const r = await t.obtenerHome('clanInfo', 'webClanInfo');
+    assert.equal(r.origen, c.origen, c.nombre);
+    igual(window.fmtTresTiemposDeResultado({ ...r, accion: 'webClanInfo' }), tresTiemposAnterior(window, r));
+  }
+});
+
+test('clan: el atajo da el mismo texto que la fórmula anterior con JSON vigente, Apps Script, archivo viejo y respaldo local', async () => {
+  const casos = [
+    { nombre: 'estatico', o: { archivos: { 'home.json': HOME(1) } }, origen: 'estatico' },
+    { nombre: 'apps-script', o: { archivos: { 'home.json': HOME(5) } }, origen: 'apps-script' },
+    { nombre: 'estatico-viejo', o: { archivos: { 'home.json': HOME(5) }, apiGetImpl: appsScriptCaido }, origen: 'estatico-viejo' },
+    { nombre: 'respaldo-local', o: { archivos: { 'home.json': HOME(5) }, apiGetImpl: appsScriptCaido }, origen: 'respaldo-local', respaldo: true }
+  ];
+  for (const c of casos){
+    const { t, window, sembrarRespaldo } = montarClan(c.o);
+    if (c.respaldo) sembrarRespaldo('webClanInfo', CLAN_INFO('respaldo'), Date.now() - 10 * 60 * 1000);
+    const r = await t.clanObtenerInfo();
+    assert.equal(r.origen, c.origen, c.nombre);
+    igual(window.fmtTresTiemposDeResultado({ ...r, accion: 'webClanInfo' }), tresTiemposAnterior(window, r));
+  }
+});
+
+test('con respaldo local el texto trae «Respaldo guardado» y el aviso de datos guardados (fecha tomada de guardadoDesde)', async () => {
+  const { t, window, sembrarRespaldo } = montarIndex({ archivos: { 'home.json': HOME(5) }, apiGetImpl: appsScriptCaido });
+  sembrarRespaldo('webClanInfo', CLAN_INFO('respaldo'), Date.now() - 10 * 60 * 1000);
+  const r = await t.obtenerHome('clanInfo', 'webClanInfo');
+  assert.equal(r.desde, null);
+  const tt = window.fmtTresTiemposDeResultado({ ...r, accion: 'webClanInfo' });
+  assert.match(tt.texto, /Respaldo guardado: hace 10 min/);
+  assert.match(tt.texto, /⚠ Datos guardados: el servidor no responde/);
 });

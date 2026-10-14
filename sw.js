@@ -144,7 +144,8 @@
 // v79 (14-oct-2026): perfil.html cambió (CORE_ASSETS) -- franja pequeña de banner (cinta, 56 px) arriba de las tres ventanas del perfil: Costo de mejora, Sugerencias de mazo y Niveles y evoluciones (§PF056 y §PF065).
 // v80 (14-oct-2026): guerra.html cambió (CORE_ASSETS) -- al elegir un día Jue–Dom, las tarjetas de clan muestran los ataques, medallas, barcos y cuántos atacaron de ese día, no solo el puesto (§PF072).
 // v81 (14-oct-2026): perfil.html cambió (CORE_ASSETS) -- ventana «Niveles y evoluciones»: los Campeones cuentan como carta base, oro de las cartas por desbloquear bajo cada nivel e ícono Wild Shard en los fragmentos (§PF071).
-const CACHE_NAME = 'terna-static-v81';
+// v82 (14-oct-2026): util.js, index.html y clan.html cambiaron (CORE_ASSETS) -- los tres momentos de la portada y de clan.html salen de fmtTresTiemposDeResultado(), igual que el resto del sitio.
+const CACHE_NAME = 'terna-static-v82';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y

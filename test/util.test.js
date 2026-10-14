@@ -182,6 +182,14 @@ test('horaConsultaApiGet() — con respaldo local devuelve la hora de ese guarda
   assert.ok(Math.abs(Date.now() - window.horaConsultaApiGet('webRoster').getTime()) < 2000, 'fecha inválida: ahora');
 });
 
+test('fmtTresTiemposDeResultado() — con respaldo-local usa `desde` y, si no viene, `guardadoDesde` (index.html y clan.html)', () => {
+  const guardado = new Date(Date.now() - 30 * 60 * 1000);
+  assert.match(fmtTresTiemposDeResultado({ origen: 'respaldo-local', desde: null, guardadoDesde: guardado }).texto, /Respaldo guardado: hace 30 min/);
+  const propio = new Date(Date.now() - 2 * 60 * 60 * 1000);
+  assert.match(fmtTresTiemposDeResultado({ origen: 'respaldo-local', desde: propio, guardadoDesde: guardado }).texto, /Respaldo guardado: hace 2 h/);
+  assert.ok(!fmtTresTiemposDeResultado({ origen: 'apps-script', desde: null, guardadoDesde: guardado }).texto.includes('Respaldo'));
+});
+
 test('fmtTresTiemposDeResultado() — origen apps-script con `accion` usa la hora real del último guardado; sin `accion` o con otro origen, ahora', () => {
   const window = loadBrowserScriptsWithDom(['assets/js/core/config.js', 'assets/js/util.js', 'assets/js/core/api.js'], '');
   const t = Date.now() - 3 * 60 * 60 * 1000;

@@ -792,13 +792,8 @@ async function cargarClanes(){
     const r = await obtenerHome('clanInfo', 'webClanInfo');
     const data = r.data;
     // CAMBIO (09-oct-2026, pedido del usuario): tres momentos distintos (consulta de esta página, publicación del JSON y consulta del bot a Supercell, si el dato la trae); ver fmtTresTiempos() en util.js.
-    const tt = fmtTresTiempos({
-      consulta: r.origen === 'apps-script' ? horaConsultaApiGet('webClanInfo') : new Date(), // CAMBIO (09-oct-2026, Fase 4): hora real del último guardado, no «ahora»
-      publicado: r.estatico ? r.desde : null,
-      respaldo: r.origen === 'respaldo-local' ? apiGetUltimaActualizacion('webClanInfo', null) : null,
-      api: r.api,
-      esViejo: r.origen === 'estatico-viejo' || r.origen === 'respaldo-local'
-    });
+    // CAMBIO (14-oct-2026): se calcula con fmtTresTiemposDeResultado() (util.js), igual que directorio, comunidad y torneos; la «Consulta» sigue siendo la hora real del último guardado (accion) y el respaldo local sale de guardadoDesde.
+    const tt = fmtTresTiemposDeResultado({ ...r, accion: 'webClanInfo' });
     const txtActualizado = document.getElementById('clanInfoActualizadoTxt');
     txtActualizado.textContent = tt.texto;
     txtActualizado.title = tt.titulo;
