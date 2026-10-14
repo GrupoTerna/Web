@@ -100,8 +100,11 @@ test('el diagrama muestra x/y de cada región y el centro con evolución y héro
   assert.match(svg, /✨ 2\/3/);                                        // centro: evoluciones
   assert.match(svg, /🦸 1\/3/);                                        // centro: héroes
   assert.match(svg, /class="venn-num" x="370" y="136">2\/4</);       // solo héroe
-  assert.match(svg, /class="venn-num" x="458" y="230">2\/3</);       // carta base
+  assert.match(svg, /class="venn-num" x="450" y="230">2\/3</);       // carta base
   assert.match(svg, /los Campeones traen su héroe/);
+  // los nombres de los conjuntos quedan a los lados, fuera de los círculos (x de la Evolución < borde izquierdo 113; Héroe > borde derecho 407)
+  const xEvo = Number(svg.match(/venn-lbl--evo" x="(\d+)"/)[1]); const xHeroe = Number(svg.match(/venn-lbl--heroe" x="(\d+)"/)[1]);
+  assert.ok(xEvo + 40 < 113 && xHeroe - 40 > 407, `etiquetas dentro de los círculos: ${xEvo}, ${xHeroe}`);
 });
 
 test('la tabla calcula lo que falta: 6 fragmentos por evolución y 200 monedas por héroe', () => {
@@ -144,6 +147,7 @@ test('la ventana abre con la dona completa, el diagrama y la tabla; se cierra y 
   assert.equal(ov.getAttribute('aria-hidden'), 'false');
   const cont = d.getElementById('coleccionModalContenido');
   assert.ok(cont.querySelector('#pie-prueba'));
+  assert.deepEqual([...cont.querySelectorAll('.col-modal-seccion > h4')].map(h => h.textContent), ['Cartas por nivel', 'Evoluciones y héroes', 'Fragmentos y monedas que faltan']);
   assert.ok(cont.querySelector('svg.venn-svg'));
   assert.ok(cont.querySelector('table.costo-tabla'));
   window.__t.cerrarModalColeccion();

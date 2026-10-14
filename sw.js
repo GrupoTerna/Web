@@ -140,7 +140,8 @@
 // v75 (13-oct-2026): styles.css, torneos.html y perfil.html cambiaron (CORE_ASSETS) -- nombre del clan en morado claro y pastilla dorada compartida .ver-mas-btn (§PF069).
 // v76 (14-oct-2026): perfil.html cambió (CORE_ASSETS) -- una sola pastilla «Sugerencias de mazo» con ventana de opciones (§PF070).
 // v77 (14-oct-2026): perfil.html cambió (CORE_ASSETS) -- ventana «Niveles y evoluciones» de la colección: dona sola en la página, diagrama de evoluciones y héroes y tabla de fragmentos y monedas (§PF071).
-const CACHE_NAME = 'terna-static-v77';
+// v78 (14-oct-2026): perfil.html cambió (CORE_ASSETS) -- ventana «Niveles y evoluciones»: títulos de sección en negrita, dona más grande y centrada, nombres de los conjuntos a los lados (§PF071).
+const CACHE_NAME = 'terna-static-v78';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y

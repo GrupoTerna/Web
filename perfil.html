@@ -790,7 +790,17 @@
   /* 14-oct-2026 (pedido de la usuaria; §PF071): ventana «Niveles y evoluciones» de la colección: más ancha que la de costo y con el diagrama de evoluciones y héroes. */
   .costo-modal.costo-modal--ancho{max-width:680px;}
   .col-modal-seccion{margin-top:22px;}
-  .col-modal-seccion > h4{font-family:var(--f-mono); font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--text-dim); margin:0 0 10px;}
+  .col-modal-seccion > h4{font-family:var(--f-mono); font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.08em; color:var(--text); margin:0 0 10px;}
+  /* 14-oct-2026: en la ventana el título «Cartas por nivel» es el h4 de la sección (igual que los otros dos), no el de la tarjeta; la dona es más grande y queda centrada en el espacio entre el borde izquierdo de la tarjeta y los puntos de la leyenda (márgenes automáticos a ambos lados). */
+  .col-modal-seccion .mini-pie-titulo{display:none;}
+  .col-modal-seccion .mini-pie-cuerpo{flex-wrap:nowrap; justify-content:flex-start; gap:0;}
+  .col-modal-seccion .mini-pie-donut-wrap{width:170px; height:170px; margin:0 auto;}
+  .col-modal-seccion .mini-pie-donut-centro b{font-size:30px;}
+  .col-modal-seccion .mini-pie-donut-centro span{font-size:10px; margin-top:5px;}
+  @media (max-width:560px){
+    .col-modal-seccion .mini-pie-cuerpo{flex-wrap:wrap; justify-content:center; gap:16px;}
+    .col-modal-seccion .mini-pie-donut-wrap{width:140px; height:140px; margin:0;}
+  }
   .col-modal-nota{margin-top:10px; font-family:var(--f-mono); font-size:11px; color:var(--text-faint); line-height:1.5;}
   .col-modal-scroll{overflow-x:auto;}
   .col-modal-scroll .costo-tabla td, .col-modal-scroll .costo-tabla th{white-space:nowrap;}
@@ -802,6 +812,8 @@
   .venn-num{font-family:var(--f-mono); font-size:16px; font-weight:700; fill:var(--text); text-anchor:middle;}
   .venn-num-chico{font-family:var(--f-mono); font-size:12px; font-weight:700; fill:var(--text); text-anchor:middle;}
   .venn-lbl{font-family:var(--f-mono); font-size:11px; letter-spacing:.06em; fill:var(--text-dim); text-anchor:middle; text-transform:uppercase;}
+  .venn-lbl--evo{fill:var(--purple-light); font-weight:700;}
+  .venn-lbl--heroe{fill:var(--gold); font-weight:700;}
   .venn-leyenda{list-style:none; margin:12px 0 0; padding:0; display:grid; gap:4px; font-size:12px; color:var(--text-dim); line-height:1.5;}
   .venn-leyenda b{color:var(--text);}
   .costo-tabla{width:100%; border-collapse:collapse; margin-top:18px; font-size:13px;}
@@ -3527,14 +3539,14 @@ function _vennEvoHeroeHtml(r){
       <rect class="venn-uni" x="6" y="6" width="508" height="248" rx="14"/>
       <circle class="venn-evo" cx="205" cy="130" r="92"/>
       <circle class="venn-heroe" cx="315" cy="130" r="92"/>
-      <text class="venn-lbl" x="150" y="58">Evolución</text>
-      <text class="venn-lbl" x="370" y="58">Héroe</text>
+      <text class="venn-lbl venn-lbl--evo" x="58" y="134">Evolución</text>
+      <text class="venn-lbl venn-lbl--heroe" x="462" y="134">Héroe</text>
       <text class="venn-num" x="150" y="136">${esc(f(r.soloEvo.tiene, r.soloEvo.tot))}</text>
       <text class="venn-num-chico" x="260" y="124">✨ ${esc(f(r.ambos.evo, r.ambos.tot))}</text>
       <text class="venn-num-chico" x="260" y="146">🦸 ${esc(f(r.ambos.heroe, r.ambos.tot))}</text>
       <text class="venn-num" x="370" y="136">${esc(f(r.soloHeroe.tiene, r.soloHeroe.tot))}</text>
-      <text class="venn-lbl" x="458" y="206">Solo carta base</text>
-      <text class="venn-num" x="458" y="230">${esc(f(r.base.tiene, r.base.tot))}</text>
+      <text class="venn-lbl" x="450" y="206">Solo carta base</text>
+      <text class="venn-num" x="450" y="230">${esc(f(r.base.tiene, r.base.tot))}</text>
     </svg>
     <ul class="venn-leyenda">
       <li>✨ <b>Solo evolución</b>: ${esc(f(r.soloEvo.tiene, r.soloEvo.tot))} evoluciones desbloqueadas.</li>
@@ -3569,7 +3581,7 @@ function abrirModalColeccion(opener){
   const r = _evoHeroeResumen(_ultimasCartasColeccion, _ultimasCartasBloqueadas);
   const hayVariantes = r.evo.tot > 0 || r.heroe.tot > 0 || r.soloHeroe.tot > 0;
   document.getElementById('coleccionModalContenido').innerHTML = `
-    <div class="col-modal-seccion">${_nivelPieModalHtml}</div>
+    <div class="col-modal-seccion"><h4>Cartas por nivel</h4>${_nivelPieModalHtml}</div>
     ${hayVariantes ? `
     <div class="col-modal-seccion"><h4>Evoluciones y héroes</h4>${_vennEvoHeroeHtml(r)}</div>
     <div class="col-modal-seccion"><h4>Fragmentos y monedas que faltan</h4>${_tablaEvoHeroeHtml(r)}</div>` : ''}`;
