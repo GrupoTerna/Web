@@ -1637,7 +1637,7 @@ function render(data){
     const fechaDia = diasBackend[i] ? diasBackend[i].fecha : null;
     const sel = d.letra === diaPuestosSel;
     return `
-    <button type="button" class="tl-day ${d.letra === ctx.diaLetra ? 'active' : ''}${sel ? ' sel' : ''}" data-letra="${d.letra}" aria-pressed="${sel}" aria-controls="clanGrid" title="Ver el puesto de cada clan en este día">
+    <button type="button" class="tl-day ${d.letra === ctx.diaLetra ? 'active' : ''}${sel ? ' sel' : ''}" data-letra="${d.letra}" aria-pressed="${sel}" aria-controls="clanGrid" title="Ver el puesto y los valores de cada clan en este día">
       <span class="lbl">${d.label}</span><span class="mark">${fmtDiaMes(fechaDia)}</span>
     </button>`;
   }).join('');
@@ -1665,13 +1665,13 @@ function render(data){
     const pct = g.totalHoy ? Math.round((g.atacaron / g.totalHoy) * 100) : 0;
     const slug = 'clan' + idx;
     return `
-    <div class="card clan-card">
+    <div class="card clan-card" data-clan="${esc(nombre)}">
       <div class="clan-cab" data-clan="${esc(nombre)}">${cabeceraClanGuerraHtml(nombre)}</div>
       <div class="clan-puesto" data-clan="${esc(nombre)}" style="display:none; margin-top:10px; font-family:var(--f-mono); font-size:12px; color:var(--text-dim); text-align:center;"></div>
       <div class="stats">
-        <div class="stat"><b id="${slug}-atq">${fmtNum(g.ataques)}</b><span>Ataques</span></div>
-        <div class="stat"><b id="${slug}-fame">${fmtNum(g.fame)}</b><span>Medallas</span></div>
-        <div class="stat"><b id="${slug}-barc">${fmtNum(g.barcos)}</b><span>Barcos</span></div>
+        <div class="stat"><b class="st-atq" id="${slug}-atq">${fmtNum(g.ataques)}</b><span>Ataques</span></div>
+        <div class="stat"><b class="st-fame" id="${slug}-fame">${fmtNum(g.fame)}</b><span>Medallas</span></div>
+        <div class="stat"><b class="st-barc" id="${slug}-barc">${fmtNum(g.barcos)}</b><span>Barcos</span></div>
       </div>
       <div class="bar"><i style="width:${pct}%"></i></div>
       <!-- FIX (13-sep-2026, pedido usuario — "en guerra también centra la
@@ -2368,7 +2368,78 @@ function seleccionarDiaPuestos(letra){
   const ctxHoy = (ultimoDataGuerra && ultimoDataGuerra.ctx) || {};
   if(diaPuestosSel && ctxHoy.esDiaGuerra && ctxHoy.diaLetra === diaPuestosSel && !ultimoPronosticoData) cargarPronosticoGuerra(ctxHoy, false);
 }
+/* 14-oct-2026 (pedido usuario — "la información de las tarjetas debería cambiar según lo registrado ese día de guerra, pero al seleccionar otro día solo cambia el puesto"): al elegir un día de Jue–Dom, además del puesto, las tarjetas muestran los ataques, medallas y barcos de ESE día y cuántos atacaron. Salen de «Valores diarios» (data.valoresDiariosPorSemana: por jugador j/v/s/d de ataques, puntaje y barcos), sumados por clan en el navegador; no hay petición nueva. Semana usada: la vigente en día de guerra; en entrenamiento, la última guerra jugada (valoresDiariosSelectores.porDefecto), la misma de los puestos. El día que las tarjetas ya muestran por defecto (hoy, o el congelado en entrenamiento) conserva los valores exactos del backend. Si la cuadrícula no trae la semana, se dejan los valores de siempre y la nota lo dice. [→ Contexto_Base_Web.md §PF072] */
+function _letraDiaTarjetas(){ // día al que corresponden los valores que trae guerraPorClan
+  const d = ultimoDataGuerra || {}, ctx = d.ctx || {};
+  return ctx.esDiaGuerra ? (ctx.diaLetra || null) : (d.guerraCongeladaLetra || 'D');
+}
+function _filasDiariasDeClan(nombre){
+  const d = ultimoDataGuerra;
+  if(!d || !d.valoresDiariosPorSemana) return null;
+  const ctx = d.ctx || {};
+  const def = d.valoresDiariosSelectores && d.valoresDiariosSelectores.porDefecto;
+  const t = ctx.esDiaGuerra ? ctx.temporada : (def && def.temporada);
+  const si = ctx.esDiaGuerra ? ctx.sectionIndex : (def && def.sectionIndex);
+  const sem = (t !== undefined && t !== null && d.valoresDiariosPorSemana[t]) ? d.valoresDiariosPorSemana[t][si] : null;
+  if(!sem) return null;
+  const n = _normNombreClanGuerra(nombre);
+  const k = Object.keys(sem).find(c => _normNombreClanGuerra(c) === n);
+  return (k && Array.isArray(sem[k])) ? sem[k] : null;
+}
+/** Valores de un clan en un día (letra J/V/S/D): suma de los jugadores que estuvieron ese día (null en la celda = no estuvo). null si ninguno estuvo. */
+function valoresDiaDeClan(filas, letra){
+  const k = String(letra || '').toLowerCase();
+  if(!Array.isArray(filas) || !/^[jvsd]$/.test(k)) return null;
+  const num = x => (x === null || x === undefined) ? null : (Number(x) || 0);
+  let ataques = 0, fame = 0, barcos = 0, atacaron = 0, totalHoy = 0, hayDato = false;
+  filas.forEach(f => {
+    const a = num(f && f[k]);
+    if(a === null) return;
+    hayDato = true;
+    ataques += a;
+    fame += num(f.puntaje && f.puntaje[k]) || 0;
+    barcos += num(f.barcos && f.barcos[k]) || 0;
+    if(a > 0) atacaron++;
+    if(f.activo !== false) totalHoy++; // igual que el "N activos" de la cuadrícula; atacaron cuenta a todo el que atacó
+  });
+  return hayDato ? { ataques, fame, barcos, atacaron, totalHoy } : null;
+}
+/** Pinta cifras, barra y "N/M atacaron" de cada tarjeta según el día elegido. Devuelve 'dia' (los valores son los de ese día), 'futuro' (ese día aún no se juega) o 'base' (se dejan los de siempre). */
+function pintarValoresDiaEnTarjetas(){
+  const d = ultimoDataGuerra || {}, ctx = d.ctx || {};
+  const letra = diaPuestosSel;
+  const base = _letraDiaTarjetas();
+  const otroDia = !!letra && letra !== base;
+  const idx = DIAS.findIndex(x => x.letra === letra);
+  const idxHoy = ctx.esDiaGuerra ? DIAS.findIndex(x => x.letra === ctx.diaLetra) : -1;
+  const futuro = otroDia && ctx.esDiaGuerra && idx > idxHoy;
+  const etiquetaBase = ctx.esDiaGuerra ? 'hoy' : 'en la última guerra';
+  const etiquetaDia = 'el ' + (NOMBRES_DIA_GUERRA[letra] || '').toLowerCase();
+  let estado = 'base';
+  document.querySelectorAll('#clanGrid .clan-card[data-clan]').forEach(card => {
+    const nombre = card.dataset.clan;
+    const g = (d.guerraPorClan || {})[nombre];
+    if(!g) return;
+    let v = g, etiqueta = etiquetaBase, conDia = false;
+    if(otroDia){
+      const filas = _filasDiariasDeClan(nombre);
+      if(futuro){ v = null; etiqueta = etiquetaDia; conDia = true; }
+      else if(filas){ v = valoresDiaDeClan(filas, letra); etiqueta = etiquetaDia; conDia = true; }
+    }
+    if(conDia) estado = futuro ? 'futuro' : 'dia';
+    const pct = (v && v.totalHoy) ? Math.round((v.atacaron / v.totalHoy) * 100) : 0;
+    const poner = (sel, val) => { const el = card.querySelector(sel); if(el) el.textContent = (val === null || val === undefined) ? '—' : fmtNum(val); };
+    poner('.st-atq', v && v.ataques); poner('.st-fame', v && v.fame); poner('.st-barc', v && v.barcos);
+    const barra = card.querySelector('.bar i'); if(barra) barra.style.width = pct + '%';
+    const txt = card.querySelector('.clan-atq');
+    if(txt) txt.textContent = v ? `${fmtNum(v.atacaron)}/${fmtNum(v.totalHoy)} atacaron ${etiqueta} (${pct}%)` : `Sin valores registrados ${etiqueta}`;
+    const meta = card.querySelector('.clan-meta'); if(meta) meta.style.display = conDia ? 'none' : ''; // la meta cruzada es de hoy: no aplica a otro día
+  });
+  if(letra && letra === base && estado === 'base') estado = 'dia'; // el día que ya muestran las tarjetas
+  return estado;
+}
 function pintarPuestosDiaEnTarjetas(){
+  const estadoValores = pintarValoresDiaEnTarjetas();
   const ctx = (ultimoDataGuerra && ultimoDataGuerra.ctx) || {};
   const diasBk = (ultimoDataGuerra && ultimoDataGuerra.diasSemanaGuerra) || [];
   const hoyLetra = ctx.esDiaGuerra ? ctx.diaLetra : null;
@@ -2432,7 +2503,7 @@ function pintarPuestosDiaEnTarjetas(){
   if(!dia){
     txt = puestosDiaError ? 'No se pudieron cargar los puestos.' : (pd ? 'Sin puesto registrado para este día.' : 'Cargando puestos… (puede tardar unos segundos)');
   }else if(hayDato){
-    txt = `${titulo}${semTxt}. Ataques, medallas y barcos siguen siendo los ${ctx.esDiaGuerra ? 'de hoy' : 'de la última guerra'}.${hayEstim ? ' ' + NOTA_PUESTO_ESTIMADO : ''}`;
+    txt = `${titulo}${semTxt}. ${estadoValores === 'dia' ? 'Ataques, medallas y barcos de ese día.' : `Ataques, medallas y barcos siguen siendo los ${ctx.esDiaGuerra ? 'de hoy' : 'de la última guerra'}.`}${hayEstim ? ' ' + NOTA_PUESTO_ESTIMADO : ''}`;
   }else{
     const futuro = semVig && Number(dia.periodIndex) > Number(ctx.periodIndex);
     txt = `${titulo}${semTxt}. ${futuro ? 'Este día todavía no se juega.' : 'Sin puesto registrado para este día.'}`;
