@@ -19,7 +19,13 @@ const funcionesPerm=['Registrar miembro nuevo','Vetar','Modificar torneo','Corre
 const adminsPerm=['Diana','Ana','Beto'].map((n,i)=>({id:'ADM'+(i+1),nombre:n+' Prueba',esTu:i===0,funciones:funcionesPerm.slice(0,i+2).map(f=>f.id),categorias:categorias.slice(0,i+1),clanesAdmin:clanes[i%2].nombre,cuentas:[{nombre:n+' Principal',tag:'#'+(i+1)+'ABCD',clan:clanes[0].nombre},{nombre:n+' Alt',tag:'#'+(i+5)+'ABCD',clan:clanes[1].nombre}]}));
 // guerra.html: control diario (J/V/S/D) y control de temporada (Sem 1..N), por clan
 const dd=(k,t)=>({j:Math.min(4,t),v:(k+1)%5,s:k%4,d:null,total:Math.min(4,t)+(k+1)%5+k%4});
-const filasDia=(c)=>miembros.map((m,k)=>({tag:m.tag,nombre:m.nombre,rango:m.rango==='Lider'?'Líder':(m.rango==='Colider'?'Colíder':m.rango),activo:k!==9,ataques:dd(k,4),barcos:{j:k%3,v:(k+1)%3,s:0,d:null,total:k%3+(k+1)%3,opc:k%2?['j']:[]},puntaje:{j:1400-k*60,v:1300-k*50,s:900,d:null,total:3600-k*110}}));
+// Forma REAL de una fila de Valores diarios (Base/src/38_Web_Endpoints.gs, _getControlActivosGridPorTemporada): ataques j,v,s,d,total en la propia fila; puntaje y barcos como objetos {j,v,s,d,total}; opc solo si hay dias opcionales. Un dia sin registro = null.
+const filasDia=(c)=>miembros.map((m,k)=>{const a=dd(k,4),nada=k===9;const o=(x)=>nada?null:x;
+ return {tag:m.tag,nombre:m.nombre,rango:m.rango==='Lider'?'Líder':(m.rango==='Colider'?'Colíder':m.rango),activo:k!==9,
+  j:o(a.j),v:o(a.v),s:o(a.s),d:null,total:o(a.total),
+  puntaje:{j:o(1400-k*60),v:o(1300-k*50),s:o(900),d:null,total:o(3600-k*110)},
+  barcos:{j:o(k%3),v:o((k+1)%3),s:o(0),d:null,total:o(k%3+(k+1)%3)},
+  ...(k%2?{opc:['s']}:{})};});
 const sw=(k,base)=>[0,1,2,3].map(i=>k===9&&i<2?null:Math.max(0,base-(i+k)%5));
 const filasTemp=(c)=>miembros.map((m,k)=>({tag:m.tag,nombre:m.nombre,rango:m.rango==='Lider'?'Líder':(m.rango==='Colider'?'Colíder':m.rango),activo:k!==9,ataques:{semanas:sw(k,16),total:60-k,pct:Math.round((60-k)/64*100)},barcos:{semanas:sw(k,3),total:9-k%5,pct:Math.round((9-k%5)/12*100)},puntaje:{semanas:sw(k,3000),prom:2500-k*40,pct:null}}));
 const porClanF=(fn)=>Object.fromEntries(clanes.map(c=>[c.nombre,fn(c)]));
