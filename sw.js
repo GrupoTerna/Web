@@ -146,7 +146,8 @@
 // v81 (14-oct-2026): perfil.html cambió (CORE_ASSETS) -- ventana «Niveles y evoluciones»: los Campeones cuentan como carta base, oro de las cartas por desbloquear bajo cada nivel e ícono Wild Shard en los fragmentos (§PF071).
 // v82 (14-oct-2026): util.js, index.html y clan.html cambiaron (CORE_ASSETS) -- los tres momentos de la portada y de clan.html salen de fmtTresTiemposDeResultado(), igual que el resto del sitio.
 // v83 (14-oct-2026): guerra.html cambió (CORE_ASSETS) -- «— 0 pendientes» de Participación de Hoy sin opacidad, para llegar a 4.5:1 de contraste (§PF050).
-const CACHE_NAME = 'terna-static-v83';
+// v84 (14-oct-2026): perfil.html cambió (CORE_ASSETS) -- en móvil la página medía 609 px (bloque de cuadritos con min-width fijo, tabla de Progreso en eventos sin salto de línea), por eso las ventanas abrían ampliadas y desplazadas (§PF076).
+const CACHE_NAME = 'terna-static-v84';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y

@@ -689,6 +689,8 @@
   .panel-stats{width:100%; border-collapse:collapse; font-size:13px; margin-top:12px;}
   .panel-stats td{padding:8px 10px; border-bottom:1px solid var(--line); color:var(--text-dim); vertical-align:top;}
   .panel-stats td:last-child{text-align:right; color:var(--text); font-family:var(--f-mono); font-size:12px; white-space:nowrap;}
+  /* 14-oct-2026 (pedido usuario, zoom alto en móvil): con white-space:nowrap la celda de valor («Arena 3 · 900 🏆 (mejor 1,000)») hacía la tabla de «Progreso en eventos» más ancha que la tarjeta a 360 px y la página crecía 12 px; en pantallas angostas el valor puede bajar de línea. [→ Contexto_Base_Web.md §PF076] */
+  @media (max-width:480px){ .panel-stats td:last-child{white-space:normal;} }
   /* FIX (23-sep-2026, pedido usuario — "solo se hizo el cambio en la
      colección completa pero falta en las otras secciones de cartas en
      perfil.html"): "Carta favorita" deja de usar su propio wrapper
@@ -1175,7 +1177,8 @@
                los minigráficos de dispersión (Ataques/Fama) -- ver
                #mMiniGraficosWrap más abajo, donde se juntan los 4
                minigráficos en una sola fila. Se pinta desde renderExtendido(). -->
-          <div id="mCuadritosWrap" style="flex:2; min-width:556px;"></div>
+          <!-- FIX (14-oct-2026, pedido usuario -- "en la versión móvil aparece con un zoom muy alto y hay que alejar"): min-width:556px fijo era más ancho que la tarjeta en un celular (≈284-342 px), así que toda la página de perfil medía 609 px y el navegador ampliaba/desplazaba las ventanas (position:fixed). min(556px,100%) conserva los 556 px cuando caben y, si no, el bloque baja entero con el ancho de su contenedor. [→ Contexto_Base_Web.md §PF076] -->
+          <div id="mCuadritosWrap" style="flex:2; min-width:min(556px,100%);"></div>
         </div>
         <!-- FIX (27-sep-2026, pedido usuario -- "los minigráficos de ataques y
              puntaje ponlos debajo del bloque de requisitos y a la derecha de
