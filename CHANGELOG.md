@@ -28,6 +28,11 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 
 ---
 
+## 13-oct-2026
+
+- **`assets/styles.css`, `index.html`, `comunidad.html`, `torneos.html`, `directorio.html`, `guerra.html` y `sw.js` · Separación estándar de 20 px entre secciones, como en perfil.** Variable nueva `--gap-seccion` (20 px) en `:root`. `section{padding}` pasa de 72 px (40 px bajo 720 px) a la mitad de la variable, así que en `index.html` la separación baja de 144 px (80 px en móvil) a 20 px. `.hist-seccion` y `.torneos-sec` (con cinta) usan la variable como `margin-top` (eran 22 px; Torneos sumaba 28 px más de relleno abajo, ahora 0). Las cabeceras de Comunidad y Torneos pierden el relleno y el margen inferior propios, para que la primera sección quede también a 20 px. `directorio.html`: los `padding` en línea de las cuatro secciones (40 y 32 px) pasan a la variable y los tres contenedores vacíos del comparador (`#compWrap`, `#compBarrasWrap`, `#compGuerraChartWrap`) no ocupan espacio mientras estén vacíos. `guerra.html`: los `padding:24px 0` en línea pasan a la mitad de la variable y `.clan-grid` se come el `margin-bottom` de 16 px de la última fila de tarjetas. `sw.js` v71. [→ Contexto_Base_Web.md §PF069]
+- **`perfil.html`, `assets/styles.css` y `assets/img/deco-*.webp` · Emotes decorativos en el hueco de arriba a la derecha del perfil.** Bloque `.deco-emotes` (posición absoluta dentro de `<main>`, que pasa a `position:relative`) con `deco-nyanhog.webp` y `deco-icewizard.webp` (WebP de 200 px de alto, ~18 KB cada uno, recortados al contorno desde los PNG del Fan Kit). Se muestra solo con el perfil cargado, no recibe clics, es `aria-hidden` y se oculta bajo 900 px. [→ Contexto_Base_Web.md §PF069]
+
 ## 12-oct-2026
 
 - **`perfil.html`, `sw.js` y `test/perfil-eje-x-grafica.test.js` · Eje X de las gráficas de perfil igual al de copas de clan.** `perfilLineChartSvg()`: con 7 días o menos se rotula la fecha de todos; con más, solo las de los domingos; si una semana de guerra no trae su domingo (ni real ni como hueco sin dato) se inserta un placeholder con esa fecha (punto hueco, tramo punteado, valor interpolado por fecha entre sus vecinos reales; sin vecino posterior, el último valor). Sin helpers nuevos de nivel superior. Cinco pruebas nuevas. `sw.js` v70. [→ Contexto_Base_Web.md §PF066]
