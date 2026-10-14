@@ -94,7 +94,7 @@
   .cp-sub{grid-column:1 / -1; display:flex; flex-wrap:wrap; justify-content:space-between; gap:0 6px; font-family:var(--f-mono); font-size:10px; color:var(--text-faint); white-space:nowrap;}
   /* Alinea entre tarjetas cada sección (cabecera, puesto, números, barra, asistencia, pronóstico) aunque una cabecera sea más alta que otra: cada tarjeta comparte las filas de la grilla (subgrid). Sin soporte, queda el layout normal. */
   @supports (grid-template-rows: subgrid){
-    .clan-grid{row-gap:0;}
+    .clan-grid{row-gap:0; margin-bottom:-16px;} /* 13-oct-2026: quita los 16 px de margin-bottom de la última fila de tarjetas para que la separación con la sección siguiente sea la estándar (§PF069) */
     .clan-card{display:grid; grid-template-rows:subgrid; grid-row:span 6; row-gap:0; margin-bottom:16px; align-content:start;}
     .clan-card > .clan-cab{grid-row:1;}
     .clan-card > .clan-puesto{grid-row:2;}
@@ -455,7 +455,7 @@
 
   <div id="content" style="display:none">
 
-    <section style="padding:28px 0 24px;">
+    <section style="padding:var(--gap-seccion) 0 calc(var(--gap-seccion) / 2);">
       <!-- 11-oct-2026 (pedido usuario): se quita el encabezado visible «Guerra de Hoy»; queda solo para lectores de pantalla. «Ver pronóstico» y el conteo de clanes subieron a la fila del título. -->
       <h2 class="sr-solo">Guerra de Hoy</h2>
       <!-- Parte 1 (05-oct-2026): aviso visible solo fuera de día de guerra, cuando las tarjetas muestran los resultados congelados de la última guerra. Se llena en render(). -->
@@ -465,7 +465,7 @@
     </section>
 
     <!-- Pronóstico de Hoy: pública, solo en día de guerra; oculta si el backend no responde. Sin aria-live (se refresca sola). Historial en CHANGELOG.md. -->
-    <section id="pronosticoSection" style="padding:24px 0; display:none;">
+    <section id="pronosticoSection" style="padding:calc(var(--gap-seccion) / 2) 0; display:none;">
       <div class="sec-head pf-cinta pf-cinta--seccion" style="--cinta:url(img/cinta-guerra-pronostico.webp); border-bottom:1px solid var(--line); padding-bottom:12px;">
         <h2 style="font-size:22px;">📈 Pronóstico de Hoy</h2>
         <div class="text-faint" style="font-family:var(--f-mono); font-size:12px; margin-top:10px;">Techo de fama que cada clan todavía puede alcanzar hoy con los ataques que le quedan: una cota máxima, no una predicción. «Solo roster» supone que juegan únicamente las cuentas que ya están en la carrera; «Techo máximo» supone además que las cuentas sin atacar se reemplazan por cuentas de apoyo.</div>
@@ -474,7 +474,7 @@
     </section>
 
     <!-- la sección siempre se pintaba sin importar ctx.esDiaGuerra, así que en día de entrenamiento se veía una tabla con una fila "placeholder" que confunde en vez de información real de ataques pendientes. Historial en CHANGELOG.md. -->
-    <section id="pendSection" style="padding:24px 0;">
+    <section id="pendSection" style="padding:calc(var(--gap-seccion) / 2) 0;">
       <div class="sec-head pf-cinta pf-cinta--seccion" style="--cinta:url(img/cinta-guerra-pendientes.webp); display:flex; align-items:baseline; justify-content:space-between; border-bottom:1px solid var(--line); padding-bottom:12px;">
         <h2 style="font-size:22px;">⚠️ Pendientes de Atacar</h2>
         <span class="text-faint" id="pendCount" style="font-family:var(--f-mono); font-size:13px;"></span>
@@ -493,7 +493,7 @@
     </section>
 
     <!-- FASE 3 del plan de fases (punto 3 del documento — "cuentas y ataques disponibles por día, detección de reemplazo"). Solo-admin y solo día de guerra (mismo criterio que Mensajes de Guerra y Aportes de Inactivos) — ver cargarParticipacionHoySiAdmin() más abajo.… Historial en CHANGELOG.md. -->
-    <section id="participacionHoySection" style="padding:24px 0;">
+    <section id="participacionHoySection" style="padding:calc(var(--gap-seccion) / 2) 0;">
       <div class="sec-head pf-cinta pf-cinta--seccion" style="--cinta:url(img/cinta-guerra-participacion.webp); border-bottom:1px solid var(--line); padding-bottom:12px;">
         <h2 style="font-size:22px;">🔁 Participación de Hoy (Reemplazos)</h2>
         <div class="text-faint" style="font-family:var(--f-mono); font-size:12px; margin-top:10px;">Por clan: cuentas que ya usaron al menos 1 de sus 4 ataques hoy (reservadas, no reemplazables) vs. cuentas activas que todavía no atacaron (reemplazables). Solo visible para administradores.</div>
@@ -508,7 +508,7 @@
     </section>
 
     <!-- sección NUEVA — acá se pinta la cuadrícula completa Jugador/J/V/S/D/Total/Puntaje/Barcos de CADA miembro Activo de Directorio, agrupado por su clan. Historial en CHANGELOG.md. -->
-    <section id="controlActivosSection" style="padding:24px 0;">
+    <section id="controlActivosSection" style="padding:calc(var(--gap-seccion) / 2) 0;">
       <div class="sec-head pf-cinta pf-cinta--seccion" style="--cinta:url(img/cinta-guerra-diarios.webp); display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:10px; border-bottom:1px solid var(--line); padding-bottom:12px;">
         <h2 style="font-size:22px;">🗂️ Valores diarios</h2>
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
@@ -546,7 +546,7 @@
 
 
     <!-- sección PÚBLICA (sin gate de admin, mismo criterio que la de arriba), una tarjeta por clan con Jugador + Ataques/Puntaje/Barcos, pero cada megacategoría trae una columna por SEMANA de guerra ya jugada en la temporada actual (sacadas de la hoja… Historial en CHANGELOG.md. -->
-    <section id="controlTemporadaSection" style="padding:24px 0;">
+    <section id="controlTemporadaSection" style="padding:calc(var(--gap-seccion) / 2) 0;">
       <div class="sec-head pf-cinta pf-cinta--seccion" style="--cinta:url(img/cinta-guerra-semanales.webp); display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:10px; border-bottom:1px solid var(--line); padding-bottom:12px;">
         <h2 style="font-size:22px;">🗓️ Valores semanales</h2>
         <div style="display:flex; gap:8px; flex-wrap:wrap;">
@@ -575,7 +575,7 @@
     </section>
 
     <!-- Log de Guerra: histórico por clan (Temporada → Semana → Puesto/Barcos/Trofeos), sección pública que se carga una sola vez al entrar a la página. Historial en CHANGELOG.md. -->
-    <section id="guerraLogSection" style="padding:24px 0; display:none;">
+    <section id="guerraLogSection" style="padding:calc(var(--gap-seccion) / 2) 0; display:none;">
       <div class="sec-head pf-cinta pf-cinta--seccion" style="--cinta:url(img/cinta-guerra-log.webp); border-bottom:1px solid var(--line); padding-bottom:12px;">
         <h2 style="font-size:22px;">📜 Log de Guerra (Histórico)</h2>
       </div>

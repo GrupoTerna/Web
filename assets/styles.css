@@ -6,6 +6,8 @@
    ========================================================================== */
 
 :root{
+  /* 13-oct-2026 (pedido usuaria): una sola separación entre secciones/tarjetas en toda la web: la de perfil (20 px). Se usa en `section{padding}` (mitad arriba y mitad abajo) y en los margin-top de las secciones con cinta. [→ Contexto_Base_Web.md §PF069] */
+  --gap-seccion:20px;
   /* Color Tokens */
   --bg:           #040508;
   --bg-2:         #090b12;
@@ -310,17 +312,12 @@ h1,h2,h3,h4{font-family:var(--f-display); font-weight:700; text-transform:upperc
 }
 
 /* ---------- Secciones ---------- */
-section{padding:72px 0;}
-/* FIX (31-ago-2026, pedido usuario — "hay demasiado espacio entre una
-   sección y la otra... en la web se ve bien, pero en el celular se ve muy
-   lejano"): el padding:72px 0 fijo se pensó para el ancho de escritorio;
-   en pantallas angostas, donde además cada sección ya ocupa más alto
-   porque el contenido se apila en una sola columna, ese mismo espacio se
-   percibe como un salto excesivo entre secciones. Se recorta solo por
-   debajo de 720px, sin tocar el valor de escritorio. */
-@media (max-width:720px){
-  section{padding:40px 0;}
-}
+section{padding:calc(var(--gap-seccion) / 2) 0;}
+/* 13-oct-2026 (pedido de la usuaria — "en index se deja demasiado espacio"; reemplaza lo de abajo): antes `section{padding:72px 0}` (40px bajo 720px) dejaba 144 px (80 en móvil) entre una sección y otra. Ahora todas las secciones comparten la separación de perfil (`--gap-seccion`, 20 px = 10 px arriba + 10 abajo), en escritorio y en móvil, así que ya no hace falta el recorte bajo 720 px del FIX del 31-ago-2026. [→ Contexto_Base_Web.md §PF069] */
+/* Emotes decorativos en huecos vacíos (13-oct-2026, §PF069): se colocan con position:absolute dentro de un contenedor con position:relative; no reciben clics y no se muestran en pantallas angostas, donde el hueco no existe. */
+.deco-emotes{position:absolute; top:50px; right:24px; display:flex; align-items:flex-end; gap:18px; pointer-events:none; z-index:0;}
+.deco-emotes img{height:84px; width:auto; filter:drop-shadow(0 6px 14px rgba(0,0,0,.45));}
+@media (max-width:900px){ .deco-emotes{display:none;} }
 .sec-head{margin-bottom:36px;}
 .sec-head h2{font-size:clamp(26px,3.4vw,36px); margin-top:10px; line-height: 1.1;}
 /* Sin max-width: los subtítulos de sección deben caber en una sola línea
