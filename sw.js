@@ -134,7 +134,8 @@
 // v69 (12-oct-2026): guerra.html cambió (CORE_ASSETS) -- banners en la cabecera y las 6 secciones de la página (§PF065, tanda 7). Las imágenes cinta-guerra-*.webp nuevas no se precachean.
 // v70 (12-oct-2026): perfil.html cambió (CORE_ASSETS) -- eje X de las gráficas: con más de 7 días solo se rotulan los domingos y, si una semana no trae su domingo, se agrega un placeholder interpolado (§PF066).
 // v71 (13-oct-2026): styles.css, index.html, directorio.html, guerra.html, torneos.html, comunidad.html, perfil.html cambiaron (CORE_ASSETS) -- separación estándar entre secciones de 20 px y emotes decorativos en perfil (§PF069). Las imágenes deco-*.webp nuevas no se precachean.
-const CACHE_NAME = 'terna-static-v71';
+// v72 (13-oct-2026): directorio.html cambió (CORE_ASSETS) -- menos espacio entre el subtítulo y el recuadro de cada sección con cinta (§PF069).
+const CACHE_NAME = 'terna-static-v72';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
