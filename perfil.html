@@ -588,7 +588,8 @@
   .cc-oro--cero{color:var(--text-faint);}
   .mini-pie-nota{margin-top:10px; font-family:var(--f-mono); font-size:9px; color:var(--text-faint); text-align:center; display:flex; align-items:center; justify-content:center; gap:4px;}
   .mini-pie-nota img{height:11px; width:auto;}
-  .coleccion-nivel-pie-wrap{flex-shrink:0; display:flex; justify-content:center;}
+  .coleccion-nivel-pie-wrap{flex-shrink:0; display:flex; flex-direction:column; align-items:center; gap:0;}
+  .coleccion-nivel-pie-wrap .ver-mas-btn{margin-top:10px;}
   .coleccion-nivel-pie-wrap .mini-pie{min-height:0; padding:14px 18px 12px;}
   .coleccion-nivel-pie-wrap .mini-pie-titulo{margin-bottom:10px;}
   /* FIX (23-sep-2026, pedido usuario — "el tamaño de los íconos de elixir
@@ -786,6 +787,23 @@
   .mazo-modal-campo select:hover, .mazo-modal-campo select:focus{border-color:var(--purple); color:var(--purple-light);}
   .mazo-modal-ayuda{margin-top:6px; font-size:12px; line-height:1.5; color:var(--text-dim);}
   .mazo-modal-acciones{margin-top:22px; display:flex; justify-content:flex-end;}
+  /* 14-oct-2026 (pedido de la usuaria; §PF071): ventana «Niveles y evoluciones» de la colección: más ancha que la de costo y con el diagrama de evoluciones y héroes. */
+  .costo-modal.costo-modal--ancho{max-width:680px;}
+  .col-modal-seccion{margin-top:22px;}
+  .col-modal-seccion > h4{font-family:var(--f-mono); font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--text-dim); margin:0 0 10px;}
+  .col-modal-nota{margin-top:10px; font-family:var(--f-mono); font-size:11px; color:var(--text-faint); line-height:1.5;}
+  .col-modal-scroll{overflow-x:auto;}
+  .col-modal-scroll .costo-tabla td, .col-modal-scroll .costo-tabla th{white-space:nowrap;}
+  .col-modal-scroll .costo-tabla td.num, .col-modal-scroll .costo-tabla th.num{text-align:right;}
+  .venn-svg{width:100%; max-width:560px; height:auto; display:block; margin:0 auto;}
+  .venn-uni{fill:rgba(255,255,255,.02); stroke:var(--line-strong); stroke-width:2;}
+  .venn-evo{fill:rgba(162,57,255,.22); stroke:var(--purple); stroke-width:2;}
+  .venn-heroe{fill:rgba(243,169,34,.2); stroke:var(--gold); stroke-width:2;}
+  .venn-num{font-family:var(--f-mono); font-size:16px; font-weight:700; fill:var(--text); text-anchor:middle;}
+  .venn-num-chico{font-family:var(--f-mono); font-size:12px; font-weight:700; fill:var(--text); text-anchor:middle;}
+  .venn-lbl{font-family:var(--f-mono); font-size:11px; letter-spacing:.06em; fill:var(--text-dim); text-anchor:middle; text-transform:uppercase;}
+  .venn-leyenda{list-style:none; margin:12px 0 0; padding:0; display:grid; gap:4px; font-size:12px; color:var(--text-dim); line-height:1.5;}
+  .venn-leyenda b{color:var(--text);}
   .costo-tabla{width:100%; border-collapse:collapse; margin-top:18px; font-size:13px;}
   .costo-tabla th{font-family:var(--f-mono); font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--text-faint); text-align:left; padding:6px 8px; border-bottom:1px solid var(--line);}
   .costo-tabla td{padding:6px 8px; border-bottom:1px solid var(--line); color:var(--text);}
@@ -1450,6 +1468,17 @@
     <div class="mazo-modal-acciones">
       <button type="button" class="btn btn-primary btn-pastilla" id="mazoModalGenerar">Generar enlace</button>
     </div>
+  </div>
+</div>
+
+<!-- ---------- MODAL "NIVELES Y EVOLUCIONES" (14-oct-2026, §PF071) ----------
+     Lo abre la pastilla «Ver niveles y evoluciones» que queda junto a la dona de «Cartas por nivel» (renderColeccion()). -->
+<div class="costo-modal-overlay" id="coleccionModalOverlay" role="dialog" aria-modal="true" aria-labelledby="coleccionModalTitulo" aria-hidden="true">
+  <div class="costo-modal costo-modal--ancho" id="coleccionModal">
+    <button type="button" class="costo-modal-close" id="coleccionModalClose" aria-label="Cerrar">&times;</button>
+    <div class="eyebrow">Colección</div>
+    <h3 style="margin-top:6px;" id="coleccionModalTitulo">Niveles, evoluciones y héroes</h3>
+    <div id="coleccionModalContenido"></div>
   </div>
 </div>
 
@@ -2818,7 +2847,7 @@ function renderColeccion(j){
       valor: (Math.floor(nivelPromedio * 100) / 100).toFixed(2),
       titulo: `Promedio ponderado: cada nivel pesa por la cantidad de cartas que tienes en él (${nivelesCarta.length} cartas). Parte entera: ${nivelBase}.`
     }] : [];
-    nivelPieWrap.innerHTML = _pastelMiniHtml('Cartas por nivel', presentesNivel.map((n, i) => ({
+    const _porcionesNivel = presentesNivel.map((n, i) => ({
       etiqueta: `Nv. ${n}`,
       valor: nivelesCarta.filter(x => x === n).length,
       color: paletaNiveles[i],
@@ -2831,7 +2860,13 @@ function renderColeccion(j){
         const tip = `Oro para subir todas las cartas de niveles menores hasta el nivel ${n}: ${fmtNum(r.oro)}${r.incompleto ? ' (m\u00ednimo: faltan costos de alguna carta)' : ''}`;
         return `<span class="cc-oro" title="${esc(tip)}">${_ICONO_ORO_HTML}${pre}${esc(fmtNum(r.oro))}</span>`;
       })()
-    })), extrasNivel, { icono: '📊', centroEtiqueta: 'Cartas', nota: `${_ICONO_ORO_HTML} Oro acumulado para subir todo hasta cada nivel` });
+    }));
+    // 14-oct-2026 (pedido de la usuaria; §PF071): en la página queda solo la dona y una pastilla; la tabla de niveles con el oro, el diagrama de evoluciones y héroes y la tabla de costos van en una ventana.
+    const _optsNivel = { icono: '📊', centroEtiqueta: 'Cartas', nota: `${_ICONO_ORO_HTML} Oro acumulado para subir todo hasta cada nivel` };
+    _nivelPieModalHtml = _pastelMiniHtml('Cartas por nivel', _porcionesNivel, extrasNivel, _optsNivel);
+    nivelPieWrap.innerHTML = _pastelMiniHtml('Cartas por nivel', _porcionesNivel, extrasNivel, Object.assign({ soloDonut: true }, _optsNivel))
+      + '<button type="button" class="ver-mas-btn" id="mColeccionNivelBtn" aria-haspopup="dialog">Ver niveles y evoluciones</button>';
+    document.getElementById('mColeccionNivelBtn').addEventListener('click', e => abrirModalColeccion(e.currentTarget));
   }
   // Las 3 filas comparten el mismo estado de filtros (_colFiltrosActivos):
   // cada pastilla se prende/apaga sola (opción múltiple, sin desmarcar las
@@ -3442,6 +3477,120 @@ document.getElementById('mazoModalGenerar').addEventListener('click', () => {
   window.open(url, '_blank', 'noopener');
 });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarModalMazo(); });
+
+/* ---------- Ventana «Niveles y evoluciones» de la colección (14-oct-2026, pedido de la usuaria; §PF071) ----------
+ * Junta la dona y la tabla de «Cartas por nivel» (con el oro), un diagrama de conjuntos de evoluciones y héroes, y la tabla de lo que falta
+ * (fragmentos de evolución y monedas de héroe). Todo sale de lo que ya llega: rawClash.cards (desbloqueadas) y rawClash.cardsBloqueadas. */
+const COSTO_FRAGMENTOS_EVO = 6;
+let _nivelPieModalHtml = '';
+let _coleccionModalOpener = null;
+
+/**
+ * _evoHeroeResumen(cartas, bloqueadas)
+ * Reparte TODAS las cartas (desbloqueadas y por desbloquear; las de torre no entran) en los conjuntos del diagrama:
+ *  - soloEvo: tienen evolución y no héroe (maxEvolutionLevel 1); ambos: evolución y héroe (3); soloHeroe: héroe y no evolución (2, y los Campeones, que traen su héroe);
+ *  - base: sin evolución ni héroe (la carta en su forma base).
+ * Cada conjunto trae `tot` (existentes) y `tiene` (desbloqueadas); `ambos` trae `evo` y `heroe` por separado, porque una carta puede tener una variante y no la otra.
+ * Una carta por desbloquear no tiene ninguna variante desbloqueada. `evo` y `heroe` son los totales de cada variante; el héroe NO cuenta a los Campeones (no cuesta monedas).
+ */
+function _evoHeroeResumen(cartas, bloqueadas){
+  const r = {
+    soloEvo: { tot: 0, tiene: 0 }, ambos: { tot: 0, evo: 0, heroe: 0 }, soloHeroe: { tot: 0, tiene: 0 }, base: { tot: 0, tiene: 0 },
+    evo: { tot: 0, tiene: 0 }, heroe: { tot: 0, tiene: 0 }, campeones: 0
+  };
+  const procesar = (c, desbloqueada) => {
+    if (!c) return;
+    const campeon = rarezaKey(c.rarity) === 'campeon';
+    const conEvo = _evoDisponible(c);
+    const conHeroe = _heroeDisponible(c);
+    const evoOk = desbloqueada && _evoTiene(c);
+    const heroeOk = desbloqueada && _heroeTiene(c);
+    if (conEvo){ r.evo.tot++; if (evoOk) r.evo.tiene++; }
+    if (conHeroe && !campeon){ r.heroe.tot++; if (heroeOk) r.heroe.tiene++; }
+    if (campeon) r.campeones++;
+    if (conEvo && conHeroe){ r.ambos.tot++; if (evoOk) r.ambos.evo++; if (heroeOk) r.ambos.heroe++; }
+    else if (conEvo){ r.soloEvo.tot++; if (evoOk) r.soloEvo.tiene++; }
+    else if (conHeroe){ r.soloHeroe.tot++; if (heroeOk) r.soloHeroe.tiene++; }
+    else { r.base.tot++; if (desbloqueada) r.base.tiene++; }
+  };
+  (Array.isArray(cartas) ? cartas : []).forEach(c => procesar(c, true));
+  (Array.isArray(bloqueadas) ? bloqueadas : []).forEach(c => procesar(c, false));
+  return r;
+}
+
+/** Diagrama de conjuntos (SVG): a la izquierda evolución, a la derecha héroe, en el centro las que tienen ambos, y afuera de los círculos la carta en su forma base. */
+function _vennEvoHeroeHtml(r){
+  const f = (x, y) => `${x}/${y}`;
+  const ariaTxt = `Solo evolución: ${f(r.soloEvo.tiene, r.soloEvo.tot)}. Evolución y héroe: evoluciones ${f(r.ambos.evo, r.ambos.tot)}, héroes ${f(r.ambos.heroe, r.ambos.tot)}. Solo héroe: ${f(r.soloHeroe.tiene, r.soloHeroe.tot)}. Solo carta base: ${f(r.base.tiene, r.base.tot)}.`;
+  return `
+    <svg class="venn-svg" viewBox="0 0 520 260" role="img" aria-label="${esc(ariaTxt)}">
+      <rect class="venn-uni" x="6" y="6" width="508" height="248" rx="14"/>
+      <circle class="venn-evo" cx="205" cy="130" r="92"/>
+      <circle class="venn-heroe" cx="315" cy="130" r="92"/>
+      <text class="venn-lbl" x="150" y="58">Evolución</text>
+      <text class="venn-lbl" x="370" y="58">Héroe</text>
+      <text class="venn-num" x="150" y="136">${esc(f(r.soloEvo.tiene, r.soloEvo.tot))}</text>
+      <text class="venn-num-chico" x="260" y="124">✨ ${esc(f(r.ambos.evo, r.ambos.tot))}</text>
+      <text class="venn-num-chico" x="260" y="146">🦸 ${esc(f(r.ambos.heroe, r.ambos.tot))}</text>
+      <text class="venn-num" x="370" y="136">${esc(f(r.soloHeroe.tiene, r.soloHeroe.tot))}</text>
+      <text class="venn-lbl" x="458" y="206">Solo carta base</text>
+      <text class="venn-num" x="458" y="230">${esc(f(r.base.tiene, r.base.tot))}</text>
+    </svg>
+    <ul class="venn-leyenda">
+      <li>✨ <b>Solo evolución</b>: ${esc(f(r.soloEvo.tiene, r.soloEvo.tot))} evoluciones desbloqueadas.</li>
+      <li>✨🦸 <b>Evolución y héroe</b> (centro): ${esc(f(r.ambos.evo, r.ambos.tot))} evoluciones y ${esc(f(r.ambos.heroe, r.ambos.tot))} héroes desbloqueados.</li>
+      <li>🦸 <b>Solo héroe</b>: ${esc(f(r.soloHeroe.tiene, r.soloHeroe.tot))} héroes desbloqueados${r.campeones ? ' (los Campeones traen su héroe)' : ''}.</li>
+      <li>🃏 <b>Solo carta base</b> (sin evolución ni héroe): ${esc(f(r.base.tiene, r.base.tot))} cartas desbloqueadas.</li>
+    </ul>`;
+}
+
+/** Tabla de lo que falta: existentes, desbloqueadas, faltan, costo de cada una y total. Evolución: 6 fragmentos; héroe: 200 monedas (los Campeones no cuestan). */
+function _tablaEvoHeroeHtml(r){
+  const faltaEvo = Math.max(0, r.evo.tot - r.evo.tiene);
+  const faltaHeroe = Math.max(0, r.heroe.tot - r.heroe.tiene);
+  const fila = (ico, nombre, v, falta, costoUnid, unidad, total) => `
+        <tr><td>${ico} ${nombre}</td><td class="num">${esc(fmtNum(v.tot))}</td><td class="num">${esc(fmtNum(v.tiene))}</td><td class="num">${esc(fmtNum(falta))}</td>
+          <td class="num">${esc(fmtNum(costoUnid))} ${unidad}</td><td class="num"><b>${esc(fmtNum(total))}</b> ${unidad}</td></tr>`;
+  return `
+    <div class="col-modal-scroll">
+      <table class="costo-tabla">
+        <thead><tr><th>Variante</th><th class="num">Existen</th><th class="num">Tienes</th><th class="num">Faltan</th><th class="num">Cada una</th><th class="num">Para las que faltan</th></tr></thead>
+        <tbody>
+        ${fila('✨', 'Evolución', r.evo, faltaEvo, COSTO_FRAGMENTOS_EVO, 'fragmentos', faltaEvo * COSTO_FRAGMENTOS_EVO)}
+        ${fila('\u{1F9B8}', 'Héroe', r.heroe, faltaHeroe, COSTO_DESBLOQUEO_HEROE, 'monedas', faltaHeroe * COSTO_DESBLOQUEO_HEROE)}
+        </tbody>
+      </table>
+    </div>
+    <div class="col-modal-nota">Se cuentan también las cartas que aún no desbloqueas. Los Campeones traen su héroe y no cuestan monedas; las monedas de héroe no desbloquean cartas, solo su héroe.</div>`;
+}
+
+function abrirModalColeccion(opener){
+  _coleccionModalOpener = opener || null;
+  const r = _evoHeroeResumen(_ultimasCartasColeccion, _ultimasCartasBloqueadas);
+  const hayVariantes = r.evo.tot > 0 || r.heroe.tot > 0 || r.soloHeroe.tot > 0;
+  document.getElementById('coleccionModalContenido').innerHTML = `
+    <div class="col-modal-seccion">${_nivelPieModalHtml}</div>
+    ${hayVariantes ? `
+    <div class="col-modal-seccion"><h4>Evoluciones y héroes</h4>${_vennEvoHeroeHtml(r)}</div>
+    <div class="col-modal-seccion"><h4>Fragmentos y monedas que faltan</h4>${_tablaEvoHeroeHtml(r)}</div>` : ''}`;
+  const ov = document.getElementById('coleccionModalOverlay');
+  ov.classList.add('open');
+  ov.setAttribute('aria-hidden', 'false');
+  document.getElementById('coleccionModalClose').focus();
+}
+function cerrarModalColeccion(){
+  const ov = document.getElementById('coleccionModalOverlay');
+  if (!ov.classList.contains('open')) return;
+  ov.classList.remove('open');
+  ov.setAttribute('aria-hidden', 'true');
+  if (_coleccionModalOpener && typeof _coleccionModalOpener.focus === 'function') _coleccionModalOpener.focus();
+  _coleccionModalOpener = null;
+}
+document.getElementById('coleccionModalClose').addEventListener('click', cerrarModalColeccion);
+document.getElementById('coleccionModalOverlay').addEventListener('click', e => {
+  if (e.target.id === 'coleccionModalOverlay') cerrarModalColeccion();
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarModalColeccion(); });
 /**
  * _activarClickCosto(nodos, lista, getObj, getNombre, getNivel)
  * Conecta cada ficha .col-card ya pintada en el DOM con la carta cruda que
@@ -3924,6 +4073,7 @@ function _paletaNivelesColeccion(n){
  * La tarjeta pasa a usar el mismo lenguaje "glass + glow" que .card/.
  * card-hover de assets/styles.css (backdrop-filter, --surface-card, --glow
  * al pasar el mouse) en vez del fondo plano --bg-2 que tenía antes.
+ * 14-oct-2026: `opts.soloDonut` (true) pinta solo el título y la dona, sin leyenda, extras ni nota (la leyenda completa va en la ventana de «Cartas por nivel»; §PF071).
  * `opts` es opcional: `{icono, centroEtiqueta}` — `icono` es un emoji que se
  * antepone al título (estilo insignia de HUD) y `centroEtiqueta` es el texto
  * chico bajo el número central (por defecto 'TOTAL').
@@ -3984,9 +4134,9 @@ function _pastelMiniHtml(titulo, porciones, extra, opts){
           </svg>
           <div class="mini-pie-donut-centro" aria-hidden="true"><b>${esc(fmtNum(centroNum))}</b><span>${esc(opts.centroEtiqueta || 'Total')}</span></div>
         </div>
-        <div class="mini-pie-leyenda${hayColumna ? ' con-col' : ''}">${leyenda}${extraHtml}
-        </div>
-      </div>${notaHtml}
+        ${opts.soloDonut ? '' : `<div class="mini-pie-leyenda${hayColumna ? ' con-col' : ''}">${leyenda}${extraHtml}
+        </div>`}
+      </div>${opts.soloDonut ? '' : notaHtml}
     </div>`;
 }
 
