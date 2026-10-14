@@ -246,3 +246,10 @@ test('Fase 5, cabeceras de clan: home.json sin clanInfo válido (vacío o con er
     assert.equal(llamadasApiGet.length, 1);
   }
 });
+
+test('D-20, contraste: «— 0 pendientes» de Participación de Hoy no lleva opacidad (con .7 daba 2.97:1)', () => {
+  const m = html.match(/\.part-pend\.part-pend-cero\s*\{([^}]*)\}/);
+  assert.ok(m, 'no se encontró la regla .part-pend.part-pend-cero en guerra.html');
+  assert.ok(!/opacity/.test(m[1]), 'la regla vuelve a llevar opacity: baja el contraste bajo 4.5:1');
+  assert.ok(/color:\s*var\(--text-faint\)/.test(m[1]));
+});
