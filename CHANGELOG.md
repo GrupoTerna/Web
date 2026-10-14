@@ -12,7 +12,7 @@ Lista corta de lo que se hizo, de más reciente a más antiguo. Cada entrada tra
 
 Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la entrada del cambio, abajo).
 
-- **Pendiente de decisión de la usuaria (13-oct-2026): una sola pastilla «Sugerencias de mazo» con ventana de opciones** (incluir/excluir y nivel mínimo, con enlace generado en el frontend). Viable y liviano, pero requiere que el backend mande la lista de cartas del catálogo con el perfil. → §PF070
+- **Sin probar con un jugador real (14-oct-2026): ventana «Sugerencias de mazo» de `perfil.html`.** Falta correr `subirBaseDesdeGithub()` (Apps Script), abrir un perfil y comprobar que llega `ext.mazoCartas`, que la ventana se ve bien (también en móvil) y que RoyaleAPI acepta el enlace de «Solo incluir» (no se sabe qué devuelve). Hasta que llegue `ext.mazoCartas` se siguen viendo las tres pastillas de antes; después hay que retirar `ext.deck`, `ext.deck2`, `ext.deck3` y ese camino. → §PF070
 - **Decisión del usuario: respaldo local para las cargas que salen de un JSON estático.** Hoy no guardan nada en el respaldo local (`_backupLocalGuardar()` solo se llama dentro de `apiGet()`), así que `staleIfError` no ayuda a quien siempre recibe datos por JSON, ni sin conexión. Riesgo: `guerra.json` pesa unos 920 KB y localStorage tiene unos 5 MB; habría que decidir qué archivos sí guardar. (Plan «JSON estático como último recurso», 09-oct-2026.)
 - **Por verificar en el backend (requiere subir `Base.md`):** si `doGet` cae a los `Backup_*.csv` cuando falla la lectura de Sheets; qué claves publican realmente `50_` a `53_Publicar_*.gs`; si el bot sigue republicando cuando Sheets falla; y si `home.json`, `roster.json`, `torneos.json`, `guerra_ctx.json` y `guerra_top.json` traen `tiempos.api.ultimaConsultaTs` (hoy solo se sabe de `guerra.json`; el frontend ya lo muestra solo si existe). El usuario enviará el backend cuando terminen estas fases.
 - **Por definir:** `index.html` y `clan.html` calculan los tres momentos por su cuenta; podrían pasar a `fmtTresTiemposDeResultado()` para tener una sola forma. No se tocó para no abarcar de más.
@@ -28,6 +28,10 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 - **Urgente (la usuaria): rotar el token de administradores que estuvo escrito en `guerra.html`, si sigue vigente.** El código ya no lo usa (30-ago) y se quitó de este archivo el 11-oct, pero este repo es público y el texto **sigue en su historial de git**; solo cambiarlo en el backend lo deja inservible. No se verificó si sigue activo; no se escribe aquí. (11-oct-2026) → §PF029
 
 ---
+
+## 14-oct-2026
+
+- **`perfil.html`, `test/perfil-sugerencias-mazo.test.js` y `sw.js` · Una sola pastilla «Sugerencias de mazo» con ventana de opciones.** `renderMazoActual()` pinta una pastilla que abre `abrirModalMazo()` (ventana `#mazoModalOverlay`, mismo estilo que «Costo de mejora») con dos desplegables —«Incluir y excluir / Solo incluir / Solo excluir» y nivel mínimo (el máximo entero del nivel promedio viene elegido)— y la pastilla «Generar enlace», que abre RoyaleAPI. Funciones nuevas: `mazoCartasValidas()`, `mazoNivelPromedio()`, `mazoNivelesDisponibles()`, `mazoUrlRoyaleApi()`; usa `ext.mazoCartas` del backend (`generarMazoPerfil()`, `31_Cards_Mazos.gs`). Si el backend no lo manda, quedan las tres pastillas de antes. `sw.js` v76. [→ §PF070]
 
 ## 13-oct-2026
 

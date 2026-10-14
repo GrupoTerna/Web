@@ -776,6 +776,16 @@
   }
   .costo-modal-close:hover{color:var(--text); border-color:var(--purple); background:rgba(162,57,255,.2);}
   .costo-modal-sub{font-family:var(--f-mono); font-size:12px; color:var(--text-dim); margin-top:4px; min-height:16px;}
+  /* 14-oct-2026 (pedido de la usuaria): ventana única «Sugerencias de mazo». Reusa .costo-modal-overlay/.costo-modal; solo agrega los campos. [→ Contexto_Base_Web.md §PF070] */
+  .mazo-modal-campo{margin-top:18px;}
+  .mazo-modal-campo label{display:block; font-family:var(--f-mono); font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--text-faint); margin-bottom:6px;}
+  .mazo-modal-campo select{
+    width:100%; font-family:var(--f-mono); font-size:13px; font-weight:600; color:var(--text);
+    border:1px solid var(--line); padding:9px 12px; border-radius:var(--radius-sm); background:var(--bg-2); cursor:pointer;
+  }
+  .mazo-modal-campo select:hover, .mazo-modal-campo select:focus{border-color:var(--purple); color:var(--purple-light);}
+  .mazo-modal-ayuda{margin-top:6px; font-size:12px; line-height:1.5; color:var(--text-dim);}
+  .mazo-modal-acciones{margin-top:22px; display:flex; justify-content:flex-end;}
   .costo-tabla{width:100%; border-collapse:collapse; margin-top:18px; font-size:13px;}
   .costo-tabla th{font-family:var(--f-mono); font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--text-faint); text-align:left; padding:6px 8px; border-bottom:1px solid var(--line);}
   .costo-tabla td{padding:6px 8px; border-bottom:1px solid var(--line); color:var(--text);}
@@ -1412,6 +1422,34 @@
     <h3 style="margin-top:6px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;" id="costoModalTitulo">—</h3>
     <div class="costo-modal-sub" id="costoModalSub"></div>
     <div id="costoModalTablaWrap"></div>
+  </div>
+</div>
+
+<!-- ---------- MODAL "SUGERENCIAS DE MAZO" (14-oct-2026, §PF070) ----------
+     Una sola pastilla en la card «Mazo actual» abre esta ventana; el enlace de RoyaleAPI se arma en el navegador con ext.mazoCartas. -->
+<div class="costo-modal-overlay" id="mazoModalOverlay" role="dialog" aria-modal="true" aria-labelledby="mazoModalTitulo" aria-hidden="true">
+  <div class="costo-modal" id="mazoModal">
+    <button type="button" class="costo-modal-close" id="mazoModalClose" aria-label="Cerrar">&times;</button>
+    <div class="eyebrow">Sugerencias de mazo</div>
+    <h3 style="margin-top:6px;" id="mazoModalTitulo">Busca mazos en RoyaleAPI</h3>
+    <div class="costo-modal-sub" id="mazoModalSub"></div>
+    <div class="mazo-modal-campo">
+      <label for="mazoModalModo">Qué cartas usar</label>
+      <select id="mazoModalModo">
+        <option value="ambos" selected>Incluir y excluir cartas</option>
+        <option value="incluir">Solo incluir cartas</option>
+        <option value="excluir">Solo excluir cartas</option>
+      </select>
+      <div class="mazo-modal-ayuda" id="mazoModalModoAyuda"></div>
+    </div>
+    <div class="mazo-modal-campo">
+      <label for="mazoModalNivel">Nivel mínimo de las cartas</label>
+      <select id="mazoModalNivel"></select>
+      <div class="mazo-modal-ayuda" id="mazoModalNivelAyuda"></div>
+    </div>
+    <div class="mazo-modal-acciones">
+      <button type="button" class="btn btn-primary btn-pastilla" id="mazoModalGenerar">Generar enlace</button>
+    </div>
   </div>
 </div>
 
@@ -3291,6 +3329,119 @@ document.getElementById('costoModalOverlay').addEventListener('click', e => {
   if (e.target.id === 'costoModalOverlay') cerrarModalCostoCarta();
 });
 document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarModalCostoCarta(); });
+
+/* ---------- Ventana «Sugerencias de mazo» (14-oct-2026, pedido de la usuaria; §PF070) ----------
+ * El backend manda en ext.mazoCartas una entrada [slug, nivel, evoLevel, maxEvoLevel] por cada carta del catálogo (sin cartas de torre);
+ * nivel = 0 si el jugador no la tiene; evoLevel = -1 si no tiene evolución ni héroe; maxEvoLevel = -1 si solo existe en versión normal.
+ * Con eso se arma la URL de RoyaleAPI aquí, con la misma regla de _construirListasMazoDesdeMapas() (31_Cards_Mazos.gs). */
+const MAZO_URL_BASE = 'https://royaleapi.com/decks/popular?time=7d&sort=win&size=30&players=PvP&min_elixir=1&max_elixir=9&evo=All&min_cycle_elixir=4&max_cycle_elixir=28&mode=detail&type=NormalBattle&global_exclude=false';
+
+/** Solo las entradas bien formadas ([slug, nivel, evoLevel, maxEvoLevel]); cualquier otra cosa se ignora. */
+function mazoCartasValidas(lista){
+  if (!Array.isArray(lista)) return [];
+  return lista.filter(c => Array.isArray(c) && typeof c[0] === 'string' && c[0] !== '');
+}
+
+/** Nivel promedio de las cartas del jugador (las de nivel 0 no cuentan); nivelMinimo = parte entera hacia abajo. Misma cuenta que _nivelPromedioCartas() del backend. */
+function mazoNivelPromedio(lista){
+  let suma = 0, n = 0;
+  mazoCartasValidas(lista).forEach(c => { const lv = Number(c[1]); if (lv >= 1){ suma += lv; n++; } });
+  return n ? { promedio: suma / n, nivelMinimo: Math.floor(suma / n), cartas: n } : null;
+}
+
+/** Niveles que ofrece el desplegable: de 1 al máximo entre 16 y el nivel más alto que traiga la lista. */
+function mazoNivelesDisponibles(lista){
+  let max = 16;
+  mazoCartasValidas(lista).forEach(c => { const lv = Number(c[1]); if (lv > max) max = lv; });
+  const niveles = [];
+  for (let n = 1; n <= max; n++) niveles.push(n);
+  return niveles;
+}
+
+/**
+ * Arma la URL de RoyaleAPI.
+ * @param {Array} lista - ext.mazoCartas.
+ * @param {'ambos'|'incluir'|'excluir'} modo - 'ambos' = inc= y exc= (antes «Sugerencias de mazo»); 'excluir' = solo exc= (antes (2) y (3)); 'incluir' = solo inc=.
+ * @param {number} nivelMinimo - una carta con nivel menor se trata como si no estuviera desbloqueada (también su evolución y su héroe), como en la (3).
+ */
+function mazoUrlRoyaleApi(lista, modo, nivelMinimo){
+  const minimo = Number(nivelMinimo) || 0;
+  const inc = [], exc = [];
+  mazoCartasValidas(lista).forEach(c => {
+    const slug = c[0];
+    const nivel = Number(c[1]) || 0;
+    const evo = c[2] == null ? -1 : Number(c[2]);
+    const maxEvo = c[3] == null ? -1 : Number(c[3]);
+    const conEvo = maxEvo === 1 || maxEvo === 3;
+    const conHeroe = maxEvo === 2 || maxEvo === 3;
+    if (!(nivel > 0 && nivel >= minimo)){
+      exc.push(slug);
+      if (conEvo) exc.push(slug + '-ev1');
+      if (conHeroe) exc.push(slug + '-hero');
+      return;
+    }
+    inc.push(slug);
+    if (conEvo){ if (evo === 1 || evo === 3) inc.push(slug + '-ev1'); else exc.push(slug + '-ev1'); }
+    if (conHeroe){ if (evo === 2 || evo === 3) inc.push(slug + '-hero'); else exc.push(slug + '-hero'); }
+  });
+  let params = '';
+  if (modo !== 'excluir') inc.forEach(x => { params += '&inc=' + encodeURIComponent(x); });
+  if (modo !== 'incluir') exc.forEach(x => { params += '&exc=' + encodeURIComponent(x); });
+  return MAZO_URL_BASE + params;
+}
+
+const MAZO_AYUDA_MODO = {
+  ambos: 'Pide mazos que usen las cartas que ya tienes y deja fuera las que aún no tienes.',
+  incluir: 'Pide mazos que usen tus cartas, sin dejar fuera de forma expresa las que no tienes.',
+  excluir: 'Deja fuera las cartas que no tienes, sin obligar a que aparezcan las que sí tienes.'
+};
+let _mazoModalCartas = [];
+let _mazoModalOpener = null;
+
+function _mazoModalAyudas(){
+  const modo = document.getElementById('mazoModalModo').value;
+  document.getElementById('mazoModalModoAyuda').textContent = MAZO_AYUDA_MODO[modo] || '';
+  const nivel = Number(document.getElementById('mazoModalNivel').value) || 1;
+  document.getElementById('mazoModalNivelAyuda').textContent = nivel <= 1
+    ? 'Sin filtro por nivel: se usan todas las cartas que tienes.'
+    : 'Las cartas por debajo del nivel ' + nivel + ' se tratan como si no las tuvieras.';
+}
+function abrirModalMazo(lista, opener){
+  _mazoModalCartas = mazoCartasValidas(lista);
+  _mazoModalOpener = opener || null;
+  const prom = mazoNivelPromedio(_mazoModalCartas);
+  const recomendado = prom ? Math.max(1, prom.nivelMinimo) : 1;
+  document.getElementById('mazoModalSub').textContent = prom
+    ? 'Nivel promedio de tus cartas: ' + prom.promedio.toFixed(1) + ' · Recomendado: ' + recomendado
+    : '';
+  document.getElementById('mazoModalModo').value = 'ambos';
+  document.getElementById('mazoModalNivel').innerHTML = mazoNivelesDisponibles(_mazoModalCartas).map(n =>
+    '<option value="' + n + '"' + (n === recomendado ? ' selected' : '') + '>Nivel ' + n + (n === recomendado ? ' (recomendado)' : '') + '</option>').join('');
+  _mazoModalAyudas();
+  const ov = document.getElementById('mazoModalOverlay');
+  ov.classList.add('open');
+  ov.setAttribute('aria-hidden', 'false');
+  document.getElementById('mazoModalModo').focus();
+}
+function cerrarModalMazo(){
+  const ov = document.getElementById('mazoModalOverlay');
+  if (!ov.classList.contains('open')) return;
+  ov.classList.remove('open');
+  ov.setAttribute('aria-hidden', 'true');
+  if (_mazoModalOpener && typeof _mazoModalOpener.focus === 'function') _mazoModalOpener.focus();
+  _mazoModalOpener = null;
+}
+document.getElementById('mazoModalClose').addEventListener('click', cerrarModalMazo);
+document.getElementById('mazoModalOverlay').addEventListener('click', e => {
+  if (e.target.id === 'mazoModalOverlay') cerrarModalMazo();
+});
+document.getElementById('mazoModalModo').addEventListener('change', _mazoModalAyudas);
+document.getElementById('mazoModalNivel').addEventListener('change', _mazoModalAyudas);
+document.getElementById('mazoModalGenerar').addEventListener('click', () => {
+  const url = mazoUrlRoyaleApi(_mazoModalCartas, document.getElementById('mazoModalModo').value, document.getElementById('mazoModalNivel').value);
+  window.open(url, '_blank', 'noopener');
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarModalMazo(); });
 /**
  * _activarClickCosto(nodos, lista, getObj, getNombre, getNivel)
  * Conecta cada ficha .col-card ya pintada en el DOM con la carta cruda que
@@ -4440,10 +4591,19 @@ function renderMazoActual(mazoActual, ext, j){
   const deck2Title = 'Búsqueda en RoyaleAPI de mazos que solo usan cartas que esta cuenta tiene desbloqueadas, sin forzar cuáles incluir (no distingue el nivel de cada carta, puede mezclar cartas al máximo con cartas de nivel bajo).';
   // Sugerencias de mazo (3) (12-oct-2026): el backend (generarMazo3()) manda ext.deck3 y ext.deck3Nivel = máximo entero del nivel promedio ponderado. [→ Contexto_Base_Web.md §PF051]
   const deck3Title = `Búsqueda en RoyaleAPI de mazos que solo usan cartas de nivel ${esc(String(ext.deck3Nivel))} o más (el nivel promedio de tus cartas, sin decimales), sin forzar cuáles incluir.`;
-  document.getElementById('mMazoActualBtns').innerHTML = `
+  // 14-oct-2026 (pedido de la usuaria): si el backend manda ext.mazoCartas, una sola pastilla abre la ventana de opciones y el enlace se arma en el navegador. Si no la manda (backend sin actualizar), quedan las tres pastillas de antes. [→ Contexto_Base_Web.md §PF070]
+  const mazoCartas = mazoCartasValidas(ext.mazoCartas);
+  const hayVentanaMazo = mazoCartas.length > 0;
+  document.getElementById('mMazoActualBtns').innerHTML = hayVentanaMazo
+    ? `<button type="button" id="mMazoSugerenciasBtn" aria-haspopup="dialog" title="Abre una ventana para armar la búsqueda de mazos en RoyaleAPI con tus cartas.">🃏 Sugerencias de mazo</button>`
+    : `
     ${deckOkBtn ? `<a href="${esc(ext.deck)}" target="_blank" rel="noopener" title="${esc(deckTitle)}">🃏 Sugerencias de mazo</a>` : ''}
     ${deck2OkBtn ? `<a href="${esc(ext.deck2)}" target="_blank" rel="noopener" title="${esc(deck2Title)}">🃏 Sugerencias de mazo (2)</a>` : ''}
     ${deck3OkBtn ? `<a href="${esc(ext.deck3)}" target="_blank" rel="noopener" title="${deck3Title}">🃏 Sugerencias de mazo (3)</a>` : ''}`;
+  if (hayVentanaMazo){
+    const btnMazo = document.getElementById('mMazoSugerenciasBtn');
+    btnMazo.addEventListener('click', () => abrirModalMazo(mazoCartas, btnMazo));
+  }
 
   // FIX (20-sep-2026, pedido usuario — "el mazo es de 8 cartas, se ven 7
   // en mi perfil"): mazoActual.cartas (_webMazoActualDesdeCards2(),
@@ -4484,7 +4644,7 @@ function renderMazoActual(mazoActual, ext, j){
   }
 
   const hayCartas = listaCartas.length > 0;
-  if (!hayCartas && !deckOkBtn && !deck2OkBtn && !deck3OkBtn){
+  if (!hayCartas && !hayVentanaMazo && !deckOkBtn && !deck2OkBtn && !deck3OkBtn){
     card.style.display = 'none';
     cont.innerHTML = '';
     return;
