@@ -12,7 +12,7 @@ const PAGS={
  directorio:{url:'directorio.html',clic:['#ingGraficasToggle'],sel:['#clanGrid > *','#rosterTableWrap tbody tr','#nuevoGrid > *','#chartsGrid .chart-card','#ingresosChartsWrap > *','#ingresosChartsWrap svg']},
  mensajes:{url:'mensajes.html',admin:true,abrir:true,sel:['details.categoria-contenido-simple','.btn-toggle-cat','.contenido-item','.contenido-tabs .tab-clan','.btn-copiar']},
  permisos:{url:'permisos.html',admin:true,abrir:true,sel:['.admin-permiso-card','.nombre-adm','.permiso-item','.permiso-item.sensible','.tag-tu']},
- guerra:{url:'guerra.html',sel:['#clanGrid > *','#pendWrap tbody tr','#pronosticoWrap > *','#participacionHoyWrap > *','#controlActivosWrap tbody tr','#controlTemporadaWrap tbody tr','#guerraLogTabs > *','svg']},
+ guerra:{url:'guerra.html',sel:['#clanGrid > *','#pendWrap tbody tr','#pronosticoWrap > *','#participacionHoyWrap > *','#controlActivosWrap tbody tr','#controlTemporadaWrap tbody tr','#guerraLogWrap .tbl-log-guerra tbody tr','svg']},
 };
 (async()=>{const s=await serve(),base='http://localhost:'+s.address().port+'/',b=await launch();
  const sel=process.argv.slice(2),lista=sel.length?sel:Object.keys(PAGS);
