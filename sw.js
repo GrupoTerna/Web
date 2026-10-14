@@ -147,7 +147,8 @@
 // v82 (14-oct-2026): util.js, index.html y clan.html cambiaron (CORE_ASSETS) -- los tres momentos de la portada y de clan.html salen de fmtTresTiemposDeResultado(), igual que el resto del sitio.
 // v83 (14-oct-2026): guerra.html cambió (CORE_ASSETS) -- «— 0 pendientes» de Participación de Hoy sin opacidad, para llegar a 4.5:1 de contraste (§PF050).
 // v84 (14-oct-2026): perfil.html cambió (CORE_ASSETS) -- en móvil la página medía 609 px (bloque de cuadritos con min-width fijo, tabla de Progreso en eventos sin salto de línea), por eso las ventanas abrían ampliadas y desplazadas (§PF076).
-const CACHE_NAME = 'terna-static-v84';
+// v85 (14-oct-2026): perfil.html y test cambiaron (CORE_ASSETS) -- ventana «Niveles y evoluciones» en móvil: números del diagrama más grandes, tabla de costos como tarjetas y puntos de color en lugar de emojis dentro del SVG (§PF076).
+const CACHE_NAME = 'terna-static-v85';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y

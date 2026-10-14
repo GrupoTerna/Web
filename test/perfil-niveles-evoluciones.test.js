@@ -102,8 +102,10 @@ test('el diagrama muestra x/y de cada región y el centro con evolución y héro
   const svg = t._vennEvoHeroeHtml(t._evoHeroeResumen(CARTAS, BLOQUEADAS));
   assert.match(svg, /<svg class="venn-svg"/);
   assert.match(svg, /class="venn-num" x="150" y="136">1\/2</);       // solo evolución
-  assert.match(svg, /✨ 2\/3/);                                        // centro: evoluciones
-  assert.match(svg, /🦸 1\/3/);                                        // centro: héroes
+  // centro: evoluciones y héroes, con un punto del color de cada círculo (14-oct-2026: antes llevaban ✨ y 🦸 dentro del SVG, y el ancho del emoji depende de cada sistema)
+  assert.match(svg, /venn-pt--evo"[^>]*\/>\s*<text class="venn-num-chico venn-fila"[^>]*>2\/3</);
+  assert.match(svg, /venn-pt--heroe"[^>]*\/>\s*<text class="venn-num-chico venn-fila"[^>]*>1\/3</);
+  assert.ok(!/[\u2728\u{1F9B8}]/u.test(svg.match(/<svg[\s\S]*?<\/svg>/)[0]), 'el SVG no debe llevar emojis (✨ ni 🦸): su ancho cambia según el sistema; la leyenda HTML de abajo sí los conserva');
   assert.match(svg, /class="venn-num" x="370" y="136">1\/2</);       // solo héroe
   assert.match(svg, /class="venn-num" x="450" y="230">3\/5</);       // carta base (con los dos Campeones)
   assert.ok(!svg.includes('Campeones'));
@@ -116,8 +118,8 @@ test('la tabla calcula lo que falta: 6 fragmentos por evolución y 200 monedas p
   const t = cargar().__t;
   const tabla = t._tablaEvoHeroeHtml(t._evoHeroeResumen(CARTAS, BLOQUEADAS));
   // evolución: 5 existen, 3 tienes, faltan 2 -> 12 fragmentos; héroe: 5 existen, 2 tienes, faltan 3 -> 600 monedas
-  assert.match(tabla, /Evolución<\/td><td class="num">5<\/td><td class="num">3<\/td><td class="num">2<\/td>\s*<td class="num">6 <img class="ico-frag"[^>]*>fragmentos<\/td><td class="num"><b>12<\/b> <img class="ico-frag"[^>]*>fragmentos/);
-  assert.match(tabla, /Héroe<\/td><td class="num">5<\/td><td class="num">2<\/td><td class="num">3<\/td>\s*<td class="num">200 monedas<\/td><td class="num"><b>600<\/b> monedas/);
+  assert.match(tabla, /Evolución<\/td><td class="num" role="cell">5<\/td><td class="num" role="cell">3<\/td><td class="num" role="cell">2<\/td>\s*<td class="num" role="cell">6 <img class="ico-frag"[^>]*>fragmentos<\/td><td class="num" role="cell"><b>12<\/b> <img class="ico-frag"[^>]*>fragmentos/);
+  assert.match(tabla, /Héroe<\/td><td class="num" role="cell">5<\/td><td class="num" role="cell">2<\/td><td class="num" role="cell">3<\/td>\s*<td class="num" role="cell">200 monedas<\/td><td class="num" role="cell"><b>600<\/b> monedas/);
 });
 
 test('si ya tiene todo, faltan 0 y el total es 0', () => {
@@ -229,4 +231,24 @@ test('prefiere el costo de la misma rareza y cae al de cualquier rareza; si falt
 test('perfil.html: el oro de las bloqueadas va en la misma celda, debajo del de las desbloqueadas', () => {
   assert.match(html, /\$\{_oroBloqHtml\(_oroBloqueadasHastaNivel\(_infoBloq, _idxOro, n\), n\)\}/);
   assert.match(html, /\.cc-oro-bloq\{/);
+});
+
+test('la tabla de costos lleva roles ARIA explícitos (en móvil las filas pasan a bloques y el navegador pierde la semántica de tabla)', () => {
+  const t = cargar().__t;
+  const tabla = t._tablaEvoHeroeHtml(t._evoHeroeResumen(CARTAS, BLOQUEADAS));
+  assert.match(tabla, /<table class="costo-tabla" role="table">/);
+  assert.equal((tabla.match(/role="columnheader"/g) || []).length, 6);
+  assert.equal((tabla.match(/<tr role="row">/g) || []).length, 3);   // encabezado + evolución + héroe
+  assert.equal((tabla.match(/role="cell"/g) || []).length, 12);      // 2 filas x 6 celdas
+  assert.equal((tabla.match(/<td(?![^>]*role="cell")/g) || []).length, 0, 'toda celda lleva role="cell"');
+});
+
+test('perfil.html: en móvil la tabla de costos pasa a una tarjeta por variante y los números del diagrama suben de tamaño', () => {
+  const m = html.match(/@media \(max-width:560px\)\{\s*\.venn-num\{[\s\S]*?\n  \}\n/);
+  assert.ok(m, 'no se encontró el bloque @media (max-width:560px) del diagrama y la tabla de costos');
+  assert.match(m[0], /\.venn-num\{font-size:22px;\}/);
+  assert.match(m[0], /\.venn-num-chico\{font-size:18px;\}/);
+  for (const [n, nombre] of [[2, 'Existen'], [3, 'Tienes'], [4, 'Faltan'], [5, 'Cada una'], [6, 'Para las que faltan']]) {
+    assert.ok(m[0].includes(`td:nth-child(${n})::before{content:"${nombre}";}`), `falta la etiqueta de la columna ${n}: ${nombre}`);
+  }
 });

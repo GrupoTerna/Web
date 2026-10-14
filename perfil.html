@@ -825,6 +825,9 @@
   .venn-lbl{font-family:var(--f-mono); font-size:11px; letter-spacing:.06em; fill:var(--text-dim); text-anchor:middle; text-transform:uppercase;}
   .venn-lbl--evo{fill:var(--purple-light); font-weight:700;}
   .venn-lbl--heroe{fill:var(--gold); font-weight:700;}
+  .venn-fila{text-anchor:start;}
+  .venn-pt--evo{fill:var(--purple-light); stroke:var(--purple); stroke-width:1;}
+  .venn-pt--heroe{fill:var(--gold); stroke:var(--gold); stroke-width:1;}
   .venn-leyenda{list-style:none; margin:12px 0 0; padding:0; display:grid; gap:4px; font-size:12px; color:var(--text-dim); line-height:1.5;}
   .venn-leyenda b{color:var(--text);}
   .costo-tabla{width:100%; border-collapse:collapse; margin-top:18px; font-size:13px;}
@@ -832,6 +835,27 @@
   .costo-tabla td{padding:6px 8px; border-bottom:1px solid var(--line); color:var(--text);}
   .costo-tabla td:first-child{font-family:var(--f-mono); white-space:nowrap;}
   .costo-tabla tfoot td{font-weight:700; border-top:1px solid var(--line-strong); border-bottom:none; padding-top:10px;}
+  /* 14-oct-2026 (§PF076): en móvil el SVG se escala a 262-292 px de ancho (factor 0,50 a 0,56) y los números quedaban en 6 a 9 px.
+   * Los tamaños suben en unidades del SVG (viewBox 520x260) para que queden en 9 a 11 px; la tabla de costos (necesitaba 547 px) pasa a una
+   * tarjeta por variante, con el nombre de cada columna delante del valor. Los roles ARIA están puestos en el HTML porque display:block/flex
+   * le quita al navegador la semántica de tabla. */
+  @media (max-width:560px){
+    .venn-num{font-size:22px;}
+    .venn-num-chico{font-size:18px;}
+    .venn-lbl--evo, .venn-lbl--heroe{font-size:16px;}
+    .venn-lbl--base{font-size:14px;}
+    .col-modal-scroll .costo-tabla, .col-modal-scroll .costo-tabla tbody, .col-modal-scroll .costo-tabla tr{display:block; width:100%;}
+    .col-modal-scroll .costo-tabla thead{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap;}
+    .col-modal-scroll .costo-tabla tr{padding:8px 0; border-bottom:1px solid var(--line);}
+    .col-modal-scroll .costo-tabla td{display:flex; justify-content:space-between; align-items:baseline; gap:12px; border:0; padding:3px 8px; white-space:normal; text-align:right;}
+    .col-modal-scroll .costo-tabla td:first-child{display:block; text-align:left; font-weight:700; padding-bottom:6px;}
+    .col-modal-scroll .costo-tabla td:not(:first-child)::before{font-family:var(--f-mono); font-size:11px; text-transform:uppercase; letter-spacing:.04em; color:var(--text-faint); text-align:left; flex:1 1 0; min-width:0;}
+    .col-modal-scroll .costo-tabla td:nth-child(2)::before{content:"Existen";}
+    .col-modal-scroll .costo-tabla td:nth-child(3)::before{content:"Tienes";}
+    .col-modal-scroll .costo-tabla td:nth-child(4)::before{content:"Faltan";}
+    .col-modal-scroll .costo-tabla td:nth-child(5)::before{content:"Cada una";}
+    .col-modal-scroll .costo-tabla td:nth-child(6)::before{content:"Para las que faltan";}
+  }
   .costo-aviso{margin-top:14px; padding:10px 12px; border-radius:var(--radius-sm); border:1px solid rgba(244,63,94,.4); background:rgba(244,63,94,.12); color:var(--text); font-size:12px; line-height:1.5;}
   /* FIX (24-sep-2026, pedido usuario — "en la tabla indica también la
      cantidad de cartas disponibles y marca en verde los valores de
@@ -3618,10 +3642,12 @@ function _vennEvoHeroeHtml(r){
       <text class="venn-lbl venn-lbl--evo" x="58" y="134">Evolución</text>
       <text class="venn-lbl venn-lbl--heroe" x="462" y="134">Héroe</text>
       <text class="venn-num" x="150" y="136">${esc(f(r.soloEvo.tiene, r.soloEvo.tot))}</text>
-      <text class="venn-num-chico" x="260" y="124">✨ ${esc(f(r.ambos.evo, r.ambos.tot))}</text>
-      <text class="venn-num-chico" x="260" y="146">🦸 ${esc(f(r.ambos.heroe, r.ambos.tot))}</text>
+      <circle class="venn-pt venn-pt--evo" cx="232" cy="119" r="5"/>
+      <text class="venn-num-chico venn-fila" x="241" y="124">${esc(f(r.ambos.evo, r.ambos.tot))}</text>
+      <circle class="venn-pt venn-pt--heroe" cx="232" cy="141" r="5"/>
+      <text class="venn-num-chico venn-fila" x="241" y="146">${esc(f(r.ambos.heroe, r.ambos.tot))}</text>
       <text class="venn-num" x="370" y="136">${esc(f(r.soloHeroe.tiene, r.soloHeroe.tot))}</text>
-      <text class="venn-lbl" x="450" y="206">Solo carta base</text>
+      <text class="venn-lbl venn-lbl--base" x="450" y="189"><tspan x="450">Solo carta</tspan><tspan x="450" dy="1.2em">base</tspan></text>
       <text class="venn-num" x="450" y="230">${esc(f(r.base.tiene, r.base.tot))}</text>
     </svg>
     <ul class="venn-leyenda">
@@ -3637,13 +3663,13 @@ function _tablaEvoHeroeHtml(r){
   const faltaEvo = Math.max(0, r.evo.tot - r.evo.tiene);
   const faltaHeroe = Math.max(0, r.heroe.tot - r.heroe.tiene);
   const fila = (ico, nombre, v, falta, costoUnid, unidad, total, icoUnidad) => `
-        <tr><td>${ico} ${nombre}</td><td class="num">${esc(fmtNum(v.tot))}</td><td class="num">${esc(fmtNum(v.tiene))}</td><td class="num">${esc(fmtNum(falta))}</td>
-          <td class="num">${esc(fmtNum(costoUnid))} ${icoUnidad || ''}${unidad}</td><td class="num"><b>${esc(fmtNum(total))}</b> ${icoUnidad || ''}${unidad}</td></tr>`;
+        <tr role="row"><td role="cell">${ico} ${nombre}</td><td class="num" role="cell">${esc(fmtNum(v.tot))}</td><td class="num" role="cell">${esc(fmtNum(v.tiene))}</td><td class="num" role="cell">${esc(fmtNum(falta))}</td>
+          <td class="num" role="cell">${esc(fmtNum(costoUnid))} ${icoUnidad || ''}${unidad}</td><td class="num" role="cell"><b>${esc(fmtNum(total))}</b> ${icoUnidad || ''}${unidad}</td></tr>`;
   return `
     <div class="col-modal-scroll">
-      <table class="costo-tabla">
-        <thead><tr><th>Variante</th><th class="num">Existen</th><th class="num">Tienes</th><th class="num">Faltan</th><th class="num">Cada una</th><th class="num">Para las que faltan</th></tr></thead>
-        <tbody>
+      <table class="costo-tabla" role="table">
+        <thead role="rowgroup"><tr role="row"><th role="columnheader">Variante</th><th class="num" role="columnheader">Existen</th><th class="num" role="columnheader">Tienes</th><th class="num" role="columnheader">Faltan</th><th class="num" role="columnheader">Cada una</th><th class="num" role="columnheader">Para las que faltan</th></tr></thead>
+        <tbody role="rowgroup">
         ${fila('✨', 'Evolución', r.evo, faltaEvo, COSTO_FRAGMENTOS_EVO, 'fragmentos', faltaEvo * COSTO_FRAGMENTOS_EVO, _ICONO_FRAGMENTO_HTML)}
         ${fila('\u{1F9B8}', 'Héroe', r.heroe, faltaHeroe, COSTO_DESBLOQUEO_HEROE, 'monedas', faltaHeroe * COSTO_DESBLOQUEO_HEROE)}
         </tbody>
