@@ -4,7 +4,7 @@ Lista corta de lo que se hizo, de más reciente a más antiguo. Cada entrada tra
 
 **Cómo funciona el código hoy, por qué se decidió así, qué se probó y se descartó: no va aquí, va en `Contexto_Base_Web.md`.** Las reglas de redacción están en `Consolidados de cambios/Reglas_Consolidados.md` (repo `Backend`), sección 5. Los pendientes tampoco viven en cada entrada: están en «Abiertos». El detalle largo anterior sigue en el historial de git.
 
-*Traslado en curso (desde el 11-oct-2026):* `torneos.html` y `comunidad.html` (30-ago a 13-sep) pasaron a `§PF084` (15-oct). Los Tramos 1 y 2 de `admin.html` (30-ago a 16-sep) pasaron a `§PF083` (15-oct). Los siete lotes de consolidación CSS de `styles.css` (18-sep) pasaron a `§PF082` (15-oct). Las dos entradas fechadas de `directorio.html` (18-sep) pasaron a `§PF016` (15-oct). Las entradas de `perfil.html` del 23 y 27-sep pasaron a `§PF081` (15-oct). Antes: las entradas desde el 04-oct-2026 ya están en formato corto y su contenido pasó a `§PF025` (8 y 9-oct), `§PF027` (5 a 7-oct) y `§PF018` (octava sesión, 2 al 5-oct). Las tandas 4 a 2 del 03 y 02-oct, la Fase 11 y el TBT de `guerra` (02-oct) también pasaron a `§PF018`, y la séptima y la sexta sesión (30 y 29-sep), las tandas D, C, B y A de la Fase 5b (28-sep), la Fase 11 del plan T_Lista (26-sep) y los comentarios desactualizados (21-sep) a `§PF017`. Del 20-sep pasaron a `§PF016` «Rendimiento (Lighthouse)», «CSS compartido», `permisos`, `mensajes` y `comunidad`. Quedó trasladado todo el 20-sep (`admin`, `perfil`, `directorio`, `index` y `guerra`) a `§PF016`. Quedó trasladado todo el 19-sep a `§PF016`: «CI y herramientas», «Rendimiento (Lighthouse)» y «SEO», «CSS compartido», `permisos`, `mensajes` y `guerra`. Con esta tanda quedaron trasladadas también las entradas de `guerra.html` del 21-sep (`§PF017`) y del 18-sep (`§PF016`). Los bloques «Línea original N (estilo)» de `guerra.html` (4 a 16-sep) y sus 10 bloques «(HTML)» (31-ago a 13-sep) pasaron a `§PF028`; sus 15 primeros bloques «(script)» (30-ago a 17-sep) pasaron a `§PF029`. Sus otros 15 bloques «(script)» (4 a 15-sep) pasaron a `§PF030`; en `guerra.html` ya no queda ningún bloque «(script)» con texto largo. Todo lo anterior (hoy ordenado por tema y archivo, no por fecha, incluidos los bloques «Línea original N» y las demás secciones por archivo) conserva su texto largo hasta que se trasladen, por tandas y de la fecha más reciente a la más antigua.
+*Traslado en curso (desde el 11-oct-2026):* los bloques «Línea original N» de `perfil.html` (31-ago a 13-sep) pasaron a `§PF085` (15-oct). `torneos.html` y `comunidad.html` (30-ago a 13-sep) pasaron a `§PF084` (15-oct). Los Tramos 1 y 2 de `admin.html` (30-ago a 16-sep) pasaron a `§PF083` (15-oct). Los siete lotes de consolidación CSS de `styles.css` (18-sep) pasaron a `§PF082` (15-oct). Las dos entradas fechadas de `directorio.html` (18-sep) pasaron a `§PF016` (15-oct). Las entradas de `perfil.html` del 23 y 27-sep pasaron a `§PF081` (15-oct). Antes: las entradas desde el 04-oct-2026 ya están en formato corto y su contenido pasó a `§PF025` (8 y 9-oct), `§PF027` (5 a 7-oct) y `§PF018` (octava sesión, 2 al 5-oct). Las tandas 4 a 2 del 03 y 02-oct, la Fase 11 y el TBT de `guerra` (02-oct) también pasaron a `§PF018`, y la séptima y la sexta sesión (30 y 29-sep), las tandas D, C, B y A de la Fase 5b (28-sep), la Fase 11 del plan T_Lista (26-sep) y los comentarios desactualizados (21-sep) a `§PF017`. Del 20-sep pasaron a `§PF016` «Rendimiento (Lighthouse)», «CSS compartido», `permisos`, `mensajes` y `comunidad`. Quedó trasladado todo el 20-sep (`admin`, `perfil`, `directorio`, `index` y `guerra`) a `§PF016`. Quedó trasladado todo el 19-sep a `§PF016`: «CI y herramientas», «Rendimiento (Lighthouse)» y «SEO», «CSS compartido», `permisos`, `mensajes` y `guerra`. Con esta tanda quedaron trasladadas también las entradas de `guerra.html` del 21-sep (`§PF017`) y del 18-sep (`§PF016`). Los bloques «Línea original N (estilo)» de `guerra.html` (4 a 16-sep) y sus 10 bloques «(HTML)» (31-ago a 13-sep) pasaron a `§PF028`; sus 15 primeros bloques «(script)» (30-ago a 17-sep) pasaron a `§PF029`. Sus otros 15 bloques «(script)» (4 a 15-sep) pasaron a `§PF030`; en `guerra.html` ya no queda ningún bloque «(script)» con texto largo. Todo lo anterior (hoy ordenado por tema y archivo, no por fecha, incluidos los bloques «Línea original N» y las demás secciones por archivo) conserva su texto largo hasta que se trasladen, por tandas y de la fecha más reciente a la más antigua.
 
 ---
 
@@ -343,24 +343,36 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 
 ## 13-sep-2026
 
+- **`perfil.html` · El título del eje X baja a H+74 para no pisar las fechas rotadas.** `renderRankingChart()` y la gráfica de métricas semanales; `viewBox` más alto. → §PF085
 - **`comunidad.html` · Íconos de WhatsApp y Discord en «Redes».** Primeros en la fila, con los links y SVG de `index.html#redes`. → §PF084
 - **`admin.html` · Pestaña «Cambio de rango», grilla de requisitos y selector de temporadas (Fase 7).** `.btn-toggle-torsor`, `#crGridAscenso`/`#crGridDescenso`, `.cr-grid-input`, `.cr-temporada-bloque`, `.semana-selector`. → §PF083
 - **`admin.html` · Control de «Torneo vigente».** `_webAdminVigenteListar()` y `_webAdminVigenteGuardar()` (`34_Web_API.gs`); «Ninguno» limpia `Extra!Torneo_Vigente_ID`. → §PF083
 
 ## 12-sep-2026
 
+- **`perfil.html` · Secciones nuevas a partir de `rawClash` y cruce del mazo.** `rawClash()`, `renderSnapshotInfo()` (`_fecha`, `_clan`), `renderMazoActual()` cruza con `currentDeck` y suma `currentDeckSupportCards`; tarjetas ocultas hasta que llegue `rawClash`. → §PF085
 - **`admin.html` y `directorio.html` · «Participación de hoy en guerra» sale de admin.** Queda `#cardParticipacionHoyDirectorio`; se conecta `webAdminCuentasDeNomMulti`. → §PF083
 
 ## 09-sep-2026
 
+- **`perfil.html` · El Héroe va primero en el mazo según `hasHero` del backend.** Prioridad sobre `DATOS_CARTAS_MAZO`. → §PF085
 - **`admin.html` · Desplegable de cuentas del organizador del torneo.** `pintarCuentasOrg()`; `btnRegistrarTorneo` manda `tagOrg`, `clanOrg` y `clanTagOrg`. → §PF083
 - **`admin.html` · Campos de fecha y hora «amigables».** `.campo-fecha-wrap`, `.btn-calendario` (`showPicker()`), `.campo-oculto-visual`; selector de semanas con lista y casillas (11-sep). → §PF083
 
 ## 08-sep-2026
 
+- **`perfil.html` · Botones de sugerencia de mazo a la derecha de «Mazo actual»; ataques, puntaje y barcos por semana; títulos de ejes.** `#mMazoActualBtns`, `renderMazoActual()`, `renderMetricaSemanal()`/`renderMetricasSemanales()`. → §PF085
 - **`torneos.html` · Los torneos de continuación no se listan aparte.** `esTorneoContinuacion()` e `idTorneoPrincipalDe()` (varios alias de campo). → §PF084
 - **`comunidad.html` · Íconos de redes sociales junto al título.** Fila de íconos con los links de `index.html#redes`. → §PF084
 - **`admin.html` · «Buscar miembro» con sugerencias; infiltrados junto a él; «Planificar, registrar o modificar torneos o sorteos».** `buscarSugerenciasMiembro()`, `renderSugerenciasMiembro()`, `.buscador-wrap`; backend `_webAdminBuscarMiembroSugerencias()` (conectado, comprobado el 05-oct); dos `.tab-clan` Torneos/Sorteos. → §PF083
+
+## 07-sep-2026
+
+- **`perfil.html` · Líneas de referencia secundarias en la gráfica semanal.** Horizontal a mitad del eje Y y verticales de inicio de año y de temporada; sin línea de semana. → §PF085
+
+## 06-sep-2026
+
+- **`perfil.html` · «Mazo actual» (Fase 10).** `pd.currentDeck` real vía `_webMazoActualDesdeCards2()` (`34_Web_API.gs`); oculto si `j.mazoActual` es `null`. → §PF085
 
 ## 05-sep-2026
 
@@ -369,11 +381,13 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 
 ## 04-sep-2026
 
+- **`perfil.html` · «Ranking en el clan» con datos reales, historial de guerra solo admin, «Vigencia» confirmada y espacio uniforme entre barras.** `ext.historialRanking` (`_webPerfilJugador()`, hoja Guerra), `renderRankingChart()`; se quita el separador de 14 px entre bloques de `.req-row`. → §PF085
 - **`comunidad.html` e `index.html` · Rankings de la Familia pasan a `index.html`.** `<section id="rankings-familia">`; evita duplicar `webRankings()` y `webEstadisticasCartas()`. → §PF084
 - **`admin.html` · El contenedor «Directorio» va antes de «Visor de contenido» (punto 38).** La ubicación de infiltrados cambió el 08-sep. → §PF083
 
 ## 03-sep-2026
 
+- **`perfil.html` · «Vigencia» (Última conexión) en el perfil.** `renderMiembro()`: acepta `j.vigencia`, `j.extendido.vigencia` o `j.extendido.ultimaConexion`; oculto si no viene. → §PF085
 - **`torneos.html` · Ganadores y premios junto a cada fila de «Torneos recientes».** Usa `webHistorialTorneos`; sin él, la lista se pinta igual. → §PF084
 - **`torneos.html` · Menos espaciado vertical entre secciones.** `.torneos-sec` (solo esta página). → §PF084
 - **`admin.html` · Reordenamiento del panel (Fase 25): «Tus cuentas» primero y contenedores con subsecciones.** `_webMisCuentas()` (`34_Web_API.gs`), `.admin-subseccion`. → §PF083
@@ -381,6 +395,7 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 
 ## 02-sep-2026
 
+- **`perfil.html` · Una sola fila de acciones con RoyaleAPI y CWStats (`.ext-links`).** `#mAccionesRow`; ya no usa `.btn.btn-ghost`. → §PF085
 - **`torneos.html` · Resultados completos de cada torneo y constancia de descalificados (PDF, puntos 12 a 14).** `todosResultadosHtml()`, etiquetas «Descalificado» y «Premio repartido»; `calcularRankingVictoriasTorneos()` usa `t.participantes` en vez de `t.top3`. → §PF084
 
 ## 01-sep-2026
@@ -389,6 +404,7 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 
 ## 31-ago-2026
 
+- **`perfil.html` · Nace la página de perfil en su propia pestaña (`?tag=TAG`) y botones a RoyaleAPI y CWStats.** `directorio.html` deja de pintar el perfil inline y abre la página con `window.open`. → §PF085
 - **`comunidad.html` · Texto justificado en tarjetas de historia.** `text-align:justify` solo en `<p>`, nunca en `<li>`. → §PF084
 - **`admin.html` · Responsive, textarea de veto y pestañas por clan.** `.req-row` con `flex-wrap`; `vComentario` (la regla `.field textarea` vive en `styles.css` desde el 1-sep); `.contenido-tabs`. → §PF083
 
@@ -2272,355 +2288,6 @@ FIX (03-sep-2026, pedido usuario, punto 19 — "agregar un
                este es un botón nuevo, aparte, que descarga el PDF al
                dispositivo del admin. Mismo criterio de visibilidad que
                btn-ver-pdf (solo si la opción tiene o.docId).
-```
-
-
-## perfil.html — historial trasladado
-
-### Línea original 18 (HTML)
-
-```
-PERFIL.HTML (31-ago-2026, pedido usuario)
-  "Cuando abro el perfil de un jugador, no basta con cambiar el link,
-  también debe verse un menú dedicado para eso. Actualmente es solo una
-  sección que se despliega dentro del mismo panel de clanes, pero debe
-  mostrarse en otra pestaña el perfil, con mayor detalle."
-
-  Página nueva, independiente de directorio.html: todo lo que antes se
-  desplegaba inline dentro de la sección #miembroSec de directorio.html
-  (cabecera, progreso de ascenso/descenso, estadísticas extendidas,
-  torneos del jugador, "ver otras cuentas" y "vetar", todo admin-only
-  donde corresponde) vive ahora acá, en su propia pestaña, a partir de
-  ?tag=TAG en la URL. directorio.html ya NO renderiza el perfil inline:
-  simplemente resuelve el tag (directo, o por selección entre
-  coincidencias) y abre esta página con window.open(...,'_blank').
-
-  Además se agrega una sección nueva que no existía: "Ranking en el clan"
-  a lo largo del tiempo (pedido: "se puede hacer una gráfica de ranking en
-  el clan, porque eso se guarda en la hoja Guerra").
-  RESUELTO (04-sep-2026, pedido usuario — "en el sector de Ranking del
-  clan, falta corregir porque la información diaria sí está en Sheets,
-  hoja Guerra"): 'webPerfil' (_webPerfilJugador(), 34_Web_API.gs) ya manda
-  ext.historialRanking = [{semana, ranking}, ...], leído fila por fila de
-  la hoja Guerra (columna Ranking, GC.RANKING) para el Tag del jugador.
-  Como Guerra solo retiene la temporada actual (el resto se purga a
-  Backup_Guerra.csv), el historial cubre los días ya jugados de la
-  temporada en curso, no temporadas completas anteriores. Si un jugador
-  todavía no tiene ningún día con Ranking registrado (recién ingresado, o
-  ninguna guerra jugada todavía esta temporada), esta sección sigue
-  mostrando el mensaje de "todavía no hay historial" en vez de una gráfica
-  vacía (ver renderRankingChart() más abajo).
-
-  PENDIENTE (11-sep-2026, pedido usuario): el usuario ahora sube a Drive,
-  carpeta "JSON", un export crudo por jugador de la API de Clash Royale
-  (nombre de archivo tipo "DD-MM-AAAA_HH_MM_-_<clan>_-_<TAG>.json", uno
-  por snapshot). Falta que el backend (34_Web_API.gs / webPerfil) se
-  conecte a esa carpeta para leer estos JSON.
-  ID de la carpeta de Drive: 1Kqmn7ExFr3cDER_DgKnHwHlWc9lLW9aF
-  (https://drive.google.com/drive/u/0/folders/1Kqmn7ExFr3cDER_DgKnHwHlWc9lLW9aF)
-     AVANCE (12-sep-2026): perfil.html ya tiene TODAS las secciones
-     frontend consumiendo jugador.rawClash (categorías con el mismo nombre
-     que el JSON, ver rawClash() y los "PENDIENTE BACKEND" de cada
-     render*() nuevo). Falta solo que webPerfil adjunte ese objeto.
-
-  Revisando un ejemplo del JSON, esto es lo que trae y que perfil.html
-  todavía NO usa (currentDeck y achievements ya llegan por otra vía, ver
-  comentarios de pd.currentDeck y bloqueRequisitos() más abajo):
-    - badges[]: {name, level, maxLevel, progress, target, iconUrls.large}
-      — insignias del jugador (ej. ClanWarsVeteran, BattleWins, etc.).
-      El `name` sí se repite entre jugadores (es como `cards`: hay un
-      catálogo fijo de insignias posibles), PERO no todos los jugadores
-      tienen las mismas: cada uno desbloquea un subconjunto distinto
-      (ej. si existen A/B/C/D, un jugador puede tener A y B, otro A y C,
-      otro B y D...). Además level/maxLevel/progress/target/iconUrls
-      SÍ varían persona por persona, porque cada insignia tiene su propio
-      nivel alcanzado por jugador (y el ícono cambia según ese nivel).
-      Para armar un catálogo real de insignias (nombre + su ícono por
-      cada nivel posible) haría falta un CSV aparte en Drive con esa
-      relación nombre↔ícono-por-nivel; eso queda para evaluar al momento
-      de conectar el backend, no viene resuelto en el JSON de cada
-      jugador.
-    - cards[]: colección completa (122 cartas típico) con nivel/estrellas
-      por carta — permitiría una sección "Colección completa", más allá
-      del "Mazo actual" (que ya usa currentDeck).
-    - supportCards[] / currentDeckSupportCards[]: cartas de soporte
-      (torres/campeón de apoyo) — no confundir con currentFavouriteCard.
-    - currentFavouriteCard: {name, id, maxLevel, elixirCost, iconUrls,
-      rarity} — carta favorita marcada por el jugador en el juego.
-    - starPoints / expPoints / totalExpPoints: puntos de estrella y
-      experiencia acumulada.
-    - legacyTrophyRoadHighScore: mejor puntaje histórico del Camino de
-      Trofeos "viejo" (pre Path of Legends).
-    - currentPathOfLegendSeasonResult / lastPathOfLegendSeasonResult /
-      bestPathOfLegendSeasonResult: {leagueNumber, trophies, rank} del
-      modo competitivo Path of Legends (actual, anterior y mejor).
-    - leagueStatistics.{currentSeason,previousSeason,bestSeason}:
-      trofeos por temporada de liga.
-    - progress{}: objeto con progreso en eventos/modos puntuales activos
-      al momento del snapshot (ej. "ChaosDraftLeague",
-      "AutoChess_2026_Season_10", "seasonal-trophy-road-202608") — las
-      claves cambian según qué eventos estén corriendo esa temporada.
-    - _fecha / _clan: campos propios del exportador (no de la API de
-      Supercell), con la fecha del snapshot y el nombre del clan en ese
-      momento — al haber un JSON por snapshot y por jugador, esto abre la
-      puerta a un historial propio de estadísticas del jugador (trofeos,
-      donaciones, etc. a través del tiempo), similar en espíritu al
-      historialRanking que ya se arma desde la hoja Guerra.
-  El resto de campos del JSON (trophies, bestTrophies, wins, losses,
-  battleCount, donations, totalDonations, warDayWins,
-  clanCardsCollected, threeCrownWins, challengeMaxWins,
-  tournamentCardsWon, expLevel, collectionLevel, clan, arena, role,
-  currentWinLoseStreak) coinciden con datos que el perfil probablemente
-  ya recibe por otra vía (llamada en vivo a la API); revisar duplicados
-  antes de que el backend empiece a leer también desde estos JSON.
-```
-
-### Línea original 304 (HTML)
-
-```
-FIX (12-sep-2026): fecha/clan del snapshot exportado a Drive
-                 (categorías _fecha y _clan del JSON, campos propios del
-                 exportador — ver renderSnapshotInfo()). Oculto si el
-                 backend todavía no adjunta rawClash.
-```
-
-### Línea original 315 (HTML)
-
-```
-FIX (03-sep-2026, pedido usuario — "Vigencia" (Última
-                 conexión), dato de la hoja Directorio: "eso se debe
-                 incluir también en el perfil de los jugadores"): oculto
-                 por defecto — webPerfil (34_Web_API.gs) todavía no manda
-                 j.vigencia, así que no se pinta nada en vez de mostrar
-                 "—" vacío; se muestra automáticamente en cuanto el
-                 backend agregue ese campo (ver renderMiembro() más
-                 abajo).
-```
-
-### Línea original 330 (HTML)
-
-```
-FIX (02-sep-2026): una sola fila de acciones, formato "primera
-             fila" (.ext-links, pill chico) — ver comentario junto a
-             .ext-links en el <style> y a renderMiembro() más abajo.
-```
-
-### Línea original 338 (HTML)
-
-```
-FASE 2 (04-sep-2026, pedido del usuario, punto 1 del documento
-               de cambios): historial completo de guerra del jugador, solo
-               admin — mismo patrón visible/oculto que btnVerOtrasCuentas.
-```
-
-### Línea original 349 (HTML)
-
-```
----------- MAZO ACTUAL (FASE 10, 06-sep-2026) ----------
-           Distinto de "Sugerencias de mazo"/"Sugerencias de mazo (2)" (los
-           botones de la derecha de este mismo encabezado, que arman una
-           búsqueda en RoyaleAPI a partir del nivel de cartas
-           desbloqueadas): esto es pd.currentDeck real, tal como lo manda
-           la API de Supercell — ver _webMazoActualDesdeCards2(),
-           34_Web_API.gs. Oculto por defecto: j.mazoActual puede venir null
-           (jugador sin datos de Cards_2 todavía), ver renderMazoActual()
-           más abajo.
-           FIX (08-sep-2026, pedido usuario — "mueve los botones de
-           sugerencia de mazo a la derecha de mazo actual"): "Sugerencias
-           de mazo"/"Sugerencias de mazo (2)" vivían en #mRoyaleCwstatsBtns
-           (la fila de acciones de la cabecera del perfil, junto a
-           RoyaleAPI/CWStats/Vetar/Ver torneos/etc — se veían amontonados
-           ahí, ver la captura del pedido). Se mudan a #mMazoActualBtns,
-           en la esquina superior derecha de ESTE card (mismo renglón que
-           el eyebrow/título, alineados con flex space-between) — tiene más
-           sentido ahí porque ambos hablan de mazos de esta cuenta.
-           RoyaleAPI/CWStats se quedan donde estaban; ver renderMiembro()
-           para el reparto exacto. Como esos botones ya no dependen de
-           mazoActual (son datos de ext.deck/ext.deck2, columnas Mazo/Mazo2
-           de Directorio), la card ahora también se muestra si HAY botones
-           de sugerencia aunque el jugador todavía no tenga mazoActual
-           real (ver renderMazoActual()).
-```
-
-### Línea original 391 (HTML)
-
-```
----------- ATAQUES / PUNTAJE / BARCOS POR SEMANA (FIX 08-sep-2026,
-           pedido usuario — "solo se está mostrando evolución de ranking,
-           falta de ataques, puntaje y barcos") ----------
-           Mismo array que el ranking de arriba (j.extendido.historialRanking,
-           una fila por semana), graficando otros 3 campos de esa misma
-           fila en vez de `ranking`. Cada tarjeta arranca oculta y solo se
-           muestra si ese campo puntual (ataques/puntaje/barcos) viene con
-           datos en al menos una semana del historial — ver
-           renderMetricaSemanal()/renderMetricasSemanales() más abajo. Si
-           el backend todavía no manda esos 3 campos en historialRanking
-           (con exactamente esos nombres), estas 3 tarjetas simplemente se
-           quedan ocultas — no rompen nada — y empiezan a mostrarse solas
-           en cuanto el backend los agregue, sin tocar este HTML de nuevo.
-```
-
-### Línea original 420 (HTML)
-
-```
-===== SECCIONES NUEVAS (12-sep-2026, pedido usuario — aprovechar
-           TODO el JSON crudo del export de Drive) =====
-           Todas leen jugador.rawClash vía rawClash() (ver script).
-           PENDIENTE BACKEND — webPerfil (34_Web_API.gs) debe adjuntar el
-           objeto del snapshot exportado tal cual, conservando los nombres
-           de categoría del JSON de Supercell:
-             currentFavouriteCard · currentDeckSupportCards · cards[] ·
-             supportCards[] ("Cartas de torre") · badges[] · achievements[] ·
-             currentPathOfLegendSeasonResult / lastPathOfLegendSeasonResult /
-             bestPathOfLegendSeasonResult · leagueStatistics ·
-             legacyTrophyRoadHighScore · progress{} · starPoints ·
-             expPoints / totalExpPoints · expLevel · kingTowerLevel ·
-             _fecha / _clan (campos propios del exportador).
-           Mientras rawClash no llegue, cada card se queda oculta sola.
-```
-
-### Línea original 457 (HTML)
-
-```
-PENDIENTE BACKEND: categoría supportCards[] del JSON (las
-             "Tower Cards" de RoyaleAPI; NO confundir con
-             currentDeckSupportCards, que es la torre equipada en el mazo
-             actual y se pinta dentro de "Mazo actual").
-```
-
-
-### Bloques // (script)
-
-#### Línea original 945 (script)
-
-```
-    // 1) Héroe (Campeón) primero. FIX (09-sep-2026, pedido usuario): ahora
-    // que 34_Web_API.gs manda a.hasHero/b.hasHero (dato real del catálogo,
-    // ver renderMazoActual() más abajo), se prioriza sobre la tabla
-    // estática DATOS_CARTAS_MAZO -- por si una carta Campeón nueva todavía
-    // no está agregada ahí, sigue ordenándose bien.
-```
-
-#### Línea original 996 (script)
-
-```
-  // Mismos títulos/tooltips que ya explicaban la diferencia entre ambos
-  // botones cuando vivían junto a RoyaleAPI/CWStats (ver FIX 04-sep-2026
-  // en renderMiembro()) — se mudan acá tal cual, sin reescribir el texto.
-```
-
-#### Línea original 1019 (script)
-
-```
-  // FIX (12-sep-2026): cruzar cada carta del mazo con rawClash(j).
-  // currentDeck (PENDIENTE BACKEND: categoría currentDeck) para sumar
-  // starLevel, count y evolutionLevel aunque _webMazoActualDesdeCards2()
-  // todavía no los mande. Clave de cruce: nombre exacto de la carta.
-```
-
-#### Línea original 1063 (script)
-
-```
-  // FIX (12-sep-2026): carta(s) de torre equipada con este mazo —
-  // PENDIENTE BACKEND: categoría currentDeckSupportCards del JSON (es la
-  // "Tower Princess"/torre activa del mazo, distinta de supportCards[],
-  // que es la colección completa de torres y se pinta en su propia card).
-```
-
-#### Línea original 1179 (script)
-
-```
-  // Línea horizontal secundaria a mitad de camino entre las dos líneas
-  // principales del eje Y (pedido usuario 07-sep-2026 — mismo criterio
-  // que el resto de gráficas del sitio, ver gridHorizontalMediosSvg() en
-  // común.js; acá se calcula directo porque esta gráfica solo tiene 2
-  // líneas de referencia, no una grilla de varios pasos).
-```
-
-#### Línea original 1186 (script)
-
-```
-  // Líneas verticales de referencia (inicio de año/temporada — pedido
-  // usuario 07-sep-2026): esta gráfica es de granularidad SEMANAL, así
-  // que no se agrega línea de inicio de semana (ver lineasTemporalesSvg()
-  // en común.js). Reusa el mismo parser de fecha ya definido arriba.
-```
-
-#### Línea original 1196 (script)
-
-```
-  // Títulos de los ejes (pedido usuario 08-sep-2026 — "todas las gráficas
-  // deben indicar el nombre de los ejes"): se agrega un margen extra a la
-  // izquierda (gutter de 16, vía el offset negativo del viewBox) y otro
-  // abajo (H+46 → H+62) SIN tocar ninguna de las coordenadas ya calculadas
-  // arriba (PAD_L, stepX, escalaY, etc.) — el gráfico existente queda
-  // intacto y los títulos se dibujan en el espacio nuevo alrededor.
-  // FIX (13-sep-2026, pedido usuario — "hay que bajar un poco el nombre
-  // del eje x para que no se superponga con las fechas"): las etiquetas
-  // de fecha van rotadas -45° ancladas en y=H+18, así que su extremo
-  // inferior cae varios px por debajo de esa línea base (no son texto
-  // horizontal plano). Con el título en H+58 quedaban pisándose. Se baja
-  // el título a H+74 y se agranda el viewBox (antes H+62) para que siga
-  // entrando completo dentro del SVG.
-```
-
-#### Línea original 1298 (script)
-
-```
-  // FIX (13-sep-2026, pedido usuario — "hay que bajar un poco el nombre
-  // del eje x para que no se superponga con las fechas", mismo fix que
-  // renderRankingChart() de arriba): las etiquetas de fecha van rotadas
-  // -45° ancladas en y=H+18, así que su extremo inferior cae varios px
-  // por debajo de esa línea base. Con el título en H+58 quedaban
-  // pisándose. Se baja el título a H+74 y se agranda el viewBox (antes
-  // H+62) para que siga entrando completo dentro del SVG.
-```
-
-#### Línea original 1351 (script)
-
-```
-  // FIX (03-sep-2026, pedido usuario — "Vigencia" / Última conexión, dato
-  // de la hoja Directorio): se acepta tanto `j.vigencia` como
-  // `j.extendido.vigencia`/`j.extendido.ultimaConexion` — se usa el primero
-  // que venga con valor. Si ninguno viene, el <span> se queda oculto
-  // (display:none puesto en el HTML) en vez de mostrar un campo vacío.
-  // CONFIRMADO (04-sep-2026): el backend (`_webPerfilJugador()`,
-  // 34_Web_API.gs) ya manda `j.vigencia` (columna DC.VIGENCIA de
-  // Directorio), así que este bloque ya no depende de una futura conexión.
-```
-
-#### Línea original 1368 (script)
-
-```
-  // FIX (04-sep-2026, pedido usuario — "los espacios son desiguales" entre
-  // las barras de Ascensos/Descensos): antes se unían los bloques con un
-  // separador extra de 14px (`<div style="height:14px;">`), que se SUMABA
-  // al margin-bottom:12px que ya trae cada .req-row (ver <style>), dejando
-  // 26px entre el último renglón de un bloque y el primero del siguiente,
-  // contra 12px entre renglones de un mismo bloque. Se quita el separador
-  // extra: el margin-bottom:12px de .req-row ya es uniforme para TODOS los
-  // renglones, sean del mismo bloque o no.
-```
-
-#### Línea original 1394 (script)
-
-```
-  // FIX (31-ago-2026, pedido usuario — "en los perfiles de jugadores,
-  // antes de ver torneos, agrega el botón con el link al perfil de
-  // royaleapi y otro a cwstats"): botones dedicados en la fila de
-  // acciones, con los íconos oficiales.
-  // FIX (02-sep-2026, pedido usuario — "se debía quitar la segunda fila,
-  // no la primera; mover los nuevos botones a la primera fila, siguiendo
-  // el formato que tenía la primera fila"): estos links ya NO usan las
-  // clases .btn.btn-ghost (la fila "grande" que había que quitar) — ahora
-  // son <a> simples dentro de #mAccionesRow (clase .ext-links, ver <style>
-  // y el HTML de esta sección), así que heredan el estilo de la fila
-  // "chica" original, junto con Vetar/Ver torneos/Ver otras cuentas.
-  // FIX (08-sep-2026, pedido usuario — "mueve los botones de sugerencia de
-  // mazo a la derecha de mazo actual"): "Sugerencias de mazo"/"Sugerencias
-  // de mazo (2)" (ext.deck/ext.deck2) ya NO se arman acá — se mudaron al
-  // encabezado de la card "Mazo actual" (ver renderMazoActual() más
-  // arriba). Esta fila ahora solo trae RoyaleAPI/CWStats.
 ```
 
 
