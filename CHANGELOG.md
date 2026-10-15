@@ -4,7 +4,7 @@ Lista corta de lo que se hizo, de más reciente a más antiguo. Cada entrada tra
 
 **Cómo funciona el código hoy, por qué se decidió así, qué se probó y se descartó: no va aquí, va en `Contexto_Base_Web.md`.** Las reglas de redacción están en `Consolidados de cambios/Reglas_Consolidados.md` (repo `Backend`), sección 5. Los pendientes tampoco viven en cada entrada: están en «Abiertos». El detalle largo anterior sigue en el historial de git.
 
-*Traslado en curso (desde el 11-oct-2026):* los bloques «Línea original N» de `perfil.html` (31-ago a 13-sep) pasaron a `§PF085` (15-oct). `torneos.html` y `comunidad.html` (30-ago a 13-sep) pasaron a `§PF084` (15-oct). Los Tramos 1 y 2 de `admin.html` (30-ago a 16-sep) pasaron a `§PF083` (15-oct). Los siete lotes de consolidación CSS de `styles.css` (18-sep) pasaron a `§PF082` (15-oct). Las dos entradas fechadas de `directorio.html` (18-sep) pasaron a `§PF016` (15-oct). Las entradas de `perfil.html` del 23 y 27-sep pasaron a `§PF081` (15-oct). Antes: las entradas desde el 04-oct-2026 ya están en formato corto y su contenido pasó a `§PF025` (8 y 9-oct), `§PF027` (5 a 7-oct) y `§PF018` (octava sesión, 2 al 5-oct). Las tandas 4 a 2 del 03 y 02-oct, la Fase 11 y el TBT de `guerra` (02-oct) también pasaron a `§PF018`, y la séptima y la sexta sesión (30 y 29-sep), las tandas D, C, B y A de la Fase 5b (28-sep), la Fase 11 del plan T_Lista (26-sep) y los comentarios desactualizados (21-sep) a `§PF017`. Del 20-sep pasaron a `§PF016` «Rendimiento (Lighthouse)», «CSS compartido», `permisos`, `mensajes` y `comunidad`. Quedó trasladado todo el 20-sep (`admin`, `perfil`, `directorio`, `index` y `guerra`) a `§PF016`. Quedó trasladado todo el 19-sep a `§PF016`: «CI y herramientas», «Rendimiento (Lighthouse)» y «SEO», «CSS compartido», `permisos`, `mensajes` y `guerra`. Con esta tanda quedaron trasladadas también las entradas de `guerra.html` del 21-sep (`§PF017`) y del 18-sep (`§PF016`). Los bloques «Línea original N (estilo)» de `guerra.html` (4 a 16-sep) y sus 10 bloques «(HTML)» (31-ago a 13-sep) pasaron a `§PF028`; sus 15 primeros bloques «(script)» (30-ago a 17-sep) pasaron a `§PF029`. Sus otros 15 bloques «(script)» (4 a 15-sep) pasaron a `§PF030`; en `guerra.html` ya no queda ningún bloque «(script)» con texto largo. Todo lo anterior (hoy ordenado por tema y archivo, no por fecha, incluidos los bloques «Línea original N» y las demás secciones por archivo) conserva su texto largo hasta que se trasladen, por tandas y de la fecha más reciente a la más antigua.
+*Traslado en curso (desde el 11-oct-2026):* los bloques «Línea original N» de `directorio.html` (31-ago a 16-sep) pasaron a `§PF086` (15-oct). Los de `perfil.html` (31-ago a 13-sep) pasaron a `§PF085` (15-oct). `torneos.html` y `comunidad.html` (30-ago a 13-sep) pasaron a `§PF084` (15-oct). Los Tramos 1 y 2 de `admin.html` (30-ago a 16-sep) pasaron a `§PF083` (15-oct). Los siete lotes de consolidación CSS de `styles.css` (18-sep) pasaron a `§PF082` (15-oct). Las dos entradas fechadas de `directorio.html` (18-sep) pasaron a `§PF016` (15-oct). Las entradas de `perfil.html` del 23 y 27-sep pasaron a `§PF081` (15-oct). Antes: las entradas desde el 04-oct-2026 ya están en formato corto y su contenido pasó a `§PF025` (8 y 9-oct), `§PF027` (5 a 7-oct) y `§PF018` (octava sesión, 2 al 5-oct). Las tandas 4 a 2 del 03 y 02-oct, la Fase 11 y el TBT de `guerra` (02-oct) también pasaron a `§PF018`, y la séptima y la sexta sesión (30 y 29-sep), las tandas D, C, B y A de la Fase 5b (28-sep), la Fase 11 del plan T_Lista (26-sep) y los comentarios desactualizados (21-sep) a `§PF017`. Del 20-sep pasaron a `§PF016` «Rendimiento (Lighthouse)», «CSS compartido», `permisos`, `mensajes` y `comunidad`. Quedó trasladado todo el 20-sep (`admin`, `perfil`, `directorio`, `index` y `guerra`) a `§PF016`. Quedó trasladado todo el 19-sep a `§PF016`: «CI y herramientas», «Rendimiento (Lighthouse)» y «SEO», «CSS compartido», `permisos`, `mensajes` y `guerra`. Con esta tanda quedaron trasladadas también las entradas de `guerra.html` del 21-sep (`§PF017`) y del 18-sep (`§PF016`). Los bloques «Línea original N (estilo)» de `guerra.html` (4 a 16-sep) y sus 10 bloques «(HTML)» (31-ago a 13-sep) pasaron a `§PF028`; sus 15 primeros bloques «(script)» (30-ago a 17-sep) pasaron a `§PF029`. Sus otros 15 bloques «(script)» (4 a 15-sep) pasaron a `§PF030`; en `guerra.html` ya no queda ningún bloque «(script)» con texto largo. Todo lo anterior (hoy ordenado por tema y archivo, no por fecha, incluidos los bloques «Línea original N» y las demás secciones por archivo) conserva su texto largo hasta que se trasladen, por tandas y de la fecha más reciente a la más antigua.
 
 ---
 
@@ -329,6 +329,7 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 
 ## 16-sep-2026
 
+- **`directorio.html` · «Ingresos recientes»: pastillas de clan (v2) y gráficas comparativas a pedido (v8); debounce de 180 ms en el buscador del popover.** `construirFiltroIngresos()`, `inicializarToggleGraficasIngresos()`, `ingresosGraficasVisibles`, `ingresosUltimosFiltrados`; `debounce()`. → §PF086
 - **`admin.html` · Hora dividida en dos cuadros (HH/MM) en las 7 instancias de `.campo-hora-wrap`.** `.campo-hora-separador`; el `<select>` AM/PM y el `<input type="time">` oculto siguen igual (fuente 24 h). → §PF083
 - **`admin.html` · «Precargar último registro» en torneos, sorteos y cambio de rango.** `precargarUltimoRegistroTorneo()` y `precargarUltimoRegistroSorteo()`; no toca `#semanasSelectorReg`. Backend: `_webAdminUltimoRegistroTorneoOSorteo()` (`34_Web_API.gs`), caso `webAdminUltimoRegistro` en `doGet` (conectado, comprobado el 05-oct). → §PF083
 
@@ -343,6 +344,7 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 
 ## 13-sep-2026
 
+- **`directorio.html` · Botones de letras A-Z/# en el directorio por clan.** `pintarFiltroLetraRoster()`, `rosterLetraSeleccionada`, `aplicarFiltrosRoster()`, `data-letra` en `filasHtmlRoster()`; el cambio de clan reinicia la letra. → §PF086
 - **`perfil.html` · El título del eje X baja a H+74 para no pisar las fechas rotadas.** `renderRankingChart()` y la gráfica de métricas semanales; `viewBox` más alto. → §PF085
 - **`comunidad.html` · Íconos de WhatsApp y Discord en «Redes».** Primeros en la fila, con los links y SVG de `index.html#redes`. → §PF084
 - **`admin.html` · Pestaña «Cambio de rango», grilla de requisitos y selector de temporadas (Fase 7).** `.btn-toggle-torsor`, `#crGridAscenso`/`#crGridDescenso`, `.cr-grid-input`, `.cr-temporada-bloque`, `.semana-selector`. → §PF083
@@ -353,6 +355,10 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 - **`perfil.html` · Secciones nuevas a partir de `rawClash` y cruce del mazo.** `rawClash()`, `renderSnapshotInfo()` (`_fecha`, `_clan`), `renderMazoActual()` cruza con `currentDeck` y suma `currentDeckSupportCards`; tarjetas ocultas hasta que llegue `rawClash`. → §PF085
 - **`admin.html` y `directorio.html` · «Participación de hoy en guerra» sale de admin.** Queda `#cardParticipacionHoyDirectorio`; se conecta `webAdminCuentasDeNomMulti`. → §PF083
 
+## 10-sep-2026
+
+- **`directorio.html` · Tooltip de las gráficas con nombre y tag arriba, y cantidad, clan y fecha abajo.** Mismo orden que `activarTooltipsGraficas()` de `index.html`. → §PF086
+
 ## 09-sep-2026
 
 - **`perfil.html` · El Héroe va primero en el mazo según `hasHero` del backend.** Prioridad sobre `DATOS_CARTAS_MAZO`. → §PF085
@@ -361,6 +367,7 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 
 ## 08-sep-2026
 
+- **`directorio.html` · Títulos de ejes en las gráficas, «Seleccionar todo»/«Desmarcar todo» sobre toda la columna y botón «Quitar filtros».** `PAD_L` 56→74 y `PAD_B` 68→84; `actualizarBotonLimpiarFiltros()`, `actualizarIconosFiltro()`. → §PF086
 - **`perfil.html` · Botones de sugerencia de mazo a la derecha de «Mazo actual»; ataques, puntaje y barcos por semana; títulos de ejes.** `#mMazoActualBtns`, `renderMazoActual()`, `renderMetricaSemanal()`/`renderMetricasSemanales()`. → §PF085
 - **`torneos.html` · Los torneos de continuación no se listan aparte.** `esTorneoContinuacion()` e `idTorneoPrincipalDe()` (varios alias de campo). → §PF084
 - **`comunidad.html` · Íconos de redes sociales junto al título.** Fila de íconos con los links de `index.html#redes`. → §PF084
@@ -368,6 +375,7 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 
 ## 07-sep-2026
 
+- **`directorio.html` · «Cara a cara»: fecha rotada 45°, líneas de referencia (año, temporada, semana) y tooltip nativo con `<title>`.** `PAD_B` 32→40; `lineasTemporalesSvg()`; se reemplaza el detector de mes calendario por `esInicioTemporada()`. → §PF086
 - **`perfil.html` · Líneas de referencia secundarias en la gráfica semanal.** Horizontal a mitad del eje Y y verticales de inicio de año y de temporada; sin línea de semana. → §PF085
 
 ## 06-sep-2026
@@ -376,17 +384,20 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 
 ## 05-sep-2026
 
+- **`directorio.html` · «Cara a cara»: ataques con «/tope», Vigencia con hora junto al nombre y gráficas a todo el ancho.** `extItemAtaques()`, `fmtFechaConHoraVigencia()`, una columna (1fr). → §PF086
 - **`admin.html` · Wizard de 3 pasos para Torneos y «Planificar torneo».** Campo opcional de autor. → §PF083
 - **`admin.html` · «Mensajes automáticos» pasa a 3 tarjetas fijas `.admin-grupo`.** `initMensajesAutomaticos()`, `cargarGrupoToggle()`; toggles con `.tab-clan`. → §PF083
 
 ## 04-sep-2026
 
+- **`directorio.html` · «Ingresos recientes» pasan de `guerra.html` al final de Directorio.** `cargarIngresosRecientes()`; sigue con `webGuerraEnVivo` (campo `nuevos`). → §PF086
 - **`perfil.html` · «Ranking en el clan» con datos reales, historial de guerra solo admin, «Vigencia» confirmada y espacio uniforme entre barras.** `ext.historialRanking` (`_webPerfilJugador()`, hoja Guerra), `renderRankingChart()`; se quita el separador de 14 px entre bloques de `.req-row`. → §PF085
 - **`comunidad.html` e `index.html` · Rankings de la Familia pasan a `index.html`.** `<section id="rankings-familia">`; evita duplicar `webRankings()` y `webEstadisticasCartas()`. → §PF084
 - **`admin.html` · El contenedor «Directorio» va antes de «Visor de contenido» (punto 38).** La ubicación de infiltrados cambió el 08-sep. → §PF083
 
 ## 03-sep-2026
 
+- **`directorio.html` · «Cara a cara»: «Ataques en la semana actual» y «Donaciones hechas/recibidas».** Solo cambia la etiqueta y se añade el recibidas. → §PF086
 - **`perfil.html` · «Vigencia» (Última conexión) en el perfil.** `renderMiembro()`: acepta `j.vigencia`, `j.extendido.vigencia` o `j.extendido.ultimaConexion`; oculto si no viene. → §PF085
 - **`torneos.html` · Ganadores y premios junto a cada fila de «Torneos recientes».** Usa `webHistorialTorneos`; sin él, la lista se pinta igual. → §PF084
 - **`torneos.html` · Menos espaciado vertical entre secciones.** `.torneos-sec` (solo esta página). → §PF084
@@ -395,6 +406,7 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 
 ## 02-sep-2026
 
+- **`directorio.html` · «Cara a cara» muestra el desempeño diario de guerra con gráficas (punto 9).** `_webCompararJugadores()`, `_webHistorialGuerraComparador()` (`34_Web_API.gs`), `renderComparadorGuerraChart()`, `compGuerraChartWrap`; se pide en paralelo con su propio `.catch()`. → §PF086
 - **`perfil.html` · Una sola fila de acciones con RoyaleAPI y CWStats (`.ext-links`).** `#mAccionesRow`; ya no usa `.btn.btn-ghost`. → §PF085
 - **`torneos.html` · Resultados completos de cada torneo y constancia de descalificados (PDF, puntos 12 a 14).** `todosResultadosHtml()`, etiquetas «Descalificado» y «Premio repartido»; `calcularRankingVictoriasTorneos()` usa `t.participantes` en vez de `t.top3`. → §PF084
 
@@ -404,6 +416,7 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 
 ## 31-ago-2026
 
+- **`directorio.html` · Con 2 o más coincidencias se muestra la lista y se espera el clic; `?tag=TAG` redirige a `perfil.html` en la misma pestaña.** El comparador resuelve cada lado contra el directorio ya cargado. → §PF086
 - **`perfil.html` · Nace la página de perfil en su propia pestaña (`?tag=TAG`) y botones a RoyaleAPI y CWStats.** `directorio.html` deja de pintar el perfil inline y abre la página con `window.open`. → §PF085
 - **`comunidad.html` · Texto justificado en tarjetas de historia.** `text-align:justify` solo en `<p>`, nunca en `<li>`. → §PF084
 - **`admin.html` · Responsive, textarea de veto y pestañas por clan.** `.req-row` con `flex-wrap`; `vComentario` (la regla `.field textarea` vive en `styles.css` desde el 1-sep); `.contenido-tabs`. → §PF083
@@ -2288,411 +2301,6 @@ FIX (03-sep-2026, pedido usuario, punto 19 — "agregar un
                este es un botón nuevo, aparte, que descarga el PDF al
                dispositivo del admin. Mismo criterio de visibilidad que
                btn-ver-pdf (solo si la opción tiene o.docId).
-```
-
-
-## directorio.html — historial trasladado
-
-### Línea original 685 (HTML)
-
-```
----------- COMPARADOR DE JUGADORES ----------
-       Ver _webCompararJugadores() en 34_Web_API.gs — envuelve dos
-       llamadas a webPerfil en un solo pedido. FIX (02-sep-2026, punto 9):
-       ahora también consume _webHistorialGuerraComparador() para pintar
-       el desempeño diario de guerra (ver compGuerraChartWrap más abajo).
-```
-
-### Línea original 702 (HTML)
-
-```
-FIX (02-sep-2026, pedido usuario, punto 9: "Cara a cara debería
-         mostrar el desempeño de guerra con gráficas, sacadas de la hoja
-         Guerra/CSV, valores diarios, eje X solo por mes"). Ver
-         _webHistorialGuerraComparador() en 34_Web_API.gs y
-         renderComparadorGuerraChart() más abajo.
-```
-
-### Línea original 706 (HTML)
-
-```
----------- DIRECTORIO COMPLETO ----------
-       Sin barra de filtro propia: la barra de búsqueda de arriba ("Busca
-       tu perfil por nombre o tag") ya cumple esa función — no hace falta
-       una segunda barra buscadora acá (pedido del PDF de diseño).
-```
-
-### Línea original 714 (HTML)
-
-```
-FIX (13-sep-2026, pedido usuario — "agrega los botones de letras en
-         directorio por clan"): fila A-Z/# para filtrar por primera letra
-         del nombre, mismo patrón visual que en guerra.html — se pinta una
-         sola vez (ver pintarFiltroLetraRoster() en el <script>) y persiste
-         fuera de #rosterWrap para no perderse al cambiar de clan (cada
-         cambio de clan sí resetea CUÁL letra está elegida, igual que ya
-         hacía con los demás filtros — ver renderRosterClanActivo()).
-```
-
-### Línea original 721 (HTML)
-
-```
-FIX (04-sep-2026, pedido usuario — "Los ingresos recientes deben
-       moverse a Directorio (al final)"): antes vivía en guerra.html; se
-       trae completa (markup + JS, ver cargarIngresosRecientes()) al final
-       del Directorio, después de la lista de miembros por clan. Sigue
-       consumiendo 'webGuerraEnVivo' (mismo endpoint público, campo
-       'nuevos') — no hizo falta ningún cambio de backend.
-```
-
-### Línea original 727 (HTML)
-
-```
-FIX (16-sep-2026 v2, pedido usuario — pastillas de clan en vez del
-         botón "Filtrar por clan / miembro" + panel plegable): pintado por
-         construirFiltroIngresos() en cuanto llega la data.
-```
-
-### Línea original 730 (HTML)
-
-```
-FIX (16-sep-2026 v8, pedido usuario — "poner un botón de
-         Mostrar/Ocultar gráficas para no precargar todo de golpe [...]
-         que al inicio aparezcan solo las tarjetas de nombres y las
-         gráficas que sean a pedido"): las gráficas comparativas
-         (renderComparativaSemanal) ya no se construyen al cargar la
-         página — arrancan cerradas y solo se pintan cuando el usuario
-         toca este botón (ver inicializarToggleGraficasIngresos()).
-```
-
-
-### Bloques // (script)
-
-#### Línea original 826 (script)
-
-```
-    // Orden fijo de la Familia, no alfabético — ver ordenClanIndex() en
-    // common.js. Se ordena antes de usar el índice "i" para que la
-    // insignia de rol (Cantera/Semillero) siempre le toque al clan
-    // correcto, sin importar el orden que mande el backend.
-```
-
-#### Línea original 1038 (script)
-
-```
-    // El directorio todavía no terminó de cargar: si lo escrito ya parece
-    // un Tag completo, se prueba directo contra la API en vez de obligar
-    // a esperar a que cargue el directorio.
-```
-
-#### Línea original 1071 (script)
-
-```
-    // FIX (03-sep-2026, pedido usuario — "reemplazar 'ataques/sem' por
-    // 'Ataques en la semana actual', contando solo lo que se hizo en
-    // días de guerra"): el valor (jugador.guerraSemana.ataques) ya vale
-    // eso — sale de GC.ATAQUES_SEM, que el juego mismo solo permite
-    // acumular en días de guerra (no hay "ataques" que registrar en
-    // entrenamiento), así que no hacía falta tocar el número, solo la
-    // etiqueta, que sí era ambigua sobre qué contaba.
-    // FIX (05-sep-2026, pedido usuario): ahora usa extItemAtaques() en vez
-    // de extItem() para agregar "/tope" (ver docblock de esa función).
-```
-
-#### Línea original 1082 (script)
-
-```
-    // FIX (03-sep-2026, pedido usuario — "incluir 'Donaciones hechas' y
-    // 'Donaciones recibidas' en vez de cortar el texto"): antes solo
-    // estaba 'Donac. hechas' (abreviado) y faltaba el recibidas.
-```
-
-#### Línea original 1090 (script)
-
-```
-  // FIX (05-sep-2026, pedido usuario — "la vigencia del cara a cara debe
-  // tener el formato que tiene en el perfil de miembro y debe ir a la
-  // derecha del nombre... con hora incluida"): antes la Vigencia salía
-  // como un cuadrito más del ext-grid (fecha sin hora); ahora se pinta
-  // junto al nombre con .perfil-cabecera/.stats-mini (mismo patrón visual
-  // que usa perfil.html para su Vigencia) y con fmtFechaConHoraVigencia()
-  // (fecha + hora) en vez de fmtFechaCortaVigencia() (solo fecha).
-```
-
-#### Línea original 1156 (script)
-
-```
-    // FIX (03-sep-2026, pedido usuario): mismo cambio de etiqueta y de
-    // items de donaciones que renderComparadorLado() más arriba.
-    // FIX (05-sep-2026, pedido usuario — "en los ataques, agrega '/' y la
-    // cantidad de ataques que debería tener"): tope (Number(a.guerraSemana.ataquesMax) ||
-    // b.guerraSemana.ataquesMax) — cualquiera de los dos lados alcanza,
-    // ambos jugadores comparten el mismo tope de la semana en curso.
-```
-
-#### Línea original 1179 (script)
-
-```
-    // FIX (05-sep-2026, pedido usuario — "en los ataques, agrega '/' y la
-    // cantidad de ataques que debería tener"): f.maxAtaques solo viene con
-    // dato (>0) en la fila de "Ataques en la semana actual"; en el resto de
-    // filas queda undefined/0 y el texto se comporta igual que antes.
-```
-
-#### Línea original 1227 (script)
-
-```
-  // Redondea el rango a un "paso" agradable (1/2/5 x 10^n) y le agrega
-  // ~10% de margen arriba/abajo para que ningún punto quede pegado al
-  // borde del gráfico — en vez de forzar el piso a 0, que aplastaba la
-  // variación real cuando los dos jugadores se mueven en un rango angosto
-  // y alto (ej. Fame entre 2800 y 3200).
-```
-
-#### Línea original 1244 (script)
-
-```
-  // FIX (07-sep-2026, pedido usuario): PAD_B pasó de 32 a 40 porque la
-  // etiqueta de fecha ahora va rotada 45° (ver más abajo) y necesita más
-  // alto para no recortarse contra el borde inferior del SVG.
-```
-
-#### Línea original 1263 (script)
-
-```
-  // FIX (07-sep-2026, pedido usuario — "agrega líneas... que permitan
-  // identificar el primer registro de cada semana y unas más notorias
-  // para el inicio de cada mes"), ACTUALIZADO el mismo día (pedido más
-  // amplio, ver docblock de lineasTemporalesSvg en common.js): esta
-  // gráfica es de granularidad DIARIA, así que las 3 líneas de
-  // referencia (año/temporada/semana) aplican todas — reemplaza el
-  // detector de "cambio de mes calendario" que había antes (una
-  // temporada de Clash Royale NO siempre coincide con el mes calendario:
-  // empieza el PRIMER LUNES de cada mes, ver esInicioTemporada() en
-  // común.js) por el mismo criterio que usa el backend.
-```
-
-#### Línea original 1291 (script)
-
-```
-  // FIX (07-sep-2026, pedido usuario, Fase 15 punto 1 — "tooltip con
-  // Nombre, Clan, Puntaje, Día"): cada círculo pasa de auto-cerrarse
-  // (<circle ... />) a envolver un <title>, que es el tooltip nativo del
-  // navegador (sin JS/CSS extra, funciona en desktop y con tap sostenido
-  // en mobile) — mismo patrón que el resto de la página, sin dependencias
-  // nuevas. Texto: "Nombre — Clan\n<Título de la métrica>: valor\nFecha".
-```
-
-#### Línea original 1311 (script)
-
-```
-  // FIX (07-sep-2026, pedido usuario): rota 45° a la izquierda la fecha.
-  // FIX (08-sep-2026, pedido usuario — "todas las gráficas deben indicar
-  // el nombre de los ejes"): se agrega un gutter de 16 a la izquierda y
-  // 16 abajo (vía el offset negativo del viewBox), sin tocar PAD_L/PAD_B
-  // ni ninguna coordenada ya calculada arriba, y ahí se dibujan los dos
-  // títulos fijos ("Fecha" en X; en Y, el nombre de la métrica — Ataques,
-  // Puntaje (Fame) o Barcos según 'campo').
-```
-
-#### Línea original 1377 (script)
-
-```
-  // FIX (05-sep-2026, pedido usuario — "las gráficas del cara a cara son
-  // muy pequeñas, no es necesario que vayan las 3 en una sola línea. Con
-  // ese tamaño no se ve nada"): antes usaba
-  // "repeat(auto-fit,minmax(280px,1fr))", que en pantallas anchas metía
-  // las 3 cards en una sola fila, comprimiendo cada gráfica (viewBox
-  // 640x220) a ~280px de ancho. Ahora una sola columna (1fr): cada
-  // gráfica ocupa el ancho completo del contenedor, apiladas de arriba
-  // hacia abajo — se lee bien sin importar el tamaño de pantalla.
-```
-
-#### Línea original 1414 (script)
-
-```
-  // FIX (31-ago-2026, pedido usuario): antes se mandaban los textos crudos
-  // directo al backend, eligiendo a ciegas la primera coincidencia posible
-  // del lado del servidor. Ahora se resuelve cada lado por separado contra
-  // el directorio ya cargado; si algún lado es ambiguo, se muestran sus
-  // coincidencias (nombre, tag, clan) y se espera el clic antes de
-  // comparar.
-```
-
-#### Línea original 1433 (script)
-
-```
-    // FIX (02-sep-2026, punto 9): el historial de guerra se pide en
-    // paralelo al perfil, no en cascada — y con su propio .catch() para
-    // que si ese endpoint falla (o es una versión vieja del backend sin
-    // 'webHistorialGuerraComparador' todavía), el resto del comparador
-    // (perfiles + barras) igual se pinte con normalidad.
-```
-
-#### Línea original 1621 (script)
-
-```
-// FIX (13-sep-2026, pedido usuario — "agrega los botones de letras en
-// directorio por clan"): letra A-Z/# elegida en #rosterLetraFilter (null =
-// todas). Igual que rosterFiltrosSeleccion/rosterOrden de arriba, se
-// reinicia cada vez que se cambia de pestaña de clan (ver
-// renderRosterClanActivo()) y se combina con esos filtros dentro de
-// aplicarFiltrosRoster() sin pisarse entre sí. Ver pintarFiltroLetraRoster()
-// y primeraLetraFiltro()/LETRAS_FILTRO más abajo.
-```
-
-#### Línea original 1857 (script)
-
-```
-  // FIX (16-sep-2026 v8, pedido usuario — rendimiento, sugerencia propia
-  // aceptada: "el buscador del popover no tiene debounce"): antes
-  // pintarLista() se disparaba en CADA tecla, reconstruyendo el checklist
-  // completo de la columna. Con ~50 valores no se nota, pero es gratis
-  // esperar 180ms de pausa en el tipeo antes de repintar (debounce()
-  // helper reusable, ver definición al inicio del <script>).
-```
-
-#### Línea original 1865 (script)
-
-```
-  // "Seleccionar todo"/"Desmarcar todo" (pedido usuario 08-sep-2026):
-  // actúan sobre TODOS los valores de la columna, no solo los que
-  // queden visibles tras el buscador — así se puede buscar "Líder",
-  // desmarcar todo, y el resto de valores queda intacto (sin tildar).
-```
-
-#### Línea original 1900 (script)
-
-```
-  // Posición: colgado del ícono clickeado, como position:fixed (así no lo
-  // recorta el overflow-x:auto de .roster-table-wrap). Se ajusta para no
-  // salirse por la derecha ni por abajo de la ventana.
-```
-
-#### Línea original 1973 (script)
-
-```
-    // FIX (13-sep-2026, pedido usuario — "agrega los botones de letras en
-    // directorio por clan"): además de los filtros por columna de arriba,
-    // la fila también debe pasar el filtro por letra elegido en
-    // #rosterLetraFilter (si hay alguno) — ver data-letra en
-    // filasHtmlRoster() más abajo.
-```
-
-#### Línea original 2046 (script)
-
-```
-  // FIX (13-sep-2026, pedido usuario — "agrega los botones de letras en
-  // directorio por clan"): pintarFiltroLetraRoster() solo pinta de verdad
-  // la primera vez (guardia por dataset.pintado); en cada cambio de clan
-  // solo hace falta quitar el estado "active" de cualquier letra que
-  // hubiera quedado marcada del clan anterior, ya que rosterLetraSeleccionada
-  // se acaba de resetear arriba.
-```
-
-#### Línea original 2080 (script)
-
-```
-  // Barra de scroll superior sincronizada con la real (ver docblock de
-  // .roster-topbar más arriba, en el <style>): el div interno se estira al
-  // ancho real de la tabla, y ambos contenedores se copian el scrollLeft
-  // uno al otro (con una bandera para no entrar en loop infinito de
-  // eventos "scroll" disparándose mutuamente).
-```
-
-#### Línea original 2091 (script)
-
-```
-  // Recalcula si la ventana cambia de tamaño (ej. rotar el celular) — no
-  // hace falta quitar este listener al re-pintar la tabla (cambio de
-  // clan): vuelve a buscar los elementos por su id cada vez que se
-  // dispara, y esos ids siempre existen mientras la página esté abierta.
-```
-
-#### Línea original 2110 (script)
-
-```
-  // Botón "Quitar filtros" (pedido usuario 08-sep-2026): borra TODAS las
-  // entradas de rosterFiltrosSeleccion de un toque, en vez de tener que
-  // abrir columna por columna y tildar todo de nuevo. Arranca deshabilitado
-  // (no hay filtros recién pintada la tabla — ver "disabled" en el HTML de
-  // arriba) y actualizarBotonLimpiarFiltros() lo habilita/deshabilita cada
-  // vez que cambia algún filtro (ver esa función y actualizarIconosFiltro()
-  // más abajo).
-```
-
-#### Línea original 2157 (script)
-
-```
-    // FIX (31-ago-2026): un link directo a directorio.html?tag=TAG (de
-    // antes de que existiera perfil.html) ahora redirige a la página de
-    // perfil correspondiente EN LA MISMA pestaña — un window.open() acá
-    // sería un popup disparado sin gesto del usuario y la mayoría de
-    // navegadores lo bloquearía.
-```
-
-#### Línea original 2303 (script)
-
-```
-  // FIX (08-sep-2026, pedido usuario — "todas las gráficas deben indicar
-  // el nombre de los ejes"): PAD_L (56→74) y PAD_B (68→84) suben para dejar
-  // espacio a los títulos fijos de los ejes ("Fecha" en X, opts.ejeY en Y
-  // — ver los <text class="ing-axis-title"> al final de esta función),
-  // mismo cambio que su gemela en index.html.
-```
-
-#### Línea original 2417 (script)
-
-```
-      // FIX (10-sep-2026, pedido usuario — "arriba debe decir el nombre de
-      // la cuenta y su tag, abajo el clan y la cantidad de ataques, barcos
-      // o fame, igual que en index"): mismo orden que activarTooltipsGraficas()
-      // en index.html — nombre+tag arriba en negrita, cantidad+clan+fecha
-      // abajo tenue (antes estaba al revés en ambos archivos).
-```
-
-#### Línea original 2439 (script)
-
-```
-  // FIX (08-sep-2026, pedido usuario — "las gráficas deben indicar el
-  // nombre de los ejes"): mismo criterio que index.html — ejeY es la
-  // primera palabra del título de la tarjeta.
-```
-
-#### Línea original 2538 (script)
-
-```
-// FIX (16-sep-2026 v8, pedido usuario — "poner un botón de Mostrar/Ocultar
-// gráficas para no precargar todo de golpe [...] que al inicio aparezcan
-// solo las tarjetas de nombres y las gráficas que sean a pedido"): las 3
-// gráficas comparativas (renderComparativaSemanal) son lo más caro de
-// pintar de toda la sección — un <svg> con un <path>+<circle> por cada
-// semana de CADA miembro nuevo — así que ya no se construyen solas al
-// cargar la página. ingresosGraficasVisibles controla si están abiertas
-// (arranca en false: solo se ve el botón, ver #ingGraficasToggle más
-// abajo) e ingresosUltimosFiltrados guarda el último subconjunto filtrado
-// aunque las gráficas estén ocultas, para poder pintarlas al instante
-// apenas el usuario las abre, sin tener que recalcular el filtro.
-```
-
-#### Línea original 2597 (script)
-
-```
-  // Las gráficas solo se recalculan si el usuario las tiene abiertas (ver
-  // ingresosGraficasVisibles / #ingGraficasToggle) — si están ocultas, ya
-  // quedó guardado en ingresosUltimosFiltrados y se pintan recién cuando
-  // las abra, para no gastar tiempo de render en algo que nadie está viendo.
-```
-
-#### Línea original 1023 (script)
-
-```
-FIX (31-ago-2026, pedido usuario — "debería mostrarme las 5
-coincidencias (ya sea en tag o nombre) y darme a elegir el que
-quiero ver"): con UNA sola coincidencia se sigue resolviendo directo
-(eso "se reemplaza bien", según el propio pedido); con 2 o más ya no
-se elige la primera en automático — se muestra la lista y se espera
-el clic del usuario.
 ```
 
 
