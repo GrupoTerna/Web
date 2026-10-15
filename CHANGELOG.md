@@ -4,7 +4,7 @@ Lista corta de lo que se hizo, de más reciente a más antiguo. Cada entrada tra
 
 **Cómo funciona el código hoy, por qué se decidió así, qué se probó y se descartó: no va aquí, va en `Contexto_Base_Web.md`.** Las reglas de redacción están en `Consolidados de cambios/Reglas_Consolidados.md` (repo `Backend`), sección 5. Los pendientes tampoco viven en cada entrada: están en «Abiertos». El detalle largo anterior sigue en el historial de git.
 
-*Traslado en curso (desde el 11-oct-2026):* los Tramos 1 y 2 de `admin.html` (30-ago a 16-sep) pasaron a `§PF083` (15-oct). Los siete lotes de consolidación CSS de `styles.css` (18-sep) pasaron a `§PF082` (15-oct). Las dos entradas fechadas de `directorio.html` (18-sep) pasaron a `§PF016` (15-oct). Las entradas de `perfil.html` del 23 y 27-sep pasaron a `§PF081` (15-oct). Antes: las entradas desde el 04-oct-2026 ya están en formato corto y su contenido pasó a `§PF025` (8 y 9-oct), `§PF027` (5 a 7-oct) y `§PF018` (octava sesión, 2 al 5-oct). Las tandas 4 a 2 del 03 y 02-oct, la Fase 11 y el TBT de `guerra` (02-oct) también pasaron a `§PF018`, y la séptima y la sexta sesión (30 y 29-sep), las tandas D, C, B y A de la Fase 5b (28-sep), la Fase 11 del plan T_Lista (26-sep) y los comentarios desactualizados (21-sep) a `§PF017`. Del 20-sep pasaron a `§PF016` «Rendimiento (Lighthouse)», «CSS compartido», `permisos`, `mensajes` y `comunidad`. Quedó trasladado todo el 20-sep (`admin`, `perfil`, `directorio`, `index` y `guerra`) a `§PF016`. Quedó trasladado todo el 19-sep a `§PF016`: «CI y herramientas», «Rendimiento (Lighthouse)» y «SEO», «CSS compartido», `permisos`, `mensajes` y `guerra`. Con esta tanda quedaron trasladadas también las entradas de `guerra.html` del 21-sep (`§PF017`) y del 18-sep (`§PF016`). Los bloques «Línea original N (estilo)» de `guerra.html` (4 a 16-sep) y sus 10 bloques «(HTML)» (31-ago a 13-sep) pasaron a `§PF028`; sus 15 primeros bloques «(script)» (30-ago a 17-sep) pasaron a `§PF029`. Sus otros 15 bloques «(script)» (4 a 15-sep) pasaron a `§PF030`; en `guerra.html` ya no queda ningún bloque «(script)» con texto largo. Todo lo anterior (hoy ordenado por tema y archivo, no por fecha, incluidos los bloques «Línea original N» y las demás secciones por archivo) conserva su texto largo hasta que se trasladen, por tandas y de la fecha más reciente a la más antigua.
+*Traslado en curso (desde el 11-oct-2026):* `torneos.html` y `comunidad.html` (30-ago a 13-sep) pasaron a `§PF084` (15-oct). Los Tramos 1 y 2 de `admin.html` (30-ago a 16-sep) pasaron a `§PF083` (15-oct). Los siete lotes de consolidación CSS de `styles.css` (18-sep) pasaron a `§PF082` (15-oct). Las dos entradas fechadas de `directorio.html` (18-sep) pasaron a `§PF016` (15-oct). Las entradas de `perfil.html` del 23 y 27-sep pasaron a `§PF081` (15-oct). Antes: las entradas desde el 04-oct-2026 ya están en formato corto y su contenido pasó a `§PF025` (8 y 9-oct), `§PF027` (5 a 7-oct) y `§PF018` (octava sesión, 2 al 5-oct). Las tandas 4 a 2 del 03 y 02-oct, la Fase 11 y el TBT de `guerra` (02-oct) también pasaron a `§PF018`, y la séptima y la sexta sesión (30 y 29-sep), las tandas D, C, B y A de la Fase 5b (28-sep), la Fase 11 del plan T_Lista (26-sep) y los comentarios desactualizados (21-sep) a `§PF017`. Del 20-sep pasaron a `§PF016` «Rendimiento (Lighthouse)», «CSS compartido», `permisos`, `mensajes` y `comunidad`. Quedó trasladado todo el 20-sep (`admin`, `perfil`, `directorio`, `index` y `guerra`) a `§PF016`. Quedó trasladado todo el 19-sep a `§PF016`: «CI y herramientas», «Rendimiento (Lighthouse)» y «SEO», «CSS compartido», `permisos`, `mensajes` y `guerra`. Con esta tanda quedaron trasladadas también las entradas de `guerra.html` del 21-sep (`§PF017`) y del 18-sep (`§PF016`). Los bloques «Línea original N (estilo)» de `guerra.html` (4 a 16-sep) y sus 10 bloques «(HTML)» (31-ago a 13-sep) pasaron a `§PF028`; sus 15 primeros bloques «(script)» (30-ago a 17-sep) pasaron a `§PF029`. Sus otros 15 bloques «(script)» (4 a 15-sep) pasaron a `§PF030`; en `guerra.html` ya no queda ningún bloque «(script)» con texto largo. Todo lo anterior (hoy ordenado por tema y archivo, no por fecha, incluidos los bloques «Línea original N» y las demás secciones por archivo) conserva su texto largo hasta que se trasladen, por tandas y de la fecha más reciente a la más antigua.
 
 ---
 
@@ -343,6 +343,7 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 
 ## 13-sep-2026
 
+- **`comunidad.html` · Íconos de WhatsApp y Discord en «Redes».** Primeros en la fila, con los links y SVG de `index.html#redes`. → §PF084
 - **`admin.html` · Pestaña «Cambio de rango», grilla de requisitos y selector de temporadas (Fase 7).** `.btn-toggle-torsor`, `#crGridAscenso`/`#crGridDescenso`, `.cr-grid-input`, `.cr-temporada-bloque`, `.semana-selector`. → §PF083
 - **`admin.html` · Control de «Torneo vigente».** `_webAdminVigenteListar()` y `_webAdminVigenteGuardar()` (`34_Web_API.gs`); «Ninguno» limpia `Extra!Torneo_Vigente_ID`. → §PF083
 
@@ -350,13 +351,15 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 
 - **`admin.html` y `directorio.html` · «Participación de hoy en guerra» sale de admin.** Queda `#cardParticipacionHoyDirectorio`; se conecta `webAdminCuentasDeNomMulti`. → §PF083
 
-## 09-sep-2026 (admin)
+## 09-sep-2026
 
 - **`admin.html` · Desplegable de cuentas del organizador del torneo.** `pintarCuentasOrg()`; `btnRegistrarTorneo` manda `tagOrg`, `clanOrg` y `clanTagOrg`. → §PF083
 - **`admin.html` · Campos de fecha y hora «amigables».** `.campo-fecha-wrap`, `.btn-calendario` (`showPicker()`), `.campo-oculto-visual`; selector de semanas con lista y casillas (11-sep). → §PF083
 
-## 08-sep-2026 (admin)
+## 08-sep-2026
 
+- **`torneos.html` · Los torneos de continuación no se listan aparte.** `esTorneoContinuacion()` e `idTorneoPrincipalDe()` (varios alias de campo). → §PF084
+- **`comunidad.html` · Íconos de redes sociales junto al título.** Fila de íconos con los links de `index.html#redes`. → §PF084
 - **`admin.html` · «Buscar miembro» con sugerencias; infiltrados junto a él; «Planificar, registrar o modificar torneos o sorteos».** `buscarSugerenciasMiembro()`, `renderSugerenciasMiembro()`, `.buscador-wrap`; backend `_webAdminBuscarMiembroSugerencias()` (conectado, comprobado el 05-oct); dos `.tab-clan` Torneos/Sorteos. → §PF083
 
 ## 05-sep-2026
@@ -366,138 +369,36 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 
 ## 04-sep-2026
 
+- **`comunidad.html` e `index.html` · Rankings de la Familia pasan a `index.html`.** `<section id="rankings-familia">`; evita duplicar `webRankings()` y `webEstadisticasCartas()`. → §PF084
 - **`admin.html` · El contenedor «Directorio» va antes de «Visor de contenido» (punto 38).** La ubicación de infiltrados cambió el 08-sep. → §PF083
 
 ## 03-sep-2026
 
+- **`torneos.html` · Ganadores y premios junto a cada fila de «Torneos recientes».** Usa `webHistorialTorneos`; sin él, la lista se pinta igual. → §PF084
+- **`torneos.html` · Menos espaciado vertical entre secciones.** `.torneos-sec` (solo esta página). → §PF084
 - **`admin.html` · Reordenamiento del panel (Fase 25): «Tus cuentas» primero y contenedores con subsecciones.** `_webMisCuentas()` (`34_Web_API.gs`), `.admin-subseccion`. → §PF083
 - **`admin.html` · El visor de Docs deja el `<iframe>` y pinta el HTML del Doc.** `_webAdminContenidoDocHtml()` (`34_Web_API.gs`), `.doc-original`, `.viendo-original` (nunca texto y original a la vez). → §PF083
 
+## 02-sep-2026
+
+- **`torneos.html` · Resultados completos de cada torneo y constancia de descalificados (PDF, puntos 12 a 14).** `todosResultadosHtml()`, etiquetas «Descalificado» y «Premio repartido»; `calcularRankingVictoriasTorneos()` usa `t.participantes` en vez de `t.top3`. → §PF084
+
+## 01-sep-2026
+
+- **`torneos.html` · Ranking de victorias en torneos.** `calcularRankingVictoriasTorneos()` agrupa por nombre y clan (sin Tag). → §PF084
+
 ## 31-ago-2026
 
+- **`comunidad.html` · Texto justificado en tarjetas de historia.** `text-align:justify` solo en `<p>`, nunca en `<li>`. → §PF084
 - **`admin.html` · Responsive, textarea de veto y pestañas por clan.** `.req-row` con `flex-wrap`; `vComentario` (la regla `.field textarea` vive en `styles.css` desde el 1-sep); `.contenido-tabs`. → §PF083
 
 ## 30-ago-2026
 
+- **`torneos.html` · Deja de ser un placeholder y consume `webTorneos`.** → §PF084
+- **`comunidad.html` · Lista de «Ascensos recientes».** `webAscensosRecientes()` (el backend filtra descensos y administradores). → §PF084
 - **`admin.html` · Mensajes automáticos: refresco puntual, caja con copiar y plegar, y visor del Doc de origen.** `btnRefrescarCategoria`; el `<iframe>` se reemplazó el 03-sep. → §PF083
 
 ---
-
-## torneos.html
-
-### 08-sep-2026 — Torneos de continuación no se listan aparte
-Pedido usuario, punto 1: "Los torneos de continuación no deben aparecer
-en la web como torneo aparte, ya que se fusiona sus resultados con el
-torneo principal". Antes cada torneo de T_Control (tanto el "principal"
-como su "continuación", ligados desde el wizard de `admin.html` —
-`#torneoTipo`/`tagTorneoPrincipal`) se pintaba como fila propia en
-"Torneos recientes", duplicando el mismo evento en dos filas (una con
-resultados, la otra sin ninguno, porque el podio final normalmente se
-cierra en la continuación). `esTorneoContinuacion(t)` /
-`idTorneoPrincipalDe(t)` admiten varios alias de campo porque, sin ver
-`_webTorneos()`/`_webHistorialTorneos()` (`34_Web_API.gs`) para
-confirmar el nombre exacto que expone el backend, es más seguro cubrir
-alias razonables que asumir uno solo; si ninguno viene en la respuesta,
-ambas funciones devuelven `false`/`null` sin romper nada.
-
-### 03-sep-2026 — Ganadores y premios junto a cada fila de "Torneos recientes"
-Pedido usuario: "Torneos Recientes: aprovechar el espacio libre a la
-derecha de cada fila para mostrar ganadores y premios de ese torneo".
-Antes `.t-detalle` era `flex:1` y ocupaba todo el ancho sobrante de la
-fila (fecha + detalle nada más). Se trae también `webHistorialTorneos`
-(mismo endpoint que ya consume el Salón de la fama) para sacar el top 3
-de cada torneo sin necesitar un endpoint nuevo; si falla, la lista
-igual se pinta, solo sin el detalle de ganadores.
-
-### 03-sep-2026 — Menos espaciado vertical entre secciones
-Pedido usuario: "reducir el espaciado vertical excesivo alrededor de
-'Ganadores del torneo más reciente' y en general en la página". La
-regla genérica `section{padding:72px 0}` de `styles.css` se sumaba al
-`margin-top` propio de cada una de las 4 secciones de esta página
-(40-44px), dejando ~112-116px entre secciones. Se reemplaza por un
-padding fijo más chico solo en esta página (`.torneos-sec`), sin tocar
-la regla genérica del resto del sitio.
-
-### 02-sep-2026 — Resultados completos de cada torneo (PDF, punto 12/13/14)
-Pedido usuario (PDF de torneos): punto 12, "mostrar los resultados de
-T_Control, no sé si en gráfica o cuadro"; punto 13, "mostrar los
-resultados de todos los participantes que tengan más de cero
-victorias... o a los miembros con más victorias en todos los torneos,
-que pueda incentivar la participación"; punto 14, "si descalificas a
-alguien, desaparece del podio pero nada en la web pública explica por
-qué — necesito una forma de dejar constancia de la resolución para que
-no hayan disputas de premios".
-
-Se agrega `todosResultadosHtml()`: cuadro plegable con TODOS los
-participantes de un torneo con Victorias > 0 (no solo el top 3), leído
-de `participantes` (`24_Torneos_Core.gs`/`34_Web_API.gs`), plegado por
-defecto bajo el botón "Ver todos los resultados" — tanto en "Ganadores
-del torneo más reciente" como en cada tarjeta del Salón de la fama. El
-botón solo se ofrece cuando hay más participantes con victorias que el
-podio ya mostrado. Se pintan también etiquetas de "❌ Descalificado" y
-"🤝 Premio repartido" por participante, así el resultado queda explicado
-en la propia web sin depender de que alguien pregunte. Si el backend
-todavía no manda `participantes`, no se pinta nada — no rompe, solo no
-aparece el botón.
-
-`calcularRankingVictoriasTorneos()` pasa de sumar solo `t.top3` (los 3
-primeros puestos) a usar `t.participantes` (lista completa con
-Victorias > 0), así todos los que ganaron al menos una partida suman al
-ranking, no solo quien llegó al podio — el caso exacto que el pedido
-quiere incentivar.
-
-### 01-sep-2026 — Ranking de victorias en torneos
-Pedido usuario: "agregar en Torneos un ranking de más victorias en
-todos los torneos, agregable en el cliente a partir de
-`webHistorialTorneos`, sin backend nuevo". Suma victorias por jugador a
-través de todas sus apariciones en el historial (últimos 30 torneos con
-resultados). El campo no incluye Tag, solo nombre + clan, así que se
-agrupa por esa combinación para no mezclar jugadores distintos que
-compartan nombre en clanes distintos.
-
-### 30-ago-2026 — torneos.html deja de ser un placeholder
-Pedido del usuario: la página pasa a consumir `webTorneos`
-(`34_Web_API.gs`), el mismo endpoint que ya usaba `admin.html` para la
-tarjeta "Ver ganadores" del panel.
-
----
-
-## comunidad.html
-
-### 13-sep-2026 — Íconos de WhatsApp y Discord en "Redes"
-Pedido usuario: "falta el icono de wsp" / "el de discord también agrégalo".
-Se agregan WhatsApp y Discord, primeros en la fila (a la izquierda de
-Facebook), reutilizando los mismos links/SVG que sus `.social-card`
-equivalentes en `index.html#redes`. Ya no aplica la nota anterior de que
-"WhatsApp/Discord no son parte de este bloque".
-
-### 08-sep-2026 — Íconos de redes sociales junto al título de Comunidad
-Pedido usuario, punto 2: "Comunidad: inserta los íconos de las redes
-sociales con su respectivo link al hacer clic". Se agrega una fila de
-íconos circulares junto al título "La Familia Terna", reutilizando los
-mismos SVG/links oficiales que ya usa `index.html` en su sección "Redes
-Oficiales" (`#redes`) — así no se duplican URLs distintas para la misma red
-en dos páginas.
-
-### 04-sep-2026 — Rankings de la Familia movidos a index.html
-Pedido usuario, punto 28: "Rankings de la Familia (tops y cartas)... habría
-que moverla a la sección Index". La sección completa (markup + CSS + JS)
-se movió a `index.html` (`<section id="rankings-familia">`). Ya no vive en
-`comunidad.html`, así se evita duplicar la llamada a `webRankings()` /
-`webEstadisticasCartas()` en dos páginas a la vez.
-
-### 30-ago-2026 — Lista de "Ascensos recientes"
-Pedido del usuario: lista pública de reconocimiento. Muestra solo Ascensos,
-nunca Descensos ni cambios de rango de cuentas que hoy son Administradores
-(ese filtro ya lo aplica el backend en `webAscensosRecientes()`,
-`34_Web_API.gs`). Se agrega debajo de la explicación de "Ascensos y
-Descensos" de esta misma página.
-
-### 31-ago-2026 — Justificado de texto en tarjetas de historia
-Pedido usuario: "mientras el texto no tenga viñetas, se debe justificar el
-texto para lograr mayor armonía visual". El `text-align:justify` solo se
-aplica a `<p>`, nunca a las listas (`<li>`) de la misma tarjeta, tal como
-se pidió explícitamente.
 
 ## admin.html — historial trasladado (Parte 7a, bloques HTML largos)
 
