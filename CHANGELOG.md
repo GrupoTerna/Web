@@ -4,7 +4,7 @@ Lista corta de lo que se hizo, de más reciente a más antiguo. Cada entrada tra
 
 **Cómo funciona el código hoy, por qué se decidió así, qué se probó y se descartó: no va aquí, va en `Contexto_Base_Web.md`.** Las reglas de redacción están en `Consolidados de cambios/Reglas_Consolidados.md` (repo `Backend`), sección 5. Los pendientes tampoco viven en cada entrada: están en «Abiertos». El detalle largo anterior sigue en el historial de git.
 
-*Traslado en curso (desde el 11-oct-2026):* los bloques «Línea original N» de `directorio.html` (31-ago a 16-sep) pasaron a `§PF086` (15-oct). Los de `perfil.html` (31-ago a 13-sep) pasaron a `§PF085` (15-oct). `torneos.html` y `comunidad.html` (30-ago a 13-sep) pasaron a `§PF084` (15-oct). Los Tramos 1 y 2 de `admin.html` (30-ago a 16-sep) pasaron a `§PF083` (15-oct). Los siete lotes de consolidación CSS de `styles.css` (18-sep) pasaron a `§PF082` (15-oct). Las dos entradas fechadas de `directorio.html` (18-sep) pasaron a `§PF016` (15-oct). Las entradas de `perfil.html` del 23 y 27-sep pasaron a `§PF081` (15-oct). Antes: las entradas desde el 04-oct-2026 ya están en formato corto y su contenido pasó a `§PF025` (8 y 9-oct), `§PF027` (5 a 7-oct) y `§PF018` (octava sesión, 2 al 5-oct). Las tandas 4 a 2 del 03 y 02-oct, la Fase 11 y el TBT de `guerra` (02-oct) también pasaron a `§PF018`, y la séptima y la sexta sesión (30 y 29-sep), las tandas D, C, B y A de la Fase 5b (28-sep), la Fase 11 del plan T_Lista (26-sep) y los comentarios desactualizados (21-sep) a `§PF017`. Del 20-sep pasaron a `§PF016` «Rendimiento (Lighthouse)», «CSS compartido», `permisos`, `mensajes` y `comunidad`. Quedó trasladado todo el 20-sep (`admin`, `perfil`, `directorio`, `index` y `guerra`) a `§PF016`. Quedó trasladado todo el 19-sep a `§PF016`: «CI y herramientas», «Rendimiento (Lighthouse)» y «SEO», «CSS compartido», `permisos`, `mensajes` y `guerra`. Con esta tanda quedaron trasladadas también las entradas de `guerra.html` del 21-sep (`§PF017`) y del 18-sep (`§PF016`). Los bloques «Línea original N (estilo)» de `guerra.html` (4 a 16-sep) y sus 10 bloques «(HTML)» (31-ago a 13-sep) pasaron a `§PF028`; sus 15 primeros bloques «(script)» (30-ago a 17-sep) pasaron a `§PF029`. Sus otros 15 bloques «(script)» (4 a 15-sep) pasaron a `§PF030`; en `guerra.html` ya no queda ningún bloque «(script)» con texto largo. Todo lo anterior (hoy ordenado por tema y archivo, no por fecha, incluidos los bloques «Línea original N» y las demás secciones por archivo) conserva su texto largo hasta que se trasladen, por tandas y de la fecha más reciente a la más antigua.
+*Traslado en curso (desde el 11-oct-2026):* Los 16 bloques «Línea original N (HTML)» de `index.html` (29-ago a 10-sep) pasaron a `§PF087` (15-oct); los bloques `// (script)` de `index.html` siguen con su texto largo. los bloques «Línea original N» de `directorio.html` (31-ago a 16-sep) pasaron a `§PF086` (15-oct). Los de `perfil.html` (31-ago a 13-sep) pasaron a `§PF085` (15-oct). `torneos.html` y `comunidad.html` (30-ago a 13-sep) pasaron a `§PF084` (15-oct). Los Tramos 1 y 2 de `admin.html` (30-ago a 16-sep) pasaron a `§PF083` (15-oct). Los siete lotes de consolidación CSS de `styles.css` (18-sep) pasaron a `§PF082` (15-oct). Las dos entradas fechadas de `directorio.html` (18-sep) pasaron a `§PF016` (15-oct). Las entradas de `perfil.html` del 23 y 27-sep pasaron a `§PF081` (15-oct). Antes: las entradas desde el 04-oct-2026 ya están en formato corto y su contenido pasó a `§PF025` (8 y 9-oct), `§PF027` (5 a 7-oct) y `§PF018` (octava sesión, 2 al 5-oct). Las tandas 4 a 2 del 03 y 02-oct, la Fase 11 y el TBT de `guerra` (02-oct) también pasaron a `§PF018`, y la séptima y la sexta sesión (30 y 29-sep), las tandas D, C, B y A de la Fase 5b (28-sep), la Fase 11 del plan T_Lista (26-sep) y los comentarios desactualizados (21-sep) a `§PF017`. Del 20-sep pasaron a `§PF016` «Rendimiento (Lighthouse)», «CSS compartido», `permisos`, `mensajes` y `comunidad`. Quedó trasladado todo el 20-sep (`admin`, `perfil`, `directorio`, `index` y `guerra`) a `§PF016`. Quedó trasladado todo el 19-sep a `§PF016`: «CI y herramientas», «Rendimiento (Lighthouse)» y «SEO», «CSS compartido», `permisos`, `mensajes` y `guerra`. Con esta tanda quedaron trasladadas también las entradas de `guerra.html` del 21-sep (`§PF017`) y del 18-sep (`§PF016`). Los bloques «Línea original N (estilo)» de `guerra.html` (4 a 16-sep) y sus 10 bloques «(HTML)» (31-ago a 13-sep) pasaron a `§PF028`; sus 15 primeros bloques «(script)» (30-ago a 17-sep) pasaron a `§PF029`. Sus otros 15 bloques «(script)» (4 a 15-sep) pasaron a `§PF030`; en `guerra.html` ya no queda ningún bloque «(script)» con texto largo. Todo lo anterior (hoy ordenado por tema y archivo, no por fecha, incluidos los bloques «Línea original N» y las demás secciones por archivo) conserva su texto largo hasta que se trasladen, por tandas y de la fecha más reciente a la más antigua.
 
 ---
 
@@ -357,6 +357,7 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 
 ## 10-sep-2026
 
+- **`index.html` · El botón «Unirse» del hero abre el modal «¿Cómo unirte?».** `#heroJoinBtn` con `onclick="abrirModalUnirse()"` sin clan (antes era un `<a>` directo a Discord). → §PF087
 - **`directorio.html` · Tooltip de las gráficas con nombre y tag arriba, y cantidad, clan y fecha abajo.** Mismo orden que `activarTooltipsGraficas()` de `index.html`. → §PF086
 
 ## 09-sep-2026
@@ -375,21 +376,25 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 
 ## 07-sep-2026
 
+- **`index.html` · Botón «Inicio» a la izquierda de «Directorio».** Mismo destino que `.brand` (`href="index.html"`), con `data-page="inicio"` para que `marcarNavActiva()` lo resalte. → §PF087
 - **`directorio.html` · «Cara a cara»: fecha rotada 45°, líneas de referencia (año, temporada, semana) y tooltip nativo con `<title>`.** `PAD_B` 32→40; `lineasTemporalesSvg()`; se reemplaza el detector de mes calendario por `esInicioTemporada()`. → §PF086
 - **`perfil.html` · Líneas de referencia secundarias en la gráfica semanal.** Horizontal a mitad del eje Y y verticales de inicio de año y de temporada; sin línea de semana. → §PF085
 
 ## 06-sep-2026
 
+- **`index.html` · Aviso de clan rival en «Ingresos recientes» (Fase 7, Parte A).** Pastilla `.badge-warn` con `ing.esRivalTemporada` e `ing.clanRivalDetectado`; las tarjetas se rehicieron el 20-sep y el aviso vive hoy en `directorio.html`. → §PF087
 - **`perfil.html` · «Mazo actual» (Fase 10).** `pd.currentDeck` real vía `_webMazoActualDesdeCards2()` (`34_Web_API.gs`); oculto si `j.mazoActual` es `null`. → §PF085
 
 ## 05-sep-2026
 
+- **`index.html` · Hero: la frase del cuartel ya no queda pegada en móvil.** Un espacio real antes de cada `<br class="hero-title-break">`. → §PF087
 - **`directorio.html` · «Cara a cara»: ataques con «/tope», Vigencia con hora junto al nombre y gráficas a todo el ancho.** `extItemAtaques()`, `fmtFechaConHoraVigencia()`, una columna (1fr). → §PF086
 - **`admin.html` · Wizard de 3 pasos para Torneos y «Planificar torneo».** Campo opcional de autor. → §PF083
 - **`admin.html` · «Mensajes automáticos» pasa a 3 tarjetas fijas `.admin-grupo`.** `initMensajesAutomaticos()`, `cargarGrupoToggle()`; toggles con `.tab-clan`. → §PF083
 
 ## 04-sep-2026
 
+- **`index.html` · «Torneos» de Rankings pasa a contar «batallas».** `cargarRankings()`: `pintarRanking('rkTorneos', data.torneos, 'batallas')` y título renombrado (`DC.TORNEOS` es `tournamentBattleCount`, no torneos ganados). → §PF087
 - **`directorio.html` · «Ingresos recientes» pasan de `guerra.html` al final de Directorio.** `cargarIngresosRecientes()`; sigue con `webGuerraEnVivo` (campo `nuevos`). → §PF086
 - **`perfil.html` · «Ranking en el clan» con datos reales, historial de guerra solo admin, «Vigencia» confirmada y espacio uniforme entre barras.** `ext.historialRanking` (`_webPerfilJugador()`, hoja Guerra), `renderRankingChart()`; se quita el separador de 14 px entre bloques de `.req-row`. → §PF085
 - **`comunidad.html` e `index.html` · Rankings de la Familia pasan a `index.html`.** `<section id="rankings-familia">`; evita duplicar `webRankings()` y `webEstadisticasCartas()`. → §PF084
@@ -397,6 +402,8 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 
 ## 03-sep-2026
 
+- **`index.html` · Sección de clanes: el escudo se centra en el espacio libre.** El escudo va dentro de `.clanes-escudo-fill` (`flex:1 1 220px`, centra su contenido). → §PF087
+- **`index.html` · Tarjetas de «Ingresos recientes» clicables y con «Vigencia».** `data-tag` y `window.open` (sin propagar desde los enlaces de RoyaleAPI y CWStats); `ing.vigencia` solo si viene con valor. Rehecho el 20-sep. → §PF087
 - **`directorio.html` · «Cara a cara»: «Ataques en la semana actual» y «Donaciones hechas/recibidas».** Solo cambia la etiqueta y se añade el recibidas. → §PF086
 - **`perfil.html` · «Vigencia» (Última conexión) en el perfil.** `renderMiembro()`: acepta `j.vigencia`, `j.extendido.vigencia` o `j.extendido.ultimaConexion`; oculto si no viene. → §PF085
 - **`torneos.html` · Ganadores y premios junto a cada fila de «Torneos recientes».** Usa `webHistorialTorneos`; sin él, la lista se pinta igual. → §PF084
@@ -412,10 +419,13 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 
 ## 01-sep-2026
 
+- **`index.html` · Sección de clanes: el `<div>` de texto deja de estirarse.** De `flex:1` a `flex:0 1 auto` con `max-width`; el `gap` de 28 px queda como única separación. → §PF087
 - **`torneos.html` · Ranking de victorias en torneos.** `calcularRankingVictoriasTorneos()` agrupa por nombre y clan (sin Tag). → §PF084
 
 ## 31-ago-2026
 
+- **`index.html` · Sección de clanes: escudo a la izquierda y más grande.** `justify-content:flex-start` (antes `space-between`) y escudo de 150 a 176 px; centrado por media query en móvil. → §PF087
+- **`index.html` · Ícono de RoyaleAPI en «Canales Verificados».** Pasó al servicio de favicons de Google; el 08-oct se reemplazó por el PNG de `cdn.royaleapi.com` (la CSP lo bloqueaba). → §PF087
 - **`directorio.html` · Con 2 o más coincidencias se muestra la lista y se espera el clic; `?tag=TAG` redirige a `perfil.html` en la misma pestaña.** El comparador resuelve cada lado contra el directorio ya cargado. → §PF086
 - **`perfil.html` · Nace la página de perfil en su propia pestaña (`?tag=TAG`) y botones a RoyaleAPI y CWStats.** `directorio.html` deja de pintar el perfil inline y abre la página con `window.open`. → §PF085
 - **`comunidad.html` · Texto justificado en tarjetas de historia.** `text-align:justify` solo en `<p>`, nunca en `<li>`. → §PF084
@@ -428,6 +438,15 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 - **`admin.html` · Mensajes automáticos: refresco puntual, caja con copiar y plegar, y visor del Doc de origen.** `btnRefrescarCategoria`; el `<iframe>` se reemplazó el 03-sep. → §PF083
 
 ---
+
+## 29-ago-2026
+
+- **`index.html` · «Aniversarios» como penúltima sección.** Después de «Ingresos recientes» y antes del tagline de cierre; `cargarAniversarios()` la oculta si no hay hitos en 14 días. → §PF087
+
+## Sin fecha en el comentario original
+
+- **`index.html` · Datos estructurados (schema.org, `Organization`).** `<script type="application/ld+json">` solo en esta página, con `sameAs` de los canales oficiales. → §PF087
+- **`index.html` · `<main id="main-content">` envuelve el contenido central.** El `id` del skip-link se movió desde `.hero-banner`. → §PF087
 
 ## admin.html — historial trasladado (Parte 7a, bloques HTML largos)
 
@@ -2305,223 +2324,6 @@ FIX (03-sep-2026, pedido usuario, punto 19 — "agregar un
 
 
 ## index.html — historial trasladado
-
-### Línea original 592 (HTML)
-
-```
-Datos estructurados (schema.org, Organization): ayuda a que Google
-     muestre el logo, el nombre y los canales oficiales de la Familia
-     Terna como resultado enriquecido en búsquedas y en el panel lateral
-     de conocimiento. Se coloca solo en index.html (página principal del
-     sitio), que es donde Google espera encontrar el marcado de
-     organización. sameAs enlaza los mismos canales oficiales ya listados
-     en la sección "Canales Verificados" (#redes) más abajo en esta misma
-     página, para que Google los asocie a esta organización.
-```
-
-### Línea original 628 (HTML)
-
-```
-FIX (07-sep-2026, pedido usuario — "Agrega un botón llamado
-           'Inicio' que lleve a index, haciendo lo mismo que hace el botón
-           de familia Terna. Este botón debe estar a la izquierda de
-           Directorio"): mismo destino que el link .brand de arriba
-           (href="index.html") — se usa data-page="inicio" para que
-           marcarNavActiva() (assets/common.js) lo resalte como activo acá,
-           mismo valor que ya tiene <body data-page="inicio">.
-```
-
-### Línea original 639 (HTML)
-
-```
-<main id="main-content"> envuelve TODO el contenido central (desde el
-     hero hasta antes del footer): antes el id="main-content" del
-     skip-link vivía en un <div>/<section> genérico, que un lector de
-     pantalla no anuncia como landmark principal. Se usa <main> real por
-     accesibilidad; el id se mueve aquí desde la sección .hero-banner de
-     abajo para no duplicarlo.
-```
-
-### Línea original 652 (HTML)
-
-```
-FIX (05-sep-2026, pedido usuario — "en móvil la frase del
-           cuartel queda pegada, sin espacios"): antes las palabras solo
-           quedaban separadas por el propio salto de línea del <br
-           class="hero-title-break">, sin ningún espacio real en el texto.
-           En escritorio eso no se notaba porque el <br> sí genera el
-           corte visual, pero en móvil ese <br> se oculta (display:none,
-           ver breakpoint @media max-width:768px más arriba) y, al no
-           haber ningún espacio de por medio, las palabras quedaban
-           pegadas ("cuartelgeneralde laFamilia Terna"). Se agrega un
-           espacio real antes de cada <br> — en escritorio no cambia nada
-           (un espacio antes de un salto de línea no se ve), y en móvil
-           ese espacio queda y separa las palabras correctamente.
-```
-
-### Línea original 661 (HTML)
-
-```
-FIX (10-sep-2026, pedido usuario — "el botón de unirse por
-           discord debe ser solo unirse y dar las mismas opciones de
-           'Unirse a este clan' (wsp, discord, formulario)"): antes era un
-           <a> con link directo a Discord (bypaseaba el resto de canales
-           oficiales). Ahora es un botón que abre el MISMO modal
-           "¿Cómo unirte?" que ya usan las tarjetas de clan
-           (.js-solicitar-unirme -> abrirModalUnirse(), más abajo), sin
-           pasarle un clan puntual -- abrirModalUnirse() ya cae sola al
-           texto genérico "Postular a un clan" cuando no recibe argumento
-           (ver `nombreClan || 'un clan'` dentro de la función).
-```
-
-### Línea original 713 (HTML)
-
-```
-FIX (31-ago-2026, pedido usuario):
-         - Escritorio: "el escudo podría situarse un poco más a la
-           izquierda, un poco más grande tal vez, que no esté tan lejos
-           del texto" — justify-content:space-between empujaba el escudo
-           hasta el borde derecho del contenedor sin importar el ancho del
-           texto; se cambia a flex-start (los dos quedan juntos, separados
-           solo por el gap) y se agranda el escudo (150px→176px).
-         - Móvil: "el escudo debe estar al medio en la versión de celular"
-           — con flex-wrap:wrap y solo 2 ítems, al pasar el escudo a su
-           propia línea quedaba pegado al borde izquierdo (una sola línea
-           con un ítem no se centra con justify-content). Se centra
-           explícito por media query sin tocar el layout de escritorio.
-```
-
-### Línea original 714 (HTML)
-
-```
-FIX (01-sep-2026, pedido usuario — "en la sección de clanes aún
-         sale ese espacio mal puesto" / "el escudo... que no esté tan
-         lejos del texto"): el cambio del 31-ago de arriba puso
-         justify-content:flex-start pero dejó flex:1 en el div de texto
-         de abajo — flex:1 hace que ESE div (invisible, sin fondo) crezca
-         para ocupar todo el ancho sobrante de la fila, lo que en la
-         práctica empuja al escudo hasta el borde derecho exactamente
-         igual que space-between (el hueco vacío que se veía en el PDF de
-         diseño era ese div estirado). Se cambia a flex:0 1 auto con
-         max-width, para que el div de texto solo ocupe el ancho que su
-         contenido necesita y el escudo quede pegado justo después, con
-         el gap de 28px como única separación.
-```
-
-### Línea original 715 (HTML)
-
-```
-FIX (03-sep-2026, pedido usuario — "el escudo debería estar en el
-         centro del espacio de las barras rojas [el hueco vacío a la
-         derecha del texto], aproximadamente donde está el punto rojo"):
-         el fix del 01-sep (comentario de arriba) dejó el escudo pegado
-         justo después del texto (separado solo por el gap de 28px), no
-         centrado en el espacio libre restante. Se envuelve el escudo en
-         un elemento que crece para ocupar ese espacio libre
-         (.clanes-escudo-fill, ver CSS) y centra su contenido dentro — así
-         el escudo queda centrado en el hueco, ni pegado al texto ni
-         pegado al borde derecho (que era el problema del space-between
-         original).
-```
-
-### Línea original 766 (HTML)
-
-```
-FIX (04-sep-2026, pedido usuario, punto 28 — "en la sección Rankings
-     de la Familia (tops y cartas) me parece que habría que moverla a la
-     sección Index"): esta sección vivía en comunidad.html (ver historial
-     de esa página) y se MUEVE acá completa — markup, CSS (.rankings-grid/
-     .ranking-card/.ranking-row/.cartas-list/.carta-chip, ver <style> de
-     arriba) y JS (renderRankingRow/pintarRanking/cargarRankings/
-     cargarEstadisticasCartas, más abajo antes de </script>). Ya no está
-     duplicada en comunidad.html. Consume webRankings()/
-     webEstadisticasCartas() (34_Web_API.gs), igual que antes — no hace
-     falta ningún cambio de backend para que siga funcionando acá.
-```
-
-### Línea original 785 (HTML)
-
-```
-FIX (04-sep-2026, pedido usuario — "no estoy segura del
-             significado de 6682 en torneos, ¿significa que ha ganado esa
-             cantidad de torneos?"): NO — DC.TORNEOS es
-             playerData.tournamentBattleCount de la API de Clash Royale
-             (ver 08_Web_Endpoints.gs/13_Sync_...), es decir BATALLAS
-             jugadas dentro de torneos, no torneos ganados ni torneos
-             distintos en los que participó. Se renombra el título y se
-             agrega el sufijo "batallas" al valor (ver cargarRankings()
-             más abajo) para que no vuelva a prestarse a esa confusión.
-```
-
-### Línea original 805 (HTML)
-
-```
-Ver webAniversarios() en 34_Web_API.gs. Solo aparece cuando hay algún
-     miembro por cumplir un hito de antigüedad en los próximos 14 días —
-     si no hay ninguno, la sección se oculta entera (ver cargarAniversarios()).
-```
-
-### Línea original 818 (HTML)
-
-```
-Reordenada como penúltima sección (pedido del usuario, 29-ago-2026:
-     "justo antes de la frase sobre la élite"), después de Ingresos
-     recientes y antes del tagline de cierre.
-```
-
-### Línea original 855 (HTML)
-
-```
-FIX (31-ago-2026, pedido usuario — "el logo de RoyaleAPI no se
-           muestra, los otros logos están bien"): el PNG que se hotlinkeaba
-           directo desde royaleapi.com dejó de resolver (¿ruta cambiada o
-           bloqueo de hotlink?). Se reemplaza por el servicio de favicons
-           de Google (s2/favicons), que resuelve el ícono real del sitio de
-           forma estable y no depende de una ruta interna de RoyaleAPI que
-           puede volver a cambiar. Si en el futuro se consigue el logo
-           oficial en SVG, puede reemplazar este <img> igual que los demás
-           íconos monocromo.
-```
-
-### Línea original 1522 (HTML)
-
-```
-FIX (03-sep-2026, pedido usuario — "hacer que cada tarjeta
-               lleve al perfil del jugador al hacer clic (hoy no son
-               clicables)"): mismo patrón ya aplicado en guerra.html
-               (js-nuevo-card) — data-tag + listener con window.open,
-               deteniendo la propagación en los links de RoyaleAPI/CWStats
-               para que no abran el perfil también.
-```
-
-### Línea original 1529 (HTML)
-
-```
-FASE 7 (Parte A, 06-sep-2026, punto 7 del documento —
-                     avisos de competencia en Ingresos recientes): el
-                     backend ya manda ing.esRivalTemporada/
-                     ing.clanRivalDetectado (ver
-                     _construirIngresosRecientesUnificado(), Base.md) cuando
-                     alguna semana del historial de este ingreso lo muestra
-                     en un clan que hoy es rival de esta temporada o está en
-                     la lista manual de conflicto. Se reusa .badge-warn
-                     (mismo estilo que "Rival de esta temporada" en el
-                     panel de Detección de infiltrados de admin.html, Fase
-                     6) para no introducir un color de alerta nuevo.
-```
-
-### Línea original 1544 (HTML)
-
-```
-FIX (03-sep-2026, pedido usuario — "Vigencia [última
-                   conexión] debe mostrarse acá también"): el backend ya
-                   manda ing.vigencia (ver _construirIngresosRecientesUnificado,
-                   Base.md) — se pinta solo si viene con valor. No se usa
-                   ingStatHtml() para esto porque esa función pasa el
-                   valor por fmtNum() (numérico); acá el valor ya es texto
-                   de fecha formateado.
-```
-
 
 ### Bloques // (script)
 
