@@ -4,7 +4,7 @@ Lista corta de lo que se hizo, de más reciente a más antiguo. Cada entrada tra
 
 **Cómo funciona el código hoy, por qué se decidió así, qué se probó y se descartó: no va aquí, va en `Contexto_Base_Web.md`.** Las reglas de redacción están en `Consolidados de cambios/Reglas_Consolidados.md` (repo `Backend`), sección 5. Los pendientes tampoco viven en cada entrada: están en «Abiertos». El detalle largo anterior sigue en el historial de git.
 
-*Traslado en curso (desde el 11-oct-2026):* las entradas de `perfil.html` del 23 y 27-sep pasaron a `§PF081` (15-oct). Antes: las entradas desde el 04-oct-2026 ya están en formato corto y su contenido pasó a `§PF025` (8 y 9-oct), `§PF027` (5 a 7-oct) y `§PF018` (octava sesión, 2 al 5-oct). Las tandas 4 a 2 del 03 y 02-oct, la Fase 11 y el TBT de `guerra` (02-oct) también pasaron a `§PF018`, y la séptima y la sexta sesión (30 y 29-sep), las tandas D, C, B y A de la Fase 5b (28-sep), la Fase 11 del plan T_Lista (26-sep) y los comentarios desactualizados (21-sep) a `§PF017`. Del 20-sep pasaron a `§PF016` «Rendimiento (Lighthouse)», «CSS compartido», `permisos`, `mensajes` y `comunidad`. Quedó trasladado todo el 20-sep (`admin`, `perfil`, `directorio`, `index` y `guerra`) a `§PF016`. Quedó trasladado todo el 19-sep a `§PF016`: «CI y herramientas», «Rendimiento (Lighthouse)» y «SEO», «CSS compartido», `permisos`, `mensajes` y `guerra`. Con esta tanda quedaron trasladadas también las entradas de `guerra.html` del 21-sep (`§PF017`) y del 18-sep (`§PF016`). Los bloques «Línea original N (estilo)» de `guerra.html` (4 a 16-sep) y sus 10 bloques «(HTML)» (31-ago a 13-sep) pasaron a `§PF028`; sus 15 primeros bloques «(script)» (30-ago a 17-sep) pasaron a `§PF029`. Sus otros 15 bloques «(script)» (4 a 15-sep) pasaron a `§PF030`; en `guerra.html` ya no queda ningún bloque «(script)» con texto largo. Todo lo anterior (hoy ordenado por tema y archivo, no por fecha, incluidos los bloques «Línea original N» y las demás secciones por archivo) conserva su texto largo hasta que se trasladen, por tandas y de la fecha más reciente a la más antigua.
+*Traslado en curso (desde el 11-oct-2026):* las dos entradas fechadas de `directorio.html` (18-sep) pasaron a `§PF016` (15-oct). Las entradas de `perfil.html` del 23 y 27-sep pasaron a `§PF081` (15-oct). Antes: las entradas desde el 04-oct-2026 ya están en formato corto y su contenido pasó a `§PF025` (8 y 9-oct), `§PF027` (5 a 7-oct) y `§PF018` (octava sesión, 2 al 5-oct). Las tandas 4 a 2 del 03 y 02-oct, la Fase 11 y el TBT de `guerra` (02-oct) también pasaron a `§PF018`, y la séptima y la sexta sesión (30 y 29-sep), las tandas D, C, B y A de la Fase 5b (28-sep), la Fase 11 del plan T_Lista (26-sep) y los comentarios desactualizados (21-sep) a `§PF017`. Del 20-sep pasaron a `§PF016` «Rendimiento (Lighthouse)», «CSS compartido», `permisos`, `mensajes` y `comunidad`. Quedó trasladado todo el 20-sep (`admin`, `perfil`, `directorio`, `index` y `guerra`) a `§PF016`. Quedó trasladado todo el 19-sep a `§PF016`: «CI y herramientas», «Rendimiento (Lighthouse)» y «SEO», «CSS compartido», `permisos`, `mensajes` y `guerra`. Con esta tanda quedaron trasladadas también las entradas de `guerra.html` del 21-sep (`§PF017`) y del 18-sep (`§PF016`). Los bloques «Línea original N (estilo)» de `guerra.html` (4 a 16-sep) y sus 10 bloques «(HTML)» (31-ago a 13-sep) pasaron a `§PF028`; sus 15 primeros bloques «(script)» (30-ago a 17-sep) pasaron a `§PF029`. Sus otros 15 bloques «(script)» (4 a 15-sep) pasaron a `§PF030`; en `guerra.html` ya no queda ningún bloque «(script)» con texto largo. Todo lo anterior (hoy ordenado por tema y archivo, no por fecha, incluidos los bloques «Línea original N» y las demás secciones por archivo) conserva su texto largo hasta que se trasladen, por tandas y de la fecha más reciente a la más antigua.
 
 ---
 
@@ -318,6 +318,7 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 
 - **`guerra.html` · «Valores diarios» y «Valores por temporada» usan la barra morada común (Fase 2, tablas).** Se eliminan `enlazarScrollsHorizontales()` y el CSS de `.grid-hscroll-*` y `.table-scroll-oculta-nativa`; las tarjetas de clan pasan a `<div class="table-scroll">` y a `activarBarraScrollTabla()`. Sin cambio de comportamiento (480 px, barra morada en 3 lados). → §PF016
 - **`guerra.html`, `directorio.html` y `assets/js/ui/*` · Helpers de filtro por letra y de scroll sincronizado consolidados.** `pintarFiltroLetra()`, `primeraLetraFiltro()` y `LETRAS_FILTRO` (hoy en `ui/filters.js`) y `sincronizarScrollHorizontal()` (hoy en `ui/tables.js`) reemplazan copias repetidas; `aria-label` en los botones A-Z. `guerra.html`: el refresco de 60 s se pausa con `visibilitychange`. Sin tocar: `gestionarTabsClan()` y el popover de columna. → §PF016
+- **`directorio.html` · Restyle manual de `.roster-table-wrap` eliminado por duplicado de `.scroll-morado` (Fase 2, tablas); `debounce()` sube a `assets/js/util.js`.** `<style>`: se quita el estilo de la barra; `overflow-x:auto` se mantiene. Sin tocar: `abrirFiltroColumna()`. → §PF016
 
 ---
 
@@ -2910,51 +2911,6 @@ PENDIENTE BACKEND: categoría supportCards[] del JSON (las
 
 
 ## directorio.html — historial trasladado
-
-### 18-sep-2026 (refactor CSS, Fase 2 — tablas) — Restyle manual de `.roster-table-wrap` eliminado por duplicado
-El restyle morado de la barra de scroll (thumb `var(--purple-light)`,
-track translúcido) agregado a mano el 16-sep-2026 quedó duplicado byte a
-byte de `.scroll-morado` (`assets/styles.css`) desde que
-`activarBarraScrollTabla()` empezó a agregarle esa misma clase a
-`#rosterTableWrap` en runtime (mismo día, sesión de unificación de
-scroll — ver entrada de guerra.html más abajo). Se elimina el duplicado
-de `<style>`; `overflow-x:auto` se mantiene como base funcional (para
-que la tabla siga siendo scrolleable si JS no llega a correr, aunque en
-ese caso sin restylear).
-
-### 18-sep-2026 — Filtro por letra, debounce y scroll sincronizado subidos a common.js
-`pintarFiltroLetraRoster()` estaba duplicada, con exactamente la misma
-lógica, en guerra.html (dos veces: `pintarFiltroLetraPendientes()` y
-`pintarFiltroLetraGrid()`) — la única diferencia real entre las tres era
-el id del wrap, la variable de la letra elegida y el callback de
-re-filtrado. Se reemplaza por `pintarFiltroLetra(wrapId, letras,
-obtenerSel, fijarSel, onCambio)` en `assets/common.js`; acá se llama
-pasando `'rosterLetraFilter'`, el getter/setter de `rosterLetraSeleccionada`
-y `aplicarFiltrosRoster(rosterWrap)` como callback. `LETRAS_FILTRO` y
-`primeraLetraFiltro()` (idénticos, letra por letra, a los que tenía
-guerra.html) también se unifican ahí. Se agrega `aria-label` a cada botón
-A-Z/#, que antes solo llevaba el texto visual de la letra.
-
-`debounce()` (usada por el buscador del popover de filtro de columna,
-`.rt-filtro-buscar`) vivía solo acá; se sube tal cual a `common.js` para
-que cualquier otra página pueda reusarla sin duplicarla.
-
-El scroll horizontal sincronizado entre `#rosterTopScroll` y
-`#rosterTableWrap` (bandera `sincronizando` para no entrar en loop de
-`scroll`) estaba escrito a mano acá; es el mismo patrón que ya tenía
-`enlazarScrollsHorizontales()` en guerra.html (ahí para N barras por
-tarjeta de clan, acá para un solo par). Se extrae a
-`sincronizarScrollHorizontal(elementos)` en `common.js`, que ambas
-páginas usan ahora.
-
-No se tocó el popover de filtro/orden por columna (`abrirFiltroColumna()`
-acá vs `abrirGridFiltroColumna()` de guerra.html): comparte HTML/clases
-`rt-*` y buena parte de la lógica del checklist, pero está atado a un
-modelo de estado distinto en cada página (variables sueltas de una sola
-tabla acá; `gridEstados[gridId]` con varias tablas en guerra.html) y esta
-versión tiene funcionalidad de más (tipo fecha, columnas no ordenables,
-el debounce del buscador) que no es 1:1 con la otra. Fusionarlos ahora
-tenía más riesgo que beneficio; queda para una revisión aparte.
 
 ### Línea original 685 (HTML)
 
