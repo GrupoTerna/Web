@@ -4,7 +4,7 @@ Lista corta de lo que se hizo, de más reciente a más antiguo. Cada entrada tra
 
 **Cómo funciona el código hoy, por qué se decidió así, qué se probó y se descartó: no va aquí, va en `Contexto_Base_Web.md`.** Las reglas de redacción están en `Consolidados de cambios/Reglas_Consolidados.md` (repo `Backend`), sección 5. Los pendientes tampoco viven en cada entrada: están en «Abiertos». El detalle largo anterior sigue en el historial de git.
 
-*Traslado en curso (desde el 11-oct-2026):* Los 16 bloques «Línea original N (HTML)» de `index.html` (29-ago a 10-sep) pasaron a `§PF087` (15-oct); los bloques `// (script)` de `index.html` siguen con su texto largo. los bloques «Línea original N» de `directorio.html` (31-ago a 16-sep) pasaron a `§PF086` (15-oct). Los de `perfil.html` (31-ago a 13-sep) pasaron a `§PF085` (15-oct). `torneos.html` y `comunidad.html` (30-ago a 13-sep) pasaron a `§PF084` (15-oct). Los Tramos 1 y 2 de `admin.html` (30-ago a 16-sep) pasaron a `§PF083` (15-oct). Los siete lotes de consolidación CSS de `styles.css` (18-sep) pasaron a `§PF082` (15-oct). Las dos entradas fechadas de `directorio.html` (18-sep) pasaron a `§PF016` (15-oct). Las entradas de `perfil.html` del 23 y 27-sep pasaron a `§PF081` (15-oct). Antes: las entradas desde el 04-oct-2026 ya están en formato corto y su contenido pasó a `§PF025` (8 y 9-oct), `§PF027` (5 a 7-oct) y `§PF018` (octava sesión, 2 al 5-oct). Las tandas 4 a 2 del 03 y 02-oct, la Fase 11 y el TBT de `guerra` (02-oct) también pasaron a `§PF018`, y la séptima y la sexta sesión (30 y 29-sep), las tandas D, C, B y A de la Fase 5b (28-sep), la Fase 11 del plan T_Lista (26-sep) y los comentarios desactualizados (21-sep) a `§PF017`. Del 20-sep pasaron a `§PF016` «Rendimiento (Lighthouse)», «CSS compartido», `permisos`, `mensajes` y `comunidad`. Quedó trasladado todo el 20-sep (`admin`, `perfil`, `directorio`, `index` y `guerra`) a `§PF016`. Quedó trasladado todo el 19-sep a `§PF016`: «CI y herramientas», «Rendimiento (Lighthouse)» y «SEO», «CSS compartido», `permisos`, `mensajes` y `guerra`. Con esta tanda quedaron trasladadas también las entradas de `guerra.html` del 21-sep (`§PF017`) y del 18-sep (`§PF016`). Los bloques «Línea original N (estilo)» de `guerra.html` (4 a 16-sep) y sus 10 bloques «(HTML)» (31-ago a 13-sep) pasaron a `§PF028`; sus 15 primeros bloques «(script)» (30-ago a 17-sep) pasaron a `§PF029`. Sus otros 15 bloques «(script)» (4 a 15-sep) pasaron a `§PF030`; en `guerra.html` ya no queda ningún bloque «(script)» con texto largo. Todo lo anterior (hoy ordenado por tema y archivo, no por fecha, incluidos los bloques «Línea original N» y las demás secciones por archivo) conserva su texto largo hasta que se trasladen, por tandas y de la fecha más reciente a la más antigua.
+*Traslado en curso (desde el 11-oct-2026):* Los 13 bloques `// (script)` de `index.html` (3 al 10-sep) pasaron a `§PF088` (15-oct): en `index.html` ya no queda historial largo; 12 de ellos describen código que desde el 20-sep vive en `directorio.html`. Los 16 bloques «Línea original N (HTML)» de `index.html` (29-ago a 10-sep) pasaron a `§PF087` (15-oct); los bloques «Línea original N» de `directorio.html` (31-ago a 16-sep) pasaron a `§PF086` (15-oct). Los de `perfil.html` (31-ago a 13-sep) pasaron a `§PF085` (15-oct). `torneos.html` y `comunidad.html` (30-ago a 13-sep) pasaron a `§PF084` (15-oct). Los Tramos 1 y 2 de `admin.html` (30-ago a 16-sep) pasaron a `§PF083` (15-oct). Los siete lotes de consolidación CSS de `styles.css` (18-sep) pasaron a `§PF082` (15-oct). Las dos entradas fechadas de `directorio.html` (18-sep) pasaron a `§PF016` (15-oct). Las entradas de `perfil.html` del 23 y 27-sep pasaron a `§PF081` (15-oct). Antes: las entradas desde el 04-oct-2026 ya están en formato corto y su contenido pasó a `§PF025` (8 y 9-oct), `§PF027` (5 a 7-oct) y `§PF018` (octava sesión, 2 al 5-oct). Las tandas 4 a 2 del 03 y 02-oct, la Fase 11 y el TBT de `guerra` (02-oct) también pasaron a `§PF018`, y la séptima y la sexta sesión (30 y 29-sep), las tandas D, C, B y A de la Fase 5b (28-sep), la Fase 11 del plan T_Lista (26-sep) y los comentarios desactualizados (21-sep) a `§PF017`. Del 20-sep pasaron a `§PF016` «Rendimiento (Lighthouse)», «CSS compartido», `permisos`, `mensajes` y `comunidad`. Quedó trasladado todo el 20-sep (`admin`, `perfil`, `directorio`, `index` y `guerra`) a `§PF016`. Quedó trasladado todo el 19-sep a `§PF016`: «CI y herramientas», «Rendimiento (Lighthouse)» y «SEO», «CSS compartido», `permisos`, `mensajes` y `guerra`. Con esta tanda quedaron trasladadas también las entradas de `guerra.html` del 21-sep (`§PF017`) y del 18-sep (`§PF016`). Los bloques «Línea original N (estilo)» de `guerra.html` (4 a 16-sep) y sus 10 bloques «(HTML)» (31-ago a 13-sep) pasaron a `§PF028`; sus 15 primeros bloques «(script)» (30-ago a 17-sep) pasaron a `§PF029`. Sus otros 15 bloques «(script)» (4 a 15-sep) pasaron a `§PF030`; en `guerra.html` ya no queda ningún bloque «(script)» con texto largo. Todo lo anterior (hoy ordenado por tema y archivo, no por fecha, incluidos los bloques «Línea original N» y las demás secciones por archivo) conserva su texto largo hasta que se trasladen, por tandas y de la fecha más reciente a la más antigua.
 
 ---
 
@@ -357,6 +357,7 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 
 ## 10-sep-2026
 
+- **`directorio.html` (antes `index.html`) · Tooltip de las gráficas de «Ingresos recientes»: primero nombre y tag, después clan y cantidad.** Orden invertido respecto al del 07-sep; hoy en `htmlTooltipPuntoSerie()` de `timeline-svg.js`. → §PF088
 - **`index.html` · El botón «Unirse» del hero abre el modal «¿Cómo unirte?».** `#heroJoinBtn` con `onclick="abrirModalUnirse()"` sin clan (antes era un `<a>` directo a Discord). → §PF087
 - **`directorio.html` · Tooltip de las gráficas con nombre y tag arriba, y cantidad, clan y fecha abajo.** Mismo orden que `activarTooltipsGraficas()` de `index.html`. → §PF086
 
@@ -368,6 +369,7 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 
 ## 08-sep-2026
 
+- **`directorio.html` (antes `index.html`) · Títulos de los ejes en las gráficas de «Ingresos recientes».** «Fecha» en X y `opts.ejeY` en Y (primera palabra del título de la tarjeta, armada en `renderComparativaSemanal()`); `PAD_L` y `PAD_B` suben. → §PF088
 - **`directorio.html` · Títulos de ejes en las gráficas, «Seleccionar todo»/«Desmarcar todo» sobre toda la columna y botón «Quitar filtros».** `PAD_L` 56→74 y `PAD_B` 68→84; `actualizarBotonLimpiarFiltros()`, `actualizarIconosFiltro()`. → §PF086
 - **`perfil.html` · Botones de sugerencia de mazo a la derecha de «Mazo actual»; ataques, puntaje y barcos por semana; títulos de ejes.** `#mMazoActualBtns`, `renderMazoActual()`, `renderMetricaSemanal()`/`renderMetricasSemanales()`. → §PF085
 - **`torneos.html` · Los torneos de continuación no se listan aparte.** `esTorneoContinuacion()` e `idTorneoPrincipalDe()` (varios alias de campo). → §PF084
@@ -376,6 +378,7 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 
 ## 07-sep-2026
 
+- **`directorio.html` (antes `index.html`) · Líneas de año y temporada en la gráfica semanal de «Ingresos recientes» y tooltip por punto.** `lineasTemporalesSvg()` sin línea de inicio de semana (la gráfica es semanal). → §PF088
 - **`index.html` · Botón «Inicio» a la izquierda de «Directorio».** Mismo destino que `.brand` (`href="index.html"`), con `data-page="inicio"` para que `marcarNavActiva()` lo resalte. → §PF087
 - **`directorio.html` · «Cara a cara»: fecha rotada 45°, líneas de referencia (año, temporada, semana) y tooltip nativo con `<title>`.** `PAD_B` 32→40; `lineasTemporalesSvg()`; se reemplaza el detector de mes calendario por `esInicioTemporada()`. → §PF086
 - **`perfil.html` · Líneas de referencia secundarias en la gráfica semanal.** Horizontal a mitad del eje Y y verticales de inicio de año y de temporada; sin línea de semana. → §PF085
@@ -394,6 +397,7 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 
 ## 04-sep-2026
 
+- **`directorio.html` (antes `index.html`) · «Ingresos recientes»: todo con fecha.** `construirFechasEstimadasSemanasViejas()`, `semanaLabelCorta()` (`≈dd/MM`), tooltip con «≈ … (estimada)» y una nota única al pie de las tres gráficas. → §PF088
 - **`index.html` · «Torneos» de Rankings pasa a contar «batallas».** `cargarRankings()`: `pintarRanking('rkTorneos', data.torneos, 'batallas')` y título renombrado (`DC.TORNEOS` es `tournamentBattleCount`, no torneos ganados). → §PF087
 - **`directorio.html` · «Ingresos recientes» pasan de `guerra.html` al final de Directorio.** `cargarIngresosRecientes()`; sigue con `webGuerraEnVivo` (campo `nuevos`). → §PF086
 - **`perfil.html` · «Ranking en el clan» con datos reales, historial de guerra solo admin, «Vigencia» confirmada y espacio uniforme entre barras.** `ext.historialRanking` (`_webPerfilJugador()`, hoja Guerra), `renderRankingChart()`; se quita el separador de 14 px entre bloques de `.req-row`. → §PF085
@@ -402,6 +406,7 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 
 ## 03-sep-2026
 
+- **`directorio.html` (antes `index.html`) · «Ingresos recientes»: etiquetas del eje X rotadas −45°, huecos en línea punteada hasta 0 y leyenda agrupada por clan.** `lineChartSvg()`: `PAD_B` 44→68, puntos sintéticos huecos con `.serie-line-dashed`; la leyenda reutiliza `grupos` (clan en orden fijo y nombre alfabético). → §PF088
 - **`index.html` · Sección de clanes: el escudo se centra en el espacio libre.** El escudo va dentro de `.clanes-escudo-fill` (`flex:1 1 220px`, centra su contenido). → §PF087
 - **`index.html` · Tarjetas de «Ingresos recientes» clicables y con «Vigencia».** `data-tag` y `window.open` (sin propagar desde los enlaces de RoyaleAPI y CWStats); `ing.vigencia` solo si viene con valor. Rehecho el 20-sep. → §PF087
 - **`directorio.html` · «Cara a cara»: «Ataques en la semana actual» y «Donaciones hechas/recibidas».** Solo cambia la etiqueta y se añade el recibidas. → §PF086
@@ -445,6 +450,7 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 
 ## Sin fecha en el comentario original
 
+- **`index.html` · `cargarClanes()`: orden fijo de la Familia, nunca alfabético.** `ordenarClanes(data.clanes || [])` antes de asignar el índice `i` que decide insignia y rol de cada tarjeta. → §PF088
 - **`index.html` · Datos estructurados (schema.org, `Organization`).** `<script type="application/ld+json">` solo en esta página, con `sameAs` de los canales oficiales. → §PF087
 - **`index.html` · `<main id="main-content">` envuelve el contenido central.** El `id` del skip-link se movió desde `.hero-banner`. → §PF087
 
@@ -2320,163 +2326,6 @@ FIX (03-sep-2026, pedido usuario, punto 19 — "agregar un
                este es un botón nuevo, aparte, que descarga el PDF al
                dispositivo del admin. Mismo criterio de visibilidad que
                btn-ver-pdf (solo si la opción tiene o.docId).
-```
-
-
-## index.html — historial trasladado
-
-### Bloques // (script)
-
-#### Línea original 891 (script)
-
-```
-    // Orden fijo de la Familia (Principal, Terna 2, Terna 3, Mini), NUNCA
-    // alfabético — ver ordenClanIndex() en common.js. Se ordena ACÁ, antes
-    // de asignar el índice "i" que decide qué insignia/rol le toca a cada
-    // tarjeta, para que ambas cosas queden siempre sincronizadas aunque el
-    // backend entregue los clanes en otro orden.
-```
-
-#### Línea original 1234 (script)
-
-```
-  // FIX (03-sep-2026, pedido usuario — "las semanas se superponían [las
-  // etiquetas de eje]... rotar 90° el texto a la izquierda del eje x, o
-  // 45°, tú decide"): con muchos miembros nuevos hay muchas semanas en el
-  // eje X y las etiquetas ("dd/MM") chocaban entre sí en horizontal. Se
-  // rotan -45° (ancladas por su extremo derecho, bajando hacia la
-  // izquierda) y se sube PAD_B (44→68) para que quepan sin cortarse.
-  // FIX (08-sep-2026, pedido usuario — "todas las gráficas deben indicar
-  // el nombre de los ejes"): PAD_L (56→74) y PAD_B (68→84) suben de nuevo
-  // para dejar espacio a los títulos fijos de los ejes ("Fecha" en X,
-  // opts.ejeY en Y — ver los dos <text class="axis-title"> agregados al
-  // final de esta función), sin invadir ni las etiquetas numéricas del
-  // eje Y ni las fechas rotadas del eje X que ya vivían en ese margen.
-```
-
-#### Línea original 1263 (script)
-
-```
-  // FIX (04-sep-2026, pedido usuario — "todo debe venir con fecha, no
-  // debería haber algo en formato S1/S2"): se calcula UNA vez por gráfica
-  // el Map de fechas estimadas para las etiquetas viejas "Semana N" (ver
-  // construirFechasEstimadasSemanasViejas más arriba) y se usa tanto en
-  // las etiquetas del eje como en el tooltip de cada punto (más abajo).
-```
-
-#### Línea original 1270 (script)
-
-```
-  // Líneas verticales de referencia (inicio de año/temporada — pedido
-  // usuario 07-sep-2026): esta gráfica es de granularidad SEMANAL (un
-  // punto = una semana), así que NO se agrega línea de inicio de semana
-  // (ver lineasTemporalesSvg() en common.js). La fecha de cada punto del
-  // eje se obtiene de la propia etiqueta ("dd/MM/yyyy" real, o su fecha
-  // estimada si es una etiqueta vieja "Semana N" — mismo Map ya calculado
-  // arriba para las etiquetas del eje y el tooltip).
-```
-
-#### Línea original 1300 (script)
-
-```
-    // FIX (03-sep-2026, pedido usuario — "en las fechas que no haya
-    // datos, baja con líneas punteadas a cero, así se evitan cortes en
-    // las líneas y se puede distinguir si está ahí porque hizo 0 puntos
-    // (con presencia en el clan) o estaba sin clan y no participó...
-    // en los puntos donde no haya dato, no colorees el centro del
-    // círculo, solo colorea los bordes"): antes, si faltaba una semana
-    // intermedia, la línea simplemente se cortaba (sin trazo entre un
-    // tramo y el siguiente), lo que en la práctica es indistinguible de
-    // "no hay datos ahí" a simple vista y deja huecos raros en el
-    // gráfico. Ahora, por cada hueco entre dos semanas con dato real, se
-    // insertan puntos sintéticos en 0 (uno por semana faltante) y se
-    // conecta todo con trazo punteado (.serie-line-dashed) en vez de
-    // trazo sólido — el punto sintético se dibuja hueco (fill:none, solo
-    // borde de color) para diferenciarlo de un 0 real reportado por el
-    // backend (que si se dibuja sólido, como cualquier otro dato real).
-```
-
-#### Línea original 1332 (script)
-
-```
-    // FIX (04-sep-2026, mismo pedido — "todo debe venir con fecha"): el
-    // tooltip también reemplaza "Semana N" por la fecha estimada (con
-    // "≈" y una nota aparte), en vez de mostrar la etiqueta vieja sola.
-```
-
-#### Línea original 1347 (script)
-
-```
-  // Títulos de los ejes (pedido usuario 08-sep-2026): "Fecha" centrado
-  // debajo de las etiquetas rotadas del eje X, y opts.ejeY (p.ej.
-  // "Ataques"/"Puntaje"/"Barcos" — lo arma renderComparativaSemanal a
-  // partir del título de cada tarjeta) girado -90° a la izquierda del eje Y.
-```
-
-#### Línea original 1405 (script)
-
-```
-      // Mismos campos que la tarjeta de "Ingresos recientes" (nombre, tag,
-      // clan, fecha) — pedido usuario 07-sep-2026: "al acercar el mouse
-      // debe verse información de ese registro según la información que
-      // esté mostrando la tabla".
-      // FIX (10-sep-2026, pedido usuario — "arriba debe decir el nombre de
-      // la cuenta y su tag, abajo el clan y la cantidad de ataques, barcos
-      // o fame"): orden invertido a como estaba (antes la cantidad iba
-      // arriba en negrita y el nombre abajo tenue) — así primero se
-      // identifica DE QUIÉN es el punto y después el dato en sí.
-```
-
-#### Línea original 1445 (script)
-
-```
-  // FIX (04-sep-2026, pedido usuario — "todo debe venir con fecha"): si el
-  // eje trae alguna etiqueta vieja "Semana N" (convertida a fecha estimada
-  // "≈dd/MM" por semanaLabelCorta), se agrega una nota una sola vez debajo
-  // de las tres gráficas explicando el "≈" — mismo criterio que ya usan
-  // otras notas al pie de esta página (no repetirla en cada tarjeta).
-```
-
-#### Línea original 1451 (script)
-
-```
-  // FIX (08-sep-2026, pedido usuario — "las gráficas deben indicar el
-  // nombre de los ejes"): ejeY se arma tomando la primera palabra del
-  // título de la tarjeta ("Ataques por semana" → "Ataques", "Puntaje por
-  // semana" → "Puntaje", "Barcos por semana" → "Barcos"), así no hace
-  // falta agregar un parámetro nuevo en cada llamado de más abajo.
-```
-
-#### Línea original 1476 (script)
-
-```
-    // webRoster = directorio actual de la Familia (misma fuente que usa
-    // directorio.html), pedido en paralelo para cruzarlo contra
-    // webIngresosRecientes — ver comentario del bloque de arriba.
-```
-
-#### Línea original 1498 (script)
-
-```
-    // Agrupar por clan y ordenar cada grupo alfabéticamente por nombre — el
-    // PDF exige "por clan y luego por nombre". Los GRUPOS en sí NO se
-    // ordenan alfabéticamente: usan el orden fijo de la Familia (Principal,
-    // Terna 2, Terna 3, Mini) vía ordenClanIndex(), sin importar en qué
-    // orden los haya mandado el backend (bug reportado: "el clan 2 sigue
-    // apareciendo primero, mientras que el clan principal está apareciendo
-    // tercero").
-```
-
-#### Línea original 1563 (script)
-
-```
-    // FIX (03-sep-2026, pedido usuario — "las etiquetas de los nombres
-    // deben estar agrupadas por clan y luego orden alfabético de nombre
-    // de jugador"): se reusa 'grupos' (ya agrupado por clan en el orden
-    // fijo de la Familia y ordenado alfabéticamente dentro de cada clan,
-    // ver comentario más arriba) en vez de pasar 'ingresos' tal cual
-    // llegó del backend, así el orden de colores/leyenda de las gráficas
-    // coincide exactamente con el de las tarjetas de arriba.
 ```
 
 
