@@ -4,7 +4,7 @@ Lista corta de lo que se hizo, de más reciente a más antiguo. Cada entrada tra
 
 **Cómo funciona el código hoy, por qué se decidió así, qué se probó y se descartó: no va aquí, va en `Contexto_Base_Web.md`.** Las reglas de redacción están en `Consolidados de cambios/Reglas_Consolidados.md` (repo `Backend`), sección 5. Los pendientes tampoco viven en cada entrada: están en «Abiertos». El detalle largo anterior sigue en el historial de git.
 
-*Traslado en curso (desde el 11-oct-2026):* Los 13 bloques `// (script)` de `index.html` (3 al 10-sep) pasaron a `§PF088` (15-oct): en `index.html` ya no queda historial largo; 12 de ellos describen código que desde el 20-sep vive en `directorio.html`. Los 16 bloques «Línea original N (HTML)» de `index.html` (29-ago a 10-sep) pasaron a `§PF087` (15-oct); los bloques «Línea original N» de `directorio.html` (31-ago a 16-sep) pasaron a `§PF086` (15-oct). Los de `perfil.html` (31-ago a 13-sep) pasaron a `§PF085` (15-oct). `torneos.html` y `comunidad.html` (30-ago a 13-sep) pasaron a `§PF084` (15-oct). Los Tramos 1 y 2 de `admin.html` (30-ago a 16-sep) pasaron a `§PF083` (15-oct). Los siete lotes de consolidación CSS de `styles.css` (18-sep) pasaron a `§PF082` (15-oct). Las dos entradas fechadas de `directorio.html` (18-sep) pasaron a `§PF016` (15-oct). Las entradas de `perfil.html` del 23 y 27-sep pasaron a `§PF081` (15-oct). Antes: las entradas desde el 04-oct-2026 ya están en formato corto y su contenido pasó a `§PF025` (8 y 9-oct), `§PF027` (5 a 7-oct) y `§PF018` (octava sesión, 2 al 5-oct). Las tandas 4 a 2 del 03 y 02-oct, la Fase 11 y el TBT de `guerra` (02-oct) también pasaron a `§PF018`, y la séptima y la sexta sesión (30 y 29-sep), las tandas D, C, B y A de la Fase 5b (28-sep), la Fase 11 del plan T_Lista (26-sep) y los comentarios desactualizados (21-sep) a `§PF017`. Del 20-sep pasaron a `§PF016` «Rendimiento (Lighthouse)», «CSS compartido», `permisos`, `mensajes` y `comunidad`. Quedó trasladado todo el 20-sep (`admin`, `perfil`, `directorio`, `index` y `guerra`) a `§PF016`. Quedó trasladado todo el 19-sep a `§PF016`: «CI y herramientas», «Rendimiento (Lighthouse)» y «SEO», «CSS compartido», `permisos`, `mensajes` y `guerra`. Con esta tanda quedaron trasladadas también las entradas de `guerra.html` del 21-sep (`§PF017`) y del 18-sep (`§PF016`). Los bloques «Línea original N (estilo)» de `guerra.html` (4 a 16-sep) y sus 10 bloques «(HTML)» (31-ago a 13-sep) pasaron a `§PF028`; sus 15 primeros bloques «(script)» (30-ago a 17-sep) pasaron a `§PF029`. Sus otros 15 bloques «(script)» (4 a 15-sep) pasaron a `§PF030`; en `guerra.html` ya no queda ningún bloque «(script)» con texto largo. Todo lo anterior (hoy ordenado por tema y archivo, no por fecha, incluidos los bloques «Línea original N» y las demás secciones por archivo) conserva su texto largo hasta que se trasladen, por tandas y de la fecha más reciente a la más antigua.
+*Traslado en curso (desde el 11-oct-2026):* Los 21 bloques «Línea original N» de `sorteo.html` (28-ago a 14-sep) pasaron a `§PF089` (15-oct); en `sorteo.html` ya no queda historial largo. Los 13 bloques `// (script)` de `index.html` (3 al 10-sep) pasaron a `§PF088` (15-oct): en `index.html` ya no queda historial largo; 12 de ellos describen código que desde el 20-sep vive en `directorio.html`. Los 16 bloques «Línea original N (HTML)» de `index.html` (29-ago a 10-sep) pasaron a `§PF087` (15-oct); los bloques «Línea original N» de `directorio.html` (31-ago a 16-sep) pasaron a `§PF086` (15-oct). Los de `perfil.html` (31-ago a 13-sep) pasaron a `§PF085` (15-oct). `torneos.html` y `comunidad.html` (30-ago a 13-sep) pasaron a `§PF084` (15-oct). Los Tramos 1 y 2 de `admin.html` (30-ago a 16-sep) pasaron a `§PF083` (15-oct). Los siete lotes de consolidación CSS de `styles.css` (18-sep) pasaron a `§PF082` (15-oct). Las dos entradas fechadas de `directorio.html` (18-sep) pasaron a `§PF016` (15-oct). Las entradas de `perfil.html` del 23 y 27-sep pasaron a `§PF081` (15-oct). Antes: las entradas desde el 04-oct-2026 ya están en formato corto y su contenido pasó a `§PF025` (8 y 9-oct), `§PF027` (5 a 7-oct) y `§PF018` (octava sesión, 2 al 5-oct). Las tandas 4 a 2 del 03 y 02-oct, la Fase 11 y el TBT de `guerra` (02-oct) también pasaron a `§PF018`, y la séptima y la sexta sesión (30 y 29-sep), las tandas D, C, B y A de la Fase 5b (28-sep), la Fase 11 del plan T_Lista (26-sep) y los comentarios desactualizados (21-sep) a `§PF017`. Del 20-sep pasaron a `§PF016` «Rendimiento (Lighthouse)», «CSS compartido», `permisos`, `mensajes` y `comunidad`. Quedó trasladado todo el 20-sep (`admin`, `perfil`, `directorio`, `index` y `guerra`) a `§PF016`. Quedó trasladado todo el 19-sep a `§PF016`: «CI y herramientas», «Rendimiento (Lighthouse)» y «SEO», «CSS compartido», `permisos`, `mensajes` y `guerra`. Con esta tanda quedaron trasladadas también las entradas de `guerra.html` del 21-sep (`§PF017`) y del 18-sep (`§PF016`). Los bloques «Línea original N (estilo)» de `guerra.html` (4 a 16-sep) y sus 10 bloques «(HTML)» (31-ago a 13-sep) pasaron a `§PF028`; sus 15 primeros bloques «(script)» (30-ago a 17-sep) pasaron a `§PF029`. Sus otros 15 bloques «(script)» (4 a 15-sep) pasaron a `§PF030`; en `guerra.html` ya no queda ningún bloque «(script)» con texto largo. Todo lo anterior (hoy ordenado por tema y archivo, no por fecha, incluidos los bloques «Línea original N» y las demás secciones por archivo) conserva su texto largo hasta que se trasladen, por tandas y de la fecha más reciente a la más antigua.
 
 ---
 
@@ -339,6 +339,7 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 
 ## 14-sep-2026
 
+- **`sorteo.html` · Opción «Quitar un ticket por cada giro».** `#removeTicketPerSpinToggle` (desmarcado por defecto); `spin()` resta 1 al peso de quien salió en cada giro, con tope en 0, y repinta tickets y rueda si cualquiera de las dos opciones cambió algo. → §PF089
 - **`admin.html` · «Buscar en Directorio» al registrar miembro nuevo.** `#nmModoDirBox`, `.nm-modo-selector`, `.nm-dir-lista`, `.mr-celular`; reutiliza `verificarTagNuevoMiembro()`. → §PF083
 - **`admin.html` · Ajustes de Cambio de rango.** `<td>` con `text-align:center`, `margin:0` en el checkbox de `.semana-item`, `.btn-compacto` (nuevo), Requisitos de Ascenso y Descenso pasan de `<details>` a bloques fijos. → §PF083
 
@@ -352,11 +353,17 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 
 ## 12-sep-2026
 
+- **`sorteo.html` · Tickets en la resolución del ganador y «Exportar» actualiza el documento de ganadores al instante.** Campo Tickets prellenado con `participant.weight` (opcional); `webAdminSorteoActualizarDocGanadores` en paralelo a la descarga local. → §PF089
 - **`perfil.html` · Secciones nuevas a partir de `rawClash` y cruce del mazo.** `rawClash()`, `renderSnapshotInfo()` (`_fecha`, `_clan`), `renderMazoActual()` cruza con `currentDeck` y suma `currentDeckSupportCards`; tarjetas ocultas hasta que llegue `rawClash`. → §PF085
 - **`admin.html` y `directorio.html` · «Participación de hoy en guerra» sale de admin.** Queda `#cardParticipacionHoyDirectorio`; se conecta `webAdminCuentasDeNomMulti`. → §PF083
 
+## 11-sep-2026
+
+- **`sorteo.html` · Los tickets de cada participante calificado vienen del backend.** `loadQualifiedParticipants()` usa `tickets` de `_webSorteoCalificados()` (`1 + floor((trofeos − Min_S) / Delta)`; con `Delta ≤ 0`, 1 ticket fijo). → §PF089
+
 ## 10-sep-2026
 
+- **`sorteo.html` · Resolución de cada ganador (puntos 3 a 6 del consolidado).** `#winnerResolucionForm`, `abrirResolucionGanador()`, `guardarResolucionGanador()` (→ `webAdminSorteoResolucionGuardar`), Resultado «Califica»/«No califica» con Razón, aviso y casilla de «sin tag» y `sorteoActualId` desde `loadQualifiedParticipants()`. → §PF089
 - **`directorio.html` (antes `index.html`) · Tooltip de las gráficas de «Ingresos recientes»: primero nombre y tag, después clan y cantidad.** Orden invertido respecto al del 07-sep; hoy en `htmlTooltipPuntoSerie()` de `timeline-svg.js`. → §PF088
 - **`index.html` · El botón «Unirse» del hero abre el modal «¿Cómo unirte?».** `#heroJoinBtn` con `onclick="abrirModalUnirse()"` sin clan (antes era un `<a>` directo a Discord). → §PF087
 - **`directorio.html` · Tooltip de las gráficas con nombre y tag arriba, y cantidad, clan y fecha abajo.** Mismo orden que `activarTooltipsGraficas()` de `index.html`. → §PF086
@@ -397,6 +404,7 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 
 ## 04-sep-2026
 
+- **`sorteo.html` · La sesión se lee de `localStorage` (ya no de `sessionStorage`).** El paso del token por `?tk=` se conservó entonces y se retiró después: hoy el guard ignora `?tk=` y limpia la URL. → §PF089
 - **`directorio.html` (antes `index.html`) · «Ingresos recientes»: todo con fecha.** `construirFechasEstimadasSemanasViejas()`, `semanaLabelCorta()` (`≈dd/MM`), tooltip con «≈ … (estimada)» y una nota única al pie de las tres gráficas. → §PF088
 - **`index.html` · «Torneos» de Rankings pasa a contar «batallas».** `cargarRankings()`: `pintarRanking('rkTorneos', data.torneos, 'batallas')` y título renombrado (`DC.TORNEOS` es `tournamentBattleCount`, no torneos ganados). → §PF087
 - **`directorio.html` · «Ingresos recientes» pasan de `guerra.html` al final de Directorio.** `cargarIngresosRecientes()`; sigue con `webGuerraEnVivo` (campo `nuevos`). → §PF086
@@ -438,6 +446,7 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 
 ## 30-ago-2026
 
+- **`sorteo.html` · Lista de participantes agrupada por clan (Fase 9), ruleta con `data-essential-motion` y retiro del diagnóstico en pantalla.** `buildClanGroupHeader()` (casilla por clan y grupo «Sin clan asignado»). → §PF089
 - **`torneos.html` · Deja de ser un placeholder y consume `webTorneos`.** → §PF084
 - **`comunidad.html` · Lista de «Ascensos recientes».** `webAscensosRecientes()` (el backend filtra descensos y administradores). → §PF084
 - **`admin.html` · Mensajes automáticos: refresco puntual, caja con copiar y plegar, y visor del Doc de origen.** `btnRefrescarCategoria`; el `<iframe>` se reemplazó el 03-sep. → §PF083
@@ -446,6 +455,7 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 
 ## 29-ago-2026
 
+- **`sorteo.html` · Acceso restringido al portal admin (incorporada el 28-ago) y token por `?tk=`.** Guard en el `<head>` con `terna_admin_token`; el botón «Abrir Ruleta de Sorteos» de `admin.html` pasaba el token por `?tk=` porque `sessionStorage` no se copia entre pestañas. → §PF089
 - **`index.html` · «Aniversarios» como penúltima sección.** Después de «Ingresos recientes» y antes del tagline de cierre; `cargarAniversarios()` la oculta si no hay hitos en 14 días. → §PF087
 
 ## Sin fecha en el comentario original
@@ -2395,341 +2405,3 @@ Lista corta de los otros comentarios del `<script>` (selectores, cuadrículas, I
 - **05-sep · Cuadrícula de «Valores semanales» de toda la temporada.** `celdasSemanas()` con `data.controlTemporadaSemanas` y `data.controlTemporadaPorClan` (`_getControlTemporadaPorClan()`, `38_Web_Endpoints.gs`). → §PF030
 - **05-sep · Aportes de inactivos (solo admin) dentro de la tarjeta de cada clan.** `cargarAportesInactivosSiAdmin()`, `.ai-inactivos-wrap` y `webAportesInactivos`; `#aportesInactivosSection` eliminada. → §PF030
 - **04 y 05-sep · Botones «⧉ Copiar — <Clan>» de los mensajes de guerra (solo admin).** `cargarMensajesGuerraSiAdmin()` sobre `#msjGuerraWrap`, con `webAdminContenido`; `#mensajesGuerraAdmin` eliminada. → §PF030
-
-## sorteo.html
-
-### Línea original 12 (HTML)
-
-```
- Acceso restringido: incorporada al portal admin (28-ago-2026). Esta
-     herramienta se desarrolló antes de la web y funciona 100% del lado del
-     cliente (sin backend propio), por eso la validación de acceso también
-     es del lado del cliente: si no hay sesión de admin activa (mismo
-     terna_admin_token que usa admin.html tras un login exitoso vía
-     webLogin), se redirige de inmediato al login. Es el mismo nivel de
-     protección que ya usa el resto del sitio para gating de UI (ver
-     aplicarVisibilidadPorFunciones() en admin.html) — no sustituye una
-     validación de servidor, pero esta página no llama a ningún endpoint
-     que exponga datos, así que no la necesita.
-     NOTA (29-ago-2026): sessionStorage NO se copia de forma confiable entre
-     pestañas. Se pasa el token por query string (?tk=) desde el botón
-     "Abrir Ruleta de Sorteos" en admin.html; este script lo guarda en
-     sessionStorage y limpia la URL antes de que se pinte nada.
-     ACTUALIZACIÓN (04-sep-2026): la sesión de admin migró de sessionStorage
-     a localStorage en todo el sitio (ver actualizarNavCta() en common.js),
-     que sí se comparte entre pestañas del mismo origen — así que este paso
-     de token por ?tk= ya no es indispensable para que esta página vea la
-     sesión abierta en otra pestaña. Se deja el mecanismo tal cual (ahora
-     escribe/lee en localStorage, ver script de abajo) porque sigue siendo
-     inofensivo y cubre además el caso de un link ?tk= compartido/abierto
-     directamente sin sesión previa en esa pestaña.
-     FIX (30-ago-2026): se retira el bloque de diagnóstico en pantalla que
-     hubo acá (29-ago-2026, para depurar un loop de redirección) — el fix
-     real fue pasar el token por ?tk= (arriba), ya confirmado funcionando,
-     así que el diagnóstico ya cumplió su función y solo quedaba como
-     ruido/riesgo (mostraba detalles internos de sesión en pantalla ante
-     cualquier falla). 
-```
-
-### Línea original 441 (estilo)
-
-```
- FASE 9 (30-ago-2026): la lista de participantes se muestra siempre
-   * agrupada por clan. Cada grupo tiene un header con checkbox propio que
-   * marca/desmarca a TODOS sus miembros de un tiro (p.ej. un sorteo que es
-   * solo para 2 de los 4 clanes), en vez de sacar a cada persona a mano —
-   * ver buildClanGroupHeader(). Los participantes sin clan (agregados a
-   * mano) van en un grupo "Sin clan asignado" al final. 
-```
-
-### Línea original 633 (HTML)
-
-```
- data-essential-motion (30-ago-2026): excluye este disco del
-               reset global de prefers-reduced-motion (ver styles.css) — el
-               giro de la ruleta NO es decorativo, es la mecánica misma del
-               sorteo (la suspensión del giro es parte de la transmisión en
-               vivo), así que debe seguir animándose aunque el sistema
-               operativo de quien mira tenga "reducir movimiento" activado. 
-```
-
-### Línea original 720 (HTML)
-
-```
- NUEVO (14-sep-2026, pedido usuario -- "en la ruleta agrega una
-             opción para quitar un ticket por cada giro que hace la
-             ruleta. reitero que debe ser opcional"): #removeTicketPerSpinToggle,
-             DESMARCADO por defecto (como pidió el usuario, es opcional, no
-             cambia el comportamiento actual si no se activa). Con esto
-             activado, cada giro (gane o no el premio ese intento) le resta
-             1 ticket al participante que salió en ESE giro -- ver el
-             bloque que hace `slice.participant.weight -= 1` dentro de
-             spin(), justo después de conocer `slice`, antes de separar en
-             isFinal/no-final (aplica a los dos casos por igual, tal cual
-             "por cada giro" y no solo "por cada premio"). Un participante
-             que llega a 0 tickets no necesita marcarse `active:false` a
-             mano -- computeSlices() ya le arma una porción de ancho 0 en
-             la ruleta (ver ese bloque, `w = Number(p.weight) > 0 ? ... :
-             0`), así que en la práctica deja de poder salir sorteado sin
-             tocar ningún otro mecanismo de descarte. 
-```
-
-### Línea original 753 (HTML)
-
-```
- FIX (10-sep-2026, punto 5 del consolidado -- "Frontend
-             (sorteo.html): un formulario de resolución sobre cada ganador
-             de la lista (renderWinners()), similar a #resolucionForm de
-             admin.html"): mismo patrón que #resolucionForm -- UN SOLO
-             formulario compartido, se abre desde el botón "Gestionar" de
-             cada fila de ganador (ver abrirResolucionForm() más abajo) y
-             cambia según a cuál ganador corresponda. A diferencia de
-             Torneos, acá no hay una hoja de resoluciones aparte que
-             fusionar (Resultado/Razón viven en la misma fila de
-             S_Asistencia, ver sección 1 del consolidado) -- por eso el
-             resultado se guarda directo en el objeto `winner` en memoria
-             (ver guardarResolucionGanador() más abajo), sin necesidad de
-             re-fusionar nada al repintar.
-
-             CORREGIDO (10-sep-2026, sección 1 y sección 2 del consolidado):
-             esta primera versión copiaba el dropdown de 4 opciones de
-             Torneos (Ganador/Descalificado/2 tipos de empate) y dejaba
-             "Razón" como texto libre -- pero Sorteos NO tiene concepto de
-             empate, así que Resultado es un dropdown cerrado de 2 valores
-             (Califica/No califica, CFG.SORTEOS_RESULTADO_TIPOS) y Razón es
-             otro dropdown cerrado con los 3 motivos ligados a los
-             requisitos de S_Lista, visible solo cuando Resultado = "No
-             califica" (ver toggleWinnerResRazonVisibility() más abajo).
-
-             CONECTADO (10-sep-2026, puntos 4 y 6 del consolidado ya
-             resueltos en el backend): btnGuardarResolucionGanador ahora
-             llama a webAdminSorteoResolucionGuardar (guardarResolucionGanador()
-             más abajo) -- ver ese comentario para el detalle de Tag/Premio
-             y el caso "sin tag". 
-```
-
-### Línea original 788 (HTML)
-
-```
- RESUELTO (10-sep-2026, sección "Cómo se resuelve el Tag" del
-               consolidado): si el ganador vino de "Cargar participantes
-               calificados" el Tag ya llega prellenado (ver
-               abrirResolucionGanador() más abajo) y normalmente no hace
-               falta tocarlo. Si el ganador se agregó a mano y no se
-               conoce el Tag, este aviso se muestra solo (ver
-               toggleWinnerResSinTagVisibility()) cuando el campo de Tag
-               está vacío -- no deja guardar sin tag "en silencio": exige
-               que el admin confirme explícitamente que es intencional. 
-```
-
-### Línea original 807 (HTML)
-
-```
- FIX (12-sep-2026, pedido del usuario -- consolidado sección 1,
-               punto 10, y Base.md _registrarResolucionSorteo()/
-               actualizarDocGanadoresSorteo()): campo Tickets, prellenado con
-               el peso real (participant.weight) con el que el ganador entró
-               a la ruleta -- mismo criterio que Tag/Premio: viene sugerido
-               pero es editable a mano antes de guardar, por si el admin
-               necesita corregirlo. Opcional: si se deja vacío, se manda
-               `undefined` en el payload (ver guardarResolucionGanador() más
-               abajo) y el backend guarda la celda vacía, igual que antes de
-               este FIX. 
-```
-
-### Línea original 875 (script)
-
-```
-  // FASE (10-sep-2026, consolidado sección 1 puntos 4 y 6): ID (SL.ID) del
-  // sorteo al que se le atan las resoluciones que se guarden en
-  // S_Asistencia. Se completa al cargar participantes calificados (ver
-  // loadQualifiedParticipants() más abajo, data.idSorteo) -- por eso el
-  // flujo esperado es: primero "Cargar participantes calificados" (aunque
-  // sea solo para tomar el ID, incluso si después se termina sorteando a
-  // mano), después girar, después guardar resoluciones/exportar.
-```
-
-### Línea original 1166 (script)
-
-```
-      // FIX (10-sep-2026): la etiqueta ahora también refleja el resultado
-      // de la resolución manual (ver #winnerResolucionForm), no solo si
-      // sigue participando o quedó excluido de la ruleta -- son dos cosas
-      // distintas: "discarded" es sobre la ruleta (¿puede volver a salir
-      // sorteado?), "resultado" es sobre el premio (¿se queda con él?).
-      // CORREGIDO (10-sep-2026): "Ganador" ya no es un valor posible de
-      // w.resultado (Sorteos solo usa Califica/No califica) -- ahora se
-      // compara contra "No califica" y, si aplica, se agrega también la
-      // razón elegida.
-```
-
-### Línea original 1218 (script)
-
-```
-  // FIX (10-sep-2026, punto 5 del consolidado): mismo mecanismo que
-  // abrirResolucionForm() de admin.html, pero UN SOLO formulario
-  // compartido para todos los ganadores en vez de uno triplicado por fila
-  // -- se abre con abrirResolucionGanador(id), que recuerda a cuál
-  // ganador corresponde en winnerResolucionForm.dataset.winnerId.
-  //
-  // CORREGIDO (10-sep-2026, sección 1 y sección 2 del consolidado): el
-  // valor por defecto/"sin problemas" ya no es "Ganador" (copiado de
-  // Torneos) sino "Califica" (CFG.SORTEOS_RESULTADO_TIPOS) -- Sorteos no
-  // tiene concepto de empate, y "Razón" solo tiene sentido (y solo se
-  // muestra) cuando el Resultado es "No califica".
-```
-
-### Línea original 1248 (script)
-
-```
-  // FASE (10-sep-2026, consolidado -- "Cómo se resuelve el Tag"): el
-  // aviso + checkbox de "sin tag" solo se muestra cuando el campo de Tag
-  // está vacío -- si el admin lo completa (a mano, o porque ya venía
-  // prellenado desde "Cargar participantes calificados"), el aviso se
-  // oculta y el check se desmarca solo (no tiene sentido dejarlo marcado
-  // si al final sí hay un tag).
-```
-
-### Línea original 1288 (script)
-
-```
-  // FASE (10-sep-2026, consolidado sección 1 puntos 4 y 6 -- CONECTADO):
-  // guarda/actualiza la resolución de UN ganador en S_Asistencia vía
-  // webAdminSorteoResolucionGuardar (mismo patrón que btnGuardarResolucion
-  // de admin.html → webAdminTorneoResolucionGuardar). Antes de mandar
-  // nada valida, en este orden:
-  //   1. Que haya un sorteoActualId (viene de "Cargar participantes
-  //      calificados", ver loadQualifiedParticipants()) -- sin eso no hay
-  //      forma de saber a qué fila de S_Lista atar la resolución.
-  //   2. Si Resultado = "No califica", que venga una Razón elegida.
-  //   3. Que haya Tag, SALVO que el admin haya marcado explícitamente el
-  //      checkbox de "sin tag intencional" (ver toggleWinnerResSinTagVisibility()
-  //      más arriba) -- ver "Cómo se resuelve el Tag" en el consolidado.
-  // El estado local (`winners`) se actualiza recién cuando el backend
-  // confirma ok:true -- si falla, el formulario queda abierto con el
-  // error visible y nada se pierde (el admin puede corregir y reintentar).
-```
-
-### Línea original 1462 (script)
-
-```
-      // NUEVO (14-sep-2026, pedido usuario -- opción "Quitar un ticket por
-      // cada giro"): se aplica ACÁ, antes de separar en isFinal/no-final,
-      // porque el pedido fue "por cada giro que hace la ruleta" (no solo
-      // por cada premio entregado). Clamp a 0 -- nunca queda negativo.
-      // Ver docblock junto a #removeTicketPerSpinToggle (arriba, en el
-      // <div class="setting-row">) para el resto del mecanismo.
-```
-
-### Línea original 1481 (script)
-
-```
-          // FIX (10-sep-2026, punto 5 del consolidado): resultado/razón de
-          // la resolución manual sobre este ganador (ver
-          // #winnerResolucionForm más arriba). CORREGIDO (10-sep-2026):
-          // "Califica" es el valor por defecto (Sorteos no tiene concepto
-          // de empate, ver sección 2 del consolidado) -- no hace falta
-          // abrir el formulario si no hubo ninguna descalificación.
-```
-
-### Línea original 1489 (script)
-
-```
-          // FASE (10-sep-2026, consolidado sección 1 puntos 4 y 6): se
-          // propaga el tag/clan del participante calificado (si vino de
-          // "Cargar participantes calificados") -- ver
-          // loadQualifiedParticipants() más arriba. Si el ganador salió
-          // de un participante agregado a mano, ambos quedan en null y
-          // guardarResolucionGanador() exige la confirmación explícita de
-          // "sin tag" antes de guardar. `premio` arranca vacío -- se
-          // completa a mano en el formulario de resolución (todavía no
-          // hay ninguna fuente automática de premios por puesto).
-          // `guardado` refleja si esta resolución YA se guardó en
-          // S_Asistencia (ver renderWinners() para el indicador visual).
-```
-
-### Línea original 1503 (script)
-
-```
-          // FIX (12-sep-2026, consolidado sección 1 punto 10): se propaga
-          // el peso real con el que este participante entró a la ruleta
-          // (mismo `weight` que ya usa pickWeightedIndex() para la
-          // probabilidad) -- sugerido en el campo Tickets del formulario de
-          // resolución (ver abrirResolucionGanador()), pero editable a mano
-          // antes de guardar, igual que Tag/Premio.
-```
-
-### Línea original 1535 (script)
-
-```
-        // FIX (14-sep-2026, junto con "Quitar un ticket por cada giro"):
-        // sin este `||`, si el toggle de tickets está activo pero
-        // "Descartar intentos de prueba" no, el peso bajaba en el dato
-        // pero el <input> de tickets y la rueda quedaban con el valor
-        // viejo hasta el próximo giro -- ahora se refresca apenas
-        // cualquiera de los dos cambió algo sobre el participante.
-```
-
-### Línea original 1638 (script)
-
-```
-    // FASE (12-sep-2026, pedido del usuario -- consolidado de pendientes,
-    // punto 1): además de la descarga local de arriba (que no toca el
-    // backend), "Exportar" ahora también dispara el docx real al instante
-    // -- antes solo se actualizaba 1 vez al día, dentro de la corrida
-    // diaria de runUpdate() (ver docblock de
-    // _webAdminSorteoActualizarDocGanadores(), 34_Web_API.gs). Es un
-    // pedido aparte, en paralelo, que no bloquea ni condiciona la
-    // descarga local de arriba (que ya se disparó igual): si este pedido
-    // falla o no hay sesión activa, el .doc local ya se descargó sin
-    // problema.
-```
-
-### Línea original 1747 (script)
-
-```
-            // FIX (10-sep-2026, punto 3 del consolidado): usar el ticket
-            // real (peso en la ruleta) que calcule el backend en vez del
-            // `weight: 1` fijo de siempre -- computeSlices()/
-            // pickWeightedIndex() ya usan `p.weight` para la probabilidad,
-            // así que no hace falta tocar nada más ahí, solo poblarlo bien
-            // acá. El campo `.p-weight` de cada fila (ver renderParticipants()
-            // más abajo) sigue siendo editable a mano por si el admin
-            // quiere ajustar el peso de alguien puntual después de cargar.
-            //
-            // CONECTADO (11-sep-2026, confirmado contra Base.md y el
-            // consolidado, sección 1 PASO 2): _webSorteoCalificados()
-            // (34_Web_API.gs) ya devuelve `tickets` por participante
-            // calificado, calculado como 1 + floor((trofeos - Min_S) /
-            // Delta) -- ver el docblock de esa función para el detalle
-            // completo (caso especial Delta=0 → 1 ticket fijo para todo el
-            // que llegue a Min_S, sin tope máximo). `p.peso` NUNCA llega a
-            // existir -- ese nombre alternativo se deja como fallback
-            // inofensivo por si algún día se renombra el campo, no porque
-            // esté en uso hoy.
-```
-
-### Línea original 1775 (script)
-
-```
-              // FASE (10-sep-2026, consolidado sección 1 puntos 4 y 6,
-              // "Cómo se resuelve el Tag"): se guarda el tag real del
-              // participante calificado -- cuando salga sorteado, spin()
-              // lo propaga al objeto winner, y de ahí
-              // guardarResolucionGanador() lo manda tal cual a
-              // S_Asistencia sin pedirle nada al admin.
-```
-
-### Línea original 1793 (script)
-
-```
-        // FASE (10-sep-2026, consolidado sección 1 puntos 4 y 6): se
-        // guarda el ID del sorteo (S_Lista) que devolvió el backend --
-        // hace falta para poder guardar después cualquier resolución de
-        // ganador en S_Asistencia (ver guardarResolucionGanador() más
-        // abajo). Se sobreescribe cada vez que se recarga la lista, así
-        // que si el admin recarga a mitad de un sorteo real, las
-        // resoluciones ya guardadas siguen atadas al ID viejo (correcto:
-        // pertenecen a ESE sorteo) y solo las nuevas usan el ID recargado.
-```
-
