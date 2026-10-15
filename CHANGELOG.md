@@ -4,7 +4,7 @@ Lista corta de lo que se hizo, de más reciente a más antiguo. Cada entrada tra
 
 **Cómo funciona el código hoy, por qué se decidió así, qué se probó y se descartó: no va aquí, va en `Contexto_Base_Web.md`.** Las reglas de redacción están en `Consolidados de cambios/Reglas_Consolidados.md` (repo `Backend`), sección 5. Los pendientes tampoco viven en cada entrada: están en «Abiertos». El detalle largo anterior sigue en el historial de git.
 
-*Traslado en curso (desde el 11-oct-2026):* las entradas desde el 04-oct-2026 ya están en formato corto y su contenido pasó a `§PF025` (8 y 9-oct), `§PF027` (5 a 7-oct) y `§PF018` (octava sesión, 2 al 5-oct). Las tandas 4 a 2 del 03 y 02-oct, la Fase 11 y el TBT de `guerra` (02-oct) también pasaron a `§PF018`, y la séptima y la sexta sesión (30 y 29-sep), las tandas D, C, B y A de la Fase 5b (28-sep), la Fase 11 del plan T_Lista (26-sep) y los comentarios desactualizados (21-sep) a `§PF017`. Del 20-sep pasaron a `§PF016` «Rendimiento (Lighthouse)», «CSS compartido», `permisos`, `mensajes` y `comunidad`. Quedó trasladado todo el 20-sep (`admin`, `perfil`, `directorio`, `index` y `guerra`) a `§PF016`. Quedó trasladado todo el 19-sep a `§PF016`: «CI y herramientas», «Rendimiento (Lighthouse)» y «SEO», «CSS compartido», `permisos`, `mensajes` y `guerra`. Con esta tanda quedaron trasladadas también las entradas de `guerra.html` del 21-sep (`§PF017`) y del 18-sep (`§PF016`). Los bloques «Línea original N (estilo)» de `guerra.html` (4 a 16-sep) y sus 10 bloques «(HTML)» (31-ago a 13-sep) pasaron a `§PF028`; sus 15 primeros bloques «(script)» (30-ago a 17-sep) pasaron a `§PF029`. Sus otros 15 bloques «(script)» (4 a 15-sep) pasaron a `§PF030`; en `guerra.html` ya no queda ningún bloque «(script)» con texto largo. Todo lo anterior (hoy ordenado por tema y archivo, no por fecha, incluidos los bloques «Línea original N» y las demás secciones por archivo) conserva su texto largo hasta que se trasladen, por tandas y de la fecha más reciente a la más antigua.
+*Traslado en curso (desde el 11-oct-2026):* las entradas de `perfil.html` del 23 y 27-sep pasaron a `§PF081` (15-oct). Antes: las entradas desde el 04-oct-2026 ya están en formato corto y su contenido pasó a `§PF025` (8 y 9-oct), `§PF027` (5 a 7-oct) y `§PF018` (octava sesión, 2 al 5-oct). Las tandas 4 a 2 del 03 y 02-oct, la Fase 11 y el TBT de `guerra` (02-oct) también pasaron a `§PF018`, y la séptima y la sexta sesión (30 y 29-sep), las tandas D, C, B y A de la Fase 5b (28-sep), la Fase 11 del plan T_Lista (26-sep) y los comentarios desactualizados (21-sep) a `§PF017`. Del 20-sep pasaron a `§PF016` «Rendimiento (Lighthouse)», «CSS compartido», `permisos`, `mensajes` y `comunidad`. Quedó trasladado todo el 20-sep (`admin`, `perfil`, `directorio`, `index` y `guerra`) a `§PF016`. Quedó trasladado todo el 19-sep a `§PF016`: «CI y herramientas», «Rendimiento (Lighthouse)» y «SEO», «CSS compartido», `permisos`, `mensajes` y `guerra`. Con esta tanda quedaron trasladadas también las entradas de `guerra.html` del 21-sep (`§PF017`) y del 18-sep (`§PF016`). Los bloques «Línea original N (estilo)» de `guerra.html` (4 a 16-sep) y sus 10 bloques «(HTML)» (31-ago a 13-sep) pasaron a `§PF028`; sus 15 primeros bloques «(script)» (30-ago a 17-sep) pasaron a `§PF029`. Sus otros 15 bloques «(script)» (4 a 15-sep) pasaron a `§PF030`; en `guerra.html` ya no queda ningún bloque «(script)» con texto largo. Todo lo anterior (hoy ordenado por tema y archivo, no por fecha, incluidos los bloques «Línea original N» y las demás secciones por archivo) conserva su texto largo hasta que se trasladen, por tandas y de la fecha más reciente a la más antigua.
 
 ---
 
@@ -241,9 +241,25 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 - **`sw.js` v6 · `api.js` · El estado «Inactivo» de un Tag solo lo ve un admin (tanda A).** `apiGet()`: opción `opts.conSesion` (sin caché ni `staleIfError`). `perfil.html`: `webPerfil` con `conSesion:true`. `directorio.html`: `webCompararJugadores` con `conSesion:true`. Backend: `34_Web_API.gs`, `_webPerfilJugador()`. → §PF017
 - **`guerra.html` · `nomMulti` y `prestamo` de los pendientes solo los ve un admin (tanda C).** `apiGet('webGuerraEnVivo')` con `conSesion:true`; sin `nombre`, el visitante ve el Tag. Backend: `34_Web_API.gs`, `_webGuerraEnVivo()` (recorta después de leer la caché); `08_Web_Endpoints.gs`, `doGet`. Anotado en la tanda D; el código ya estaba desde la tanda C. → §PF017
 
+## 27-sep-2026
+
+- **`perfil.html` y `assets/img/` · Íconos de Puntos estelares y Camino de Leyendas.** `PuntosEstelares.webp` y `Leyendas.webp` (nuevos); `_ICONO_PUNTOS_ESTELARES_HTML` y `_ICONO_LEYENDAS_HTML` (nuevas); `extItem()` (5.º parámetro de ícono); `renderCaminoLeyendas()`. Corrige el docblock de `_ICONO_GUERRA_HTML` (el ícono sí es legal, Fan Kit). → §PF081
+
 ## 26-sep-2026
 
 - **`admin.html` · «Modificar torneo» refleja el bloqueo del Organizador cuando viene de la API (Fase 11 del plan T_Lista).** `cargarTorneosHoy()`: cada `<option>` de `#tSelectHoy` trae `data-organizador-fuente`. `aplicarBloqueoOrganizadorMod()` (nueva): oculta `#tAutorEditableModWrap` y muestra `#tAutorSoloLecturaMod`; se llama desde el listener `change` de `#tSelectHoy` y se reinicia tras un envío exitoso de «Modificar torneo». Texto de ayuda en `#tAutorSelect` y `#tAutorSelectPlan`; nota en la opción «Ingresar link» de `#tSelectHoy` (reescrita el 2-oct). Solo UI: el servidor ya validaba (`37_Web_API.gs`, `_webAdminTorneoModificar()`). → §PF017
+
+## 23-sep-2026
+
+- **`perfil.html` · «Colección completa»: filas de costo en oro y cartas del siguiente nivel.** `pintarColeccion()`, `_filaCostoMejora()`, `COLECCION_ESPACIO_COSTO_MEJORA`; `.cc-oro`; `Gold.webp`. Corrección del 30-sep: el backend ya manda los campos y la constante quedó en `false`. → §PF081
+- **`perfil.html` · Dos minigráficos de pastel.** `_pastelMiniHtml()` (nueva), `renderExtendido()`, `.mini-pies`. → §PF081
+- **`perfil.html` · «Mazo actual» en dos subsecciones con subtítulo.** `renderMazoActual()`, `.mazo-layout`, `.mazo-subtitulo`; se elimina `.mazo-torre-leyenda`. → §PF081
+- **`perfil.html` · Cabecera reducida a 7 datos.** `.stats-mini` de `#perfilContenido`, `#mFameSemanaWrap` (nuevo), `renderExtendido(ext, j)`, `renderStatsAvanzadasCabecera()`. → §PF081
+- **`perfil.html` · Orden propio de Maestrías, card «Competitivo» y carta de torre a la derecha del mazo.** `_pintarInsignias()`, `_selectorOrdenHtml()`, `cambiarOrdenMaestrias()`, `#selMaestriasOrden`; `renderCaminoLeyendas()` (sin `<h2>`, sin variante `--sola`); `renderMazoActual()` (luego reemplazado por las dos subsecciones). → §PF081
+- **`perfil.html` · Subcategoría «Maestrías» y nombres de insignias en español.** `renderInsignias()`, `insigniaEsMaestria()`, `_insigniaItemHtml()`. Corrige lo del 21-sep (el catálogo es `Backup_Insignias.csv`). Backend: `34_Web_API.gs`, `_webMapaNombreInsigniaPorName()`; `36_Insignias.gs`. → §PF081
+- **`perfil.html` · La fila de la ficha solo se reserva si alguna ficha de la sección tiene el dato.** `_filaFicha(reservar, …)` en `renderMazoActual()` (dos secciones), `renderCartasTorre()` y `pintarColeccion()`. Corrige la entrada siguiente. → §PF081
+- **`perfil.html` · Filas de la ficha alineadas entre tarjetas.** `_filaFicha()` (nueva) con `visibility:hidden`, `renderMazoActual()`. → §PF081
+- **`perfil.html` · Cartas de «Mazo actual» y de la torre del mazo en `.col-card--grande`.** `renderMazoActual()`; sin cambio en `styles.css`. → §PF081
 
 ## 21-sep-2026
 
@@ -2545,285 +2561,6 @@ FIX (03-sep-2026, pedido usuario, punto 19 — "agregar un
 
 
 ## perfil.html — historial trasladado
-
-### 27-sep-2026 — Íconos nuevos: Puntos estelares y Camino de Leyendas
-Pedido del usuario: subió tres íconos del juego (`icon_menu_clan_wars`,
-`icon_star_level`, `Path_of_Legends_icon`) aclarando que el primero ya
-estaba guardado en `assets/img/Guerra.webp`, el segundo es para "Puntos
-estelares" (`perfil.html`) y el tercero es el ícono del modo competitivo
-(Camino de Leyendas).
-
-- **`assets/img/`:** `icon_star_level.webp` → `PuntosEstelares.webp`;
-  `Path_of_Legends_icon.webp` → `Leyendas.webp`. `icon_menu_clan_wars` no se
-  duplicó: `Guerra.webp` ya existía y es visualmente idéntico (aunque no
-  byte-a-byte, probablemente por un re-encode).
-- **`_ICONO_PUNTOS_ESTELARES_HTML` / `_ICONO_LEYENDAS_HTML` (nuevas):** mismo
-  patrón que `_ICONO_ORO_HTML`/`_ICONO_GUERRA_HTML` — `<img>` con `onerror`
-  que reemplaza por ⭐/🎖️ si el archivo llegara a faltar.
-- **`extItem(valor, label, esNumero, ancho, icono)`:** nuevo 5º parámetro
-  opcional (HTML de ícono ya armado) que se antepone al label dentro de
-  `.k`. Sin este parámetro el comportamiento es idéntico al de antes para
-  el resto de los cuadritos — se usa solo en el cuadrito "Puntos
-  estelares" (`raw.starPoints`), pasándole `_ICONO_PUNTOS_ESTELARES_HTML`.
-- **`renderCaminoLeyendas()`:** el `<h3 class="leyendas-subcat">Camino de
-  Leyendas</h3>` ahora antepone `_ICONO_LEYENDAS_HTML`. La subsección
-  "Ligas" no lleva ícono (no se subió uno específico para Ligas).
-- **Corrección (27-sep-2026, aviso del usuario):** el docblock de
-  `_ICONO_GUERRA_HTML` decía que el ícono real (escudo con espadas
-  cruzadas) no era viable por derechos de autor de Supercell y que 🎖️ era
-  "el reemplazo aprobado" — el usuario aclaró que sí es legal (descargado
-  del Fan Kit de Supercell) y que además el ícono y el emoji no son
-  equivalentes: el ícono representa el modo de juego (Guerra de Río), 🎖️
-  es solo el símbolo de respaldo técnico más cercano si el archivo llega a
-  faltar, sin pretender representar lo mismo. Docblock corregido.
-- También se corrigió un comentario desactualizado junto a `_ICONO_GUERRA_HTML`
-  en el battlelog que todavía decía "Guerra.webp todavía no está subido".
-
-### 23-sep-2026 — Colección completa: espacio para costo en oro y cartas del siguiente nivel (backend pendiente)
-Pedido del usuario: "agrega un campo para añadir el costo en oro para subir de
-nivel, también la cantidad de cartas requeridas para el siguiente nivel. aún
-no conecto el backend pero ve preparando el espacio en la sección de colección
-completa para probar. el ícono de oro debe tener el mismo tamaño que el de
-elixir o al menos la misma altura".
-
-- **`pintarColeccion()` / `_filaCostoMejora()` / `COLECCION_ESPACIO_COSTO_MEJORA`:**
-  dos filas nuevas en cada ficha, entre "Nivel" y la fila de Héroe/Evolución
-  (que sigue siendo la última): oro para subir de nivel (ícono + número) y
-  "Cartas: N". Leen `cards[].costoOro` y `cards[].cartasSiguienteNivel`, campos
-  que el backend (`_webDatosDriveJugador()`, `34_Web_API.gs`) **todavía no manda**.
-  Con la constante en `true` (estado actual) las filas se ven siempre, con "—"
-  si falta el dato, para probar el espacio; en `false` vuelve el criterio de
-  reserva de fila de las demás (solo si alguna ficha visible tiene el dato). A
-  nivel máximo no se muestra valor.
-- **`.cc-oro` (en el `<style>` de `perfil.html`):** gemelo de `.cc-elixir`
-  (mono 11px); el ícono `assets/img/Gold.webp` mide 13 px de alto (igual que el
-  de Elixir) con ancho automático. Si el archivo no existe, `onerror` lo
-  reemplaza por 🪙.
-
-**CORRECCIÓN (30-sep-2026):** lo de arriba quedó desactualizado. El backend sí
-manda `costoOro` y `cartasSiguienteNivel` (`_webDatosDriveJugador()` y
-`_webConCostoSubida()` en las 4 listas de cartas, AVISO 8) y
-`COLECCION_ESPACIO_COSTO_MEJORA` está en `false` en `perfil.html`: las filas se
-muestran con el criterio normal de reserva de fila, no "siempre". El costo en oro
-es una cantidad fija por nivel de carta (confirmado por el usuario, 30-sep). Lo
-que no existe es el oro que tiene cada jugador: Supercell no lo publica, así que
-no se puede mostrar ni comparar contra el costo.
-
-### 23-sep-2026 — Dos minigráficos de pastel (victorias/derrotas y donaciones)
-Pedido del usuario: "agrega dos minigráficos de estilo pastel: uno para el
-porcentaje de victorias y derrotas y otro para las donaciones hechas y
-recibidas".
-
-- **`_pastelMiniHtml(titulo, porciones)` (nueva) / `renderExtendido()`:** SVG
-  propio, sin librerías, con leyenda (valor y porcentaje). Se pintan en
-  `.mini-pies`, justo debajo de la grilla de cuadritos y encima del badge de
-  Camino de Leyendas. Victorias y derrotas usan `ext.victorias`/`ext.derrotas`
-  (verde/rojo); donaciones usan `ext.donacionesRealizadas` ("Hechas", dorado) y
-  `ext.donacionesRecibidas` ("Recibidas", morado). Cada gráfico se omite solo
-  si faltan sus datos o suman 0; con una sola porción distinta de 0 se dibuja
-  un círculo completo. Los cuadritos de % Victorias/% Derrotas se conservan.
-
-### 23-sep-2026 — Mazo actual: dos subsecciones con subtítulo y separación
-Pedido del usuario (con captura): "la carta de torre debe tener algo más de
-separación, que se note que las cartas son una subsección y la carta de torre
-otra, todo dentro de la sección de mazo actual. el texto de carta de torre no
-debe quedarse como texto simple, sigue siendo un subtítulo".
-
-- **`renderMazoActual()` / `.mazo-layout`:** ahora hay dos subsecciones, cada una
-  con su `<h3 class="mazo-subtitulo">`: "Cartas del mazo" (izquierda) y "Carta de
-  torre del mazo" (derecha). Reemplaza la leyenda chica bajo la carta
-  (`.mazo-torre-leyenda`, eliminada). Columnas 4fr/1fr con una línea vertical
-  entre ambas y 24 px de aire a cada lado; en pantallas de hasta 900 px la
-  torre baja debajo del mazo y la línea pasa a ser horizontal. Sin carta de
-  torre, el mazo se pinta como antes, sin subtítulo.
-
-### 23-sep-2026 — Cabecera del perfil reducida a 7 datos; el resto pasa a los cuadritos
-Pedido del usuario (con captura): "en la parte de arriba solo se debe mostrar
-nivel de torre del rey, nivel de XP, copas, victorias de guerra, ataques en la
-semana actual y fame de la semana actual, y vigencia. todo lo demás debe ir en
-los cuadritos debajo de la fila que indica que el clan no tiene requisitos".
-
-- **`.stats-mini` de `#perfilContenido`:** queda en este orden: Nivel de torre
-  del rey, Nivel de XP (antes "Nivel de experiencia"), Copas, V. Guerra, Ataques
-  en la semana actual, Fame de la semana actual (`#mFameSemanaWrap`, nueva) y
-  Vigencia. "Fame de la semana actual" lee `j.guerraSemana.puntaje` (en guerra,
-  fame = puntaje del jugador) y se oculta si el backend no lo manda.
-- **`renderExtendido(ext, j)`:** ahora recibe también `j`. Se quita el cuadrito
-  "Nivel de XP" (duplicaba el de la cabecera) y se agregan "Torneos", "Puntos
-  estelares" y "Puntos de experiencia", que salen de la cabecera.
-- **`renderStatsAvanzadasCabecera()`:** solo maneja Nivel de XP y Nivel de torre
-  del rey; Nivel de XP cae a `j.extendido.nivelXp` si `rawClash` no trae
-  `expLevel`.
-
-### 23-sep-2026 — Orden propio para Maestrías, card "Competitivo" y carta de torre a la derecha del mazo
-Pedido del usuario (con captura y boceto): "maestrías debe tener su propio
-filtro de orden", "quita el texto de 'Camino de leyendas y ligas', que quede
-como competitivo desglosándose en camino de leyendas y en ligas" y "reordena
-las cartas del mazo actual con la carta de torre a la derecha".
-
-- **`_pintarInsignias()` / `_selectorOrdenHtml()` (antes
-  `_selectorOrdenInsigniasHtml()`):** Maestrías ya no comparte el orden con las
-  insignias generales. Hay un estado propio (`_maestriasOrden`), su selector
-  (`#selMaestriasOrden`, bajo el subtítulo "Maestrías") y su handler
-  (`cambiarOrdenMaestrias()`); las generales siguen con `_insigniasOrden` y
-  `#selInsigniasOrden`. El selector de las generales solo se muestra si hay
-  insignias generales.
-- **Card `#mLeyendasCard` / `renderCaminoLeyendas()`:** se quita el `<h2>`
-  "Camino de Leyendas y ligas"; el eyebrow "Competitivo" se conserva con su
-  estilo original (una primera versión lo había reemplazado por un título
-  plano y se revirtió a pedido). Subsecciones "Camino de Leyendas" y "Ligas"
-  (antes "Liga"), con el mismo `<h3>` exacto dentro de un `.leyendas-bloque`:
-  se quita la variante `--sola`, que le sacaba la línea divisoria solo a la
-  primera y la hacía verse de otro peso.
-- **`renderMazoActual()`:** las 8 cartas (4x2, `.mazo-chips-principal`) van
-  dentro de `.mazo-layout-deck`, que ocupa 4 de 5 columnas iguales de
-  `.mazo-layout`; la carta de torre (`.mazo-layout-torre`) ocupa la 5.ª, arriba
-  y con el ancho de una carta del mazo. El título "Carta de torre del mazo"
-  pasa de eyebrow a leyenda chica bajo la carta (`.mazo-torre-leyenda`) para no
-  desalinearla de la primera fila. Sin carta de torre, el mazo ocupa todo el
-  ancho como antes. En pantallas de hasta 900 px la torre baja debajo del mazo.
-
-### 23-sep-2026 — Subcategoría "Maestrías" en Insignias y corrección de los nombres en español
-Pedido usuario: "haz una subcategoría para todas las insignias que empiezan con
-\"Mastery\" y llámala Maestrías" y "hice un csv con la columna Nombre en español ...
-pero veo que no se están usando".
-
-**Frontend (`perfil.html`, `renderInsignias()`):** las insignias cuyo `name` empieza
-con `Mastery` (distingue mayúsculas, `insigniaEsMaestria()`) se separan del resto y
-se pintan en un segundo grid bajo el subtítulo "Maestrías" (con su cantidad); las
-demás quedan arriba, igual que antes. Si el jugador solo tiene maestrías, el
-subtítulo va sin línea separadora; si no tiene ninguna, no aparece. El pie ahora
-dice cuántas de las desbloqueadas son de maestría. La tarjeta de cada insignia se
-movió a `_insigniaItemHtml()` sin cambiar su HTML. Estilos nuevos:
-`.insignias-subcat`, `.insignias-subcat--sola` y `.cuenta`.
-
-**Corrección a lo dicho el 21-sep-2026 (más abajo):** ese día se documentó que
-`badges[].nombreEs` salía de la columna "Nombre" de `Backup_Insignias_2.csv`, cruzada
-por (Tag, Name). Eso no servía: esa columna solo se autocompletaba para las
-"Mastery…" y las traducciones que el usuario escribe a mano están en el catálogo
-`Backup_Insignias.csv`, que nadie leía. Backend corregido (`34_Web_API.gs`,
-`_webMapaNombreInsigniaPorName()`): ahora lee el catálogo y cruza por Name
-(ya no depende del Tag), igual que las cartas con `Backup_Cards.csv` por ID.
-`36_Insignias.gs` también cambió: las filas nuevas o vacías de una insignia heredan
-el Nombre de sus otros niveles, el catálogo se agrupa por insignia y nivel, y el
-mapa de cartas se lee una sola vez por ejecución. Los comentarios de `perfil.html`
-que citaban `Backup_Insignias_2.csv` se corrigieron.
-
-**No se probó en navegador real:** se verificó la sintaxis del `<script>` inline y el
-render con datos simulados (mezcla, solo maestrías, sin maestrías, `name` nulo). Para
-que llegue `nombreEs` hay que volver a desplegar el web app del backend.
-
-### 23-sep-2026 — Corrección: la fila solo se reserva si ALGUNA ficha de la sección tiene ese dato (antes se reservaba siempre)
-Pedido usuario, corrigiendo el FIX inmediatamente anterior (mismo día, más
-abajo): "en todo perfil.html hay varias secciones. si el dato se menciona
-para alguna ficha en una determinada sección, se le reserva una ficha. si
-no se menciona, no se debe reservar la fila". El FIX anterior (`_filaFicha`
-original, solo con `mostrar`/`htmlVisible`/`htmlPlaceholder`) reservaba
-SIEMPRE las 5 filas condicionales (Héroe, Evolución, Rareza, Tipo,
-Elixir+Estrellas) en toda ficha de "Mazo actual" y "Carta de torre del
-mazo", aunque NINGUNA ficha de esa sección tuviera el dato — por ejemplo,
-si ninguna de las 8 cartas del mazo tiene Evolución, esa fila se seguía
-reservando (oculta) en las 8 igual, ocupando espacio vertical sin ningún
-propósito, porque ninguna ficha vecina la necesitaba para alinearse.
-
-**`_filaFicha(reservar, mostrar, htmlVisible, htmlPlaceholder)`** gana un
-parámetro nuevo al principio: `reservar` es un flag calculado UNA VEZ POR
-SECCIÓN (no por ficha) — verdadero si `Array.some()` encuentra que alguna
-ficha de esa sección concreta tiene el dato. Si `reservar` es falso, la
-función devuelve `''` (la fila no existe para ninguna ficha de la
-sección). Si es verdadero, se mantiene el comportamiento anterior: la
-ficha que sí tiene el dato lo muestra, la que no lo tiene reserva el
-mismo alto oculta con `visibility:hidden`.
-
-Se aplicó a las **4 funciones de perfil.html** que arman fichas con este
-componente (`.col-card`/`.col-ficha`/`.cc-meta`), cada una calculando sus
-propios flags de sección **por separado** (una sección nunca contamina a
-otra):
-- **`renderMazoActual()` — "Mazo actual":** se separa el cálculo de datos
-  por ficha (`datosCartas`, un `.map()` que ya no arma HTML, solo objetos)
-  del armado de HTML (`cartasHtml`, un segundo `.map()` sobre
-  `datosCartas`), porque los flags de sección
-  (`seccionMazoHeroe/Evo/Rareza/Tipo/Elixir`) necesitan conocer las 8
-  fichas completas antes de poder decidir si cada fila se reserva.
-- **`renderMazoActual()` — "Carta de torre del mazo":** mismo patrón,
-  aparte (`datosTorres`/`seccionTorre*`) — es su propia sección (su propio
-  título, su propio `.mazo-chips`), sus flags NO se mezclan con los de
-  "Mazo actual" aunque viven en la misma función. `torreHtml` pasa de
-  expresión ternaria en una sola línea a un `if` con `let torreHtml = '';`
-  para poder declarar `datosTorres` y los flags antes de armar el HTML.
-- **`renderCartasTorre()` — "Cartas de torre":** mismo patrón
-  (`datosTorres`/`seccionTorres*` — nombres locales a esta función, no
-  confundir con los de `renderMazoActual()` de arriba, cada función tiene
-  su propio scope).
-- **`pintarColeccion()` — "Colección completa":** mismo patrón
-  (`datosCol`/`seccionCol*`), calculado contra `visibles` (las cartas que
-  pasan el filtro de rareza activo `_colFiltroActivo`), no contra `cartas`
-  completo — como esta función se vuelve a ejecutar entera al cambiar de
-  filtro, los flags se recalculan cada vez contra lo que realmente se va a
-  pintar. De paso, Rareza y Tipo (que acá eran `<span>` sueltos, sin
-  envolver en `.cc-meta`, a diferencia de las otras 3 secciones) pasan a
-  envolverse en `.cc-meta` igual que el resto — sin cambio visual (
-  `.col-ficha` ya es `flex-direction:column`, cualquier hijo directo era
-  su propia fila con o sin el wrapper), pero ahora las 4 secciones
-  comparten el mismo marcado para el mismo dato.
-
-No se tocó `renderCartaFavorita()` ("Carta favorita"): es una sección de
-una sola ficha, así que "reservar si alguna ficha de la sección lo tiene"
-da exactamente el mismo resultado que "mostrar si esta ficha lo tiene" —
-no hay ninguna ficha vecina con la que alinearse.
-
-### 23-sep-2026 — Filas de la ficha (Héroe/Evolución/Rareza/Tipo/Elixir) alineadas entre tarjetas de una misma fila del grid
-Pedido usuario: "en cada sección, haz que cada tipo de dato dentro de la
-misma fila esté a la misma altura. es decir, todos los costos a la misma
-altura, todos los tipos a la misma altura, todas las calidades a la misma
-altura, etc" — a raíz del FIX anterior de `.col-card--grande` (mismo día,
-ver más abajo), donde se ve claramente que en "Mazo actual" (grid de 4
-columnas, `.mazo-chips`) una carta con Héroe+Evolución (ej. Valquiria) tiene
-2 filas más arriba de Rareza/Tipo/Elixir/Nivel que una sin ninguno de los
-dos (ej. Montacarneros) — esas 2 filas de más corrían todo lo de abajo, y el
-mismo dato (p.ej. la píldora de Rareza) quedaba a distinta altura según la
-columna.
-
-Se agrega `_filaFicha(mostrar, htmlVisible, htmlPlaceholder)` (helper nuevo,
-arriba de `renderMazoActual()`): cuando `mostrar` es falso, en vez de omitir
-la fila (`''`) se sigue renderizando un `.cc-meta` con el mismo marcado
-(mismas clases/pill) pero `visibility:hidden` — nunca `display:none`, que sí
-colapsa el alto y vuelve a romper la alineación — y `aria-hidden="true"`
-(los botones ocultos de Héroe/Evolución también llevan `tabindex="-1"` para
-no robar foco de teclado). Se aplica a las 5 filas condicionales de una
-ficha (Héroe, Evolución, Rareza, Tipo, Elixir+Estrellas) tanto en las 8
-cartas del mazo como en la carta de torre del mazo
-(`renderMazoActual()`) — la fila de Nivel no se toca porque ya se
-renderizaba siempre, sin condición.
-
-No se tocó `assets/styles.css` ni `.coleccion-grid`/`pintarColeccion()`
-("Colección completa"): esa sección usa `grid-template-columns:repeat(
-auto-fill,minmax(150px,1fr))`, sin un número fijo de columnas por fila, así
-que qué tarjetas comparten fila visual cambia según el ancho de pantalla —
-el mismo problema pedido acá ("mazo actual y su carta de torre") no aplica
-igual ahí; se puede extender después si el usuario lo pide para esa
-sección.
-
-### 23-sep-2026 — Cartas de "Mazo actual" y "Carta de torre del mazo" pasan a `.col-card--grande`
-Pedido usuario: "el tamaño de cartas de mazo actual y su carta de torre es muy
-pequeño, dale el mismo tamaño de la imagen de carta favorita". Las tres
-secciones (Mazo actual, Carta de torre del mazo, Carta favorita) comparten el
-mismo componente `.col-card`/`.col-nombre`/`.col-cuerpo`/`.col-ficha` desde el
-FIX del 23-sep-2026 más abajo ("solo se hizo el cambio en la colección
-completa pero falta en las otras secciones de cartas en perfil.html"), pero
-solo "Carta favorita" (`renderCartaFavorita()`) llevaba el modificador
-`.col-card--grande` (imagen 72x84) — Mazo actual y Carta de torre del mazo
-(ambas en `renderMazoActual()`) se quedaron en el tamaño base de `.col-card`
-(52x60, el mismo de Colección completa), sin que nadie lo hubiera pedido así
-explícitamente.
-
-Se agrega `col-card--grande` a los dos `<div class="col-card">` que arma
-`renderMazoActual()` (la ficha de cada una de las 8 cartas del mazo y la de
-`currentDeckSupportCards`), sin tocar `assets/styles.css` — la regla
-`.col-card--grande .col-cuerpo > img{width:72px; height:84px;}` ya existía y
-alcanza a cualquier `.col-card` que lleve el modificador, sin importar la
-sección. `Colección completa` (`pintarColeccion()`) no se toca: sigue en
-52x60, que es el tamaño que ya tenía y que nadie pidió agrandar acá.
 
 ### Línea original 18 (HTML)
 
