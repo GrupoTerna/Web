@@ -4,7 +4,7 @@ Lista corta de lo que se hizo, de más reciente a más antiguo. Cada entrada tra
 
 **Cómo funciona el código hoy, por qué se decidió así, qué se probó y se descartó: no va aquí, va en `Contexto_Base_Web.md`.** Las reglas de redacción están en `Consolidados de cambios/Reglas_Consolidados.md` (repo `Backend`), sección 5. Los pendientes tampoco viven en cada entrada: están en «Abiertos». El detalle largo anterior sigue en el historial de git.
 
-*Traslado en curso (desde el 11-oct-2026):* Los 11 bloques «Línea original N» de `admin.html` de la parte 7a (HTML largo, 5 al 16-sep) pasaron a `§PF090` (15-oct); quedan las partes 7b y 7c. Los 21 bloques «Línea original N» de `sorteo.html` (28-ago a 14-sep) pasaron a `§PF089` (15-oct); en `sorteo.html` ya no queda historial largo. Los 13 bloques `// (script)` de `index.html` (3 al 10-sep) pasaron a `§PF088` (15-oct): en `index.html` ya no queda historial largo; 12 de ellos describen código que desde el 20-sep vive en `directorio.html`. Los 16 bloques «Línea original N (HTML)» de `index.html` (29-ago a 10-sep) pasaron a `§PF087` (15-oct); los bloques «Línea original N» de `directorio.html` (31-ago a 16-sep) pasaron a `§PF086` (15-oct). Los de `perfil.html` (31-ago a 13-sep) pasaron a `§PF085` (15-oct). `torneos.html` y `comunidad.html` (30-ago a 13-sep) pasaron a `§PF084` (15-oct). Los Tramos 1 y 2 de `admin.html` (30-ago a 16-sep) pasaron a `§PF083` (15-oct). Los siete lotes de consolidación CSS de `styles.css` (18-sep) pasaron a `§PF082` (15-oct). Las dos entradas fechadas de `directorio.html` (18-sep) pasaron a `§PF016` (15-oct). Las entradas de `perfil.html` del 23 y 27-sep pasaron a `§PF081` (15-oct). Antes: las entradas desde el 04-oct-2026 ya están en formato corto y su contenido pasó a `§PF025` (8 y 9-oct), `§PF027` (5 a 7-oct) y `§PF018` (octava sesión, 2 al 5-oct). Las tandas 4 a 2 del 03 y 02-oct, la Fase 11 y el TBT de `guerra` (02-oct) también pasaron a `§PF018`, y la séptima y la sexta sesión (30 y 29-sep), las tandas D, C, B y A de la Fase 5b (28-sep), la Fase 11 del plan T_Lista (26-sep) y los comentarios desactualizados (21-sep) a `§PF017`. Del 20-sep pasaron a `§PF016` «Rendimiento (Lighthouse)», «CSS compartido», `permisos`, `mensajes` y `comunidad`. Quedó trasladado todo el 20-sep (`admin`, `perfil`, `directorio`, `index` y `guerra`) a `§PF016`. Quedó trasladado todo el 19-sep a `§PF016`: «CI y herramientas», «Rendimiento (Lighthouse)» y «SEO», «CSS compartido», `permisos`, `mensajes` y `guerra`. Con esta tanda quedaron trasladadas también las entradas de `guerra.html` del 21-sep (`§PF017`) y del 18-sep (`§PF016`). Los bloques «Línea original N (estilo)» de `guerra.html` (4 a 16-sep) y sus 10 bloques «(HTML)» (31-ago a 13-sep) pasaron a `§PF028`; sus 15 primeros bloques «(script)» (30-ago a 17-sep) pasaron a `§PF029`. Sus otros 15 bloques «(script)» (4 a 15-sep) pasaron a `§PF030`; en `guerra.html` ya no queda ningún bloque «(script)» con texto largo. Todo lo anterior (hoy ordenado por tema y archivo, no por fecha, incluidos los bloques «Línea original N» y las demás secciones por archivo) conserva su texto largo hasta que se trasladen, por tandas y de la fecha más reciente a la más antigua.
+*Traslado en curso (desde el 11-oct-2026):* Los 37 bloques «Línea original N» de `admin.html` de la parte 7b (comentarios del `<script>`, 29-ago al 17-sep) pasaron a `§PF092` (15-oct); queda la parte 7c. Los 11 bloques «Línea original N» de `admin.html` de la parte 7a (HTML largo, 5 al 16-sep) pasaron a `§PF090` (15-oct); quedan las partes 7b y 7c. Los 21 bloques «Línea original N» de `sorteo.html` (28-ago a 14-sep) pasaron a `§PF089` (15-oct); en `sorteo.html` ya no queda historial largo. Los 13 bloques `// (script)` de `index.html` (3 al 10-sep) pasaron a `§PF088` (15-oct): en `index.html` ya no queda historial largo; 12 de ellos describen código que desde el 20-sep vive en `directorio.html`. Los 16 bloques «Línea original N (HTML)» de `index.html` (29-ago a 10-sep) pasaron a `§PF087` (15-oct); los bloques «Línea original N» de `directorio.html` (31-ago a 16-sep) pasaron a `§PF086` (15-oct). Los de `perfil.html` (31-ago a 13-sep) pasaron a `§PF085` (15-oct). `torneos.html` y `comunidad.html` (30-ago a 13-sep) pasaron a `§PF084` (15-oct). Los Tramos 1 y 2 de `admin.html` (30-ago a 16-sep) pasaron a `§PF083` (15-oct). Los siete lotes de consolidación CSS de `styles.css` (18-sep) pasaron a `§PF082` (15-oct). Las dos entradas fechadas de `directorio.html` (18-sep) pasaron a `§PF016` (15-oct). Las entradas de `perfil.html` del 23 y 27-sep pasaron a `§PF081` (15-oct). Antes: las entradas desde el 04-oct-2026 ya están en formato corto y su contenido pasó a `§PF025` (8 y 9-oct), `§PF027` (5 a 7-oct) y `§PF018` (octava sesión, 2 al 5-oct). Las tandas 4 a 2 del 03 y 02-oct, la Fase 11 y el TBT de `guerra` (02-oct) también pasaron a `§PF018`, y la séptima y la sexta sesión (30 y 29-sep), las tandas D, C, B y A de la Fase 5b (28-sep), la Fase 11 del plan T_Lista (26-sep) y los comentarios desactualizados (21-sep) a `§PF017`. Del 20-sep pasaron a `§PF016` «Rendimiento (Lighthouse)», «CSS compartido», `permisos`, `mensajes` y `comunidad`. Quedó trasladado todo el 20-sep (`admin`, `perfil`, `directorio`, `index` y `guerra`) a `§PF016`. Quedó trasladado todo el 19-sep a `§PF016`: «CI y herramientas», «Rendimiento (Lighthouse)» y «SEO», «CSS compartido», `permisos`, `mensajes` y `guerra`. Con esta tanda quedaron trasladadas también las entradas de `guerra.html` del 21-sep (`§PF017`) y del 18-sep (`§PF016`). Los bloques «Línea original N (estilo)» de `guerra.html` (4 a 16-sep) y sus 10 bloques «(HTML)» (31-ago a 13-sep) pasaron a `§PF028`; sus 15 primeros bloques «(script)» (30-ago a 17-sep) pasaron a `§PF029`. Sus otros 15 bloques «(script)» (4 a 15-sep) pasaron a `§PF030`; en `guerra.html` ya no queda ningún bloque «(script)» con texto largo. Todo lo anterior (hoy ordenado por tema y archivo, no por fecha, incluidos los bloques «Línea original N» y las demás secciones por archivo) conserva su texto largo hasta que se trasladen, por tandas y de la fecha más reciente a la más antigua.
 
 ---
 
@@ -327,8 +327,13 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 - **`assets/styles.css` · Primer lote (Fase 1): `.join-modal-*` y `.rt-filtro-vacio`.** Se eliminan de `index.html`, `directorio.html` y `guerra.html`; el segundo `<style>` de `directorio.html` pierde `.field textarea`, `.vetar-form` y `.vetar-form-titulo` (código muerto). → §PF082
 - **`directorio.html` · Restyle manual de `.roster-table-wrap` eliminado por duplicado de `.scroll-morado` (Fase 2, tablas); `debounce()` sube a `assets/js/util.js`.** `<style>`: se quita el estilo de la barra; `overflow-x:auto` se mantiene. Sin tocar: `abrirFiltroColumna()`. → §PF016
 
+## 17-sep-2026
+
+- **`admin.html` · El aviso de diagnóstico de las propuestas de Cambio de Rango se pinta aunque haya 1 o más filas.** Banner arriba de la tabla cuando `diagnostico` viene presente (antes solo en la rama «sin propuestas»). → §PF092
+
 ## 16-sep-2026
 
+- **`admin.html` · Cambio de Rango: hora precargada, orden de la tabla de propuestas y mensaje de «Generar» desglosado.** `filaAsc.hora` aparte de `filaAsc.fecha` (`CR.FECHA`/`CR.HORA`); orden por `ordenClanIndex()`, `RANGO_ORDEN_CR`, `TIPO_ORDEN_CR` y nombre; `agregadasPorTipo`; aviso `diagnostico` en vez de «nadie cumple los requisitos». → §PF092
 - **`admin.html` · Cambio de Rango: botón «precargar la última corrida», propuestas como parte del flujo y WhatsApp en «No».** `precargarUltimoRegistroCR()` (trae grillas y «Otros criterios», sin Fecha, Hora ni Semanas; Guardar crea una corrida nueva); `#crPropuestasBox` pasa a hermano de `#crPaso3` con `cr-requisitos-bloque` (antes `<details class="admin-subseccion">`); WhatsApp arranca en «No» solo en Cambio de Rango. → §PF090
 - **`admin.html` · La card «Mensajes» va después de «Torneos y sorteos».** Solo orden en el HTML; hoy `initMensajesAutomaticos()` vive en `mensajes.html`. → §PF090
 - **`directorio.html` · «Ingresos recientes»: pastillas de clan (v2) y gráficas comparativas a pedido (v8); debounce de 180 ms en el buscador del popover.** `construirFiltroIngresos()`, `inicializarToggleGraficasIngresos()`, `ingresosGraficasVisibles`, `ingresosUltimosFiltrados`; `debounce()`. → §PF086
@@ -337,11 +342,13 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 
 ## 15-sep-2026
 
+- **`admin.html` · `#tComentario` se precarga al elegir un torneo en «Modificar».** `data-comentario` en `cargarTorneosHoy()`. → §PF092
 - **`admin.html` · «Modificar torneo» precarga el Comentario.** `cargarTorneosHoy()`: `data-comentario` y el listener de `#tSelectHoy` lo escribe en `#tComentario`; backend `webAdminTorneosHoy()` y `_listarTorneosDeHoy()`. → §PF090
 - **`admin.html` · Radios de «Registrar miembro nuevo» reemplazados por pastillas `.tab-clan`.** Se lee `data-modo`; activo con `.activo`. → §PF083
 
 ## 14-sep-2026
 
+- **`admin.html` · Organizador de Cambio de Rango: «Yo (<nombre>)» por defecto.** `#crOrganizadorSelect` ya no lista el propio Nom_Multi del admin. → §PF092
 - **`admin.html` · «Modificar torneo» manda `autor` y `premios` al backend.** `_webAdminTorneoModificar()` y `_modificarFechaHoraTorneo()` los aceptan opcionales; `cargarTorneosHoy()` consume `data-autor`, `data-premios` y `data-semanas`. → §PF090
 - **`admin.html` · Cambio de Rango: Barcos de 0 a 16 sin «Sin configurar».** `precargarOtrosCriteriosCR()` mapea el criterio vacío a «16». → §PF090
 - **`sorteo.html` · Opción «Quitar un ticket por cada giro».** `#removeTicketPerSpinToggle` (desmarcado por defecto); `spin()` resta 1 al peso de quien salió en cada giro, con tope en 0, y repinta tickets y rueda si cualquiera de las dos opciones cambió algo. → §PF089
@@ -350,6 +357,8 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 
 ## 13-sep-2026
 
+- **`admin.html` · Corrige `ReferenceError: Cannot access '_clanesFamiliaCache' before initialization`.** Las declaraciones tempranas se adelantan al `if(localStorage.getItem(SESSION_KEY)) mostrarPanel();`. → §PF092
+- **`admin.html` · Cambio de Rango: organizador con dropdown de Nom_Multi, formato de miles solo visual y dropdowns de motivo para los Empates.** `precargarOrganizadorCR()`/`obtenerOrganizadorCR()`, `formatoMiles()`/`initInputMiles()`, `TIPO_A_DROPDOWN_MOTIVO`. → §PF092
 - **`admin.html` · Cambio de Rango (Fase 7), pasos 3 a 6.** Campos comunes (Semanas como texto «T4_S1,T4_S2»), grillas `#crGridAscenso`/`#crGridDescenso` con `pintarGridCR()`, «Otros criterios» con `leerOtrosCriteriosCR()` (estado `'Planificado'` fijo) y `#crPropuestasBox` con «Ver propuestas» y «Generar propuestas». → §PF090
 - **`directorio.html` · Botones de letras A-Z/# en el directorio por clan.** `pintarFiltroLetraRoster()`, `rosterLetraSeleccionada`, `aplicarFiltrosRoster()`, `data-letra` en `filasHtmlRoster()`; el cambio de clan reinicia la letra. → §PF086
 - **`perfil.html` · El título del eje X baja a H+74 para no pisar las fechas rotadas.** `renderRankingChart()` y la gráfica de métricas semanales; `viewBox` más alto. → §PF085
@@ -359,6 +368,7 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 
 ## 12-sep-2026
 
+- **`admin.html` · Los clanes reales y los requisitos se piden desde `mostrarPanel()`; al elegir un torneo o sorteo puntual se recargan sus requisitos.** `cargarClanesFamilia()`, `cargarRequisitosPorClan(id)`, `cargarRequisitosSorteoPorClan()`; `__link__` manda `link` en «Guardar cambios»; dropdown de motivos de «Descalificado» y `webAdminCuentasDeNomMulti` conectado. → §PF092
 - **`admin.html` · Torneos y Sorteos: conexión con el backend.** `btnModificarTorneo` manda `link` si `#tSelectHoy` queda en `__link__` (se eliminan `#sLink`/`#sModificarLink`); `cargarClanesFamilia()` (`webAdminClanesFamilia`) alimenta `CLANES_REQUISITOS`; Modificar edita los requisitos por `id` puntual; requisitos de Sorteos con `_webAdminRequisitosClanesSorteo()` y las 3 escrituras. → §PF090
 - **`sorteo.html` · Tickets en la resolución del ganador y «Exportar» actualiza el documento de ganadores al instante.** Campo Tickets prellenado con `participant.weight` (opcional); `webAdminSorteoActualizarDocGanadores` en paralelo a la descarga local. → §PF089
 - **`perfil.html` · Secciones nuevas a partir de `rawClash` y cruce del mazo.** `rawClash()`, `renderSnapshotInfo()` (`_fecha`, `_clan`), `renderMazoActual()` cruza con `currentDeck` y suma `currentDeckSupportCards`; tarjetas ocultas hasta que llegue `rawClash`. → §PF085
@@ -366,11 +376,14 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 
 ## 11-sep-2026
 
+- **`admin.html` · Los 3 listeners de Torneos suman `requisitos` y `comentario` al payload.** → §PF092
 - **`admin.html` · Los 3 listeners de Torneos mandan `requisitos` y `comentario`.** `btnRegistrarTorneo`, `btnModificarTorneo` y `btnPlanificarTorneo` suman `armarPayloadRequisitos()` y `#tComentario`. → §PF090
 - **`sorteo.html` · Los tickets de cada participante calificado vienen del backend.** `loadQualifiedParticipants()` usa `tickets` de `_webSorteoCalificados()` (`1 + floor((trofeos − Min_S) / Delta)`; con `Delta ≤ 0`, 1 ticket fijo). → §PF089
 
 ## 10-sep-2026
 
+- **`admin.html` · `#camposTorneoPrincipal` y `#requisitosTorneoBox` se reubican en cada paso 3.** Antes de la fila de fecha y hora y antes del selector de semanas de la rama activa. → §PF092
+- **`admin.html` · «Estado» de `T_Lista` lo escribe el backend.** «Realizado» al registrar, «Planificado» al planificar; el frontend no manda ningún estado. Marcadores «Ejm: 2400» y «Ejm: 16» sin coma. → §PF092
 - **`admin.html` · «Ingresar link» como última opción de `#tSelectHoy`** (`value="__link__"`; se limpia al elegir otra). `cargarTorneosHoy()` y el listener de `change`. → §PF090
 - **`admin.html` · Requisitos de Torneos en un solo bloque reubicado con JavaScript.** `#requisitosTorneoBox`, `mostrarPaso3()` con `insertBefore()` antes del selector de semanas de la rama activa; `initInputMiles()`, `valorPlanoInputMiles()`, «Usar el mismo valor para los 4 clanes» y sin botón «Guardar requisitos». → §PF090
 - **`admin.html` · Cuadro de Comentario antes del botón final (Torneos y Sorteos).** `#tComentario` y `#comentarioSorteoBox`, un solo nodo por formulario sin reubicar. → §PF090
@@ -382,6 +395,8 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 
 ## 09-sep-2026
 
+- **`admin.html` · «Buscar miembro» no pisa lo escrito y avisa mientras espera.** `tagFinal` solo se usa en la llamada; aviso por la consulta a Supercell o RoyaleAPI (`_webPerfilJugadorSinRegistro()`). → §PF092
+- **`admin.html` · Organizador: el propio Nom_Multi no se lista dos veces y «vacío» significa distinto en Registrar/Planificar que en Modificar.** `actualizarEtiquetaAutorPropio()`, `refrescarCuentaOrgPropia()`; `#premiosEditorMod` nunca arranca vacío; autor y premios en «Guardar cambios». → §PF092
 - **`admin.html` · «Modificar torneo» con autor y premios editables.** `#tAutorSelectMod` («Sin cambios (Diana)») con `actualizarEtiquetaSinCambiosAutor()` y `#premiosEditorMod` poblado con `poblarPremiosEditor()` y `parsearPremiosCSV()`. → §PF090
 - **`perfil.html` · El Héroe va primero en el mazo según `hasHero` del backend.** Prioridad sobre `DATOS_CARTAS_MAZO`. → §PF085
 - **`admin.html` · Desplegable de cuentas del organizador del torneo.** `pintarCuentasOrg()`; `btnRegistrarTorneo` manda `tagOrg`, `clanOrg` y `clanTagOrg`. → §PF083
@@ -389,6 +404,7 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 
 ## 08-sep-2026
 
+- **`admin.html` · La detección de infiltrados pasa a «Buscar miembro»; «Directorio» se oculta completo sin sus Funciones.** `#cardInfiltrados` fuera de `#directorioGrupo`. → §PF092
 - **`admin.html` · Panel «Sorteos» del interruptor Torneos/Sorteos.** Base del wizard del 10-sep. → §PF090
 - **`directorio.html` (antes `index.html`) · Títulos de los ejes en las gráficas de «Ingresos recientes».** «Fecha» en X y `opts.ejeY` en Y (primera palabra del título de la tarjeta, armada en `renderComparativaSemanal()`); `PAD_L` y `PAD_B` suben. → §PF088
 - **`directorio.html` · Títulos de ejes en las gráficas, «Seleccionar todo»/«Desmarcar todo» sobre toda la columna y botón «Quitar filtros».** `PAD_L` 56→74 y `PAD_B` 68→84; `actualizarBotonLimpiarFiltros()`, `actualizarIconosFiltro()`. → §PF086
@@ -399,6 +415,7 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 
 ## 07-sep-2026
 
+- **`admin.html` · Nombres clicables al perfil solo si `f.origen === 'Directorio'`.** Nunca para Inactivos, Vetados ni miembros del clan rival. → §PF092
 - **`directorio.html` (antes `index.html`) · Líneas de año y temporada en la gráfica semanal de «Ingresos recientes» y tooltip por punto.** `lineasTemporalesSvg()` sin línea de inicio de semana (la gráfica es semanal). → §PF088
 - **`index.html` · Botón «Inicio» a la izquierda de «Directorio».** Mismo destino que `.brand` (`href="index.html"`), con `data-page="inicio"` para que `marcarNavActiva()` lo resalte. → §PF087
 - **`directorio.html` · «Cara a cara»: fecha rotada 45°, líneas de referencia (año, temporada, semana) y tooltip nativo con `<title>`.** `PAD_B` 32→40; `lineasTemporalesSvg()`; se reemplaza el detector de mes calendario por `esInicioTemporada()`. → §PF086
@@ -406,6 +423,7 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 
 ## 06-sep-2026
 
+- **`admin.html` · `cargarAscensosEditables()` se encadena después de `cargarNomMultisAdmins()` (Fase 7, Parte B).** → §PF092
 - **`index.html` · Aviso de clan rival en «Ingresos recientes» (Fase 7, Parte A).** Pastilla `.badge-warn` con `ing.esRivalTemporada` e `ing.clanRivalDetectado`; las tarjetas se rehicieron el 20-sep y el aviso vive hoy en `directorio.html`. → §PF087
 - **`perfil.html` · «Mazo actual» (Fase 10).** `pd.currentDeck` real vía `_webMazoActualDesdeCards2()` (`34_Web_API.gs`); oculto si `j.mazoActual` es `null`. → §PF085
 
@@ -429,6 +447,7 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 
 ## 03-sep-2026
 
+- **`admin.html` · Visor del Doc original sin márgenes de página.** `webAdminContenidoDocHtml` (solo lectura) en un `<div class="doc-original">`; hoy en `mensajes.html`. → §PF092
 - **`directorio.html` (antes `index.html`) · «Ingresos recientes»: etiquetas del eje X rotadas −45°, huecos en línea punteada hasta 0 y leyenda agrupada por clan.** `lineChartSvg()`: `PAD_B` 44→68, puntos sintéticos huecos con `.serie-line-dashed`; la leyenda reutiliza `grupos` (clan en orden fijo y nombre alfabético). → §PF088
 - **`index.html` · Sección de clanes: el escudo se centra en el espacio libre.** El escudo va dentro de `.clanes-escudo-fill` (`flex:1 1 220px`, centra su contenido). → §PF087
 - **`index.html` · Tarjetas de «Ingresos recientes» clicables y con «Vigencia».** `data-tag` y `window.open` (sin propagar desde los enlaces de RoyaleAPI y CWStats); `ing.vigencia` solo si viene con valor. Rehecho el 20-sep. → §PF087
@@ -461,6 +480,7 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 
 ## 30-ago-2026
 
+- **`admin.html` · Se retiran los `console.log()` de diagnóstico del token de sorteo.** Exponían la longitud del token y la URL con el token. → §PF092
 - **`sorteo.html` · Lista de participantes agrupada por clan (Fase 9), ruleta con `data-essential-motion` y retiro del diagnóstico en pantalla.** `buildClanGroupHeader()` (casilla por clan y grupo «Sin clan asignado»). → §PF089
 - **`torneos.html` · Deja de ser un placeholder y consume `webTorneos`.** → §PF084
 - **`comunidad.html` · Lista de «Ascensos recientes».** `webAscensosRecientes()` (el backend filtra descensos y administradores). → §PF084
@@ -470,6 +490,7 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 
 ## 29-ago-2026
 
+- **`admin.html` · El token viaja por `?tk=` a `sorteo.html` (Fase 5).** Retirado después; ver `sorteo.html`. → §PF092
 - **`sorteo.html` · Acceso restringido al portal admin (incorporada el 28-ago) y token por `?tk=`.** Guard en el `<head>` con `terna_admin_token`; el botón «Abrir Ruleta de Sorteos» de `admin.html` pasaba el token por `?tk=` porque `sessionStorage` no se copia entre pestañas. → §PF089
 - **`index.html` · «Aniversarios» como penúltima sección.** Después de «Ingresos recientes» y antes del tagline de cierre; `cargarAniversarios()` la oculta si no hay hitos en 14 días. → §PF087
 
@@ -478,552 +499,6 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 - **`index.html` · `cargarClanes()`: orden fijo de la Familia, nunca alfabético.** `ordenarClanes(data.clanes || [])` antes de asignar el índice `i` que decide insignia y rol de cada tarjeta. → §PF088
 - **`index.html` · Datos estructurados (schema.org, `Organization`).** `<script type="application/ld+json">` solo en esta página, con `sameAs` de los canales oficiales. → §PF087
 - **`index.html` · `<main id="main-content">` envuelve el contenido central.** El `id` del skip-link se movió desde `.hero-banner`. → §PF087
-
-## admin.html — historial trasladado (Parte 7b, bloques // del <script>)
-
-### Línea original 2070
-
-```
-// FIX (13-sep-2026, pedido usuario -- "ReferenceError: Cannot access
-// '_clanesFamiliaCache' before initialization"): estas 3 declaraciones
-// vivían junto a cargarClanesFamilia() (línea ~3369 antes de este fix),
-// muy por debajo del `if(localStorage.getItem(SESSION_KEY)) mostrarPanel();`
-// de más abajo en este mismo <script>. Como ese `if` corre de inmediato si
-// ya había sesión guardada, disparaba mostrarPanel() -> cargarClanesFamilia()
-// mientras `_clanesFamiliaCache` (let) seguía en zona muerta temporal (TDZ),
-// porque su línea de declaración todavía no se había ejecutado. Se adelantan
-// acá arriba, junto a las demás variables tempranas del script, por el mismo
-// motivo por el que cuentasPorNomMultiCache NO se puede llamar desde ese
-// `if` (ver comentario junto a btnLogin más abajo). El resto de
-// cargarClanesFamilia() se deja donde estaba.
-```
-
-### Línea original 2108
-
-```
-  // FASE 7 (Parte B, 06-sep-2026): cargarAscensosEditables() encadenada
-  // DESPUÉS de cargarNomMultisAdmins() (en vez de disparada en paralelo,
-  // como el resto de esta función) para que nomMultisAdminsCache ya esté
-  // poblado cuando se pinten los <select> de "Editar autor de ascenso" —
-  // si se dispararan en paralelo, el orden de respuesta de la red no está
-  // garantizado y los <select> podrían quedar solo con las dos opciones
-  // fijas hasta el próximo repintado (ej. al escribir en el filtro).
-```
-
-### Línea original 2117
-
-```
-  // RESUELTO (12-sep-2026, consolidado sección 5.1 -- "CLANES_REQUISITOS
-  // sigue hardcodeado porque no existe el endpoint"): ya existe
-  // webAdminClanesFamilia (_webAdminClanesFamilia(), 34_Web_API.gs). Se pide
-  // acá (recién en mostrarPanel(), no antes, porque el endpoint requiere
-  // sessionToken válido -- ver _webAuthValidar() en el backend), se pinta
-  // cada grid con los clanes que devuelva (cae al array hardcodeado de
-  // siempre si la llamada falla, ver cargarClanesFamilia() más abajo) y
-  // RECIÉN DESPUÉS se dispara la precarga de valores guardados
-  // (cargarRequisitosPorClan()/cargarRequisitosSorteoPorClan()), para que
-  // ya existan los <input> de cada clan cuando esos dos intenten llenarlos.
-```
-
-### Línea original 2159
-
-```
-  // FIX (08-sep-2026, pedido usuario — "la detección de infiltrados va en
-  // la sección de buscar miembros, no en Directorio"): #cardInfiltrados ya
-  // NO vive dentro de #directorioGrupo (se movió a la card "Buscar
-  // miembro", ver el HTML) — sigue sin depender de ninguna Función (todo
-  // admin logueado puede consultarla), por eso no se toca su display acá,
-  // pero ya no es motivo para forzar visible este contenedor si está
-  // vacío. Vuelve al comportamiento original de FASE 25: "Directorio"
-  // (que ahora solo agrupa Registrar/Vetar) se oculta completo si el admin
-  // logueado no tiene ninguna de las dos Funciones.
-```
-
-### Línea original 2198
-
-```
-    // FIX (09-sep-2026 tarde, pedido usuario — cuenta propia en "Lo
-    // organicé yo"): recién ACÁ, tras un login fresco en esta pestaña, ya
-    // está disponible tanto SESSION_ADMIN_KEY (recién seteado arriba) como
-    // refrescarCuentaOrgPropia() (definida más abajo en este <script>,
-    // pero ya evaluada para cuando el usuario llega a hacer click en
-    // "Ingresar" — a diferencia de la llamada síncrona de más arriba,
-    // `if(localStorage.getItem(SESSION_KEY)) mostrarPanel();`, que corre
-    // ANTES de que se declare cuentasPorNomMultiCache y por eso NO puede
-    // llamar a esta función directamente; ese caso ya queda cubierto por
-    // la llamada a refrescarCuentaOrgPropia() que sigue a
-    // initCuentaOrgBox('Mod') más abajo, porque para cuando el script
-    // llega ahí, una sesión guardada de antes ya está en localStorage).
-```
-
-### Línea original 2224
-
-```
-// Fase 5 (29-ago-2026): el token viaja por query string (?tk=) hacia la
-// pestaña nueva de sorteo.html, que lo guarda en su propio sessionStorage
-// apenas carga — sessionStorage NO se comparte entre pestañas por sí solo
-// (por eso no alcanza con que ya esté guardado acá), así que hace falta
-// pasarlo explícitamente en la URL de apertura.
-// FIX (30-ago-2026): se retiran los console.log() de diagnóstico que había
-// acá (mismo espíritu que el bloque de debug ya retirado de sorteo.html) —
-// exponían en la consola del navegador la longitud del token de sesión y
-// la URL completa con el token en texto plano.
-```
-
-### Línea original 2461
-
-```
-  // FIX (09-sep-2026, pedido usuario — "el cuadro para buscar miembro
-  // agrega un # y busca como si fuera tag [...] no debería agregarse el #
-  // de forma visual"): antes esta línea reemplazaba lo que el admin
-  // escribió (nombre, Nom_Multi o Tag) por `tagFinal` YA normalizado
-  // (mayúsculas + '#') apenas se resolvía la búsqueda — así que buscar
-  // "Juan" terminaba mostrando "#ABC123XYZ" en el cuadro, como si el
-  // admin hubiera escrito un Tag desde el principio. `tagFinal` sigue
-  // usándose igual para la llamada al backend de abajo (la búsqueda en sí
-  // no cambia) -- solo se deja de pisar visualmente lo que el admin
-  // escribió.
-  // FIX (09-sep-2026, pedido usuario — el buscador se quedaba "en blanco"
-  // sin ningún aviso mientras esperaba, porque hasta ahora esta búsqueda
-  // era instantánea (solo leía Sheets). Desde que webAdminBuscarMiembro
-  // puede caer al perfil público de Supercell/RoyaleAPI para un Tag sin
-  // registro (ver _webPerfilJugadorSinRegistro(), 34_Web_API.gs), la
-  // respuesta puede tardar varios segundos -- se avisa para que no
-  // parezca que el botón no hizo nada.
-```
-
-### Línea original 2525
-
-```
-  // FIX (07-sep-2026, pedido usuario — nombres clickeables al perfil):
-  // OJO — perfil.html (_webPerfilJugador(), Base.md) SOLO busca en la
-  // hoja Directorio, nunca en Inactivos/Vetados. f.origen puede ser
-  // cualquiera de las 3 (ver _buscarEnRosterTerna()), así que el link
-  // solo se agrega cuando f.origen === 'Directorio' — con Inactivos o
-  // Vetados el perfil devolvería "No encontré ese Tag en el Directorio."
-  // Los miembros del CLAN RIVAL (nombreEnClanRival/tagEnClanRival) NUNCA
-  // se linkean: por definición no son de nuestra Familia, así que jamás
-  // están en nuestro Directorio.
-```
-
-### Línea original 3032
-
-```
-  // FIX (03-sep-2026, "no me gusta que se vean esos márgenes, debería
-  // verse como el modo de diseño web de Word"): ya no arma un <iframe> a
-  // docs.google.com/.../preview (ese visor de Google siempre pagina con
-  // márgenes de impresión y, por ser otro dominio, nuestro CSS no puede
-  // tocar su contenido). Ahora pide el HTML del Doc a
-  // webAdminContenidoDocHtml (SOLO LECTURA, ver docblock de
-  // _webAdminContenidoDocHtml en 34_Web_API.gs) y lo pinta en un <div
-  // class="doc-original"> propio, con nuestro CSS — texto corrido, sin
-  // margen de página. Un segundo click lo oculta y destruye, igual que
-  // antes; el pedido al backend se repite en cada apertura (no se
-  // cachea acá) porque es una lectura liviana y así siempre se ve el
-  // Doc tal cual está en Drive en ese momento.
-```
-
-### Línea original 3661
-
-```
-// FIX (10-sep-2026, pedido usuario — "en vez de EJ. 2,000 se debe mostrar
-// 'Ejm: 2400' sin poner coma, para no inducir al usuario a escribir una
-// coma; la coma debe aparecer mientras se escribe pero solo visualmente"):
-// el placeholder ya no lleva coma (initInputMiles() se encarga de mostrarla
-// solo quitando el foco, ver el input real). "Ejm: 16" para ataques, mismo
-// motivo.
-// RESUELTO (12-sep-2026, mismo día -- CLANES_REQUISITOS ya no hardcodeado):
-// estas dos llamadas ya no se disparan acá al cargar el script, sino desde
-// mostrarPanel() una vez resuelto cargarClanesFamilia() (ver ese bloque),
-// para que ya exista un sessionToken válido al pedir los clanes reales.
-```
-
-### Línea original 3899
-
-```
-    // FIX (10-sep-2026, pedido usuario — "el sector que pide identificar el
-    // torneo principal debe estar justo debajo de donde se pide el link
-    // del torneo; luego ya viene lo demás"): #camposTorneoPrincipal es un
-    // único nodo (no triplicado), así que se reubica en el DOM cada vez que
-    // se entra al paso 3, justo antes de la fila de fecha/hora de la rama
-    // activa (#filaFechaHoraReg/Mod/Plan) -- es decir, después del campo
-    // que identifica el torneo (Link en Registrar, el <select> "Torneo" en
-    // Modificar) y antes de fecha/hora/autor/premios/etc. En Planificar no
-    // hay campo identificador propio, así que queda de primero.
-```
-
-### Línea original 3918
-
-```
-    // FIX (10-sep-2026, pedido usuario — "mueve los requisitos justo antes
-    // de la selección de semanas"): #requisitosTorneoBox es un único nodo
-    // (no triplicado), así que en vez de tener 3 copias se reubica en el
-    // DOM cada vez que se entra al paso 3, justo antes del selector de
-    // semanas de la rama activa (#semanaSelectorWrapReg/Mod/Plan). Ver el
-    // docblock grande junto a #requisitosTorneoBox en el HTML para el
-    // detalle completo.
-```
-
-### Línea original 3952
-
-```
-    // FIX (09-sep-2026 tarde, pedido usuario — "los premios deben
-    // desplegarse como en planificar"): #premiosEditorMod ahora arranca
-    // igual que #premiosEditor de arriba (3 filas "Pass Royale" en blanco)
-    // en vez de vacío, para que se vea igual antes de elegir un torneo en
-    // #tSelectHoy. En cuanto se elige un torneo, el listener de 'change'
-    // de #tSelectHoy (más abajo) vuelve a poblar el editor con los premios
-    // YA registrados de ese torneo (poblarPremiosEditor()).
-```
-
-### Línea original 4209
-
-```
-          // FIX (09-sep-2026 tarde, pedido usuario — "indicar el valor
-          // actual" al modificar): data-autor/data-premios/data-semanas
-          // ya llegan de _listarTorneosDeHoy()/webAdminTorneosHoy (RESUELTO,
-          // 24_Torneos_Core.gs / 34_Web_API.gs). Si algún torneo puntual no
-          // trajera alguno de estos campos, `t.autor`/`t.premios`/
-          // `t.semanas` llegarían undefined y los ?? '' de abajo dejan los
-          // atributos vacíos — el resto del código ya sabe tratar eso como
-          // "sin dato" y usa los defaults genéricos (ver tSelectHoy 'change'
-          // más abajo).
-          // AMPLIADO (15-sep-2026, cierre de conexión pendiente -- punto 2
-          // del comentario junto a #comentarioTorneoBox en el HTML):
-          // data-comentario, mismo criterio que autor/premios/semanas, para
-          // precargar #tComentario con lo ya guardado (ver _listarTorneosDeHoy(),
-          // 24_Torneos_Core.gs).
-```
-
-### Línea original 4360
-
-```
-  // FIX (13-sep-2026, pedido usuario -- "el organizador [de Cambio de
-  // rango] debe ser dropdown con los Nom_Multi de los admin"): mismo
-  // select nuevo, mismo criterio de "insertar antes de __otro__" que los
-  // tres de Torneos de arriba -- ver docblock junto a
-  // precargarOrganizadorCR()/obtenerOrganizadorCR() (más abajo en este
-  // <script>) para el resto del mecanismo.
-  // FIX (14-sep-2026, pedido usuario -- "el sistema debe reconocer el
-  // usuario logueado, cargando por defecto 'Yo (Diana)'"): #crOrganizadorSelect
-  // ya no incluye el propio Nom_Multi del admin en la lista -- ahora el
-  // valor "" (por defecto) es exactamente eso, "Yo (<nombre>)" (ver
-  // actualizarEtiquetaAutorPropio() más abajo), mismo criterio que
-  // #tAutorSelect/#tAutorSelectPlan (Torneos) en vez del anterior (donde
-  // el admin podía aparecer dos veces: una como "Sin especificar" y otra
-  // en la lista con su propio nombre).
-```
-
-### Línea original 4376
-
-```
-  // FIX (09-sep-2026 tarde, pedido usuario — "al marcar que lo organizo yo,
-  // ya no debería aparecer mi nom_multi [en la lista]"): el Nom_Multi del
-  // admin de la sesión ya está cubierto por la opción "Lo organic(é/o) yo
-  // (<nombre>)" (ver actualizarEtiquetaAutorPropio() más abajo) — listarlo
-  // OTRA VEZ en #tAutorSelect/#tAutorSelectPlan sería mostrar la misma
-  // persona dos veces. En #tAutorSelectMod NO se excluye: ahí el valor
-  // vacío es "Sin cambios" (el autor YA registrado, que puede ser
-  // cualquiera, no necesariamente el admin de la sesión), así que el admin
-  // sí puede necesitar elegirse a sí mismo del dropdown si el torneo lo
-  // organizó otra persona.
-```
-
-### Línea original 4607
-
-```
-    // FIX (09-sep-2026 tarde, pedido usuario): valor === '' significa
-    // cosas distintas según el formulario. En Registrar/Planificar
-    // (sufijo '' / 'Plan') es "Lo organicé/organizo yo" — el admin de la
-    // sesión, que igual que casi cualquier miembro suele ser multicuenta
-    // (hasta ~7 cuentas), así que este caso ahora reusa el mismo cuadro
-    // que un Nom_Multi elegido del dropdown, pero con el Nom_Multi propio
-    // del admin logueado. En Modificar (sufijo 'Mod') el mismo valor vacío
-    // es "Sin cambios (mantener autor actual)" — ahí NO se debe mostrar
-    // el cuadro ni mandar tagOrg/clanOrg/clanTagOrg, para no pisar lo ya
-    // guardado cuando el admin no tocó el autor.
-```
-
-### Línea original 4656
-
-```
-  // --------------------------------------------------------------
-  // Conectado (12-sep-2026): webAdminCuentasDeNomMulti ya existe en el
-  // backend (34_Web_API.gs / _webAdminCuentasDeNomMulti(), ruteado en
-  // 08_Web_Endpoints.gs) — ver el comentario grande de arriba para su forma
-  // exacta.
-  // --------------------------------------------------------------
-```
-
-### Línea original 5215
-
-```
-  // NUEVO (12-sep-2026, pedido del usuario -- consolidado sección 5.4): con
-  // el endpoint ya existente (_webAdminRequisitosClanesSorteo()), al elegir
-  // un sorteo puntual se recarga #requisitosSorteoBox con SUS requisitos ya
-  // guardados -- mismo criterio exacto que cargarRequisitosPorClan(id) en
-  // el listener de #tSelectHoy, más abajo. Con la opción vacía se deja el
-  // cuadro tal cual (mismo comportamiento que Torneos).
-```
-
-### Línea original 5265
-
-```
-  // FIX (09-sep-2026 tarde, pedido usuario — "si hay que modificar algo, se
-  // debe indicar el valor actual"): al elegir (o quitar) un torneo, se
-  // refresca la etiqueta de "Sin cambios", el editor de premios y el
-  // selector de semanas con lo YA registrado para ESE torneo (ver
-  // data-autor/data-premios/data-semanas en cargarTorneosHoy(), RESUELTO).
-  // Se deja el select de autor en "Sin cambios" (no se fuerza un Nom_Multi
-  // elegido) y se limpia lo que hubiera quedado tipeado a mano de un
-  // torneo anterior.
-```
-
-### Línea original 5289
-
-```
-  // AMPLIADO (15-sep-2026, cierre de conexión pendiente -- punto 2 del
-  // comentario junto a #comentarioTorneoBox en el HTML): #tComentario es
-  // un cuadro COMPARTIDO entre Registrar/Modificar/Planificar, así que al
-  // elegir (o quitar) un torneo en "Modificar" se precarga con su
-  // Comentario ya guardado (data-comentario, ver cargarTorneosHoy() más
-  // arriba) -- o se deja vacío si no hay torneo elegido o el torneo no
-  // tiene comentario.
-```
-
-### Línea original 5298
-
-```
-  // FIX (12-sep-2026, pedido del usuario -- ver docblock de
-  // cargarRequisitosPorClan() más arriba): al elegir un torneo PUNTUAL en
-  // este <select> (value real, ni "" ni "__link__"), se recarga
-  // #requisitosTorneoBox con los requisitos YA GUARDADOS de ESE torneo
-  // -- ya no "el más reciente". Con la opción vacía o "Ingresar link"
-  // (torneo sin ID conocido todavía, ver PENDIENTE BACKEND junto a
-  // #tModificarLink más arriba en el HTML) se deja el cuadro tal cual
-  // estaba, mismo criterio que premios/semanas de arriba con
-  // `opt && opt.dataset...` en `undefined`.
-```
-
-### Línea original 5330
-
-```
-  // FIX (11-sep-2026): armarPayloadRequisitos()/#tComentario ya existían
-  // pero ningún listener los sumaba al payload todavía (ver PENDIENTE junto
-  // a #requisitosTorneoBox/#comentarioTorneoBox en el HTML y junto a
-  // armarPayloadRequisitos() más abajo). El backend puede seguir sin leer
-  // `requisitos`/`comentario` mientras no se actualice
-  // _webAdminTorneoRegistrar() -- viajan igual, sin romper nada, y quedan
-  // listos para cuando ese lado se conecte.
-```
-
-### Línea original 5347
-
-```
-  // PENDIENTE BACKEND (10-sep-2026, pedido usuario): al registrar un
-  // torneo (con link real), la columna "Estado" de T_Lista debe quedar en
-  // "Realizado" -- tanto si es una fila nueva como si esta acción está
-  // completando una que ya existía como "Planificado" (mismo Fecha+Hora,
-  // ver _registrarTorneoDesdeBot()/#camposPlanificar más arriba). Se
-  // escribe del lado del backend (_registrarTorneoDesdeBot(), 24_Torneos_
-  // Core.gs); este front no manda ningún parámetro de estado.
-```
-
-### Línea original 5390
-
-```
-  // FIX (12-sep-2026, pedido del usuario -- consolidado sección 5.2/5.3,
-  // "link directo en Modificar torneo"): con la opción "Ingresar link"
-  // elegida (id === '__link__'), se manda el valor de #tModificarLink como
-  // `link` en el payload -- _webAdminTorneoModificar() (34_Web_API.gs) ya
-  // tiene la rama que lo detecta y delega a _registrarTorneoDesdeBot() en
-  // vez de buscar por `id` (que acá es el centinela, no un ID real de
-  // T_Lista). Con cualquier otra opción, `link` viaja vacío y no cambia
-  // nada del comportamiento ya existente (búsqueda por `id` real).
-```
-
-### Línea original 5408
-
-```
-  // FIX (09-sep-2026, pedido usuario — "editar el autor, ni el premio"):
-  // autorSelect vacío = "Sin cambios" (no se manda autor nuevo);
-  // "__otro__" = usar lo tipeado a mano en #tAutorManualMod; cualquier
-  // otro valor = el Nom_Multi de admin elegido. Los premios salen del
-  // editor #premiosEditorMod — si el admin no agregó ninguna fila (el
-  // caso normal, cuando solo quiere cambiar fecha/hora), armarPremiosCSV
-  // devuelve '' y no se toca lo ya guardado (ver nota "PENDIENTE BACKEND"
-  // junto a #camposModificar en el HTML).
-```
-
-### Línea original 5458
-
-```
-    // FIX (09-sep-2026 tarde): vuelve al mismo estado "en blanco" que
-    // #premiosEditor de Planificar (3 filas Pass Royale), en vez de dejar
-    // el editor vacío -- consistente con que ahora #premiosEditorMod nunca
-    // arranca vacío (ver poblarPremiosEditor()/mostrarPaso3()). También se
-    // repinta el selector de semanas (vuelve al default) y la etiqueta de
-    // "Sin cambios" vuelve al texto genérico hasta elegir otro torneo.
-```
-
-### Línea original 5508
-
-```
-  // PENDIENTE BACKEND (10-sep-2026, pedido usuario): al planificar un
-  // torneo (sin link real todavía), la columna "Estado" de T_Lista debe
-  // quedar en "Planificado" -- luego cambia a "Realizado" cuando se
-  // complete con "Registrar torneo" (mismo Fecha+Hora, ver el comentario
-  // grande de arriba y el de btnRegistrarTorneo). También se escribe del
-  // lado del backend (_planificarTorneoDesdeBot(), 24_Torneos_Core.gs);
-  // este front no manda ningún parámetro de estado. `premios` ya viaja
-  // como texto separado por comas (ver armarPremiosCSV() más arriba) listo
-  // para escribirse tal cual en la columna "Premios" de T_Lista — mismo
-  // formato que debe usarse para la columna "Premios" de S_Lista cuando se
-  // conecten los 3 caminos de Sorteos (Planificar/Registrar/Modificar,
-  // #panelSorteosAccion más arriba en el HTML).
-```
-
-### Línea original 5735
-
-```
-  // FIX (13-sep-2026, pedido usuario -- "debe haber coma para separar
-  // miles, aunque es solo visual, no se agrega al valor real"): mismo
-  // patrón que los cuadros de Trofeos de guerra/Ataques por semana de
-  // Torneos (formatoMiles()/valorPlanoInputMiles()/initInputMiles(), ver
-  // esos docblocks más arriba en este <script>) -- type="text" en vez de
-  // type="number" porque un <input type="number"> nativo rechaza las
-  // comas, e initInputMiles() se encarga de mostrarlas/quitarlas solo.
-```
-
-### Línea original 5927
-
-```
-  // FIX (16-sep-2026, pedido usuario -- "los botones de presencia en el
-  // grupo de wsp de cambio de rango se deben precargar en la opción
-  // 'No'"): a diferencia de Miembro activo (que sigue en 'Sí'), WhatsApp
-  // en Cambio de Rango arranca en 'No' -- ver también el <option selected>
-  // del HTML (#crWhatsappAscenso/#crWhatsappDescenso), que se actualizó
-  // igual para que el estado inicial del formulario ya cargado (antes de
-  // que corra este JS) coincida.
-```
-
-### Línea original 6064
-
-```
-    // FIX (16-sep-2026, pedido usuario -- "la hora y el selector de am/pm
-    // también se debe precargar con el estado actual de la corrida
-    // seleccionada para modificar desde la web"): antes fHora.value salía
-    // de filaAsc.fecha, pero en CR_Lista Fecha y Hora son DOS columnas
-    // independientes (CR.FECHA / CR.HORA -- ver _horaStringADate()/
-    // _getFilaCRListaPorId() en 24_Torneos_Core.gs, que ahora guarda/lee
-    // CR.HORA como su propio Date real en vez de texto crudo de celda).
-    // filaAsc.fecha nunca trae la hora real (siempre queda en medianoche),
-    // así que esto terminaba precargando siempre "00:00" / AM sin importar
-    // la hora guardada. Ahora la fecha sale de filaAsc.fecha y la hora sale
-    // de filaAsc.hora, cada una con su propio Date -- mismo criterio de
-    // extraer componentes LOCALES que ya usaba esta función.
-```
-
-### Línea original 6732
-
-```
-// FIX (16-sep-2026, pedido usuario -- orden de la tabla de propuestas de
-// Cambio de Rango): _calcularPropuestasCambioRango() (24_Torneos_Core.gs)
-// devuelve `propuestas` en el orden en que recorre el padrón (Directorio
-// físico), sin ningún criterio de presentación -- no tiene por qué saber
-// cómo se muestra en la web. El reordenamiento se hace acá, mismo patrón
-// ya usado por _ordenarSugerenciasMiembro() más arriba en este <script>:
-//   1) Clan -- ordenClanIndex() de common.js (mismo helper que ya usa
-//      _ordenarSugerenciasMiembro()), NO alfabético.
-//   2) Rango actual -- RANGO_ORDEN_CR de abajo, mismo orden de presentación
-//      que ya usa el backend (CFG.RANGO_ORDEN, 01_Config_Global.gs: Líder,
-//      Colíder, Veterano, Miembro). OJO: no confundir con `var RANGO_ORDEN`
-//      de 14_Directorio_HistorialAscensos.gs -- esa es una lista ASCENDENTE
-//      (Miembro..Líder) que se usa solo para detectar si un cambio es
-//      ascenso o descenso (comparando índices), no para ordenar tablas.
-//      NO alfabético.
-//   3) Tipo -- TIPO_ORDEN_CR de abajo: Ascenso y Descenso (cambios de rango
-//      reales) antes que Admin (solo candidatura, ver docblock de
-//      _filaPropuestaCR() arriba) -- mismo orden de prioridad que ya refleja
-//      el ternario de badgeClase en _filaPropuestaCR().
-//   4) Nombre -- alfabético, como desempate final entre filas que coinciden
-//      en los tres criterios anteriores.
-```
-
-### Línea original 6796
-
-```
-// FIX (16-sep-2026, pedido usuario -- "Sin propuestas" al elegir una
-// temporada cerrada, sin ningún aviso visible): antes esta función solo
-// recibía `propuestas` y, si venía vacío, siempre mostraba el mismo
-// mensaje genérico ("nadie cumple los requisitos"), sin distinguir ese
-// caso real de un problema leyendo Backup_Guerra.csv para esa temporada
-// histórica (ver _ULTIMO_DIAGNOSTICO_GUERRA_CSV / _calcularPropuestasCambioRango(),
-// 19_ControlCalendario.gs / 24_Torneos_Core.gs). Ahora recibe también
-// `diagnostico` (campo aditivo `data.diagnostico` de webCRListaPropuestas/
-// webCRListaGenerarPropuestas, solo presente cuando el backend detectó un
-// motivo concreto) y, si está presente, lo muestra en vez del mensaje
-// genérico.
-```
-
-### Línea original 6808
-
-```
-  // FIX (17-sep-2026, pedido del usuario -- "generó 1 fila y no avisó nada
-  // del histórico de guerra"): antes `diagnostico` SOLO se leía dentro de
-  // la rama "sin propuestas" (!propuestas.length). El backend (ver FIX del
-  // 17-sep-2026 en _calcularPropuestasCambioRango(), 24_Torneos_Core.gs) ya
-  // manda `diagnostico` aunque haya 1+ propuestas -- pero esta función lo
-  // seguía ignorando por completo en cuanto había AL MENOS una fila,
-  // aunque esa fila (con promedios en 0 por el mismo problema de
-  // Backup_Guerra.csv) fuera exactamente el síntoma del problema. Ahora el
-  // aviso se pinta SIEMPRE que `diagnostico` venga presente, como banner
-  // arriba de la tabla (o del mensaje "sin propuestas"), sin importar
-  // cuántas propuestas haya.
-```
-
-### Línea original 6887
-
-```
-    // NUEVO (16-sep-2026, pedido del usuario -- octavo paso chico): el
-    // mensaje ahora desglosa `agregadas` en Ascenso/Descenso/Admin usando
-    // `agregadasPorTipo` (campo aditivo de _registrarPropuestasCRListaEnHistorial(),
-    // 14_Directorio_HistorialAscensos.gs) -- si por lo que sea no viene
-    // (ej. sesión con backend viejo sin este campo), se cae al mensaje
-    // simple de antes en vez de mostrar "undefined".
-```
-
-### Línea original 7577
-
-```
-  // Si el motivo ya trae uno de los valores fijos del dropdown de SU tipo
-  // (ej. el precargado por "Descalificar: no está en el grupo"), lo
-  // selecciona ahí; si no coincide con ninguno, deja el dropdown en
-  // "-- Seleccionar --" para que se vea el texto libre con lo que ya venía
-  // escrito. Se resetean los otros dropdowns para no arrastrar una
-  // selección vieja de otro tipo entre una apertura y la siguiente.
-```
-
-### Línea original 7595
-
-```
-// FASE (12-sep-2026, pedido del usuario -- consolidado punto 2 "dropdown
-// de Motivo en Torneos"): dropdown de motivos específicos para
-// "Descalificado". #resMotivo sigue siendo el campo real que viaja a
-// _webAdminTorneoResolucionGuardar() (backend sin cambios): cuando se
-// elige un motivo fijo del dropdown, se copia tal cual a #resMotivo (oculto
-// mientras tanto); si se elige "Otro" o no se elige nada todavía, se
-// muestra #resMotivo para texto libre, igual que el comportamiento previo
-// a este cambio.
-//
-// FASE (13-sep-2026, pedido del usuario -- cierre del punto de Empate que
-// había quedado sin decidir): mismo patrón, ahora también para las dos
-// variantes de Empate, cada una con su propia lista fija
-// (#resMotivoRepartoSelect / #resMotivoDesempateSelect) -- ver el mapa
-// TIPO_A_DROPDOWN_MOTIVO más abajo, que generaliza el criterio en vez de
-// repetir el mismo bloque if/else por cada tipo nuevo.
-```
-
 
 ## admin.html — historial trasladado (Parte 7c, bloques HTML restantes >=3 líneas)
 
