@@ -148,7 +148,8 @@
 // v83 (14-oct-2026): guerra.html cambió (CORE_ASSETS) -- «— 0 pendientes» de Participación de Hoy sin opacidad, para llegar a 4.5:1 de contraste (§PF050).
 // v84 (14-oct-2026): perfil.html cambió (CORE_ASSETS) -- en móvil la página medía 609 px (bloque de cuadritos con min-width fijo, tabla de Progreso en eventos sin salto de línea), por eso las ventanas abrían ampliadas y desplazadas (§PF076).
 // v85 (14-oct-2026): perfil.html y test cambiaron (CORE_ASSETS) -- ventana «Niveles y evoluciones» en móvil: números del diagrama más grandes, tabla de costos como tarjetas y puntos de color en lugar de emojis dentro del SVG (§PF076).
-const CACHE_NAME = 'terna-static-v85';
+// v86 (17-oct-2026): admin.html cambió (CORE_ASSETS) -- el selector de semanas de Torneos y Sorteos ya no queda como una barra vacía si la primera carga falla: avisa el motivo, ofrece «Reintentar» y se vuelve a pedir al entrar al panel (§PF097).
+const CACHE_NAME = 'terna-static-v86';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y

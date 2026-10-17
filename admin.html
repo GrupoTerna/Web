@@ -1651,6 +1651,10 @@ async function conBotonOcupado(btn, fn){
 // Declaraciones de _clanesFamiliaCache adelantadas al inicio del script para evitar un ReferenceError (TDZ) cuando ya hay sesión guardada. Historial en CHANGELOG.md.
 let CLANES_REQUISITOS = ['Grupo乂Terna™', 'GrupoXTerna™2', 'GrupoXTerna™3', 'Mini乂Ternas™']; // fallback si cargarClanesFamilia() falla
 let _clanesFamiliaCache = null;
+// Caché de las 5 semanas más recientes (de más reciente a más antigua), tal cual las devuelve _webAdminSemanasRecientes(): [{lunesIso, domingoIso, temporada, semana}, ...]. null = no pedido o en vuelo (pintarSemanasSelector() muestra «Cargando…»). Declaradas aquí, y no junto a cargarSemanasRecientes(), porque mostrarPanel() las usa al cargar (zona muerta temporal de `let`). [→ Contexto_Base_Web.md §PF097]
+let _semanasRecientesCache = null;
+let _semanasRecientesCargando = null; // Promise en vuelo, evita 2 fetch en paralelo.
+let _semanasRecientesError = '';      // motivo del último fallo ('' si no hubo); lo muestra pintarSemanasSelector() con la lista vacía.
 let _clanesFamiliaCargando = null; // Promise en vuelo, evita 2 fetch en paralelo si algo llama antes de que termine el primero.
 
 function mostrarPanel(){
@@ -1679,6 +1683,8 @@ function mostrarPanel(){
   // cargarAscensosEditables() se encadena después de cargarNomMultisAdmins() para que los <select> de "Editar autor" ya tengan opciones al pintarse. Historial en CHANGELOG.md.
   cargarNomMultisAdmins().then(cargarAscensosEditables);
   cargarGanadoresTorneo();
+  // FIX (17-oct-2026): la carga inicial de semanas corre al abrir la página, antes del login; si falló por falta de sesión, se repite acá con sesión válida (si ya hay semanas en caché no vuelve a pedir). [→ Contexto_Base_Web.md §PF097]
+  cargarSemanasRecientes().then(function(){ repintarSelectoresSemanas(); poblarSelectorNoticias(); });
   // Los grids de requisitos se piden a webAdminClanesFamilia() recién en mostrarPanel() (requiere sessionToken) y antes de precargar los valores ya guardados. Historial en CHANGELOG.md.
   cargarClanesFamilia().then(function (clanes) {
     CLANES_REQUISITOS = clanes;
@@ -2599,28 +2605,39 @@ const MESES_ES_ABR = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct
 // domingoIso, temporada, semana}, ...]. null mientras no se haya pedido
 // (o mientras el fetch está en vuelo) — pintarSemanasSelector() lo
 // respeta para no pintar una lista vacía por error.
-let _semanasRecientesCache = null;
-let _semanasRecientesCargando = null; // Promise en vuelo, evita 2 fetch en paralelo si algo llama antes de que termine el primero.
+// (Las variables _semanasRecientesCache, _semanasRecientesCargando y _semanasRecientesError se declaran junto a _clanesFamiliaCache, antes de mostrarPanel(), que corre al cargar si ya hay sesión.)
 
 /**
  * cargarSemanasRecientes()
  * FIX (11-sep-2026, pedido usuario): pide las 5 semanas recientes con
- * Temporada/Semana reales a webAdminSemanasRecientes (34_Web_API.gs) y
- * las deja en _semanasRecientesCache. Se llama UNA vez al cargar el panel
- * (ver el .then() al final de este bloque); si falla, deja el caché en []
- * (lista vacía) para que pintarSemanasSelector() muestre "sin semanas"
- * en vez de quedarse pegado en "Cargando…" para siempre.
+ * Temporada/Semana reales a webAdminSemanasRecientes (37_Web_API.gs) y
+ * las deja en _semanasRecientesCache.
+ * FIX (17-oct-2026): ya NO se guarda un fallo como si fuera un resultado. Antes, si la primera
+ * llamada fallaba (p. ej. sin sesión: este script corre al cargar la página, antes del login), el
+ * caché quedaba en [] y no se volvía a pedir hasta recargar, y el selector se veía como una barra
+ * vacía. Ahora una lista vacía no cuenta como caché: la siguiente llamada vuelve a pedir
+ * (mostrarPanel() la repite ya con sesión). Un [] sigue sirviendo para que pintarSemanasSelector()
+ * avise «sin semanas» en vez de quedarse en «Cargando…».
  * @return {Promise<Array>}
  */
 async function cargarSemanasRecientes(){
-  if(_semanasRecientesCache) return _semanasRecientesCache;
+  if(_semanasRecientesCache && _semanasRecientesCache.length) return _semanasRecientesCache;
   if(_semanasRecientesCargando) return _semanasRecientesCargando;
   _semanasRecientesCargando = (async () => {
     try{
       const data = await apiGetAuth('webAdminSemanasRecientes', {});
-      _semanasRecientesCache = (data && data.ok && Array.isArray(data.semanas)) ? data.semanas : [];
+      if(data && data.ok && Array.isArray(data.semanas) && data.semanas.length){
+        _semanasRecientesCache = data.semanas;
+        _semanasRecientesError = '';
+      }else{
+        _semanasRecientesCache = [];
+        _semanasRecientesError = (data && data.error) || 'El servidor no devolvió semanas.';
+      }
     }catch(err){
       _semanasRecientesCache = [];
+      _semanasRecientesError = 'No se pudo conectar con el servidor.';
+    }finally{
+      _semanasRecientesCargando = null;
     }
     return _semanasRecientesCache;
   })();
@@ -2638,6 +2655,11 @@ function pintarSemanasSelector(containerId){
   if(!cont) return;
   if(!_semanasRecientesCache){
     cont.innerHTML = '<p class="text-dim" style="font-size:13px; margin:0;">Cargando semanas…</p>';
+    return;
+  }
+  if(!_semanasRecientesCache.length){
+    cont.innerHTML = `<p class="text-dim" style="font-size:13px; margin:0 0 6px;">No se pudieron cargar las semanas${_semanasRecientesError ? ': ' + esc(_semanasRecientesError) : '.'} Sin ellas el torneo se guardaría sin «Semanas».</p>
+      <button type="button" class="btn btn-ghost btn-compacto" data-reintentar-semanas>Reintentar</button>`;
     return;
   }
   cont.innerHTML = _semanasRecientesCache.map((s, i) => {
@@ -2674,13 +2696,21 @@ function obtenerSemanasSeleccionadas(containerId){
 
 // Carga inicial: un solo fetch para los 6 selectores (3 de Torneos + 3 de
 // Sorteos), luego se pintan todos desde el mismo caché.
-cargarSemanasRecientes().then(() => {
+function repintarSelectoresSemanas(){
   pintarSemanasSelector('semanasSelectorReg');
   pintarSemanasSelector('semanasSelectorMod');
   pintarSemanasSelector('semanasSelectorPlan');
   pintarSemanasSelector('semanasSelectorSorteoReg');
   pintarSemanasSelector('semanasSelectorSorteoMod');
   pintarSemanasSelector('semanasSelectorSorteoPlan');
+}
+cargarSemanasRecientes().then(repintarSelectoresSemanas);
+// FIX (17-oct-2026): botón «Reintentar» del aviso de pintarSemanasSelector() (delegado: el botón se recrea en cada repintado).
+document.addEventListener('click', function(ev){
+  if(!ev.target.closest || !ev.target.closest('[data-reintentar-semanas]')) return;
+  _semanasRecientesCache = null; // vuelve a mostrar «Cargando semanas…» mientras se pide
+  repintarSelectoresSemanas();
+  cargarSemanasRecientes().then(function(){ repintarSelectoresSemanas(); poblarSelectorNoticias(); });
 });
 
 /* ============================================================

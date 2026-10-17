@@ -27,6 +27,10 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 
 ---
 
+## 17-oct-2026
+
+- **`admin.html` (`cargarSemanasRecientes()`, `pintarSemanasSelector()`, `repintarSelectoresSemanas()`, `mostrarPanel()`) y `sw.js` v86 · «¿Qué semanas se deben evaluar?» ya no queda como una barra vacía.** Un fallo de la primera carga (que corre antes del login) se guardaba como lista vacía y no se volvía a pedir; ahora no se guarda, el selector avisa el motivo con un botón «Reintentar» y `mostrarPanel()` repite el pedido con la sesión. → §PF097
+
 ## 14-oct-2026
 
 - **`assets/js/util.js`, `index.html` (`cargarClanes()`), `clan.html` (`cargarClan()`), `test/index-clan-estatico.test.js`, `test/util.test.js` y `sw.js` v82 · Los «tres momentos» de la portada y de `clan.html` usan `fmtTresTiemposDeResultado()`.** Con `accion: 'webClanInfo'`; la fecha sale de `desde` o de `guardadoDesde`. Sin cambios visibles. → §PF095
