@@ -3798,6 +3798,13 @@ async function cargarNomMultisAdmins(){
   // El organizador de Cambio de Rango usa el mismo dropdown de Nom_Multi que Torneos, con "Yo (nombre)" como opción por defecto. Historial en CHANGELOG.md.
   const selCR = document.getElementById('crOrganizadorSelect');
   const optOtroCR = selCR.querySelector('option[value="__otro__"]');
+  // Sorteos usa la misma lista que Torneos en sus tres formularios (Registrar, Modificar y Planificar). Historial en CHANGELOG.md.
+  const selS = document.getElementById('sAutorSelect');
+  const optOtroS = selS.querySelector('option[value="__otro__"]');
+  const selSMod = document.getElementById('sAutorSelectMod');
+  const optOtroSMod = selSMod.querySelector('option[value="__otro__"]');
+  const selSPlan = document.getElementById('sAutorSelectPlan');
+  const optOtroSPlan = selSPlan.querySelector('option[value="__otro__"]');
   // El Nom_Multi del admin logueado se excluye del dropdown de autor en Registrar/Planificar (ya cubierto por "Lo organicé yo"); en Modificar no se excluye. Historial en CHANGELOG.md.
   const nomMultiPropio = nomMultiDelAdminDeSesion();
   try{
@@ -3822,12 +3829,29 @@ async function cargarNomMultisAdmins(){
           optPlan.value = nm;
           optPlan.textContent = nm;
           selPlan.insertBefore(optPlan, optOtroPlan);
+
+          // Sorteos: Registrar y Planificar excluyen al propio admin (ya cubierto por «Lo organicé/organizo yo»), igual que Torneos.
+          const optS = document.createElement('option');
+          optS.value = nm;
+          optS.textContent = nm;
+          selS.insertBefore(optS, optOtroS);
+
+          const optSPlan = document.createElement('option');
+          optSPlan.value = nm;
+          optSPlan.textContent = nm;
+          selSPlan.insertBefore(optSPlan, optOtroSPlan);
         }
 
         const optMod = document.createElement('option');
         optMod.value = nm;
         optMod.textContent = nm;
         selMod.insertBefore(optMod, optOtroMod);
+
+        // Sorteos, Modificar: no se excluye a nadie (igual que #tAutorSelectMod), porque el sorteo pudo organizarlo otra persona.
+        const optSMod = document.createElement('option');
+        optSMod.value = nm;
+        optSMod.textContent = nm;
+        selSMod.insertBefore(optSMod, optOtroSMod);
 
         if(!esUnoMismo){
           const optCR = document.createElement('option');
