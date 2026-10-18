@@ -107,3 +107,49 @@ test('leer con la entrada dañada o sin descompresión devuelve null y no lanza'
   w.localStorage.setItem('terna_backup_est_guerra.json', JSON.stringify({ t: Date.now(), z: 'otro', d: 'x' }));
   assert.equal(await w.apiBackupEstaticoLeer(URL_G), null);
 });
+
+// §PF116: el guardado y la lectura ocurren dentro de apiGetEstaticoConEdad(), así que valen para todas las páginas.
+const esperar = (ms) => new Promise(r => setTimeout(r, ms));
+
+test('§PF116: apiGetEstaticoConEdad() guarda la copia tras bajar bien el archivo y la devuelve (local:true) si luego falla la red', async () => {
+  const w = montar();
+  const j = guerra();
+  w.apiGetEstatico = async () => j;
+  const r1 = await w.apiGetEstaticoConEdad(URL_G + '?t=1', {});
+  assert.equal(r1.local, false);
+  assert.equal(r1.vigente, true);
+  await esperar(1700); // el guardado se difiere ~1,5 s
+  assert.ok(w.localStorage.getItem('terna_backup_est_guerra.json'), 'la copia debe haberse guardado');
+  w.apiGetEstatico = async () => { throw new Error('sin red (simulado)'); };
+  const r2 = await w.apiGetEstaticoConEdad(URL_G + '?t=2', {});
+  assert.equal(r2.local, true);
+  assert.equal(r2.vigente, true);
+  assert.deepEqual(JSON.parse(JSON.stringify(r2.est)), j);
+});
+
+test('§PF116: sin red y sin copia, apiGetEstaticoConEdad() lanza el mismo error de siempre', async () => {
+  const w = montar();
+  w.apiGetEstatico = async () => { throw new Error('sin red (simulado)'); };
+  await assert.rejects(() => w.apiGetEstaticoConEdad(URL_G, {}), /sin red/);
+});
+
+test('§PF116: un archivo con `error` o sin _publicadoEn no se guarda', async () => {
+  const w = montar();
+  w.apiGetEstatico = async () => guerra({ error: 'algo falló' });
+  await w.apiGetEstaticoConEdad(URL_G, {});
+  w.apiGetEstatico = async () => ({ ctx: {} });
+  assert.equal(await w.apiGetEstaticoConEdad(URL_G, {}), null);
+  await esperar(1700);
+  assert.equal(w.localStorage.length, 0);
+});
+
+test('§PF116: cada archivo tiene su propia clave (home, roster, torneos, guerra_top y guerra_ctx no se pisan)', async () => {
+  const w = montar();
+  for (const n of ['home', 'roster', 'torneos', 'guerra_top', 'guerra_ctx']){
+    assert.equal(await w.apiBackupEstaticoGuardar('https://raw.githubusercontent.com/GrupoTerna/Web/data/' + n + '.json?t=1', guerra({ nombre: n })), true);
+  }
+  for (const n of ['home', 'roster', 'torneos', 'guerra_top', 'guerra_ctx']){
+    const l = await w.apiBackupEstaticoLeer(n + '.json');
+    assert.equal(l.est.nombre, n);
+  }
+});

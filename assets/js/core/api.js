@@ -545,7 +545,8 @@ async function apiGetEstatico(url, opts){
  *
  * Esta función hace la misma lectura pero devuelve también la edad, para que quien llama pueda
  * usar el archivo vigente de inmediato y guardar el viejo como ÚLTIMO RECURSO:
- *   { est, pub, vigente }  -> est: el JSON; pub: Date de `_publicadoEn`; vigente: pub más nuevo que edadMaxMs.
+ *   { est, pub, vigente, local } -> est: el JSON; pub: Date de `_publicadoEn`; vigente: pub más nuevo que edadMaxMs; local: true si el archivo no se pudo bajar y
+ *                              est salió de la copia guardada en este navegador (ver apiBackupEstaticoGuardar()).
  *   null                   -> el JSON no trae `_publicadoEn` válido (no se sabe qué edad tiene: no se usa ni como último recurso).
  * Lanza lo mismo que apiGetEstatico() (sin archivo, sin red a GitHub, HTTP distinto de 200, JSON inválido).
  * NO valida el contenido (claves como `ctx`, `clanes`, etc.): eso sigue siendo de cada página, que
@@ -563,10 +564,23 @@ const ESTATICO_EDAD_MAX_MS_DEFECTO = 3 * 60 * 60 * 1000;
 async function apiGetEstaticoConEdad(url, opts){
   opts = opts || {};
   const edadMax = (typeof opts.edadMaxMs === 'number' && opts.edadMaxMs >= 0) ? opts.edadMaxMs : ESTATICO_EDAD_MAX_MS_DEFECTO;
-  const est = await apiGetEstatico(url, opts);
+  // NUEVO (18-oct-2026, §PF115 y §PF116): respaldo local de TODOS los JSON estáticos en un solo lugar. Si el archivo no se puede bajar (sin red,
+  // GitHub caído, 404), se devuelve la última copia guardada en este navegador, con `local: true`, y la página la trata igual que un archivo
+  // descargado: vigente si tiene menos de edadMax, vencido (último recurso, tras Apps Script) si no. Sin copia, lanza el mismo error de antes.
+  let est, local = false;
+  try{
+    est = await apiGetEstatico(url, opts);
+  }catch(err){
+    const g = await apiBackupEstaticoLeer(url);
+    if(!g) throw err;
+    est = g.est; local = true;
+  }
   const pub = est && est._publicadoEn ? new Date(est._publicadoEn) : null;
   if(!pub || isNaN(pub.getTime())) return null;
-  return { est, pub, vigente: (Date.now() - pub.getTime()) < edadMax };
+  // Copia nueva para la próxima vez: diferida para no retrasar el pintado; solo escribe si `_publicadoEn` es más nuevo que lo guardado.
+  // No valida la forma del contenido (eso es de cada página): solo se descartan los que traen `error`.
+  if(!local && typeof est === 'object' && !est.error && typeof setTimeout === 'function') setTimeout(function(){ apiBackupEstaticoGuardar(url, est); }, 1500);
+  return { est, pub, vigente: (Date.now() - pub.getTime()) < edadMax, local };
 }
 
 

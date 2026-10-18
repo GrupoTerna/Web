@@ -264,19 +264,42 @@ function conCompresion(window){
   window.Response = Response;
 }
 
-test('§PF115: sin archivo y con Apps Script caído, se muestra la copia guardada en el navegador (viejo:true, con su fecha)', async () => {
+test('§PF116: sin archivo y con una copia guardada VIGENTE (<3 h): se usa sin esperar a Apps Script', async () => {
   const { t, window, llamadasApiGet } = montar({ estatico: () => VIGENTE });
   conCompresion(window);
-  // 1) Con red: se carga el archivo vigente y la página lo deja guardado (tras ~1,5 s; aquí se guarda directo con la misma función).
+  // 1) Con red: la copia queda guardada (la página la guarda ~1,5 s después; aquí se llama directo a la misma función).
   assert.equal(await window.apiBackupEstaticoGuardar('https://raw.githubusercontent.com/GrupoTerna/Web/data/guerra.json?t=1', VIGENTE), true);
-  // 2) Sin red: GitHub y Apps Script fallan.
+  // 2) Sin red a GitHub: ni se intenta Apps Script.
   window.apiGetEstatico = async () => { throw new Error('sin red (simulado)'); };
-  window.apiGet = async () => appsScriptCaido();
   const r = await t.obtenerDatosGuerra();
-  assert.equal(r.viejo, true);
+  assert.equal(r.viejo, false);
   assert.equal(r.estatico, true);
   assert.equal(r.data.ctx.periodIndex, 17);
   assert.equal(r.desde.toISOString(), VIGENTE._publicadoEn);
+  assert.equal(llamadasApiGet.length, 0);
+});
+
+test('§PF115: sin archivo, copia guardada VENCIDA (5 h) y Apps Script caído: se muestra la copia con viejo:true y su fecha', async () => {
+  const { t, window, llamadasApiGet } = montar({ apiGetImpl: appsScriptCaido });
+  conCompresion(window);
+  assert.equal(await window.apiBackupEstaticoGuardar('guerra.json', VENCIDO), true);
+  window.apiGetEstatico = async () => { throw new Error('sin red (simulado)'); };
+  const r = await t.obtenerDatosGuerra();
+  assert.equal(r.viejo, true);
+  assert.equal(r.estatico, true);
+  assert.equal(r.desde.toISOString(), VENCIDO._publicadoEn);
+  assert.equal(llamadasApiGet.length, 1, 'con la copia vencida primero se intenta Apps Script');
+});
+
+test('§PF115: sin archivo, copia guardada VENCIDA y Apps Script sano: gana Apps Script', async () => {
+  const { t, window } = montar({ estatico: () => VENCIDO });
+  conCompresion(window);
+  assert.equal(await window.apiBackupEstaticoGuardar('guerra.json', VENCIDO), true);
+  window.apiGetEstatico = async () => { throw new Error('sin red (simulado)'); };
+  const r = await t.obtenerDatosGuerra();
+  assert.equal(r.viejo, false);
+  assert.equal(r.estatico, false);
+  assert.equal(r.data.ctx.periodIndex, 18);
 });
 
 test('§PF115: sin archivo, sin Apps Script y sin copia guardada, el error sube igual que antes', async () => {
@@ -292,7 +315,9 @@ test('§PF115: una copia guardada sin `ctx` no se usa como último recurso', asy
   await assert.rejects(() => t.obtenerDatosGuerra(), /No pudimos conectar/);
 });
 
-test('§PF115: guerra.html guarda la copia con apiBackupEstaticoGuardar() y la lee con apiBackupEstaticoLeer()', () => {
-  assert.ok(TRAMO_OBTENER.includes('apiBackupEstaticoGuardar(GUERRA_ESTATICO_URL'));
-  assert.ok(TRAMO_OBTENER.includes('apiBackupEstaticoLeer(GUERRA_ESTATICO_URL'));
+test('§PF116: el guardado y la lectura de la copia viven en apiGetEstaticoConEdad() (api.js), no en cada página', () => {
+  assert.ok(!TRAMO_OBTENER.includes('apiBackupEstaticoGuardar') && !TRAMO_OBTENER.includes('apiBackupEstaticoLeer'));
+  const api = fs.readFileSync(path.join(__dirname, '..', 'assets/js/core/api.js'), 'utf8');
+  const cuerpo = api.slice(api.indexOf('async function apiGetEstaticoConEdad'), api.indexOf('function _claveCacheApiGet'));
+  assert.ok(cuerpo.includes('apiBackupEstaticoGuardar(url, est)') && cuerpo.includes('apiBackupEstaticoLeer(url)'));
 });

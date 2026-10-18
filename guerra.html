@@ -706,11 +706,10 @@ const GUERRA_ESTATICO_EDAD_MAX_MS = 3 * 60 * 60 * 1000; // el bot lo reescribe a
 async function obtenerDatosGuerra(){
   let viejo = null; // último recurso: archivo estático descargado bien pero ya vencido
   try{
+    // §PF115/§PF116: apiGetEstaticoConEdad() guarda una copia local y la devuelve (r.local) si el archivo no se puede bajar; aquí se trata como cualquier archivo (vigente o vencido).
     // ?t= por bloques de 5 min: GitHub ya sirve el archivo con ~5 min de caché; esto solo evita que el navegador se quede con uno más viejo.
     const r = await apiGetEstaticoConEdad(GUERRA_ESTATICO_URL + '?t=' + Math.floor(Date.now() / 300000), { edadMaxMs: GUERRA_ESTATICO_EDAD_MAX_MS });
     if(r && r.est && r.est.ctx){
-      // NUEVO (18-oct-2026, §PF115): copia comprimida en localStorage para cuando no haya red ni archivo. Se difiere para no retrasar el primer pintado; solo escribe si `_publicadoEn` es más nuevo que lo guardado.
-      setTimeout(function(){ apiBackupEstaticoGuardar(GUERRA_ESTATICO_URL, r.est); }, 1500);
       if(r.vigente) return { data: r.est, desde: r.pub, estatico: true, viejo: false };
       viejo = r;
     }
@@ -720,9 +719,6 @@ async function obtenerDatosGuerra(){
     return { data, desde: new Date(), estatico: false, viejo: false };
   }catch(err){
     if(viejo) return { data: viejo.est, desde: viejo.pub, estatico: true, viejo: true };
-    // NUEVO (18-oct-2026, §PF115): sin archivo (GitHub o red caídos) y sin Apps Script, se usa la última copia guardada en este navegador, con su fecha y el aviso de «Datos guardados».
-    const guardado = await apiBackupEstaticoLeer(GUERRA_ESTATICO_URL);
-    if(guardado && guardado.est && guardado.est.ctx) return { data: guardado.est, desde: guardado.pub, estatico: true, viejo: true };
     throw err;
   }
 }
