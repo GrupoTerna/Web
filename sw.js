@@ -150,6 +150,7 @@
 // v85 (14-oct-2026): perfil.html y test cambiaron (CORE_ASSETS) -- ventana «Niveles y evoluciones» en móvil: números del diagrama más grandes, tabla de costos como tarjetas y puntos de color en lugar de emojis dentro del SVG (§PF076).
 // v86 (17-oct-2026): admin.html cambió (CORE_ASSETS) -- el selector de semanas de Torneos y Sorteos ya no queda como una barra vacía si la primera carga falla: avisa el motivo, ofrece «Reintentar» y se vuelve a pedir al entrar al panel (§PF097).
 // v98 (18-oct-2026): api.js cambió (CORE_ASSETS) -- la copia local de los JSON estáticos solo se guarda y se devuelve si tiene la forma que cada página exige; un archivo nuevo pero roto ya no reemplaza a la copia buena (§PF117).
+// v99 (18-oct-2026): admin.html cambió (CORE_ASSETS) -- las listas de torneos, sorteos y cambio de rango van de la más reciente a la más antigua, y «¿Cuál es el torneo principal?» también ofrece los planificados o sin link (§PF118).
 // v97 (18-oct-2026): api.js y guerra.html cambiaron (CORE_ASSETS) -- el respaldo local de JSON estáticos pasa a apiGetEstaticoConEdad(): lo usan index, clan, directorio, comunidad, torneos, perfil y guerra, no solo guerra.json (§PF116).
 // v96 (18-oct-2026): api.js y guerra.html cambiaron (CORE_ASSETS) -- guerra.json se guarda comprimido en localStorage y se usa como último recurso cuando no hay red ni Apps Script (§PF115).
 // v95 (18-oct-2026): admin.html cambió (CORE_ASSETS) -- «¿Quién organizó el sorteo?» de Registrar, Modificar y Planificar sorteo ya lista los Nom_Multi de los admins, igual que Torneos y Cambio de rango (§PF111).
@@ -161,7 +162,7 @@
 // v89 (18-oct-2026): admin.html cambió (CORE_ASSETS) -- «Modificar torneo» y «Modificar sorteo» muestran 16 en «Ataques a barcos» cuando el registro no tiene Barcos (tope: 16 equivale a no evaluarlos), en vez de 0 o el valor de otro torneo (§PF102).
 // v88 (18-oct-2026): admin.html cambió (CORE_ASSETS) -- «Modificar torneo» precarga los requisitos del torneo elegido (con «Cargando…» y sin guardar hasta que terminen) y deja el Nom_Multi y la cuenta organizadora ya elegidos, pudiendo cambiar a cualquier otra cuenta (§PF101).
 // v87 (18-oct-2026): admin.html cambió (CORE_ASSETS) -- «Modificar torneo» ya lista también los torneos Planificados y los sin link (no solo los de hoy), con fecha, hora y estado, y precarga la hora real (§PF099).
-const CACHE_NAME = 'terna-static-v98';
+const CACHE_NAME = 'terna-static-v99';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
