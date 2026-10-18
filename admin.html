@@ -223,6 +223,8 @@
   /* NOTICIAS DE LA SEMANA (5-oct-2026): tablero con tarjetas de resumen y graficos. Todo con los tokens de styles.css;
      los colores de cada clan (--nt) son los pasos oscuros de la paleta categorica validada, asignados por clan y no por
      posicion, para que un clan conserve su color en todas las tarjetas. Pistas y rejillas son blanco translucido. */
+  /* Campo obligatorio vacío (18-oct-2026, PF110): borde rojo hasta que se escriba un valor. */
+  input[aria-invalid="true"]{border-color:var(--danger);}
   .nt-kpis{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin:16px 0 14px;}
   .nt-kpi{border:1px solid var(--line); border-radius:var(--radius-sm); padding:12px 14px; background:rgba(255,255,255,.02); min-width:0; text-align:center;}
   .nt-kpi-label{font-family:var(--f-mono); font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--text-dim);}
@@ -1105,7 +1107,7 @@
                 </div>
 
                 <h3 style="font-size:15px; color:var(--gold); margin:20px 0 4px;">Torneos jugados mínimos por clan</h3>
-                <p class="text-dim" style="font-size:13px; margin:0 0 4px;">Cantidad mínima de torneos jugados requerida en cada clan — este requisito es exclusivo de Sorteos, Torneos no lo tiene.</p>
+                <p class="text-dim" style="font-size:13px; margin:0 0 4px;">Cantidad mínima de torneos jugados requerida en cada clan — este requisito es exclusivo de Sorteos, Torneos no lo tiene. <strong>Es obligatorio llenar los 4 clanes: si no quieres considerar los torneos en este sorteo, escribe 0.</strong></p>
                 <div id="reqTorneosGridSorteo"></div>
 
                 <h3 style="font-size:15px; color:var(--gold); margin:20px 0 4px;">Delta</h3>
@@ -3153,7 +3155,8 @@ async function cargarRequisitosSorteoPorClan(id){
         const idJ = idInputMiles('reqTorneosSorteo', clan);
         if(document.getElementById(idT)) document.getElementById(idT).value = formatoMiles(r.minTrofeosGuerra);
         if(document.getElementById(idA)) document.getElementById(idA).value = formatoMiles(r.minAtaquesSemana);
-        if(document.getElementById(idJ)) document.getElementById(idJ).value = formatoMiles(r.minTorneosJugados);
+        // PF110: el 0 es un valor válido de «Torneos jugados mínimos» (= no considerar torneos); formatoMiles(0) devolvería vacío y el campo, ahora obligatorio, habría que reescribirlo cada vez.
+        if(document.getElementById(idJ)) document.getElementById(idJ).value = (r.minTorneosJugados === 0 || r.minTorneosJugados === '0') ? '0' : formatoMiles(r.minTorneosJugados);
       });
       if(data.requisitos.delta !== undefined) document.getElementById('reqDeltaSorteo').value = formatoMiles(data.requisitos.delta);
       // PF102/PF105: misma regla que en Torneos (propio, registro anterior, 16).
@@ -3193,6 +3196,31 @@ function armarPayloadRequisitosSorteo(){
     presenciaWhatsapp: document.getElementById('reqPresenciaWhatsappSorteo').value
   };
 }
+
+/**
+ * validarTorneosJugadosSorteo(requisitos)
+ * PF110 (18-oct-2026, pedido de la usuaria): «Torneos jugados mínimos por clan» es obligatorio en Registrar, Planificar y Modificar sorteo; antes se podía guardar con los cuadros vacíos. El 0 es válido y significa «no considerar los torneos en este sorteo». Marca con `aria-invalid` los cuadros vacíos, lleva el foco al primero (o al cuadro único si «Usar el mismo valor para los 4 clanes» está marcado) y devuelve el texto del error, o '' si todo está lleno. Historial en CHANGELOG.md.
+ */
+function validarTorneosJugadosSorteo(requisitos){
+  document.querySelectorAll('#reqTorneosGridSorteo input[aria-invalid]').forEach(el => el.removeAttribute('aria-invalid'));
+  const vacios = CLANES_REQUISITOS.filter(clan => String((requisitos.requisitosPorClan[clan] || {}).minTorneosJugados) === '');
+  if(!vacios.length) return '';
+  const chk = document.getElementById('reqTorneosSorteo_mismo');
+  const usaUnico = !!(chk && chk.checked);
+  const unico = document.getElementById('reqTorneosSorteo_mismoValor');
+  if(usaUnico && unico) unico.setAttribute('aria-invalid', 'true');
+  vacios.forEach(clan => {
+    const el = document.getElementById(idInputMiles('reqTorneosSorteo', clan));
+    if(el) el.setAttribute('aria-invalid', 'true');
+  });
+  const destino = (usaUnico && unico) ? unico : document.getElementById(idInputMiles('reqTorneosSorteo', vacios[0]));
+  if(destino){ destino.scrollIntoView({ block:'center' }); destino.focus(); }
+  return 'Completa «Torneos jugados mínimos por clan» en los 4 clanes. Si no quieres considerar los torneos en este sorteo, escribe 0.';
+}
+// Al escribir en un cuadro marcado como vacío, se quita la marca roja.
+document.getElementById('reqTorneosGridSorteo').addEventListener('input', (ev) => {
+  if(ev.target && ev.target.removeAttribute) ev.target.removeAttribute('aria-invalid');
+});
 
 /**
  * initTorneoWizard()
@@ -5356,6 +5384,8 @@ document.getElementById('btnPlanificarSorteo').addEventListener('click', () => c
   // RESUELTO (12-sep-2026): ya existe el selector real (renderSorteoPrincipalLista(), ver <script>).
   if(esContinuacion && !sorteoSorteoPrincipalId){ msgEl.innerHTML = '<div class="msg msg-error">Elige de cuál sorteo principal es continuación.</div>'; return; }
   if(autorSelect === '__otro__' && !autor){ msgEl.innerHTML = '<div class="msg msg-error">Escribe el nombre de quien organiza, o elige otra opción.</div>'; return; }
+  const errTorneosPlan = validarTorneosJugadosSorteo(requisitos); // PF110
+  if(errTorneosPlan){ msgEl.innerHTML = `<div class="msg msg-error">${esc(errTorneosPlan)}</div>`; return; }
   try{
     const data = await apiPost('webAdminSorteoPlanificarGuardar', {
       sessionToken: localStorage.getItem(SESSION_KEY),
@@ -5418,6 +5448,8 @@ document.getElementById('btnModificarSorteo').addEventListener('click', () => co
   // RESUELTO (12-sep-2026): ya existe el selector real (renderSorteoPrincipalLista(), ver <script>).
   if(esContinuacion && !sorteoSorteoPrincipalId){ msgEl.innerHTML = '<div class="msg msg-error">Elige de cuál sorteo principal es continuación.</div>'; return; }
   if(autorSelect === '__otro__' && !autor){ msgEl.innerHTML = '<div class="msg msg-error">Escribe el nombre de quien organizó, o elige otra opción.</div>'; return; }
+  const errTorneosMod = validarTorneosJugadosSorteo(requisitos); // PF110
+  if(errTorneosMod){ msgEl.innerHTML = `<div class="msg msg-error">${esc(errTorneosMod)}</div>`; return; }
   try{
     const data = await apiPost('webAdminSorteoModificar', {
       sessionToken: localStorage.getItem(SESSION_KEY),
@@ -7060,6 +7092,8 @@ document.getElementById('btnRegistrarSorteo').addEventListener('click', () => co
   // RESUELTO (12-sep-2026): ya existe el selector real (renderSorteoPrincipalLista(), ver <script>).
   if(esContinuacion && !sorteoSorteoPrincipalId){ msgEl.innerHTML = '<div class="msg msg-error">Elige de cuál sorteo principal es continuación.</div>'; return; }
   if(autorSelect === '__otro__' && !autor){ msgEl.innerHTML = '<div class="msg msg-error">Escribe el nombre de quien organizó, o elige otra opción.</div>'; return; }
+  const errTorneosReg = validarTorneosJugadosSorteo(requisitos); // PF110
+  if(errTorneosReg){ msgEl.innerHTML = `<div class="msg msg-error">${esc(errTorneosReg)}</div>`; return; }
   try{
     const data = await apiPost('webAdminSorteoRegistrar', {
       sessionToken: localStorage.getItem(SESSION_KEY),
