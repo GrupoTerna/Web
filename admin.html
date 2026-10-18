@@ -2936,10 +2936,12 @@ function initMismoValorParaTodos(prefijo, idMismo, idMismoValor){
  * el catch de red de abajo.
  * @param {string} [id]
  */
-async function cargarRequisitosPorClan(id){
+async function cargarRequisitosPorClan(id, esVigente){
+  // 18-oct-2026 (PF101): devuelve true solo si los requisitos se cargaron; `esVigente` (opcional) es una función que dice si esta respuesta todavía corresponde al torneo elegido (evita pisar el formulario con la respuesta de un torneo anterior). Historial en CHANGELOG.md.
   try{
     const data = await apiGetAuth('webAdminRequisitosClanes', id ? { id } : {});
-    if(manejarRespuestaAuth(data)) return;
+    if(manejarRespuestaAuth(data)) return false;
+    if(esVigente && !esVigente()) return false;
     if(data.ok && data.requisitos){
       CLANES_REQUISITOS.forEach(clan => {
         const r = data.requisitos[clan] || {};
@@ -2952,11 +2954,74 @@ async function cargarRequisitosPorClan(id){
       if(data.requisitos.miembroActivo) document.getElementById('reqMiembroActivo').value = data.requisitos.miembroActivo;
       if(data.requisitos.reaccion) document.getElementById('reqReaccion').value = data.requisitos.reaccion;
       if(data.requisitos.presenciaWhatsapp) document.getElementById('reqPresenciaWhatsapp').value = data.requisitos.presenciaWhatsapp;
+      return true;
     }
+    return false;
   }catch(err){
     // Error de red/parseo: se deja el formulario con lo que ya tuviera
     // (defaults del HTML) -- mismo criterio de tolerancia a fallos que el
     // resto de los `cargarXxx()` de este archivo (ver p.ej. cargarNomMultisAdmins()).
+    return false;
+  }
+}
+
+/**
+ * Precarga de "Modificar torneo" (18-oct-2026, PF101, pedido del usuario: "los valores no deben estar vacíos para modificar, debe precargarse lo que ya hay en ese registro").
+ * Antes, al elegir un torneo, los requisitos se pedían al backend sin avisar: mientras tardaba la respuesta se veían los cuadros vacíos con el placeholder «Ejm: 2400» y el admin podía creer que el torneo no tenía valores (o guardar vacío). Ahora:
+ *   - marcarCargaRequisitos(true) vacía los cuadros, pone «Cargando…» y devuelve los selectores a sus valores por defecto, para no mostrar los de otro torneo;
+ *   - estadoPrecargaMod ('ok'|'cargando'|'error') hace que «Guardar cambios» no envíe nada mientras la precarga no termine bien (así nunca se mandan requisitos vacíos que pisen los guardados);
+ *   - seqPrecargaMod descarta la respuesta de un torneo elegido antes si el admin ya cambió de torneo.
+ * Historial en CHANGELOG.md.
+ */
+let estadoPrecargaMod = 'ok';
+let seqPrecargaMod = 0;
+
+function marcarCargaRequisitos(cargando){
+  const box = document.getElementById('requisitosTorneoBox');
+  if(!box) return;
+  box.setAttribute('aria-busy', cargando ? 'true' : 'false');
+  if(cargando){
+    box.querySelectorAll('input[type="checkbox"]').forEach(chk => {
+      if(chk.checked){ chk.checked = false; chk.dispatchEvent(new Event('change')); }
+    });
+    box.querySelectorAll('input[type="text"]').forEach(el => {
+      if(el.dataset.phPrevio === undefined) el.dataset.phPrevio = el.placeholder;
+      el.placeholder = 'Cargando…';
+      el.value = '';
+    });
+    document.getElementById('reqAtaquesBarcos').value = '0';
+    document.getElementById('reqMiembroActivo').value = 'Sí';
+    document.getElementById('reqReaccion').value = 'No';
+    document.getElementById('reqPresenciaWhatsapp').value = 'Sí';
+  }else{
+    box.querySelectorAll('input[type="text"]').forEach(el => {
+      if(el.dataset.phPrevio !== undefined){ el.placeholder = el.dataset.phPrevio; delete el.dataset.phPrevio; }
+    });
+  }
+}
+
+/**
+ * precargarTorneoModificar(id, opt)
+ * Carga en paralelo los requisitos guardados del torneo (por ID) y su organizador/cuenta, y deja el estado de la precarga para que «Guardar cambios» sepa si puede enviar. `opt` es la <option> elegida en #tSelectHoy.
+ */
+async function precargarTorneoModificar(id, opt){
+  const seq = ++seqPrecargaMod;
+  const esVigente = () => seq === seqPrecargaMod;
+  estadoPrecargaMod = 'cargando';
+  marcarCargaRequisitos(true);
+  const msgEl = document.getElementById('modificarTorneoMsg');
+  msgEl.innerHTML = '';
+  const [okReq] = await Promise.all([
+    cargarRequisitosPorClan(id, esVigente),
+    precargarOrganizadorMod(opt, esVigente).catch(() => {})
+  ]);
+  if(!esVigente()) return;
+  marcarCargaRequisitos(false);
+  if(okReq){
+    estadoPrecargaMod = 'ok';
+  }else{
+    estadoPrecargaMod = 'error';
+    msgEl.innerHTML = '<div class="msg msg-error">No se pudieron cargar los requisitos guardados de este torneo. Vuelve a elegirlo en la lista antes de guardar, para no pisar sus valores.</div>';
   }
 }
 
@@ -3468,7 +3533,8 @@ async function cargarTorneosHoy(){
           // data-autor/premios/semanas/comentario llegan del backend para precargar "Modificar"; si faltan, quedan vacíos sin romper nada. Historial en CHANGELOG.md.
           const semanasCsv = Array.isArray(t.semanas) ? t.semanas.join(',') : '';
           // data-organizador-fuente ('API'|'Manual'|''): Fase 11 (plan T_Lista, ver 24_Torneos_Core.gs) -- decide si #tAutorSelectMod queda editable o se reemplaza por #tAutorSoloLecturaMod. Historial en CHANGELOG.md.
-          return `<option value="${esc(t.id)}" data-fecha="${esc(t.fecha)}" data-hora="${esc(horaCorta)}" data-estado="${esc(t.estado || '')}" data-autor="${esc(autorOpt)}" data-organizador-fuente="${esc(t.organizadorFuente || '')}" data-premios="${esc(t.premios || '')}" data-semanas="${esc(semanasCsv)}" data-comentario="${esc(t.comentario || '')}">${esc(t.id)} — ${esc(fechaTxt)}${esc(etiquetaEstado)}</option>`;
+          // PF101: data-nom-multi/tag-org/clan/clan-tag (ya vienen en `_listarTorneosModificables()`) permiten preseleccionar el Nom_Multi y la CUENTA exacta con la que se organizó, en vez de mostrar solo «Sin cambios (Nom_Multi)». Historial en CHANGELOG.md.
+          return `<option value="${esc(t.id)}" data-fecha="${esc(t.fecha)}" data-hora="${esc(horaCorta)}" data-estado="${esc(t.estado || '')}" data-autor="${esc(autorOpt)}" data-nom-multi="${esc(t.organizadorFuente === 'API' ? '' : (t.nomMulti || ''))}" data-tag-org="${esc(t.tagOrg || '')}" data-clan="${esc(t.clan || '')}" data-clan-tag="${esc(t.clanTag || '')}" data-organizador-fuente="${esc(t.organizadorFuente || '')}" data-premios="${esc(t.premios || '')}" data-semanas="${esc(semanasCsv)}" data-comentario="${esc(t.comentario || '')}">${esc(t.id)} — ${esc(fechaTxt)}${esc(etiquetaEstado)}</option>`;
         }).join('') + OPCION_INGRESAR_LINK;
     }
   }catch(err){
@@ -3796,6 +3862,47 @@ function actualizarEtiquetaSinCambiosAutor(nombreActual){
   const opt = document.querySelector('#tAutorSelectMod option[value=""]');
   if(!opt) return;
   opt.textContent = nombreActual ? `Sin cambios (${nombreActual})` : 'Sin cambios (mantener autor actual)';
+}
+
+/**
+ * precargarOrganizadorMod(opt, esVigente)
+ * PF101 (18-oct-2026, pedido del usuario): «no debe aparecer como Sin cambios (Carlos) porque solo muestra el Nom_Multi. Carlos tiene como 20 cuentas, podría querer usar cualquiera de las otras».
+ * Con un torneo de organizador manual y Nom_Multi registrado, deja #tAutorSelectMod ya en ese Nom_Multi, abre el cuadro «¿Con cuál cuenta organizó?» con TODAS las cuentas de esa persona y deja elegida la cuenta registrada (Tag_org). El admin puede cambiar a cualquier otra cuenta o a otro Nom_Multi. Si el Nom_Multi no está en la lista de admins se agrega como opción dinámica (data-dinamica) para poder mostrarlo.
+ * No toca nada si el organizador es de la API (bloque de solo lectura) ni si el torneo no tiene Nom_Multi: ahí queda «Sin cambios».
+ * Al guardar, btnModificarTorneo no envía autor/cuenta si siguen siendo los registrados (ver ese listener).
+ * @param {HTMLOptionElement|undefined} opt <option> elegida en #tSelectHoy
+ * @param {function():boolean} [esVigente] false si ya se eligió otro torneo
+ */
+async function precargarOrganizadorMod(opt, esVigente){
+  const selAutor = document.getElementById('tAutorSelectMod');
+  const box = document.getElementById('tCuentaOrgBoxMod');
+  const selCuenta = document.getElementById('tCuentaOrgSelectMod');
+  const info = document.getElementById('tCuentaOrgInfoMod');
+  if(!opt || !opt.value || !selAutor || !box || !selCuenta || !info) return;
+  if(opt.dataset.organizadorFuente === 'API') return;
+  const nomMulti = opt.dataset.nomMulti || '';
+  if(!nomMulti) return;
+
+  if(!Array.from(selAutor.options).some(o => o.value === nomMulti)){
+    const dinamica = document.createElement('option');
+    dinamica.value = nomMulti;
+    dinamica.textContent = nomMulti;
+    dinamica.dataset.dinamica = '1';
+    selAutor.insertBefore(dinamica, selAutor.querySelector('option[value="__otro__"]'));
+  }
+  selAutor.value = nomMulti;
+  box.style.display = '';
+  await cargarCuentasDelAutor(nomMulti, selCuenta, info);
+  if(esVigente && !esVigente()) return;
+
+  const tagOrg = opt.dataset.tagOrg || '';
+  if(tagOrg && Array.from(selCuenta.options).some(o => o.value === tagOrg)){
+    selCuenta.value = tagOrg;
+    selCuenta.dispatchEvent(new Event('change'));
+  }else if(tagOrg && selCuenta.options.length > 1){
+    const clan = opt.dataset.clan || '';
+    info.textContent = `Cuenta registrada: ${tagOrg}${clan ? ' — ' + clan : ''}. Ya no figura entre las cuentas de ${nomMulti}; elige otra o déjalo así.`;
+  }
 }
 
 /**
@@ -4848,9 +4955,11 @@ document.getElementById('tSelectHoy').addEventListener('change', () => {
   }
 
   // Al elegir/quitar un torneo en Modificar se refresca autor/premios/semanas con lo ya registrado de ese torneo. Historial en CHANGELOG.md.
-  actualizarEtiquetaSinCambiosAutor(opt && opt.dataset.autor);
+  // PF101: si el torneo trae Nom_Multi, precargarOrganizadorMod() lo deja elegido (con su cuenta), así que la opción «Sin cambios» vuelve al texto genérico en vez de repetir «Sin cambios (Carlos)». Historial en CHANGELOG.md.
+  actualizarEtiquetaSinCambiosAutor(opt && !opt.dataset.nomMulti ? opt.dataset.autor : '');
   // Fase 11 (plan T_Lista, ver 24_Torneos_Core.gs): con organizadorFuente==='API' el bloque editable se reemplaza por el de solo lectura. Historial en CHANGELOG.md.
   aplicarBloqueoOrganizadorMod(opt && opt.dataset.organizadorFuente, opt && opt.dataset.autor);
+  document.querySelectorAll('#tAutorSelectMod option[data-dinamica]').forEach(o => o.remove());
   document.getElementById('tAutorSelectMod').value = '';
   document.getElementById('tAutorManualMod').value = '';
   document.getElementById('tAutorManualMod').style.display = 'none';
@@ -4870,9 +4979,14 @@ document.getElementById('tSelectHoy').addEventListener('change', () => {
   document.getElementById('tComentario').value = (opt && opt.dataset.comentario) || '';
 
   // Al elegir un torneo puntual se recargan sus requisitos ya guardados, por ID (no "el más reciente"). Historial en CHANGELOG.md.
+  // PF101: requisitos + organizador/cuenta se precargan juntos y «Guardar cambios» espera a que terminen (ver precargarTorneoModificar()). Sin torneo puntual se cancela cualquier precarga en curso.
   const idTorneoSeleccionado = document.getElementById('tSelectHoy').value;
   if(idTorneoSeleccionado && idTorneoSeleccionado !== '__link__'){
-    cargarRequisitosPorClan(idTorneoSeleccionado);
+    precargarTorneoModificar(idTorneoSeleccionado, opt);
+  }else{
+    seqPrecargaMod++;
+    estadoPrecargaMod = 'ok';
+    marcarCargaRequisitos(false);
   }
 });
 
@@ -4952,10 +5066,17 @@ document.getElementById('btnModificarTorneo').addEventListener('click', () => co
   // si no se toca el cuadro — el backend no debe pisar Tag_org/Clan/ClanTag
   // ya guardados cuando no llega nada nuevo (mismo criterio que autor/premios
   // en este panel).
-  const { tagOrg, clanOrg, clanTagOrg } = leerCuentaOrgElegida('Mod');
+  let { tagOrg, clanOrg, clanTagOrg } = leerCuentaOrgElegida('Mod');
   // Payload de Modificar torneo: autor ("Sin cambios"/"__otro__"/Nom_Multi elegido) y premios desde el editor (vacío = no tocar lo guardado). Historial en CHANGELOG.md.
   const autorSelect = document.getElementById('tAutorSelectMod').value;
-  const autor = autorSelect === '__otro__' ? document.getElementById('tAutorManualMod').value.trim() : autorSelect;
+  let autor = autorSelect === '__otro__' ? document.getElementById('tAutorManualMod').value.trim() : autorSelect;
+  // PF101: como ahora el Nom_Multi y la cuenta vienen precargados, solo se envían si el admin los cambió; si siguen siendo los registrados se manda vacío (= no tocar), para no reescribir el organizador ni su Organizador_Fuente sin necesidad. Con organizador de la API (bloque de solo lectura) nunca se envían: el backend rechaza editarlo. Historial en CHANGELOG.md.
+  const optTorneoMod = document.getElementById('tSelectHoy').selectedOptions[0];
+  if(document.getElementById('tAutorEditableModWrap').style.display === 'none'){
+    autor = ''; tagOrg = ''; clanOrg = ''; clanTagOrg = '';
+  }else if(autor && optTorneoMod && autor === (optTorneoMod.dataset.nomMulti || '') && (!tagOrg || tagOrg === (optTorneoMod.dataset.tagOrg || ''))){
+    autor = ''; tagOrg = ''; clanOrg = ''; clanTagOrg = '';
+  }
   const premios = armarPremiosCSV('premiosEditorMod');
   // FIX (11-sep-2026): mismo campo compartido #tComentario/#requisitosTorneoBox
   // que en btnRegistrarTorneo -- ver el comentario FIX de ese listener.
@@ -4965,6 +5086,9 @@ document.getElementById('btnModificarTorneo').addEventListener('click', () => co
   // comentario FIX de ese listener.
   const semanas = obtenerSemanasSeleccionadas('semanasSelectorMod');
   if(!id){ msgEl.innerHTML = '<div class="msg msg-error">Elige un torneo de la lista.</div>'; return; }
+  // PF101: no se guarda mientras los datos del torneo siguen cargando o no se pudieron cargar (los cuadros vacíos pisarían lo registrado).
+  if(!esOpcionLink && estadoPrecargaMod === 'cargando'){ msgEl.innerHTML = '<div class="msg msg-error">Espera un momento: todavía se están cargando los datos guardados de este torneo.</div>'; return; }
+  if(!esOpcionLink && estadoPrecargaMod === 'error'){ msgEl.innerHTML = '<div class="msg msg-error">No se pudieron cargar los datos guardados de este torneo. Vuelve a elegirlo en la lista antes de guardar.</div>'; return; }
   // FIX (12-sep-2026): con "Ingresar link" elegida, el link es obligatorio
   // (mismo criterio que #tLink en Registrar) -- se corta acá antes de llamar
   // al backend, que igual valida esto de nuevo por si acaso.
@@ -5001,6 +5125,11 @@ document.getElementById('btnModificarTorneo').addEventListener('click', () => co
     poblarPremiosEditor('premiosEditorMod', '', true);
     pintarSemanasSelector('semanasSelectorMod');
     actualizarEtiquetaSinCambiosAutor('');
+    // PF101: tras guardar se cancela cualquier precarga en curso y se quitan las opciones de Nom_Multi agregadas para mostrar el organizador registrado.
+    seqPrecargaMod++;
+    estadoPrecargaMod = 'ok';
+    marcarCargaRequisitos(false);
+    document.querySelectorAll('#tAutorSelectMod option[data-dinamica]').forEach(o => o.remove());
     // Fase 11 (plan T_Lista, ver 24_Torneos_Core.gs): vuelve al bloque editable tras un envío exitoso, igual que el resto de campos de este listener. Historial en CHANGELOG.md.
     aplicarBloqueoOrganizadorMod('', '');
     cargarTorneosHoy();

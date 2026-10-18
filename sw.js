@@ -149,8 +149,9 @@
 // v84 (14-oct-2026): perfil.html cambió (CORE_ASSETS) -- en móvil la página medía 609 px (bloque de cuadritos con min-width fijo, tabla de Progreso en eventos sin salto de línea), por eso las ventanas abrían ampliadas y desplazadas (§PF076).
 // v85 (14-oct-2026): perfil.html y test cambiaron (CORE_ASSETS) -- ventana «Niveles y evoluciones» en móvil: números del diagrama más grandes, tabla de costos como tarjetas y puntos de color en lugar de emojis dentro del SVG (§PF076).
 // v86 (17-oct-2026): admin.html cambió (CORE_ASSETS) -- el selector de semanas de Torneos y Sorteos ya no queda como una barra vacía si la primera carga falla: avisa el motivo, ofrece «Reintentar» y se vuelve a pedir al entrar al panel (§PF097).
+// v88 (18-oct-2026): admin.html cambió (CORE_ASSETS) -- «Modificar torneo» precarga los requisitos del torneo elegido (con «Cargando…» y sin guardar hasta que terminen) y deja el Nom_Multi y la cuenta organizadora ya elegidos, pudiendo cambiar a cualquier otra cuenta (§PF101).
 // v87 (18-oct-2026): admin.html cambió (CORE_ASSETS) -- «Modificar torneo» ya lista también los torneos Planificados y los sin link (no solo los de hoy), con fecha, hora y estado, y precarga la hora real (§PF099).
-const CACHE_NAME = 'terna-static-v87';
+const CACHE_NAME = 'terna-static-v88';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
