@@ -253,3 +253,46 @@ test('D-20, contraste: «— 0 pendientes» de Participación de Hoy no lleva op
   assert.ok(!/opacity/.test(m[1]), 'la regla vuelve a llevar opacity: baja el contraste bajo 4.5:1');
   assert.ok(/color:\s*var\(--text-faint\)/.test(m[1]));
 });
+
+// NUEVO (18-oct-2026, §PF115): respaldo local comprimido del guerra.json. Sin archivo (GitHub o red caídos) y sin
+// Apps Script, guerra.html usa la última copia guardada en este navegador, con su fecha y viejo:true.
+// jsdom no trae CompressionStream: se le pasa el de Node (mismo estándar que los navegadores).
+function conCompresion(window){
+  window.CompressionStream = CompressionStream;
+  window.DecompressionStream = DecompressionStream;
+  window.Blob = Blob;
+  window.Response = Response;
+}
+
+test('§PF115: sin archivo y con Apps Script caído, se muestra la copia guardada en el navegador (viejo:true, con su fecha)', async () => {
+  const { t, window, llamadasApiGet } = montar({ estatico: () => VIGENTE });
+  conCompresion(window);
+  // 1) Con red: se carga el archivo vigente y la página lo deja guardado (tras ~1,5 s; aquí se guarda directo con la misma función).
+  assert.equal(await window.apiBackupEstaticoGuardar('https://raw.githubusercontent.com/GrupoTerna/Web/data/guerra.json?t=1', VIGENTE), true);
+  // 2) Sin red: GitHub y Apps Script fallan.
+  window.apiGetEstatico = async () => { throw new Error('sin red (simulado)'); };
+  window.apiGet = async () => appsScriptCaido();
+  const r = await t.obtenerDatosGuerra();
+  assert.equal(r.viejo, true);
+  assert.equal(r.estatico, true);
+  assert.equal(r.data.ctx.periodIndex, 17);
+  assert.equal(r.desde.toISOString(), VIGENTE._publicadoEn);
+});
+
+test('§PF115: sin archivo, sin Apps Script y sin copia guardada, el error sube igual que antes', async () => {
+  const { t, window } = montar({ apiGetImpl: appsScriptCaido });
+  conCompresion(window);
+  await assert.rejects(() => t.obtenerDatosGuerra(), /No pudimos conectar/);
+});
+
+test('§PF115: una copia guardada sin `ctx` no se usa como último recurso', async () => {
+  const { t, window } = montar({ apiGetImpl: appsScriptCaido });
+  conCompresion(window);
+  await window.apiBackupEstaticoGuardar('guerra.json', { _publicadoEn: hace(2 * HORA), otraCosa: 1 });
+  await assert.rejects(() => t.obtenerDatosGuerra(), /No pudimos conectar/);
+});
+
+test('§PF115: guerra.html guarda la copia con apiBackupEstaticoGuardar() y la lee con apiBackupEstaticoLeer()', () => {
+  assert.ok(TRAMO_OBTENER.includes('apiBackupEstaticoGuardar(GUERRA_ESTATICO_URL'));
+  assert.ok(TRAMO_OBTENER.includes('apiBackupEstaticoLeer(GUERRA_ESTATICO_URL'));
+});

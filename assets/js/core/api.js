@@ -570,6 +570,100 @@ async function apiGetEstaticoConEdad(url, opts){
 }
 
 
+/**
+ * Respaldo local de los JSON estáticos: apiBackupEstaticoGuardar(url, json) / apiBackupEstaticoLeer(url)
+ * NUEVO (18-oct-2026, pedido de la usuaria: «Respaldo local para las cargas que salen de un JSON estático»;
+ * decisiones y medidas en Contexto_Base_Web.md §PF115). Hasta ahora las cargas que salen de un archivo estático
+ * (guerra.json y otros) no guardaban nada en localStorage: con GitHub y Apps Script caídos, o sin red, una página
+ * recién abierta quedaba sin datos aunque la última carga buena existiera en ese mismo navegador.
+ *
+ * Por qué NO se guarda el JSON tal cual: guerra.json mide ~990 KB (~970 000 caracteres) y localStorage da ~5 MB
+ * (unos 5 millones de caracteres): un solo archivo se llevaría casi el 20 %. Comprimido con gzip (CompressionStream)
+ * y en base64 queda en ~146 000 caracteres (~3 %, medido el 18-oct-2026 con el archivo real).
+ * Reglas para no estorbar al resto del respaldo (apiGet() guarda sus respuestas en la misma cuota):
+ *   - Se guarda solo si `_publicadoEn` es válido y MÁS NUEVO que lo ya guardado (una marca pequeña aparte,
+ *     `<clave>_t`, evita leer y descomprimir el respaldo para comparar). guerra.html recarga cada minuto y el bot
+ *     publica como mínimo cada hora: sin esta regla se reescribiría ~1 MB sin necesidad cada minuto.
+ *   - Si el navegador no sabe comprimir (sin CompressionStream) NO se guarda sin comprimir: se prefiere no tener respaldo.
+ *   - Tope por archivo: BACKUP_ESTATICO_TOPE_CARACTERES (el valor ya comprimido). Si lo supera, no se guarda.
+ *   - Si localStorage está lleno, solo se borra la propia entrada de ese archivo (nunca los respaldos de apiGet()).
+ *   - Nada de esto lanza: devuelve false/null y la carga de la página sigue como siempre.
+ * Clave: BACKUP_ESTATICO_PREFIX + nombre del archivo sin ruta ni ?t= (p. ej. `terna_backup_est_guerra.json`).
+ * Valor: { t: ms de `_publicadoEn`, z: 'gzip-b64', d: texto base64 }.
+ */
+const BACKUP_ESTATICO_PREFIX = 'terna_backup_est_';
+const BACKUP_ESTATICO_TOPE_CARACTERES = 400000; // ~2,7 veces lo que mide guerra.json comprimido hoy (~146 000)
+
+function _claveBackupEstatico(url){
+  const nombre = String(url || '').split('#')[0].split('?')[0].split('/').pop();
+  return nombre ? BACKUP_ESTATICO_PREFIX + nombre : null;
+}
+
+async function _gzipABase64(texto){
+  if(typeof CompressionStream === 'undefined' || typeof Blob === 'undefined' || typeof Response === 'undefined' || typeof btoa === 'undefined') return null;
+  const flujo = new Blob([texto]).stream().pipeThrough(new CompressionStream('gzip'));
+  const bytes = new Uint8Array(await new Response(flujo).arrayBuffer());
+  let bin = '';
+  for(let i = 0; i < bytes.length; i += 8192) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 8192));
+  return btoa(bin);
+}
+
+async function _base64AGzipTexto(b64){
+  if(typeof DecompressionStream === 'undefined' || typeof Blob === 'undefined' || typeof Response === 'undefined' || typeof atob === 'undefined') return null;
+  const bin = atob(b64);
+  const bytes = new Uint8Array(bin.length);
+  for(let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+  const flujo = new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
+  return await new Response(flujo).text();
+}
+
+/**
+ * @param {string} url Misma URL del archivo (con o sin ?t=).
+ * @param {Object} json El archivo ya descargado y validado por la página (debe traer `_publicadoEn`).
+ * @returns {Promise<boolean>} true si guardó; false si no hacía falta o no se pudo (nunca lanza).
+ */
+async function apiBackupEstaticoGuardar(url, json){
+  try{
+    const clave = _claveBackupEstatico(url);
+    const pub = json && json._publicadoEn ? new Date(json._publicadoEn).getTime() : NaN;
+    if(!clave || isNaN(pub)) return false;
+    const previo = Number(localStorage.getItem(clave + '_t'));
+    if(previo && previo >= pub) return false; // ya está guardado ese archivo (o uno más nuevo)
+    const z = await _gzipABase64(JSON.stringify(json));
+    if(z == null || z.length > BACKUP_ESTATICO_TOPE_CARACTERES) return false;
+    try{
+      localStorage.setItem(clave, JSON.stringify({ t: pub, z: 'gzip-b64', d: z }));
+      localStorage.setItem(clave + '_t', String(pub));
+      return true;
+    }catch(e){
+      // Cuota llena: se quita solo lo propio para no dejar una entrada a medias; los respaldos de apiGet() no se tocan.
+      try{ localStorage.removeItem(clave); localStorage.removeItem(clave + '_t'); }catch(e2){ /* inaccesible */ }
+      return false;
+    }
+  }catch(e){ return false; }
+}
+
+/**
+ * @param {string} url
+ * @returns {Promise<{est: Object, pub: Date}|null>} El archivo guardado y su fecha de publicación; null si no hay, está
+ *   dañado o el navegador no sabe descomprimir. No valida el contenido (eso sigue siendo de cada página).
+ */
+async function apiBackupEstaticoLeer(url){
+  try{
+    const clave = _claveBackupEstatico(url);
+    if(!clave) return null;
+    const crudo = localStorage.getItem(clave);
+    if(!crudo) return null;
+    const g = JSON.parse(crudo);
+    if(!g || g.z !== 'gzip-b64' || typeof g.d !== 'string' || !(g.t > 0)) return null;
+    const texto = await _base64AGzipTexto(g.d);
+    if(texto == null) return null;
+    const est = JSON.parse(texto);
+    return est && typeof est === 'object' ? { est, pub: new Date(g.t) } : null;
+  }catch(e){ return null; }
+}
+
+
 /** Clave de caché de apiGet() para una llamada sin sesión; solo la usa apiGetConRespaldoEstatico(). */
 function _claveCacheApiGet(accion, params){
   // Misma clave que arma apiGet() para una llamada SIN sesión (ver también apiGetUltimaActualizacion()).
