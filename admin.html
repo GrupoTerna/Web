@@ -3669,17 +3669,20 @@ async function cargarSorteosHoy(){
     if(manejarRespuestaAuth(data)) return;
     sorteosHoyData = (data.ok && data.sorteos) ? data.sorteos : [];
     if(!sorteosHoyData.length){
-      sel.innerHTML = '<option value="">Sin sorteos registrados hoy</option>';
+      sel.innerHTML = '<option value="">Sin sorteos de hoy ni planificados</option>';
     }else{
       sel.innerHTML = '<option value="">Elige un sorteo…</option>' +
         sorteosHoyData.map(s => {
-          const fechaTxt = new Date(s.fecha).toLocaleString('es-PE', { hour12:false });
+          // 18-oct-2026 (PF108): el backend manda también los sorteos Planificados (no solo los de hoy), con `fechaTxt` (dd/MM/yyyy), `hora` (HH:mm:ss) y `estado`. Historial en CHANGELOG.md.
+          const horaCorta = s.hora ? String(s.hora).slice(0, 5) : '';
+          const fechaTxt = (s.fechaTxt || new Date(s.fecha).toLocaleDateString('es-PE')) + (horaCorta ? ' ' + horaCorta : '');
+          const etiquetaEstado = (s.estado && s.estado !== 'Realizado') ? ' · ' + s.estado : '';
           const semanasCsv = Array.isArray(s.semanas) ? s.semanas.join(',') : '';
           // AMPLIADO (15-sep-2026, cierre de conexión): data-comentario,
           // mismo criterio que data-autor/data-premios/data-semanas, para
           // precargar #sComentario con lo ya guardado (ver _listarSorteosDeHoy(),
           // 24_Torneos_Core.gs).
-          return `<option value="${esc(s.id)}" data-fecha="${esc(s.fecha)}" data-autor="${esc(s.autor || '')}" data-premios="${esc(s.premios || '')}" data-semanas="${esc(semanasCsv)}" data-idprincipal="${esc(s.idPrincipal || '')}" data-comentario="${esc(s.comentario || '')}">${esc(s.id)} — ${esc(fechaTxt)}</option>`;
+          return `<option value="${esc(s.id)}" data-fecha="${esc(s.fecha)}" data-hora="${esc(horaCorta)}" data-estado="${esc(s.estado || '')}" data-autor="${esc(s.autor || '')}" data-premios="${esc(s.premios || '')}" data-semanas="${esc(semanasCsv)}" data-idprincipal="${esc(s.idPrincipal || '')}" data-comentario="${esc(s.comentario || '')}">${esc(s.id)} — ${esc(fechaTxt)}${esc(etiquetaEstado)}</option>`;
         }).join('');
     }
   }catch(err){
@@ -4970,7 +4973,8 @@ document.getElementById('sSelectHoy').addEventListener('change', () => {
   }else{
     const d = new Date(fechaISO);
     fFecha.value = `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
-    fHora.value  = `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+    // PF108: la hora ya viene resuelta del backend (`data-hora`, de la Fecha o de la columna Hora); si falta, se toma de la Fecha como antes.
+    fHora.value  = opt.dataset.hora || `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
   }
   fFecha.dispatchEvent(new Event('change'));
   fHora.dispatchEvent(new Event('change'));
@@ -6943,7 +6947,7 @@ function renderSorteoPrincipalLista(){
   const candidatos = sorteosHoyData.filter(s => String(s.id) !== String(idExcluir));
 
   if(!candidatos.length){
-    cont.innerHTML = '<div class="empty">No hay otros sorteos de hoy para elegir como principal.</div>';
+    cont.innerHTML = '<div class="empty">No hay otros sorteos de hoy ni planificados para elegir como principal.</div>';
     return;
   }
 
