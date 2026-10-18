@@ -224,7 +224,7 @@
      los colores de cada clan (--nt) son los pasos oscuros de la paleta categorica validada, asignados por clan y no por
      posicion, para que un clan conserve su color en todas las tarjetas. Pistas y rejillas son blanco translucido. */
   .nt-kpis{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin:16px 0 14px;}
-  .nt-kpi{border:1px solid var(--line); border-radius:var(--radius-sm); padding:12px 14px; background:rgba(255,255,255,.02); min-width:0;}
+  .nt-kpi{border:1px solid var(--line); border-radius:var(--radius-sm); padding:12px 14px; background:rgba(255,255,255,.02); min-width:0; text-align:center;}
   .nt-kpi-label{font-family:var(--f-mono); font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--text-dim);}
   .nt-kpi-valor{font-family:var(--f-display); font-size:30px; line-height:1.1; margin-top:4px; color:var(--text); overflow-wrap:anywhere;}
   .nt-kpi-sub{font-size:12px; color:var(--text-dim); margin-top:3px;}
@@ -242,6 +242,9 @@
   .nt-clan-card{border:1px solid var(--line); border-top:3px solid var(--nt, var(--gold)); border-radius:var(--radius-sm); padding:10px 12px; min-width:0;}
   .nt-clan-nombre{font-weight:700; font-size:13px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
   .nt-puesto{font-family:var(--f-display); font-size:34px; line-height:1; margin:6px 0 2px;}
+  /* Centrado (17-oct-2026): título, descripción y tarjetas de «Posiciones finales». La nota al pie queda alineada a la izquierda. */
+  .nt-centro h4, .nt-centro .nt-panel-sub, .nt-centro .nt-clan-card{text-align:center;}
+  .nt-centro .nt-svg{margin-left:auto; margin-right:auto;}
   .nt-leyenda{display:flex; flex-wrap:wrap; gap:4px 14px; font-size:12px; color:var(--text-dim); margin-top:10px;}
   .nt-dot{display:inline-block; width:10px; height:10px; border-radius:50%; margin-right:5px; vertical-align:middle;}
   .nt-chip{display:inline-block; font-family:var(--f-mono); font-size:11px; border:1px solid var(--line); border-radius:999px; padding:2px 9px; margin:0 6px 6px 0; color:var(--text-dim);}
@@ -4677,8 +4680,8 @@ function ntLineas(series, etiquetas){
   return `<svg class="nt-svg" viewBox="0 0 ${W} ${H}" role="img" aria-label="Medallas acumuladas por día de guerra">${grid}${xs}${lineas}</svg><div class="nt-leyenda">${leyenda}</div>`;
 }
 
-function ntPanel(titulo, sub, cuerpo, span){
-  return `<section class="nt-panel${span ? ' nt-span' : ''}"><h4>${esc(titulo)}</h4>${sub ? `<p class="nt-panel-sub">${sub}</p>` : ''}${cuerpo}</section>`;
+function ntPanel(titulo, sub, cuerpo, span, extraClase){
+  return `<section class="nt-panel${span ? ' nt-span' : ''}${extraClase ? ' ' + extraClase : ''}"><h4>${esc(titulo)}</h4>${sub ? `<p class="nt-panel-sub">${sub}</p>` : ''}${cuerpo}</section>`;
 }
 function ntErrorSeccion(sec, titulo){
   return ntPanel(titulo, '', `<div class="msg msg-error">${esc((sec && sec.error) || 'No se pudo cargar esta sección.')}</div>`, false);
@@ -4750,7 +4753,7 @@ function ntPanelPosiciones(sec){
     </div>`;
   }).join('');
   return ntPanel('Posiciones finales', 'Puesto de cada clan al cerrar la semana y trofeos de guerra de las últimas semanas.',
-    `<div class="nt-clan-grid">${tarjetas}</div><p class="nt-nota">«~» = puesto estimado (semana en curso o de coliseo). La línea muestra los trofeos de guerra de hasta 6 semanas.</p>`, true);
+    `<div class="nt-clan-grid">${tarjetas}</div><p class="nt-nota">«~» = puesto estimado (semana en curso o de coliseo). La línea muestra los trofeos de guerra de hasta 6 semanas.</p>`, true, 'nt-centro');
 }
 
 function ntPanelFame(sec){
