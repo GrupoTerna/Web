@@ -30,6 +30,7 @@ function tramo(inicio, fin, nombre){
 const CODIGO = [
   tramo('function formatoMiles(valor){', '/** Lee el <input> de un cuadro', 'formatoMiles()'),
   tramo('function idInputMiles(prefijo, clan){', '/** Pinta un cuadro numérico', 'idInputMiles()'),
+  tramo('async function barcosInicial(categoria, id){', '/**\n * cargarRequisitosPorClan(id)', 'barcosInicial()'),
   tramo('async function cargarRequisitosPorClan(id, esVigente){', '/**\n * armarPayloadRequisitos()', 'cargarRequisitosPorClan() y la precarga de Modificar'),
   tramo('const cuentasPorNomMultiCache = {};', '/**\n * aplicarAutorYCuentaPrecargados(datos, sufijo, prefijo)', 'cuentas y precargarOrganizadorMod()'),
   tramo('function leerCuentaOrgElegida(sufijo){', '/**\n * leerCuentaOrgElegidaSorteo(sufijo)', 'leerCuentaOrgElegida()'),
@@ -45,7 +46,7 @@ const CUERPO = `<!doctype html><html><body>
     <option value="T4" data-nom-multi="Zeta" data-tag-org="#Z9" data-organizador-fuente="Manual">T4</option>
   </select>
   <input id="tModificarLink"><input id="tFechaMod" value="2026-10-18"><input id="tHoraMod" value="21:00">
-  <select id="torneoTipo"><option value="principal">principal</option></select>
+  <select id="torneoTipo"><option value="principal">principal</option><option value="continuacion">continuacion</option></select>
   <div id="tAutorEditableModWrap">
     <select id="tAutorSelectMod">
       <option value="">Sin cambios (mantener autor actual)</option>
@@ -118,13 +119,16 @@ function montar(){
     function pintarSemanasSelector(){}
     function actualizarEtiquetaSinCambiosAutor(){}
     function aplicarBloqueoOrganizadorMod(){}
+    var torneoTorneoPrincipalTag = '';
+    function reiniciarTipoModificar(){ window.__tipoReiniciado = (window.__tipoReiniciado || 0) + 1; }
     function cargarTorneosHoy(){}
     function cargarGanadoresTorneo(){}
     ${CODIGO}
     window.__t = {
       get estado(){ return estadoPrecargaMod; },
       precargar: precargarTorneoModificar,
-      leerCuenta: leerCuentaOrgElegida
+      leerCuenta: leerCuentaOrgElegida,
+      set principalTag(v){ torneoTorneoPrincipalTag = v; }
     };
   `);
   const d = window.document;
@@ -313,4 +317,99 @@ test('PF102: un torneo sin Barcos registrado muestra el tope 16 (no 0 ni el valo
   assert.equal(val(w, 'reqAtaquesBarcos'), '5');
   await w.__t.precargar('T2', w.__elegir('T2'));
   assert.equal(val(w, 'reqAtaquesBarcos'), '16');
+});
+
+// ---- PF105 (18-oct-2026): Barcos del registro anterior y tipo del torneo en «Modificar» ----
+
+const REQ_SIN_BARCOS = { ok: true, requisitos: { ClanA: { minTrofeosGuerra: 1, minAtaquesSemana: 1 }, ClanB: { minTrofeosGuerra: 1, minAtaquesSemana: 1 }, barcos: '' } };
+
+test('PF105: un torneo sin Barcos toma el Barcos del registro anterior (lo pide con la categoría y el ID del torneo)', async () => {
+  const w = montar();
+  w.__api = async (accion, params) => {
+    if(accion === 'webAdminRequisitosClanes') return REQ_SIN_BARCOS;
+    if(accion === 'webAdminBarcosAnterior') return { ok: true, qty: 5, idOrigen: 'T0' };
+    return { ok: true, cuentas: [] };
+  };
+  await w.__t.precargar('T2', w.__elegir('T2'));
+  assert.equal(val(w, 'reqAtaquesBarcos'), '5');
+  const pedido = w.__llamadas.find(l => l[0] === 'webAdminBarcosAnterior');
+  assert.deepEqual({ ...pedido[1] }, { categoria: 'Torneo', id: 'T2' });
+});
+
+test('PF105: un valor anterior de 0 se respeta (0 = ningún ataque permitido) y no se cambia por 16', async () => {
+  const w = montar();
+  w.__api = async accion => {
+    if(accion === 'webAdminRequisitosClanes') return REQ_SIN_BARCOS;
+    if(accion === 'webAdminBarcosAnterior') return { ok: true, qty: 0, idOrigen: 'T0' };
+    return { ok: true, cuentas: [] };
+  };
+  await w.__t.precargar('T2', w.__elegir('T2'));
+  assert.equal(val(w, 'reqAtaquesBarcos'), '0');
+});
+
+test('PF105: sin registro anterior con Barcos (qty null) o si la consulta falla, queda el tope 16', async () => {
+  const w = montar();
+  w.__api = async accion => {
+    if(accion === 'webAdminRequisitosClanes') return REQ_SIN_BARCOS;
+    if(accion === 'webAdminBarcosAnterior') return { ok: true, qty: null, idOrigen: '' };
+    return { ok: true, cuentas: [] };
+  };
+  await w.__t.precargar('T2', w.__elegir('T2'));
+  assert.equal(val(w, 'reqAtaquesBarcos'), '16');
+
+  const w2 = montar();
+  w2.__api = async accion => {
+    if(accion === 'webAdminRequisitosClanes') return REQ_SIN_BARCOS;
+    if(accion === 'webAdminBarcosAnterior') throw new Error('red');
+    return { ok: true, cuentas: [] };
+  };
+  await w2.__t.precargar('T2', w2.__elegir('T2'));
+  assert.equal(val(w2, 'reqAtaquesBarcos'), '16');
+});
+
+test('PF105: un torneo con Barcos propio lo conserva y no consulta el registro anterior', async () => {
+  const w = montar();
+  w.__api = async accion => {
+    if(accion === 'webAdminRequisitosClanes') return REQ_T1;
+    if(accion === 'webAdminBarcosAnterior') return { ok: true, qty: 9, idOrigen: 'T0' };
+    return { ok: true, cuentas: [] };
+  };
+  await w.__t.precargar('T1', w.__elegir('T1'));
+  assert.equal(val(w, 'reqAtaquesBarcos'), '5');
+  assert.equal(w.__llamadas.filter(l => l[0] === 'webAdminBarcosAnterior').length, 0);
+});
+
+test('PF105: «Guardar cambios» envía tipoTorneo «principal» (sin torneo principal) cuando es un torneo principal', async () => {
+  const w = montar(); apiNormal(w);
+  await w.__t.precargar('T1', w.__elegir('T1'));
+  const [payload] = await guardar(w, 'T1');
+  assert.equal(payload.tipoTorneo, 'principal');
+  assert.equal(payload.tagTorneoPrincipal, '');
+});
+
+test('PF105: «Guardar cambios» envía tipoTorneo «continuacion» con el torneo principal elegido', async () => {
+  const w = montar(); apiNormal(w);
+  await w.__t.precargar('T1', w.__elegir('T1'));
+  w.document.getElementById('torneoTipo').value = 'continuacion';
+  w.__t.principalTag = 'TAG_PRINCIPAL';
+  const [payload] = await guardar(w, 'T1');
+  assert.equal(payload.tipoTorneo, 'continuacion');
+  assert.equal(payload.tagTorneoPrincipal, 'TAG_PRINCIPAL');
+});
+
+test('PF105: una continuación sin principal elegido no se envía y avisa', async () => {
+  const w = montar(); apiNormal(w);
+  await w.__t.precargar('T1', w.__elegir('T1'));
+  w.document.getElementById('torneoTipo').value = 'continuacion';
+  w.__t.principalTag = '';
+  const enviados = await guardar(w, 'T1');
+  assert.equal(enviados.length, 0);
+  assert.match(w.document.getElementById('modificarTorneoMsg').textContent, /Elige de cuál torneo principal/);
+});
+
+test('PF105: tras guardar bien el selector de tipo se reinicia', async () => {
+  const w = montar(); apiNormal(w);
+  await w.__t.precargar('T1', w.__elegir('T1'));
+  await guardar(w, 'T1');
+  assert.equal(w.__tipoReiniciado, 1);
 });
