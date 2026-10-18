@@ -616,6 +616,14 @@
                 <!-- Fase 11 (plan T_Lista, ver 24_Torneos_Core.gs): nota sobre el alcance de "Ingresar link"; texto actualizado el 02-oct-2026 porque la Fase 12 ya está en el backend. Historial en CHANGELOG.md. -->
                 <p class="text-dim" style="font-size:12px; margin:6px 0 0;">"Ingresar link" también sirve para corregir el link de un torneo ya registrado: pega el link nuevo y pon la misma fecha y hora (hasta el minuto) con la que quedó registrado, y se corrige esa misma fila en vez de crear otra. Si la fecha u hora no coinciden con ningún torneo registrado, se registra un torneo nuevo. Si el link es de otro torneo, se vuelve a detectar el organizador y los demás datos. En una corrección no se aplican el organizador, las semanas, los requisitos ni el comentario de este formulario.</p>
               </div>
+              <!-- PF105 (18-oct-2026): en «Modificar» primero se elige el torneo y recién después su tipo (principal o continuación), ya precargado con el que tiene y editable. Fuente única: #torneoTipo (lo sincroniza initTorneoWizard()). -->
+              <div class="field" id="modTipoBox" style="display:none; margin-bottom:12px;">
+                <label for="torneoTipoMod">¿Qué tipo de torneo es?</label>
+                <select id="torneoTipoMod">
+                  <option value="principal">Torneo principal</option>
+                  <option value="continuacion">Torneo de continuación</option>
+                </select>
+              </div>
               <div class="field-row" id="filaFechaHoraMod">
                 <div class="field">
                   <label for="tFechaModTexto">Nueva fecha</label>
@@ -754,7 +762,7 @@
               <div class="field">
                 <label for="reqAtaquesBarcos">Ataques a barcos permitidos por semana</label>
                 <select id="reqAtaquesBarcos">
-                  <option value="0" selected>0</option>
+                  <option value="0">0</option>
                   <option value="1">1</option>
                   <option value="2">2</option>
                   <option value="3">3</option>
@@ -770,7 +778,7 @@
                   <option value="13">13</option>
                   <option value="14">14</option>
                   <option value="15">15</option>
-                  <option value="16">16</option>
+                  <option value="16" selected>16</option>
                 </select>
               </div>
 
@@ -1065,7 +1073,7 @@
                 <div class="field">
                   <label for="reqAtaquesBarcosSorteo">Ataques a barcos permitidos por semana</label>
                   <select id="reqAtaquesBarcosSorteo">
-                    <option value="0" selected>0</option>
+                    <option value="0">0</option>
                     <option value="1">1</option>
                     <option value="2">2</option>
                     <option value="3">3</option>
@@ -1081,7 +1089,7 @@
                     <option value="13">13</option>
                     <option value="14">14</option>
                     <option value="15">15</option>
-                    <option value="16">16</option>
+                    <option value="16" selected>16</option>
                   </select>
                 </div>
 
@@ -1268,7 +1276,7 @@
                     <div class="field">
                       <label for="crBarcosAscenso">Ataques a barcos permitidos por semana</label>
                       <select id="crBarcosAscenso">
-                        <option value="0" selected>0</option>
+                        <option value="0">0</option>
                         <option value="1">1</option>
                         <option value="2">2</option>
                         <option value="3">3</option>
@@ -1284,7 +1292,7 @@
                         <option value="13">13</option>
                         <option value="14">14</option>
                         <option value="15">15</option>
-                        <option value="16">16</option>
+                        <option value="16" selected>16</option>
                       </select>
                     </div>
                     <div class="field" style="margin-top:10px;">
@@ -1328,7 +1336,7 @@
                     <div class="field">
                       <label for="crBarcosDescenso">Ataques a barcos permitidos por semana</label>
                       <select id="crBarcosDescenso">
-                        <option value="0" selected>0</option>
+                        <option value="0">0</option>
                         <option value="1">1</option>
                         <option value="2">2</option>
                         <option value="3">3</option>
@@ -1344,7 +1352,7 @@
                         <option value="13">13</option>
                         <option value="14">14</option>
                         <option value="15">15</option>
-                        <option value="16">16</option>
+                        <option value="16" selected>16</option>
                       </select>
                     </div>
                     <div class="field" style="margin-top:10px;">
@@ -2904,6 +2912,21 @@ function initMismoValorParaTodos(prefijo, idMismo, idMismoValor){
 // El placeholder de miles ya no lleva coma (solo visual al perder foco); la carga de requisitos se dispara desde mostrarPanel(). Historial en CHANGELOG.md.
 
 /**
+ * barcosInicial(categoria, id) -- PF105 (18-oct-2026, pedido de la usuaria): valor inicial de «Ataques a barcos» cuando el registro no trae dato propio. Prioridad: (1) el Barcos del propio registro (lo resuelve cada formulario antes de llamar aquí); (2) el Barcos del registro ANTERIOR de la misma clase, que da el backend (webAdminBarcosAnterior; con `id` el inmediatamente anterior a ese registro, sin `id` el más reciente con dato); (3) 16 (tope: equivale a no evaluar Barcos) solo si no hay ninguno o falla la consulta. `categoria` = 'Torneo' | 'Sorteo' | 'CR_Ascenso' | 'CR_Descenso'. Siempre devuelve un texto de 0 a 16 válido para el <select>.
+ */
+async function barcosInicial(categoria, id){
+  try{
+    const params = id ? { categoria, id } : { categoria };
+    const data = await apiGetAuth('webAdminBarcosAnterior', params);
+    if(data && data.ok && data.qty !== null && data.qty !== undefined && data.qty !== ''){
+      const n = Math.round(Number(data.qty));
+      if(isFinite(n) && n >= 0 && n <= 16) return String(n);
+    }
+  }catch(err){ /* sin red: se cae al tope */ }
+  return '16';
+}
+
+/**
  * cargarRequisitosPorClan(id)
  * RESUELTO (12-sep-2026, pedido del usuario -- consolidado sección 5.1,
  * punto "(b)"): ya existe `webAdminRequisitosClanes` en el backend
@@ -2943,6 +2966,10 @@ async function cargarRequisitosPorClan(id, esVigente){
     if(manejarRespuestaAuth(data)) return false;
     if(esVigente && !esVigente()) return false;
     if(data.ok && data.requisitos){
+      // PF105: Barcos propio del torneo; si no tiene, el del registro anterior; si tampoco hay, 16. Se resuelve antes de pintar para no mezclar respuestas de torneos distintos.
+      const barcosPropio = data.requisitos.ataquesBarcosSemana;
+      const barcosTorneo = (barcosPropio !== undefined && barcosPropio !== '') ? String(barcosPropio) : await barcosInicial('Torneo', id);
+      if(esVigente && !esVigente()) return false;
       CLANES_REQUISITOS.forEach(clan => {
         const r = data.requisitos[clan] || {};
         const idT = idInputMiles('reqTrofGuerra', clan);
@@ -2950,8 +2977,8 @@ async function cargarRequisitosPorClan(id, esVigente){
         if(document.getElementById(idT)) document.getElementById(idT).value = formatoMiles(r.minTrofeosGuerra);
         if(document.getElementById(idA)) document.getElementById(idA).value = formatoMiles(r.minAtaquesSemana);
       });
-      // PF102 (18-oct-2026, decisión de la usuaria): sin Barcos registrado se asume el tope de 16 (16 ataques es el total posible: equivale a no evaluarlos; es un tope, no un mínimo). El backend solo manda `ataquesBarcosSemana` si hay valor.
-      document.getElementById('reqAtaquesBarcos').value = (data.requisitos.ataquesBarcosSemana !== undefined && data.requisitos.ataquesBarcosSemana !== '') ? data.requisitos.ataquesBarcosSemana : '16';
+      // PF102/PF105: el backend solo manda `ataquesBarcosSemana` si el torneo tiene valor; sin valor se usó el del registro anterior y, si no hay, 16 (tope: 16 ataques es el total posible, equivale a no evaluarlos).
+      document.getElementById('reqAtaquesBarcos').value = barcosTorneo;
       if(data.requisitos.miembroActivo) document.getElementById('reqMiembroActivo').value = data.requisitos.miembroActivo;
       if(data.requisitos.reaccion) document.getElementById('reqReaccion').value = data.requisitos.reaccion;
       if(data.requisitos.presenciaWhatsapp) document.getElementById('reqPresenciaWhatsapp').value = data.requisitos.presenciaWhatsapp;
@@ -3105,6 +3132,9 @@ async function cargarRequisitosSorteoPorClan(id){
     const data = await apiGetAuth('webAdminRequisitosClanesSorteo', id ? { id } : {});
     if(manejarRespuestaAuth(data)) return;
     if(data.ok && data.requisitos){
+      // PF105: mismo orden que en Torneos (propio, registro anterior, 16).
+      const barcosPropioS = data.requisitos.ataquesBarcosSemana;
+      const barcosSorteo = (barcosPropioS !== undefined && barcosPropioS !== '') ? String(barcosPropioS) : await barcosInicial('Sorteo', id);
       CLANES_REQUISITOS.forEach(clan => {
         const r = data.requisitos[clan] || {};
         const idT = idInputMiles('reqTrofGuerraSorteo', clan);
@@ -3115,8 +3145,8 @@ async function cargarRequisitosSorteoPorClan(id){
         if(document.getElementById(idJ)) document.getElementById(idJ).value = formatoMiles(r.minTorneosJugados);
       });
       if(data.requisitos.delta !== undefined) document.getElementById('reqDeltaSorteo').value = formatoMiles(data.requisitos.delta);
-      // PF102: misma regla que en Torneos (sin Barcos registrado = tope 16).
-      document.getElementById('reqAtaquesBarcosSorteo').value = (data.requisitos.ataquesBarcosSemana !== undefined && data.requisitos.ataquesBarcosSemana !== '') ? data.requisitos.ataquesBarcosSemana : '16';
+      // PF102/PF105: misma regla que en Torneos (propio, registro anterior, 16).
+      document.getElementById('reqAtaquesBarcosSorteo').value = barcosSorteo;
       if(data.requisitos.miembroActivo) document.getElementById('reqMiembroActivoSorteo').value = data.requisitos.miembroActivo;
       if(data.requisitos.reaccion) document.getElementById('reqReaccionSorteo').value = data.requisitos.reaccion;
       if(data.requisitos.presenciaWhatsapp) document.getElementById('reqPresenciaWhatsappSorteo').value = data.requisitos.presenciaWhatsapp;
@@ -3247,6 +3277,15 @@ function initTorneoWizard(){
   // El foco se mueve al primer campo del paso nuevo (o al selector del paso anterior al volver). Historial en CHANGELOG.md.
   document.getElementById('btnTorneoPaso1').addEventListener('click', () => {
     if(!selAccion.value){ return; }
+    // PF105: «Modificar» no pregunta el tipo antes de elegir el torneo; salta el paso 2, muestra la lista de torneos y el tipo se pregunta después (ver #modTipoBox y el 'change' de #tSelectHoy).
+    if(selAccion.value === 'modificar'){
+      paso2.style.display = 'none';
+      reiniciarTipoModificar();
+      mostrarPaso3();
+      enfocarPrimerControl(paso3);
+      return;
+    }
+    if(selTipo.dataset.auto === '1'){ selTipo.value = ''; delete selTipo.dataset.auto; } // venía fijado por «Modificar»
     paso2.style.display = '';
     enfocarPrimerControl(paso2);
   });
@@ -3267,8 +3306,50 @@ function initTorneoWizard(){
   document.getElementById('torneoVolverPaso2').addEventListener('click', (ev) => {
     ev.preventDefault();
     paso3.style.display = 'none';
+    // PF105: en «Modificar» no hubo paso 2, así que «Cambiar» vuelve al paso 1.
+    if(selAccion.value === 'modificar'){ selAccion.focus(); return; }
     selTipo.focus();
   });
+
+  // PF105: cambio manual del tipo en «Modificar» (después de elegir el torneo).
+  document.getElementById('torneoTipoMod').addEventListener('change', () => aplicarTipoModificar(document.getElementById('torneoTipoMod').value, true));
+}
+
+/**
+ * PF105: tipo del torneo en «Modificar». #torneoTipo sigue siendo la fuente única que leen los listeners de guardado; aquí se mantiene sincronizado con #torneoTipoMod y con la lista de «¿Cuál es el torneo principal?».
+ *   - aplicarTipoModificar(tipo, desdeUsuario): fija #torneoTipo, muestra u oculta la lista de principales. Al pasar a «principal» se borra la elección de principal (el backend quita la continuación). Al volver a «continuación» se restaura el principal que el torneo ya tenía, si lo tenía.
+ *   - reiniciarTipoModificar(): oculta el selector (aún no hay torneo elegido) y deja todo como «principal».
+ */
+function aplicarTipoModificar(tipo, desdeUsuario){
+  const selTipo = document.getElementById('torneoTipo');
+  const box = document.getElementById('camposTorneoPrincipal');
+  const msg = document.getElementById('torneoPrincipalElegidoMsg');
+  selTipo.value = tipo;
+  selTipo.dataset.auto = '1';
+  document.getElementById('torneoTipoMod').value = tipo;
+  if(tipo === 'continuacion'){
+    const opt = document.getElementById('tSelectHoy').selectedOptions[0];
+    const tagOriginal = (opt && opt.dataset.tagPrincipal) || '';
+    torneoTorneoPrincipalTag = tagOriginal;
+    box.style.display = '';
+    renderTorneoPrincipalLista();
+    if(tagOriginal){
+      const t = torneosHoyData.find(x => x.tagTor === tagOriginal);
+      msg.innerHTML = `<div class="msg msg-ok">Torneo principal actual: ${esc(t ? t.id : tagOriginal)}</div>`;
+    }else{
+      msg.innerHTML = '';
+    }
+  }else{
+    torneoTorneoPrincipalTag = '';
+    msg.innerHTML = '';
+    box.style.display = 'none';
+  }
+}
+
+function reiniciarTipoModificar(){
+  const box = document.getElementById('modTipoBox');
+  if(box) box.style.display = 'none';
+  aplicarTipoModificar('principal', false);
 }
 
 /**
@@ -3536,7 +3617,7 @@ async function cargarTorneosHoy(){
           const semanasCsv = Array.isArray(t.semanas) ? t.semanas.join(',') : '';
           // data-organizador-fuente ('API'|'Manual'|''): Fase 11 (plan T_Lista, ver 24_Torneos_Core.gs) -- decide si #tAutorSelectMod queda editable o se reemplaza por #tAutorSoloLecturaMod. Historial en CHANGELOG.md.
           // PF101: data-nom-multi/tag-org/clan/clan-tag (ya vienen en `_listarTorneosModificables()`) permiten preseleccionar el Nom_Multi y la CUENTA exacta con la que se organizó, en vez de mostrar solo «Sin cambios (Nom_Multi)». Historial en CHANGELOG.md.
-          return `<option value="${esc(t.id)}" data-fecha="${esc(t.fecha)}" data-hora="${esc(horaCorta)}" data-estado="${esc(t.estado || '')}" data-autor="${esc(autorOpt)}" data-nom-multi="${esc(t.organizadorFuente === 'API' ? '' : (t.nomMulti || ''))}" data-tag-org="${esc(t.tagOrg || '')}" data-clan="${esc(t.clan || '')}" data-clan-tag="${esc(t.clanTag || '')}" data-organizador-fuente="${esc(t.organizadorFuente || '')}" data-premios="${esc(t.premios || '')}" data-semanas="${esc(semanasCsv)}" data-comentario="${esc(t.comentario || '')}">${esc(t.id)} — ${esc(fechaTxt)}${esc(etiquetaEstado)}</option>`;
+          return `<option value="${esc(t.id)}" data-fecha="${esc(t.fecha)}" data-hora="${esc(horaCorta)}" data-estado="${esc(t.estado || '')}" data-autor="${esc(autorOpt)}" data-nom-multi="${esc(t.organizadorFuente === 'API' ? '' : (t.nomMulti || ''))}" data-tag-principal="${esc(t.tagPrincipal || '')}" data-tag-org="${esc(t.tagOrg || '')}" data-clan="${esc(t.clan || '')}" data-clan-tag="${esc(t.clanTag || '')}" data-organizador-fuente="${esc(t.organizadorFuente || '')}" data-premios="${esc(t.premios || '')}" data-semanas="${esc(semanasCsv)}" data-comentario="${esc(t.comentario || '')}">${esc(t.id)} — ${esc(fechaTxt)}${esc(etiquetaEstado)}</option>`;
         }).join('') + OPCION_INGRESAR_LINK;
     }
   }catch(err){
@@ -4956,6 +5037,15 @@ document.getElementById('tSelectHoy').addEventListener('change', () => {
     renderTorneoPrincipalLista();
   }
 
+  // PF105: tras elegir el torneo aparece el tipo (principal o continuación), precargado con el que ya tiene y editable; sin torneo elegido el selector se oculta.
+  const modTipoBox = document.getElementById('modTipoBox');
+  if(opt && opt.value){
+    modTipoBox.style.display = '';
+    aplicarTipoModificar(opt.dataset.tagPrincipal ? 'continuacion' : 'principal', false);
+  }else{
+    reiniciarTipoModificar();
+  }
+
   // Al elegir/quitar un torneo en Modificar se refresca autor/premios/semanas con lo ya registrado de ese torneo. Historial en CHANGELOG.md.
   // PF101: si el torneo trae Nom_Multi, precargarOrganizadorMod() lo deja elegido (con su cuenta), así que la opción «Sin cambios» vuelve al texto genérico en vez de repetir «Sin cambios (Carlos)». Historial en CHANGELOG.md.
   actualizarEtiquetaSinCambiosAutor(opt && !opt.dataset.nomMulti ? opt.dataset.autor : '');
@@ -5104,6 +5194,7 @@ document.getElementById('btnModificarTorneo').addEventListener('click', () => co
       id, fecha, hora,
       link, // '' salvo que se haya elegido "Ingresar link" en #tSelectHoy
       tagTorneoPrincipal: esContinuacion ? torneoTorneoPrincipalTag : '',
+      tipoTorneo: esContinuacion ? 'continuacion' : 'principal', // PF105: 'principal' quita la continuación que tuviera el torneo
       autor,   // '' = no cambiar el autor ya registrado
       premios, // '' = no cambiar los premios ya registrados
       tagOrg, clanOrg, clanTagOrg, // '' = no cambiar Tag_org/Clan/ClanTag ya registrados
@@ -5117,6 +5208,7 @@ document.getElementById('btnModificarTorneo').addEventListener('click', () => co
       ? `<div class="msg msg-ok">${data.corregido === true ? 'Link corregido' : 'Torneo registrado'} (ID ${esc(data.id)}).</div>`
       : '<div class="msg msg-ok">Torneo actualizado.</div>';
     document.getElementById('tModificarLink').value = '';
+    reiniciarTipoModificar(); // PF105: sin torneo elegido, el tipo vuelve a ocultarse
     document.getElementById('tAutorSelectMod').value = '';
     document.getElementById('tAutorManualMod').value = '';
     document.getElementById('tAutorManualMod').style.display = 'none';
@@ -5576,26 +5668,24 @@ function leerOtrosCriteriosCR(tipo){
   };
 }
 
-function limpiarOtrosCriteriosCR(tipo){
+async function limpiarOtrosCriteriosCR(tipo){
   const suf = tipo === 'ascenso' ? 'Ascenso' : 'Descenso';
-  // FIX (14-sep-2026, pedido usuario -- "no se debe dejar sin definir la
-  // cantidad de barcos, cargado por defecto en 0"): antes quedaba en ''
-  // ("Sin configurar"), que ya no existe como opción.
-  document.getElementById('crBarcos' + suf).value = '0';
+  // PF105 (18-oct-2026): una corrida nueva arranca con el Barcos de la corrida anterior de esa mitad (Ascenso o Descenso) y solo con 16 si no hay ninguna (antes arrancaba en 0, que significa «ningún ataque a barcos permitido»). Miembro activo y WhatsApp no cambian.
   document.getElementById('crMiembroActivo' + suf).value = 'Sí';
   // WhatsApp en Cambio de Rango arranca en "No" por defecto (Miembro activo sigue en "Sí"). Historial en CHANGELOG.md.
   document.getElementById('crWhatsapp' + suf).value = 'No';
+  document.getElementById('crBarcos' + suf).value = '16'; // valor provisional mientras se consulta
+  document.getElementById('crBarcos' + suf).value = await barcosInicial('CR_' + suf);
 }
 
-function precargarOtrosCriteriosCR(tipo, fila){
+/**
+ * precargarOtrosCriteriosCR(tipo, fila, idExcluir): `idExcluir` (opcional) es el ID de la fila que se está editando, para que el «registro anterior» sea el inmediatamente anterior a ella y no ella misma.
+ */
+async function precargarOtrosCriteriosCR(tipo, fila, idExcluir){
   const suf = tipo === 'ascenso' ? 'Ascenso' : 'Descenso';
-  if(!fila){ limpiarOtrosCriteriosCR(tipo); return; }
-  // FIX (14-sep-2026, pedido usuario -- Barcos ya no tiene "Sin
-  // configurar"): una corrida guardada con `barcos.activo:false` (celda
-  // vacía en la hoja, criterio no configurado) se muestra como "16" -- el
-  // mismo significado de "no excluir a nadie" que tenía antes "Sin
-  // configurar", ahora expresado dentro del rango 0-16.
-  document.getElementById('crBarcos' + suf).value = fila.barcos.activo ? String(fila.barcos.qty) : '16';
+  if(!fila){ await limpiarOtrosCriteriosCR(tipo); return; }
+  // PF105: una corrida guardada con `barcos.activo:false` (celda vacía = sin requisito) toma el Barcos de la corrida anterior de esa mitad; si no hay, 16 (antes siempre 16).
+  document.getElementById('crBarcos' + suf).value = fila.barcos.activo ? String(fila.barcos.qty) : await barcosInicial('CR_' + suf, idExcluir);
   document.getElementById('crMiembroActivo' + suf).value = fila.miembroActivo.activo ? 'Sí' : 'No';
   document.getElementById('crWhatsapp' + suf).value = fila.whatsapp.activo ? 'Sí' : 'No';
   // Estado NO se precarga -- ya no hay campo en el formulario, y
@@ -5643,8 +5733,7 @@ async function limpiarFormularioCR(){
   document.getElementById('crComentario').value = '';
   document.getElementById('crGuardarMsg').innerHTML = '';
   await Promise.all([pintarGridCR('ascenso'), pintarGridCR('descenso')]); // PASO 4 -- grilla vacía (sin requisitos)
-  limpiarOtrosCriteriosCR('ascenso'); // PASO 6 -- Barcos/Miembro activo/WhatsApp/Estado a sus valores por defecto
-  limpiarOtrosCriteriosCR('descenso');
+  await Promise.all([limpiarOtrosCriteriosCR('ascenso'), limpiarOtrosCriteriosCR('descenso')]); // PASO 6 -- Barcos (corrida anterior o 16)/Miembro activo/WhatsApp a sus valores por defecto
   mostrarRequisitosAscensoCR(); // arranca siempre por Ascenso, ver docblock arriba
   document.getElementById('crPaso3').style.display = '';
   actualizarVisibilidadPropuestasCR(); // PASO 5 -- corrida todavía sin guardar, sin propuestas
@@ -5749,8 +5838,10 @@ async function precargarFormularioCR(idAscenso){
     await Promise.all([pintarGridCR('ascenso'), pintarGridCR('descenso')]);
     precargarGridCR('ascenso', filaAsc.porClan);
     if(filaDesc) precargarGridCR('descenso', filaDesc.porClan);
-    precargarOtrosCriteriosCR('ascenso', filaAsc);   // PASO 6
-    precargarOtrosCriteriosCR('descenso', filaDesc); // filaDesc puede ser null (par incompleto) -- ver docblock de la función
+    await Promise.all([
+      precargarOtrosCriteriosCR('ascenso', filaAsc, idAscenso),   // PASO 6
+      precargarOtrosCriteriosCR('descenso', filaDesc, idDescenso) // filaDesc puede ser null (par incompleto) -- ver docblock de la función
+    ]);
 
     document.getElementById('crPaso2Msg').innerHTML = '';
     mostrarRequisitosAscensoCR(); // arranca siempre por Ascenso, aunque ya existan ambas mitades cargadas
@@ -5824,8 +5915,7 @@ async function precargarUltimoRegistroCR(){
     await Promise.all([pintarGridCR('ascenso'), pintarGridCR('descenso')]);
     precargarGridCR('ascenso', filaAsc.porClan);
     if(filaDesc) precargarGridCR('descenso', filaDesc.porClan);
-    precargarOtrosCriteriosCR('ascenso', filaAsc);
-    precargarOtrosCriteriosCR('descenso', filaDesc);
+    await Promise.all([precargarOtrosCriteriosCR('ascenso', filaAsc), precargarOtrosCriteriosCR('descenso', filaDesc)]);
 
     mostrarRequisitosAscensoCR(); // arranca siempre por Ascenso, mismo criterio que precargarFormularioCR()
     document.getElementById('crPaso2Msg').innerHTML = '';
