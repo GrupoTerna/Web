@@ -578,7 +578,7 @@ async function apiGetEstaticoConEdad(url, opts){
   const pub = est && est._publicadoEn ? new Date(est._publicadoEn) : null;
   if(!pub || isNaN(pub.getTime())) return null;
   // Copia nueva para la próxima vez: diferida para no retrasar el pintado; solo escribe si `_publicadoEn` es más nuevo que lo guardado.
-  // No valida la forma del contenido (eso es de cada página): solo se descartan los que traen `error`.
+  // La forma del contenido la valida apiBackupEstaticoGuardar() con BACKUP_ESTATICO_VALIDADORES (§PF117); la página sigue validando lo suyo al leer.
   if(!local && typeof est === 'object' && !est.error && typeof setTimeout === 'function') setTimeout(function(){ apiBackupEstaticoGuardar(url, est); }, 1500);
   return { est, pub, vigente: (Date.now() - pub.getTime()) < edadMax, local };
 }
@@ -598,6 +598,7 @@ async function apiGetEstaticoConEdad(url, opts){
  *   - Se guarda solo si `_publicadoEn` es válido y MÁS NUEVO que lo ya guardado (una marca pequeña aparte,
  *     `<clave>_t`, evita leer y descomprimir el respaldo para comparar). guerra.html recarga cada minuto y el bot
  *     publica como mínimo cada hora: sin esta regla se reescribiría ~1 MB sin necesidad cada minuto.
+ *   - Solo se guarda (y solo se devuelve) un archivo con la forma que la página exige: ver BACKUP_ESTATICO_VALIDADORES (§PF117).
  *   - Si el navegador no sabe comprimir (sin CompressionStream) NO se guarda sin comprimir: se prefiere no tener respaldo.
  *   - Tope por archivo: BACKUP_ESTATICO_TOPE_CARACTERES (el valor ya comprimido). Si lo supera, no se guarda.
  *   - Si localStorage está lleno, solo se borra la propia entrada de ese archivo (nunca los respaldos de apiGet()).
@@ -611,6 +612,30 @@ const BACKUP_ESTATICO_TOPE_CARACTERES = 400000; // ~2,7 veces lo que mide guerra
 function _claveBackupEstatico(url){
   const nombre = String(url || '').split('#')[0].split('?')[0].split('/').pop();
   return nombre ? BACKUP_ESTATICO_PREFIX + nombre : null;
+}
+
+/**
+ * Validadores de la copia local (NUEVO 18-oct-2026, §PF117; era el límite (a) de §PF116). Un archivo con `_publicadoEn` más nuevo pero con la forma
+ * rota ya no reemplaza a la copia buena, y una copia guardada con mala forma no se devuelve. Son las mismas reglas con las que cada página
+ * acepta ese archivo (las que ya están en guerra.html, perfil.html, index.html, clan.html, directorio.html, comunidad.html y torneos.html); si una
+ * página cambia lo que exige, hay que cambiarlo aquí también. Un archivo que no figura en la tabla solo debe traer `_publicadoEn` y no traer `error`.
+ * home.json se valida por `clanInfo` (la sección principal); `ascensos` y el resto los sigue validando cada página al leer.
+ */
+const _clanesNoVacios = (c) => Array.isArray(c) && c.length > 0;
+const BACKUP_ESTATICO_VALIDADORES = {
+  'guerra.json': (j) => !!(j.ctx && typeof j.ctx === 'object'),
+  'guerra_ctx.json': (j) => !!(j.ctx && typeof j.ctx === 'object'),
+  'guerra_top.json': (j) => !!(j.valoresDiariosSelectores && typeof j.valoresDiariosSelectores === 'object'),
+  'roster.json': (j) => _clanesNoVacios(j.clanes),
+  'home.json': (j) => !!(j.clanInfo && !j.clanInfo.error && _clanesNoVacios(j.clanInfo.clanes)),
+  'torneos.json': (j) => !!(j.torneos && !j.torneos.error && j.historial && !j.historial.error)
+};
+
+function _backupEstaticoValido(url, json){
+  const clave = _claveBackupEstatico(url);
+  if(!clave || !json || typeof json !== 'object' || json.error) return false;
+  const validar = BACKUP_ESTATICO_VALIDADORES[clave.slice(BACKUP_ESTATICO_PREFIX.length)];
+  try{ return validar ? !!validar(json) : true; }catch(e){ return false; }
 }
 
 async function _gzipABase64(texto){
@@ -640,7 +665,7 @@ async function apiBackupEstaticoGuardar(url, json){
   try{
     const clave = _claveBackupEstatico(url);
     const pub = json && json._publicadoEn ? new Date(json._publicadoEn).getTime() : NaN;
-    if(!clave || isNaN(pub)) return false;
+    if(!clave || isNaN(pub) || !_backupEstaticoValido(url, json)) return false; // forma rota: se conserva la copia anterior
     const previo = Number(localStorage.getItem(clave + '_t'));
     if(previo && previo >= pub) return false; // ya está guardado ese archivo (o uno más nuevo)
     const z = await _gzipABase64(JSON.stringify(json));
@@ -673,7 +698,7 @@ async function apiBackupEstaticoLeer(url){
     const texto = await _base64AGzipTexto(g.d);
     if(texto == null) return null;
     const est = JSON.parse(texto);
-    return est && typeof est === 'object' ? { est, pub: new Date(g.t) } : null;
+    return _backupEstaticoValido(url, est) ? { est, pub: new Date(g.t) } : null;
   }catch(e){ return null; }
 }
 

@@ -143,13 +143,70 @@ test('§PF116: un archivo con `error` o sin _publicadoEn no se guarda', async ()
   assert.equal(w.localStorage.length, 0);
 });
 
+// Muestras mínimas con la forma que acepta cada página (tomadas de los archivos reales de la rama `data`, 18-oct-2026).
+const FORMAS_VALIDAS = {
+  'home.json': { clanInfo: { clanes: [{ tag: '#A' }] }, ascensos: { ascensos: [] } },
+  'roster.json': { clanes: [{ tag: '#A', miembros: [] }] },
+  'torneos.json': { historial: { historial: [] }, torneos: { torneos: [], ganadores: [] } },
+  'guerra_top.json': { valoresDiariosSelectores: { anios: [2026] } },
+  'guerra_ctx.json': { ctx: { periodIndex: 17 } },
+  'guerra.json': { ctx: { periodIndex: 17 }, valoresDiariosSelectores: {} }
+};
+const urlDe = (n) => 'https://raw.githubusercontent.com/GrupoTerna/Web/data/' + n + '?t=1';
+const con = (n, extra) => ({ _publicadoEn: hace(1 * HORA), ...FORMAS_VALIDAS[n], ...(extra || {}) });
+
 test('§PF116: cada archivo tiene su propia clave (home, roster, torneos, guerra_top y guerra_ctx no se pisan)', async () => {
   const w = montar();
-  for (const n of ['home', 'roster', 'torneos', 'guerra_top', 'guerra_ctx']){
-    assert.equal(await w.apiBackupEstaticoGuardar('https://raw.githubusercontent.com/GrupoTerna/Web/data/' + n + '.json?t=1', guerra({ nombre: n })), true);
+  for (const n of Object.keys(FORMAS_VALIDAS)){
+    assert.equal(await w.apiBackupEstaticoGuardar(urlDe(n), con(n, { nombre: n })), true, n);
   }
-  for (const n of ['home', 'roster', 'torneos', 'guerra_top', 'guerra_ctx']){
-    const l = await w.apiBackupEstaticoLeer(n + '.json');
+  for (const n of Object.keys(FORMAS_VALIDAS)){
+    const l = await w.apiBackupEstaticoLeer(n);
     assert.equal(l.est.nombre, n);
   }
+});
+
+test('§PF117: cada archivo con la forma rota NO se guarda', async () => {
+  const w = montar();
+  const rotos = {
+    'home.json': { clanInfo: { clanes: [] } },
+    'roster.json': { clanes: [] },
+    'torneos.json': { torneos: { torneos: [] } }, // falta historial
+    'guerra_top.json': { otra: 1 },
+    'guerra_ctx.json': { ctx: null },
+    'guerra.json': { filas: [1, 2, 3] }
+  };
+  for (const [n, forma] of Object.entries(rotos)){
+    assert.equal(await w.apiBackupEstaticoGuardar(urlDe(n), { _publicadoEn: hace(1 * HORA), ...forma }), false, n);
+  }
+  assert.equal(w.localStorage.length, 0);
+});
+
+test('§PF117: con `error` dentro de la sección tampoco se guarda (home: clanInfo; torneos: historial)', async () => {
+  const w = montar();
+  assert.equal(await w.apiBackupEstaticoGuardar(urlDe('home.json'), con('home.json', { clanInfo: { error: 'x', clanes: [{ tag: '#A' }] } })), false);
+  assert.equal(await w.apiBackupEstaticoGuardar(urlDe('torneos.json'), con('torneos.json', { historial: { error: 'x' } })), false);
+});
+
+test('§PF117: un archivo MÁS NUEVO pero roto no reemplaza a la copia buena', async () => {
+  const w = montar();
+  assert.equal(await w.apiBackupEstaticoGuardar(urlDe('roster.json'), con('roster.json', { _publicadoEn: hace(2 * HORA) })), true);
+  assert.equal(await w.apiBackupEstaticoGuardar(urlDe('roster.json'), { _publicadoEn: new Date().toISOString(), clanes: [] }), false);
+  const l = await w.apiBackupEstaticoLeer('roster.json');
+  assert.ok(l && l.est.clanes.length === 1, 'la copia buena debe seguir');
+  assert.ok(Date.now() - l.pub.getTime() > 1.5 * HORA, 'y conservar su fecha');
+});
+
+test('§PF117: una copia ya guardada con mala forma no se devuelve', async () => {
+  const w = montar();
+  const roto = { _publicadoEn: hace(1 * HORA), clanes: [] };
+  const z = await w._gzipABase64(JSON.stringify(roto));
+  w.localStorage.setItem('terna_backup_est_roster.json', JSON.stringify({ t: Date.now(), z: 'gzip-b64', d: z }));
+  assert.equal(await w.apiBackupEstaticoLeer('roster.json'), null);
+});
+
+test('§PF117: un archivo que no está en la tabla solo necesita _publicadoEn y no traer error', async () => {
+  const w = montar();
+  assert.equal(await w.apiBackupEstaticoGuardar(urlDe('nuevo.json'), { _publicadoEn: hace(1 * HORA), x: 1 }), true);
+  assert.equal(await w.apiBackupEstaticoGuardar(urlDe('nuevo2.json'), { _publicadoEn: hace(1 * HORA), error: 'x' }), false);
 });
