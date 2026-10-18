@@ -7,7 +7,7 @@
  * verticales de referencia de TODAS las gráficas del sitio (pedido usuario
  * 07-sep-2026): "todas las gráficas deben llevar líneas que permitan
  * distinguir dónde empieza cada año, temporada y la semana". Se agrupan
- * acá (en vez de duplicarse por página, como el resto de charts) porque es
+ * aquí (en vez de duplicarse por página, como el resto de charts) porque es
  * lógica de fechas pura, sin nada visual, y debe coincidir SIEMPRE con el
  * mismo criterio que usa el backend (ver primerLunesDelMes()/
  * calcTemporadaDesdeRef() en 01_Config_Global.gs): en Clash Royale, cada

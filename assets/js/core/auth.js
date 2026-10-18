@@ -50,7 +50,7 @@ function adminPuedeVetar(){
  * PESTAÑA (no por sitio) — una sesión iniciada en admin.html no era
  * visible al abrir guerra.html en una pestaña/ventana nueva, aunque el
  * usuario sí tuviera sesión activa "en el navegador". Se migra TODO el
- * mecanismo de sesión de admin (acá y en admin.html/perfil.html/
+ * mecanismo de sesión de admin (aquí y en admin.html/perfil.html/
  * sorteo.html) a localStorage, que sí se comparte entre pestañas del
  * mismo origen. Contrapartida asumida (pedido explícito del usuario):
  * la sesión ahora persiste más tiempo — sobrevive a cerrar la pestaña/

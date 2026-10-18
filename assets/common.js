@@ -1,5 +1,5 @@
 /* common.js — orquestador final: se carga DESPUÉS de todos los módulos en assets/js/
- * (config, util, api, auth, ui/*, data/*, features/*). Solo queda acá el arranque que
+ * (config, util, api, auth, ui/*, data/*, features/*). Solo queda aquí el arranque que
  * corre una vez cargada toda la página: nav activa, CTA de admin, ajuste de texto a una
  * línea, y el registro del Service Worker. (18-sep-2026: separado del monolito original
  * de 74 KB para que cada responsabilidad viva en su propio archivo — ver assets/js/.) */

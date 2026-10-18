@@ -13,7 +13,7 @@
  * esta: un diccionario local EN→ES con los nombres oficiales en español
  * (LATAM) de Clash Royale. Cubre las cartas del juego a la fecha de este
  * cambio; una carta nueva que Supercell lance después seguirá mostrándose
- * en inglés hasta que se agregue acá (traducirNombreCarta ya cae de
+ * en inglés hasta que se agregue aquí (traducirNombreCarta ya cae de
  * vuelta al nombre original en ese caso, en vez de mostrar "undefined").
  */
 const NOMBRES_CARTAS_ES = {

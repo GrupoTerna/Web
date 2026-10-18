@@ -28,7 +28,7 @@ const ICONO_CWSTATS = '<img src="https://assets.cwstats.com/icons/logo.webp" alt
  * NUEVO (27-sep-2026, pedido usuario — "experience icon es para el nivel de
  * XP [...] debe poder usarse en cualquier parte de la web que mencione el
  * nivel de xp y debe ser pequeño, como el tamaño de los íconos de oro y
- * elixir"): vive acá (clan-badges.js, ya cargado por las 9 páginas que lo
+ * elixir"): vive aquí (clan-badges.js, ya cargado por las 9 páginas que lo
  * incluyen — index/directorio/guerra/perfil/clan/comunidad/torneos/
  * mensajes/admin) en vez de quedar local a perfil.html, que es donde hoy
  * vive el único cuadrito "Nivel de XP" (.stats-mini, cabecera de "Perfil del

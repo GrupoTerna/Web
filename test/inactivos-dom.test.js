@@ -46,7 +46,7 @@ const DEPENDENCIAS = [
 // .js-inactivo-vetar-wrap donde _toggleFormVetarInactivo() pinta el
 // mini-formulario. Se arma a mano en vez de depender de
 // _renderVistaInactivos() (esa función es de otra tanda, ver consolidado)
-// para no acoplar estos tests a una función que todavía no se prueba acá.
+// para no acoplar estos tests a una función que todavía no se prueba aquí.
 const TABLA_HTML = `
   <table>
     <tbody>
@@ -63,7 +63,7 @@ function montar(htmlBody){
   // implementa Element.prototype.scrollIntoView en absoluto (confirmado en
   // esta sesión — sin este polyfill, cualquier llamada revienta con
   // "scrollIntoView is not a function"). agregarTarjetaCuentasInactivasSiAdmin()
-  // la llama al abrir la vista de inactivos. Se agrega acá como no-op para
+  // la llama al abrir la vista de inactivos. Se agrega aquí como no-op para
   // poder probar el resto del flujo del click sin que la falta de esta API
   // de jsdom tape una prueba real; no verifica CON qué argumentos se
   // llamaría scrollIntoView en un navegador real (ver test más abajo, que
@@ -213,7 +213,7 @@ test('_toggleFormVetarInactivo() cablea el botón "Confirmar veto" para llamar a
 // ---------------------------------------------------------------------
 // _enviarVetoInactivo(wrap, tag, btnDisparador)
 // ---------------------------------------------------------------------
-// apiPost() (core/api.js) y window.confirm() NO se cargan/implementan acá:
+// apiPost() (core/api.js) y window.confirm() NO se cargan/implementan aquí:
 // se sobrescriben directamente sobre el `window` de jsdom ANTES de llamar
 // a _enviarVetoInactivo(). Como inactivos.js corre dentro de ese mismo
 // `window` (window.eval, ver load-browser-script.js), la llamada a
@@ -323,7 +323,7 @@ test('_enviarVetoInactivo() con error de "sesión" muestra el aviso de volver a 
 
 // AVISO ABIERTO (encontrado en esta tanda, ver Consolidado_Mejoras_Web_Main.md
 // -- no se pudo dejar anotado ahí porque ese archivo no se subió en esta
-// sesión; queda documentado acá hasta que se traslade): a diferencia de la
+// sesión; queda documentado aquí hasta que se traslade): a diferencia de la
 // rama de error genérico (si data.ok===false sin ser error de sesión SÍ
 // reactiva btnConfirmar.disabled=false), la rama de error de "sesión" de
 // _enviarVetoInactivo (inactivos.js) hace `return` sin reactivar
@@ -552,7 +552,7 @@ test('agregarTarjetaCuentasInactivasSiAdmin() con datos válidos agrega las 2 ta
   assert.match(tarjetaAdmins.innerHTML, /2 cuenta\(s\) inactiva\(s\)/); // Ana + Beto
   assert.match(tarjetaGeneral.innerHTML, /Inactivos \(General\)/);
   assert.match(tarjetaGeneral.innerHTML, /1 cuenta\(s\) inactiva\(s\)/); // Caro
-  // La vista (_obtenerVistaInactivos) ya se crea acá, aunque todavía no se
+  // La vista (_obtenerVistaInactivos) ya se crea aquí, aunque todavía no se
   // haya hecho clic en ninguna tarjeta -- oculta hasta el primer clic.
   const vista = document.getElementById('inactivosVista');
   assert.ok(vista);

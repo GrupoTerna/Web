@@ -8,7 +8,7 @@
  *   - WEBAPP_URL: la misma URL /exec del Web App.
  *   - WEB_MEMBER_TOKEN: debe coincidir EXACTO con la variable del mismo
  *     nombre en 34_Web_API.gs (backend).
- * El login de admin (admin.html) no necesita token acá: cada admin entra
+ * El login de admin (admin.html) no necesita token aquí: cada admin entra
  * con su propio Celular + Clave (autogenerada por Celular en la hoja
  * Administradores — ver sincronizarAdministradores()/_webAuthLogin() en
  * 11_DirectorioSheet.gs / 34_Web_API.gs del backend), no una contraseña

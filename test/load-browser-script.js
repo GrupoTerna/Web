@@ -57,7 +57,7 @@ function loadBrowserScript(relPath){
  * timeline-svg.js), esa comprobación falla en silencio — no es el mismo
  * Date, aunque el objeto "se vea" idéntico. Node SÍ arma el Date del
  * contexto por dentro, pero no lo deja como propiedad propia del objeto
- * `sandbox` hasta que algo lo pide explícitamente — por eso se expone acá
+ * `sandbox` hasta que algo lo pide explícitamente — por eso se expone aquí
  * como `sandbox.Date`, para que los tests puedan escribir
  * `new sandbox.Date(...)` cuando necesiten pasar una fecha a una función
  * que haga ese tipo de validación.

@@ -17,7 +17,7 @@ function clanCardCabeceraHtml(c, i, opts){
   const iconoBadgeHtml = c.badgeId ? iconoBadgeClanHtml(c.badgeId, { size: 26 }) : '';
   // FIX (21-sep-2026, pedido usuario — "haz que toda mención al nombre de
   // uno de nuestros clanes lleve a otro link así como al seleccionar un
-  // jugador y se abra un dashboard de ese clan"): el nombre del clan (acá
+  // jugador y se abra un dashboard de ese clan"): el nombre del clan (aquí
   // en la cabecera compartida por Inicio, Directorio y "Guerra de Hoy" de
   // guerra.html) ahora es clickeable hacia clan.html, mismo patrón que
   // enlaceJugador() ya usaba para nombres de jugador. Solo se activa si
@@ -109,7 +109,7 @@ function clanCardHtml(c, i, opts){
  * Ahora es al revés: se usa c.nombre siempre que exista, y solo se cae a
  * CLAN_LABELS_CORTOS como respaldo si el backend no mandara nombre para
  * ese clan. El estilo de resaltado (más contraste, más peso) y la
- * alineación a la izquierda se agregan directamente acá vía la clase
+ * alineación a la izquierda se agregan directamente aquí vía la clase
  * chart-label-fuerte, sin tocar .chart-label base (ese sigue vigente
  * para otras gráficas de la página — comparador Cara a cara, etc. — que
  * no pidieron este cambio).

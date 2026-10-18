@@ -164,7 +164,7 @@ function _esErrorDeRed(err){
  * Texto amigable para el visitante final en vez del mensaje técnico del
  * navegador ("Failed to fetch"). Mismo patrón de mensaje que ya usan los
  * distintos catch(err) del sitio (guerra.html, sorteo.html, admin.html,
- * etc.): "Error de conexión: ${err.message}" — acá solo se reemplaza QUÉ
+ * etc.): "Error de conexión: ${err.message}" — aquí solo se reemplaza QUÉ
  * va dentro de err.message cuando el fallo es de red, sin tocar esos
  * catch ya existentes.
  */
@@ -300,7 +300,7 @@ const _MAX_INTENTOS_FETCH = 5;
  * si la respuesta no es JSON válido, se espera un momento y se repite la
  * MISMA petición una vez más (también encolada, nunca se salta la cola).
  * Solo reintenta ante error de PARSEO (HTML en vez de JSON); un error de
- * red real (fetch() que ni siquiera resuelve) sigue sin reintentarse acá,
+ * red real (fetch() que ni siquiera resuelve) sigue sin reintentarse aquí,
  * igual que antes.
  * @param {string} url
  * @param {RequestInit} [fetchOpts]
@@ -345,7 +345,7 @@ async function _fetchYParsearInterno(url, fetchOpts, maxIntentos){
  * torneos.html (apiGetTorneosCompartido/_torneosEnVuelo, ver Lighthouse
  * 19-sep) porque cargarTorneos() y cargarSalonDeLaFama() arrancan a la vez
  * y piden los mismos 2 endpoints, duplicando las llamadas. Se generaliza
- * acá para toda la capa, así cualquier página con dos cargas concurrentes
+ * aquí para toda la capa, así cualquier página con dos cargas concurrentes
  * al mismo endpoint queda cubierta sin tener que repetir el patrón
  * puntual en cada `.html` (torneos.html ya se simplificó para usar este
  * mecanismo en vez del suyo propio).

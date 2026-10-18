@@ -6,7 +6,7 @@
  * de accesibilidad del 18-sep (role="dialog", aria-modal, trampa de foco,
  * devolución de foco al cerrar) solo se había aplicado en index.html,
  * dejando directorio.html sin esas mejoras (hallazgo 5 del Bloque B). Se
- * extrae acá la versión accesible y se aplica a ambas.
+ * extrae aquí la versión accesible y se aplica a ambas.
  *
  * Depende de:
  *   - WSP_GRUPO_URL, DISCORD_URL, FORM_POSTULACION_URL (assets/js/core/config.js)

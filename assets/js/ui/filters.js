@@ -3,7 +3,7 @@
 
 
 /* =========================================================================
- * Filtro por letra A-Z/# — consolidado acá (18-sep-2026, revisión de
+ * Filtro por letra A-Z/# — consolidado aquí (18-sep-2026, revisión de
  * código repetido entre páginas). Antes existían tres copias casi
  * idénticas de la fila de botones (pintarFiltroLetraPendientes() y
  * pintarFiltroLetraGrid() en guerra.html, pintarFiltroLetraRoster() en

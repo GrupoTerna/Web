@@ -11,7 +11,7 @@
  *     si hace falta, es un chequeo distinto (requiere parsear ids, no rutas).
  * Y a propósito SÍ ignora todo lo que esté dentro de <script>…</script>:
  * varias páginas arman HTML dinámico con template literals de JS
- * (ej. `<a href="${esc(o.href)}">`) que no son rutas reales a validar acá
+ * (ej. `<a href="${esc(o.href)}">`) que no son rutas reales a validar aquí
  * — intentar resolverlas como archivo daría puros falsos positivos.
  *
  * Uso: node scripts/check-local-links.js

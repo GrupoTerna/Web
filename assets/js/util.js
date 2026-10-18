@@ -58,7 +58,7 @@ function ordenarClanes(clanes){
  * FIX (16-sep-2026 v8, pedido usuario — rendimiento): antes vivía solo
  * dentro de directorio.html, usada por el buscador del popover de filtro
  * de columna (.rt-filtro-buscar) para no reconstruir el checklist en cada
- * tecla. Se sube acá (18-sep-2026) para poder reusarla desde cualquier
+ * tecla. Se sube aquí (18-sep-2026) para poder reusarla desde cualquier
  * página sin duplicarla — cualquier otro input que la necesite puede
  * llamarla igual.
  */
@@ -77,7 +77,7 @@ function debounce(fn, espera){
  * backend todavía traen el placeholder sin reemplazar (ej.
  * "https://royaleapi.com/clan/LINK" — bug reportado en el PDF de diseño,
  * el dato real vive en la hoja de cálculo del backend y no se puede
- * corregir desde acá). Mientras no se corrija en el origen, es mejor no
+ * corregir desde aquí). Mientras no se corrija en el origen, es mejor no
  * mostrar el botón que mostrar un link roto.
  */
 function urlValida(u){

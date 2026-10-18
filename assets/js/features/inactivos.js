@@ -63,7 +63,7 @@ function _filaInactivoHtml(c){
 /** Abre/cierra el mini-formulario de Vetar bajo una fila de la vista de
  * inactivos — mismo patrón que mostrarFormVetar()/enviarVeto() de
  * perfil.html, generalizado a un `wrap` cualquiera en vez de un id fijo,
- * porque acá puede haber varias filas con su propio formulario.
+ * porque aquí puede haber varias filas con su propio formulario.
  * FIX (07-sep-2026, la fila de inactivos pasó a ser un <tr> de tabla, ver
  * _filaInactivoHtml): `wrap` sigue siendo el <div> donde se pinta el
  * formulario, pero ahora vive dentro de un <tr class="inactivo-vetar-fila">
@@ -287,7 +287,7 @@ function _renderVistaInactivos(section, titulo, cuentas){
  * la tarjeta seguía en 0 por un bug de índices de columna en el backend
  * (leía la hoja física Directorio con el ancho/esquema equivocado), ya
  * corregido ahí — este archivo no necesitaba ningún cambio, la lectura
- * defensiva de `c.esAdmin` de acá abajo ya estaba correcta y se deja tal
+ * defensiva de `c.esAdmin` de aquí abajo ya estaba correcta y se deja tal
  * cual. Cada tarjeta es clicable y abre/cierra la misma vista
  * inline (_renderVistaInactivos) — nunca muestra Celular ni ningún otro
  * dato sensible, solo nombre/tag/clan (+ RoyaleAPI/CWStats/Vetar cuando
@@ -340,7 +340,7 @@ async function agregarTarjetaCuentasInactivasSiAdmin(grid){
         vista.dataset.grupo = tituloVista;
         _renderVistaInactivos(vista, tituloVista, cuentas);
         vista.style.display = 'block';
-        // FIX (08-sep-2026): recién acá clientWidth es real (la sección
+        // FIX (08-sep-2026): recién aquí clientWidth es real (la sección
         // ya no está en display:none), así que fitOneLine() puede medir
         // correctamente si la frase entra en una línea o debe volver a
         // párrafo normal — ver comentario en _obtenerVistaInactivos().

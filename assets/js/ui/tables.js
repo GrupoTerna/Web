@@ -49,7 +49,7 @@ function sincronizarScrollHorizontal(elementos){
  * menos de lo que mide después del swap, así que topScrollInner quedaba
  * con un ancho más angosto que el real y la barra de arriba no llegaba a
  * desbordar (mientras que la de abajo, al ser el overflow nativo real de
- * .roster-table-wrap, siempre se recalcula solo y sí se veía). Acá se
+ * .roster-table-wrap, siempre se recalcula solo y sí se veía). Aquí se
  * recalcula: de inmediato, en el siguiente frame (requestAnimationFrame,
  * ya con layout asentado), cuando terminan de cargar las fuentes
  * (document.fonts.ready) y ante cualquier cambio de tamaño de la propia
@@ -57,7 +57,7 @@ function sincronizarScrollHorizontal(elementos){
  * ensanchan columnas sin disparar un resize de ventana).
  *
  * @param {HTMLElement} wrap - contenedor que YA tiene overflow-x:auto (o
- *   que puede recibirlo acá mismo) y contiene, adentro, la <table> real.
+ *   que puede recibirlo aquí mismo) y contiene, adentro, la <table> real.
  *   Puede ser .roster-table-wrap, .table-scroll, .inactivos-table-wrap o
  *   cualquier div nuevo alrededor de un <table> (ver perfil.html/
  *   sorteo.html/admin.html).
@@ -67,7 +67,7 @@ function sincronizarScrollHorizontal(elementos){
  *   limitar el alto (tabla corta que nunca necesitaría scroll vertical).
  * @param {HTMLElement} [opciones.barraSuperior] - si la página ya arma su
  *   propia franja superior a mano (ej. #rosterTopScroll en directorio.html)
- *   se pasa acá en vez de dejar que esta función cree una nueva.
+ *   se pasa aquí en vez de dejar que esta función cree una nueva.
  */
 /**
  * _prepararBarraScrollTabla(wrap, opciones)
