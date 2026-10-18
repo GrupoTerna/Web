@@ -941,6 +941,14 @@
                   <label for="sSelectHoy">Sorteo</label>
                   <select id="sSelectHoy"><option value="">Cargando sorteos de hoy…</option></select>
                 </div>
+                <!-- PF107 (18-oct-2026): igual que en «Modificar torneo», primero se elige el sorteo y recién después su tipo (principal o continuación), ya precargado con el que tiene y editable. Fuente única: #sorteoTipo (lo sincroniza aplicarTipoModificarSorteo()). -->
+                <div class="field" id="sModTipoBox" style="display:none; margin-bottom:12px;">
+                  <label for="sorteoTipoMod">¿Qué tipo de sorteo es?</label>
+                  <select id="sorteoTipoMod">
+                    <option value="principal">Sorteo principal</option>
+                    <option value="continuacion">Sorteo de continuación</option>
+                  </select>
+                </div>
                 <div class="field-row" id="filaFechaHoraSorteoMod">
                   <div class="field">
                     <label for="sFechaModTexto">Nueva fecha</label>
@@ -4972,6 +4980,15 @@ document.getElementById('sSelectHoy').addEventListener('change', () => {
     renderSorteoPrincipalLista();
   }
 
+  // PF107: tras elegir el sorteo aparece el tipo (principal o continuación), precargado con el que ya tiene y editable; sin sorteo elegido el selector se oculta.
+  const sModTipoBox = document.getElementById('sModTipoBox');
+  if(opt && opt.value){
+    sModTipoBox.style.display = '';
+    aplicarTipoModificarSorteo(opt.dataset.idprincipal ? 'continuacion' : 'principal', false);
+  }else{
+    reiniciarTipoModificarSorteo();
+  }
+
   actualizarEtiquetaSinCambiosAutorSorteo(opt && opt.dataset.autor);
   document.getElementById('sAutorSelectMod').value = '';
   document.getElementById('sAutorManualMod').value = '';
@@ -5399,6 +5416,7 @@ document.getElementById('btnModificarSorteo').addEventListener('click', () => co
       sessionToken: localStorage.getItem(SESSION_KEY),
       id, fecha, hora,
       idSorteoPrincipal: esContinuacion ? sorteoSorteoPrincipalId : '',
+      tipoSorteo: esContinuacion ? 'continuacion' : 'principal', // PF107: 'principal' quita la continuación que tuviera el sorteo
       semanas, comentario, requisitos,
       autor,   // '' = no cambiar el autor ya registrado
       premios, // '' = no cambiar los premios ya registrados
@@ -5407,6 +5425,7 @@ document.getElementById('btnModificarSorteo').addEventListener('click', () => co
     if(manejarRespuestaAuth(data)) return;
     if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
     msgEl.innerHTML = '<div class="msg msg-ok">Sorteo actualizado.</div>';
+    reiniciarTipoModificarSorteo(); // PF107: sin sorteo elegido, el tipo vuelve a ocultarse
     document.getElementById('sAutorSelectMod').value = '';
     document.getElementById('sAutorManualMod').value = '';
     document.getElementById('sAutorManualMod').style.display = 'none';
@@ -6815,7 +6834,19 @@ document.querySelectorAll('.btn-toggle-torsor').forEach(btn => {
  *  solo esconde el paso siguiente, nunca el actual. #sorteoPaso3 ya tiene
  *  el Paso 3 real (campos del formulario, ver HTML). */
 document.getElementById('btnSorteoPaso1').addEventListener('click', () => {
-  if(!document.getElementById('sorteoAccion').value) return;
+  const accion = document.getElementById('sorteoAccion').value;
+  if(!accion) return;
+  const selTipo = document.getElementById('sorteoTipo');
+  // PF107: «Modificar» no pregunta el tipo antes de elegir el sorteo; salta el paso 2, muestra la lista de sorteos y el tipo se pregunta después (ver #sModTipoBox y el 'change' de #sSelectHoy).
+  if(accion === 'modificar'){
+    document.getElementById('sorteoPaso2').style.display = 'none';
+    reiniciarTipoModificarSorteo();
+    document.getElementById('sorteoPaso3').style.display = '';
+    mostrarPaso3Sorteo();
+    enfocarPrimerControl(document.getElementById('sorteoPaso3'));
+    return;
+  }
+  if(selTipo.dataset.auto === '1'){ selTipo.value = ''; delete selTipo.dataset.auto; } // venía fijado por «Modificar»
   document.getElementById('sorteoPaso2').style.display = '';
   enfocarPrimerControl(document.getElementById('sorteoPaso2')); // foco al paso nuevo. Historial en CHANGELOG.md.
 });
@@ -6946,8 +6977,50 @@ document.getElementById('btnSorteoPaso2').addEventListener('click', () => {
 document.getElementById('sorteoVolverPaso2').addEventListener('click', (ev) => {
   ev.preventDefault();
   document.getElementById('sorteoPaso3').style.display = 'none';
+  // PF107: en «Modificar» no hubo paso 2, así que «Cambiar» vuelve al paso 1.
+  if(document.getElementById('sorteoAccion').value === 'modificar'){ document.getElementById('sorteoAccion').focus(); return; }
   document.getElementById('sorteoTipo').focus();
 });
+
+// PF107: cambio manual del tipo en «Modificar sorteo» (después de elegir el sorteo).
+document.getElementById('sorteoTipoMod').addEventListener('change', () => aplicarTipoModificarSorteo(document.getElementById('sorteoTipoMod').value, true));
+
+/**
+ * PF107: tipo del sorteo en «Modificar sorteo», gemelo de aplicarTipoModificar() de torneos. #sorteoTipo sigue siendo la fuente única que leen los listeners de guardado; aquí se mantiene sincronizado con #sorteoTipoMod y con la lista de «¿Cuál es el sorteo principal?».
+ *   - aplicarTipoModificarSorteo(tipo, desdeUsuario): fija #sorteoTipo, muestra u oculta la lista de principales. Al pasar a «principal» se borra la elección de principal (el backend quita la continuación). Al volver a «continuación» se restaura el principal que el sorteo ya tenía, si lo tenía.
+ *   - reiniciarTipoModificarSorteo(): oculta el selector (aún no hay sorteo elegido) y deja todo como «principal».
+ */
+function aplicarTipoModificarSorteo(tipo, desdeUsuario){
+  const selTipo = document.getElementById('sorteoTipo');
+  const box = document.getElementById('camposSorteoPrincipal');
+  const msg = document.getElementById('sorteoPrincipalElegidoMsg');
+  selTipo.value = tipo;
+  selTipo.dataset.auto = '1';
+  document.getElementById('sorteoTipoMod').value = tipo;
+  if(tipo === 'continuacion'){
+    const opt = document.getElementById('sSelectHoy').selectedOptions[0];
+    const idOriginal = (opt && opt.dataset.idprincipal) || '';
+    sorteoSorteoPrincipalId = idOriginal;
+    box.style.display = '';
+    renderSorteoPrincipalLista();
+    if(idOriginal){
+      const t = sorteosHoyData.find(x => String(x.id) === String(idOriginal));
+      msg.innerHTML = `<div class="msg msg-ok">Sorteo principal actual: ${esc(t ? t.id : idOriginal)}</div>`;
+    }else{
+      msg.innerHTML = '';
+    }
+  }else{
+    sorteoSorteoPrincipalId = '';
+    msg.innerHTML = '';
+    box.style.display = 'none';
+  }
+}
+
+function reiniciarTipoModificarSorteo(){
+  const box = document.getElementById('sModTipoBox');
+  if(box) box.style.display = 'none';
+  aplicarTipoModificarSorteo('principal', false);
+}
 
 /**
  * btnRegistrarSorteo
