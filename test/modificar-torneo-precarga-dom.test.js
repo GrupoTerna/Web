@@ -301,3 +301,16 @@ test('PF101: tras guardar bien, el estado de la precarga vuelve a «ok» y se qu
   assert.equal(w.__t.estado, 'ok');
   assert.equal(w.document.querySelectorAll('#tAutorSelectMod option[data-dinamica]').length, 0);
 });
+
+test('PF102: un torneo sin Barcos registrado muestra el tope 16 (no 0 ni el valor del torneo anterior)', async () => {
+  const w = montar();
+  w.__api = async (accion, params) => {
+    if(accion !== 'webAdminRequisitosClanes') return { ok: true, cuentas: [] };
+    // sin ataquesBarcosSemana: el backend solo lo manda cuando Barcos está configurado
+    return params.id === 'T1' ? REQ_T1 : { ok: true, requisitos: { ClanA: { minTrofeosGuerra: 1, minAtaquesSemana: 1 }, ClanB: { minTrofeosGuerra: 1, minAtaquesSemana: 1 }, barcos: '' } };
+  };
+  await w.__t.precargar('T1', w.__elegir('T1'));
+  assert.equal(val(w, 'reqAtaquesBarcos'), '5');
+  await w.__t.precargar('T2', w.__elegir('T2'));
+  assert.equal(val(w, 'reqAtaquesBarcos'), '16');
+});

@@ -2950,7 +2950,8 @@ async function cargarRequisitosPorClan(id, esVigente){
         if(document.getElementById(idT)) document.getElementById(idT).value = formatoMiles(r.minTrofeosGuerra);
         if(document.getElementById(idA)) document.getElementById(idA).value = formatoMiles(r.minAtaquesSemana);
       });
-      if(data.requisitos.ataquesBarcosSemana !== undefined) document.getElementById('reqAtaquesBarcos').value = data.requisitos.ataquesBarcosSemana;
+      // PF102 (18-oct-2026, decisión de la usuaria): sin Barcos registrado se asume el tope de 16 (16 ataques es el total posible: equivale a no evaluarlos; es un tope, no un mínimo). El backend solo manda `ataquesBarcosSemana` si hay valor.
+      document.getElementById('reqAtaquesBarcos').value = (data.requisitos.ataquesBarcosSemana !== undefined && data.requisitos.ataquesBarcosSemana !== '') ? data.requisitos.ataquesBarcosSemana : '16';
       if(data.requisitos.miembroActivo) document.getElementById('reqMiembroActivo').value = data.requisitos.miembroActivo;
       if(data.requisitos.reaccion) document.getElementById('reqReaccion').value = data.requisitos.reaccion;
       if(data.requisitos.presenciaWhatsapp) document.getElementById('reqPresenciaWhatsapp').value = data.requisitos.presenciaWhatsapp;
@@ -2989,7 +2990,7 @@ function marcarCargaRequisitos(cargando){
       el.placeholder = 'Cargando…';
       el.value = '';
     });
-    document.getElementById('reqAtaquesBarcos').value = '0';
+    document.getElementById('reqAtaquesBarcos').value = '16'; // PF102: sin dato = tope 16
     document.getElementById('reqMiembroActivo').value = 'Sí';
     document.getElementById('reqReaccion').value = 'No';
     document.getElementById('reqPresenciaWhatsapp').value = 'Sí';
@@ -3114,7 +3115,8 @@ async function cargarRequisitosSorteoPorClan(id){
         if(document.getElementById(idJ)) document.getElementById(idJ).value = formatoMiles(r.minTorneosJugados);
       });
       if(data.requisitos.delta !== undefined) document.getElementById('reqDeltaSorteo').value = formatoMiles(data.requisitos.delta);
-      if(data.requisitos.ataquesBarcosSemana !== undefined) document.getElementById('reqAtaquesBarcosSorteo').value = data.requisitos.ataquesBarcosSemana;
+      // PF102: misma regla que en Torneos (sin Barcos registrado = tope 16).
+      document.getElementById('reqAtaquesBarcosSorteo').value = (data.requisitos.ataquesBarcosSemana !== undefined && data.requisitos.ataquesBarcosSemana !== '') ? data.requisitos.ataquesBarcosSemana : '16';
       if(data.requisitos.miembroActivo) document.getElementById('reqMiembroActivoSorteo').value = data.requisitos.miembroActivo;
       if(data.requisitos.reaccion) document.getElementById('reqReaccionSorteo').value = data.requisitos.reaccion;
       if(data.requisitos.presenciaWhatsapp) document.getElementById('reqPresenciaWhatsappSorteo').value = data.requisitos.presenciaWhatsapp;
