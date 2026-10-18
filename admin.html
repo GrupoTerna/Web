@@ -610,7 +610,7 @@
             <div id="camposModificar" style="display:none;">
               <div class="field" style="margin-bottom:12px;">
                 <label for="tSelectHoy">Torneo</label>
-                <select id="tSelectHoy"><option value="">Cargando torneos de hoy…</option></select>
+                <select id="tSelectHoy"><option value="">Cargando torneos…</option></select>
                 <!-- Ingresar link es una opción más de #tSelectHoy (no un control aparte, se limpia al elegir otra opción); solo existe en Torneos, no en Sorteos. Historial en CHANGELOG.md. -->
                 <input type="text" id="tModificarLink" aria-label="Link del torneo a modificar" placeholder="https://link.clashroyale.com/..." style="margin-top:8px; display:none;">
                 <!-- Fase 11 (plan T_Lista, ver 24_Torneos_Core.gs): nota sobre el alcance de "Ingresar link"; texto actualizado el 02-oct-2026 porque la Fase 12 ya está en el backend. Historial en CHANGELOG.md. -->
@@ -3455,15 +3455,20 @@ async function cargarTorneosHoy(){
     if(manejarRespuestaAuth(data)) return;
     torneosHoyData = (data.ok && data.torneos) ? data.torneos : [];
     if(!torneosHoyData.length){
-      sel.innerHTML = '<option value="">Sin torneos registrados hoy</option>' + OPCION_INGRESAR_LINK;
+      sel.innerHTML = '<option value="">Sin torneos de hoy ni planificados</option>' + OPCION_INGRESAR_LINK;
     }else{
       sel.innerHTML = '<option value="">Elige un torneo…</option>' +
         torneosHoyData.map(t => {
-          const fechaTxt = new Date(t.fecha).toLocaleString('es-PE', { hour12:false });
+          // 18-oct-2026 (PF099): el backend ahora manda también los torneos Planificados y los sin link (no solo los de hoy), con `fechaTxt` (dd/MM/yyyy), `hora` (HH:mm:ss) y `estado`. `t.fecha` es solo la fecha (00:00), la hora va aparte. Historial en CHANGELOG.md.
+          const horaCorta = t.hora ? String(t.hora).slice(0, 5) : '';
+          const fechaTxt = (t.fechaTxt || new Date(t.fecha).toLocaleDateString('es-PE')) + (horaCorta ? ' ' + horaCorta : '');
+          const etiquetaEstado = !t.link ? ' · sin link' : (t.estado && t.estado !== 'Realizado' ? ' · ' + t.estado : '');
+          // En filas manuales/planificadas el select de autor trabaja con el Nom_Multi; con organizador por API se conserva el nombre de la cuenta (solo lectura).
+          const autorOpt = (t.organizadorFuente === 'API') ? (t.autor || '') : (t.nomMulti || t.autor || '');
           // data-autor/premios/semanas/comentario llegan del backend para precargar "Modificar"; si faltan, quedan vacíos sin romper nada. Historial en CHANGELOG.md.
           const semanasCsv = Array.isArray(t.semanas) ? t.semanas.join(',') : '';
           // data-organizador-fuente ('API'|'Manual'|''): Fase 11 (plan T_Lista, ver 24_Torneos_Core.gs) -- decide si #tAutorSelectMod queda editable o se reemplaza por #tAutorSoloLecturaMod. Historial en CHANGELOG.md.
-          return `<option value="${esc(t.id)}" data-fecha="${esc(t.fecha)}" data-autor="${esc(t.autor || '')}" data-organizador-fuente="${esc(t.organizadorFuente || '')}" data-premios="${esc(t.premios || '')}" data-semanas="${esc(semanasCsv)}" data-comentario="${esc(t.comentario || '')}">${esc(t.id)} — ${esc(fechaTxt)}</option>`;
+          return `<option value="${esc(t.id)}" data-fecha="${esc(t.fecha)}" data-hora="${esc(horaCorta)}" data-estado="${esc(t.estado || '')}" data-autor="${esc(autorOpt)}" data-organizador-fuente="${esc(t.organizadorFuente || '')}" data-premios="${esc(t.premios || '')}" data-semanas="${esc(semanasCsv)}" data-comentario="${esc(t.comentario || '')}">${esc(t.id)} — ${esc(fechaTxt)}${esc(etiquetaEstado)}</option>`;
         }).join('') + OPCION_INGRESAR_LINK;
     }
   }catch(err){
@@ -4824,7 +4829,8 @@ document.getElementById('tSelectHoy').addEventListener('change', () => {
   }else{
     const d = new Date(fechaISO);
     fFecha.value = `${d.getFullYear()}-${pad2(d.getMonth()+1)}-${pad2(d.getDate())}`;
-    fHora.value  = `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+    // PF099: la hora real viene en data-hora; `fecha` es solo la fecha (00:00), así que d.getHours() daba siempre 00:00.
+    fHora.value  = opt.dataset.hora || `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
   }
   // FIX (09-sep-2026): #tFechaMod/#tHoraMod son ahora los inputs OCULTOS
   // del campo amigable (ver initCampoFechaAmigable/initCampoHoraAmigable);

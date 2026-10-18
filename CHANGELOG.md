@@ -27,6 +27,10 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 
 ---
 
+## 18-oct-2026
+
+- **`admin.html` (`cargarTorneosHoy()`, listener `change` de `#tSelectHoy`) y `sw.js` v87 · «Modificar torneo» lista también los torneos Planificados y los que aún no tienen link, no solo los de hoy.** Cada opción muestra fecha, hora y, si corresponde, «sin link» o el estado; al elegirla se precarga la hora real (antes salía siempre 00:00 porque la fecha viaja sin hora) y el autor usa el Nom_Multi de la fila (con organizador por API se conserva el nombre de la cuenta, solo lectura). El backend es `_listarTorneosModificables()` (`26_Torneos_Core.gs`) vía `_webAdminTorneosHoy()`. → §PF099
+
 ## 17-oct-2026
 
 - **`admin.html` (`cargarSemanasRecientes()`, `pintarSemanasSelector()`, `repintarSelectoresSemanas()`, `mostrarPanel()`) y `sw.js` v86 · «¿Qué semanas se deben evaluar?» ya no queda como una barra vacía.** Un fallo de la primera carga (que corre antes del login) se guardaba como lista vacía y no se volvía a pedir; ahora no se guarda, el selector avisa el motivo con un botón «Reintentar» y `mostrarPanel()` repite el pedido con la sesión. → §PF097
