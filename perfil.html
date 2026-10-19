@@ -6032,9 +6032,14 @@ function _cajaOpacaDeImagen(data, ancho, alto, umbral){
   return x1 < 0 ? null : { x0, y0, x1, y1 };
 }
 const _recorteInsigniaCache = new Map();
-function recortarMargenTransparente(url){
-  if (_recorteInsigniaCache.has(url)) return _recorteInsigniaCache.get(url);
-  const prom = new Promise(resolve => {
+/**
+ * Carga la imagen con CORS y mide/recorta. 19-oct-2026 (§PF129): la primera versión pedía la MISMA URL que el <img> visible
+ * (sin crossorigin); el navegador puede reutilizar esa copia en caché, que llegó sin cabecera CORS, y entonces el canvas
+ * queda «contaminado» aunque el CDN sí soporte CORS. Por eso se prueba primero con un parámetro extra (otra clave de caché,
+ * obliga a pedirla con Origin) y solo después con la URL original. Cada fallo deja un aviso en la consola.
+ */
+function _intentarRecorteInsignia(src){
+  return new Promise(resolve => {
     try {
       const im = new Image();
       im.crossOrigin = 'anonymous';
@@ -6050,7 +6055,7 @@ function recortarMargenTransparente(url){
           if (!caja) return resolve(null);
           const cw = caja.x1 - caja.x0 + 1, ch = caja.y1 - caja.y0 + 1;
           // Sin margen apreciable (menos del 3 % por lado) no se toca la imagen.
-          if (cw >= w * 0.94 && ch >= h * 0.94) return resolve(null);
+          if (cw >= w * 0.94 && ch >= h * 0.94) return resolve('SIN_MARGEN');
           const lado = Math.min(256, Math.max(cw, ch)); // 256 px bastan: se muestra a ≤72 px
           const k = lado / Math.max(cw, ch);
           const o = document.createElement('canvas');
@@ -6059,12 +6064,24 @@ function recortarMargenTransparente(url){
           octx.imageSmoothingQuality = 'high';
           octx.drawImage(c, caja.x0, caja.y0, cw, ch, (lado - cw * k) / 2, (lado - ch * k) / 2, cw * k, ch * k);
           resolve(o.toDataURL('image/png'));
-        } catch (e) { resolve(null); } // canvas «contaminado» (sin CORS) u otro fallo: se deja la imagen original
+        } catch (e) { // canvas «contaminado» (sin CORS) u otro fallo
+          console.warn('[insignia de guerra] no se pudo leer la imagen (' + (e && e.name) + '):', src);
+          resolve(null);
+        }
       };
-      im.onerror = () => resolve(null);
-      im.src = url;
+      im.onerror = () => { console.warn('[insignia de guerra] no cargó con CORS:', src); resolve(null); };
+      im.src = src;
     } catch (e) { resolve(null); }
   });
+}
+function recortarMargenTransparente(url){
+  if (_recorteInsigniaCache.has(url)) return _recorteInsigniaCache.get(url);
+  const prom = (async () => {
+    const conParam = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'cors=1';
+    let r = await _intentarRecorteInsignia(conParam);
+    if (r === null) r = await _intentarRecorteInsignia(url);
+    return r === 'SIN_MARGEN' ? null : r;
+  })();
   _recorteInsigniaCache.set(url, prom);
   return prom;
 }
