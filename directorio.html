@@ -628,6 +628,10 @@
   /* Nombres de los ejes (pedido usuario 08-sep-2026), mismo criterio que
      .axis-title de más arriba pero con el prefijo "ing-" de esta gráfica. */
   .ing-linechart-svg .ing-axis-title{fill:var(--text-dim); font-family:var(--f-mono); font-size:14px; font-weight:700; letter-spacing:.04em;}
+  /* 19-oct-2026 (pedido usuaria): línea de tope semanal en las gráficas de Ingresos recientes, mismo estilo que perfil.html (.linea-tope, .tope-label, .serie-pt-anomalia). */
+  .ing-linechart-svg .linea-tope{stroke:var(--gold); stroke-width:1.8; stroke-dasharray:7 5; opacity:.9;}
+  .ing-linechart-svg .tope-label{fill:var(--gold); font-family:var(--f-mono); font-size:13px; font-weight:700; paint-order:stroke; stroke:var(--bg); stroke-width:4px; stroke-linejoin:round;}
+  .ing-linechart-svg .serie-pt-anomalia{filter:drop-shadow(0 0 5px var(--danger));}
   .ing-linechart-legend{display:flex; flex-wrap:wrap; gap:12px 20px; margin-bottom:16px; padding-bottom:16px; border-bottom:1px solid var(--line);}
   .ing-linechart-legend-item{display:flex; align-items:center; gap:7px; font-family:var(--f-mono); font-size:13px; color:var(--text-dim);}
   .ing-linechart-legend-dot{width:11px; height:11px; border-radius:50%; flex-shrink:0;}
@@ -2214,6 +2218,11 @@ function fmtFecha(iso){
 
 const PALETA_SERIES = ['#a239ff','#f3a922','#3ddc97','#ff5e7e','#4ea1ff','#ffd23f','#ff6b6b','#00d4ff','#c77dff','#7bed9f'];
 
+// Topes SEMANALES de guerra (pedido de la usuaria, 19-oct-2026): lo que los supere es una anomalía. Los barcos nunca superan a los ataques, por eso comparten el tope de 16. (En perfil.html los topes son por día: 4 ataques y 900 medallas.)
+const TOPE_ATAQUES_SEMANA = 16;
+const TOPE_MEDALLAS_SEMANA = 3600;
+const TOPE_BARCOS_SEMANA = 16;
+
 function semanaLabel(s){ return String(s ?? '—'); }
 function semanaOrden(s){
   const str = String(s ?? '').trim();
@@ -2320,7 +2329,9 @@ function lineChartSvg(miembros, campo, semanas, opts){
   // PAD_B sube para el título fijo del eje X, mismo cambio que su gemela en index.html. Historial en CHANGELOG.md.
   const W = 960, H = 460, PAD_R = 20, PAD_T = 20, PAD_B = 84;
 
-  let max = 0;
+  // El tope entra en el cálculo del máximo para que la línea siempre quede dentro de la gráfica.
+  const tope = opts.tope > 0 ? Number(opts.tope) : 0;
+  let max = tope;
   miembros.forEach(m => (m.historialSemanal || []).forEach(h => { max = Math.max(max, Number(h[campo]) || 0); }));
   const pasos = 4;
   const techo = Math.ceil((max || pasos) / pasos) * pasos || pasos;
@@ -2382,11 +2393,12 @@ function lineChartSvg(miembros, campo, semanas, opts){
     const circles = secuencia.map(p => {
       const fEst = fechasEstimadas.get(p.semana);
       const semanaTooltip = fEst ? `≈ ${fmtFechaLargaDDMMYYYY(fEst)} (estimada)` : p.semana;
+      const anomalia = !!tope && p.real && Number(p.valor) > tope; // igual al tope NO es anomalía
       return `
-      <circle class="ing-serie-pt${p.real ? '' : ' serie-pt-vacio'}" cx="${xPos(p.idx).toFixed(1)}" cy="${yPos(p.valor).toFixed(1)}" r="5"
-        fill="${p.real ? color : 'none'}" stroke="${p.real ? 'var(--bg)' : color}" stroke-width="${p.real ? 1.5 : 2}"
+      <circle class="ing-serie-pt${p.real ? '' : ' serie-pt-vacio'}${anomalia ? ' serie-pt-anomalia' : ''}" cx="${xPos(p.idx).toFixed(1)}" cy="${yPos(p.valor).toFixed(1)}" r="${anomalia ? 6.5 : 5}"
+        fill="${p.real ? (anomalia ? 'var(--danger)' : color) : 'none'}" stroke="${p.real ? 'var(--bg)' : color}" stroke-width="${p.real ? 1.5 : 2}"
         data-nombre="${esc(m.nombre || '')}" data-tag="${esc(m.tag || '')}" data-valor="${p.valor}" data-clan="${esc(p.real ? p.clan : 'Sin dato — sin clan o sin participar')}"
-        data-semana="${esc(semanaTooltip)}" data-unidad="${esc(opts.unidad || '')}"></circle>`;
+        data-semana="${esc(semanaTooltip)}" data-unidad="${esc(opts.unidad || '')}"${anomalia ? ` data-tope="${tope}"` : ''}></circle>`;
     }).join('');
     return `${path}${circles}`;
   }).join('');
@@ -2398,7 +2410,21 @@ function lineChartSvg(miembros, campo, semanas, opts){
     ? `<text class="ing-axis-title" x="14" y="${PAD_T + plotH / 2}" text-anchor="middle" transform="rotate(-90 14 ${PAD_T + plotH / 2})">${esc(opts.ejeY)}</text>`
     : '';
 
-  return `<svg class="ing-linechart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">${gridLines.join('')}${gridMedios}${lineasTemporales}${xLabels}${seriesSvg}${ejeXTitle}${ejeYTitle}</svg>`;
+  // Línea punteada del tope (color oro, distinta de los tramos punteados grises de «sin dato») con su rótulo a la derecha; mismo dibujo que perfil.html.
+  const lineaTope = tope ? (() => {
+    const y = yPos(tope).toFixed(1);
+    return `<line class="linea-tope" x1="${PAD_L}" y1="${y}" x2="${W - PAD_R}" y2="${y}"></line><text class="tope-label" x="${W - PAD_R}" y="${(yPos(tope) - 7).toFixed(1)}" text-anchor="end">Tope: ${esc(fmtNum(tope))}</text>`;
+  })() : '';
+
+  return `<svg class="ing-linechart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">${gridLines.join('')}${gridMedios}${lineasTemporales}${xLabels}${lineaTope}${seriesSvg}${ejeXTitle}${ejeYTitle}</svg>`;
+}
+
+/** Texto y tooltip de un punto de Ingresos recientes: igual que los compartidos (timeline-svg.js) y, si el punto supera el tope semanal, lo avisa (como perfil.html). */
+function etiquetaPuntoIngreso(pt){
+  return etiquetaPuntoSerie(pt) + (pt.dataset.tope ? ' — supera el tope de ' + fmtNum(pt.dataset.tope) : '');
+}
+function htmlTooltipPuntoIngreso(pt){
+  return htmlTooltipPuntoSerie(pt) + (pt.dataset.tope ? `<br><span style="color:var(--danger);">⚠ Supera el tope de ${esc(fmtNum(pt.dataset.tope))}</span>` : '');
 }
 
 /** FIX (08-sep-2026, pedido usuario — "en las gráficas no debe decir
@@ -2431,7 +2457,7 @@ function activarTooltipsGraficasIngresos(){
   document.querySelectorAll('.ing-linechart-svg .ing-serie-pt').forEach(pt => {
     pt.addEventListener('mousemove', e => {
       // Mismo orden que index.html (htmlTooltipPuntoSerie, en timeline-svg.js, compartido con el foco de teclado). Historial en CHANGELOG.md.
-      tip.innerHTML = htmlTooltipPuntoSerie(pt);
+      tip.innerHTML = htmlTooltipPuntoIngreso(pt);
       tip.style.display = 'block';
       posicionarTooltipGrafica(tip, e.clientX, e.clientY); // se voltea a la izquierda/arriba si no cabe. Historial en CHANGELOG.md.
     });
@@ -2441,8 +2467,8 @@ function activarTooltipsGraficasIngresos(){
   document.querySelectorAll('.ing-linechart-svg').forEach(svg => activarTecladoPuntosGrafica(svg, {
     selector: '.ing-serie-pt',
     serieDe: pt => pt.dataset.tag || pt.dataset.nombre,
-    etiqueta: etiquetaPuntoSerie,
-    htmlTooltip: htmlTooltipPuntoSerie
+    etiqueta: etiquetaPuntoIngreso,
+    htmlTooltip: htmlTooltipPuntoIngreso
   }));
 }
 
@@ -2455,7 +2481,7 @@ function renderComparativaSemanal(container, miembrosTodos){
   const semanas = construirSemanasMaestras(miembros);
   const hayEstimadas = semanas.some(s => numeroSemanaVieja(s) !== null);
   // Mismo criterio que index.html: ejeY es la primera palabra del título de la tarjeta. Historial en CHANGELOG.md.
-  const chartCard = (icono, titulo, campo, unidad) => `
+  const chartCard = (icono, titulo, campo, unidad, tope) => `
       <div class="card ing-linechart-card">
         <div class="chart-title">${icono} ${titulo}</div>
         <div class="ing-chart-leyenda">
@@ -2467,15 +2493,19 @@ function renderComparativaSemanal(container, miembrosTodos){
             <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><circle cx="5" cy="5" r="3.4" fill="none" stroke="var(--text-dim)" stroke-width="1.6"></circle></svg>
             Punto solo con borde = sin dato esa semana
           </div>
+          ${tope ? `<div class="ing-chart-leyenda-fila">
+            <svg width="22" height="10" viewBox="0 0 22 10" aria-hidden="true"><line x1="0" y1="5" x2="22" y2="5" stroke="var(--gold)" stroke-width="1.8" stroke-dasharray="4 3"></line></svg>
+            Línea punteada = tope semanal (${esc(fmtNum(tope))}) · punto rojo = supera el tope (anomalía)
+          </div>` : ''}
         </div>
         ${lineChartLegendHtml(miembros)}
-        ${lineChartSvg(miembros, campo, semanas, { unidad, ejeY: titulo.split(' ')[0] })}
+        ${lineChartSvg(miembros, campo, semanas, { unidad, ejeY: titulo.split(' ')[0], tope })}
       </div>`;
   container.innerHTML = `
     <div class="comparativa-grid">
-      ${chartCard('⚔️', 'Ataques por semana', 'ataques', 'ataques')}
-      ${chartCard('⭐', 'Medallas por semana', 'puntaje', 'de medallas')}
-      ${chartCard('🚢', 'Barcos por semana', 'barcos', 'barcos')}
+      ${chartCard('⚔️', 'Ataques por semana', 'ataques', 'ataques', TOPE_ATAQUES_SEMANA)}
+      ${chartCard('⭐', 'Medallas por semana', 'puntaje', 'de medallas', TOPE_MEDALLAS_SEMANA)}
+      ${chartCard('🚢', 'Barcos por semana', 'barcos', 'barcos', TOPE_BARCOS_SEMANA)}
     </div>
     ${hayEstimadas ? `<p class="text-faint" style="font-size:11px; margin-top:8px;">≈ Fecha estimada: registros de antes de que se guardara la fecha real de cada semana (esquema viejo "Semana N"), calculada contando semanas hacia atrás desde el primer registro con fecha real.</p>` : ''}`;
   activarTooltipsGraficasIngresos();

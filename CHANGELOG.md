@@ -31,6 +31,10 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 
 ---
 
+## 19-oct-2026
+
+- **`directorio.html` (`lineChartSvg()`, `renderComparativaSemanal()`, `etiquetaPuntoIngreso()`, `htmlTooltipPuntoIngreso()`, constantes `TOPE_*_SEMANA`, CSS `.linea-tope`, `.tope-label`, `.serie-pt-anomalia`), `sw.js` v100 y `test/directorio-tope-grafica.test.js` · Línea de tope semanal en las gráficas de Ingresos recientes.** «Ataques por semana» (tope 16), «Medallas por semana» (3600) y «Barcos por semana» (16; los barcos nunca superan a los ataques) dibujan una línea punteada dorada con su rótulo «Tope: N», igual que `perfil.html`. La escala siempre llega al tope; un valor real por encima es anomalía (punto rojo y aviso en el tooltip); igual al tope no lo es. La leyenda de cada gráfica suma la fila del tope. Sin enlace al contexto: falta anotarlo en `Contexto_Base_Web.md` (repo `Backend`).
+
 ## 18-oct-2026
 
 - **`admin.html` (`renderTorneoPrincipalLista()`, `ordenarRecientesPrimero()`, `cargarTorneosHoy()`, `cargarSorteosHoy()`, `cargarCRListaPares()`, `renderSorteoPrincipalLista()`, `aplicarTipoModificar()`), `sw.js` v99 y `test/torneo-principal-planificados-dom.test.js` · Torneo principal sin restricción y listas de más reciente a más antigua.** Al registrar una continuación ya no sale «No hay torneos de hoy ya procesados…»: se ofrecen también los planificados o sin link («(aún sin link)»), enlazados por su ID. Las listas de torneos, sorteos y cambio de rango se ordenan de la más reciente a la más antigua. `→ §PF118`
