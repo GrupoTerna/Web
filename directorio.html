@@ -1321,7 +1321,10 @@ function guerraComparadorMetricaSvg(a, b, campo, tituloMetrica, fechas, indicePo
   }
   const margen = Math.max(1, (maxCrudo - minCrudo) * 0.12);
   const paso = pasoAgradable((maxCrudo - minCrudo) + margen * 2) || 1;
-  const min = Math.max(0, Math.floor((minCrudo - margen) / paso) * paso);
+  // 19-oct-2026 (pedido usuaria): el piso nunca baja de 0, salvo que HAYA un valor por debajo del mínimo (ataques, barcos y medallas no pueden ser negativos): entonces el eje baja hasta incluirlo, se dibuja la línea «Mínimo: 0» y ese punto sale como anomalía.
+  const minimoCC = minimoMetricaGuerra();
+  const hayBajoCC = hayBajoMinimo(todos, minimoCC);
+  const min = hayBajoCC ? Math.floor((minCrudo - margen) / paso) * paso : Math.max(0, Math.floor((minCrudo - margen) / paso) * paso);
   const max = Math.ceil((maxCrudo + margen) / paso) * paso || paso;
 
   // PAD_B se agrandó porque la etiqueta de fecha va rotada 45°. Historial en CHANGELOG.md.
@@ -1367,8 +1370,9 @@ function guerraComparadorMetricaSvg(a, b, campo, tituloMetrica, fechas, indicePo
       const cx = (PAD_L + indicePorFecha.get(r.fecha)*stepX).toFixed(1);
       const cy = escalaY(Number(r[campo]) || 0).toFixed(1);
       const valor = fmtNum(Number(r[campo]) || 0);
-      const tip = `${nombre || ''}${clan ? ' — ' + clan : ''}\n${tituloMetrica}: ${valor}\nDía: ${fmtFecha(r.fecha)}`;
-      return `<circle cx="${cx}" cy="${cy}" r="3.5" fill="${color}" stroke="var(--bg)" stroke-width="1"><title>${esc(tip)}</title></circle>`;
+      const bajoMin = (Number(r[campo]) || 0) < minimoCC;
+      const tip = `${nombre || ''}${clan ? ' — ' + clan : ''}\n${tituloMetrica}: ${valor}\nDía: ${fmtFecha(r.fecha)}${bajoMin ? '\n⚠ Por debajo del mínimo de ' + fmtNum(minimoCC) : ''}`;
+      return `<circle cx="${cx}" cy="${cy}" r="${bajoMin ? 5 : 3.5}" fill="${bajoMin ? 'var(--danger)' : color}" stroke="var(--bg)" stroke-width="1"><title>${esc(tip)}</title></circle>`;
     })
     .join('');
 
@@ -1385,6 +1389,7 @@ function guerraComparadorMetricaSvg(a, b, campo, tituloMetrica, fechas, indicePo
       ${gridLines.join('')}
       ${gridMedios}
       ${lineasTemporales}
+      ${hayBajoCC ? lineaMinimoSvg(escalaY(minimoCC), PAD_L, W - PAD_R, minimoCC) : ''}
       ${etiquetas.map(e => `<text class="axis-label axis-label-month" x="${e.x}" y="${H - 6}" text-anchor="end" transform="rotate(-45 ${e.x} ${H - 6})">${esc(e.texto)}</text>`).join('')}
       ${a.length ? `<polyline points="${puntosDe(a)}" fill="none" stroke="${colorA}" stroke-width="2.5"/>` : ''}
       ${b.length ? `<polyline points="${puntosDe(b)}" fill="none" stroke="${colorB}" stroke-width="2.5"/>` : ''}
@@ -2341,18 +2346,26 @@ function lineChartSvg(miembros, campo, semanas, opts){
   miembros.forEach(m => (m.historialSemanal || []).forEach(h => { max = Math.max(max, Number(h[campo]) || 0); }));
   const pasos = 4;
   const techo = Math.ceil((max || pasos) / pasos) * pasos || pasos;
+  // 19-oct-2026 (pedido usuaria): mínimo (0) de las métricas de guerra. Su línea «Mínimo: 0» solo se dibuja si algún valor real queda por debajo; entonces el eje baja hasta incluirlo y ese punto sale como anomalía. Sin valores bajo el mínimo, `base` es 0 y todo queda como antes.
+  const minimo = opts.minimo != null ? Number(opts.minimo) : null;
+  const todosValores = [];
+  miembros.forEach(m => (m.historialSemanal || []).forEach(h => { todosValores.push(Number(h[campo]) || 0); }));
+  const hayBajo = minimo != null && hayBajoMinimo(todosValores, minimo);
+  const base = hayBajo ? pisoEjeConNegativos(todosValores, minimo, pasos, 0) : 0;
+  const rangoY = techo - base;
+  const valorMarca = i => base + (rangoY / pasos) * i;
 
   // FIX (20-sep-2026, pedido usuario — "el nombre del eje y debe separarse un poco de los valores, ahí se ve que puntaje está muy pegado a 1700"): antes PAD_L era fijo (74) y el título del eje Y iba en x=18, es decir, casi encima de las marcas más anchas (p. ej. "3,400", "12,750"). Ahora el margen izquierdo se calcula según el ancho real de la marca más ancha (fuente monoespaciada de 15px ≈ 9.3px por carácter) + 10px de aire a la línea + 14px de espacio libre + 22px para el título rotado.
-  const anchoMarcaY = Math.max(...Array.from({ length: pasos + 1 }, (_, i) => fmtNum(Math.round((techo / pasos) * i)).length)) * 9.3;
+  const anchoMarcaY = Math.max(...Array.from({ length: pasos + 1 }, (_, i) => fmtNum(Math.round(valorMarca(i))).length)) * 9.3;
   const PAD_L = Math.max(74, Math.ceil(10 + anchoMarcaY + 14 + 22));
   const plotW = W - PAD_L - PAD_R, plotH = H - PAD_T - PAD_B;
 
   const xPos = i => PAD_L + (semanas.length <= 1 ? plotW / 2 : (i / (semanas.length - 1)) * plotW);
-  const yPos = v => PAD_T + plotH - (Math.min(v, techo) / techo) * plotH;
+  const yPos = v => PAD_T + plotH - ((Math.min(Math.max(v, base), techo) - base) / rangoY) * plotH;
 
   const gridLines = [];
   for (let i = 0; i <= pasos; i++){
-    const v = (techo / pasos) * i, y = yPos(v);
+    const v = valorMarca(i), y = yPos(v);
     gridLines.push(`<line class="ing-grid-line" x1="${PAD_L}" y1="${y}" x2="${W - PAD_R}" y2="${y}"></line>`);
     gridLines.push(`<text class="ing-axis-label" x="${PAD_L - 10}" y="${y + 4}" text-anchor="end">${fmtNum(Math.round(v))}</text>`);
   }
@@ -2365,7 +2378,7 @@ function lineChartSvg(miembros, campo, semanas, opts){
     return fechasEstimadas.get(s) || null;
   });
   const lineasTemporales = lineasTemporalesSvg(fechasEje, xPos, PAD_T, H - PAD_B, { granularidadDiaria: false });
-  const gridMedios = gridHorizontalMediosSvg(pasos, techo, yPos, PAD_L, W - PAD_R);
+  const gridMedios = gridHorizontalMediosSvg(pasos, rangoY, v => yPos(base + v), PAD_L, W - PAD_R);
   const xLabels = semanas.map((s, i) => {
     const x = xPos(i), y = H - PAD_B + 16;
     return `<text class="ing-axis-label" x="${x}" y="${y}" text-anchor="end" transform="rotate(-45 ${x} ${y})">${esc(semanaLabelCorta(s, fechasEstimadas))}</text>`;
@@ -2399,12 +2412,13 @@ function lineChartSvg(miembros, campo, semanas, opts){
     const circles = secuencia.map(p => {
       const fEst = fechasEstimadas.get(p.semana);
       const semanaTooltip = fEst ? `≈ ${fmtFechaLargaDDMMYYYY(fEst)} (estimada)` : p.semana;
-      const anomalia = !!tope && p.real && Number(p.valor) > tope; // igual al tope NO es anomalía
+      const bajoMin = hayBajo && p.real && Number(p.valor) < minimo;
+      const anomalia = (!!tope && p.real && Number(p.valor) > tope) || bajoMin; // igual al tope NO es anomalía
       return `
       <circle class="ing-serie-pt${p.real ? '' : ' serie-pt-vacio'}${anomalia ? ' serie-pt-anomalia' : ''}" cx="${xPos(p.idx).toFixed(1)}" cy="${yPos(p.valor).toFixed(1)}" r="${anomalia ? 6.5 : 5}"
         fill="${p.real ? (anomalia ? 'var(--danger)' : color) : 'none'}" stroke="${p.real ? 'var(--bg)' : color}" stroke-width="${p.real ? 1.5 : 2}"
         data-nombre="${esc(m.nombre || '')}" data-tag="${esc(m.tag || '')}" data-clan-actual="${esc(m.clan || '')}" data-valor="${p.valor}" data-clan="${esc(p.real ? p.clan : 'Sin dato — sin clan o sin participar')}"
-        data-semana="${esc(semanaTooltip)}" data-unidad="${esc(opts.unidad || '')}"${anomalia ? ` data-tope="${tope}"` : ''}></circle>`;
+        data-semana="${esc(semanaTooltip)}" data-unidad="${esc(opts.unidad || '')}"${(!!tope && p.real && Number(p.valor) > tope) ? ` data-tope="${tope}"` : ''}${bajoMin ? ` data-minimo="${minimo}"` : ''}></circle>`;
     }).join('');
     return `${path}${circles}`;
   }).join('');
@@ -2422,19 +2436,19 @@ function lineChartSvg(miembros, campo, semanas, opts){
     return `<line class="linea-tope" x1="${PAD_L}" y1="${y}" x2="${W - PAD_R}" y2="${y}"></line><text class="tope-label" x="${W - PAD_R}" y="${(yPos(tope) - 7).toFixed(1)}" text-anchor="end">Tope: ${esc(fmtNum(tope))}</text>`;
   })() : '';
 
-  return `<svg class="ing-linechart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">${gridLines.join('')}${gridMedios}${lineasTemporales}${xLabels}${lineaTope}${seriesSvg}${ejeXTitle}${ejeYTitle}</svg>`;
+  return `<svg class="ing-linechart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">${gridLines.join('')}${gridMedios}${lineasTemporales}${xLabels}${lineaTope}${hayBajo ? lineaMinimoSvg(yPos(minimo), PAD_L, W - PAD_R, minimo) : ''}${seriesSvg}${ejeXTitle}${ejeYTitle}</svg>`;
 }
 
 /** Texto y tooltip de un punto de Ingresos recientes: igual que los compartidos (timeline-svg.js) y, si el punto supera el tope semanal, lo avisa (como perfil.html). */
 function etiquetaPuntoIngreso(pt){
-  const { nombre, tag, valor, clan, clanActual, semana, unidad, tope } = pt.dataset;
-  return `${nombre || ''}${tag ? ' (' + tag + ')' : ''}${clanActual ? ', clan actual ' + clanActual : ''}: ${fmtNum(valor)} ${unidad || ''} — ${clan || ''} · ${semana || ''}` + (tope ? ' — supera el tope de ' + fmtNum(tope) : '');
+  const { nombre, tag, valor, clan, clanActual, semana, unidad, tope, minimo } = pt.dataset;
+  return `${nombre || ''}${tag ? ' (' + tag + ')' : ''}${clanActual ? ', clan actual ' + clanActual : ''}: ${fmtNum(valor)} ${unidad || ''} — ${clan || ''} · ${semana || ''}` + (tope ? ' — supera el tope de ' + fmtNum(tope) : '') + (minimo ? ' — por debajo del mínimo de ' + fmtNum(minimo) : '');
 }
 function htmlTooltipPuntoIngreso(pt){
-  const { nombre, tag, valor, clan, clanActual, semana, unidad, tope } = pt.dataset;
+  const { nombre, tag, valor, clan, clanActual, semana, unidad, tope, minimo } = pt.dataset;
   // 19-oct-2026 (pedido usuaria): a la derecha del tag va el clan ACTUAL del jugador (el de la leyenda); la segunda línea sigue mostrando el clan al que pertenecía ese registro.
   const actual = clanActual ? ` <span style="color:var(--gold);">· ${esc(clanActual)}</span>` : '';
-  return `<b>${esc(nombre)}${tag ? ' (' + esc(tag) + ')' : ''}</b>${actual}<br><span style="color:var(--text-faint);">${esc(fmtNum(valor))} ${esc(unidad)} — ${esc(clan)} · ${esc(semana)}</span>` + (tope ? `<br><span style="color:var(--danger);">⚠ Supera el tope de ${esc(fmtNum(tope))}</span>` : '');
+  return `<b>${esc(nombre)}${tag ? ' (' + esc(tag) + ')' : ''}</b>${actual}<br><span style="color:var(--text-faint);">${esc(fmtNum(valor))} ${esc(unidad)} — ${esc(clan)} · ${esc(semana)}</span>` + (tope ? `<br><span style="color:var(--danger);">⚠ Supera el tope de ${esc(fmtNum(tope))}</span>` : '') + (minimo ? `<br><span style="color:var(--danger);">⚠ Por debajo del mínimo de ${esc(fmtNum(minimo))}</span>` : '');
 }
 
 /** FIX (08-sep-2026, pedido usuario — "en las gráficas no debe decir
@@ -2491,7 +2505,9 @@ function renderComparativaSemanal(container, miembrosTodos){
   const semanas = construirSemanasMaestras(miembros);
   const hayEstimadas = semanas.some(s => numeroSemanaVieja(s) !== null);
   // Mismo criterio que index.html: ejeY es la primera palabra del título de la tarjeta. Historial en CHANGELOG.md.
-  const chartCard = (icono, titulo, campo, unidad, tope) => `
+  const chartCard = (icono, titulo, campo, unidad, tope) => {
+    const hayBajoMin = miembros.some(m => hayBajoMinimo((m.historialSemanal || []).map(h => Number(h[campo]) || 0), minimoMetricaGuerra()));
+    return `
       <div class="card ing-linechart-card">
         <div class="chart-title">${icono} ${titulo}</div>
         <div class="ing-chart-leyenda">
@@ -2507,10 +2523,15 @@ function renderComparativaSemanal(container, miembrosTodos){
             <svg width="22" height="10" viewBox="0 0 22 10" aria-hidden="true"><line x1="0" y1="5" x2="22" y2="5" stroke="var(--gold)" stroke-width="1.8" stroke-dasharray="4 3"></line></svg>
             Línea punteada = tope semanal (${esc(fmtNum(tope))}) · punto rojo = supera el tope (anomalía)
           </div>` : ''}
+          ${hayBajoMin ? `<div class="ing-chart-leyenda-fila">
+            <svg width="22" height="10" viewBox="0 0 22 10" aria-hidden="true"><line x1="0" y1="5" x2="22" y2="5" stroke="var(--gold)" stroke-width="1.8" stroke-dasharray="4 3"></line></svg>
+            Línea punteada = mínimo (${esc(fmtNum(minimoMetricaGuerra()))}) · punto rojo = por debajo del mínimo (anomalía)
+          </div>` : ''}
         </div>
         ${lineChartLegendHtml(miembros)}
-        ${lineChartSvg(miembros, campo, semanas, { unidad, ejeY: titulo.split(' ')[0], tope })}
+        ${lineChartSvg(miembros, campo, semanas, { unidad, ejeY: titulo.split(' ')[0], tope, minimo: minimoMetricaGuerra() })}
       </div>`;
+  };
   container.innerHTML = `
     <div class="comparativa-grid">
       ${chartCard('⚔️', 'Ataques por semana', 'ataques', 'ataques', TOPE_ATAQUES_SEMANA)}
