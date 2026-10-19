@@ -5301,7 +5301,7 @@ function parseFechaDDMMYYYY(s){
  * tramos punteados con puntos huecos para semanas sin dato, y el mismo
  * tooltip/teclado. Historial en CHANGELOG.md.
  * ========================================================================= */
-// Topes por día de guerra (pedido de la usuaria, 11-oct-2026): lo que los supere es una anomalía. Barcos no tiene tope definido.
+// Topes por día de guerra (pedido de la usuaria, 11-oct-2026): lo que los supere es una anomalía. Barcos no tiene tope propio, pero nunca puede superar a los ataques del mismo día (anomalía, 19-oct-2026).
 const TOPE_ATAQUES_DIA = 4;
 const TOPE_MEDALLAS_DIA = 900;
 const COLOR_SERIE_PERFIL = '#a239ff'; // primer color de PALETA_SERIES de directorio.html
@@ -5524,11 +5524,11 @@ function _guerraDiasDesdeHistorial(historial){
 
 function etiquetaPuntoPerfil(pt){
   const d = pt.dataset;
-  return `${d.nombre || ''}${d.tag ? ' (' + d.tag + ')' : ''}: ${d.prefijo || ''}${fmtNum(d.valor)} ${d.unidad || ''} — ${d.clan || ''} · ${d.semana || ''}${d.tope ? ' — supera el tope de ' + fmtNum(d.tope) : ''}`;
+  return `${d.nombre || ''}${d.tag ? ' (' + d.tag + ')' : ''}: ${d.prefijo || ''}${fmtNum(d.valor)} ${d.unidad || ''} — ${d.clan || ''} · ${d.semana || ''}${d.tope ? ' — supera el tope de ' + fmtNum(d.tope) : ''}${d.excedeAtaques ? ' — más barcos que ataques (ataques ese día: ' + fmtNum(d.excedeAtaques) + ')' : ''}`;
 }
 function htmlTooltipPuntoPerfil(pt){
   const d = pt.dataset;
-  return `<b>${esc(d.nombre || '')}${d.tag ? ' (' + esc(d.tag) + ')' : ''}</b><br><span style="color:var(--text-faint);">${esc((d.prefijo || '') + fmtNum(d.valor))} ${esc(d.unidad || '')} — ${esc(d.clan || '')} · ${esc(d.semana || '')}</span>${d.tope ? `<br><span style="color:var(--danger);">⚠ Supera el tope de ${esc(fmtNum(d.tope))}</span>` : ''}`;
+  return `<b>${esc(d.nombre || '')}${d.tag ? ' (' + esc(d.tag) + ')' : ''}</b><br><span style="color:var(--text-faint);">${esc((d.prefijo || '') + fmtNum(d.valor))} ${esc(d.unidad || '')} — ${esc(d.clan || '')} · ${esc(d.semana || '')}</span>${d.tope ? `<br><span style="color:var(--danger);">⚠ Supera el tope de ${esc(fmtNum(d.tope))}</span>` : ''}${d.excedeAtaques ? `<br><span style="color:var(--danger);">⚠ Más barcos que ataques (ataques ese día: ${esc(fmtNum(d.excedeAtaques))})</span>` : ''}`;
 }
 
 /**
@@ -5682,13 +5682,15 @@ function perfilLineChartSvg(puntos, opts){
     path += `<path class="ing-serie-line${dashed ? ' ing-serie-line-dashed' : ''}" d="M ${xPos(i).toFixed(1)} ${yPos(a.valor).toFixed(1)} L ${xPos(i + 1).toFixed(1)} ${yPos(b.valor).toFixed(1)}" stroke="${COLOR_SERIE_PERFIL}"></path>`;
   }
   const circles = puntos.map((p, i) => {
-    const anomalia = !!tope && p.real && Number(p.valor) > tope;
+    // 19-oct-2026 (pedido usuaria): en la gráfica de barcos, un día con más barcos que ataques también es anomalía (p.excedeAtaques trae los ataques de ese día; lo calcula renderMetricaSemanal()).
+    const excedeAtaques = p.real && p.excedeAtaques != null;
+    const anomalia = (!!tope && p.real && Number(p.valor) > tope) || excedeAtaques;
     return `
       <circle class="ing-serie-pt${p.real ? '' : ' serie-pt-vacio'}${anomalia ? ' serie-pt-anomalia' : ''}" cx="${xPos(i).toFixed(1)}" cy="${yPos(p.valor).toFixed(1)}" r="${anomalia ? 6.5 : 5}"
         fill="${p.real ? (anomalia ? 'var(--danger)' : COLOR_SERIE_PERFIL) : 'none'}" stroke="${p.real ? 'var(--bg)' : COLOR_SERIE_PERFIL}" stroke-width="${p.real ? 1.5 : 2}"
         data-nombre="${esc(perfilGraficaCtx.nombre)}" data-tag="${esc(perfilGraficaCtx.tag)}" data-valor="${p.valor}" data-prefijo="${esc(p.real ? prefijo : '')}"
         data-clan="${esc(p.real ? (p.clan || perfilGraficaCtx.clan || '—') : (p.motivo || 'Sin dato — sin clan o sin participar'))}"
-        data-semana="${esc(p.semana)}" data-unidad="${esc(opts.unidad || '')}"${anomalia ? ` data-tope="${tope}"` : ''}></circle>`;
+        data-semana="${esc(p.semana)}" data-unidad="${esc(opts.unidad || '')}"${(!!tope && p.real && Number(p.valor) > tope) ? ` data-tope="${tope}"` : ''}${excedeAtaques ? ` data-excede-ataques="${p.excedeAtaques}"` : ''}></circle>`;
   }).join('');
 
   const ejeXTitle = `<text class="ing-axis-title" x="${PAD_L + plotW / 2}" y="${H - 8}" text-anchor="middle">Fecha</text>`;
@@ -5699,7 +5701,7 @@ function perfilLineChartSvg(puntos, opts){
 }
 
 /** Mini-leyenda de arriba de cada gráfica (idéntica a la de directorio.html). */
-function leyendaPuntosGraficaHtml(conHuecos, tope){
+function leyendaPuntosGraficaHtml(conHuecos, tope, vsAtaques){
   return `
     <div class="ing-chart-leyenda">
       <div class="ing-chart-leyenda-fila">
@@ -5713,6 +5715,10 @@ function leyendaPuntosGraficaHtml(conHuecos, tope){
       ${tope ? `<div class="ing-chart-leyenda-fila">
         <svg width="22" height="10" viewBox="0 0 22 10" aria-hidden="true"><line x1="0" y1="5" x2="22" y2="5" stroke="var(--gold)" stroke-width="1.8" stroke-dasharray="4 3"></line></svg>
         Línea punteada = tope (${esc(fmtNum(tope))}) · punto rojo = supera el tope (anomalía)
+      </div>` : ''}
+      ${vsAtaques ? `<div class="ing-chart-leyenda-fila">
+        <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><circle cx="5" cy="5" r="4" fill="var(--danger)"></circle></svg>
+        Punto rojo = ese día hay más barcos que ataques (anomalía)
       </div>` : ''}
     </div>`;
 }
@@ -5732,7 +5738,20 @@ function pintarGraficaPerfil(wrap, puntos, opts, nota){
       notaTope = `<div class="pf-tope-resumen pf-tope-alerta">⚠ ${anom.length} ${anom.length === 1 ? 'día supera' : 'días superan'} el tope de ${esc(fmtNum(opts.tope))} ${esc(unidad)}: ${lista}${mas}.</div>`;
     }
   }
-  wrap.innerHTML = `${leyendaPuntosGraficaHtml(!opts.sinHuecos, opts.tope)}${perfilLineChartSvg(puntos, opts)}${notaTope}${nota || ''}`;
+  // 19-oct-2026 (pedido usuaria): aviso de los días con más barcos que ataques (solo en la gráfica de barcos, opts.vsAtaques). Mismos puntos que se dibujan.
+  let notaExcede = '';
+  if (opts.vsAtaques){
+    const excede = filtrarDiasGuerraPerfil(puntos).filter(p => p.real && p.excedeAtaques != null);
+    if (!excede.length){
+      notaExcede = `<div class="pf-tope-resumen pf-tope-ok">Ningún día tiene más barcos que ataques.</div>`;
+    } else {
+      const MAX_LISTA = 10;
+      const lista = excede.slice(-MAX_LISTA).map(p => `${esc(semanaLabelCortaPerfil(p.semana))} (<b>${esc(fmtNum(p.valor))}</b> barcos, ${esc(fmtNum(p.excedeAtaques))} ataques)`).join(', ');
+      const mas = excede.length > MAX_LISTA ? ` y ${excede.length - MAX_LISTA} más antiguos` : '';
+      notaExcede = `<div class="pf-tope-resumen pf-tope-alerta">⚠ ${excede.length} ${excede.length === 1 ? 'día tiene' : 'días tienen'} más barcos que ataques: ${lista}${mas}.</div>`;
+    }
+  }
+  wrap.innerHTML = `${leyendaPuntosGraficaHtml(!opts.sinHuecos, opts.tope, opts.vsAtaques)}${perfilLineChartSvg(puntos, opts)}${notaTope}${notaExcede}${nota || ''}`;
   const svg = wrap.querySelector('.ing-linechart-svg');
   if (!svg) return;
   const tip = obtenerTooltipGrafica();
@@ -5862,15 +5881,18 @@ function renderMetricaSemanal(elId, historial, campo, opts){
   const ordenados = ordenarHistorialPorSemana(datos);
   const diarios = _valoresDiariosDesdeAcumulado(ordenados, campo);
   // FIX (11-oct-2026, pedido usuario — "el domingo 4 de octubre hay 0 medallas con 4 ataques", caso Chistris #2GG8PJ8GC): la última captura de un día puede traer los ataques ya contados pero la fama todavía sin acreditar (el API de Supercell lo hace a veces; ejemplo en Backend/Datos descargados/JSON, corte del 17-08-2026, #9G80CLJ08: 4 mazos y fama 0). Entonces el acumulado de medallas queda igual al del día anterior y la resta da 0 con ataques > 0. Ese 0 no es real: se dibuja como punto hueco ("sin dato") en vez de un 0 que parece cierto.
-  const ataquesDiarios = campo === 'puntaje' ? _valoresDiariosDesdeAcumulado(ordenados, 'ataques') : null;
+  const ataquesDiarios = (campo === 'puntaje' || campo === 'barcos') ? _valoresDiariosDesdeAcumulado(ordenados, 'ataques') : null;
   const puntos = completarSemanasSinDato(
     diarios.map((h, i) => {
-      const medallasSinAcreditar = !!ataquesDiarios && Number(h[campo]) === 0 && Number(ataquesDiarios[i].ataques) > 0;
-      return { semana: String(h.semana), valor: Number(h[campo]), real: !medallasSinAcreditar, clan: h.clan, motivo: medallasSinAcreditar ? 'Sin dato — ese día hay ataques, pero las medallas no llegaron a registrarse' : '' };
+      const medallasSinAcreditar = campo === 'puntaje' && !!ataquesDiarios && Number(h[campo]) === 0 && Number(ataquesDiarios[i].ataques) > 0;
+      // 19-oct-2026 (pedido usuaria): los barcos nunca pueden ser más que los ataques del mismo día; si pasa, es anomalía. Sin dato de ataques ese día (null) no se compara.
+      const ataquesDelDia = (campo === 'barcos' && ordenados[i].ataques != null && ataquesDiarios && isFinite(Number(ataquesDiarios[i].ataques))) ? Number(ataquesDiarios[i].ataques) : null;
+      const excede = ataquesDelDia != null && Number(h[campo]) > ataquesDelDia;
+      return { semana: String(h.semana), valor: Number(h[campo]), real: !medallasSinAcreditar, clan: h.clan, motivo: medallasSinAcreditar ? 'Sin dato — ese día hay ataques, pero las medallas no llegaron a registrarse' : '', excedeAtaques: excede ? ataquesDelDia : undefined };
     })
   );
   const unidades = { Ataques: 'ataques', Medallas: 'de medallas', Barcos: 'barcos' };
-  pintarGraficaPerfil(wrap, puntos, { ejeY: opts.tituloEje || '', unidad: unidades[opts.tituloEje] || '', base: 0, tope: opts.tope || 0 });
+  pintarGraficaPerfil(wrap, puntos, { ejeY: opts.tituloEje || '', unidad: unidades[opts.tituloEje] || '', base: 0, tope: opts.tope || 0, vsAtaques: !!opts.vsAtaques });
 }
 
 /**
@@ -5884,7 +5906,7 @@ function renderMetricasSemanales(ext){
   const historial = ext && Array.isArray(ext.historialRanking) ? ext.historialRanking : [];
   renderMetricaSemanal('mAtaquesChart', historial, 'ataques', { tituloEje: 'Ataques', tope: TOPE_ATAQUES_DIA });
   renderMetricaSemanal('mPuntajeChart', historial, 'puntaje', { tituloEje: 'Medallas', tope: TOPE_MEDALLAS_DIA });
-  renderMetricaSemanal('mBarcosChart', historial, 'barcos', { tituloEje: 'Barcos' });
+  renderMetricaSemanal('mBarcosChart', historial, 'barcos', { tituloEje: 'Barcos', vsAtaques: true });
 }
 
 // adminPuedeVetar() ahora vive en assets/common.js (1-sep-2026, reutilizada

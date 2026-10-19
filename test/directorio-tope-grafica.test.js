@@ -104,3 +104,31 @@ test('el tooltip y la etiqueta de un punto sobre el tope lo avisan; uno normal n
   assert.ok(w.__t.htmlTooltipPuntoIngreso(anomalo).includes('Supera el tope de 16'));
   assert.ok(w.__t.etiquetaPuntoIngreso(anomalo).includes('supera el tope de 16'));
 });
+
+test('cada punto lleva el clan ACTUAL del miembro (data-clan-actual) aparte del clan de ese registro', () => {
+  const w = cargar();
+  const m = miembro([16, 12, 8, 16], 'ataques');
+  m.clan = 'Terna';
+  m.historialSemanal[0].clan = 'Amazing Perú ™';
+  const svg = w.__t.lineChartSvg([m], 'ataques', SEMANAS, { unidad: 'ataques', tope: 16 });
+  assert.equal((svg.match(/data-clan-actual="Terna"/g) || []).length, 4);
+  assert.ok(svg.includes('data-clan="Amazing Perú ™"'), 'el clan del registro se conserva');
+});
+
+test('el tooltip muestra el clan actual a la derecha del tag y mantiene el clan del registro en la segunda línea', () => {
+  const w = cargar();
+  const pt = w.document.createElement('circle');
+  Object.assign(pt.dataset, { nombre: 'Linkrez', tag: '#8QGUVJ08G', clanActual: 'Terna', valor: '16', clan: 'Amazing Perú ™', semana: '26/07/2026', unidad: 'ataques' });
+  const html = w.__t.htmlTooltipPuntoIngreso(pt);
+  const iTag = html.indexOf('(#8QGUVJ08G)'), iActual = html.indexOf('Terna'), iBr = html.indexOf('<br>');
+  assert.ok(iTag >= 0 && iActual > iTag && iActual < iBr, 'Terna va después del tag y en la primera línea');
+  assert.ok(html.slice(iBr).includes('Amazing Perú ™') && html.slice(iBr).includes('26/07/2026'), 'la segunda línea conserva el clan del registro');
+  assert.ok(w.__t.etiquetaPuntoIngreso(pt).includes('clan actual Terna'));
+});
+
+test('sin clan actual el tooltip queda como antes (sin separador de más)', () => {
+  const w = cargar();
+  const pt = w.document.createElement('circle');
+  Object.assign(pt.dataset, { nombre: 'Linkrez', tag: '#8QGUVJ08G', valor: '16', clan: 'Terna', semana: '26/07/2026', unidad: 'ataques' });
+  assert.ok(!w.__t.htmlTooltipPuntoIngreso(pt).includes('·</span>'));
+});
