@@ -114,6 +114,38 @@ function gridHorizontalMediosSvg(pasos, techo, yPos, xIni, xFin, prefijoClase){
 
 
 /* =========================================================================
+ * Mínimo de las métricas de guerra (19-oct-2026, pedido de la usuaria):
+ * ataques, barcos y medallas nunca pueden ser menores que cero. Es el piso
+ * de las gráficas de perfil.html y directorio.html; a diferencia del tope
+ * (que sí se dibuja siempre), su línea punteada «Mínimo: 0» solo aparece
+ * cuando HAY algún valor por debajo; entonces el eje baja hasta incluirlo y
+ * ese punto se pinta como anomalía. Compartido para que ambas páginas lo
+ * traten igual.
+ * ========================================================================= */
+
+/** El mínimo de ataques, barcos y medallas. */
+function minimoMetricaGuerra(){ return 0; }
+
+/** true si algún valor numérico es menor que `minimo`. */
+function hayBajoMinimo(valores, minimo){
+  return (valores || []).some(v => { const n = Number(v); return v !== null && v !== '' && isFinite(n) && n < minimo; });
+}
+
+/** Piso del eje que deja entrar al valor más bajo: múltiplo de `pasos` por debajo de él, para que las marcas sigan siendo enteras. Sin valores bajo el mínimo devuelve `base` tal cual. */
+function pisoEjeConNegativos(valores, minimo, pasos, base){
+  const menor = Math.min(...(valores || []).map(Number).filter(isFinite));
+  if (!(menor < minimo)) return base;
+  return Math.min(base, Math.floor(menor / pasos) * pasos);
+}
+
+/** Línea punteada del mínimo con su rótulo «Mínimo: N» a la derecha, DEBAJO de la línea (arriba van los datos). `y` ya viene escalado. Estilo en assets/styles.css (.linea-minimo, .minimo-label). */
+function lineaMinimoSvg(y, xIni, xFin, minimo){
+  const yy = Number(y).toFixed(1);
+  return `<line class="linea-minimo" x1="${xIni}" y1="${yy}" x2="${xFin}" y2="${yy}"></line><text class="minimo-label" x="${xFin}" y="${(Number(y) + 17).toFixed(1)}" text-anchor="end">Mínimo: ${esc(fmtNum(minimo))}</text>`;
+}
+
+
+/* =========================================================================
  * Gráficas operables por teclado y lectores de pantalla (plan B-12).
  * Antes los puntos <circle> solo mostraban su valor al pasar el mouse
  * (tooltip flotante o <title> nativo): con teclado no había forma de

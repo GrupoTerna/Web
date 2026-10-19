@@ -533,6 +533,10 @@
   .ing-pill:not([data-clan="__todos__"]).parcial{border-color:var(--purple); color:var(--text);}
   .ing-pill[data-clan="__todos__"]{border-color:var(--gold); color:var(--gold);}
   .ing-pill[data-clan="__todos__"].active{background:rgba(255,193,68,.16); border-color:var(--gold); color:var(--gold); box-shadow:0 0 12px rgba(255,193,68,.18);}
+  /* Pastilla «Ocultar admins» (19-oct-2026): activa = admins fuera de las gráficas; se distingue de las de clan con borde rojo, porque aquí «activa» significa que se OCULTA algo. */
+  .ing-pill.ing-pill-admin{border-color:var(--line-strong);}
+  .ing-pill.ing-pill-admin.active{background:rgba(244,63,94,.16); border-color:var(--danger); color:#fff; box-shadow:0 0 12px rgba(244,63,94,.18);}
+  .ing-pill.ing-pill-admin.active .ing-pill-count{color:var(--danger);}
   /* Checkbox de cada tarjeta de miembro (nuevoCardHtml). FIX (16-sep-2026
      v5, pedido usuario — "alinea los checkboxes de los nombres de
      ingresos recientes a la derecha, pegado a la pared de su recuadro
@@ -548,6 +552,8 @@
   /* FIX (20-sep-2026, pedido usuario — "al marcar o desmarcar la tarjeta de un miembro, no debe desaparecer la tarjeta, solo su presencia en las gráficas. Las tarjetas nunca deben desaparecer"): el checkbox y las pastillas de clan ya NO ocultan tarjetas, solo incluyen/excluyen al miembro de las gráficas. Una tarjeta excluida sigue completa y clicable; solo baja un poco de intensidad (.excluido) para que se note de un vistazo quién está fuera de las gráficas. */
   .nuevo-card{transition:opacity .18s ease;}
   .nuevo-card.excluido{opacity:.62;}
+  /* «Ocultar admins» (19-oct-2026): la tarjeta de una cuenta de admin desaparece mientras la pastilla está activa. Clase propia y no style.display para no pisar el filtro A-Z (aplicarFiltroLetraIngresos). */
+  .nuevo-card.oculto-admin{display:none;}
   .nuevo-card.excluido:hover{opacity:.9;}
   .nuevo-card .ing-rival{margin:8px 0 0;}
   .nuevo-card .ing-rival .badge{font-size:11px;}
@@ -628,6 +634,10 @@
   /* Nombres de los ejes (pedido usuario 08-sep-2026), mismo criterio que
      .axis-title de más arriba pero con el prefijo "ing-" de esta gráfica. */
   .ing-linechart-svg .ing-axis-title{fill:var(--text-dim); font-family:var(--f-mono); font-size:14px; font-weight:700; letter-spacing:.04em;}
+  /* 19-oct-2026 (pedido usuaria): línea de tope semanal en las gráficas de Ingresos recientes, mismo estilo que perfil.html (.linea-tope, .tope-label, .serie-pt-anomalia). */
+  .ing-linechart-svg .linea-tope{stroke:var(--gold); stroke-width:1.8; stroke-dasharray:7 5; opacity:.9;}
+  .ing-linechart-svg .tope-label{fill:var(--gold); font-family:var(--f-mono); font-size:13px; font-weight:700; paint-order:stroke; stroke:var(--bg); stroke-width:4px; stroke-linejoin:round;}
+  .ing-linechart-svg .serie-pt-anomalia{filter:drop-shadow(0 0 5px var(--danger));}
   .ing-linechart-legend{display:flex; flex-wrap:wrap; gap:12px 20px; margin-bottom:16px; padding-bottom:16px; border-bottom:1px solid var(--line);}
   .ing-linechart-legend-item{display:flex; align-items:center; gap:7px; font-family:var(--f-mono); font-size:13px; color:var(--text-dim);}
   .ing-linechart-legend-dot{width:11px; height:11px; border-radius:50%; flex-shrink:0;}
@@ -1311,7 +1321,10 @@ function guerraComparadorMetricaSvg(a, b, campo, tituloMetrica, fechas, indicePo
   }
   const margen = Math.max(1, (maxCrudo - minCrudo) * 0.12);
   const paso = pasoAgradable((maxCrudo - minCrudo) + margen * 2) || 1;
-  const min = Math.max(0, Math.floor((minCrudo - margen) / paso) * paso);
+  // 19-oct-2026 (pedido usuaria): el piso nunca baja de 0, salvo que HAYA un valor por debajo del mínimo (ataques, barcos y medallas no pueden ser negativos): entonces el eje baja hasta incluirlo, se dibuja la línea «Mínimo: 0» y ese punto sale como anomalía.
+  const minimoCC = minimoMetricaGuerra();
+  const hayBajoCC = hayBajoMinimo(todos, minimoCC);
+  const min = hayBajoCC ? Math.floor((minCrudo - margen) / paso) * paso : Math.max(0, Math.floor((minCrudo - margen) / paso) * paso);
   const max = Math.ceil((maxCrudo + margen) / paso) * paso || paso;
 
   // PAD_B se agrandó porque la etiqueta de fecha va rotada 45°. Historial en CHANGELOG.md.
@@ -1357,8 +1370,9 @@ function guerraComparadorMetricaSvg(a, b, campo, tituloMetrica, fechas, indicePo
       const cx = (PAD_L + indicePorFecha.get(r.fecha)*stepX).toFixed(1);
       const cy = escalaY(Number(r[campo]) || 0).toFixed(1);
       const valor = fmtNum(Number(r[campo]) || 0);
-      const tip = `${nombre || ''}${clan ? ' — ' + clan : ''}\n${tituloMetrica}: ${valor}\nDía: ${fmtFecha(r.fecha)}`;
-      return `<circle cx="${cx}" cy="${cy}" r="3.5" fill="${color}" stroke="var(--bg)" stroke-width="1"><title>${esc(tip)}</title></circle>`;
+      const bajoMin = (Number(r[campo]) || 0) < minimoCC;
+      const tip = `${nombre || ''}${clan ? ' — ' + clan : ''}\n${tituloMetrica}: ${valor}\nDía: ${fmtFecha(r.fecha)}${bajoMin ? '\n⚠ Por debajo del mínimo de ' + fmtNum(minimoCC) : ''}`;
+      return `<circle cx="${cx}" cy="${cy}" r="${bajoMin ? 5 : 3.5}" fill="${bajoMin ? 'var(--danger)' : color}" stroke="var(--bg)" stroke-width="1"><title>${esc(tip)}</title></circle>`;
     })
     .join('');
 
@@ -1375,6 +1389,7 @@ function guerraComparadorMetricaSvg(a, b, campo, tituloMetrica, fechas, indicePo
       ${gridLines.join('')}
       ${gridMedios}
       ${lineasTemporales}
+      ${hayBajoCC ? lineaMinimoSvg(escalaY(minimoCC), PAD_L, W - PAD_R, minimoCC) : ''}
       ${etiquetas.map(e => `<text class="axis-label axis-label-month" x="${e.x}" y="${H - 6}" text-anchor="end" transform="rotate(-45 ${e.x} ${H - 6})">${esc(e.texto)}</text>`).join('')}
       ${a.length ? `<polyline points="${puntosDe(a)}" fill="none" stroke="${colorA}" stroke-width="2.5"/>` : ''}
       ${b.length ? `<polyline points="${puntosDe(b)}" fill="none" stroke="${colorB}" stroke-width="2.5"/>` : ''}
@@ -2214,6 +2229,11 @@ function fmtFecha(iso){
 
 const PALETA_SERIES = ['#a239ff','#f3a922','#3ddc97','#ff5e7e','#4ea1ff','#ffd23f','#ff6b6b','#00d4ff','#c77dff','#7bed9f'];
 
+// Topes SEMANALES de guerra (pedido de la usuaria, 19-oct-2026): lo que los supere es una anomalía. Los barcos nunca superan a los ataques, por eso comparten el tope de 16. (En perfil.html los topes son por día: 4 ataques y 900 medallas.)
+const TOPE_ATAQUES_SEMANA = 16;
+const TOPE_MEDALLAS_SEMANA = 3600;
+const TOPE_BARCOS_SEMANA = 16;
+
 function semanaLabel(s){ return String(s ?? '—'); }
 function semanaOrden(s){
   const str = String(s ?? '').trim();
@@ -2320,22 +2340,32 @@ function lineChartSvg(miembros, campo, semanas, opts){
   // PAD_B sube para el título fijo del eje X, mismo cambio que su gemela en index.html. Historial en CHANGELOG.md.
   const W = 960, H = 460, PAD_R = 20, PAD_T = 20, PAD_B = 84;
 
-  let max = 0;
+  // El tope entra en el cálculo del máximo para que la línea siempre quede dentro de la gráfica.
+  const tope = opts.tope > 0 ? Number(opts.tope) : 0;
+  let max = tope;
   miembros.forEach(m => (m.historialSemanal || []).forEach(h => { max = Math.max(max, Number(h[campo]) || 0); }));
   const pasos = 4;
   const techo = Math.ceil((max || pasos) / pasos) * pasos || pasos;
+  // 19-oct-2026 (pedido usuaria): mínimo (0) de las métricas de guerra. Su línea «Mínimo: 0» solo se dibuja si algún valor real queda por debajo; entonces el eje baja hasta incluirlo y ese punto sale como anomalía. Sin valores bajo el mínimo, `base` es 0 y todo queda como antes.
+  const minimo = opts.minimo != null ? Number(opts.minimo) : null;
+  const todosValores = [];
+  miembros.forEach(m => (m.historialSemanal || []).forEach(h => { todosValores.push(Number(h[campo]) || 0); }));
+  const hayBajo = minimo != null && hayBajoMinimo(todosValores, minimo);
+  const base = hayBajo ? pisoEjeConNegativos(todosValores, minimo, pasos, 0) : 0;
+  const rangoY = techo - base;
+  const valorMarca = i => base + (rangoY / pasos) * i;
 
   // FIX (20-sep-2026, pedido usuario — "el nombre del eje y debe separarse un poco de los valores, ahí se ve que puntaje está muy pegado a 1700"): antes PAD_L era fijo (74) y el título del eje Y iba en x=18, es decir, casi encima de las marcas más anchas (p. ej. "3,400", "12,750"). Ahora el margen izquierdo se calcula según el ancho real de la marca más ancha (fuente monoespaciada de 15px ≈ 9.3px por carácter) + 10px de aire a la línea + 14px de espacio libre + 22px para el título rotado.
-  const anchoMarcaY = Math.max(...Array.from({ length: pasos + 1 }, (_, i) => fmtNum(Math.round((techo / pasos) * i)).length)) * 9.3;
+  const anchoMarcaY = Math.max(...Array.from({ length: pasos + 1 }, (_, i) => fmtNum(Math.round(valorMarca(i))).length)) * 9.3;
   const PAD_L = Math.max(74, Math.ceil(10 + anchoMarcaY + 14 + 22));
   const plotW = W - PAD_L - PAD_R, plotH = H - PAD_T - PAD_B;
 
   const xPos = i => PAD_L + (semanas.length <= 1 ? plotW / 2 : (i / (semanas.length - 1)) * plotW);
-  const yPos = v => PAD_T + plotH - (Math.min(v, techo) / techo) * plotH;
+  const yPos = v => PAD_T + plotH - ((Math.min(Math.max(v, base), techo) - base) / rangoY) * plotH;
 
   const gridLines = [];
   for (let i = 0; i <= pasos; i++){
-    const v = (techo / pasos) * i, y = yPos(v);
+    const v = valorMarca(i), y = yPos(v);
     gridLines.push(`<line class="ing-grid-line" x1="${PAD_L}" y1="${y}" x2="${W - PAD_R}" y2="${y}"></line>`);
     gridLines.push(`<text class="ing-axis-label" x="${PAD_L - 10}" y="${y + 4}" text-anchor="end">${fmtNum(Math.round(v))}</text>`);
   }
@@ -2348,7 +2378,7 @@ function lineChartSvg(miembros, campo, semanas, opts){
     return fechasEstimadas.get(s) || null;
   });
   const lineasTemporales = lineasTemporalesSvg(fechasEje, xPos, PAD_T, H - PAD_B, { granularidadDiaria: false });
-  const gridMedios = gridHorizontalMediosSvg(pasos, techo, yPos, PAD_L, W - PAD_R);
+  const gridMedios = gridHorizontalMediosSvg(pasos, rangoY, v => yPos(base + v), PAD_L, W - PAD_R);
   const xLabels = semanas.map((s, i) => {
     const x = xPos(i), y = H - PAD_B + 16;
     return `<text class="ing-axis-label" x="${x}" y="${y}" text-anchor="end" transform="rotate(-45 ${x} ${y})">${esc(semanaLabelCorta(s, fechasEstimadas))}</text>`;
@@ -2382,11 +2412,13 @@ function lineChartSvg(miembros, campo, semanas, opts){
     const circles = secuencia.map(p => {
       const fEst = fechasEstimadas.get(p.semana);
       const semanaTooltip = fEst ? `≈ ${fmtFechaLargaDDMMYYYY(fEst)} (estimada)` : p.semana;
+      const bajoMin = hayBajo && p.real && Number(p.valor) < minimo;
+      const anomalia = (!!tope && p.real && Number(p.valor) > tope) || bajoMin; // igual al tope NO es anomalía
       return `
-      <circle class="ing-serie-pt${p.real ? '' : ' serie-pt-vacio'}" cx="${xPos(p.idx).toFixed(1)}" cy="${yPos(p.valor).toFixed(1)}" r="5"
-        fill="${p.real ? color : 'none'}" stroke="${p.real ? 'var(--bg)' : color}" stroke-width="${p.real ? 1.5 : 2}"
-        data-nombre="${esc(m.nombre || '')}" data-tag="${esc(m.tag || '')}" data-valor="${p.valor}" data-clan="${esc(p.real ? p.clan : 'Sin dato — sin clan o sin participar')}"
-        data-semana="${esc(semanaTooltip)}" data-unidad="${esc(opts.unidad || '')}"></circle>`;
+      <circle class="ing-serie-pt${p.real ? '' : ' serie-pt-vacio'}${anomalia ? ' serie-pt-anomalia' : ''}" cx="${xPos(p.idx).toFixed(1)}" cy="${yPos(p.valor).toFixed(1)}" r="${anomalia ? 6.5 : 5}"
+        fill="${p.real ? (anomalia ? 'var(--danger)' : color) : 'none'}" stroke="${p.real ? 'var(--bg)' : color}" stroke-width="${p.real ? 1.5 : 2}"
+        data-nombre="${esc(m.nombre || '')}" data-tag="${esc(m.tag || '')}" data-clan-actual="${esc(m.clan || '')}" data-valor="${p.valor}" data-clan="${esc(p.real ? p.clan : 'Sin dato — sin clan o sin participar')}"
+        data-semana="${esc(semanaTooltip)}" data-unidad="${esc(opts.unidad || '')}"${(!!tope && p.real && Number(p.valor) > tope) ? ` data-tope="${tope}"` : ''}${bajoMin ? ` data-minimo="${minimo}"` : ''}></circle>`;
     }).join('');
     return `${path}${circles}`;
   }).join('');
@@ -2398,7 +2430,25 @@ function lineChartSvg(miembros, campo, semanas, opts){
     ? `<text class="ing-axis-title" x="14" y="${PAD_T + plotH / 2}" text-anchor="middle" transform="rotate(-90 14 ${PAD_T + plotH / 2})">${esc(opts.ejeY)}</text>`
     : '';
 
-  return `<svg class="ing-linechart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">${gridLines.join('')}${gridMedios}${lineasTemporales}${xLabels}${seriesSvg}${ejeXTitle}${ejeYTitle}</svg>`;
+  // Línea punteada del tope (color oro, distinta de los tramos punteados grises de «sin dato») con su rótulo a la derecha; mismo dibujo que perfil.html.
+  const lineaTope = tope ? (() => {
+    const y = yPos(tope).toFixed(1);
+    return `<line class="linea-tope" x1="${PAD_L}" y1="${y}" x2="${W - PAD_R}" y2="${y}"></line><text class="tope-label" x="${W - PAD_R}" y="${(yPos(tope) - 7).toFixed(1)}" text-anchor="end">Tope: ${esc(fmtNum(tope))}</text>`;
+  })() : '';
+
+  return `<svg class="ing-linechart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">${gridLines.join('')}${gridMedios}${lineasTemporales}${xLabels}${lineaTope}${hayBajo ? lineaMinimoSvg(yPos(minimo), PAD_L, W - PAD_R, minimo) : ''}${seriesSvg}${ejeXTitle}${ejeYTitle}</svg>`;
+}
+
+/** Texto y tooltip de un punto de Ingresos recientes: igual que los compartidos (timeline-svg.js) y, si el punto supera el tope semanal, lo avisa (como perfil.html). */
+function etiquetaPuntoIngreso(pt){
+  const { nombre, tag, valor, clan, clanActual, semana, unidad, tope, minimo } = pt.dataset;
+  return `${nombre || ''}${tag ? ' (' + tag + ')' : ''}${clanActual ? ', clan actual ' + clanActual : ''}: ${fmtNum(valor)} ${unidad || ''} — ${clan || ''} · ${semana || ''}` + (tope ? ' — supera el tope de ' + fmtNum(tope) : '') + (minimo ? ' — por debajo del mínimo de ' + fmtNum(minimo) : '');
+}
+function htmlTooltipPuntoIngreso(pt){
+  const { nombre, tag, valor, clan, clanActual, semana, unidad, tope, minimo } = pt.dataset;
+  // 19-oct-2026 (pedido usuaria): a la derecha del tag va el clan ACTUAL del jugador (el de la leyenda); la segunda línea sigue mostrando el clan al que pertenecía ese registro.
+  const actual = clanActual ? ` <span style="color:var(--gold);">· ${esc(clanActual)}</span>` : '';
+  return `<b>${esc(nombre)}${tag ? ' (' + esc(tag) + ')' : ''}</b>${actual}<br><span style="color:var(--text-faint);">${esc(fmtNum(valor))} ${esc(unidad)} — ${esc(clan)} · ${esc(semana)}</span>` + (tope ? `<br><span style="color:var(--danger);">⚠ Supera el tope de ${esc(fmtNum(tope))}</span>` : '') + (minimo ? `<br><span style="color:var(--danger);">⚠ Por debajo del mínimo de ${esc(fmtNum(minimo))}</span>` : '');
 }
 
 /** FIX (08-sep-2026, pedido usuario — "en las gráficas no debe decir
@@ -2431,7 +2481,7 @@ function activarTooltipsGraficasIngresos(){
   document.querySelectorAll('.ing-linechart-svg .ing-serie-pt').forEach(pt => {
     pt.addEventListener('mousemove', e => {
       // Mismo orden que index.html (htmlTooltipPuntoSerie, en timeline-svg.js, compartido con el foco de teclado). Historial en CHANGELOG.md.
-      tip.innerHTML = htmlTooltipPuntoSerie(pt);
+      tip.innerHTML = htmlTooltipPuntoIngreso(pt);
       tip.style.display = 'block';
       posicionarTooltipGrafica(tip, e.clientX, e.clientY); // se voltea a la izquierda/arriba si no cabe. Historial en CHANGELOG.md.
     });
@@ -2441,8 +2491,8 @@ function activarTooltipsGraficasIngresos(){
   document.querySelectorAll('.ing-linechart-svg').forEach(svg => activarTecladoPuntosGrafica(svg, {
     selector: '.ing-serie-pt',
     serieDe: pt => pt.dataset.tag || pt.dataset.nombre,
-    etiqueta: etiquetaPuntoSerie,
-    htmlTooltip: htmlTooltipPuntoSerie
+    etiqueta: etiquetaPuntoIngreso,
+    htmlTooltip: htmlTooltipPuntoIngreso
   }));
 }
 
@@ -2455,7 +2505,9 @@ function renderComparativaSemanal(container, miembrosTodos){
   const semanas = construirSemanasMaestras(miembros);
   const hayEstimadas = semanas.some(s => numeroSemanaVieja(s) !== null);
   // Mismo criterio que index.html: ejeY es la primera palabra del título de la tarjeta. Historial en CHANGELOG.md.
-  const chartCard = (icono, titulo, campo, unidad) => `
+  const chartCard = (icono, titulo, campo, unidad, tope) => {
+    const hayBajoMin = miembros.some(m => hayBajoMinimo((m.historialSemanal || []).map(h => Number(h[campo]) || 0), minimoMetricaGuerra()));
+    return `
       <div class="card ing-linechart-card">
         <div class="chart-title">${icono} ${titulo}</div>
         <div class="ing-chart-leyenda">
@@ -2467,15 +2519,24 @@ function renderComparativaSemanal(container, miembrosTodos){
             <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><circle cx="5" cy="5" r="3.4" fill="none" stroke="var(--text-dim)" stroke-width="1.6"></circle></svg>
             Punto solo con borde = sin dato esa semana
           </div>
+          ${tope ? `<div class="ing-chart-leyenda-fila">
+            <svg width="22" height="10" viewBox="0 0 22 10" aria-hidden="true"><line x1="0" y1="5" x2="22" y2="5" stroke="var(--gold)" stroke-width="1.8" stroke-dasharray="4 3"></line></svg>
+            Línea punteada = tope semanal (${esc(fmtNum(tope))}) · punto rojo = supera el tope (anomalía)
+          </div>` : ''}
+          ${hayBajoMin ? `<div class="ing-chart-leyenda-fila">
+            <svg width="22" height="10" viewBox="0 0 22 10" aria-hidden="true"><line x1="0" y1="5" x2="22" y2="5" stroke="var(--gold)" stroke-width="1.8" stroke-dasharray="4 3"></line></svg>
+            Línea punteada = mínimo (${esc(fmtNum(minimoMetricaGuerra()))}) · punto rojo = por debajo del mínimo (anomalía)
+          </div>` : ''}
         </div>
         ${lineChartLegendHtml(miembros)}
-        ${lineChartSvg(miembros, campo, semanas, { unidad, ejeY: titulo.split(' ')[0] })}
+        ${lineChartSvg(miembros, campo, semanas, { unidad, ejeY: titulo.split(' ')[0], tope, minimo: minimoMetricaGuerra() })}
       </div>`;
+  };
   container.innerHTML = `
     <div class="comparativa-grid">
-      ${chartCard('⚔️', 'Ataques por semana', 'ataques', 'ataques')}
-      ${chartCard('⭐', 'Medallas por semana', 'puntaje', 'de medallas')}
-      ${chartCard('🚢', 'Barcos por semana', 'barcos', 'barcos')}
+      ${chartCard('⚔️', 'Ataques por semana', 'ataques', 'ataques', TOPE_ATAQUES_SEMANA)}
+      ${chartCard('⭐', 'Medallas por semana', 'puntaje', 'de medallas', TOPE_MEDALLAS_SEMANA)}
+      ${chartCard('🚢', 'Barcos por semana', 'barcos', 'barcos', TOPE_BARCOS_SEMANA)}
     </div>
     ${hayEstimadas ? `<p class="text-faint" style="font-size:11px; margin-top:8px;">≈ Fecha estimada: registros de antes de que se guardara la fecha real de cada semana (esquema viejo "Semana N"), calculada contando semanas hacia atrás desde el primer registro con fecha real.</p>` : ''}`;
   activarTooltipsGraficasIngresos();
@@ -2572,11 +2633,11 @@ function textoContadorIngresos(incluidos, total){
 function nuevoCardHtml(n){
   const royaleOk = urlValida(n.royaleApi);
   const cwOk = urlValida(n.cwstats);
-  const incluido = !ingresosSeleccionados || ingresosSeleccionados.has(claveIngreso(n));
+  const incluido = ingresoIncluido(n);
   const sem = n.guerraSemana || {};
   const fecha = fechaIngresoTexto(n);
   return `
-      <div class="card nuevo-card js-nuevo-card${incluido ? '' : ' excluido'}" data-tag="${esc(claveIngreso(n))}" data-letra="${esc(primeraLetraFiltro(n.nombre))}" style="cursor:pointer; position:relative;">
+      <div class="card nuevo-card js-nuevo-card${incluido ? '' : ' excluido'}${ingresosOcultarAdmins && esCuentaAdminIngreso(n) ? ' oculto-admin' : ''}" data-tag="${esc(claveIngreso(n))}" data-letra="${esc(primeraLetraFiltro(n.nombre))}" style="cursor:pointer; position:relative;">
         <input type="checkbox" class="js-ingreso-check" data-tag="${esc(claveIngreso(n))}"${incluido ? ' checked' : ''} aria-label="Incluir a ${esc(n.nombre)} en las gráficas">
         <div class="name">${enlaceJugador(n.nombre, n.tag)}</div>
         <div class="tag">${esc(n.tag || '—')}</div>
@@ -2596,7 +2657,7 @@ function nuevoCardHtml(n){
           ${ingresoStatHtml(n.diasInactivo, '😴 Días inactivo')}
           ${n.vigencia ? `<div class="nc-stat nc-stat-ancho"><b>${esc(fmtFechaVigenciaCorta(n.vigencia))}</b><span>🕒 Vigencia</span></div>` : ''}
         </div>
-        <div class="nc-subtitulo">Semana actual</div>
+        <div class="nc-subtitulo">${ingresosGuerraCongelada ? 'Última guerra (hasta el domingo)' : 'Semana actual'}</div>
         <div class="nc-stats-grid">
           ${ingresoStatHtml(sem.ataques, '⚔️ Ataques', { semana: true })}
           ${ingresoStatHtml(sem.puntaje, '⭐ Medallas', { semana: true })}
@@ -2626,6 +2687,20 @@ let ingresosGraficasVisibles = false;
 let ingresosUltimosFiltrados = [];
 // Letra A-Z/# elegida en #ingresosLetraFilter; a diferencia del roster (que se resetea al cambiar de clan), aquí no hay tal reset porque la sección se carga una sola vez. Historial en CHANGELOG.md.
 let ingresosLetraSeleccionada = null;
+// 19-oct-2026 (pedido usuaria): pastilla «Ocultar admins». Mientras está activa, las cuentas de los administradores quedan fuera de las gráficas y del contador y sus tarjetas DESAPARECEN, sin importar qué clanes se marquen o desmarquen; al apagarla vuelven. [→ Contexto_Base_Web.md §PF124]
+let ingresosOcultarAdmins = false;
+/* 19-oct-2026 (pedido usuaria): el backend manda guerraCongelada=true de lunes a miércoles; la cuadrícula de Ataques/Medallas/Barcos muestra entonces lo último de la guerra (hasta el domingo) y se rotula «Última guerra» hasta que empiece la siguiente. [→ Contexto_Base_Web.md §PF125] */
+let ingresosGuerraCongelada = false;
+
+/** Cuenta de un administrador: la marca el backend (esCuentaAdmin) y solo la manda con sesión de admin; sin sesión nadie la trae y la pastilla no aparece. Descartado el rango Líder/Colíder del juego: no es lo mismo que ser administrador. */
+function esCuentaAdminIngreso(n){
+  return !!(n && n.esCuentaAdmin === true);
+}
+/** Incluido en gráficas y contador: marcado en el Set y, si «Ocultar admins» está activa, que no sea una cuenta de admin. */
+function ingresoIncluido(n){
+  if (ingresosOcultarAdmins && esCuentaAdminIngreso(n)) return false;
+  return !ingresosSeleccionados || ingresosSeleccionados.has(claveIngreso(n));
+}
 
 function renderNuevoGrid(){
   const nuevoGrid = document.getElementById('nuevoGrid');
@@ -2667,13 +2742,20 @@ function aplicarFiltroLetraIngresos(){
 function actualizarPillsIngresos(){
   const wrap = document.getElementById('ingClanPills');
   if (!wrap || !ingresosSeleccionados) return;
+  // Con «Ocultar admins» activa, el estado de cada pastilla se mide solo sobre las cuentas que sí se pueden ver.
   const estadoDe = miembros => {
-    const marcados = miembros.filter(m => ingresosSeleccionados.has(claveIngreso(m))).length;
+    const visibles = ingresosOcultarAdmins ? miembros.filter(m => !esCuentaAdminIngreso(m)) : miembros;
+    const marcados = visibles.filter(m => ingresosSeleccionados.has(claveIngreso(m))).length;
     if (marcados === 0) return 'ninguno';
-    return marcados === miembros.length ? 'todos' : 'parcial';
+    return marcados === visibles.length ? 'todos' : 'parcial';
   };
   wrap.querySelectorAll('.ing-pill').forEach(btn => {
     const clan = btn.dataset.clan;
+    if (clan === '__admins__'){
+      btn.classList.toggle('active', ingresosOcultarAdmins);
+      btn.setAttribute('aria-pressed', String(ingresosOcultarAdmins));
+      return;
+    }
     const miembros = (clan === '__todos__')
       ? ingresosTodosCache
       : ((ingresosGrupos.find(g => g.clan === clan) || {}).miembros || []);
@@ -2686,20 +2768,23 @@ function actualizarPillsIngresos(){
 
 function aplicarFiltroIngresos(){
   const total = ingresosTodosCache.length;
-  const filtrados = ingresosSeleccionados
-    ? ingresosTodosCache.filter(n => ingresosSeleccionados.has(claveIngreso(n)))
-    : ingresosTodosCache.slice();
+  const filtrados = ingresosTodosCache.filter(ingresoIncluido);
   ingresosUltimosFiltrados = filtrados;
 
   const countEl = document.getElementById('nuevosCount');
   if (countEl) countEl.textContent = textoContadorIngresos(filtrados.length, total);
 
-  // Las tarjetas se quedan todas; solo cambia su checkbox y su intensidad.
+  // Las tarjetas se quedan todas (solo cambia su checkbox y su intensidad), salvo las cuentas de admin con «Ocultar admins» activa: esas desaparecen (clase .oculto-admin) y reaparecen al apagarla.
+  const porTag = new Map(ingresosTodosCache.map(n => [claveIngreso(n), n]));
   document.querySelectorAll('#nuevoGrid .js-nuevo-card').forEach(card => {
-    const incluido = !ingresosSeleccionados || ingresosSeleccionados.has(card.dataset.tag);
-    card.classList.toggle('excluido', !incluido);
+    const n = porTag.get(card.dataset.tag);
+    const incluido = n ? ingresoIncluido(n) : (!ingresosSeleccionados || ingresosSeleccionados.has(card.dataset.tag));
+    const oculta = !!(n && ingresosOcultarAdmins && esCuentaAdminIngreso(n));
+    card.classList.toggle('oculto-admin', oculta);
+    // Una cuenta de admin oculta no se atenúa: está fuera, no solo excluida de las gráficas.
+    card.classList.toggle('excluido', !incluido && !oculta);
     const check = card.querySelector('.js-ingreso-check');
-    if (check && check.checked !== incluido) check.checked = incluido;
+    if (check && !oculta && check.checked !== incluido) check.checked = incluido;
   });
   actualizarPillsIngresos();
 
@@ -2787,7 +2872,8 @@ function construirFiltroIngresos(nuevos){
     ${ingresosGrupos.map(g => `
       <button type="button" class="ing-pill active" data-clan="${esc(g.clan)}" aria-pressed="true">
         ${esc(g.clan)} <span class="ing-pill-count">${g.miembros.length}</span>
-      </button>`).join('')}`;
+      </button>`).join('')}
+    ${nuevos.some(esCuentaAdminIngreso) ? `<button type="button" class="ing-pill ing-pill-admin${ingresosOcultarAdmins ? ' active' : ''}" data-clan="__admins__" aria-pressed="${ingresosOcultarAdmins}" title="Oculta las tarjetas y saca de las gráficas y del contador las cuentas de los administradores mientras recorres los clanes">🛡️ Ocultar admins <span class="ing-pill-count">${nuevos.filter(esCuentaAdminIngreso).length}</span></button>` : ''}`;
 
   // Un solo listener delegado por carga (el contenedor se reutiliza entre cargas).
   if (!wrap.dataset.enlazado){
@@ -2796,13 +2882,17 @@ function construirFiltroIngresos(nuevos){
       const btn = e.target.closest('.ing-pill');
       if (!btn || !ingresosSeleccionados) return;
       const clan = btn.dataset.clan;
-      if (clan === '__todos__'){
+      if (clan === '__admins__'){
+        ingresosOcultarAdmins = !ingresosOcultarAdmins; // independiente de los clanes marcados: no toca ingresosSeleccionados
+      } else if (clan === '__todos__'){
         ingresosSeleccionados = new Set(ingresosTodosCache.map(claveIngreso));
       } else {
         const grupo = ingresosGrupos.find(g => g.clan === clan);
         if (!grupo) return;
-        const completo = grupo.miembros.every(m => ingresosSeleccionados.has(claveIngreso(m)));
-        grupo.miembros.forEach(m => {
+        // Con «Ocultar admins» activa, la pastilla de clan opera solo sobre las cuentas visibles (las de admin siguen sin verse).
+        const relevantes = ingresosOcultarAdmins ? grupo.miembros.filter(m => !esCuentaAdminIngreso(m)) : grupo.miembros;
+        const completo = relevantes.length > 0 && relevantes.every(m => ingresosSeleccionados.has(claveIngreso(m)));
+        relevantes.forEach(m => {
           if (completo) ingresosSeleccionados.delete(claveIngreso(m));
           else ingresosSeleccionados.add(claveIngreso(m));
         });
@@ -2834,6 +2924,7 @@ async function cargarIngresosRecientes(){
       obtenerRoster().then(r => r.data).catch(() => null) // defensivo: si falla y no hay respaldo, no filtra ni completa datos en vez de romper la sección
     ]);
     const roster = dataRoster ? indexarRosterParaIngresos(dataRoster) : null;
+    ingresosGuerraCongelada = !!data.guerraCongelada;
     let ingresos = (data.ingresos || []).slice();
     if (roster && roster.size){
       ingresos = ingresos.filter(ing => !ing.tag || roster.has(normalizarTag(ing.tag)));
