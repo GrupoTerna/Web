@@ -2657,7 +2657,7 @@ function nuevoCardHtml(n){
           ${ingresoStatHtml(n.diasInactivo, '😴 Días inactivo')}
           ${n.vigencia ? `<div class="nc-stat nc-stat-ancho"><b>${esc(fmtFechaVigenciaCorta(n.vigencia))}</b><span>🕒 Vigencia</span></div>` : ''}
         </div>
-        <div class="nc-subtitulo">Semana actual</div>
+        <div class="nc-subtitulo">${ingresosGuerraCongelada ? 'Última guerra (hasta el domingo)' : 'Semana actual'}</div>
         <div class="nc-stats-grid">
           ${ingresoStatHtml(sem.ataques, '⚔️ Ataques', { semana: true })}
           ${ingresoStatHtml(sem.puntaje, '⭐ Medallas', { semana: true })}
@@ -2689,6 +2689,8 @@ let ingresosUltimosFiltrados = [];
 let ingresosLetraSeleccionada = null;
 // 19-oct-2026 (pedido usuaria): pastilla «Ocultar admins». Mientras está activa, las cuentas de los administradores quedan fuera de las gráficas y del contador y sus tarjetas DESAPARECEN, sin importar qué clanes se marquen o desmarquen; al apagarla vuelven. [→ Contexto_Base_Web.md §PF124]
 let ingresosOcultarAdmins = false;
+/* 19-oct-2026 (pedido usuaria): el backend manda guerraCongelada=true de lunes a miércoles; la cuadrícula de Ataques/Medallas/Barcos muestra entonces lo último de la guerra (hasta el domingo) y se rotula «Última guerra» hasta que empiece la siguiente. [→ Contexto_Base_Web.md §PF125] */
+let ingresosGuerraCongelada = false;
 
 /** Cuenta de un administrador: la marca el backend (esCuentaAdmin) y solo la manda con sesión de admin; sin sesión nadie la trae y la pastilla no aparece. Descartado el rango Líder/Colíder del juego: no es lo mismo que ser administrador. */
 function esCuentaAdminIngreso(n){
@@ -2922,6 +2924,7 @@ async function cargarIngresosRecientes(){
       obtenerRoster().then(r => r.data).catch(() => null) // defensivo: si falla y no hay respaldo, no filtra ni completa datos en vez de romper la sección
     ]);
     const roster = dataRoster ? indexarRosterParaIngresos(dataRoster) : null;
+    ingresosGuerraCongelada = !!data.guerraCongelada;
     let ingresos = (data.ingresos || []).slice();
     if (roster && roster.size){
       ingresos = ingresos.filter(ing => !ing.tag || roster.has(normalizarTag(ing.tag)));
