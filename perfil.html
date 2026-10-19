@@ -6006,86 +6006,6 @@ function renderMetricasSemanales(ext){
 // adminPuedeVetar() ahora vive en assets/common.js (1-sep-2026, reutilizada
 // también por la vista de cuentas inactivas) — se quita el duplicado local.
 
-/**
- * Recorte del margen transparente de la insignia de victorias de guerra (19-oct-2026, pedido de la usuaria:
- * "la insignia sale pequeña porque se deja bastante margen ... acercar la imagen dentro de su contenedor lo máximo
- * que se pueda mientras aún quepa completa"). El PNG de Supercell (iconUrls.large, 512x512) trae un borde vacío
- * alrededor del dibujo. _cajaOpacaDeImagen() mide la caja que ocupan los píxeles no transparentes y
- * recortarMargenTransparente() devuelve un PNG (data URL) cuadrado con esa caja centrada: el <img> sigue siendo
- * cuadrado, así que la casilla (#mInsigniaGuerraWrap) NO cambia de tamaño; solo el dibujo ocupa más de ella.
- * Se necesita leer los píxeles, y eso exige que el CDN de imágenes permita CORS: si no lo permite (o falla algo),
- * devuelve null y la insignia se ve como antes. [→ Contexto_Base_Web.md §PF127]
- */
-function _cajaOpacaDeImagen(data, ancho, alto, umbral){
-  umbral = umbral == null ? 8 : umbral;
-  let x0 = ancho, y0 = alto, x1 = -1, y1 = -1;
-  for (let y = 0; y < alto; y++){
-    for (let x = 0; x < ancho; x++){
-      if (data[(y * ancho + x) * 4 + 3] > umbral){
-        if (x < x0) x0 = x;
-        if (x > x1) x1 = x;
-        if (y < y0) y0 = y;
-        if (y > y1) y1 = y;
-      }
-    }
-  }
-  return x1 < 0 ? null : { x0, y0, x1, y1 };
-}
-const _recorteInsigniaCache = new Map();
-/**
- * Carga la imagen con CORS y mide/recorta. 19-oct-2026 (§PF129): la primera versión pedía la MISMA URL que el <img> visible
- * (sin crossorigin); el navegador puede reutilizar esa copia en caché, que llegó sin cabecera CORS, y entonces el canvas
- * queda «contaminado» aunque el CDN sí soporte CORS. Por eso se prueba primero con un parámetro extra (otra clave de caché,
- * obliga a pedirla con Origin) y solo después con la URL original. Cada fallo deja un aviso en la consola.
- */
-function _intentarRecorteInsignia(src){
-  return new Promise(resolve => {
-    try {
-      const im = new Image();
-      im.crossOrigin = 'anonymous';
-      im.onload = () => {
-        try {
-          const w = im.naturalWidth, h = im.naturalHeight;
-          if (!w || !h) return resolve(null);
-          const c = document.createElement('canvas');
-          c.width = w; c.height = h;
-          const ctx = c.getContext('2d');
-          ctx.drawImage(im, 0, 0);
-          const caja = _cajaOpacaDeImagen(ctx.getImageData(0, 0, w, h).data, w, h);
-          if (!caja) return resolve(null);
-          const cw = caja.x1 - caja.x0 + 1, ch = caja.y1 - caja.y0 + 1;
-          // Sin margen apreciable (menos del 3 % por lado) no se toca la imagen.
-          if (cw >= w * 0.94 && ch >= h * 0.94) return resolve('SIN_MARGEN');
-          const lado = Math.min(256, Math.max(cw, ch)); // 256 px bastan: se muestra a ≤72 px
-          const k = lado / Math.max(cw, ch);
-          const o = document.createElement('canvas');
-          o.width = lado; o.height = lado;
-          const octx = o.getContext('2d');
-          octx.imageSmoothingQuality = 'high';
-          octx.drawImage(c, caja.x0, caja.y0, cw, ch, (lado - cw * k) / 2, (lado - ch * k) / 2, cw * k, ch * k);
-          resolve(o.toDataURL('image/png'));
-        } catch (e) { // canvas «contaminado» (sin CORS) u otro fallo
-          console.warn('[insignia de guerra] no se pudo leer la imagen (' + (e && e.name) + '):', src);
-          resolve(null);
-        }
-      };
-      im.onerror = () => { console.warn('[insignia de guerra] no cargó con CORS:', src); resolve(null); };
-      im.src = src;
-    } catch (e) { resolve(null); }
-  });
-}
-function recortarMargenTransparente(url){
-  if (_recorteInsigniaCache.has(url)) return _recorteInsigniaCache.get(url);
-  const prom = (async () => {
-    const conParam = url + (url.indexOf('?') >= 0 ? '&' : '?') + 'cors=1';
-    let r = await _intentarRecorteInsignia(conParam);
-    if (r === null) r = await _intentarRecorteInsignia(url);
-    return r === 'SIN_MARGEN' ? null : r;
-  })();
-  _recorteInsigniaCache.set(url, prom);
-  return prom;
-}
-
 function renderMiembro(j){
   _prepararDiferenciasNivel(rawClash(j)); // AVISO 14 (24-sep-2026): diferencias de nivel por rareza desde las cartas del jugador
   document.title = `${j.nombre || 'Jugador'} — Familia Terna`;
@@ -6127,11 +6047,6 @@ function renderMiembro(j){
       const tipG = `${_nombreInsigniaEs(bGuerra)}${nivG}${progG}`;
       insigGuerraWrap.innerHTML = `<img src="${esc(uG)}" alt="${esc(tipG)}" title="${esc(tipG)}" width="48" height="48" decoding="async" onerror="this.parentNode.style.display='none';">`;
       insigGuerraWrap.style.display = '';
-      // 19-oct-2026: se acerca el dibujo quitando el margen transparente (la casilla no cambia). Si no se puede, queda la imagen original.
-      recortarMargenTransparente(uG).then(recortada => {
-        const imgG = insigGuerraWrap.querySelector('img');
-        if (recortada && imgG && imgG.getAttribute('src') === uG) imgG.src = recortada;
-      });
     } else {
       insigGuerraWrap.innerHTML = '';
       insigGuerraWrap.style.display = 'none';
