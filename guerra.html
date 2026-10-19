@@ -119,9 +119,13 @@
   /* 11-oct-2026 (pedido usuario): en la columna Nombre de las cuadrículas, el nombre (con sus insignias) va pegado a la izquierda y el 📈 pegado a la derecha, dentro de la misma celda. */
   .col-jugador-inner{display:flex; align-items:center; justify-content:space-between; gap:10px;}
   .col-jugador-nombre{min-width:0; text-align:left;}
-  /* 11-oct-2026: la pastilla de rango, «Inactivo» y el 📈 forman un solo grupo pegado a la derecha de la celda. */
+  /* 11-oct-2026: el 📈 va pegado a la derecha de la celda Nombre. 19-oct-2026: la pastilla de rango y «Inactivo» salieron de aquí y tienen su propia columna (Rango y Estado, con filtro). */
   .col-jugador-extras{margin-left:auto; display:flex; align-items:center; gap:6px; flex-shrink:0;}
-  .col-jugador-extras .rango-badge, .col-jugador-extras .inactivo-badge, .col-jugador-extras .btn-hist-jugador{margin-left:0;}
+  .col-jugador-extras .btn-hist-jugador{margin-left:0;}
+  td.col-rango, td.col-estado, .tbl-activos-grid tfoot td.col-rango, .tbl-activos-grid tfoot td.col-estado{text-align:center; white-space:nowrap;}
+  .col-rango .rango-badge, .col-estado .inactivo-badge{margin-left:0;}
+  .col-rango .rango-miembro{font-family:var(--f-mono); font-size:10px; font-weight:700; color:var(--text-dim);}
+  .col-estado .estado-activo{display:inline-block; padding:1px 6px; border-radius:999px; font-family:var(--f-mono); font-size:10px; font-weight:700; letter-spacing:.04em; border:1px solid var(--ok); color:var(--ok);}
   /* 11-oct-2026: «Participación de Hoy» con alto limitado y barra de desplazamiento morada propia dentro de su recuadro, como las tablas (clases de assets/styles.css). */
   .part-scroll{--tabla-scroll-alto:360px; padding-right:4px;}
   /* Tabla de "Ataques pendientes": con nombres/clanes largos en pantallas
@@ -414,7 +418,7 @@
   </div>
 </nav>
 
-<main class="wrap" id="main-content" style="padding-top:36px; padding-bottom:80px;">
+<main class="wrap" id="main-content" style="padding-top:36px; padding-bottom:0;">
 
   <!-- 12-oct-2026 (pedido usuario — banners en el resto de la web, tanda 7): cintas del Fan Kit con .pf-cinta (assets/styles.css). [→ Contexto_Base_Web.md §PF065] -->
   <div class="card pf-cinta" style="--cinta:url(img/cinta-guerra-cabecera.webp); position:relative; overflow:hidden; padding:28px;">
@@ -854,6 +858,17 @@ function filaSubEncabezadosSemanas(gpClase, prefijo, semanasLabels, labelResumen
   return cols.join('');
 }
 
+/* 19-oct-2026 (pedido usuario): Nombre, Rango y Estado son tres columnas con su propio filtro/orden en Valores diarios y semanales. Rango se ordena por jerarquía (Líder, Colíder, Veterano, Miembro), no alfabéticamente; Estado es Activo/Inactivo (campo activo:false del backend). */
+const RANGO_ORDEN_GRID = ['Líder', 'Colíder', 'Veterano', 'Miembro'];
+const rangoOrdenGrid = rango => { const i = RANGO_ORDEN_GRID.indexOf(rango); return i === -1 ? RANGO_ORDEN_GRID.length : i; }; // un rango desconocido va al final
+const estadoGrid = f => (f && f.activo === false ? 'Inactivo' : 'Activo');
+function columnasTextoGrid(){
+  return [
+    { key:'nombre', tipo:'texto', raw: f => f.nombre || f.tag || '—' },
+    { key:'rango', tipo:'texto', raw: f => f.rango || '—', ord: f => rangoOrdenGrid(f.rango) },
+    { key:'estado', tipo:'texto', raw: f => estadoGrid(f) },
+  ];
+}
 /** Columnas filtrables/ordenables de la Cuadrícula de Valores diarios: 5
  * (J/V/S/D/Total) x 3 megacategorías. */
 function columnasActivosDef(){
@@ -861,6 +876,7 @@ function columnasActivosDef(){
     key: `${prefijo}-${k}`, raw: f => { const m = campo(f); return (m && m[k] !== null && m[k] !== undefined) ? (Number(m[k]) || 0) : (m ? null : 0); }, // null = vacío (no estuvo en el clan)
   }));
   return [
+    ...columnasTextoGrid(),
     ...porMega('atq', f => ({ j: f.j, v: f.v, s: f.s, d: f.d, total: f.total })),
     ...porMega('pje', f => f.puntaje),
     ...porMega('brc', f => f.barcos),
@@ -880,6 +896,7 @@ function columnasTemporadaDef(nSem){
     return cols;
   };
   return [
+    ...columnasTextoGrid(),
     ...porMega('atq', f => f.ataques),
     ...porMega('pje', f => f.puntaje),
     ...porMega('brc', f => f.barcos),
@@ -1138,9 +1155,14 @@ document.addEventListener('click', ev => {
 document.addEventListener('keydown', ev => { if (ev.key === 'Escape') histCerrar(); });
 
 /* 11-oct-2026: celda Nombre de las cuadrículas — nombre + insignias a la izquierda, botón 📈 (historial de guerra) a la derecha de la misma celda. */
+/* 19-oct-2026 (pedido usuario): la celda devuelve TRES <td> — Nombre (con el 📈), Rango y Estado — cada una con data-col/data-raw para el filtro y el orden de su columna (mismo patrón que Pendientes de Atacar). */
 function celdaJugadorGrid(f){
   const nombre = f.tag ? enlaceJugador(f.nombre || f.tag, f.tag) : esc(f.nombre || f.tag);
-  return `<td class="col-jugador"><div class="col-jugador-inner"><span class="col-jugador-nombre">${nombre}</span><span class="col-jugador-extras">${insigniaRango(f.rango)}${insigniaInactivo(f)}${botonHistJugador(f)}</span></div></td>`;
+  const rango = f.rango || '—';
+  const estado = estadoGrid(f);
+  return `<td class="col-jugador" data-col="nombre" data-tipo="t" data-raw="${esc(f.nombre || f.tag || '—')}"><div class="col-jugador-inner"><span class="col-jugador-nombre">${nombre}</span><span class="col-jugador-extras">${botonHistJugador(f)}</span></div></td>`
+    + `<td class="col-rango" data-col="rango" data-tipo="t" data-raw="${esc(rango)}">${insigniaRango(f.rango) || `<span class="rango-miembro">${esc(rango)}</span>`}</td>`
+    + `<td class="col-estado" data-col="estado" data-tipo="t" data-raw="${estado}">${estado === 'Inactivo' ? insigniaInactivo(f) : '<span class="estado-activo">Activo</span>'}</td>`;
 }
 /* 11-oct-2026: numeración automática de la columna N° — cuenta solo las filas visibles de la tabla, así que se recalcula al filtrar, ordenar o elegir letra. */
 function renumerarFilas(tabla){
@@ -1182,8 +1204,9 @@ function gridActualizarTotales(tabla){
     tabla.appendChild(tfoot);
   }
   if (!visibles.length){ tfoot.innerHTML = ''; return; }
-  const celdasTotal = ['<td class="col-n"></td><td class="col-jugador">Total (' + visibles.length + ')</td>'];
-  const celdasProm = ['<td class="col-n"></td><td class="col-jugador">Promedio</td>'];
+  // 19-oct-2026: Rango y Estado son columnas de texto (no suman ni promedian), así que sus celdas del pie quedan vacías para que las demás sigan alineadas
+  const celdasTotal = ['<td class="col-n"></td><td class="col-jugador">Total (' + visibles.length + ')</td><td class="col-rango"></td><td class="col-estado"></td>'];
+  const celdasProm = ['<td class="col-n"></td><td class="col-jugador">Promedio</td><td class="col-rango"></td><td class="col-estado"></td>'];
   cols.forEach(col => {
     const pref = col.split('-')[0];
     const clase = GRUPOS_GRID[pref] || '';
@@ -1207,10 +1230,11 @@ function datosExportGrid(tabla){
     key: b.dataset.col,
     label: (b.closest('th').querySelector('span') || {}).textContent || b.dataset.col,
   }));
-  const encabezado = ['Nombre', 'Rango', ...cols.map(c => (NOMBRES_GRUPO_GRID[c.key.split('-')[0]] || '') + ' ' + c.label)];
+  const encabezado = ['Nombre', 'Rango', 'Estado', ...cols.map(c => (NOMBRES_GRUPO_GRID[c.key.split('-')[0]] || '') + ' ' + c.label)];
   const filas = [...tabla.querySelectorAll('tbody tr')].filter(tr => tr.style.display !== 'none').map(tr => [
     ((tr.querySelector('.col-jugador-nombre a, .col-jugador-nombre') || {}).firstChild || {}).textContent || (tr.querySelector('.col-jugador-nombre') || {}).textContent || '',
     tr.dataset.rango || '',
+    ((tr.querySelector('[data-col="estado"]') || {}).dataset || {}).raw || '',
     ...cols.map(c => { const td = tr.querySelector(`[data-col="${c.key}"]`); return td ? (td.dataset.raw || '') : ''; }),
   ]);
   return [encabezado, ...filas];
@@ -1845,7 +1869,9 @@ function render(data){
             <thead>
               <tr>
                 <th class="col-n" rowspan="2" scope="col">N°</th>
-                <th class="col-jugador" rowspan="2" scope="col">Nombre</th>
+                ${thFiltroGrid('col-jugador', 'Nombre', 'nombre', 'rowspan="2"')}
+                ${thFiltroGrid('col-rango', 'Rango', 'rango', 'rowspan="2"')}
+                ${thFiltroGrid('col-estado', 'Estado', 'estado', 'rowspan="2"')}
                 <th class="ai-grp-atq" colspan="5" scope="colgroup"><span class="ai-grp-label">Ataques</span></th>
                 <th class="ai-grp-pje" colspan="5" scope="colgroup"><span class="ai-grp-label">Medallas</span></th>
                 <th class="ai-grp-brc" colspan="5" scope="colgroup"><span class="ai-grp-label">Barcos</span></th>
@@ -1920,7 +1946,9 @@ function render(data){
             <thead>
               <tr>
                 <th class="col-n" rowspan="2" scope="col">N°</th>
-                <th class="col-jugador" rowspan="2" scope="col">Nombre</th>
+                ${thFiltroGrid('col-jugador', 'Nombre', 'nombre', 'rowspan="2"')}
+                ${thFiltroGrid('col-rango', 'Rango', 'rango', 'rowspan="2"')}
+                ${thFiltroGrid('col-estado', 'Estado', 'estado', 'rowspan="2"')}
                 <th class="ai-grp-atq" colspan="${nSem + 2}" scope="colgroup"><span class="ai-grp-label">Ataques</span></th>
                 <th class="ai-grp-pje" colspan="${nSem + 2}" scope="colgroup"><span class="ai-grp-label">Medallas</span></th>
                 <th class="ai-grp-brc" colspan="${nSem + 2}" scope="colgroup"><span class="ai-grp-label">Barcos</span></th>
