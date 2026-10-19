@@ -552,6 +552,8 @@
   /* FIX (20-sep-2026, pedido usuario — "al marcar o desmarcar la tarjeta de un miembro, no debe desaparecer la tarjeta, solo su presencia en las gráficas. Las tarjetas nunca deben desaparecer"): el checkbox y las pastillas de clan ya NO ocultan tarjetas, solo incluyen/excluyen al miembro de las gráficas. Una tarjeta excluida sigue completa y clicable; solo baja un poco de intensidad (.excluido) para que se note de un vistazo quién está fuera de las gráficas. */
   .nuevo-card{transition:opacity .18s ease;}
   .nuevo-card.excluido{opacity:.62;}
+  /* «Ocultar admins» (19-oct-2026): la tarjeta de una cuenta de admin desaparece mientras la pastilla está activa. Clase propia y no style.display para no pisar el filtro A-Z (aplicarFiltroLetraIngresos). */
+  .nuevo-card.oculto-admin{display:none;}
   .nuevo-card.excluido:hover{opacity:.9;}
   .nuevo-card .ing-rival{margin:8px 0 0;}
   .nuevo-card .ing-rival .badge{font-size:11px;}
@@ -2614,7 +2616,7 @@ function nuevoCardHtml(n){
   const sem = n.guerraSemana || {};
   const fecha = fechaIngresoTexto(n);
   return `
-      <div class="card nuevo-card js-nuevo-card${incluido ? '' : ' excluido'}" data-tag="${esc(claveIngreso(n))}" data-letra="${esc(primeraLetraFiltro(n.nombre))}" style="cursor:pointer; position:relative;">
+      <div class="card nuevo-card js-nuevo-card${incluido ? '' : ' excluido'}${ingresosOcultarAdmins && esCuentaAdminIngreso(n) ? ' oculto-admin' : ''}" data-tag="${esc(claveIngreso(n))}" data-letra="${esc(primeraLetraFiltro(n.nombre))}" style="cursor:pointer; position:relative;">
         <input type="checkbox" class="js-ingreso-check" data-tag="${esc(claveIngreso(n))}"${incluido ? ' checked' : ''} aria-label="Incluir a ${esc(n.nombre)} en las gráficas">
         <div class="name">${enlaceJugador(n.nombre, n.tag)}</div>
         <div class="tag">${esc(n.tag || '—')}</div>
@@ -2664,13 +2666,12 @@ let ingresosGraficasVisibles = false;
 let ingresosUltimosFiltrados = [];
 // Letra A-Z/# elegida en #ingresosLetraFilter; a diferencia del roster (que se resetea al cambiar de clan), aquí no hay tal reset porque la sección se carga una sola vez. Historial en CHANGELOG.md.
 let ingresosLetraSeleccionada = null;
-// 19-oct-2026 (pedido usuaria): pastilla «Ocultar admins». Mientras está activa, las cuentas de admin (rango Líder o Colíder) quedan fuera de las gráficas y del contador sin importar qué clanes se marquen o desmarquen; sus tarjetas se quedan (atenuadas), como con cualquier otro miembro excluido.
+// 19-oct-2026 (pedido usuaria): pastilla «Ocultar admins». Mientras está activa, las cuentas de los administradores quedan fuera de las gráficas y del contador y sus tarjetas DESAPARECEN, sin importar qué clanes se marquen o desmarquen; al apagarla vuelven. [→ Contexto_Base_Web.md §PF124]
 let ingresosOcultarAdmins = false;
 
-/** Cuenta de admin = rango Líder o Colíder (con o sin tilde; mismo criterio que admin.html para «Colíder»). El rango sale del ingreso o, si no lo trae, del directorio (ver cargarIngresosRecientes()). */
+/** Cuenta de un administrador: la marca el backend (esCuentaAdmin) y solo la manda con sesión de admin; sin sesión nadie la trae y la pastilla no aparece. Descartado el rango Líder/Colíder del juego: no es lo mismo que ser administrador. */
 function esCuentaAdminIngreso(n){
-  const r = String((n && n.rango) || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-  return r.includes('lider');
+  return !!(n && n.esCuentaAdmin === true);
 }
 /** Incluido en gráficas y contador: marcado en el Set y, si «Ocultar admins» está activa, que no sea una cuenta de admin. */
 function ingresoIncluido(n){
@@ -2750,17 +2751,17 @@ function aplicarFiltroIngresos(){
   const countEl = document.getElementById('nuevosCount');
   if (countEl) countEl.textContent = textoContadorIngresos(filtrados.length, total);
 
-  // Las tarjetas se quedan todas; solo cambia su checkbox y su intensidad. Con «Ocultar admins» activa, el checkbox de una cuenta de admin queda desmarcado y deshabilitado (su marca real en el Set se conserva para cuando se vuelva a mostrar).
+  // Las tarjetas se quedan todas (solo cambia su checkbox y su intensidad), salvo las cuentas de admin con «Ocultar admins» activa: esas desaparecen (clase .oculto-admin) y reaparecen al apagarla.
   const porTag = new Map(ingresosTodosCache.map(n => [claveIngreso(n), n]));
   document.querySelectorAll('#nuevoGrid .js-nuevo-card').forEach(card => {
     const n = porTag.get(card.dataset.tag);
     const incluido = n ? ingresoIncluido(n) : (!ingresosSeleccionados || ingresosSeleccionados.has(card.dataset.tag));
-    card.classList.toggle('excluido', !incluido);
+    const oculta = !!(n && ingresosOcultarAdmins && esCuentaAdminIngreso(n));
+    card.classList.toggle('oculto-admin', oculta);
+    // Una cuenta de admin oculta no se atenúa: está fuera, no solo excluida de las gráficas.
+    card.classList.toggle('excluido', !incluido && !oculta);
     const check = card.querySelector('.js-ingreso-check');
-    if (check){
-      if (check.checked !== incluido) check.checked = incluido;
-      check.disabled = !!(n && ingresosOcultarAdmins && esCuentaAdminIngreso(n));
-    }
+    if (check && !oculta && check.checked !== incluido) check.checked = incluido;
   });
   actualizarPillsIngresos();
 
@@ -2849,7 +2850,7 @@ function construirFiltroIngresos(nuevos){
       <button type="button" class="ing-pill active" data-clan="${esc(g.clan)}" aria-pressed="true">
         ${esc(g.clan)} <span class="ing-pill-count">${g.miembros.length}</span>
       </button>`).join('')}
-    ${nuevos.some(esCuentaAdminIngreso) ? `<button type="button" class="ing-pill ing-pill-admin${ingresosOcultarAdmins ? ' active' : ''}" data-clan="__admins__" aria-pressed="${ingresosOcultarAdmins}" title="Saca de las gráficas y del contador las cuentas de admin (Líder y Colíder) mientras recorres los clanes">🛡️ Ocultar admins <span class="ing-pill-count">${nuevos.filter(esCuentaAdminIngreso).length}</span></button>` : ''}`;
+    ${nuevos.some(esCuentaAdminIngreso) ? `<button type="button" class="ing-pill ing-pill-admin${ingresosOcultarAdmins ? ' active' : ''}" data-clan="__admins__" aria-pressed="${ingresosOcultarAdmins}" title="Oculta las tarjetas y saca de las gráficas y del contador las cuentas de los administradores mientras recorres los clanes">🛡️ Ocultar admins <span class="ing-pill-count">${nuevos.filter(esCuentaAdminIngreso).length}</span></button>` : ''}`;
 
   // Un solo listener delegado por carga (el contenedor se reutiliza entre cargas).
   if (!wrap.dataset.enlazado){
@@ -2911,7 +2912,6 @@ async function cargarIngresosRecientes(){
         if (falta(copia.nivelXp) && !falta(m.nivelXp)) copia.nivelXp = m.nivelXp;
         if (falta(copia.copas) && !falta(m.copas)) copia.copas = m.copas;
         if (falta(copia.vigencia) && !falta(m.vigencia)) copia.vigencia = m.vigencia;
-        if (falta(copia.rango) && !falta(m.rango)) copia.rango = m.rango; // para reconocer las cuentas de admin (Líder/Colíder) en «Ocultar admins»
         if (falta(copia.vGuerra) && falta(copia.victoriasGuerra)){
           const v = (m.vGuerra != null) ? m.vGuerra : m.victoriasGuerra;
           if (!falta(v)) copia.vGuerra = v;
