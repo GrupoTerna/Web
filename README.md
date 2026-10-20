@@ -18,7 +18,7 @@ Son páginas HTML con JavaScript plano. **No hay paso de compilación ni empaque
 | `404.html` | Página de error. |
 | `assets/common.js`, `assets/styles.css` | Configuración y utilidades compartidas por todas las páginas, y la hoja de estilos común. |
 | `assets/js/` | El resto del JavaScript compartido: `core/` (`config.js`, `api.js`, `auth.js`), `data/` (cartas y escudos), `features/`, `ui/` y `util.js`. |
-| `assets/arenas`, `badges`, `cards`, `chests`, `img` | Imágenes. `assets/arenas` trae su propio `LEEME.txt` y licencia. |
+| `assets/Imágenes/` | Imágenes, en carpetas por tipo (`arenas`, `badges`, `Banners`, `cards`, `chests`, `Emotes`, `Íconos`, `Logo Terna`). Cada tipo lleva `API/` (lo que se descarga solo del sistema) y `Fankit/` (lo externo, puesto a mano o clonado). |
 | `sw.js`, `manifest.json` | Service Worker (solo intercepta peticiones GET del mismo origen; nunca las del backend) y manifiesto de la app instalable. |
 | `test/` | Pruebas unitarias con el ejecutor nativo de Node (`node --test`). |
 | `scripts/` | `check-local-links.js` (enlaces locales rotos), `conteo-css.py` (conteo de CSS por página; solo lee) y `medicion-accesibilidad/` (banco aparte, ver abajo). |

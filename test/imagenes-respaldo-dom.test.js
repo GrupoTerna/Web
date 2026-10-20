@@ -5,7 +5,7 @@ const assert = require('node:assert/strict');
 const { loadBrowserScriptsWithDom } = require('./load-browser-script');
 
 // NUEVO (19-oct-2026): respaldo de las imágenes de la API de Supercell (assets/js/ui/imagenes-respaldo.js).
-// Orden: enlace de la API → assets/<tipo>/api/ → assets/cards/Fankit/ (índice) → onerror propio de la etiqueta.
+// Orden: enlace de la API → assets/Imágenes/<tipo>/API/ → assets/Imágenes/cards/Fankit/ (índice) → onerror propio de la etiqueta.
 // [→ Contexto_Base_Web.md §PF130]
 //
 // LÍMITE: jsdom no descarga imágenes; el error de carga se simula disparando el evento «error» sobre la <img>.
@@ -35,30 +35,32 @@ test('carta: API → copia api → Fankit → onerror propio, y el onerror propi
   let propios = 0;
   const el = img(CDN + 'cards/300/' + H, () => { propios++; });
   falla(el);
-  assert.equal(el.getAttribute('src'), 'assets/cards/api/' + H);
+  assert.equal(el.getAttribute('src'), 'assets/Im%C3%A1genes/cards/API/' + H);
   assert.equal(propios, 0);
   falla(el);
   await new Promise(r => setTimeout(r, 0));
-  assert.equal(el.getAttribute('src'), 'assets/cards/Fankit/knight.png');
+  assert.equal(el.getAttribute('src'), 'assets/Im%C3%A1genes/cards/Fankit/knight.png');
   assert.equal(propios, 0);
   falla(el);
   assert.equal(propios, 1, 'sin más etapas corre el onerror de la etiqueta');
 });
 
-test('evolución y héroe también usan assets/cards/api/', () => {
+test('evolución y héroe también usan assets/Imágenes/cards/API/', () => {
   const { img, falla } = montar();
   const a = img(CDN + 'cardevolutions/300/' + H); falla(a);
   const b = img(CDN + 'cardheroes/300/' + H); falla(b);
-  assert.equal(a.getAttribute('src'), 'assets/cards/api/' + H);
-  assert.equal(b.getAttribute('src'), 'assets/cards/api/' + H);
+  assert.equal(a.getAttribute('src'), 'assets/Im%C3%A1genes/cards/API/' + H);
+  assert.equal(b.getAttribute('src'), 'assets/Im%C3%A1genes/cards/API/' + H);
 });
 
-test('insignia de jugador: API → assets/playerbadges/api/ → onerror propio (no hay Fankit)', () => {
+test('insignia de jugador: API → badges/API/Maestrías → badges/API/Insignias → onerror propio (no hay Fankit)', () => {
   const { img, falla } = montar({ [H]: 'knight.png' });
   let propios = 0;
   const el = img(CDN + 'playerbadges/512/' + H, () => { propios++; });
   falla(el);
-  assert.equal(el.getAttribute('src'), 'assets/playerbadges/api/' + H);
+  assert.equal(el.getAttribute('src'), 'assets/Im%C3%A1genes/badges/API/Maestr%C3%ADas/' + H);
+  falla(el);
+  assert.equal(el.getAttribute('src'), 'assets/Im%C3%A1genes/badges/API/Insignias/' + H);
   falla(el);
   assert.equal(propios, 1);
 });
@@ -91,7 +93,7 @@ test('direcciones con rutas raras de la API no se aceptan', () => {
 test('el índice de Fankit solo apunta a archivos que existen', () => {
   const fs = require('node:fs');
   const path = require('node:path');
-  const dir = path.join(__dirname, '..', 'assets', 'cards', 'Fankit');
+  const dir = path.join(__dirname, '..', 'assets', 'Imágenes', 'cards', 'Fankit');
   const indice = JSON.parse(fs.readFileSync(path.join(dir, 'indice.json'), 'utf8'));
   const claves = Object.keys(indice);
   assert.ok(claves.length > 100);

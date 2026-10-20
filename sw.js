@@ -165,13 +165,14 @@
 // v112 (20-oct-2026): perfil.html (CORE_ASSETS) -- si una insignia de maestría no carga y tampoco la imagen de su carta, se prueba la copia local de la carta (assets/cards/api/ y luego Fankit) antes de ocultarla (§PF130).
 // v113 (20-oct-2026): perfil.html (CORE_ASSETS) -- una insignia sin imagen (sin enlace o con respaldos que no cargan) muestra el ícono genérico assets/img/Fankit/Emotes/emotes_goblin_nope_dl.png en vez de un hueco (§PF130).
 // v114 (20-oct-2026): perfil.html (CORE_ASSETS) -- se quitó la regla CSS .badge-ico-vacio, que ya no se usaba (§PF130).
-// Se sube la versión para que 'activate' borre v113 y nadie siga con el perfil.html viejo.
+// v115 (20-oct-2026): todas las páginas, manifest.json, styles.css y sw.js cambiaron (CORE_ASSETS) -- las imágenes pasaron de assets/img, cards, chests, arenas y playerbadges a assets/Imágenes/<tipo>/{API,Fankit}; las copias de insignias están en badges/API/Maestrías e Insignias (§PF130).
+// Se sube la versión para que 'activate' borre v114 y nadie siga con las rutas viejas.
 // v91 (18-oct-2026): admin.html cambió (CORE_ASSETS) -- «Modificar sorteo» muestra primero la lista de sorteos y después el tipo (principal o continuación), que ya se puede cambiar, igual que «Modificar torneo» (§PF107).
 // v90 (18-oct-2026): admin.html cambió (CORE_ASSETS) -- «Ataques a barcos» arranca con el Barcos del registro anterior (16 solo si no hay ninguno) en torneos, sorteos y cambio de rango, y «Modificar torneo» muestra primero la lista y después el tipo (principal o continuación), que ya se puede cambiar (§PF105).
 // v89 (18-oct-2026): admin.html cambió (CORE_ASSETS) -- «Modificar torneo» y «Modificar sorteo» muestran 16 en «Ataques a barcos» cuando el registro no tiene Barcos (tope: 16 equivale a no evaluarlos), en vez de 0 o el valor de otro torneo (§PF102).
 // v88 (18-oct-2026): admin.html cambió (CORE_ASSETS) -- «Modificar torneo» precarga los requisitos del torneo elegido (con «Cargando…» y sin guardar hasta que terminen) y deja el Nom_Multi y la cuenta organizadora ya elegidos, pudiendo cambiar a cualquier otra cuenta (§PF101).
 // v87 (18-oct-2026): admin.html cambió (CORE_ASSETS) -- «Modificar torneo» ya lista también los torneos Planificados y los sin link (no solo los de hoy), con fecha, hora y estado, y precarga la hora real (§PF099).
-const CACHE_NAME = 'terna-static-v114';
+const CACHE_NAME = 'terna-static-v115';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
@@ -203,9 +204,9 @@ const CORE_ASSETS = [
   'assets/js/features/inactivos.js',
   'assets/js/features/timeline-svg.js',
   'assets/js/features/join-modal.js',
-  'assets/img/Logo%20Terna/logo-cuadrado.jpg',
-  'assets/img/Logo%20Terna/icon-192.png',
-  'assets/img/Logo%20Terna/icon-512.png'
+  'assets/Im%C3%A1genes/Logo%20Terna/logo-cuadrado.jpg',
+  'assets/Im%C3%A1genes/Logo%20Terna/icon-192.png',
+  'assets/Im%C3%A1genes/Logo%20Terna/icon-512.png'
 ];
 
 self.addEventListener('install', event => {
