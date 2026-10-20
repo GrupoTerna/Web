@@ -37,14 +37,14 @@ const ICONO_CWSTATS = '<img src="https://assets.cwstats.com/icons/logo.webp" alt
  * .cc-oro img/.cc-elixir img (assets/styles.css / perfil.html), no los 14px
  * de ICONO_ROYALEAPI/ICONO_CWSTATS de arriba. onerror la reemplaza por 🎖️
  * (insignia, sin asociación con ninguna carta/objeto del juego) si
- * assets/img/XP.webp todavía no está subida al repo — mismo patrón que
+ * assets/img/Fankit/%C3%8Dconos/XP.webp todavía no está subida al repo — mismo patrón que
  * _ICONO_ORO_HTML/_ICONO_GUERRA_HTML en perfil.html.
  */
-const ICONO_XP_HTML = '<img src="assets/img/XP.webp" alt="Nivel de XP" width="13" height="13" loading="lazy" decoding="async" style="vertical-align:-2px; margin-right:3px;" onerror="this.replaceWith(document.createTextNode(\'\u{1F3C5}\'));">';
+const ICONO_XP_HTML = '<img src="assets/img/Fankit/%C3%8Dconos/XP.webp" alt="Nivel de XP" width="13" height="13" loading="lazy" decoding="async" style="vertical-align:-2px; margin-right:3px;" onerror="this.replaceWith(document.createTextNode(\'\u{1F3C5}\'));">';
 
 /**
  * ICONO_HEROCOIN_HTML
- * NUEVO (27-sep-2026, pedido usuario): ícono de monedas de héroe (assets/img/HeroCoin.webp),
+ * NUEVO (27-sep-2026, pedido usuario): ícono de monedas de héroe (assets/img/Fankit/%C3%8Dconos/HeroCoin.webp),
  * mismo tamaño (13px) y mismo criterio de onerror que ICONO_XP_HTML.
  * CORRECCIÓN (07-oct-2026, aclaración del usuario) a lo que decía este comentario antes
  * (que el costo iba en cartas Campeón no desbloqueadas): desbloquear un héroe cuesta
@@ -56,7 +56,7 @@ const ICONO_XP_HTML = '<img src="assets/img/XP.webp" alt="Nivel de XP" width="13
  * porque el margin-right en línea de abajo deja más espacio que el ícono de oro dentro
  * de .cc-oro. Queda disponible para otras páginas que muestren texto suelto con este ícono.
  */
-const ICONO_HEROCOIN_HTML = '<img src="assets/img/HeroCoin.webp" alt="Monedas de héroe" width="13" height="13" loading="lazy" decoding="async" style="vertical-align:-2px; margin-right:3px;" onerror="this.replaceWith(document.createTextNode(\'\u{1FA99}\'));">';
+const ICONO_HEROCOIN_HTML = '<img src="assets/img/Fankit/%C3%8Dconos/HeroCoin.webp" alt="Monedas de héroe" width="13" height="13" loading="lazy" decoding="async" style="vertical-align:-2px; margin-right:3px;" onerror="this.replaceWith(document.createTextNode(\'\u{1FA99}\'));">';
 
 
 /**

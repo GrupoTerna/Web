@@ -178,8 +178,8 @@ test('perfil.html: la pastilla queda junto a la dona y la ventana existe', () =>
 });
 
 test('el ícono de los fragmentos es una copia WebP de Wild Shard y la tabla lo usa', () => {
-  assert.ok(fs.existsSync(path.join(__dirname, '..', 'assets', 'img', 'WildShard.webp')));
-  assert.match(html, /src="assets\/img\/WildShard\.webp"/);
+  assert.ok(fs.existsSync(path.join(__dirname, '..', 'assets', 'img', 'Fankit', 'Íconos', 'WildShard.webp')));
+  assert.match(html, /src="assets\/img\/Fankit\/%C3%8Dconos\/WildShard\.webp"/);
 });
 
 // ---- Oro de las cartas por desbloquear (aparte, bajo el oro de las desbloqueadas) ----

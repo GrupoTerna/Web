@@ -160,12 +160,13 @@
 // v107 (19-oct-2026): guerra.html cambió (CORE_ASSETS) -- se acaba el vacío bajo el pie de página: `.table-scroll{position:relative}` recorta los span .sr-only (enlaces de jugador y clan) que estiraban el documento (§PF128).
 // v108 (19-oct-2026): perfil.html cambió (CORE_ASSETS) -- el recorte de la insignia de victorias de guerra prueba primero con otra clave de caché (`?cors=1`) y avisa en consola por qué falla (§PF129).
 // v109 (19-oct-2026): perfil.html cambió (CORE_ASSETS) -- se quita el recorte con canvas de la insignia de guerra: el CDN de Supercell no envía CORS (§PF129).
+// v110 (19-oct-2026): todas las páginas, manifest.json y sw.js cambiaron (CORE_ASSETS) -- las imágenes de assets/img pasaron a assets/img/Fankit/{Banners,Emotes,Íconos} y assets/img/Logo Terna; se actualizan todas las rutas (§PF130).
 // v91 (18-oct-2026): admin.html cambió (CORE_ASSETS) -- «Modificar sorteo» muestra primero la lista de sorteos y después el tipo (principal o continuación), que ya se puede cambiar, igual que «Modificar torneo» (§PF107).
 // v90 (18-oct-2026): admin.html cambió (CORE_ASSETS) -- «Ataques a barcos» arranca con el Barcos del registro anterior (16 solo si no hay ninguno) en torneos, sorteos y cambio de rango, y «Modificar torneo» muestra primero la lista y después el tipo (principal o continuación), que ya se puede cambiar (§PF105).
 // v89 (18-oct-2026): admin.html cambió (CORE_ASSETS) -- «Modificar torneo» y «Modificar sorteo» muestran 16 en «Ataques a barcos» cuando el registro no tiene Barcos (tope: 16 equivale a no evaluarlos), en vez de 0 o el valor de otro torneo (§PF102).
 // v88 (18-oct-2026): admin.html cambió (CORE_ASSETS) -- «Modificar torneo» precarga los requisitos del torneo elegido (con «Cargando…» y sin guardar hasta que terminen) y deja el Nom_Multi y la cuenta organizadora ya elegidos, pudiendo cambiar a cualquier otra cuenta (§PF101).
 // v87 (18-oct-2026): admin.html cambió (CORE_ASSETS) -- «Modificar torneo» ya lista también los torneos Planificados y los sin link (no solo los de hoy), con fecha, hora y estado, y precarga la hora real (§PF099).
-const CACHE_NAME = 'terna-static-v109';
+const CACHE_NAME = 'terna-static-v110';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
@@ -196,9 +197,9 @@ const CORE_ASSETS = [
   'assets/js/features/inactivos.js',
   'assets/js/features/timeline-svg.js',
   'assets/js/features/join-modal.js',
-  'assets/img/logo-cuadrado.jpg',
-  'assets/img/icon-192.png',
-  'assets/img/icon-512.png'
+  'assets/img/Logo%20Terna/logo-cuadrado.jpg',
+  'assets/img/Logo%20Terna/icon-192.png',
+  'assets/img/Logo%20Terna/icon-512.png'
 ];
 
 self.addEventListener('install', event => {

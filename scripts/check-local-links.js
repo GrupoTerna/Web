@@ -48,7 +48,7 @@ for (const file of HTML_FILES) {
     const limpio = raw.split(/[?#]/)[0]; // corta query string / ancla
     if (!limpio) continue;
     revisadas++;
-    const destino = path.resolve(ROOT, limpio);
+    const destino = path.resolve(ROOT, decodeURI(limpio)); // el navegador decodifica %20, %C3%8D, etc.
     if (!fs.existsSync(destino)) {
       console.error(`✗ ${file}: ruta local rota "${raw}"`);
       errores++;
