@@ -2179,6 +2179,9 @@ function cambiarOrdenMaestrias(orden){
   if (_ultimosBadges) _pintarInsignias(_ultimosBadges);
 }
 
+/** Ícono genérico (pedido de la usuaria, 20-oct-2026) para una insignia sin imagen: sin enlace, o con enlace y respaldos que no cargan. [→ Contexto_Base_Web.md §PF130] */
+const ICONO_INSIGNIA_GENERICO = 'assets/img/Fankit/Emotes/emotes_goblin_nope_dl.png';
+
 function _insigniaItemHtml(b){
   const urls = b.iconUrls || {};
   let icono = urlValida(urls.large) ? urls.large : (urlValida(urls.medium) ? urls.medium : '');
@@ -2205,7 +2208,7 @@ function _insigniaItemHtml(b){
   const nombreEs = _nombreInsigniaEs(b);
   return `
       <div class="badge-item${b.bloqueada ? ' badge-item--bloqueada' : ''}" title="${esc(nombreEs)}${(!b.bloqueada && tieneTarget) ? ` \u2014 ${fmtNum(b.progress)}/${fmtNum(b.target)}` : ''}">
-        ${icono ? `<img src="${esc(icono)}" alt="" loading="lazy"${iconoRespaldo ? ` data-fallback="${esc(iconoRespaldo)}"` : ''} onerror="if(this.dataset.fallback){const f=this.dataset.fallback;this.dataset.fallback='';this.dataset.respEtapa='';this.src=f;}else{this.style.visibility='hidden';}">` : '<div class="badge-ico-vacio"></div>'}
+        ${icono ? `<img src="${esc(icono)}" alt="" loading="lazy"${iconoRespaldo ? ` data-fallback="${esc(iconoRespaldo)}"` : ''} data-generico="${ICONO_INSIGNIA_GENERICO}" onerror="if(this.dataset.fallback){const f=this.dataset.fallback;this.dataset.fallback='';this.dataset.respEtapa='';this.src=f;}else if(this.dataset.generico){const g=this.dataset.generico;this.dataset.generico='';this.dataset.respEtapa='fin';this.src=g;}else{this.style.visibility='hidden';}">` : `<img src="${ICONO_INSIGNIA_GENERICO}" alt="" loading="lazy" onerror="this.style.visibility='hidden'">`}
         <div class="b-nombre">${esc(nombreEs)}</div>
         ${nivelTxt ? `<div class="b-nivel">${esc(nivelTxt)}</div>` : ''}
         ${b.bloqueada ? '' : `<div class="progress${pct >= 100 ? ' complete' : ''}"><i style="width:${pct}%"></i></div>`}

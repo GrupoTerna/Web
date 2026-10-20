@@ -34,6 +34,7 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 ## 20-oct-2026
 
 - **`perfil.html` (`_insigniaItemHtml()`, `onerror` del `<img>` de la insignia), `test/insignia-maestria-respaldo-carta.test.js` (nuevo) y `sw.js` v112 · Maestría sin imagen: la carta también cae a su copia local.** Al pasar del enlace de la insignia al de su carta (`data-fallback`), se reinicia la etapa de `imagenes-respaldo.js` (`dataset.respEtapa`); así, si la carta remota tampoco carga, se prueba `assets/cards/api/` y luego `Fankit` antes de ocultar el ícono. → §PF130
+- **`perfil.html` (`ICONO_INSIGNIA_GENERICO`, `_insigniaItemHtml()`), `test/insignia-maestria-respaldo-carta.test.js` y `sw.js` v113 · Ícono genérico para la insignia sin imagen.** Cuando el enlace falla y se agotan los respaldos (o la insignia no trae enlace), se muestra `assets/img/Fankit/Emotes/emotes_goblin_nope_dl.png` en vez de un hueco; si ese también falla, se oculta. → §PF130
 
 ## 19-oct-2026
 
