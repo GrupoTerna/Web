@@ -80,10 +80,10 @@ const ICONO_HEROCOIN_HTML = '<img src="assets/Im%C3%A1genes/%C3%8Dconos/Fankit/H
  * NUNCA se hotlinkea la imagen directo desde GitHub — el propio repo pide
  * "please clone this repo and not use these assets directly as if it's a
  * CDN" (RoyaleAPI/cr-api-assets). En su lugar, los PNG se auto-hospedan en
- * assets/badges/{nombre}.png dentro de este mismo sitio (ver el PNG de
+ * assets/Im%C3%A1genes/badges/Fankit/{nombre}.png dentro de este mismo sitio (ver el PNG de
  * Skull_05 adjunto en esta respuesta — cópialo a esa ruta en el repo).
  * Si Supercell agrega un badge nuevo que todavía no está en este array, o
- * si el PNG de un badge conocido aún no se subió a assets/badges/, el
+ * si el PNG de un badge conocido aún no se subió a assets/Imágenes/badges/Fankit/, el
  * <img> simplemente no se pinta (fallback silencioso a solo texto) — no
  * hay forma de que un ícono roto llegue a mostrarse.
  *
@@ -136,7 +136,7 @@ const BADGE_NOMBRES_POR_ID = [
 
 
 /** badgeId (número que ya manda Supercell) -> <img> del ícono del clan
- * auto-hospedado en assets/badges/, o '' si no se puede resolver (badge
+ * auto-hospedado en assets/Imágenes/badges/Fankit/, o '' si no se puede resolver (badge
  * desconocido, o el PNG todavía no se subió a esa carpeta) — nunca rompe
  * el layout con un ícono caído. opts.size en px (default 22). */
 function iconoBadgeClanHtml(badgeId, opts){
@@ -148,8 +148,8 @@ function iconoBadgeClanHtml(badgeId, opts){
   // FIX (20-sep-2026, Lighthouse "image-aspect-ratio" en index/directorio/guerra): el badge no es cuadrado
   // (Skull_05 mide 66x78) pero se dibujaba en una caja de size x size y quedaba deformado. object-fit:contain
   // lo escala sin deformar dentro de la misma caja (el layout no cambia). Al exportar badges nuevos a
-  // assets/badges/, dejarlos de ~78 px de alto: aquí se dibujan a 26 px, así cubre pantallas de hasta 3x.
-  return `<img src="assets/badges/${nombre}.png" alt="" width="${size}" height="${size}" loading="lazy" decoding="async" style="vertical-align:-6px; margin-right:6px; object-fit:contain;" onerror="this.remove();">`;
+  // assets/Imágenes/badges/Fankit/, dejarlos de ~78 px de alto: aquí se dibujan a 26 px, así cubre pantallas de hasta 3x.
+  return `<img src="assets/Im%C3%A1genes/badges/Fankit/${nombre}.png" alt="" width="${size}" height="${size}" loading="lazy" decoding="async" style="vertical-align:-6px; margin-right:6px; object-fit:contain;" onerror="this.remove();">`;
 }
 
 

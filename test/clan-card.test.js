@@ -33,7 +33,7 @@ test('clanCardCabeceraHtml() con opts.mostrarRol usa CLAN_BADGES_ROL en vez de C
 
 test('clanCardCabeceraHtml() con badgeId agrega el ícono del escudo real vía iconoBadgeClanHtml()', () => {
   const html = clanCardCabeceraHtml({ nombre: 'Terna 2', badgeId: 16000000 }, 1);
-  assert.match(html, /<img src="assets\/badges\/Flame_01\.png"/);
+  assert.match(html, /<img src="assets\/Im%C3%A1genes\/badges\/Fankit\/Flame_01\.png"/);
 });
 
 test('clanCardHtml() sin royaleApi/cwStats válidos no pinta la fila de botones externos', () => {

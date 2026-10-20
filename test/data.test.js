@@ -23,7 +23,7 @@ test('traducirNombreCarta() con vacío/undefined no rompe', () => {
 
 test('iconoBadgeClanHtml() arma el <img> con el nombre de archivo correcto para el primer badge de la tabla (16000000 -> Flame_01)', () => {
   const html = iconoBadgeClanHtml(16000000);
-  assert.match(html, /^<img src="assets\/badges\/Flame_01\.png"/);
+  assert.match(html, /^<img src="assets\/Im%C3%A1genes\/badges\/Fankit\/Flame_01\.png"/);
   assert.match(html, /width="22" height="22"/); // tamaño por defecto
 });
 
