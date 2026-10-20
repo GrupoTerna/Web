@@ -31,6 +31,10 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 
 ---
 
+## 20-oct-2026
+
+- **`perfil.html` (`_insigniaItemHtml()`, `onerror` del `<img>` de la insignia), `test/insignia-maestria-respaldo-carta.test.js` (nuevo) y `sw.js` v112 · Maestría sin imagen: la carta también cae a su copia local.** Al pasar del enlace de la insignia al de su carta (`data-fallback`), se reinicia la etapa de `imagenes-respaldo.js` (`dataset.respEtapa`); así, si la carta remota tampoco carga, se prueba `assets/cards/api/` y luego `Fankit` antes de ocultar el ícono. → §PF130
+
 ## 19-oct-2026
 
 - **`404.html`, `admin.html`, `clan.html`, `comunidad.html`, `directorio.html`, `guerra.html`, `index.html`, `manifest.json`, `mensajes.html`, `perfil.html` (`_icoCuadritoHtml()`), `permisos.html`, `sorteo.html`, `torneos.html`, `assets/js/data/clan-badges.js`, `scripts/check-local-links.js`, `test/perfil-niveles-evoluciones.test.js` y `sw.js` v110 · Rutas de imágenes tras la reorganización de `assets/img`.** Las imágenes pasaron a `assets/img/Fankit/{Banners,Emotes,Íconos}` y `assets/img/Logo Terna`, y `cards`, `chests` y `arenas` a su subcarpeta `Fankit`; había 181 referencias rotas. Se reescriben todas (con `%20` y `%C3%8D` en las URL) y `check-local-links.js` ahora decodifica la ruta. `→ §PF130`
