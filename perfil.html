@@ -5653,6 +5653,7 @@ function perfilLineChartSvg(puntos, opts){
 
   const fechasEje = puntos.map(p => { const t = parseFechaDDMMYYYY(p.semana); return isNaN(t) ? null : new Date(t); });
   const lineasTemporales = lineasTemporalesSvg(fechasEje, xPos, PAD_T, H - PAD_B, { granularidadDiaria: false });
+  const bandasTemporada = bandasTemporadaSvg(fechasEje, xPos, PAD_T, H - PAD_B, PAD_L); // 20-oct-2026 (pedido usuaria): sombreado intercalado por temporada, detrás de la grilla. [→ Contexto_Base_Web.md §PF134]
 
   // FIX (27-sep-2026, pedido usuario -- "agrega líneas guía verticales en
   // los domingos para que sea más fácil identificar las semanas"): una
@@ -5757,7 +5758,7 @@ function perfilLineChartSvg(puntos, opts){
   const ejeYTitle = opts.ejeY
     ? `<text class="ing-axis-title" x="14" y="${PAD_T + plotH / 2}" text-anchor="middle" transform="rotate(-90 14 ${PAD_T + plotH / 2})">${esc(opts.ejeY)}</text>`
     : '';
-  return `<svg class="ing-linechart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">${gridLines.join('')}${gridMedios}${lineasTemporales}${lineasDomingo}${xLetrasDia}${xLabels}${lineaTope}${lineaTopeSem}${lineaMin}${path}${circles}${pathSem}${circlesSem}${ejeXTitle}${ejeYTitle}</svg>`;
+  return `<svg class="ing-linechart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">${bandasTemporada}${gridLines.join('')}${gridMedios}${lineasTemporales}${lineasDomingo}${xLetrasDia}${xLabels}${lineaTope}${lineaTopeSem}${lineaMin}${path}${circles}${pathSem}${circlesSem}${ejeXTitle}${ejeYTitle}</svg>`;
 }
 
 /** Mini-leyenda de arriba de cada gráfica (idéntica a la de directorio.html). */

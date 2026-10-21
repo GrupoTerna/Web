@@ -158,3 +158,17 @@ test('sin temporada, semana o día el tooltip no añade la línea', () => {
   w.__t.pintarGraficaPerfil(wrap, incompleto, { ejeY: 'Ataques', unidad: 'ataques', base: 0, tope: 4 });
   assert.ok(!w.__t.htmlTooltipPuntoPerfil(wrap.querySelector('.serie-pt-anomalia')).includes('Temporada'));
 });
+
+// NUEVO (20-oct-2026, pedido de la usuaria): sombreado ligero e intercalado por temporada, detrás de la grilla.
+test('la gráfica diaria sombrea las temporadas pares detrás de la grilla y no las impares', () => {
+  const w = cargar();
+  // Septiembre 2026 va del lunes 7/9 al domingo 4/10 (clave par: sombreada); octubre empieza el lunes 5/10 (impar: sin sombra).
+  const f = ['10/09/2026', '11/09/2026', '12/09/2026', '13/09/2026', '01/10/2026', '02/10/2026', '08/10/2026', '09/10/2026'];
+  const puntos = f.map((semana, i) => ({ semana, valor: 4, real: true, clan: 'Terna' }));
+  const svg = w.__t.perfilLineChartSvg(puntos, { base: 0 });
+  assert.equal((svg.match(/class="banda-temporada"/g) || []).length, 1, 'solo septiembre lleva sombra');
+  assert.ok(svg.indexOf('banda-temporada') < svg.indexOf('ing-grid-line'), 'la banda va antes que la grilla para quedar detrás');
+  // Todo dentro de octubre (impar) = sin bandas.
+  const oct = ['08/10/2026', '09/10/2026', '10/10/2026', '11/10/2026'].map((semana) => ({ semana, valor: 4, real: true, clan: 'Terna' }));
+  assert.ok(!w.__t.perfilLineChartSvg(oct, { base: 0 }).includes('banda-temporada'));
+});
