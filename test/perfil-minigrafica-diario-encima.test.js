@@ -7,7 +7,7 @@ const { loadBrowserScriptsWithDom } = require('./load-browser-script');
 
 // NUEVO (20-oct-2026, pedido de la usuaria): «el valor diario siempre debe mostrarse sobre el valor acumulado
 // o semanal en caso de que coincidan». En las minigráficas de perfil.html (_dispersionMiniHtml), la serie marcada
-// `acumulado: true` se dibuja PRIMERO y con el radio mayor (5); el valor diario, después y más chico (3,5), así
+// `acumulado: true` se dibuja PRIMERO y con el radio mayor (6,5); el valor diario, después y más chico (3,5), así
 // el verde/morado asoma como un aro y el diario queda encima. Sin ninguna serie acumulada (p. ej. «Ataques y
 // barcos por día») se conserva el criterio del 12-oct-2026: la primera serie abajo (r 5) y las siguientes encima (r 3,5).
 // LÍMITE: se extrae la función del <script> inline REAL y se mira el SVG como texto, no en un navegador.
@@ -40,7 +40,7 @@ const DIAS = ['J', 'V', 'S', 'D'];
 const puntos = svg => [...svg.matchAll(/<circle class="md-punto"[^>]*? r="([\d.]+)" fill="([^"]+)"/g)].map(m => ({ r: Number(m[1]), color: m[2] }));
 const lineas = svg => [...svg.matchAll(/<path class="md-linea"[^>]*? stroke="([^"]+)"/g)].map(m => m[1]);
 
-test('con serie acumulada: el acumulado se dibuja primero y más grande; el diario, después y más chico (encima)', () => {
+test('con serie acumulada: el acumulado se dibuja primero y más grande (6,5); el diario, después y más chico (encima)', () => {
   const w = cargar();
   // Los valores del día coinciden con el acumulado (todo el trabajo en el jueves).
   const svg = w.__mini('Medallas de guerra por día', DIAS, [
@@ -51,7 +51,7 @@ test('con serie acumulada: el acumulado se dibuja primero y más grande; el diar
   assert.equal(p.length, 8);
   // Por cada día: primero el acumulado (morado, r 5) y luego el diario (dorado, r 3,5).
   for (let d = 0; d < 4; d++){
-    assert.deepEqual(p[d * 2], { r: 5, color: 'var(--purple)' }, `día ${d}: el acumulado va primero y grande`);
+    assert.deepEqual(p[d * 2], { r: 6.5, color: 'var(--purple)' }, `día ${d}: el acumulado va primero y grande`);
     assert.deepEqual(p[d * 2 + 1], { r: 3.5, color: 'var(--gold)' }, `día ${d}: el diario va después y chico`);
   }
   assert.deepEqual(lineas(svg), ['var(--purple)', 'var(--gold)'], 'la línea del acumulado también va debajo de la del diario');
@@ -64,7 +64,7 @@ test('el orden de las series con acumulado no depende de en qué posición se pa
     { etiqueta: 'Diario', color: 'var(--gold)', valores: [5, 0, 0, 0] }
   ]);
   const p = puntos(svg);
-  assert.deepEqual(p[0], { r: 5, color: 'var(--purple)' });
+  assert.deepEqual(p[0], { r: 6.5, color: 'var(--purple)' });
   assert.deepEqual(p[1], { r: 3.5, color: 'var(--gold)' });
 });
 

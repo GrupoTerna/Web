@@ -727,6 +727,8 @@
   .ing-linechart-svg .ing-serie-line-dashed{stroke-dasharray:5 4; opacity:.55;}
   .ing-linechart-svg .ing-axis-label{fill:var(--text-dim); font-family:var(--f-mono); font-size:15px; font-weight:600;}
   .ing-linechart-svg .ing-serie-line{fill:none; stroke-width:3; opacity:.95;}
+  /* 20-oct-2026: la línea del acumulado va debajo de la diaria y más gruesa para asomar a ambos lados cuando coinciden (p. ej. todo en 0). */
+  .ing-linechart-svg .ing-serie-line.ing-serie-line-acum{stroke-width:6;}
   .ing-linechart-svg .ing-serie-pt{cursor:pointer; transition:r .15s ease;}
   .ing-linechart-svg .ing-serie-pt:hover{r:7;}
   .ing-linechart-svg .ing-axis-title{fill:var(--text-dim); font-family:var(--f-mono); font-size:14px; font-weight:700; letter-spacing:.04em;}
@@ -4311,7 +4313,8 @@ function _dispersionMiniHtml(titulo, dias, series, opts){
   // 20-oct-2026 (pedido usuaria -- "el valor diario siempre debe mostrarse sobre el valor acumulado"): una serie con `acumulado: true` se dibuja PRIMERO y con el radio mayor; las demás (el valor diario), después, encima y más chicas. Sin ninguna serie acumulada se conserva el criterio del 12-oct (la primera abajo, con radio mayor; las siguientes encima, más chicas).
   const hayAcumulado = series.some(s => s && s.acumulado === true);
   const orden = series.map((s, i) => i).sort((a, b) => ((series[b].acumulado === true) - (series[a].acumulado === true)) || (a - b));
-  const radioSerie = sIdx => (hayAcumulado ? series[sIdx].acumulado === true : sIdx === 0) ? R : R_SERIE_2;
+  const R_ACUMULADO_MINI = 6.5; // más grande que 5 para que el aro asome por fuera del diario (con 5 quedaba casi tapado)
+  const radioSerie = sIdx => hayAcumulado ? (series[sIdx].acumulado === true ? R_ACUMULADO_MINI : R_SERIE_2) : (sIdx === 0 ? R : R_SERIE_2);
 
   // Líneas de referencia horizontales, una por marca del eje Y (la de 0 es la base), con su rótulo a la izquierda. Igual de tenues que .ing-grid-line de las gráficas grandes.
   let grid = '';
@@ -5622,8 +5625,8 @@ function perfilLineChartSvg(puntos, opts){
   // 19-oct-2026 (pedido usuaria): segunda serie opcional con los ACUMULADOS de la semana, un punto por domingo (opts.serieSemanal = [{ semana, valor, real, clan, excedeAtaques? }]); su tope va en opts.topeSemanal. No se une con los puntos diarios: la línea va de domingo a domingo.
   // 20-oct-2026 (pedido usuaria): el valor DIARIO siempre se dibuja encima del acumulado/semanal. Mismo criterio de _dispersionMiniHtml() (12-oct-2026): la serie de abajo (acumulado) usa el radio mayor y la de arriba (diario), más chica, se dibuja al final; así, si coinciden, no se pierde ninguna.
   const serieSem = Array.isArray(opts.serieSemanal) ? opts.serieSemanal.filter(q => q && q.real !== false) : [];
-  // Con serie acumulada: acumulado 5 (abajo) y diario 3,5 (arriba). Sin ella el diario conserva su radio de siempre (5).
-  const R_PUNTO_PERFIL = serieSem.length ? 3.5 : 5, R_PUNTO_ACUMULADO_PERFIL = 5, R_ANOMALIA_ACUMULADO_PERFIL = 8;
+  // Con serie acumulada: acumulado 7 (abajo; con 5 el aro quedaba casi tapado por el contorno del diario) y diario 3,5 (arriba). Sin ella el diario conserva su radio de siempre (5).
+  const R_PUNTO_PERFIL = serieSem.length ? 3.5 : 5, R_PUNTO_ACUMULADO_PERFIL = 7, R_ANOMALIA_ACUMULADO_PERFIL = 9;
   const topeSem = serieSem.length && opts.topeSemanal > 0 ? Number(opts.topeSemanal) : 0;
   // 19-oct-2026 (pedido usuaria): mínimo (0) de las métricas de guerra (opts.minimo). Su línea solo se dibuja si hay un valor real por debajo; entonces el eje baja hasta incluirlo (pisoEjeConNegativos) y ese punto sale como anomalía.
   const minimo = opts.minimo != null ? Number(opts.minimo) : null;
@@ -5746,7 +5749,7 @@ function perfilLineChartSvg(puntos, opts){
     .sort((a, b) => a.i - b.i);
   let pathSem = '';
   for (let k = 0; k < ptsSem.length - 1; k++){
-    pathSem += `<path class="ing-serie-line" d="M ${xPos(ptsSem[k].i).toFixed(1)} ${yPos(ptsSem[k].valor).toFixed(1)} L ${xPos(ptsSem[k + 1].i).toFixed(1)} ${yPos(ptsSem[k + 1].valor).toFixed(1)}" stroke="${COLOR_SERIE_ACUMULADO_PERFIL}"></path>`;
+    pathSem += `<path class="ing-serie-line ing-serie-line-acum" d="M ${xPos(ptsSem[k].i).toFixed(1)} ${yPos(ptsSem[k].valor).toFixed(1)} L ${xPos(ptsSem[k + 1].i).toFixed(1)} ${yPos(ptsSem[k + 1].valor).toFixed(1)}" stroke="${COLOR_SERIE_ACUMULADO_PERFIL}"></path>`;
   }
   const circlesSem = ptsSem.map(q => {
     const superaTope = !!topeSem && Number(q.valor) > topeSem;

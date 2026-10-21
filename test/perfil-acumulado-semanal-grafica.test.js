@@ -101,6 +101,15 @@ test('coinciden valor del día y acumulado: los dos puntos siguen distinguibles'
   assert.ok(todos.indexOf(d) > todos.indexOf(a), 'el diario se dibuja encima del acumulado');
 });
 
+test('el aro del acumulado asoma al menos 2 px y su línea es más gruesa que la diaria (si no, queda tapado)', () => {
+  const w = cargar();
+  const wrap = pintar(w, DOS_SEMANAS, 'ataques', { tope: 4, topeSemanal: 16 });
+  const d = diarios(wrap)[0], a = verdes(wrap)[0];
+  assert.ok(Number(a.getAttribute('r')) - Number(d.getAttribute('r')) >= 3, 'el radio del acumulado supera al diario por 3 o más');
+  assert.ok(html.includes('.ing-serie-line.ing-serie-line-acum{stroke-width:6;}'));
+  assert.ok([...wrap.querySelectorAll('path')].some(p => p.classList.contains('ing-serie-line-acum') && p.getAttribute('stroke') === '#3ddc97'));
+});
+
 test('el tramo verde se dibuja antes que la línea y los puntos diarios (los diarios nunca quedan tapados)', () => {
   const w = cargar();
   const wrap = pintar(w, DOS_SEMANAS, 'ataques', { tope: 4, topeSemanal: 16 });
