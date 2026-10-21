@@ -171,10 +171,10 @@
 // v117 (20-oct-2026): perfil.html y directorio.html cambiaron (CORE_ASSETS) -- el tooltip de cada punto de las gráficas lleva una línea «Temporada N, Semana N, Día» (§PF133).
 // v118 (20-oct-2026): assets/js/features/timeline-svg.js, assets/styles.css, perfil.html y directorio.html cambiaron (CORE_ASSETS) -- sombreado ligero e intercalado por temporada en las gráficas (§PF134).
 // v119 (20-oct-2026): perfil.html cambió (CORE_ASSETS) -- el valor diario se dibuja siempre encima del acumulado en las gráficas (en «Barcos por semana» coinciden a propósito) y en la minigráfica «Medallas de guerra por día» (§PF135).
-// v124 (21-oct-2026): perfil.html cambió (CORE_ASSETS) -- en la tabla «Fragmentos y monedas que faltan» los valores de la columna Variante van a la izquierda; el resto sigue centrado (§PF071).
-// v123 (21-oct-2026): perfil.html cambió (CORE_ASSETS) -- la tabla «Fragmentos y monedas que faltan» centra encabezados y valores en pantalla ancha (§PF071).
-// v122 (21-oct-2026): perfil.html cambió (CORE_ASSETS) -- ventana «Niveles y evoluciones»: números del diagrama centrados en su región y tabla de fragmentos y monedas solo con íconos, con leyenda debajo (§PF071).
-// v121 (21-oct-2026): perfil.html cambió (CORE_ASSETS) -- el acumulado (línea de 6 y aro de radio 7) solo se destaca donde coincide con el diario; si no coinciden, línea y aro normales (§PF135).
+// v124 (20-oct-2026): perfil.html cambió (CORE_ASSETS) -- en la tabla «Fragmentos y monedas que faltan» los valores de la columna Variante van a la izquierda; el resto sigue centrado (§PF071).
+// v123 (20-oct-2026): perfil.html cambió (CORE_ASSETS) -- la tabla «Fragmentos y monedas que faltan» centra encabezados y valores en pantalla ancha (§PF071).
+// v122 (20-oct-2026): perfil.html cambió (CORE_ASSETS) -- ventana «Niveles y evoluciones»: números del diagrama centrados en su región y tabla de fragmentos y monedas solo con íconos, con leyenda debajo (§PF071).
+// v121 (20-oct-2026): perfil.html cambió (CORE_ASSETS) -- el acumulado (línea de 6 y aro de radio 7) solo se destaca donde coincide con el diario; si no coinciden, línea y aro normales (§PF135).
 // v120 (20-oct-2026): perfil.html cambió (CORE_ASSETS) -- el aro del acumulado era casi invisible detrás del punto diario: radio 7 (9 si es anomalía; 6,5 en la minigráfica) y línea verde más gruesa (§PF135).
 // v91 (18-oct-2026): admin.html cambió (CORE_ASSETS) -- «Modificar sorteo» muestra primero la lista de sorteos y después el tipo (principal o continuación), que ya se puede cambiar, igual que «Modificar torneo» (§PF107).
 // v90 (18-oct-2026): admin.html cambió (CORE_ASSETS) -- «Ataques a barcos» arranca con el Barcos del registro anterior (16 solo si no hay ninguno) en torneos, sorteos y cambio de rango, y «Modificar torneo» muestra primero la lista y después el tipo (principal o continuación), que ya se puede cambiar (§PF105).

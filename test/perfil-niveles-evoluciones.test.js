@@ -257,7 +257,7 @@ test('perfil.html: en móvil la tabla de costos pasa a una tarjeta por variante 
   }
 });
 
-test('diagrama: los números de «solo evolución» y «solo héroe» van centrados en su región y el par del centro, en la lente (21-oct-2026)', () => {
+test('diagrama: los números de «solo evolución» y «solo héroe» van centrados en su región y el par del centro, en la lente (20-oct-2026)', () => {
   const t = cargar().__t;
   const svg = t._vennEvoHeroeHtml(t._evoHeroeResumen(CARTAS, BLOQUEADAS));
   const x = re => Number(svg.match(re)[1]);
@@ -269,7 +269,7 @@ test('diagrama: los números de «solo evolución» y «solo héroe» van centra
   assert.ok(pt > 223 && pt < 260, 'el par de la lente queda desplazado hacia el centro de la lente (260)');
 });
 
-test('la tabla de fragmentos y monedas centra encabezados y valores en pantalla ancha, sin tocar el móvil (21-oct-2026)', () => {
+test('la tabla de fragmentos y monedas centra encabezados y valores en pantalla ancha, sin tocar el móvil (20-oct-2026)', () => {
   const t = cargar().__t;
   assert.match(t._tablaEvoHeroeHtml(t._evoHeroeResumen(CARTAS, BLOQUEADAS)), /<table class="costo-tabla costo-tabla-evo" role="table">/);
   const m = html.match(/@media \(min-width:561px\)\{\s*\.col-modal-scroll \.costo-tabla\.costo-tabla-evo th[^}]*text-align:center;\}[\s\S]*?\n  \}\n/);
@@ -277,7 +277,7 @@ test('la tabla de fragmentos y monedas centra encabezados y valores en pantalla 
   ['th', 'td', 'td.num', 'th.num'].forEach(sel => assert.ok(m[0].includes(`.costo-tabla-evo ${sel}`), sel));
 });
 
-test('en esa tabla solo los valores de la columna Variante van a la izquierda; los encabezados y el resto, centrados (21-oct-2026)', () => {
+test('en esa tabla solo los valores de la columna Variante van a la izquierda; los encabezados y el resto, centrados (20-oct-2026)', () => {
   const m = html.match(/@media \(min-width:561px\)\{\s*\.col-modal-scroll \.costo-tabla\.costo-tabla-evo th[\s\S]*?\n  \}\n/);
   assert.ok(m, 'bloque de alineación de la tabla de fragmentos y monedas');
   assert.match(m[0], /costo-tabla-evo th\.num\{text-align:center;\}/, 'encabezados y columnas numéricas centrados');

@@ -727,7 +727,7 @@
   .ing-linechart-svg .ing-serie-line-dashed{stroke-dasharray:5 4; opacity:.55;}
   .ing-linechart-svg .ing-axis-label{fill:var(--text-dim); font-family:var(--f-mono); font-size:15px; font-weight:600;}
   .ing-linechart-svg .ing-serie-line{fill:none; stroke-width:3; opacity:.95;}
-  /* 20-oct-2026: la línea del acumulado va debajo de la diaria. Solo el tramo en que coincide con la diaria (p. ej. todo en 0) se engrosa para asomar a ambos lados; el resto mide lo mismo que la diaria (corrección del 21-oct-2026). */
+  /* 20-oct-2026: la línea del acumulado va debajo de la diaria. Solo el tramo en que coincide con la diaria (p. ej. todo en 0) se engrosa para asomar a ambos lados; el resto mide lo mismo que la diaria (corrección del 20-oct-2026). */
   .ing-linechart-svg .ing-serie-line.ing-serie-line-acum-coincide{stroke-width:6;}
   .ing-linechart-svg .ing-serie-pt{cursor:pointer; transition:r .15s ease;}
   .ing-linechart-svg .ing-serie-pt:hover{r:7;}
@@ -816,7 +816,7 @@
   .col-modal-scroll{overflow-x:auto;}
   .col-modal-scroll .costo-tabla td, .col-modal-scroll .costo-tabla th{white-space:nowrap;}
   .col-modal-scroll .costo-tabla td.num, .col-modal-scroll .costo-tabla th.num{text-align:right;}
-  /* 21-oct-2026 (pedido usuaria): en la tabla «Fragmentos y monedas que faltan» los encabezados y los valores van centrados, salvo los valores de la columna Variante, que van a la izquierda (en móvil cada fila pasa a tarjeta y no cambia). */
+  /* 20-oct-2026 (pedido usuaria): en la tabla «Fragmentos y monedas que faltan» los encabezados y los valores van centrados, salvo los valores de la columna Variante, que van a la izquierda (en móvil cada fila pasa a tarjeta y no cambia). */
   @media (min-width:561px){
     .col-modal-scroll .costo-tabla.costo-tabla-evo th, .col-modal-scroll .costo-tabla.costo-tabla-evo td, .col-modal-scroll .costo-tabla.costo-tabla-evo td.num, .col-modal-scroll .costo-tabla.costo-tabla-evo th.num{text-align:center;}
     .col-modal-scroll .costo-tabla.costo-tabla-evo td:first-child{text-align:left;}
@@ -3602,7 +3602,7 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarModalM
 const COSTO_FRAGMENTOS_EVO = 6;
 // 14-oct-2026: ícono de los fragmentos (Wild Shard, copia en WebP de Wild Shard.png); si faltara, cae al ✨.
 const _ICONO_FRAGMENTO_HTML = '<img class="ico-frag" src="assets/Im%C3%A1genes/%C3%8Dconos/Fankit/WildShard.webp" alt="" onerror="this.replaceWith(document.createTextNode(\'\\u2728\'));">';
-// 21-oct-2026: ícono de las monedas de héroe para la tabla (mismo HeroCoin.webp, con la clase de tamaño de los fragmentos); si faltara, cae al 🪙.
+// 20-oct-2026: ícono de las monedas de héroe para la tabla (mismo HeroCoin.webp, con la clase de tamaño de los fragmentos); si faltara, cae al 🪙.
 const _ICONO_MONEDA_HEROE_TABLA_HTML = '<img class="ico-frag" src="assets/Im%C3%A1genes/%C3%8Dconos/Fankit/HeroCoin.webp" alt="" onerror="this.replaceWith(document.createTextNode(\'\\u{1FA99}\'));">';
 let _nivelPieModalHtml = '';
 let _coleccionModalOpener = null;
@@ -4325,7 +4325,7 @@ function _dispersionMiniHtml(titulo, dias, series, opts){
   const hayAcumulado = series.some(s => s && s.acumulado === true);
   const orden = series.map((s, i) => i).sort((a, b) => ((series[b].acumulado === true) - (series[a].acumulado === true)) || (a - b));
   const R_ACUMULADO_MINI = 6.5; // más grande que 5 para que el aro asome por fuera del diario (con 5 quedaba casi tapado)
-  // 21-oct-2026: el aro grande solo cuando el acumulado coincide con el valor de otra serie ese día; si no, radio normal (5).
+  // 20-oct-2026: el aro grande solo cuando el acumulado coincide con el valor de otra serie ese día; si no, radio normal (5).
   const radioSerie = (sIdx, dIdx) => {
     if (!hayAcumulado) return sIdx === 0 ? R : R_SERIE_2;
     if (series[sIdx].acumulado !== true) return R_SERIE_2;
@@ -5765,7 +5765,7 @@ function perfilLineChartSvg(puntos, opts){
     .map(q => { const t = parseFechaDDMMYYYY(q.semana); return Object.assign({}, q, { i: isNaN(t) ? undefined : idxPorDia.get(claveDia(t)) }); })
     .filter(q => q.i !== undefined)
     .sort((a, b) => a.i - b.i);
-  // 21-oct-2026 (pedido usuaria): el acumulado solo se destaca (línea de 6 y aro de radio 7) donde coincide con el valor diario; si no, ya se ve de sobra y engrosarlo ensucia la gráfica (p. ej. medallas: acumulado ~2 200 contra ~600 al día). Un tramo domingo→domingo coincide si todos los días que cubre tienen dato real y caen sobre esa recta (tolerancia 0,5 px); un punto, si el día del domingo es real y está a la misma altura.
+  // 20-oct-2026 (pedido usuaria): el acumulado solo se destaca (línea de 6 y aro de radio 7) donde coincide con el valor diario; si no, ya se ve de sobra y engrosarlo ensucia la gráfica (p. ej. medallas: acumulado ~2 200 contra ~600 al día). Un tramo domingo→domingo coincide si todos los días que cubre tienen dato real y caen sobre esa recta (tolerancia 0,5 px); un punto, si el día del domingo es real y está a la misma altura.
   const TOL_COINCIDE_PX = 0.5;
   const tramoCoincide = (a, b) => {
     const ya = yPos(a.valor), yb = yPos(b.valor);
