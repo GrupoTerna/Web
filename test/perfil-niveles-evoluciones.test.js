@@ -272,7 +272,7 @@ test('diagrama: los números de «solo evolución» y «solo héroe» van centra
 test('la tabla de fragmentos y monedas centra encabezados y valores en pantalla ancha, sin tocar el móvil (21-oct-2026)', () => {
   const t = cargar().__t;
   assert.match(t._tablaEvoHeroeHtml(t._evoHeroeResumen(CARTAS, BLOQUEADAS)), /<table class="costo-tabla costo-tabla-evo" role="table">/);
-  const m = html.match(/@media \(min-width:561px\)\{\s*\.col-modal-scroll \.costo-tabla\.costo-tabla-evo th[^}]*text-align:center;\}\s*\}/);
+  const m = html.match(/@media \(min-width:561px\)\{\s*\.col-modal-scroll \.costo-tabla\.costo-tabla-evo th[^}]*text-align:center;\}[\s\S]*?\n  \}\n/);
   assert.ok(m, 'regla de centrado dentro de @media (min-width:561px)');
   ['th', 'td', 'td.num', 'th.num'].forEach(sel => assert.ok(m[0].includes(`.costo-tabla-evo ${sel}`), sel));
 });
