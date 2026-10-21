@@ -3597,6 +3597,8 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape') cerrarModalM
 const COSTO_FRAGMENTOS_EVO = 6;
 // 14-oct-2026: ícono de los fragmentos (Wild Shard, copia en WebP de Wild Shard.png); si faltara, cae al ✨.
 const _ICONO_FRAGMENTO_HTML = '<img class="ico-frag" src="assets/Im%C3%A1genes/%C3%8Dconos/Fankit/WildShard.webp" alt="" onerror="this.replaceWith(document.createTextNode(\'\\u2728\'));">';
+// 21-oct-2026: ícono de las monedas de héroe para la tabla (mismo HeroCoin.webp, con la clase de tamaño de los fragmentos); si faltara, cae al 🪙.
+const _ICONO_MONEDA_HEROE_TABLA_HTML = '<img class="ico-frag" src="assets/Im%C3%A1genes/%C3%8Dconos/Fankit/HeroCoin.webp" alt="" onerror="this.replaceWith(document.createTextNode(\'\\u{1FA99}\'));">';
 let _nivelPieModalHtml = '';
 let _coleccionModalOpener = null;
 
@@ -3645,12 +3647,12 @@ function _vennEvoHeroeHtml(r){
       <circle class="venn-heroe" cx="315" cy="130" r="92"/>
       <text class="venn-lbl venn-lbl--evo" x="58" y="134">Evolución</text>
       <text class="venn-lbl venn-lbl--heroe" x="462" y="134">Héroe</text>
-      <text class="venn-num" x="150" y="136">${esc(f(r.soloEvo.tiene, r.soloEvo.tot))}</text>
-      <circle class="venn-pt venn-pt--evo" cx="232" cy="119" r="5"/>
-      <text class="venn-num-chico venn-fila" x="241" y="124">${esc(f(r.ambos.evo, r.ambos.tot))}</text>
-      <circle class="venn-pt venn-pt--heroe" cx="232" cy="141" r="5"/>
-      <text class="venn-num-chico venn-fila" x="241" y="146">${esc(f(r.ambos.heroe, r.ambos.tot))}</text>
-      <text class="venn-num" x="370" y="136">${esc(f(r.soloHeroe.tiene, r.soloHeroe.tot))}</text>
+      <text class="venn-num" x="168" y="136">${esc(f(r.soloEvo.tiene, r.soloEvo.tot))}</text>
+      <circle class="venn-pt venn-pt--evo" cx="245" cy="119" r="5"/>
+      <text class="venn-num-chico venn-fila" x="254" y="124">${esc(f(r.ambos.evo, r.ambos.tot))}</text>
+      <circle class="venn-pt venn-pt--heroe" cx="245" cy="141" r="5"/>
+      <text class="venn-num-chico venn-fila" x="254" y="146">${esc(f(r.ambos.heroe, r.ambos.tot))}</text>
+      <text class="venn-num" x="352" y="136">${esc(f(r.soloHeroe.tiene, r.soloHeroe.tot))}</text>
       <text class="venn-lbl venn-lbl--base" x="450" y="189"><tspan x="450">Solo carta</tspan><tspan x="450" dy="1.2em">base</tspan></text>
       <text class="venn-num" x="450" y="230">${esc(f(r.base.tiene, r.base.tot))}</text>
     </svg>
@@ -3668,17 +3670,21 @@ function _tablaEvoHeroeHtml(r){
   const faltaHeroe = Math.max(0, r.heroe.tot - r.heroe.tiene);
   const fila = (ico, nombre, v, falta, costoUnid, unidad, total, icoUnidad) => `
         <tr role="row"><td role="cell">${ico} ${nombre}</td><td class="num" role="cell">${esc(fmtNum(v.tot))}</td><td class="num" role="cell">${esc(fmtNum(v.tiene))}</td><td class="num" role="cell">${esc(fmtNum(falta))}</td>
-          <td class="num" role="cell">${esc(fmtNum(costoUnid))} ${icoUnidad || ''}${unidad}</td><td class="num" role="cell"><b>${esc(fmtNum(total))}</b> ${icoUnidad || ''}${unidad}</td></tr>`;
+          <td class="num" role="cell">${esc(fmtNum(costoUnid))} ${icoUnidad}</td><td class="num" role="cell"><b>${esc(fmtNum(total))}</b> ${icoUnidad}</td></tr>`;
   return `
     <div class="col-modal-scroll">
       <table class="costo-tabla" role="table">
         <thead role="rowgroup"><tr role="row"><th role="columnheader">Variante</th><th class="num" role="columnheader">Existen</th><th class="num" role="columnheader">Tienes</th><th class="num" role="columnheader">Faltan</th><th class="num" role="columnheader">Cada una</th><th class="num" role="columnheader">Para las que faltan</th></tr></thead>
         <tbody role="rowgroup">
-        ${fila('✨', 'Evolución', r.evo, faltaEvo, COSTO_FRAGMENTOS_EVO, 'fragmentos', faltaEvo * COSTO_FRAGMENTOS_EVO, _ICONO_FRAGMENTO_HTML)}
-        ${fila('\u{1F9B8}', 'Héroe', r.heroe, faltaHeroe, COSTO_DESBLOQUEO_HEROE, 'monedas', faltaHeroe * COSTO_DESBLOQUEO_HEROE)}
+        ${fila('✨', 'Evolución', r.evo, faltaEvo, COSTO_FRAGMENTOS_EVO, '', faltaEvo * COSTO_FRAGMENTOS_EVO, _ICONO_FRAGMENTO_HTML)}
+        ${fila('\u{1F9B8}', 'Héroe', r.heroe, faltaHeroe, COSTO_DESBLOQUEO_HEROE, '', faltaHeroe * COSTO_DESBLOQUEO_HEROE, _ICONO_MONEDA_HEROE_TABLA_HTML)}
         </tbody>
       </table>
     </div>
+    <ul class="venn-leyenda">
+      <li>${_ICONO_FRAGMENTO_HTML} <b>Fragmentos de evolución</b></li>
+      <li>${_ICONO_MONEDA_HEROE_TABLA_HTML} <b>Monedas de héroe</b></li>
+    </ul>
     <div class="col-modal-nota">Se cuentan también las cartas que aún no desbloqueas. Las monedas de héroe no desbloquean cartas, solo su héroe.</div>`;
 }
 
