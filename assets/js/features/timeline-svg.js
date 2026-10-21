@@ -93,6 +93,45 @@ function lineasTemporalesSvg(fechas, xPos, yIni, yFin, opts){
 }
 
 
+/** Clave de la temporada a la que pertenece una fecha (año*12 + mes de su inicio). Una temporada empieza el primer lunes del mes; las fechas anteriores a ese lunes siguen en la temporada del mes previo. */
+function claveTemporadaFecha(fecha){
+  const y = fecha.getFullYear(), m = fecha.getMonth();
+  return fecha < primerLunesDelMesJS(y, m) ? y * 12 + m - 1 : y * 12 + m;
+}
+
+/**
+ * bandasTemporadaSvg(fechas, xPos, yIni, yFin, xIni, opts)
+ * 20-oct-2026 (pedido de la usuaria): sombreado ligero e intercalado para distinguir las temporadas a simple vista.
+ * Cada temporada de clave PAR se sombrea; las impares quedan sin sombra. La banda va desde el último punto de la
+ * temporada anterior (el domingo con que cerró) hasta el último punto de la temporada (su último domingo); la primera
+ * temporada visible arranca en `xIni` (el borde izquierdo del área de trazado). Un punto sin fecha (null) se cuenta en la
+ * temporada del punto anterior. Se dibuja ANTES que la grilla y los puntos para quedar detrás, y no recibe el cursor.
+ * opts.prefijoClase: mismo namespace CSS que lineasTemporalesSvg().
+ */
+function bandasTemporadaSvg(fechas, xPos, yIni, yFin, xIni, opts){
+  opts = opts || {};
+  const pref = opts.prefijoClase || '';
+  const grupos = [];
+  (fechas || []).forEach((f, i) => {
+    const valida = f instanceof Date && !isNaN(f.getTime());
+    if (!valida && !grupos.length) return;
+    const clave = valida ? claveTemporadaFecha(f) : grupos[grupos.length - 1].clave;
+    const ultimo = grupos[grupos.length - 1];
+    if (ultimo && ultimo.clave === clave) ultimo.fin = i;
+    else grupos.push({ clave, fin: i });
+  });
+  const out = [];
+  grupos.forEach((g, k) => {
+    if (g.clave % 2 !== 0) return;
+    const x1 = k === 0 ? xIni : xPos(grupos[k - 1].fin);
+    const x2 = xPos(g.fin);
+    if (!(x2 > x1)) return;
+    out.push(`<rect class="${pref}banda-temporada" x="${x1.toFixed(1)}" y="${yIni}" width="${(x2 - x1).toFixed(1)}" height="${yFin - yIni}"></rect>`);
+  });
+  return out.join('');
+}
+
+
 /**
  * gridHorizontalMediosSvg(pasos, techo, yPos, xIni, xFin, prefijoClase)
  * Líneas horizontales SECUNDARIAS, a la mitad del espaciado entre cada par

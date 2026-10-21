@@ -1358,6 +1358,7 @@ function guerraComparadorMetricaSvg(a, b, campo, tituloMetrica, fechas, indicePo
     }
   });
   const lineasTemporales = lineasTemporalesSvg(fechasEje, i => PAD_L + i * stepX, PAD_T, PAD_T + plotH, { granularidadDiaria: true });
+  const bandasTemporada = bandasTemporadaSvg(fechasEje, i => PAD_L + i * stepX, PAD_T, PAD_T + plotH, PAD_L); // 20-oct-2026 (pedido usuaria): sombreado intercalado por temporada. [→ Contexto_Base_Web.md §PF134]
 
   const puntosDe = serie => serie
     .filter(r => indicePorFecha.has(r.fecha))
@@ -1386,6 +1387,7 @@ function guerraComparadorMetricaSvg(a, b, campo, tituloMetrica, fechas, indicePo
 
   return `
     <svg class="linechart-svg" viewBox="-16 0 ${W + 16} ${H + 16}" preserveAspectRatio="xMidYMid meet" style="overflow:visible;">
+      ${bandasTemporada}
       ${gridLines.join('')}
       ${gridMedios}
       ${lineasTemporales}
@@ -2378,6 +2380,7 @@ function lineChartSvg(miembros, campo, semanas, opts){
     return fechasEstimadas.get(s) || null;
   });
   const lineasTemporales = lineasTemporalesSvg(fechasEje, xPos, PAD_T, H - PAD_B, { granularidadDiaria: false });
+  const bandasTemporada = bandasTemporadaSvg(fechasEje, xPos, PAD_T, H - PAD_B, PAD_L); // 20-oct-2026 (pedido usuaria): sombreado intercalado por temporada, detrás de la grilla. [→ Contexto_Base_Web.md §PF134]
   const gridMedios = gridHorizontalMediosSvg(pasos, rangoY, v => yPos(base + v), PAD_L, W - PAD_R);
   const xLabels = semanas.map((s, i) => {
     const x = xPos(i), y = H - PAD_B + 16;
@@ -2436,7 +2439,7 @@ function lineChartSvg(miembros, campo, semanas, opts){
     return `<line class="linea-tope" x1="${PAD_L}" y1="${y}" x2="${W - PAD_R}" y2="${y}"></line><text class="tope-label" x="${W - PAD_R}" y="${(yPos(tope) - 7).toFixed(1)}" text-anchor="end">Tope: ${esc(fmtNum(tope))}</text>`;
   })() : '';
 
-  return `<svg class="ing-linechart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">${gridLines.join('')}${gridMedios}${lineasTemporales}${xLabels}${lineaTope}${hayBajo ? lineaMinimoSvg(yPos(minimo), PAD_L, W - PAD_R, minimo) : ''}${seriesSvg}${ejeXTitle}${ejeYTitle}</svg>`;
+  return `<svg class="ing-linechart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">${bandasTemporada}${gridLines.join('')}${gridMedios}${lineasTemporales}${xLabels}${lineaTope}${hayBajo ? lineaMinimoSvg(yPos(minimo), PAD_L, W - PAD_R, minimo) : ''}${seriesSvg}${ejeXTitle}${ejeYTitle}</svg>`;
 }
 
 /** Texto y tooltip de un punto de Ingresos recientes: igual que los compartidos (timeline-svg.js) y, si el punto supera el tope semanal, lo avisa (como perfil.html). */

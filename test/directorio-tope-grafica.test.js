@@ -158,3 +158,14 @@ test('sin temporada, semana o día el tooltip de Ingresos recientes no añade la
   assert.ok(!w.__t.htmlTooltipPuntoIngreso(pt).includes('Temporada'));
   assert.ok(!w.__t.etiquetaPuntoIngreso(pt).includes('Temporada'));
 });
+
+// NUEVO (20-oct-2026, pedido de la usuaria): sombreado ligero e intercalado por temporada en Ingresos recientes.
+test('Ingresos recientes sombrea las temporadas pares detrás de la grilla', () => {
+  const w = cargar();
+  // Semanas de septiembre (par) y octubre (impar); septiembre 2026 va del 7/9 al 4/10.
+  const semanas = ['07/09/2026', '14/09/2026', '21/09/2026', '28/09/2026', '05/10/2026', '12/10/2026'];
+  const m = { nombre: 'Chistris', tag: '#2GG8PJ8GC', clan: 'Terna', historialSemanal: semanas.map(semana => ({ semana, clan: 'Terna', ataques: 8 })) };
+  const svg = w.__t.lineChartSvg([m], 'ataques', semanas, { unidad: 'ataques' });
+  assert.equal((svg.match(/class="banda-temporada"/g) || []).length, 1);
+  assert.ok(svg.indexOf('banda-temporada') < svg.indexOf('ing-grid-line'));
+});
