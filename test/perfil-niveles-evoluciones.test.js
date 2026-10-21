@@ -240,7 +240,7 @@ test('perfil.html: el oro de las bloqueadas va en la misma celda, debajo del de 
 test('la tabla de costos lleva roles ARIA explícitos (en móvil las filas pasan a bloques y el navegador pierde la semántica de tabla)', () => {
   const t = cargar().__t;
   const tabla = t._tablaEvoHeroeHtml(t._evoHeroeResumen(CARTAS, BLOQUEADAS));
-  assert.match(tabla, /<table class="costo-tabla" role="table">/);
+  assert.match(tabla, /<table class="costo-tabla costo-tabla-evo" role="table">/);
   assert.equal((tabla.match(/role="columnheader"/g) || []).length, 6);
   assert.equal((tabla.match(/<tr role="row">/g) || []).length, 3);   // encabezado + evolución + héroe
   assert.equal((tabla.match(/role="cell"/g) || []).length, 12);      // 2 filas x 6 celdas
@@ -267,4 +267,12 @@ test('diagrama: los números de «solo evolución» y «solo héroe» van centra
   assert.equal(nums[1], (297 + 407) / 2);
   const pt = x(/class="venn-pt venn-pt--evo" cx="([\d.]+)"/);
   assert.ok(pt > 223 && pt < 260, 'el par de la lente queda desplazado hacia el centro de la lente (260)');
+});
+
+test('la tabla de fragmentos y monedas centra encabezados y valores en pantalla ancha, sin tocar el móvil (21-oct-2026)', () => {
+  const t = cargar().__t;
+  assert.match(t._tablaEvoHeroeHtml(t._evoHeroeResumen(CARTAS, BLOQUEADAS)), /<table class="costo-tabla costo-tabla-evo" role="table">/);
+  const m = html.match(/@media \(min-width:561px\)\{\s*\.col-modal-scroll \.costo-tabla\.costo-tabla-evo th[^}]*text-align:center;\}\s*\}/);
+  assert.ok(m, 'regla de centrado dentro de @media (min-width:561px)');
+  ['th', 'td', 'td.num', 'th.num'].forEach(sel => assert.ok(m[0].includes(`.costo-tabla-evo ${sel}`), sel));
 });
