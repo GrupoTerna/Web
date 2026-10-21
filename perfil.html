@@ -4308,6 +4308,10 @@ function _dispersionMiniHtml(titulo, dias, series, opts){
   const OFFSET = 0;
   const unaSerie = series.length === 1;
   const R = 5, R_SERIE_2 = 3.5;
+  // 20-oct-2026 (pedido usuaria -- "el valor diario siempre debe mostrarse sobre el valor acumulado"): una serie con `acumulado: true` se dibuja PRIMERO y con el radio mayor; las demás (el valor diario), después, encima y más chicas. Sin ninguna serie acumulada se conserva el criterio del 12-oct (la primera abajo, con radio mayor; las siguientes encima, más chicas).
+  const hayAcumulado = series.some(s => s && s.acumulado === true);
+  const orden = series.map((s, i) => i).sort((a, b) => ((series[b].acumulado === true) - (series[a].acumulado === true)) || (a - b));
+  const radioSerie = sIdx => (hayAcumulado ? series[sIdx].acumulado === true : sIdx === 0) ? R : R_SERIE_2;
 
   // Líneas de referencia horizontales, una por marca del eje Y (la de 0 es la base), con su rótulo a la izquierda. Igual de tenues que .ing-grid-line de las gráficas grandes.
   let grid = '';
@@ -4344,7 +4348,8 @@ function _dispersionMiniHtml(titulo, dias, series, opts){
       coordsPorSerie[sIdx].push({ x, y });
     });
   });
-  series.forEach((s, sIdx) => {
+  orden.forEach(sIdx => {
+    const s = series[sIdx];
     const pts = coordsPorSerie[sIdx];
     if (pts.length < 2) return;
     const d = pts.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`).join(' ');
@@ -4352,11 +4357,12 @@ function _dispersionMiniHtml(titulo, dias, series, opts){
   });
   dias.forEach((dia, dIdx) => {
     const cx = PAD_L + dIdx * groupW + groupW / 2;
-    series.forEach((s, sIdx) => {
+    orden.forEach(sIdx => {
+      const s = series[sIdx];
       const val = Number((s.valores || [])[dIdx]) || 0;
       const y = max > 0 ? PAD_TOP + plotH * (1 - val / max) : baseY;
       const x = cx + (sIdx - (series.length - 1) / 2) * OFFSET;
-      puntos += `<circle class="md-punto" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${sIdx === 0 ? R : R_SERIE_2}" fill="${s.color}" stroke="var(--bg)" stroke-width="1.5" style="filter:drop-shadow(0 0 4px ${s.color})"><title>${esc(dia)} · ${esc(s.etiqueta)}: ${esc(fmtNum(val))}</title></circle>`;
+      puntos += `<circle class="md-punto" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${radioSerie(sIdx)}" fill="${s.color}" stroke="var(--bg)" stroke-width="1.5" style="filter:drop-shadow(0 0 4px ${s.color})"><title>${esc(dia)} · ${esc(s.etiqueta)}: ${esc(fmtNum(val))}</title></circle>`;
       if (unaSerie){
         puntos += `<text class="md-valor-label" x="${x.toFixed(1)}" y="${Math.max(PAD_TOP - 6, y - 10).toFixed(1)}">${esc(fmtNum(val))}</text>`;
       }
@@ -4572,7 +4578,7 @@ function renderExtendido(ext, j){
     ], { icono: '⚔️' }),
     _dispersionMiniHtml('Medallas de guerra por día', diasJugadosLbl, [
       { etiqueta: 'Medallas de guerra', color: 'var(--gold)', valores: idxDiasJugados.map(i => trofeosGuerraPorDia[i]) },
-      { etiqueta: 'Acumulado', color: 'var(--purple)', valores: idxDiasJugados.map(i => corridoSaneadoPorDia[i]) },
+      { etiqueta: 'Acumulado', color: 'var(--purple)', acumulado: true, valores: idxDiasJugados.map(i => corridoSaneadoPorDia[i]) },
     ], { icono: '🔥' }),
   ].join('') : '';
   // FIX (26-sep-2026, pedido usuario): graficosGuerra (Ataques/Fama por día)
@@ -5614,9 +5620,10 @@ function perfilLineChartSvg(puntos, opts){
   const pasos = 4, prefijo = opts.prefijo || '';
   const tope = opts.tope > 0 ? Number(opts.tope) : 0;
   // 19-oct-2026 (pedido usuaria): segunda serie opcional con los ACUMULADOS de la semana, un punto por domingo (opts.serieSemanal = [{ semana, valor, real, clan, excedeAtaques? }]); su tope va en opts.topeSemanal. No se une con los puntos diarios: la línea va de domingo a domingo.
-  // Mismo criterio de _dispersionMiniHtml() (12-oct-2026): la serie de abajo usa el radio mayor y la siguiente, más chica, se dibuja encima; así, si coinciden, no se pierde ninguna.
-  const R_PUNTO_PERFIL = 5, R_PUNTO_ACUMULADO_PERFIL = 3.5;
+  // 20-oct-2026 (pedido usuaria): el valor DIARIO siempre se dibuja encima del acumulado/semanal. Mismo criterio de _dispersionMiniHtml() (12-oct-2026): la serie de abajo (acumulado) usa el radio mayor y la de arriba (diario), más chica, se dibuja al final; así, si coinciden, no se pierde ninguna.
   const serieSem = Array.isArray(opts.serieSemanal) ? opts.serieSemanal.filter(q => q && q.real !== false) : [];
+  // Con serie acumulada: acumulado 5 (abajo) y diario 3,5 (arriba). Sin ella el diario conserva su radio de siempre (5).
+  const R_PUNTO_PERFIL = serieSem.length ? 3.5 : 5, R_PUNTO_ACUMULADO_PERFIL = 5, R_ANOMALIA_ACUMULADO_PERFIL = 8;
   const topeSem = serieSem.length && opts.topeSemanal > 0 ? Number(opts.topeSemanal) : 0;
   // 19-oct-2026 (pedido usuaria): mínimo (0) de las métricas de guerra (opts.minimo). Su línea solo se dibuja si hay un valor real por debajo; entonces el eje baja hasta incluirlo (pisoEjeConNegativos) y ese punto sale como anomalía.
   const minimo = opts.minimo != null ? Number(opts.minimo) : null;
@@ -5729,7 +5736,7 @@ function perfilLineChartSvg(puntos, opts){
         data-serie="dia" data-semana="${esc(p.semana)}"${attrsTemporadaSemanaDiaPerfil(p)} data-unidad="${esc(opts.unidad || '')}"${(!!tope && p.real && Number(p.valor) > tope) ? ` data-tope="${tope}"` : ''}${excedeAtaques ? ` data-excede-ataques="${p.excedeAtaques}"` : ''}${bajoMin ? ` data-minimo="${minimo}"` : ''}></circle>`;
   }).join('');
 
-  // Serie de acumulados semanales: cada punto cae en el domingo (el mismo eje X de los días) y la línea los une de domingo a domingo, sin pasar por los puntos diarios. Se dibuja DESPUÉS de los diarios y con radio menor, para que si el acumulado coincide con el valor del domingo se vean los dos.
+  // Serie de acumulados semanales: cada punto cae en el domingo (el mismo eje X de los días) y la línea los une de domingo a domingo, sin pasar por los puntos diarios. Se dibuja ANTES que los diarios (y con radio mayor) para que el valor diario quede siempre encima cuando coinciden.
   const claveDia = t => { const d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime(); };
   const idxPorDia = new Map();
   puntos.forEach((p, i) => { const t = parseFechaDDMMYYYY(p.semana); if (!isNaN(t)) idxPorDia.set(claveDia(t), i); });
@@ -5747,7 +5754,7 @@ function perfilLineChartSvg(puntos, opts){
     const bajoMin = hayBajo && Number(q.valor) < minimo;
     const anomalia = superaTope || excedeAtaques || bajoMin;
     return `
-      <circle class="ing-serie-pt${anomalia ? ' serie-pt-anomalia' : ''}" cx="${xPos(q.i).toFixed(1)}" cy="${yPos(q.valor).toFixed(1)}" r="${anomalia ? 6.5 : R_PUNTO_ACUMULADO_PERFIL}"
+      <circle class="ing-serie-pt${anomalia ? ' serie-pt-anomalia' : ''}" cx="${xPos(q.i).toFixed(1)}" cy="${yPos(q.valor).toFixed(1)}" r="${anomalia ? R_ANOMALIA_ACUMULADO_PERFIL : R_PUNTO_ACUMULADO_PERFIL}"
         fill="${anomalia ? 'var(--danger)' : COLOR_SERIE_ACUMULADO_PERFIL}" stroke="var(--bg)" stroke-width="1.5"
         data-nombre="${esc(perfilGraficaCtx.nombre)}" data-tag="${esc(perfilGraficaCtx.tag)}" data-valor="${q.valor}" data-prefijo=""
         data-clan="${esc(q.clan || perfilGraficaCtx.clan || '—')}" data-serie="acum" data-serie-et="Acumulado de la semana"
@@ -5758,7 +5765,7 @@ function perfilLineChartSvg(puntos, opts){
   const ejeYTitle = opts.ejeY
     ? `<text class="ing-axis-title" x="14" y="${PAD_T + plotH / 2}" text-anchor="middle" transform="rotate(-90 14 ${PAD_T + plotH / 2})">${esc(opts.ejeY)}</text>`
     : '';
-  return `<svg class="ing-linechart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">${bandasTemporada}${gridLines.join('')}${gridMedios}${lineasTemporales}${lineasDomingo}${xLetrasDia}${xLabels}${lineaTope}${lineaTopeSem}${lineaMin}${path}${circles}${pathSem}${circlesSem}${ejeXTitle}${ejeYTitle}</svg>`;
+  return `<svg class="ing-linechart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">${bandasTemporada}${gridLines.join('')}${gridMedios}${lineasTemporales}${lineasDomingo}${xLetrasDia}${xLabels}${lineaTope}${lineaTopeSem}${lineaMin}${pathSem}${circlesSem}${path}${circles}${ejeXTitle}${ejeYTitle}</svg>`;
 }
 
 /** Mini-leyenda de arriba de cada gráfica (idéntica a la de directorio.html). */

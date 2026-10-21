@@ -8,8 +8,9 @@ const { loadBrowserScriptsWithDom } = require('./load-browser-script');
 
 // NUEVO (19-oct-2026, pedido de la usuaria): en las gráficas «Ataques / Medallas / Barcos por semana» de
 // perfil.html hay una segunda serie con los ACUMULADOS de la semana: un punto por domingo, unidos de
-// domingo a domingo (nunca con los puntos diarios), con radio menor y dibujados encima de los diarios
-// para que, si coinciden, no se pierda ninguno. Tienen su propio tope semanal (16 / 3600 / 16).
+// domingo a domingo (nunca con los puntos diarios). CORREGIDO (20-oct-2026, pedido de la usuaria): el valor
+// DIARIO siempre se ve encima del acumulado cuando coinciden; por eso el acumulado se dibuja primero y con
+// radio mayor, y el diario después y más chico. Tienen su propio tope semanal (16 / 3600 / 16).
 // Se extraen del <script> inline REAL las funciones por nombre. LÍMITE: SVG con DOM simulado, no un navegador.
 
 const html = fs.readFileSync(path.join(__dirname, '..', 'perfil.html'), 'utf8');
@@ -75,15 +76,15 @@ test('la línea verde une domingo con domingo: un solo tramo, sin pasar por los 
   assert.equal(Number(m[3]), Number(v2.getAttribute('cx')));
 });
 
-test('el punto verde cae en la misma X que el punto diario del domingo, más chico y dibujado después (encima)', () => {
+test('el punto verde cae en la misma X que el punto diario del domingo, más grande y dibujado antes (el diario queda encima)', () => {
   const w = cargar();
   const wrap = pintar(w, DOS_SEMANAS, 'ataques', { tope: 4, topeSemanal: 16 });
   const todos = [...wrap.querySelectorAll('.ing-serie-pt')];
   const domDiario = diarios(wrap).find(c => c.dataset.semana === '04/10/2026');
   const domAcum = verdes(wrap).find(c => c.dataset.semana === '04/10/2026');
   assert.equal(domAcum.getAttribute('cx'), domDiario.getAttribute('cx'));
-  assert.ok(Number(domAcum.getAttribute('r')) < Number(domDiario.getAttribute('r')), 'el de arriba es más chico');
-  assert.ok(todos.indexOf(domAcum) > todos.indexOf(domDiario), 'y se dibuja después');
+  assert.ok(Number(domDiario.getAttribute('r')) < Number(domAcum.getAttribute('r')), 'el de arriba (diario) es más chico');
+  assert.ok(todos.indexOf(domDiario) > todos.indexOf(domAcum), 'y se dibuja después, es decir, encima');
 });
 
 test('coinciden valor del día y acumulado: los dos puntos siguen distinguibles', () => {
@@ -95,7 +96,45 @@ test('coinciden valor del día y acumulado: los dos puntos siguen distinguibles'
   const a = verdes(wrap)[0];
   assert.equal(d.dataset.valor, a.dataset.valor);
   assert.equal(d.getAttribute('cy'), a.getAttribute('cy'));
-  assert.ok(Number(d.getAttribute('r')) > Number(a.getAttribute('r')));
+  assert.ok(Number(d.getAttribute('r')) < Number(a.getAttribute('r')), 'el diario es el chico, así el verde asoma como aro');
+  const todos = [...wrap.querySelectorAll('.ing-serie-pt')];
+  assert.ok(todos.indexOf(d) > todos.indexOf(a), 'el diario se dibuja encima del acumulado');
+});
+
+test('el tramo verde se dibuja antes que la línea y los puntos diarios (los diarios nunca quedan tapados)', () => {
+  const w = cargar();
+  const wrap = pintar(w, DOS_SEMANAS, 'ataques', { tope: 4, topeSemanal: 16 });
+  const hijos = [...wrap.querySelector('svg.ing-linechart-svg').children];
+  const idx = pred => hijos.findIndex(pred);
+  const lineaVerde = idx(e => e.tagName.toLowerCase() === 'path' && e.getAttribute('stroke') === '#3ddc97');
+  const lineaDiaria = idx(e => e.tagName.toLowerCase() === 'path' && e.getAttribute('stroke') !== '#3ddc97' && e.classList.contains('ing-serie-line'));
+  const ultimoVerde = hijos.map((e, i) => (e.dataset && e.dataset.serie === 'acum') ? i : -1).reduce((a, b) => Math.max(a, b), -1);
+  const primerDiario = idx(e => e.dataset && e.dataset.serie === 'dia');
+  assert.ok(lineaVerde >= 0 && lineaDiaria >= 0);
+  assert.ok(lineaVerde < lineaDiaria, 'la línea verde va antes que la diaria');
+  assert.ok(ultimoVerde < primerDiario, 'todos los puntos verdes van antes que cualquier punto diario');
+});
+
+test('barcos con anomalía: si coinciden, el punto diario queda encima del acumulado y el acumulado rojo asoma por debajo', () => {
+  const w = cargar();
+  // Todo el trabajo de la semana en el domingo, con más barcos (5) que ataques (4): anomalía diaria y acumulada a la vez.
+  const h = [reg('01/10/2026', 0, 0, 0), reg('02/10/2026', 0, 0, 0), reg('03/10/2026', 0, 0, 0), reg('04/10/2026', 4, 5, 800)];
+  const wrap = pintar(w, h, 'barcos', { tituloEje: 'Barcos', vsAtaques: true, topeSemanal: 16 });
+  const d = diarios(wrap).find(c => c.dataset.semana === '04/10/2026');
+  const a = verdes(wrap)[0];
+  assert.ok(d.classList.contains('serie-pt-anomalia') && a.classList.contains('serie-pt-anomalia'));
+  assert.equal(d.getAttribute('cx'), a.getAttribute('cx'));
+  assert.equal(d.getAttribute('cy'), a.getAttribute('cy'));
+  assert.ok(Number(a.getAttribute('r')) > Number(d.getAttribute('r')), 'el acumulado en anomalía es mayor');
+  const todos = [...wrap.querySelectorAll('.ing-serie-pt')];
+  assert.ok(todos.indexOf(d) > todos.indexOf(a), 'el diario se dibuja al final');
+});
+
+test('sin serie acumulada el punto diario conserva su radio de siempre (5)', () => {
+  const w = cargar();
+  const wrap = pintar(w, DOS_SEMANAS, 'ataques', { tope: 4 });
+  assert.equal(verdes(wrap).length, 0);
+  assert.ok(diarios(wrap).every(c => Number(c.getAttribute('r')) === 5));
 });
 
 test('dos líneas de tope (diario y semanal) con rótulos distintos; sin serie semanal queda «Tope»', () => {
