@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 
 const MES = { ene: 1, feb: 2, mar: 3, abr: 4, may: 5, jun: 6, jul: 7, ago: 8, sep: 9, oct: 10, nov: 11, dic: 12 };
-const ARCHIVO = /^[\w./*-]+\.(?:html|js|css|gs|md|json|csv|txt|yml|yaml|png|webp|svg)$/;
+const ARCHIVO = /^[\w./*-]+\.(?:html|js|css|gs|md|json|csv|txt|yml|yaml|png|webp|svg|xml)$/;
 const lineas = fs.readFileSync(path.join(__dirname, '..', 'CHANGELOG.md'), 'utf8').split('\n');
 
 const archivoDe = (viñeta) => {
