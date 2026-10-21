@@ -35,6 +35,7 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 ## 21-oct-2026
 
 - **`torneos.html` (`cargarTorneos()`; se quitan `esTorneoContinuacion()` e `idTorneoPrincipalDe()`), `test/torneos-continuacion-dom.test.js` y `sw.js` v125 · Un torneo con continuación se muestra como uno solo.** Decisión de la usuaria: la web no muestra dos torneos; la fila lleva «Realizado en N partes» (la raíz cuenta como una). El backend (`37_Web_API.gs`, `_webTorneos()`) envía solo la raíz con `partes` e `idsPartes`. → §PF154
+- **`torneos.html` (`cargarTorneos()`) y `sw.js` v126 · «Torneos recientes» busca el podio también por `id`.** La lista del backend trae `id` y el código consultaba `idTorneo`, que no existe en ella; ahora usa `idTorneo ?? id`. → §PF154
 
 ## 20-oct-2026
 

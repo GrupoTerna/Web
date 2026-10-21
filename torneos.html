@@ -524,7 +524,8 @@ async function cargarTorneos(){
 
     torneosWrap.innerHTML = torneos.map(t => {
       const fechaTxt = t.fecha ? new Date(t.fecha).toLocaleDateString('es-PE', { day:'2-digit', month:'2-digit', year:'numeric' }) : '—';
-      const match = (t.idTorneo != null && mapaTop3.get('id:' + t.idTorneo)) ||
+      const idFila = t.idTorneo ?? t.id; // la lista de _webTorneos() trae `id`; ganadores e historial traen `idTorneo`
+      const match = (idFila != null && mapaTop3.get('id:' + idFila)) ||
                     (t.fecha && mapaTop3.get('fc:' + t.fecha + '|' + (t.clan || ''))) || null;
       let top3 = (match && match.top3) || [];
       // Si la fila de la raíz no trae podio propio, se usa el de otra parte del mismo grupo.

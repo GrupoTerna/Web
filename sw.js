@@ -182,7 +182,8 @@
 // v88 (18-oct-2026): admin.html cambió (CORE_ASSETS) -- «Modificar torneo» precarga los requisitos del torneo elegido (con «Cargando…» y sin guardar hasta que terminen) y deja el Nom_Multi y la cuenta organizadora ya elegidos, pudiendo cambiar a cualquier otra cuenta (§PF101).
 // v87 (18-oct-2026): admin.html cambió (CORE_ASSETS) -- «Modificar torneo» ya lista también los torneos Planificados y los sin link (no solo los de hoy), con fecha, hora y estado, y precarga la hora real (§PF099).
 // v125 (21-oct-2026): torneos.html cambió (CORE_ASSETS) -- un torneo con continuación se muestra como uno solo, con «Realizado en N partes» (§PF154).
-const CACHE_NAME = 'terna-static-v125';
+// v126 (21-oct-2026): torneos.html cambió (CORE_ASSETS) -- cada fila de «Torneos recientes» busca su podio también por `id` (la lista del backend trae `id`, no `idTorneo`) (§PF154).
+const CACHE_NAME = 'terna-static-v126';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
