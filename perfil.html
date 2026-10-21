@@ -5529,13 +5529,25 @@ function _guerraDiasDesdeHistorial(historial){
   };
 }
 
+/** 20-oct-2026 (pedido usuaria): «Temporada 3, Semana 1, Jueves» para el tooltip de cada punto. `d` es el dataset del círculo o el punto mismo; vacío si el backend no mandó los tres datos (backend anterior o puntos de «sin dato»). [→ Contexto_Base_Web.md §PF133] */
+function textoTemporadaSemanaDiaPerfil(d){
+  if (!d) return '';
+  const t = d.temporada, s = d.semanaGuerra, dia = d.diaGuerra;
+  if (t == null || t === '' || s == null || s === '' || !dia) return '';
+  return 'Temporada ' + t + ', Semana ' + s + ', ' + dia;
+}
+function attrsTemporadaSemanaDiaPerfil(p){
+  if (!textoTemporadaSemanaDiaPerfil(p)) return '';
+  return ` data-temporada="${esc(String(p.temporada))}" data-semana-guerra="${esc(String(p.semanaGuerra))}" data-dia-guerra="${esc(String(p.diaGuerra))}"`;
+}
 function etiquetaPuntoPerfil(pt){
   const d = pt.dataset;
-  return `${d.nombre || ''}${d.tag ? ' (' + d.tag + ')' : ''}: ${d.prefijo || ''}${fmtNum(d.valor)} ${d.unidad || ''} — ${d.clan || ''} · ${d.semana || ''}${d.tope ? ' — supera el tope de ' + fmtNum(d.tope) : ''}${d.excedeAtaques ? ' — más barcos que ataques (ataques ' + (d.serieEt ? 'acumulados' : 'ese día') + ': ' + fmtNum(d.excedeAtaques) + ')' : ''}${d.minimo ? ' — por debajo del mínimo de ' + fmtNum(d.minimo) : ''}${d.serieEt ? ' — ' + d.serieEt : ''}`;
+  const tsd = textoTemporadaSemanaDiaPerfil(d);
+  return `${d.nombre || ''}${d.tag ? ' (' + d.tag + ')' : ''}: ${d.prefijo || ''}${fmtNum(d.valor)} ${d.unidad || ''} — ${d.clan || ''} · ${d.semana || ''}${tsd ? ' — ' + tsd : ''}${d.tope ? ' — supera el tope de ' + fmtNum(d.tope) : ''}${d.excedeAtaques ? ' — más barcos que ataques (ataques ' + (d.serieEt ? 'acumulados' : 'ese día') + ': ' + fmtNum(d.excedeAtaques) + ')' : ''}${d.minimo ? ' — por debajo del mínimo de ' + fmtNum(d.minimo) : ''}${d.serieEt ? ' — ' + d.serieEt : ''}`;
 }
 function htmlTooltipPuntoPerfil(pt){
   const d = pt.dataset;
-  return `<b>${esc(d.nombre || '')}${d.tag ? ' (' + esc(d.tag) + ')' : ''}</b><br><span style="color:var(--text-faint);">${esc((d.prefijo || '') + fmtNum(d.valor))} ${esc(d.unidad || '')} — ${esc(d.clan || '')} · ${esc(d.semana || '')}</span>${d.tope ? `<br><span style="color:var(--danger);">⚠ Supera el tope de ${esc(fmtNum(d.tope))}</span>` : ''}${d.excedeAtaques ? `<br><span style="color:var(--danger);">⚠ Más barcos que ataques (ataques ${d.serieEt ? 'acumulados' : 'ese día'}: ${esc(fmtNum(d.excedeAtaques))})</span>` : ''}${d.minimo ? `<br><span style="color:var(--danger);">⚠ Por debajo del mínimo de ${esc(fmtNum(d.minimo))}</span>` : ''}${d.serieEt ? `<br><span style="color:var(--text-faint);">${esc(d.serieEt)}</span>` : ''}`;
+  return `<b>${esc(d.nombre || '')}${d.tag ? ' (' + esc(d.tag) + ')' : ''}</b><br><span style="color:var(--text-faint);">${esc((d.prefijo || '') + fmtNum(d.valor))} ${esc(d.unidad || '')} — ${esc(d.clan || '')} · ${esc(d.semana || '')}</span>${textoTemporadaSemanaDiaPerfil(d) ? `<br><span style="color:var(--text-faint);">${esc(textoTemporadaSemanaDiaPerfil(d))}</span>` : ''}${d.tope ? `<br><span style="color:var(--danger);">⚠ Supera el tope de ${esc(fmtNum(d.tope))}</span>` : ''}${d.excedeAtaques ? `<br><span style="color:var(--danger);">⚠ Más barcos que ataques (ataques ${d.serieEt ? 'acumulados' : 'ese día'}: ${esc(fmtNum(d.excedeAtaques))})</span>` : ''}${d.minimo ? `<br><span style="color:var(--danger);">⚠ Por debajo del mínimo de ${esc(fmtNum(d.minimo))}</span>` : ''}${d.serieEt ? `<br><span style="color:var(--text-faint);">${esc(d.serieEt)}</span>` : ''}`;
 }
 
 /**
@@ -5713,7 +5725,7 @@ function perfilLineChartSvg(puntos, opts){
         fill="${p.real ? (anomalia ? 'var(--danger)' : COLOR_SERIE_PERFIL) : 'none'}" stroke="${p.real ? 'var(--bg)' : COLOR_SERIE_PERFIL}" stroke-width="${p.real ? 1.5 : 2}"
         data-nombre="${esc(perfilGraficaCtx.nombre)}" data-tag="${esc(perfilGraficaCtx.tag)}" data-valor="${p.valor}" data-prefijo="${esc(p.real ? prefijo : '')}"
         data-clan="${esc(p.real ? (p.clan || perfilGraficaCtx.clan || '—') : (p.motivo || 'Sin dato — sin clan o sin participar'))}"
-        data-serie="dia" data-semana="${esc(p.semana)}" data-unidad="${esc(opts.unidad || '')}"${(!!tope && p.real && Number(p.valor) > tope) ? ` data-tope="${tope}"` : ''}${excedeAtaques ? ` data-excede-ataques="${p.excedeAtaques}"` : ''}${bajoMin ? ` data-minimo="${minimo}"` : ''}></circle>`;
+        data-serie="dia" data-semana="${esc(p.semana)}"${attrsTemporadaSemanaDiaPerfil(p)} data-unidad="${esc(opts.unidad || '')}"${(!!tope && p.real && Number(p.valor) > tope) ? ` data-tope="${tope}"` : ''}${excedeAtaques ? ` data-excede-ataques="${p.excedeAtaques}"` : ''}${bajoMin ? ` data-minimo="${minimo}"` : ''}></circle>`;
   }).join('');
 
   // Serie de acumulados semanales: cada punto cae en el domingo (el mismo eje X de los días) y la línea los une de domingo a domingo, sin pasar por los puntos diarios. Se dibuja DESPUÉS de los diarios y con radio menor, para que si el acumulado coincide con el valor del domingo se vean los dos.
@@ -5738,7 +5750,7 @@ function perfilLineChartSvg(puntos, opts){
         fill="${anomalia ? 'var(--danger)' : COLOR_SERIE_ACUMULADO_PERFIL}" stroke="var(--bg)" stroke-width="1.5"
         data-nombre="${esc(perfilGraficaCtx.nombre)}" data-tag="${esc(perfilGraficaCtx.tag)}" data-valor="${q.valor}" data-prefijo=""
         data-clan="${esc(q.clan || perfilGraficaCtx.clan || '—')}" data-serie="acum" data-serie-et="Acumulado de la semana"
-        data-semana="${esc(q.semana)}" data-unidad="${esc(opts.unidad || '')}"${superaTope ? ` data-tope="${topeSem}"` : ''}${excedeAtaques ? ` data-excede-ataques="${q.excedeAtaques}"` : ''}${bajoMin ? ` data-minimo="${minimo}"` : ''}></circle>`;
+        data-semana="${esc(q.semana)}"${attrsTemporadaSemanaDiaPerfil(q)} data-unidad="${esc(opts.unidad || '')}"${superaTope ? ` data-tope="${topeSem}"` : ''}${excedeAtaques ? ` data-excede-ataques="${q.excedeAtaques}"` : ''}${bajoMin ? ` data-minimo="${minimo}"` : ''}></circle>`;
   }).join('');
 
   const ejeXTitle = `<text class="ing-axis-title" x="${PAD_L + plotW / 2}" y="${H - 8}" text-anchor="middle">Fecha</text>`;
@@ -5874,7 +5886,7 @@ function renderRankingChart(ext){
     return;
   }
   // El backend manda `semana` como texto "dd/MM/yyyy": se ordena por fecha real, no como texto (ver FIX 05-sep-2026 en CHANGELOG.md).
-  const puntos = ordenarHistorialPorSemana(historial).map(h => ({ semana: String(h.semana), valor: Number(h.ranking), real: true, clan: h.clan }));
+  const puntos = ordenarHistorialPorSemana(historial).map(h => ({ semana: String(h.semana), temporada: h.temporada, semanaGuerra: h.semanaGuerra, diaGuerra: h.diaGuerra, valor: Number(h.ranking), real: true, clan: h.clan }));
   // Ranking: 1 es el MEJOR puesto, así que el eje va invertido (el #1 arriba) y empieza en 1. No se rellenan semanas sin dato (un 0 sería "mejor puesto").
   pintarGraficaPerfil(wrap, puntos, { ejeY: 'Ranking', unidad: 'en el clan', prefijo: '#', base: 1, invertido: true, sinHuecos: true },
     `<div class="text-faint" style="font-family:var(--f-mono); font-size:11px; margin-top:4px;">Menor número = mejor puesto en el clan (el #1 queda arriba).</div>`);
@@ -5896,7 +5908,7 @@ function renderCopasChart(ext, copasActuales){
     wrap.innerHTML = `<div class="chart-empty">Todavía no hay historial de copas: se empezó a guardar el 12-oct-2026 y aparecerá desde el próximo día de guerra${copasActuales != null && Number(copasActuales) > 0 ? ` — copas actuales: <b style="color:var(--text);">${esc(fmtNum(copasActuales))}</b>` : ''}.</div>`;
     return;
   }
-  const puntos = ordenarHistorialPorSemana(historial).map(h => ({ semana: String(h.semana), valor: Number(h.copas), real: true, clan: h.clan }));
+  const puntos = ordenarHistorialPorSemana(historial).map(h => ({ semana: String(h.semana), temporada: h.temporada, semanaGuerra: h.semanaGuerra, diaGuerra: h.diaGuerra, valor: Number(h.copas), real: true, clan: h.clan }));
   const minimo = Math.min(...puntos.map(p => p.valor));
   const base = Math.max(0, Math.floor((minimo - 200) / 100) * 100);
   pintarGraficaPerfil(wrap, puntos, { ejeY: 'Copas', unidad: 'copas', base, sinHuecos: true });
@@ -5979,14 +5991,14 @@ function renderMetricaSemanal(elId, historial, campo, opts){
       // 19-oct-2026 (pedido usuaria): los barcos nunca pueden ser más que los ataques del mismo día; si pasa, es anomalía. Sin dato de ataques ese día (null) no se compara.
       const ataquesDelDia = (campo === 'barcos' && ordenados[i].ataques != null && ataquesDiarios && isFinite(Number(ataquesDiarios[i].ataques))) ? Number(ataquesDiarios[i].ataques) : null;
       const excede = ataquesDelDia != null && Number(h[campo]) > ataquesDelDia;
-      return { semana: String(h.semana), valor: Number(h[campo]), real: !medallasSinAcreditar, clan: h.clan, motivo: medallasSinAcreditar ? 'Sin dato — ese día hay ataques, pero las medallas no llegaron a registrarse' : '', excedeAtaques: excede ? ataquesDelDia : undefined };
+      return { semana: String(h.semana), temporada: h.temporada, semanaGuerra: h.semanaGuerra, diaGuerra: h.diaGuerra, valor: Number(h[campo]), real: !medallasSinAcreditar, clan: h.clan, motivo: medallasSinAcreditar ? 'Sin dato — ese día hay ataques, pero las medallas no llegaron a registrarse' : '', excedeAtaques: excede ? ataquesDelDia : undefined };
     })
   );
   const unidades = { Ataques: 'ataques', Medallas: 'de medallas', Barcos: 'barcos' };
   // 19-oct-2026 (pedido usuaria): serie de acumulados de la semana. `ordenados` conserva el contador CRUDO (acumulado de la semana en esa foto), así que el valor de cada domingo es el acumulado de su semana tal cual, sin restar nada. Solo registros reales de domingo: una semana sin su domingo (la que está en curso) no pone punto.
   const serieSemanal = ordenados.filter(h => { const t = parseFechaDDMMYYYY(h.semana); return !isNaN(t) && new Date(t).getDay() === 0 && isFinite(Number(h[campo])); }).map(h => {
     const ataquesAcum = (campo === 'barcos' && h.ataques != null && isFinite(Number(h.ataques))) ? Number(h.ataques) : null;
-    return { semana: String(h.semana), valor: Number(h[campo]), real: true, clan: h.clan, excedeAtaques: (ataquesAcum != null && Number(h[campo]) > ataquesAcum) ? ataquesAcum : undefined };
+    return { semana: String(h.semana), temporada: h.temporada, semanaGuerra: h.semanaGuerra, diaGuerra: h.diaGuerra, valor: Number(h[campo]), real: true, clan: h.clan, excedeAtaques: (ataquesAcum != null && Number(h[campo]) > ataquesAcum) ? ataquesAcum : undefined };
   });
   pintarGraficaPerfil(wrap, puntos, { ejeY: opts.tituloEje || '', unidad: unidades[opts.tituloEje] || '', base: 0, tope: opts.tope || 0, vsAtaques: !!opts.vsAtaques, serieSemanal: opts.topeSemanal > 0 ? serieSemanal : null, topeSemanal: opts.topeSemanal || 0, minimo: minimoMetricaGuerra() });
 }

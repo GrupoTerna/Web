@@ -33,7 +33,7 @@ function extraerFuncion(src, nombre){
   throw new Error(`llaves sin cerrar en ${nombre}`);
 }
 const NOMBRES = ['parseFechaDDMMYYYY', 'semanaLabelCortaPerfil', 'filtrarDiasGuerraPerfil', 'puntosSobreTope',
-  'perfilLineChartSvg', 'leyendaPuntosGraficaHtml', 'pintarGraficaPerfil', 'etiquetaPuntoPerfil', 'htmlTooltipPuntoPerfil'];
+  'textoTemporadaSemanaDiaPerfil', 'attrsTemporadaSemanaDiaPerfil', 'perfilLineChartSvg', 'leyendaPuntosGraficaHtml', 'pintarGraficaPerfil', 'etiquetaPuntoPerfil', 'htmlTooltipPuntoPerfil'];
 const CODIGO = NOMBRES.map(n => extraerFuncion(grande, n)).join('\n') +
   "\nconst COLOR_SERIE_PERFIL = '#a239ff'; let perfilGraficaCtx = { nombre: 'Chistris', tag: '#2GG8PJ8GC', clan: 'Terna' };" +
   '\nwindow.__t = { perfilLineChartSvg, pintarGraficaPerfil, puntosSobreTope, filtrarDiasGuerraPerfil, etiquetaPuntoPerfil, htmlTooltipPuntoPerfil };';
@@ -129,4 +129,32 @@ test('las gráficas sin tope (Ranking, Barcos) no muestran aviso ni leyenda de t
   w.__t.pintarGraficaPerfil(wrap, pts([1, 2, 3, 4, 5, 6, 7, 8]), { ejeY: 'Barcos', unidad: 'barcos', base: 0 });
   assert.ok(!wrap.querySelector('.pf-tope-resumen'));
   assert.ok(!wrap.textContent.includes('tope'));
+});
+
+// NUEVO (20-oct-2026, pedido de la usuaria): cada tooltip lleva una línea «Temporada 3, Semana 3, Jueves»
+// justo antes del aviso rojo; sin esos datos (backend anterior, puntos de «sin dato») no se añade nada.
+test('el tooltip muestra «Temporada, Semana, Día» antes del aviso rojo y la etiqueta también lo dice', () => {
+  const w = cargar();
+  const wrap = w.document.getElementById('g');
+  const DIAS = ['Jueves', 'Viernes', 'Sábado', 'Domingo'];
+  const puntos = pts([4, 4, 10, 4, 4, 4, 4, 4]).map((p, i) => Object.assign(p, { temporada: 3, semanaGuerra: 3, diaGuerra: DIAS[i % 4] }));
+  w.__t.pintarGraficaPerfil(wrap, puntos, { ejeY: 'Ataques', unidad: 'ataques', base: 0, tope: 4 });
+  const pt = wrap.querySelector('.serie-pt-anomalia');
+  assert.ok(pt, 'el 10 debe salir como anomalía');
+  const tip = w.__t.htmlTooltipPuntoPerfil(pt);
+  assert.ok(tip.includes('Temporada 3, Semana 3, Sábado'));
+  assert.ok(tip.indexOf('Temporada 3, Semana 3, Sábado') < tip.indexOf('Supera el tope de 4'), 'la línea va antes del aviso rojo');
+  assert.ok(w.__t.etiquetaPuntoPerfil(pt).includes('Temporada 3, Semana 3, Sábado'));
+});
+
+test('sin temporada, semana o día el tooltip no añade la línea', () => {
+  const w = cargar();
+  const wrap = w.document.getElementById('g');
+  w.__t.pintarGraficaPerfil(wrap, pts([4, 4, 5, 4, 4, 4, 4, 4]), { ejeY: 'Ataques', unidad: 'ataques', base: 0, tope: 4 });
+  const pt = wrap.querySelector('.serie-pt-anomalia');
+  assert.ok(!w.__t.htmlTooltipPuntoPerfil(pt).includes('Temporada'));
+  assert.ok(!w.__t.etiquetaPuntoPerfil(pt).includes('Temporada'));
+  const incompleto = pts([4, 4, 5, 4, 4, 4, 4, 4]).map(p => Object.assign(p, { temporada: 3, semanaGuerra: 3 })); // falta el día
+  w.__t.pintarGraficaPerfil(wrap, incompleto, { ejeY: 'Ataques', unidad: 'ataques', base: 0, tope: 4 });
+  assert.ok(!w.__t.htmlTooltipPuntoPerfil(wrap.querySelector('.serie-pt-anomalia')).includes('Temporada'));
 });
