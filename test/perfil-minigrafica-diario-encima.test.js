@@ -50,8 +50,9 @@ test('con serie acumulada: el acumulado se dibuja primero y más grande (6,5); e
   const p = puntos(svg);
   assert.equal(p.length, 8);
   // Por cada día: primero el acumulado (morado, r 5) y luego el diario (dorado, r 3,5).
+  // 21-oct-2026: el aro grande (6,5) solo donde coincide con el diario (día 0: 700 y 700); donde no coinciden, radio normal (5).
   for (let d = 0; d < 4; d++){
-    assert.deepEqual(p[d * 2], { r: 6.5, color: 'var(--purple)' }, `día ${d}: el acumulado va primero y grande`);
+    assert.deepEqual(p[d * 2], { r: d === 0 ? 6.5 : 5, color: 'var(--purple)' }, `día ${d}: el acumulado va primero${d === 0 ? ' y grande (coincide)' : ' y normal (no coincide)'}`);
     assert.deepEqual(p[d * 2 + 1], { r: 3.5, color: 'var(--gold)' }, `día ${d}: el diario va después y chico`);
   }
   assert.deepEqual(lineas(svg), ['var(--purple)', 'var(--gold)'], 'la línea del acumulado también va debajo de la del diario');

@@ -101,13 +101,24 @@ test('coinciden valor del día y acumulado: los dos puntos siguen distinguibles'
   assert.ok(todos.indexOf(d) > todos.indexOf(a), 'el diario se dibuja encima del acumulado');
 });
 
-test('el aro del acumulado asoma al menos 2 px y su línea es más gruesa que la diaria (si no, queda tapado)', () => {
+test('si NO coinciden con el diario, el acumulado no se engrosa: línea normal y aro de radio 5', () => {
   const w = cargar();
   const wrap = pintar(w, DOS_SEMANAS, 'ataques', { tope: 4, topeSemanal: 16 });
-  const d = diarios(wrap)[0], a = verdes(wrap)[0];
-  assert.ok(Number(a.getAttribute('r')) - Number(d.getAttribute('r')) >= 3, 'el radio del acumulado supera al diario por 3 o más');
-  assert.ok(html.includes('.ing-serie-line.ing-serie-line-acum{stroke-width:6;}'));
-  assert.ok([...wrap.querySelectorAll('path')].some(p => p.classList.contains('ing-serie-line-acum') && p.getAttribute('stroke') === '#3ddc97'));
+  const tramo = [...wrap.querySelectorAll('path')].find(p => p.classList.contains('ing-serie-line-acum'));
+  assert.ok(tramo, 'hay tramo verde');
+  assert.ok(!tramo.classList.contains('ing-serie-line-acum-coincide'), 'el tramo no se engrosa');
+  assert.ok(verdes(wrap).every(c => Number(c.getAttribute('r')) === 5), 'aro normal (5)');
+});
+
+test('si coinciden con el diario (todo en 0), el tramo se engrosa y el aro asoma al menos 3 px', () => {
+  const w = cargar();
+  const ceros = [];
+  ['01', '02', '03', '04', '08', '09', '10', '11'].forEach(d => ceros.push(reg(`${d}/10/2026`, 0, 0, 0)));
+  const wrap = pintar(w, ceros, 'ataques', { tope: 4, topeSemanal: 16 });
+  const tramo = [...wrap.querySelectorAll('path')].find(p => p.classList.contains('ing-serie-line-acum'));
+  assert.ok(tramo.classList.contains('ing-serie-line-acum-coincide'), 'el tramo coincidente se engrosa');
+  assert.ok(Number(verdes(wrap)[0].getAttribute('r')) - Number(diarios(wrap)[0].getAttribute('r')) >= 3);
+  assert.ok(html.includes('.ing-serie-line.ing-serie-line-acum-coincide{stroke-width:6;}'));
 });
 
 test('el tramo verde se dibuja antes que la línea y los puntos diarios (los diarios nunca quedan tapados)', () => {

@@ -727,8 +727,8 @@
   .ing-linechart-svg .ing-serie-line-dashed{stroke-dasharray:5 4; opacity:.55;}
   .ing-linechart-svg .ing-axis-label{fill:var(--text-dim); font-family:var(--f-mono); font-size:15px; font-weight:600;}
   .ing-linechart-svg .ing-serie-line{fill:none; stroke-width:3; opacity:.95;}
-  /* 20-oct-2026: la línea del acumulado va debajo de la diaria y más gruesa para asomar a ambos lados cuando coinciden (p. ej. todo en 0). */
-  .ing-linechart-svg .ing-serie-line.ing-serie-line-acum{stroke-width:6;}
+  /* 20-oct-2026: la línea del acumulado va debajo de la diaria. Solo el tramo en que coincide con la diaria (p. ej. todo en 0) se engrosa para asomar a ambos lados; el resto mide lo mismo que la diaria (corrección del 21-oct-2026). */
+  .ing-linechart-svg .ing-serie-line.ing-serie-line-acum-coincide{stroke-width:6;}
   .ing-linechart-svg .ing-serie-pt{cursor:pointer; transition:r .15s ease;}
   .ing-linechart-svg .ing-serie-pt:hover{r:7;}
   .ing-linechart-svg .ing-axis-title{fill:var(--text-dim); font-family:var(--f-mono); font-size:14px; font-weight:700; letter-spacing:.04em;}
@@ -4314,7 +4314,14 @@ function _dispersionMiniHtml(titulo, dias, series, opts){
   const hayAcumulado = series.some(s => s && s.acumulado === true);
   const orden = series.map((s, i) => i).sort((a, b) => ((series[b].acumulado === true) - (series[a].acumulado === true)) || (a - b));
   const R_ACUMULADO_MINI = 6.5; // más grande que 5 para que el aro asome por fuera del diario (con 5 quedaba casi tapado)
-  const radioSerie = sIdx => hayAcumulado ? (series[sIdx].acumulado === true ? R_ACUMULADO_MINI : R_SERIE_2) : (sIdx === 0 ? R : R_SERIE_2);
+  // 21-oct-2026: el aro grande solo cuando el acumulado coincide con el valor de otra serie ese día; si no, radio normal (5).
+  const radioSerie = (sIdx, dIdx) => {
+    if (!hayAcumulado) return sIdx === 0 ? R : R_SERIE_2;
+    if (series[sIdx].acumulado !== true) return R_SERIE_2;
+    const v = Number((series[sIdx].valores || [])[dIdx]) || 0;
+    const coincide = series.some((o, k) => k !== sIdx && (Number((o.valores || [])[dIdx]) || 0) === v);
+    return coincide ? R_ACUMULADO_MINI : R;
+  };
 
   // Líneas de referencia horizontales, una por marca del eje Y (la de 0 es la base), con su rótulo a la izquierda. Igual de tenues que .ing-grid-line de las gráficas grandes.
   let grid = '';
@@ -4365,7 +4372,7 @@ function _dispersionMiniHtml(titulo, dias, series, opts){
       const val = Number((s.valores || [])[dIdx]) || 0;
       const y = max > 0 ? PAD_TOP + plotH * (1 - val / max) : baseY;
       const x = cx + (sIdx - (series.length - 1) / 2) * OFFSET;
-      puntos += `<circle class="md-punto" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${radioSerie(sIdx)}" fill="${s.color}" stroke="var(--bg)" stroke-width="1.5" style="filter:drop-shadow(0 0 4px ${s.color})"><title>${esc(dia)} · ${esc(s.etiqueta)}: ${esc(fmtNum(val))}</title></circle>`;
+      puntos += `<circle class="md-punto" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${radioSerie(sIdx, dIdx)}" fill="${s.color}" stroke="var(--bg)" stroke-width="1.5" style="filter:drop-shadow(0 0 4px ${s.color})"><title>${esc(dia)} · ${esc(s.etiqueta)}: ${esc(fmtNum(val))}</title></circle>`;
       if (unaSerie){
         puntos += `<text class="md-valor-label" x="${x.toFixed(1)}" y="${Math.max(PAD_TOP - 6, y - 10).toFixed(1)}">${esc(fmtNum(val))}</text>`;
       }
@@ -5747,17 +5754,32 @@ function perfilLineChartSvg(puntos, opts){
     .map(q => { const t = parseFechaDDMMYYYY(q.semana); return Object.assign({}, q, { i: isNaN(t) ? undefined : idxPorDia.get(claveDia(t)) }); })
     .filter(q => q.i !== undefined)
     .sort((a, b) => a.i - b.i);
+  // 21-oct-2026 (pedido usuaria): el acumulado solo se destaca (línea de 6 y aro de radio 7) donde coincide con el valor diario; si no, ya se ve de sobra y engrosarlo ensucia la gráfica (p. ej. medallas: acumulado ~2 200 contra ~600 al día). Un tramo domingo→domingo coincide si todos los días que cubre tienen dato real y caen sobre esa recta (tolerancia 0,5 px); un punto, si el día del domingo es real y está a la misma altura.
+  const TOL_COINCIDE_PX = 0.5;
+  const tramoCoincide = (a, b) => {
+    const ya = yPos(a.valor), yb = yPos(b.valor);
+    for (let i = a.i; i <= b.i; i++){
+      const p = puntos[i];
+      if (!p || !p.real) return false;
+      const yRecta = ya + (yb - ya) * ((i - a.i) / (b.i - a.i || 1));
+      if (Math.abs(yPos(p.valor) - yRecta) > TOL_COINCIDE_PX) return false;
+    }
+    return true;
+  };
+  const puntoCoincide = q => { const p = puntos[q.i]; return !!p && !!p.real && Math.abs(yPos(p.valor) - yPos(q.valor)) <= TOL_COINCIDE_PX; };
   let pathSem = '';
   for (let k = 0; k < ptsSem.length - 1; k++){
-    pathSem += `<path class="ing-serie-line ing-serie-line-acum" d="M ${xPos(ptsSem[k].i).toFixed(1)} ${yPos(ptsSem[k].valor).toFixed(1)} L ${xPos(ptsSem[k + 1].i).toFixed(1)} ${yPos(ptsSem[k + 1].valor).toFixed(1)}" stroke="${COLOR_SERIE_ACUMULADO_PERFIL}"></path>`;
+    pathSem += `<path class="ing-serie-line ing-serie-line-acum${tramoCoincide(ptsSem[k], ptsSem[k + 1]) ? ' ing-serie-line-acum-coincide' : ''}" d="M ${xPos(ptsSem[k].i).toFixed(1)} ${yPos(ptsSem[k].valor).toFixed(1)} L ${xPos(ptsSem[k + 1].i).toFixed(1)} ${yPos(ptsSem[k + 1].valor).toFixed(1)}" stroke="${COLOR_SERIE_ACUMULADO_PERFIL}"></path>`;
   }
   const circlesSem = ptsSem.map(q => {
     const superaTope = !!topeSem && Number(q.valor) > topeSem;
     const excedeAtaques = q.excedeAtaques != null;
     const bajoMin = hayBajo && Number(q.valor) < minimo;
     const anomalia = superaTope || excedeAtaques || bajoMin;
+    const coincide = puntoCoincide(q);
+    const rAcum = anomalia ? (coincide ? R_ANOMALIA_ACUMULADO_PERFIL : R_ANOMALIA_ACUMULADO_PERFIL - 1) : (coincide ? R_PUNTO_ACUMULADO_PERFIL : R_PUNTO_ACUMULADO_PERFIL - 2);
     return `
-      <circle class="ing-serie-pt${anomalia ? ' serie-pt-anomalia' : ''}" cx="${xPos(q.i).toFixed(1)}" cy="${yPos(q.valor).toFixed(1)}" r="${anomalia ? R_ANOMALIA_ACUMULADO_PERFIL : R_PUNTO_ACUMULADO_PERFIL}"
+      <circle class="ing-serie-pt${anomalia ? ' serie-pt-anomalia' : ''}" cx="${xPos(q.i).toFixed(1)}" cy="${yPos(q.valor).toFixed(1)}" r="${rAcum}"
         fill="${anomalia ? 'var(--danger)' : COLOR_SERIE_ACUMULADO_PERFIL}" stroke="var(--bg)" stroke-width="1.5"
         data-nombre="${esc(perfilGraficaCtx.nombre)}" data-tag="${esc(perfilGraficaCtx.tag)}" data-valor="${q.valor}" data-prefijo=""
         data-clan="${esc(q.clan || perfilGraficaCtx.clan || '—')}" data-serie="acum" data-serie-et="Acumulado de la semana"
