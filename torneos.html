@@ -394,21 +394,10 @@ document.body.addEventListener('click', e => {
 });
 
 /**
- * esTorneoContinuacion(t) / idTorneoPrincipalDe(t)
- * Evita que un torneo de continuación (ligado a su principal desde el
- * wizard de admin.html — #torneoTipo/tagTorneoPrincipal) se pinte como
- * fila aparte en "Torneos recientes". Admite varios alias de campo por
- * si el backend cambia el nombre exacto; si ninguno viene en la
- * respuesta, ambas funciones devuelven false/null sin romper nada.
+ * Un torneo con continuación llega como UN solo torneo (decisión del
+ * 21-oct-2026): el backend (_webTorneos) envía solo la raíz del grupo, con
+ * `partes` (raíz + continuaciones) e `idsPartes`. [→ Contexto_Base_Web.md §PF154]
  */
-function esTorneoContinuacion(t){
-  return !!(t && (t.esContinuacion || t.continuacion === true ||
-    t.tipo === 'continuacion' || t.tipoTorneo === 'continuacion'));
-}
-function idTorneoPrincipalDe(t){
-  if (!t) return null;
-  return t.idTorneoPrincipal ?? t.tagTorneoPrincipal ?? t.torneoPrincipalId ?? t.principalId ?? null;
-}
 
 // Rendimiento (Lighthouse 19-sep): cargarTorneos() y cargarSalonDeLaFama()
 // arrancan a la vez y piden los mismos 2 endpoints. Antes esto se resolvía
@@ -533,36 +522,16 @@ async function cargarTorneos(){
     historialList.forEach(indexar);
     indexar(g);
 
-    // Índice de torneos de continuación agrupados por el idTorneo de su
-    // principal, para poder fusionar sus resultados en la fila de ese
-    // principal y no pintarlas como filas aparte (ver helpers arriba).
-    const continuacionesPorPrincipal = new Map();
-    torneos.forEach(t => {
-      if (!esTorneoContinuacion(t)) return;
-      const idPrincipal = idTorneoPrincipalDe(t);
-      if (idPrincipal == null) return;
-      const lista = continuacionesPorPrincipal.get(idPrincipal) || [];
-      lista.push(t);
-      continuacionesPorPrincipal.set(idPrincipal, lista);
-    });
-    // Solo se pintan los torneos que NO son continuación de otro; sus
-    // continuaciones quedan fusionadas dentro de esa misma fila.
-    const torneosVisibles = torneos.filter(t => !esTorneoContinuacion(t));
-
-    torneosWrap.innerHTML = torneosVisibles.map(t => {
+    torneosWrap.innerHTML = torneos.map(t => {
       const fechaTxt = t.fecha ? new Date(t.fecha).toLocaleDateString('es-PE', { day:'2-digit', month:'2-digit', year:'numeric' }) : '—';
       const match = (t.idTorneo != null && mapaTop3.get('id:' + t.idTorneo)) ||
                     (t.fecha && mapaTop3.get('fc:' + t.fecha + '|' + (t.clan || ''))) || null;
       let top3 = (match && match.top3) || [];
-      // El torneo principal suele no tener podio propio (el podio final se
-      // define recién en la continuación), así que si no tiene resultados
-      // se usan los de su(s) continuación(es) fusionados en esta fila.
-      if (!top3.length && t.idTorneo != null) {
-        const continuaciones = continuacionesPorPrincipal.get(t.idTorneo) || [];
-        for (const c of continuaciones) {
-          const matchC = (c.idTorneo != null && mapaTop3.get('id:' + c.idTorneo)) ||
-                        (c.fecha && mapaTop3.get('fc:' + c.fecha + '|' + (c.clan || ''))) || null;
-          if (matchC && matchC.top3 && matchC.top3.length){ top3 = matchC.top3; break; }
+      // Si la fila de la raíz no trae podio propio, se usa el de otra parte del mismo grupo.
+      if (!top3.length && Array.isArray(t.idsPartes)){
+        for (const idParte of t.idsPartes){
+          const matchP = mapaTop3.get('id:' + idParte);
+          if (matchP && matchP.top3 && matchP.top3.length){ top3 = matchP.top3; break; }
         }
       }
       const ganadoresHtml = top3.length ? `
@@ -575,6 +544,7 @@ async function cargarTorneos(){
         <div class="t-detalle">
           <div class="t-clan">${esc(t.clan || '—')}</div>
           <div class="t-organizador">${t.organizador ? 'Organiza: ' + esc(t.organizador) : ''}</div>
+          ${t.partes > 1 ? `<div class="t-organizador">Realizado en ${fmtNum(t.partes)} partes</div>` : ''}
         </div>
         ${ganadoresHtml}
       </div>`;

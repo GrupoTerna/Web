@@ -12,6 +12,7 @@ Lista corta de lo que se hizo, de más reciente a más antiguo y, dentro de cada
 
 Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la entrada del cambio, abajo).
 
+- **Sin probar (21-oct-2026): torneo con continuación como una sola fila en `torneos.html`.** Falta correr `subirBaseDesdeGithub()`, publicar `Web` (`sw.js` v125) y comprobar la fila con «Realizado en 2 partes» y la fecha de la raíz. → §PF154
 - **Sin probar en navegador real (18-oct-2026): torneo principal con planificados y orden de las listas.** Falta correr `subirBaseDesdeGithub()` y publicar `Web`; comprobar que en «Registrar» (continuación) la lista ofrece los planificados con «(aún sin link)», que la continuación enlazada a uno sin tag se agrupa bien en `torneos.html` y que las listas salen de la más reciente a la más antigua. Hay pruebas con DOM simulado. → §PF118
 - **Sin probar en navegador real (18-oct-2026): lista de organizadores en Sorteos.** Falta publicar `Web` y abrir Registrar, Planificar y Modificar sorteo para comprobar que aparecen los Nom_Multi de los admins y que, al elegir uno, sale el cuadro «¿Con cuál cuenta organizó?». Hay pruebas con DOM simulado y backend simulado. → §PF111
 - **Sin probar en navegador real (18-oct-2026): «Modificar sorteo» con lista primero y tipo después.** Falta correr `subirBaseDesdeGithub()` y publicar `Web`; comprobar que el tipo sale precargado, se cambia en ambos sentidos y el backend rechaza convertir en continuación un sorteo del que ya dependen otros. Hay pruebas con DOM simulado. → §PF107
@@ -30,6 +31,10 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 - **Urgente (la usuaria): rotar el token de administradores que estuvo escrito en `guerra.html`, si sigue vigente.** El código ya no lo usa (30-ago) y se quitó de este archivo el 11-oct, pero este repo es público y el texto **sigue en su historial de git**; solo cambiarlo en el backend lo deja inservible. No se verificó si sigue activo; no se escribe aquí. (11-oct-2026) → §PF029
 
 ---
+
+## 21-oct-2026
+
+- **`torneos.html` (`cargarTorneos()`; se quitan `esTorneoContinuacion()` e `idTorneoPrincipalDe()`), `test/torneos-continuacion-dom.test.js` y `sw.js` v125 · Un torneo con continuación se muestra como uno solo.** Decisión de la usuaria: la web no muestra dos torneos; la fila lleva «Realizado en N partes» (la raíz cuenta como una). El backend (`37_Web_API.gs`, `_webTorneos()`) envía solo la raíz con `partes` e `idsPartes`. → §PF154
 
 ## 20-oct-2026
 
