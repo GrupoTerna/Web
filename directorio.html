@@ -2387,7 +2387,7 @@ function lineChartSvg(miembros, campo, semanas, opts){
   const seriesSvg = miembros.map((m, si) => {
     const color = PALETA_SERIES[si % PALETA_SERIES.length];
     const puntos = (m.historialSemanal || [])
-      .map(h => ({ idx: semanas.indexOf(semanaLabel(h.semana)), valor: Number(h[campo]) || 0, clan: h.clan || m.clan || '—', semana: semanaLabel(h.semana) }))
+      .map(h => ({ idx: semanas.indexOf(semanaLabel(h.semana)), valor: Number(h[campo]) || 0, clan: h.clan || m.clan || '—', semana: semanaLabel(h.semana), temporada: h.temporada, semanaGuerra: h.semanaGuerra, diaGuerra: h.diaGuerra }))
       .filter(p => p.idx >= 0)
       .sort((a, b) => a.idx - b.idx);
     if (!puntos.length) return '';
@@ -2418,7 +2418,7 @@ function lineChartSvg(miembros, campo, semanas, opts){
       <circle class="ing-serie-pt${p.real ? '' : ' serie-pt-vacio'}${anomalia ? ' serie-pt-anomalia' : ''}" cx="${xPos(p.idx).toFixed(1)}" cy="${yPos(p.valor).toFixed(1)}" r="${anomalia ? 6.5 : 5}"
         fill="${p.real ? (anomalia ? 'var(--danger)' : color) : 'none'}" stroke="${p.real ? 'var(--bg)' : color}" stroke-width="${p.real ? 1.5 : 2}"
         data-nombre="${esc(m.nombre || '')}" data-tag="${esc(m.tag || '')}" data-clan-actual="${esc(m.clan || '')}" data-valor="${p.valor}" data-clan="${esc(p.real ? p.clan : 'Sin dato — sin clan o sin participar')}"
-        data-semana="${esc(semanaTooltip)}" data-unidad="${esc(opts.unidad || '')}"${(!!tope && p.real && Number(p.valor) > tope) ? ` data-tope="${tope}"` : ''}${bajoMin ? ` data-minimo="${minimo}"` : ''}></circle>`;
+        data-semana="${esc(semanaTooltip)}"${attrsTemporadaSemanaDiaIngreso(p)} data-unidad="${esc(opts.unidad || '')}"${(!!tope && p.real && Number(p.valor) > tope) ? ` data-tope="${tope}"` : ''}${bajoMin ? ` data-minimo="${minimo}"` : ''}></circle>`;
     }).join('');
     return `${path}${circles}`;
   }).join('');
@@ -2440,15 +2440,27 @@ function lineChartSvg(miembros, campo, semanas, opts){
 }
 
 /** Texto y tooltip de un punto de Ingresos recientes: igual que los compartidos (timeline-svg.js) y, si el punto supera el tope semanal, lo avisa (como perfil.html). */
+/** 20-oct-2026 (pedido usuaria): «Temporada 3, Semana 1, Jueves» en el tooltip de cada punto; vacío si el backend no mandó los tres datos. Mismo texto que perfil.html. [→ Contexto_Base_Web.md §PF133] */
+function textoTemporadaSemanaDiaIngreso(d){
+  if (!d) return '';
+  const t = d.temporada, s = d.semanaGuerra, dia = d.diaGuerra;
+  if (t == null || t === '' || s == null || s === '' || !dia) return '';
+  return 'Temporada ' + t + ', Semana ' + s + ', ' + dia;
+}
+function attrsTemporadaSemanaDiaIngreso(p){
+  if (!textoTemporadaSemanaDiaIngreso(p)) return '';
+  return ` data-temporada="${esc(String(p.temporada))}" data-semana-guerra="${esc(String(p.semanaGuerra))}" data-dia-guerra="${esc(String(p.diaGuerra))}"`;
+}
 function etiquetaPuntoIngreso(pt){
   const { nombre, tag, valor, clan, clanActual, semana, unidad, tope, minimo } = pt.dataset;
-  return `${nombre || ''}${tag ? ' (' + tag + ')' : ''}${clanActual ? ', clan actual ' + clanActual : ''}: ${fmtNum(valor)} ${unidad || ''} — ${clan || ''} · ${semana || ''}` + (tope ? ' — supera el tope de ' + fmtNum(tope) : '') + (minimo ? ' — por debajo del mínimo de ' + fmtNum(minimo) : '');
+  const tsd = textoTemporadaSemanaDiaIngreso(pt.dataset);
+  return `${nombre || ''}${tag ? ' (' + tag + ')' : ''}${clanActual ? ', clan actual ' + clanActual : ''}: ${fmtNum(valor)} ${unidad || ''} — ${clan || ''} · ${semana || ''}${tsd ? ' — ' + tsd : ''}` + (tope ? ' — supera el tope de ' + fmtNum(tope) : '') + (minimo ? ' — por debajo del mínimo de ' + fmtNum(minimo) : '');
 }
 function htmlTooltipPuntoIngreso(pt){
   const { nombre, tag, valor, clan, clanActual, semana, unidad, tope, minimo } = pt.dataset;
   // 19-oct-2026 (pedido usuaria): a la derecha del tag va el clan ACTUAL del jugador (el de la leyenda); la segunda línea sigue mostrando el clan al que pertenecía ese registro.
   const actual = clanActual ? ` <span style="color:var(--gold);">· ${esc(clanActual)}</span>` : '';
-  return `<b>${esc(nombre)}${tag ? ' (' + esc(tag) + ')' : ''}</b>${actual}<br><span style="color:var(--text-faint);">${esc(fmtNum(valor))} ${esc(unidad)} — ${esc(clan)} · ${esc(semana)}</span>` + (tope ? `<br><span style="color:var(--danger);">⚠ Supera el tope de ${esc(fmtNum(tope))}</span>` : '') + (minimo ? `<br><span style="color:var(--danger);">⚠ Por debajo del mínimo de ${esc(fmtNum(minimo))}</span>` : '');
+  return `<b>${esc(nombre)}${tag ? ' (' + esc(tag) + ')' : ''}</b>${actual}<br><span style="color:var(--text-faint);">${esc(fmtNum(valor))} ${esc(unidad)} — ${esc(clan)} · ${esc(semana)}</span>` + (textoTemporadaSemanaDiaIngreso(pt.dataset) ? `<br><span style="color:var(--text-faint);">${esc(textoTemporadaSemanaDiaIngreso(pt.dataset))}</span>` : '') + (tope ? `<br><span style="color:var(--danger);">⚠ Supera el tope de ${esc(fmtNum(tope))}</span>` : '') + (minimo ? `<br><span style="color:var(--danger);">⚠ Por debajo del mínimo de ${esc(fmtNum(minimo))}</span>` : '');
 }
 
 /** FIX (08-sep-2026, pedido usuario — "en las gráficas no debe decir

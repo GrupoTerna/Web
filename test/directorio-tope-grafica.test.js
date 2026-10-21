@@ -38,7 +38,7 @@ function extraerConstante(src, nombre){
   return m[0];
 }
 const NOMBRES = ['semanaLabel', 'semanaOrden', 'numeroSemanaVieja', 'semanaLabelCorta', 'construirFechasEstimadasSemanasViejas',
-  'fmtFechaCortaDDMM', 'fmtFechaLargaDDMMYYYY', 'lineChartSvg', 'etiquetaPuntoIngreso', 'htmlTooltipPuntoIngreso'];
+  'fmtFechaCortaDDMM', 'fmtFechaLargaDDMMYYYY', 'textoTemporadaSemanaDiaIngreso', 'attrsTemporadaSemanaDiaIngreso', 'lineChartSvg', 'etiquetaPuntoIngreso', 'htmlTooltipPuntoIngreso'];
 const CONSTANTES = ['PALETA_SERIES', 'TOPE_ATAQUES_SEMANA', 'TOPE_MEDALLAS_SEMANA', 'TOPE_BARCOS_SEMANA'];
 const CODIGO = CONSTANTES.map(c => extraerConstante(grande, c)).join('\n') + '\n' +
   NOMBRES.map(n => extraerFuncion(grande, n)).join('\n') +
@@ -131,4 +131,30 @@ test('sin clan actual el tooltip queda como antes (sin separador de más)', () =
   const pt = w.document.createElement('circle');
   Object.assign(pt.dataset, { nombre: 'Linkrez', tag: '#8QGUVJ08G', valor: '16', clan: 'Terna', semana: '26/07/2026', unidad: 'ataques' });
   assert.ok(!w.__t.htmlTooltipPuntoIngreso(pt).includes('·</span>'));
+});
+
+// NUEVO (20-oct-2026, pedido de la usuaria): el tooltip semanal también lleva «Temporada 3, Semana 3, Jueves»
+// justo antes del aviso rojo; sin esos datos no se añade nada.
+test('el tooltip de Ingresos recientes muestra «Temporada, Semana, Día» antes del aviso rojo', () => {
+  const w = cargar();
+  const m = miembro([16, 20, 8, 16], 'ataques');
+  m.historialSemanal.forEach((h, i) => Object.assign(h, { temporada: 3, semanaGuerra: i + 1, diaGuerra: 'Domingo' }));
+  const svg = w.__t.lineChartSvg([m], 'ataques', SEMANAS, { unidad: 'ataques', tope: 16 });
+  const cont = w.document.createElement('div');
+  cont.innerHTML = svg;
+  const pt = cont.querySelector('.serie-pt-anomalia');
+  assert.ok(pt, 'el 20 debe salir como anomalía');
+  const tip = w.__t.htmlTooltipPuntoIngreso(pt);
+  assert.ok(tip.includes('Temporada 3, Semana 2, Domingo'));
+  assert.ok(tip.indexOf('Temporada 3, Semana 2, Domingo') < tip.indexOf('Supera el tope de 16'));
+  assert.ok(w.__t.etiquetaPuntoIngreso(pt).includes('Temporada 3, Semana 2, Domingo'));
+});
+
+test('sin temporada, semana o día el tooltip de Ingresos recientes no añade la línea', () => {
+  const w = cargar();
+  const cont = w.document.createElement('div');
+  cont.innerHTML = w.__t.lineChartSvg([miembro([16, 20, 8, 16], 'ataques')], 'ataques', SEMANAS, { unidad: 'ataques', tope: 16 });
+  const pt = cont.querySelector('.serie-pt-anomalia');
+  assert.ok(!w.__t.htmlTooltipPuntoIngreso(pt).includes('Temporada'));
+  assert.ok(!w.__t.etiquetaPuntoIngreso(pt).includes('Temporada'));
 });

@@ -168,12 +168,13 @@
 // v115 (20-oct-2026): todas las páginas, manifest.json, styles.css y sw.js cambiaron (CORE_ASSETS) -- las imágenes pasaron de assets/img, cards, chests, arenas y playerbadges a assets/Imágenes/<tipo>/{API,Fankit}; las copias de insignias están en badges/API/Maestrías e Insignias (§PF130).
 // v116 (20-oct-2026): assets/js/data/clan-badges.js y perfil.html (CORE_ASSETS) -- el escudo de clan (iconoBadgeClanHtml) pedía assets/badges/<nombre>.png, que ya no existe; ahora apunta a assets/Imágenes/badges/Fankit/ (§PF130).
 // Se sube la versión para que 'activate' borre v114 y nadie siga con las rutas viejas.
+// v117 (20-oct-2026): perfil.html y directorio.html cambiaron (CORE_ASSETS) -- el tooltip de cada punto de las gráficas lleva una línea «Temporada N, Semana N, Día» (§PF133).
 // v91 (18-oct-2026): admin.html cambió (CORE_ASSETS) -- «Modificar sorteo» muestra primero la lista de sorteos y después el tipo (principal o continuación), que ya se puede cambiar, igual que «Modificar torneo» (§PF107).
 // v90 (18-oct-2026): admin.html cambió (CORE_ASSETS) -- «Ataques a barcos» arranca con el Barcos del registro anterior (16 solo si no hay ninguno) en torneos, sorteos y cambio de rango, y «Modificar torneo» muestra primero la lista y después el tipo (principal o continuación), que ya se puede cambiar (§PF105).
 // v89 (18-oct-2026): admin.html cambió (CORE_ASSETS) -- «Modificar torneo» y «Modificar sorteo» muestran 16 en «Ataques a barcos» cuando el registro no tiene Barcos (tope: 16 equivale a no evaluarlos), en vez de 0 o el valor de otro torneo (§PF102).
 // v88 (18-oct-2026): admin.html cambió (CORE_ASSETS) -- «Modificar torneo» precarga los requisitos del torneo elegido (con «Cargando…» y sin guardar hasta que terminen) y deja el Nom_Multi y la cuenta organizadora ya elegidos, pudiendo cambiar a cualquier otra cuenta (§PF101).
 // v87 (18-oct-2026): admin.html cambió (CORE_ASSETS) -- «Modificar torneo» ya lista también los torneos Planificados y los sin link (no solo los de hoy), con fecha, hora y estado, y precarga la hora real (§PF099).
-const CACHE_NAME = 'terna-static-v116';
+const CACHE_NAME = 'terna-static-v117';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y

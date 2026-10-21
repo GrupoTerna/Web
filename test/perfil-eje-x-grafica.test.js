@@ -26,7 +26,7 @@ function extraerFuncion(src, nombre){
   throw new Error(`llaves sin cerrar en ${nombre}`);
 }
 const NOMBRES = ['parseFechaDDMMYYYY', 'semanaLabelCortaPerfil', 'filtrarDiasGuerraPerfil', 'puntosSobreTope',
-  'perfilLineChartSvg', 'leyendaPuntosGraficaHtml', 'pintarGraficaPerfil', 'etiquetaPuntoPerfil', 'htmlTooltipPuntoPerfil'];
+  'textoTemporadaSemanaDiaPerfil', 'attrsTemporadaSemanaDiaPerfil', 'perfilLineChartSvg', 'leyendaPuntosGraficaHtml', 'pintarGraficaPerfil', 'etiquetaPuntoPerfil', 'htmlTooltipPuntoPerfil'];
 const CODIGO = NOMBRES.map(n => extraerFuncion(grande, n)).join('\n') +
   "\nconst COLOR_SERIE_PERFIL = '#a239ff'; let perfilGraficaCtx = { nombre: 'Chistris', tag: '#2GG8PJ8GC', clan: 'Terna' };" +
   '\nwindow.__t = { perfilLineChartSvg, pintarGraficaPerfil, puntosSobreTope, filtrarDiasGuerraPerfil, etiquetaPuntoPerfil, htmlTooltipPuntoPerfil };';

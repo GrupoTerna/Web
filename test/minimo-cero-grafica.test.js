@@ -35,7 +35,7 @@ const UTIL = ['assets/js/util.js', 'assets/js/features/timeline-svg.js'];
 const PERFIL = scriptDe('perfil.html', 'function perfilLineChartSvg');
 const NOMBRES_PERFIL = ['parseFechaDDMMYYYY', 'fmtFechaLargaDDMMYYYYPerfil', 'semanaLabelCortaPerfil', 'filtrarDiasGuerraPerfil', 'puntosSobreTope',
   'ordenarHistorialPorSemana', 'completarSemanasSinDato', '_periodIndexRegistro', '_historialDiasGuerra', '_valoresDiariosDesdeAcumulado',
-  'perfilLineChartSvg', 'leyendaPuntosGraficaHtml', 'pintarGraficaPerfil', 'etiquetaPuntoPerfil', 'htmlTooltipPuntoPerfil', 'renderMetricaSemanal'];
+  'textoTemporadaSemanaDiaPerfil', 'attrsTemporadaSemanaDiaPerfil', 'perfilLineChartSvg', 'leyendaPuntosGraficaHtml', 'pintarGraficaPerfil', 'etiquetaPuntoPerfil', 'htmlTooltipPuntoPerfil', 'renderMetricaSemanal'];
 function cargarPerfil(){
   const w = loadBrowserScriptsWithDom(UTIL, '<section id="mChartCard"><div id="mChart"></div></section>');
   w.eval(NOMBRES_PERFIL.map(n => extraerFuncion(PERFIL, n)).join('\n') +
@@ -84,7 +84,7 @@ test('perfil: el punto negativo queda por debajo de la línea del mínimo', () =
 // ---------------- directorio.html: Ingresos recientes ----------------
 const DIR = scriptDe('directorio.html', 'function lineChartSvg');
 const NOMBRES_DIR = ['semanaLabel', 'semanaOrden', 'numeroSemanaVieja', 'semanaLabelCorta', 'construirFechasEstimadasSemanasViejas',
-  'fmtFechaCortaDDMM', 'fmtFechaLargaDDMMYYYY', 'lineChartSvg', 'etiquetaPuntoIngreso', 'htmlTooltipPuntoIngreso', 'guerraComparadorMetricaSvg', 'fmtFecha'];
+  'fmtFechaCortaDDMM', 'fmtFechaLargaDDMMYYYY', 'textoTemporadaSemanaDiaIngreso', 'attrsTemporadaSemanaDiaIngreso', 'lineChartSvg', 'etiquetaPuntoIngreso', 'htmlTooltipPuntoIngreso', 'guerraComparadorMetricaSvg', 'fmtFecha'];
 function cargarDir(){
   const w = loadBrowserScriptsWithDom(UTIL, '<div id="g"></div>');
   w.eval("const PALETA_SERIES = ['#a239ff','#f3a922','#3ddc97'];\n" + NOMBRES_DIR.map(n => extraerFuncion(DIR, n)).join('\n') +
