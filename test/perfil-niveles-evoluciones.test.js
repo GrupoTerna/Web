@@ -276,3 +276,11 @@ test('la tabla de fragmentos y monedas centra encabezados y valores en pantalla 
   assert.ok(m, 'regla de centrado dentro de @media (min-width:561px)');
   ['th', 'td', 'td.num', 'th.num'].forEach(sel => assert.ok(m[0].includes(`.costo-tabla-evo ${sel}`), sel));
 });
+
+test('en esa tabla solo los valores de la columna Variante van a la izquierda; los encabezados y el resto, centrados (21-oct-2026)', () => {
+  const m = html.match(/@media \(min-width:561px\)\{\s*\.col-modal-scroll \.costo-tabla\.costo-tabla-evo th[\s\S]*?\n  \}\n/);
+  assert.ok(m, 'bloque de alineación de la tabla de fragmentos y monedas');
+  assert.match(m[0], /costo-tabla-evo th\.num\{text-align:center;\}/, 'encabezados y columnas numéricas centrados');
+  assert.match(m[0], /\.costo-tabla\.costo-tabla-evo td:first-child\{text-align:left;\}/, 'valores de Variante a la izquierda');
+  assert.ok(!/th:first-child/.test(m[0]), 'el encabezado «Variante» sigue centrado');
+});
