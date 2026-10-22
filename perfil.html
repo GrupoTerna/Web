@@ -4219,7 +4219,11 @@ function _pastelMiniHtml(titulo, porciones, extra, opts){
   const vals = porciones.map(p => Number(p.valor));
   if (vals.some(v => !isFinite(v) || v < 0)) return '';
   const total = vals.reduce((a, b) => a + b, 0);
-  if (!(total > 0)) return '';
+  /* 22-oct-2026 (pedido de la usuaria): opts.mostrarSiCero dibuja el donut aunque todo valga 0 (anillo vacío, centro en 0).
+   * Un 0 es un dato real (p. ej. el jugador no donó ni recibió nada esta semana); lo que se oculta es la falta de dato, y eso
+   * lo decide quien llama (valor null/undefined). Sin la opción, un total 0 sigue ocultando el gráfico. [→ Contexto_Base_Web.md §PF163] */
+  if (!(total > 0) && !opts.mostrarSiCero) return '';
+  const div = total > 0 ? total : 1; // evita 0/0 (NaN) en porcentajes y largos cuando se muestra un total 0
   /* 06-oct-2026: opts.centroValor permite que el número del centro sea distinto de la suma de las porciones (p. ej. Batallas
    * reales de la API, que incluyen empates). Solo se usa si es un número válido y no menor que la suma; si no, se muestra la suma. */
   const cv = Number(opts.centroValor);
@@ -4232,7 +4236,7 @@ function _pastelMiniHtml(titulo, porciones, extra, opts){
   let segmentos = '';
   porciones.forEach((p, i) => {
     if (!(vals[i] > 0)) return;
-    const largo = (vals[i] / total) * CIRC;
+    const largo = (vals[i] / div) * CIRC;
     const visible = Math.max(largo - GAP, 0.001);
     segmentos += `<circle cx="${C}" cy="${C}" r="${R}" fill="none" stroke="${p.color}" stroke-width="${GROSOR}" stroke-linecap="round" stroke-dasharray="${visible.toFixed(2)} ${(CIRC - visible).toFixed(2)}" stroke-dashoffset="${(-acumLargo).toFixed(2)}" style="filter:drop-shadow(0 0 5px ${p.color})"/>`;
     acumLargo += largo;
@@ -4246,14 +4250,14 @@ function _pastelMiniHtml(titulo, porciones, extra, opts){
    * pastilla, sin afectar a los demás. */
   const extras = (Array.isArray(extra) ? extra : (extra ? [extra] : []))
     .filter(e => e && e.valor !== null && e.valor !== undefined && e.valor !== '');
-  let resumen = porciones.map((p, i) => `${p.etiqueta}: ${fmtNum(vals[i])} (${(vals[i] / total * 100).toFixed(1)}%)`).join('; ');
+  let resumen = porciones.map((p, i) => `${p.etiqueta}: ${fmtNum(vals[i])} (${(vals[i] / div * 100).toFixed(1)}%)`).join('; ');
   extras.forEach(e => { resumen += `; ${e.etiqueta}: ${e.valor}`; });
   if (centroNum !== total) resumen += `; ${opts.centroEtiqueta || 'Total'}: ${fmtNum(centroNum)}`;
   // FIX (07-oct-2026): `porciones[i].columna` (HTML opcional) agrega una columna alineada al final de cada fila de la
   // leyenda (p. ej. el oro acumulado por nivel). Con columna, la leyenda pasa a grilla (.con-col) para alinear las 5.
   const hayColumna = porciones.some(p => p.columna);
   const leyenda = porciones.map((p, i) => `
-        <div class="fila"><span class="punto" style="background:${p.color}; color:${p.color};"></span>${hayColumna ? `<span class="et">${esc(p.etiqueta)}</span>` : esc(p.etiqueta) + ' '}<b>${esc(fmtNum(vals[i]))}</b> <span class="pct">${(vals[i] / total * 100).toFixed(1)}%</span>${hayColumna ? `<span class="col-oro">${p.columna || ''}</span>` : ''}</div>`).join('');
+        <div class="fila"><span class="punto" style="background:${p.color}; color:${p.color};"></span>${hayColumna ? `<span class="et">${esc(p.etiqueta)}</span>` : esc(p.etiqueta) + ' '}<b>${esc(fmtNum(vals[i]))}</b> <span class="pct">${(vals[i] / div * 100).toFixed(1)}%</span>${hayColumna ? `<span class="col-oro">${p.columna || ''}</span>` : ''}</div>`).join('');
   const notaHtml = opts.nota ? `<div class="mini-pie-nota">${opts.nota}</div>` : '';
   const extraHtml = extras.length ? `
       <div class="mini-pie-extras">${extras.map(e => `<div class="mini-pie-extra"${e.titulo ? ` title="${esc(e.titulo)}"` : ''}>${esc(e.etiqueta)} <b>${esc(String(e.valor))}</b></div>`).join('')}
@@ -4532,7 +4536,7 @@ function renderExtendido(ext, j){
     (ext.donacionesRealizadas != null && ext.donacionesRecibidas != null) ? _pastelMiniHtml('Donaciones hechas y recibidas', [
       { etiqueta: 'Hechas', valor: ext.donacionesRealizadas, color: 'var(--gold)' },
       { etiqueta: 'Recibidas', valor: ext.donacionesRecibidas, color: 'var(--purple)' },
-    ], null, { icono: '🎁', centroEtiqueta: 'Total' }) : '',
+    ], null, { icono: '🎁', centroEtiqueta: 'Total', mostrarSiCero: true }) : '', // 0/0 es un dato real: se muestra; solo se oculta si falta el dato (== null)
   ].join('');
   /* FIX (24-sep-2026, pedido usuario — "ahí deben ir dos minigráficos: uno
    * de ataques vs día con dos series (ataques y barcos), el otro de fama vs

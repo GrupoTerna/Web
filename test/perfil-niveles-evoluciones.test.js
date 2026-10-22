@@ -147,6 +147,32 @@ test('_pastelMiniHtml con soloDonut no pinta leyenda ni nota; sin él, sí', () 
   assert.ok(completo.includes('NOTA'));
 });
 
+// NUEVO (22-oct-2026, pedido de la usuaria): un 0 real se muestra; solo se oculta cuando falta el dato. [→ Contexto_Base_Web.md §PF163]
+test('_pastelMiniHtml con mostrarSiCero pinta el donut vacío (0/0) sin NaN; sin la opción, lo oculta', () => {
+  const t = cargar().__t;
+  const porciones = [{ etiqueta: 'Hechas', valor: 0, color: '#f3a922' }, { etiqueta: 'Recibidas', valor: 0, color: '#a239ff' }];
+  const html = t._pastelMiniHtml('Donaciones hechas y recibidas', porciones, null, { centroEtiqueta: 'Total', mostrarSiCero: true });
+  assert.ok(html.includes('mini-pie-donut-wrap'));
+  assert.ok(!/NaN|Infinity/.test(html), 'sin NaN ni Infinity en porcentajes ni en el SVG');
+  assert.ok(!html.includes('stroke-dasharray'), 'sin segmentos: solo el anillo de fondo');
+  assert.ok(html.includes('Hechas: 0 (0.0%)'));
+  assert.equal(t._pastelMiniHtml('Donaciones', porciones, null, {}), '');
+});
+
+test('_pastelMiniHtml con mostrarSiCero no cambia un donut con datos', () => {
+  const t = cargar().__t;
+  const porciones = [{ etiqueta: 'Hechas', valor: 30, color: '#f3a922' }, { etiqueta: 'Recibidas', valor: 10, color: '#a239ff' }];
+  assert.equal(t._pastelMiniHtml('D', porciones, null, { mostrarSiCero: true }), t._pastelMiniHtml('D', porciones, null, {}));
+});
+
+test('perfil.html muestra el donut de donaciones con 0/0 y lo oculta solo si falta el dato', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const html = fs.readFileSync(path.join(__dirname, '..', 'perfil.html'), 'utf8');
+  assert.ok(html.includes("(ext.donacionesRealizadas != null && ext.donacionesRecibidas != null) ? _pastelMiniHtml('Donaciones hechas y recibidas'"));
+  assert.ok(/centroEtiqueta: 'Total', mostrarSiCero: true \}\) : ''/.test(html));
+});
+
 test('la ventana abre con la dona completa, el diagrama y la tabla; se cierra y devuelve el foco', () => {
   const window = cargar();
   const d = window.document;
