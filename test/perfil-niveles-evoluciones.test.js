@@ -284,3 +284,13 @@ test('en esa tabla solo los valores de la columna Variante van a la izquierda; l
   assert.match(m[0], /\.costo-tabla\.costo-tabla-evo td:first-child\{text-align:left;\}/, 'valores de Variante a la izquierda');
   assert.ok(!/th:first-child/.test(m[0]), 'el encabezado «Variante» sigue centrado');
 });
+
+test('la ventana «Niveles y evoluciones» no usa texto HTML de menos de 11 px en la dona (21-oct-2026, §PF076)', () => {
+  // Medido con mide_textos_chicos.js: el «CARTAS» del centro (10 px), la nota «Oro acumulado…» (9) y la pastilla «Nivel promedio» (10) quedaban bajo 11 px en móvil.
+  ['.mini-pie-donut-centro span', '.mini-pie-nota', '.mini-pie-extra'].forEach(sel => {
+    const re = new RegExp('\\n\\s*\\.col-modal-seccion ' + sel.replace(/\./g, '\\.') + '\\{[^}]*font-size:(\\d+(?:\\.\\d+)?)px');
+    const m = html.match(re);
+    assert.ok(m, 'no se encontró la regla .col-modal-seccion ' + sel);
+    assert.ok(Number(m[1]) >= 11, sel + ' debe ser de 11 px o más (es ' + m[1] + ')');
+  });
+});
