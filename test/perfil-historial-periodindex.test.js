@@ -10,7 +10,7 @@ const { loadBrowserScriptsWithDom } = require('./load-browser-script');
 // y días con `ranking: null`. Se prueba con las funciones REALES del <script> inline de perfil.html (se extraen por nombre,
 // igual que perfil-copas-grafica.test.js):
 //  1. Jueves y viernes con la MISMA fecha (04/09/2026): con periodIndex se separan en 03/09 y 04/09 (antes el viernes pisaba al jueves y salían 8 ataques).
-//  2. (22-oct-2026, pedido de la usuaria) El diario es SOLO la resta del acumulado semanal de RoyaleAPI; AtaquesHoy no interviene (se quitó el respaldo del 21-oct).
+//  2. (21-oct-2026, pedido de la usuaria) El diario es SOLO la resta del acumulado semanal de RoyaleAPI; AtaquesHoy no interviene (se quitó el respaldo puesto antes ese mismo día).
 //  3. Los días de la semana suman el acumulado.
 //  4. La gráfica de Ranking no dibuja los días con `ranking: null`.
 // LÍMITE: prueba la lógica de ubicación de días y de valores diarios, no cómo se ve en un navegador.

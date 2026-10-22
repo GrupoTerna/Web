@@ -185,7 +185,7 @@
 // v126 (21-oct-2026): torneos.html cambió (CORE_ASSETS) -- cada fila de «Torneos recientes» busca su podio también por `id` (la lista del backend trae `id`, no `idTorneo`) (§PF154).
 // v127 (21-oct-2026): las fechas con mes abreviado pasan a dd/mm/aaaa en util.js, directorio.html, perfil.html y admin.html (CORE_ASSETS) (§PF157).
 // v128 (21-oct-2026): perfil.html cambió (CORE_ASSETS) -- el día de guerra de cada registro sale de `periodIndex`, y los ataques del día usan `ataquesHoy` cuando la resta del acumulado es imposible (§PF159).
-// v129 (22-oct-2026): perfil.html cambió (CORE_ASSETS) -- el diario sale solo de la resta del acumulado semanal; se quitó el respaldo con `ataquesHoy` de v128 (§PF159).
+// v129 (21-oct-2026): perfil.html cambió (CORE_ASSETS) -- el diario sale solo de la resta del acumulado semanal; se quitó el respaldo con `ataquesHoy` de v128 (§PF159).
 // v130 (21-oct-2026): assets/js/util.js cambió (CORE_ASSETS) -- fmtNum() reutiliza un único Intl.NumberFormat en vez de crear uno por llamada (mismo texto; menos CPU al pintar las tablas de guerra, §PF018).
 // v131 (21-oct-2026): perfil.html cambió (CORE_ASSETS) -- en la ventana «Niveles y evoluciones» el «CARTAS» del centro de la dona, la nota «Oro acumulado…» y la pastilla «Nivel promedio» pasan a 11 px (§PF076).
 const CACHE_NAME = 'terna-static-v131';
