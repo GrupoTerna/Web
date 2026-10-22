@@ -195,7 +195,7 @@ function fmtHaceCorto(fecha){
 function fmtFechaHoraLima(fecha){
   if (!_esFechaValida(fecha)) return '—';
   try{
-    return fecha.toLocaleString('es-PE', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit', second:'2-digit', timeZone:'America/Lima' });
+    return fecha.toLocaleString('es-PE', { day:'2-digit', month:'2-digit', year:'numeric', hour:'2-digit', minute:'2-digit', second:'2-digit', timeZone:'America/Lima' });
   }catch(e){ return fecha.toLocaleString(); }
 }
 
@@ -309,7 +309,7 @@ function marcarDatosGuardados(el, desde, estiloExtra){
 
 /**
  * fmtFechaVigenciaCorta(v)
- * Fecha corta CON hora en zona Lima (ej. "05 set 2026, 4:46 a. m."). Antes
+ * Fecha corta CON hora en zona Lima (ej. "05/09/2026, 4:46 a. m."). Antes
  * había dos copias idénticas: fmtFechaVigenciaCorta() en index.html y
  * fmtFechaCortaVigencia() en directorio.html. Si el valor no es una fecha
  * parseable se muestra tal cual, en vez de perder información.
@@ -318,7 +318,7 @@ function fmtFechaVigenciaCorta(v){
   if (!v) return '—';
   const d = v instanceof Date ? v : new Date(v);
   if (isNaN(d.getTime())) return String(v);
-  const fecha = d.toLocaleDateString('es-PE', { day:'2-digit', month:'short', year:'numeric', timeZone:'America/Lima' });
+  const fecha = d.toLocaleDateString('es-PE', { day:'2-digit', month:'2-digit', year:'numeric', timeZone:'America/Lima' });
   const hora  = d.toLocaleTimeString('es-PE', { hour:'numeric', minute:'2-digit', hour12:true, timeZone:'America/Lima' });
   return `${fecha}, ${hora}`;
 }

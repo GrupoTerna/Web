@@ -120,6 +120,15 @@ test('fmtFechaHoraLima() usa la zona de Lima (UTC-5) y no revienta con una fecha
   assert.equal(fmtFechaHoraLima(undefined), '—');
 });
 
+// 21-oct-2026 (pedido de la usuaria): las fechas de la web se ven como 09/10/2026, no como «09 oct 2026» ni 2026-10-09.
+test('fmtFechaHoraLima() muestra la fecha como dd/mm/aaaa (hora de Lima)', () => {
+  const txt = fmtFechaHoraLima(new Date('2026-10-09T15:30:00Z'));
+  assert.match(txt, /^09\/10\/2026/);
+  assert.doesNotMatch(txt, /oct|2026-10/i);
+  // 03:00 UTC del día 10 sigue siendo el día 9 en Lima
+  assert.match(fmtFechaHoraLima(new Date('2026-10-10T03:00:00Z')), /^09\/10\/2026/);
+});
+
 test('tsApiDeDatos() lee tiempos.api.ultimaConsultaTs y devuelve null si falta o no es válido (no inventa fechas)', () => {
   const ts = Date.now() - 60000;
   assert.equal(tsApiDeDatos({ tiempos: { api: { ultimaConsultaTs: ts } } }).getTime(), ts);
