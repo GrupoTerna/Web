@@ -184,7 +184,8 @@
 // v125 (21-oct-2026): torneos.html cambió (CORE_ASSETS) -- un torneo con continuación se muestra como uno solo, con «Realizado en N partes» (§PF154).
 // v126 (21-oct-2026): torneos.html cambió (CORE_ASSETS) -- cada fila de «Torneos recientes» busca su podio también por `id` (la lista del backend trae `id`, no `idTorneo`) (§PF154).
 // v127 (21-oct-2026): las fechas con mes abreviado pasan a dd/mm/aaaa en util.js, directorio.html, perfil.html y admin.html (CORE_ASSETS) (§PF157).
-const CACHE_NAME = 'terna-static-v127';
+// v128 (21-oct-2026): perfil.html cambió (CORE_ASSETS) -- el día de guerra de cada registro sale de `periodIndex`, y los ataques del día usan `ataquesHoy` cuando la resta del acumulado es imposible (§PF159).
+const CACHE_NAME = 'terna-static-v128';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y

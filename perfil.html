@@ -5543,8 +5543,13 @@ function _guerraDiasDesdeHistorial(historial){
     return reg.map(h => {
       if (!h || h[campo] == null || !isFinite(Number(h[campo]))) return null;
       const act = Number(h[campo]);
-      const v = act >= ant ? act - ant : act;
+      let v = act >= ant ? act - ant : act;
       ant = act;
+      // 21-oct-2026: igual que _valoresDiariosDesdeAcumulado(): si la resta da más de 4 ataques en un día, se usa AtaquesHoy cuando es creíble. [→ Contexto_Base_Web.md §PF159]
+      if (campo === 'ataques' && v > TOPE_ATAQUES_DIA){
+        const hoy = h.ataquesHoy == null || h.ataquesHoy === '' ? NaN : Number(h.ataquesHoy);
+        if (isFinite(hoy) && hoy >= 0 && hoy <= TOPE_ATAQUES_DIA) v = hoy;
+      }
       return v;
     });
   };
@@ -5922,7 +5927,7 @@ function pintarGraficaPerfil(wrap, puntos, opts, nota){
 
 function renderRankingChart(ext){
   const wrap = document.getElementById('mRankingChart');
-  const historial = ext && Array.isArray(ext.historialRanking) ? _historialDiasGuerra(ext.historialRanking.filter(h => h && h.ranking != null)) : []; // FIX (07-oct-2026): lunes = cierre del domingo
+  const historial = ext && Array.isArray(ext.historialRanking) ? _historialDiasGuerra(ext.historialRanking.filter(h => h && Number(h.ranking) > 0)) : []; // FIX (07-oct-2026): lunes = cierre del domingo; 21-oct-2026: los días sin Ranking (ranking null) ya llegan del backend y no se grafican [→ Contexto_Base_Web.md §PF159]
   if (!historial.length){
     wrap.innerHTML = `<div class="chart-empty">
       Todavía no hay historial de ranking disponible para graficar${ext && ext.rankingClan != null ? ` — ranking actual: <b style="color:var(--text);">#${esc(String(ext.rankingClan))}</b>` : ''}.
@@ -6000,9 +6005,14 @@ function _valoresDiariosDesdeAcumulado(datosOrdenados, campo){
     // FIX (07-oct-2026): el jueves arranca la semana de guerra (los registros de lun-mié ya no llegan aquí), así que su valor es el total del día, aunque no sea menor al del domingo anterior.
     const tReg = parseFechaDDMMYYYY(h.semana);
     const esInicioSemana = !isNaN(tReg) && new Date(tReg).getDay() === 4;
-    const diario = (!esInicioSemana && anterior != null && isFinite(anterior) && isFinite(actual) && actual >= anterior)
+    let diario = (!esInicioSemana && anterior != null && isFinite(anterior) && isFinite(actual) && actual >= anterior)
       ? actual - anterior
       : actual;
+    // 21-oct-2026 (pedido usuaria, caso Chistris #2GG8PJ8GC): si la resta da más de 4 ataques en un día (imposible: falta el registro del día anterior y el acumulado entero cae en este día), se usa la columna AtaquesHoy que manda el backend, solo si es un valor creíble (0 a 4). En el resto de los casos manda la resta del acumulado: AtaquesHoy solo coincide con ella en el 91 % de las filas del Backup y las gráficas semanales parten de ese acumulado. [→ Contexto_Base_Web.md §PF159]
+    if (campo === 'ataques' && diario > TOPE_ATAQUES_DIA){
+      const hoy = h.ataquesHoy == null || h.ataquesHoy === '' ? NaN : Number(h.ataquesHoy);
+      if (isFinite(hoy) && hoy >= 0 && hoy <= TOPE_ATAQUES_DIA) diario = hoy;
+    }
     anterior = actual;
     return Object.assign({}, h, { [campo]: diario });
   });
