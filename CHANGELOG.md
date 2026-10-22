@@ -12,6 +12,7 @@ Lista corta de lo que se hizo, de más reciente a más antiguo y, dentro de cada
 
 Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la entrada del cambio, abajo).
 
+- **Sin probar en navegador real (22-oct-2026): insignias y maestrías recortadas en `badges/API/`.** Falta publicar `Web` y abrir un perfil con la copia local en uso (por ejemplo, bloqueando `api-assets.clashroyale.com` en F12); el enlace remoto de Supercell sigue mostrando su margen, y queda por decidir si se compensa. → §PF161
 - **Sin probar en Apps Script real ni en navegador real (21-oct-2026): `periodIndex` y días con Ranking vacío en `historialRanking`; el diario sale solo de la resta del acumulado.** Falta correr `subirBaseDesdeGithub()`, publicar `Web` (`sw.js` v129), confirmar que el `Backup_Guerra.csv` nuevo ya esté cargado en Drive y abrir el perfil de Chistris: debe mostrar ningún día con más de 4 ataques. Con solo la resta, 91 días de 75 jugadores del Backup siguen con más de 4 (casi todos con la fila del día anterior ausente: el acumulado entero cae en un día) y se marcan como anomalía; no se investigaron. Probado solo con las funciones reales de `perfil.html` y filas reales del Backup. → §PF159
 - **Sin probar (21-oct-2026): torneo con continuación como una sola fila en `torneos.html`.** Falta correr `subirBaseDesdeGithub()`, publicar `Web` (`sw.js` v125) y comprobar la fila con «Realizado en 2 partes» y la fecha de la raíz. → §PF154
 - **Sin probar en navegador real (18-oct-2026): torneo principal con planificados y orden de las listas.** Falta correr `subirBaseDesdeGithub()` y publicar `Web`; comprobar que en «Registrar» (continuación) la lista ofrece los planificados con «(aún sin link)», que la continuación enlazada a uno sin tag se agrupa bien en `torneos.html` y que las listas salen de la más reciente a la más antigua. Hay pruebas con DOM simulado. → §PF118
@@ -32,6 +33,10 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 - **Urgente (la usuaria): rotar el token de administradores que estuvo escrito en `guerra.html`, si sigue vigente.** El código ya no lo usa (30-ago) y se quitó de este archivo el 11-oct, pero este repo es público y el texto **sigue en su historial de git**; solo cambiarlo en el backend lo deja inservible. No se verificó si sigue activo; no se escribe aquí. (11-oct-2026) → §PF029
 
 ---
+
+## 22-oct-2026
+
+- **`assets/Imágenes/badges/API/` (1 079 PNG de `Insignias/` y `Maestrías/`) · Se quita el margen transparente de las copias locales de insignias y maestrías.** Eran de 512×512 con el dibujo en ~58 % del ancho; cada una se recortó al cuadro del dibujo (sin reescalar ni tocar sus píxeles) y quedó de 259–361 × 272–374 px, así que llena la caja de 92 px de `.badge-item img`. Pesan 130,9 MB en vez de 194,0 MB. Los escudos de `Fankit` ya venían sin margen y no se tocaron. No cambia código ni `sw.js`. → §PF161
 
 ## 21-oct-2026
 
