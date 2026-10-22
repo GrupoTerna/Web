@@ -8,6 +8,13 @@
  * corra el onerror de la propia etiqueta (que suele ocultar la imagen); si ya no hay más etapas,
  * vuelve a disparar el error para que ese onerror trabaje como antes.
  *
+ * Modo «local primero» (22-oct-2026, solo insignias de jugador; [→ Contexto_Base_Web.md §PF162]): las copias locales de
+ * badges/API/ ya no traen el margen transparente del PNG original (PF161), pero el enlace de Supercell sí. Para que todas
+ * las insignias se vean igual de grandes, perfil.html pide primero la copia local y deja el enlace remoto como último
+ * recurso: ImagenesRespaldo.primero(enlace, esMaestria) (para armar HTML) o ImagenesRespaldo.aplicar(img, enlace, esMaestria)
+ * (para una <img> que ya existe). Orden: carpeta propia (Maestrías o Insignias según el tipo) → la otra carpeta → enlace de
+ * Supercell → onerror propio de la etiqueta. Una insignia sin copia local cuesta una petición fallida y se ve con su margen.
+ *
  * Las copias `api` las sube la función imagenesApiAGithub() del Generador y se llaman igual que el
  * último tramo de la dirección. El índice de Fankit (assets/Im%C3%A1genes/cards/Fankit/indice.json) relaciona ese
  * nombre con el archivo de Fankit; solo existe para cartas (no hay insignias en Fankit). */
@@ -21,6 +28,8 @@
     cardheroes: [BASE + 'cards/API/'],
     playerbadges: [BASE + 'badges/API/Maestr%C3%ADas/', BASE + 'badges/API/Insignias/']
   };
+  const CARPETA_MAESTRIAS = BASE + 'badges/API/Maestr%C3%ADas/';
+  const CARPETA_INSIGNIAS = BASE + 'badges/API/Insignias/';
   const INDICE_FANKIT = BASE + 'cards/Fankit/indice.json';
   const CARPETA_FANKIT = BASE + 'cards/Fankit/';
 
@@ -40,8 +49,28 @@
   function alFallar(ev) {
     const img = ev.target;
     if (!img || img.tagName !== 'IMG') return;
-    const etapa = img.dataset.respEtapa || 'remoto';
+    const etapa = img.dataset.respEtapa || (img.dataset.respModo === 'local' ? 'local' : 'remoto');
     if (etapa === 'fin') return;
+
+    if (etapa === 'local') { // modo «local primero»: la <img> arrancó con una copia local; falló
+      ev.stopImmediatePropagation();
+      const orden = (img.dataset.respOrden || '').split('|').filter(Boolean);
+      const sigL = Number(img.dataset.respLocalIdx || 0) + 1;
+      if (sigL < orden.length) { // queda otra carpeta local por probar
+        img.dataset.respLocalIdx = String(sigL);
+        img.src = orden[sigL];
+        return;
+      }
+      img.dataset.respEtapa = 'remotoFinal';
+      img.src = img.dataset.respRemoto;
+      return;
+    }
+    if (etapa === 'remotoFinal') { // el enlace de Supercell tampoco cargó
+      ev.stopImmediatePropagation();
+      delete img.dataset.respModo; // fin del modo local: si el onerror propio pone otra imagen (la carta), esta sigue el orden normal
+      terminar(img);
+      return;
+    }
 
     if (etapa === 'remoto') {
       const m = RE_API.exec(img.getAttribute('src') || '');
@@ -80,5 +109,32 @@
     terminar(img);
   }
 
+  /** Para una insignia de jugador (enlace playerbadges): devuelve la copia local con que debe arrancar la <img> y los atributos
+   * data-* que activan el modo «local primero». Si el enlace no es de playerbadges, lo devuelve igual y sin atributos. */
+  function planLocalPrimero(enlace, esMaestria) {
+    const url = String(enlace || '');
+    const m = RE_API.exec(url);
+    if (!m || m[1] !== 'playerbadges') return { src: url, datos: null };
+    const carpetas = esMaestria ? [CARPETA_MAESTRIAS, CARPETA_INSIGNIAS] : [CARPETA_INSIGNIAS, CARPETA_MAESTRIAS];
+    const orden = carpetas.map(function (c) { return c + m[2]; });
+    return { src: orden[0], datos: { respModo: 'local', respOrden: orden.join('|'), respLocalIdx: '0', respRemoto: url } };
+  }
+
+  function primero(enlace, esMaestria) {
+    const plan = planLocalPrimero(enlace, esMaestria);
+    if (!plan.datos) return { src: plan.src, attrs: '' };
+    const esc = function (t) { return String(t).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;'); };
+    const attrs = ' data-resp-modo="local" data-resp-orden="' + esc(plan.datos.respOrden) + '" data-resp-local-idx="0" data-resp-remoto="' + esc(plan.datos.respRemoto) + '"';
+    return { src: plan.src, attrs: attrs };
+  }
+
+  function aplicar(img, enlace, esMaestria) {
+    ['respModo', 'respOrden', 'respLocalIdx', 'respRemoto', 'respEtapa', 'respArchivo', 'respTipo', 'respApiIdx'].forEach(function (k) { delete img.dataset[k]; });
+    const plan = planLocalPrimero(enlace, esMaestria);
+    if (plan.datos) Object.keys(plan.datos).forEach(function (k) { img.dataset[k] = plan.datos[k]; });
+    img.src = plan.src;
+  }
+
+  window.ImagenesRespaldo = { primero: primero, aplicar: aplicar };
   document.addEventListener('error', alFallar, true);
 })();
