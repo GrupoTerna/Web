@@ -6,12 +6,12 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { loadBrowserScriptsWithDom } = require('./load-browser-script');
 
-// NUEVO (21-oct-2026, pedido de la usuaria, caso Chistris #2GG8PJ8GC): historialRanking ahora trae `periodIndex`, `ataquesHoy`
+// NUEVO (21-oct-2026, pedido de la usuaria, caso Chistris #2GG8PJ8GC): historialRanking ahora trae `periodIndex`
 // y días con `ranking: null`. Se prueba con las funciones REALES del <script> inline de perfil.html (se extraen por nombre,
 // igual que perfil-copas-grafica.test.js):
 //  1. Jueves y viernes con la MISMA fecha (04/09/2026): con periodIndex se separan en 03/09 y 04/09 (antes el viernes pisaba al jueves y salían 8 ataques).
-//  2. Primer día de la semana con el acumulado entero (6) y AtaquesHoy creíble (4): el día muestra 4, no 6.
-//  3. Si la resta del acumulado ya es creíble, manda la resta aunque AtaquesHoy diga otra cosa.
+//  2. (22-oct-2026, pedido de la usuaria) El diario es SOLO la resta del acumulado semanal de RoyaleAPI; AtaquesHoy no interviene (se quitó el respaldo del 21-oct).
+//  3. Los días de la semana suman el acumulado.
 //  4. La gráfica de Ranking no dibuja los días con `ranking: null`.
 // LÍMITE: prueba la lógica de ubicación de días y de valores diarios, no cómo se ve en un navegador.
 // [→ Contexto_Base_Web.md §PF159]
@@ -69,37 +69,30 @@ test('sin periodIndex (backend anterior) el viernes pisa al jueves: es el compor
   assert.equal(salida.length, 1, 'sin periodIndex solo queda un registro para el 04/09');
 });
 
-test('primer día de la semana con el acumulado entero y AtaquesHoy creíble: muestra AtaquesHoy', () => {
-  const w = cargar();
-  // Viernes 05/06/2026 sin fila del jueves: acumulado 6, AtaquesHoy 4.
-  const diarios = w.__t._valoresDiariosDesdeAcumulado([
-    reg('05/06/2026', 4, { ataques: 6, ataquesHoy: 4 }),
-    reg('06/06/2026', 5, { ataques: 10, ataquesHoy: 4 })
-  ], 'ataques');
-  assert.deepEqual(diarios.map(h => h.ataques), [4, 4]);
-});
-
-test('con el jueves presente la resta ya es creíble y manda la resta, aunque AtaquesHoy diga otra cosa', () => {
+test('el diario sale solo de la resta del acumulado semanal; AtaquesHoy no interviene', () => {
   const w = cargar();
   const diarios = w.__t._valoresDiariosDesdeAcumulado([
     reg('04/06/2026', 3, { ataques: 2, ataquesHoy: 3 }),
-    reg('05/06/2026', 4, { ataques: 6, ataquesHoy: 1 })
+    reg('05/06/2026', 4, { ataques: 6, ataquesHoy: 1 }),
+    reg('06/06/2026', 5, { ataques: 10, ataquesHoy: 0 })
   ], 'ataques');
-  assert.deepEqual(diarios.map(h => h.ataques), [2, 4], 'jueves 2 y viernes 6-2=4');
+  assert.deepEqual([...diarios.map(h => h.ataques)], [2, 4, 4], 'jueves 2, viernes 6-2, sábado 10-6');
+  assert.equal(diarios.reduce((t, h) => t + h.ataques, 0), 10, 'los días suman el acumulado de la semana');
 });
 
-test('si AtaquesHoy tampoco es creíble (más de 4) o falta, se deja el valor calculado', () => {
+test('sin la fila del día anterior no se reemplaza la resta por AtaquesHoy (rompería la suma del acumulado)', () => {
   const w = cargar();
-  const conBasura = w.__t._valoresDiariosDesdeAcumulado([reg('05/06/2026', 4, { ataques: 6, ataquesHoy: 9 })], 'ataques');
-  assert.equal(conBasura[0].ataques, 6, 'AtaquesHoy 9 se ignora');
-  const sinDato = w.__t._valoresDiariosDesdeAcumulado([reg('05/06/2026', 4, { ataques: 6, ataquesHoy: null })], 'ataques');
-  assert.equal(sinDato[0].ataques, 6, 'AtaquesHoy null se ignora');
+  const diarios = w.__t._valoresDiariosDesdeAcumulado([reg('05/06/2026', 4, { ataques: 6, ataquesHoy: 4 })], 'ataques');
+  assert.equal(diarios[0].ataques, 6, 'se deja el acumulado tal cual; el tope solo lo marca como anomalía');
 });
 
-test('AtaquesHoy no cambia las otras métricas (puntaje, barcos)', () => {
+test('los otros campos (puntaje, barcos) también salen de la resta del acumulado', () => {
   const w = cargar();
-  const diarios = w.__t._valoresDiariosDesdeAcumulado([reg('05/06/2026', 4, { puntaje: 900, ataquesHoy: 1 })], 'puntaje');
-  assert.equal(diarios[0].puntaje, 900);
+  const diarios = w.__t._valoresDiariosDesdeAcumulado([
+    reg('04/06/2026', 3, { puntaje: 500, barcos: 1, ataquesHoy: 1 }),
+    reg('05/06/2026', 4, { puntaje: 1400, barcos: 3, ataquesHoy: 1 })
+  ], 'puntaje');
+  assert.deepEqual([...diarios.map(h => h.puntaje)], [500, 900]);
 });
 
 test('la gráfica de Ranking no dibuja los días con ranking null', () => {
