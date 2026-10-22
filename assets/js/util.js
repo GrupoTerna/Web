@@ -20,10 +20,17 @@ function esc(s){
  * admin.html ya llamaban pero que no existía en ningún archivo — sin esta
  * función esas dos páginas rompían al renderizar (ReferenceError).
  */
+/* MEJORA (21-oct-2026, rendimiento de guerra.html -- [→ Contexto_Base_Web.md §PF018]):
+ * num.toLocaleString('en-US') crea un formateador nuevo en CADA llamada. guerra.html llama a
+ * fmtNum() miles de veces al pintar las tablas (392 ms de tiempo propio con la CPU a 4× en
+ * Lighthouse con 4 clanes × 50 jugadores). Se crea UNO y se reutiliza: da exactamente el mismo
+ * texto (lo comprueba test/util.test.js) y, si el navegador no tiene Intl.NumberFormat, se
+ * mantiene el camino de antes. */
+const _FORMATO_NUM_EN_US = (typeof Intl !== 'undefined' && Intl.NumberFormat) ? new Intl.NumberFormat('en-US') : null;
 function fmtNum(n){
   const num = Number(n);
   if (!isFinite(num)) return '0';
-  return num.toLocaleString('en-US');
+  return _FORMATO_NUM_EN_US ? _FORMATO_NUM_EN_US.format(num) : num.toLocaleString('en-US');
 }
 
 

@@ -28,6 +28,15 @@ test('fmtNum() separa miles con coma (14000 -> "14,000")', () => {
   assert.equal(fmtNum(999), '999');
 });
 
+test("fmtNum() da el mismo texto que toLocaleString('en-US') (formateador reutilizado, §PF018)", () => {
+  const muestras = [0, -0, 1, -1, 12, 999, 1000, 14000, 1234567, -1234567.891, 0.5, 1.2345678, 12.5, 1e6, 123456789012, 1e21, 5e-7, '2500', '12.75', true, null, ''];
+  muestras.forEach(v => {
+    const num = Number(v);
+    const esperado = isFinite(num) ? num.toLocaleString('en-US') : '0';
+    assert.equal(fmtNum(v), esperado, 'valor: ' + String(v));
+  });
+});
+
 test('fmtNum() con un valor no numérico devuelve "0" en vez de "NaN" o romper', () => {
   assert.equal(fmtNum(NaN), '0');
   assert.equal(fmtNum(Infinity), '0');

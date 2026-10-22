@@ -186,7 +186,8 @@
 // v127 (21-oct-2026): las fechas con mes abreviado pasan a dd/mm/aaaa en util.js, directorio.html, perfil.html y admin.html (CORE_ASSETS) (§PF157).
 // v128 (21-oct-2026): perfil.html cambió (CORE_ASSETS) -- el día de guerra de cada registro sale de `periodIndex`, y los ataques del día usan `ataquesHoy` cuando la resta del acumulado es imposible (§PF159).
 // v129 (22-oct-2026): perfil.html cambió (CORE_ASSETS) -- el diario sale solo de la resta del acumulado semanal; se quitó el respaldo con `ataquesHoy` de v128 (§PF159).
-const CACHE_NAME = 'terna-static-v129';
+// v130 (21-oct-2026): assets/js/util.js cambió (CORE_ASSETS) -- fmtNum() reutiliza un único Intl.NumberFormat en vez de crear uno por llamada (mismo texto; menos CPU al pintar las tablas de guerra, §PF018).
+const CACHE_NAME = 'terna-static-v130';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
