@@ -44,7 +44,7 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 ## 23-oct-2026
 
 - **`assets/js/features/mini-historial.js` (`histPintarComparacion()`, `histAbrir()`, `histClaseColorAtaques()`; se quita `histFechaCorta()` sin uso), `assets/styles.css` (`.hist-tabla-dia td.hist-a4`, `td.hist-a13`, `td.hist-cero`; se quita `.hist-cero-celda`), `scripts/medicion-accesibilidad/mide_d20_resto.js`, `test/mini-historial-dom.test.js` y `sw.js` v145 · Tabla «Comparar con»: columnas N°, Fecha (dd/mm/aaaa) y Día (J, V, S, D), color de cada jugador según sus ataques (verde 4, amarillo 1 a 3, rojo 0) y semanas alternadas; el nombre del jugador (título de la ventana y encabezados de la comparación) enlaza a su perfil en pestaña nueva. → §PF174
-- **`guerra.html` (`cargarMensajesGuerraSiAdmin()`, regla `.msj-guerra-aviso`), `sw.js` (v146):** la fila de mensajes de guerra de Pendientes de Atacar deja de quedar en blanco cuando falla o viene vacía: a un admin le muestra el motivo (error del servidor, de conexión o «sin mensajes generados»). Diagnóstico de por qué no aparecía.
+- **`guerra.html` (`cargarMensajesGuerraSiAdmin()`, regla `.msj-guerra-aviso`), `sw.js` (v146 y v147):** la fila de mensajes de guerra de Pendientes de Atacar deja de quedar en blanco cuando falla o viene vacía: a un admin le muestra el motivo (error del servidor, de conexión o «sin mensajes generados»). Diagnóstico de por qué no aparecía.
 
 ## 22-oct-2026
 
