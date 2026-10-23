@@ -271,6 +271,10 @@
   thead th.ai-grp-atq{background-image:linear-gradient(rgba(162,57,255,.07),rgba(162,57,255,.07));}
   thead th.ai-grp-pje{background-image:linear-gradient(rgba(243,169,34,.07),rgba(243,169,34,.07));}
   thead th.ai-grp-brc{background-image:linear-gradient(rgba(203,213,225,.07),rgba(203,213,225,.07));}
+  /* NUEVO (23-oct-2026, tanda 6): columna del día de hoy (Valores diarios) o de la semana en curso (Valores semanales). Líneas laterales en las celdas y encabezado con fondo morado y barra inferior. A propósito NO se cambia el fondo de las celdas: el 0 de Ataques (--text-faint) ya está en 4,57:1 sobre su fondo y cualquier fondo morado visible lo baja de 4,5:1 (medido el 23-oct-2026). Tampoco se toca el color de los números. [→ Contexto_Base_Web.md §PF176] */
+  .tbl-activos-grid td.ai-hoy{box-shadow:inset 2px 0 0 var(--purple-light), inset -2px 0 0 var(--purple-light);}
+  .tbl-activos-grid thead th.ai-hoy{background-image:linear-gradient(rgba(162,57,255,.38),rgba(162,57,255,.38)); color:var(--text); box-shadow:inset 2px 0 0 var(--purple-light), inset -2px 0 0 var(--purple-light), inset 0 -3px 0 var(--purple-light);}
+  .ai-hoy-muestra{display:inline-block; min-width:22px; text-align:center; font-family:var(--f-mono); font-weight:700; color:var(--text); box-shadow:inset 2px 0 0 var(--purple-light), inset -2px 0 0 var(--purple-light);}
   /* el <th colspan> de cada megacategoría (Ataques/Puntaje/Barcos) se centraba con el text-align:center genérico de más abajo, pero ESE centrado es respecto al ancho TOTAL de la celda combinada (colspan), no respecto a lo que realmente se ve en pantalla. Historial en CHANGELOG.md. */
   .ai-grp-label{position:sticky; left:0; right:0; margin:0 auto; width:max-content; display:block;}
   /* encabezados centrados sobre sus datos. Historial en CHANGELOG.md. */
@@ -507,6 +511,7 @@
         <span><b class="ai-cell ai-cell-full">16</b> En Valores semanales el verde exige 16 ataques, menos 4 por cada día en que la meta ya estaba cruzada</span>
         <span><b>(vacío)</b> No estuvo en el clan ese día o semana</span>
         <span><b style="color:var(--danger);">▌</b> Fila resaltada: estuvo y tiene algún 0</span>
+        <span><b class="ai-hoy-muestra">J</b> Columna marcada: el día de hoy (en entrenamiento, el último día jugado)</span>
       </div>
       <div class="tabs-row" id="controlActivosClanTabs" style="margin-top:20px;"></div>
       <!-- FIX (13-sep-2026, pedido usuario — "agrega los botones de letras
@@ -736,23 +741,54 @@ async function cargar(manual){
 /* claseCeldaCA(n) / celdasMegacategoria(m, gpClase, conColor) Historial en CHANGELOG.md. */
 /* Umbral del verde en Valores semanales (05-oct-2026): una semana tiene hasta 16 ataques (4 días x 4), así que verde = semana completa. Cambia este número para ajustar el criterio. */
 const UMBRAL_VERDE_SEMANAL = 16;
+/* NUEVO (23-oct-2026, tanda 6 del consolidado del mini historial, pedido usuario — «en guerra.html se resalte o sombree la semana o día actual (columna)»; [→ Contexto_Base_Web.md §PF176]).
+ * Qué columna se marca es una decisión pura de estas funciones, sin tocar el DOM:
+ *  - Día de guerra: el día de hoy según ctx.periodIndex (jueves a domingo = periodIndex % 7 de 3 a 6, igual que perfil.html), aunque aún no tenga datos (P10).
+ *  - Entrenamiento (lunes a miércoles): se queda marcado el último día jugado, el domingo (data.guerraCongeladaLetra, 'D' por defecto) de la semana anterior (P9).
+ *  - Solo se marca si lo que se está mostrando ES esa semana (temporada y semana elegidas = la vigente en guerra, o la última jugada en entrenamiento). Con otra semana elegida no se marca nada. */
+const _mismoValorGuerra = (a, b) => a !== undefined && a !== null && b !== undefined && b !== null && String(a) === String(b);
+function letraHoyGuerra(data){
+  const ctx = (data && data.ctx) || {};
+  if (!ctx.esDiaGuerra) return (data && data.guerraCongeladaLetra) || 'D';
+  if (ctx.periodIndex !== undefined && ctx.periodIndex !== null && Number.isFinite(Number(ctx.periodIndex))){
+    const i = (((Number(ctx.periodIndex) % 7) + 7) % 7) - 3;
+    if (i >= 0 && i < DIAS.length) return DIAS[i].letra;
+  }
+  return ctx.diaLetra || null;
+}
+function semanaHoyGuerra(data){
+  const ctx = (data && data.ctx) || {};
+  if (ctx.esDiaGuerra) return { temporada: ctx.temporada, sectionIndex: ctx.sectionIndex };
+  const def = data && data.valoresDiariosSelectores && data.valoresDiariosSelectores.porDefecto;
+  return def ? { temporada: def.temporada, sectionIndex: def.sectionIndex } : null;
+}
+/* Valores diarios: { key:'j'|'v'|'s'|'d', titulo } de la columna a marcar, o null. */
+function colHoyDiario(data, temporadaSel, sectionIndexSel){
+  const sem = semanaHoyGuerra(data);
+  if (!sem || !_mismoValorGuerra(temporadaSel, sem.temporada) || !_mismoValorGuerra(sectionIndexSel, sem.sectionIndex)) return null;
+  const letra = letraHoyGuerra(data);
+  if (!letra) return null;
+  return { key: String(letra).toLowerCase(), titulo: data.ctx && data.ctx.esDiaGuerra ? 'Hoy: día de guerra en curso' : 'Último día de guerra jugado (el domingo)' };
+}
 /* NUEVO (05-oct-2026): `umbral` = ataques que exige esa semana = 16 menos 4 por cada día en que el clan ya había cruzado la meta (atacar era opcional). Sin dato de días opcionales vale 16, igual que antes. */
 function claseCeldaSemana(n, umbral){ const u = umbral === undefined ? UMBRAL_VERDE_SEMANAL : umbral; return n >= u ? 'ai-cell ai-cell-full' : (n > 0 ? 'ai-cell ai-cell-part' : 'ai-cell ai-cell-zero'); }
 function claseCeldaCA(n){ return n >= 4 ? 'ai-cell ai-cell-full' : (n > 0 ? 'ai-cell ai-cell-part' : 'ai-cell ai-cell-zero'); }
 /* celdasMegacategoria(m, gpClase, conColor, keyPrefix) Historial en CHANGELOG.md. */
-function celdasMegacategoria(m, gpClase, conColor, keyPrefix, opc){
+function celdasMegacategoria(m, gpClase, conColor, keyPrefix, opc, colHoy){
   // NUEVO (05-oct-2026): `opc` = letras de días en que el clan ya había cruzado la meta (atacar era opcional). Solo cambia el color de un 0 en esa celda; el valor no se altera.
   const diasOpc = Array.isArray(opc) ? opc : [];
   // FIX (05-oct-2026, pedido usuario): `null` = el jugador NO estuvo en el clan ese día -> celda VACÍA (no 0). El 0 queda solo para "estuvo y no atacó". `undefined` (otras fuentes, p. ej. Inactivos) se sigue leyendo como 0.
   const val = (x) => x === null ? null : (x ?? 0);
   const j = val(m?.j), v = val(m?.v), s = val(m?.s), d = val(m?.d), total = val(m?.total);
-  const claseDia = (n) => `${gpClase} ${conColor ? claseCeldaCA(n) : 'ai-num'}`;
+  // NUEVO (23-oct-2026, tanda 6): `colHoy` = clave ('j','v','s','d') de la columna del día de hoy; solo vale en las cuadrículas con keyPrefix (Valores diarios), no en Inactivos. [→ Contexto_Base_Web.md §PF176]
+  const hoy = (k) => keyPrefix && colHoy === k ? ' ai-hoy' : '';
+  const claseDia = (k, n) => `${gpClase} ${conColor ? claseCeldaCA(n) : 'ai-num'}${hoy(k)}`;
   const claseTotal = `${gpClase} ai-total ${conColor && total >= 16 ? 'ai-total-full' : ''}`;
   const dc = (k, x) => keyPrefix ? ` data-col="${keyPrefix}-${k}" data-raw="${x === null ? '' : esc(String(x))}"` : '';
   const celdaDia = (k, n) => {
-    if (n === null) return `<td class="${gpClase} ai-num"${dc(k, n)}></td>`;
-    if (conColor && n === 0 && diasOpc.includes(k)) return `<td class="${gpClase} ai-cell ai-cell-opc"${dc(k, n)} data-opc="1" title="Meta ya cruzada: atacar era opcional">0</td>`;
-    return `<td class="${claseDia(n)}"${dc(k, n)}>${conColor ? n : fmtNum(n)}</td>`;
+    if (n === null) return `<td class="${gpClase} ai-num${hoy(k)}"${dc(k, n)}></td>`;
+    if (conColor && n === 0 && diasOpc.includes(k)) return `<td class="${gpClase} ai-cell ai-cell-opc${hoy(k)}"${dc(k, n)} data-opc="1" title="Meta ya cruzada: atacar era opcional">0</td>`;
+    return `<td class="${claseDia(k, n)}"${dc(k, n)}>${conColor ? n : fmtNum(n)}</td>`;
   };
   return `
                 ${celdaDia('j', j)}
@@ -812,9 +848,13 @@ function thFiltroGrid(claseTh, label, colKey, attrs){
   return `<th class="${claseTh}" scope="col"${attrs ? ' ' + attrs : ''}><div class="rt-th-inner"><span>${esc(label)}</span><span class="rt-orden-indicador" data-col="${colKey}"></span><button type="button" class="rt-filtro-btn" data-col="${colKey}" title="Ordenar o filtrar por ${esc(label)}" aria-label="Ordenar o filtrar por ${esc(label)}">${ICONO_FILTRO_GRID}</button></div></th>`;
 }
 /** 5 columnas fijas J/V/S/D/Total de una megacategoría (Valores diarios). */
-function filaSubEncabezadosMega(gpClase, prefijo){
-  return ['J', 'V', 'S', 'D', 'Total'].map((lbl, i) =>
-    thFiltroGrid(gpClase, lbl, `${prefijo}-${['j', 'v', 's', 'd', 'total'][i]}`)).join('');
+function filaSubEncabezadosMega(gpClase, prefijo, colHoy){
+  // NUEVO (23-oct-2026, tanda 6): `colHoy` ({key, titulo}, ver colHoyDiario()) marca el encabezado del día de hoy con .ai-hoy, aria-current y un title; el color no es la única señal. [→ Contexto_Base_Web.md §PF176]
+  return ['J', 'V', 'S', 'D', 'Total'].map((lbl, i) => {
+    const key = ['j', 'v', 's', 'd', 'total'][i];
+    const esHoy = !!colHoy && colHoy.key === key;
+    return thFiltroGrid(esHoy ? `${gpClase} ai-hoy` : gpClase, lbl, `${prefijo}-${key}`, esHoy ? `aria-current="true" title="${esc(colHoy.titulo)}"` : undefined);
+  }).join('');
 }
 /** Sem 1..Sem N + Total/Prom + % de una megacategoría (Valores semanales). */
 function filaSubEncabezadosSemanas(gpClase, prefijo, semanasLabels, labelResumen){
@@ -1663,13 +1703,15 @@ function render(data){
   if (clanesControlActivos.length){
 // claseCeldaCA()/celdasMegacategoria() ahora son helpers globales (ver arriba de render(), hoisteados para que Inactivos también los use). Historial en CHANGELOG.md.
     _gridDiarioTraeInactivos = clanesControlActivos.some(c => (controlActivos[c] || []).some(f => f.activo === false));
+    // NUEVO (23-oct-2026, tanda 6): columna del día de hoy (o del último día jugado en entrenamiento) para marcarla en esta cuadrícula; null si se eligió otra semana. [→ Contexto_Base_Web.md §PF176]
+    const colHoyDia = colHoyDiario(data, temporadaSeleccionadaActivos, sectionIndexSeleccionadoActivos);
     const renderFilaActivos = f => `
               <tr data-letra="${esc(primeraLetraFiltro(f.nombre || f.tag))}" data-rango="${esc(f.rango || '')}" class="${f.activo === false ? 'fila-inactivo' : ''}">
                 <td class="col-n"></td>
                 ${celdaJugadorGrid(f)}
-                ${celdasMegacategoria({j:f.j, v:f.v, s:f.s, d:f.d, total:f.total}, 'ai-grp-atq', true, 'atq', f.opc)}
-                ${celdasMegacategoria(f.puntaje, 'ai-grp-pje', false, 'pje')}
-                ${celdasMegacategoria(f.barcos, 'ai-grp-brc', false, 'brc')}
+                ${celdasMegacategoria({j:f.j, v:f.v, s:f.s, d:f.d, total:f.total}, 'ai-grp-atq', true, 'atq', f.opc, colHoyDia && colHoyDia.key)}
+                ${celdasMegacategoria(f.puntaje, 'ai-grp-pje', false, 'pje', undefined, colHoyDia && colHoyDia.key)}
+                ${celdasMegacategoria(f.barcos, 'ai-grp-brc', false, 'brc', undefined, colHoyDia && colHoyDia.key)}
               </tr>`;
     document.getElementById('controlActivosWrap').innerHTML = clanesControlActivos.map(clanNombre => {
       const filas = controlActivos[clanNombre];
@@ -1688,9 +1730,9 @@ function render(data){
                 <th class="ai-grp-brc" colspan="5" scope="colgroup"><span class="ai-grp-label">Barcos</span></th>
               </tr>
               <tr>
-                ${filaSubEncabezadosMega('ai-grp-atq', 'atq')}
-                ${filaSubEncabezadosMega('ai-grp-pje', 'pje')}
-                ${filaSubEncabezadosMega('ai-grp-brc', 'brc')}
+                ${filaSubEncabezadosMega('ai-grp-atq', 'atq', colHoyDia)}
+                ${filaSubEncabezadosMega('ai-grp-pje', 'pje', colHoyDia)}
+                ${filaSubEncabezadosMega('ai-grp-brc', 'brc', colHoyDia)}
               </tr>
             </thead>
             <tbody></tbody>
