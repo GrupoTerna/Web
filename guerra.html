@@ -180,6 +180,14 @@
   #status:not(.err){min-height:80vh;}
   /* ya no es una sección aparte con tarjetas (label + botón genérico "Copiar"); ahora es una fila compacta de botones integrada arriba de la tabla de "Pendientes de Atacar" (ver #msjGuerraWrap dentro de #pendSection más abajo), y el nombre del clan va DENTRO del… Historial en CHANGELOG.md. */
   .msj-guerra-row{display:flex; flex-wrap:wrap; gap:8px; margin-top:14px;}
+  .msj-guerra-row[hidden]{display:none;} /* sin esto el display:flex de arriba le gana al atributo hidden */
+  /* NUEVO (23-oct-2026, tanda 7): pastilla de mensajes de guerra junto al contador de Pendientes; en móvil el título y el grupo pasan a dos líneas en vez de ensanchar la página. [→ Contexto_Base_Web.md §PF177] */
+  #pendSection .sec-head{flex-wrap:wrap; gap:6px 12px;}
+  .pend-acciones{display:flex; align-items:baseline; flex-wrap:wrap; gap:6px 12px; margin-left:auto;}
+  /* mismo aspecto que .btn-solo-cero (styles.css), con clase propia para que el filtro «Solo con 0» y sus mediciones no la toquen */
+  .btn-msj-guerra{font-family:var(--f-mono); font-size:12px; background:var(--surface-card); color:var(--text-dim); border:1px solid var(--line-strong); border-radius:var(--radius-sm); padding:5px 12px; cursor:pointer;}
+  .btn-msj-guerra:hover{color:var(--text);}
+  .btn-msj-guerra[aria-expanded="true"]{color:var(--purple-light); border-color:var(--purple);}
   .msj-guerra-row .btn-copiar-mg{
     background:rgba(162,57,255,.1); border:1px solid var(--line-strong); color:var(--text);
     font-family:var(--f-mono); font-size:11px; font-weight:700; letter-spacing:.03em; text-transform:uppercase;
@@ -459,10 +467,14 @@
     <section id="pendSection" style="padding:calc(var(--gap-seccion) / 2) 0;">
       <div class="sec-head pf-cinta pf-cinta--seccion" style="--cinta:url(Im%C3%A1genes/Banners/Fankit/cinta-guerra-pendientes.webp); display:flex; align-items:baseline; justify-content:space-between; border-bottom:1px solid var(--line); padding-bottom:12px;">
         <h2 style="font-size:22px;">⚠️ Pendientes de Atacar</h2>
-        <span class="text-faint" id="pendCount" style="font-family:var(--f-mono); font-size:13px;"></span>
+        <span class="pend-acciones">
+          <!-- NUEVO (23-oct-2026, tanda 7, pedido usuario): pastilla solo para admins (y solo en día de guerra) que muestra u oculta la fila de botones «Copiar» de abajo. Nace oculta; la muestra cargarMensajesGuerraSiAdmin(). [→ Contexto_Base_Web.md §PF177] -->
+          <button type="button" class="btn-msj-guerra" id="btnMsjGuerra" aria-expanded="false" aria-controls="msjGuerraWrap" title="Muestra u oculta los mensajes de guerra para copiar (solo admins)" hidden>✉ Mensajes de guerra</button>
+          <span class="text-faint" id="pendCount" style="font-family:var(--f-mono); font-size:13px;"></span>
+        </span>
       </div>
-      <!-- fila de botones "Copiar" por clan (+ Chat General), visible solo para admins logueados, integrada aquí mismo (antes era una sección aparte más arriba en la página). Historial en CHANGELOG.md. -->
-      <div class="msj-guerra-row" id="msjGuerraWrap"></div>
+      <!-- fila de botones "Copiar" por clan (+ Chat General), visible solo para admins logueados, integrada aquí mismo (antes era una sección aparte más arriba en la página). Desde el 23-oct-2026 nace oculta y la abre la pastilla #btnMsjGuerra. Historial en CHANGELOG.md. -->
+      <div class="msj-guerra-row" id="msjGuerraWrap" hidden></div>
       <!-- FIX (12-sep-2026, pedido usuario — "agrega también los botones
            de clan(es) y Todos"): mismo patrón .tabs-row/.tab-btn que
            "Valores diarios" (ver gestionarTabsClan() en el <script>).
@@ -1869,10 +1881,23 @@ function render(data){
     'Última carga completa: ' + new Date().toLocaleString('es-PE');
 }
 
+/* NUEVO (23-oct-2026, tanda 7): estado de la pastilla «✉ Mensajes de guerra». Nace cerrada y sobrevive a cada repintado de render() (cada REFRESH_INTERVAL_MS), mismo criterio que clanSeleccionadoPend. Sin sesión de admin o fuera de día de guerra la pastilla y la fila no se muestran y el estado vuelve a cerrado. [→ Contexto_Base_Web.md §PF177] */
+let msjGuerraAbierto = false;
+function pintarPastillaMensajesGuerra(visible){
+  const btn = document.getElementById('btnMsjGuerra');
+  const wrap = document.getElementById('msjGuerraWrap');
+  if (!btn || !wrap) return;
+  if (!visible) msjGuerraAbierto = false;
+  btn.hidden = !visible;
+  btn.setAttribute('aria-expanded', msjGuerraAbierto ? 'true' : 'false');
+  wrap.hidden = !msjGuerraAbierto;
+  btn.onclick = () => { msjGuerraAbierto = !msjGuerraAbierto; pintarPastillaMensajesGuerra(true); };
+}
 /* cargarMensajesGuerraSiAdmin(ctx) Historial en CHANGELOG.md. */
 async function cargarMensajesGuerraSiAdmin(ctx){
   const wrap = document.getElementById('msjGuerraWrap');
-  if (!ctx.esDiaGuerra || !esAdminLogueado()){ wrap.innerHTML = ''; return; }
+  if (!ctx.esDiaGuerra || !esAdminLogueado()){ wrap.innerHTML = ''; pintarPastillaMensajesGuerra(false); return; }
+  pintarPastillaMensajesGuerra(true);
   // 23-oct-2026: antes cualquier fallo o lista vacía dejaba la fila en blanco y no se sabía por qué; ahora un admin ve el motivo.
   const avisar = (texto) => { wrap.innerHTML = `<p class="msj-guerra-aviso">✉ ${esc(texto)}</p>`; };
   try{
