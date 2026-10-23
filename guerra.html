@@ -187,6 +187,7 @@
   }
   .msj-guerra-row .btn-copiar-mg:hover{border-color:var(--purple); color:var(--purple-light); background:rgba(162,57,255,.2);}
   .msj-guerra-row .btn-copiar-mg.copiado{color:var(--ok); border-color:var(--ok);}
+  .msj-guerra-row .msj-guerra-aviso{margin:0; font-size:12px; color:var(--text-dim);}
 
   /* FASE 3 del plan de fases (punto 3 del documento — "cuentas y ataques disponibles por día"): sección solo-admin y solo día de guerra (mismo criterio que Mensajes de Guerra / Aportes de Inactivos de arriba). Backend ya listo desde antes… Historial en CHANGELOG.md. */
   #participacionHoySection{display:none;}
@@ -1809,10 +1810,19 @@ function render(data){
 async function cargarMensajesGuerraSiAdmin(ctx){
   const wrap = document.getElementById('msjGuerraWrap');
   if (!ctx.esDiaGuerra || !esAdminLogueado()){ wrap.innerHTML = ''; return; }
+  // 23-oct-2026: antes cualquier fallo o lista vacía dejaba la fila en blanco y no se sabía por qué; ahora un admin ve el motivo.
+  const avisar = (texto) => { wrap.innerHTML = `<p class="msj-guerra-aviso">✉ ${esc(texto)}</p>`; };
   try{
     const data = await apiGetAuth('webAdminContenido', { categoria: 'Mensaje de Guerra' });
+    if (data && data.ok === false){
+      avisar('No se pudieron cargar los mensajes de guerra: ' + (data.error || 'el servidor no dio detalle') + '.');
+      return;
+    }
     const opciones = (data && data.opciones) || [];
-    if (!opciones.length){ wrap.innerHTML = ''; return; }
+    if (!opciones.length){
+      avisar('No hay mensajes de guerra generados ahora mismo (se crean cuando hay jugadores pendientes).');
+      return;
+    }
     wrap.innerHTML = opciones.map((o, i) => {
       const etiqueta = esc(o.etiqueta || o.subcategoria || o.clan || ('Opción ' + (i + 1)));
       return `<button type="button" class="btn-copiar-mg" data-idx="${i}" data-label="⧉ Copiar — ${etiqueta}">⧉ Copiar — ${etiqueta}</button>`;
@@ -1832,9 +1842,8 @@ async function cargarMensajesGuerraSiAdmin(ctx){
       });
     });
   }catch(err){
-    // Defensivo: sesión vencida u otro fallo — no romper el resto de la
-    // página pública por esto, la fila de botones simplemente no aparece.
-    wrap.innerHTML = '';
+    // No se rompe el resto de la página, pero el admin ve que falló y por qué.
+    avisar('No se pudieron cargar los mensajes de guerra (' + (err && err.message ? err.message : 'error de conexión') + ').');
   }
 }
 

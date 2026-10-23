@@ -202,7 +202,8 @@
 // v145 (23-oct-2026): assets/js/features/mini-historial.js y assets/styles.css cambiaron (CORE_ASSETS) -- la tabla «Comparar con» lleva N°, Fecha y Día, color por jugador y semanas alternadas, y los nombres del mini historial enlazan a su perfil (§PF174).
 // v144 (22-oct-2026): assets/js/features/mini-historial.js y assets/styles.css cambiaron (CORE_ASSETS) -- una fila con 1 ataque también va en amarillo (clase .hist-a13, antes .hist-a23; §PF173).
 // v143 (22-oct-2026): assets/js/features/mini-historial.js y assets/styles.css cambiaron (CORE_ASSETS) -- la tabla del mini historial lleva N°, Fecha (22/10/2026), Día (J, V, S, D), color de fila según los ataques y semanas sombreadas de forma alternada (§PF173).
-const CACHE_NAME = 'terna-static-v145';
+// v146 (23-oct-2026): guerra.html cambió (CORE_ASSETS) -- la fila de mensajes de guerra de Pendientes de Atacar muestra a los admins el motivo cuando no carga o viene vacía, en vez de quedar en blanco.
+const CACHE_NAME = 'terna-static-v146';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
