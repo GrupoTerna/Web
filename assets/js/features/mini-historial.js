@@ -55,6 +55,32 @@ function histFechaCorta(iso){
   const dia = ['dom','lun','mar','mié','jue','vie','sáb'][dt.getDay()];
   return `${dia} ${String(d).padStart(2,'0')}/${String(m).padStart(2,'0')}`;
 }
+/* 22-oct-2026 (pedido de la usuaria, tanda 1 de Consolidado_Mini_Historial_y_Perfil.md): fecha como 22/10/2026, día en una letra (J, V, S, D), color de la fila según los ataques y sombreado alternado por semana. */
+function histFechaDMA(iso){
+  const [y, m, d] = String(iso).split('-').map(Number);
+  if (!y) return esc(iso);
+  return `${String(d).padStart(2,'0')}/${String(m).padStart(2,'0')}/${y}`;
+}
+function histDiaLetra(iso){
+  const [y, m, d] = String(iso).split('-').map(Number);
+  if (!y) return '';
+  return ['D','L','M','X','J','V','S'][new Date(y, m - 1, d).getDay()]; // en guerra solo salen J, V, S y D
+}
+/* La semana se agrupa por el lunes que contiene la fecha (jueves a domingo de guerra caen en la misma semana lunes-domingo). */
+function histLunesIso(iso){
+  const [y, m, d] = String(iso).split('-').map(Number);
+  if (!y) return String(iso);
+  const dt = new Date(y, m - 1, d - ((new Date(y, m - 1, d).getDay() + 6) % 7));
+  return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
+}
+/* Verde con 4 ataques, amarillo con 2 y 3, rojo con 0 (solo si no es opcional: histEsFalta). El 1 queda sin color propio hasta que la usuaria lo defina (P1 del consolidado). */
+function histClaseColorAtaques(r){
+  if (histEsFalta(r)) return 'hist-cero';
+  const a = r.ataques || 0;
+  if (a >= HIST_ATAQUES_MAX) return 'hist-a4';
+  if (a === 2 || a === 3) return 'hist-a23';
+  return '';
+}
 function histCerrar(){ document.getElementById('histFondo').classList.remove('abierto'); histSolicitud++; }
 let histTag = '', histNombre = '', histRegsA = [];
 /* Solo días de guerra (jueves a domingo): un registro de lunes a miércoles es entrenamiento y no se muestra ni se cuenta. */
@@ -111,7 +137,14 @@ function histPintar(registros, verTodos){
   const hoyIso = histHoyIso();
   const visibles = verTodos ? desc : desc.slice(0, HIST_FILAS_INICIALES);
   const hayHoy = visibles.some(r => r.fecha === hoyIso), hayPend = visibles.some(r => histPendiente(r, hoyIso));
-  const filas = visibles.map(r => `<tr class="${[histEsFalta(r) ? 'hist-cero' : '', r.fecha === hoyIso ? 'hist-hoy' : ''].filter(Boolean).join(' ')}"><td>${histFechaCorta(r.fecha)}${r.fecha === hoyIso ? ' · en curso' : ''}${r.opcional === true ? ' · opcional (meta cruzada)' : ''}</td><td>${fmtNum(r.ataques || 0)}${histPendiente(r, hoyIso) ? HIST_ASTERISCO : ''}</td><td>${fmtNum(r.fame || 0)}</td><td>${fmtNum(r.barcos || 0)}</td></tr>`).join('');
+  let semPrev = null, semAlt = false;
+  const filas = visibles.map((r, idx) => {
+    const sem = histLunesIso(r.fecha);
+    if (semPrev !== null && sem !== semPrev) semAlt = !semAlt;
+    semPrev = sem;
+    const clases = [histClaseColorAtaques(r), semAlt ? 'hist-sem-b' : '', r.fecha === hoyIso ? 'hist-hoy' : ''].filter(Boolean).join(' ');
+    return `<tr class="${clases}"><td>${idx + 1}</td><td>${histFechaDMA(r.fecha)}${r.fecha === hoyIso ? ' · en curso' : ''}${r.opcional === true ? ' · opcional (meta cruzada)' : ''}</td><td>${histDiaLetra(r.fecha)}</td><td>${fmtNum(r.ataques || 0)}${histPendiente(r, hoyIso) ? HIST_ASTERISCO : ''}</td><td>${fmtNum(r.barcos || 0)}</td><td>${fmtNum(r.fame || 0)}</td></tr>`;
+  }).join('');
   document.getElementById('histCuerpo').innerHTML = histSelectorComparar('') + `
     <div class="hist-resumen">
       <div><b>${n}</b>días de guerra</div>
@@ -121,7 +154,7 @@ function histPintar(registros, verTodos){
       <div><b>${fmtNum(st.fame)}</b>medallas</div>
       <div><b>${fmtNum(st.barcos)}</b>barcos</div>
     </div>
-    <table class="hist-tabla"><thead><tr><th>Día</th><th>Ataques</th><th>Medallas</th><th>Barcos</th></tr></thead><tbody>${filas}</tbody></table>
+    <table class="hist-tabla hist-tabla-dia"><thead><tr><th>N°</th><th>Fecha</th><th>Día</th><th>Ataques</th><th>Barcos</th><th>Medallas</th></tr></thead><tbody>${filas}</tbody></table>
     ${(!verTodos && n > HIST_FILAS_INICIALES) ? `<button type="button" class="btn-solo-cero hist-mas" id="histMas">Ver todos (${n})</button>` : ''}
     <p class="hist-nota">Un 0 es un día de guerra en el que estuvo registrado y no atacó. Los días anteriores a su ingreso al clan no aparecen. Un día marcado como opcional (meta ya cruzada) no cuenta como falta. Solo se muestran días de guerra, no de entrenamiento.${histNotasDiaEnCurso(hayHoy, hayPend)}</p>`;
   histEnlazarSelector();
