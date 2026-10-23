@@ -81,3 +81,9 @@ test('guerra.html y directorio.html cargan mini-historial.js y no lo duplican', 
   assert.match(d, /extra:m => botonHistJugador\(\{ tag:m\.tag, nombre:m\.nombre \}\)/, 'la columna Nombre del directorio lleva el 📈');
   assert.match(d, /e\.target\.closest\('a, \.btn-hist-jugador'\)/, 'el clic en el 📈 no abre además el perfil');
 });
+
+test('Pendientes de Atacar lleva el 📈 del mini historial junto al nombre', () => {
+  const fs = require('node:fs'), path = require('node:path');
+  const g = fs.readFileSync(path.join(__dirname, '..', 'guerra.html'), 'utf8');
+  assert.match(g, /enlaceJugador\(nombreMostrado, p\.tag\) : esc\(nombreMostrado\)\}\$\{botonHistJugador\(\{ tag:p\.tag, nombre:nombreMostrado \}\)\}<\/td>/);
+});

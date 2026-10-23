@@ -196,7 +196,8 @@
 // v137 (22-oct-2026): perfil.html cambió (CORE_ASSETS) -- el selector de semana del Historial de guerra muestra el rango lunes–domingo («S3 (19 OCT – 25 OCT)») en vez de un solo día (§PF168).
 // v138 (22-oct-2026): perfil.html cambió (CORE_ASSETS) -- en el Historial de guerra, el año y el mes de la temporada salen del lunes de la semana, no del último día registrado (§PF168).
 // v139 (22-oct-2026): directorio.html, guerra.html, assets/styles.css y el nuevo assets/js/features/mini-historial.js cambiaron (CORE_ASSETS) -- el mini historial de guerra (📈) pasa a un archivo compartido y la tabla del Directorio lo muestra junto al nombre de cada jugador (§PF169).
-const CACHE_NAME = 'terna-static-v139';
+// v140 (22-oct-2026): guerra.html cambió (CORE_ASSETS) -- «Pendientes de Atacar» muestra el 📈 del mini historial junto al nombre de cada jugador (§PF170).
+const CACHE_NAME = 'terna-static-v140';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y

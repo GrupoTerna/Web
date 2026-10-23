@@ -1583,12 +1583,13 @@ function render(data){
     const letra = primeraLetraFiltro(nombreMostrado);
     const royaleOk = urlValida(p.royaleApi);
     const cwOk = urlValida(p.cwStats);
+    // 22-oct-2026 (pedido de la usuaria): el 📈 del mini historial (mini-historial.js) también va junto al nombre en Pendientes de Atacar. [→ Contexto_Base_Web.md §PF170]
     const t = (key, val, cls) => `<td${cls ? ` class="${cls}"` : ''} data-col="${key}" data-tipo="t" data-raw="${esc(val)}">`;
     return `
             <tr data-letra="${esc(letra)}">
               <td class="col-n"></td>
               ${t('tag', p.tag || '—', 'col-tag')}${esc(p.tag || '—')}</td>
-              ${t('nombre', nombreMostrado || '—', 'col-nombre')}${p.tag ? enlaceJugador(nombreMostrado, p.tag) : esc(nombreMostrado)}</td>
+              ${t('nombre', nombreMostrado || '—', 'col-nombre')}${p.tag ? enlaceJugador(nombreMostrado, p.tag) : esc(nombreMostrado)}${botonHistJugador({ tag:p.tag, nombre:nombreMostrado })}</td>
               ${pendEsAdmin ? `${t('jugador', p.nomMulti || '—')}${esc(p.nomMulti || '—')}</td>${t('prestamo', p.prestamo || '—')}${esc(p.prestamo || '—')}</td>` : ''}
               ${t('rango', p.rango || '—')}${esc(p.rango || '—')}</td>
               <td class="falt" data-col="faltantes" data-raw="${Number(p.faltantes) || 0}">${fmtNum(p.faltantes)}</td>
