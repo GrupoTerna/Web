@@ -41,6 +41,10 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 
 ---
 
+## 23-oct-2026
+
+- **`assets/js/features/mini-historial.js` (`histPintarComparacion()`, `histAbrir()`, `histClaseColorAtaques()`; se quita `histFechaCorta()` sin uso), `assets/styles.css` (`.hist-tabla-dia td.hist-a4`, `td.hist-a13`, `td.hist-cero`; se quita `.hist-cero-celda`), `scripts/medicion-accesibilidad/mide_d20_resto.js`, `test/mini-historial-dom.test.js` y `sw.js` v145 · Tabla «Comparar con»: columnas N°, Fecha (dd/mm/aaaa) y Día (J, V, S, D), color de cada jugador según sus ataques (verde 4, amarillo 1 a 3, rojo 0) y semanas alternadas; el nombre del jugador (título de la ventana y encabezados de la comparación) enlaza a su perfil en pestaña nueva. → §PF174
+
 ## 22-oct-2026
 
 - **`assets/js/data/clan-badges.js` (`ICONO_WSP_SOLO`, movida desde `directorio.html`), `guerra.html` (`_extrasCuentaParticipacion()`, `_liCuentaParticipacion()`, bloque «Ataques en más de un clan hoy», regla `.part-wsp`), `directorio.html`, `eslint.config.js`, `test/guerra-participacion-wsp-dom.test.js` (nuevo), `test/directorio-ingreso-wsp-dom.test.js` y `sw.js` v141 · «Participación de Hoy»: ícono 📈 del mini historial y, solo a admins, ícono de WhatsApp.** Pedido de la usuaria: junto al tag de cada cuenta (Reservadas, Reemplazables y «más de un clan hoy») va el 📈 y, cuando el backend manda `tieneWsp:true`, el ícono de WhatsApp (sin enlace ni número, mismo que en «Ingresos recientes»). El ícono se movió a `clan-badges.js` para no duplicarlo. Backend: `17_GuerraSheet.gs`, `_getParticipacionHoyGuerra()` (§PF171). Probado con las pruebas nuevas (646 pasan); sin probar en Apps Script ni en navegador real. → §PF171

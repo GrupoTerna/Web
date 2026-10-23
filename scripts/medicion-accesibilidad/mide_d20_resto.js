@@ -20,7 +20,7 @@ const doc=docReal+'<h1>Reglas del clan</h1><p><span>Texto normal del documento c
 const fix={...FIX,webHistorialGuerraComparador:hist,webCompararJugadores:comp,webAdminContenidoDocHtml:{ok:true,html:doc}};
 const PARTES={
  async historial(b,base,w){const log=[];const p=await pagina(b,base,'guerra.html',{w,fix,log,admin:true});await sleep(2200);await fijarHoy(p);
-  const S=['.btn-hist-jugador','#histFondo.abierto','.hist-tabla tbody tr','.hist-tabla tr.hist-cero','.hist-tabla td.hist-cero-celda','.hist-tabla tr.hist-hoy','.hist-ast','.hist-resumen .hist-malo','.hist-nota','#histMas'];
+  const S=['.btn-hist-jugador','#histFondo.abierto','.hist-tabla tbody tr','.hist-tabla tr.hist-cero','.hist-tabla td.hist-cero','.hist-tabla tr.hist-hoy','.hist-ast','.hist-resumen .hist-malo','.hist-nota','#histMas'];
   const cuenta=async()=>p.evaluate(ss=>ss.map(x=>x+'='+document.querySelectorAll(x).length).join(' | '),S);
   await p.evaluate(()=>document.querySelectorAll('details').forEach(d=>{d.open=true;d.dispatchEvent(new Event('toggle'));}));
   await p.evaluate(()=>document.querySelector('.btn-hist-jugador').click());await sleep(900);

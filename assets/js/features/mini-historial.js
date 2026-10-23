@@ -48,13 +48,6 @@ async function wspCargarTags(){
 if (typeof document !== 'undefined') { if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wspCargarTags); else wspCargarTags(); }
 const HIST_FILAS_INICIALES = 28;
 let histSolicitud = 0;
-function histFechaCorta(iso){
-  const [y, m, d] = String(iso).split('-').map(Number);
-  if (!y) return esc(iso);
-  const dt = new Date(y, m - 1, d);
-  const dia = ['dom','lun','mar','mié','jue','vie','sáb'][dt.getDay()];
-  return `${dia} ${String(d).padStart(2,'0')}/${String(m).padStart(2,'0')}`;
-}
 /* 22-oct-2026 (pedido de la usuaria, tanda 1 de Consolidado_Mini_Historial_y_Perfil.md): fecha como 22/10/2026, día en una letra (J, V, S, D), color de la fila según los ataques y sombreado alternado por semana. */
 function histFechaDMA(iso){
   const [y, m, d] = String(iso).split('-').map(Number);
@@ -73,8 +66,9 @@ function histLunesIso(iso){
   const dt = new Date(y, m - 1, d - ((new Date(y, m - 1, d).getDay() + 6) % 7));
   return `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
 }
-/* Verde con 4 ataques, amarillo con 2 y 3, rojo con 0 (solo si no es opcional: histEsFalta). El 1 queda sin color propio hasta que la usuaria lo defina (P1 del consolidado). */
+/* Verde con 4 ataques, amarillo con 1, 2 y 3, rojo con 0 (solo si no es opcional: histEsFalta). Sin registro (celda vacía de la comparación) no lleva color. */
 function histClaseColorAtaques(r){
+  if (!r) return '';
   if (histEsFalta(r)) return 'hist-cero';
   const a = r.ataques || 0;
   if (a >= HIST_ATAQUES_MAX) return 'hist-a4';
@@ -190,17 +184,25 @@ function histPintarComparacion(ra, rb, nombre2, verTodos){
   const fila = (tit, a, b) => `<tr><td>${tit}</td><td>${a}</td><td>${b}</td></tr>`;
   const celda = (r, k) => r ? fmtNum(r[k] || 0) : '';
   const visibles = verTodos ? fechas : fechas.slice(0, HIST_FILAS_INICIALES);
-  const claseAtq = r => r && histEsFalta(r) ? ' class="hist-cero-celda"' : '';
+  // 23-oct-2026 (tanda 1b): el color de cada jugador sale de SUS ataques y lo comparten sus celdas de Ataques y Medallas.
+  const cls = r => { const c = histClaseColorAtaques(r); return c ? ` class="${c}"` : ''; };
   const hoyIso = histHoyIso();
   const hayHoy = visibles.includes(hoyIso), hayPend = visibles.some(f => histPendiente(A[f], hoyIso) || histPendiente(B[f], hoyIso));
   const astAtq = r => histPendiente(r, hoyIso) ? HIST_ASTERISCO : '';
-  const filasDia = visibles.map(f => `<tr${f === hoyIso ? ' class="hist-hoy"' : ''}><td>${histFechaCorta(f)}${f === hoyIso ? ' · en curso' : ''}</td><td${claseAtq(A[f])}>${celda(A[f], 'ataques')}${astAtq(A[f])}</td><td${claseAtq(B[f])}>${celda(B[f], 'ataques')}${astAtq(B[f])}</td><td>${celda(A[f], 'fame')}</td><td>${celda(B[f], 'fame')}</td></tr>`).join('');
-  const na = esc(histNombre), nb = esc(nombre2);
+  let semPrev = null, semAlt = false;
+  const filasDia = visibles.map((f, idx) => {
+    const sem = histLunesIso(f);
+    if (semPrev !== null && sem !== semPrev) semAlt = !semAlt;
+    semPrev = sem;
+    const clases = [semAlt ? 'hist-sem-b' : '', f === hoyIso ? 'hist-hoy' : ''].filter(Boolean).join(' ');
+    return `<tr${clases ? ` class="${clases}"` : ''}><td>${idx + 1}</td><td>${histFechaDMA(f)}${f === hoyIso ? ' · en curso' : ''}</td><td>${histDiaLetra(f)}</td><td${cls(A[f])}>${celda(A[f], 'ataques')}${astAtq(A[f])}</td><td${cls(B[f])}>${celda(B[f], 'ataques')}${astAtq(B[f])}</td><td${cls(A[f])}>${celda(A[f], 'fame')}</td><td${cls(B[f])}>${celda(B[f], 'fame')}</td></tr>`;
+  }).join('');
+  const na = enlaceJugador(histNombre, histTag), nb = enlaceJugador(nombre2, tag2); // 23-oct-2026: nombre clicable hacia su perfil (nueva pestaña)
   cuerpo.innerHTML = histSelectorComparar(tag2) + `
     <table class="hist-tabla"><thead><tr><th></th><th>${na}</th><th>${nb}</th></tr></thead><tbody>
       ${fila('Días de guerra', sa.n, sb.n)}${fila('Ataques', fmtNum(sa.atq), fmtNum(sb.atq))}${fila('Días con 0', sa.ceros, sb.ceros)}${fila('Ataques por día', prom(sa), prom(sb))}${fila('Medallas', fmtNum(sa.fame), fmtNum(sb.fame))}${fila('Barcos', fmtNum(sa.barcos), fmtNum(sb.barcos))}
     </tbody></table>
-    <table class="hist-tabla" style="margin-top:12px;"><thead><tr><th rowspan="2">Día</th><th colspan="2">Ataques</th><th colspan="2">Medallas</th></tr><tr><th>${na}</th><th>${nb}</th><th>${na}</th><th>${nb}</th></tr></thead><tbody>${filasDia || '<tr><td colspan="5">Sin registros</td></tr>'}</tbody></table>
+    <table class="hist-tabla hist-tabla-dia" style="margin-top:12px;"><thead><tr><th rowspan="2">N°</th><th rowspan="2">Fecha</th><th rowspan="2">Día</th><th colspan="2">Ataques</th><th colspan="2">Medallas</th></tr><tr><th>${na}</th><th>${nb}</th><th>${na}</th><th>${nb}</th></tr></thead><tbody>${filasDia || '<tr><td colspan="7">Sin registros</td></tr>'}</tbody></table>
     ${(!verTodos && fechas.length > HIST_FILAS_INICIALES) ? `<button type="button" class="btn-solo-cero hist-mas" id="histMas">Ver todos (${fechas.length})</button>` : ''}
     <p class="hist-nota">Celda vacía: ese jugador no tenía registro ese día (aún no estaba en el clan). Un 0 en rojo es que estuvo y no atacó.${histNotasDiaEnCurso(hayHoy, hayPend)}</p>`;
   histEnlazarSelector();
@@ -211,7 +213,7 @@ async function histAbrir(tag, nombre){
   histAsegurarModal();
   const fondo = document.getElementById('histFondo');
   histTag = tag; histNombre = nombre || tag; histRegsA = [];
-  document.getElementById('histTitulo').textContent = nombre || tag;
+  document.getElementById('histTitulo').innerHTML = enlaceJugador(nombre || tag, tag); // 23-oct-2026: el nombre lleva enlace a su perfil (nueva pestaña)
   document.getElementById('histSub').textContent = tag;
   document.getElementById('histCuerpo').innerHTML = '<p class="hist-nota">Cargando historial…</p>';
   fondo.classList.add('abierto');

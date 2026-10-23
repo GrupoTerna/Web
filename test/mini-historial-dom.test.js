@@ -39,7 +39,12 @@ test('clic en el 📈 crea la ventana, pide el historial del tag y pinta días d
   await esperar();
   const fondo = w.document.getElementById('histFondo');
   assert.ok(fondo && fondo.classList.contains('abierto'));
-  assert.equal(w.document.getElementById('histTitulo').textContent, 'Chistris');
+  // 23-oct-2026 (tanda 1b): el nombre del título es un enlace a su perfil (nueva pestaña); el firstChild es el nombre solo.
+  const enlaceTitulo = w.document.querySelector('#histTitulo a.jugador-link');
+  assert.ok(enlaceTitulo, 'el nombre del título lleva enlace');
+  assert.equal(enlaceTitulo.firstChild.textContent, 'Chistris');
+  assert.equal(enlaceTitulo.getAttribute('href'), 'perfil.html?tag=%23ABC');
+  assert.equal(enlaceTitulo.getAttribute('target'), '_blank');
   assert.equal(w.document.getElementById('histSub').textContent, '#ABC');
   assert.deepEqual(JSON.parse(w.eval('JSON.stringify(_llamadas)')), [{ nombre: 'webHistorialGuerraComparador', params: { tag1: '#ABC', tag2: '' } }]);
   const filas = [...w.document.querySelectorAll('#histCuerpo .hist-tabla tbody tr')].map(tr => [...tr.children].map(td => td.textContent));
@@ -82,4 +87,43 @@ test('la tabla del jugador lleva N°, Fecha dd/mm/aaaa, Día J/V/S/D, colores po
   const col = tr => ['hist-a4', 'hist-a13', 'hist-cero'].find(c => tr.classList.contains(c)) || '';
   assert.deepEqual(trs.map(col), ['hist-a4', 'hist-a13', 'hist-a13', 'hist-a13', 'hist-cero', 'hist-a4']);
   assert.deepEqual(trs.map(tr => tr.classList.contains('hist-sem-b')), [false, true, true, true, false, false], 'solo la semana del medio va sombreada');
+});
+
+// NUEVO (23-oct-2026, tanda 1b de Consolidado_Mini_Historial_y_Perfil.md): la tabla «Comparar con» lleva N°, Fecha (dd/mm/aaaa) y Día (J/V/S/D),
+// color por jugador según SUS ataques (verde 4, amarillo 1 a 3, rojo 0, sin color si no hay registro), semanas alternadas y nombres con enlace.
+test('la comparación lleva N°, Fecha, Día, color por jugador, semanas alternadas y nombres con enlace', async () => {
+  const w = cargar({ a: [] });
+  w.document.getElementById('celda').innerHTML = w.botonHistJugador({ tag: '#ABC', nombre: 'Chistris' }) + w.botonHistJugador({ tag: '#XYZ', nombre: 'Otro' });
+  w.histAbrir('#ABC', 'Chistris');
+  await esperar();
+  w._respuesta = {
+    a: [
+      { fecha: '2026-10-01', ataques: 4, fame: 100, barcos: 0 }, // jue, semana lun 28-sep
+      { fecha: '2026-10-04', ataques: 0, fame: 100, barcos: 0 }, // dom, misma semana
+      { fecha: '2026-10-08', ataques: 3, fame: 200, barcos: 0 }, // jue, semana lun 05-oct
+    ],
+    b: [
+      { fecha: '2026-10-01', ataques: 2, fame: 50, barcos: 0 },
+      { fecha: '2026-10-08', ataques: 1, fame: 80, barcos: 0 }, // el otro jugador no tiene registro el 04-oct
+    ],
+  };
+  w.histComparar('#XYZ', 'Otro');
+  await esperar();
+  const tablas = [...w.document.querySelectorAll('#histCuerpo .hist-tabla')];
+  const dia = tablas[1];
+  assert.ok(dia.classList.contains('hist-tabla-dia'));
+  const cab = [...dia.querySelectorAll('thead th')].map(th => (th.querySelector('a') || th).firstChild.textContent); // con enlace: el firstChild del <a> es el nombre (el aviso sr-only va después)
+  assert.deepEqual(cab, ['N°', 'Fecha', 'Día', 'Ataques', 'Medallas', 'Chistris', 'Otro', 'Chistris', 'Otro']);
+  const enlaces = [...w.document.querySelectorAll('#histCuerpo th a.jugador-link')].map(a => a.getAttribute('href'));
+  assert.ok(enlaces.length >= 2 && enlaces.every(h => h === 'perfil.html?tag=%23ABC' || h === 'perfil.html?tag=%23XYZ'), 'los nombres de ambos jugadores llevan enlace a su perfil');
+  const trs = [...dia.querySelectorAll('tbody tr')];
+  const cel = trs.map(tr => [...tr.children].map(td => td.firstChild ? td.firstChild.textContent : ''));
+  assert.deepEqual(cel.map(f => f[0]), ['1', '2', '3'], 'N° automático');
+  assert.deepEqual(cel.map(f => f[1]), ['08/10/2026', '04/10/2026', '01/10/2026']);
+  assert.deepEqual(cel.map(f => f[2]), ['J', 'D', 'J']);
+  const col = td => ['hist-a4', 'hist-a13', 'hist-cero'].find(c => td.classList.contains(c)) || '';
+  assert.deepEqual(trs.map(tr => col(tr.children[3])), ['hist-a13', 'hist-cero', 'hist-a4'], 'color del primer jugador según sus ataques');
+  assert.deepEqual(trs.map(tr => col(tr.children[4])), ['hist-a13', '', 'hist-a13'], 'el segundo jugador: 1 ataque amarillo y sin registro sin color');
+  assert.deepEqual(trs.map(tr => col(tr.children[5])), ['hist-a13', 'hist-cero', 'hist-a4'], 'las medallas comparten el color de su jugador');
+  assert.deepEqual(trs.map(tr => tr.classList.contains('hist-sem-b')), [false, true, true], 'la semana del medio y la anterior van sombreadas; la primera no');
 });
