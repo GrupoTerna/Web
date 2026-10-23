@@ -192,7 +192,8 @@
 // v133 (22-oct-2026): perfil.html cambió (CORE_ASSETS) -- el donut de Donaciones se muestra también con 0/0 (§PF163).
 // v134 (22-oct-2026): directorio.html cambió (CORE_ASSETS) -- la tarjeta de Ingresos recientes muestra, solo a admins, un ícono de WhatsApp (sin enlace) cuando tenemos el celular de la cuenta (§PF165).
 // v135 (22-oct-2026): guerra.html cambió (CORE_ASSETS) -- el mini historial y el comparador de un jugador muestran medallas y barcos del día, no acumulados de la semana (§PF167).
-const CACHE_NAME = 'terna-static-v135';
+// v136 (22-oct-2026): util.js, guerra.html y directorio.html cambiaron (CORE_ASSETS) -- la conversión a medallas y barcos del día pasa a util.js (guerraAValoresDiarios()) y también la usa el comparador de directorio.html (§PF167).
+const CACHE_NAME = 'terna-static-v136';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y

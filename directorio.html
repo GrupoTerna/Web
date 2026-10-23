@@ -1413,8 +1413,9 @@ function guerraComparadorMetricaSvg(a, b, campo, tituloMetrica, fechas, indicePo
  * así que aquí no hace falta filtrar nada — solo graficar.
  */
 function renderComparadorGuerraChart(histA, histB, nombreA, nombreB, clanA, clanB, tagA, tagB){
-  const a = Array.isArray(histA) ? histA : [];
-  const b = Array.isArray(histB) ? histB : [];
+  /* 22-oct-2026 (pedido de la usuaria: «también se debe cambiar a valores diarios»): el backend manda fame y barcos ACUMULADOS de la semana; guerraAValoresDiarios() (util.js) los pasa a valor del día. [→ Contexto_Base_Web.md §PF167] */
+  const a = guerraAValoresDiarios(Array.isArray(histA) ? histA : []);
+  const b = guerraAValoresDiarios(Array.isArray(histB) ? histB : []);
   if (!a.length && !b.length){
     return `<div class="card chart-card"><div class="chart-empty">
       Todavía no hay historial de días de guerra disponible para graficar el desempeño.

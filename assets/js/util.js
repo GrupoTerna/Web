@@ -329,3 +329,24 @@ function fmtFechaVigenciaCorta(v){
   const hora  = d.toLocaleTimeString('es-PE', { hour:'numeric', minute:'2-digit', hour12:true, timeZone:'America/Lima' });
   return `${fecha}, ${hora}`;
 }
+
+/* 22-oct-2026 (pedido de la usuaria: «debe mostrar valores diarios, no acumulados»; mini historial de guerra.html y comparador de directorio.html): el backend manda `fame` y `barcos` ACUMULADOS de la semana
+   (jue→dom; solo `ataques` es del día). Aquí se pasan a valor del día restando el último registro anterior de la MISMA semana (el jueves no resta nada). Si la resta
+   da negativa (cambio de clan o corrección) se deja el valor tal cual. Los registros ya convertidos llevan `diario:true`, así que una segunda pasada no los vuelve a restar. */
+function guerraAValoresDiarios(regs){
+  if (regs.some(r => r && r.diario === true)) return regs;
+  const claveSemana = iso => {
+    const [y, m, d] = String(iso).split('-').map(Number);
+    const dt = new Date(y, m - 1, d);
+    dt.setDate(dt.getDate() - ((dt.getDay() + 3) % 7)); // jue=0, vie=1, sáb=2, dom=3 → jueves de esa semana
+    return `${dt.getFullYear()}-${dt.getMonth() + 1}-${dt.getDate()}`;
+  };
+  const previo = {}; // semana → {fame, barcos} acumulados del último registro visto
+  return regs.slice().sort((a, b) => String(a.fecha).localeCompare(String(b.fecha))).map(r => {
+    const sem = claveSemana(r.fecha), p = previo[sem] || { fame: 0, barcos: 0 };
+    const fameAcum = r.fame || 0, barcosAcum = r.barcos || 0;
+    const dif = (acum, ant) => (acum - ant >= 0 ? acum - ant : acum);
+    previo[sem] = { fame: fameAcum, barcos: barcosAcum };
+    return Object.assign({}, r, { fame: dif(fameAcum, p.fame), barcos: dif(barcosAcum, p.barcos), diario: true });
+  });
+}

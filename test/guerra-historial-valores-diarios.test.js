@@ -5,18 +5,20 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 
-// NUEVO (22-oct-2026, pedido de la usuaria): el mini historial de guerra.html debe mostrar medallas y barcos DEL DÍA, no
-// acumulados de la semana. Se extraen del <script> inline REAL de guerra.html histSoloGuerra() y histAValoresDiarios().
+// NUEVO (22-oct-2026, pedido de la usuaria): el mini historial de guerra.html y el comparador de directorio.html deben mostrar
+// medallas y barcos DEL DÍA, no acumulados de la semana (guerraAValoresDiarios(), assets/js/util.js).
 // LÍMITE: prueba el cálculo con los datos de la captura de Chistris (#2GG8PJ8GC); no prueba el dibujo real del modal.
 
-const html = fs.readFileSync(path.join(__dirname, '..', 'guerra.html'), 'utf8');
-const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1]);
-const grande = scripts.find(t => t.includes('function histAValoresDiarios'));
-assert.ok(grande, 'no se encontró histAValoresDiarios() en un <script> inline de guerra.html');
+const { loadBrowserScript } = require('./load-browser-script');
+const { guerraAValoresDiarios } = loadBrowserScript('assets/js/util.js');
+const leer = f => fs.readFileSync(path.join(__dirname, '..', f), 'utf8');
+// histSoloGuerra() de guerra.html: solo jue-dom y luego guerraAValoresDiarios() (el mismo código real del <script> inline).
+const grande = [...leer('guerra.html').matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1]).find(t => t.includes('function histSoloGuerra'));
+assert.ok(grande, 'no se encontró histSoloGuerra() en un <script> inline de guerra.html');
 const I = grande.indexOf('function histSoloGuerra');
 const F = grande.indexOf('/* Un día con `opcional: true`');
 assert.ok(I >= 0 && F > I, 'marcadores de histSoloGuerra() no encontrados (¿se reorganizó guerra.html?)');
-const { histSoloGuerra } = new Function(grande.slice(I, F) + '\nreturn { histSoloGuerra };')();
+const { histSoloGuerra } = new Function('guerraAValoresDiarios', grande.slice(I, F) + '\nreturn { histSoloGuerra };')(guerraAValoresDiarios);
 
 const reg = (fecha, ataques, fame, barcos = 0) => ({ fecha, ataques, fame, barcos });
 // Semana jue 01/10 a dom 04/10 y semana jue 08/10 a dom 11/10 (acumulados, como los manda el backend).
@@ -63,4 +65,12 @@ test('el orden de llegada no importa y no se modifican los objetos originales', 
   assert.deepEqual(lista.map(r => r.fecha), CHISTRIS.map(r => r.fecha));
   assert.deepEqual(lista.map(r => r.fame), [600, 800, 400, 550, 600, 0, 600, 700]);
   assert.deepEqual(CHISTRIS, original);
+});
+
+test('guerra.html y directorio.html convierten con guerraAValoresDiarios() y no la redefinen', () => {
+  assert.match(leer('guerra.html'), /return guerraAValoresDiarios\(guerra\)/);
+  const dir = leer('directorio.html');
+  assert.match(dir, /const a = guerraAValoresDiarios\(Array\.isArray\(histA\)/);
+  assert.match(dir, /const b = guerraAValoresDiarios\(Array\.isArray\(histB\)/);
+  assert.ok(!/function (hist|guerra)AValoresDiarios/.test(leer('guerra.html') + dir), 'la conversión debe vivir solo en util.js');
 });
