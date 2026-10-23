@@ -194,7 +194,8 @@
 // v135 (22-oct-2026): guerra.html cambió (CORE_ASSETS) -- el mini historial y el comparador de un jugador muestran medallas y barcos del día, no acumulados de la semana (§PF167).
 // v136 (22-oct-2026): util.js, guerra.html y directorio.html cambiaron (CORE_ASSETS) -- la conversión a medallas y barcos del día pasa a util.js (guerraAValoresDiarios()) y también la usa el comparador de directorio.html (§PF167).
 // v137 (22-oct-2026): perfil.html cambió (CORE_ASSETS) -- el selector de semana del Historial de guerra muestra el rango lunes–domingo («S3 (19 OCT – 25 OCT)») en vez de un solo día (§PF168).
-const CACHE_NAME = 'terna-static-v137';
+// v138 (22-oct-2026): perfil.html cambió (CORE_ASSETS) -- en el Historial de guerra, el año y el mes de la temporada salen del lunes de la semana, no del último día registrado (§PF168).
+const CACHE_NAME = 'terna-static-v138';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y

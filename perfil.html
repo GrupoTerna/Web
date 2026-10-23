@@ -6662,11 +6662,12 @@ function construirSelectoresHistorialGuerra(registros){
   const porAnio = {};
   registros.forEach(r => {
     const f = parsearFechaHistorial(r.fecha);
-    const anioKey = f ? String(f.anio) : 'sin-fecha';
+    const lunes = lunesSemanaHistorialGuerra(f) || f; // año y mes de la temporada: los del lunes de la semana (§PF168)
+    const anioKey = lunes ? String(lunes.anio) : 'sin-fecha';
     const tempKey = String(r.temporadaInterna ?? '—');
     const semKey  = String(r.semana ?? '—');
     if (!porAnio[anioKey]) porAnio[anioKey] = {};
-    if (!porAnio[anioKey][tempKey]) porAnio[anioKey][tempKey] = { mes: f ? f.mes : null, semanas: {} };
+    if (!porAnio[anioKey][tempKey]) porAnio[anioKey][tempKey] = { mes: lunes ? lunes.mes : null, semanas: {} };
     if (!porAnio[anioKey][tempKey].semanas[semKey]) porAnio[anioKey][tempKey].semanas[semKey] = f;
   });
   return porAnio;
@@ -6681,16 +6682,25 @@ let histGuerraAnioSeleccionado = null;
 let histGuerraTemporadaSeleccionada = null;
 let histGuerraSemanaSeleccionada = null;
 
-/** 22-oct-2026 (pedido de la usuaria: «las fechas del historial de guerra no se muestran completas, debe decir S3 (19 OCT – 25 OCT)»): etiqueta de semana
- * con el RANGO lunes–domingo, el mismo formato del selector de Valores diarios de guerra.html (backend: _getSemanasTemporada()). `f` es la fecha del último
- * registro de esa semana ({dia, mes, anio}); un registro de lunes a miércoles es entrenamiento y pertenece a la semana anterior. Sin fecha → ''. [→ Contexto_Base_Web.md §PF168] */
-function rangoSemanaHistorialGuerra(f){
-  if (!f || !f.anio || !f.mes || !f.dia) return '';
+/** 22-oct-2026 (pedido de la usuaria): lunes de la semana de guerra a la que pertenece una fecha del historial ({dia, mes, anio}, la del último registro de esa
+ * semana). Un registro de lunes a miércoles es entrenamiento y pertenece a la semana anterior. La TEMPORADA (y su año) se define por el mes del LUNES, aunque la
+ * semana termine en el mes siguiente (regla de la usuaria, 22-oct-2026; igual que el backend: «tantas semanas como lunes tiene el mes de su primer lunes»). Sin fecha → null. [→ Contexto_Base_Web.md §PF168] */
+function lunesSemanaHistorialGuerra(f){
+  if (!f || !f.anio || !f.mes || !f.dia) return null;
   const d = new Date(f.anio, f.mes - 1, f.dia);
-  if (isNaN(d.getTime())) return '';
+  if (isNaN(d.getTime())) return null;
   const dow = d.getDay(); // 0 dom … 6 sáb
   const atras = (dow + 6) % 7 + (dow >= 1 && dow <= 3 ? 7 : 0); // días hasta el lunes de su semana de guerra
-  const lunes = new Date(d.getFullYear(), d.getMonth(), d.getDate() - atras);
+  const l = new Date(d.getFullYear(), d.getMonth(), d.getDate() - atras);
+  return { dia: l.getDate(), mes: l.getMonth() + 1, anio: l.getFullYear() };
+}
+
+/** Etiqueta de semana con el RANGO lunes–domingo, el mismo formato del selector de Valores diarios de guerra.html (backend: _getSemanasTemporada()):
+ * «05 OCT – 11 OCT». Sin fecha → ''. */
+function rangoSemanaHistorialGuerra(f){
+  const l = lunesSemanaHistorialGuerra(f);
+  if (!l) return '';
+  const lunes = new Date(l.anio, l.mes - 1, l.dia);
   const domingo = new Date(lunes.getFullYear(), lunes.getMonth(), lunes.getDate() + 6);
   const corta = x => `${String(x.getDate()).padStart(2, '0')} ${MESES_ES[x.getMonth()].slice(0, 3).toUpperCase()}`;
   return `${corta(lunes)} – ${corta(domingo)}`;
@@ -6777,7 +6787,8 @@ function pintarSelectoresHistorialGuerra(){
 function filasFiltradasHistorialGuerra(){
   return histGuerraRegistrosBase.filter(r => {
     const f = parsearFechaHistorial(r.fecha);
-    const anioKey = f ? String(f.anio) : 'sin-fecha';
+    const lunes = lunesSemanaHistorialGuerra(f) || f;
+    const anioKey = lunes ? String(lunes.anio) : 'sin-fecha';
     const tempKey = String(r.temporadaInterna ?? '—');
     const semKey  = String(r.semana ?? '—');
     return anioKey === histGuerraAnioSeleccionado && tempKey === histGuerraTemporadaSeleccionada && semKey === histGuerraSemanaSeleccionada;
