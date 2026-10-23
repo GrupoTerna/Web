@@ -15,7 +15,7 @@ const clic=(p,q)=>p.evaluate(s=>{const e=document.querySelector(s);if(e)e.click(
   await p.evaluate(()=>document.querySelectorAll('details').forEach(d=>{d.open=true;d.dispatchEvent(new Event('toggle'));}));
   console.log(w+'px selectores en 0 tras la carga base:',(await cnt(SEL.base)).split(' | ').filter(y=>y.endsWith('=0')).join(' | ')||'ninguno');
   await med('carga base');
-  for(const [n,q] of [['torneos','#btnVerTorneosJugador'],['cofres','#mVerCicloCofresBtn'],['batallas','#mVerBatallasRecientesBtn'],['otras cuentas','#btnVerOtrasCuentas'],['historial de guerra','#btnVerHistorialGuerra'],['vetar','#btnVetarJugador']]){
+  for(const [n,q] of [['torneos','#btnVerTorneosJugador'],['cofres','#mVerCicloCofresBtn'],['batallas','#mVerBatallasRecientesBtn'],['otras cuentas','#btnVerOtrasCuentas'],['historial de guerra','#mVerHistorialGuerraBtn'],['vetar','#btnVetarJugador']]){
    const ok=await clic(p,q);await sleep(900);if(!ok)console.log('  (no existe',q,')');}
   await med('con todos los paneles abiertos');
   const okM=await clic(p,'#mMazoSugerenciasBtn');await sleep(700);await clic(p,'#mazoModalGenerar');await sleep(700);

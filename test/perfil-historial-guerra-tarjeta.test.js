@@ -23,6 +23,14 @@ test('la tarjeta nace oculta, va entre Batallas y Cofres, con su botón y su con
   assert.ok(html.indexOf('assets/js/features/mini-historial.js') < html.indexOf('assets/common.js'), 'mini-historial.js se carga antes del script inline');
 });
 
+test('el botón «📜 Historial de guerra» de la cabecera, los tres selectores y el historial semanal viejo ya no están (parte 3)', () => {
+  assert.ok(!html.includes('btnVerHistorialGuerra'));
+  assert.ok(!html.includes('histGuerraAnioSelect') && !html.includes('histGuerraTemporadaSelect') && !html.includes('histGuerraSemanaSelect'));
+  assert.ok(!html.includes("apiGetAuth('webHistorialGuerraJugador'"), 'el perfil ya no pide el historial semanal');
+  assert.ok(!/function verHistorialGuerra\(/.test(html) && !/function construirSelectoresHistorialGuerra\(/.test(html));
+  assert.match(html, /const MESES_ES = \['enero'/, 'MESES_ES se conserva: lo usa la gráfica');
+});
+
 test('renderMiembro() muestra la tarjeta solo con sesión de admin (misma regla que el botón de arriba)', () => {
   assert.match(html, /getElementById\('mHistorialGuerraCard'\)\.style\.display = esAdminLogueado\(\) \? 'block' : 'none';/);
 });

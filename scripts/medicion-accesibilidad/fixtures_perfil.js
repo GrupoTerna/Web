@@ -37,7 +37,8 @@ const FIXPERFIL={
  webCofresJugador:{ok:true,items},
  webBattlelogJugador:{ok:true,batallas},
  webAdminOtrasCuentas:{ok:true,cuentas:[{nombre:'Ana Alt Prueba',tag:'#5ABCD',clan:'Terna Dos'},{nombre:'Ana Tres Prueba',tag:'#6ABCD',clan:''}]},
- webHistorialGuerraJugador:{ok:true,registros:regsHG},
+ webHistorialGuerraJugador:{ok:true,registros:regsHG}, // ya no lo pide el perfil (tanda 5, §PF181); se conserva por si otra página lo vuelve a usar
+ webHistorialGuerraComparador:{a:[0,1,2,3,4,5,6,7].map(i=>({fecha:'2026-10-'+String(1+i).padStart(2,'0'),ataques:i%5,fame:600*(i+1),barcos:i%3,temporada:6,semana:Math.floor(i/4)+1}))}, // tarjeta «Historial de guerra» (§PF181)
  webAdminMisPermisos:{ok:true,panelPermisos:true,funciones:['Vetar','Registrar miembro nuevo'],categorias:[]},
 };
 module.exports={FIXPERFIL};
