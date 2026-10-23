@@ -497,6 +497,9 @@
   .nuevo-card .links a{display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; border:1px solid var(--line); border-radius:var(--radius-sm); transition:all .18s ease;}
   .nuevo-card .links .ico-wsp{display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; border:1px solid var(--line); border-radius:var(--radius-sm); cursor:default;}
   .nuevo-card .links a:hover, .nuevo-card .links a:focus-visible{border-color:var(--purple); background:rgba(162,57,255,.12);}
+  /* 23-oct-2026 (tanda 2): el 📈 del mini historial va a la derecha del ícono de WhatsApp, con la misma caja de 28 px que los demás. */
+  .nuevo-card .links .btn-hist-jugador{display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; margin:0; padding:0; font-size:13px; opacity:1; border:1px solid var(--line); border-radius:var(--radius-sm); transition:all .18s ease;}
+  .nuevo-card .links .btn-hist-jugador:hover, .nuevo-card .links .btn-hist-jugador:focus-visible{border-color:var(--purple); background:rgba(162,57,255,.12);}
   /* Los íconos (assets/js/data/clan-badges.js) traen tamaño y margen derecho en línea pensados para ir junto a un texto; aquí van solos y centrados. */
   .nuevo-card .links a img{width:18px; height:18px; margin:0 !important; vertical-align:0 !important;}
 
@@ -535,9 +538,10 @@
   .ing-pill[data-clan="__todos__"]{border-color:var(--gold); color:var(--gold);}
   .ing-pill[data-clan="__todos__"].active{background:rgba(255,193,68,.16); border-color:var(--gold); color:var(--gold); box-shadow:0 0 12px rgba(255,193,68,.18);}
   /* Pastilla «Ocultar admins» (19-oct-2026): activa = admins fuera de las gráficas; se distingue de las de clan con borde rojo, porque aquí «activa» significa que se OCULTA algo. */
-  .ing-pill.ing-pill-admin{border-color:var(--line-strong);}
-  .ing-pill.ing-pill-admin.active{background:rgba(244,63,94,.16); border-color:var(--danger); color:#fff; box-shadow:0 0 12px rgba(244,63,94,.18);}
-  .ing-pill.ing-pill-admin.active .ing-pill-count{color:var(--danger);}
+  .ing-pill.ing-pill-admin, .ing-pill.ing-pill-wsp{border-color:var(--line-strong);}
+  .ing-pill.ing-pill-admin.active, .ing-pill.ing-pill-wsp.active{background:rgba(244,63,94,.16); border-color:var(--danger); color:#fff; box-shadow:0 0 12px rgba(244,63,94,.18);}
+  .ing-pill.ing-pill-admin.active .ing-pill-count, .ing-pill.ing-pill-wsp.active .ing-pill-count{color:var(--danger);}
+  /* «Ocultar con número» (23-oct-2026, tanda 2): misma idea que «Ocultar admins»; la tarjeta desaparece con su propia clase para no pisar el filtro A-Z ni la de admins. */
   /* Checkbox de cada tarjeta de miembro (nuevoCardHtml). FIX (16-sep-2026
      v5, pedido usuario — "alinea los checkboxes de los nombres de
      ingresos recientes a la derecha, pegado a la pared de su recuadro
@@ -554,7 +558,7 @@
   .nuevo-card{transition:opacity .18s ease;}
   .nuevo-card.excluido{opacity:.62;}
   /* «Ocultar admins» (19-oct-2026): la tarjeta de una cuenta de admin desaparece mientras la pastilla está activa. Clase propia y no style.display para no pisar el filtro A-Z (aplicarFiltroLetraIngresos). */
-  .nuevo-card.oculto-admin{display:none;}
+  .nuevo-card.oculto-admin, .nuevo-card.oculto-wsp{display:none;}
   .nuevo-card.excluido:hover{opacity:.9;}
   .nuevo-card .ing-rival{margin:8px 0 0;}
   .nuevo-card .ing-rival .badge{font-size:11px;}
@@ -2659,22 +2663,24 @@ function textoContadorIngresos(incluidos, total){
 function nuevoCardHtml(n){
   const royaleOk = urlValida(n.royaleApi);
   const cwOk = urlValida(n.cwstats);
+  const histOk = !!n.tag; // 23-oct-2026 (tanda 2): el 📈 va siempre que haya Tag, tenga o no WhatsApp
   const wspOk = n.tieneWsp === true; // 22-oct-2026: solo llega con sesión de admin (el backend lo quita para el público); es un ícono informativo, sin enlace ni número
   const incluido = ingresoIncluido(n);
   const sem = n.guerraSemana || {};
   const fecha = fechaIngresoTexto(n);
   return `
-      <div class="card nuevo-card js-nuevo-card${incluido ? '' : ' excluido'}${ingresosOcultarAdmins && esCuentaAdminIngreso(n) ? ' oculto-admin' : ''}" data-tag="${esc(claveIngreso(n))}" data-letra="${esc(primeraLetraFiltro(n.nombre))}" style="cursor:pointer; position:relative;">
+      <div class="card nuevo-card js-nuevo-card${incluido ? '' : ' excluido'}${ingresosOcultarAdmins && esCuentaAdminIngreso(n) ? ' oculto-admin' : ''}${ingresosOcultarConWsp && tieneWspIngreso(n) ? ' oculto-wsp' : ''}" data-tag="${esc(claveIngreso(n))}" data-letra="${esc(primeraLetraFiltro(n.nombre))}" style="cursor:pointer; position:relative;">
         <input type="checkbox" class="js-ingreso-check" data-tag="${esc(claveIngreso(n))}"${incluido ? ' checked' : ''} aria-label="Incluir a ${esc(n.nombre)} en las gráficas">
         <div class="name">${enlaceJugador(n.nombre, n.tag)}</div>
         <div class="tag">${esc(n.tag || '—')}</div>
         <div class="nc-fecha">${fecha ? 'Ingresó el ' + esc(fecha) : 'Fecha de ingreso no registrada'}</div>
         <div class="nc-clan-row">
           <div class="clan">${esc(n.clan)}</div>
-          ${(royaleOk || cwOk || wspOk) ? `<div class="links">
+          ${(royaleOk || cwOk || wspOk || histOk) ? `<div class="links">
             ${royaleOk ? `<a href="${esc(n.royaleApi)}" target="_blank" rel="noopener" aria-label="RoyaleAPI de ${esc(n.nombre)}" title="RoyaleAPI">${ICONO_ROYALEAPI}</a>` : ''}
             ${cwOk ? `<a href="${esc(n.cwstats)}" target="_blank" rel="noopener" aria-label="CWStats de ${esc(n.nombre)}" title="CWStats">${ICONO_CWSTATS}</a>` : ''}
             ${wspOk ? `<span class="ico-wsp" role="img" aria-label="Tenemos el número de WhatsApp de ${esc(n.nombre)}" title="Tenemos su número de WhatsApp">${ICONO_WSP_SOLO}</span>` : ''}
+            ${histOk ? botonHistJugador({ tag: n.tag, nombre: n.nombre }, { sinWsp: true }) : ''}
           </div>` : ''}
         </div>
         ${ingBadgeRivalHtml(n.esRivalTemporada, n.clanRivalDetectado)}
@@ -2717,6 +2723,8 @@ let ingresosUltimosFiltrados = [];
 let ingresosLetraSeleccionada = null;
 // 19-oct-2026 (pedido usuaria): pastilla «Ocultar admins». Mientras está activa, las cuentas de los administradores quedan fuera de las gráficas y del contador y sus tarjetas DESAPARECEN, sin importar qué clanes se marquen o desmarquen; al apagarla vuelven. [→ Contexto_Base_Web.md §PF124]
 let ingresosOcultarAdmins = false;
+// 23-oct-2026 (pedido de la usuaria, tanda 2): pastilla «Ocultar con número», solo admins (tieneWsp no llega sin sesión). Igual que «Ocultar admins»: las cuentas con celular registrado salen de las gráficas y del contador y sus tarjetas desaparecen (P4: «sí»).
+let ingresosOcultarConWsp = false;
 /* 19-oct-2026 (pedido usuaria): el backend manda guerraCongelada=true de lunes a miércoles; la cuadrícula de Ataques/Medallas/Barcos muestra entonces lo último de la guerra (hasta el domingo) y se rotula «Última guerra» hasta que empiece la siguiente. [→ Contexto_Base_Web.md §PF125] */
 let ingresosGuerraCongelada = false;
 
@@ -2724,9 +2732,17 @@ let ingresosGuerraCongelada = false;
 function esCuentaAdminIngreso(n){
   return !!(n && n.esCuentaAdmin === true);
 }
-/** Incluido en gráficas y contador: marcado en el Set y, si «Ocultar admins» está activa, que no sea una cuenta de admin. */
+/** Cuenta con celular registrado: lo marca el backend (tieneWsp) y solo lo manda con sesión de admin. */
+function tieneWspIngreso(n){
+  return !!(n && n.tieneWsp === true);
+}
+/** Cuenta oculta por alguna pastilla de «Ocultar» activa (admins o con número): sin tarjeta, fuera de gráficas y contador. */
+function ingresoOculto(n){
+  return (ingresosOcultarAdmins && esCuentaAdminIngreso(n)) || (ingresosOcultarConWsp && tieneWspIngreso(n));
+}
+/** Incluido en gráficas y contador: marcado en el Set y que ninguna pastilla de «Ocultar» activa lo saque. */
 function ingresoIncluido(n){
-  if (ingresosOcultarAdmins && esCuentaAdminIngreso(n)) return false;
+  if (ingresoOculto(n)) return false;
   return !ingresosSeleccionados || ingresosSeleccionados.has(claveIngreso(n));
 }
 
@@ -2740,7 +2756,8 @@ function renderNuevoGrid(){
   nuevoGrid.innerHTML = ingresosTodosCache.map(nuevoCardHtml).join('');
   nuevoGrid.querySelectorAll('.js-nuevo-card').forEach(card => {
     const linksBox = card.querySelector('.links');
-    if (linksBox) linksBox.addEventListener('click', e => e.stopPropagation());
+    // El 📈 sí debe llegar al listener global de mini-historial.js; todo lo demás de .links no abre el perfil de la tarjeta.
+    if (linksBox) linksBox.addEventListener('click', e => { if (!e.target.closest('.btn-hist-jugador')) e.stopPropagation(); });
     const check = card.querySelector('.js-ingreso-check');
     if (check){
       check.addEventListener('click', e => e.stopPropagation());
@@ -2752,7 +2769,7 @@ function renderNuevoGrid(){
     }
     card.addEventListener('click', e => {
       // El nombre es un enlace real (teclado/lectores de pantalla): si el clic cae en cualquier <a>, actúa el enlace y no se abre una segunda pestaña.
-      if (e.target.closest('a')) return;
+      if (e.target.closest('a, .btn-hist-jugador')) return;
       if (!card.dataset.tag) return;
       window.open('perfil.html?tag=' + encodeURIComponent(card.dataset.tag), '_blank');
     });
@@ -2770,9 +2787,9 @@ function aplicarFiltroLetraIngresos(){
 function actualizarPillsIngresos(){
   const wrap = document.getElementById('ingClanPills');
   if (!wrap || !ingresosSeleccionados) return;
-  // Con «Ocultar admins» activa, el estado de cada pastilla se mide solo sobre las cuentas que sí se pueden ver.
+  // Con alguna pastilla de «Ocultar» activa, el estado de cada pastilla se mide solo sobre las cuentas que sí se pueden ver.
   const estadoDe = miembros => {
-    const visibles = ingresosOcultarAdmins ? miembros.filter(m => !esCuentaAdminIngreso(m)) : miembros;
+    const visibles = miembros.filter(m => !ingresoOculto(m));
     const marcados = visibles.filter(m => ingresosSeleccionados.has(claveIngreso(m))).length;
     if (marcados === 0) return 'ninguno';
     return marcados === visibles.length ? 'todos' : 'parcial';
@@ -2782,6 +2799,11 @@ function actualizarPillsIngresos(){
     if (clan === '__admins__'){
       btn.classList.toggle('active', ingresosOcultarAdmins);
       btn.setAttribute('aria-pressed', String(ingresosOcultarAdmins));
+      return;
+    }
+    if (clan === '__wsp__'){
+      btn.classList.toggle('active', ingresosOcultarConWsp);
+      btn.setAttribute('aria-pressed', String(ingresosOcultarConWsp));
       return;
     }
     const miembros = (clan === '__todos__')
@@ -2807,8 +2829,11 @@ function aplicarFiltroIngresos(){
   document.querySelectorAll('#nuevoGrid .js-nuevo-card').forEach(card => {
     const n = porTag.get(card.dataset.tag);
     const incluido = n ? ingresoIncluido(n) : (!ingresosSeleccionados || ingresosSeleccionados.has(card.dataset.tag));
-    const oculta = !!(n && ingresosOcultarAdmins && esCuentaAdminIngreso(n));
-    card.classList.toggle('oculto-admin', oculta);
+    const ocultaAdmin = !!(n && ingresosOcultarAdmins && esCuentaAdminIngreso(n));
+    const ocultaWsp = !!(n && ingresosOcultarConWsp && tieneWspIngreso(n));
+    const oculta = ocultaAdmin || ocultaWsp;
+    card.classList.toggle('oculto-admin', ocultaAdmin);
+    card.classList.toggle('oculto-wsp', ocultaWsp);
     // Una cuenta de admin oculta no se atenúa: está fuera, no solo excluida de las gráficas.
     card.classList.toggle('excluido', !incluido && !oculta);
     const check = card.querySelector('.js-ingreso-check');
@@ -2901,7 +2926,8 @@ function construirFiltroIngresos(nuevos){
       <button type="button" class="ing-pill active" data-clan="${esc(g.clan)}" aria-pressed="true">
         ${esc(g.clan)} <span class="ing-pill-count">${g.miembros.length}</span>
       </button>`).join('')}
-    ${nuevos.some(esCuentaAdminIngreso) ? `<button type="button" class="ing-pill ing-pill-admin${ingresosOcultarAdmins ? ' active' : ''}" data-clan="__admins__" aria-pressed="${ingresosOcultarAdmins}" title="Oculta las tarjetas y saca de las gráficas y del contador las cuentas de los administradores mientras recorres los clanes">🛡️ Ocultar admins <span class="ing-pill-count">${nuevos.filter(esCuentaAdminIngreso).length}</span></button>` : ''}`;
+    ${nuevos.some(esCuentaAdminIngreso) ? `<button type="button" class="ing-pill ing-pill-admin${ingresosOcultarAdmins ? ' active' : ''}" data-clan="__admins__" aria-pressed="${ingresosOcultarAdmins}" title="Oculta las tarjetas y saca de las gráficas y del contador las cuentas de los administradores mientras recorres los clanes">🛡️ Ocultar admins <span class="ing-pill-count">${nuevos.filter(esCuentaAdminIngreso).length}</span></button>` : ''}
+    ${nuevos.some(tieneWspIngreso) ? `<button type="button" class="ing-pill ing-pill-wsp${ingresosOcultarConWsp ? ' active' : ''}" data-clan="__wsp__" aria-pressed="${ingresosOcultarConWsp}" title="Oculta las tarjetas y saca de las gráficas y del contador a quienes ya tienen número de WhatsApp registrado (solo lo ves como administrador)">📱 Ocultar con número <span class="ing-pill-count">${nuevos.filter(tieneWspIngreso).length}</span></button>` : ''}`;
 
   // Un solo listener delegado por carga (el contenedor se reutiliza entre cargas).
   if (!wrap.dataset.enlazado){
@@ -2912,13 +2938,15 @@ function construirFiltroIngresos(nuevos){
       const clan = btn.dataset.clan;
       if (clan === '__admins__'){
         ingresosOcultarAdmins = !ingresosOcultarAdmins; // independiente de los clanes marcados: no toca ingresosSeleccionados
+      } else if (clan === '__wsp__'){
+        ingresosOcultarConWsp = !ingresosOcultarConWsp; // igual: no toca ingresosSeleccionados
       } else if (clan === '__todos__'){
         ingresosSeleccionados = new Set(ingresosTodosCache.map(claveIngreso));
       } else {
         const grupo = ingresosGrupos.find(g => g.clan === clan);
         if (!grupo) return;
-        // Con «Ocultar admins» activa, la pastilla de clan opera solo sobre las cuentas visibles (las de admin siguen sin verse).
-        const relevantes = ingresosOcultarAdmins ? grupo.miembros.filter(m => !esCuentaAdminIngreso(m)) : grupo.miembros;
+        // Con alguna pastilla de «Ocultar» activa, la pastilla de clan opera solo sobre las cuentas visibles (las ocultas siguen sin verse).
+        const relevantes = grupo.miembros.filter(m => !ingresoOculto(m));
         const completo = relevantes.length > 0 && relevantes.every(m => ingresosSeleccionados.has(claveIngreso(m)));
         relevantes.forEach(m => {
           if (completo) ingresosSeleccionados.delete(claveIngreso(m));

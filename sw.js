@@ -204,7 +204,8 @@
 // v143 (22-oct-2026): assets/js/features/mini-historial.js y assets/styles.css cambiaron (CORE_ASSETS) -- la tabla del mini historial lleva N°, Fecha (22/10/2026), Día (J, V, S, D), color de fila según los ataques y semanas sombreadas de forma alternada (§PF173).
 // v146 (23-oct-2026): guerra.html cambió (CORE_ASSETS) -- la fila de mensajes de guerra de Pendientes de Atacar muestra a los admins el motivo cuando no carga o viene vacía, en vez de quedar en blanco.
 // v147 (23-oct-2026): guerra.html cambió (CORE_ASSETS) -- el aviso de la fila de mensajes de guerra ya no repite el punto final del texto que manda el servidor.
-const CACHE_NAME = 'terna-static-v147';
+// v148 (23-oct-2026): directorio.html y assets/js/features/mini-historial.js cambiaron (CORE_ASSETS) -- «Ingresos recientes» lleva el 📈 del mini historial a la derecha del WhatsApp y, solo para admins, la pastilla «Ocultar con número» (§PF175).
+const CACHE_NAME = 'terna-static-v148';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y

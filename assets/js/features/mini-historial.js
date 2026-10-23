@@ -22,14 +22,17 @@ function iconoWspHistHtml(f){
   const n = f.nombre || f.tag;
   return `<span class="hist-wsp" role="img" aria-label="Tenemos el número de WhatsApp de ${esc(n)}" title="Tenemos su número de WhatsApp">${ICONO_WSP_SOLO}</span>`;
 }
-function botonHistJugador(f){
+/* opts.sinWsp (23-oct-2026, tanda 2): la tarjeta de «Ingresos recientes» ya pinta su propio ícono de WhatsApp (.ico-wsp), así que aquí no se antepone otro ni wspRepintar() lo añade después. */
+function botonHistJugador(f, opts){
   if (!f || !f.tag) return '';
+  const sinWsp = !!(opts && opts.sinWsp);
   const adminOk = typeof esAdminLogueado === 'function' && esAdminLogueado();
-  const wsp = (adminOk && (f.tieneWsp === true || wspTieneTag(f.tag))) ? iconoWspHistHtml(f) : '';
-  return wsp + `<button type="button" class="btn-hist-jugador" data-tag="${esc(f.tag)}" data-nombre="${esc(f.nombre || f.tag)}" title="Ver historial de guerra" aria-label="Historial de guerra de ${esc(f.nombre || f.tag)}">📈</button>`;
+  const wsp = (!sinWsp && adminOk && (f.tieneWsp === true || wspTieneTag(f.tag))) ? iconoWspHistHtml(f) : '';
+  return wsp + `<button type="button" class="btn-hist-jugador"${sinWsp ? ' data-sin-wsp="1"' : ''} data-tag="${esc(f.tag)}" data-nombre="${esc(f.nombre || f.tag)}" title="Ver historial de guerra" aria-label="Historial de guerra de ${esc(f.nombre || f.tag)}">📈</button>`;
 }
 function wspRepintar(){
   document.querySelectorAll('.btn-hist-jugador').forEach(b => {
+    if (b.dataset.sinWsp) return;
     const prev = b.previousElementSibling;
     if (prev && prev.classList.contains('hist-wsp')) return;
     if (!wspTieneTag(b.dataset.tag)) return;

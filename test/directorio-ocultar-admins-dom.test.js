@@ -29,14 +29,14 @@ function extraerFuncion(src, nombre){
   }
   throw new Error(`llaves sin cerrar en ${nombre}`);
 }
-const NOMBRES = ['claveIngreso', 'esCuentaAdminIngreso', 'ingresoIncluido', 'textoContadorIngresos', 'agruparPorClanEnOrden',
+const NOMBRES = ['claveIngreso', 'esCuentaAdminIngreso', 'tieneWspIngreso', 'ingresoOculto', 'ingresoIncluido', 'textoContadorIngresos', 'agruparPorClanEnOrden',
   'actualizarPillsIngresos', 'aplicarFiltroIngresos', 'construirFiltroIngresos'];
 const CODIGO = `
-let ingresosTodosCache = [], ingresosSeleccionados = null, ingresosGrupos = [], ingresosGraficasVisibles = false, ingresosUltimosFiltrados = [], ingresosOcultarAdmins = false;
+let ingresosTodosCache = [], ingresosSeleccionados = null, ingresosGrupos = [], ingresosGraficasVisibles = false, ingresosUltimosFiltrados = [], ingresosOcultarAdmins = false, ingresosOcultarConWsp = false;
 function pintarGraficasIngresos(){}
 ${NOMBRES.map(n => extraerFuncion(grande, n)).join('\n')}
 window.__t = {
-  esCuentaAdminIngreso, ingresoIncluido, construirFiltroIngresos, aplicarFiltroIngresos,
+  esCuentaAdminIngreso, tieneWspIngreso, ingresoIncluido, construirFiltroIngresos, aplicarFiltroIngresos,
   cargar(lista){ ingresosTodosCache = lista; construirFiltroIngresos(lista); },
   get filtrados(){ return ingresosUltimosFiltrados; },
   get seleccionados(){ return ingresosSeleccionados; }
@@ -118,4 +118,70 @@ test('al desactivarla vuelven los admins con la selección de clanes que había'
   pill(w, '__admins__').click();
   assert.deepEqual(tagsFiltrados(w), ['#B1', '#B2', '#C1'], '#A2 sigue desmarcado porque Terna estaba desmarcado; #B2 vuelve');
   assert.ok(!w.document.querySelector('.js-nuevo-card[data-tag="#B2"]').classList.contains('oculto-admin'));
+});
+
+// NUEVO (23-oct-2026, pedido de la usuaria, tanda 2): pastilla «Ocultar con número». Solo existe con sesión de admin
+// (tieneWsp no llega sin ella). Al activarla (P4: «sí») las cuentas con número salen de gráficas y contador y sus tarjetas desaparecen.
+const CON_NUMERO = [
+  { tag: '#A1', nombre: 'Ana', clan: 'Terna', tieneWsp: true },
+  { tag: '#A2', nombre: 'Admin con número', clan: 'Terna', esCuentaAdmin: true, tieneWsp: true },
+  { tag: '#B1', nombre: 'Beto', clan: 'Terna 2' },
+  { tag: '#B2', nombre: 'Bruno', clan: 'Terna 2', tieneWsp: true },
+  { tag: '#C1', nombre: 'Sin marca', clan: 'Terna 3' }
+];
+function montarNumero(lista){
+  const w = loadBrowserScriptsWithDom(['assets/js/util.js'], '<div id="ingClanPills"></div><span id="nuevosCount"></span><div id="nuevoGrid"></div>');
+  w.eval(CODIGO);
+  w.document.getElementById('nuevoGrid').innerHTML = lista.map(n => `<div class="js-nuevo-card" data-tag="${n.tag}"><input type="checkbox" class="js-ingreso-check" data-tag="${n.tag}" checked></div>`).join('');
+  w.__t.cargar(lista);
+  w.__t.aplicarFiltroIngresos();
+  return w;
+}
+
+test('la pastilla «Ocultar con número» aparece solo si alguna cuenta trae tieneWsp (sin sesión de admin no llega)', () => {
+  const w = montarNumero(CON_NUMERO);
+  assert.ok(pill(w, '__wsp__'));
+  assert.equal(pill(w, '__wsp__').getAttribute('aria-pressed'), 'false');
+  assert.match(pill(w, '__wsp__').textContent, /3/, 'cuenta a las 3 con número');
+  w.__t.cargar(CON_NUMERO.map(({ tieneWsp, ...resto }) => resto));
+  assert.equal(pill(w, '__wsp__'), null);
+});
+
+test('al activarla, quienes tienen número salen de las gráficas y del contador y SUS TARJETAS DESAPARECEN; al apagarla vuelven', () => {
+  const w = montarNumero(CON_NUMERO);
+  const tarjeta = tag => w.document.querySelector(`.js-nuevo-card[data-tag="${tag}"]`);
+  pill(w, '__wsp__').click();
+  assert.deepEqual(tagsFiltrados(w), ['#B1', '#C1']);
+  assert.equal(w.document.getElementById('nuevosCount').textContent, '2 de 5 jugadores');
+  assert.equal(pill(w, '__wsp__').getAttribute('aria-pressed'), 'true');
+  ['#A1', '#A2', '#B2'].forEach(t => assert.ok(tarjeta(t).classList.contains('oculto-wsp'), t));
+  assert.ok(!tarjeta('#B1').classList.contains('oculto-wsp'));
+  assert.ok(!tarjeta('#A2').classList.contains('oculto-admin'), 'no marca la clase de «Ocultar admins»');
+  pill(w, '__wsp__').click();
+  assert.deepEqual(tagsFiltrados(w), ['#A1', '#A2', '#B1', '#B2', '#C1']);
+  ['#A1', '#A2', '#B2'].forEach(t => assert.ok(!tarjeta(t).classList.contains('oculto-wsp'), t));
+});
+
+test('«Ocultar con número» y «Ocultar admins» se suman y cada una se apaga sin tocar la otra', () => {
+  const w = montarNumero(CON_NUMERO);
+  pill(w, '__admins__').click();
+  assert.deepEqual(tagsFiltrados(w), ['#A1', '#B1', '#B2', '#C1']);
+  pill(w, '__wsp__').click();
+  assert.deepEqual(tagsFiltrados(w), ['#B1', '#C1']);
+  pill(w, '__admins__').click();
+  assert.deepEqual(tagsFiltrados(w), ['#B1', '#C1'], 'la de admins apagada no devuelve a quien sigue oculto por tener número');
+  pill(w, '__wsp__').click();
+  assert.deepEqual(tagsFiltrados(w), ['#A1', '#A2', '#B1', '#B2', '#C1']);
+});
+
+test('con «Ocultar con número» activa, las pastillas de clan y «Todos» no devuelven a quienes tienen número', () => {
+  const w = montarNumero(CON_NUMERO);
+  pill(w, '__wsp__').click();
+  pill(w, 'Terna 2').click(); // quita a Beto; Bruno ya estaba fuera
+  assert.deepEqual(tagsFiltrados(w), ['#C1']);
+  pill(w, 'Terna 2').click();
+  assert.deepEqual(tagsFiltrados(w), ['#B1', '#C1']);
+  assert.equal(pill(w, 'Terna 2').getAttribute('aria-pressed'), 'true');
+  pill(w, '__todos__').click();
+  assert.deepEqual(tagsFiltrados(w), ['#B1', '#C1']);
 });

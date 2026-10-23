@@ -39,8 +39,11 @@ const construir = new Function(`
   const ingresoIncluido = () => true, claveIngreso = n => n.tag, primeraLetraFiltro = () => 'A';
   const fechaIngresoTexto = () => '', enlaceJugador = n => n, ingBadgeRivalHtml = () => '';
   const ingresoStatHtml = () => '', desgloseDiasHtml = () => '', fmtFechaVigenciaCorta = () => '';
-  let ingresosOcultarAdmins = false, ingresosGuerraCongelada = false;
+  let ingresosOcultarAdmins = false, ingresosOcultarConWsp = false, ingresosGuerraCongelada = false;
   const esCuentaAdminIngreso = () => false;
+  const tieneWspIngreso = n => !!(n && n.tieneWsp === true);
+  // Simula botonHistJugador de mini-historial.js: con sinWsp no antepone ícono propio.
+  const botonHistJugador = (f, opts) => '<button class="btn-hist-jugador"' + (opts && opts.sinWsp ? ' data-sin-wsp="1"' : '') + ' data-tag="' + f.tag + '">📈</button>';
   ${lineaConst}
   ${extraerFuncion(grande, 'nuevoCardHtml')}
   return nuevoCardHtml;
@@ -65,4 +68,22 @@ test('el ícono sale aunque no haya RoyaleAPI ni CWStats', () => {
   const h = construir({ tag: '#B', nombre: 'Beto', clan: 'X', tieneWsp: true });
   assert.match(h, /class="links"/);
   assert.match(h, /ico-wsp/);
+});
+
+// NUEVO (23-oct-2026, tanda 2 de Consolidado_Mini_Historial_y_Perfil.md): el 📈 del mini historial va en cada tarjeta, a la derecha del WhatsApp.
+test('el 📈 va a la derecha del ícono de WhatsApp, dentro de .links, y sin repetir el ícono de WhatsApp', () => {
+  const h = construir({ ...base, tieneWsp: true });
+  const iWsp = h.indexOf('class="ico-wsp"'), iHist = h.indexOf('btn-hist-jugador');
+  assert.ok(iWsp >= 0 && iHist > iWsp, 'el 📈 va después del WhatsApp');
+  assert.match(h, /data-sin-wsp="1"/);
+  assert.equal((h.match(/class="ico-wsp"/g) || []).length, 1);
+  assert.doesNotMatch(h, /hist-wsp/);
+});
+
+test('el 📈 sale también sin WhatsApp, sin RoyaleAPI y sin CWStats (solo con Tag)', () => {
+  const h = construir({ tag: '#B', nombre: 'Beto', clan: 'X' });
+  assert.match(h, /class="links"/);
+  assert.match(h, /btn-hist-jugador/);
+  assert.doesNotMatch(h, /ico-wsp/);
+  assert.doesNotMatch(construir({ nombre: 'Sin tag', clan: 'X' }), /btn-hist-jugador/);
 });
