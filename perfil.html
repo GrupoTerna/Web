@@ -6681,6 +6681,21 @@ let histGuerraAnioSeleccionado = null;
 let histGuerraTemporadaSeleccionada = null;
 let histGuerraSemanaSeleccionada = null;
 
+/** 22-oct-2026 (pedido de la usuaria: «las fechas del historial de guerra no se muestran completas, debe decir S3 (19 OCT – 25 OCT)»): etiqueta de semana
+ * con el RANGO lunes–domingo, el mismo formato del selector de Valores diarios de guerra.html (backend: _getSemanasTemporada()). `f` es la fecha del último
+ * registro de esa semana ({dia, mes, anio}); un registro de lunes a miércoles es entrenamiento y pertenece a la semana anterior. Sin fecha → ''. [→ Contexto_Base_Web.md §PF168] */
+function rangoSemanaHistorialGuerra(f){
+  if (!f || !f.anio || !f.mes || !f.dia) return '';
+  const d = new Date(f.anio, f.mes - 1, f.dia);
+  if (isNaN(d.getTime())) return '';
+  const dow = d.getDay(); // 0 dom … 6 sáb
+  const atras = (dow + 6) % 7 + (dow >= 1 && dow <= 3 ? 7 : 0); // días hasta el lunes de su semana de guerra
+  const lunes = new Date(d.getFullYear(), d.getMonth(), d.getDate() - atras);
+  const domingo = new Date(lunes.getFullYear(), lunes.getMonth(), lunes.getDate() + 6);
+  const corta = x => `${String(x.getDate()).padStart(2, '0')} ${MESES_ES[x.getMonth()].slice(0, 3).toUpperCase()}`;
+  return `${corta(lunes)} – ${corta(domingo)}`;
+}
+
 /**
  * pintarSelectoresHistorialGuerra()
  * Mismo patrón que pintarSelectoresValoresDiarios() de guerra.html: 3
@@ -6732,7 +6747,8 @@ function pintarSelectoresHistorialGuerra(){
 
   selSem.innerHTML = semanasTemp.map(s => {
     const f = infoTemp.semanas[s];
-    const label = 'Semana ' + s + (f ? ` (${String(f.dia).padStart(2, '0')} ${MESES_ES[f.mes - 1].slice(0, 3).toUpperCase()})` : '');
+    const rango = rangoSemanaHistorialGuerra(f);
+    const label = 'S' + s + (rango ? ` (${rango})` : '');
     return `<option value="${esc(s)}"${s === histGuerraSemanaSeleccionada ? ' selected' : ''}>${esc(label)}</option>`;
   }).join('');
 
