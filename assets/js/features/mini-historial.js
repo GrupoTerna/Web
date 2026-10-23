@@ -78,7 +78,7 @@ function histClaseColorAtaques(r){
   if (histEsFalta(r)) return 'hist-cero';
   const a = r.ataques || 0;
   if (a >= HIST_ATAQUES_MAX) return 'hist-a4';
-  if (a === 2 || a === 3) return 'hist-a23';
+  if (a >= 1) return 'hist-a13'; // 1, 2 o 3 ataques: amarillo (la usuaria confirmó el 22-oct-2026 que el 1 también va en amarillo)
   return '';
 }
 function histCerrar(){ document.getElementById('histFondo').classList.remove('abierto'); histSolicitud++; }

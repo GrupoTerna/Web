@@ -61,13 +61,13 @@ test('Esc y el botón × cierran la ventana; un error del backend muestra un avi
 });
 
 // NUEVO (22-oct-2026, tanda 1 de Consolidado_Mini_Historial_y_Perfil.md): N°, Fecha como 22/10/2026, Día en una letra, color de la fila según los ataques y sombreado alternado por semana.
-test('la tabla del jugador lleva N°, Fecha dd/mm/aaaa, Día J/V/S/D, colores por ataques y semanas alternadas', async () => {
+test('la tabla del jugador lleva N°, Fecha dd/mm/aaaa, Día J/V/S/D, colores por ataques (1 a 3 en amarillo) y semanas alternadas', async () => {
   const w = cargar({ a: [
     { fecha: '2026-10-01', ataques: 4, fame: 100, barcos: 0 }, // jue, semana lun 28-sep
     { fecha: '2026-10-04', ataques: 0, fame: 100, barcos: 0 }, // dom, misma semana
     { fecha: '2026-10-08', ataques: 3, fame: 200, barcos: 0 }, // jue, semana lun 05-oct
     { fecha: '2026-10-09', ataques: 2, fame: 200, barcos: 0 }, // vie
-    { fecha: '2026-10-10', ataques: 1, fame: 200, barcos: 0 }, // sáb: el 1 no lleva color propio (P1)
+    { fecha: '2026-10-10', ataques: 1, fame: 200, barcos: 0 }, // sáb: con 1 ataque también es amarillo (P1 respondida el 22-oct-2026)
     { fecha: '2026-10-15', ataques: 4, fame: 300, barcos: 0 }, // jue, semana lun 12-oct
   ] });
   w.histAbrir('#ABC', 'Chistris');
@@ -79,7 +79,7 @@ test('la tabla del jugador lleva N°, Fecha dd/mm/aaaa, Día J/V/S/D, colores po
   assert.deepEqual(cel.map(f => f[0]), ['1', '2', '3', '4', '5', '6'], 'N° automático');
   assert.deepEqual(cel.map(f => f[1].replace(/ ·.*$/, '')), ['15/10/2026', '10/10/2026', '09/10/2026', '08/10/2026', '04/10/2026', '01/10/2026']);
   assert.deepEqual(cel.map(f => f[2]), ['J', 'S', 'V', 'J', 'D', 'J']);
-  const col = tr => ['hist-a4', 'hist-a23', 'hist-cero'].find(c => tr.classList.contains(c)) || '';
-  assert.deepEqual(trs.map(col), ['hist-a4', '', 'hist-a23', 'hist-a23', 'hist-cero', 'hist-a4']);
+  const col = tr => ['hist-a4', 'hist-a13', 'hist-cero'].find(c => tr.classList.contains(c)) || '';
+  assert.deepEqual(trs.map(col), ['hist-a4', 'hist-a13', 'hist-a13', 'hist-a13', 'hist-cero', 'hist-a4']);
   assert.deepEqual(trs.map(tr => tr.classList.contains('hist-sem-b')), [false, true, true, true, false, false], 'solo la semana del medio va sombreada');
 });
