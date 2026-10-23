@@ -83,6 +83,7 @@ async function histCargarCabecera(tag, mia){
   }catch(_){ /* sin la cabecera solo falta ese resumen; la tabla ya está pintada */ }
 }
 const HIST_FILAS_INICIALES = 28;
+const HIST_FILAS_MAS = 28; // 23-oct-2026 (P6): cada clic en «Ver más» agrega 28 filas más
 let histSolicitud = 0;
 /* 22-oct-2026 (pedido de la usuaria, tanda 1 de Consolidado_Mini_Historial_y_Perfil.md): fecha como 22/10/2026, día en una letra (J, V, S, D), color de la fila según los ataques y sombreado alternado por semana. */
 function histFechaDMA(iso){
@@ -156,23 +157,16 @@ function histEnlazarSelector(){
   const sel = document.getElementById('histSelComp');
   if (!sel) return;
   sel.addEventListener('change', () => {
-    if (!sel.value) histPintar(histRegsA, false);
+    if (!sel.value) histPintar(histRegsA);
     else histComparar(sel.value, sel.options[sel.selectedIndex].dataset.nombre || sel.value);
   });
 }
-function histPintar(registros, verTodos){
-  registros = histSoloGuerra(registros);
-  histRegsA = registros;
-  const cuerpo = document.getElementById('histCuerpo');
-  if (!registros.length){
-    cuerpo.innerHTML = histSelectorComparar('') + '<p class="hist-nota">Sin registros de guerra para este jugador en los últimos 180 días (cuenta nueva o inactiva).</p>';
-    histEnlazarSelector();
-    return;
-  }
+/* 23-oct-2026 (tanda 5, parte 1): resumen + tabla de días + «Ver más» + nota, SIN el selector «Comparar con», para que lo usen la ventana del mini historial y la tarjeta «Historial de guerra» del perfil con la MISMA fuente y el MISMO armado (así los números coinciden; P6: 28 filas al abrir y 28 más por «Ver más»). `registros` ya pasó por histSoloGuerra(). `limite` = cuántas filas se ven. [→ Contexto_Base_Web.md §PF181] */
+function histCuerpoDiaHtml(registros, limite){
   const desc = registros.slice().sort((a, b) => b.fecha.localeCompare(a.fecha));
   const st = histStats(desc), n = st.n;
   const hoyIso = histHoyIso();
-  const visibles = verTodos ? desc : desc.slice(0, HIST_FILAS_INICIALES);
+  const visibles = desc.slice(0, limite);
   const hayHoy = visibles.some(r => r.fecha === hoyIso), hayPend = visibles.some(r => histPendiente(r, hoyIso));
   let semPrev = null, semAlt = false;
   const filas = visibles.map((r, idx) => {
@@ -182,7 +176,7 @@ function histPintar(registros, verTodos){
     const clases = [histClaseColorAtaques(r), semAlt ? 'hist-sem-b' : '', r.fecha === hoyIso ? 'hist-hoy' : ''].filter(Boolean).join(' ');
     return `<tr class="${clases}"><td>${idx + 1}</td><td>${histFechaDMA(r.fecha)}${r.fecha === hoyIso ? ' · en curso' : ''}${r.opcional === true ? ' · opcional (meta cruzada)' : ''}</td><td>${histTemporadaTxt(r)}</td><td>${histSemanaTxt(r)}</td><td>${histDiaLetra(r.fecha)}</td><td>${fmtNum(r.ataques || 0)}${histPendiente(r, hoyIso) ? HIST_ASTERISCO : ''}</td><td>${fmtNum(r.barcos || 0)}</td><td>${fmtNum(r.fame || 0)}</td></tr>`;
   }).join('');
-  document.getElementById('histCuerpo').innerHTML = histSelectorComparar('') + `
+  return `
     <div class="hist-resumen">
       <div><b>${n}</b>días de guerra</div>
       <div><b>${fmtNum(st.atq)}</b>ataques</div>
@@ -192,11 +186,29 @@ function histPintar(registros, verTodos){
       <div><b>${fmtNum(st.barcos)}</b>barcos</div>
     </div>
     <table class="hist-tabla hist-tabla-dia"><thead><tr><th>N°</th><th>Fecha</th><th>Temporada</th><th>Semana</th><th>Día</th><th>Ataques</th><th>Barcos</th><th>Medallas</th></tr></thead><tbody>${filas}</tbody></table>
-    ${(!verTodos && n > HIST_FILAS_INICIALES) ? `<button type="button" class="btn-solo-cero hist-mas" id="histMas">Ver todos (${n})</button>` : ''}
+    ${n > visibles.length ? `<button type="button" class="btn-solo-cero hist-mas" data-hist-mas="1">Ver más</button>` : ''}
     <p class="hist-nota">Un 0 es un día de guerra en el que estuvo registrado y no atacó. Los días anteriores a su ingreso al clan no aparecen. Un día marcado como opcional (meta ya cruzada) no cuenta como falta. Solo se muestran días de guerra, no de entrenamiento.${histNotasDiaEnCurso(hayHoy, hayPend)}</p>`;
-  histEnlazarSelector();
-  const mas = document.getElementById('histMas');
-  if (mas) mas.addEventListener('click', () => histPintar(registros, true));
+}
+/* Pinta en `el` el cuerpo de días de un jugador y deja funcionando «Ver más». opts.prefijo() devuelve HTML que va antes (el selector «Comparar con» en la ventana); opts.despues() corre tras cada pintado (enlazar ese selector). Devuelve false si no hay registros de guerra. */
+function histPintarEn(el, registros, limite, opts){
+  const o = opts || {};
+  const prefijo = typeof o.prefijo === 'function' ? o.prefijo : () => '';
+  const lim = limite > 0 ? limite : HIST_FILAS_INICIALES;
+  if (!registros.length){
+    el.innerHTML = prefijo() + '<p class="hist-nota">Sin registros de guerra para este jugador en los últimos 180 días (cuenta nueva o inactiva).</p>';
+    if (typeof o.despues === 'function') o.despues();
+    return false;
+  }
+  el.innerHTML = prefijo() + histCuerpoDiaHtml(registros, lim);
+  if (typeof o.despues === 'function') o.despues();
+  const mas = el.querySelector('[data-hist-mas]');
+  if (mas) mas.addEventListener('click', () => histPintarEn(el, registros, lim + HIST_FILAS_MAS, o));
+  return true;
+}
+function histPintar(registros, limite){
+  registros = histSoloGuerra(registros);
+  histRegsA = registros;
+  histPintarEn(document.getElementById('histCuerpo'), registros, limite, { prefijo: () => histSelectorComparar(''), despues: histEnlazarSelector });
 }
 /* Comparación lado a lado de dos jugadores (mismo endpoint, tag1 + tag2). Una celda vacía = ese jugador no tenía registro ese día. */
 async function histComparar(tag2, nombre2){
@@ -208,14 +220,14 @@ async function histComparar(tag2, nombre2){
     const data = await apiGet('webHistorialGuerraComparador', { tag1: histTag, tag2 }, { conSesion: true });
     if (mia !== histSolicitud) return;
     if (!data || data.error) throw new Error('sin respuesta');
-    histPintarComparacion(Array.isArray(data.a) ? data.a : [], Array.isArray(data.b) ? data.b : [], nombre2, false);
+    histPintarComparacion(Array.isArray(data.a) ? data.a : [], Array.isArray(data.b) ? data.b : [], nombre2);
   }catch(e){
     if (mia !== histSolicitud) return;
     cuerpo.innerHTML = histSelectorComparar(tag2) + '<p class="hist-nota">No se pudo cargar la comparación. Intenta de nuevo en un momento.</p>';
     histEnlazarSelector();
   }
 }
-function histPintarComparacion(ra, rb, nombre2, verTodos){
+function histPintarComparacion(ra, rb, nombre2, limite){
   ra = histSoloGuerra(ra); rb = histSoloGuerra(rb);
   const cuerpo = document.getElementById('histCuerpo');
   const tag2 = (document.getElementById('histSelComp') || {}).value || '';
@@ -226,7 +238,8 @@ function histPintarComparacion(ra, rb, nombre2, verTodos){
   const prom = st => st.n ? histFmtDec(st.atq / st.n) : '';
   const fila = (tit, a, b) => `<tr><td>${tit}</td><td>${a}</td><td>${b}</td></tr>`;
   const celda = (r, k) => r ? fmtNum(r[k] || 0) : '';
-  const visibles = verTodos ? fechas : fechas.slice(0, HIST_FILAS_INICIALES);
+  const lim = limite > 0 ? limite : HIST_FILAS_INICIALES;
+  const visibles = fechas.slice(0, lim);
   // 23-oct-2026 (tanda 1b): el color de cada jugador sale de SUS ataques y lo comparten sus celdas de Ataques y Medallas.
   const cls = r => { const c = histClaseColorAtaques(r); return c ? ` class="${c}"` : ''; };
   const hoyIso = histHoyIso();
@@ -247,11 +260,11 @@ function histPintarComparacion(ra, rb, nombre2, verTodos){
       ${fila('Días de guerra', sa.n, sb.n)}${fila('Ataques', fmtNum(sa.atq), fmtNum(sb.atq))}${fila('Días con 0', sa.ceros, sb.ceros)}${fila('Ataques por día', prom(sa), prom(sb))}${fila('Medallas', fmtNum(sa.fame), fmtNum(sb.fame))}${fila('Barcos', fmtNum(sa.barcos), fmtNum(sb.barcos))}
     </tbody></table>
     <table class="hist-tabla hist-tabla-dia" style="margin-top:12px;"><thead><tr><th rowspan="2">N°</th><th rowspan="2">Fecha</th><th rowspan="2">Temporada</th><th rowspan="2">Semana</th><th rowspan="2">Día</th><th colspan="2">Ataques</th><th colspan="2">Medallas</th></tr><tr><th>${na}</th><th>${nb}</th><th>${na}</th><th>${nb}</th></tr></thead><tbody>${filasDia || '<tr><td colspan="9">Sin registros</td></tr>'}</tbody></table>
-    ${(!verTodos && fechas.length > HIST_FILAS_INICIALES) ? `<button type="button" class="btn-solo-cero hist-mas" id="histMas">Ver todos (${fechas.length})</button>` : ''}
+    ${fechas.length > visibles.length ? `<button type="button" class="btn-solo-cero hist-mas" id="histMas">Ver más</button>` : ''}
     <p class="hist-nota">Celda vacía: ese jugador no tenía registro ese día (aún no estaba en el clan). Un 0 en rojo es que estuvo y no atacó.${histNotasDiaEnCurso(hayHoy, hayPend)}</p>`;
   histEnlazarSelector();
   const mas = document.getElementById('histMas');
-  if (mas) mas.addEventListener('click', () => histPintarComparacion(ra, rb, nombre2, true));
+  if (mas) mas.addEventListener('click', () => histPintarComparacion(ra, rb, nombre2, lim + HIST_FILAS_MAS));
 }
 async function histAbrir(tag, nombre){
   histAsegurarModal();
@@ -268,7 +281,7 @@ async function histAbrir(tag, nombre){
     const data = await apiGet('webHistorialGuerraComparador', { tag1: tag, tag2: '' }, { conSesion: true });
     if (mia !== histSolicitud) return; // se cerró o se abrió otro jugador mientras cargaba
     if (!data || data.error) throw new Error((data && data.error) || 'sin respuesta');
-    histPintar(Array.isArray(data.a) ? data.a : [], false);
+    histPintar(Array.isArray(data.a) ? data.a : []);
   }catch(e){
     if (mia !== histSolicitud) return;
     document.getElementById('histCuerpo').innerHTML = '<p class="hist-nota">No se pudo cargar el historial. Intenta de nuevo en un momento.</p>';

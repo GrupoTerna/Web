@@ -223,3 +223,46 @@ test('la cabecera de un jugador no queda al abrir otro (se vacía al abrir)', as
   w.histAbrir('#XYZ', 'Otro');
   assert.equal(w.document.getElementById('histPerfil').innerHTML, '');
 });
+
+// NUEVO (23-oct-2026, tanda 5 parte 1, P6): «Ver más» (28 filas al abrir y 28 más por clic) en la tabla de un jugador y en la comparación, y el armado compartido histPintarEn() que usará la tarjeta del perfil. §PF181. LÍMITE: solo DOM con jsdom, sin CSS.
+function diasDeGuerra(n){ // n días de guerra consecutivos hacia atrás desde 2026-10-25 (domingo), solo jueves a domingo
+  const out = []; const d = new Date(2026, 9, 25);
+  while (out.length < n){ const w = d.getDay(); if (w === 0 || w >= 4) out.push({ fecha: `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`, ataques: 4, fame: 0, barcos: 0 }); d.setDate(d.getDate() - 1); }
+  return out;
+}
+test('«Ver más» agrega 28 filas por clic y desaparece al mostrar todas (tabla de un jugador)', async () => {
+  const w = cargar({ a: diasDeGuerra(60) });
+  w.histAbrir('#ABC', 'Chistris');
+  await esperar();
+  const filas = () => w.document.querySelectorAll('#histCuerpo .hist-tabla-dia tbody tr').length;
+  const mas = () => w.document.querySelector('#histCuerpo .hist-mas');
+  assert.equal(filas(), 28);
+  assert.equal(mas().textContent, 'Ver más');
+  mas().click(); assert.equal(filas(), 56);
+  mas().click(); assert.equal(filas(), 60);
+  assert.equal(mas(), null, 'con todas las filas visibles ya no hay botón');
+  assert.ok(!w.document.body.textContent.includes('Ver todos'));
+});
+test('histPintarEn() pinta resumen, tabla y «Ver más» en cualquier contenedor, sin el selector «Comparar con»', () => {
+  const w = cargar({ a: [] });
+  const el = w.document.createElement('div'); w.document.body.appendChild(el);
+  const regs = w.histSoloGuerra(diasDeGuerra(40));
+  assert.equal(w.histPintarEn(el, regs, 28), true);
+  assert.equal(el.querySelectorAll('.hist-tabla-dia tbody tr').length, 28);
+  assert.equal(el.querySelector('#histSelComp'), null);
+  assert.match(el.querySelector('.hist-resumen').textContent, /40\s*días de guerra/);
+  el.querySelector('[data-hist-mas]').click();
+  assert.equal(el.querySelectorAll('.hist-tabla-dia tbody tr').length, 40);
+  assert.equal(w.histPintarEn(el, [], 28), false);
+  assert.match(el.textContent, /Sin registros de guerra/);
+});
+test('la comparación también usa «Ver más» de 28 en 28', async () => {
+  const w = cargar({ a: diasDeGuerra(60), b: diasDeGuerra(60) });
+  w.histAbrir('#ABC', 'Chistris');
+  await esperar();
+  w.histPintarComparacion(diasDeGuerra(60), diasDeGuerra(60), 'Otro');
+  const filas = () => w.document.querySelectorAll('#histCuerpo .hist-tabla-dia tbody tr').length;
+  assert.equal(filas(), 28);
+  w.document.getElementById('histMas').click();
+  assert.equal(filas(), 56);
+});
