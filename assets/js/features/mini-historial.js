@@ -14,10 +14,38 @@ function histAsegurarModal(){
 }
 /* Parte 6 (05-oct-2026): mini historial de guerra por jugador. Usa webHistorialGuerraComparador (público): solo días de guerra, últimos ~180 días.
    Si el jugador no tiene registro en un día (aún no estaba en el clan), ese día simplemente no aparece: se distingue del 0 real igual que en las cuadrículas. */
+/* 22-oct-2026 (pedido de la usuaria, §PF172): junto a todo 📈 va, a su IZQUIERDA y solo para admins, el ícono de WhatsApp que indica que tenemos el celular de la cuenta (sin enlace ni número). Los Tags con celular los pide wspCargarTags() al backend (webAdminTagsConWsp); si la lista llega después de pintar una tabla, wspRepintar() inserta el ícono en los botones ya existentes. `f.tieneWsp === true` (lo manda «Participación de Hoy») también lo muestra. */
+let wspTags = null; // Set de Tags en mayúsculas y sin #; null = sin cargar o sin sesión de admin
+function wspClaveTag(tag){ return String(tag || '').replace('#', '').toUpperCase(); }
+function wspTieneTag(tag){ return !!(wspTags && wspTags.has(wspClaveTag(tag))); }
+function iconoWspHistHtml(f){
+  const n = f.nombre || f.tag;
+  return `<span class="hist-wsp" role="img" aria-label="Tenemos el número de WhatsApp de ${esc(n)}" title="Tenemos su número de WhatsApp">${ICONO_WSP_SOLO}</span>`;
+}
 function botonHistJugador(f){
   if (!f || !f.tag) return '';
-  return `<button type="button" class="btn-hist-jugador" data-tag="${esc(f.tag)}" data-nombre="${esc(f.nombre || f.tag)}" title="Ver historial de guerra" aria-label="Historial de guerra de ${esc(f.nombre || f.tag)}">📈</button>`;
+  const adminOk = typeof esAdminLogueado === 'function' && esAdminLogueado();
+  const wsp = (adminOk && (f.tieneWsp === true || wspTieneTag(f.tag))) ? iconoWspHistHtml(f) : '';
+  return wsp + `<button type="button" class="btn-hist-jugador" data-tag="${esc(f.tag)}" data-nombre="${esc(f.nombre || f.tag)}" title="Ver historial de guerra" aria-label="Historial de guerra de ${esc(f.nombre || f.tag)}">📈</button>`;
 }
+function wspRepintar(){
+  document.querySelectorAll('.btn-hist-jugador').forEach(b => {
+    const prev = b.previousElementSibling;
+    if (prev && prev.classList.contains('hist-wsp')) return;
+    if (!wspTieneTag(b.dataset.tag)) return;
+    b.insertAdjacentHTML('beforebegin', iconoWspHistHtml({ tag: b.dataset.tag, nombre: b.dataset.nombre }));
+  });
+}
+async function wspCargarTags(){
+  if (typeof esAdminLogueado !== 'function' || !esAdminLogueado()) return;
+  try{
+    const data = await apiGetAuth('webAdminTagsConWsp', {});
+    if (!data || data.ok === false || !Array.isArray(data.tags)) return;
+    wspTags = new Set(data.tags.map(wspClaveTag));
+    wspRepintar();
+  }catch(_){ /* sin la lista solo falta el ícono de WhatsApp; el 📈 sigue igual */ }
+}
+if (typeof document !== 'undefined') { if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wspCargarTags); else wspCargarTags(); }
 const HIST_FILAS_INICIALES = 28;
 let histSolicitud = 0;
 function histFechaCorta(iso){

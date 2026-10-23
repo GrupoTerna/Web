@@ -21,7 +21,7 @@ function construir(esAdmin){
     const esc = s => String(s == null ? '' : s);
     const enlaceJugador = n => n;
     const ICONO_WSP_SOLO = '<svg-wsp></svg-wsp>';
-    const botonHistJugador = f => f && f.tag ? '<button class="btn-hist-jugador" data-tag="' + f.tag + '">📈</button>' : '';
+    const botonHistJugador = f => f && f.tag ? (f.tieneWsp === true && esAdminLogueado() ? '<span class="hist-wsp">' + ICONO_WSP_SOLO + '</span>' : '') + '<button class="btn-hist-jugador" data-tag="' + f.tag + '">📈</button>' : ''; // réplica mínima de la real (mini-historial.js, probada en test/mini-historial-wsp.test.js)
     ${grande.slice(ini, fin)}
     return { _liCuentaParticipacion, _listaCuentasHtml };`)(() => esAdmin);
 }
@@ -30,9 +30,10 @@ const cta = (extra) => Object.assign({ tag: '#ABC', nombre: 'Ana', ataquesHoy: 2
 test('con sesión de admin y tieneWsp:true: lleva el 📈 y el ícono de WhatsApp, sin enlace', () => {
   const h = construir(true)._liCuentaParticipacion(cta({ tieneWsp: true }), 2);
   assert.match(h, /btn-hist-jugador/);
-  assert.match(h, /class="part-wsp"/);
+  assert.match(h, /class="hist-wsp"/);
   assert.match(h, /<svg-wsp>/);
-  assert.doesNotMatch(h, /<a[^>]*part-wsp/);
+  assert.doesNotMatch(h, /<a[^>]*hist-wsp/);
+  assert.ok(h.indexOf('hist-wsp') < h.indexOf('btn-hist-jugador'), 'el ícono de WhatsApp va a la izquierda del 📈');
   assert.ok(h.indexOf('btn-hist-jugador') < h.indexOf('part-pend'), 'los íconos van antes de los pendientes');
 });
 
@@ -40,7 +41,7 @@ test('sin tieneWsp, con tieneWsp:false o sin sesión de admin: solo el 📈', ()
   const a = construir(true), b = construir(false);
   for (const h of [a._liCuentaParticipacion(cta({}), 2), a._liCuentaParticipacion(cta({ tieneWsp: false }), 2), b._liCuentaParticipacion(cta({ tieneWsp: true }), 2)]) {
     assert.match(h, /btn-hist-jugador/);
-    assert.doesNotMatch(h, /part-wsp/);
+    assert.doesNotMatch(h, /hist-wsp/);
   }
 });
 

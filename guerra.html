@@ -117,11 +117,8 @@
   th.col-n, td.col-n{text-align:center; width:1%; white-space:nowrap;}
   td.col-n{color:var(--text-faint); font-family:var(--f-mono);}
   /* 11-oct-2026 (pedido usuario): en la columna Nombre de las cuadrículas, el nombre (con sus insignias) va pegado a la izquierda y el 📈 pegado a la derecha, dentro de la misma celda. */
-  .col-jugador-inner{display:flex; align-items:center; justify-content:space-between; gap:10px;}
-  .col-jugador-nombre{min-width:0; text-align:left;}
+  /* .col-jugador-inner, .col-jugador-nombre y .col-jugador-extras viven ahora en assets/styles.css (compartidos con Pendientes de Atacar y directorio.html, 22-oct-2026, §PF172). */
   /* 11-oct-2026: el 📈 va pegado a la derecha de la celda Nombre. 19-oct-2026: la pastilla de rango y «Inactivo» salieron de aquí y tienen su propia columna (Rango y Estado, con filtro). */
-  .col-jugador-extras{margin-left:auto; display:flex; align-items:center; gap:6px; flex-shrink:0;}
-  .col-jugador-extras .btn-hist-jugador{margin-left:0;}
   td.col-rango, td.col-estado, .tbl-activos-grid tfoot td.col-rango, .tbl-activos-grid tfoot td.col-estado{text-align:center; white-space:nowrap;}
   .col-rango .rango-badge, .col-estado .inactivo-badge{margin-left:0;}
   .col-rango .rango-miembro{font-family:var(--f-mono); font-size:10px; font-weight:700; color:var(--text-dim);}
@@ -210,7 +207,7 @@
   .part-lista li{padding:6px 0; margin:0;}
   /* WCAG 1.4.1 (12-oct-2026): enlace dentro de una frase, sin color propio. */
   .part-lista a.jugador-link{text-decoration:underline dotted; text-underline-offset:3px;}
-  .part-wsp{display:inline-flex; vertical-align:middle; margin-left:4px; cursor:default;} /* §PF171 */
+  /* El ícono de WhatsApp (.hist-wsp) está en assets/styles.css y lo pinta botonHistJugador() (§PF172). */
   .part-pend{font-family:var(--f-mono); font-size:11px; color:var(--text-faint);}
   .part-pend.part-pend-cero{color:var(--text-faint);} /* sin opacity: con .7 daba 2.97:1 (mínimo 4.5:1); el 0 es información. [→ Contexto_Base_Web.md §PF050] */
 
@@ -1590,7 +1587,7 @@ function render(data){
             <tr data-letra="${esc(letra)}">
               <td class="col-n"></td>
               ${t('tag', p.tag || '—', 'col-tag')}${esc(p.tag || '—')}</td>
-              ${t('nombre', nombreMostrado || '—', 'col-nombre')}${p.tag ? enlaceJugador(nombreMostrado, p.tag) : esc(nombreMostrado)}${botonHistJugador({ tag:p.tag, nombre:nombreMostrado })}</td>
+              ${t('nombre', nombreMostrado || '—', 'col-nombre')}<div class="col-jugador-inner"><span class="col-jugador-nombre">${p.tag ? enlaceJugador(nombreMostrado, p.tag) : esc(nombreMostrado)}</span><span class="col-jugador-extras">${botonHistJugador({ tag:p.tag, nombre:nombreMostrado })}</span></div></td>
               ${pendEsAdmin ? `${t('jugador', p.nomMulti || '—')}${esc(p.nomMulti || '—')}</td>${t('prestamo', p.prestamo || '—')}${esc(p.prestamo || '—')}</td>` : ''}
               ${t('rango', p.rango || '—')}${esc(p.rango || '—')}</td>
               <td class="falt" data-col="faltantes" data-raw="${Number(p.faltantes) || 0}">${fmtNum(p.faltantes)}</td>
@@ -1942,9 +1939,8 @@ async function cargarAportesInactivosSiAdmin(ctx){
  *  Reemplazables donde siempre es el tope completo). */
 /* 22-oct-2026 (pedido de la usuaria): junto al tag de cada cuenta va el 📈 del mini historial y, solo para admins, el ícono de WhatsApp (sin enlace) cuando tenemos su celular. [→ Contexto_Base_Web.md §PF171] */
 function _extrasCuentaParticipacion(cta){
-  const wsp = (cta.tieneWsp === true && esAdminLogueado())
-    ? ` <span class="part-wsp" role="img" aria-label="Tenemos el número de WhatsApp de ${esc(cta.nombre || cta.tag)}" title="Tenemos su número de WhatsApp">${ICONO_WSP_SOLO}</span>` : '';
-  return botonHistJugador({ tag: cta.tag, nombre: cta.nombre }) + wsp;
+  // 22-oct-2026 (§PF172): el ícono de WhatsApp ahora lo pinta botonHistJugador() (mini-historial.js) y va a la IZQUIERDA del 📈; `tieneWsp` lo manda el backend de esta sección, y solo se muestra con sesión de admin.
+  return botonHistJugador({ tag: cta.tag, nombre: cta.nombre, tieneWsp: cta.tieneWsp === true });
 }
 function _liCuentaParticipacion(cta, pend){
   const pendHtml = (pend === null) ? '' :

@@ -2023,7 +2023,11 @@ function celdaHtmlRoster(col, m, i){
   const contenido = col.html
     ? (val || '—')
     : (val === null || val === undefined || val === '' ? '—' : esc(val));
-  return `<td class="${col.cls}"${dataRaw}>${contenido}${col.extra ? col.extra(m, i) : ''}</td>`;
+  // 22-oct-2026 (§PF172): con `extra` (el 📈 y el ícono de WhatsApp) el nombre va a la izquierda y las acciones pegadas a la derecha de la celda, como en Valores diarios de guerra.html.
+  const interior = col.extra
+    ? `<div class="col-jugador-inner"><span class="col-jugador-nombre">${contenido}</span><span class="col-jugador-extras">${col.extra(m, i)}</span></div>`
+    : contenido;
+  return `<td class="${col.cls}"${dataRaw}>${interior}</td>`;
 }
 
 function filasHtmlRoster(miembros){

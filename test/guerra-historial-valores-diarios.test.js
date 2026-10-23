@@ -85,5 +85,5 @@ test('guerra.html y directorio.html cargan mini-historial.js y no lo duplican', 
 test('Pendientes de Atacar lleva el 📈 del mini historial junto al nombre', () => {
   const fs = require('node:fs'), path = require('node:path');
   const g = fs.readFileSync(path.join(__dirname, '..', 'guerra.html'), 'utf8');
-  assert.match(g, /enlaceJugador\(nombreMostrado, p\.tag\) : esc\(nombreMostrado\)\}\$\{botonHistJugador\(\{ tag:p\.tag, nombre:nombreMostrado \}\)\}<\/td>/);
+  assert.match(g, /<div class=\"col-jugador-inner\"><span class=\"col-jugador-nombre\">\$\{p\.tag \? enlaceJugador\(nombreMostrado, p\.tag\) : esc\(nombreMostrado\)\}<\/span><span class=\"col-jugador-extras\">\$\{botonHistJugador\(\{ tag:p\.tag, nombre:nombreMostrado \}\)\}<\/span><\/div><\/td>/);
 });

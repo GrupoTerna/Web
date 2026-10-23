@@ -198,7 +198,8 @@
 // v139 (22-oct-2026): directorio.html, guerra.html, assets/styles.css y el nuevo assets/js/features/mini-historial.js cambiaron (CORE_ASSETS) -- el mini historial de guerra (📈) pasa a un archivo compartido y la tabla del Directorio lo muestra junto al nombre de cada jugador (§PF169).
 // v140 (22-oct-2026): guerra.html cambió (CORE_ASSETS) -- «Pendientes de Atacar» muestra el 📈 del mini historial junto al nombre de cada jugador (§PF170).
 // v141 (22-oct-2026): guerra.html, directorio.html y assets/js/data/clan-badges.js cambiaron (CORE_ASSETS) -- «Participación de Hoy» muestra el 📈 del mini historial y, solo a admins, el ícono de WhatsApp (sin enlace) junto a cada cuenta; el ícono pasa a clan-badges.js (§PF171).
-const CACHE_NAME = 'terna-static-v141';
+// v142 (22-oct-2026): guerra.html, directorio.html, assets/styles.css y assets/js/features/mini-historial.js cambiaron (CORE_ASSETS) -- el 📈 del mini historial va pegado a la derecha de la celda Nombre en Pendientes de Atacar y en el Directorio (como en Valores diarios) y, solo a admins, el ícono de WhatsApp va a su izquierda en todas las tablas (§PF172).
+const CACHE_NAME = 'terna-static-v142';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
