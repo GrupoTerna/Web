@@ -546,6 +546,7 @@
         <span><b class="ai-cell ai-cell-zero">0</b> Estuvo en el clan y no atacó</span>
         <span><b>(vacío)</b> No estuvo en el clan ese día o semana</span>
         <span><b style="color:var(--danger);">▌</b> Fila resaltada: estuvo y tiene algún 0</span>
+        <span><b class="ai-hoy-muestra">Sem</b> Columna marcada: la semana de guerra en curso (en entrenamiento, la última jugada)</span>
       </div>
       <div class="tabs-row" id="controlTemporadaClanTabs" style="margin-top:20px;"></div>
       <!-- FIX (13-sep-2026, pedido usuario — "agrega los botones de letras
@@ -770,6 +771,18 @@ function colHoyDiario(data, temporadaSel, sectionIndexSel){
   if (!letra) return null;
   return { key: String(letra).toLowerCase(), titulo: data.ctx && data.ctx.esDiaGuerra ? 'Hoy: día de guerra en curso' : 'Último día de guerra jugado (el domingo)' };
 }
+/* Valores semanales: { idx, titulo } de la columna de la semana en curso (en entrenamiento, la última jugada), o null. Las columnas se llaman 'Sem N' con N = sectionIndex + 1 (_getControlTemporadaPorClan(), 38_Web_Endpoints.gs). Si esa semana aún no tiene columna no se crea ni se marca otra (P12). `temporadaSel` null = se está mostrando la temporada vigente. */
+function colHoySemanal(data, temporadaSel, semanasLabels){
+  const sem = semanaHoyGuerra(data);
+  if (!sem || !Array.isArray(semanasLabels)) return null;
+  const temporada = (temporadaSel === undefined || temporadaSel === null || temporadaSel === '') ? (data.ctx && data.ctx.temporada) : temporadaSel;
+  if (!_mismoValorGuerra(temporada, sem.temporada)) return null;
+  const n = Number(sem.sectionIndex);
+  if (sem.sectionIndex === null || sem.sectionIndex === undefined || !Number.isFinite(n)) return null;
+  const idx = semanasLabels.findIndex(l => { const m = /(\d+)/.exec(String(l)); return !!m && Number(m[1]) === n + 1; });
+  if (idx < 0) return null;
+  return { idx, titulo: data.ctx && data.ctx.esDiaGuerra ? 'Semana de guerra en curso' : 'Última semana jugada' };
+}
 /* NUEVO (05-oct-2026): `umbral` = ataques que exige esa semana = 16 menos 4 por cada día en que el clan ya había cruzado la meta (atacar era opcional). Sin dato de días opcionales vale 16, igual que antes. */
 function claseCeldaSemana(n, umbral){ const u = umbral === undefined ? UMBRAL_VERDE_SEMANAL : umbral; return n >= u ? 'ai-cell ai-cell-full' : (n > 0 ? 'ai-cell ai-cell-part' : 'ai-cell ai-cell-zero'); }
 function claseCeldaCA(n){ return n >= 4 ? 'ai-cell ai-cell-full' : (n > 0 ? 'ai-cell ai-cell-part' : 'ai-cell ai-cell-zero'); }
@@ -800,7 +813,7 @@ function celdasMegacategoria(m, gpClase, conColor, keyPrefix, opc, colHoy){
 
 /* celdasSemanas(megacat, gpClase, conColor) Equivalente a celdasMegacategoria() pero para el "Tipo Control_2" (Cuadrícula de Temporada): en vez de 4 columnas fijas J/V/S/D, pinta una columna por cada semana ya jugada de la temporada (megacat.semanas, Historial en CHANGELOG.md. */
 /* celdasSemanas(megacat, gpClase, conColor, keyPrefix) Mismo criterio y mismo 4° parámetro `keyPrefix` (opcional) que celdasMegacategoria() de arriba — ver ese docblock. Aquí las claves de columna son "{keyPrefix}-sem{i}" (una por semana), "{keyPrefix}-resumen"… */
-function celdasSemanas(megacat, gpClase, conColor, keyPrefix){
+function celdasSemanas(megacat, gpClase, conColor, keyPrefix, idxHoy){
   const semanas = Array.isArray(megacat?.semanas) ? megacat.semanas : [];
 // _getControlTemporadaPorClan() (20_Control2_ GuerraSemanal.gs) nunca devuelve un campo `resumen` -- devuelve `total` para Ataques/Barcos y `prom` para Puntaje (ver docblock de esa función). Historial en CHANGELOG.md.
   // FIX (05-oct-2026, pedido usuario): `null` = no estuvo en el clan esa semana (o semana futura) -> celda VACÍA. Resumen/% también vacíos si no hubo ninguna semana presente (null); el 0 queda solo para "estuvo y no atacó".
@@ -814,15 +827,17 @@ function celdasSemanas(megacat, gpClase, conColor, keyPrefix){
   const diasOpcSem = (i) => { const o = opcArr[i]; const c = Array.isArray(o) ? o.length : (Number(o) || 0); return Math.max(0, Math.min(4, c)); };
   const umbralSem = (i) => UMBRAL_VERDE_SEMANAL - 4 * diasOpcSem(i);
   const umbralTotal = semanas.reduce((a, v, i) => a + (numONull(v) === null ? 0 : umbralSem(i)), 0);
-  const claseSemana = (n, i) => `${gpClase} ${conColor ? claseCeldaSemana(n, umbralSem(i)) : 'ai-num'}`;
+  // NUEVO (23-oct-2026, tanda 6): `idxHoy` = posición de la columna de la semana en curso (ver colHoySemanal()); solo vale en las cuadrículas con keyPrefix. [→ Contexto_Base_Web.md §PF176]
+  const hoy = (i) => keyPrefix && idxHoy !== undefined && idxHoy !== null && idxHoy === i ? ' ai-hoy' : '';
+  const claseSemana = (n, i) => `${gpClase} ${conColor ? claseCeldaSemana(n, umbralSem(i)) : 'ai-num'}${hoy(i)}`;
   const claseResumen = `${gpClase} ai-resumen ai-total ${conColor && resumen !== null && umbralTotal > 0 && resumen >= umbralTotal ? 'ai-total-full' : ''}`;
   const dc = (k, val) => keyPrefix ? ` data-col="${keyPrefix}-${k}" data-raw="${val === null ? '' : esc(String(val))}"` : '';
   const celdasSem = semanas.map((v, i) => {
     const n = numONull(v);
     return n === null
-      ? `<td class="${gpClase} ai-num"${dc('sem' + i, n)}></td>`
+      ? `<td class="${gpClase} ai-num${hoy(i)}"${dc('sem' + i, n)}></td>`
       : (conColor && n === 0 && diasOpcSem(i) === 4)
-        ? `<td class="${gpClase} ai-cell ai-cell-opc"${dc('sem' + i, n)} data-opc="1" title="Meta ya cruzada los 4 días: atacar era opcional">0</td>`
+        ? `<td class="${gpClase} ai-cell ai-cell-opc${hoy(i)}"${dc('sem' + i, n)} data-opc="1" title="Meta ya cruzada los 4 días: atacar era opcional">0</td>`
         : `<td class="${claseSemana(n, i)}"${dc('sem' + i, n)}${conColor && diasOpcSem(i) ? ` title="${diasOpcSem(i)} día(s) opcional(es): verde desde ${umbralSem(i)} ataques"` : ''}>${conColor ? n : fmtNum(n)}</td>`;
   }).join('');
   return `${celdasSem}
@@ -857,8 +872,12 @@ function filaSubEncabezadosMega(gpClase, prefijo, colHoy){
   }).join('');
 }
 /** Sem 1..Sem N + Total/Prom + % de una megacategoría (Valores semanales). */
-function filaSubEncabezadosSemanas(gpClase, prefijo, semanasLabels, labelResumen){
-  const cols = semanasLabels.map((s, i) => thFiltroGrid(gpClase, s, `${prefijo}-sem${i}`));
+function filaSubEncabezadosSemanas(gpClase, prefijo, semanasLabels, labelResumen, colHoy){
+  // NUEVO (23-oct-2026, tanda 6): `colHoy` ({idx, titulo}, ver colHoySemanal()) marca el encabezado de la semana en curso. [→ Contexto_Base_Web.md §PF176]
+  const cols = semanasLabels.map((s, i) => {
+    const esHoy = !!colHoy && colHoy.idx === i;
+    return thFiltroGrid(esHoy ? `${gpClase} ai-hoy` : gpClase, s, `${prefijo}-sem${i}`, esHoy ? `aria-current="true" title="${esc(colHoy.titulo)}"` : undefined);
+  });
   cols.push(thFiltroGrid(`${gpClase} ai-resumen`, labelResumen, `${prefijo}-resumen`));
   cols.push(thFiltroGrid(`${gpClase} ai-resumen`, '%', `${prefijo}-pct`));
   return cols.join('');
@@ -1777,6 +1796,8 @@ function render(data){
   const controlTemporadaSection = document.getElementById('controlTemporadaSection');
   if (clanesControlTemporada.length && semanasTemporada.length){
     const nSem = semanasTemporada.length;
+    // NUEVO (23-oct-2026, tanda 6): columna de la semana en curso (en entrenamiento, la última jugada); null si se eligió otra temporada o esa semana aún no tiene columna. [→ Contexto_Base_Web.md §PF176]
+    const colHoySem = colHoySemanal(data, temporadaSeleccionadaTemporada, semanasTemporada);
     // FIX (10-sep-2026, pedido usuario — mismo botón de filtro/orden que en
     // Valores diarios, también solo en la 2ª fila de encabezados): la 1ª
     // fila (Ataques/Puntaje/Barcos) sigue plana; la 2ª sale de
@@ -1786,9 +1807,9 @@ function render(data){
               <tr data-letra="${esc(primeraLetraFiltro(f.nombre || f.tag))}" data-rango="${esc(f.rango || '')}" class="${f.activo === false ? 'fila-inactivo' : ''}">
                 <td class="col-n"></td>
                 ${celdaJugadorGrid(f)}
-                ${celdasSemanas(f.ataques, 'ai-grp-atq', true, 'atq')}
-                ${celdasSemanas(f.puntaje, 'ai-grp-pje', false, 'pje')}
-                ${celdasSemanas(f.barcos, 'ai-grp-brc', false, 'brc')}
+                ${celdasSemanas(f.ataques, 'ai-grp-atq', true, 'atq', colHoySem && colHoySem.idx)}
+                ${celdasSemanas(f.puntaje, 'ai-grp-pje', false, 'pje', colHoySem && colHoySem.idx)}
+                ${celdasSemanas(f.barcos, 'ai-grp-brc', false, 'brc', colHoySem && colHoySem.idx)}
               </tr>`;
     document.getElementById('controlTemporadaWrap').innerHTML = clanesControlTemporada.map(clanNombre => {
       const filas = controlTemporada[clanNombre];
@@ -1807,9 +1828,9 @@ function render(data){
                 <th class="ai-grp-brc" colspan="${nSem + 2}" scope="colgroup"><span class="ai-grp-label">Barcos</span></th>
               </tr>
               <tr>
-                ${filaSubEncabezadosSemanas('ai-grp-atq', 'atq', semanasTemporada, 'Total')}
-                ${filaSubEncabezadosSemanas('ai-grp-pje', 'pje', semanasTemporada, 'Prom')}
-                ${filaSubEncabezadosSemanas('ai-grp-brc', 'brc', semanasTemporada, 'Total')}
+                ${filaSubEncabezadosSemanas('ai-grp-atq', 'atq', semanasTemporada, 'Total', colHoySem)}
+                ${filaSubEncabezadosSemanas('ai-grp-pje', 'pje', semanasTemporada, 'Prom', colHoySem)}
+                ${filaSubEncabezadosSemanas('ai-grp-brc', 'brc', semanasTemporada, 'Total', colHoySem)}
               </tr>
             </thead>
             <tbody></tbody>
