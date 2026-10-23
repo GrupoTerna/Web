@@ -4,7 +4,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const { loadBrowserScriptsWithDom } = require('./load-browser-script');
 
-// NUEVO (23-oct-2026, pedido de la usuaria: ícono del mini historial en la tabla del Directorio; §PF169).
+// NUEVO (22-oct-2026, pedido de la usuaria: ícono del mini historial en la tabla del Directorio; §PF169).
 // mini-historial.js es compartido por guerra.html y directorio.html. Aquí se carga el archivo real con jsdom, se pinta el botón 📈
 // como lo hace la columna Nombre del directorio, se hace clic y se comprueba que la ventana se crea sola y muestra el historial.
 // apiGet() se simula (no hay backend). LÍMITE: no prueba el CSS ni el aspecto real, solo el DOM.

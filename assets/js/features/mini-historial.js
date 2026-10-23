@@ -1,5 +1,5 @@
 /* mini-historial.js — mini historial de guerra por jugador (botón 📈 + ventana) y comparación con otro jugador.
-   Compartido por guerra.html y directorio.html (23-oct-2026, pedido de la usuaria: ícono del mini historial en la tabla del Directorio; antes el código vivía solo en guerra.html). [→ Contexto_Base_Web.md §PF169]
+   Compartido por guerra.html y directorio.html (22-oct-2026, pedido de la usuaria: ícono del mini historial en la tabla del Directorio; antes el código vivía solo en guerra.html). [→ Contexto_Base_Web.md §PF169]
    Depende de util.js (esc, fmtNum, guerraAValoresDiarios) y de api.js (apiGet). Los estilos están en assets/styles.css (.hist-*, .btn-hist-jugador, .btn-solo-cero).
    Uso: poner botonHistJugador({tag, nombre}) en la celda del nombre; el clic lo atiende el listener de este archivo. La ventana (#histFondo) se crea sola la primera vez que se abre. */
 const HIST_ATAQUES_MAX = 4; // ataques por día de guerra

@@ -8,7 +8,7 @@ const assert = require('node:assert/strict');
 // LÍMITE: prueba el cálculo con los datos de la captura de Chistris (#2GG8PJ8GC); no prueba el dibujo real del modal.
 
 const { loadBrowserScripts } = require('./load-browser-script');
-// 23-oct-2026 (§PF169): el mini historial vive en assets/js/features/mini-historial.js (compartido por guerra.html y directorio.html); se carga el archivo real junto con util.js.
+// 22-oct-2026 (§PF169): el mini historial vive en assets/js/features/mini-historial.js (compartido por guerra.html y directorio.html); se carga el archivo real junto con util.js.
 const { guerraAValoresDiarios, histSoloGuerra } = loadBrowserScripts(['assets/js/util.js', 'assets/js/features/mini-historial.js']);
 assert.equal(typeof histSoloGuerra, 'function', 'no se encontró histSoloGuerra() en assets/js/features/mini-historial.js');
 
