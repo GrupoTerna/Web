@@ -197,7 +197,8 @@
 // v138 (22-oct-2026): perfil.html cambió (CORE_ASSETS) -- en el Historial de guerra, el año y el mes de la temporada salen del lunes de la semana, no del último día registrado (§PF168).
 // v139 (22-oct-2026): directorio.html, guerra.html, assets/styles.css y el nuevo assets/js/features/mini-historial.js cambiaron (CORE_ASSETS) -- el mini historial de guerra (📈) pasa a un archivo compartido y la tabla del Directorio lo muestra junto al nombre de cada jugador (§PF169).
 // v140 (22-oct-2026): guerra.html cambió (CORE_ASSETS) -- «Pendientes de Atacar» muestra el 📈 del mini historial junto al nombre de cada jugador (§PF170).
-const CACHE_NAME = 'terna-static-v140';
+// v141 (22-oct-2026): guerra.html, directorio.html y assets/js/data/clan-badges.js cambiaron (CORE_ASSETS) -- «Participación de Hoy» muestra el 📈 del mini historial y, solo a admins, el ícono de WhatsApp (sin enlace) junto a cada cuenta; el ícono pasa a clan-badges.js (§PF171).
+const CACHE_NAME = 'terna-static-v141';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y

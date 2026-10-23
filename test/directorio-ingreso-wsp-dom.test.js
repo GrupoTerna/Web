@@ -25,9 +25,12 @@ function extraerFuncion(src, nombre){
   }
   throw new Error(`llaves sin cerrar en ${nombre}`);
 }
-const iniConst = grande.indexOf('const ICONO_WSP_SOLO');
-assert.ok(iniConst >= 0, 'no se encontró ICONO_WSP_SOLO');
-const lineaConst = grande.slice(iniConst, grande.indexOf('\n', iniConst));
+// 22-oct-2026 (§PF171): ICONO_WSP_SOLO se movió a assets/js/data/clan-badges.js (lo comparte guerra.html).
+const compartido = fs.readFileSync(path.join(__dirname, '..', 'assets/js/data/clan-badges.js'), 'utf8');
+const iniConst = compartido.indexOf('const ICONO_WSP_SOLO');
+assert.ok(iniConst >= 0, 'no se encontró ICONO_WSP_SOLO en clan-badges.js');
+const lineaConst = compartido.slice(iniConst, compartido.indexOf('\n', iniConst));
+assert.ok(!grande.includes('const ICONO_WSP_SOLO'), 'directorio.html no debe redefinir ICONO_WSP_SOLO');
 
 const construir = new Function(`
   const ICONO_ROYALEAPI = '<i-royale></i-royale>', ICONO_CWSTATS = '<i-cw></i-cw>';

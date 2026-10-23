@@ -17,7 +17,7 @@ const globals = require('globals');
  */
 const GLOBALES_COMPARTIDOS = [
   'API_GET_CACHE_TTL_MS', 'BADGE_ID_BASE', 'BADGE_NOMBRES_POR_ID', 'CLAN_BADGES', 'CLAN_BADGES_ROL', 'CLAN_LABELS_CORTOS',
-  'DISCORD_URL', 'FORM_POSTULACION_URL', 'ICONO_CWSTATS', 'ICONO_ROYALEAPI', 'LETRAS_FILTRO', 'NOMBRES_CARTAS_ES',
+  'DISCORD_URL', 'FORM_POSTULACION_URL', 'ICONO_CWSTATS', 'ICONO_ROYALEAPI', 'ICONO_WSP_SOLO', 'LETRAS_FILTRO', 'NOMBRES_CARTAS_ES',
   'SESSION_KEY_ADMIN', 'WEBAPP_URL', 'WEB_MEMBER_TOKEN', 'WSP_GRUPO_URL', '_MAX_INTENTOS_FETCH', '_MAX_PETICIONES_SIMULTANEAS',
   '_REINTENTO_ESPERA_MS', '_colaPeticiones', '_encolarPeticion', '_enviarVetoInactivo', '_esErrorDeRed', '_fetchYParsear',
   '_fetchYParsearInterno', '_filaInactivoHtml', '_mensajeErrorRed', '_mismaFecha', '_obtenerVistaInactivos', '_peticionesActivas',

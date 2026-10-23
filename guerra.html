@@ -210,6 +210,7 @@
   .part-lista li{padding:6px 0; margin:0;}
   /* WCAG 1.4.1 (12-oct-2026): enlace dentro de una frase, sin color propio. */
   .part-lista a.jugador-link{text-decoration:underline dotted; text-underline-offset:3px;}
+  .part-wsp{display:inline-flex; vertical-align:middle; margin-left:4px; cursor:default;} /* §PF171 */
   .part-pend{font-family:var(--f-mono); font-size:11px; color:var(--text-faint);}
   .part-pend.part-pend-cero{color:var(--text-faint);} /* sin opacity: con .7 daba 2.97:1 (mínimo 4.5:1); el 0 es información. [→ Contexto_Base_Web.md §PF050] */
 
@@ -1939,10 +1940,16 @@ async function cargarAportesInactivosSiAdmin(ctx){
 /** Arma un <li> con nombre/tag y, si corresponde, sus ataques pendientes
  *  hoy (pend === null cuando no aplica mostrarlo, ej. columna
  *  Reemplazables donde siempre es el tope completo). */
+/* 22-oct-2026 (pedido de la usuaria): junto al tag de cada cuenta va el 📈 del mini historial y, solo para admins, el ícono de WhatsApp (sin enlace) cuando tenemos su celular. [→ Contexto_Base_Web.md §PF171] */
+function _extrasCuentaParticipacion(cta){
+  const wsp = (cta.tieneWsp === true && esAdminLogueado())
+    ? ` <span class="part-wsp" role="img" aria-label="Tenemos el número de WhatsApp de ${esc(cta.nombre || cta.tag)}" title="Tenemos su número de WhatsApp">${ICONO_WSP_SOLO}</span>` : '';
+  return botonHistJugador({ tag: cta.tag, nombre: cta.nombre }) + wsp;
+}
 function _liCuentaParticipacion(cta, pend){
   const pendHtml = (pend === null) ? '' :
     ` <span class="part-pend${pend === 0 ? ' part-pend-cero' : ''}">— ${pend} pendiente${pend === 1 ? '' : 's'}</span>`;
-  return `<li>${cta.tag ? enlaceJugador(cta.nombre || cta.tag, cta.tag) : esc(cta.nombre || cta.tag)} <span class="text-faint" style="font-family:var(--f-mono);">${esc(cta.tag || '')}</span>${pendHtml}</li>`;
+  return `<li>${cta.tag ? enlaceJugador(cta.nombre || cta.tag, cta.tag) : esc(cta.nombre || cta.tag)} <span class="text-faint" style="font-family:var(--f-mono);">${esc(cta.tag || '')}</span>${_extrasCuentaParticipacion(cta)}${pendHtml}</li>`;
 }
 function _listaCuentasHtml(cuentas, pendFn){
   if(!cuentas.length) return '<div class="text-faint" style="font-size:12px;">— ninguna —</div>';
@@ -1986,7 +1993,7 @@ function renderParticipacionHoyGuerra(clanes, multiClan){
       <span class="badge badge-warn">Ataques en más de un clan hoy</span>
       <div class="part-scroll tabla-scroll-wrap scroll-morado" tabindex="0" role="region" aria-label="Cuentas con ataques en más de un clan hoy">
       <ul class="part-lista" style="margin-top:8px;">
-        ${multiClan.map(m => `<li>${m.tag ? enlaceJugador(m.nombre || m.tag, m.tag) : esc(m.nombre || m.tag)} <span class="text-faint" style="font-family:var(--f-mono);">${esc(m.tag || '')}</span> — ${m.clanes.map(esc).join(' y ')} (${fmtNum(m.totalAtaquesHoy)} ataques hoy)</li>`).join('')}
+        ${multiClan.map(m => `<li>${m.tag ? enlaceJugador(m.nombre || m.tag, m.tag) : esc(m.nombre || m.tag)} <span class="text-faint" style="font-family:var(--f-mono);">${esc(m.tag || '')}</span>${_extrasCuentaParticipacion(m)} — ${m.clanes.map(esc).join(' y ')} (${fmtNum(m.totalAtaquesHoy)} ataques hoy)</li>`).join('')}
       </ul>
       </div>
     </div>`;
