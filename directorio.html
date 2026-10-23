@@ -566,6 +566,12 @@
   /* Barra bajo el encabezado: pastillas de clan a la izquierda y contador de jugadores a la derecha (envuelve en pantallas angostas). */
   .ing-toolbar{display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px 16px; margin-top:14px;}
   .ing-toolbar .ing-pill-row{margin-top:0;}
+  .ing-toolbar-izq{display:flex; align-items:center; flex-wrap:wrap; gap:9px;}
+  .ing-pill[hidden]{display:none;}
+  .ing-pill.ing-pill-actualizar{border-color:var(--line-strong);}
+  .ing-pill.ing-pill-actualizar[disabled]{opacity:.7; cursor:progress;}
+  .ing-actualizar-estado{margin-top:10px; font-size:13px; color:var(--text-dim, #b9b4c8);}
+  .ing-actualizar-estado.es-error{color:var(--danger);}
   .ing-contador{font-family:var(--f-mono); font-size:13px; color:var(--text-dim); white-space:nowrap;}
   /* Con la tarjeta completa (más datos que antes) en teléfono cabe 1 por fila; de 560px a 640px se fijan 2 (desde 640px sube sola a 2-3 con el auto-fill de arriba). */
   @media (max-width:640px){
@@ -832,9 +838,14 @@
     </div>
     <!-- Pastillas de clan (marcan/desmarcan a todo el clan en las gráficas, sin ocultar tarjetas) + contador dinámico, pintados por construirFiltroIngresos()/aplicarFiltroIngresos(). Historial en CHANGELOG.md. -->
     <div class="ing-toolbar">
-      <div class="ing-pill-row" id="ingClanPills"></div>
+      <!-- NUEVO (23-oct-2026, §PF166): el botón «Actualizar» va al lado de las pastillas; arranca oculto y solo lo muestra mostrarBotonActualizarIngresos() a admins con la Función «Actualizar roster». -->
+      <div class="ing-toolbar-izq">
+        <div class="ing-pill-row" id="ingClanPills"></div>
+        <button type="button" class="ing-pill ing-pill-actualizar" id="ingActualizarBtn" hidden title="Actualiza el directorio (con su información) y la guerra de la semana actual, y revisa si los miembros nuevos ya tienen datos para las gráficas">🔄 Actualizar</button>
+      </div>
       <span class="ing-contador" id="nuevosCount" aria-live="polite" title="Jugadores incluidos en las gráficas"></span>
     </div>
+    <div class="ing-actualizar-estado" id="ingActualizarEstado" role="status" aria-live="polite" hidden></div>
     <!-- Fila A-Z/# para filtrar por primera letra del nombre, mismo patrón que #rosterLetraFilter (Directorio por clan): reusa pintarFiltroLetra()/LETRAS_FILTRO de assets/js/ui/filters.js. Historial en CHANGELOG.md. -->
     <div class="tabs-row" id="ingresosLetraFilter" style="margin-top:12px;"></div>
     <div class="nuevo-grid" id="nuevoGrid" style="margin-top:20px;"></div>
@@ -2970,16 +2981,26 @@ function indexarRosterParaIngresos(dataRoster){
   return porTag;
 }
 
-async function cargarIngresosRecientes(){
+async function cargarIngresosRecientes(opts){
+  const fresco = !!(opts && opts.fresco); // 23-oct-2026 (§PF166): tras «Actualizar» el roster se pide a Apps Script sin caché (el estático de GitHub puede tener hasta ~5 min y dejaría fuera a los miembros recién llegados)
   const nuevoGrid = document.getElementById('nuevoGrid');
   const chartsWrap = document.getElementById('ingresosChartsWrap');
   const pillsWrap = document.getElementById('ingClanPills');
   try{
     const [data, dataRoster] = await Promise.all([
       apiGet('webIngresosRecientes', null, { ttlMs: 300000, staleIfError: true, conSesion: true }), // D-9 (b): 5 min; B4/B-10: si falla la red, usar el último dato guardado
-      obtenerRoster().then(r => r.data).catch(() => null) // defensivo: si falla y no hay respaldo, no filtra ni completa datos en vez de romper la sección
+      (fresco ? apiGet('webRoster', null, { sinCache: true }) : obtenerRoster().then(r => r.data)).catch(() => null) // defensivo: si falla y no hay respaldo, no filtra ni completa datos en vez de romper la sección
     ]);
     const roster = dataRoster ? indexarRosterParaIngresos(dataRoster) : null;
+    if (fresco && dataRoster && Array.isArray(dataRoster.clanes) && dataRoster.clanes.length){
+      // La tabla del Directorio de arriba también pasa a la lista nueva (misma que acaba de leer esta sección).
+      try{
+        rosterData = ordenarClanes(dataRoster.clanes);
+        if (clanActivoIdx >= rosterData.length) clanActivoIdx = 0;
+        renderClanTabs();
+        renderRosterClanActivo();
+      }catch(eTabla){ /* la tabla se queda como estaba; la sección de ingresos sigue */ }
+    }
     ingresosGuerraCongelada = !!data.guerraCongelada;
     let ingresos = (data.ingresos || []).slice();
     if (roster && roster.size){
@@ -3023,6 +3044,105 @@ async function cargarIngresosRecientes(){
     if (countEl) countEl.textContent = '';
   }
 }
+
+/* ===== «Actualizar» (solo admins con la Función «Actualizar roster») — 23-oct-2026, §PF166 =====
+ * Pide al backend la cadena corta (Clanes + Directorio + Nuevos + Guerra) con webAdminActualizarRoster, consulta el avance con
+ * webAdminEstadoActualizacion y, al terminar, vuelve a cargar los ingresos (y la tabla del Directorio) sin caché. Después revisa si los
+ * miembros nuevos ya traen datos para las gráficas. El backend valida sesión y permiso; ocultar el botón es solo UX.
+ * Si otra tarea pesada (p. ej. runGuerra) tiene el candado, el backend deja la solicitud esperando y arranca sola: aquí solo se muestra su mensaje. */
+const ACT_ING_POLL_MS = 4000;
+const ACT_ING_MAX_MS = 12 * 60 * 1000;
+let actualizandoIngresos = false;
+
+/** Texto del resultado: cuántos miembros llegaron con la actualización y cuáles ya traen historial para las gráficas (mismo criterio que renderComparativaSemanal: historialSemanal con al menos un registro). */
+function resumenActualizacionIngresos(idsAntes, lista){
+  lista = lista || [];
+  const tieneDatos = n => (n.historialSemanal || []).length > 0;
+  const nuevos = lista.filter(n => !idsAntes.has(claveIngreso(n)));
+  const generales = lista.filter(tieneDatos).length + ' de ' + lista.length + ' ingresos tienen datos para las gráficas.';
+  // Sin lista «de antes» (la página se enganchó a una actualización en curso apenas cargó) no se puede saber quién es nuevo.
+  if (!idsAntes.size) return generales;
+  if (!nuevos.length) return 'Sin miembros nuevos desde la última carga. ' + generales;
+  const sin = nuevos.filter(n => !tieneDatos(n)).map(n => n.nombre || n.tag || '—');
+  const con = nuevos.length - sin.length;
+  return nuevos.length + (nuevos.length === 1 ? ' miembro nuevo: ' : ' miembros nuevos: ') + con + ' con datos para las gráficas' +
+    (sin.length ? ' y ' + sin.length + ' sin datos todavía (' + sin.join(', ') + ').' : '.');
+}
+
+function mostrarEstadoActualizarIngresos(texto, esError){
+  const el = document.getElementById('ingActualizarEstado');
+  if (!el) return;
+  el.textContent = texto || '';
+  el.hidden = !texto;
+  el.classList.toggle('es-error', !!esError);
+}
+
+function esperarMs(ms){ return new Promise(r => setTimeout(r, ms)); }
+
+/** Consulta el estado cada ACT_ING_POLL_MS hasta que deje de estar pendiente/ejecutando; muestra el mensaje del backend en cada vuelta. */
+async function esperarFinActualizacionIngresos(){
+  const limite = Date.now() + ACT_ING_MAX_MS;
+  while (Date.now() < limite){
+    const est = await apiGetAuth('webAdminEstadoActualizacion', {});
+    if (!est || est.ok === false) throw new Error((est && est.error) || 'No se pudo consultar el avance de la actualización.');
+    if (est.estado !== 'pendiente' && est.estado !== 'ejecutando') return est;
+    mostrarEstadoActualizarIngresos(est.mensaje || 'Actualizando...');
+    await esperarMs(ACT_ING_POLL_MS);
+  }
+  throw new Error('La actualización está tardando más de lo normal. Vuelve a revisar en unos minutos.');
+}
+
+async function iniciarActualizacionIngresos(){
+  if (actualizandoIngresos) return;
+  const btn = document.getElementById('ingActualizarBtn');
+  actualizandoIngresos = true;
+  if (btn){ btn.disabled = true; btn.setAttribute('aria-busy', 'true'); btn.textContent = '⏳ Actualizando…'; }
+  mostrarEstadoActualizarIngresos('Consultando el estado...');
+  const idsAntes = new Set((ingresosTodosCache || []).map(claveIngreso));
+  try{
+    let est = await apiGetAuth('webAdminEstadoActualizacion', {});
+    if (!est || est.ok === false) throw new Error((est && est.error) || 'No se pudo consultar el estado de la actualización.');
+    const enCurso = est.estado === 'pendiente' || est.estado === 'ejecutando'; // la pidió otro admin (o esta misma página antes de recargarse): se engancha sin pedir otra
+    if (!enCurso){
+      if (est.puedeIniciar === false){
+        mostrarEstadoActualizarIngresos(est.motivoBloqueo || 'No se puede actualizar en este momento.', true);
+        return;
+      }
+      const r = await apiPost('webAdminActualizarRoster', { sessionToken: localStorage.getItem('terna_admin_token') || '' });
+      if (!r || r.ok === false) throw new Error((r && r.error) || 'No se pudo iniciar la actualización.');
+      mostrarEstadoActualizarIngresos(r.mensaje || 'Solicitada. Empieza en unos segundos.');
+    }
+    est = await esperarFinActualizacionIngresos();
+    if (est.estado !== 'ok'){
+      mostrarEstadoActualizarIngresos(est.mensaje || 'La actualización no se completó.', true);
+      return;
+    }
+    mostrarEstadoActualizarIngresos('Actualizado. Cargando los datos nuevos...');
+    await cargarIngresosRecientes({ fresco: true });
+    const hora = new Date().toLocaleTimeString('es-PE', { hour: 'numeric', minute: '2-digit' });
+    mostrarEstadoActualizarIngresos('Actualizado a las ' + hora + '. ' + resumenActualizacionIngresos(idsAntes, ingresosTodosCache));
+  }catch(err){
+    mostrarEstadoActualizarIngresos(err && err.message ? err.message : 'No se pudo actualizar.', true);
+  }finally{
+    actualizandoIngresos = false;
+    if (btn){ btn.disabled = false; btn.removeAttribute('aria-busy'); btn.textContent = '🔄 Actualizar'; }
+  }
+}
+
+/** Muestra el botón solo con sesión de admin Y la Función «Actualizar roster» (webAdminMisPermisos); cualquier fallo lo deja oculto. */
+async function mostrarBotonActualizarIngresos(){
+  const btn = document.getElementById('ingActualizarBtn');
+  if (!btn || !esAdminLogueado()) return;
+  try{
+    const p = await apiGetAuth('webAdminMisPermisos', {});
+    if (!(p && p.ok && Array.isArray(p.funciones) && p.funciones.indexOf('Actualizar roster') !== -1)) return;
+    btn.hidden = false;
+    btn.addEventListener('click', iniciarActualizacionIngresos);
+    const est = await apiGetAuth('webAdminEstadoActualizacion', {});
+    if (est && est.ok && (est.estado === 'pendiente' || est.estado === 'ejecutando')) iniciarActualizacionIngresos();
+  }catch(err){ /* sin botón */ }
+}
+mostrarBotonActualizarIngresos();
 
 inicializarToggleGraficasIngresos();
 // FIX (20-sep-2026, pedido usuario — el botón de index.html lleva a directorio.html#ingresosRecientes): el ancla se calcula antes de que el directorio y los ingresos terminen de pintarse (la página crece después), así que el navegador queda en otra zona. Al terminar ambas cargas se vuelve a posicionar en la sección.

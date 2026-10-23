@@ -5,7 +5,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 
-// NUEVO (22-oct-2026, pedido de la usuaria): la tarjeta de «Ingresos recientes» de directorio.html pinta un
+// NUEVO (23-oct-2026, pedido de la usuaria): la tarjeta de «Ingresos recientes» de directorio.html pinta un
 // ícono de WhatsApp junto a los de RoyaleAPI y CWStats cuando el backend manda tieneWsp:true (solo con sesión
 // de admin). Es solo informativo: sin enlace, sin número. Se extrae nuevoCardHtml del <script> inline REAL.
 // LÍMITE: se prueba el HTML generado como texto, no un navegador.
