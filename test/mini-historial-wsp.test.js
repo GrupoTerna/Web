@@ -78,3 +78,18 @@ test('las celdas de Nombre llevan el nombre a la izquierda y las acciones a la d
   assert.match(css, /\.hist-wsp\{/);
   assert.ok(!/\.col-jugador-inner\{/.test(g), 'el CSS compartido vive solo en styles.css');
 });
+
+// NUEVO (23-oct-2026, §PF181): perfil.html lleva data-sin-wsp-tags en <body> y entonces mini-historial.js no pide webAdminTagsConWsp (el perfil solo usa la tabla del historial).
+test('con data-sin-wsp-tags en <body> no se pide la lista de WhatsApp, aunque sea admin; sin el atributo sí', async () => {
+  const w = cargar({ tags: ['ABC'] });
+  w.document.body.setAttribute('data-sin-wsp-tags', '');
+  await w.wspCargarTags();
+  await esperar(); // deja correr también la carga automática de DOMContentLoaded
+  assert.equal(w.eval('JSON.stringify(_pedidos)'), '[]', 'no pidió nada');
+  const v = cargar({ tags: ['ABC'] });
+  await v.wspCargarTags();
+  assert.ok(v.eval('_pedidos.length') >= 1 && v.eval('_pedidos.every(a => a === "webAdminTagsConWsp")'), 'sin el atributo sí pide la lista (jsdom puede disparar además la carga automática de DOMContentLoaded)');
+});
+test('perfil.html marca su <body> con data-sin-wsp-tags', () => {
+  assert.match(fs.readFileSync(path.join(__dirname, '..', 'perfil.html'), 'utf8'), /<body data-page="perfil" data-sin-wsp-tags>/);
+});

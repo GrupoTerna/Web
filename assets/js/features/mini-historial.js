@@ -41,6 +41,7 @@ function wspRepintar(){
 }
 async function wspCargarTags(){
   if (typeof esAdminLogueado !== 'function' || !esAdminLogueado()) return;
+  if (document.body && document.body.hasAttribute('data-sin-wsp-tags')) return; // 23-oct-2026 (§PF181): perfil.html solo usa la tabla del historial, no pinta 📈 con WhatsApp; así no pide webAdminTagsConWsp de más
   try{
     const data = await apiGetAuth('webAdminTagsConWsp', {});
     if (!data || data.ok === false || !Array.isArray(data.tags)) return;

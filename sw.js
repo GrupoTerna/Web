@@ -209,7 +209,8 @@
 // v155 (23-oct-2026): assets/js/features/mini-historial.js cambió (CORE_ASSETS) -- el armado de la tabla de días se extrajo a funciones compartidas y «Ver todos» pasó a «Ver más» de 28 en 28 (tanda 5, parte 1, §PF181).
 // v156 (23-oct-2026): perfil.html cambió (CORE_ASSETS) -- tarjeta «Historial de guerra» (solo admins, a pedido) con la misma fuente y el mismo armado que el mini historial; carga mini-historial.js (tanda 5, parte 2, §PF181).
 // v157 (23-oct-2026): perfil.html cambió (CORE_ASSETS) -- se quitan el botón «📜 Historial de guerra» de la cabecera, sus tres selectores y el historial semanal; queda solo la tarjeta «Historial de guerra» (tanda 5, parte 3, §PF181).
-const CACHE_NAME = 'terna-static-v157';
+// v158 (23-oct-2026): perfil.html y assets/js/features/mini-historial.js cambiaron (CORE_ASSETS) -- el perfil ya no pide webAdminTagsConWsp de más (§PF181).
+const CACHE_NAME = 'terna-static-v158';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
