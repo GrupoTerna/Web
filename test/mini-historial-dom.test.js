@@ -46,7 +46,8 @@ test('clic en el 📈 crea la ventana, pide el historial del tag y pinta días d
   assert.equal(enlaceTitulo.getAttribute('href'), 'perfil.html?tag=%23ABC');
   assert.equal(enlaceTitulo.getAttribute('target'), '_blank');
   assert.equal(w.document.getElementById('histSub').textContent, '#ABC');
-  assert.deepEqual(JSON.parse(w.eval('JSON.stringify(_llamadas)')), [{ nombre: 'webHistorialGuerraComparador', params: { tag1: '#ABC', tag2: '' } }]);
+  assert.deepEqual(JSON.parse(w.eval('JSON.stringify(_llamadas)')).map(l => l.nombre), ['webPerfil', 'webHistorialGuerraComparador'], '23-oct-2026 (tanda 4): además del historial se pide el perfil para la cabecera');
+  assert.deepEqual(JSON.parse(w.eval('JSON.stringify(_llamadas)'))[1], { nombre: 'webHistorialGuerraComparador', params: { tag1: '#ABC', tag2: '' } });
   const filas = [...w.document.querySelectorAll('#histCuerpo .hist-tabla tbody tr')].map(tr => [...tr.children].map(td => td.textContent));
   assert.equal(filas.length, 3);
   assert.deepEqual(filas.map(f => f[7]), ['800', '0', '600'], 'del día más reciente al más antiguo; medallas del día, no acumuladas (sáb 1400-600=800, vie 600-600=0, jue 600)');
@@ -161,4 +162,64 @@ test('la comparación muestra Temporada y Semana de la fecha (la del jugador que
   const trs = [...dia.querySelectorAll('tbody tr')];
   assert.deepEqual(trs.map(tr => [tr.children[2].textContent, tr.children[3].textContent]), [['13', 'S1'], ['12', 'S4']], 'la fecha que solo tiene el segundo jugador también muestra su temporada y semana');
   assert.deepEqual(trs.map(tr => tr.classList.contains('hist-sem-b')), [false, true]);
+});
+
+// NUEVO (23-oct-2026, tanda 4 de Consolidado_Mini_Historial_y_Perfil.md, §PF179): cabecera pública con los datos del perfil (webPerfil).
+function cargarConPerfil(perfil, historial){
+  const w = loadBrowserScriptsWithDom(['assets/js/util.js', 'assets/js/features/mini-historial.js'], '<div id="x"></div>');
+  w.eval('var _llamadas = []; window.apiGet = function(nombre, params){ _llamadas.push(nombre); return window._resp[nombre] instanceof Error ? Promise.reject(window._resp[nombre]) : Promise.resolve(window._resp[nombre]); };');
+  w._resp = { webPerfil: perfil, webHistorialGuerraComparador: historial };
+  return w;
+}
+const HIST_OK = { a: [{ fecha: '2026-10-01', ataques: 4, fame: 600, barcos: 0 }] };
+
+test('la cabecera muestra clan (con enlace), torre, XP, colección, victorias, copas y vigencia', async () => {
+  const w = cargarConPerfil({ clan: 'Terna 1', vGuerra: 12, copas: 8123, vigencia: '2026-10-20T15:30:00Z',
+    rawClash: { kingTowerLevel: 15, expLevel: 62 }, extendido: { nivelCartas: 88, nivelXp: 1 } }, HIST_OK);
+  w.histAbrir('#ABC', 'Chistris');
+  await esperar();
+  const el = w.document.getElementById('histPerfil');
+  const datos = [...el.querySelectorAll('.hist-perfil-dato')].map(d => d.textContent.replace(/\s+/g, ' ').trim());
+  assert.equal(datos.length, 7);
+  assert.match(datos[0], /^Clan: Terna 1/);
+  assert.ok(el.querySelector('a.clan-link'), 'el clan lleva su enlace');
+  assert.match(datos[1], /^Torre del rey: 15$/);
+  assert.match(datos[2], /^Nivel de XP: 62$/, 'expLevel manda sobre extendido.nivelXp');
+  assert.match(datos[3], /^Colección: 88$/);
+  assert.match(datos[4], /^Victorias de guerra: 12$/);
+  assert.match(datos[5], /^Copas: 8/);
+  assert.match(datos[6], /^Vigencia: 20\/10\/2026/);
+  assert.ok(w.document.querySelector('#histCuerpo .hist-tabla'), 'la tabla sigue pintada');
+});
+
+test('sin dato se omite esa pieza (XP desde extendido) y sin ningún dato la cabecera queda vacía', async () => {
+  const w = cargarConPerfil({ copas: 100, extendido: { nivelXp: 55 } }, HIST_OK);
+  w.histAbrir('#ABC', 'Chistris');
+  await esperar();
+  const datos = [...w.document.querySelectorAll('#histPerfil .hist-perfil-dato')].map(d => d.textContent.replace(/\s+/g, ' ').trim());
+  assert.deepEqual(datos, ['Nivel de XP: 55', 'Copas: 100']);
+  const w2 = cargarConPerfil({}, HIST_OK);
+  w2.histAbrir('#ABC', 'Chistris');
+  await esperar();
+  assert.equal(w2.document.getElementById('histPerfil').innerHTML, '');
+});
+
+test('si webPerfil falla o devuelve error, la tabla se pinta igual y no hay cabecera', async () => {
+  for (const perfil of [new Error('red'), { error: 'x' }]) {
+    const w = cargarConPerfil(perfil, HIST_OK);
+    w.histAbrir('#ABC', 'Chistris');
+    await esperar();
+    assert.equal(w.document.getElementById('histPerfil').innerHTML, '');
+    assert.ok(w.document.querySelector('#histCuerpo .hist-tabla'));
+  }
+});
+
+test('la cabecera de un jugador no queda al abrir otro (se vacía al abrir)', async () => {
+  const w = cargarConPerfil({ copas: 100 }, HIST_OK);
+  w.histAbrir('#ABC', 'Chistris');
+  await esperar();
+  assert.equal(w.document.querySelectorAll('#histPerfil .hist-perfil-dato').length, 1);
+  w._resp.webPerfil = new Promise(() => {}); // el perfil del segundo jugador nunca llega
+  w.histAbrir('#XYZ', 'Otro');
+  assert.equal(w.document.getElementById('histPerfil').innerHTML, '');
 });

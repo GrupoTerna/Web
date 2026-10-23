@@ -9,7 +9,7 @@ function histAsegurarModal(){
   const d = document.createElement('div');
   d.className = 'hist-fondo'; d.id = 'histFondo'; d.setAttribute('role', 'dialog'); d.setAttribute('aria-modal', 'true'); d.setAttribute('aria-labelledby', 'histTitulo');
   d.innerHTML = '<div class="hist-panel"><div class="hist-cab"><div><h3 id="histTitulo">Historial de guerra</h3><div class="hist-nota" id="histSub" style="margin:2px 0 0;"></div></div>'
-    + '<button type="button" class="hist-cerrar" id="histCerrar" aria-label="Cerrar">×</button></div><div id="histCuerpo" aria-live="polite"></div></div>';
+    + '<button type="button" class="hist-cerrar" id="histCerrar" aria-label="Cerrar">×</button></div><div id="histPerfil" class="hist-perfil"></div><div id="histCuerpo" aria-live="polite"></div></div>';
   document.body.appendChild(d);
 }
 /* Parte 6 (05-oct-2026): mini historial de guerra por jugador. Usa webHistorialGuerraComparador (público): solo días de guerra, últimos ~180 días.
@@ -49,6 +49,39 @@ async function wspCargarTags(){
   }catch(_){ /* sin la lista solo falta el ícono de WhatsApp; el 📈 sigue igual */ }
 }
 if (typeof document !== 'undefined') { if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wspCargarTags); else wspCargarTags(); }
+/* 23-oct-2026 (tanda 4, P3): cabecera con los datos del perfil (clan actual, torre del rey, nivel de XP, colección, victorias de guerra, copas y vigencia). Es PÚBLICA y sale de `webPerfil` (los mismos campos que la cabecera de perfil.html: j.clan, rawClash.kingTowerLevel, rawClash.expLevel o extendido.nivelXp, extendido.nivelCartas, j.vGuerra, j.copas, j.vigencia). Se pide aparte y DESPUÉS de pintar la tabla (histAbrir no la espera); si falla o no trae ningún dato, la cabecera no aparece. [→ Contexto_Base_Web.md §PF179] */
+function histFechaVigencia(v){
+  const d = v instanceof Date ? v : new Date(v);
+  if (isNaN(d.getTime())) return esc(String(v));
+  const fecha = d.toLocaleDateString('es-PE', { day:'2-digit', month:'2-digit', year:'numeric', timeZone:'America/Lima' });
+  const hora = d.toLocaleTimeString('es-PE', { hour:'numeric', minute:'2-digit', hour12:true, timeZone:'America/Lima' });
+  return esc(`${fecha}, ${hora}`);
+}
+function histCabeceraPerfilHtml(j){
+  if (!j || typeof j !== 'object') return '';
+  const ext = j.extendido || {};
+  const raw = j.rawClash || ext.rawClash || {};
+  const num = v => (v !== null && v !== undefined && v !== '' && isFinite(Number(v))) ? fmtNum(Number(v)) : null;
+  const vig = j.vigencia ?? ext.vigencia ?? ext.ultimaConexion;
+  const datos = [
+    ['Clan', j.clan ? enlaceClan(j.clan) : null],
+    ['Torre del rey', num(raw.kingTowerLevel)],
+    ['Nivel de XP', num(raw.expLevel !== undefined && raw.expLevel !== null ? raw.expLevel : ext.nivelXp)],
+    ['Colección', num(ext.nivelCartas)],
+    ['Victorias de guerra', num(j.vGuerra)],
+    ['Copas', num(j.copas)],
+    ['Vigencia', vig ? histFechaVigencia(vig) : null],
+  ].filter(d => d[1] !== null);
+  return datos.map(d => `<span class="hist-perfil-dato">${d[0]}: <b>${d[1]}</b></span>`).join('');
+}
+async function histCargarCabecera(tag, mia){
+  try{
+    const j = await apiGet('webPerfil', { tag }, { ttlMs: 300000, staleIfError: true, conSesion: true });
+    if (mia !== histSolicitud || !j || j.error) return;
+    const el = document.getElementById('histPerfil');
+    if (el) el.innerHTML = histCabeceraPerfilHtml(j);
+  }catch(_){ /* sin la cabecera solo falta ese resumen; la tabla ya está pintada */ }
+}
 const HIST_FILAS_INICIALES = 28;
 let histSolicitud = 0;
 /* 22-oct-2026 (pedido de la usuaria, tanda 1 de Consolidado_Mini_Historial_y_Perfil.md): fecha como 22/10/2026, día en una letra (J, V, S, D), color de la fila según los ataques y sombreado alternado por semana. */
@@ -226,9 +259,11 @@ async function histAbrir(tag, nombre){
   histTag = tag; histNombre = nombre || tag; histRegsA = [];
   document.getElementById('histTitulo').innerHTML = enlaceJugador(nombre || tag, tag); // 23-oct-2026: el nombre lleva enlace a su perfil (nueva pestaña)
   document.getElementById('histSub').textContent = tag;
+  document.getElementById('histPerfil').innerHTML = '';
   document.getElementById('histCuerpo').innerHTML = '<p class="hist-nota">Cargando historial…</p>';
   fondo.classList.add('abierto');
   const mia = ++histSolicitud;
+  histCargarCabecera(tag, mia); // 23-oct-2026 (tanda 4): en paralelo, sin esperarla
   try{
     const data = await apiGet('webHistorialGuerraComparador', { tag1: tag, tag2: '' }, { conSesion: true });
     if (mia !== histSolicitud) return; // se cerró o se abrió otro jugador mientras cargaba
