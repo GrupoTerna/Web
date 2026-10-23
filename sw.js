@@ -190,7 +190,8 @@
 // v131 (21-oct-2026): perfil.html cambió (CORE_ASSETS) -- en la ventana «Niveles y evoluciones» el «CARTAS» del centro de la dona, la nota «Oro acumulado…» y la pastilla «Nivel promedio» pasan a 11 px (§PF076).
 // v132 (22-oct-2026): assets/js/ui/imagenes-respaldo.js y perfil.html cambiaron (CORE_ASSETS) -- las insignias de jugador piden primero la copia local de badges/API/ (ya sin margen, §PF161) y dejan el enlace de Supercell como último recurso (§PF162).
 // v133 (22-oct-2026): perfil.html cambió (CORE_ASSETS) -- el donut de Donaciones se muestra también con 0/0 (§PF163).
-const CACHE_NAME = 'terna-static-v133';
+// v134 (22-oct-2026): directorio.html cambió (CORE_ASSETS) -- la tarjeta de Ingresos recientes muestra, solo a admins, un ícono de WhatsApp (sin enlace) cuando tenemos el celular de la cuenta (§PF165).
+const CACHE_NAME = 'terna-static-v134';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
