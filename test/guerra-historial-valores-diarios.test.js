@@ -1,0 +1,66 @@
+'use strict';
+
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const path = require('node:path');
+
+// NUEVO (22-oct-2026, pedido de la usuaria): el mini historial de guerra.html debe mostrar medallas y barcos DEL DÍA, no
+// acumulados de la semana. Se extraen del <script> inline REAL de guerra.html histSoloGuerra() y histAValoresDiarios().
+// LÍMITE: prueba el cálculo con los datos de la captura de Chistris (#2GG8PJ8GC); no prueba el dibujo real del modal.
+
+const html = fs.readFileSync(path.join(__dirname, '..', 'guerra.html'), 'utf8');
+const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1]);
+const grande = scripts.find(t => t.includes('function histAValoresDiarios'));
+assert.ok(grande, 'no se encontró histAValoresDiarios() en un <script> inline de guerra.html');
+const I = grande.indexOf('function histSoloGuerra');
+const F = grande.indexOf('/* Un día con `opcional: true`');
+assert.ok(I >= 0 && F > I, 'marcadores de histSoloGuerra() no encontrados (¿se reorganizó guerra.html?)');
+const { histSoloGuerra } = new Function(grande.slice(I, F) + '\nreturn { histSoloGuerra };')();
+
+const reg = (fecha, ataques, fame, barcos = 0) => ({ fecha, ataques, fame, barcos });
+// Semana jue 01/10 a dom 04/10 y semana jue 08/10 a dom 11/10 (acumulados, como los manda el backend).
+const CHISTRIS = [
+  reg('2026-10-01', 4, 600), reg('2026-10-02', 4, 1400), reg('2026-10-03', 4, 1800), reg('2026-10-04', 4, 2350),
+  reg('2026-10-08', 4, 600), reg('2026-10-09', 0, 600), reg('2026-10-10', 4, 1200), reg('2026-10-11', 4, 1900),
+];
+const porFecha = lista => Object.fromEntries(lista.map(r => [r.fecha, r]));
+
+test('la fama acumulada pasa a valor del día; el jueves no resta nada', () => {
+  const r = porFecha(histSoloGuerra(CHISTRIS));
+  assert.deepEqual(['2026-10-01', '2026-10-02', '2026-10-03', '2026-10-04'].map(f => r[f].fame), [600, 800, 400, 550]);
+  assert.deepEqual(['2026-10-08', '2026-10-09', '2026-10-10', '2026-10-11'].map(f => r[f].fame), [600, 0, 600, 700]);
+});
+
+test('la suma de los días da el acumulado final de cada semana y los ataques no cambian', () => {
+  const lista = histSoloGuerra(CHISTRIS);
+  assert.equal(lista.slice(0, 4).reduce((a, r) => a + r.fame, 0), 2350);
+  assert.equal(lista.slice(4).reduce((a, r) => a + r.fame, 0), 1900);
+  assert.deepEqual(lista.map(r => r.ataques), [4, 4, 4, 4, 4, 0, 4, 4]);
+});
+
+test('los barcos también se pasan a valor del día', () => {
+  const r = porFecha(histSoloGuerra([reg('2026-10-15', 4, 500, 0), reg('2026-10-16', 4, 1200, 1), reg('2026-10-17', 4, 2000, 1), reg('2026-10-18', 4, 2500, 3)]));
+  assert.deepEqual(['2026-10-15', '2026-10-16', '2026-10-17', '2026-10-18'].map(f => r[f].barcos), [0, 1, 0, 2]);
+});
+
+test('una segunda pasada no vuelve a restar (el modal repinta con histRegsA ya convertido)', () => {
+  const una = histSoloGuerra(CHISTRIS);
+  const dos = histSoloGuerra(una);
+  assert.deepEqual(dos.map(r => r.fame), una.map(r => r.fame));
+});
+
+test('día de entrenamiento se descarta y una resta negativa deja el valor tal cual', () => {
+  const lista = histSoloGuerra([reg('2026-10-07', 0, 0), reg('2026-10-08', 4, 900), reg('2026-10-09', 4, 300)]);
+  assert.deepEqual(lista.map(r => r.fecha), ['2026-10-08', '2026-10-09']);
+  assert.deepEqual(lista.map(r => r.fame), [900, 300]);
+});
+
+test('el orden de llegada no importa y no se modifican los objetos originales', () => {
+  const original = CHISTRIS.map(r => ({ ...r }));
+  const barajado = CHISTRIS.slice().reverse();
+  const lista = histSoloGuerra(barajado);
+  assert.deepEqual(lista.map(r => r.fecha), CHISTRIS.map(r => r.fecha));
+  assert.deepEqual(lista.map(r => r.fame), [600, 800, 400, 550, 600, 0, 600, 700]);
+  assert.deepEqual(CHISTRIS, original);
+});
