@@ -12,6 +12,7 @@ Lista corta de lo que se hizo, de más reciente a más antiguo y, dentro de cada
 
 Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la entrada del cambio, abajo).
 
+- **Sin probar en navegador real (23-oct-2026): 📈 del mini historial en la tabla del Directorio.** Falta publicar `Web` (`sw.js` v139) y comprobar en `directorio.html`: el 📈 sale junto al nombre en los cuatro clanes, abre la ventana con el historial del jugador, «Comparar con» lista a los jugadores de la tabla del clan que se ve, y `guerra.html` sigue abriendo el suyo igual que antes (el código ahora está en `mini-historial.js`). → §PF169
 - **Sin probar en navegador real (22-oct-2026): medallas y barcos del día en el mini historial de `guerra.html` y en el comparador de `directorio.html`.** Falta publicar `Web` (`sw.js` v136) y comprobar: en el 📈 de un jugador las medallas son del día y el total es la suma de esos días; en «Comparar jugadores» de `directorio.html` la gráfica «Medallas (Fame) por día de guerra» (y Barcos) ya no sube en escalera dentro de cada semana. → §PF167
 - **Sin probar en Apps Script real ni en navegador real (22-oct-2026): ícono de WhatsApp en «Ingresos recientes».** Falta correr `subirBaseDesdeGithub()`, publicar `Web` (`sw.js` v134) y abrir `directorio.html` con sesión de admin (el ícono sale solo en las cuentas con celular) y sin sesión (no debe verse ni llegar `tieneWsp`). Detalle en `§PF165`.
 - **Sin probar en navegador real (22-oct-2026): insignias y maestrías sin margen, con la copia local primero.** Falta publicar `Web` (`sw.js` v132) y abrir un perfil: las insignias de la tarjeta, V. Guerra, Nivel de colección y la insignia de guerra de la cabecera deben verse todas del mismo tamaño, y el enlace de Supercell solo se pide si no hay copia local (se puede comprobar en la pestaña Red de F12). Una insignia sin copia en `badges/API/` cuesta una petición fallida y se ve con su margen. Probado solo con DOM simulado. → §PF161, §PF162
@@ -35,6 +36,10 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 - **Urgente (la usuaria): rotar el token de administradores que estuvo escrito en `guerra.html`, si sigue vigente.** El código ya no lo usa (30-ago) y se quitó de este archivo el 11-oct, pero este repo es público y el texto **sigue en su historial de git**; solo cambiarlo en el backend lo deja inservible. No se verificó si sigue activo; no se escribe aquí. (11-oct-2026) → §PF029
 
 ---
+
+## 23-oct-2026
+
+- **`assets/js/features/mini-historial.js` (nuevo; antes el código vivía en `guerra.html`), `assets/styles.css` (`.hist-*`, `.btn-hist-jugador`, `.btn-solo-cero`), `directorio.html` (`ROSTER_COLUMNAS` columna Nombre con `extra`, `celdaHtmlRoster()`, `pintarFilasRoster()`), `guerra.html`, `eslint.config.js`, `test/mini-historial-dom.test.js` (nuevo), `test/guerra-historial-valores-diarios.test.js` y `sw.js` v139 · Ícono 📈 del mini historial en la tabla del Directorio.** Pedido de la usuaria: cada jugador de la tabla de `directorio.html` lleva, junto al nombre, el mismo 📈 que `guerra.html` y abre la misma ventana (con «Comparar con»). Para no duplicar, la ventana, sus funciones y su CSS salieron de `guerra.html` a un archivo compartido; la ventana se crea sola al abrirla. Un clic en el 📈 no abre además el perfil de la fila. `histSoloGuerra()` y `guerraAValoresDiarios()` no cambian. Las medallas son del día (§PF167). Probado con DOM simulado (640 pruebas pasan); sin probar en navegador real. → §PF169
 
 ## 22-oct-2026
 

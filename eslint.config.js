@@ -25,7 +25,7 @@ const GLOBALES_COMPARTIDOS = [
   'adminPuedeVetar', 'agregarTarjetaCuentasInactivasSiAdmin', 'apiGet', 'apiGetAuth', 'apiGetPublicoConEstatico', 'apiGetUltimaActualizacion', 'apiPost', 'cerrarModalUnirse',
   'chartCardHtml', 'clanCardHtml', 'debounce', 'enlaceClan', 'enlaceJugador', 'esAdminLogueado', 'esInicioAnio',
   'esInicioSemana', 'esInicioTemporada', 'esc', 'etiquetaPuntoSerie', 'fitOneLine', 'fitOneLineAll',
-  'fmtFechaVigenciaCorta', 'fmtNum', 'gridHorizontalMediosSvg', 'hayBajoMinimo', 'htmlTooltipPuntoSerie', 'iconoBadgeClanHtml', 'initJoinModal',
+  'fmtFechaVigenciaCorta', 'fmtNum', 'guerraAValoresDiarios', 'gridHorizontalMediosSvg', 'hayBajoMinimo', 'htmlTooltipPuntoSerie', 'iconoBadgeClanHtml', 'initJoinModal',
   'joinModalTriggerEl', 'lineaMinimoSvg', 'lineasTemporalesSvg', 'marcarNavActiva', 'minimoMetricaGuerra', 'normalizarTag', 'obtenerTooltipGrafica', 'posicionarTooltipGrafica', 'ordenClanIndex',
   'ordenarClanes', 'pintarFiltroLetra', 'pisoEjeConNegativos', 'primerLunesDelMesJS', 'primeraLetraFiltro', 'sincronizarScrollHorizontal', 'traducirNombreCarta',
   'urlValida'
