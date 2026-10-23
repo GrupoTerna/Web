@@ -1332,6 +1332,19 @@
       </div>
 
 
+      <!-- ---------- HISTORIAL DE GUERRA (23-oct-2026, tanda 5 de Consolidado_Mini_Historial_y_Perfil.md; pedido de la usuaria) ----------
+           Sección propia y a pedido, igual que «Batallas más recientes» y «Ciclo de cofres»: solo admins (P5), entre las dos (P7). Usa la MISMA fuente (webHistorialGuerraComparador) y el MISMO armado de tabla que el mini historial (histPintarEn(), mini-historial.js), así los números coinciden; 28 filas al abrir y «Ver más» de 28 en 28 (P6). La cinta reutiliza cinta-guerra-diarios.webp (sin imagen nueva). [→ Contexto_Base_Web.md §PF181] -->
+      <div class="card pf-panel-datos pf-cinta" id="mHistorialGuerraCard" style="display:none; --cinta:url(Im%C3%A1genes/Banners/Fankit/cinta-guerra-diarios.webp);">
+        <div class="eyebrow">Guerra</div>
+        <h2 class="pf-subtitulo">Historial de guerra</h2>
+        <p class="text-dim" style="margin-top:6px; font-size:14px;">Los días de guerra de este jugador, del más reciente al más antiguo. Solo para administradores.</p>
+        <div class="ext-links" style="margin-top:14px;">
+          <button type="button" id="mVerHistorialGuerraBtn">📜 Ver historial de guerra</button>
+        </div>
+        <div id="mHistorialGuerraTablaWrap" style="display:none; margin-top:14px;" aria-live="polite"></div>
+      </div>
+
+
       <!-- ---------- CICLO DE COFRES ---------- -->
       <!-- CICLO DE COFRES: CONECTADO. El botón #mVerCicloCofresBtn pide la acción 'webCofresJugador' (_webCofresJugador(), 34_Web_API.gs,
            enrutada en 08_Web_Endpoints.gs), que cruza cada cofre con Backup_Cofres.csv y manda `nombre` y `link` (ícono; sin link se pinta un 📦; las
@@ -1551,6 +1564,7 @@
 <script src="assets/js/features/clan-card.js"></script>
 <script src="assets/js/features/inactivos.js"></script>
 <script src="assets/js/features/timeline-svg.js"></script>
+<script src="assets/js/features/mini-historial.js"></script>
 <script src="assets/common.js"></script>
 <script>
 /** ===== FIX GLOBAL (12-sep-2026, pedido usuario) =====
@@ -6194,6 +6208,7 @@ function renderMiembro(j){
   const btnHistGuerra = document.getElementById('btnVerHistorialGuerra');
   btnHistGuerra.style.display = esAdminLogueado() ? 'inline-flex' : 'none';
   btnHistGuerra.dataset.tag = j.tag;
+  document.getElementById('mHistorialGuerraCard').style.display = esAdminLogueado() ? 'block' : 'none'; // tanda 5 (§PF181): misma regla que el botón de arriba
   const btnVetar = document.getElementById('btnVetarJugador');
   btnVetar.style.display = adminPuedeVetar() ? 'inline-flex' : 'none';
   btnVetar.dataset.tag = j.tag;
@@ -6901,6 +6916,27 @@ async function verHistorialGuerra(tag){
 document.getElementById('btnVerHistorialGuerra').addEventListener('click', function(){
   verHistorialGuerra(this.dataset.tag);
 });
+
+/**
+ * verHistorialGuerraPerfil() — tarjeta «Historial de guerra» (23-oct-2026, tanda 5, §PF181).
+ * Pide webHistorialGuerraComparador (la misma fuente del mini historial: diaria, últimos ~180 días) y pinta con histPintarEn() de mini-historial.js,
+ * que es el mismo armado de tabla de la ventana 📈, así que perfil y mini historial siempre muestran los mismos números.
+ * Solo admins (el botón vive en una tarjeta que renderMiembro() oculta sin sesión de admin); a pedido, como Batallas y Cofres.
+ */
+async function verHistorialGuerraPerfil(){
+  var wrap = document.getElementById('mHistorialGuerraTablaWrap');
+  wrap.style.display = 'block';
+  wrap.innerHTML = '<div class="text-faint" style="font-family:var(--f-mono); font-size:12px;">Cargando historial de guerra…</div>';
+  try{
+    var data = await apiGet('webHistorialGuerraComparador', { tag1: TAG_PERFIL, tag2: '' }, { conSesion: true });
+    if (!data || data.error) throw new Error((data && data.error) || 'sin respuesta');
+    var regs = histSoloGuerra(Array.isArray(data.a) ? data.a : []);
+    histPintarEn(wrap, regs, HIST_FILAS_INICIALES);
+  }catch(err){
+    wrap.innerHTML = `<div class="empty">${esc(msgErrorJson(err, 'No se pudo cargar el historial de guerra'))}</div>`;
+  }
+}
+document.getElementById('mVerHistorialGuerraBtn').addEventListener('click', verHistorialGuerraPerfil);
 
 function mostrarFormVetar(tag){
   const wrap = document.getElementById('mVetarWrap');

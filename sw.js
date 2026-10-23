@@ -207,7 +207,8 @@
 // v148 (23-oct-2026): directorio.html y assets/js/features/mini-historial.js cambiaron (CORE_ASSETS) -- «Ingresos recientes» lleva el 📈 del mini historial a la derecha del WhatsApp y, solo para admins, la pastilla «Ocultar con número» (§PF175).
 // v154 (23-oct-2026): directorio.html cambió (CORE_ASSETS) -- botón «Actualizar» (solo admins) en Ingresos recientes (§PF180).
 // v155 (23-oct-2026): assets/js/features/mini-historial.js cambió (CORE_ASSETS) -- el armado de la tabla de días se extrajo a funciones compartidas y «Ver todos» pasó a «Ver más» de 28 en 28 (tanda 5, parte 1, §PF181).
-const CACHE_NAME = 'terna-static-v155';
+// v156 (23-oct-2026): perfil.html cambió (CORE_ASSETS) -- tarjeta «Historial de guerra» (solo admins, a pedido) con la misma fuente y el mismo armado que el mini historial; carga mini-historial.js (tanda 5, parte 2, §PF181).
+const CACHE_NAME = 'terna-static-v156';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
