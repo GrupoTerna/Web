@@ -142,6 +142,7 @@
   }
   @media (max-width:560px){ .stage{padding:20px 14px 24px;} }
   /* el título se mide contra el ancho del panel (container query): en Rajdhani mayúsculas ocupa unos 21,6 em, así que 4,3 cqi de tamaño lo dejan en una sola línea; a 320 px de ancho se recorta con «…» */
+  .stage{container-type:inline-size;container-name:stage;}
   .stage-head{margin-bottom:22px;container-type:inline-size;}
   .title-input{
     width:100%;
@@ -164,18 +165,38 @@
   .title-input:focus{border-bottom-color:var(--line-gold) !important;}
   .title-input::placeholder{color:var(--text-faint);}
 
+  /* 24-oct-2026 (PF220, pedido de la usuaria): la ruleta ya no entraba completa en la pantalla con los controles debajo; ahora va a la izquierda y el nombre del sorteado, el intento y «¡Girar!» van a su derecha. Con el panel angosto (menos de 640 px) vuelve a apilarse. */
+  .stage-body{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) minmax(210px,250px);
+    gap:22px;
+    align-items:center;
+  }
+  .stage-side{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:14px;
+    min-width:0;
+  }
+  @container stage (max-width:640px){
+    .stage-body{grid-template-columns:minmax(0,1fr);gap:0;}
+  }
   .wheel-wrap{
     display:flex;
     align-items:center;
-    justify-content:center;
+    justify-content:flex-start;
     gap:0;
-    margin:22px 0 8px;
+    margin:0;
     position:relative;
+  }
+  @container stage (max-width:640px){
+    .wheel-wrap{justify-content:center;margin:22px 0 8px;}
   }
   .wheel-outer{
     position:relative;
     /* ocupa el ancho del panel (hasta 560px) y no pasa de lo que cabe en la altura de la pantalla; mínimo 300px para que no se achique de más */
-    width:min(100%, 560px, max(300px, calc(100vh - 200px)));
+    width:min(100%, 560px, max(300px, calc(100vh - 190px)));
     aspect-ratio:1 / 1;
   }
   @media (max-width:560px){
@@ -263,7 +284,10 @@
     flex-direction:column;
     align-items:center;
     gap:14px;
-    margin-top:14px;
+    margin-top:0;
+  }
+  @container stage (max-width:640px){
+    .spin-controls{margin-top:14px;}
   }
   .attempt-row{
     display:flex;
@@ -302,7 +326,7 @@
     background:linear-gradient(135deg, var(--purple), var(--violet));
     border:1px solid transparent;
     border-radius:999px;
-    padding:14px 40px;
+    padding:14px 34px;
     max-width:100%;
     font-family:var(--f-display);
     font-weight:800;
@@ -335,9 +359,13 @@
   .reset-round:hover{color:var(--gold);}
 
   .result-banner{
-    margin-top:18px;
     text-align:center;
     min-height:64px;
+    width:100%;
+  }
+  @container stage (max-width:640px){
+    .result-banner{margin-top:18px;}
+    .stage-side{gap:14px;}
   }
   .result-name{
     font-family:var(--f-display);
@@ -729,6 +757,7 @@
       <input id="titleInput" type="text" class="title-input" placeholder="Título del sorteo" aria-label="Título del sorteo" value="ᴳ乂ᵀ ⚜️ Familia Terna - Sorteo en vivo">
     </div>
 
+    <div class="stage-body">
     <div class="wheel-wrap">
       <div class="wheel-outer">
         <div class="pointer"></div>
@@ -747,6 +776,7 @@
       </div>
     </div>
 
+    <div class="stage-side">
     <div class="result-banner">
       <div id="resultName" class="result-name"></div>
       <div id="resultSub" class="result-sub"></div>
@@ -764,6 +794,8 @@
       </div>
       <button type="button" id="spinBtn" class="spin-btn">¡Girar!</button>
       <button type="button" id="resetRoundBtn" class="reset-round">Reiniciar intentos de esta ronda</button>
+    </div>
+    </div>
     </div>
   </div>
 
@@ -1600,11 +1632,12 @@
     var dateStr = new Date().toLocaleDateString('es-PE', {day:'2-digit',month:'2-digit',year:'numeric'});
     var limit = prizeLimit();
 
+    var TD = 'padding:8px 10px;border:1px solid #4a2a78;background:#0f121d;color:#ffffff;';
     var rowsHtml = winners.map(function(w){
       return '<tr>' +
-        '<td style="padding:8px 10px;border:1px solid #ccc;text-align:center;">' + w.order + '</td>' +
-        '<td style="padding:8px 10px;border:1px solid #ccc;">' + escapeHtml(w.editedName) + '</td>' +
-        '<td style="padding:8px 10px;border:1px solid #ccc;text-align:center;">' + w.time + '</td>' +
+        '<td bgcolor="#0f121d" style="' + TD + 'text-align:center;color:#f3a922;font-weight:bold;">' + w.order + '</td>' +
+        '<td bgcolor="#0f121d" style="' + TD + '">' + escapeHtml(w.editedName) + '</td>' +
+        '<td bgcolor="#0f121d" style="' + TD + 'text-align:center;">' + w.time + '</td>' +
         '</tr>';
     }).join('');
 
@@ -1616,25 +1649,27 @@
         (winners.length < limit ? ' (faltan ' + (limit - winners.length) + ')' : ' (completo)')
       : '<b>Ganadores registrados:</b> ' + winners.length + ' &nbsp;·&nbsp; <i>(cantidad de premios sin límite definido)</i>';
 
+    // Acta en la paleta «Dark Elixir» del sitio (24-oct-2026, PF220): fondo negro, violeta y oro. Word solo muestra y imprime el color de fondo de la página con <w:DisplayBackgroundShape/>; las celdas de la tabla llevan su propio fondo por si la opción no se aplica. [→ Contexto_Base_Web.md §PF220]
     var html = '<html xmlns:o="urn:schemas-microsoft-com:office:office" ' +
       'xmlns:w="urn:schemas-microsoft-com:office:word" ' +
       'xmlns="http://www.w3.org/TR/REC-html40">' +
       '<head><meta charset="utf-8"><title>' + escapeHtml(title) + '</title>' +
-      '<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom></w:WordDocument></xml><![endif]-->' +
-      '<style>body{font-family:Calibri,Arial,sans-serif;color:#2B2E63;} ' +
-      'h1{color:#515AA4;margin-bottom:2px;} p.sub{color:#6165A6;margin-top:0;} ' +
+      '<!--[if gte mso 9]><xml><w:WordDocument><w:View>Print</w:View><w:Zoom>100</w:Zoom><w:DisplayBackgroundShape/></w:WordDocument></xml><![endif]-->' +
+      '<style>body{font-family:Calibri,Arial,sans-serif;color:#ffffff;background:#040508;} ' +
+      'p{color:#ffffff;} b{color:#ffc857;} ' +
+      'h1{font-family:Rajdhani,Calibri,Arial,sans-serif;color:#f3a922;margin-bottom:2px;text-transform:uppercase;} p.sub{color:#94a3b8;margin-top:0;} ' +
       'table{border-collapse:collapse;width:100%;margin-top:16px;} ' +
-      'th{background:#515AA4;color:#fff;padding:8px 10px;border:1px solid #ccc;text-align:left;}</style>' +
-      '</head><body>' +
+      'th{background:#6b21a8;color:#ffffff;padding:8px 10px;border:1px solid #a239ff;text-align:left;}</style>' +
+      '</head><body bgcolor="#040508" text="#ffffff" style="background:#040508;color:#ffffff;">' +
       '<h1>' + escapeHtml(title) + '</h1>' +
       (desc ? '<p class="sub">' + escapeHtml(desc) + '</p>' : '') +
       '<p><b>Fecha del sorteo:</b> ' + dateStr + '</p>' +
       '<p>' + resumenPremios + '</p>' +
       '<p><b>Participantes totales en la lista:</b> ' + participants.length + '</p>' +
-      '<table><thead><tr><th>Premio</th><th>Ganador/a</th><th>Hora</th></tr></thead>' +
-      '<tbody>' + (rowsHtml || '<tr><td colspan="3" style="padding:10px;border:1px solid #ccc;text-align:center;">Sin ganadores registrados todavía</td></tr>') + '</tbody>' +
+      '<table><thead><tr><th bgcolor="#6b21a8">Premio</th><th bgcolor="#6b21a8">Ganador/a</th><th bgcolor="#6b21a8">Hora</th></tr></thead>' +
+      '<tbody>' + (rowsHtml || '<tr><td colspan="3" bgcolor="#0f121d" style="' + TD + 'padding:10px;text-align:center;">Sin ganadores registrados todavía</td></tr>') + '</tbody>' +
       '</table>' +
-      '<p style="margin-top:22px;color:#9EA1CC;font-size:11px;">Documento generado automáticamente por la Ruleta de Sorteo.</p>' +
+      '<p style="margin-top:22px;color:#94a3b8;font-size:11px;">Documento generado automáticamente por la Ruleta de Sorteo.</p>' +
       '</body></html>';
 
     var blob = new Blob(['\ufeff', html], { type: 'application/msword' });

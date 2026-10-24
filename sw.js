@@ -229,7 +229,8 @@
 // v175 (24-oct-2026): sorteo.html cambió (CORE_ASSETS) -- la cabecera queda solo con «ᴳ乂ᵀ ⚜️ Familia Terna - Sorteo en vivo»: se quitan «Volver al panel admin», «Sorteo en vivo» y «Se transmite en vivo» (§PF217).
 // v176 (24-oct-2026): sorteo.html cambió (CORE_ASSETS) -- título de la ruleta centrado y círculo del escudo con fondo negro (§PF218).
 // v177 (24-oct-2026): sorteo.html cambió (CORE_ASSETS) -- se rediseña con la paleta «Dark Elixir» del resto del sitio: fondo negro, violeta y oro, tarjetas de vidrio y Rajdhani en mayúsculas (§PF219).
-const CACHE_NAME = 'terna-static-v177';
+// v178 (24-oct-2026): sorteo.html cambió (CORE_ASSETS) -- la ruleta va a la izquierda y el nombre del sorteado, el intento y «¡Girar!» a su derecha; el acta Word pasa a la paleta oscura (§PF220).
+const CACHE_NAME = 'terna-static-v178';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
