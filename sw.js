@@ -216,7 +216,8 @@
 // v162 (24-oct-2026): perfil.html cambió (CORE_ASSETS) -- tarjeta «¿Es infiltrado?» (solo admins, a pedido) con el criterio de la «Detección de infiltrados» de admin.html (tanda 10, §PF196).
 // v163 (24-oct-2026): assets/js/features/mini-historial.js y assets/styles.css cambiaron (CORE_ASSETS) -- en el móvil solo se desplaza la tabla del mini historial (§PF197).
 // v164 (24-oct-2026): assets/styles.css cambió (CORE_ASSETS) -- todas las barras de desplazamiento, actuales y futuras, usan el estilo morado de las tablas de guerra (§PF199).
-const CACHE_NAME = 'terna-static-v164';
+// v165 (24-oct-2026): perfil.html cambió (CORE_ASSETS) -- los botones RoyaleAPI y CWStats se arman desde el Tag para el admin cuando el backend no manda el enlace (inactivos; §PF200).
+const CACHE_NAME = 'terna-static-v165';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y

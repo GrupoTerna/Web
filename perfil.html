@@ -6202,11 +6202,10 @@ function renderMiembro(j){
 
   // Botones RoyaleAPI/CWStats viven en la fila de acciones chica (.ext-links); "Sugerencias de mazo" se mudó a la card "Mazo actual". Historial en CHANGELOG.md.
   const ext = j.extendido || {};
-  const royaleOkBtn = urlValida(ext.royaleApi);
-  const cwOkBtn = urlValida(ext.cwStats);
+  const enlacesExt = enlacesPerfilExterno(ext, j.tag, esAdminLogueado());
   document.getElementById('mRoyaleCwstatsBtns').innerHTML = `
-    ${royaleOkBtn ? `<a href="${esc(ext.royaleApi)}" target="_blank" rel="noopener">${ICONO_ROYALEAPI}RoyaleAPI</a>` : ''}
-    ${cwOkBtn ? `<a href="${esc(ext.cwStats)}" target="_blank" rel="noopener">${ICONO_CWSTATS}CWStats</a>` : ''}`;
+    ${enlacesExt.royaleApi ? `<a href="${esc(enlacesExt.royaleApi)}" target="_blank" rel="noopener">${ICONO_ROYALEAPI}RoyaleAPI</a>` : ''}
+    ${enlacesExt.cwStats ? `<a href="${esc(enlacesExt.cwStats)}" target="_blank" rel="noopener">${ICONO_CWSTATS}CWStats</a>` : ''}`;
 
   document.getElementById('btnVerTorneosJugador').dataset.tag = j.tag;
   const btnOtras = document.getElementById('btnVerOtrasCuentas');
@@ -6800,6 +6799,22 @@ async function enviarVeto(tag){
 document.getElementById('btnVetarJugador').addEventListener('click', function(){
   mostrarFormVetar(this.dataset.tag);
 });
+
+/* 24-oct-2026 (tanda 12 de Consolidado_Mini_Historial_y_Perfil.md, §PF200): enlaces a RoyaleAPI y CWStats del perfil. Salen de ext.royaleApi / ext.cwStats
+ * (los arma el backend con las celdas de Directorio). Las cuentas de la hoja Inactivos casi nunca traen esas celdas (1 187 de 1 211 filas vacías en
+ * Backup_Inactivos.csv), así que el backend no mandaba el enlace y el admin no veía los botones. Con sesión de admin, si falta el enlace se arma desde el
+ * Tag del perfil, igual que hace el backend (_urlPerfilConFallback). A un visitante no se le agrega nada: sigue viendo solo lo que manda el backend. */
+function enlacesPerfilExterno(ext, tag, esAdmin){
+  ext = ext || {};
+  let royaleApi = urlValida(ext.royaleApi) ? ext.royaleApi : '';
+  let cwStats = urlValida(ext.cwStats) ? ext.cwStats : '';
+  const t = String(tag || '').trim().replace(/^#/, '').toUpperCase();
+  if (esAdmin && /^[0289PYLQGRJCUV]{3,}$/.test(t)){
+    if (!royaleApi) royaleApi = 'https://royaleapi.com/player/' + t;
+    if (!cwStats) cwStats = 'https://cwstats.com/player/' + t;
+  }
+  return { royaleApi, cwStats };
+}
 
 async function cargarPerfil(){
   if (!TAG_PERFIL){
