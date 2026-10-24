@@ -859,7 +859,7 @@
         </div>
 
         <button type="button" id="exportBtn" class="export-btn">Descargar acta del sorteo (Word)</button>
-        <p class="export-note">Genera un documento .doc listo para abrir en Word (puedes guardarlo como .docx desde ahí). Los nombres del documento son los que estén escritos en cada campo de ganador — puedes editarlos a mano antes de descargar. Incluye la cantidad de premios configurada, para que se sepa cuántos ganadores debía tener el sorteo.</p>
+        <p class="export-note">Actualiza el documento «Ganadores (sorteo)» de Drive y descarga esa misma versión en Word (.docx). Los nombres son los que estén escritos en cada campo de ganador — puedes editarlos a mano antes de descargar. Incluye la hora de cada ganador, la cantidad de premios configurada (para saber cuántos ganadores debía tener el sorteo) y el total de participantes. Sin sesión de admin se descarga el acta armada en esta página (.doc).</p>
         <div id="exportDocRealStatus" style="font-size:12px; margin-top:4px; display:none;"></div>
       </div>
     </div>
@@ -1625,8 +1625,12 @@
     setTimeout(function(){ wrap.remove(); }, 4200);
   }
 
-  // ---------- Export to Word (.doc) ----------
-  function exportDoc(){
+  // ---------- Export to Word ----------
+  // PF221 (24-oct-2026, pedido de la usuaria): el acta y el documento «Ganadores (sorteo)» de Drive se fusionaron. exportDoc() manda al backend los datos que solo
+  // tiene esta página (hora de cada ganador, nombres editados, premios, participantes), el backend los escribe en el Doc de Drive y devuelve ese mismo Doc como
+  // Word, que es lo que se descarga. exportDocLocal() es la versión anterior (acta .doc armada aquí) y queda solo como respaldo si no hay sesión de admin o el
+  // backend no responde. [→ Contexto_Base_Web.md §PF221]
+  function exportDocLocal(){
     var title = document.getElementById('titleInput').value.trim() || 'Sorteo';
     var desc = ''; // el campo de descripción se quitó de la cabecera (25-oct-2026); el acta no lleva subtítulo. Historial en CHANGELOG.md.
     var dateStr = new Date().toLocaleDateString('es-PE', {day:'2-digit',month:'2-digit',year:'numeric'});
@@ -1681,43 +1685,72 @@
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-
-// además de la descarga local de arriba (que no toca el backend), "Exportar" ahora también dispara el docx real al instante -- antes solo se actualizaba 1 vez al día, dentro de la corrida diaria de runUpdate() (ver docblock de… Historial en CHANGELOG.md.
-    actualizarDocRealGanadores();
   }
 
-  function actualizarDocRealGanadores(){
+  function descargarBlobComo(blob, nombre){
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = nombre;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  function base64ABlob(b64, tipo){
+    var bin = atob(b64);
+    var bytes = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return new Blob([bytes], { type: tipo });
+  }
+
+  function exportDoc(){
     var statusEl = document.getElementById('exportDocRealStatus');
     var token = localStorage.getItem(SESSION_KEY_SORTEO);
-    if (!token){
-      statusEl.textContent = 'Descarga local lista. El documento real de Drive no se actualizó (no hay sesión de admin activa) — se actualizará solo en la próxima corrida diaria.';
-      statusEl.style.color = 'var(--ink-soft)';
+    var title = document.getElementById('titleInput').value.trim() || 'Sorteo';
+
+    function mostrar(texto, color){
+      statusEl.textContent = texto;
+      statusEl.style.color = color;
       statusEl.style.display = 'block';
+    }
+    function respaldoLocal(motivo){
+      exportDocLocal();
+      mostrar('Se descargó el acta armada en esta página (.doc). ' + motivo, 'var(--danger)');
+    }
+
+    if (!token){
+      exportDocLocal();
+      mostrar('Se descargó el acta armada en esta página (.doc). No hay sesión de admin activa, así que no se pudo actualizar ni traer el documento de Drive.', 'var(--ink-soft)');
       return;
     }
 
-    statusEl.textContent = 'Descarga local lista. Actualizando el documento real en Drive…';
-    statusEl.style.color = 'var(--ink-soft)';
-    statusEl.style.display = 'block';
-
-    var url = WEBAPP_URL + '?accion=webAdminSorteoActualizarDocGanadores';
-    fetch(url, {
+    mostrar('Actualizando el documento de Drive y preparando la descarga…', 'var(--ink-soft)');
+    var extra = {
+      premios: prizeLimit(),
+      participantes: participants.length,
+      ganadores: winners.map(function(w){ return { nombre: w.editedName, hora: w.time }; })
+    };
+    fetch(WEBAPP_URL + '?accion=webAdminSorteoActualizarDocGanadores', {
       method: 'POST',
-      body: JSON.stringify({ sessionToken: token })
+      body: JSON.stringify({ sessionToken: token, extra: extra, descargar: true })
     })
       .then(function(res){ return res.json(); })
       .then(function(data){
         if (!data || !data.ok){
-          statusEl.textContent = 'Descarga local lista. No se pudo actualizar el documento real de Drive: ' + ((data && data.error) || 'error desconocido') + ' (se actualizará solo en la próxima corrida diaria).';
-          statusEl.style.color = 'var(--danger)';
+          respaldoLocal('No se pudo actualizar el documento de Drive: ' + ((data && data.error) || 'error desconocido') + '.');
           return;
         }
-        statusEl.textContent = 'Descarga local lista y documento real de Drive actualizado ✓';
-        statusEl.style.color = 'var(--ok)';
+        if (!data.docxBase64){
+          respaldoLocal('El servidor todavía no entrega el documento de Drive como Word.');
+          return;
+        }
+        descargarBlobComo(base64ABlob(data.docxBase64, 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'), slugify(title) + '.docx');
+        mostrar('Documento de Drive actualizado y descargado (.docx) ✓', 'var(--ok)');
       })
       .catch(function(){
-        statusEl.textContent = 'Descarga local lista. Error de conexión al actualizar el documento real de Drive (se actualizará solo en la próxima corrida diaria).';
-        statusEl.style.color = 'var(--danger)';
+        respaldoLocal('Error de conexión con el servidor.');
       });
   }
 
