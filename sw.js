@@ -227,7 +227,8 @@
 // v173 (24-oct-2026): sorteo.html cambió (CORE_ASSETS) -- cada nombre de la ruleta queda en el centro de su propia franja (estaba corrido 90°) y se ajusta a su ancho (§PF215).
 // v174 (24-oct-2026): sorteo.html cambió (CORE_ASSETS) -- el escudo del centro de la ruleta llena todo el círculo (84 % a 100 %; §PF216).
 // v175 (24-oct-2026): sorteo.html cambió (CORE_ASSETS) -- la cabecera queda solo con «ᴳ乂ᵀ ⚜️ Familia Terna - Sorteo en vivo»: se quitan «Volver al panel admin», «Sorteo en vivo» y «Se transmite en vivo» (§PF217).
-const CACHE_NAME = 'terna-static-v175';
+// v176 (24-oct-2026): sorteo.html cambió (CORE_ASSETS) -- título de la ruleta centrado y círculo del escudo con fondo negro (§PF218).
+const CACHE_NAME = 'terna-static-v176';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
