@@ -222,7 +222,8 @@
 // v168 (24-oct-2026): sorteo.html cambió (CORE_ASSETS) -- el escudo del centro de la ruleta queda centrado y la ruleta es más grande (hasta 560 px según el espacio y la altura de la pantalla; §PF210).
 // v169 (24-oct-2026): sorteo.html cambió (CORE_ASSETS) -- desplegable de sorteo con semanas y premios, y premio precargado en cada ganador (§PF211).
 // v170 (24-oct-2026): sorteo.html cambió (CORE_ASSETS) -- Reglas del sorteo arriba de Participantes y los ganadores pasan a la columna de la ruleta, en cuadrícula (§PF212).
-const CACHE_NAME = 'terna-static-v170';
+// v171 (24-oct-2026): sorteo.html cambió (CORE_ASSETS) -- si el backend no devuelve semanas ni premios, ya no dice que el sorteo no los tiene configurados (§PF213).
+const CACHE_NAME = 'terna-static-v171';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y

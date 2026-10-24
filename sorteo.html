@@ -1694,6 +1694,11 @@
   }
 
   function renderSorteoInfo(data){
+    // si el servidor no manda estos campos (versión vieja del backend) NO se puede decir que el sorteo no los tiene configurados: PF213
+    if (!Array.isArray(data.semanas) || !Array.isArray(data.premios)){
+      mostrarMensajeSorteoInfo('No se pudieron leer las semanas ni los premios de este sorteo: el servidor todavía no devuelve ese dato (falta actualizar el backend).');
+      return;
+    }
     sorteoInfo.innerHTML = '';
     var semanas = data.semanas || [];
     var premios = data.premios || [];
