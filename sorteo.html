@@ -81,20 +81,22 @@
     background:var(--surface-card);
     border:1px solid var(--line);
     border-radius:var(--radius-lg);
-    padding:28px 26px 32px;
+    padding:0 26px 32px;
+    overflow:hidden; /* el banner llega al borde del panel y toma sus esquinas redondeadas, igual que la cinta de los otros paneles (PF227) */
     backdrop-filter:blur(14px);
     box-shadow:0 0 0 1px var(--line), 0 8px 32px rgba(162,57,255,.16);
   }
-  @media (max-width:560px){ .stage{padding:20px 14px 24px;} }
+  @media (max-width:560px){ .stage{padding:0 14px 24px;} }
   /* el título se mide contra el ancho del panel (container query): en Rajdhani mayúsculas ocupa unos 21,6 em, así que 4,3 cqi de tamaño lo dejan en una sola línea; a 320 px de ancho se recorta con «…» */
   .stage{container-type:inline-size;container-name:stage;}
-  .stage-head{margin-bottom:22px;container-type:inline-size;}
+  .stage-head{margin:0 -26px 22px;container-type:inline-size;}
+  @media (max-width:560px){ .stage-head{margin:0 -14px 22px;} }
   /* PF223 (24-oct-2026, pedido de la usuaria): banner de imagen detrás del título, uno de los de Fankit (Banner_PartyArena, reducido a assets/Imágenes/Banners/Fankit/cinta-sorteo-titulo.webp). Lleva un velo oscuro encima para que el título se lea. */
   .stage-head{
     padding:18px 14px;
-    border-radius:var(--radius-md);
+    border-radius:0; /* PF227: a ras del panel, sin margen vacío alrededor (como .panel-head) */
     background:linear-gradient(rgba(4,5,8,.30), rgba(4,5,8,.55)), url("assets/Im%C3%A1genes/Banners/Fankit/cinta-sorteo-titulo.webp") center/cover no-repeat;
-    border:1px solid var(--line-strong);
+    border:0;
     border-bottom:2px solid var(--line-gold);
     box-shadow:0 4px 18px rgba(162,57,255,.28);
   }
@@ -829,7 +831,7 @@
     <div class="panel settings-panel">
       <div class="panel-head pf-cinta-sorteo" style="--cinta:url(assets/Im%C3%A1genes/Banners/Fankit/cinta-sorteo-reglas.webp);"><h2>Reglas del sorteo</h2></div>
       <div class="panel-body">
-        <!-- #prizeCountRow: solo se ve en modo manual (sin sorteo cargado); con un sorteo cargado la cantidad sale de sus premios (ver prizeLimit()). Historial en CHANGELOG.md. -->
+        <!-- #prizeCountRow: siempre visible (PF227). Sin sorteo cargado es el límite manual; con un sorteo cargado parte de sus premios y se puede subir para sumar premios extra (ver prizeLimit()). Historial en CHANGELOG.md. -->
         <div class="setting-row" id="prizeCountRow">
           <span>Cantidad de premios<span class="hint" id="prizeCountHint">Cuántos ganadores tiene el sorteo hoy (0 = sin límite)</span></span>
           <input id="prizeCountInput" type="number" min="0" step="1" value="0" aria-label="Cantidad de premios" aria-describedby="prizeCountHint" style="width:56px;text-align:center;border:1px solid var(--panel-line);border-radius:8px;padding:5px 4px;font-weight:600;">
@@ -1175,15 +1177,22 @@
 
   function prizeLimit(){
     var delSorteo = premiosDelSorteoCargado();
-    if (delSorteo > 0) return delSorteo; // sorteo cargado: la cantidad sale de sus premios
     var n = parseInt(prizeCountInput.value, 10);
-    return (isNaN(n) || n <= 0) ? 0 : n; // 0 = sin límite (modo manual)
+    n = (isNaN(n) || n <= 0) ? 0 : n; // 0 = sin límite (modo manual)
+    // PF227: con un sorteo cargado la cantidad parte de sus premios y se puede SUBIR a mano (premios extra); nunca baja de los del sorteo.
+    return delSorteo > 0 ? Math.max(delSorteo, n) : n;
   }
 
-  // La fila «Cantidad de premios» solo se muestra al ingresar miembros a mano (o si el sorteo cargado no trae premios).
+  // La fila «Cantidad de premios» se muestra siempre (PF227). Con un sorteo cargado trae la cantidad de sus premios como mínimo y se puede subir para sumar premios extra a mano.
   function actualizarFilaPremios(){
     var fila = document.getElementById('prizeCountRow');
-    if (fila) fila.hidden = premiosDelSorteoCargado() > 0;
+    var hint = document.getElementById('prizeCountHint');
+    var base = premiosDelSorteoCargado();
+    if (fila) fila.hidden = false;
+    prizeCountInput.min = String(base);
+    if (hint) hint.textContent = base > 0
+      ? 'El sorteo trae ' + base + ' premio(s). Sube el número para sumar premios extra (no puede ser menor)'
+      : 'Cuántos ganadores tiene el sorteo hoy (0 = sin límite)';
   }
 
   function renderWinners(){
@@ -1197,7 +1206,8 @@
       if (winners.length >= limit){
         prizeProgress.textContent = '🎉 Se entregaron los ' + limit + ' premio(s) configurados. Puedes editar los nombres de arriba o subir "Cantidad de premios" para seguir sorteando.';
       } else {
-        prizeProgress.textContent = 'Premio ' + (winners.length + 1) + ' de ' + limit + ' — quedan ' + (limit - winners.length) + ' por sortear.';
+        var base = premiosDelSorteoCargado();
+        prizeProgress.textContent = (base > 0 && winners.length >= base ? 'Premio extra ' : 'Premio ') + (winners.length + 1) + ' de ' + limit + ' — quedan ' + (limit - winners.length) + ' por sortear.' + (base > 0 && winners.length >= base ? ' Escribe su nombre en «Premio» al resolver al ganador.' : '');
       }
     } else {
       prizeProgress.style.display = 'none';
@@ -1793,6 +1803,7 @@
 // se guarda el ID del sorteo (S_Lista) que devolvió el backend -- hace falta para poder guardar después cualquier resolución de ganador en S_Asistencia (ver guardarResolucionGanador() más abajo). Historial en CHANGELOG.md.
         sorteoActualId = data.idSorteo || null;
         premiosSorteo = data.premios || [];
+        if (premiosDelSorteoCargado() > 0) prizeCountInput.value = premiosDelSorteoCargado(); // PF227: la cantidad parte de los premios del sorteo y se puede subir
         if (sorteoActualId && sorteoActualId !== sorteoSelect.value) sorteoSelect.value = sorteoActualId;
         renderSorteoInfo(data);
         renderParticipants(); renderWinners(); renderWheel();
@@ -1991,6 +2002,11 @@
   resetRoundBtn.addEventListener('click', resetRound);
   spinsToWinInput.addEventListener('input', updateAttemptUI);
   prizeCountInput.addEventListener('input', renderWinners);
+  prizeCountInput.addEventListener('change', function(){ // PF227: con un sorteo cargado no baja de sus premios
+    var base = premiosDelSorteoCargado();
+    if (base > 0 && (parseInt(prizeCountInput.value, 10) || 0) < base) prizeCountInput.value = base;
+    renderWinners();
+  });
   document.getElementById('exportBtn').addEventListener('click', exportDoc);
 
   // ---------- Init ----------
