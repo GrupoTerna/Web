@@ -36,3 +36,16 @@ test('ninguna página ni script apaga las barras ni les da otro color', () => {
     assert.ok(!/scrollbar-width\s*:\s*none/.test(t), path.basename(f) + ' oculta una barra (scrollbar-width:none)');
   }
 });
+
+test('toda página que NO carga assets/styles.css (hoy sorteo.html) repite la misma regla morada, con --purple-light definido', () => {
+  const sinHoja = fs.readdirSync(raiz).filter((f) => f.endsWith('.html')).filter((f) => !/<link[^>]+href="assets\/styles\.css"/.test(fs.readFileSync(path.join(raiz, f), 'utf8')));
+  assert.ok(sinHoja.length >= 1, 'se esperaba al menos sorteo.html sin la hoja común');
+  for (const f of sinHoja) {
+    const t = fs.readFileSync(path.join(raiz, f), 'utf8');
+    assert.match(t, /\*, \.scroll-morado\s*\{\s*scrollbar-width:thin; scrollbar-color:var\(--purple-light\)/, f + ' no tiene la regla global de barras');
+    for (const parte of ['', '-track', '-thumb', '-thumb:hover']) {
+      assert.ok(t.includes('*::-webkit-scrollbar' + parte + ', .scroll-morado::-webkit-scrollbar' + parte + '{'), f + ': falta ::-webkit-scrollbar' + parte);
+    }
+    assert.match(t, /--purple-light\s*:\s*#[0-9a-fA-F]{3,8}/, f + ' no define --purple-light');
+  }
+});
