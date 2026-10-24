@@ -1696,7 +1696,8 @@
     var extra = {
       premios: prizeLimit(),
       participantes: participants.length,
-      ganadores: winners.map(function(w){ return { nombre: w.editedName, hora: w.time }; })
+      // PF228: el documento de Drive lleva a todos los ganadores de la ruleta (también a quien aún no se guardó): se mandan nombre, hora, premio, tickets y clan.
+      ganadores: winners.map(function(w){ return { nombre: w.editedName, hora: w.time, premio: w.premio || '', tickets: (typeof w.tickets === 'number' ? w.tickets : null), clan: w.clan || '' }; })
     };
     fetch(WEBAPP_URL + '?accion=webAdminSorteoActualizarDocGanadores', {
       method: 'POST',
