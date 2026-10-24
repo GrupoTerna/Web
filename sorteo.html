@@ -949,6 +949,16 @@
   var sorteoInfo       = document.getElementById('sorteoInfo');
 
   function uid(){ return 'w' + Date.now() + '_' + Math.floor(Math.random()*10000); }
+  // PF232 (24-oct-2026, pedido de la usuaria): la hora del acta siempre lleva dos cifras en hora, minutos y segundos (05:42 p. m, 09:07:05 a. m) y no depende de cómo la entregue el navegador (toLocaleTimeString varía según el idioma y el motor). Historial en CHANGELOG.md.
+  function formatearHoraActa(fecha, conSegundos){
+    var d = (fecha instanceof Date && !isNaN(fecha.getTime())) ? fecha : new Date();
+    var h = d.getHours();
+    var sufijo = h >= 12 ? 'p. m' : 'a. m';
+    h = h % 12;
+    if (h === 0) h = 12;
+    var dos = function(n){ return (n < 10 ? '0' : '') + n; };
+    return dos(h) + ':' + dos(d.getMinutes()) + (conSegundos ? ':' + dos(d.getSeconds()) : '') + ' ' + sufijo;
+  }
 
   function activeParticipants(){
     return participants.filter(function(p){ return p.active; });
@@ -1511,7 +1521,7 @@
           order: winners.length + 1,
           pickedName: name,
           editedName: name,
-          time: new Date().toLocaleTimeString('es-PE', {hour:'2-digit',minute:'2-digit'}),
+          time: formatearHoraActa(new Date()),
           discarded: discardToggle.checked,
 // resultado/razón de la resolución manual sobre este ganador (ver #winnerResolucionForm más arriba). Historial en CHANGELOG.md.
           resultado: 'Califica',

@@ -236,7 +236,8 @@
 // v183 (24-oct-2026): sorteo.html cambió (CORE_ASSETS) -- el banner del título llega al borde del panel y, con un sorteo cargado, se pueden sumar premios extra a mano (§PF227).
 // v182 (24-oct-2026): sorteo.html cambió (CORE_ASSETS) -- carga assets/styles.css y usa sus reglas globales en vez de repetirlas (§PF226).
 // v180 (24-oct-2026): guerra.html, assets/js/ui/filters.js y assets/styles.css cambiaron (CORE_ASSETS) -- buscador por nombre o Tag en las tablas de guerra (§PF224).
-const CACHE_NAME = 'terna-static-v184';
+// v185 (24-oct-2026): sorteo.html cambió (CORE_ASSETS) -- la hora de cada ganador se arma a mano con dos cifras en hora, minutos y segundos (§PF232).
+const CACHE_NAME = 'terna-static-v185';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
