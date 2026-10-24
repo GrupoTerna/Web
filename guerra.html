@@ -196,6 +196,16 @@
   .msj-guerra-row .btn-copiar-mg:hover{border-color:var(--purple); color:var(--purple-light); background:rgba(162,57,255,.2);}
   .msj-guerra-row .btn-copiar-mg.copiado{color:var(--ok); border-color:var(--ok);}
   .msj-guerra-row .msj-guerra-aviso{margin:0; font-size:12px; color:var(--text-dim);}
+  /* §PF181 (23-oct-2026): línea con la antigüedad de los mensajes, el botón «Regenerar ahora» y su avance. */
+  .msj-guerra-row .msj-guerra-meta{flex-basis:100%; display:flex; flex-wrap:wrap; align-items:center; gap:6px 12px; margin:0; font-size:12px; color:var(--text-dim);}
+  .msj-guerra-row .msj-guerra-meta[hidden]{display:none;}
+  .msj-guerra-row .msj-guerra-meta.vieja .msj-guerra-edad{color:var(--warn, #f5b942);}
+  .msj-guerra-row .msj-guerra-estado.es-error{color:var(--danger);}
+  .btn-regen-mg{font-family:var(--f-mono); font-size:11px; background:var(--surface-card); color:var(--text-dim); border:1px solid var(--line-strong); border-radius:var(--radius-sm); padding:4px 10px; cursor:pointer;}
+  .btn-regen-mg:hover{color:var(--text);}
+  .btn-regen-mg[disabled]{opacity:.7; cursor:progress;}
+  .btn-msj-guerra.vieja{color:var(--warn, #f5b942);}
+  .btn-msj-guerra.vieja::after{content:' ⚠';}
 
   /* FASE 3 del plan de fases (punto 3 del documento — "cuentas y ataques disponibles por día"): sección solo-admin y solo día de guerra (mismo criterio que Mensajes de Guerra / Aportes de Inactivos de arriba). Backend ya listo desde antes… Historial en CHANGELOG.md. */
   #participacionHoySection{display:none;}
@@ -1893,42 +1903,199 @@ function pintarPastillaMensajesGuerra(visible){
   wrap.hidden = !msjGuerraAbierto;
   btn.onclick = () => { msjGuerraAbierto = !msjGuerraAbierto; pintarPastillaMensajesGuerra(true); };
 }
-/* cargarMensajesGuerraSiAdmin(ctx) Historial en CHANGELOG.md. */
-async function cargarMensajesGuerraSiAdmin(ctx){
+
+/* §PF181 (23-oct-2026, pedido usuario: «revisa los botones de mensajes de guerra… creo que solo copian los últimos mensajes aunque hayan sido
+ * generados hace varios minutos»). Antes cada «Copiar» usaba el texto guardado al repintar (hasta 60 s de página + 60 s de caché del servidor + el
+ * desfase de la propia generación) y no se veía qué tan viejo era. Ahora: (1) al hacer clic se vuelve a pedir el mensaje SIN caché (fresco:'1') y se
+ * copia ese; (2) se muestra «Elaborados hace N min» (aviso ámbar si pasan de MSJ_GUERRA_EDAD_AVISO_MS); (3) los admins con la Función «Actualizar roster»
+ * ven «Regenerar ahora», que pide al backend rehacer Pendientes y Mensajes (tipo:'mensajes', misma cola de turno que «Actualizar» del Directorio) y se
+ * engancha a una regeneración ya en curso. El backend valida sesión y Función en cada acción; ocultar el botón es solo UX. */
+const MSJ_GUERRA_EDAD_AVISO_MS = 5 * 60 * 1000;
+const MSJ_GUERRA_POLL_MS = 4000;
+const MSJ_GUERRA_ESPERA_MAX_MS = 12 * 60 * 1000;
+let msjGuerraElab = null;             // última «elaboracion» recibida de webAdminContenido (hora en que se generaron los mensajes)
+let msjGuerraRegenerando = false;
+let msjGuerraPuedeRegenerar = null;   // null = todavía sin consultar
+let msjGuerraEstado = { texto: '', error: false };
+
+/** Antigüedad de los mensajes generados: { ms, texto, hora, vieja } o null si no se sabe (sin hora registrada o categoría no generada). */
+function edadMensajesGuerra(elab, ahoraMs){
+  const ts = (elab && elab.aplica !== false) ? Number(elab.generadosTs) : 0;
+  if (!ts) return null;
+  const ms = Math.max(0, (ahoraMs || Date.now()) - ts);
+  const min = Math.floor(ms / 60000);
+  const texto = min < 1 ? 'hace menos de 1 min' : (min < 60 ? 'hace ' + min + ' min' : 'hace ' + Math.floor(min / 60) + ' h ' + (min % 60) + ' min');
+  const hora = elab.generadosLima ? String(elab.generadosLima).slice(11, 16) : '';
+  return { ms, texto, hora, vieja: ms > MSJ_GUERRA_EDAD_AVISO_MS };
+}
+function claveOpcionMensajeGuerra(o){ return String((o && (o.etiqueta || o.subcategoria || o.clan)) || ''); }
+function msjGuerraEspera(ms){ return new Promise(r => setTimeout(r, ms)); }
+function msjGuerraTextoEstado(texto, error){ msjGuerraEstado = { texto: texto || '', error: !!error }; pintarMetaMensajesGuerra(); }
+
+/** Pinta la línea de antigüedad + «Regenerar ahora» + avance dentro de #msjGuerraMeta, y marca la pastilla con ⚠ si los mensajes están viejos. */
+function pintarMetaMensajesGuerra(){
+  const edad = edadMensajesGuerra(msjGuerraElab);
+  const pastilla = document.getElementById('btnMsjGuerra');
+  if (pastilla) pastilla.classList.toggle('vieja', !!(edad && edad.vieja));
+  const meta = document.getElementById('msjGuerraMeta');
+  if (!meta) return;
+  const partes = [];
+  if (edad){
+    partes.push('<span class="msj-guerra-edad">🕒 Elaborados ' + esc(edad.texto) + (edad.hora ? ' (' + esc(edad.hora) + ')' : '') + '.' +
+      (edad.vieja ? ' Pueden no incluir los últimos ataques.' : '') + '</span>');
+  }
+  if (msjGuerraPuedeRegenerar){
+    partes.push('<button type="button" class="btn-regen-mg" id="btnRegenMsjGuerra"' + (msjGuerraRegenerando ? ' disabled aria-busy="true"' : '') + '>' +
+      (msjGuerraRegenerando ? '⏳ Regenerando…' : '↻ Regenerar ahora') + '</button>');
+  }
+  if (msjGuerraEstado.texto){
+    partes.push('<span class="msj-guerra-estado' + (msjGuerraEstado.error ? ' es-error' : '') + '" role="status">' + esc(msjGuerraEstado.texto) + '</span>');
+  }
+  meta.className = 'msj-guerra-meta' + (edad && edad.vieja ? ' vieja' : '');
+  meta.innerHTML = partes.join('');
+  meta.hidden = !partes.length;
+  const b = document.getElementById('btnRegenMsjGuerra');
+  if (b) b.onclick = regenerarMensajesGuerra;
+}
+
+/** Copia al portapapeles un texto que llega en una promesa: con ClipboardItem donde existe (Safari exige que la escritura empiece dentro del gesto del clic aunque el texto tarde), con writeText en el resto. */
+async function copiarTextoMensajeGuerra(promesaTexto){
+  if (typeof ClipboardItem !== 'undefined' && navigator.clipboard && navigator.clipboard.write){
+    await navigator.clipboard.write([new ClipboardItem({ 'text/plain': promesaTexto.then(t => new Blob([t], { type: 'text/plain' })) })]);
+    return;
+  }
+  await navigator.clipboard.writeText(await promesaTexto);
+}
+
+async function consultarPermisoRegenerarMensajes(){
+  msjGuerraPuedeRegenerar = false; // mientras responde no se vuelve a pedir
+  try{
+    const p = await apiGetAuth('webAdminMisPermisos', {});
+    msjGuerraPuedeRegenerar = !!(p && p.ok && Array.isArray(p.funciones) && p.funciones.indexOf('Actualizar roster') !== -1);
+  }catch(err){ msjGuerraPuedeRegenerar = false; }
+  pintarMetaMensajesGuerra();
+  if (msjGuerraPuedeRegenerar) unirseARegeneracionEnCurso();
+}
+
+/** Si ya hay una actualización pendiente/ejecutando (la pidió otro admin o esta pestaña antes de recargarse) se engancha en vez de pedir otra. */
+async function unirseARegeneracionEnCurso(){
+  if (msjGuerraRegenerando) return;
+  try{
+    const est = await apiGetAuth('webAdminEstadoActualizacion', {});
+    if (est && est.ok && (est.estado === 'pendiente' || est.estado === 'ejecutando')) regenerarMensajesGuerra();
+  }catch(err){ /* sin acción: el botón sigue disponible */ }
+}
+
+async function esperarFinRegeneracionMensajes(){
+  const limite = Date.now() + MSJ_GUERRA_ESPERA_MAX_MS;
+  while (Date.now() < limite){
+    const est = await apiGetAuth('webAdminEstadoActualizacion', {});
+    if (!est || est.ok === false) throw new Error((est && est.error) || 'No se pudo consultar el avance.');
+    if (est.estado !== 'pendiente' && est.estado !== 'ejecutando') return est;
+    msjGuerraTextoEstado(est.mensaje || 'Regenerando...');
+    await msjGuerraEspera(MSJ_GUERRA_POLL_MS);
+  }
+  throw new Error('Está tardando más de lo normal. Vuelve a revisar en unos minutos.');
+}
+
+async function regenerarMensajesGuerra(){
+  if (msjGuerraRegenerando) return;
+  msjGuerraRegenerando = true;
+  msjGuerraTextoEstado('Consultando el estado...');
+  let regenerados = false;
+  try{
+    let est = await apiGetAuth('webAdminEstadoActualizacion', {});
+    if (!est || est.ok === false) throw new Error((est && est.error) || 'No se pudo consultar el estado.');
+    if (est.estado !== 'pendiente' && est.estado !== 'ejecutando'){
+      if (est.puedeIniciar === false){
+        msjGuerraTextoEstado(est.motivoBloqueo || 'No se puede regenerar en este momento.', true);
+        return;
+      }
+      const r = await apiPost('webAdminActualizarRoster', { sessionToken: localStorage.getItem('terna_admin_token') || '', tipo: 'mensajes' });
+      if (!r || r.ok === false) throw new Error((r && r.error) || 'No se pudo pedir la regeneración.');
+      msjGuerraTextoEstado(r.mensaje || 'Solicitada. Empieza en unos segundos.');
+    }
+    est = await esperarFinRegeneracionMensajes();
+    if (est.estado === 'ok' && est.tipo === 'mensajes') regenerados = true;
+    else if (est.estado === 'ok') msjGuerraTextoEstado('Terminó una actualización del Directorio y la guerra, que no regenera los mensajes. Vuelve a pulsar «Regenerar ahora» (podrás en unos minutos).', true);
+    else msjGuerraTextoEstado(est.mensaje || 'La regeneración no se completó.', true);
+  }catch(err){
+    msjGuerraTextoEstado(err && err.message ? err.message : 'No se pudo regenerar.', true);
+  }finally{
+    msjGuerraRegenerando = false;
+    pintarMetaMensajesGuerra();
+  }
+  if (regenerados){
+    await cargarMensajesGuerraSiAdmin({ esDiaGuerra: true }, { fresco: true });
+    msjGuerraTextoEstado('Mensajes regenerados.');
+  }
+}
+
+/* cargarMensajesGuerraSiAdmin(ctx, opts) Historial en CHANGELOG.md. opts.fresco = pedir sin caché del servidor (tras regenerar). */
+async function cargarMensajesGuerraSiAdmin(ctx, opts){
   const wrap = document.getElementById('msjGuerraWrap');
   if (!ctx.esDiaGuerra || !esAdminLogueado()){ wrap.innerHTML = ''; pintarPastillaMensajesGuerra(false); return; }
   pintarPastillaMensajesGuerra(true);
+  const META = '<div class="msj-guerra-meta" id="msjGuerraMeta" hidden></div>';
   // 23-oct-2026: antes cualquier fallo o lista vacía dejaba la fila en blanco y no se sabía por qué; ahora un admin ve el motivo.
-  const avisar = (texto) => { wrap.innerHTML = `<p class="msj-guerra-aviso">✉ ${esc(texto)}</p>`; };
+  const avisar = (texto, conMeta) => { wrap.innerHTML = `<p class="msj-guerra-aviso">✉ ${esc(texto)}</p>` + (conMeta ? META : ''); if (conMeta) pintarMetaMensajesGuerra(); };
+  if (!msjGuerraRegenerando) msjGuerraEstado = { texto: '', error: false }; // un aviso de una acción anterior no se arrastra para siempre
   try{
-    const data = await apiGetAuth('webAdminContenido', { categoria: 'Mensaje de Guerra' });
+    const data = await apiGetAuth('webAdminContenido', (opts && opts.fresco) ? { categoria: 'Mensaje de Guerra', fresco: '1' } : { categoria: 'Mensaje de Guerra' });
     if (data && data.ok === false){
       avisar('No se pudieron cargar los mensajes de guerra: ' + String(data.error || 'el servidor no dio detalle').replace(/\.+$/, '') + '.');
       return;
     }
+    msjGuerraElab = (data && data.elaboracion) || null;
     const opciones = (data && data.opciones) || [];
     if (!opciones.length){
-      avisar('No hay mensajes de guerra generados ahora mismo (se crean cuando hay jugadores pendientes).');
-      return;
-    }
-    wrap.innerHTML = opciones.map((o, i) => {
-      const etiqueta = esc(o.etiqueta || o.subcategoria || o.clan || ('Opción ' + (i + 1)));
-      return `<button type="button" class="btn-copiar-mg" data-idx="${i}" data-label="⧉ Copiar — ${etiqueta}">⧉ Copiar — ${etiqueta}</button>`;
-    }).join('');
-    wrap.querySelectorAll('.btn-copiar-mg').forEach(btn => {
-      btn.addEventListener('click', async () => {
-        const o = opciones[Number(btn.dataset.idx)];
-        const textoOriginal = btn.dataset.label;
-        try{
-          await navigator.clipboard.writeText(o.contenido || '');
-          btn.textContent = '✔ Copiado';
-          btn.classList.add('copiado');
-        }catch(err){
-          btn.textContent = 'No se pudo copiar';
-        }
-        setTimeout(() => { btn.textContent = textoOriginal; btn.classList.remove('copiado'); }, 1600);
+      avisar('No hay mensajes de guerra generados ahora mismo (se crean cuando hay jugadores pendientes).', true);
+    } else {
+      wrap.innerHTML = opciones.map((o, i) => {
+        const etiqueta = esc(o.etiqueta || o.subcategoria || o.clan || ('Opción ' + (i + 1)));
+        return `<button type="button" class="btn-copiar-mg" data-idx="${i}" data-label="⧉ Copiar — ${etiqueta}">⧉ Copiar — ${etiqueta}</button>`;
+      }).join('') + META;
+      pintarMetaMensajesGuerra();
+      wrap.querySelectorAll('.btn-copiar-mg').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const idx = Number(btn.dataset.idx);
+          const base = opciones[idx];
+          const textoOriginal = btn.dataset.label;
+          const nota = { sinRefrescar: false, desaparecio: false };
+          // Al hacer clic se vuelve a pedir el mensaje SIN caché: lo que se copia sale de la hoja Mensajes de este momento, no de la foto guardada al repintar.
+          const promesaTexto = (async () => {
+            let f = null;
+            try{
+              f = await apiGetAuth('webAdminContenido', { categoria: 'Mensaje de Guerra', fresco: '1' });
+              if (!f || f.ok === false || !Array.isArray(f.opciones)) f = null;
+            }catch(errFresco){ f = null; }
+            if (!f){ nota.sinRefrescar = true; return base.contenido || ''; }
+            msjGuerraElab = f.elaboracion || msjGuerraElab;
+            pintarMetaMensajesGuerra();
+            const nueva = f.opciones.find(x => claveOpcionMensajeGuerra(x) === claveOpcionMensajeGuerra(base));
+            if (!nueva){ nota.desaparecio = true; throw new Error('Ya no hay mensaje para esta opción'); }
+            opciones[idx] = nueva;
+            return nueva.contenido || '';
+          })();
+          try{
+            await copiarTextoMensajeGuerra(promesaTexto);
+            const edad = edadMensajesGuerra(msjGuerraElab);
+            btn.textContent = '✔ Copiado' + (nota.sinRefrescar ? ' (sin refrescar)' : (edad && edad.vieja ? ' · ' + edad.texto : ''));
+            btn.classList.add('copiado');
+          }catch(err){
+            btn.textContent = nota.desaparecio ? 'Ya no hay mensaje: se actualiza la lista' : 'No se pudo copiar';
+            if (nota.desaparecio) cargarMensajesGuerraSiAdmin(ctx, { fresco: true });
+          }
+          setTimeout(() => { btn.textContent = textoOriginal; btn.classList.remove('copiado'); }, 1600);
+        });
       });
-    });
+    }
+    // Permiso para «Regenerar ahora» (una sola vez por carga de página); si ya se conoce y los mensajes están viejos, revisa si hay una regeneración en curso para engancharse.
+    if (msjGuerraPuedeRegenerar === null) consultarPermisoRegenerarMensajes();
+    else if (msjGuerraPuedeRegenerar && !msjGuerraRegenerando){
+      const edad = edadMensajesGuerra(msjGuerraElab);
+      if (edad && edad.vieja) unirseARegeneracionEnCurso();
+    }
   }catch(err){
     // No se rompe el resto de la página, pero el admin ve que falló y por qué.
     avisar('No se pudieron cargar los mensajes de guerra (' + (err && err.message ? err.message : 'error de conexión') + ').');

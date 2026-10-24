@@ -84,7 +84,8 @@ test('fuera de día de guerra: nada se muestra y el estado vuelve a cerrado', as
   assert.equal(wrap.innerHTML, '');
   await cargar({ esDiaGuerra: true });
   assert.equal(wrap.hidden, true, 'al volver la guerra arranca cerrada otra vez');
-  assert.equal(window.__llamadas, 2, 'no se pide nada fuera de día de guerra');
+  // 3 = 2 cargas de mensajes (solo en día de guerra) + 1 consulta de permisos para «Regenerar ahora» (§PF181, una sola vez por página); fuera de día de guerra no se pide nada.
+  assert.equal(window.__llamadas, 3, 'no se pide nada fuera de día de guerra');
 });
 
 test('si el servidor falla, el admin ve el motivo al abrir la pastilla', async () => {
