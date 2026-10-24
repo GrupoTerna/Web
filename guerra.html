@@ -461,14 +461,14 @@
       <!-- Parte 1 (05-oct-2026): aviso visible solo fuera de día de guerra, cuando las tarjetas muestran los resultados congelados de la última guerra. Se llena en render(). -->
       <div id="guerraCongeladoAviso" class="text-faint" style="display:none; font-family:var(--f-mono); font-size:12px; margin-top:14px; padding:8px 12px; border:1px solid var(--line); border-radius:var(--radius-sm); line-height:1.6;" role="status"></div>
       <div class="clan-grid" id="clanGrid" style="margin-top:20px;"></div>
-      <div id="pronosticoNota" class="text-faint" style="font-family:var(--f-mono); font-size:12px; margin-top:6px; line-height:1.6;" hidden>📈 Pronóstico de hoy: la fila resaltada es el clan Terna y las demás son sus rivales en la carrera. La barra muestra las medallas actuales (sólida) y hasta dónde podría llegar hoy (tenue). «Techo» es una cota máxima, no una predicción: con un solo valor, juegan las cuentas que ya están en la carrera; con dos («roster – máx»), el segundo supone además que las cuentas sin atacar se reemplazan por cuentas de apoyo.</div>
+      <div id="pronosticoNota" class="text-faint" style="font-family:var(--f-mono); font-size:12px; margin-top:6px; line-height:1.6;" hidden>📈 Pronóstico de hoy: la fila resaltada es el clan Terna y las demás son sus rivales en la carrera. Todo es de hoy, no de la semana: la barra muestra las medallas de hoy (sólida) y hasta dónde podrían llegar hoy (tenue); «—» significa que aún no se conoce con cuántas medallas empezó el día ese clan. «Techo» es una cota máxima, no una predicción: con un solo valor, juegan las cuentas que ya están en la carrera; con dos («roster – máx»), el segundo supone además que las cuentas sin atacar se reemplazan por cuentas de apoyo.</div>
     </section>
 
     <!-- Pronóstico de Hoy: pública, solo en día de guerra; oculta si el backend no responde. Sin aria-live (se refresca sola). Historial en CHANGELOG.md. -->
     <section id="pronosticoSection" style="padding:calc(var(--gap-seccion) / 2) 0; display:none;">
       <div class="sec-head pf-cinta pf-cinta--seccion" style="--cinta:url(Im%C3%A1genes/Banners/Fankit/cinta-guerra-pronostico.webp); border-bottom:1px solid var(--line); padding-bottom:12px;">
         <h2 style="font-size:22px;">📈 Pronóstico de Hoy</h2>
-        <div class="text-faint" style="font-family:var(--f-mono); font-size:12px; margin-top:10px;">Techo de fama que cada clan todavía puede alcanzar hoy con los ataques que le quedan: una cota máxima, no una predicción. «Solo roster» supone que juegan únicamente las cuentas que ya están en la carrera; «Techo máximo» supone además que las cuentas sin atacar se reemplazan por cuentas de apoyo.</div>
+        <div class="text-faint" style="font-family:var(--f-mono); font-size:12px; margin-top:10px;">Techo de fama de HOY (no de la semana) que cada clan todavía puede alcanzar con los ataques que le quedan: una cota máxima, no una predicción. «Solo roster» supone que juegan únicamente las cuentas que ya están en la carrera; «Techo máximo» supone además que las cuentas sin atacar se reemplazan por cuentas de apoyo.</div>
       </div>
       <div id="pronosticoWrap" style="margin-top:20px;"></div>
     </section>
@@ -2327,21 +2327,37 @@ function agruparPronosticoPorClan(data){
   });
   return { porTag, hay };
 }
+/* Fama DE HOY de un clan de webPronosticoGuerra (23-oct-2026, pedido usuaria: el pronóstico mostraba el acumulado de la semana). Devuelve { f: fama de hoy, r: techo solo roster de hoy, m: techo máximo de hoy } o null si el backend no conoce la fama con la que el clan empezó el día (rivales hasta que haya foto del día anterior): nunca se mezcla un acumulado con un diario. Si la respuesta es de un backend anterior (sin el campo fameHoy), se usan los valores de siempre. [→ Contexto_Base_Web.md §PF194] */
+function pronosticoDiaDe(c){
+  const n = v => Number(v) || 0;
+  if(!c || !('fameHoy' in c)) return c ? { f: n(c.fameActual), r: n(c.fameTechoRoster), m: n(c.fameTecho) } : null;
+  if(c.fameHoy === null || c.fameHoy === undefined) return null;
+  return { f: n(c.fameHoy), r: n(c.fameTechoRosterHoy), m: n(c.fameTechoHoy) };
+}
 function pronosticoClanHtml(grupo){
   const todos = [grupo.propio].concat(grupo.rivales);
-  const fame = c => Number(c.fameActual) || 0;
-  const techoMax = c => Math.max(Number(c.fameTecho) || 0, fame(c));
+  const dia = new Map(todos.map(c => [c, pronosticoDiaDe(c)]));
+  const fame = c => (dia.get(c) || { f: 0 }).f;
+  const techoMax = c => { const d = dia.get(c); return d ? Math.max(d.m, d.f) : 0; };
   const escala = Math.max(1, ...todos.map(techoMax)); // misma escala en las barras de todo el grupo
   const pct = v => Math.max(0, Math.min(100, (v / escala) * 100)).toFixed(1);
-  const puestoDe = c => 1 + todos.filter(o => fame(o) > fame(c)).length; // empates comparten puesto, igual que el "Puesto #N de M" de la cabecera
-  const orden = todos.slice().sort((a, b) => (fame(b) - fame(a)) || ((a === grupo.propio ? 0 : 1) - (b === grupo.propio ? 0 : 1)));
+  const conDato = todos.filter(c => dia.get(c));
+  const puestoDe = c => 1 + conDato.filter(o => fame(o) > fame(c)).length; // por fama de hoy; empates comparten puesto
+  const orden = todos.slice().sort((a, b) => {
+    const da = dia.get(a), db = dia.get(b);
+    if(da && db) return (db.f - da.f) || ((a === grupo.propio ? 0 : 1) - (b === grupo.propio ? 0 : 1));
+    if(da) return -1; // los que no tienen fama de hoy van al final
+    if(db) return 1;
+    return (a === grupo.propio ? 0 : 1) - (b === grupo.propio ? 0 : 1);
+  });
   return `<div class="cp-head">📈 Pronóstico de hoy</div><ul class="cp-list">${orden.map(c => {
-    const roster = Number(c.fameTechoRoster) || 0, max = Number(c.fameTecho) || 0;
-    const techoTxt = roster === max ? fmtNum(max) : `${fmtNum(roster)}–${fmtNum(max)}`; // un solo valor si Roster y Máx coinciden
+    const d = dia.get(c);
+    const techoTxt = !d ? '—' : (d.r === d.m ? fmtNum(d.m) : `${fmtNum(d.r)}–${fmtNum(d.m)}`); // un solo valor si Roster y Máx coinciden
+    const sinDato = 'title="Aún no se conoce la fama con la que este clan empezó el día; aparece cuando el sistema guarde el cierre de ayer"';
     return `
     <li class="cp-row${c === grupo.propio ? ' cp-own' : ''}">
-      <span class="cp-r">#${fmtNum(puestoDe(c))}</span><span class="cp-n" title="${esc(c.nombre)}${c.esRival ? ' (rival)' : ''}">${c.esRival ? esc(c.nombre) : enlaceClan(c.nombre)}</span><b class="cp-f">${fmtNum(c.fameActual)}</b>
-      <div class="cp-bar" aria-hidden="true"><u style="width:${pct(techoMax(c))}%"></u><i style="width:${pct(fame(c))}%"></i></div>
+      <span class="cp-r">${d ? '#' + fmtNum(puestoDe(c)) : '—'}</span><span class="cp-n" title="${esc(c.nombre)}${c.esRival ? ' (rival)' : ''}">${c.esRival ? esc(c.nombre) : enlaceClan(c.nombre)}</span><b class="cp-f"${d ? '' : ' ' + sinDato}>${d ? fmtNum(d.f) : '—'}</b>
+      <div class="cp-bar" aria-hidden="true">${d ? `<u style="width:${pct(techoMax(c))}%"></u><i style="width:${pct(d.f)}%"></i>` : ''}</div>
       <div class="cp-sub"><span title="Techo de fama de hoy. Si dos valores: solo con las cuentas que ya están en la carrera – con cuentas de apoyo">Techo ${techoTxt}</span><span>${fmtNum(c.ataquesUsados)}/${PRONOSTICO_ATAQUES_MAX_CLAN} atq</span></div>
     </li>`; }).join('')}</ul>`;
 }
@@ -2411,16 +2427,16 @@ async function cargarPronosticoGuerra(ctx, manual){
     }
     const html = `
       <div class="card" style="padding:12px;"><div class="table-scroll"><table>
-        <thead><tr><th class="col-n" scope="col">N°</th><th scope="col">Clan</th><th scope="col">Fama actual</th><th scope="col">Techo (solo roster)</th><th scope="col">Techo máximo</th><th scope="col">Ataques hoy</th></tr></thead>
-        <tbody>${clanes.map((c, i) => `
+        <thead><tr><th class="col-n" scope="col">N°</th><th scope="col">Clan</th><th scope="col">Fama de hoy</th><th scope="col">Techo (solo roster)</th><th scope="col">Techo máximo</th><th scope="col">Ataques hoy</th></tr></thead>
+        <tbody>${clanes.map((c, i) => { const d = pronosticoDiaDe(c); return `
           <tr>
             <td class="col-n">${i + 1}</td>
             <td>${c.esRival ? esc(c.nombre) : enlaceClan(c.nombre)}${c.esRival ? ' <span class="text-faint" style="font-family:var(--f-mono); font-size:11px;">(rival)</span>' : ''}</td>
-            <td>${fmtNum(c.fameActual)}</td>
-            <td>${fmtNum(c.fameTechoRoster)}</td>
-            <td>${fmtNum(c.fameTecho)}</td>
+            <td>${d ? fmtNum(d.f) : '—'}</td>
+            <td>${d ? fmtNum(d.r) : '—'}</td>
+            <td>${d ? fmtNum(d.m) : '—'}</td>
             <td>${fmtNum(c.ataquesUsados)}/${PRONOSTICO_ATAQUES_MAX_CLAN}</td>
-          </tr>`).join('')}
+          </tr>`; }).join('')}
         </tbody>
       </table></div></div>`;
     if(html !== ultimoPronosticoHtml){ // no repintar (ni recrear la barra de scroll) si nada cambió

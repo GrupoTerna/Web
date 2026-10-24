@@ -211,7 +211,8 @@
 // v157 (23-oct-2026): perfil.html cambió (CORE_ASSETS) -- se quitan el botón «📜 Historial de guerra» de la cabecera, sus tres selectores y el historial semanal; queda solo la tarjeta «Historial de guerra» (tanda 5, parte 3, §PF181).
 // v158 (23-oct-2026): perfil.html y assets/js/features/mini-historial.js cambiaron (CORE_ASSETS) -- el perfil ya no pide webAdminTagsConWsp de más (§PF181).
 // v159 (23-oct-2026): guerra.html cambió (CORE_ASSETS) -- los botones «Copiar» de mensajes de guerra piden el texto fresco al hacer clic, muestran su antigüedad y se agregó «Regenerar ahora» (§PF193).
-const CACHE_NAME = 'terna-static-v159';
+// v160 (23-oct-2026): guerra.html cambió (CORE_ASSETS) -- el «Pronóstico de hoy» muestra la fama, el techo y el puesto de HOY y no el acumulado de la semana (§PF194).
+const CACHE_NAME = 'terna-static-v160';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
