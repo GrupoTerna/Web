@@ -1341,6 +1341,18 @@
         <div id="mHistorialGuerraTablaWrap" style="display:none; margin-top:14px;" aria-live="polite"></div>
       </div>
 
+      <!-- ---------- ¿ES INFILTRADO? (24-oct-2026, tanda 10 de Consolidado_Mini_Historial_y_Perfil.md; pedido de la usuaria) ----------
+           Sección propia y a pedido, como «Historial de guerra»: solo admins con sesión (P22), a pedido (P23). Usa el mismo criterio y el mismo endpoint de la «Detección de infiltrados» de admin.html (webAdminBuscarInfiltrado; la usuaria lo confirmó en P21): clan actual rival de la temporada o en la lista de conflicto, más el historial en nuestros clanes. Resultado en verificarInfiltradoPerfil(). [→ Contexto_Base_Web.md §PF196] -->
+      <div class="card pf-panel-datos pf-cinta" id="mInfiltradoCard" style="display:none; --cinta:url(Im%C3%A1genes/Banners/Fankit/cinta-admin-buscar.webp);">
+        <div class="eyebrow">Administración</div>
+        <h2 class="pf-subtitulo">¿Es infiltrado?</h2>
+        <p class="text-dim" style="margin-top:6px; font-size:14px;">Revisa si la cuenta juega hoy en un clan rival de esta temporada o en la lista de conflicto, y su historial en nuestros clanes. Solo para administradores.</p>
+        <div class="ext-links" style="margin-top:14px;">
+          <button type="button" id="mVerificarInfiltradoBtn">🕵️ Verificar si es infiltrado</button>
+        </div>
+        <div id="mInfiltradoResultado" style="display:none; margin-top:14px;" aria-live="polite"></div>
+      </div>
+
 
       <!-- ---------- CICLO DE COFRES ---------- -->
       <!-- CICLO DE COFRES: CONECTADO. El botón #mVerCicloCofresBtn pide la acción 'webCofresJugador' (_webCofresJugador(), 34_Web_API.gs,
@@ -6202,6 +6214,8 @@ function renderMiembro(j){
   btnOtras.dataset.tag = j.tag;
   // Tanda 5 (§PF181): el botón «📜 Historial de guerra» de la cabecera pasó a esta tarjeta propia; misma regla de visibilidad que «Ver otras cuentas» (cualquier admin con sesión, sin Función especial).
   document.getElementById('mHistorialGuerraCard').style.display = esAdminLogueado() ? 'block' : 'none';
+  // Tanda 10 (§PF196): la tarjeta «¿Es infiltrado?» sigue la misma regla (cualquier admin con sesión, P22); sin sesión no se pinta ni se pide nada.
+  document.getElementById('mInfiltradoCard').style.display = esAdminLogueado() ? 'block' : 'none';
   const btnVetar = document.getElementById('btnVetarJugador');
   btnVetar.style.display = adminPuedeVetar() ? 'inline-flex' : 'none';
   btnVetar.dataset.tag = j.tag;
@@ -6664,6 +6678,51 @@ async function verHistorialGuerraPerfil(){
   }
 }
 document.getElementById('mVerHistorialGuerraBtn').addEventListener('click', verHistorialGuerraPerfil);
+
+/**
+ * verificarInfiltradoPerfil() — tarjeta «¿Es infiltrado?» (24-oct-2026, tanda 10, §PF196).
+ * Pide webAdminBuscarInfiltrado (solo admin con sesión) con el Tag del perfil y muestra: un veredicto corto (rival de la temporada / en lista de conflicto /
+ * sin señales), el clan actual y el historial del jugador en nuestro roster. Es el mismo criterio de «Detección de infiltrados» de admin.html.
+ * «Sin señales» NO prueba que no sea infiltrado: solo dice que no coincide con esas dos listas, y la tarjeta lo aclara.
+ */
+function infiltradoVeredictoHtml(infoRival){
+  if (!infoRival) return '<span class="badge">Sin señales</span><div class="text-dim" style="font-size:13px; margin-top:6px;">Su clan actual no figura como rival de esta temporada ni en la lista de conflicto. Esto no prueba que no sea infiltrado: solo revisa esas dos listas.</div>';
+  let etiqueta = 'En lista de conflicto';
+  if (infoRival.fuente === 'currentriverrace') etiqueta = 'Rival de esta temporada';
+  else if (infoRival.fuente === 'currentriverrace+manual') etiqueta = 'Rival de esta temporada + conflicto manual';
+  const detalle = [];
+  if (infoRival.clanTernaNombre) detalle.push('vs. ' + esc(infoRival.clanTernaNombre));
+  if (infoRival.motivo) detalle.push(esc(infoRival.motivo));
+  return `<span class="badge badge-warn">${esc(etiqueta)}</span>` + (detalle.length ? `<div class="text-dim" style="font-size:12px; margin-top:6px;">${detalle.join(' · ')}</div>` : '');
+}
+async function verificarInfiltradoPerfil(){
+  const wrap = document.getElementById('mInfiltradoResultado');
+  wrap.style.display = 'block';
+  wrap.innerHTML = '<div class="text-faint" style="font-family:var(--f-mono); font-size:12px;">Verificando…</div>';
+  try{
+    const data = await apiGetAuth('webAdminBuscarInfiltrado', { tag: TAG_PERFIL });
+    if (!data || data.ok === false || data.tipo !== 'jugador') throw new Error((data && data.error) || 'No se pudo verificar este jugador.');
+    const j = data.jugador || {};
+    const hist = Array.isArray(data.historialTerna) ? data.historialTerna : [];
+    const filas = hist.map(f => `
+      <tr>
+        <td>${esc(f.origen || '—')}</td>
+        <td>${esc(f.nombre || '—')} <span class="text-faint">(${esc(f.tag || '')})</span></td>
+        <td>${f.clan ? enlaceClan(f.clan) : '—'}</td>
+        <td>${esc(f.razon || '—')}</td>
+      </tr>`).join('');
+    wrap.innerHTML = `
+      <div>${infiltradoVeredictoHtml(data.infoRival)}</div>
+      <div class="text-dim" style="font-size:13px; margin-top:10px;">Clan actual: ${j.clanActual ? esc(j.clanActual) + ' (' + esc(j.clanActualTag) + ')' : 'Sin clan'}</div>
+      <div style="margin-top:12px;">${hist.length
+        ? `<div class="tabla-coincidencias-wrap" style="overflow-x:auto;"><table><thead><tr><th scope="col">Origen</th><th scope="col">Nuestro roster</th><th scope="col">Clan</th><th scope="col">Razón</th></tr></thead><tbody>${filas}</tbody></table></div>`
+        : '<div class="empty">Sin historial en nuestro roster.</div>'}</div>`;
+    if (typeof activarBarraScrollTabla === 'function') wrap.querySelectorAll('.tabla-coincidencias-wrap').forEach(w => activarBarraScrollTabla(w));
+  }catch(err){
+    wrap.innerHTML = `<div class="empty">${esc(msgErrorJson(err, 'No se pudo verificar'))}</div>`;
+  }
+}
+document.getElementById('mVerificarInfiltradoBtn').addEventListener('click', verificarInfiltradoPerfil);
 
 function mostrarFormVetar(tag){
   const wrap = document.getElementById('mVetarWrap');
