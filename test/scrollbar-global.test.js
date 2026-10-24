@@ -37,9 +37,9 @@ test('ninguna página ni script apaga las barras ni les da otro color', () => {
   }
 });
 
-test('toda página que NO carga assets/styles.css (hoy sorteo.html) repite la misma regla morada, con --purple-light definido', () => {
+test('toda página que NO carga assets/styles.css (hoy ninguna) repite la misma regla morada, con --purple-light definido', () => {
   const sinHoja = fs.readdirSync(raiz).filter((f) => f.endsWith('.html')).filter((f) => !/<link[^>]+href="assets\/styles\.css"/.test(fs.readFileSync(path.join(raiz, f), 'utf8')));
-  assert.ok(sinHoja.length >= 1, 'se esperaba al menos sorteo.html sin la hoja común');
+  // 25-oct-2026 (PF226): sorteo.html ya carga assets/styles.css, así que hoy no queda ninguna página sin la hoja común; la prueba sigue vigente por si vuelve a haber una.
   for (const f of sinHoja) {
     const t = fs.readFileSync(path.join(raiz, f), 'utf8');
     assert.match(t, /\*, \.scroll-morado\s*\{\s*scrollbar-width:thin; scrollbar-color:var\(--purple-light\)/, f + ' no tiene la regla global de barras');

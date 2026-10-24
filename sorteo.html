@@ -32,85 +32,21 @@
 <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" media="print" onload="this.media='all'">
 <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700;800&family=Inter:wght@400;500;600;700&display=swap"></noscript>
+<link rel="stylesheet" href="assets/styles.css">
 <style>
-  /* 24-oct-2026 (PF219): esta página no carga assets/styles.css, así que repite aquí los tokens «Dark Elixir» del sitio (fondo negro, violeta #a239ff, oro #f3a922, tarjetas de vidrio, Rajdhani en mayúsculas para títulos y botones). Los nombres de variable antiguos (--ink, --panel, --panel-line, --pointer…) se conservan apuntando a la paleta oscura para no tocar los estilos en línea del HTML ni la prueba de accesibilidad. [→ Contexto_Base_Web.md §PF219] */
+  /* 24-oct-2026 (PF226, pedido de la usuaria): esta página ahora SÍ carga assets/styles.css y usa sus reglas globales (tokens «Dark Elixir», fondo con resplandor y rejilla, selección, foco, barras moradas, títulos h1 a h4 en Rajdhani y mayúsculas). Aquí solo queda lo propio de la ruleta y los nombres antiguos de variable (--ink, --panel, --panel-line, --pointer, --ring, --radius-lg, --radius-md), que apuntan a los tokens globales para no tocar los estilos en línea del HTML ni la prueba de accesibilidad. Antes (PF219) la página repetía todo esto por su cuenta. [→ Contexto_Base_Web.md §PF226] */
   :root{
     color-scheme:dark;
-    --bg:#040508;
-    --bg-2:#090b12;
-    --surface:rgba(15,18,29,.75);
-    --surface-card:rgba(18,22,35,.82);
-    --line:rgba(162,57,255,.18);
-    --line-strong:rgba(162,57,255,.45);
-    --line-gold:rgba(243,169,34,.45);
-    --purple:#a239ff;
-    --purple-light:#c27dff;
-    --violet:#6b21a8;
-    --gold:#f3a922;
-    --gold-light:#ffc857;
-    --text:#ffffff;
-    --text-dim:#94a3b8;
-    --text-faint:#74839c;
-    --danger:#f43f5e;
-    --ok:#10b981;
-    --f-display:'Rajdhani','Cinzel',sans-serif;
-    --f-body:'Inter',system-ui,sans-serif;
-    /* nombres antiguos de esta página, ahora sobre la paleta oscura */
     --ink:var(--text);
     --ink-soft:var(--text-dim);
     --panel:var(--surface-card);
     --panel-line:var(--line);
     --pointer:var(--gold);
     --ring:#0b0d16;
-    --radius-lg:14px;
+    --radius-lg:var(--radius);
     --radius-md:10px;
   }
-  /* 24-oct-2026 (tanda 11, §PF199): barras de desplazamiento moradas en TODA la página, igual que en el resto del sitio. Esta página no carga
-     assets/styles.css, así que la misma regla va aquí; test/scrollbar-global.test.js falla si cambian una sin la otra. */
-  *, .scroll-morado{
-    scrollbar-width:thin; scrollbar-color:var(--purple-light) rgba(255,255,255,.06);
-  }
-  *::-webkit-scrollbar, .scroll-morado::-webkit-scrollbar{width:10px; height:10px;}
-  *::-webkit-scrollbar-track, .scroll-morado::-webkit-scrollbar-track{background:rgba(255,255,255,.06); border-radius:6px;}
-  *::-webkit-scrollbar-thumb, .scroll-morado::-webkit-scrollbar-thumb{background:var(--purple-light); border-radius:6px;}
-  *::-webkit-scrollbar-thumb:hover, .scroll-morado::-webkit-scrollbar-thumb:hover{background:var(--purple);}
-  *{box-sizing:border-box;}
-  html,body{margin:0;padding:0;}
-  body{
-    min-height:100vh;
-    font-family:var(--f-body);
-    background:var(--bg);
-    color:var(--text);
-    -webkit-font-smoothing:antialiased;
-    padding:28px;
-    position:relative;
-    overflow-x:hidden;
-  }
-  /* resplandor místico y rejilla eSports, igual que en assets/styles.css */
-  body::before{
-    content:"";
-    position:fixed; inset:0;
-    background:
-      radial-gradient(circle at 50% -10%, rgba(162,57,255,.22), transparent 55%),
-      radial-gradient(circle at 100% 30%, rgba(107,33,168,.14), transparent 50%),
-      radial-gradient(circle at 0% 80%, rgba(243,169,34,.08), transparent 45%),
-      var(--bg-2);
-    z-index:-2;
-    pointer-events:none;
-  }
-  body::after{
-    content:"";
-    position:fixed; inset:0;
-    background-image:
-      linear-gradient(to right, rgba(255,255,255,.015) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(255,255,255,.015) 1px, transparent 1px);
-    background-size:40px 40px;
-    z-index:-1;
-    pointer-events:none;
-    opacity:.7;
-  }
-  ::selection{background:var(--purple);color:#fff;}
-  :focus-visible{outline:2px solid var(--purple-light);outline-offset:2px;}
+  body{padding:28px;}
   /* campos y listas desplegables oscuros (los estilos en línea del HTML solo ponen borde, tamaño y color de texto) */
   input,select,textarea,button{font-family:inherit;}
   input[type=text],input[type=number],select,textarea{
@@ -446,11 +382,7 @@
     background:linear-gradient(rgba(4,5,8,.5), rgba(4,5,8,.82)), var(--cinta) center/cover no-repeat;
   }
   .panel-head h2{
-    margin:0;
-    font-family:var(--f-display);
     font-size:18px;
-    font-weight:700;
-    text-transform:uppercase;
     letter-spacing:.05em;
     color:var(--text);
     text-shadow:0 1px 3px rgba(0,0,0,.6);
@@ -579,9 +511,8 @@
     resize:vertical;
   }
   .bulk-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;}
+  /* PF226: color, fondo y hover vienen de .btn-ghost de assets/styles.css; aquí solo el tamaño compacto de estos botones (no llevan .btn) y la variante «danger». */
   .btn-ghost{
-    background:var(--surface-card);
-    color:var(--text);
     border:1px solid var(--line);
     border-radius:9px;
     padding:7px 12px;
@@ -589,7 +520,6 @@
     font-weight:600;
     cursor:pointer;
   }
-  .btn-ghost:hover{border-color:var(--purple);background:rgba(162,57,255,.12);}
   .btn-ghost.danger{color:var(--danger);}
 
   /* la lista de participantes se muestra siempre agrupada por clan. Historial en CHANGELOG.md. */
