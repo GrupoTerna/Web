@@ -214,7 +214,9 @@
 // v160 (23-oct-2026): guerra.html cambió (CORE_ASSETS) -- el «Pronóstico de hoy» muestra la fama, el techo y el puesto de HOY y no el acumulado de la semana (§PF194).
 // v161 (24-oct-2026): assets/js/features/mini-historial.js cambió (CORE_ASSETS) -- la cabecera del perfil en el mini historial ahora lee `jugador` de la respuesta de webPerfil y se ve (tanda 8, corrección a la tanda 4, §PF195).
 // v162 (24-oct-2026): perfil.html cambió (CORE_ASSETS) -- tarjeta «¿Es infiltrado?» (solo admins, a pedido) con el criterio de la «Detección de infiltrados» de admin.html (tanda 10, §PF196).
-const CACHE_NAME = 'terna-static-v163';
+// v163 (24-oct-2026): assets/js/features/mini-historial.js y assets/styles.css cambiaron (CORE_ASSETS) -- en el móvil solo se desplaza la tabla del mini historial (§PF197).
+// v164 (24-oct-2026): assets/styles.css cambió (CORE_ASSETS) -- todas las barras de desplazamiento, actuales y futuras, usan el estilo morado de las tablas de guerra (§PF199).
+const CACHE_NAME = 'terna-static-v164';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
