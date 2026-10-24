@@ -193,7 +193,7 @@ function histCuerpoDiaHtml(registros, limite){
       <div><b>${fmtNum(st.fame)}</b>medallas</div>
       <div><b>${fmtNum(st.barcos)}</b>barcos</div>
     </div>
-    <table class="hist-tabla hist-tabla-dia"><thead><tr><th>N°</th><th>Fecha</th><th>Temporada</th><th>Semana</th><th>Día</th><th>Ataques</th><th>Barcos</th><th>Medallas</th></tr></thead><tbody>${filas}</tbody></table>
+    <div class="hist-tabla-scroll"><table class="hist-tabla hist-tabla-dia"><thead><tr><th>N°</th><th>Fecha</th><th>Temporada</th><th>Semana</th><th>Día</th><th>Ataques</th><th>Barcos</th><th>Medallas</th></tr></thead><tbody>${filas}</tbody></table></div>
     ${n > visibles.length ? `<button type="button" class="btn-solo-cero hist-mas" data-hist-mas="1">Ver más</button>` : ''}
     <p class="hist-nota">Un 0 es un día de guerra en el que estuvo registrado y no atacó. Los días anteriores a su ingreso al clan no aparecen. Un día marcado como opcional (meta ya cruzada) no cuenta como falta. Solo se muestran días de guerra, no de entrenamiento.${histNotasDiaEnCurso(hayHoy, hayPend)}</p>`;
 }
@@ -264,10 +264,10 @@ function histPintarComparacion(ra, rb, nombre2, limite){
   }).join('');
   const na = enlaceJugador(histNombre, histTag), nb = enlaceJugador(nombre2, tag2); // 23-oct-2026: nombre clicable hacia su perfil (nueva pestaña)
   cuerpo.innerHTML = histSelectorComparar(tag2) + `
-    <table class="hist-tabla"><thead><tr><th></th><th>${na}</th><th>${nb}</th></tr></thead><tbody>
+    <div class="hist-tabla-scroll"><table class="hist-tabla"><thead><tr><th></th><th>${na}</th><th>${nb}</th></tr></thead><tbody>
       ${fila('Días de guerra', sa.n, sb.n)}${fila('Ataques', fmtNum(sa.atq), fmtNum(sb.atq))}${fila('Días con 0', sa.ceros, sb.ceros)}${fila('Ataques por día', prom(sa), prom(sb))}${fila('Medallas', fmtNum(sa.fame), fmtNum(sb.fame))}${fila('Barcos', fmtNum(sa.barcos), fmtNum(sb.barcos))}
-    </tbody></table>
-    <table class="hist-tabla hist-tabla-dia" style="margin-top:12px;"><thead><tr><th rowspan="2">N°</th><th rowspan="2">Fecha</th><th rowspan="2">Temporada</th><th rowspan="2">Semana</th><th rowspan="2">Día</th><th colspan="2">Ataques</th><th colspan="2">Medallas</th></tr><tr><th>${na}</th><th>${nb}</th><th>${na}</th><th>${nb}</th></tr></thead><tbody>${filasDia || '<tr><td colspan="9">Sin registros</td></tr>'}</tbody></table>
+    </tbody></table></div>
+    <div class="hist-tabla-scroll"><table class="hist-tabla hist-tabla-dia" style="margin-top:12px;"><thead><tr><th rowspan="2">N°</th><th rowspan="2">Fecha</th><th rowspan="2">Temporada</th><th rowspan="2">Semana</th><th rowspan="2">Día</th><th colspan="2">Ataques</th><th colspan="2">Medallas</th></tr><tr><th>${na}</th><th>${nb}</th><th>${na}</th><th>${nb}</th></tr></thead><tbody>${filasDia || '<tr><td colspan="9">Sin registros</td></tr>'}</tbody></table></div>
     ${fechas.length > visibles.length ? `<button type="button" class="btn-solo-cero hist-mas" id="histMas">Ver más</button>` : ''}
     <p class="hist-nota">Celda vacía: ese jugador no tenía registro ese día (aún no estaba en el clan). Un 0 en rojo es que estuvo y no atacó.${histNotasDiaEnCurso(hayHoy, hayPend)}</p>`;
   histEnlazarSelector();

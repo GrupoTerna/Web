@@ -287,3 +287,25 @@ test('la comparación también usa «Ver más» de 28 en 28', async () => {
   w.document.getElementById('histMas').click();
   assert.equal(filas(), 56);
 });
+
+// NUEVO (24-oct-2026, pedido de la usuaria con capturas del móvil): al mover la tabla en horizontal se desplazaba toda la ventana
+// (título, resumen y pie). Ahora cada tabla va dentro de .hist-tabla-scroll (overflow-x:auto) y el panel no se desplaza en horizontal.
+// LÍMITE: jsdom no calcula el diseño; se comprueba el DOM y que el CSS traiga las dos reglas, no el aspecto real en el móvil.
+test('cada tabla del historial va dentro de .hist-tabla-scroll (solo la tabla se desplaza en horizontal)', async () => {
+  const w = cargar(DATA);
+  w.document.getElementById('celda').innerHTML = w.botonHistJugador({ tag: '#ABC', nombre: 'Chistris' }) + w.botonHistJugador({ tag: '#XYZ', nombre: 'Otro' });
+  w.histAbrir('#ABC', 'Chistris');
+  await esperar();
+  const tablas = [...w.document.querySelectorAll('#histCuerpo .hist-tabla')];
+  assert.ok(tablas.length >= 1);
+  assert.ok(tablas.every(t => t.parentElement.classList.contains('hist-tabla-scroll')), 'tabla de días dentro del contenedor');
+  w._respuesta = { a: DATA.a, b: DATA.a };
+  w.histComparar('#XYZ', 'Otro');
+  await esperar();
+  const comp = [...w.document.querySelectorAll('#histCuerpo .hist-tabla')];
+  assert.equal(comp.length, 2);
+  assert.ok(comp.every(t => t.parentElement.classList.contains('hist-tabla-scroll')), 'las dos tablas de la comparación dentro del contenedor');
+  const css = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'assets', 'styles.css'), 'utf8');
+  assert.match(css, /\.hist-tabla-scroll\{[^}]*overflow-x:auto/);
+  assert.match(css, /\.hist-panel\{[^}]*overflow-x:hidden/);
+});
