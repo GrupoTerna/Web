@@ -221,7 +221,8 @@
 // v167 (24-oct-2026): sorteo.html cambió (CORE_ASSETS) -- en la ruleta los nombres quedan pegados al borde exterior y el centro muestra el escudo de la Familia Terna (§PF210).
 // v168 (24-oct-2026): sorteo.html cambió (CORE_ASSETS) -- el escudo del centro de la ruleta queda centrado y la ruleta es más grande (hasta 560 px según el espacio y la altura de la pantalla; §PF210).
 // v169 (24-oct-2026): sorteo.html cambió (CORE_ASSETS) -- desplegable de sorteo con semanas y premios, y premio precargado en cada ganador (§PF211).
-const CACHE_NAME = 'terna-static-v169';
+// v170 (24-oct-2026): sorteo.html cambió (CORE_ASSETS) -- Reglas del sorteo arriba de Participantes y los ganadores pasan a la columna de la ruleta, en cuadrícula (§PF212).
+const CACHE_NAME = 'terna-static-v170';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y

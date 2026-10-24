@@ -305,6 +305,23 @@
     margin-top:2px;
   }
 
+  /* ---------- Columna izquierda: ruleta + ganadores (PF212, 24-oct-2026) ---------- */
+  .main-col{display:flex;flex-direction:column;gap:18px;min-width:0;}
+  /* los ganadores ocupan el ancho de la ruleta: tarjetas en cuadrícula, las que quepan por fila */
+  #winnersList{
+    display:grid;
+    grid-template-columns:repeat(auto-fill,minmax(240px,1fr));
+    gap:10px;
+  }
+  #winnersList .winner-row{margin-bottom:0;}
+  /* campos del formulario de resolución en dos columnas (una sola en pantallas angostas) */
+  .winner-res-fields{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:0 14px;}
+  .winner-res-fields #winnerResSinTagWrap,
+  .winner-res-fields #winnerResRazonWrap{grid-column:1 / -1;}
+  @media (max-width:560px){
+    .winner-res-fields{grid-template-columns:1fr;}
+  }
+
   /* ---------- Sidebar (right) ---------- */
   .sidebar{display:flex;flex-direction:column;gap:18px;}
   .panel{
@@ -550,12 +567,15 @@
   .winner-name-input:focus{border-color:var(--gold);}
   .winner-meta{
     display:flex;
+    flex-wrap:wrap;
+    gap:4px 10px;
     align-items:center;
     justify-content:space-between;
     font-size:11.5px;
     color:var(--ink-soft);
   }
   .winner-meta label{display:flex;align-items:center;gap:5px;cursor:pointer;}
+  .winner-meta > span{flex:1 1 100%;}
   .winner-remove{
     background:none;border:none;color:var(--danger);
     font-size:11.5px;cursor:pointer;text-decoration:underline;
@@ -625,6 +645,9 @@
 
 <div class="app">
 
+  <!-- ===================== COLUMNA IZQUIERDA: ruleta + ganadores (PF212) ===================== -->
+  <div class="main-col">
+
   <!-- ===================== STAGE (LEFT) ===================== -->
   <div class="stage">
     <div class="stage-head">
@@ -671,8 +694,99 @@
     </div>
   </div>
 
+
+    <!-- Winners panel -->
+    <div class="panel winners-panel">
+      <div class="panel-head pf-cinta-sorteo" style="--cinta:url(assets/Im%C3%A1genes/Banners/Fankit/cinta-sorteo-ganadores.webp);">
+        <h2>Ganadores de hoy <span id="winCount" class="count-badge">0</span></h2>
+      </div>
+      <div class="panel-body">
+        <p id="prizeProgress" class="export-note" style="display:none;margin-top:0;margin-bottom:10px;"></p>
+        <div id="winnersList"></div>
+        <div id="winnersEmpty" class="empty-msg">Todavía no hay ganadores. Gira la ruleta para empezar.</div>
+
+        <!-- un formulario de resolución sobre cada ganador de la lista (renderWinners()), similar a #resolucionForm de admin.html"): mismo patrón que #resolucionForm -- UN SOLO formulario compartido, se abre desde el botón "Gestionar" de cada fila de ganador (ver… Historial en CHANGELOG.md. -->
+        <div id="winnerResolucionForm" style="display:none; margin-top:10px; padding-top:10px; border-top:1px solid var(--panel-line);">
+          <div id="winnerResolucionParaTexto" style="font-size:12.5px; color:var(--ink-soft); margin-bottom:8px;"></div>
+          <div class="winner-res-fields">
+          <div style="margin-bottom:8px;">
+            <label for="winnerResTag" style="display:block; font-size:12px; font-weight:600; color:var(--ink); margin-bottom:4px;">Tag</label>
+            <input type="text" id="winnerResTag" placeholder="#ABC123 (dejar vacío si no se conoce)" style="width:100%; border:1px solid var(--panel-line); border-radius:9px; padding:8px 10px; font-size:13px; color:var(--ink); box-sizing:border-box;">
+          </div>
+          <!-- si el ganador vino de "Cargar participantes calificados" el Tag ya llega prellenado (ver abrirResolucionGanador() más abajo) y normalmente no hace falta tocarlo. Historial en CHANGELOG.md. -->
+          <div id="winnerResSinTagWrap" style="display:none; margin-bottom:8px; padding:8px; border-radius:8px; background:rgba(0,0,0,0.04);">
+            <label style="display:flex; align-items:flex-start; gap:6px; font-size:12px; color:var(--ink-soft); cursor:pointer;">
+              <input type="checkbox" id="winnerResSinTagConfirm" style="margin-top:2px;">
+              <span>⚠️ No se conoce el Tag de este ganador. Confirmo que es intencional (cuenta externa a los clanes o caso especial) y quiero guardarlo igual, sin Tag.</span>
+            </label>
+          </div>
+          <div style="margin-bottom:8px;">
+            <label for="winnerResPremio" style="display:block; font-size:12px; font-weight:600; color:var(--ink); margin-bottom:4px;">Premio</label>
+            <input type="text" id="winnerResPremio" placeholder="Ej: Pass Royale" style="width:100%; border:1px solid var(--panel-line); border-radius:9px; padding:8px 10px; font-size:13px; color:var(--ink); box-sizing:border-box;">
+          </div>
+          <!-- campo Tickets, prellenado con el peso real (participant.weight) con el que el ganador entró a la ruleta -- mismo criterio que Tag/Premio: viene sugerido pero es editable a mano antes de guardar, por si el admin necesita corregirlo. Historial en CHANGELOG.md. -->
+          <div style="margin-bottom:8px;">
+            <label for="winnerResTickets" style="display:block; font-size:12px; font-weight:600; color:var(--ink); margin-bottom:4px;">Tickets<span style="font-weight:400; color:var(--ink-soft);"> (con los que entró a la ruleta)</span></label>
+            <input type="number" id="winnerResTickets" min="0" step="1" placeholder="Ej: 3" style="width:100%; border:1px solid var(--panel-line); border-radius:9px; padding:8px 10px; font-size:13px; color:var(--ink); box-sizing:border-box;">
+          </div>
+          <div style="margin-bottom:8px;">
+            <label for="winnerResTipo" style="display:block; font-size:12px; font-weight:600; color:var(--ink); margin-bottom:4px;">Resultado</label>
+            <select id="winnerResTipo" style="width:100%; border:1px solid var(--panel-line); border-radius:9px; padding:8px 10px; font-size:13px; color:var(--ink);">
+              <option value="Califica">Califica</option>
+              <option value="No califica">No califica</option>
+            </select>
+          </div>
+          <div id="winnerResRazonWrap" style="margin-bottom:8px; display:none;">
+            <label for="winnerResRazon" style="display:block; font-size:12px; font-weight:600; color:var(--ink); margin-bottom:4px;">Razón</label>
+            <select id="winnerResRazon" style="width:100%; border:1px solid var(--panel-line); border-radius:9px; padding:8px 10px; font-size:13px; color:var(--ink);">
+              <option value="">-- Seleccionar --</option>
+              <option value="No está en el grupo de WhatsApp">No está en el grupo de WhatsApp</option>
+              <option value="No reaccionó a la publicación">No reaccionó a la publicación</option>
+              <option value="No se encuentra en el clan">No se encuentra en el clan</option>
+            </select>
+          </div>
+          </div>
+          <div id="winnerResGuardarStatus" style="font-size:12.5px; margin-bottom:8px; display:none;"></div>
+          <div style="display:flex; gap:8px;">
+            <button type="button" class="export-btn" id="btnGuardarResolucionGanador" style="flex:1;">Guardar resolución</button>
+            <button type="button" class="winner-remove" id="btnCancelarResolucionGanador" style="flex:0 0 auto; padding:0 10px;">Cancelar</button>
+          </div>
+        </div>
+
+        <button type="button" id="exportBtn" class="export-btn">Descargar acta del sorteo (Word)</button>
+        <p class="export-note">Genera un documento .doc listo para abrir en Word (puedes guardarlo como .docx desde ahí). Los nombres del documento son los que estén escritos en cada campo de ganador — puedes editarlos a mano antes de descargar. Incluye la cantidad de premios configurada, para que se sepa cuántos ganadores debía tener el sorteo.</p>
+        <div id="exportDocRealStatus" style="font-size:12px; margin-top:4px; display:none;"></div>
+      </div>
+    </div>
+
+  </div>
+
   <!-- ===================== SIDEBAR (RIGHT) ===================== -->
   <div class="sidebar">
+
+    <!-- Settings panel -->
+    <div class="panel settings-panel">
+      <div class="panel-head pf-cinta-sorteo" style="--cinta:url(assets/Im%C3%A1genes/Banners/Fankit/cinta-sorteo-reglas.webp);"><h2>Reglas del sorteo</h2></div>
+      <div class="panel-body">
+        <div class="setting-row">
+          <span>Cantidad de premios<span class="hint" id="prizeCountHint">Cuántos ganadores tiene el sorteo hoy (0 = sin límite)</span></span>
+          <input id="prizeCountInput" type="number" min="0" step="1" value="0" aria-label="Cantidad de premios" aria-describedby="prizeCountHint" style="width:56px;text-align:center;border:1px solid var(--panel-line);border-radius:8px;padding:5px 4px;font-weight:600;">
+        </div>
+        <div class="setting-row">
+          <span>Descartar ganadores<span class="hint" id="discardHint">Excluye a quien ya ganó de los próximos premios de hoy</span></span>
+          <label class="switch"><input id="discardToggle" type="checkbox" checked aria-label="Descartar ganadores" aria-describedby="discardHint"><span class="slider"></span></label>
+        </div>
+        <div class="setting-row">
+          <span>Descartar intentos de prueba<span class="hint" id="discardTrialsHint">Si el 3° es el ganador, saca de la ruleta también al 1° y 2° (no ganaron, pero ya "salieron")</span></span>
+          <label class="switch"><input id="discardTrialsToggle" type="checkbox" aria-label="Descartar intentos de prueba" aria-describedby="discardTrialsHint"><span class="slider"></span></label>
+        </div>
+        <!-- #removeTicketPerSpinToggle, DESMARCADO por defecto (como pidió el usuario, es opcional, no cambia el comportamiento actual si no se activa). Historial en CHANGELOG.md. -->
+        <div class="setting-row">
+          <span>Quitar un ticket por cada giro<span class="hint" id="removeTicketHint">Cada vez que gira la ruleta, resta 1 ticket a quien salió en ese giro (gane o no el premio) — reduce su probabilidad en los próximos giros, como al ir sacando boletos de una tómbola</span></span>
+          <label class="switch"><input id="removeTicketPerSpinToggle" type="checkbox" aria-label="Quitar un ticket por cada giro" aria-describedby="removeTicketHint"><span class="slider"></span></label>
+        </div>
+      </div>
+    </div>
 
     <!-- Participants panel -->
     <div class="panel">
@@ -711,92 +825,6 @@
         </div>
       </div>
       <div id="participantsList" class="panel-body scroll" style="padding-top:0;"></div>
-    </div>
-
-    <!-- Settings panel -->
-    <div class="panel settings-panel">
-      <div class="panel-head pf-cinta-sorteo" style="--cinta:url(assets/Im%C3%A1genes/Banners/Fankit/cinta-sorteo-reglas.webp);"><h2>Reglas del sorteo</h2></div>
-      <div class="panel-body">
-        <div class="setting-row">
-          <span>Cantidad de premios<span class="hint" id="prizeCountHint">Cuántos ganadores tiene el sorteo hoy (0 = sin límite)</span></span>
-          <input id="prizeCountInput" type="number" min="0" step="1" value="0" aria-label="Cantidad de premios" aria-describedby="prizeCountHint" style="width:56px;text-align:center;border:1px solid var(--panel-line);border-radius:8px;padding:5px 4px;font-weight:600;">
-        </div>
-        <div class="setting-row">
-          <span>Descartar ganadores<span class="hint" id="discardHint">Excluye a quien ya ganó de los próximos premios de hoy</span></span>
-          <label class="switch"><input id="discardToggle" type="checkbox" checked aria-label="Descartar ganadores" aria-describedby="discardHint"><span class="slider"></span></label>
-        </div>
-        <div class="setting-row">
-          <span>Descartar intentos de prueba<span class="hint" id="discardTrialsHint">Si el 3° es el ganador, saca de la ruleta también al 1° y 2° (no ganaron, pero ya "salieron")</span></span>
-          <label class="switch"><input id="discardTrialsToggle" type="checkbox" aria-label="Descartar intentos de prueba" aria-describedby="discardTrialsHint"><span class="slider"></span></label>
-        </div>
-        <!-- #removeTicketPerSpinToggle, DESMARCADO por defecto (como pidió el usuario, es opcional, no cambia el comportamiento actual si no se activa). Historial en CHANGELOG.md. -->
-        <div class="setting-row">
-          <span>Quitar un ticket por cada giro<span class="hint" id="removeTicketHint">Cada vez que gira la ruleta, resta 1 ticket a quien salió en ese giro (gane o no el premio) — reduce su probabilidad en los próximos giros, como al ir sacando boletos de una tómbola</span></span>
-          <label class="switch"><input id="removeTicketPerSpinToggle" type="checkbox" aria-label="Quitar un ticket por cada giro" aria-describedby="removeTicketHint"><span class="slider"></span></label>
-        </div>
-      </div>
-    </div>
-
-    <!-- Winners panel -->
-    <div class="panel">
-      <div class="panel-head pf-cinta-sorteo" style="--cinta:url(assets/Im%C3%A1genes/Banners/Fankit/cinta-sorteo-ganadores.webp);">
-        <h2>Ganadores de hoy <span id="winCount" class="count-badge">0</span></h2>
-      </div>
-      <div class="panel-body">
-        <p id="prizeProgress" class="export-note" style="display:none;margin-top:0;margin-bottom:10px;"></p>
-        <div id="winnersList"></div>
-        <div id="winnersEmpty" class="empty-msg">Todavía no hay ganadores. Gira la ruleta para empezar.</div>
-
-        <!-- un formulario de resolución sobre cada ganador de la lista (renderWinners()), similar a #resolucionForm de admin.html"): mismo patrón que #resolucionForm -- UN SOLO formulario compartido, se abre desde el botón "Gestionar" de cada fila de ganador (ver… Historial en CHANGELOG.md. -->
-        <div id="winnerResolucionForm" style="display:none; margin-top:10px; padding-top:10px; border-top:1px solid var(--panel-line);">
-          <div id="winnerResolucionParaTexto" style="font-size:12.5px; color:var(--ink-soft); margin-bottom:8px;"></div>
-          <div style="margin-bottom:8px;">
-            <label for="winnerResTag" style="display:block; font-size:12px; font-weight:600; color:var(--ink); margin-bottom:4px;">Tag</label>
-            <input type="text" id="winnerResTag" placeholder="#ABC123 (dejar vacío si no se conoce)" style="width:100%; border:1px solid var(--panel-line); border-radius:9px; padding:8px 10px; font-size:13px; color:var(--ink); box-sizing:border-box;">
-          </div>
-          <!-- si el ganador vino de "Cargar participantes calificados" el Tag ya llega prellenado (ver abrirResolucionGanador() más abajo) y normalmente no hace falta tocarlo. Historial en CHANGELOG.md. -->
-          <div id="winnerResSinTagWrap" style="display:none; margin-bottom:8px; padding:8px; border-radius:8px; background:rgba(0,0,0,0.04);">
-            <label style="display:flex; align-items:flex-start; gap:6px; font-size:12px; color:var(--ink-soft); cursor:pointer;">
-              <input type="checkbox" id="winnerResSinTagConfirm" style="margin-top:2px;">
-              <span>⚠️ No se conoce el Tag de este ganador. Confirmo que es intencional (cuenta externa a los clanes o caso especial) y quiero guardarlo igual, sin Tag.</span>
-            </label>
-          </div>
-          <div style="margin-bottom:8px;">
-            <label for="winnerResPremio" style="display:block; font-size:12px; font-weight:600; color:var(--ink); margin-bottom:4px;">Premio</label>
-            <input type="text" id="winnerResPremio" placeholder="Ej: Pass Royale" style="width:100%; border:1px solid var(--panel-line); border-radius:9px; padding:8px 10px; font-size:13px; color:var(--ink); box-sizing:border-box;">
-          </div>
-          <!-- campo Tickets, prellenado con el peso real (participant.weight) con el que el ganador entró a la ruleta -- mismo criterio que Tag/Premio: viene sugerido pero es editable a mano antes de guardar, por si el admin necesita corregirlo. Historial en CHANGELOG.md. -->
-          <div style="margin-bottom:8px;">
-            <label for="winnerResTickets" style="display:block; font-size:12px; font-weight:600; color:var(--ink); margin-bottom:4px;">Tickets<span style="font-weight:400; color:var(--ink-soft);"> (con los que entró a la ruleta)</span></label>
-            <input type="number" id="winnerResTickets" min="0" step="1" placeholder="Ej: 3" style="width:100%; border:1px solid var(--panel-line); border-radius:9px; padding:8px 10px; font-size:13px; color:var(--ink); box-sizing:border-box;">
-          </div>
-          <div style="margin-bottom:8px;">
-            <label for="winnerResTipo" style="display:block; font-size:12px; font-weight:600; color:var(--ink); margin-bottom:4px;">Resultado</label>
-            <select id="winnerResTipo" style="width:100%; border:1px solid var(--panel-line); border-radius:9px; padding:8px 10px; font-size:13px; color:var(--ink);">
-              <option value="Califica">Califica</option>
-              <option value="No califica">No califica</option>
-            </select>
-          </div>
-          <div id="winnerResRazonWrap" style="margin-bottom:8px; display:none;">
-            <label for="winnerResRazon" style="display:block; font-size:12px; font-weight:600; color:var(--ink); margin-bottom:4px;">Razón</label>
-            <select id="winnerResRazon" style="width:100%; border:1px solid var(--panel-line); border-radius:9px; padding:8px 10px; font-size:13px; color:var(--ink);">
-              <option value="">-- Seleccionar --</option>
-              <option value="No está en el grupo de WhatsApp">No está en el grupo de WhatsApp</option>
-              <option value="No reaccionó a la publicación">No reaccionó a la publicación</option>
-              <option value="No se encuentra en el clan">No se encuentra en el clan</option>
-            </select>
-          </div>
-          <div id="winnerResGuardarStatus" style="font-size:12.5px; margin-bottom:8px; display:none;"></div>
-          <div style="display:flex; gap:8px;">
-            <button type="button" class="export-btn" id="btnGuardarResolucionGanador" style="flex:1;">Guardar resolución</button>
-            <button type="button" class="winner-remove" id="btnCancelarResolucionGanador" style="flex:0 0 auto; padding:0 10px;">Cancelar</button>
-          </div>
-        </div>
-
-        <button type="button" id="exportBtn" class="export-btn">Descargar acta del sorteo (Word)</button>
-        <p class="export-note">Genera un documento .doc listo para abrir en Word (puedes guardarlo como .docx desde ahí). Los nombres del documento son los que estén escritos en cada campo de ganador — puedes editarlos a mano antes de descargar. Incluye la cantidad de premios configurada, para que se sepa cuántos ganadores debía tener el sorteo.</p>
-        <div id="exportDocRealStatus" style="font-size:12px; margin-top:4px; display:none;"></div>
-      </div>
     </div>
 
   </div>
