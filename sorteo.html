@@ -84,15 +84,6 @@
     backdrop-filter:blur(6px);
   }
   .stage-head{margin-bottom:22px;}
-  .eyebrow{
-    color:#DDE0FA;
-    font-size:12.5px;
-    letter-spacing:.14em;
-    text-transform:uppercase;
-    font-weight:600;
-    margin:0 0 8px;
-    opacity:.85;
-  }
   .title-input{
     width:100%;
     background:transparent;
@@ -102,26 +93,15 @@
     font-family:'Fredoka',sans-serif;
     font-weight:600;
     font-size:clamp(26px,3.4vw,38px);
+    text-overflow:ellipsis;
     padding:2px 0;
     border-bottom:2px solid transparent;
     transition:border-color .15s;
   }
+  /* en pantallas angostas el título largo («ᴳ乂ᵀ ⚜️ Familia Terna - Sorteo en vivo») se achica para caber en una línea; ver CHANGELOG.md */
+  @media (max-width:560px){ .title-input{font-size:clamp(12px,3.8vw,22px);} }
   .title-input:focus{border-bottom-color:rgba(255,255,255,.55);}
   .title-input::placeholder{color:rgba(255,255,255,.5);}
-  .desc-input{
-    width:100%;
-    background:transparent;
-    border:none;
-    outline:none;
-    color:#EDEFFC;
-    font-size:15px;
-    margin-top:6px;
-    padding:2px 0;
-    border-bottom:1px solid transparent;
-    transition:border-color .15s;
-  }
-  .desc-input:focus{border-bottom-color:rgba(255,255,255,.4);}
-  .desc-input::placeholder{color:rgba(255,255,255,.45);}
 
   .wheel-wrap{
     display:flex;
@@ -640,10 +620,6 @@
 </head>
 <body>
 
-<div style="max-width:1240px; margin:0 auto 4px; padding:0 4px;">
-  <a href="admin.html" style="display:inline-flex; align-items:center; gap:6px; color:#EDEFFC; opacity:.85; font-size:13px; text-decoration:none; font-weight:600;">← Volver al panel admin</a>
-</div>
-
 <div class="app">
 
   <!-- ===================== COLUMNA IZQUIERDA: ruleta + ganadores (PF212) ===================== -->
@@ -652,9 +628,7 @@
   <!-- ===================== STAGE (LEFT) ===================== -->
   <div class="stage">
     <div class="stage-head">
-      <p class="eyebrow">Sorteo en vivo</p>
-      <input id="titleInput" type="text" class="title-input" placeholder="Título del sorteo" aria-label="Título del sorteo" value="Sorteo Familia Terna">
-      <input id="descInput" type="text" class="desc-input" placeholder="Descripción (opcional)" aria-label="Descripción (opcional)" value="Se transmite en vivo">
+      <input id="titleInput" type="text" class="title-input" placeholder="Título del sorteo" aria-label="Título del sorteo" value="ᴳ乂ᵀ ⚜️ Familia Terna - Sorteo en vivo">
     </div>
 
     <div class="wheel-wrap">
@@ -1524,7 +1498,7 @@
   // ---------- Export to Word (.doc) ----------
   function exportDoc(){
     var title = document.getElementById('titleInput').value.trim() || 'Sorteo';
-    var desc = document.getElementById('descInput').value.trim();
+    var desc = ''; // el campo de descripción se quitó de la cabecera (25-oct-2026); el acta no lleva subtítulo. Historial en CHANGELOG.md.
     var dateStr = new Date().toLocaleDateString('es-PE', {day:'2-digit',month:'2-digit',year:'numeric'});
     var limit = prizeLimit();
 
