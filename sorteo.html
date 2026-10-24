@@ -941,13 +941,25 @@
       var sliceAngle = s.end - s.start;
       var label = document.createElement('div');
       label.className = 'wheel-label';
-      label.style.transform = 'rotate(' + s.mid + 'deg)';
+      // la franja (conic-gradient from 0deg) empieza en las 12 en punto y la etiqueta, sin girar, apunta a las 3: se resta 90° para que cada nombre quede en el centro de su propia franja. Historial en CHANGELOG.md.
+      label.style.transform = 'rotate(' + (s.mid - 90) + 'deg)';
       var span = document.createElement('span');
       span.textContent = s.participant.name;
       span.style.color = autoTextColor(s.color);
-      // shrink font a touch when there are many thin slices
-      if (sliceAngle < 14) span.style.fontSize = '10.5px';
-      else if (sliceAngle < 22) span.style.fontSize = '12px';
+      // El nombre debe caber dentro de su propia franja: la franja se angosta hacia el centro, así que se baja la letra
+      // (hasta 7 px) y, si aun así no cabe, se recorta el nombre con «…» por el lado del centro. Historial en CHANGELOG.md.
+      var R = wheelDisc.clientWidth / 2;
+      if (R > 0 && sliceAngle > 0){
+        var theta = sliceAngle * Math.PI / 180;
+        var largoNombre = String(s.participant.name).length;
+        var fs = 14;
+        var fin = R * 0.965; // el nombre termina pegado al borde exterior
+        // largo máximo del texto para que, en su extremo interior, el ancho de la franja alcance para la altura de la línea
+        var maxPx = function(f){ return fin - (f * 1.2) / theta; };
+        while (fs > 7 && largoNombre * 0.62 * fs > maxPx(fs)) fs -= 0.5;
+        span.style.fontSize = fs + 'px';
+        span.style.maxWidth = Math.max(18, Math.min(R * 0.74, maxPx(fs))) + 'px';
+      }
       label.appendChild(span);
       wheelLabels.appendChild(label);
     });
@@ -1880,6 +1892,12 @@
 
   // ---------- Init ----------
   renderParticipants();
+  // la ruleta cambia de tamaño con la ventana y el ajuste de letra de cada nombre depende de ese tamaño (ver renderWheel())
+  var resizeTimer = null;
+  window.addEventListener('resize', function(){
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(renderWheel, 150);
+  });
   renderWinners();
   renderWheel();
   updateAttemptUI();
