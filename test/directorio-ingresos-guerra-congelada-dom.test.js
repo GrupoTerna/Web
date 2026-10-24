@@ -30,7 +30,8 @@ function extraerFuncion(src, nombre){
 
 function crear(congelada){
   const codigo = `
-    let ingresosOcultarAdmins = false, ingresosOcultarConWsp = false;
+    let ingresosOcultarAdmins = false, ingresosOcultarConWsp = false, ingresosOcultarSinPendientes = false;
+    const sinPendientesIngreso = () => false;
     const tieneWspIngreso = () => false, botonHistJugador = () => '';
     let ingresosGuerraCongelada = ${congelada ? 'true' : 'false'};
     const esc = v => String(v == null ? '' : v);

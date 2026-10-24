@@ -538,9 +538,9 @@
   .ing-pill[data-clan="__todos__"]{border-color:var(--gold); color:var(--gold);}
   .ing-pill[data-clan="__todos__"].active{background:rgba(255,193,68,.16); border-color:var(--gold); color:var(--gold); box-shadow:0 0 12px rgba(255,193,68,.18);}
   /* Pastilla «Ocultar admins» (19-oct-2026): activa = admins fuera de las gráficas; se distingue de las de clan con borde rojo, porque aquí «activa» significa que se OCULTA algo. */
-  .ing-pill.ing-pill-admin, .ing-pill.ing-pill-wsp{border-color:var(--line-strong);}
-  .ing-pill.ing-pill-admin.active, .ing-pill.ing-pill-wsp.active{background:rgba(244,63,94,.16); border-color:var(--danger); color:#fff; box-shadow:0 0 12px rgba(244,63,94,.18);}
-  .ing-pill.ing-pill-admin.active .ing-pill-count, .ing-pill.ing-pill-wsp.active .ing-pill-count{color:var(--danger);}
+  .ing-pill.ing-pill-admin, .ing-pill.ing-pill-wsp, .ing-pill.ing-pill-pend{border-color:var(--line-strong);}
+  .ing-pill.ing-pill-admin.active, .ing-pill.ing-pill-wsp.active, .ing-pill.ing-pill-pend.active{background:rgba(244,63,94,.16); border-color:var(--danger); color:#fff; box-shadow:0 0 12px rgba(244,63,94,.18);}
+  .ing-pill.ing-pill-admin.active .ing-pill-count, .ing-pill.ing-pill-wsp.active .ing-pill-count, .ing-pill.ing-pill-pend.active .ing-pill-count{color:var(--danger);}
   /* «Ocultar con número» (23-oct-2026, tanda 2): misma idea que «Ocultar admins»; la tarjeta desaparece con su propia clase para no pisar el filtro A-Z ni la de admins. */
   /* Checkbox de cada tarjeta de miembro (nuevoCardHtml). FIX (16-sep-2026
      v5, pedido usuario — "alinea los checkboxes de los nombres de
@@ -558,7 +558,7 @@
   .nuevo-card{transition:opacity .18s ease;}
   .nuevo-card.excluido{opacity:.62;}
   /* «Ocultar admins» (19-oct-2026): la tarjeta de una cuenta de admin desaparece mientras la pastilla está activa. Clase propia y no style.display para no pisar el filtro A-Z (aplicarFiltroLetraIngresos). */
-  .nuevo-card.oculto-admin, .nuevo-card.oculto-wsp{display:none;}
+  .nuevo-card.oculto-admin, .nuevo-card.oculto-wsp, .nuevo-card.oculto-pend{display:none;}
   .nuevo-card.excluido:hover{opacity:.9;}
   .nuevo-card .ing-rival{margin:8px 0 0;}
   .nuevo-card .ing-rival .badge{font-size:11px;}
@@ -2680,7 +2680,7 @@ function nuevoCardHtml(n){
   const sem = n.guerraSemana || {};
   const fecha = fechaIngresoTexto(n);
   return `
-      <div class="card nuevo-card js-nuevo-card${incluido ? '' : ' excluido'}${ingresosOcultarAdmins && esCuentaAdminIngreso(n) ? ' oculto-admin' : ''}${ingresosOcultarConWsp && tieneWspIngreso(n) ? ' oculto-wsp' : ''}" data-tag="${esc(claveIngreso(n))}" data-letra="${esc(primeraLetraFiltro(n.nombre))}" style="cursor:pointer; position:relative;">
+      <div class="card nuevo-card js-nuevo-card${incluido ? '' : ' excluido'}${ingresosOcultarAdmins && esCuentaAdminIngreso(n) ? ' oculto-admin' : ''}${ingresosOcultarConWsp && tieneWspIngreso(n) ? ' oculto-wsp' : ''}${ingresosOcultarSinPendientes && sinPendientesIngreso(n) ? ' oculto-pend' : ''}" data-tag="${esc(claveIngreso(n))}" data-letra="${esc(primeraLetraFiltro(n.nombre))}" style="cursor:pointer; position:relative;">
         <input type="checkbox" class="js-ingreso-check" data-tag="${esc(claveIngreso(n))}"${incluido ? ' checked' : ''} aria-label="Incluir a ${esc(n.nombre)} en las gráficas">
         <div class="name">${enlaceJugador(n.nombre, n.tag)}</div>
         <div class="tag">${esc(n.tag || '—')}</div>
@@ -2736,6 +2736,8 @@ let ingresosLetraSeleccionada = null;
 let ingresosOcultarAdmins = false;
 // 23-oct-2026 (pedido de la usuaria, tanda 2): pastilla «Ocultar con número», solo admins (tieneWsp no llega sin sesión). Igual que «Ocultar admins»: las cuentas con celular registrado salen de las gráficas y del contador y sus tarjetas desaparecen (P4: «sí»).
 let ingresosOcultarConWsp = false;
+/* 24-oct-2026 (pedido de la usuaria, tanda 9; P17 a P20 respondidas): pastilla «⚔️ Ocultar sin pendientes». Saca de la vista (tarjeta, contador y gráficas) a quien ya hizo sus 4 ataques del día; se queda quien tiene 0 a 3 (le quedan ataques). La ven todos (el dato de ataques es público). De lunes a miércoles (entrenamiento) los datos están congelados como quedaron el domingo y la pastilla sigue disponible: sirve para revisar los ataques de la última guerra. [→ Contexto_Base_Web.md §PF225] */
+let ingresosOcultarSinPendientes = false;
 /* 19-oct-2026 (pedido usuaria): el backend manda guerraCongelada=true de lunes a miércoles; la cuadrícula de Ataques/Medallas/Barcos muestra entonces lo último de la guerra (hasta el domingo) y se rotula «Última guerra» hasta que empiece la siguiente. [→ Contexto_Base_Web.md §PF125] */
 let ingresosGuerraCongelada = false;
 
@@ -2747,9 +2749,41 @@ function esCuentaAdminIngreso(n){
 function tieneWspIngreso(n){
   return !!(n && n.tieneWsp === true);
 }
-/** Cuenta oculta por alguna pastilla de «Ocultar» activa (admins o con número): sin tarjeta, fuera de gráficas y contador. */
+/** Cuenta oculta por alguna pastilla de «Ocultar» activa (admins, con número o sin pendientes): sin tarjeta, fuera de gráficas y contador. */
 function ingresoOculto(n){
-  return (ingresosOcultarAdmins && esCuentaAdminIngreso(n)) || (ingresosOcultarConWsp && tieneWspIngreso(n));
+  return (ingresosOcultarAdmins && esCuentaAdminIngreso(n)) || (ingresosOcultarConWsp && tieneWspIngreso(n)) || (ingresosOcultarSinPendientes && sinPendientesIngreso(n));
+}
+/** Tope diario de ataques de guerra (mismo valor que HIST_ATAQUES_MAX del mini historial). */
+const INGRESOS_ATAQUES_DIA_MAX = 4;
+/** «Día actual» de la guerra sin mirar el calendario (regla de la web: no usar la fecha del navegador): el último día (J, V, S, D) que tiene dato de ataques en alguno de los ingresos. Con la guerra congelada (lunes a miércoles) es el domingo. -1 = todavía no hay datos de ningún día. */
+function diaActualIngresos(lista){
+  let idx = -1;
+  (lista || []).forEach(n => {
+    const a = n && n.guerraSemanaDias && n.guerraSemanaDias.ataques;
+    if (!Array.isArray(a)) return;
+    for (let i = a.length - 1; i > idx; i--){
+      if (a[i] !== null && a[i] !== undefined && a[i] !== ''){ idx = i; break; }
+    }
+  });
+  return idx;
+}
+let _diaActualIngresosRef = null, _diaActualIngresosIdx = -1;
+function diaActualIngresosCache(){
+  if (_diaActualIngresosRef !== ingresosTodosCache){
+    _diaActualIngresosRef = ingresosTodosCache;
+    _diaActualIngresosIdx = diaActualIngresos(ingresosTodosCache);
+  }
+  return _diaActualIngresosIdx;
+}
+/** Ya hizo todos sus ataques del día actual (4 o más). Sin dato de ese día (null, o ingreso sin guerraSemanaDias) NO cuenta: se queda visible, porque 0 ataques también es «pendiente» y no se sabe que haya terminado. */
+function sinPendientesIngreso(n){
+  const idx = diaActualIngresosCache();
+  if (idx < 0) return false;
+  const a = n && n.guerraSemanaDias && n.guerraSemanaDias.ataques;
+  if (!Array.isArray(a)) return false;
+  const v = a[idx];
+  if (v === null || v === undefined || v === '' || isNaN(Number(v))) return false;
+  return Number(v) >= INGRESOS_ATAQUES_DIA_MAX;
 }
 /** Incluido en gráficas y contador: marcado en el Set y que ninguna pastilla de «Ocultar» activa lo saque. */
 function ingresoIncluido(n){
@@ -2817,6 +2851,11 @@ function actualizarPillsIngresos(){
       btn.setAttribute('aria-pressed', String(ingresosOcultarConWsp));
       return;
     }
+    if (clan === '__pend__'){
+      btn.classList.toggle('active', ingresosOcultarSinPendientes);
+      btn.setAttribute('aria-pressed', String(ingresosOcultarSinPendientes));
+      return;
+    }
     const miembros = (clan === '__todos__')
       ? ingresosTodosCache
       : ((ingresosGrupos.find(g => g.clan === clan) || {}).miembros || []);
@@ -2842,9 +2881,11 @@ function aplicarFiltroIngresos(){
     const incluido = n ? ingresoIncluido(n) : (!ingresosSeleccionados || ingresosSeleccionados.has(card.dataset.tag));
     const ocultaAdmin = !!(n && ingresosOcultarAdmins && esCuentaAdminIngreso(n));
     const ocultaWsp = !!(n && ingresosOcultarConWsp && tieneWspIngreso(n));
-    const oculta = ocultaAdmin || ocultaWsp;
+    const ocultaPend = !!(n && ingresosOcultarSinPendientes && sinPendientesIngreso(n));
+    const oculta = ocultaAdmin || ocultaWsp || ocultaPend;
     card.classList.toggle('oculto-admin', ocultaAdmin);
     card.classList.toggle('oculto-wsp', ocultaWsp);
+    card.classList.toggle('oculto-pend', ocultaPend);
     // Una cuenta de admin oculta no se atenúa: está fuera, no solo excluida de las gráficas.
     card.classList.toggle('excluido', !incluido && !oculta);
     const check = card.querySelector('.js-ingreso-check');
@@ -2938,7 +2979,8 @@ function construirFiltroIngresos(nuevos){
         ${esc(g.clan)} <span class="ing-pill-count">${g.miembros.length}</span>
       </button>`).join('')}
     ${nuevos.some(esCuentaAdminIngreso) ? `<button type="button" class="ing-pill ing-pill-admin${ingresosOcultarAdmins ? ' active' : ''}" data-clan="__admins__" aria-pressed="${ingresosOcultarAdmins}" title="Oculta las tarjetas y saca de las gráficas y del contador las cuentas de los administradores mientras recorres los clanes">🛡️ Ocultar admins <span class="ing-pill-count">${nuevos.filter(esCuentaAdminIngreso).length}</span></button>` : ''}
-    ${nuevos.some(tieneWspIngreso) ? `<button type="button" class="ing-pill ing-pill-wsp${ingresosOcultarConWsp ? ' active' : ''}" data-clan="__wsp__" aria-pressed="${ingresosOcultarConWsp}" title="Oculta las tarjetas y saca de las gráficas y del contador a quienes ya tienen número de WhatsApp registrado (solo lo ves como administrador)">📱 Ocultar con número <span class="ing-pill-count">${nuevos.filter(tieneWspIngreso).length}</span></button>` : ''}`;
+    ${nuevos.some(tieneWspIngreso) ? `<button type="button" class="ing-pill ing-pill-wsp${ingresosOcultarConWsp ? ' active' : ''}" data-clan="__wsp__" aria-pressed="${ingresosOcultarConWsp}" title="Oculta las tarjetas y saca de las gráficas y del contador a quienes ya tienen número de WhatsApp registrado (solo lo ves como administrador)">📱 Ocultar con número <span class="ing-pill-count">${nuevos.filter(tieneWspIngreso).length}</span></button>` : ''}
+    ${nuevos.some(sinPendientesIngreso) ? `<button type="button" class="ing-pill ing-pill-pend${ingresosOcultarSinPendientes ? ' active' : ''}" data-clan="__pend__" aria-pressed="${ingresosOcultarSinPendientes}" title="Oculta las tarjetas y saca de las gráficas y del contador a quienes ya hicieron sus 4 ataques del día; se quedan los que aún tienen ataques pendientes (de 0 a 3 hechos). De lunes a miércoles usa lo último de la guerra, congelado como quedó el domingo">⚔️ Ocultar sin pendientes <span class="ing-pill-count">${nuevos.filter(sinPendientesIngreso).length}</span></button>` : ''}`;
 
   // Un solo listener delegado por carga (el contenedor se reutiliza entre cargas).
   if (!wrap.dataset.enlazado){
@@ -2951,6 +2993,8 @@ function construirFiltroIngresos(nuevos){
         ingresosOcultarAdmins = !ingresosOcultarAdmins; // independiente de los clanes marcados: no toca ingresosSeleccionados
       } else if (clan === '__wsp__'){
         ingresosOcultarConWsp = !ingresosOcultarConWsp; // igual: no toca ingresosSeleccionados
+      } else if (clan === '__pend__'){
+        ingresosOcultarSinPendientes = !ingresosOcultarSinPendientes; // igual: no toca ingresosSeleccionados
       } else if (clan === '__todos__'){
         ingresosSeleccionados = new Set(ingresosTodosCache.map(claveIngreso));
       } else {

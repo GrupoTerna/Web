@@ -231,8 +231,9 @@
 // v177 (24-oct-2026): sorteo.html cambió (CORE_ASSETS) -- se rediseña con la paleta «Dark Elixir» del resto del sitio: fondo negro, violeta y oro, tarjetas de vidrio y Rajdhani en mayúsculas (§PF219).
 // v178 (24-oct-2026): sorteo.html cambió (CORE_ASSETS) -- la ruleta va a la izquierda y el nombre del sorteado, el intento y «¡Girar!» a su derecha; el acta Word pasa a la paleta oscura (§PF220).
 // v179 (24-oct-2026): sorteo.html cambió (CORE_ASSETS) -- barras de desplazamiento moradas también en esa página, que no carga assets/styles.css (§PF199).
+// v181 (24-oct-2026): directorio.html cambió (CORE_ASSETS) -- «Ingresos recientes» tiene la pastilla «⚔️ Ocultar sin pendientes» (oculta a quien ya hizo sus 4 ataques del día; de lunes a miércoles usa el último día de guerra, congelado) (§PF225).
 // v180 (24-oct-2026): guerra.html, assets/js/ui/filters.js y assets/styles.css cambiaron (CORE_ASSETS) -- buscador por nombre o Tag en las tablas de guerra (§PF224).
-const CACHE_NAME = 'terna-static-v180';
+const CACHE_NAME = 'terna-static-v181';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y

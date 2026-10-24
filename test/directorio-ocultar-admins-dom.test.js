@@ -29,10 +29,12 @@ function extraerFuncion(src, nombre){
   }
   throw new Error(`llaves sin cerrar en ${nombre}`);
 }
-const NOMBRES = ['claveIngreso', 'esCuentaAdminIngreso', 'tieneWspIngreso', 'ingresoOculto', 'ingresoIncluido', 'textoContadorIngresos', 'agruparPorClanEnOrden',
+const NOMBRES = ['claveIngreso', 'esCuentaAdminIngreso', 'tieneWspIngreso', 'diaActualIngresos', 'diaActualIngresosCache', 'sinPendientesIngreso', 'ingresoOculto', 'ingresoIncluido', 'textoContadorIngresos', 'agruparPorClanEnOrden',
   'actualizarPillsIngresos', 'aplicarFiltroIngresos', 'construirFiltroIngresos'];
 const CODIGO = `
-let ingresosTodosCache = [], ingresosSeleccionados = null, ingresosGrupos = [], ingresosGraficasVisibles = false, ingresosUltimosFiltrados = [], ingresosOcultarAdmins = false, ingresosOcultarConWsp = false;
+let ingresosTodosCache = [], ingresosSeleccionados = null, ingresosGrupos = [], ingresosGraficasVisibles = false, ingresosUltimosFiltrados = [], ingresosOcultarAdmins = false, ingresosOcultarConWsp = false, ingresosOcultarSinPendientes = false;
+const INGRESOS_ATAQUES_DIA_MAX = 4;
+let _diaActualIngresosRef = null, _diaActualIngresosIdx = -1;
 function pintarGraficasIngresos(){}
 ${NOMBRES.map(n => extraerFuncion(grande, n)).join('\n')}
 window.__t = {

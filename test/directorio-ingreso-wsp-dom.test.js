@@ -39,7 +39,8 @@ const construir = new Function(`
   const ingresoIncluido = () => true, claveIngreso = n => n.tag, primeraLetraFiltro = () => 'A';
   const fechaIngresoTexto = () => '', enlaceJugador = n => n, ingBadgeRivalHtml = () => '';
   const ingresoStatHtml = () => '', desgloseDiasHtml = () => '', fmtFechaVigenciaCorta = () => '';
-  let ingresosOcultarAdmins = false, ingresosOcultarConWsp = false, ingresosGuerraCongelada = false;
+  let ingresosOcultarAdmins = false, ingresosOcultarConWsp = false, ingresosOcultarSinPendientes = false, ingresosGuerraCongelada = false;
+  const sinPendientesIngreso = () => false;
   const esCuentaAdminIngreso = () => false;
   const tieneWspIngreso = n => !!(n && n.tieneWsp === true);
   // Simula botonHistJugador de mini-historial.js: con sinWsp no antepone ícono propio.
