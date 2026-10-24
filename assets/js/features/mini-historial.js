@@ -75,10 +75,17 @@ function histCabeceraPerfilHtml(j){
   ].filter(d => d[1] !== null);
   return datos.map(d => `<span class="hist-perfil-dato">${d[0]}: <b>${d[1]}</b></span>`).join('');
 }
+/* 24-oct-2026 (tanda 8, corrección a la tanda 4; regla 9): la respuesta real de `webPerfil` viene ENVUELTA, `{ ok: true, jugador: { … } }` (perfil.html hace `renderMiembro(data.jugador)`). Antes se le pasaba la respuesta entera a histCabeceraPerfilHtml(), que lee los campos en el primer nivel: todos salían `undefined`, la cabecera quedaba vacía y no se veía. Por tolerancia, si algún día no viene `jugador` se usa el objeto tal cual. [→ Contexto_Base_Web.md §PF179, §PF195] */
+function histJugadorDeRespuesta(data){
+  if (!data || typeof data !== 'object' || data.error || data.ok === false) return null;
+  if (data.jugador && typeof data.jugador === 'object') return data.jugador;
+  return data;
+}
 async function histCargarCabecera(tag, mia){
   try{
-    const j = await apiGet('webPerfil', { tag }, { ttlMs: 300000, staleIfError: true, conSesion: true });
-    if (mia !== histSolicitud || !j || j.error) return;
+    const data = await apiGet('webPerfil', { tag }, { ttlMs: 300000, staleIfError: true, conSesion: true });
+    const j = histJugadorDeRespuesta(data);
+    if (mia !== histSolicitud || !j) return;
     const el = document.getElementById('histPerfil');
     if (el) el.innerHTML = histCabeceraPerfilHtml(j);
   }catch(_){ /* sin la cabecera solo falta ese resumen; la tabla ya está pintada */ }

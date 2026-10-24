@@ -212,7 +212,8 @@
 // v158 (23-oct-2026): perfil.html y assets/js/features/mini-historial.js cambiaron (CORE_ASSETS) -- el perfil ya no pide webAdminTagsConWsp de más (§PF181).
 // v159 (23-oct-2026): guerra.html cambió (CORE_ASSETS) -- los botones «Copiar» de mensajes de guerra piden el texto fresco al hacer clic, muestran su antigüedad y se agregó «Regenerar ahora» (§PF193).
 // v160 (23-oct-2026): guerra.html cambió (CORE_ASSETS) -- el «Pronóstico de hoy» muestra la fama, el techo y el puesto de HOY y no el acumulado de la semana (§PF194).
-const CACHE_NAME = 'terna-static-v160';
+// v161 (24-oct-2026): assets/js/features/mini-historial.js cambió (CORE_ASSETS) -- la cabecera del perfil en el mini historial ahora lee `jugador` de la respuesta de webPerfil y se ve (tanda 8, corrección a la tanda 4, §PF195).
+const CACHE_NAME = 'terna-static-v161';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y

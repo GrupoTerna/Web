@@ -172,10 +172,12 @@ function cargarConPerfil(perfil, historial){
   return w;
 }
 const HIST_OK = { a: [{ fecha: '2026-10-01', ataques: 4, fame: 600, barcos: 0 }] };
+// 24-oct-2026 (tanda 8, §PF195; corrección a la tanda 4, regla 9): la respuesta REAL de webPerfil viene envuelta, { ok: true, jugador: { … } } (perfil.html hace renderMiembro(data.jugador)). Estas pruebas simulaban el objeto plano y por eso dieron verde mientras la cabecera no se veía en la web.
+const PERFIL = jugador => ({ ok: true, jugador });
 
 test('la cabecera muestra clan (con enlace), torre, XP, colección, victorias, copas y vigencia', async () => {
-  const w = cargarConPerfil({ clan: 'Terna 1', vGuerra: 12, copas: 8123, vigencia: '2026-10-20T15:30:00Z',
-    rawClash: { kingTowerLevel: 15, expLevel: 62 }, extendido: { nivelCartas: 88, nivelXp: 1 } }, HIST_OK);
+  const w = cargarConPerfil(PERFIL({ clan: 'Terna 1', vGuerra: 12, copas: 8123, vigencia: '2026-10-20T15:30:00Z',
+    rawClash: { kingTowerLevel: 15, expLevel: 62 }, extendido: { nivelCartas: 88, nivelXp: 1 } }), HIST_OK);
   w.histAbrir('#ABC', 'Chistris');
   await esperar();
   const el = w.document.getElementById('histPerfil');
@@ -193,19 +195,19 @@ test('la cabecera muestra clan (con enlace), torre, XP, colección, victorias, c
 });
 
 test('sin dato se omite esa pieza (XP desde extendido) y sin ningún dato la cabecera queda vacía', async () => {
-  const w = cargarConPerfil({ copas: 100, extendido: { nivelXp: 55 } }, HIST_OK);
+  const w = cargarConPerfil(PERFIL({ copas: 100, extendido: { nivelXp: 55 } }), HIST_OK);
   w.histAbrir('#ABC', 'Chistris');
   await esperar();
   const datos = [...w.document.querySelectorAll('#histPerfil .hist-perfil-dato')].map(d => d.textContent.replace(/\s+/g, ' ').trim());
   assert.deepEqual(datos, ['Nivel de XP: 55', 'Copas: 100']);
-  const w2 = cargarConPerfil({}, HIST_OK);
+  const w2 = cargarConPerfil(PERFIL({}), HIST_OK);
   w2.histAbrir('#ABC', 'Chistris');
   await esperar();
   assert.equal(w2.document.getElementById('histPerfil').innerHTML, '');
 });
 
 test('si webPerfil falla o devuelve error, la tabla se pinta igual y no hay cabecera', async () => {
-  for (const perfil of [new Error('red'), { error: 'x' }]) {
+  for (const perfil of [new Error('red'), { error: 'x' }, { ok: false, error: 'No se encontró este jugador.' }, { ok: false }, null]) {
     const w = cargarConPerfil(perfil, HIST_OK);
     w.histAbrir('#ABC', 'Chistris');
     await esperar();
@@ -214,8 +216,27 @@ test('si webPerfil falla o devuelve error, la tabla se pinta igual y no hay cabe
   }
 });
 
+// Tolerancia (24-oct-2026, tanda 8): si algún día webPerfil mandara los campos sin envolver, la cabecera se sigue viendo. Es una red de seguridad; la forma que manda el backend hoy es { ok, jugador }.
+test('la cabecera también funciona si el perfil llega sin envolver (tolerancia)', async () => {
+  const w = cargarConPerfil({ copas: 321, vGuerra: 7 }, HIST_OK);
+  w.histAbrir('#ABC', 'Chistris');
+  await esperar();
+  const datos = [...w.document.querySelectorAll('#histPerfil .hist-perfil-dato')].map(d => d.textContent.replace(/\s+/g, ' ').trim());
+  assert.deepEqual(datos, ['Victorias de guerra: 7', 'Copas: 321']);
+});
+
+test('con la forma real { ok, jugador } la cabecera se ve (caso que falló en la web: leía el primer nivel)', async () => {
+  const w = cargarConPerfil({ ok: true, jugador: { clan: 'Terna 2', copas: 9000 } }, HIST_OK);
+  w.histAbrir('#ABC', 'Chistris');
+  await esperar();
+  const el = w.document.getElementById('histPerfil');
+  assert.notEqual(el.innerHTML, '', 'la cabecera no puede quedar vacía con la respuesta real');
+  assert.match(el.textContent, /Terna 2/);
+  assert.match(el.textContent, /Copas: 9/);
+});
+
 test('la cabecera de un jugador no queda al abrir otro (se vacía al abrir)', async () => {
-  const w = cargarConPerfil({ copas: 100 }, HIST_OK);
+  const w = cargarConPerfil(PERFIL({ copas: 100 }), HIST_OK);
   w.histAbrir('#ABC', 'Chistris');
   await esperar();
   assert.equal(w.document.querySelectorAll('#histPerfil .hist-perfil-dato').length, 1);
