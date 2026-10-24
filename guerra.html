@@ -490,6 +490,8 @@
            "Valores diarios" (ver gestionarTabsClan() en el <script>).
            Arranca vacía; se llena en cuanto haya al menos una tarjeta de
            clan pintada en #pendWrap. -->
+      <!-- NUEVO (24-oct-2026, tanda 14): buscador por nombre o Tag; se pinta una sola vez (pintarBuscadorTabla() en assets/js/ui/filters.js). -->
+      <div class="buscador-tabla" id="pendBuscador"></div>
       <div class="tabs-row" id="pendClanTabs" style="margin-top:20px;"></div>
       <!-- fila A-Z + # debajo de las pestañas de clan, se pinta una sola vez (ver pintarFiltroLetra() en assets/js/ui/filters.js) y solo oculta/muestra filas ya pintadas en #pendWrap -- no vuelve a pedir nada al backend, mismo criterio que gestionarTabsClan(). Historial en CHANGELOG.md. -->
       <div class="tabs-row" id="pendLetraFilter" style="margin-top:10px;"></div>
@@ -507,6 +509,7 @@
            "Valores diarios" (ver gestionarTabsClan() en el <script>).
            Arranca vacía; se llena en cuanto haya al menos una tarjeta de
            clan pintada en #participacionHoyWrap. -->
+      <div class="buscador-tabla" id="participacionHoyBuscador"></div>
       <div class="tabs-row" id="participacionHoyClanTabs" style="margin-top:20px;"></div>
       <div id="participacionHoyWrap" style="margin-top:14px;"></div>
     </section>
@@ -535,6 +538,7 @@
         <span><b style="color:var(--danger);">▌</b> Fila resaltada: estuvo y tiene algún 0</span>
         <span><b class="ai-hoy-muestra">J</b> Columna marcada: el día de hoy (en entrenamiento, el último día jugado)</span>
       </div>
+      <div class="buscador-tabla" id="controlActivosBuscador"></div>
       <div class="tabs-row" id="controlActivosClanTabs" style="margin-top:20px;"></div>
       <!-- FIX (13-sep-2026, pedido usuario — "agrega los botones de letras
            en Valores diarios y Valores semanales"): mismo patrón A-Z/# que
@@ -570,6 +574,7 @@
         <span><b style="color:var(--danger);">▌</b> Fila resaltada: estuvo y tiene algún 0</span>
         <span><b class="ai-hoy-muestra">Sem</b> Columna marcada: la semana de guerra en curso (en entrenamiento, la última jugada)</span>
       </div>
+      <div class="buscador-tabla" id="controlTemporadaBuscador"></div>
       <div class="tabs-row" id="controlTemporadaClanTabs" style="margin-top:20px;"></div>
       <!-- FIX (13-sep-2026, pedido usuario — "agrega los botones de letras
            en Valores diarios y Valores semanales"): mismo patrón que
@@ -646,6 +651,11 @@ let clanSeleccionadoPend = null;
 let clanSeleccionadoParticipacion = null;
 // estado del filtro por letra de Pendientes, a nivel de módulo para que sobreviva a cada repintado de render() (mismo criterio que clanSeleccionadoPend de arriba). null = "todas las letras" (sin filtrar). Historial en CHANGELOG.md.
 let letraSeleccionadaPend = null;
+// NUEVO (24-oct-2026, tanda 14): texto del buscador de cada sección (uno por tabla; vacío = sin búsqueda).
+let busquedaPend = '';
+let busquedaActivos = '';
+let busquedaTemporada = '';
+let busquedaParticipacion = '';
 // mismo patrón/estado que letraSeleccionadaPend de arriba, uno por sección (cada cuadrícula tiene su propia tabla por clan, así que el filtro es independiente entre Activos y Temporada). Historial en CHANGELOG.md.
 let letraSeleccionadaActivos = null;
 let letraSeleccionadaTemporada = null;
@@ -1006,6 +1016,40 @@ function letraFiltroDeGridId(gridId){
   return null;
 }
 
+/* NUEVO (24-oct-2026, tanda 14): sección del buscador según el prefijo de gridId ("pend:", "activos:", "temporada:"). */
+const BUSCADOR_DE_SECCION = {
+  pend:      { wrap:'pendWrap',            caja:'pendBuscador' },
+  activos:   { wrap:'controlActivosWrap',  caja:'controlActivosBuscador' },
+  temporada: { wrap:'controlTemporadaWrap', caja:'controlTemporadaBuscador' }
+};
+function busquedaDeSeccion(prefijo){
+  if (prefijo === 'pend') return busquedaPend;
+  if (prefijo === 'activos') return busquedaActivos;
+  if (prefijo === 'temporada') return busquedaTemporada;
+  return '';
+}
+function busquedaDeGridId(gridId){ return busquedaDeSeccion(String(gridId).split(':')[0]); }
+/* actualizarCuentaBuscador(prefijo) → escribe «N de M» (o «Sin coincidencias») junto a la caja; vacío si no hay nada escrito. Cuenta las filas de TODOS los clanes de la sección y avisa si en la pestaña de clan visible no hay ninguna. */
+function actualizarCuentaBuscador(prefijo){
+  const cfg = BUSCADOR_DE_SECCION[prefijo];
+  const caja = cfg && document.getElementById(cfg.caja);
+  const wrap = cfg && document.getElementById(cfg.wrap);
+  const cuenta = caja && caja.querySelector('.buscador-cuenta');
+  if (!cuenta || !wrap) return;
+  const consulta = busquedaDeSeccion(prefijo);
+  if (!normalizarBusqueda(consulta)){ cuenta.textContent = ''; return; }
+  let total = 0, coinciden = 0, enEsteClan = 0;
+  wrap.querySelectorAll('table[data-grid-id]').forEach(t => {
+    const card = t.closest('.ai-clan-card');
+    const visible = !(card && card.style.display === 'none');
+    t.querySelectorAll('tbody tr').forEach(tr => {
+      total++;
+      if (coincideBusqueda(tr.dataset.buscar, consulta)){ coinciden++; if (visible) enEsteClan++; }
+    });
+  });
+  cuenta.textContent = textoCuentaBuscador(coinciden, total, enEsteClan);
+}
+
 function gridAplicarFiltros(gridId, tabla){
   const estado = gridEstadoDe(gridId);
   const cols = Object.keys(estado.filtros);
@@ -1029,15 +1073,17 @@ function gridAplicarFiltros(gridId, tabla){
       }
     });
     const pasaLetra = !letraSel || fila.dataset.letra === letraSel;
+    const pasaBusqueda = coincideBusqueda(fila.dataset.buscar, busquedaDeGridId(gridId)); // tanda 14: nombre o Tag
     // Parte 2: 0 real = data-raw === '0' en una celda de ataques por día/semana (ni total/resumen/% ni celdas vacías).
     const tieneCero = [...fila.querySelectorAll('[data-col^="atq-"]')].some(c => /^atq-(j|v|s|d|sem\d+)$/.test(c.dataset.col) && c.dataset.raw === '0' && !c.dataset.opc);
     fila.classList.toggle('ai-fila-cero', tieneCero);
     const pasaSoloCero = !soloCeroDeGridId(gridId) || tieneCero;
-    fila.style.display = (pasaCols && pasaLetra && pasaSoloCero) ? '' : 'none';
+    fila.style.display = (pasaCols && pasaLetra && pasaBusqueda && pasaSoloCero) ? '' : 'none';
   });
   renumerarFilas(tabla);
   gridActualizarTotales(tabla);
   actualizarBotonSoloCero(gridId);
+  actualizarCuentaBuscador(String(gridId).split(':')[0]);
 }
 
 /* Partes 3-5 (05-oct-2026) ---------------------------------------------- */
@@ -1348,6 +1394,8 @@ function gestionarTabsClan(tabsWrapId, wrapId, obtenerSel, fijarSel){
   const aplicarFiltro = () => {
     const sel = obtenerSel();
     cards.forEach(card => { card.style.display = (sel === TAB_TODOS || card.dataset.clan === sel) ? '' : 'none'; });
+    Object.keys(BUSCADOR_DE_SECCION).forEach(actualizarCuentaBuscador); // tanda 14: el «en otro clan» depende de la pestaña
+    if (typeof aplicarBusquedaParticipacion === 'function' && wrapId === 'participacionHoyWrap') aplicarBusquedaParticipacion();
   };
   const botones = clanes.map(c => ({ valor: c, label: c })).concat([{ valor: TAB_TODOS, label: 'Todos' }]);
   tabsWrap.innerHTML = botones.map(b => `
@@ -1666,7 +1714,7 @@ function render(data){
     // 22-oct-2026 (pedido de la usuaria): el 📈 del mini historial (mini-historial.js) también va junto al nombre en Pendientes de Atacar. [→ Contexto_Base_Web.md §PF170]
     const t = (key, val, cls) => `<td${cls ? ` class="${cls}"` : ''} data-col="${key}" data-tipo="t" data-raw="${esc(val)}">`;
     return `
-            <tr data-letra="${esc(letra)}">
+            <tr data-letra="${esc(letra)}" data-buscar="${esc((nombreMostrado || '') + ' ' + (p.tag || ''))}">
               <td class="col-n"></td>
               ${t('tag', p.tag || '—', 'col-tag')}${esc(p.tag || '—')}</td>
               ${t('nombre', nombreMostrado || '—', 'col-nombre')}<div class="col-jugador-inner"><span class="col-jugador-nombre">${p.tag ? enlaceJugador(nombreMostrado, p.tag) : esc(nombreMostrado)}</span><span class="col-jugador-extras">${botonHistJugador({ tag:p.tag, nombre:nombreMostrado })}</span></div></td>
@@ -1709,6 +1757,7 @@ function render(data){
   // seleccionados ya están en display:none cuando se mide scrollWidth y el navegador no calcula el layout de sus tablas. Historial en CHANGELOG.md.
   gestionarTabsClan('pendClanTabs', 'pendWrap', () => clanSeleccionadoPend, v => clanSeleccionadoPend = v);
   activarBarraScrollTablas(pendWrap.querySelectorAll('.table-scroll'));
+  pintarBuscadorTabla('pendBuscador', { placeholder:'Buscar jugador o Tag…', ariaLabel:'Buscar jugador en Pendientes de Atacar', fijar: v => busquedaPend = v, onCambio: aplicarFiltroLetraPendientes });
   pintarFiltroLetra('pendLetraFilter', LETRAS_FILTRO, () => letraSeleccionadaPend, v => letraSeleccionadaPend = v, aplicarFiltroLetraPendientes);
   aplicarFiltroLetraPendientes();
 // aquí se pinta la cuadrícula J/V/S/D por cada Activo de Directorio. Historial en CHANGELOG.md.
@@ -1747,7 +1796,7 @@ function render(data){
     // NUEVO (23-oct-2026, tanda 6): columna del día de hoy (o del último día jugado en entrenamiento) para marcarla en esta cuadrícula; null si se eligió otra semana. [→ Contexto_Base_Web.md §PF176]
     const colHoyDia = colHoyDiario(data, temporadaSeleccionadaActivos, sectionIndexSeleccionadoActivos);
     const renderFilaActivos = f => `
-              <tr data-letra="${esc(primeraLetraFiltro(f.nombre || f.tag))}" data-rango="${esc(f.rango || '')}" class="${f.activo === false ? 'fila-inactivo' : ''}">
+              <tr data-letra="${esc(primeraLetraFiltro(f.nombre || f.tag))}" data-buscar="${esc((f.nombre || '') + ' ' + (f.tag || ''))}" data-rango="${esc(f.rango || '')}" class="${f.activo === false ? 'fila-inactivo' : ''}">
                 <td class="col-n"></td>
                 ${celdaJugadorGrid(f)}
                 ${celdasMegacategoria({j:f.j, v:f.v, s:f.s, d:f.d, total:f.total}, 'ai-grp-atq', true, 'atq', f.opc, colHoyDia && colHoyDia.key)}
@@ -1798,6 +1847,7 @@ function render(data){
     // TBT (02-oct-2026): mismo orden que en Pendientes de Atacar (tabs primero, medición después).
     gestionarTabsClan('controlActivosClanTabs', 'controlActivosWrap', () => clanSeleccionadoActivos, v => clanSeleccionadoActivos = v);
     activarBarraScrollTablas(wrapActivos.querySelectorAll('.table-scroll'));
+    pintarBuscadorTabla('controlActivosBuscador', { placeholder:'Buscar jugador o Tag…', ariaLabel:'Buscar jugador en Valores diarios', fijar: v => busquedaActivos = v, onCambio: () => aplicarFiltroLetraGrid('controlActivosWrap') });
     pintarFiltroLetra('controlActivosLetraFilter', LETRAS_FILTRO, () => letraSeleccionadaActivos, v => letraSeleccionadaActivos = v, () => aplicarFiltroLetraGrid('controlActivosWrap'));
   } else {
     controlActivosSection.style.display = 'none';
@@ -1826,7 +1876,7 @@ function render(data){
     // filaSubEncabezadosSemanas() (ver más arriba). Igual que en Activos,
     // el <tbody> arranca vacío y lo llena inicializarGridFiltro() más abajo.
     const renderFilaTemporada = f => `
-              <tr data-letra="${esc(primeraLetraFiltro(f.nombre || f.tag))}" data-rango="${esc(f.rango || '')}" class="${f.activo === false ? 'fila-inactivo' : ''}">
+              <tr data-letra="${esc(primeraLetraFiltro(f.nombre || f.tag))}" data-buscar="${esc((f.nombre || '') + ' ' + (f.tag || ''))}" data-rango="${esc(f.rango || '')}" class="${f.activo === false ? 'fila-inactivo' : ''}">
                 <td class="col-n"></td>
                 ${celdaJugadorGrid(f)}
                 ${celdasSemanas(f.ataques, 'ai-grp-atq', true, 'atq', colHoySem && colHoySem.idx)}
@@ -1875,6 +1925,7 @@ function render(data){
     // TBT (02-oct-2026): mismo orden que en Pendientes de Atacar (tabs primero, medición después).
     gestionarTabsClan('controlTemporadaClanTabs', 'controlTemporadaWrap', () => clanSeleccionadoTemporada, v => clanSeleccionadoTemporada = v);
     activarBarraScrollTablas(wrapTemporada.querySelectorAll('.table-scroll'));
+    pintarBuscadorTabla('controlTemporadaBuscador', { placeholder:'Buscar jugador o Tag…', ariaLabel:'Buscar jugador en Valores semanales', fijar: v => busquedaTemporada = v, onCambio: () => aplicarFiltroLetraGrid('controlTemporadaWrap') });
     pintarFiltroLetra('controlTemporadaLetraFilter', LETRAS_FILTRO, () => letraSeleccionadaTemporada, v => letraSeleccionadaTemporada = v, () => aplicarFiltroLetraGrid('controlTemporadaWrap'));
   } else {
     controlTemporadaSection.style.display = 'none';
@@ -2209,7 +2260,7 @@ function _extrasCuentaParticipacion(cta){
 function _liCuentaParticipacion(cta, pend){
   const pendHtml = (pend === null) ? '' :
     ` <span class="part-pend${pend === 0 ? ' part-pend-cero' : ''}">— ${pend} pendiente${pend === 1 ? '' : 's'}</span>`;
-  return `<li>${cta.tag ? enlaceJugador(cta.nombre || cta.tag, cta.tag) : esc(cta.nombre || cta.tag)} <span class="text-faint" style="font-family:var(--f-mono);">${esc(cta.tag || '')}</span>${_extrasCuentaParticipacion(cta)}${pendHtml}</li>`;
+  return `<li data-buscar="${esc((cta.nombre || '') + ' ' + (cta.tag || ''))}">${cta.tag ? enlaceJugador(cta.nombre || cta.tag, cta.tag) : esc(cta.nombre || cta.tag)} <span class="text-faint" style="font-family:var(--f-mono);">${esc(cta.tag || '')}</span>${_extrasCuentaParticipacion(cta)}${pendHtml}</li>`;
 }
 function _listaCuentasHtml(cuentas, pendFn){
   if(!cuentas.length) return '<div class="text-faint" style="font-size:12px;">— ninguna —</div>';
@@ -2220,6 +2271,27 @@ const ATAQUES_MAX_HOY = 4; // "usaron al menos 1 de sus 4 ataques hoy"
 function pendientesHoy(cta){
   const usados = Number(cta.ataquesHoy);
   return Number.isFinite(usados) ? Math.max(0, ATAQUES_MAX_HOY - usados) : 1; // sin dato del backend: se asume 1 usado
+}
+
+/* NUEVO (24-oct-2026, tanda 14): buscador de «Participación de Hoy». Oculta las cuentas que no coinciden (clase .busq-oculta, que no choca con el display que ponen las pestañas de clan) y las tarjetas que se quedan sin ninguna. */
+function aplicarBusquedaParticipacion(){
+  const wrap = document.getElementById('participacionHoyWrap');
+  if (!wrap) return;
+  const activa = !!normalizarBusqueda(busquedaParticipacion);
+  let total = 0, coinciden = 0, enEsteClan = 0;
+  wrap.querySelectorAll('.ai-clan-card, [data-multi]').forEach(card => {
+    const visibleTab = card.style.display !== 'none';
+    let hay = 0;
+    card.querySelectorAll('li[data-buscar]').forEach(li => {
+      const ok = coincideBusqueda(li.dataset.buscar, busquedaParticipacion);
+      li.classList.toggle('busq-oculta', !ok);
+      total++;
+      if (ok){ coinciden++; hay++; if (visibleTab) enEsteClan++; }
+    });
+    card.classList.toggle('busq-oculta', activa && hay === 0);
+  });
+  const cuenta = document.querySelector('#participacionHoyBuscador .buscador-cuenta');
+  if (cuenta) cuenta.textContent = activa ? textoCuentaBuscador(coinciden, total, enEsteClan) : '';
 }
 
 function renderParticipacionHoyGuerra(clanes, multiClan){
@@ -2249,11 +2321,11 @@ function renderParticipacionHoyGuerra(clanes, multiClan){
   }).join('');
 
   const multiClanHtml = !multiClan.length ? '' : `
-    <div class="card" style="padding:16px;">
+    <div class="card" data-multi="1" style="padding:16px;">
       <span class="badge badge-warn">Ataques en más de un clan hoy</span>
       <div class="part-scroll tabla-scroll-wrap scroll-morado" tabindex="0" role="region" aria-label="Cuentas con ataques en más de un clan hoy">
       <ul class="part-lista" style="margin-top:8px;">
-        ${multiClan.map(m => `<li>${m.tag ? enlaceJugador(m.nombre || m.tag, m.tag) : esc(m.nombre || m.tag)} <span class="text-faint" style="font-family:var(--f-mono);">${esc(m.tag || '')}</span>${_extrasCuentaParticipacion(m)} — ${m.clanes.map(esc).join(' y ')} (${fmtNum(m.totalAtaquesHoy)} ataques hoy)</li>`).join('')}
+        ${multiClan.map(m => `<li data-buscar="${esc((m.nombre || '') + ' ' + (m.tag || ''))}">${m.tag ? enlaceJugador(m.nombre || m.tag, m.tag) : esc(m.nombre || m.tag)} <span class="text-faint" style="font-family:var(--f-mono);">${esc(m.tag || '')}</span>${_extrasCuentaParticipacion(m)} — ${m.clanes.map(esc).join(' y ')} (${fmtNum(m.totalAtaquesHoy)} ataques hoy)</li>`).join('')}
       </ul>
       </div>
     </div>`;
@@ -2276,6 +2348,8 @@ async function cargarParticipacionHoySiAdmin(ctx){
     wrap.innerHTML = renderParticipacionHoyGuerra(clanes, data.multiClan || []);
     section.style.display = 'block';
     gestionarTabsClan('participacionHoyClanTabs', 'participacionHoyWrap', () => clanSeleccionadoParticipacion, v => clanSeleccionadoParticipacion = v);
+    pintarBuscadorTabla('participacionHoyBuscador', { placeholder:'Buscar jugador o Tag…', ariaLabel:'Buscar jugador en Participación de Hoy', fijar: v => busquedaParticipacion = v, onCambio: aplicarBusquedaParticipacion });
+    aplicarBusquedaParticipacion(); // el HTML se rehace en cada carga: reaplica la búsqueda vigente
   }catch(err){
     // Defensivo: sesión vencida u otro fallo — no romper el resto de la
     // página pública por esto, la sección simplemente no aparece.

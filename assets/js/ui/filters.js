@@ -60,3 +60,58 @@ function pintarFiltroLetra(wrapId, letras, obtenerSel, fijarSel, onCambio){
     });
   });
 }
+
+
+/* =========================================================================
+ * Buscador de jugadores para las tablas de guerra (24-oct-2026, tanda 14 de Consolidado_Mini_Historial_y_Perfil.md, pedido de la usuaria:
+ * «en cada tabla de guerra, agrégale un cuadrito arriba donde me permita buscar por nombre o similar»). Una caja con lupa y ✕ por tabla, que
+ * oculta las filas que no coinciden SIN recalcular nada y se combina con las pestañas de clan, la letra A-Z y los filtros por columna.
+ * La coincidencia ignora mayúsculas, tildes (ñ cuenta como n) y el orden: todas las palabras escritas deben aparecer en el nombre o en el Tag.
+ * [→ Contexto_Base_Web.md §PF224]
+ * ========================================================================= */
+
+/** normalizarBusqueda(texto) → minúsculas, sin tildes ni espacios sobrantes ('Ñoño ' → 'nono'). */
+function normalizarBusqueda(texto){
+  return String(texto == null ? '' : texto).normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+}
+
+/** coincideBusqueda(textoFila, consulta) → true si la consulta está vacía o TODAS sus palabras aparecen en el texto de la fila. */
+function coincideBusqueda(textoFila, consulta){
+  const palabras = normalizarBusqueda(consulta).split(/\s+/).filter(Boolean);
+  if (!palabras.length) return true;
+  const base = normalizarBusqueda(textoFila);
+  return palabras.every(p => base.includes(p));
+}
+
+/**
+ * pintarBuscadorTabla(wrapId, { placeholder, ariaLabel, fijar, onCambio })
+ * Pinta UNA SOLA VEZ (guardia por dataset.pintado, igual que pintarFiltroLetra) la caja de búsqueda dentro de #wrapId. `fijar(texto)` guarda
+ * lo escrito en la variable de la página y `onCambio()` reaplica el filtro sobre la tabla ya pintada. El contador de la derecha
+ * (.buscador-cuenta) lo escribe la página con textoCuentaBuscador().
+ */
+function pintarBuscadorTabla(wrapId, opts){
+  const wrap = document.getElementById(wrapId);
+  if (!wrap || wrap.dataset.pintado) return;
+  wrap.dataset.pintado = '1';
+  wrap.setAttribute('role', 'search');
+  wrap.innerHTML = `
+    <div class="buscador-caja">
+      <span class="buscador-lupa" aria-hidden="true">🔍</span>
+      <input type="search" class="buscador-input" placeholder="${esc(opts.placeholder || 'Buscar jugador…')}" aria-label="${esc(opts.ariaLabel || 'Buscar jugador')}" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search">
+      <button type="button" class="buscador-limpiar" aria-label="Borrar la búsqueda" hidden>✕</button>
+    </div>
+    <span class="buscador-cuenta" aria-live="polite"></span>`;
+  const input = wrap.querySelector('.buscador-input');
+  const limpiar = wrap.querySelector('.buscador-limpiar');
+  const aplicar = () => { opts.fijar(input.value); limpiar.hidden = !input.value; opts.onCambio(); };
+  input.addEventListener('input', aplicar);
+  input.addEventListener('keydown', e => { if (e.key === 'Escape' && input.value){ input.value = ''; aplicar(); } });
+  limpiar.addEventListener('click', () => { input.value = ''; aplicar(); input.focus(); });
+}
+
+/** textoCuentaBuscador(coinciden, total, enEsteClan) → texto corto del contador; '' si no hay búsqueda (la página no lo llama). */
+function textoCuentaBuscador(coinciden, total, enEsteClan){
+  if (!coinciden) return 'Sin coincidencias';
+  return `${coinciden} de ${total}` + (enEsteClan === 0 ? ' · en otro clan' : '');
+}
+
