@@ -26,7 +26,7 @@ const PRELUDIO = `
 const PRONOSTICO_ATAQUES_MAX_CLAN = 200;
 function enlaceClan(n){ return esc(n); }
 `;
-const EPILOGO = '\nwindow.__t = { pronosticoDiaDe, pronosticoClanHtml };';
+const EPILOGO = '\nwindow.__t = { pronosticoDiaDe, pronosticoClanHtml, pronosticoEstadoDiaElegido, pronosticoCerradoDe };';
 
 let ventana = null;
 function montar(){
@@ -82,4 +82,64 @@ test('respuesta de un backend anterior (sin fameHoy): se conservan los valores d
   assert.deepEqual(plano(d), { f: 1200, r: 1500, m: 1700 });
   assert.equal(t.pronosticoDiaDe({ nombre: 'X', fameHoy: null }), null);
   assert.deepEqual(plano(t.pronosticoDiaDe({ nombre: 'X', fameHoy: 0, fameTechoRosterHoy: 400, fameTechoHoy: 900 })), { f: 0, r: 400, m: 900 });
+});
+
+// NUEVO (24-oct-2026, pedido usuaria; §PF203): el bloque sigue al día elegido en Jue–Dom y ya no se llama «de hoy».
+const propioCerr = diasCerrados => clan('Terna', { fameActual: 61000, fameTechoRoster: 66000, fameTecho: 66200, fameHoy: 29900, fameTechoRosterHoy: 34900, fameTechoHoy: 35100, diasCerrados });
+
+test('estado del día elegido: cerrado, futuro o el día en curso', () => {
+  const t = montar();
+  assert.equal(t.pronosticoEstadoDiaElegido('J', 'V'), 'cerrado');
+  assert.equal(t.pronosticoEstadoDiaElegido('D', 'V'), 'futuro');
+  assert.equal(t.pronosticoEstadoDiaElegido('V', 'V'), null);
+  assert.equal(t.pronosticoEstadoDiaElegido(null, 'V'), null);
+  assert.equal(t.pronosticoEstadoDiaElegido('J', null), null);
+});
+
+test('el día en curso se titula con su nombre y no con «de hoy»', () => {
+  const t = montar();
+  const out = t.pronosticoClanHtml({ propio: propioCerr({ J: 31000 }), rivales: [] }, 'V', 'V');
+  assert.match(out, /Pronóstico del viernes/);
+  assert.doesNotMatch(out, /de hoy/i);
+  assert.match(out, /Techo 34[,.]?900–35[,.]?100/);
+  const sinDia = t.pronosticoClanHtml({ propio: propioCerr({}), rivales: [] });
+  assert.match(sinDia, /Pronóstico del día/);
+});
+
+test('día ya jugado: muestra el resultado de ese día (medallas del jueves), ordenado, sin techo ni acumulado', () => {
+  const t = montar();
+  const rival = clan('Italia', { esRival: true, fameActual: 63350, fameHoy: 31100, fameTechoHoy: 33200, diasCerrados: { J: 33300, V: 0 } });
+  const out = t.pronosticoClanHtml({ propio: propioCerr({ J: 31000 }), rivales: [rival] }, 'J', 'V');
+  assert.match(out, /Resultado del jueves/);
+  assert.doesNotMatch(out, /Techo/);
+  assert.doesNotMatch(out, /29[,.]?900|31[,.]?100|61[,.]?000|63[,.]?350/);
+  assert.ok(out.indexOf('Italia') < out.indexOf('Terna'), 'Italia (33,300) va antes que Terna (31,000)');
+  assert.match(out, /33[,.]?300/);
+  assert.match(out, /31[,.]?000/);
+  assert.match(out, /#1[\s\S]*Italia[\s\S]*#2[\s\S]*Terna/);
+});
+
+test('día ya jugado: un 0 real se muestra como 0 y la falta de dato como «—» al final', () => {
+  const t = montar();
+  const conCero = clan('Cero', { esRival: true, diasCerrados: { J: 0 } });
+  const sinDato = clan('SinDato', { esRival: true, diasCerrados: {} });
+  const antiguo = clan('Antiguo', { esRival: true }); // respuesta de un backend anterior (sin diasCerrados)
+  const out = t.pronosticoClanHtml({ propio: propioCerr({ J: 500 }), rivales: [sinDato, conCero, antiguo] }, 'J', 'S');
+  const caja = ventana.document.createElement('div');
+  caja.innerHTML = out;
+  const filas = [...caja.querySelectorAll('li.cp-row')];
+  const nombres = filas.map(f => f.querySelector('.cp-n').textContent.trim());
+  assert.deepEqual(nombres.slice(0, 2), ['Terna', 'Cero']);
+  assert.equal(filas[1].querySelector('.cp-f').textContent.trim(), '0');
+  assert.equal(filas[2].querySelector('.cp-f').textContent.trim(), '—');
+  assert.equal(filas[3].querySelector('.cp-f').textContent.trim(), '—');
+  assert.equal(filas[2].querySelectorAll('.cp-bar i, .cp-bar u').length, 0);
+});
+
+test('día que aún no llega: aviso en vez de cifras', () => {
+  const t = montar();
+  const out = t.pronosticoClanHtml({ propio: propioCerr({ J: 500 }), rivales: [] }, 'D', 'V');
+  assert.match(out, /Resultado del domingo/);
+  assert.match(out, /todavía no se juega/);
+  assert.doesNotMatch(out, /cp-row/);
 });

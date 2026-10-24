@@ -217,7 +217,8 @@
 // v163 (24-oct-2026): assets/js/features/mini-historial.js y assets/styles.css cambiaron (CORE_ASSETS) -- en el móvil solo se desplaza la tabla del mini historial (§PF197).
 // v164 (24-oct-2026): assets/styles.css cambió (CORE_ASSETS) -- todas las barras de desplazamiento, actuales y futuras, usan el estilo morado de las tablas de guerra (§PF199).
 // v165 (24-oct-2026): perfil.html cambió (CORE_ASSETS) -- los botones RoyaleAPI y CWStats se arman desde el Tag para el admin cuando el backend no manda el enlace (inactivos; §PF200).
-const CACHE_NAME = 'terna-static-v165';
+// v166 (24-oct-2026): guerra.html cambió (CORE_ASSETS) -- el bloque del pronóstico sigue al día elegido en Jue–Dom: en un día ya jugado muestra el resultado de ese día de cada clan y su título ya no dice «de hoy» (§PF203).
+const CACHE_NAME = 'terna-static-v166';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y

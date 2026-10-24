@@ -461,13 +461,13 @@
       <!-- Parte 1 (05-oct-2026): aviso visible solo fuera de día de guerra, cuando las tarjetas muestran los resultados congelados de la última guerra. Se llena en render(). -->
       <div id="guerraCongeladoAviso" class="text-faint" style="display:none; font-family:var(--f-mono); font-size:12px; margin-top:14px; padding:8px 12px; border:1px solid var(--line); border-radius:var(--radius-sm); line-height:1.6;" role="status"></div>
       <div class="clan-grid" id="clanGrid" style="margin-top:20px;"></div>
-      <div id="pronosticoNota" class="text-faint" style="font-family:var(--f-mono); font-size:12px; margin-top:6px; line-height:1.6;" hidden>📈 Pronóstico de hoy: la fila resaltada es el clan Terna y las demás son sus rivales en la carrera. Todo es de hoy, no de la semana: la barra muestra las medallas de hoy (sólida) y hasta dónde podrían llegar hoy (tenue); «—» significa que aún no se conoce con cuántas medallas empezó el día ese clan. «Techo» es una cota máxima, no una predicción: con un solo valor, juegan las cuentas que ya están en la carrera; con dos («roster – máx»), el segundo supone además que las cuentas sin atacar se reemplazan por cuentas de apoyo.</div>
+      <div id="pronosticoNota" class="text-faint" style="font-family:var(--f-mono); font-size:12px; margin-top:6px; line-height:1.6;" hidden>📈 Pronóstico del día en curso: la fila resaltada es el clan Terna y las demás son sus rivales en la carrera. Todo es del día, no de la semana: la barra muestra las medallas de hoy (sólida) y hasta dónde podrían llegar hoy (tenue); «—» significa que aún no se conoce con cuántas medallas empezó el día ese clan. «Techo» es una cota máxima, no una predicción: con un solo valor, juegan las cuentas que ya están en la carrera; con dos («roster – máx»), el segundo supone además que las cuentas sin atacar se reemplazan por cuentas de apoyo. Si eliges un día ya jugado (Jue–Dom), el bloque pasa a «Resultado» de ese día: las medallas que ganó cada clan ese día; «—» significa que el sistema no tiene ese dato (por ejemplo, en coliseo).</div>
     </section>
 
-    <!-- Pronóstico de Hoy: pública, solo en día de guerra; oculta si el backend no responde. Sin aria-live (se refresca sola). Historial en CHANGELOG.md. -->
+    <!-- Pronóstico del día: pública, solo en día de guerra; oculta si el backend no responde. Sin aria-live (se refresca sola). Historial en CHANGELOG.md. -->
     <section id="pronosticoSection" style="padding:calc(var(--gap-seccion) / 2) 0; display:none;">
       <div class="sec-head pf-cinta pf-cinta--seccion" style="--cinta:url(Im%C3%A1genes/Banners/Fankit/cinta-guerra-pronostico.webp); border-bottom:1px solid var(--line); padding-bottom:12px;">
-        <h2 style="font-size:22px;">📈 Pronóstico de Hoy</h2>
+        <h2 style="font-size:22px;">📈 Pronóstico del día</h2>
         <div class="text-faint" style="font-family:var(--f-mono); font-size:12px; margin-top:10px;">Techo de fama de HOY (no de la semana) que cada clan todavía puede alcanzar con los ataques que le quedan: una cota máxima, no una predicción. «Solo roster» supone que juegan únicamente las cuentas que ya están en la carrera; «Techo máximo» supone además que las cuentas sin atacar se reemplazan por cuentas de apoyo.</div>
       </div>
       <div id="pronosticoWrap" style="margin-top:20px;"></div>
@@ -2334,7 +2334,52 @@ function pronosticoDiaDe(c){
   if(c.fameHoy === null || c.fameHoy === undefined) return null;
   return { f: n(c.fameHoy), r: n(c.fameTechoRosterHoy), m: n(c.fameTechoHoy) };
 }
-function pronosticoClanHtml(grupo){
+/* Día elegido en Jue–Dom frente al día en curso (PF203, 24-oct-2026): el bloque ya no es siempre «de hoy». Devuelve 'cerrado' si el día elegido ya se jugó, 'futuro' si aún no llega y null si es el día en curso o no hay día elegido (entonces se muestra el pronóstico de siempre). [→ Contexto_Base_Web.md §PF203] */
+const DIAS_PRONOSTICO = { J:'jueves', V:'viernes', S:'sábado', D:'domingo' };
+const ORDEN_DIAS_PRONOSTICO = ['J', 'V', 'S', 'D'];
+function pronosticoEstadoDiaElegido(letraSel, letraHoy){
+  if(!letraSel || !letraHoy || letraSel === letraHoy) return null;
+  const i = ORDEN_DIAS_PRONOSTICO.indexOf(letraSel), h = ORDEN_DIAS_PRONOSTICO.indexOf(letraHoy);
+  if(i < 0 || h < 0) return null;
+  return i < h ? 'cerrado' : 'futuro';
+}
+/* Medallas que un clan ganó en un día ya cerrado: { f } o null si el backend no trae ese día (backend anterior, coliseo o log incompleto). Nunca se inventa un 0. */
+function pronosticoCerradoDe(c, letra){
+  const d = c && c.diasCerrados;
+  if(!d || d[letra] === undefined || d[letra] === null) return null;
+  return { f: Number(d[letra]) || 0 };
+}
+/* Resultado de un día ya jugado: mismo formato de fila, ordenado y numerado por las medallas de ese día, sin techo ni ataques (esos datos son del día en curso). */
+function pronosticoCerradoHtml(grupo, letra){
+  const nombreDia = DIAS_PRONOSTICO[letra] || 'día';
+  const todos = [grupo.propio].concat(grupo.rivales);
+  const dia = new Map(todos.map(c => [c, pronosticoCerradoDe(c, letra)]));
+  const fame = c => (dia.get(c) || { f: 0 }).f;
+  const escala = Math.max(1, ...todos.map(fame));
+  const pct = v => Math.max(0, Math.min(100, (v / escala) * 100)).toFixed(1);
+  const conDato = todos.filter(c => dia.get(c));
+  const puestoDe = c => 1 + conDato.filter(o => fame(o) > fame(c)).length;
+  const orden = todos.slice().sort((a, b) => {
+    const da = dia.get(a), db = dia.get(b);
+    if(da && db) return (db.f - da.f) || ((a === grupo.propio ? 0 : 1) - (b === grupo.propio ? 0 : 1));
+    if(da) return -1;
+    if(db) return 1;
+    return (a === grupo.propio ? 0 : 1) - (b === grupo.propio ? 0 : 1);
+  });
+  const sinDato = 'title="El sistema no tiene el resultado de este día para este clan (por ejemplo, en coliseo no se guarda)"';
+  return `<div class="cp-head">📈 Resultado del ${nombreDia}</div><ul class="cp-list">${orden.map(c => {
+    const d = dia.get(c);
+    return `
+    <li class="cp-row${c === grupo.propio ? ' cp-own' : ''}">
+      <span class="cp-r">${d ? '#' + fmtNum(puestoDe(c)) : '—'}</span><span class="cp-n" title="${esc(c.nombre)}${c.esRival ? ' (rival)' : ''}">${c.esRival ? esc(c.nombre) : enlaceClan(c.nombre)}</span><b class="cp-f"${d ? '' : ' ' + sinDato}>${d ? fmtNum(d.f) : '—'}</b>
+      <div class="cp-bar" aria-hidden="true">${d ? `<i style="width:${pct(d.f)}%"></i>` : ''}</div>
+      <div class="cp-sub"><span>Medallas del ${nombreDia}</span></div>
+    </li>`; }).join('')}</ul>`;
+}
+function pronosticoClanHtml(grupo, letraSel, letraHoy){
+  const estado = pronosticoEstadoDiaElegido(letraSel, letraHoy);
+  if(estado === 'cerrado') return pronosticoCerradoHtml(grupo, letraSel);
+  if(estado === 'futuro') return `<div class="cp-head">📈 Resultado del ${DIAS_PRONOSTICO[letraSel] || 'día'}</div><p class="text-faint" style="font-family:var(--f-mono); font-size:12px; text-align:center; margin:0;">Ese día todavía no se juega.</p>`;
   const todos = [grupo.propio].concat(grupo.rivales);
   const dia = new Map(todos.map(c => [c, pronosticoDiaDe(c)]));
   const fame = c => (dia.get(c) || { f: 0 }).f;
@@ -2350,7 +2395,7 @@ function pronosticoClanHtml(grupo){
     if(db) return 1;
     return (a === grupo.propio ? 0 : 1) - (b === grupo.propio ? 0 : 1);
   });
-  return `<div class="cp-head">📈 Pronóstico de hoy</div><ul class="cp-list">${orden.map(c => {
+  return `<div class="cp-head">📈 Pronóstico del ${DIAS_PRONOSTICO[letraHoy] || 'día'}</div><ul class="cp-list">${orden.map(c => {
     const d = dia.get(c);
     const techoTxt = !d ? '—' : (d.r === d.m ? fmtNum(d.m) : `${fmtNum(d.r)}–${fmtNum(d.m)}`); // un solo valor si Roster y Máx coinciden
     const sinDato = 'title="Aún no se conoce la fama con la que este clan empezó el día; aparece cuando el sistema guarde el cierre de ayer"';
@@ -2358,12 +2403,14 @@ function pronosticoClanHtml(grupo){
     <li class="cp-row${c === grupo.propio ? ' cp-own' : ''}">
       <span class="cp-r">${d ? '#' + fmtNum(puestoDe(c)) : '—'}</span><span class="cp-n" title="${esc(c.nombre)}${c.esRival ? ' (rival)' : ''}">${c.esRival ? esc(c.nombre) : enlaceClan(c.nombre)}</span><b class="cp-f"${d ? '' : ' ' + sinDato}>${d ? fmtNum(d.f) : '—'}</b>
       <div class="cp-bar" aria-hidden="true">${d ? `<u style="width:${pct(techoMax(c))}%"></u><i style="width:${pct(d.f)}%"></i>` : ''}</div>
-      <div class="cp-sub"><span title="Techo de fama de hoy. Si dos valores: solo con las cuentas que ya están en la carrera – con cuentas de apoyo">Techo ${techoTxt}</span><span>${fmtNum(c.ataquesUsados)}/${PRONOSTICO_ATAQUES_MAX_CLAN} atq</span></div>
+      <div class="cp-sub"><span title="Techo de fama del día. Si dos valores: solo con las cuentas que ya están en la carrera – con cuentas de apoyo">Techo ${techoTxt}</span><span>${fmtNum(c.ataquesUsados)}/${PRONOSTICO_ATAQUES_MAX_CLAN} atq</span></div>
     </li>`; }).join('')}</ul>`;
 }
 function pintarPronosticoEnTarjetas(){
   const g = (pronosticoVisible && ultimoPronosticoData) ? agruparPronosticoPorClan(ultimoPronosticoData) : { porTag: {}, hay: false };
   let alguna = false;
+  const ctxPron = (ultimoDataGuerra && ultimoDataGuerra.ctx) || {};
+  const letraHoyPronostico = ctxPron.esDiaGuerra ? (ctxPron.diaLetra || null) : null; // PF203: el bloque sigue al día elegido en Jue–Dom
   document.querySelectorAll('#clanGrid .clan-pron').forEach(el => {
     const info = infoClanGuerraPorNombre(el.dataset.clan);
     let grupo = info ? g.porTag[_normTagGuerra(info.c.clanTag)] : null;
@@ -2373,7 +2420,7 @@ function pintarPronosticoEnTarjetas(){
       grupo = k ? g.porTag[k] : null;
     }
     if(g.hay && grupo){
-      const html = pronosticoClanHtml(grupo);
+      const html = pronosticoClanHtml(grupo, diaPuestosSel, letraHoyPronostico);
       if(el.innerHTML !== html) el.innerHTML = html;
       el.hidden = false;
       alguna = true;
@@ -2427,7 +2474,7 @@ async function cargarPronosticoGuerra(ctx, manual){
     }
     const html = `
       <div class="card" style="padding:12px;"><div class="table-scroll"><table>
-        <thead><tr><th class="col-n" scope="col">N°</th><th scope="col">Clan</th><th scope="col">Fama de hoy</th><th scope="col">Techo (solo roster)</th><th scope="col">Techo máximo</th><th scope="col">Ataques hoy</th></tr></thead>
+        <thead><tr><th class="col-n" scope="col">N°</th><th scope="col">Clan</th><th scope="col">Fama del día</th><th scope="col">Techo (solo roster)</th><th scope="col">Techo máximo</th><th scope="col">Ataques del día</th></tr></thead>
         <tbody>${clanes.map((c, i) => { const d = pronosticoDiaDe(c); return `
           <tr>
             <td class="col-n">${i + 1}</td>
@@ -2487,6 +2534,7 @@ function seleccionarDiaPuestos(letra){
     b.setAttribute('aria-pressed', on ? 'true' : 'false');
   });
   pintarPuestosDiaEnTarjetas();
+  pintarPronosticoEnTarjetas(); // PF203: el pronóstico (o el resultado del día ya jugado) sigue al día elegido
   if(diaPuestosSel) cargarPuestosDia(false, true);
   // el puesto en vivo de hoy sale de webPronosticoGuerra: si aún no se cargó, se trae solo para el puesto (sin mostrar el pronóstico en las tarjetas)
   const ctxHoy = (ultimoDataGuerra && ultimoDataGuerra.ctx) || {};
