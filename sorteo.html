@@ -133,8 +133,13 @@
   }
   .wheel-outer{
     position:relative;
-    width:min(420px,86vw);
-    height:min(420px,86vw);
+    /* ocupa el ancho del panel (hasta 560px) y no pasa de lo que cabe en la altura de la pantalla; mínimo 300px para que no se achique de más */
+    width:min(100%, 560px, max(300px, calc(100vh - 200px)));
+    aspect-ratio:1 / 1;
+  }
+  @media (max-width:560px){
+    /* en el móvil se mantiene lo de antes: 86% del ancho de la pantalla */
+    .wheel-outer{width:min(86vw,560px);}
   }
   .wheel-ring{
     position:absolute;
@@ -172,7 +177,7 @@
     margin-right:3.5%;
     max-width:74%;
     text-align:right;
-    font-size:13px;
+    font-size:14px;
     font-weight:700;
     white-space:nowrap;
     overflow:hidden;
@@ -190,9 +195,13 @@
     display:flex;align-items:center;justify-content:center;
     z-index:5;
   }
+  /* el <picture> no genera caja: así el escudo se centra con el flex de .hub y su 84% se mide contra el círculo (si no, el % dependía del ancho de la imagen y el escudo quedaba corrido) */
+  .hub picture{display:contents;}
   .hub-escudo{
     width:84%;height:84%;
+    flex:none;
     object-fit:contain;
+    object-position:center;
     display:block;
     filter:drop-shadow(0 1px 2px rgba(0,0,0,.35));
   }
