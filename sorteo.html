@@ -144,6 +144,15 @@
   /* el título se mide contra el ancho del panel (container query): en Rajdhani mayúsculas ocupa unos 21,6 em, así que 4,3 cqi de tamaño lo dejan en una sola línea; a 320 px de ancho se recorta con «…» */
   .stage{container-type:inline-size;container-name:stage;}
   .stage-head{margin-bottom:22px;container-type:inline-size;}
+  /* PF223 (24-oct-2026, pedido de la usuaria): banner de color detrás del título (degradado violeta con filo dorado) para que no se vea sobre el fondo oscuro liso. */
+  .stage-head{
+    padding:10px 14px;
+    border-radius:var(--radius-md);
+    background:linear-gradient(100deg, rgba(107,33,168,.85) 0%, rgba(162,57,255,.55) 50%, rgba(107,33,168,.85) 100%);
+    border:1px solid var(--line-strong);
+    border-bottom:2px solid var(--line-gold);
+    box-shadow:0 4px 18px rgba(162,57,255,.28), inset 0 1px 0 rgba(255,255,255,.12);
+  }
   .title-input{
     width:100%;
     text-align:center;
@@ -481,6 +490,13 @@
     margin-bottom:10px; font-size:12.5px; color:var(--ink); line-height:1.5;
   }
   .sorteo-info h4{margin:0 0 3px; font-size:12px; font-weight:700; color:var(--gold-light);}
+  /* PF223 (24-oct-2026, pedido de la usuaria): semanas y premios en una tablita de dos columnas; en pantallas angostas pasan a una sola. */
+  .sorteo-info-cols{display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:0 14px;}
+  .sorteo-info-col + .sorteo-info-col{border-left:1px solid var(--line); padding-left:14px;}
+  @media (max-width:420px){
+    .sorteo-info-cols{grid-template-columns:minmax(0,1fr);}
+    .sorteo-info-col + .sorteo-info-col{border-left:none; padding-left:0; border-top:1px solid var(--line); margin-top:8px; padding-top:8px;}
+  }
   .sorteo-info h4:not(:first-child){margin-top:8px;}
   .sorteo-info ul{margin:0; padding-left:18px;}
   .sorteo-info li{margin:1px 0;}
@@ -1876,31 +1892,38 @@
     var semanas = data.semanas || [];
     var premios = data.premios || [];
 
+    var cols = document.createElement('div'); cols.className = 'sorteo-info-cols';
+    var colSem = document.createElement('div'); colSem.className = 'sorteo-info-col';
+    var colPre = document.createElement('div'); colPre.className = 'sorteo-info-col';
+
     var h1 = document.createElement('h4');
     h1.textContent = 'Semanas que evalúa';
-    sorteoInfo.appendChild(h1);
+    colSem.appendChild(h1);
     if (semanas.length){
       var ul1 = document.createElement('ul');
       semanas.forEach(function(t){ var li = document.createElement('li'); li.textContent = t; ul1.appendChild(li); });
-      sorteoInfo.appendChild(ul1);
+      colSem.appendChild(ul1);
     } else {
       var m1 = document.createElement('div'); m1.className = 'sorteo-info-msg';
       m1.textContent = 'Este sorteo no tiene semanas configuradas.';
-      sorteoInfo.appendChild(m1);
+      colSem.appendChild(m1);
     }
 
     var h2 = document.createElement('h4');
     h2.textContent = 'Premios';
-    sorteoInfo.appendChild(h2);
+    colPre.appendChild(h2);
     if (premios.length){
       var ul2 = document.createElement('ul');
       premios.forEach(function(t, i){ var li = document.createElement('li'); li.textContent = 'Premio ' + (i + 1) + ': ' + t; ul2.appendChild(li); });
-      sorteoInfo.appendChild(ul2);
+      colPre.appendChild(ul2);
     } else {
       var m2 = document.createElement('div'); m2.className = 'sorteo-info-msg';
       m2.textContent = 'Este sorteo no tiene premios configurados.';
-      sorteoInfo.appendChild(m2);
+      colPre.appendChild(m2);
     }
+    cols.appendChild(colSem);
+    cols.appendChild(colPre);
+    sorteoInfo.appendChild(cols);
 
     if (data.exigeWhatsapp){
       var w = document.createElement('div'); w.className = 'sorteo-info-warn';
