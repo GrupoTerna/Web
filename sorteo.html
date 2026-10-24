@@ -64,10 +64,10 @@
     padding:28px;
   }
   .app{
-    max-width:1240px;
+    max-width:1560px;
     margin:0 auto;
     display:grid;
-    grid-template-columns:minmax(0,1.35fr) minmax(320px,0.95fr);
+    grid-template-columns:minmax(0,1.25fr) minmax(380px,1fr);
     gap:24px;
     align-items:start;
   }
@@ -590,6 +590,7 @@
     font-size:13px;
     color:var(--ink);
   }
+  .setting-row[hidden]{display:none;}
   .setting-row .hint{font-size:11.5px;color:var(--ink-soft);font-weight:400;display:block;margin-top:1px;}
   .switch{
     position:relative;width:38px;height:22px;flex:0 0 auto;
@@ -768,7 +769,8 @@
     <div class="panel settings-panel">
       <div class="panel-head pf-cinta-sorteo" style="--cinta:url(assets/Im%C3%A1genes/Banners/Fankit/cinta-sorteo-reglas.webp);"><h2>Reglas del sorteo</h2></div>
       <div class="panel-body">
-        <div class="setting-row">
+        <!-- #prizeCountRow: solo se ve en modo manual (sin sorteo cargado); con un sorteo cargado la cantidad sale de sus premios (ver prizeLimit()). Historial en CHANGELOG.md. -->
+        <div class="setting-row" id="prizeCountRow">
           <span>Cantidad de premios<span class="hint" id="prizeCountHint">Cuántos ganadores tiene el sorteo hoy (0 = sin límite)</span></span>
           <input id="prizeCountInput" type="number" min="0" step="1" value="0" aria-label="Cantidad de premios" aria-describedby="prizeCountHint" style="width:56px;text-align:center;border:1px solid var(--panel-line);border-radius:8px;padding:5px 4px;font-weight:600;">
         </div>
@@ -1089,12 +1091,31 @@
   }
 
   // ---------- Winners panel ----------
+  // Cantidad de premios del sorteo cargado: la posición del último premio con texto (los vacíos al final no cuentan).
+  function premiosDelSorteoCargado(){
+    if (!sorteoActualId) return 0;
+    var n = 0;
+    for (var i = 0; i < premiosSorteo.length; i++){
+      if (String(premiosSorteo[i] == null ? '' : premiosSorteo[i]).trim()) n = i + 1;
+    }
+    return n;
+  }
+
   function prizeLimit(){
+    var delSorteo = premiosDelSorteoCargado();
+    if (delSorteo > 0) return delSorteo; // sorteo cargado: la cantidad sale de sus premios
     var n = parseInt(prizeCountInput.value, 10);
-    return (isNaN(n) || n <= 0) ? 0 : n; // 0 = sin límite
+    return (isNaN(n) || n <= 0) ? 0 : n; // 0 = sin límite (modo manual)
+  }
+
+  // La fila «Cantidad de premios» solo se muestra al ingresar miembros a mano (o si el sorteo cargado no trae premios).
+  function actualizarFilaPremios(){
+    var fila = document.getElementById('prizeCountRow');
+    if (fila) fila.hidden = premiosDelSorteoCargado() > 0;
   }
 
   function renderWinners(){
+    actualizarFilaPremios();
     winCount.textContent = winners.length;
     winnersEmpty.style.display = winners.length ? 'none' : 'block';
 
