@@ -358,6 +358,24 @@
   .qualify-box .qualify-hint{
     font-size:12px; color:var(--ink-soft); margin:0 0 10px; line-height:1.5;
   }
+  .qualify-sub{
+    display:block; font-size:12px; font-weight:600; color:var(--ink); margin:0 0 4px;
+  }
+  .qualify-select{
+    width:100%; border:1px solid var(--panel-line); border-radius:9px; padding:8px 10px;
+    font-size:13px; color:var(--ink); background:#fff; margin-bottom:10px; font-family:inherit;
+  }
+  .qualify-select:disabled{opacity:.7;}
+  .sorteo-info{
+    background:#fff; border:1px solid #E1D3FF; border-radius:10px; padding:9px 11px;
+    margin-bottom:10px; font-size:12.5px; color:var(--ink); line-height:1.5;
+  }
+  .sorteo-info h4{margin:0 0 3px; font-size:12px; font-weight:700; color:var(--ink);}
+  .sorteo-info h4:not(:first-child){margin-top:8px;}
+  .sorteo-info ul{margin:0; padding-left:18px;}
+  .sorteo-info li{margin:1px 0;}
+  .sorteo-info .sorteo-info-msg{color:var(--ink-soft);}
+  .sorteo-info .sorteo-info-warn{margin-top:8px; color:#8A6417;}
   .btn-qualify{
     background:var(--pointer); color:#fff; border:none; border-radius:10px;
     padding:9px 14px; font-size:13px; font-weight:600; cursor:pointer; width:100%;
@@ -664,7 +682,12 @@
       <div class="panel-body">
         <div class="qualify-box">
           <span class="qualify-label">Participantes calificados</span>
-          <p class="qualify-hint">Trae a quienes cumplen los requisitos del sorteo más reciente (fila de S_Lista), agrupados por clan.</p>
+          <p class="qualify-hint">Elige el sorteo y trae a quienes cumplen sus requisitos, agrupados por clan.</p>
+          <label for="sorteoSelect" class="qualify-sub">Sorteo</label>
+          <select id="sorteoSelect" class="qualify-select" disabled>
+            <option value="">Cargando sorteos…</option>
+          </select>
+          <div id="sorteoInfo" class="sorteo-info" style="display:none;" aria-live="polite"></div>
           <button type="button" id="loadQualifiedBtn" class="btn-qualify">Cargar participantes calificados</button>
           <div id="qualifyStatus" class="qualify-status"></div>
         </div>
@@ -803,6 +826,8 @@
   var winners = [];       // { id, order, pickedName, editedName, time, discarded }
 // ID (SL.ID) del sorteo al que se le atan las resoluciones que se guarden en S_Asistencia. Historial en CHANGELOG.md.
   var sorteoActualId = null;
+// premios del sorteo (columna Premios, en orden): el premio N se precarga en el ganador N (ver spin() y abrirResolucionGanador()). PF211.
+  var premiosSorteo = [];
   var currentRotation = 0;
   var attempt = 1;
   var spinning = false;
@@ -828,6 +853,8 @@
   var prizeProgress    = document.getElementById('prizeProgress');
   var loadQualifiedBtn = document.getElementById('loadQualifiedBtn');
   var qualifyStatus    = document.getElementById('qualifyStatus');
+  var sorteoSelect     = document.getElementById('sorteoSelect');
+  var sorteoInfo       = document.getElementById('sorteoInfo');
 
   function uid(){ return 'w' + Date.now() + '_' + Math.floor(Math.random()*10000); }
 
@@ -1168,7 +1195,8 @@
     var w = winners.find(function(x){ return x.id === id; });
     if (!w) return;
     winnerResolucionForm.dataset.winnerId = id;
-    document.getElementById('winnerResolucionParaTexto').textContent = 'Registrar resultado para: ' + w.editedName;
+    var idEnlazado = idSorteoEnlazado();
+    document.getElementById('winnerResolucionParaTexto').textContent = 'Registrar resultado para: ' + w.editedName + (idEnlazado ? ' · sorteo ' + idEnlazado : '');
     winnerResTag.value = w.tag || '';
     winnerResPremio.value = w.premio || '';
     winnerResTickets.value = (w.tickets !== null && w.tickets !== undefined) ? w.tickets : '';
@@ -1191,8 +1219,8 @@
     var w = winners.find(function(x){ return x.id === id; });
     if (!w) return;
 
-    if (!sorteoActualId){
-      showWinnerResGuardarStatus('No se detectó el sorteo actual. Primero usa "Cargar participantes calificados" (aunque termines sorteando a mano) para que el sistema sepa a qué sorteo atar esto.', 'err');
+    if (!idSorteoEnlazado()){
+      showWinnerResGuardarStatus('No hay un sorteo elegido. Elige uno en el desplegable de "Sorteo" para que el sistema sepa a qué sorteo atar esto.', 'err');
       return;
     }
 
@@ -1244,7 +1272,7 @@
       body: JSON.stringify({
         sessionToken: token,
         datos: {
-          idSorteo: sorteoActualId,
+          idSorteo: idSorteoEnlazado(),
           tag: tag,
           nombre: w.editedName,
           premio: premio,
@@ -1360,7 +1388,7 @@
 // se propaga el tag/clan del participante calificado (si vino de "Cargar participantes calificados") -- ver loadQualifiedParticipants() más arriba. Historial en CHANGELOG.md.
           tag: slice.participant.tag || null,
           clan: slice.participant.clan || null,
-          premio: '',
+          premio: premiosSorteo[winners.length] || '',
 // se propaga el peso real con el que este participante entró a la ruleta (mismo `weight` que ya usa pickWeightedIndex() para la probabilidad) -- sugerido en el campo Tickets del formulario de resolución (ver abrirResolucionGanador()), pero editable a mano antes… Historial en CHANGELOG.md.
           tickets: (typeof pesoOriginalGiro === 'number' && pesoOriginalGiro > 0)
             ? pesoOriginalGiro : null,
@@ -1546,7 +1574,8 @@
 
 // ---------- Carga de participantes calificados (FASE 8, 30-ago-2026) ---------- Trae, desde el backend, quienes cumplen los requisitos vigentes del sorteo (fila más reciente de S_Lista) y REEMPLAZA la lista actual con esa selección, agrupada por clan. Si algo…
   function showQualifyStatus(msg, kind){
-    qualifyStatus.textContent = msg;
+    // esta caja se ve en la transmisión: el nombre interno de la hoja no se muestra (PF211)
+    qualifyStatus.textContent = String(msg || '').replace(/S_Lista/g, 'la lista de sorteos');
     qualifyStatus.className = 'qualify-status ' + kind;
   }
 
@@ -1562,6 +1591,7 @@
     showQualifyStatus('Buscando participantes calificados…', 'ok');
 
     var url = WEBAPP_URL + '?accion=webSorteoCalificados&sessionToken=' + encodeURIComponent(token);
+    if (sorteoSelect.value) url += '&idSorteo=' + encodeURIComponent(sorteoSelect.value);
 
     fetch(url, { cache: 'no-store' })
       .then(function(res){ return res.json(); })
@@ -1605,9 +1635,12 @@
         participants = nuevos;
 // se guarda el ID del sorteo (S_Lista) que devolvió el backend -- hace falta para poder guardar después cualquier resolución de ganador en S_Asistencia (ver guardarResolucionGanador() más abajo). Historial en CHANGELOG.md.
         sorteoActualId = data.idSorteo || null;
+        premiosSorteo = data.premios || [];
+        if (sorteoActualId && sorteoActualId !== sorteoSelect.value) sorteoSelect.value = sorteoActualId;
+        renderSorteoInfo(data);
         renderParticipants(); renderWinners(); renderWheel();
 
-        showQualifyStatus('Se cargaron ' + nuevos.length + ' participante(s) calificado(s) de ' + totalClanes + ' clan(es) (temporada ' + data.temporada + ').', 'ok');
+        showQualifyStatus('Se cargaron ' + nuevos.length + ' participante(s) calificado(s) de ' + totalClanes + ' clan(es) del sorteo ' + (data.idSorteo || '') + '.', 'ok');
         var warnPrevio = qualifyStatus.parentNode.querySelector('.qualify-status.warn');
         if (warnPrevio) warnPrevio.remove();
         if (data.avisoReaccion){
@@ -1623,6 +1656,124 @@
         showQualifyStatus('Error de conexión al buscar calificados. Agrega participantes a mano mientras tanto.', 'err');
       });
   }
+
+  // ---------- Selector de sorteo (PF211, 24-oct-2026) ---------- Lista los sorteos (webAdminVigenteListar, del más reciente al más antiguo), deja elegido el más reciente y, al elegir, muestra premios, semanas que evalúa y si exige WhatsApp (webSorteoCalificados con soloInfo=1, sin tocar la ruleta). El sorteo que se usa es el del desplegable.
+  var infoReqSeq = 0;
+
+  // sorteo al que se atan las resoluciones: el de la ruleta cargada y, si todavía no se cargó nada (se sortea a mano), el elegido en el desplegable.
+  function idSorteoEnlazado(){
+    return sorteoActualId || sorteoSelect.value || null;
+  }
+
+  function renderSorteoInfo(data){
+    sorteoInfo.innerHTML = '';
+    var semanas = data.semanas || [];
+    var premios = data.premios || [];
+
+    var h1 = document.createElement('h4');
+    h1.textContent = 'Semanas que evalúa';
+    sorteoInfo.appendChild(h1);
+    if (semanas.length){
+      var ul1 = document.createElement('ul');
+      semanas.forEach(function(t){ var li = document.createElement('li'); li.textContent = t; ul1.appendChild(li); });
+      sorteoInfo.appendChild(ul1);
+    } else {
+      var m1 = document.createElement('div'); m1.className = 'sorteo-info-msg';
+      m1.textContent = 'Este sorteo no tiene semanas configuradas.';
+      sorteoInfo.appendChild(m1);
+    }
+
+    var h2 = document.createElement('h4');
+    h2.textContent = 'Premios';
+    sorteoInfo.appendChild(h2);
+    if (premios.length){
+      var ul2 = document.createElement('ul');
+      premios.forEach(function(t, i){ var li = document.createElement('li'); li.textContent = 'Premio ' + (i + 1) + ': ' + t; ul2.appendChild(li); });
+      sorteoInfo.appendChild(ul2);
+    } else {
+      var m2 = document.createElement('div'); m2.className = 'sorteo-info-msg';
+      m2.textContent = 'Este sorteo no tiene premios configurados.';
+      sorteoInfo.appendChild(m2);
+    }
+
+    if (data.exigeWhatsapp){
+      var w = document.createElement('div'); w.className = 'sorteo-info-warn';
+      w.textContent = '⚠️ Este sorteo exige estar en el grupo de WhatsApp. No se puede verificar solo: cotéjalo con cada ganador y, si no está, elige «No está en el grupo de WhatsApp» al gestionarlo.';
+      sorteoInfo.appendChild(w);
+    }
+    sorteoInfo.style.display = 'block';
+  }
+
+  function mostrarMensajeSorteoInfo(msg){
+    sorteoInfo.innerHTML = '';
+    var m = document.createElement('div'); m.className = 'sorteo-info-msg'; m.textContent = msg;
+    sorteoInfo.appendChild(m);
+    sorteoInfo.style.display = 'block';
+  }
+
+  function cargarInfoSorteoElegido(){
+    var id = sorteoSelect.value;
+    var token = localStorage.getItem(SESSION_KEY_SORTEO);
+    if (!id || !token) return;
+    var miReq = ++infoReqSeq;
+    mostrarMensajeSorteoInfo('Buscando los datos del sorteo…');
+    var url = WEBAPP_URL + '?accion=webSorteoCalificados&soloInfo=1&idSorteo=' + encodeURIComponent(id) + '&sessionToken=' + encodeURIComponent(token);
+    fetch(url, { cache: 'no-store' })
+      .then(function(res){ return res.json(); })
+      .then(function(data){
+        if (miReq !== infoReqSeq) return; // se eligió otro sorteo mientras tanto
+        if (!data || !data.ok){
+          mostrarMensajeSorteoInfo(String((data && data.error) || 'No se pudieron leer los datos del sorteo.').replace(/S_Lista/g, 'la lista de sorteos'));
+          return;
+        }
+        renderSorteoInfo(data);
+        // si todavía no hay ruleta cargada, los premios de este sorteo ya quedan listos para precargarse
+        if (!sorteoActualId) premiosSorteo = data.premios || [];
+      })
+      .catch(function(){
+        if (miReq !== infoReqSeq) return;
+        mostrarMensajeSorteoInfo('Error de conexión al leer los datos del sorteo.');
+      });
+  }
+
+  function cargarListaSorteos(){
+    var token = localStorage.getItem(SESSION_KEY_SORTEO);
+    if (!token){
+      sorteoSelect.innerHTML = '<option value="">Sin sesión de admin</option>';
+      return;
+    }
+    var url = WEBAPP_URL + '?accion=webAdminVigenteListar&categoria=Sorteo&sessionToken=' + encodeURIComponent(token);
+    fetch(url, { cache: 'no-store' })
+      .then(function(res){ return res.json(); })
+      .then(function(data){
+        if (!data || !data.ok || !data.registros || !data.registros.length){
+          sorteoSelect.innerHTML = '<option value="">No hay sorteos registrados</option>';
+          return;
+        }
+        sorteoSelect.innerHTML = '';
+        data.registros.forEach(function(r){
+          var op = document.createElement('option');
+          op.value = r.id;
+          op.textContent = r.id + ' · ' + r.fechaTxt + (r.organizador ? ' · ' + r.organizador : '') + (r.id === data.vigenteActual ? ' (vigente)' : '');
+          sorteoSelect.appendChild(op);
+        });
+        sorteoSelect.value = data.registros[0].id; // el más reciente por fecha
+        sorteoSelect.disabled = false;
+        cargarInfoSorteoElegido();
+      })
+      .catch(function(){
+        sorteoSelect.innerHTML = '<option value="">No se pudo cargar la lista de sorteos</option>';
+      });
+  }
+
+  sorteoSelect.addEventListener('change', function(){
+    cargarInfoSorteoElegido();
+    if (sorteoActualId && sorteoActualId !== sorteoSelect.value){
+      showQualifyStatus('La ruleta sigue cargada con el sorteo ' + sorteoActualId + '. Pulsa «Cargar participantes calificados» para usar el sorteo elegido.', 'warn');
+    } else {
+      showQualifyStatus('', '');
+    }
+  });
 
   // ---------- Wire up events ----------
   document.getElementById('addBtn').addEventListener('click', function(){
@@ -1678,6 +1829,7 @@
   renderWinners();
   renderWheel();
   updateAttemptUI();
+  cargarListaSorteos();
 })();
 </script>
 </body>

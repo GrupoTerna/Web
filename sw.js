@@ -220,7 +220,8 @@
 // v166 (24-oct-2026): guerra.html cambió (CORE_ASSETS) -- el bloque del pronóstico sigue al día elegido en Jue–Dom: en un día ya jugado muestra el resultado de ese día de cada clan y su título ya no dice «de hoy» (§PF203).
 // v167 (24-oct-2026): sorteo.html cambió (CORE_ASSETS) -- en la ruleta los nombres quedan pegados al borde exterior y el centro muestra el escudo de la Familia Terna (§PF210).
 // v168 (24-oct-2026): sorteo.html cambió (CORE_ASSETS) -- el escudo del centro de la ruleta queda centrado y la ruleta es más grande (hasta 560 px según el espacio y la altura de la pantalla; §PF210).
-const CACHE_NAME = 'terna-static-v168';
+// v169 (24-oct-2026): sorteo.html cambió (CORE_ASSETS) -- desplegable de sorteo con semanas y premios, y premio precargado en cada ganador (§PF211).
+const CACHE_NAME = 'terna-static-v169';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
