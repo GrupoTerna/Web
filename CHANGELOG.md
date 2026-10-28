@@ -63,6 +63,7 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 
 ## 28-oct-2026
 
+- **`admin.html` (texto de ayuda de la rama «verificar» de cambio de rango) · Ya no dice «No escribe nada».** Ahora avisa que marca «Realizado» las propuestas que el Directorio ya muestra cumplidas. PF286.
 - **`admin.html` (`cargarVerificacionCR()`, `_resultadoVerificacionCR()` y `_detalleRequisitosCR()`; dos comentarios con voseo corregidos) y `test/cambio-rango-verificar-dom.test.js` · La rama «verificar» marca «Realizado» sola y explica también Degradación y Expulsión.** Ahora pide `webCRListaVerificarYMarcar` (POST), lista lo marcado al verificar, muestra la nota del backend en las pendientes y junta «No cumplía» (requisitos de Descenso y Min_G) con la nota; pruebas adaptadas y 2 nuevas. PF286.
 - **`admin.html` (`#crVerificarPar`, `_llenarSelectorVerificarCR()` y `cargarVerificacionCR()` con `idAscenso`) y `test/cambio-rango-verificar-dom.test.js` · Selector «Corrida a verificar» en la rama «verificar» de cambio de rango.** Elige el par de `CR_Lista` cuya corrida se verifica (por defecto, la más reciente con propuestas) con los pares que trae `webCRListaVerificar`; 2 pruebas nuevas. PF286.
 - **`admin.html` (`_detalleRequisitosCR()`, usada en `_resultadoVerificacionCR()`) y `test/cambio-rango-verificar-dom.test.js` · «Aplicados de forma excepcional» muestra el requisito de Ascenso que no cumplió cada cambio sin propuesta.** Agrega «No cumplía: …» (o la nota de por qué no se pudo evaluar) bajo el motivo; 1 prueba nueva. PF286.
