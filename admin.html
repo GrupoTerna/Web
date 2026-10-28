@@ -6425,6 +6425,17 @@ function _cambioVerificacionCR(x){
   return esc(x.tipo) + ((x.rango && x.rango2) ? ' de ' + esc(x.rango) + ' a ' + esc(x.rango2) : '');
 }
 
+/**
+ * _detalleRequisitosCR(x) [→ Contexto_Base_Web.md §PF286]
+ * Texto bajo el motivo de un cambio aplicado sin propuesta: los requisitos de Ascenso que la cuenta no cumplió (`x.incumple`, con el par, rol y clan contra los que se evaluó en `x.evaluadoContra`), o la nota de por qué no se pudo evaluar o no hay nada que mostrar (`x.requisitoNota`).
+ */
+function _detalleRequisitosCR(x){
+  if(Array.isArray(x.incumple) && x.incumple.length){
+    return `<div style="margin-top:4px;"><strong>No cumplía:</strong> ${x.incumple.map(esc).join('; ')}.${x.evaluadoContra ? ` <span class="text-dim">(${esc(x.evaluadoContra)})</span>` : ''}</div>`;
+  }
+  return x.requisitoNota ? `<div class="text-dim" style="margin-top:4px;">${esc(x.requisitoNota)}</div>` : '';
+}
+
 function _tablaVerificacionCR(titulo, items, columnaExtra, valorExtra){
   if(!items || !items.length) return '';
   return `<div class="cat-titulo" style="margin:14px 0 6px;">${esc(titulo)} (${items.length})</div>
@@ -6448,7 +6459,7 @@ function _resultadoVerificacionCR(d){
   const tablaFalta = _tablaVerificacionCR('Falta aplicar', d.pendientes, 'Nota', x => x.confirmaManual
     ? 'No se marca sola: cuando se aplique, márcala «Realizado» a mano en Historial_A/D.'
     : 'Se marca «Realizado» sola cuando el sistema detecta el cambio.');
-  const tablaExc = _tablaVerificacionCR('Aplicados de forma excepcional', d.excepcionales, 'Motivo', x => esc(x.motivo));
+  const tablaExc = _tablaVerificacionCR('Aplicados de forma excepcional', d.excepcionales, 'Motivo', x => esc(x.motivo) + _detalleRequisitosCR(x));
   const tablaOk = d.aplicadas.length
     ? `<details class="admin-subseccion" style="margin-top:14px;"><summary><span class="cat-titulo">Aplicados conforme a la propuesta (${d.aplicadas.length})</span></summary><div class="admin-subseccion-body">${_tablaVerificacionCR('Aplicados', d.aplicadas, 'Estado', () => 'Realizado')}</div></details>`
     : '';

@@ -120,6 +120,22 @@ test('PF286 11 (c): lo pendiente y lo aplicado sin propuesta se listan con su no
   assert.equal($(w, 'crVerificarResultado').querySelector('.msg-ok'), null);
 });
 
+test('PF286: el cambio sin propuesta muestra el requisito de Ascenso que no cumplió, o por qué no se pudo evaluar', async () => {
+  const w = montar(Object.assign({}, BASE, {
+    excepcionales: [
+      ITEM({ tag: '#4', nombre: 'Rara', motivo: 'No tenía propuesta en la corrida.', incumple: ['Medallas 850 (se pide 1000)', 'Ataques 12 (se pide 16)'], evaluadoContra: 'Ascenso A_05_S_01_N_01, Miembro de Terna' }),
+      ITEM({ tag: '#5', nombre: 'Otra', motivo: 'No tenía propuesta en la corrida.', requisitoNota: 'No se pudo evaluar: las semanas del par todavía no terminan.' }),
+      ITEM({ tag: '#6', nombre: '<i>x</i>', motivo: 'm', incumple: ['<b>Medallas</b>'] })
+    ]
+  }));
+  await verificar(w);
+  const res = $(w, 'crVerificarResultado');
+  assert.match(res.textContent, /No cumplía: Medallas 850 \(se pide 1000\); Ataques 12 \(se pide 16\)\./);
+  assert.match(res.textContent, /Ascenso A_05_S_01_N_01, Miembro de Terna/);
+  assert.match(res.textContent, /No se pudo evaluar: las semanas del par todavía no terminan\./);
+  assert.equal(res.querySelector('b'), null, 'el texto del backend se escapa');
+});
+
 test('PF286 11 (c): si todo coincide lo dice y no muestra tablas de problemas', async () => {
   const w = montar(Object.assign({}, BASE, { aplicadas: [ITEM()], propuestasN: 1 }));
   await verificar(w);
