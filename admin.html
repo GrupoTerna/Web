@@ -1197,6 +1197,8 @@
                   <option value="modificar">Editar corrida existente</option>
                   <!-- Tercera opción del wizard: "Ver propuestas" de una corrida ya existente, sin precargar el formulario completo. -->
                   <option value="ver">Ver propuestas de una corrida</option>
+                  <!-- Cuarta opción: «Verificar» un cambio de rango ya aplicado, sin registrar, editar ni planificar (PF286 punto 11 (c)). -->
+                  <option value="verificar">Verificar un cambio de rango aplicado</option>
                 </select>
               </div>
               <button type="button" class="btn btn-primary btn-block" id="btnCrPaso1" style="margin-top:6px;">Continuar</button>
@@ -1216,6 +1218,14 @@
               </div>
 
               <div id="crPaso2Msg" class="text-dim" style="font-size:13px; margin-top:10px;"></div>
+
+              <!-- Rama «verificar» (PF286 punto 11 (c)): compara las propuestas de la corrida más reciente con lo realmente aplicado en Historial_A/D. Solo lee; no escribe nada. -->
+              <div id="crVerificarBox" style="display:none; margin-top:10px;">
+                <p class="text-dim" style="font-size:13px; margin:0 0 10px;">Compara las propuestas de la corrida más reciente de Historial_A/D con los cambios realmente aplicados y avisa si falta aplicar algo o si se aplicó algo que no estaba propuesto. No escribe nada.</p>
+                <button type="button" class="btn btn-ghost" id="btnCrVerificar">↻ Volver a verificar</button>
+                <div id="crVerificarMsg" style="margin-top:10px;"></div>
+                <div id="crVerificarResultado" style="margin-top:10px;"></div>
+              </div>
 
               <!-- Cambio de rango, Paso 3: campos comunes a Ascenso y Descenso (Fecha, Hora, Semanas, Organizador, Comentario). Historial en CHANGELOG.md. -->
               <div id="crPaso3" style="display:none; margin-top:14px; padding-top:14px; border-top:1px solid var(--line);">
@@ -6351,7 +6361,18 @@ document.getElementById('btnCrPaso1').addEventListener('click', async () => {
   document.getElementById('crPaso3').style.display = 'none';
   actualizarTextoPropuestasSinGuardar();
 
-  if(accion === 'modificar' || accion === 'ver'){
+  // Verificar (PF286 punto 11 (c)): no usa selector de corrida ni formulario; muestra el bloque de verificación y lo carga de una vez.
+  const esVerificarCR = (accion === 'verificar');
+  document.getElementById('crVerificarBox').style.display = esVerificarCR ? '' : 'none';
+  document.getElementById('crPropuestasBloque').style.display = esVerificarCR ? 'none' : '';
+  if(esVerificarCR){
+    document.getElementById('crSelectorParBox').style.display = 'none';
+    document.getElementById('crPrecargarUltimoBox').style.display = 'none';
+    crIdExistenteActual = '';
+    crIdDescensoActual = '';
+    actualizarVisibilidadPropuestasCR();
+    cargarVerificacionCR();
+  }else if(accion === 'modificar' || accion === 'ver'){
     // NUEVO (16-sep-2026): "ver" reusa el MISMO selector de pares que
     // "modificar" (mismo cargarCRListaPares(), mismo #crSelectPar) -- lo
     // único que cambia es qué pasa al elegir una corrida, ver el listener
@@ -6381,12 +6402,76 @@ document.getElementById('crVolverPaso1').addEventListener('click', (e) => {
   document.getElementById('crPrecargarUltimoBox').style.display = 'none';
   document.getElementById('crPaso3').style.display = 'none';
   document.getElementById('crPaso2Msg').innerHTML = '';
+  document.getElementById('crVerificarBox').style.display = 'none';
+  document.getElementById('crPropuestasBloque').style.display = '';
   document.getElementById('crSelectPar').value = '';
   crIdExistenteActual = '';
   crIdDescensoActual = '';
   actualizarVisibilidadPropuestasCR();
   document.getElementById('crAccion').focus(); // #crPaso2 (donde estaba el foco) se acaba de ocultar
 });
+
+/**
+ * Rama «verificar» de Cambio de rango (PF286 punto 11 (c), 28-oct-2026; pedido de la usuaria): para volver después de aplicar un cambio de rango
+ * sin registrar, editar ni planificar. Pide webCRListaVerificar (GET, solo lee Historial_A/D; 37_Web_API.gs y 24_Historial_Ascensos.gs del backend) y dice
+ * si falta aplicar algo (propuestas «Planificado») o si se aplicó algo que no estaba propuesto (cambios reales sin propuesta en la corrida).
+ * No vuelve a evaluar requisitos: usa lo registrado al generar las propuestas. [→ Contexto_Base_Web.md §PF286]
+ */
+function _cambioVerificacionCR(x){
+  return esc(x.tipo) + ((x.rango && x.rango2) ? ' de ' + esc(x.rango) + ' a ' + esc(x.rango2) : '');
+}
+
+function _tablaVerificacionCR(titulo, items, columnaExtra, valorExtra){
+  if(!items || !items.length) return '';
+  return `<div class="cat-titulo" style="margin:14px 0 6px;">${esc(titulo)} (${items.length})</div>
+    <div class="tabla-propuestas-cr-wrap" style="overflow-x:auto;"><table>
+    <thead><tr><th scope="col">Nombre</th><th scope="col">Tag</th><th scope="col">Clan</th><th scope="col">Cambio</th><th scope="col">Fecha</th><th scope="col">${esc(columnaExtra)}</th></tr></thead>
+    <tbody>${items.map(x => `<tr><td>${esc(x.nombre)}</td><td>${esc(x.tag)}</td><td>${esc(x.clan)}</td><td>${_cambioVerificacionCR(x)}</td><td>${esc(x.fechaTxt)}</td><td>${valorExtra(x)}</td></tr>`).join('')}</tbody>
+    </table></div>`;
+}
+
+function _resultadoVerificacionCR(d){
+  const partes = [d.temporada !== '' && d.temporada != null ? 'temporada ' + d.temporada : '', d.semana !== '' && d.semana != null ? 'semana ' + d.semana : '', d.dia !== '' && d.dia != null ? 'día ' + d.dia : ''].filter(Boolean);
+  const cuando = `${esc(d.diaTxt)}${partes.length ? ' (' + esc(partes.join(', ')) + ')' : ''}`;
+  const falta = d.pendientes.length;
+  const exc = d.excepcionales.length;
+  const conforme = (!falta && !exc);
+  const resumen = `<div class="text-dim" style="font-size:12px;">Corrida más reciente de propuestas: ${cuando}. ${esc(d.propuestasN)} propuesta(s): ${esc(d.aplicadas.length)} aplicada(s) y ${esc(falta)} por aplicar. Cambios aplicados sin propuesta desde esa fecha: ${esc(exc)}.</div>`;
+  const estado = conforme
+    ? '<div class="msg msg-ok" style="margin-top:10px;">Todo coincide: no falta aplicar nada y no hay cambios aplicados fuera de las propuestas.</div>'
+    : `<div class="msg msg-error" style="margin-top:10px;">${falta ? `Falta aplicar ${esc(falta)} propuesta(s). ` : ''}${exc ? `${esc(exc)} cambio(s) se aplicaron sin estar propuestos (no figuraban entre los calificados).` : ''}</div>`;
+  const tablaFalta = _tablaVerificacionCR('Falta aplicar', d.pendientes, 'Nota', x => x.confirmaManual
+    ? 'No se marca sola: cuando se aplique, márcala «Realizado» a mano en Historial_A/D.'
+    : 'Se marca «Realizado» sola cuando el sistema detecta el cambio.');
+  const tablaExc = _tablaVerificacionCR('Aplicados de forma excepcional', d.excepcionales, 'Motivo', x => esc(x.motivo));
+  const tablaOk = d.aplicadas.length
+    ? `<details class="admin-subseccion" style="margin-top:14px;"><summary><span class="cat-titulo">Aplicados conforme a la propuesta (${d.aplicadas.length})</span></summary><div class="admin-subseccion-body">${_tablaVerificacionCR('Aplicados', d.aplicadas, 'Estado', () => 'Realizado')}</div></details>`
+    : '';
+  return resumen + estado + tablaFalta + tablaExc + tablaOk;
+}
+
+async function cargarVerificacionCR(){
+  const msgEl = document.getElementById('crVerificarMsg');
+  const resEl = document.getElementById('crVerificarResultado');
+  msgEl.innerHTML = '<div class="text-dim">Verificando…</div>';
+  resEl.innerHTML = '';
+  try{
+    const data = await apiGetAuth('webCRListaVerificar', {});
+    if(manejarRespuestaAuth(data)) return;
+    if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
+    msgEl.innerHTML = '';
+    if(!data.hayCorrida){
+      resEl.innerHTML = '<div class="empty">Todavía no hay propuestas de cambio de rango en Historial_A/D: no hay nada que verificar.</div>';
+      return;
+    }
+    resEl.innerHTML = _resultadoVerificacionCR(data);
+    resEl.querySelectorAll('.tabla-propuestas-cr-wrap').forEach(w => activarBarraScrollTabla(w));
+  }catch(err){
+    msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
+  }
+}
+
+document.getElementById('btnCrVerificar').addEventListener('click', () => conBotonOcupado(document.getElementById('btnCrVerificar'), cargarVerificacionCR));
 
 /**
  * seleccionarCorridaParaVerPropuestas(idAscenso)
