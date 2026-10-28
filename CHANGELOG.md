@@ -63,6 +63,7 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 
 ## 28-oct-2026
 
+- **`admin.html` (control «Cambio de rango vigente» al inicio de `#panelCambioRangoAccion`; `cargarVigenteCR()` y `guardarVigenteCR()`) · El par vigente de cambio de rango se puede fijar o limpiar desde la web.** Desplegable gemelo de «Torneo vigente» y «Sorteo vigente» que usa `webAdminVigenteListar` y `webAdminVigenteGuardar` con la categoría `CambioRango`: lista los pares de `CR_Lista` (los incompletos salen deshabilitados), preselecciona el vigente y, al guardar, actualiza los documentos de cambio de rango y avisa si no pudo. Sin cambio de `sw.js` (`admin.html` no se precachea). Requiere `Backend` commit `b14f143` y correr `subirBaseDesdeGithub()`. Sin probar en Apps Script real. [→ `Contexto_Base_Web.md` `§PF286`]
 - **`admin.html` (`etiquetaParCR()` y `claveCR` de la carga de pares de «Cambio de rango»; comentario de `etiquetaParCR()`) · Los ids de cambio de rango se leen en el formato anterior y en el nuevo.** Las dos expresiones regulares aceptan `A_005_1_01` y `A_05_S_01_N_01` (formato `L_TT_S_SS_N_NN` de `Backend`, PF286) y dan la misma clave de orden; antes el formato nuevo habría salido como el id crudo y al final de la lista. No cambia `sw.js`: `admin.html` no está en `CORE_ASSETS`. Probado en Node con ambos formatos; sin probar en navegador real. → `Contexto_Base_Web.md` §PF286 (punto 19)
 
 ## 24-oct-2026

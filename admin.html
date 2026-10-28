@@ -1171,6 +1171,22 @@
           <!-- Panel del tercer tab (Cambio de Rango). -->
           <div id="panelCambioRangoAccion" style="display:none;">
 
+            <!-- Gemelo de «Torneo vigente» y «Sorteo vigente», pero para el par Ascenso/Descenso de Extra (PF286). -->
+            <details class="admin-subseccion" style="margin-bottom:14px;">
+              <summary><span class="cat-titulo">Cambio de rango vigente</span></summary>
+              <div class="admin-subseccion-body">
+                <p class="text-dim" style="font-size:13px; margin:0 0 14px;">Define qué par de Ascenso y Descenso usan los documentos de cambio de rango (cambios aplicados, calificados y no calificados) y los mínimos de G que se leen de él. Al guardar, los documentos se actualizan. «Ninguno» deja de actualizarlos hasta que fijes otro par. Al comenzar una temporada, el sistema crea un par nuevo y lo deja como vigente.</p>
+                <div class="field">
+                  <label for="vigenteCRSelect">Par vigente</label>
+                  <select id="vigenteCRSelect">
+                    <option value="">Cargando…</option>
+                  </select>
+                </div>
+                <button type="button" class="btn btn-primary" id="btnGuardarVigenteCR" style="margin-top:6px;">Guardar</button>
+                <div id="vigenteCRMsg" style="margin-top:8px;"></div>
+              </div>
+            </details>
+
             <!-- Wizard de Cambio de Rango: Registrar o Editar corrida (sin tercer paso de "tipo" como Torneos). -->
             <div id="crPaso1">
               <div class="field">
@@ -6877,6 +6893,76 @@ document.getElementById('vigenteSorteoSelect').closest('details').addEventListen
   if(this.open && !vigenteSorteoCargado){ vigenteSorteoCargado = true; cargarVigente('Sorteo'); }
 });
 document.getElementById('btnGuardarVigenteSorteo').addEventListener('click', () => guardarVigente('Sorteo'));
+
+/**
+ * cargarVigenteCR() / guardarVigenteCR()
+ * NUEVO (28-oct-2026, PF286 punto 11 (d), pedido de la usuaria): control web del
+ * par vigente de cambio de rango (Extra!Ascenso_Vigente_ID y Descenso_Vigente_ID;
+ * #vigenteCRSelect en el HTML). Usa los mismos endpoints que «Torneo vigente» y
+ * «Sorteo vigente» con la categoría 'CambioRango': webAdminVigenteListar devuelve
+ * los pares (los mismos de webCRListaListar) y el id del Ascenso vigente;
+ * webAdminVigenteGuardar recibe el id del Ascenso (el del Descenso se deduce) y
+ * actualiza los documentos de cambio de rango. Los pares incompletos (sin fila de
+ * Descenso) salen deshabilitados. A diferencia de Torneo y Sorteo, la lista se pide
+ * cada vez que se abre el desplegable, porque los pares nuevos se registran en
+ * este mismo panel.
+ */
+async function cargarVigenteCR(){
+  const sel = document.getElementById('vigenteCRSelect');
+  sel.innerHTML = '<option value="">Cargando…</option>';
+  try{
+    const data = await apiGetAuth('webAdminVigenteListar', { categoria: 'CambioRango' });
+    if(manejarRespuestaAuth(data)) return;
+    if(!data.ok){
+      sel.innerHTML = '<option value="">Error al cargar — reintenta</option>';
+      return;
+    }
+    const clave = p => { const m = String(p.idAscenso || '').match(/^[AD]_(\d+)_(?:S_)?(\d+)_(?:N_)?(\d+)$/); return m ? Number(m[1]) * 1e6 + Number(m[2]) * 1e3 + Number(m[3]) : -1; };
+    const pares = (data.pares || []).slice().sort((a, b) => clave(b) - clave(a));
+    const actual = data.vigenteActual || '';
+    const opciones = ['<option value="">Ninguno (los documentos no se actualizan)</option>']
+      .concat(pares.map(p => {
+        const incompleto = !p.existeDescenso;
+        return `<option value="${esc(p.idAscenso)}"${incompleto ? ' disabled' : ''}>${esc(etiquetaParCR(p))}${incompleto ? ' (incompleto: falta el Descenso)' : ''}</option>`;
+      }));
+    if(actual && !pares.some(p => p.idAscenso === actual)){
+      opciones.push(`<option value="${esc(actual)}">Par actual: ${esc(actual)} (no figura en CR_Lista)</option>`);
+    }
+    sel.innerHTML = opciones.join('');
+    sel.value = actual;
+  }catch(err){
+    sel.innerHTML = '<option value="">Error al cargar — reintenta</option>';
+  }
+}
+
+async function guardarVigenteCR(){
+  const sel = document.getElementById('vigenteCRSelect');
+  const msgEl = document.getElementById('vigenteCRMsg');
+  const id = sel.value;
+  msgEl.innerHTML = '<div class="text-dim">Guardando y actualizando los documentos…</div>';
+  try{
+    const data = await apiPost('webAdminVigenteGuardar', {
+      sessionToken: localStorage.getItem(SESSION_KEY),
+      categoria: 'CambioRango', id
+    });
+    if(manejarRespuestaAuth(data)) return;
+    if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
+    if(!id){
+      msgEl.innerHTML = '<div class="msg msg-ok">Limpiado — los documentos de cambio de rango no se actualizan hasta que fijes un par.</div>';
+    }else if(data.docsActualizados){
+      msgEl.innerHTML = '<div class="msg msg-ok">Guardado. Los documentos de cambio de rango se actualizaron.</div>';
+    }else{
+      msgEl.innerHTML = '<div class="msg msg-ok">Guardado, pero los documentos no se pudieron actualizar ahora; se actualizarán en la próxima corrida automática.</div>';
+    }
+  }catch(err){
+    msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
+  }
+}
+
+document.getElementById('vigenteCRSelect').closest('details').addEventListener('toggle', function(){
+  if(this.open) cargarVigenteCR();
+});
+document.getElementById('btnGuardarVigenteCR').addEventListener('click', guardarVigenteCR);
 
 /**
  * FIX (08-sep-2026, pedido usuario): toggle horizontal Torneos/Sorteos de
