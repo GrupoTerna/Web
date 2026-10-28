@@ -41,6 +41,7 @@ const CUERPO = `<!doctype html><html><body>
     <div id="crSelectorParBox" style="display:none"><select id="crSelectPar"><option value="">Elige…</option></select></div>
     <div id="crPaso2Msg"></div>
     <div id="crVerificarBox" style="display:none">
+      <select id="crVerificarPar"><option value="">La más reciente con propuestas</option></select>
       <button id="btnCrVerificar">Volver a verificar</button>
       <div id="crVerificarMsg"></div><div id="crVerificarResultado"></div>
     </div>
@@ -66,6 +67,7 @@ function montar(respuesta){
     function cargarCRListaPares(){}
     async function limpiarFormularioCR(){}
     function manejarRespuestaAuth(){ return false; }
+    function etiquetaParCR(p){ return 'Corrida ' + p.idAscenso; }
     function activarBarraScrollTabla(){}
     async function conBotonOcupado(btn, fn){ await fn(); }
     async function apiGetAuth(accion, params){ window.__pedidos.push({ accion, params }); if(window.__fallar) throw new Error(window.__fallar); return window.__respuesta; }
@@ -168,4 +170,34 @@ test('PF286 11 (c): «Volver a verificar» repite el pedido y volver o elegir ot
   assert.equal(visible(w, 'crPropuestasBloque'), true);
   assert.equal(visible(w, 'crSelectorParBox'), true, '«Ver propuestas» sigue usando el selector de corrida');
   assert.equal(w.__pedidos.length, 2, 'las otras ramas no piden la verificación');
+});
+
+test('PF286: el selector de corrida se llena con los pares de la respuesta y elegir uno pide esa corrida', async () => {
+  const pares = [{ idAscenso: 'A_05_S_02_N_01' }, { idAscenso: 'A_05_S_01_N_01' }];
+  const w = montar(Object.assign({}, BASE, { parId: 'A_05_S_02_N_01', pares }));
+  await verificar(w);
+  const sel = $(w, 'crVerificarPar');
+  assert.equal(sel.options.length, 3, 'la opción por defecto y los dos pares');
+  assert.equal(sel.value, '', 'por defecto sigue pidiendo la corrida más reciente');
+  assert.match($(w, 'crVerificarResultado').textContent, /Corrida A_05_S_02_N_01 · Propuestas del 27\/10\/2026/, 'el resumen dice qué corrida se verificó');
+
+  sel.value = 'A_05_S_01_N_01';
+  sel.dispatchEvent(new w.Event('change'));
+  await esperar();
+  assert.equal(JSON.stringify(w.__pedidos[1]), JSON.stringify({ accion: 'webCRListaVerificar', params: { idAscenso: 'A_05_S_01_N_01' } }));
+  assert.equal(sel.value, 'A_05_S_01_N_01', 'conserva la corrida elegida al volver a llenar el selector');
+});
+
+test('PF286: una corrida elegida sin propuestas lo dice, y volver a entrar restablece la más reciente', async () => {
+  const w = montar({ ok: true, hayCorrida: false, parId: 'A_05_S_01_N_01', pares: [{ idAscenso: 'A_05_S_01_N_01' }], diaTxt: '', temporada: '', semana: '', dia: '', propuestasN: 0, aplicadas: [], pendientes: [], excepcionales: [] });
+  await verificar(w);
+  const sel = $(w, 'crVerificarPar');
+  sel.value = 'A_05_S_01_N_01';
+  sel.dispatchEvent(new w.Event('change'));
+  await esperar();
+  assert.match($(w, 'crVerificarResultado').textContent, /Esa corrida no tiene propuestas/);
+
+  $(w, 'crVolverPaso1').click();
+  await verificar(w);
+  assert.equal(sel.value, '', 'al entrar otra vez vuelve a la corrida más reciente');
 });

@@ -1221,7 +1221,9 @@
 
               <!-- Rama «verificar» (PF286 punto 11 (c)): compara las propuestas de la corrida más reciente con lo realmente aplicado en Historial_A/D. Solo lee; no escribe nada. -->
               <div id="crVerificarBox" style="display:none; margin-top:10px;">
-                <p class="text-dim" style="font-size:13px; margin:0 0 10px;">Compara las propuestas de la corrida más reciente de Historial_A/D con los cambios realmente aplicados y avisa si falta aplicar algo o si se aplicó algo que no estaba propuesto. No escribe nada.</p>
+                <p class="text-dim" style="font-size:13px; margin:0 0 10px;">Compara las propuestas de una corrida de Historial_A/D con los cambios realmente aplicados y avisa si falta aplicar algo o si se aplicó algo que no estaba propuesto. No escribe nada.</p>
+                <label for="crVerificarPar" class="text-dim" style="font-size:13px; display:block; margin-bottom:4px;">Corrida a verificar</label>
+                <select id="crVerificarPar" style="max-width:100%; margin-bottom:10px;"><option value="">La más reciente con propuestas</option></select>
                 <button type="button" class="btn btn-ghost" id="btnCrVerificar">↻ Volver a verificar</button>
                 <div id="crVerificarMsg" style="margin-top:10px;"></div>
                 <div id="crVerificarResultado" style="margin-top:10px;"></div>
@@ -6370,6 +6372,8 @@ document.getElementById('btnCrPaso1').addEventListener('click', async () => {
     document.getElementById('crPrecargarUltimoBox').style.display = 'none';
     crIdExistenteActual = '';
     crIdDescensoActual = '';
+    const selParVerificar = document.getElementById('crVerificarPar');
+    if(selParVerificar) selParVerificar.value = ''; // al entrar se verifica la corrida más reciente
     actualizarVisibilidadPropuestasCR();
     cargarVerificacionCR();
   }else if(accion === 'modificar' || accion === 'ver'){
@@ -6436,7 +6440,8 @@ function _resultadoVerificacionCR(d){
   const falta = d.pendientes.length;
   const exc = d.excepcionales.length;
   const conforme = (!falta && !exc);
-  const resumen = `<div class="text-dim" style="font-size:12px;">Corrida más reciente de propuestas: ${cuando}. ${esc(d.propuestasN)} propuesta(s): ${esc(d.aplicadas.length)} aplicada(s) y ${esc(falta)} por aplicar. Cambios aplicados sin propuesta desde esa fecha: ${esc(exc)}.</div>`;
+  const parVerificado = (d.pares || []).find(p => p.idAscenso === d.parId);
+  const resumen = `<div class="text-dim" style="font-size:12px;">${parVerificado ? esc(etiquetaParCR(parVerificado)) + ' · ' : ''}Propuestas del ${cuando}. ${esc(d.propuestasN)} propuesta(s): ${esc(d.aplicadas.length)} aplicada(s) y ${esc(falta)} por aplicar. Cambios aplicados sin propuesta desde esa fecha: ${esc(exc)}.</div>`;
   const estado = conforme
     ? '<div class="msg msg-ok" style="margin-top:10px;">Todo coincide: no falta aplicar nada y no hay cambios aplicados fuera de las propuestas.</div>'
     : `<div class="msg msg-error" style="margin-top:10px;">${falta ? `Falta aplicar ${esc(falta)} propuesta(s). ` : ''}${exc ? `${esc(exc)} cambio(s) se aplicaron sin estar propuestos (no figuraban entre los calificados).` : ''}</div>`;
@@ -6450,18 +6455,36 @@ function _resultadoVerificacionCR(d){
   return resumen + estado + tablaFalta + tablaExc + tablaOk;
 }
 
+/**
+ * _llenarSelectorVerificarCR(pares)
+ * Llena #crVerificarPar con los pares de CR_Lista que trae la respuesta de webCRListaVerificar (los mismos de «Ver propuestas»), conservando la corrida elegida.
+ */
+function _llenarSelectorVerificarCR(pares){
+  const sel = document.getElementById('crVerificarPar');
+  if(!sel || !Array.isArray(pares) || !pares.length) return;
+  const actual = sel.value;
+  sel.innerHTML = '<option value="">La más reciente con propuestas</option>' +
+    pares.map(p => `<option value="${esc(p.idAscenso)}">${esc(etiquetaParCR(p))}</option>`).join('');
+  sel.value = pares.some(p => p.idAscenso === actual) ? actual : '';
+}
+
 async function cargarVerificacionCR(){
   const msgEl = document.getElementById('crVerificarMsg');
   const resEl = document.getElementById('crVerificarResultado');
+  const selPar = document.getElementById('crVerificarPar');
+  const idElegido = selPar ? selPar.value : '';
   msgEl.innerHTML = '<div class="text-dim">Verificando…</div>';
   resEl.innerHTML = '';
   try{
-    const data = await apiGetAuth('webCRListaVerificar', {});
+    const data = await apiGetAuth('webCRListaVerificar', idElegido ? { idAscenso: idElegido } : {});
     if(manejarRespuestaAuth(data)) return;
     if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
     msgEl.innerHTML = '';
+    _llenarSelectorVerificarCR(data.pares);
     if(!data.hayCorrida){
-      resEl.innerHTML = '<div class="empty">Todavía no hay propuestas de cambio de rango en Historial_A/D: no hay nada que verificar.</div>';
+      resEl.innerHTML = idElegido
+        ? '<div class="empty">Esa corrida no tiene propuestas en Historial_A/D: no hay nada que verificar.</div>'
+        : '<div class="empty">Todavía no hay propuestas de cambio de rango en Historial_A/D: no hay nada que verificar.</div>';
       return;
     }
     resEl.innerHTML = _resultadoVerificacionCR(data);
@@ -6472,6 +6495,7 @@ async function cargarVerificacionCR(){
 }
 
 document.getElementById('btnCrVerificar').addEventListener('click', () => conBotonOcupado(document.getElementById('btnCrVerificar'), cargarVerificacionCR));
+document.getElementById('crVerificarPar').addEventListener('change', cargarVerificacionCR);
 
 /**
  * seleccionarCorridaParaVerPropuestas(idAscenso)
