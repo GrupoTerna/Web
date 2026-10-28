@@ -6417,7 +6417,7 @@ document.getElementById('crVolverPaso1').addEventListener('click', (e) => {
 
 /**
  * Rama «verificar» de Cambio de rango (PF286 punto 11 (c), 28-oct-2026; pedido de la usuaria): para volver después de aplicar un cambio de rango
- * sin registrar, editar ni planificar. Pide webCRListaVerificar (GET, solo lee Historial_A/D; 37_Web_API.gs y 24_Historial_Ascensos.gs del backend) y dice
+ * sin registrar, editar ni planificar. Pide webCRListaVerificarYMarcar (POST: marca «Realizado» las propuestas ya cumplidas y verifica; 37_Web_API.gs y 24_Historial_Ascensos.gs del backend) y dice
  * si falta aplicar algo (propuestas «Planificado») o si se aplicó algo que no estaba propuesto (cambios reales sin propuesta en la corrida).
  * No vuelve a evaluar requisitos: usa lo registrado al generar las propuestas. [→ Contexto_Base_Web.md §PF286]
  */
@@ -6458,12 +6458,17 @@ function _resultadoVerificacionCR(d){
     : `<div class="msg msg-error" style="margin-top:10px;">${falta ? `Falta aplicar ${esc(falta)} propuesta(s). ` : ''}${exc ? `${esc(exc)} cambio(s) se aplicaron sin estar propuestos (no figuraban entre los calificados).` : ''}</div>`;
   const tablaFalta = _tablaVerificacionCR('Falta aplicar', d.pendientes, 'Nota', x => x.confirmaManual
     ? 'No se marca sola: cuando se aplique, márcala «Realizado» a mano en Historial_A/D.'
-    : 'Se marca «Realizado» sola cuando el sistema detecta el cambio.');
+    : (x.nota ? esc(x.nota) : 'Se marca «Realizado» sola cuando el sistema detecta el cambio.'));
   const tablaExc = _tablaVerificacionCR('Aplicados de forma excepcional', d.excepcionales, 'Motivo', x => esc(x.motivo) + _detalleRequisitosCR(x));
+  const marcadas = Array.isArray(d.marcadas) ? d.marcadas : [];
+  const tablaMarcadas = marcadas.length
+    ? `<div class="msg msg-ok" style="margin-top:10px;">Se marcaron «Realizado» ${esc(marcadas.length)} propuesta(s) al verificar.</div>` +
+      _tablaVerificacionCR('Marcadas «Realizado» ahora', marcadas, 'Motivo', x => esc(x.motivo))
+    : '';
   const tablaOk = d.aplicadas.length
     ? `<details class="admin-subseccion" style="margin-top:14px;"><summary><span class="cat-titulo">Aplicados conforme a la propuesta (${d.aplicadas.length})</span></summary><div class="admin-subseccion-body">${_tablaVerificacionCR('Aplicados', d.aplicadas, 'Estado', () => 'Realizado')}</div></details>`
     : '';
-  return resumen + estado + tablaFalta + tablaExc + tablaOk;
+  return resumen + tablaMarcadas + estado + tablaFalta + tablaExc + tablaOk;
 }
 
 /**
@@ -6487,7 +6492,8 @@ async function cargarVerificacionCR(){
   msgEl.innerHTML = '<div class="text-dim">Verificando…</div>';
   resEl.innerHTML = '';
   try{
-    const data = await apiGetAuth('webCRListaVerificar', idElegido ? { idAscenso: idElegido } : {});
+    // POST (no GET): verificar marca «Realizado» en Historial_A/D las propuestas que el Directorio ya muestra cumplidas (webCRListaVerificarYMarcar). Historial en CHANGELOG.md.
+    const data = await apiPost('webCRListaVerificarYMarcar', Object.assign({ sessionToken: localStorage.getItem(SESSION_KEY) }, idElegido ? { idAscenso: idElegido } : {}));
     if(manejarRespuestaAuth(data)) return;
     if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
     msgEl.innerHTML = '';

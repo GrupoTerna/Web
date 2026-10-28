@@ -70,7 +70,8 @@ function montar(respuesta){
     function etiquetaParCR(p){ return 'Corrida ' + p.idAscenso; }
     function activarBarraScrollTabla(){}
     async function conBotonOcupado(btn, fn){ await fn(); }
-    async function apiGetAuth(accion, params){ window.__pedidos.push({ accion, params }); if(window.__fallar) throw new Error(window.__fallar); return window.__respuesta; }
+    const SESSION_KEY = 'terna_admin_token';
+    async function apiPost(accion, cuerpo){ const params = Object.assign({}, cuerpo); delete params.sessionToken; window.__pedidos.push({ accion, params }); if(window.__fallar) throw new Error(window.__fallar); return window.__respuesta; }
     let crIdExistenteActual = '';
     let crIdDescensoActual = '';
     ${CODIGO}
@@ -96,7 +97,7 @@ test('PF286 11 (c): elegir «Verificar» muestra el bloque de verificación, ocu
   assert.equal(visible(w, 'crSelectorParBox'), false, 'no hay selector de corrida');
   assert.equal(visible(w, 'crPaso3'), false, 'no hay formulario');
   // Los objetos de jsdom son de otro «realm»: se comparan como JSON.
-  assert.equal(JSON.stringify(w.__pedidos), JSON.stringify([{ accion: 'webCRListaVerificar', params: {} }]));
+  assert.equal(JSON.stringify(w.__pedidos), JSON.stringify([{ accion: 'webCRListaVerificarYMarcar', params: {} }]));
 });
 
 test('PF286 11 (c): lo pendiente y lo aplicado sin propuesta se listan con su nota y su motivo', async () => {
@@ -134,6 +135,20 @@ test('PF286: el cambio sin propuesta muestra el requisito de Ascenso que no cump
   assert.match(res.textContent, /Ascenso A_05_S_01_N_01, Miembro de Terna/);
   assert.match(res.textContent, /No se pudo evaluar: las semanas del par todavía no terminan\./);
   assert.equal(res.querySelector('b'), null, 'el texto del backend se escapa');
+});
+
+test('PF286: lo que se marcó «Realizado» al verificar se lista con su motivo, y la nota del backend sustituye a la genérica', async () => {
+  const w = montar(Object.assign({}, BASE, {
+    marcadas: [ITEM({ tag: '#7', nombre: 'Marcada', motivo: 'su rango actual es Veterano (propuesto: Veterano)' })],
+    pendientes: [ITEM({ tag: '#8', nombre: 'Revisar', nota: 'La cuenta ya no está en el clan Terna: revisa a mano si el cambio se aplicó.' })]
+  }));
+  await verificar(w);
+  const texto = $(w, 'crVerificarResultado').textContent;
+  assert.match(texto, /Se marcaron «Realizado» 1 propuesta\(s\) al verificar\./);
+  assert.match(texto, /Marcadas «Realizado» ahora \(1\)/);
+  assert.match(texto, /su rango actual es Veterano/);
+  assert.match(texto, /revisa a mano si el cambio se aplicó/);
+  assert.doesNotMatch(texto, /Se marca «Realizado» sola cuando/);
 });
 
 test('PF286 11 (c): si todo coincide lo dice y no muestra tablas de problemas', async () => {
@@ -200,7 +215,7 @@ test('PF286: el selector de corrida se llena con los pares de la respuesta y ele
   sel.value = 'A_05_S_01_N_01';
   sel.dispatchEvent(new w.Event('change'));
   await esperar();
-  assert.equal(JSON.stringify(w.__pedidos[1]), JSON.stringify({ accion: 'webCRListaVerificar', params: { idAscenso: 'A_05_S_01_N_01' } }));
+  assert.equal(JSON.stringify(w.__pedidos[1]), JSON.stringify({ accion: 'webCRListaVerificarYMarcar', params: { idAscenso: 'A_05_S_01_N_01' } }));
   assert.equal(sel.value, 'A_05_S_01_N_01', 'conserva la corrida elegida al volver a llenar el selector');
 });
 
