@@ -135,6 +135,9 @@ test('PF286: el cambio sin propuesta muestra el requisito de Ascenso que no cump
   assert.match(res.textContent, /Ascenso A_05_S_01_N_01, Miembro de Terna/);
   assert.match(res.textContent, /No se pudo evaluar: las semanas del par todavía no terminan\./);
   assert.equal(res.querySelector('b'), null, 'el texto del backend se escapa');
+  const w2 = montar(Object.assign({}, BASE, { excepcionales: [ITEM({ tag: '#9', tipo: 'Expulsión', rango: 'Miembro', rango2: '', motivo: 'm', incumple: ['Medallas 100 (se pide 500)'], evaluadoContra: 'Descenso D_05_S_01_N_01, Miembro de Terna', requisitoNota: 'Alcanzaba Min_G (50): correspondía Descenso, no Expulsión.' })] }));
+  await verificar(w2);
+  assert.match($(w2, 'crVerificarResultado').textContent, /No cumplía: Medallas 100 \(se pide 500\)\..*Descenso D_05_S_01_N_01.*Alcanzaba Min_G \(50\)/, 'se muestran juntos los requisitos y la nota');
 });
 
 test('PF286: lo que se marcó «Realizado» al verificar se lista con su motivo, y la nota del backend sustituye a la genérica', async () => {

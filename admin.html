@@ -6427,13 +6427,14 @@ function _cambioVerificacionCR(x){
 
 /**
  * _detalleRequisitosCR(x) [→ Contexto_Base_Web.md §PF286]
- * Texto bajo el motivo de un cambio aplicado sin propuesta: los requisitos de Ascenso que la cuenta no cumplió (`x.incumple`, con el par, rol y clan contra los que se evaluó en `x.evaluadoContra`), o la nota de por qué no se pudo evaluar o no hay nada que mostrar (`x.requisitoNota`).
+ * Texto bajo el motivo de un cambio aplicado sin propuesta: los requisitos que la cuenta no cumplió (`x.incumple`: de Ascenso en Ascenso y Ascenso de clan, de Descenso y Min_G en Degradación y Expulsión; con el par, rol y clan contra los que se evaluó en `x.evaluadoContra`) y, aparte, la nota de por qué no se pudo evaluar o qué aclarar (`x.requisitoNota`).
  */
 function _detalleRequisitosCR(x){
-  if(Array.isArray(x.incumple) && x.incumple.length){
-    return `<div style="margin-top:4px;"><strong>No cumplía:</strong> ${x.incumple.map(esc).join('; ')}.${x.evaluadoContra ? ` <span class="text-dim">(${esc(x.evaluadoContra)})</span>` : ''}</div>`;
-  }
-  return x.requisitoNota ? `<div class="text-dim" style="margin-top:4px;">${esc(x.requisitoNota)}</div>` : '';
+  const cumple = (Array.isArray(x.incumple) && x.incumple.length)
+    ? `<div style="margin-top:4px;"><strong>No cumplía:</strong> ${x.incumple.map(esc).join('; ')}.${x.evaluadoContra ? ` <span class="text-dim">(${esc(x.evaluadoContra)})</span>` : ''}</div>`
+    : '';
+  const nota = x.requisitoNota ? `<div class="text-dim" style="margin-top:4px;">${esc(x.requisitoNota)}</div>` : '';
+  return cumple + nota;
 }
 
 function _tablaVerificacionCR(titulo, items, columnaExtra, valorExtra){
