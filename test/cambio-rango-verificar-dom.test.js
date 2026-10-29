@@ -235,3 +235,10 @@ test('PF286: una corrida elegida sin propuestas lo dice, y volver a entrar resta
   await verificar(w);
   assert.equal(sel.value, '', 'al entrar otra vez vuelve a la corrida más reciente');
 });
+
+test('PF286: el desplegable «Corrida a verificar» va dentro de .field, que es donde está el estilo oscuro de los select', () => {
+  const i = HTML.indexOf('<select id="crVerificarPar"');
+  assert.ok(i > 0, 'el select existe en admin.html');
+  const antes = HTML.slice(Math.max(0, i - 260), i);
+  assert.match(antes, /<div class="field">\s*<label for="crVerificarPar">/, 'envuelto en .field con su label');
+});
