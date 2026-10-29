@@ -6427,7 +6427,27 @@ document.getElementById('crVolverPaso1').addEventListener('click', (e) => {
  * No vuelve a evaluar requisitos: usa lo registrado al generar las propuestas. [→ Contexto_Base_Web.md §PF286]
  */
 function _cambioVerificacionCR(x){
-  return esc(x.tipo) + ((x.rango && x.rango2) ? ' de ' + esc(x.rango) + ' a ' + esc(x.rango2) : '');
+  return esc(_cambioTextoCR(x));
+}
+
+/** _cambioTextoCR(x) → «Ascenso de Miembro a Veterano» o solo el tipo («Expulsión»), en texto plano (para buscar y ordenar). */
+function _cambioTextoCR(x){
+  return String(x.tipo == null ? '' : x.tipo) + ((x.rango && x.rango2) ? ' de ' + x.rango + ' a ' + x.rango2 : '');
+}
+
+/**
+ * _textoMarcaSolaCR(x) → texto de la columna «Nota» de «Falta aplicar» (28-oct-2026, pedido de la usuaria). Si el backend trae `x.nota`
+ * (p. ej. «La cuenta se movió del clan A al clan B: revisa a mano…») manda esa. Si no, dice cuándo se marca «Realizado» sola la propuesta.
+ * Antes Expulsión, Elegible Admin y Ascenso de clan decían «No se marca sola: márcala a mano», pero desde el 28-oct-2026 el backend también
+ * las marca (_decidirPropuestaCRRealizada_(), 24_Historial_Ascensos.gs), así que el texto dice la condición de cada tipo.
+ * [→ Contexto_Base_Web.md §PF286]
+ */
+function _textoMarcaSolaCR(x){
+  if (x.nota) return String(x.nota);
+  if (x.tipo === 'Expulsión') return 'Se marca «Realizado» sola cuando la cuenta figure como inactiva.';
+  if (x.tipo === 'Elegible Admin') return 'Se marca «Realizado» sola cuando la cuenta ya sea admin.';
+  if (x.tipo === 'Ascenso de clan') return 'Se marca «Realizado» sola cuando la cuenta figure activa en el clan de destino.';
+  return 'Se marca «Realizado» sola cuando el sistema detecta el cambio.';
 }
 
 /**
@@ -6442,16 +6462,224 @@ function _detalleRequisitosCR(x){
   return cumple + nota;
 }
 
-function _tablaVerificacionCR(titulo, items, columnaExtra, valorExtra){
+/**
+ * Búsqueda, filtro y orden de las tablas de la rama «verificar» (28-oct-2026, pedido de la usuaria: «agrega los botones de filtro que también
+ * permitan ordenar» y «al inicio de las tablas agrega una barra de búsqueda, así como en guerra.html»). Mismo aspecto y mismo comportamiento que
+ * las tablas de guerra.html (embudo en cada encabezado con orden ascendente/descendente y lista de valores con casillas; caja con lupa arriba que
+ * busca por nombre, Tag, clan, cambio o nota, sin tildes ni mayúsculas, con todas las palabras escritas), reutilizando los estilos de
+ * assets/styles.css (.rt-filtro-*, .buscador-*) y pintarBuscadorTabla()/coincideBusqueda() de assets/js/ui/filters.js. A diferencia de guerra.html,
+ * aquí las filas se vuelven a pintar desde los datos guardados en _tablasVerifCR (no se ocultan filas del DOM), porque cada tabla es pequeña.
+ * El estado (filtros, orden y texto buscado) vive en _tablasVerifCR y se borra cada vez que se vuelve a verificar: con datos nuevos, un filtro
+ * viejo ocultaría valores que aún no existían. [→ Contexto_Base_Web.md §PF286]
+ */
+const _tablasVerifCR = {}; // clave de tabla -> { titulo, cols, filas, estado:{ filtros:{colKey:Set}, orden:{colKey,dir}|null }, busqueda }
+let _popVerifCREl = null;
+const ICONO_FILTRO_VERIF_CR = '<svg viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M1 2.5A.5.5 0 0 1 1.5 2h13a.5.5 0 0 1 .4.8L10 9.4V13a.5.5 0 0 1-.2.4l-2 1.5A.5.5 0 0 1 7 14.5v-5.1L1.1 2.8A.5.5 0 0 1 1 2.5z"/></svg>';
+
+/** _textoPlanoVerifCR(html) → el texto visible de un trozo de HTML ya escapado (para buscar, filtrar y ordenar por lo que se lee en la celda). */
+function _textoPlanoVerifCR(html){
+  const d = document.createElement('div');
+  d.innerHTML = html;
+  return (d.textContent || '').replace(/\s+/g, ' ').trim();
+}
+
+/** _ordenFechaVerifCR(v) → 'dd/mm/aaaa' como número aaaammdd para ordenar por fecha (no por texto); null si no es una fecha. */
+function _ordenFechaVerifCR(v){
+  const m = String(v).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  return m ? Number(m[3]) * 10000 + Number(m[2]) * 100 + Number(m[1]) : null;
+}
+
+function _filaHtmlVerifCR(f){
+  return `<tr>${f.vals.slice(0, 5).map(v => `<td>${esc(v === '—' ? '' : v)}</td>`).join('')}<td>${f.htmlExtra}</td></tr>`;
+}
+
+function _tablaVerificacionCR(titulo, items, columnaExtra, valorExtra, clave){
   if(!items || !items.length) return '';
+  const cols = [
+    { key: 'nombre', label: 'Nombre' }, { key: 'tag', label: 'Tag' }, { key: 'clan', label: 'Clan' },
+    { key: 'cambio', label: 'Cambio' }, { key: 'fecha', label: 'Fecha', ord: _ordenFechaVerifCR }, { key: 'extra', label: columnaExtra }
+  ];
+  const filas = items.map(x => {
+    const htmlExtra = valorExtra(x);
+    const vals = [x.nombre, x.tag, x.clan, _cambioTextoCR(x), x.fechaTxt, _textoPlanoVerifCR(htmlExtra)]
+      .map(v => { const t = String(v == null ? '' : v).trim(); return t === '' ? '—' : t; }); // «—» = celda vacía (siempre va al final al ordenar)
+    return { vals, htmlExtra, buscar: vals.join(' ') };
+  });
+  _tablasVerifCR[clave] = { titulo, cols, filas, estado: { filtros: {}, orden: null }, busqueda: '' };
+  const encabezados = cols.map(c => `<th scope="col" aria-sort="none"><div class="rt-th-inner"><span>${esc(c.label)}</span><span class="rt-orden-indicador" data-col="${c.key}"></span><button type="button" class="rt-filtro-btn" data-col="${c.key}" title="Ordenar o filtrar por ${esc(c.label)}" aria-label="Ordenar o filtrar por ${esc(c.label)}">${ICONO_FILTRO_VERIF_CR}</button></div></th>`).join('');
   return `<div class="cat-titulo" style="margin:14px 0 6px;">${esc(titulo)} (${items.length})</div>
-    <div class="tabla-propuestas-cr-wrap tabla-verificacion-cr" style="overflow-x:auto;"><table>
-    <thead><tr><th scope="col">Nombre</th><th scope="col">Tag</th><th scope="col">Clan</th><th scope="col">Cambio</th><th scope="col">Fecha</th><th scope="col">${esc(columnaExtra)}</th></tr></thead>
-    <tbody>${items.map(x => `<tr><td>${esc(x.nombre)}</td><td>${esc(x.tag)}</td><td>${esc(x.clan)}</td><td>${_cambioVerificacionCR(x)}</td><td>${esc(x.fechaTxt)}</td><td>${valorExtra(x)}</td></tr>`).join('')}</tbody>
+    <div class="buscador-tabla" id="crvBuscador-${clave}"></div>
+    <div class="tabla-propuestas-cr-wrap tabla-verificacion-cr" style="overflow-x:auto;" data-crv="${clave}"><table>
+    <thead><tr>${encabezados}</tr></thead>
+    <tbody>${filas.map(_filaHtmlVerifCR).join('')}</tbody>
     </table></div>`;
 }
 
+/** _filasVisiblesVerifCR(t) → las filas de la tabla que pasan la búsqueda y los filtros por columna, en el orden elegido. */
+function _filasVisiblesVerifCR(t){
+  const est = t.estado;
+  let filas = t.filas.filter(f => coincideBusqueda(f.buscar, t.busqueda) && t.cols.every((c, i) => { const sel = est.filtros[c.key]; return !sel || sel.has(f.vals[i]); }));
+  if (est.orden){
+    const i = t.cols.findIndex(c => c.key === est.orden.colKey);
+    const col = t.cols[i];
+    const signo = est.orden.dir === 'desc' ? -1 : 1;
+    const clave = v => (col.ord ? col.ord(v) : v);
+    filas = filas.slice().sort((a, b) => {
+      const va = a.vals[i], vb = b.vals[i];
+      const na = va === '—' || clave(va) === null, nb = vb === '—' || clave(vb) === null;
+      if (na || nb) return na && nb ? 0 : (na ? 1 : -1); // las celdas vacías van al final, en ascendente y en descendente
+      if (col.ord) return signo * (clave(va) - clave(vb));
+      return signo * String(va).localeCompare(String(vb), 'es', { numeric: true, sensitivity: 'base' });
+    });
+  }
+  return filas;
+}
+
+function _actualizarIconosVerifCR(clave, wrap){
+  const t = _tablasVerifCR[clave];
+  wrap.querySelectorAll('.rt-filtro-btn').forEach(btn => btn.classList.toggle('activo', !!t.estado.filtros[btn.dataset.col]));
+  wrap.querySelectorAll('.rt-orden-indicador').forEach(sp => {
+    const activo = t.estado.orden && t.estado.orden.colKey === sp.dataset.col;
+    sp.textContent = activo ? (t.estado.orden.dir === 'desc' ? '↓' : '↑') : '';
+    const th = sp.closest('th');
+    if (th) th.setAttribute('aria-sort', activo ? (t.estado.orden.dir === 'desc' ? 'descending' : 'ascending') : 'none');
+  });
+}
+
+/** _repintarTablaVerifCR(clave) → vuelve a escribir el <tbody> con la búsqueda, los filtros y el orden de ese momento, y actualiza el contador («3 de 8») y los íconos. */
+function _repintarTablaVerifCR(clave){
+  const t = _tablasVerifCR[clave];
+  const wrap = document.querySelector(`.tabla-propuestas-cr-wrap[data-crv="${clave}"]`);
+  if (!t || !wrap) return;
+  const filas = _filasVisiblesVerifCR(t);
+  const tbody = wrap.querySelector('tbody');
+  tbody.innerHTML = filas.length ? filas.map(_filaHtmlVerifCR).join('') : `<tr><td colspan="${t.cols.length}" class="empty" style="text-align:center;">Sin coincidencias.</td></tr>`;
+  const cuenta = document.querySelector(`#crvBuscador-${clave} .buscador-cuenta`);
+  if (cuenta){
+    const hayFiltro = Object.keys(t.estado.filtros).length > 0 || !!normalizarBusqueda(t.busqueda);
+    cuenta.textContent = hayFiltro ? textoCuentaBuscador(filas.length, t.filas.length) : '';
+  }
+  _actualizarIconosVerifCR(clave, wrap);
+}
+
+function _cerrarPopVerifCR(){
+  if (_popVerifCREl){ _popVerifCREl.remove(); _popVerifCREl = null; }
+  document.removeEventListener('mousedown', _cerrarPopVerifCRSiFuera, true);
+  document.removeEventListener('keydown', _cerrarPopVerifCRConEscape, true);
+  window.removeEventListener('scroll', _cerrarPopVerifCRAlDesplazar, true);
+  window.removeEventListener('resize', _cerrarPopVerifCR, true);
+}
+function _cerrarPopVerifCRSiFuera(e){ if (_popVerifCREl && !_popVerifCREl.contains(e.target)) _cerrarPopVerifCR(); }
+function _cerrarPopVerifCRConEscape(e){ if (e.key === 'Escape') _cerrarPopVerifCR(); }
+function _cerrarPopVerifCRAlDesplazar(e){ if (_popVerifCREl && _popVerifCREl.contains(e.target)) return; _cerrarPopVerifCR(); } // desplazar la lista de valores del propio desplegable no lo cierra
+
+/** _abrirFiltroVerifCR(clave, colKey, btnEl) → abre el desplegable de una columna: orden ascendente/descendente, quitar orden y lista de valores con casillas (con su buscador). */
+function _abrirFiltroVerifCR(clave, colKey, btnEl){
+  const t = _tablasVerifCR[clave];
+  if (!t) return;
+  const i = t.cols.findIndex(c => c.key === colKey);
+  const col = t.cols[i];
+  const yaAbierto = _popVerifCREl && _popVerifCREl.dataset.clave === clave && _popVerifCREl.dataset.col === colKey;
+  _cerrarPopVerifCR();
+  if (yaAbierto) return;
+
+  const valores = [...new Set(t.filas.map(f => f.vals[i]).filter(v => v !== '—'))]
+    .sort((a, b) => col.ord ? ((col.ord(a) || 0) - (col.ord(b) || 0)) : a.localeCompare(b, 'es', { numeric: true, sensitivity: 'base' }));
+  const previa = t.estado.filtros[colKey];
+  const temp = new Set(previa || valores);
+  const ordenActivo = t.estado.orden && t.estado.orden.colKey === colKey ? t.estado.orden.dir : null;
+  const esFecha = !!col.ord;
+
+  const pop = document.createElement('div');
+  pop.className = 'rt-filtro-pop';
+  pop.dataset.clave = clave;
+  pop.dataset.col = colKey;
+  pop.setAttribute('role', 'dialog');
+  pop.setAttribute('aria-label', 'Ordenar o filtrar por ' + col.label);
+  pop.innerHTML = `
+    <div class="rt-filtro-orden">
+      <button type="button" class="rt-orden-btn${ordenActivo === 'asc' ? ' activo' : ''}" data-dir="asc">${esFecha ? '↑ Más antigua primero' : '↑ A → Z'}</button>
+      <button type="button" class="rt-orden-btn${ordenActivo === 'desc' ? ' activo' : ''}" data-dir="desc">${esFecha ? '↓ Más reciente primero' : '↓ Z → A'}</button>
+      ${ordenActivo ? '<button type="button" class="rt-orden-quitar">✕ Quitar orden</button>' : ''}
+    </div>
+    <div class="rt-filtro-divisor"></div>
+    <input type="text" class="rt-filtro-buscar" placeholder="Buscar valor…" aria-label="Buscar valor">
+    <div class="rt-filtro-todos">
+      <button type="button" class="rt-filtro-todos-btn" data-modo="todo">Seleccionar todo</button>
+      <button type="button" class="rt-filtro-todos-btn" data-modo="ninguno">Desmarcar todo</button>
+    </div>
+    <div class="rt-filtro-lista"></div>
+    <div class="rt-filtro-acciones">
+      <button type="button" class="rt-filtro-cancelar">Cancelar</button>
+      <button type="button" class="rt-filtro-aceptar">Aceptar</button>
+    </div>`;
+  document.body.appendChild(pop);
+  _popVerifCREl = pop;
+
+  pop.querySelectorAll('.rt-orden-btn').forEach(b => b.addEventListener('click', () => {
+    t.estado.orden = { colKey, dir: b.dataset.dir };
+    _cerrarPopVerifCR();
+    _repintarTablaVerifCR(clave);
+  }));
+  const quitar = pop.querySelector('.rt-orden-quitar');
+  if (quitar) quitar.addEventListener('click', () => { t.estado.orden = null; _cerrarPopVerifCR(); _repintarTablaVerifCR(clave); });
+
+  const listaEl = pop.querySelector('.rt-filtro-lista');
+  const buscarEl = pop.querySelector('.rt-filtro-buscar');
+  const pintarLista = () => {
+    const q = normalizarBusqueda(buscarEl.value);
+    const visibles = q ? valores.filter(v => normalizarBusqueda(v).includes(q)) : valores;
+    listaEl.innerHTML = visibles.length ? visibles.map(v => `
+      <label class="rt-filtro-item"><input type="checkbox" value="${esc(v)}"${temp.has(v) ? ' checked' : ''}><span>${esc(v)}</span></label>`).join('')
+      : '<div class="empty" style="padding:8px 5px; font-size:12px; font-style:normal; text-align:left;">Sin coincidencias.</div>';
+    listaEl.querySelectorAll('input[type="checkbox"]').forEach(cb => cb.addEventListener('change', () => { cb.checked ? temp.add(cb.value) : temp.delete(cb.value); }));
+  };
+  pintarLista();
+  buscarEl.addEventListener('input', pintarLista);
+  pop.querySelector('[data-modo="todo"]').addEventListener('click', () => { valores.forEach(v => temp.add(v)); pintarLista(); });
+  pop.querySelector('[data-modo="ninguno"]').addEventListener('click', () => { temp.clear(); pintarLista(); });
+  pop.querySelector('.rt-filtro-cancelar').addEventListener('click', _cerrarPopVerifCR);
+  pop.querySelector('.rt-filtro-aceptar').addEventListener('click', () => {
+    if (temp.size >= valores.length) delete t.estado.filtros[colKey]; // todo marcado = sin filtro
+    else t.estado.filtros[colKey] = new Set(temp);
+    _cerrarPopVerifCR();
+    _repintarTablaVerifCR(clave);
+  });
+
+  const r = btnEl.getBoundingClientRect();
+  const left = Math.min(r.left, window.innerWidth - 250 - 12);
+  let top = r.bottom + 6;
+  if (top + 420 > window.innerHeight) top = Math.max(8, r.top - 426);
+  pop.style.left = Math.max(8, left) + 'px';
+  pop.style.top = top + 'px';
+  buscarEl.focus();
+  setTimeout(() => {
+    document.addEventListener('mousedown', _cerrarPopVerifCRSiFuera, true);
+    document.addEventListener('keydown', _cerrarPopVerifCRConEscape, true);
+    window.addEventListener('scroll', _cerrarPopVerifCRAlDesplazar, true);
+    window.addEventListener('resize', _cerrarPopVerifCR, true);
+  }, 0);
+}
+
+/** _activarTablasVerifCR(cont) → pinta la caja de búsqueda de cada tabla recién escrita en `cont` y engancha el embudo de cada encabezado. Se llama una vez por resultado de verificación. */
+function _activarTablasVerifCR(cont){
+  Object.keys(_tablasVerifCR).forEach(clave => {
+    const t = _tablasVerifCR[clave];
+    pintarBuscadorTabla('crvBuscador-' + clave, {
+      placeholder: 'Buscar por nombre, Tag, clan o cambio…',
+      ariaLabel: 'Buscar en la tabla ' + t.titulo,
+      fijar: v => { t.busqueda = v; },
+      onCambio: () => _repintarTablaVerifCR(clave)
+    });
+    const wrap = cont.querySelector(`.tabla-propuestas-cr-wrap[data-crv="${clave}"]`);
+    if (!wrap) return;
+    wrap.querySelectorAll('.rt-filtro-btn').forEach(btn => btn.addEventListener('click', () => _abrirFiltroVerifCR(clave, btn.dataset.col, btn)));
+  });
+}
+
 function _resultadoVerificacionCR(d){
+  _cerrarPopVerifCR();
+  Object.keys(_tablasVerifCR).forEach(k => { delete _tablasVerifCR[k]; }); // datos nuevos: los filtros, el orden y la búsqueda de la verificación anterior no valen
   const partes = [d.temporada !== '' && d.temporada != null ? 'temporada ' + d.temporada : '', d.semana !== '' && d.semana != null ? 'semana ' + d.semana : '', d.dia !== '' && d.dia != null ? 'día ' + d.dia : ''].filter(Boolean);
   const cuando = `${esc(d.diaTxt)}${partes.length ? ' (' + esc(partes.join(', ')) + ')' : ''}`;
   const falta = d.pendientes.length;
@@ -6462,17 +6690,15 @@ function _resultadoVerificacionCR(d){
   const estado = conforme
     ? '<div class="msg msg-ok" style="margin-top:10px;">Todo coincide: no falta aplicar nada y no hay cambios aplicados fuera de las propuestas.</div>'
     : `<div class="msg msg-error" style="margin-top:10px;">${falta ? `Falta aplicar ${esc(falta)} propuesta(s). ` : ''}${exc ? `${esc(exc)} cambio(s) se aplicaron sin estar propuestos (no figuraban entre los calificados).` : ''}</div>`;
-  const tablaFalta = _tablaVerificacionCR('Falta aplicar', d.pendientes, 'Nota', x => x.confirmaManual
-    ? 'No se marca sola: cuando se aplique, márcala «Realizado» a mano en Historial_A/D.'
-    : (x.nota ? esc(x.nota) : 'Se marca «Realizado» sola cuando el sistema detecta el cambio.'));
-  const tablaExc = _tablaVerificacionCR('Aplicados de forma excepcional', d.excepcionales, 'Motivo', x => esc(x.motivo) + _detalleRequisitosCR(x));
+  const tablaFalta = _tablaVerificacionCR('Falta aplicar', d.pendientes, 'Nota', x => esc(_textoMarcaSolaCR(x)), 'falta');
+  const tablaExc = _tablaVerificacionCR('Aplicados de forma excepcional', d.excepcionales, 'Motivo', x => esc(x.motivo) + _detalleRequisitosCR(x), 'excepcional');
   const marcadas = Array.isArray(d.marcadas) ? d.marcadas : [];
   const tablaMarcadas = marcadas.length
     ? `<div class="msg msg-ok" style="margin-top:10px;">Se marcaron «Realizado» ${esc(marcadas.length)} propuesta(s) al verificar.</div>` +
-      _tablaVerificacionCR('Marcadas «Realizado» ahora', marcadas, 'Motivo', x => esc(x.motivo))
+      _tablaVerificacionCR('Marcadas «Realizado» ahora', marcadas, 'Motivo', x => esc(x.motivo), 'marcadas')
     : '';
   const tablaOk = d.aplicadas.length
-    ? `<details class="admin-subseccion" style="margin-top:14px;"><summary><span class="cat-titulo">Aplicados conforme a la propuesta (${d.aplicadas.length})</span></summary><div class="admin-subseccion-body">${_tablaVerificacionCR('Aplicados', d.aplicadas, 'Estado', () => 'Realizado')}</div></details>`
+    ? `<details class="admin-subseccion" style="margin-top:14px;"><summary><span class="cat-titulo">Aplicados conforme a la propuesta (${d.aplicadas.length})</span></summary><div class="admin-subseccion-body">${_tablaVerificacionCR('Aplicados', d.aplicadas, 'Estado', () => 'Realizado', 'aplicados')}</div></details>`
     : '';
   return resumen + tablaMarcadas + estado + tablaFalta + tablaExc + tablaOk;
 }
@@ -6529,6 +6755,8 @@ async function cargarVerificacionCR(){
       return;
     }
     resEl.innerHTML = _resultadoVerificacionCR(data);
+    _activarTablasVerifCR(resEl);
+    // Barras de desplazamiento horizontal (la de arriba y la de abajo, con el estilo de la web) en las 4 tablas, también en la de «Aplicados», que está dentro de un <details> cerrado: cuando se abre, el ResizeObserver de activarBarraScrollTabla() ajusta el ancho de la barra de arriba.
     resEl.querySelectorAll('.tabla-propuestas-cr-wrap').forEach(w => activarBarraScrollTabla(w));
   }catch(err){
     msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;

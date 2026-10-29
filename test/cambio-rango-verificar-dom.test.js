@@ -14,6 +14,7 @@ const { JSDOM } = require('jsdom');
 // la respuesta del backend es un dato de prueba, así que no prueba Apps Script ni el aspecto en pantalla.
 
 const HTML = fs.readFileSync(path.join(__dirname, '..', 'admin.html'), 'utf8');
+const FILTROS = fs.readFileSync(path.join(__dirname, '..', 'assets', 'js', 'ui', 'filters.js'), 'utf8'); // pintarBuscadorTabla(), coincideBusqueda(), textoCuentaBuscador()
 
 function tramo(inicio, fin, nombre){
   const i = HTML.indexOf(inicio);
@@ -75,6 +76,7 @@ function montar(respuesta){
     async function apiPost(accion, cuerpo){ const params = Object.assign({}, cuerpo); delete params.sessionToken; window.__pedidos.push({ accion, params }); if(window.__fallar) throw new Error(window.__fallar); return window.__respuesta; }
     let crIdExistenteActual = '';
     let crIdDescensoActual = '';
+    ${FILTROS}
     ${CODIGO}
   `);
   return window;
@@ -104,20 +106,24 @@ test('PF286 11 (c): elegir «Verificar» muestra el bloque de verificación, ocu
 test('PF286 11 (c): lo pendiente y lo aplicado sin propuesta se listan con su nota y su motivo', async () => {
   const w = montar(Object.assign({}, BASE, {
     aplicadas: [ITEM({ tag: '#1', nombre: 'Ok' })],
-    pendientes: [ITEM({ tag: '#2', nombre: 'Falta' }), ITEM({ tag: '#3', nombre: 'Manual', tipo: 'Expulsión', rango: 'Miembro', rango2: '', confirmaManual: true })],
+    pendientes: [ITEM({ tag: '#2', nombre: 'Falta' }), ITEM({ tag: '#3', nombre: 'Manual', tipo: 'Expulsión', rango: 'Miembro', rango2: '', confirmaManual: true }),
+      ITEM({ tag: '#5', nombre: 'Admin', tipo: 'Elegible Admin', rango: '', rango2: '', confirmaManual: true }), ITEM({ tag: '#6', nombre: 'Clan', tipo: 'Ascenso de clan', rango: '', rango2: '', confirmaManual: true })],
     excepcionales: [ITEM({ tag: '#4', nombre: 'Rara', fechaTxt: '28/10/2026', motivo: 'No tenía propuesta en la corrida.' })]
   }));
   await verificar(w);
   const texto = $(w, 'crVerificarResultado').textContent;
   assert.match(texto, /27\/10\/2026 \(temporada 5, semana 2, día 3\)/);
-  assert.match(texto, /Falta aplicar 2 propuesta\(s\)/);
+  assert.match(texto, /Falta aplicar 4 propuesta\(s\)/);
   assert.match(texto, /1 cambio\(s\) se aplicaron sin estar propuestos/);
-  assert.match(texto, /Falta aplicar \(2\)/);
+  assert.match(texto, /Falta aplicar \(4\)/);
   assert.match(texto, /Aplicados de forma excepcional \(1\)/);
   assert.match(texto, /Aplicados conforme a la propuesta \(1\)/);
   assert.match(texto, /Ascenso de Miembro a Veterano/);
   assert.match(texto, /Se marca «Realizado» sola/, 'la propuesta con rangos se resuelve sola');
-  assert.match(texto, /márcala «Realizado» a mano/, 'Expulsión, Elegible Admin y Ascenso de clan no se resuelven solas');
+  assert.match(texto, /Se marca «Realizado» sola cuando la cuenta figure como inactiva\./, 'la Expulsión se marca sola cuando la cuenta pasa a Inactivos');
+  assert.match(texto, /Se marca «Realizado» sola cuando la cuenta ya sea admin\./, 'Elegible Admin se marca sola cuando la cuenta ya es admin');
+  assert.match(texto, /Se marca «Realizado» sola cuando la cuenta figure activa en el clan de destino\./, 'Ascenso de clan se marca sola cuando la cuenta está en el clan de destino');
+  assert.doesNotMatch(texto, /márcala «Realizado» a mano|No se marca sola/, 'ya no se pide marcar nada a mano');
   assert.match(texto, /No tenía propuesta en la corrida\./);
   assert.equal($(w, 'crVerificarResultado').querySelector('.msg-ok'), null);
 });
@@ -144,14 +150,14 @@ test('PF286: el cambio sin propuesta muestra el requisito de Ascenso que no cump
 test('PF286: lo que se marcó «Realizado» al verificar se lista con su motivo, y la nota del backend sustituye a la genérica', async () => {
   const w = montar(Object.assign({}, BASE, {
     marcadas: [ITEM({ tag: '#7', nombre: 'Marcada', motivo: 'su rango actual es Veterano (propuesto: Veterano)' })],
-    pendientes: [ITEM({ tag: '#8', nombre: 'Revisar', nota: 'La cuenta ya no está en el clan Terna: revisa a mano si el cambio se aplicó.' })]
+    pendientes: [ITEM({ tag: '#8', nombre: 'Revisar', nota: 'La cuenta se movió del clan Terna al clan Mini: revisa a mano si el cambio se aplicó.' })]
   }));
   await verificar(w);
   const texto = $(w, 'crVerificarResultado').textContent;
   assert.match(texto, /Se marcaron «Realizado» 1 propuesta\(s\) al verificar\./);
   assert.match(texto, /Marcadas «Realizado» ahora \(1\)/);
   assert.match(texto, /su rango actual es Veterano/);
-  assert.match(texto, /revisa a mano si el cambio se aplicó/);
+  assert.match(texto, /La cuenta se movió del clan Terna al clan Mini: revisa a mano si el cambio se aplicó\./);
   assert.doesNotMatch(texto, /Se marca «Realizado» sola cuando/);
 });
 
@@ -264,4 +270,93 @@ test('PF286: las tablas de «verificar» van centradas, con el contenido de Nomb
   assert.match(HTML, /\.tabla-verificacion-cr th, \.tabla-verificacion-cr td\{text-align:center; vertical-align:middle;\}/, 'encabezado y celdas centrados en horizontal y en vertical');
   assert.match(HTML, /\.tabla-verificacion-cr td:first-child\{text-align:left;\}/, 'solo el contenido de Nombre va a la izquierda');
   assert.equal((HTML.match(/tabla-propuestas-cr-wrap tabla-verificacion-cr"/g) || []).length, 1, 'ninguna otra tabla usa la clase');
+});
+
+// NUEVO (28-oct-2026, PF286; pedido de la usuaria): búsqueda arriba de cada tabla de «verificar» y botones de filtro que también ordenan, como en guerra.html.
+const PEND3 = [
+  ITEM({ tag: '#1', nombre: 'Zeta', clan: 'Terna', fechaTxt: '01/10/2026' }),
+  ITEM({ tag: '#2', nombre: 'Ana', clan: 'Mini', fechaTxt: '15/09/2026' }),
+  ITEM({ tag: '#3', nombre: 'Ñoño', clan: 'Terna', tipo: 'Expulsión', rango: 'Miembro', rango2: '', fechaTxt: '20/10/2026' })
+];
+const filasDe = (w, clave) => [...w.document.querySelectorAll(`.tabla-propuestas-cr-wrap[data-crv="${clave}"] tbody tr`)].map(tr => tr.cells[0].textContent);
+const botonCol = (w, clave, col) => w.document.querySelector(`.tabla-propuestas-cr-wrap[data-crv="${clave}"] .rt-filtro-btn[data-col="${col}"]`);
+const escribir = (w, clave, texto) => { const inp = w.document.querySelector(`#crvBuscador-${clave} .buscador-input`); inp.value = texto; inp.dispatchEvent(new w.Event('input', { bubbles: true })); };
+
+test('PF286: cada tabla de «verificar» tiene su barra de búsqueda arriba y busca sin tildes ni mayúsculas por nombre, Tag, clan o cambio', async () => {
+  const w = montar(Object.assign({}, BASE, { pendientes: PEND3, aplicadas: [ITEM({ tag: '#9', nombre: 'Ok' })] }));
+  await verificar(w);
+  assert.ok($(w, 'crvBuscador-falta').querySelector('.buscador-input'), 'barra de búsqueda de «Falta aplicar»');
+  assert.ok($(w, 'crvBuscador-aplicados').querySelector('.buscador-input'), 'también la de la tabla de aplicados');
+  const wrap = w.document.querySelector('.tabla-propuestas-cr-wrap[data-crv="falta"]');
+  assert.equal(wrap.previousElementSibling, $(w, 'crvBuscador-falta'), 'la barra va justo antes de la tabla');
+  assert.equal(filasDe(w, 'falta').length, 3);
+  escribir(w, 'falta', 'MINI');
+  assert.equal(JSON.stringify(filasDe(w, 'falta')), JSON.stringify(['Ana']));
+  assert.equal($(w, 'crvBuscador-falta').querySelector('.buscador-cuenta').textContent, '1 de 3');
+  escribir(w, 'falta', 'nono');
+  assert.equal(JSON.stringify(filasDe(w, 'falta')), JSON.stringify(['Ñoño']), 'la ñ cuenta como n');
+  escribir(w, 'falta', 'expulsion');
+  assert.equal(JSON.stringify(filasDe(w, 'falta')), JSON.stringify(['Ñoño']), 'busca también en la columna Cambio');
+  escribir(w, 'falta', '#1');
+  assert.equal(JSON.stringify(filasDe(w, 'falta')), JSON.stringify(['Zeta']), 'busca por Tag');
+  escribir(w, 'falta', 'xxxx');
+  assert.match(wrap.querySelector('tbody').textContent, /Sin coincidencias/);
+  assert.equal($(w, 'crvBuscador-falta').querySelector('.buscador-cuenta').textContent, 'Sin coincidencias');
+  escribir(w, 'falta', '');
+  assert.equal(filasDe(w, 'falta').length, 3);
+  assert.equal($(w, 'crvBuscador-falta').querySelector('.buscador-cuenta').textContent, '', 'sin búsqueda no hay contador');
+  assert.equal(filasDe(w, 'aplicados').length, 1, 'la búsqueda de una tabla no toca a las otras');
+});
+
+test('PF286: el botón de filtro de cada encabezado ordena (texto y fecha) y «Quitar orden» vuelve al orden original', async () => {
+  const w = montar(Object.assign({}, BASE, { pendientes: PEND3 }));
+  await verificar(w);
+  assert.equal(w.document.querySelectorAll('.tabla-propuestas-cr-wrap[data-crv="falta"] .rt-filtro-btn').length, 6, 'un botón por columna');
+  botonCol(w, 'falta', 'nombre').click();
+  const pop = w.document.querySelector('.rt-filtro-pop');
+  assert.ok(pop, 'se abre el desplegable');
+  pop.querySelector('[data-dir="asc"]').click();
+  assert.equal(JSON.stringify(filasDe(w, 'falta')), JSON.stringify(['Ana', 'Ñoño', 'Zeta']));
+  assert.equal(w.document.querySelector('.rt-filtro-pop'), null, 'el desplegable se cierra al elegir');
+  assert.equal(w.document.querySelector('.tabla-propuestas-cr-wrap[data-crv="falta"] .rt-orden-indicador[data-col="nombre"]').textContent, '↑');
+  botonCol(w, 'falta', 'nombre').click();
+  w.document.querySelector('.rt-filtro-pop [data-dir="desc"]').click();
+  assert.equal(JSON.stringify(filasDe(w, 'falta')), JSON.stringify(['Zeta', 'Ñoño', 'Ana']));
+  botonCol(w, 'falta', 'fecha').click();
+  w.document.querySelector('.rt-filtro-pop [data-dir="asc"]').click();
+  assert.equal(JSON.stringify(filasDe(w, 'falta')), JSON.stringify(['Ana', 'Zeta', 'Ñoño']), 'la fecha se ordena como fecha (15/09, 01/10, 20/10), no como texto');
+  botonCol(w, 'falta', 'fecha').click();
+  w.document.querySelector('.rt-filtro-pop .rt-orden-quitar').click();
+  assert.equal(JSON.stringify(filasDe(w, 'falta')), JSON.stringify(['Zeta', 'Ana', 'Ñoño']), 'sin orden, el de la respuesta');
+});
+
+test('PF286: el filtro por columna deja solo los valores marcados, se combina con la búsqueda y se borra al volver a verificar', async () => {
+  const w = montar(Object.assign({}, BASE, { pendientes: PEND3 }));
+  await verificar(w);
+  botonCol(w, 'falta', 'clan').click();
+  const pop = w.document.querySelector('.rt-filtro-pop');
+  pop.querySelector('[data-modo="ninguno"]').click();
+  const casilla = [...pop.querySelectorAll('.rt-filtro-item input')].find(c => c.value === 'Mini');
+  casilla.checked = true;
+  casilla.dispatchEvent(new w.Event('change', { bubbles: true }));
+  pop.querySelector('.rt-filtro-aceptar').click();
+  assert.equal(JSON.stringify(filasDe(w, 'falta')), JSON.stringify(['Ana']));
+  assert.ok(botonCol(w, 'falta', 'clan').classList.contains('activo'), 'el botón de una columna filtrada se marca');
+  escribir(w, 'falta', 'zeta');
+  assert.match(w.document.querySelector('.tabla-propuestas-cr-wrap[data-crv="falta"] tbody').textContent, /Sin coincidencias/, 'búsqueda y filtro se combinan');
+  escribir(w, 'falta', '');
+  // Marcar todo otra vez = sin filtro.
+  botonCol(w, 'falta', 'clan').click();
+  w.document.querySelector('.rt-filtro-pop [data-modo="todo"]').click();
+  w.document.querySelector('.rt-filtro-pop .rt-filtro-aceptar').click();
+  assert.equal(filasDe(w, 'falta').length, 3);
+  assert.equal(botonCol(w, 'falta', 'clan').classList.contains('activo'), false);
+  // Volver a verificar borra el estado.
+  botonCol(w, 'falta', 'clan').click();
+  w.document.querySelector('.rt-filtro-pop [data-modo="ninguno"]').click();
+  w.document.querySelector('.rt-filtro-pop .rt-filtro-aceptar').click();
+  assert.match(w.document.querySelector('.tabla-propuestas-cr-wrap[data-crv="falta"] tbody').textContent, /Sin coincidencias/, 'sin ningún valor marcado no queda ninguna fila');
+  $(w, 'btnCrVerificar').click();
+  await esperar();
+  assert.equal(filasDe(w, 'falta').length, 3, 'la nueva verificación empieza sin filtros');
 });
