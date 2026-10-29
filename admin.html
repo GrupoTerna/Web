@@ -219,6 +219,9 @@
   /* Tablas de la rama «verificar» (28-oct-2026, pedido de la usuaria): encabezado y celdas centrados en horizontal y en vertical, salvo el contenido de la columna Nombre, que va a la izquierda (también centrado en vertical). Va en una clase aparte para no tocar la tabla de «Ver propuestas», que comparte .tabla-propuestas-cr-wrap. */
   .tabla-verificacion-cr th, .tabla-verificacion-cr td{text-align:center; vertical-align:middle;}
   .tabla-verificacion-cr td:first-child{text-align:left;}
+  /* Motivo y Nota en una sola línea (28-oct-2026, pedido de la usuaria): la última columna ya no salta de línea ni tiene ancho mínimo; así la tabla se ensancha y, cuando pasa del ancho de la pantalla, aparecen las barras horizontales. Los bloques del Motivo («No cumplía…», la corrida evaluada y la nota) van en la misma línea. */
+  .tabla-verificacion-cr td:last-child{white-space:nowrap; min-width:0;}
+  .tabla-verificacion-cr td:last-child div{display:inline; margin:0 0 0 10px !important;}
   @media (max-width: 560px){
     .cr-temporada-bloque{flex-direction:column;}
     .cr-temporada-bloque .cr-temporada-select{width:100%;}
@@ -6700,7 +6703,8 @@ function _resultadoVerificacionCR(d){
   const tablaOk = d.aplicadas.length
     ? `<details class="admin-subseccion" style="margin-top:14px;"><summary><span class="cat-titulo">Aplicados conforme a la propuesta (${d.aplicadas.length})</span></summary><div class="admin-subseccion-body">${_tablaVerificacionCR('Aplicados', d.aplicadas, 'Estado', () => 'Realizado', 'aplicados')}</div></details>`
     : '';
-  return resumen + tablaMarcadas + estado + tablaFalta + tablaExc + tablaOk;
+  // Orden pedido por la usuaria (28-oct-2026): primero lo aplicado conforme a la propuesta, luego lo aplicado de forma excepcional y por último lo que falta aplicar.
+  return resumen + tablaMarcadas + estado + tablaOk + tablaExc + tablaFalta;
 }
 
 /**

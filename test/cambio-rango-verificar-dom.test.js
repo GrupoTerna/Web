@@ -360,3 +360,12 @@ test('PF286: el filtro por columna deja solo los valores marcados, se combina co
   await esperar();
   assert.equal(filasDe(w, 'falta').length, 3, 'la nueva verificación empieza sin filtros');
 });
+
+test('PF286: las tablas salen en el orden aplicadas, aplicadas de forma excepcional y por último las que faltan; Motivo y Nota van en una sola línea', async () => {
+  const w = montar(Object.assign({}, BASE, { aplicadas: [ITEM({ tag: '#1' })], excepcionales: [ITEM({ tag: '#2', motivo: 'm' })], pendientes: [ITEM({ tag: '#3' })] }));
+  await verificar(w);
+  const t = $(w, 'crVerificarResultado').textContent;
+  const a = t.indexOf('Aplicados conforme a la propuesta'), b = t.indexOf('Aplicados de forma excepcional'), c = t.indexOf('Falta aplicar (');
+  assert.ok(a >= 0 && a < b && b < c, 'orden: aplicados, excepcionales, falta aplicar');
+  assert.match(HTML, /\.tabla-verificacion-cr td:last-child\{white-space:nowrap; min-width:0;\}/, 'la última columna no salta de línea');
+});
