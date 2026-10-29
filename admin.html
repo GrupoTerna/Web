@@ -6475,16 +6475,33 @@ function _resultadoVerificacionCR(d){
 }
 
 /**
+ * _etiquetaParVerificarCR(p) [→ Contexto_Base_Web.md §PF286]
+ * Texto de una corrida en el selector de «Verificar»: «2026 · Octubre · » (año y mes de la Fecha de la corrida, en hora de Lima, que ya trae `fechaTxt` como dd/MM/aaaa) delante de la etiqueta de siempre de etiquetaParCR(). Sin Fecha válida queda solo la etiqueta de siempre.
+ */
+function _etiquetaParVerificarCR(p){
+  const base = etiquetaParCR(p);
+  const m = String((p && p.fechaTxt) || '').match(/^\d{1,2}\/(\d{1,2})\/(\d{4})$/);
+  const mes = m ? MESES_ES[Number(m[1]) - 1] : '';
+  return mes ? `${m[2]} · ${mes.charAt(0).toUpperCase() + mes.slice(1)} · ${base}` : base;
+}
+
+// Id de la corrida más reciente con propuestas, tal como la dejó la última verificación SIN corrida elegida (con una elegida, `parId` es la elegida y no sirve). Vacío hasta que haya una.
+let _parRecienteVerificarCR = '';
+
+/**
  * _llenarSelectorVerificarCR(pares)
- * Llena #crVerificarPar con los pares de CR_Lista que trae la respuesta de webCRListaVerificar (los mismos de «Ver propuestas»), conservando la corrida elegida.
+ * Llena #crVerificarPar con los pares de CR_Lista que trae la respuesta de webCRListaVerificar (los mismos de «Ver propuestas»), conservando la corrida elegida. La opción por defecto (valor vacío) muestra los datos de la corrida más reciente con propuestas, con año y mes, y termina en «(Más reciente con propuestas)»; esa corrida no se repite en la lista. Si todavía no se sabe cuál es, la opción dice solo «La más reciente con propuestas».
  */
 function _llenarSelectorVerificarCR(pares){
   const sel = document.getElementById('crVerificarPar');
   if(!sel || !Array.isArray(pares) || !pares.length) return;
   const actual = sel.value;
-  sel.innerHTML = '<option value="">La más reciente con propuestas</option>' +
-    pares.map(p => `<option value="${esc(p.idAscenso)}">${esc(etiquetaParCR(p))}</option>`).join('');
-  sel.value = pares.some(p => p.idAscenso === actual) ? actual : '';
+  const reciente = _parRecienteVerificarCR ? pares.find(p => p.idAscenso === _parRecienteVerificarCR) : null;
+  const textoDefecto = reciente ? `${_etiquetaParVerificarCR(reciente)} (Más reciente con propuestas)` : 'La más reciente con propuestas';
+  const resto = reciente ? pares.filter(p => p !== reciente) : pares;
+  sel.innerHTML = `<option value="">${esc(textoDefecto)}</option>` +
+    resto.map(p => `<option value="${esc(p.idAscenso)}">${esc(_etiquetaParVerificarCR(p))}</option>`).join('');
+  sel.value = resto.some(p => p.idAscenso === actual) ? actual : '';
 }
 
 async function cargarVerificacionCR(){
@@ -6500,6 +6517,7 @@ async function cargarVerificacionCR(){
     if(manejarRespuestaAuth(data)) return;
     if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
     msgEl.innerHTML = '';
+    if(!idElegido && data.parId) _parRecienteVerificarCR = data.parId;
     _llenarSelectorVerificarCR(data.pares);
     if(!data.hayCorrida){
       resEl.innerHTML = idElegido

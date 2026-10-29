@@ -70,6 +70,7 @@ function montar(respuesta){
     function etiquetaParCR(p){ return 'Corrida ' + p.idAscenso; }
     function activarBarraScrollTabla(){}
     async function conBotonOcupado(btn, fn){ await fn(); }
+    const MESES_ES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
     const SESSION_KEY = 'terna_admin_token';
     async function apiPost(accion, cuerpo){ const params = Object.assign({}, cuerpo); delete params.sessionToken; window.__pedidos.push({ accion, params }); if(window.__fallar) throw new Error(window.__fallar); return window.__respuesta; }
     let crIdExistenteActual = '';
@@ -207,12 +208,14 @@ test('PF286 11 (c): «Volver a verificar» repite el pedido y volver o elegir ot
 });
 
 test('PF286: el selector de corrida se llena con los pares de la respuesta y elegir uno pide esa corrida', async () => {
-  const pares = [{ idAscenso: 'A_05_S_02_N_01' }, { idAscenso: 'A_05_S_01_N_01' }];
+  const pares = [{ idAscenso: 'A_05_S_02_N_01', fechaTxt: '27/10/2026' }, { idAscenso: 'A_05_S_01_N_01', fechaTxt: '20/09/2026' }];
   const w = montar(Object.assign({}, BASE, { parId: 'A_05_S_02_N_01', pares }));
   await verificar(w);
   const sel = $(w, 'crVerificarPar');
-  assert.equal(sel.options.length, 3, 'la opción por defecto y los dos pares');
+  assert.equal(sel.options.length, 2, 'la opción por defecto (la más reciente) y la otra corrida: la más reciente no se repite');
   assert.equal(sel.value, '', 'por defecto sigue pidiendo la corrida más reciente');
+  assert.equal(sel.options[0].textContent, '2026 · Octubre · Corrida A_05_S_02_N_01 (Más reciente con propuestas)', 'la opción por defecto dice año, mes y cuál es');
+  assert.equal(sel.options[1].textContent, '2026 · Septiembre · Corrida A_05_S_01_N_01', 'las demás también llevan año y mes');
   assert.match($(w, 'crVerificarResultado').textContent, /Corrida A_05_S_02_N_01 · Propuestas del 27\/10\/2026/, 'el resumen dice qué corrida se verificó');
 
   sel.value = 'A_05_S_01_N_01';
@@ -220,10 +223,20 @@ test('PF286: el selector de corrida se llena con los pares de la respuesta y ele
   await esperar();
   assert.equal(JSON.stringify(w.__pedidos[1]), JSON.stringify({ accion: 'webCRListaVerificarYMarcar', params: { idAscenso: 'A_05_S_01_N_01' } }));
   assert.equal(sel.value, 'A_05_S_01_N_01', 'conserva la corrida elegida al volver a llenar el selector');
+  assert.match(sel.options[0].textContent, /Octubre.*\(Más reciente con propuestas\)/, 'con otra corrida elegida, la opción por defecto sigue siendo la más reciente');
+});
+
+test('PF286: sin fecha válida el selector muestra solo la etiqueta, y sin saber cuál es la más reciente la opción por defecto no inventa una', async () => {
+  const w = montar(Object.assign({}, BASE, { parId: '', pares: [{ idAscenso: 'A_05_S_02_N_01' }, { idAscenso: 'A_05_S_01_N_01', fechaTxt: 'sin fecha' }] }));
+  await verificar(w);
+  const sel = $(w, 'crVerificarPar');
+  assert.equal(sel.options[0].textContent, 'La más reciente con propuestas');
+  assert.equal(sel.options[1].textContent, 'Corrida A_05_S_02_N_01');
+  assert.equal(sel.options[2].textContent, 'Corrida A_05_S_01_N_01');
 });
 
 test('PF286: una corrida elegida sin propuestas lo dice, y volver a entrar restablece la más reciente', async () => {
-  const w = montar({ ok: true, hayCorrida: false, parId: 'A_05_S_01_N_01', pares: [{ idAscenso: 'A_05_S_01_N_01' }], diaTxt: '', temporada: '', semana: '', dia: '', propuestasN: 0, aplicadas: [], pendientes: [], excepcionales: [] });
+  const w = montar({ ok: true, hayCorrida: false, parId: 'A_05_S_02_N_01', pares: [{ idAscenso: 'A_05_S_02_N_01' }, { idAscenso: 'A_05_S_01_N_01' }], diaTxt: '', temporada: '', semana: '', dia: '', propuestasN: 0, aplicadas: [], pendientes: [], excepcionales: [] });
   await verificar(w);
   const sel = $(w, 'crVerificarPar');
   sel.value = 'A_05_S_01_N_01';
