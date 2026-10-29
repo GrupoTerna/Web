@@ -255,3 +255,13 @@ test('PF286: el desplegable «Corrida a verificar» va dentro de .field, que es 
   const antes = HTML.slice(Math.max(0, i - 260), i);
   assert.match(antes, /<div class="field">\s*<label for="crVerificarPar">/, 'envuelto en .field con su label');
 });
+
+test('PF286: las tablas de «verificar» van centradas, con el contenido de Nombre a la izquierda, y la tabla de «Ver propuestas» no cambia', async () => {
+  const w = montar(Object.assign({}, BASE, { parId: 'A_05_S_02_N_01', pares: [{ idAscenso: 'A_05_S_02_N_01' }], pendientes: [ITEM({})] }));
+  await verificar(w);
+  const wrap = $(w, 'crVerificarResultado').querySelector('.tabla-propuestas-cr-wrap');
+  assert.ok(wrap && wrap.classList.contains('tabla-verificacion-cr'), 'la tabla de verificación lleva la clase que la centra');
+  assert.match(HTML, /\.tabla-verificacion-cr th, \.tabla-verificacion-cr td\{text-align:center; vertical-align:middle;\}/, 'encabezado y celdas centrados en horizontal y en vertical');
+  assert.match(HTML, /\.tabla-verificacion-cr td:first-child\{text-align:left;\}/, 'solo el contenido de Nombre va a la izquierda');
+  assert.equal((HTML.match(/tabla-propuestas-cr-wrap tabla-verificacion-cr"/g) || []).length, 1, 'ninguna otra tabla usa la clase');
+});

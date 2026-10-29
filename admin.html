@@ -216,6 +216,9 @@
      ABAJO (ver activarBarraScrollTabla(), assets/js/ui/tables.js). */
   .tabla-propuestas-cr-wrap th, .tabla-propuestas-cr-wrap td{white-space:nowrap;}
   .tabla-propuestas-cr-wrap td:last-child{white-space:normal; min-width:320px;}
+  /* Tablas de la rama «verificar» (28-oct-2026, pedido de la usuaria): encabezado y celdas centrados en horizontal y en vertical, salvo el contenido de la columna Nombre, que va a la izquierda (también centrado en vertical). Va en una clase aparte para no tocar la tabla de «Ver propuestas», que comparte .tabla-propuestas-cr-wrap. */
+  .tabla-verificacion-cr th, .tabla-verificacion-cr td{text-align:center; vertical-align:middle;}
+  .tabla-verificacion-cr td:first-child{text-align:left;}
   @media (max-width: 560px){
     .cr-temporada-bloque{flex-direction:column;}
     .cr-temporada-bloque .cr-temporada-select{width:100%;}
@@ -6442,7 +6445,7 @@ function _detalleRequisitosCR(x){
 function _tablaVerificacionCR(titulo, items, columnaExtra, valorExtra){
   if(!items || !items.length) return '';
   return `<div class="cat-titulo" style="margin:14px 0 6px;">${esc(titulo)} (${items.length})</div>
-    <div class="tabla-propuestas-cr-wrap" style="overflow-x:auto;"><table>
+    <div class="tabla-propuestas-cr-wrap tabla-verificacion-cr" style="overflow-x:auto;"><table>
     <thead><tr><th scope="col">Nombre</th><th scope="col">Tag</th><th scope="col">Clan</th><th scope="col">Cambio</th><th scope="col">Fecha</th><th scope="col">${esc(columnaExtra)}</th></tr></thead>
     <tbody>${items.map(x => `<tr><td>${esc(x.nombre)}</td><td>${esc(x.tag)}</td><td>${esc(x.clan)}</td><td>${_cambioVerificacionCR(x)}</td><td>${esc(x.fechaTxt)}</td><td>${valorExtra(x)}</td></tr>`).join('')}</tbody>
     </table></div>`;
