@@ -881,6 +881,7 @@ function celdasSemanas(megacat, gpClase, conColor, keyPrefix, idxHoy){
 const ICONO_FILTRO_GRID = '<svg viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M1 2.5A.5.5 0 0 1 1.5 2h13a.5.5 0 0 1 .4.8L10 9.4V13a.5.5 0 0 1-.2.4l-2 1.5A.5.5 0 0 1 7 14.5v-5.1L1.1 2.8A.5.5 0 0 1 1 2.5z"/></svg>';
 const gridEstados = {}; // gridId -> { filtros:{colKey: Set|{{operador,valor}}}, orden:{colKey,dir}|null }
 let gridFiltroPopEl = null;
+let gridFiltroBtnEl = null; // el embudo que abrió el cuadro (para su aria-expanded y para devolverle el foco)
 
 function gridEstadoDe(gridId){
   if (!gridEstados[gridId]) gridEstados[gridId] = { filtros:{}, orden:null };
@@ -892,7 +893,7 @@ function gridEstadoDe(gridId){
  * directorio.html. Los <th colspan> de la 1ª fila (Ataques/Puntaje/
  * Barcos) NUNCA pasan por aquí — se siguen pintando planos, sin botón. */
 function thFiltroGrid(claseTh, label, colKey, attrs){
-  return `<th class="${claseTh}" scope="col"${attrs ? ' ' + attrs : ''}><div class="rt-th-inner"><span>${esc(label)}</span><span class="rt-orden-indicador" data-col="${colKey}"></span><button type="button" class="rt-filtro-btn" data-col="${colKey}" title="Ordenar o filtrar por ${esc(label)}" aria-label="Ordenar o filtrar por ${esc(label)}">${ICONO_FILTRO_GRID}</button></div></th>`;
+  return `<th class="${claseTh}" scope="col"${attrs ? ' ' + attrs : ''}><div class="rt-th-inner"><span>${esc(label)}</span><span class="rt-orden-indicador" data-col="${colKey}"></span><button type="button" class="rt-filtro-btn" data-col="${colKey}" title="Ordenar o filtrar por ${esc(label)}" aria-label="Ordenar o filtrar por ${esc(label)}" aria-haspopup="dialog" aria-expanded="false">${ICONO_FILTRO_GRID}</button></div></th>`;
 }
 /** 5 columnas fijas J/V/S/D/Total de una megacategoría (Valores diarios). */
 function filaSubEncabezadosMega(gpClase, prefijo, colHoy){
@@ -960,12 +961,20 @@ function columnasTemporadaDef(nSem){
   ];
 }
 
-function cerrarGridFiltroPopover(){
+function cerrarGridFiltroPopover(devolverFoco){
+  // También es oyente de scroll y resize (ahí llega un evento): el foco solo vuelve con `true` exacto, al cerrar con Escape o con un botón del cuadro.
   if (gridFiltroPopEl){ gridFiltroPopEl.remove(); gridFiltroPopEl = null; }
+  if (gridFiltroBtnEl){
+    gridFiltroBtnEl.setAttribute('aria-expanded', 'false');
+    if (devolverFoco === true && gridFiltroBtnEl.isConnected) gridFiltroBtnEl.focus();
+    gridFiltroBtnEl = null;
+  }
+  document.removeEventListener('keydown', cerrarGridFiltroPopoverConEscape, true);
   document.removeEventListener('mousedown', cerrarGridFiltroPopoverSiFuera, true);
   window.removeEventListener('scroll', cerrarGridFiltroPopover, true);
   window.removeEventListener('resize', cerrarGridFiltroPopover, true);
 }
+function cerrarGridFiltroPopoverConEscape(e){ if (e.key === 'Escape') cerrarGridFiltroPopover(true); }
 function cerrarGridFiltroPopoverSiFuera(e){
   if (gridFiltroPopEl && !gridFiltroPopEl.contains(e.target)) cerrarGridFiltroPopover();
 }
@@ -1231,7 +1240,9 @@ function actualizarBotonSoloCero(gridId){
 function gridActualizarIconos(gridId, tabla){
   const estado = gridEstadoDe(gridId);
   tabla.querySelectorAll('.rt-filtro-btn').forEach(btn => {
-    btn.classList.toggle('activo', !!estado.filtros[btn.dataset.col]);
+    const conFiltro = !!estado.filtros[btn.dataset.col];
+    btn.classList.toggle('activo', conFiltro);
+    btn.setAttribute('aria-label', btn.getAttribute('title') + (conFiltro ? ' (con filtro)' : '')); // antes el filtro activo solo se veía por el color
   });
   tabla.querySelectorAll('.rt-orden-indicador').forEach(sp => {
     const activo = estado.orden && estado.orden.colKey === sp.dataset.col;
@@ -1260,12 +1271,14 @@ function abrirGridFiltroColumna(gridId, col, btnEl, tabla, filasBase, columnas, 
 
   const pop = document.createElement('div');
   pop.className = 'rt-filtro-pop';
+  pop.setAttribute('role', 'dialog');
+  pop.setAttribute('aria-label', 'Ordenar o filtrar por ' + btnEl.getAttribute('title').replace(/^Ordenar o filtrar por /, ''));
   pop.dataset.gridId = gridId;
   pop.dataset.col = col.key;
   pop.innerHTML = `
     <div class="rt-filtro-orden">
-      <button type="button" class="rt-orden-btn${ordenActivo === 'asc' ? ' activo' : ''}" data-dir="asc">${col.tipo === 'texto' ? (col.ord ? '↑ Primero' : '↑ A → Z') : '↑ Menor a mayor'}</button>
-      <button type="button" class="rt-orden-btn${ordenActivo === 'desc' ? ' activo' : ''}" data-dir="desc">${col.tipo === 'texto' ? (col.ord ? '↓ Último' : '↓ Z → A') : '↓ Mayor a menor'}</button>
+      <button type="button" class="rt-orden-btn${ordenActivo === 'asc' ? ' activo' : ''}" data-dir="asc" aria-pressed="${ordenActivo === 'asc'}">${col.tipo === 'texto' ? (col.ord ? '↑ Primero' : '↑ A → Z') : '↑ Menor a mayor'}</button>
+      <button type="button" class="rt-orden-btn${ordenActivo === 'desc' ? ' activo' : ''}" data-dir="desc" aria-pressed="${ordenActivo === 'desc'}">${col.tipo === 'texto' ? (col.ord ? '↓ Último' : '↓ Z → A') : '↓ Mayor a menor'}</button>
       ${ordenActivo ? '<button type="button" class="rt-orden-quitar">✕ Quitar orden</button>' : ''}
     </div>
     <div class="rt-filtro-divisor"></div>
@@ -1293,11 +1306,13 @@ function abrirGridFiltroColumna(gridId, col, btnEl, tabla, filasBase, columnas, 
     </div>`;
   document.body.appendChild(pop);
   gridFiltroPopEl = pop;
+  gridFiltroBtnEl = btnEl;
+  btnEl.setAttribute('aria-expanded', 'true');
 
   pop.querySelectorAll('.rt-orden-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       estado.orden = { colKey: col.key, dir: btn.dataset.dir };
-      cerrarGridFiltroPopover();
+      cerrarGridFiltroPopover(true);
       gridRepintar(gridId, tabla, columnas, filasBase, renderFila);
     });
   });
@@ -1305,7 +1320,7 @@ function abrirGridFiltroColumna(gridId, col, btnEl, tabla, filasBase, columnas, 
   if (btnQuitarOrden){
     btnQuitarOrden.addEventListener('click', () => {
       estado.orden = null;
-      cerrarGridFiltroPopover();
+      cerrarGridFiltroPopover(true);
       gridRepintar(gridId, tabla, columnas, filasBase, renderFila);
     });
   }
@@ -1333,7 +1348,7 @@ function abrirGridFiltroColumna(gridId, col, btnEl, tabla, filasBase, columnas, 
   pop.querySelector('[data-modo="todo"]').addEventListener('click', () => { valores.forEach(v => temp.add(v)); pintarLista(pop.querySelector('.rt-filtro-buscar').value); });
   pop.querySelector('[data-modo="ninguno"]').addEventListener('click', () => { temp.clear(); pintarLista(pop.querySelector('.rt-filtro-buscar').value); });
 
-  pop.querySelector('.rt-filtro-cancelar').addEventListener('click', cerrarGridFiltroPopover);
+  pop.querySelector('.rt-filtro-cancelar').addEventListener('click', () => cerrarGridFiltroPopover(true));
   pop.querySelector('.rt-filtro-aceptar').addEventListener('click', () => {
     const operador = pop.querySelector('.rt-comparar-operador').value;
     const valorCrudo = pop.querySelector('.rt-comparar-valor').value;
@@ -1346,7 +1361,7 @@ function abrirGridFiltroColumna(gridId, col, btnEl, tabla, filasBase, columnas, 
     } else {
       estado.filtros[col.key] = temp;
     }
-    cerrarGridFiltroPopover();
+    cerrarGridFiltroPopover(true);
     gridAplicarFiltros(gridId, tabla);
     gridActualizarIconos(gridId, tabla);
   });
@@ -1358,8 +1373,12 @@ function abrirGridFiltroColumna(gridId, col, btnEl, tabla, filasBase, columnas, 
   if (top + 420 > window.innerHeight) top = Math.max(8, r.top - 426);
   pop.style.left = Math.max(8, left) + 'px';
   pop.style.top = top + 'px';
+  pop.tabIndex = -1; // el cuadro es el último nodo del <body>: sin esto, con teclado no se llega a él
+  pop.style.outline = 'none';
+  pop.focus({ preventScroll: true });
 
   setTimeout(() => {
+    document.addEventListener('keydown', cerrarGridFiltroPopoverConEscape, true);
     document.addEventListener('mousedown', cerrarGridFiltroPopoverSiFuera, true);
     window.addEventListener('scroll', cerrarGridFiltroPopover, true);
     window.addEventListener('resize', cerrarGridFiltroPopover, true);
