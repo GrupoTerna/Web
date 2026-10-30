@@ -799,8 +799,8 @@
           <div id="winnerResTagAviso" role="note" style="display:none; margin-bottom:8px; padding:8px; border-radius:8px; background:rgba(162,57,255,.12); font-size:12px; color:var(--ink-soft);">Este ganador se agregó sin Tag (persona de fuera del clan). Si tiene Tag de jugador, escríbelo arriba para que quede en la hoja; si no lo tiene, puedes guardarlo sin Tag confirmándolo más abajo.</div>
           <div id="winnerResTagBuscarWrap" style="display:none; margin-bottom:8px;">
             <div style="display:flex; gap:6px;">
-              <input type="text" id="winnerResTagBuscar" autocomplete="off" aria-label="Buscar el Tag del ganador por nombre" placeholder="Buscar su Tag por nombre…" style="flex:1; min-width:0; border:1px solid var(--panel-line); border-radius:9px; padding:8px 10px; font-size:13px; color:var(--ink); box-sizing:border-box;">
-              <button type="button" id="winnerResTagBuscarBtn" class="btn-ghost">Buscar Tag</button>
+              <input type="text" id="winnerResTagBuscar" autocomplete="off" aria-label="Buscar al ganador por Tag o por nombre" placeholder="Buscar por Tag o nombre (ej. #ABC123 o Antonio)…" style="flex:1; min-width:0; border:1px solid var(--panel-line); border-radius:9px; padding:8px 10px; font-size:13px; color:var(--ink); box-sizing:border-box;">
+              <button type="button" id="winnerResTagBuscarBtn" class="btn-ghost">Buscar</button>
             </div>
             <div id="winnerResTagResultados" role="listbox" aria-label="Miembros que coinciden" style="margin-top:6px; max-height:200px; overflow-y:auto;"></div>
             <div id="winnerResTagBuscarEstado" aria-live="polite" style="font-size:12px; color:var(--ink-soft); margin-top:4px;"></div>
@@ -1364,17 +1364,34 @@
     // 29-oct-2026 (§PF294): aviso para quien llegó sin Tag (agregado «de fuera»), mientras no se escriba uno
     var sinTagAun = !hayTag && winnerResolucionForm.dataset.sinTag === '1';
     winnerResTagAviso.style.display = sinTagAun ? 'block' : 'none';
-    winnerResTagBuscarWrap.style.display = sinTagAun ? 'block' : 'none';
+    winnerResTagBuscarWrap.style.display = 'block'; // 29-oct-2026: se ve siempre, para buscar o corregir el Tag por Tag o por nombre
   }
   winnerResTag.addEventListener('input', toggleWinnerResSinTagVisibility);
 
-  // 29-oct-2026 (§PF294): buscar el Tag de un ganador que llegó sin él, por nombre, con la misma acción de sugerencias del cuadro de «agregar a mano».
-  // Elegir un resultado solo completa el campo Tag; el admin puede corregirlo antes de guardar.
+  // 29-oct-2026 (§PF294): buscar al ganador por Tag o por nombre, con la misma acción de sugerencias del cuadro de «agregar a mano» (la acción ya compara con nombre, Nom_Multi y Tag).
+  // Elegir un resultado solo completa el campo Tag; el admin puede corregirlo antes de guardar. Si lo escrito parece un Tag y no está en el directorio, se ofrece usarlo tal cual.
   var tagBuscarSeq = 0;
+  function normalizarTagBuscado(q){
+    var t = String(q || '').trim().replace(/^#/, '').toUpperCase();
+    return /^[0289PYLQGRJCUV]{3,}$/.test(t) ? '#' + t : '';
+  }
+  function ordenarResultadosTag(lista, q){
+    var buscado = String(q || '').trim().replace(/^#/, '').toUpperCase();
+    function exacto(m){ return String(m.tag || '').replace(/^#/, '').toUpperCase() === buscado ? 0 : 1; }
+    return lista.slice().sort(function(a, b){ return exacto(a) - exacto(b); });
+  }
+  function elegirTagGanador(tag, nombre){
+    winnerResTag.value = tag;
+    toggleWinnerResSinTagVisibility();
+    winnerResTagResultados.innerHTML = '';
+    winnerResTagBuscarEstado.textContent = '';
+    showWinnerResGuardarStatus('Tag completado con ' + tag + (nombre ? ' (' + nombre + ')' : '') + '. Revísalo antes de guardar.', 'ok');
+    winnerResTag.focus();
+  }
   function buscarTagGanador(){
     var q = winnerResTagBuscar.value.trim();
     winnerResTagResultados.innerHTML = '';
-    if (q.length < 2){ winnerResTagBuscarEstado.textContent = 'Escribe al menos 2 letras del nombre.'; return; }
+    if (q.length < 2){ winnerResTagBuscarEstado.textContent = 'Escribe al menos 2 caracteres del Tag o del nombre.'; return; }
     var token = localStorage.getItem(SESSION_KEY_SORTEO);
     if (!token){ winnerResTagBuscarEstado.textContent = 'No hay sesión de admin activa. Vuelve a entrar desde admin.html.'; return; }
     var miReq = ++tagBuscarSeq;
@@ -1388,12 +1405,17 @@
           winnerResTagBuscarEstado.textContent = (data && data.error) || 'No se pudo buscar. Escribe el Tag a mano.';
           return;
         }
-        if (!data.resultados.length){
-          winnerResTagBuscarEstado.textContent = 'Sin coincidencias. Escribe el Tag a mano o guárdalo sin Tag.';
-          return;
+        var tagLiteral = normalizarTagBuscado(q);
+        var lista = ordenarResultadosTag(data.resultados, q);
+        var yaEsta = tagLiteral && lista.some(function(m){ return String(m.tag || '').toUpperCase() === tagLiteral; });
+        if (!lista.length){
+          winnerResTagBuscarEstado.textContent = tagLiteral
+            ? 'Ese Tag no está en el directorio.'
+            : 'Sin coincidencias. Escribe el Tag a mano o guárdalo sin Tag.';
+        } else {
+          winnerResTagBuscarEstado.textContent = lista.length + ' coincidencia(s). Elige a la persona para completar el Tag.';
         }
-        winnerResTagBuscarEstado.textContent = data.resultados.length + ' coincidencia(s). Elige a la persona para completar el Tag.';
-        data.resultados.forEach(function(m){
+        lista.forEach(function(m){
           var b = document.createElement('button');
           b.type = 'button';
           b.setAttribute('role', 'option');
@@ -1405,16 +1427,18 @@
           var der = document.createElement('span');
           der.textContent = (m.clan || 'Sin clan') + (activo ? '' : ' · inactivo');
           b.appendChild(izq); b.appendChild(der);
-          b.addEventListener('click', function(){
-            winnerResTag.value = m.tag;
-            toggleWinnerResSinTagVisibility();
-            winnerResTagResultados.innerHTML = '';
-            winnerResTagBuscarEstado.textContent = '';
-            showWinnerResGuardarStatus('Tag completado con ' + m.tag + ' (' + m.nombre + '). Revísalo antes de guardar.', 'ok');
-            winnerResTag.focus();
-          });
+          b.addEventListener('click', function(){ elegirTagGanador(m.tag, m.nombre); });
           winnerResTagResultados.appendChild(b);
         });
+        if (tagLiteral && !yaEsta){
+          var u = document.createElement('button');
+          u.type = 'button';
+          u.className = 'btn-ghost';
+          u.style.cssText = 'display:block; width:100%; text-align:left; margin-bottom:4px;';
+          u.textContent = 'Usar ' + tagLiteral + ' tal cual (no está en el directorio)';
+          u.addEventListener('click', function(){ elegirTagGanador(tagLiteral, ''); });
+          winnerResTagResultados.appendChild(u);
+        }
       })
       .catch(function(){
         if (miReq !== tagBuscarSeq) return;

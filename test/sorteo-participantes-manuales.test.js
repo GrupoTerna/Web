@@ -85,6 +85,25 @@ test('el ganador sin Tag puede buscar su Tag por nombre con la misma acción de 
   assert.ok(i > 0 && j > i);
   const cuerpo = html.slice(i, j);
   assert.match(cuerpo, /webAdminBuscarMiembroSugerencias/);
-  assert.match(cuerpo, /winnerResTag\.value = m\.tag/);
+  assert.match(cuerpo, /elegirTagGanador\(m\.tag, m\.nombre\)/);
   assert.match(html, /winnerResTagBuscar\.value = w\.editedName/);
+});
+
+test('el buscador del ganador acepta Tag o nombre, se ve siempre y ofrece usar un Tag que no está en el directorio', () => {
+  assert.match(html, /placeholder="Buscar por Tag o nombre/);
+  assert.match(html, /winnerResTagBuscarWrap\.style\.display = 'block'/);
+  const i = html.indexOf('  function normalizarTagBuscado(q){');
+  const j = html.indexOf('  function elegirTagGanador(tag, nombre){', i);
+  assert.ok(i > 0 && j > i, 'no se encontraron las funciones del buscador');
+  const f = new Function(html.slice(i, j) + '\nreturn { normalizarTagBuscado, ordenarResultadosTag };')();
+  // un Tag escrito con o sin # y en minúsculas se normaliza; un nombre no parece Tag
+  assert.equal(f.normalizarTagBuscado('#8pq2y'), '#8PQ2Y');
+  assert.equal(f.normalizarTagBuscado('  8PQ2Y '), '#8PQ2Y');
+  assert.equal(f.normalizarTagBuscado('Antonio'), '');
+  assert.equal(f.normalizarTagBuscado('#8P'), '');
+  // el Tag exacto sale primero
+  const lista = [{ tag: '#8PQ2YL', nombre: 'Otro' }, { tag: '#8PQ2Y', nombre: 'Justo' }];
+  assert.equal(f.ordenarResultadosTag(lista, '8pq2y')[0].nombre, 'Justo');
+  // si no hay coincidencia exacta, se conserva el orden recibido
+  assert.deepEqual(f.ordenarResultadosTag(lista, 'ant').map(m => m.nombre), ['Otro', 'Justo']);
 });

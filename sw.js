@@ -243,7 +243,8 @@
 // v189 (29-oct-2026): sorteo.html cambió (CORE_ASSETS) -- al guardar un ganador también se mandan los participantes agregados a mano (sin Tag) para que queden en S_Asistencia con Ganó = No (§PF294).
 // v190 (29-oct-2026): sorteo.html cambió (CORE_ASSETS) -- al agregar a mano se sugieren miembros del clan con su Tag y clan (botón «Agregar de fuera» para alguien externo) y el ganador sin Tag recibe un aviso para escribirlo (§PF294).
 // v191 (29-oct-2026): sorteo.html cambió (CORE_ASSETS) -- el ganador sin Tag puede buscar su Tag por nombre dentro del formulario de su resolución (§PF294).
-const CACHE_NAME = 'terna-static-v191';
+// v192 (29-oct-2026): sorteo.html cambió (CORE_ASSETS) -- el buscador del ganador se ve siempre y acepta Tag o nombre; si el Tag no está en el directorio se puede usar tal cual (§PF294).
+const CACHE_NAME = 'terna-static-v192';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
