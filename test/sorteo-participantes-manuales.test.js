@@ -107,3 +107,12 @@ test('el buscador del ganador acepta Tag o nombre, se ve siempre y ofrece usar u
   // si no hay coincidencia exacta, se conserva el orden recibido
   assert.deepEqual(f.ordenarResultadosTag(lista, 'ant').map(m => m.nombre), ['Otro', 'Justo']);
 });
+
+test('los resultados del buscador de Tag son un grupo de botones y el autocompletado conserva su listbox con la regla silenciada a propósito', () => {
+  assert.match(html, /id="winnerResTagResultados" role="group"/);
+  assert.doesNotMatch(html, /id="winnerResTagResultados"[^>]*role="listbox"/);
+  const i = html.indexOf('  function buscarTagGanador(){');
+  const j = html.indexOf("document.getElementById('winnerResTagBuscarBtn')", i);
+  assert.doesNotMatch(html.slice(i, j), /setAttribute\('role', 'option'\)/);
+  assert.match(html, /<!-- \[html-validate-disable-next prefer-native-element -- [^\]]*\] -->\s*<div id="sugerenciasParticipante"/);
+});

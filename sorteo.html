@@ -802,7 +802,7 @@
               <input type="text" id="winnerResTagBuscar" autocomplete="off" aria-label="Buscar al ganador por Tag o por nombre" placeholder="Buscar por Tag o nombre (ej. #ABC123 o Antonio)…" style="flex:1; min-width:0; border:1px solid var(--panel-line); border-radius:9px; padding:8px 10px; font-size:13px; color:var(--ink); box-sizing:border-box;">
               <button type="button" id="winnerResTagBuscarBtn" class="btn-ghost">Buscar</button>
             </div>
-            <div id="winnerResTagResultados" role="listbox" aria-label="Miembros que coinciden" style="margin-top:6px; max-height:200px; overflow-y:auto;"></div>
+            <div id="winnerResTagResultados" role="group" aria-label="Miembros que coinciden" style="margin-top:6px; max-height:200px; overflow-y:auto;"></div>
             <div id="winnerResTagBuscarEstado" aria-live="polite" style="font-size:12px; color:var(--ink-soft); margin-top:4px;"></div>
           </div>
           <!-- si el ganador vino de "Cargar participantes calificados" el Tag ya llega prellenado (ver abrirResolucionGanador() más abajo) y normalmente no hace falta tocarlo. Historial en CHANGELOG.md. -->
@@ -902,6 +902,7 @@
         <div class="import-row">
           <div class="sugerencia-wrap">
             <input id="newParticipant" type="text" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sugerenciasParticipante" autocomplete="off" placeholder="Nombre o Tag del miembro…" aria-label="Buscar un miembro del clan por nombre o Tag">
+            <!-- [html-validate-disable-next prefer-native-element -- lista desplegable de un combobox ARIA (flechas, Enter y aria-activedescendant); un <select> nativo no sirve para autocompletar] -->
             <div id="sugerenciasParticipante" class="sugerencias-participante" role="listbox" aria-label="Miembros que coinciden" hidden></div>
           </div>
           <button type="button" id="addBtn" class="btn-add" title="Solo para alguien que no es del clan: se agrega con el nombre escrito y sin Tag">Agregar de fuera</button>
@@ -1418,7 +1419,6 @@
         lista.forEach(function(m){
           var b = document.createElement('button');
           b.type = 'button';
-          b.setAttribute('role', 'option');
           b.className = 'btn-ghost';
           b.style.cssText = 'display:flex; justify-content:space-between; gap:10px; width:100%; text-align:left; margin-bottom:4px;';
           var activo = String(m.estado || '').toLowerCase().indexOf('activ') === 0;
