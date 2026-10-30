@@ -1354,6 +1354,24 @@
     winnerResolucionForm.style.display = 'none';
   });
 
+  // 29-oct-2026 (§PF294 punto 9): quien se agrega a mano no tiene Tag (los calificados sí) y cuenta como participante aunque no gane. Devuelve a esos participantes
+  // (sin el ganador que se está guardando, que ya viaja aparte) para que el backend los anote en S_Asistencia con Ganó = No.
+  function participantesManualesParaGuardar(ganador){
+    var excluidos = {};
+    if (ganador){
+      [ganador.pickedName, ganador.editedName].forEach(function(n){
+        var k = String(n || '').trim().toLowerCase();
+        if (k) excluidos[k] = true;
+      });
+    }
+    return participants.filter(function(p){
+      var nombre = String(p.name || '').trim();
+      return !p.tag && nombre && !excluidos[nombre.toLowerCase()];
+    }).map(function(p){
+      return { nombre: String(p.name).trim(), tickets: (typeof p.weight === 'number' && p.weight >= 0) ? p.weight : '' };
+    });
+  }
+
 // guarda/actualiza la resolución de UN ganador en S_Asistencia vía webAdminSorteoResolucionGuardar (mismo patrón que btnGuardarResolucion de admin.html → webAdminTorneoResolucionGuardar). Historial en CHANGELOG.md.
   function guardarResolucionGanador(){
     var id = winnerResolucionForm.dataset.winnerId;
@@ -1420,7 +1438,8 @@
           resultado: resultado,
           razon: razon,
           permitirSinTag: permitirSinTag,
-          tickets: tickets
+          tickets: tickets,
+          participantesManuales: participantesManualesParaGuardar(w)
         }
       })
     })
