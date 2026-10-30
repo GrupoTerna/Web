@@ -369,3 +369,104 @@ test('PF286: las tablas salen en el orden aplicadas, aplicadas de forma excepcio
   assert.ok(a >= 0 && a < b && b < c, 'orden: aplicados, excepcionales, falta aplicar');
   assert.match(HTML, /\.tabla-verificacion-cr td:last-child\{white-space:nowrap; min-width:0;\}/, 'la última columna no salta de línea');
 });
+
+// NUEVO (29-oct-2026, accesibilidad, decidido por Claude por encargo de la usuaria «toma las decisiones de accesibilidad»): el desplegable de filtro de las tablas
+// de «verificar» (PF286). Antes: al cerrarlo el foco caía a <body>, el embudo no decía que abre un cuadro ni si está abierto, el orden elegido solo se veía por
+// color, el embudo no decía si la columna tenía filtro y la tabla no tenía nombre. [→ Contexto_Base_Web.md §PF293]
+const abrirEmbudo = async (w, col) => { botonCol(w, 'falta', col).click(); await esperar(); return w.document.querySelector('.rt-filtro-pop'); };
+
+test('accesibilidad PF286: el embudo declara que abre un cuadro y su estado abierto o cerrado sigue al desplegable', async () => {
+  const w = montar(Object.assign({}, BASE, { pendientes: PEND3 }));
+  await verificar(w);
+  const btn = botonCol(w, 'falta', 'nombre');
+  assert.equal(btn.getAttribute('aria-haspopup'), 'dialog');
+  assert.equal(btn.getAttribute('aria-expanded'), 'false');
+  await abrirEmbudo(w, 'nombre');
+  assert.equal(btn.getAttribute('aria-expanded'), 'true');
+  assert.equal(w.document.querySelector('.rt-filtro-pop').getAttribute('role'), 'dialog');
+  // Abrir el de otra columna cierra el primero.
+  await abrirEmbudo(w, 'clan');
+  assert.equal(btn.getAttribute('aria-expanded'), 'false', 'el embudo anterior ya no figura abierto');
+  assert.equal(botonCol(w, 'falta', 'clan').getAttribute('aria-expanded'), 'true');
+  assert.equal(w.document.querySelectorAll('.rt-filtro-pop').length, 1);
+});
+
+test('accesibilidad PF286: al cerrar el desplegable con Escape, Cancelar, Aceptar o un orden, el foco vuelve al embudo', async () => {
+  const w = montar(Object.assign({}, BASE, { pendientes: PEND3 }));
+  await verificar(w);
+  const btn = botonCol(w, 'falta', 'nombre');
+  const cierres = {
+    Escape: () => w.document.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true })),
+    Cancelar: () => w.document.querySelector('.rt-filtro-cancelar').click(),
+    Aceptar: () => w.document.querySelector('.rt-filtro-aceptar').click(),
+    Orden: () => w.document.querySelector('.rt-orden-btn[data-dir="asc"]').click()
+  };
+  for (const [nombre, cerrar] of Object.entries(cierres)){
+    await abrirEmbudo(w, 'nombre');
+    assert.notEqual(w.document.activeElement, btn, `${nombre}: con el cuadro abierto el foco está dentro de él`);
+    cerrar();
+    assert.equal(w.document.querySelector('.rt-filtro-pop'), null, `${nombre}: el cuadro se cierra`);
+    assert.equal(w.document.activeElement, btn, `${nombre}: el foco vuelve al embudo`);
+    assert.equal(btn.getAttribute('aria-expanded'), 'false', `${nombre}: el embudo figura cerrado`);
+  }
+  // «Quitar orden» también.
+  await abrirEmbudo(w, 'nombre');
+  w.document.querySelector('.rt-filtro-pop .rt-orden-quitar').click();
+  assert.equal(w.document.activeElement, btn, 'Quitar orden: el foco vuelve al embudo');
+});
+
+test('accesibilidad PF286: si el cuadro se cierra porque la persona hizo clic en otro sitio, no se le roba el foco', async () => {
+  const w = montar(Object.assign({}, BASE, { pendientes: PEND3 }));
+  await verificar(w);
+  await abrirEmbudo(w, 'nombre');
+  const otro = botonCol(w, 'falta', 'tag');
+  otro.focus();
+  otro.dispatchEvent(new w.MouseEvent('mousedown', { bubbles: true }));
+  assert.equal(w.document.querySelector('.rt-filtro-pop'), null);
+  assert.equal(w.document.activeElement, otro, 'el foco queda donde la persona lo puso');
+  assert.equal(botonCol(w, 'falta', 'nombre').getAttribute('aria-expanded'), 'false');
+  // Cerrar por redimensionar tampoco mueve el foco.
+  await abrirEmbudo(w, 'nombre');
+  otro.focus();
+  w.dispatchEvent(new w.Event('resize'));
+  assert.equal(w.document.querySelector('.rt-filtro-pop'), null);
+  assert.equal(w.document.activeElement, otro);
+});
+
+test('accesibilidad PF286: el orden elegido se dice con aria-pressed y el embudo avisa cuando su columna tiene filtro', async () => {
+  const w = montar(Object.assign({}, BASE, { pendientes: PEND3 }));
+  await verificar(w);
+  let pop = await abrirEmbudo(w, 'nombre');
+  assert.equal(pop.querySelector('[data-dir="asc"]').getAttribute('aria-pressed'), 'false');
+  assert.equal(pop.querySelector('[data-dir="desc"]').getAttribute('aria-pressed'), 'false');
+  pop.querySelector('[data-dir="desc"]').click();
+  pop = await abrirEmbudo(w, 'nombre');
+  assert.equal(pop.querySelector('[data-dir="asc"]').getAttribute('aria-pressed'), 'false');
+  assert.equal(pop.querySelector('[data-dir="desc"]').getAttribute('aria-pressed'), 'true');
+  assert.equal(botonCol(w, 'falta', 'nombre').closest('th').getAttribute('aria-sort'), 'descending');
+  w.document.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  // Filtro: el nombre accesible lo dice y deja de decirlo al marcar todo.
+  const clan = botonCol(w, 'falta', 'clan');
+  assert.equal(clan.getAttribute('aria-label'), 'Ordenar o filtrar por Clan');
+  pop = await abrirEmbudo(w, 'clan');
+  pop.querySelector('[data-modo="ninguno"]').click();
+  const casilla = [...pop.querySelectorAll('.rt-filtro-item input')].find(c => c.value === 'Mini');
+  casilla.checked = true;
+  casilla.dispatchEvent(new w.Event('change', { bubbles: true }));
+  pop.querySelector('.rt-filtro-aceptar').click();
+  assert.equal(clan.getAttribute('aria-label'), 'Ordenar o filtrar por Clan (con filtro)');
+  assert.equal(botonCol(w, 'falta', 'tag').getAttribute('aria-label'), 'Ordenar o filtrar por Tag', 'las demás columnas no cambian');
+  pop = await abrirEmbudo(w, 'clan');
+  pop.querySelector('[data-modo="todo"]').click();
+  pop.querySelector('.rt-filtro-aceptar').click();
+  assert.equal(clan.getAttribute('aria-label'), 'Ordenar o filtrar por Clan');
+});
+
+test('accesibilidad PF286: cada tabla de «verificar» tiene nombre accesible (el título de su sección)', async () => {
+  const w = montar(Object.assign({}, BASE, { pendientes: PEND3 }));
+  await verificar(w);
+  const tabla = w.document.querySelector('.tabla-propuestas-cr-wrap[data-crv="falta"] table');
+  assert.ok(tabla.getAttribute('aria-label'), 'la tabla tiene aria-label');
+  assert.ok(!/\(\d+\)/.test(tabla.getAttribute('aria-label')), 'sin el contador, que cambia con el filtro');
+  assert.match(w.document.querySelector('.cat-titulo').textContent, new RegExp(tabla.getAttribute('aria-label').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+});

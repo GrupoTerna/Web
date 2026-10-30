@@ -64,7 +64,8 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 
 ## 29-oct-2026
 
-- **`directorio.html` (CSS `.nuevo-card .name a.jugador-link`) y `sw.js` (v186) · «Ingresos recientes»: el nombre del jugador mide al menos 24 px de alto.** Criterio 2.5.8 de WCAG 2.2 (tamaño del objetivo); no cambia la letra ni el centrado. Pruebas: 778 de 778 pasan. `§PF016`, `§PF287`.
+- **`admin.html` (`_tablaVerificacionCR()`, `_actualizarIconosVerifCR()`, `_abrirFiltroVerifCR()`, `_cerrarPopVerifCR()`) y `sw.js` (v187) · Accesibilidad del desplegable de filtro de las tablas de «verificar» de Cambio de rango.** Al cerrarlo con Escape, Cancelar, Aceptar o un orden, el foco vuelve al embudo (antes caía a `<body>`); el embudo lleva `aria-haspopup="dialog"` y `aria-expanded`, y su nombre añade «(con filtro)» cuando la columna está filtrada; los botones de orden llevan `aria-pressed`; cada tabla lleva `aria-label` con el título de su sección. Cerrar por clic fuera, desplazamiento o cambio de tamaño no mueve el foco. Pruebas: 5 nuevas en `test/cambio-rango-verificar-dom.test.js`. `§PF293`.
+- **`directorio.html` (CSS `.nuevo-card .name a.jugador-link`) y `sw.js` (v186) · «Ingresos recientes»: el nombre del jugador mide al menos 24 px de alto.** Criterio 2.5.8 de WCAG 2.2 (tamaño del objetivo); no cambia la letra ni el centrado. Pruebas: 778 de 778 pasan. `§PF016`, `§PF293` (corrige la referencia a `§PF287`, que trata otro tema).
 
 ## 28-oct-2026
 

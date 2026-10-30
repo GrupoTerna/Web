@@ -238,7 +238,8 @@
 // v180 (24-oct-2026): guerra.html, assets/js/ui/filters.js y assets/styles.css cambiaron (CORE_ASSETS) -- buscador por nombre o Tag en las tablas de guerra (§PF224).
 // v185 (24-oct-2026): sorteo.html cambió (CORE_ASSETS) -- la hora de cada ganador se arma a mano con dos cifras en hora, minutos y segundos (§PF232).
 // v186 (29-oct-2026): directorio.html cambió (CORE_ASSETS) -- el nombre del jugador en «Ingresos recientes» mide al menos 24 px de alto (accesibilidad, §PF016).
-const CACHE_NAME = 'terna-static-v186';
+// v187 (29-oct-2026): admin.html cambió (CORE_ASSETS) -- accesibilidad del desplegable de filtro de las tablas de «verificar» de Cambio de rango: el foco vuelve al embudo, el embudo dice si abre un cuadro y si la columna tiene filtro, el orden elegido y la tabla tienen nombre (§PF293).
+const CACHE_NAME = 'terna-static-v187';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y

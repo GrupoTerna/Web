@@ -6477,6 +6477,7 @@ function _detalleRequisitosCR(x){
  */
 const _tablasVerifCR = {}; // clave de tabla -> { titulo, cols, filas, estado:{ filtros:{colKey:Set}, orden:{colKey,dir}|null }, busqueda }
 let _popVerifCREl = null;
+let _popVerifCRBtn = null; // el embudo que abrió el cuadro (para devolverle el foco y su aria-expanded)
 const ICONO_FILTRO_VERIF_CR = '<svg viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M1 2.5A.5.5 0 0 1 1.5 2h13a.5.5 0 0 1 .4.8L10 9.4V13a.5.5 0 0 1-.2.4l-2 1.5A.5.5 0 0 1 7 14.5v-5.1L1.1 2.8A.5.5 0 0 1 1 2.5z"/></svg>';
 
 /** _textoPlanoVerifCR(html) → el texto visible de un trozo de HTML ya escapado (para buscar, filtrar y ordenar por lo que se lee en la celda). */
@@ -6509,10 +6510,10 @@ function _tablaVerificacionCR(titulo, items, columnaExtra, valorExtra, clave){
     return { vals, htmlExtra, buscar: vals.join(' ') };
   });
   _tablasVerifCR[clave] = { titulo, cols, filas, estado: { filtros: {}, orden: null }, busqueda: '' };
-  const encabezados = cols.map(c => `<th scope="col" aria-sort="none"><div class="rt-th-inner"><span>${esc(c.label)}</span><span class="rt-orden-indicador" data-col="${c.key}"></span><button type="button" class="rt-filtro-btn" data-col="${c.key}" title="Ordenar o filtrar por ${esc(c.label)}" aria-label="Ordenar o filtrar por ${esc(c.label)}">${ICONO_FILTRO_VERIF_CR}</button></div></th>`).join('');
+  const encabezados = cols.map(c => `<th scope="col" aria-sort="none"><div class="rt-th-inner"><span>${esc(c.label)}</span><span class="rt-orden-indicador" data-col="${c.key}"></span><button type="button" class="rt-filtro-btn" data-col="${c.key}" title="Ordenar o filtrar por ${esc(c.label)}" aria-label="Ordenar o filtrar por ${esc(c.label)}" aria-haspopup="dialog" aria-expanded="false">${ICONO_FILTRO_VERIF_CR}</button></div></th>`).join('');
   return `<div class="cat-titulo" style="margin:14px 0 6px;">${esc(titulo)} (${items.length})</div>
     <div class="buscador-tabla" id="crvBuscador-${clave}"></div>
-    <div class="tabla-propuestas-cr-wrap tabla-verificacion-cr" style="overflow-x:auto;" data-crv="${clave}"><table>
+    <div class="tabla-propuestas-cr-wrap tabla-verificacion-cr" style="overflow-x:auto;" data-crv="${clave}"><table aria-label="${esc(titulo)}">
     <thead><tr>${encabezados}</tr></thead>
     <tbody>${filas.map(_filaHtmlVerifCR).join('')}</tbody>
     </table></div>`;
@@ -6540,7 +6541,12 @@ function _filasVisiblesVerifCR(t){
 
 function _actualizarIconosVerifCR(clave, wrap){
   const t = _tablasVerifCR[clave];
-  wrap.querySelectorAll('.rt-filtro-btn').forEach(btn => btn.classList.toggle('activo', !!t.estado.filtros[btn.dataset.col]));
+  wrap.querySelectorAll('.rt-filtro-btn').forEach(btn => {
+    const conFiltro = !!t.estado.filtros[btn.dataset.col];
+    btn.classList.toggle('activo', conFiltro);
+    const col = t.cols.find(c => c.key === btn.dataset.col);
+    if (col) btn.setAttribute('aria-label', 'Ordenar o filtrar por ' + col.label + (conFiltro ? ' (con filtro)' : ''));
+  });
   wrap.querySelectorAll('.rt-orden-indicador').forEach(sp => {
     const activo = t.estado.orden && t.estado.orden.colKey === sp.dataset.col;
     sp.textContent = activo ? (t.estado.orden.dir === 'desc' ? '↓' : '↑') : '';
@@ -6565,15 +6571,21 @@ function _repintarTablaVerifCR(clave){
   _actualizarIconosVerifCR(clave, wrap);
 }
 
-function _cerrarPopVerifCR(){
+function _cerrarPopVerifCR(devolverFoco){
+  // Se usa también como oyente (scroll, resize): ahí llega un evento, por eso el foco solo vuelve con `true` exacto.
   if (_popVerifCREl){ _popVerifCREl.remove(); _popVerifCREl = null; }
+  if (_popVerifCRBtn){
+    _popVerifCRBtn.setAttribute('aria-expanded', 'false');
+    if (devolverFoco === true && _popVerifCRBtn.isConnected) _popVerifCRBtn.focus();
+    _popVerifCRBtn = null;
+  }
   document.removeEventListener('mousedown', _cerrarPopVerifCRSiFuera, true);
   document.removeEventListener('keydown', _cerrarPopVerifCRConEscape, true);
   window.removeEventListener('scroll', _cerrarPopVerifCRAlDesplazar, true);
   window.removeEventListener('resize', _cerrarPopVerifCR, true);
 }
 function _cerrarPopVerifCRSiFuera(e){ if (_popVerifCREl && !_popVerifCREl.contains(e.target)) _cerrarPopVerifCR(); }
-function _cerrarPopVerifCRConEscape(e){ if (e.key === 'Escape') _cerrarPopVerifCR(); }
+function _cerrarPopVerifCRConEscape(e){ if (e.key === 'Escape') _cerrarPopVerifCR(true); }
 function _cerrarPopVerifCRAlDesplazar(e){ if (_popVerifCREl && _popVerifCREl.contains(e.target)) return; _cerrarPopVerifCR(); } // desplazar la lista de valores del propio desplegable no lo cierra
 
 /** _abrirFiltroVerifCR(clave, colKey, btnEl) → abre el desplegable de una columna: orden ascendente/descendente, quitar orden y lista de valores con casillas (con su buscador). */
@@ -6601,8 +6613,8 @@ function _abrirFiltroVerifCR(clave, colKey, btnEl){
   pop.setAttribute('aria-label', 'Ordenar o filtrar por ' + col.label);
   pop.innerHTML = `
     <div class="rt-filtro-orden">
-      <button type="button" class="rt-orden-btn${ordenActivo === 'asc' ? ' activo' : ''}" data-dir="asc">${esFecha ? '↑ Más antigua primero' : '↑ A → Z'}</button>
-      <button type="button" class="rt-orden-btn${ordenActivo === 'desc' ? ' activo' : ''}" data-dir="desc">${esFecha ? '↓ Más reciente primero' : '↓ Z → A'}</button>
+      <button type="button" class="rt-orden-btn${ordenActivo === 'asc' ? ' activo' : ''}" data-dir="asc" aria-pressed="${ordenActivo === 'asc'}">${esFecha ? '↑ Más antigua primero' : '↑ A → Z'}</button>
+      <button type="button" class="rt-orden-btn${ordenActivo === 'desc' ? ' activo' : ''}" data-dir="desc" aria-pressed="${ordenActivo === 'desc'}">${esFecha ? '↓ Más reciente primero' : '↓ Z → A'}</button>
       ${ordenActivo ? '<button type="button" class="rt-orden-quitar">✕ Quitar orden</button>' : ''}
     </div>
     <div class="rt-filtro-divisor"></div>
@@ -6618,14 +6630,16 @@ function _abrirFiltroVerifCR(clave, colKey, btnEl){
     </div>`;
   document.body.appendChild(pop);
   _popVerifCREl = pop;
+  _popVerifCRBtn = btnEl;
+  btnEl.setAttribute('aria-expanded', 'true');
 
   pop.querySelectorAll('.rt-orden-btn').forEach(b => b.addEventListener('click', () => {
     t.estado.orden = { colKey, dir: b.dataset.dir };
-    _cerrarPopVerifCR();
+    _cerrarPopVerifCR(true);
     _repintarTablaVerifCR(clave);
   }));
   const quitar = pop.querySelector('.rt-orden-quitar');
-  if (quitar) quitar.addEventListener('click', () => { t.estado.orden = null; _cerrarPopVerifCR(); _repintarTablaVerifCR(clave); });
+  if (quitar) quitar.addEventListener('click', () => { t.estado.orden = null; _cerrarPopVerifCR(true); _repintarTablaVerifCR(clave); });
 
   const listaEl = pop.querySelector('.rt-filtro-lista');
   const buscarEl = pop.querySelector('.rt-filtro-buscar');
@@ -6641,11 +6655,11 @@ function _abrirFiltroVerifCR(clave, colKey, btnEl){
   buscarEl.addEventListener('input', pintarLista);
   pop.querySelector('[data-modo="todo"]').addEventListener('click', () => { valores.forEach(v => temp.add(v)); pintarLista(); });
   pop.querySelector('[data-modo="ninguno"]').addEventListener('click', () => { temp.clear(); pintarLista(); });
-  pop.querySelector('.rt-filtro-cancelar').addEventListener('click', _cerrarPopVerifCR);
+  pop.querySelector('.rt-filtro-cancelar').addEventListener('click', () => _cerrarPopVerifCR(true));
   pop.querySelector('.rt-filtro-aceptar').addEventListener('click', () => {
     if (temp.size >= valores.length) delete t.estado.filtros[colKey]; // todo marcado = sin filtro
     else t.estado.filtros[colKey] = new Set(temp);
-    _cerrarPopVerifCR();
+    _cerrarPopVerifCR(true);
     _repintarTablaVerifCR(clave);
   });
 
