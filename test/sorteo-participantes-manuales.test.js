@@ -76,3 +76,15 @@ test('el ganador sin Tag recibe un aviso y el foco en el campo Tag', () => {
   assert.match(html, /winnerResolucionForm\.dataset\.sinTag = w\.tag \? '' : '1'/);
   assert.match(html, /if \(!w\.tag\) winnerResTag\.focus\(/);
 });
+
+test('el ganador sin Tag puede buscar su Tag por nombre con la misma acción de sugerencias', () => {
+  assert.match(html, /id="winnerResTagBuscarWrap"/);
+  assert.match(html, /id="winnerResTagBuscarBtn"/);
+  const i = html.indexOf('  function buscarTagGanador(){');
+  const j = html.indexOf("document.getElementById('winnerResTagBuscarBtn')", i);
+  assert.ok(i > 0 && j > i);
+  const cuerpo = html.slice(i, j);
+  assert.match(cuerpo, /webAdminBuscarMiembroSugerencias/);
+  assert.match(cuerpo, /winnerResTag\.value = m\.tag/);
+  assert.match(html, /winnerResTagBuscar\.value = w\.editedName/);
+});

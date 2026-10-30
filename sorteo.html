@@ -797,6 +797,14 @@
             <input type="text" id="winnerResTag" placeholder="#ABC123 (dejar vacío si no se conoce)" style="width:100%; border:1px solid var(--panel-line); border-radius:9px; padding:8px 10px; font-size:13px; color:var(--ink); box-sizing:border-box;">
           </div>
           <div id="winnerResTagAviso" role="note" style="display:none; margin-bottom:8px; padding:8px; border-radius:8px; background:rgba(162,57,255,.12); font-size:12px; color:var(--ink-soft);">Este ganador se agregó sin Tag (persona de fuera del clan). Si tiene Tag de jugador, escríbelo arriba para que quede en la hoja; si no lo tiene, puedes guardarlo sin Tag confirmándolo más abajo.</div>
+          <div id="winnerResTagBuscarWrap" style="display:none; margin-bottom:8px;">
+            <div style="display:flex; gap:6px;">
+              <input type="text" id="winnerResTagBuscar" autocomplete="off" aria-label="Buscar el Tag del ganador por nombre" placeholder="Buscar su Tag por nombre…" style="flex:1; min-width:0; border:1px solid var(--panel-line); border-radius:9px; padding:8px 10px; font-size:13px; color:var(--ink); box-sizing:border-box;">
+              <button type="button" id="winnerResTagBuscarBtn" class="btn-ghost">Buscar Tag</button>
+            </div>
+            <div id="winnerResTagResultados" role="listbox" aria-label="Miembros que coinciden" style="margin-top:6px; max-height:200px; overflow-y:auto;"></div>
+            <div id="winnerResTagBuscarEstado" aria-live="polite" style="font-size:12px; color:var(--ink-soft); margin-top:4px;"></div>
+          </div>
           <!-- si el ganador vino de "Cargar participantes calificados" el Tag ya llega prellenado (ver abrirResolucionGanador() más abajo) y normalmente no hace falta tocarlo. Historial en CHANGELOG.md. -->
           <div id="winnerResSinTagWrap" style="display:none; margin-bottom:8px; padding:8px; border-radius:8px; background:rgba(0,0,0,0.04);">
             <label style="display:flex; align-items:flex-start; gap:6px; font-size:12px; color:var(--ink-soft); cursor:pointer;">
@@ -1327,6 +1335,10 @@
   var winnerResolucionForm = document.getElementById('winnerResolucionForm');
   var winnerResTag = document.getElementById('winnerResTag');
   var winnerResTagAviso = document.getElementById('winnerResTagAviso');
+  var winnerResTagBuscarWrap = document.getElementById('winnerResTagBuscarWrap');
+  var winnerResTagBuscar = document.getElementById('winnerResTagBuscar');
+  var winnerResTagResultados = document.getElementById('winnerResTagResultados');
+  var winnerResTagBuscarEstado = document.getElementById('winnerResTagBuscarEstado');
   var winnerResSinTagWrap = document.getElementById('winnerResSinTagWrap');
   var winnerResSinTagConfirm = document.getElementById('winnerResSinTagConfirm');
   var winnerResPremio = document.getElementById('winnerResPremio');
@@ -1350,9 +1362,67 @@
     winnerResSinTagWrap.style.display = hayTag ? 'none' : 'block';
     if (hayTag) winnerResSinTagConfirm.checked = false;
     // 29-oct-2026 (§PF294): aviso para quien llegó sin Tag (agregado «de fuera»), mientras no se escriba uno
-    winnerResTagAviso.style.display = (!hayTag && winnerResolucionForm.dataset.sinTag === '1') ? 'block' : 'none';
+    var sinTagAun = !hayTag && winnerResolucionForm.dataset.sinTag === '1';
+    winnerResTagAviso.style.display = sinTagAun ? 'block' : 'none';
+    winnerResTagBuscarWrap.style.display = sinTagAun ? 'block' : 'none';
   }
   winnerResTag.addEventListener('input', toggleWinnerResSinTagVisibility);
+
+  // 29-oct-2026 (§PF294): buscar el Tag de un ganador que llegó sin él, por nombre, con la misma acción de sugerencias del cuadro de «agregar a mano».
+  // Elegir un resultado solo completa el campo Tag; el admin puede corregirlo antes de guardar.
+  var tagBuscarSeq = 0;
+  function buscarTagGanador(){
+    var q = winnerResTagBuscar.value.trim();
+    winnerResTagResultados.innerHTML = '';
+    if (q.length < 2){ winnerResTagBuscarEstado.textContent = 'Escribe al menos 2 letras del nombre.'; return; }
+    var token = localStorage.getItem(SESSION_KEY_SORTEO);
+    if (!token){ winnerResTagBuscarEstado.textContent = 'No hay sesión de admin activa. Vuelve a entrar desde admin.html.'; return; }
+    var miReq = ++tagBuscarSeq;
+    winnerResTagBuscarEstado.textContent = 'Buscando…';
+    var url = WEBAPP_URL + '?accion=webAdminBuscarMiembroSugerencias&q=' + encodeURIComponent(q) + '&sessionToken=' + encodeURIComponent(token);
+    fetch(url, { cache: 'no-store' })
+      .then(function(res){ return res.json(); })
+      .then(function(data){
+        if (miReq !== tagBuscarSeq) return;
+        if (!data || !data.ok || !Array.isArray(data.resultados)){
+          winnerResTagBuscarEstado.textContent = (data && data.error) || 'No se pudo buscar. Escribe el Tag a mano.';
+          return;
+        }
+        if (!data.resultados.length){
+          winnerResTagBuscarEstado.textContent = 'Sin coincidencias. Escribe el Tag a mano o guárdalo sin Tag.';
+          return;
+        }
+        winnerResTagBuscarEstado.textContent = data.resultados.length + ' coincidencia(s). Elige a la persona para completar el Tag.';
+        data.resultados.forEach(function(m){
+          var b = document.createElement('button');
+          b.type = 'button';
+          b.setAttribute('role', 'option');
+          b.className = 'btn-ghost';
+          b.style.cssText = 'display:flex; justify-content:space-between; gap:10px; width:100%; text-align:left; margin-bottom:4px;';
+          var activo = String(m.estado || '').toLowerCase().indexOf('activ') === 0;
+          var izq = document.createElement('span');
+          izq.textContent = m.nombre + (m.nomMulti ? ' (' + m.nomMulti + ')' : '') + ' · ' + m.tag;
+          var der = document.createElement('span');
+          der.textContent = (m.clan || 'Sin clan') + (activo ? '' : ' · inactivo');
+          b.appendChild(izq); b.appendChild(der);
+          b.addEventListener('click', function(){
+            winnerResTag.value = m.tag;
+            toggleWinnerResSinTagVisibility();
+            winnerResTagResultados.innerHTML = '';
+            winnerResTagBuscarEstado.textContent = '';
+            showWinnerResGuardarStatus('Tag completado con ' + m.tag + ' (' + m.nombre + '). Revísalo antes de guardar.', 'ok');
+            winnerResTag.focus();
+          });
+          winnerResTagResultados.appendChild(b);
+        });
+      })
+      .catch(function(){
+        if (miReq !== tagBuscarSeq) return;
+        winnerResTagBuscarEstado.textContent = 'Error de conexión al buscar. Escribe el Tag a mano.';
+      });
+  }
+  document.getElementById('winnerResTagBuscarBtn').addEventListener('click', buscarTagGanador);
+  winnerResTagBuscar.addEventListener('keydown', function(e){ if (e.key === 'Enter'){ e.preventDefault(); buscarTagGanador(); } });
 
   function showWinnerResGuardarStatus(msg, kind){
     winnerResGuardarStatus.textContent = msg;
@@ -1368,6 +1438,9 @@
     document.getElementById('winnerResolucionParaTexto').textContent = 'Registrar resultado para: ' + w.editedName + (idEnlazado ? ' · sorteo ' + idEnlazado : '');
     winnerResTag.value = w.tag || '';
     winnerResolucionForm.dataset.sinTag = w.tag ? '' : '1';
+    winnerResTagBuscar.value = w.editedName || '';
+    winnerResTagResultados.innerHTML = '';
+    winnerResTagBuscarEstado.textContent = '';
     winnerResPremio.value = w.premio || '';
     winnerResTickets.value = (w.tickets !== null && w.tickets !== undefined) ? w.tickets : '';
     winnerResTipo.value = w.resultado || 'Califica';
