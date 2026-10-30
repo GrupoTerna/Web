@@ -237,7 +237,8 @@
 // v182 (24-oct-2026): sorteo.html cambió (CORE_ASSETS) -- carga assets/styles.css y usa sus reglas globales en vez de repetirlas (§PF226).
 // v180 (24-oct-2026): guerra.html, assets/js/ui/filters.js y assets/styles.css cambiaron (CORE_ASSETS) -- buscador por nombre o Tag en las tablas de guerra (§PF224).
 // v185 (24-oct-2026): sorteo.html cambió (CORE_ASSETS) -- la hora de cada ganador se arma a mano con dos cifras en hora, minutos y segundos (§PF232).
-const CACHE_NAME = 'terna-static-v185';
+// v186 (29-oct-2026): directorio.html cambió (CORE_ASSETS) -- el nombre del jugador en «Ingresos recientes» mide al menos 24 px de alto (accesibilidad, §PF016).
+const CACHE_NAME = 'terna-static-v186';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y

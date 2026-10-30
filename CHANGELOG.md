@@ -62,6 +62,10 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 
 ---
 
+## 29-oct-2026
+
+- **`directorio.html` (CSS `.nuevo-card .name a.jugador-link`) y `sw.js` (v186) · «Ingresos recientes»: el nombre del jugador mide al menos 24 px de alto.** Criterio 2.5.8 de WCAG 2.2 (tamaño del objetivo); no cambia la letra ni el centrado. Pruebas: 778 de 778 pasan. `§PF016`, `§PF287`.
+
 ## 28-oct-2026
 
 - **`admin.html` (CSS `.tabla-verificacion-cr` y `_resultadoVerificacionCR()`) y `test/cambio-rango-verificar-dom.test.js` · Rama «verificar»: orden de las tablas y Motivo/Nota en una línea.** Las tablas salen primero aplicadas, luego aplicadas de forma excepcional y por último las que faltan; la última columna (Motivo o Nota) no salta de línea, así la tabla se ensancha y aparecen las barras horizontales. 1 prueba nueva. PF286 punto 29. [→ Contexto_Base_Web.md §PF286]
