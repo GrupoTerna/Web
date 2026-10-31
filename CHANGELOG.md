@@ -62,6 +62,16 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 
 ---
 
+## 30-oct-2026
+
+
+
+- **`directorio.html` (CSS `.nuevo-card .clan`), `guerra.html` (CSS `.part-clan-nombre`), `index.html` (CSS `.top-clan` y `.ranking-row .rk-clan`) y `sw.js` (v195) · El nombre del clan va en morado claro.** Igual que en `torneos.html`; el escudo de «Los 4 clanes Terna» no se reduce (decidido por la usuaria). `§PF069`.
+
+- **`perfil.html` (`perfilLineChartSvg()`, `etiquetaPuntoPerfil()`, `htmlTooltipPuntoPerfil()`) · El punto hueco de las gráficas ya no muestra número.** El tooltip y la etiqueta del punto «sin dato» llevan solo la fecha y el motivo; el valor estimado por el backend (corrección) llega como punto real y conserva su número. `§PF066`.
+
+
+
 ## 29-oct-2026
 
 - **`admin.html` (`_tablaVerificacionCR()`, `_actualizarIconosVerifCR()`, `_abrirFiltroVerifCR()`, `_cerrarPopVerifCR()`) y `sw.js` (v187) · Accesibilidad del desplegable de filtro de las tablas de «verificar» de Cambio de rango.** Al cerrarlo con Escape, Cancelar, Aceptar o un orden, el foco vuelve al embudo (antes caía a `<body>`); el embudo lleva `aria-haspopup="dialog"` y `aria-expanded`, y su nombre añade «(con filtro)» cuando la columna está filtrada; los botones de orden llevan `aria-pressed`; cada tabla lleva `aria-label` con el título de su sección. Cerrar por clic fuera, desplazamiento o cambio de tamaño no mueve el foco. Pruebas: 5 nuevas en `test/cambio-rango-verificar-dom.test.js`. `§PF293`.

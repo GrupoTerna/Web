@@ -5604,10 +5604,14 @@ function attrsTemporadaSemanaDiaPerfil(p){
 function etiquetaPuntoPerfil(pt){
   const d = pt.dataset;
   const tsd = textoTemporadaSemanaDiaPerfil(d);
+  // 30-oct-2026 (PF066, decidido por la usuaria): un punto hueco («sin dato») no lleva número, solo la fecha y el motivo; el valor estimado por el backend (corrección) llega como punto real y sí lleva su número. [→ Contexto_Base_Web.md §PF066]
+  if (d.sinDato) return `${d.nombre || ''}${d.tag ? ' (' + d.tag + ')' : ''}: sin dato — ${d.clan || ''} · ${d.semana || ''}${tsd ? ' — ' + tsd : ''}`;
   return `${d.nombre || ''}${d.tag ? ' (' + d.tag + ')' : ''}: ${d.prefijo || ''}${fmtNum(d.valor)} ${d.unidad || ''} — ${d.clan || ''} · ${d.semana || ''}${tsd ? ' — ' + tsd : ''}${d.tope ? ' — supera el tope de ' + fmtNum(d.tope) : ''}${d.excedeAtaques ? ' — más barcos que ataques (ataques ' + (d.serieEt ? 'acumulados' : 'ese día') + ': ' + fmtNum(d.excedeAtaques) + ')' : ''}${d.minimo ? ' — por debajo del mínimo de ' + fmtNum(d.minimo) : ''}${d.serieEt ? ' — ' + d.serieEt : ''}`;
 }
 function htmlTooltipPuntoPerfil(pt){
   const d = pt.dataset;
+  // 30-oct-2026 (PF066): el punto hueco muestra solo la fecha y el motivo, sin número. [→ Contexto_Base_Web.md §PF066]
+  if (d.sinDato) return `<b>${esc(d.nombre || '')}${d.tag ? ' (' + esc(d.tag) + ')' : ''}</b><br><span style="color:var(--text-faint);">Sin dato — ${esc(d.clan || '')} · ${esc(d.semana || '')}</span>${textoTemporadaSemanaDiaPerfil(d) ? `<br><span style="color:var(--text-faint);">${esc(textoTemporadaSemanaDiaPerfil(d))}</span>` : ''}`;
   return `<b>${esc(d.nombre || '')}${d.tag ? ' (' + esc(d.tag) + ')' : ''}</b><br><span style="color:var(--text-faint);">${esc((d.prefijo || '') + fmtNum(d.valor))} ${esc(d.unidad || '')} — ${esc(d.clan || '')} · ${esc(d.semana || '')}</span>${textoTemporadaSemanaDiaPerfil(d) ? `<br><span style="color:var(--text-faint);">${esc(textoTemporadaSemanaDiaPerfil(d))}</span>` : ''}${d.tope ? `<br><span style="color:var(--danger);">⚠ Supera el tope de ${esc(fmtNum(d.tope))}</span>` : ''}${d.excedeAtaques ? `<br><span style="color:var(--danger);">⚠ Más barcos que ataques (ataques ${d.serieEt ? 'acumulados' : 'ese día'}: ${esc(fmtNum(d.excedeAtaques))})</span>` : ''}${d.minimo ? `<br><span style="color:var(--danger);">⚠ Por debajo del mínimo de ${esc(fmtNum(d.minimo))}</span>` : ''}${d.serieEt ? `<br><span style="color:var(--text-faint);">${esc(d.serieEt)}</span>` : ''}`;
 }
 
@@ -5786,7 +5790,7 @@ function perfilLineChartSvg(puntos, opts){
     return `
       <circle class="ing-serie-pt${p.real ? '' : ' serie-pt-vacio'}${anomalia ? ' serie-pt-anomalia' : ''}" cx="${xPos(i).toFixed(1)}" cy="${yPos(p.valor).toFixed(1)}" r="${anomalia ? 6.5 : R_PUNTO_PERFIL}"
         fill="${p.real ? (anomalia ? 'var(--danger)' : COLOR_SERIE_PERFIL) : 'none'}" stroke="${p.real ? 'var(--bg)' : COLOR_SERIE_PERFIL}" stroke-width="${p.real ? 1.5 : 2}"
-        data-nombre="${esc(perfilGraficaCtx.nombre)}" data-tag="${esc(perfilGraficaCtx.tag)}" data-valor="${p.valor}" data-prefijo="${esc(p.real ? prefijo : '')}"
+        data-nombre="${esc(perfilGraficaCtx.nombre)}" data-tag="${esc(perfilGraficaCtx.tag)}" data-valor="${p.valor}" ${p.real ? '' : ' data-sin-dato="1"'} data-prefijo="${esc(p.real ? prefijo : '')}"
         data-clan="${esc(p.real ? (p.clan || perfilGraficaCtx.clan || '—') : (p.motivo || 'Sin dato — sin clan o sin participar'))}"
         data-serie="dia" data-semana="${esc(p.semana)}"${attrsTemporadaSemanaDiaPerfil(p)} data-unidad="${esc(opts.unidad || '')}"${(!!tope && p.real && Number(p.valor) > tope) ? ` data-tope="${tope}"` : ''}${excedeAtaques ? ` data-excede-ataques="${p.excedeAtaques}"` : ''}${bajoMin ? ` data-minimo="${minimo}"` : ''}></circle>`;
   }).join('');

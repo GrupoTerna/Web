@@ -246,7 +246,7 @@
 // v192 (29-oct-2026): sorteo.html cambió (CORE_ASSETS) -- el buscador del ganador se ve siempre y acepta Tag o nombre; si el Tag no está en el directorio se puede usar tal cual (§PF294).
 // v193 (29-oct-2026): sorteo.html cambió (CORE_ASSETS) -- roles ARIA de las listas de sugerencias corregidos para pasar html-validate: grupo de botones en el buscador de Tag del ganador y listbox conservado, con la regla silenciada, en el autocompletado (§PF294).
 // v194 (29-oct-2026): directorio.html cambió (CORE_ASSETS) -- accesibilidad del desplegable de orden y filtro del roster: el foco entra al abrirlo, Escape lo cierra, el foco vuelve al embudo y el cuadro y el embudo tienen rol, nombre y estado (§PF293).
-const CACHE_NAME = 'terna-static-v194';
+const CACHE_NAME = 'terna-static-v195';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
