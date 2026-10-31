@@ -131,3 +131,34 @@ test('se combina con las otras pastillas de «Ocultar»: basta con que una ocult
   w.document.querySelector('#ingClanPills .ing-pill[data-clan="__admins__"]').click();
   assert.deepEqual(tags(w), ['#B1']);
 });
+
+// NUEVO (31-oct-2026, PF225 caso (b) de P18; la usuaria dijo «sí»): si el clan ya había cruzado la meta en el día actual (atacar era
+// opcional), la cuenta cuenta como sin pendientes aunque tenga 0 a 3 ataques o ni siquiera dato de ese día. Lo marca el backend en
+// `diasOpcionales` (4 booleanos J/V/S/D). Sin ese campo, o con otro día marcado, nada cambia.
+test('día opcional (meta del clan cruzada): sin pendientes aunque tenga 0 a 3 ataques o no tenga dato de hoy', () => {
+  const op = (viernes, n) => ({ ...n, diasOpcionales: [false, viernes, false, false] });
+  const lista = [
+    op(true, VIERNES[1]),  // 3 ataques, pero el clan ya cruzó la meta hoy
+    op(true, VIERNES[2]),  // 0 ataques, mismo caso
+    op(true, VIERNES[3]),  // sin dato de hoy, mismo caso
+    op(true, VIERNES[4]),  // sin guerraSemanaDias, mismo caso
+    op(false, VIERNES[2]), // el clan no cruzó la meta: 0 ataques sigue siendo pendiente
+    { ...VIERNES[2], diasOpcionales: [false, false, true, false] }, // marcado otro día (sábado), no el actual
+    { ...VIERNES[2], diasOpcionales: 'x' },                          // campo mal formado: se ignora
+    VIERNES[0]
+  ];
+  const w = montar(lista);
+  const s = n => w.__t.sinPendientesIngreso(n);
+  assert.deepEqual(lista.map(s), [true, true, true, true, false, false, false, true]);
+});
+
+test('día opcional: la pastilla oculta a esas cuentas y las cuenta en su número', () => {
+  const lista = [
+    { ...VIERNES[2], tag: '#O1', diasOpcionales: [false, true, false, false] },
+    { ...VIERNES[2], tag: '#O2' },
+    VIERNES[0]
+  ];
+  const w = montar(lista);
+  const hechas = lista.filter(n => w.__t.sinPendientesIngreso(n)).map(n => n.tag);
+  assert.deepEqual(hechas, ['#O1', '#A1']);
+});

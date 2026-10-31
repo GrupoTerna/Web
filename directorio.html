@@ -2797,10 +2797,11 @@ function diaActualIngresosCache(){
   }
   return _diaActualIngresosIdx;
 }
-/** Ya hizo todos sus ataques del día actual (4 o más). Sin dato de ese día (null, o ingreso sin guerraSemanaDias) NO cuenta: se queda visible, porque 0 ataques también es «pendiente» y no se sabe que haya terminado. */
+/** Ya hizo todos sus ataques del día actual (4 o más), o su clan ya había cruzado la meta ese día (atacar era opcional: caso (b) de P18, `PF225`, 31-oct-2026; lo marca el backend en `diasOpcionales`, 4 booleanos J/V/S/D, y vale aunque no haya dato de ataques de ese día). Sin dato de ese día (null, o ingreso sin guerraSemanaDias) y sin día opcional NO cuenta: se queda visible, porque 0 ataques también es «pendiente» y no se sabe que haya terminado. */
 function sinPendientesIngreso(n){
   const idx = diaActualIngresosCache();
   if (idx < 0) return false;
+  if (n && Array.isArray(n.diasOpcionales) && n.diasOpcionales[idx] === true) return true;
   const a = n && n.guerraSemanaDias && n.guerraSemanaDias.ataques;
   if (!Array.isArray(a)) return false;
   const v = a[idx];
