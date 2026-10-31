@@ -1709,6 +1709,7 @@ const ICONO_FILTRO = '<svg viewBox="0 0 16 16" fill="currentColor" xmlns="http:/
 let rosterFiltrosSeleccion = {};
 let rosterOrden = null;
 let rosterFiltroPopEl = null; // popover de filtro abierto actualmente (o null)
+let rosterFiltroBtnEl = null; // el embudo que abrió el cuadro (para su aria-expanded y para devolverle el foco)
 let rosterMiembrosBase = []; // miembros del clan activo, en el orden original del backend (sin ordenar)
 // Letra A-Z/# elegida en #rosterLetraFilter; se reinicia al cambiar de clan y se combina con los demás filtros sin pisarse. Historial en CHANGELOG.md.
 let rosterLetraSeleccionada = null;
@@ -1786,12 +1787,20 @@ function etiquetasOrden(col){
   return { asc:'A → Z', desc:'Z → A' };
 }
 
-function cerrarFiltroPopover(){
+function cerrarFiltroPopover(devolverFoco){
+  // También es oyente de scroll y resize (ahí llega un evento): el foco solo vuelve con `true` exacto, al cerrar con Escape o con un botón del cuadro.
   if (rosterFiltroPopEl){ rosterFiltroPopEl.remove(); rosterFiltroPopEl = null; }
+  if (rosterFiltroBtnEl){
+    rosterFiltroBtnEl.setAttribute('aria-expanded', 'false');
+    if (devolverFoco === true && rosterFiltroBtnEl.isConnected) rosterFiltroBtnEl.focus();
+    rosterFiltroBtnEl = null;
+  }
+  document.removeEventListener('keydown', cerrarFiltroPopoverConEscape, true);
   document.removeEventListener('mousedown', cerrarFiltroPopoverSiFuera, true);
   window.removeEventListener('scroll', cerrarFiltroPopover, true);
   window.removeEventListener('resize', cerrarFiltroPopover, true);
 }
+function cerrarFiltroPopoverConEscape(e){ if (e.key === 'Escape') cerrarFiltroPopover(true); }
 function cerrarFiltroPopoverSiFuera(e){
   if (rosterFiltroPopEl && !rosterFiltroPopEl.contains(e.target)) cerrarFiltroPopover();
 }
@@ -1833,12 +1842,14 @@ function abrirFiltroColumna(col, btnEl, wrap){
 
   const pop = document.createElement('div');
   pop.className = 'rt-filtro-pop';
+  pop.setAttribute('role', 'dialog');
+  pop.setAttribute('aria-label', btnEl.getAttribute('title'));
   pop.dataset.col = col.key;
   pop.innerHTML = `
     ${col.sortable === false ? '' : `
     <div class="rt-filtro-orden">
-      <button type="button" class="rt-orden-btn${ordenActivo === 'asc' ? ' activo' : ''}" data-dir="asc">↑ ${esc(et.asc)}</button>
-      <button type="button" class="rt-orden-btn${ordenActivo === 'desc' ? ' activo' : ''}" data-dir="desc">↓ ${esc(et.desc)}</button>
+      <button type="button" class="rt-orden-btn${ordenActivo === 'asc' ? ' activo' : ''}" data-dir="asc" aria-pressed="${ordenActivo === 'asc'}">↑ ${esc(et.asc)}</button>
+      <button type="button" class="rt-orden-btn${ordenActivo === 'desc' ? ' activo' : ''}" data-dir="desc" aria-pressed="${ordenActivo === 'desc'}">↓ ${esc(et.desc)}</button>
       ${ordenActivo ? '<button type="button" class="rt-orden-quitar">✕ Quitar orden</button>' : ''}
     </div>
     <div class="rt-filtro-divisor"></div>`}
@@ -1867,12 +1878,14 @@ function abrirFiltroColumna(col, btnEl, wrap){
     </div>`;
   document.body.appendChild(pop);
   rosterFiltroPopEl = pop;
+  rosterFiltroBtnEl = btnEl;
+  btnEl.setAttribute('aria-expanded', 'true');
 
   // ---- Orden (se aplica al toque, no espera a "Aceptar") ----
   pop.querySelectorAll('.rt-orden-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       rosterOrden = { colKey: col.key, dir: btn.dataset.dir };
-      cerrarFiltroPopover();
+      cerrarFiltroPopover(true);
       reordenarYRepintarRoster(wrap);
     });
   });
@@ -1880,7 +1893,7 @@ function abrirFiltroColumna(col, btnEl, wrap){
   if (btnQuitarOrden){
     btnQuitarOrden.addEventListener('click', () => {
       rosterOrden = null;
-      cerrarFiltroPopover();
+      cerrarFiltroPopover(true);
       reordenarYRepintarRoster(wrap);
     });
   }
@@ -1922,7 +1935,7 @@ function abrirFiltroColumna(col, btnEl, wrap){
     pintarLista(pop.querySelector('.rt-filtro-buscar').value);
   });
 
-  pop.querySelector('.rt-filtro-cancelar').addEventListener('click', cerrarFiltroPopover);
+  pop.querySelector('.rt-filtro-cancelar').addEventListener('click', () => cerrarFiltroPopover(true));
   pop.querySelector('.rt-filtro-aceptar').addEventListener('click', () => {
     const operador = tieneComparacion ? pop.querySelector('.rt-comparar-operador').value : '';
     const valorCrudo = tieneComparacion ? pop.querySelector('.rt-comparar-valor').value : '';
@@ -1939,7 +1952,7 @@ function abrirFiltroColumna(col, btnEl, wrap){
     } else {
       rosterFiltrosSeleccion[col.key] = temp;
     }
-    cerrarFiltroPopover();
+    cerrarFiltroPopover(true);
     aplicarFiltrosRoster(wrap);
     actualizarIconosFiltro(wrap);
   });
@@ -1952,8 +1965,12 @@ function abrirFiltroColumna(col, btnEl, wrap){
   if (top + 400 > window.innerHeight) top = Math.max(8, r.top - 406);
   pop.style.left = Math.max(8, left) + 'px';
   pop.style.top = top + 'px';
+  pop.tabIndex = -1; // el cuadro es el último nodo del <body>: sin esto, con teclado no se llega a él
+  pop.style.outline = 'none';
+  pop.focus({ preventScroll: true });
 
   setTimeout(() => {
+    document.addEventListener('keydown', cerrarFiltroPopoverConEscape, true);
     document.addEventListener('mousedown', cerrarFiltroPopoverSiFuera, true);
     window.addEventListener('scroll', cerrarFiltroPopover, true);
     window.addEventListener('resize', cerrarFiltroPopover, true);
@@ -1965,7 +1982,9 @@ function abrirFiltroColumna(col, btnEl, wrap){
  * y la flechita (↑/↓) de la columna que ordena la tabla ahora mismo. */
 function actualizarIconosFiltro(wrap){
   wrap.querySelectorAll('.rt-filtro-btn').forEach(btn => {
-    btn.classList.toggle('activo', !!rosterFiltrosSeleccion[btn.dataset.col]);
+    const conFiltro = !!rosterFiltrosSeleccion[btn.dataset.col];
+    btn.classList.toggle('activo', conFiltro);
+    btn.setAttribute('aria-label', btn.getAttribute('title') + (conFiltro ? ' (con filtro)' : '')); // antes el filtro activo solo se veía por el color
   });
   wrap.querySelectorAll('.rt-orden-indicador').forEach(sp => {
     const activo = rosterOrden && rosterOrden.colKey === sp.dataset.col;
@@ -2114,7 +2133,7 @@ function renderRosterClanActivo(){
 
   const encabezado = ROSTER_COLUMNAS.map(c => `
     <th scope="col"><div class="rt-th-inner"><span>${esc(c.label)}</span>${c.sortable === false ? '' : `<span class="rt-orden-indicador" data-col="${c.key}"></span>`}${c.filtrable === false ? '' :
-      `<button type="button" class="rt-filtro-btn" data-col="${c.key}" title="Ordenar o filtrar por ${esc(c.label)}" aria-label="Ordenar o filtrar por ${esc(c.label)}">${ICONO_FILTRO}</button>`
+      `<button type="button" class="rt-filtro-btn" data-col="${c.key}" title="Ordenar o filtrar por ${esc(c.label)}" aria-label="Ordenar o filtrar por ${esc(c.label)}" aria-haspopup="dialog" aria-expanded="false">${ICONO_FILTRO}</button>`
     }</div></th>`).join('');
 
   wrap.innerHTML = `
