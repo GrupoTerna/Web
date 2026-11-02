@@ -509,7 +509,7 @@
     <section id="participacionHoySection" style="padding:calc(var(--gap-seccion) / 2) 0;">
       <div class="sec-head pf-cinta pf-cinta--seccion" style="--cinta:url(Im%C3%A1genes/Banners/Fankit/cinta-guerra-participacion.webp); border-bottom:1px solid var(--line); padding-bottom:12px;">
         <h2 style="font-size:22px;">🔁 Participación de Hoy (Reemplazos)</h2>
-        <div class="text-faint" style="font-family:var(--f-mono); font-size:12px; margin-top:10px;">Por clan: cuentas que ya usaron al menos 1 de sus 4 ataques hoy (reservadas, no reemplazables) vs. cuentas activas que todavía no atacaron (reemplazables). Las cuentas inactivas que ya atacaron hoy también cuentan como reservadas, porque ocupan uno de los 50 cupos del día. Solo visible para administradores.</div>
+        <div class="text-faint" style="font-family:var(--f-mono); font-size:12px; margin-top:10px;">Por clan: cuentas que ya usaron al menos 1 de sus 4 ataques hoy (reservadas, no reemplazables) vs. cuentas activas que todavía no atacaron (reemplazables). Las cuentas que ya atacaron hoy en el clan y ya no figuran como activas en él (inactivas, pasadas a otro clan o aún sin registro en el Directorio) también cuentan como reservadas, porque ocupan uno de los 50 cupos del día. Solo visible para administradores.</div>
       </div>
       <!-- FIX (12-sep-2026, pedido usuario — "agrega también los botones
            de clan(es) y Todos"): mismo patrón .tabs-row/.tab-btn que
@@ -2287,8 +2287,10 @@ function _liCuentaParticipacion(cta, pend){
   // 2-nov-2026 (§PF344): una cuenta inactiva (ya no está en el clan) que atacó hoy no tiene «pendientes»; se muestra cuántos ataques usó y una insignia «Inactiva».
   const esInactiva = cta.inactiva === true;
   const usados = Number(cta.ataquesHoy);
+  // 2-nov-2026 (§PF344): el backend manda `motivo`: 'inactiva', 'otroClan' (hoy es Activa en `clanActual`) o 'sinDirectorio' (aún no figura en el Directorio). Sin `motivo` (backend anterior) se trata como inactiva.
+  const insignia = cta.motivo === 'otroClan' ? 'Ahora en ' + (cta.clanActual || 'otro clan') : cta.motivo === 'sinDirectorio' ? 'Sin Directorio' : 'Inactiva';
   const pendHtml = esInactiva
-    ? ` <span class="part-inactiva-badge" title="Ya no está en el clan, pero atacó hoy y sigue ocupando uno de los 50 cupos del día">Inactiva</span>` + (Number.isFinite(usados) ? ` <span class="part-pend">— ${usados} ataque${usados === 1 ? '' : 's'} hoy</span>` : '')
+    ? ` <span class="part-inactiva-badge" title="Ya no figura como miembro activo de este clan, pero atacó hoy y sigue ocupando uno de los 50 cupos del día">${esc(insignia)}</span>` + (Number.isFinite(usados) ? ` <span class="part-pend">— ${usados} ataque${usados === 1 ? '' : 's'} hoy</span>` : '')
     : (pend === null) ? '' :
     ` <span class="part-pend${pend === 0 ? ' part-pend-cero' : ''}">— ${pend} pendiente${pend === 1 ? '' : 's'}</span>`;
   return `<li data-buscar="${esc((cta.nombre || '') + ' ' + (cta.tag || ''))}"${esInactiva ? ' class="part-inactiva"' : ''}>${cta.tag ? enlaceJugador(cta.nombre || cta.tag, cta.tag) : esc(cta.nombre || cta.tag)} <span class="text-faint" style="font-family:var(--f-mono);">${esc(cta.tag || '')}</span>${_extrasCuentaParticipacion(cta)}${pendHtml}</li>`;
@@ -2337,9 +2339,9 @@ function renderParticipacionHoyGuerra(clanes, multiClan){
     const cuposLibres = Math.max(0, CUENTAS_MAX_DIA - c.reservadas.length);
     const cuposHtml = `<div class="part-cupos">Cupos de hoy: <strong>${c.reservadas.length} de ${CUENTAS_MAX_DIA}</strong> · ` +
       (cuposLibres > 0 ? `pueden participar <strong>${cuposLibres}</strong> cuenta${cuposLibres === 1 ? '' : 's'} nueva${cuposLibres === 1 ? '' : 's'}` : 'sin cupos libres para cuentas nuevas') +
-      (inactivasRes.length ? ` (incluye ${inactivasRes.length} inactiva${inactivasRes.length === 1 ? '' : 's'})` : '') + `</div>`;
+      (inactivasRes.length ? ` (incluye ${inactivasRes.length} fuera del clan)` : '') + `</div>`;
     const inactivasHtml = !inactivasRes.length ? '' : `
-          <div class="part-subhead">Inactivas con ataques hoy (${inactivasRes.length})</div>
+          <div class="part-subhead">Fuera del clan con ataques hoy (${inactivasRes.length})</div>
           ${_listaCuentasHtml(inactivasRes, null)}`;
     return `
     <div class="card ai-clan-card" data-clan="${esc(c.clan)}" style="padding:16px;">

@@ -84,7 +84,16 @@ test('el render separa las inactivas de las reservadas activas y cuenta los cupo
   assert.match(html, /const activasRes = c\.reservadas\.filter\(cta => cta\.inactiva !== true\);/);
   assert.match(html, /const inactivasRes = c\.reservadas\.filter\(cta => cta\.inactiva === true\);/);
   assert.match(html, /Math\.max\(0, CUENTAS_MAX_DIA - c\.reservadas\.length\)/);
-  assert.match(html, /Inactivas con ataques hoy \(\$\{inactivasRes\.length\}\)/);
+  assert.match(html, /Fuera del clan con ataques hoy \(\$\{inactivasRes\.length\}\)/);
   // el total de «Reservadas» sigue incluyendo a las inactivas (ocupan cupo)
   assert.match(html, /🔒 Reservadas \(\$\{c\.reservadas\.length\}\)/);
+});
+
+test('la insignia depende del motivo que manda el backend (§PF344, 2-nov-2026)', () => {
+  const c = construir(true);
+  assert.match(c._liCuentaParticipacion(cta({ inactiva: true, motivo: 'inactiva' }), null), />Inactiva</);
+  assert.match(c._liCuentaParticipacion(cta({ inactiva: true, motivo: 'otroClan', clanActual: 'GrupoXTerna™2' }), null), />Ahora en GrupoXTerna™2</);
+  assert.match(c._liCuentaParticipacion(cta({ inactiva: true, motivo: 'otroClan' }), null), />Ahora en otro clan</);
+  assert.match(c._liCuentaParticipacion(cta({ inactiva: true, motivo: 'sinDirectorio' }), null), />Sin Directorio</);
+  assert.match(c._liCuentaParticipacion(cta({ inactiva: true }), null), />Inactiva</, 'sin motivo (backend anterior) = inactiva');
 });
