@@ -231,6 +231,11 @@
   /* El ícono de WhatsApp (.hist-wsp) está en assets/styles.css y lo pinta botonHistJugador() (§PF172). */
   .part-pend{font-family:var(--f-mono); font-size:11px; color:var(--text-faint);}
   .part-pend.part-pend-cero{color:var(--text-faint);} /* sin opacity: con .7 daba 2.97:1 (mínimo 4.5:1); el 0 es información. [→ Contexto_Base_Web.md §PF050] */
+  /* 2-nov-2026 (pedido de la usuaria, §PF344): cuentas inactivas que atacaron hoy. Siguen ocupando uno de los 50 cupos del día, así que se listan dentro de las reservadas, en un subgrupo aparte y más tenues (mismo .72 que las filas inactivas de Valores diarios). */
+  .part-cupos{font-family:var(--f-mono); font-size:11px; color:var(--text-dim); margin-top:6px;}
+  .part-cupos strong{color:var(--text);}
+  .part-lista li.part-inactiva{opacity:.72;}
+  .part-inactiva-badge{margin-left:6px; padding:1px 6px; border-radius:999px; font-family:var(--f-mono); font-size:10px; font-weight:700; letter-spacing:.04em; border:1px solid var(--line); color:var(--text-faint);}
 
   /* sección nueva y PÚBLICA (no requiere sesión de admin). Historial en CHANGELOG.md. */
   #controlActivosSection{display:none;}
@@ -504,7 +509,7 @@
     <section id="participacionHoySection" style="padding:calc(var(--gap-seccion) / 2) 0;">
       <div class="sec-head pf-cinta pf-cinta--seccion" style="--cinta:url(Im%C3%A1genes/Banners/Fankit/cinta-guerra-participacion.webp); border-bottom:1px solid var(--line); padding-bottom:12px;">
         <h2 style="font-size:22px;">🔁 Participación de Hoy (Reemplazos)</h2>
-        <div class="text-faint" style="font-family:var(--f-mono); font-size:12px; margin-top:10px;">Por clan: cuentas que ya usaron al menos 1 de sus 4 ataques hoy (reservadas, no reemplazables) vs. cuentas activas que todavía no atacaron (reemplazables). Solo visible para administradores.</div>
+        <div class="text-faint" style="font-family:var(--f-mono); font-size:12px; margin-top:10px;">Por clan: cuentas que ya usaron al menos 1 de sus 4 ataques hoy (reservadas, no reemplazables) vs. cuentas activas que todavía no atacaron (reemplazables). Las cuentas inactivas que ya atacaron hoy también cuentan como reservadas, porque ocupan uno de los 50 cupos del día. Solo visible para administradores.</div>
       </div>
       <!-- FIX (12-sep-2026, pedido usuario — "agrega también los botones
            de clan(es) y Todos"): mismo patrón .tabs-row/.tab-btn que
@@ -2279,9 +2284,14 @@ function _extrasCuentaParticipacion(cta){
   return botonHistJugador({ tag: cta.tag, nombre: cta.nombre, tieneWsp: cta.tieneWsp === true });
 }
 function _liCuentaParticipacion(cta, pend){
-  const pendHtml = (pend === null) ? '' :
+  // 2-nov-2026 (§PF344): una cuenta inactiva (ya no está en el clan) que atacó hoy no tiene «pendientes»; se muestra cuántos ataques usó y una insignia «Inactiva».
+  const esInactiva = cta.inactiva === true;
+  const usados = Number(cta.ataquesHoy);
+  const pendHtml = esInactiva
+    ? ` <span class="part-inactiva-badge" title="Ya no está en el clan, pero atacó hoy y sigue ocupando uno de los 50 cupos del día">Inactiva</span>` + (Number.isFinite(usados) ? ` <span class="part-pend">— ${usados} ataque${usados === 1 ? '' : 's'} hoy</span>` : '')
+    : (pend === null) ? '' :
     ` <span class="part-pend${pend === 0 ? ' part-pend-cero' : ''}">— ${pend} pendiente${pend === 1 ? '' : 's'}</span>`;
-  return `<li data-buscar="${esc((cta.nombre || '') + ' ' + (cta.tag || ''))}">${cta.tag ? enlaceJugador(cta.nombre || cta.tag, cta.tag) : esc(cta.nombre || cta.tag)} <span class="text-faint" style="font-family:var(--f-mono);">${esc(cta.tag || '')}</span>${_extrasCuentaParticipacion(cta)}${pendHtml}</li>`;
+  return `<li data-buscar="${esc((cta.nombre || '') + ' ' + (cta.tag || ''))}"${esInactiva ? ' class="part-inactiva"' : ''}>${cta.tag ? enlaceJugador(cta.nombre || cta.tag, cta.tag) : esc(cta.nombre || cta.tag)} <span class="text-faint" style="font-family:var(--f-mono);">${esc(cta.tag || '')}</span>${_extrasCuentaParticipacion(cta)}${pendHtml}</li>`;
 }
 function _listaCuentasHtml(cuentas, pendFn){
   if(!cuentas.length) return '<div class="text-faint" style="font-size:12px;">— ninguna —</div>';
@@ -2289,6 +2299,7 @@ function _listaCuentasHtml(cuentas, pendFn){
 }
 
 const ATAQUES_MAX_HOY = 4; // "usaron al menos 1 de sus 4 ataques hoy"
+const CUENTAS_MAX_DIA = 50; // 2-nov-2026 (§PF344): tope de cuentas que pueden participar por clan y día; incluye a las que atacaron y ya salieron del clan
 function pendientesHoy(cta){
   const usados = Number(cta.ataquesHoy);
   return Number.isFinite(usados) ? Math.max(0, ATAQUES_MAX_HOY - usados) : 1; // sin dato del backend: se asume 1 usado
@@ -2318,8 +2329,18 @@ function aplicarBusquedaParticipacion(){
 function renderParticipacionHoyGuerra(clanes, multiClan){
 // cada clan pasa a su propia tarjeta .ai-clan-card con data-clan (mismo patrón que "Valores diarios"), para que gestionarTabsClan() pueda mostrar/ocultar una por una sin volver a pedir datos. Historial en CHANGELOG.md.
   const clanesHtml = clanes.map(c => {
-    const conPendientes = c.reservadas.filter(cta => pendientesHoy(cta) > 0);
-    const sinPendientes = c.reservadas.filter(cta => pendientesHoy(cta) === 0);
+    // §PF344: las inactivas con ataques hoy van en su propio subgrupo (el backend las marca con inactiva:true) y siguen contando en el total de reservadas.
+    const activasRes = c.reservadas.filter(cta => cta.inactiva !== true);
+    const inactivasRes = c.reservadas.filter(cta => cta.inactiva === true);
+    const conPendientes = activasRes.filter(cta => pendientesHoy(cta) > 0);
+    const sinPendientes = activasRes.filter(cta => pendientesHoy(cta) === 0);
+    const cuposLibres = Math.max(0, CUENTAS_MAX_DIA - c.reservadas.length);
+    const cuposHtml = `<div class="part-cupos">Cupos de hoy: <strong>${c.reservadas.length} de ${CUENTAS_MAX_DIA}</strong> · ` +
+      (cuposLibres > 0 ? `pueden participar <strong>${cuposLibres}</strong> cuenta${cuposLibres === 1 ? '' : 's'} nueva${cuposLibres === 1 ? '' : 's'}` : 'sin cupos libres para cuentas nuevas') +
+      (inactivasRes.length ? ` (incluye ${inactivasRes.length} inactiva${inactivasRes.length === 1 ? '' : 's'})` : '') + `</div>`;
+    const inactivasHtml = !inactivasRes.length ? '' : `
+          <div class="part-subhead">Inactivas con ataques hoy (${inactivasRes.length})</div>
+          ${_listaCuentasHtml(inactivasRes, null)}`;
     return `
     <div class="card ai-clan-card" data-clan="${esc(c.clan)}" style="padding:16px;">
       <div class="part-clan-nombre">${enlaceClan(c.clan)}</div>
@@ -2327,10 +2348,11 @@ function renderParticipacionHoyGuerra(clanes, multiClan){
       <div class="part-grid">
         <div>
           <div class="part-col-header">🔒 Reservadas (${c.reservadas.length})</div>
+          ${cuposHtml}
           <div class="part-subhead">Con ataques pendientes (${conPendientes.length})</div>
           ${_listaCuentasHtml(conPendientes, pendientesHoy)}
           <div class="part-subhead">Sin ataques pendientes (${sinPendientes.length})</div>
-          ${_listaCuentasHtml(sinPendientes, pendientesHoy)}
+          ${_listaCuentasHtml(sinPendientes, pendientesHoy)}${inactivasHtml}
         </div>
         <div>
           <div class="part-col-header">✅ Reemplazables (${c.disponibles.length})</div>

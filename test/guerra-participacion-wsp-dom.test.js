@@ -60,3 +60,31 @@ test('la constante del ícono de WhatsApp vive solo en clan-badges.js', () => {
   assert.match(cb, /const ICONO_WSP_SOLO = /);
   assert.ok(!/const ICONO_WSP_SOLO/.test(html), 'guerra.html no debe redefinir el ícono');
 });
+
+// NUEVO (2-nov-2026, pedido de la usuaria; §PF344): las cuentas inactivas que atacaron hoy ocupan uno de los 50 cupos del día, así que
+// «Participación de Hoy» las lista como reservadas, en un subgrupo aparte y más tenues, y muestra cuántos cupos quedan para cuentas nuevas.
+test('una cuenta inactiva con ataques hoy se pinta tenue, con insignia y con sus ataques usados (sin «pendientes»)', () => {
+  const h = construir(true)._liCuentaParticipacion(cta({ inactiva: true, ataquesHoy: 3 }), null);
+  assert.match(h, /<li data-buscar="[^"]*" class="part-inactiva">/);
+  assert.match(h, /part-inactiva-badge/);
+  assert.match(h, /— 3 ataques hoy/);
+  assert.doesNotMatch(h, /pendiente/);
+  assert.match(construir(true)._liCuentaParticipacion(cta({ inactiva: true, ataquesHoy: 1 }), null), /— 1 ataque hoy/);
+});
+
+test('una cuenta activa no cambia: sin clase ni insignia de inactiva y con sus pendientes', () => {
+  const h = construir(true)._liCuentaParticipacion(cta({}), 2);
+  assert.match(h, /<li data-buscar=/);
+  assert.doesNotMatch(h, /part-inactiva/);
+  assert.match(h, /— 2 pendientes/);
+});
+
+test('el render separa las inactivas de las reservadas activas y cuenta los cupos del día', () => {
+  assert.match(html, /const CUENTAS_MAX_DIA = 50;/);
+  assert.match(html, /const activasRes = c\.reservadas\.filter\(cta => cta\.inactiva !== true\);/);
+  assert.match(html, /const inactivasRes = c\.reservadas\.filter\(cta => cta\.inactiva === true\);/);
+  assert.match(html, /Math\.max\(0, CUENTAS_MAX_DIA - c\.reservadas\.length\)/);
+  assert.match(html, /Inactivas con ataques hoy \(\$\{inactivasRes\.length\}\)/);
+  // el total de «Reservadas» sigue incluyendo a las inactivas (ocupan cupo)
+  assert.match(html, /🔒 Reservadas \(\$\{c\.reservadas\.length\}\)/);
+});
