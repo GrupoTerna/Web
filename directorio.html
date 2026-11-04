@@ -900,6 +900,7 @@
 <script src="assets/js/features/clan-card.js"></script>
 <script src="assets/js/features/inactivos.js"></script>
 <script src="assets/js/features/timeline-svg.js"></script>
+<script src="assets/js/features/vista-grafica.js"></script>
 <script src="assets/js/features/mini-historial.js"></script>
 <!-- FIX (B-5, 18-sep-2026): join-modal.js reemplaza la lógica que antes
      vivía aquí mismo (abrirModalUnirse/cerrarModalUnirse sin trampa de foco
@@ -1326,7 +1327,8 @@ function renderComparadorBarras(a, b){
  * números de eje Y, en vez del SVG "pelado" (sin grilla ni escala) que
  * tenía antes esta función.
  */
-function guerraComparadorMetricaSvg(a, b, campo, tituloMetrica, fechas, indicePorFecha, nombreA, clanA, nombreB, clanB){
+function guerraComparadorMetricaSvg(a, b, campo, tituloMetrica, fechas, indicePorFecha, nombreA, clanA, nombreB, clanB, opts){
+  opts = opts || {}; // 04-nov-2026 (pedido usuaria, §PF353): opts.zoom (1 a 6) ensancha el eje X; el recorte a las últimas temporadas lo hace quien llama (a, b, fechas e indicePorFecha ya vienen recortados).
   const valoresA = a.map(r => Number(r[campo]) || 0);
   const valoresB = b.map(r => Number(r[campo]) || 0);
   const todos = valoresA.concat(valoresB);
@@ -1349,7 +1351,8 @@ function guerraComparadorMetricaSvg(a, b, campo, tituloMetrica, fechas, indicePo
   const max = Math.ceil((maxCrudo + margen) / paso) * paso || paso;
 
   // PAD_B se agrandó porque la etiqueta de fecha va rotada 45°. Historial en CHANGELOG.md.
-  const W = 640, H = 220, PAD_L = 50, PAD_R = 16, PAD_T = 16, PAD_B = 40;
+  const zoom = opts.zoom > 1 ? Number(opts.zoom) : 1;
+  const W = Math.round(640 * zoom), H = 220, PAD_L = 50, PAD_R = 16, PAD_T = 16, PAD_B = 40;
   const plotW = W - PAD_L - PAD_R, plotH = H - PAD_T - PAD_B;
   const stepX = fechas.length > 1 ? plotW / (fechas.length - 1) : 0;
   const escalaY = v => PAD_T + plotH - ((Math.min(Math.max(v, min), max) - min) / (max - min || 1)) * plotH;
@@ -1407,7 +1410,7 @@ function guerraComparadorMetricaSvg(a, b, campo, tituloMetrica, fechas, indicePo
   const ejeYTitle = `<text class="axis-title" x="-8" y="${PAD_T + plotH / 2}" text-anchor="middle" transform="rotate(-90 -8 ${PAD_T + plotH / 2})">${esc(ejeYLabel)}</text>`;
 
   return `
-    <svg class="linechart-svg" viewBox="-16 0 ${W + 16} ${H + 16}" preserveAspectRatio="xMidYMid meet" style="overflow:visible;">
+    <svg class="linechart-svg" viewBox="-16 0 ${W + 16} ${H + 16}" preserveAspectRatio="xMidYMid meet" style="overflow:visible;${zoom > 1 ? ` width:${Math.round(zoom * 100)}%; aspect-ratio:${W + 16}/${H + 16};` : ''}" data-gv-geom="-16,${W + 16},${H + 16},${PAD_L},${PAD_L + plotW},${PAD_T + plotH}" data-gv-fechas="${esc(JSON.stringify(fechas.map(f => String(f).slice(0, 10).split('-').reverse().join('/'))))}">
       ${bandasTemporada}
       ${gridLines.join('')}
       ${gridMedios}
@@ -1432,6 +1435,27 @@ function guerraComparadorMetricaSvg(a, b, campo, tituloMetrica, fechas, indicePo
  * filtrados a "solo guerra" desde el backend (_webHistorialGuerraComparador),
  * así que aquí no hace falta filtrar nada — solo graficar.
  */
+let COMPARADOR_GRAFICA_CTX = null; // datos de la última gráfica del «Cara a cara» armada por renderComparadorGuerraChart(), para pintarla con la vista elegida
+function montarComparadorGuerraChart(raiz){
+  const ctx = COMPARADOR_GRAFICA_CTX;
+  if (!ctx || !raiz) return;
+  const fechasDia = ctx.fechas.map(f => (typeof vistaGraficaFecha === 'function' ? vistaGraficaFecha(f) : null));
+  raiz.querySelectorAll('.gv-chart[data-gv-campo]').forEach(hueco => {
+    const campo = hueco.getAttribute('data-gv-campo');
+    const dibujar = vista => {
+      const v = typeof vistaGraficaVisibles === 'function' ? vistaGraficaVisibles(fechasDia, vista.ultimas6 ? VISTA_GRAFICA_TEMPORADAS : Infinity) : { visibles: ctx.fechas.map(() => true), total: 0, recortado: false };
+      const fechas = v.recortado ? ctx.fechas.filter((f, i) => v.visibles[i]) : ctx.fechas;
+      const vistas = new Set(fechas);
+      const a = v.recortado ? ctx.a.filter(r => vistas.has(r.fecha)) : ctx.a;
+      const b = v.recortado ? ctx.b.filter(r => vistas.has(r.fecha)) : ctx.b;
+      const indice = new Map(fechas.map((f, i) => [f, i]));
+      return { html: guerraComparadorMetricaSvg(a, b, campo, ctx.titulos[campo], fechas, indice, ctx.nombreA, ctx.clanA, ctx.nombreB, ctx.clanB, { zoom: vista.zoom }), total: v.total };
+    };
+    const despues = el => el.querySelectorAll('svg.linechart-svg').forEach(svg => activarTecladoPuntosGrafica(svg, { serieDe: pt => pt.getAttribute('fill') }));
+    if (typeof vistaGraficaMontar === 'function') vistaGraficaMontar(hueco, dibujar, despues);
+    else { hueco.innerHTML = dibujar({ ultimas6: false, zoom: 1 }).html; despues(hueco); }
+  });
+}
 function renderComparadorGuerraChart(histA, histB, nombreA, nombreB, clanA, clanB, tagA, tagB){
   /* 22-oct-2026 (pedido de la usuaria: «también se debe cambiar a valores diarios»): el backend manda fame y barcos ACUMULADOS de la semana; guerraAValoresDiarios() (util.js) los pasa a valor del día. [→ Contexto_Base_Web.md §PF167] */
   const a = guerraAValoresDiarios(Array.isArray(histA) ? histA : []);
@@ -1457,12 +1481,18 @@ function renderComparadorGuerraChart(histA, histB, nombreA, nombreB, clanA, clan
       <span><span class="dot" style="background:var(--gold, #f3a922);"></span>${enlaceJugador(nombreB, tagB)}</span>
     </div>`;
 
-  const metricCard = (icono, titulo, campo) => `
+  // 04-nov-2026 (pedido usuaria, §PF353): cada gráfica lleva su barra de vista (pastilla «Últimas 6 temporadas», zoom y tooltip del eje X). Aquí solo se deja el hueco y
+  // los datos en COMPARADOR_GRAFICA_CTX; montarComparadorGuerraChart(raiz), que llama quien puso este HTML en la página, pinta cada gráfica con la vista actual.
+  COMPARADOR_GRAFICA_CTX = { a, b, fechas, nombreA, clanA, nombreB, clanB, titulos: {} };
+  const metricCard = (icono, titulo, campo) => {
+    COMPARADOR_GRAFICA_CTX.titulos[campo] = titulo;
+    return `
     <div class="card chart-card">
       <div class="chart-title" style="margin-top:0;">${icono} ${titulo}</div>
       ${legend}
-      ${guerraComparadorMetricaSvg(a, b, campo, titulo, fechas, indicePorFecha, nombreA, clanA, nombreB, clanB)}
+      <div class="gv-chart" data-gv-campo="${campo}"></div>
     </div>`;
+  };
 
   // Las 3 gráficas del comparador van en una sola columna en vez de compartir una fila, para que se vean bien. Historial en CHANGELOG.md.
   return `
@@ -1539,8 +1569,8 @@ async function compararJugadores(){
       data.a && data.a.tag,
       data.b && data.b.tag
     );
-    // Teclado y lectores de pantalla (un Tab por gráfica); cada jugador es una serie (se distinguen por su color de relleno).
-    guerraChartWrap.querySelectorAll('svg.linechart-svg').forEach(svg => activarTecladoPuntosGrafica(svg, { serieDe: pt => pt.getAttribute('fill') }));
+    // Cada gráfica se pinta aquí con la vista elegida (últimas 6 temporadas, zoom) y activa su teclado y lectores de pantalla (un Tab por gráfica; cada jugador es una serie, se distinguen por su color de relleno).
+    montarComparadorGuerraChart(guerraChartWrap);
   }catch(err){
     msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
   }
@@ -2386,8 +2416,18 @@ function construirFechasEstimadasSemanasViejas(semanas){
  */
 function lineChartSvg(miembros, campo, semanas, opts){
   opts = opts || {};
+  // 04-nov-2026 (pedido usuaria, §PF353): opts.visibles (boolean por posición de `semanas`) deja solo las semanas de las últimas temporadas y opts.zoom (1 a 6) ensancha el eje X.
+  // Las fechas estimadas de las semanas viejas («Semana N») se calculan con la lista COMPLETA, antes de recortar; el eje Y y los topes se calculan solo con lo que se dibuja.
+  const fechasEstimadas = construirFechasEstimadasSemanasViejas(semanas);
+  if (opts.visibles){
+    const semanasVistas = semanas.filter((s, i) => opts.visibles[i]);
+    const etiquetasVistas = new Set(semanasVistas.map(semanaLabel));
+    miembros = miembros.map(m => Object.assign({}, m, { historialSemanal: (m.historialSemanal || []).filter(h => etiquetasVistas.has(semanaLabel(h.semana))) }));
+    semanas = semanasVistas;
+  }
+  const zoom = opts.zoom > 1 ? Number(opts.zoom) : 1; // el <svg> se muestra a zoom×100 % de ancho dentro de un contenedor con barra de desplazamiento; la altura no cambia
   // PAD_B sube para el título fijo del eje X, mismo cambio que su gemela en index.html. Historial en CHANGELOG.md.
-  const W = 960, H = 460, PAD_R = 20, PAD_T = 20, PAD_B = 84;
+  const W = Math.round(960 * zoom), H = 460, PAD_R = 20, PAD_T = 20, PAD_B = 84;
 
   // El tope entra en el cálculo del máximo para que la línea siempre quede dentro de la gráfica.
   const tope = opts.tope > 0 ? Number(opts.tope) : 0;
@@ -2418,7 +2458,6 @@ function lineChartSvg(miembros, campo, semanas, opts){
     gridLines.push(`<line class="ing-grid-line" x1="${PAD_L}" y1="${y}" x2="${W - PAD_R}" y2="${y}"></line>`);
     gridLines.push(`<text class="ing-axis-label" x="${PAD_L - 10}" y="${y + 4}" text-anchor="end">${fmtNum(Math.round(v))}</text>`);
   }
-  const fechasEstimadas = construirFechasEstimadasSemanasViejas(semanas);
   // Líneas de referencia año/temporada (granularidad semanal — mismo
   // criterio que index.html, ver lineasTemporalesSvg() en común.js).
   const fechasEje = semanas.map(s => {
@@ -2490,7 +2529,8 @@ function lineChartSvg(miembros, campo, semanas, opts){
     return `<line class="linea-tope" x1="${PAD_L}" y1="${y}" x2="${W - PAD_R}" y2="${y}"></line><text class="tope-label" x="${W - PAD_R}" y="${(yPos(tope) - 7).toFixed(1)}" text-anchor="end">Tope: ${esc(fmtNum(tope))}</text>`;
   })() : '';
 
-  return `<svg class="ing-linechart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">${bandasTemporada}${gridLines.join('')}${gridMedios}${lineasTemporales}${xLabels}${lineaTope}${hayBajo ? lineaMinimoSvg(yPos(minimo), PAD_L, W - PAD_R, minimo) : ''}${seriesSvg}${ejeXTitle}${ejeYTitle}</svg>`;
+  const fechasGv = semanas.map(s => fechasEstimadas.get(s) ? `≈ ${fmtFechaLargaDDMMYYYY(fechasEstimadas.get(s))} (estimada)` : semanaLabel(s)); // texto del tooltip grande del eje X (vista-grafica.js)
+  return `<svg class="ing-linechart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet"${zoom > 1 ? ` style="width:${Math.round(zoom * 100)}%; aspect-ratio:${W}/${H};"` : ''} data-gv-geom="0,${W},${H},${PAD_L},${PAD_L + plotW},${H - PAD_B}" data-gv-fechas="${esc(JSON.stringify(fechasGv))}">${bandasTemporada}${gridLines.join('')}${gridMedios}${lineasTemporales}${xLabels}${lineaTope}${hayBajo ? lineaMinimoSvg(yPos(minimo), PAD_L, W - PAD_R, minimo) : ''}${seriesSvg}${ejeXTitle}${ejeYTitle}</svg>`;
 }
 
 /** Texto y tooltip de un punto de Ingresos recientes: igual que los compartidos (timeline-svg.js) y, si el punto supera el tope semanal, lo avisa (como perfil.html). */
@@ -2541,10 +2581,11 @@ function lineChartLegendHtml(miembros){
 /** Delegación de eventos sobre los puntos <circle> de las tres gráficas,
  * usando un único tooltip flotante (#chartTooltip). Muestra "David.cr_2
  * (#2092GR8VGY)" arriba y "5 ataques — Clan X · 28/12/2025" abajo. */
-function activarTooltipsGraficasIngresos(){
+function activarTooltipsGraficasIngresos(raiz){
   const tip = document.getElementById('chartTooltip');
   if (!tip) return;
-  document.querySelectorAll('.ing-linechart-svg .ing-serie-pt').forEach(pt => {
+  raiz = raiz || document; // 04-nov-2026 (§PF353): al repintar una gráfica solo se enlazan los puntos de esa gráfica (los de las demás ya tienen su oyente)
+  raiz.querySelectorAll('.ing-linechart-svg .ing-serie-pt').forEach(pt => {
     pt.addEventListener('mousemove', e => {
       // Mismo orden que index.html (htmlTooltipPuntoSerie, en timeline-svg.js, compartido con el foco de teclado). Historial en CHANGELOG.md.
       tip.innerHTML = htmlTooltipPuntoIngreso(pt);
@@ -2554,7 +2595,7 @@ function activarTooltipsGraficasIngresos(){
     pt.addEventListener('mouseleave', () => { tip.style.display = 'none'; });
   });
   // Teclado y lectores de pantalla: un Tab entra a cada gráfica, flechas recorren los puntos.
-  document.querySelectorAll('.ing-linechart-svg').forEach(svg => activarTecladoPuntosGrafica(svg, {
+  raiz.querySelectorAll('.ing-linechart-svg').forEach(svg => activarTecladoPuntosGrafica(svg, {
     selector: '.ing-serie-pt',
     serieDe: pt => pt.dataset.tag || pt.dataset.nombre,
     etiqueta: etiquetaPuntoIngreso,
@@ -2571,11 +2612,18 @@ function renderComparativaSemanal(container, miembrosTodos){
   const semanas = construirSemanasMaestras(miembros);
   const hayEstimadas = semanas.some(s => numeroSemanaVieja(s) !== null);
   // Mismo criterio que index.html: ejeY es la primera palabra del título de la tarjeta. Historial en CHANGELOG.md.
+  // 04-nov-2026 (pedido usuaria, §PF353): cada gráfica lleva su barra de vista (pastilla «Últimas 6 temporadas», zoom y tooltip del eje X; vista-grafica.js).
+  // La leyenda se arma al pintar (depende de lo que se ve: el mínimo solo se menciona si hay un valor por debajo entre las semanas visibles).
+  const cartasVista = [];
   const chartCard = (icono, titulo, campo, unidad, tope) => {
-    const hayBajoMin = miembros.some(m => hayBajoMinimo((m.historialSemanal || []).map(h => Number(h[campo]) || 0), minimoMetricaGuerra()));
+    cartasVista.push({ titulo, campo, unidad, tope });
     return `
       <div class="card ing-linechart-card">
         <div class="chart-title">${icono} ${titulo}</div>
+        <div class="gv-chart"></div>
+      </div>`;
+  };
+  const leyendaCard = (tope, hayBajoMin) => `
         <div class="ing-chart-leyenda">
           <div class="ing-chart-leyenda-fila">
             <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><circle cx="5" cy="5" r="4" fill="var(--text-dim)"></circle></svg>
@@ -2594,10 +2642,7 @@ function renderComparativaSemanal(container, miembrosTodos){
             Línea punteada = mínimo (${esc(fmtNum(minimoMetricaGuerra()))}) · punto rojo = por debajo del mínimo (anomalía)
           </div>` : ''}
         </div>
-        ${lineChartLegendHtml(miembros)}
-        ${lineChartSvg(miembros, campo, semanas, { unidad, ejeY: titulo.split(' ')[0], tope, minimo: minimoMetricaGuerra() })}
-      </div>`;
-  };
+        ${lineChartLegendHtml(miembros)}`;
   container.innerHTML = `
     <div class="comparativa-grid">
       ${chartCard('⚔️', 'Ataques por semana', 'ataques', 'ataques', TOPE_ATAQUES_SEMANA)}
@@ -2605,7 +2650,29 @@ function renderComparativaSemanal(container, miembrosTodos){
       ${chartCard('🚢', 'Barcos por semana', 'barcos', 'barcos', TOPE_BARCOS_SEMANA)}
     </div>
     ${hayEstimadas ? `<p class="text-faint" style="font-size:11px; margin-top:8px;">≈ Fecha estimada: registros de antes de que se guardara la fecha real de cada semana (esquema viejo "Semana N"), calculada contando semanas hacia atrás desde el primer registro con fecha real.</p>` : ''}`;
-  activarTooltipsGraficasIngresos();
+  const huecos = Array.from(container.querySelectorAll('.gv-chart'));
+  const fechasSem = (() => { const est = construirFechasEstimadasSemanasViejas(semanas); return semanas.map(s => (typeof vistaGraficaFecha === 'function' ? vistaGraficaFecha(s) : null) || est.get(s) || null); })();
+  cartasVista.forEach((c, i) => {
+    const hueco = huecos[i];
+    if (!hueco) return;
+    const ejeY = c.titulo.split(' ')[0];
+    // Sin vista-grafica.js (no debería pasar) se pinta como antes: todo el historial, sin barra.
+    if (typeof vistaGraficaMontar !== 'function'){
+      hueco.innerHTML = leyendaCard(c.tope, miembros.some(m => hayBajoMinimo((m.historialSemanal || []).map(h => Number(h[c.campo]) || 0), minimoMetricaGuerra()))) + lineChartSvg(miembros, c.campo, semanas, { unidad: c.unidad, ejeY, tope: c.tope, minimo: minimoMetricaGuerra() });
+      activarTooltipsGraficasIngresos(hueco);
+      return;
+    }
+    vistaGraficaMontar(hueco, vista => {
+      const v = vistaGraficaVisibles(fechasSem, vista.ultimas6 ? VISTA_GRAFICA_TEMPORADAS : Infinity);
+      const etiquetas = new Set(semanas.filter((s, k) => v.visibles[k]).map(semanaLabel));
+      const hayBajoMin = miembros.some(m => hayBajoMinimo((m.historialSemanal || []).filter(h => etiquetas.has(semanaLabel(h.semana))).map(h => Number(h[c.campo]) || 0), minimoMetricaGuerra()));
+      return {
+        antes: leyendaCard(c.tope, hayBajoMin),
+        html: lineChartSvg(miembros, c.campo, semanas, { unidad: c.unidad, ejeY, tope: c.tope, minimo: minimoMetricaGuerra(), visibles: v.recortado ? v.visibles : null, zoom: vista.zoom }),
+        total: v.total
+      };
+    }, el => activarTooltipsGraficasIngresos(el));
+  });
 }
 
 /**

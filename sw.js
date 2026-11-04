@@ -251,9 +251,10 @@
 // v199 (3-nov-2026): directorio.html cambió (CORE_ASSETS) -- de lunes a miércoles la ficha y el comparador rotulan «Ataques en la última guerra» cuando el backend manda guerraSemana.congelada (§PF125). perfil.html también cambió, pero no está en CORE_ASSETS.
 // v202 (3-nov-2026): assets/styles.css cambió (CORE_ASSETS) -- .tabla-scroll-wrap lleva position:relative para que los .sr-only de las filas no alarguen la página bajo el pie de página (§PF349).
 // v205 (4-nov-2026): perfil.html y auth.js cambiaron (CORE_ASSETS) -- gráficas del perfil con pastilla «Últimas 6 temporadas», zoom +/− con barra de desplazamiento y tooltip de fecha en el eje X (§PF352); el link «Permisos» ya no desaparece dentro de permisos.html (§PF351).
+// v206 (4-nov-2026): clan.html, directorio.html, assets/styles.css y el nuevo assets/js/features/vista-grafica.js cambiaron (CORE_ASSETS) -- las gráficas de copas del clan, «… por semana» de Ingresos recientes y «Cara a cara» llevan la pastilla «Últimas 6 temporadas», el zoom +/− con barra de desplazamiento y el tooltip grande de la fecha en el eje X, como las del perfil (§PF353).
 // v204 (4-nov-2026): las 11 páginas con barra de navegación, admin.html, permisos.html, auth.js y api.js cambiaron (CORE_ASSETS) -- el panel de permisos ya no es una tarjeta de admin.html: es el link «Permisos» del nav, entre Mensajes y Mi panel (§PF351).
 // v203 (4-nov-2026): admin.html cambió (CORE_ASSETS) -- «Buscar miembro» lleva la vista al resultado y el foco al nombre; antes el resultado salía al final del panel, fuera de pantalla, y el botón parecía no hacer nada (§PF350).
-const CACHE_NAME = 'terna-static-v205';
+const CACHE_NAME = 'terna-static-v206';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
@@ -284,6 +285,7 @@ const CORE_ASSETS = [
   'assets/js/features/clan-card.js',
   'assets/js/features/inactivos.js',
   'assets/js/features/timeline-svg.js',
+  'assets/js/features/vista-grafica.js',
   'assets/js/features/mini-historial.js',
   'assets/js/features/join-modal.js',
   'assets/Im%C3%A1genes/Logo%20Terna/logo-cuadrado.jpg',

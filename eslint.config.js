@@ -23,12 +23,14 @@ const GLOBALES_COMPARTIDOS = [
   '_fetchYParsearInterno', '_filaInactivoHtml', '_mensajeErrorRed', '_mismaFecha', '_obtenerVistaInactivos', '_peticionesActivas',
   '_renderVistaInactivos', '_toggleFormVetarInactivo', 'abrirModalUnirse', 'activarBarraScrollTabla', 'activarTecladoPuntosGrafica', 'actualizarNavCta',
   'adminPuedeVetar', 'agregarTarjetaCuentasInactivasSiAdmin', 'apiGet', 'apiGetAuth', 'apiGetPublicoConEstatico', 'apiGetUltimaActualizacion', 'apiPost', 'cerrarModalUnirse',
-  'chartCardHtml', 'clanCardHtml', 'debounce', 'enlaceClan', 'enlaceJugador', 'esAdminLogueado', 'esInicioAnio',
+  'chartCardHtml', 'clanCardHtml', 'claveTemporadaFecha', 'debounce', 'enlaceClan', 'enlaceJugador', 'esAdminLogueado', 'esInicioAnio',
   'esInicioSemana', 'esInicioTemporada', 'esc', 'etiquetaPuntoSerie', 'fitOneLine', 'fitOneLineAll',
   'fmtFechaVigenciaCorta', 'fmtNum', 'guerraAValoresDiarios', 'gridHorizontalMediosSvg', 'hayBajoMinimo', 'htmlTooltipPuntoSerie', 'iconoBadgeClanHtml', 'initJoinModal',
   'joinModalTriggerEl', 'lineaMinimoSvg', 'lineasTemporalesSvg', 'marcarNavActiva', 'minimoMetricaGuerra', 'normalizarTag', 'obtenerTooltipGrafica', 'posicionarTooltipGrafica', 'ordenClanIndex',
   'ordenarClanes', 'pintarFiltroLetra', 'pisoEjeConNegativos', 'primerLunesDelMesJS', 'primeraLetraFiltro', 'sincronizarScrollHorizontal', 'traducirNombreCarta',
-  'urlValida'
+  'urlValida',
+  'VISTA_GRAFICA', 'VISTA_GRAFICAS_MONTADAS', 'VISTA_GRAFICA_DIAS', 'VISTA_GRAFICA_TEMPORADAS', 'VISTA_GRAFICA_ZOOMS', 'vistaGraficaBarraHtml', 'vistaGraficaEstiloSvg',
+  'vistaGraficaEsFecha', 'vistaGraficaFecha', 'vistaGraficaFmtFecha', 'vistaGraficaMontar', 'vistaGraficaPintar', 'vistaGraficaRepintarTodas', 'vistaGraficaTooltipEjeX', 'vistaGraficaVisibles'
 ];
 
 module.exports = [

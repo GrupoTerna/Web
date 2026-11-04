@@ -159,6 +159,8 @@
 <script src="assets/js/data/cards-es.js"></script>
 <script src="assets/js/data/clan-badges.js"></script>
 <script src="assets/js/features/clan-card.js"></script>
+<script src="assets/js/features/timeline-svg.js"></script>
+<script src="assets/js/features/vista-grafica.js"></script>
 <script src="assets/common.js"></script>
 <script>
 /**
@@ -364,14 +366,22 @@ async function cargarGuerraClan(nombreClan){
  * rótulos de fecha rotados (solo domingos si hay más de 7 puntos), solo jueves a domingo (lunes a miércoles se descarta), placeholder interpolado si falta el domingo, letra J V S D sin rotar, línea punteada en cada domingo, títulos de ejes y leyenda de series. Sin dependencias; los puntos son enfocables con Tab y
  * llevan aria-label y <title> con la fecha y las copas. [→ Contexto_Base_Web.md §PF062]
  */
-function clanCopasSvg(puntos){
+function clanCopasSvg(puntos, opts){
+  opts = opts || {}; // 04-nov-2026 (pedido usuaria, §PF353): opts.ultimasN (solo las últimas N temporadas), opts.zoom (1 a 6: ensancha el eje X) y opts.partes (devuelve { leyenda, svg, total } en vez de un solo texto). Sin opts, igual que antes.
   // 12-oct-2026 (pedido usuaria): solo se grafican días de guerra (jueves a domingo; lunes a miércoles es entrenamiento y se descarta). Si una semana
   // no trae su domingo, se deja un placeholder con esa fecha: sin dato real (punto hueco, tramo punteado) y con el valor interpolado entre sus vecinos.
   // Una fecha que no se puede leer se deja tal cual. [→ Contexto_Base_Web.md §PF062]
   const leerFecha = f => { const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(String(f)); return m ? new Date(Number(m[3]), Number(m[2]) - 1, Number(m[1])) : null; };
   const fmtDM = d => `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}/${d.getFullYear()}`;
-  const reales = puntos.filter(p => { const f = leerFecha(p.fecha); return !f || f.getDay() === 0 || f.getDay() >= 4; });
-  if (!reales.length) return `<div class="chart-empty">Todavía no hay días de guerra registrados para graficar.</div>`;
+  let reales = puntos.filter(p => { const f = leerFecha(p.fecha); return !f || f.getDay() === 0 || f.getDay() >= 4; });
+  if (!reales.length) return opts.partes ? { leyenda: '', svg: `<div class="chart-empty">Todavía no hay días de guerra registrados para graficar.</div>`, total: 0 } : `<div class="chart-empty">Todavía no hay días de guerra registrados para graficar.</div>`;
+  // Vista (§PF353): se recorta ANTES de insertar los domingos estimados, para que la escala del eje Y y los avisos coincidan con lo dibujado. vistaGraficaVisibles() vive en assets/js/features/vista-grafica.js.
+  let totalTemporadas = 0;
+  if (typeof vistaGraficaVisibles === 'function'){
+    const vis = vistaGraficaVisibles(reales.map(p => leerFecha(p.fecha)), opts.ultimasN);
+    totalTemporadas = vis.total;
+    if (vis.recortado) reales = reales.filter((p, i) => vis.visibles[i]);
+  }
   const claveSemana = f => { const d = new Date(f); d.setDate(d.getDate() + ((7 - d.getDay()) % 7)); return d.getTime(); }; // domingo de esa semana de guerra
   const serie = reales.map(p => ({ fecha: p.fecha, copas: p.copas, real: true }));
   for (let i = serie.length - 1; i >= 0; i--){ // de atrás hacia delante para no desfasar los índices al insertar
@@ -390,7 +400,8 @@ function clanCopasSvg(puntos){
     serie.splice(i + 1, 0, { fecha: fmtDM(dom), copas: Math.round(valor), real: false });
   }
   puntos = serie;
-  const W = 960, H = 320, PAD_R = 20, PAD_T = 20, PAD_B = 90;
+  const zoom = opts.zoom > 1 ? Number(opts.zoom) : 1; // el zoom ensancha el lienzo (más espacio entre fechas); el <svg> se muestra a zoom veces su ancho normal dentro de un contenedor con barra de desplazamiento
+  const W = Math.round(960 * zoom), H = 320, PAD_R = 20, PAD_T = 20, PAD_B = 90;
   const vals = puntos.map(p => p.copas);
   const min = Math.min(...vals), max = Math.max(...vals);
   const relleno = Math.max((max - min) * 0.2, 50);
@@ -451,7 +462,10 @@ function clanCopasSvg(puntos){
     (hayPlaceholder ? `<div class="cd-copas-leyenda-fila"><svg width="22" height="10" viewBox="0 0 22 10" aria-hidden="true"><circle cx="11" cy="5" r="3.4" fill="none" stroke="#a239ff" stroke-width="1.6"></circle></svg>Punto solo con borde = domingo sin dato todavía (valor estimado)</div>` : '') + `</div>`;
   const tituloY = `<text class="cd-copas-titulo-eje" x="14" y="${PAD_T + plotH / 2}" text-anchor="middle" transform="rotate(-90 14 ${PAD_T + plotH / 2})">COPAS</text>`;
   const vReal = reales.map(p => p.copas);
-  return leyenda + `<svg class="cd-copas-svg" viewBox="0 0 ${W} ${H}" role="group" aria-label="Copas del clan por día de guerra, de ${esc(fmtNum(vReal[0]))} a ${esc(fmtNum(vReal[vReal.length - 1]))}">${grid}${lineasDomingo}${letras}${etiquetas}${linea}${circulos}${tituloX}${tituloY}</svg>`;
+  // §PF353: con zoom > 1 el <svg> se muestra a zoom veces su ancho normal (el normal es el menor entre el contenedor y 960 px); data-gv-* alimentan el tooltip grande de la fecha en el eje X (vistaGraficaTooltipEjeX).
+  const estiloZoom = zoom > 1 ? ` style="width:calc(min(100%, 960px) * ${zoom}); aspect-ratio:${W}/${H}; max-width:none;"` : '';
+  const svg = `<svg class="cd-copas-svg" viewBox="0 0 ${W} ${H}"${estiloZoom} role="group" aria-label="Copas del clan por día de guerra, de ${esc(fmtNum(vReal[0]))} a ${esc(fmtNum(vReal[vReal.length - 1]))}" data-gv-geom="0,${W},${H},${PAD_L},${PAD_L + plotW},${H - PAD_B}" data-gv-fechas="${esc(JSON.stringify(puntos.map(p => p.fecha)))}">${grid}${lineasDomingo}${letras}${etiquetas}${linea}${circulos}${tituloX}${tituloY}</svg>`;
+  return opts.partes ? { leyenda, svg, total: totalTemporadas } : leyenda + svg;
 }
 function clanCopasAviso(texto){
   return `<div class="chart-empty">${texto}</div>`;
@@ -468,7 +482,15 @@ async function cargarCopasClan(clanInfo){
       wrap.innerHTML = clanCopasAviso('Todavía no hay historial de copas de este clan en Guerra_Logs.');
       return;
     }
-    wrap.innerHTML = clanCopasSvg(puntos);
+    // §PF353: pastilla «Últimas 6 temporadas», zoom y tooltip del eje X (vista-grafica.js); sin ese archivo se pinta como antes.
+    if (typeof vistaGraficaMontar === 'function'){
+      vistaGraficaMontar(wrap, vista => {
+        const r = clanCopasSvg(puntos, { ultimasN: vista.ultimas6 ? VISTA_GRAFICA_TEMPORADAS : Infinity, zoom: vista.zoom, partes: true });
+        return { antes: r.leyenda, html: r.svg, total: r.total };
+      });
+    } else {
+      wrap.innerHTML = clanCopasSvg(puntos);
+    }
   }catch(err){
     wrap.innerHTML = clanCopasAviso('No se pudo cargar el historial de copas: ' + esc(err && err.message ? err.message : 'error de conexión') + '.');
   }
