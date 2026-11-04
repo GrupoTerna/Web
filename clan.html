@@ -226,8 +226,12 @@ function renderClanGuerra(dataGuerra, nombreClan, desdeViejo){
   const avisoViejo = desdeViejo
     ? `<div class="text-faint js-guerra-aviso-viejo" role="status" style="text-align:center; margin-top:12px; font-size:12px;">⚠ Datos guardados: el servidor no responde (${esc(fmtTiempoRelativo(desdeViejo))}).</div>`
     : '';
-  document.getElementById('clanGuerraTitulo').textContent =
-    `Resumen de guerra — Temporada ${ctx.temporada ?? '—'}, Semana ${(Number(ctx.sectionIndex) || 0) + 1}`;
+  /* 03-nov-2026 (pedido usuaria, revisión de secciones que no congelaban): de lunes a miércoles (entrenamiento) las cifras que manda el dashboard ya son las del último día jugado de la guerra anterior (guerraCongeladaLetra), pero el título decía «Semana N+1» (la nueva, sin guerra todavía) y la tarjeta «Atacaron hoy». Con ctx.esDiaGuerra falso se rotula «Última guerra» y se quita «Pendientes» (los de hoy ya no existen). [→ Contexto_Base_Web.md §PF125] */
+  const congelada = ctx.esDiaGuerra === false;
+  const nomDiaCong = { J:'jueves', V:'viernes', S:'sábado', D:'domingo' }[dataGuerra && dataGuerra.guerraCongeladaLetra] || 'domingo';
+  document.getElementById('clanGuerraTitulo').textContent = congelada
+    ? `Última guerra (hasta el ${nomDiaCong}) — Temporada ${ctx.temporada ?? '—'}`
+    : `Resumen de guerra — Temporada ${ctx.temporada ?? '—'}, Semana ${(Number(ctx.sectionIndex) || 0) + 1}`;
   const entradaGuerra = Object.entries(dataGuerra.guerraPorClan || {}).find(([nombre]) => clanCoincide(nombre));
   if (!entradaGuerra){
     wrap.innerHTML = '<div class="empty">Sin datos de guerra registrados para este clan por ahora.</div>' + avisoViejo;
@@ -241,8 +245,8 @@ function renderClanGuerra(dataGuerra, nombreClan, desdeViejo){
       <div class="stat"><b>${fmtNum(g.ataques)}</b><span>Ataques</span></div>
       <div class="stat"><b>${fmtNum(g.fame)}</b><span>Medallas</span></div>
       <div class="stat"><b>${fmtNum(g.barcos)}</b><span>Barcos</span></div>
-      <div class="stat"><b>${fmtNum(g.atacaron)}/${fmtNum(g.totalHoy)}</b><span>Atacaron hoy (${pct}%)</span></div>
-      <div class="stat"><b>${fmtNum(pendientesClan)}</b><span>Pendientes</span></div>
+      <div class="stat"><b>${fmtNum(g.atacaron)}/${fmtNum(g.totalHoy)}</b><span>${congelada ? `Atacaron el ${nomDiaCong}` : 'Atacaron hoy'} (${pct}%)</span></div>${congelada ? '' : `
+      <div class="stat"><b>${fmtNum(pendientesClan)}</b><span>Pendientes</span></div>`}
     </div>
     <div style="text-align:center; margin-top:16px;">
       <a href="guerra.html" class="text-dim" style="font-family:var(--f-mono); font-size:12px;">Ver Guerra en vivo &rarr;</a>
