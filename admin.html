@@ -1977,6 +1977,11 @@ function renderMiembro(j){
   document.getElementById('mVGuerra').textContent = fmtNum(j.vGuerra);
   document.getElementById('mTorneos').textContent = fmtNum(j.torneos);
   document.getElementById('mAtaques').textContent = fmtNum(j.guerraSemana.ataques);
+  /* 03-nov-2026 (pedido usuaria): de lunes a miércoles el backend manda guerraSemana.congelada=true con los ataques del domingo anterior; el rótulo pasa de «Ataques/sem» a «Ataques última guerra». El texto es el nodo que sigue al <b>. [→ Contexto_Base_Web.md §PF125] */
+  const nodoRotuloAtaques = document.getElementById('mAtaques').nextSibling;
+  if (nodoRotuloAtaques && nodoRotuloAtaques.nodeType === 3){
+    nodoRotuloAtaques.nodeValue = j.guerraSemana.congelada === true ? 'Ataques última guerra' : 'Ataques/sem';
+  }
 
   const categorias = [
     { key:'ascensos',  label:'Ascensos'  },
