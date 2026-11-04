@@ -2428,9 +2428,13 @@ function lineChartSvg(miembros, campo, semanas, opts){
   const lineasTemporales = lineasTemporalesSvg(fechasEje, xPos, PAD_T, H - PAD_B, { granularidadDiaria: false });
   const bandasTemporada = bandasTemporadaSvg(fechasEje, xPos, PAD_T, H - PAD_B, PAD_L); // 20-oct-2026 (pedido usuaria): sombreado intercalado por temporada, detrás de la grilla. [→ Contexto_Base_Web.md §PF134]
   const gridMedios = gridHorizontalMediosSvg(pasos, rangoY, v => yPos(base + v), PAD_L, W - PAD_R);
+  // 3-nov-2026 (pedido usuaria, §PF348): con muchas semanas la letra se achica (15 normal, 7 como mínimo) según la separación entre fechas; si ni con 7 caben, se dibuja una de cada N contando desde la última. tamanoLetraEjeXRotado() vive en timeline-svg.js.
+  const medidaX = tamanoLetraEjeXRotado(semanas.length > 1 ? plotW / (semanas.length - 1) : plotW, 15, 7);
+  const estiloX = medidaX.fs < 15 ? ` style="font-size:${medidaX.fs}px"` : '';
   const xLabels = semanas.map((s, i) => {
+    if ((semanas.length - 1 - i) % medidaX.cada !== 0) return '';
     const x = xPos(i), y = H - PAD_B + 16;
-    return `<text class="ing-axis-label" x="${x}" y="${y}" text-anchor="end" transform="rotate(-45 ${x} ${y})">${esc(semanaLabelCorta(s, fechasEstimadas))}</text>`;
+    return `<text class="ing-axis-label" x="${x}" y="${y}" text-anchor="end" transform="rotate(-45 ${x} ${y})"${estiloX}>${esc(semanaLabelCorta(s, fechasEstimadas))}</text>`;
   }).join('');
 
   const seriesSvg = miembros.map((m, si) => {

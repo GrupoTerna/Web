@@ -59,6 +59,21 @@ function esInicioSemana(fecha){
 
 
 /**
+ * Tamaño de letra de las fechas del eje X cuando van rotadas 45° (pedido de la usuaria, 3-nov-2026, §PF348): con muchos puntos las fechas se pisaban
+ * en una mancha. sepX = distancia horizontal (unidades del SVG) entre dos etiquetas vecinas; base = tamaño normal; minimo = el más chico que se acepta.
+ * Dos etiquetas rotadas 45° necesitan ~1,7 veces su tamaño de separación horizontal. Devuelve { fs, cada }: fs = tamaño de letra a usar; cada = 1 si caben
+ * todas, o cada cuántas etiquetas se dibuja una (contando desde la última) cuando ni con el tamaño mínimo caben.
+ */
+function tamanoLetraEjeXRotado(sepX, base, minimo){
+  const FACTOR = 1.7;
+  if (!(sepX > 0)) return { fs: minimo, cada: 1 };
+  const ideal = sepX / FACTOR;
+  if (ideal >= base) return { fs: base, cada: 1 };
+  if (ideal >= minimo) return { fs: Math.round(ideal * 10) / 10, cada: 1 };
+  return { fs: minimo, cada: Math.ceil((FACTOR * minimo) / sepX) };
+}
+
+/**
  * lineasTemporalesSvg(fechas, xPos, yIni, yFin, opts)
  * Dado un arreglo de Date (una por posición del eje X, en el MISMO orden
  * que usa xPos(i) en cada gráfica), devuelve el SVG de las líneas

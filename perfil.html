@@ -5738,12 +5738,16 @@ function perfilLineChartSvg(puntos, opts){
   // pegada al eje, una por cada punto (ya son solo días de guerra). Debajo
   // sigue la fila de fechas, rotada como antes.
   const LETRA_DIA = { 4: 'J', 5: 'V', 6: 'S', 0: 'D' };
-  const xLetrasDia = puntos.map((p, i) => {
+  // 3-nov-2026 (pedido usuaria, §PF348): con muchos puntos la letra se achica según el espacio entre un punto y el siguiente (12 por defecto); si quedaría por debajo de 5,5 no se lee y se omite la fila (las líneas de domingo y las fechas siguen).
+  const sepPunto = n > 1 ? plotW / (n - 1) : plotW;
+  const fsDia = Math.min(12, Math.round(sepPunto * 0.95 * 10) / 10);
+  const estiloDia = fsDia < 12 ? ` style="font-size:${fsDia}px"` : '';
+  const xLetrasDia = fsDia < 5.5 ? '' : puntos.map((p, i) => {
     const f = fechasEje[i];
     const letra = f ? LETRA_DIA[f.getDay()] : null;
     if (!letra) return '';
     const x = xPos(i), y = H - PAD_B + 14;
-    return `<text class="ing-axis-label ing-axis-label-dia" x="${x}" y="${y}" text-anchor="middle">${esc(letra)}</text>`;
+    return `<text class="ing-axis-label ing-axis-label-dia" x="${x}" y="${y}" text-anchor="middle"${estiloDia}>${esc(letra)}</text>`;
   }).join('');
 
   // Con muchos días de guerra no se rotulan todas las fechas (se cuenta
@@ -5757,13 +5761,22 @@ function perfilLineChartSvg(puntos, opts){
   const soloDomingos = n > 7 && fechasEje.some((f, i) => esDomingoI(i));
   const paso = Math.max(1, Math.ceil(n / 24));
   let ultimaEtiqueta = null;
-  const xLabels = puntos.map((p, i) => {
-    if (soloDomingos ? !esDomingoI(i) : (n - 1 - i) % paso !== 0) return '';
+  const candidatosX = [];
+  puntos.forEach((p, i) => {
+    if (soloDomingos ? !esDomingoI(i) : (n - 1 - i) % paso !== 0) return;
     const etiqueta = semanaLabelCortaPerfil(p.semana);
-    if (etiqueta === ultimaEtiqueta) return '';
+    if (etiqueta === ultimaEtiqueta) return;
     ultimaEtiqueta = etiqueta;
-    const x = xPos(i), y = H - PAD_B + 32;
-    return `<text class="ing-axis-label" x="${x}" y="${y}" text-anchor="end" transform="rotate(-45 ${x} ${y})">${esc(etiqueta)}</text>`;
+    candidatosX.push({ i, etiqueta });
+  });
+  // 3-nov-2026 (pedido usuaria, §PF348): con muchas fechas la letra se achica (15 normal, 7 como mínimo) según la separación entre etiquetas vecinas; si ni con 7 caben, se dibuja una de cada N contando desde la última. tamanoLetraEjeXRotado() vive en timeline-svg.js.
+  let sepEtiquetas = Infinity;
+  for (let k = 1; k < candidatosX.length; k++) sepEtiquetas = Math.min(sepEtiquetas, xPos(candidatosX[k].i) - xPos(candidatosX[k - 1].i));
+  const medidaX = tamanoLetraEjeXRotado(Number.isFinite(sepEtiquetas) ? sepEtiquetas : plotW, 15, 7);
+  const estiloX = medidaX.fs < 15 ? ` style="font-size:${medidaX.fs}px"` : '';
+  const xLabels = candidatosX.filter((c, k) => (candidatosX.length - 1 - k) % medidaX.cada === 0).map(c => {
+    const x = xPos(c.i), y = H - PAD_B + 32;
+    return `<text class="ing-axis-label" x="${x}" y="${y}" text-anchor="end" transform="rotate(-45 ${x} ${y})"${estiloX}>${esc(c.etiqueta)}</text>`;
   }).join('');
 
   // Línea punteada del tope (color oro, distinta de los tramos punteados grises de «sin dato») con su rótulo a la derecha.

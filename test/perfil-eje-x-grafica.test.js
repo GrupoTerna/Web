@@ -83,3 +83,57 @@ test('el placeholder no cuenta como anomalía ni altera el aviso de topes', () =
   const svg = w.__t.perfilLineChartSvg([pt('01/10/2026', 3), pt('02/10/2026', 4), pt('03/10/2026', 4)], { tope: 4 });
   assert.ok(!svg.includes('serie-pt-anomalia'));
 });
+
+// §PF348 (3-nov-2026, pedido de la usuaria): con muchos datos en el eje X las fechas se pisaban; ahora la letra se achica y, si ni así caben, se omiten algunas.
+// Semanas de guerra (jueves a domingo) consecutivas desde el jueves 03/10/2024.
+function semanasDeGuerra(cantidad){
+  const salida = [];
+  const inicio = Date.UTC(2024, 9, 3);
+  for (let s = 0; s < cantidad; s++){
+    for (let d = 0; d < 4; d++){
+      const f = new Date(inicio + (s * 7 + d) * 86400000);
+      salida.push(pt(`${String(f.getUTCDate()).padStart(2, '0')}/${String(f.getUTCMonth() + 1).padStart(2, '0')}/${f.getUTCFullYear()}`, 8 + d));
+    }
+  }
+  return salida;
+}
+const tamanosFechas = svg => [...svg.matchAll(/<text class="ing-axis-label"[^>]*rotate\(-45[^>]*?(?:style="font-size:([\d.]+)px")?>\d\d\/\d\d</g)].map(m => m[1] ? Number(m[1]) : 15);
+const letrasDia = svg => (svg.match(/ing-axis-label-dia/g) || []).length;
+
+test('tamanoLetraEjeXRotado: cabe todo, se achica, o se omiten etiquetas', () => {
+  const w = cargar();
+  const f = (sep) => JSON.stringify(w.tamanoLetraEjeXRotado(sep, 15, 7));
+  assert.equal(f(100), '{"fs":15,"cada":1}');
+  assert.equal(f(17), '{"fs":10,"cada":1}');
+  assert.equal(f(5), '{"fs":7,"cada":3}'); // ni con 7 caben: una de cada N
+  assert.equal(f(0), '{"fs":7,"cada":1}');
+});
+
+test('con pocas semanas las fechas y las letras J V S D conservan su tamaño de siempre', () => {
+  const w = cargar();
+  const svg = w.__t.perfilLineChartSvg(semanasDeGuerra(8), {});
+  assert.ok(!/ing-axis-label"[^>]*style=/.test(svg), 'las fechas no llevan tamaño propio');
+  assert.ok(!/ing-axis-label-dia"[^>]*style=/.test(svg), 'las letras no llevan tamaño propio');
+  assert.equal(letrasDia(svg), 32);
+});
+
+test('con muchas semanas las fechas se achican pero nunca bajan de 7 y todas siguen rotuladas si caben', () => {
+  const w = cargar();
+  const svg = w.__t.perfilLineChartSvg(semanasDeGuerra(60), {}); // 240 puntos
+  const t = tamanosFechas(svg);
+  assert.ok(t.length > 0);
+  assert.ok(t.every(x => x >= 7 && x < 15), 'tamaños: ' + t.join(','));
+  assert.equal(t.length, 60, 'una fecha por domingo mientras caben con 7 o más');
+});
+
+test('con muchísimos puntos las fechas bajan a 7 y se omiten algunas; la fila J V S D desaparece', () => {
+  const w = cargar();
+  const svg = w.__t.perfilLineChartSvg(semanasDeGuerra(110), {}); // 440 puntos
+  const t = tamanosFechas(svg);
+  assert.ok(t.length > 0 && t.length < 110, 'se omiten fechas: ' + t.length);
+  assert.ok(t.every(x => x === 7), 'tamaños: ' + t.join(','));
+  assert.equal(letrasDia(svg), 0, 'letras ilegibles: se omiten');
+  // la última fecha (la más reciente) siempre se rotula
+  const ultima = [...svg.matchAll(/rotate\(-45[^>]*>(\d\d\/\d\d)</g)].map(m => m[1]).pop();
+  assert.equal(ultima, '08/11'); // domingo de la semana 110 (03/10/2024 + 109 semanas + 3 días)
+});

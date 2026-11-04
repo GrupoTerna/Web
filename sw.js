@@ -249,7 +249,7 @@
 // v197 (2-nov-2026): guerra.html cambió (CORE_ASSETS) -- «Participación de Hoy» lista aparte, más tenues, las cuentas inactivas que atacaron hoy y cuenta los cupos del día (§PF344).
 // v198 (2-nov-2026): guerra.html cambió (CORE_ASSETS) -- «Participación de Hoy» lista también a las cuentas que atacaron hoy y están ahora en otro clan o sin registro en el Directorio (§PF344).
 // v199 (3-nov-2026): directorio.html cambió (CORE_ASSETS) -- de lunes a miércoles la ficha y el comparador rotulan «Ataques en la última guerra» cuando el backend manda guerraSemana.congelada (§PF125). perfil.html también cambió, pero no está en CORE_ASSETS.
-const CACHE_NAME = 'terna-static-v200';
+const CACHE_NAME = 'terna-static-v201';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
