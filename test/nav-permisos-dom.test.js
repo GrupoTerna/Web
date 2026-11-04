@@ -20,8 +20,8 @@ const NAV = `<nav class="nav"><div class="links">
   <a href="admin.html" data-page="admin" class="cta">Acceder</a>
 </div></nav>`;
 
-function montar({ sesion = false, permisos = false } = {}){
-  const dom = new JSDOM(`<!doctype html><html><body>${NAV}</body></html>`, { runScripts: 'outside-only', url: 'https://terna.example/' });
+function montar({ sesion = false, permisos = false, pagina = '' } = {}){
+  const dom = new JSDOM(`<!doctype html><html><body${pagina ? ` data-page="${pagina}"` : ''}>${NAV}</body></html>`, { runScripts: 'outside-only', url: 'https://terna.example/' });
   const { window } = dom;
   if(sesion) window.localStorage.setItem('terna_admin_token', 'tok');
   if(permisos) window.localStorage.setItem('terna_panel_permisos', '1');
@@ -81,4 +81,18 @@ test('cerrar sesión borra el flag (el siguiente admin no hereda el link)', asyn
   window.apiPost = () => Promise.resolve();
   await api.cerrarSesionAdmin();
   assert.equal(window.localStorage.getItem('terna_panel_permisos'), null);
+});
+
+test('en permisos.html el link no desaparece mientras haya sesión (aunque el flag no esté guardado)', () => {
+  const { permisosLink, api } = montar({ sesion: true, permisos: false, pagina: 'permisos' });
+  api.actualizarNavCta();
+  assert.equal(permisosLink.style.display, '');
+  api.guardarAccesoPanelPermisos(false);
+  assert.equal(permisosLink.style.display, '', 'tampoco se oculta al guardar «sin acceso» estando en esa página');
+});
+
+test('en permisos.html sin sesión el link sigue oculto', () => {
+  const { permisosLink, api } = montar({ sesion: false, pagina: 'permisos' });
+  api.actualizarNavCta();
+  assert.equal(permisosLink.style.display, 'none');
 });

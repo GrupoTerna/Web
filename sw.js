@@ -250,9 +250,10 @@
 // v198 (2-nov-2026): guerra.html cambió (CORE_ASSETS) -- «Participación de Hoy» lista también a las cuentas que atacaron hoy y están ahora en otro clan o sin registro en el Directorio (§PF344).
 // v199 (3-nov-2026): directorio.html cambió (CORE_ASSETS) -- de lunes a miércoles la ficha y el comparador rotulan «Ataques en la última guerra» cuando el backend manda guerraSemana.congelada (§PF125). perfil.html también cambió, pero no está en CORE_ASSETS.
 // v202 (3-nov-2026): assets/styles.css cambió (CORE_ASSETS) -- .tabla-scroll-wrap lleva position:relative para que los .sr-only de las filas no alarguen la página bajo el pie de página (§PF349).
+// v205 (4-nov-2026): perfil.html y auth.js cambiaron (CORE_ASSETS) -- gráficas del perfil con pastilla «Últimas 6 temporadas», zoom +/− con barra de desplazamiento y tooltip de fecha en el eje X (§PF352); el link «Permisos» ya no desaparece dentro de permisos.html (§PF351).
 // v204 (4-nov-2026): las 11 páginas con barra de navegación, admin.html, permisos.html, auth.js y api.js cambiaron (CORE_ASSETS) -- el panel de permisos ya no es una tarjeta de admin.html: es el link «Permisos» del nav, entre Mensajes y Mi panel (§PF351).
 // v203 (4-nov-2026): admin.html cambió (CORE_ASSETS) -- «Buscar miembro» lleva la vista al resultado y el foco al nombre; antes el resultado salía al final del panel, fuera de pantalla, y el botón parecía no hacer nada (§PF350).
-const CACHE_NAME = 'terna-static-v204';
+const CACHE_NAME = 'terna-static-v205';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y

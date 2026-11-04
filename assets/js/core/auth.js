@@ -85,7 +85,10 @@ function guardarAccesoPanelPermisos(tieneAcceso){
 
 function actualizarNavCta(){
   const haySesion = !!localStorage.getItem(SESSION_KEY_ADMIN);
-  const verPermisos = haySesion && localStorage.getItem(PANEL_PERMISOS_KEY) === '1';
+  // En permisos.html el link no puede desaparecer mientras haya sesión: es la página donde estás (04-nov-2026, la usuaria
+  // veía que al entrar el botón se esfumaba). La puerta real sigue siendo webAdminMisPermisos / _webPermisosExigirAcceso.
+  const enPermisos = !!(document.body && document.body.dataset && document.body.dataset.page === 'permisos');
+  const verPermisos = haySesion && (enPermisos || localStorage.getItem(PANEL_PERMISOS_KEY) === '1');
   document.querySelectorAll('.nav .links a[data-page="permisos"]').forEach(a => {
     a.style.display = verPermisos ? '' : 'none';
   });

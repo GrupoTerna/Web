@@ -723,6 +723,15 @@
   .ing-chart-leyenda svg{flex-shrink:0;}
   /* 11-oct-2026 (pedido usuario): ancho completo de la tarjeta, con menos alto que el original (viewBox 960x320 en vez de 960x460, unos 420 px con la tarjeta a pantalla completa) para que el recuadro quepa con zoom al 100%. Sin max-height: acotar el alto con el aspect-ratio hacía angostar el dibujo. */
   .ing-linechart-svg{width:100%; height:auto; aspect-ratio:960/320; display:block; overflow:visible;}
+  /* Vista de las gráficas (04-nov-2026, §PF352): pastilla de temporadas, zoom y contenedor con barra de desplazamiento horizontal. */
+  .pf-vista{display:flex; flex-wrap:wrap; align-items:center; gap:10px; margin:0 0 10px;}
+  .pf-vista-pill{font-family:var(--f-mono); font-size:12px; font-weight:700; padding:6px 14px; border-radius:999px; border:1px solid var(--line-strong); background:transparent; color:var(--text-dim); cursor:pointer; transition:all .2s ease;}
+  .pf-vista-pill[aria-pressed="true"]{background:rgba(162,57,255,.2); color:var(--text); border-color:rgba(162,57,255,.65);}
+  .pf-vista-pill:disabled, .pf-vista-btn:disabled{opacity:.45; cursor:not-allowed;}
+  .pf-vista-zoom{display:inline-flex; align-items:center; gap:8px; font-family:var(--f-mono); font-size:12px; color:var(--text-dim);}
+  .pf-vista-btn{width:30px; height:30px; border-radius:50%; border:1px solid var(--line-strong); background:transparent; color:var(--text); font-size:18px; line-height:1; font-weight:700; cursor:pointer;}
+  .pf-vista-btn:not(:disabled):hover, .pf-vista-pill:not(:disabled):hover{background:rgba(162,57,255,.18);}
+  .perfil-chart-scroll{overflow-x:auto; overflow-y:hidden; padding:6px 0 6px; scrollbar-width:thin;}
   .ing-linechart-svg .ing-grid-line{stroke:var(--line-strong); stroke-width:1; opacity:.4;}
   .ing-linechart-svg .ing-serie-line-dashed{stroke-dasharray:5 4; opacity:.55;}
   .ing-linechart-svg .ing-axis-label{fill:var(--text-dim); font-family:var(--f-mono); font-size:15px; font-weight:600;}
@@ -5676,7 +5685,8 @@ function perfilLineChartSvg(puntos, opts){
     const fecha = `${String(dom.getDate()).padStart(2, '0')}/${String(dom.getMonth() + 1).padStart(2, '0')}/${dom.getFullYear()}`;
     puntos.splice(i + 1, 0, { semana: fecha, valor: Math.round(valor * 100) / 100, real: false, motivo: 'Sin dato todavía — domingo con valor estimado' });
   }
-  const W = 960, H = 320, PAD_R = 20, PAD_T = 20, PAD_B = 90;
+  const zoom = opts.zoom > 1 ? Number(opts.zoom) : 1; // 04-nov-2026 (pedido usuaria, §PF352): el zoom ensancha el lienzo (más espacio entre fechas); el <svg> se muestra a zoom×100 % de ancho dentro de un contenedor con barra de desplazamiento y la altura no cambia.
+  const W = Math.round(960 * zoom), H = 320, PAD_R = 20, PAD_T = 20, PAD_B = 90;
   const pasos = 4, prefijo = opts.prefijo || '';
   const tope = opts.tope > 0 ? Number(opts.tope) : 0;
   // 19-oct-2026 (pedido usuaria): segunda serie opcional con los ACUMULADOS de la semana, un punto por domingo (opts.serieSemanal = [{ semana, valor, real, clan, excedeAtaques? }]); su tope va en opts.topeSemanal. No se une con los puntos diarios: la línea va de domingo a domingo.
@@ -5853,7 +5863,7 @@ function perfilLineChartSvg(puntos, opts){
   const ejeYTitle = opts.ejeY
     ? `<text class="ing-axis-title" x="14" y="${PAD_T + plotH / 2}" text-anchor="middle" transform="rotate(-90 14 ${PAD_T + plotH / 2})">${esc(opts.ejeY)}</text>`
     : '';
-  return `<svg class="ing-linechart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">${bandasTemporada}${gridLines.join('')}${gridMedios}${lineasTemporales}${lineasDomingo}${xLetrasDia}${xLabels}${lineaTope}${lineaTopeSem}${lineaMin}${pathSem}${circlesSem}${path}${circles}${ejeXTitle}${ejeYTitle}</svg>`;
+  return `<svg class="ing-linechart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet"${zoom > 1 ? ` style="width:${Math.round(zoom * 100)}%; aspect-ratio:${W}/${H};"` : ''} data-xgeom="${PAD_L},${plotW},${PAD_R},${PAD_B},${H},${W}" data-xfechas="${esc(JSON.stringify(puntos.map(q => q.semana)))}">${bandasTemporada}${gridLines.join('')}${gridMedios}${lineasTemporales}${lineasDomingo}${xLetrasDia}${xLabels}${lineaTope}${lineaTopeSem}${lineaMin}${pathSem}${circlesSem}${path}${circles}${ejeXTitle}${ejeYTitle}</svg>`;
 }
 
 /** Mini-leyenda de arriba de cada gráfica (idéntica a la de directorio.html). */
@@ -5891,8 +5901,94 @@ function leyendaPuntosGraficaHtml(conHuecos, tope, vsAtaques, serieSemanal, mini
     </div>`;
 }
 
+/**
+ * Vista de las gráficas del perfil (04-nov-2026, pedido de la usuaria, §PF352): estado COMPARTIDO por todas las gráficas.
+ * ultimas6: solo las últimas 6 temporadas (se puede desactivar) · zoom: ensancha el eje X (1 a 6×) con barra de desplazamiento.
+ * PERFIL_GRAFICAS_PINTADAS guarda los argumentos originales de cada gráfica para repintarlas todas al cambiar la vista.
+ */
+const PERFIL_VISTA = { ultimas6: true, zoom: 1 };
+const PERFIL_ZOOMS = [1, 1.5, 2, 3, 4, 6];
+const PERFIL_TEMPORADAS_VISTA = 6;
+const PERFIL_GRAFICAS_PINTADAS = new Map();
+
+/** Deja solo los puntos de las últimas `n` temporadas (misma clave de temporada que el sombreado: claveTemporadaFecha). Fechas ilegibles se conservan. */
+function filtrarUltimasTemporadasPerfil(puntos, serie, n){
+  const clave = q => { const t = parseFechaDDMMYYYY(q && q.semana); return isNaN(t) ? null : claveTemporadaFecha(new Date(t)); };
+  const claves = new Set();
+  puntos.forEach(q => { const k = clave(q); if (k != null) claves.add(k); });
+  (serie || []).forEach(q => { const k = clave(q); if (k != null) claves.add(k); });
+  const orden = Array.from(claves).sort((a, b) => a - b);
+  if (orden.length <= n) return { puntos, serie, total: orden.length, recortado: false };
+  const minK = orden[orden.length - n];
+  const ok = q => { const k = clave(q); return k == null || k >= minK; };
+  return { puntos: puntos.filter(ok), serie: serie ? serie.filter(ok) : serie, total: orden.length, recortado: true };
+}
+
+function barraVistaPerfilHtml(total){
+  const hay = total > PERFIL_TEMPORADAS_VISTA;
+  const iz = PERFIL_ZOOMS.indexOf(PERFIL_VISTA.zoom);
+  const etZoom = String(PERFIL_VISTA.zoom).replace('.', ',') + '×';
+  return `<div class="pf-vista" role="group" aria-label="Vista de la gráfica">
+      <button type="button" class="pf-vista-pill" data-pv="ultimas6" aria-pressed="${PERFIL_VISTA.ultimas6 ? 'true' : 'false'}"${hay ? '' : ' disabled title="Solo hay ' + total + ' temporada' + (total === 1 ? '' : 's') + ': ya se ven todas."'}>Últimas ${PERFIL_TEMPORADAS_VISTA} temporadas</button>
+      <span class="pf-vista-zoom">
+        <button type="button" class="pf-vista-btn" data-pv="menos" aria-label="Alejar el eje de fechas"${iz <= 0 ? ' disabled' : ''}>−</button>
+        <span class="pf-vista-zoom-et" aria-live="polite">Zoom ${etZoom}</span>
+        <button type="button" class="pf-vista-btn" data-pv="mas" aria-label="Acercar el eje de fechas"${iz >= PERFIL_ZOOMS.length - 1 ? ' disabled' : ''}>+</button>
+      </span>
+    </div>`;
+}
+
+/** Repinta todas las gráficas con la vista actual; cada una conserva su posición de desplazamiento (si estaba sin desplazar, va al final = lo más reciente). */
+function repintarGraficasPerfil(){
+  PERFIL_GRAFICAS_PINTADAS.forEach((args, wrap) => {
+    if (!wrap.isConnected){ PERFIL_GRAFICAS_PINTADAS.delete(wrap); return; }
+    const sc = wrap.querySelector('.perfil-chart-scroll');
+    const sinDesplazar = !sc || sc.scrollWidth <= sc.clientWidth + 1;
+    const centro = sc && sc.scrollWidth ? (sc.scrollLeft + sc.clientWidth / 2) / sc.scrollWidth : 1;
+    pintarGraficaPerfil(wrap, args.puntos, args.opts, args.nota);
+    const nuevo = wrap.querySelector('.perfil-chart-scroll');
+    if (nuevo && !sinDesplazar) nuevo.scrollLeft = Math.max(0, centro * nuevo.scrollWidth - nuevo.clientWidth / 2);
+  });
+}
+
+/** Tooltip grande con la fecha al acercar el mouse a la franja del eje X (las etiquetas se achican o se omiten con muchos puntos). */
+function activarTooltipEjeXPerfil(svg){
+  let fechas, g;
+  try{ fechas = JSON.parse(svg.getAttribute('data-xfechas') || '[]'); g = (svg.getAttribute('data-xgeom') || '').split(',').map(Number); }catch(err){ return; }
+  if (!Array.isArray(fechas) || !fechas.length || g.length < 6 || g.some(isNaN)) return;
+  const [padL, plotW, padR, padB, H, W] = g;
+  const DIAS = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+  const tip = obtenerTooltipGrafica();
+  let visible = false;
+  const ocultar = () => { if (visible){ tip.style.display = 'none'; visible = false; } };
+  svg.addEventListener('mousemove', e => {
+    if (e.target && e.target.classList && e.target.classList.contains('ing-serie-pt')){ visible = false; return; } // el tooltip del punto manda
+    const r = svg.getBoundingClientRect();
+    if (!r.width || !r.height){ ocultar(); return; }
+    const ux = (e.clientX - r.left) / r.width * W, uy = (e.clientY - r.top) / r.height * H;
+    if (uy < H - padB + 4 || ux < padL - 12 || ux > W - padR + 12){ ocultar(); return; }
+    const i = fechas.length <= 1 ? 0 : Math.min(fechas.length - 1, Math.max(0, Math.round((ux - padL) / plotW * (fechas.length - 1))));
+    const f = fechas[i], t = parseFechaDDMMYYYY(f);
+    const dia = isNaN(t) ? '' : DIAS[new Date(t).getDay()] + ' ';
+    const pt = Array.from(svg.querySelectorAll('.ing-serie-pt[data-serie="dia"]')).find(c => c.getAttribute('data-semana') === f);
+    const tsd = pt ? textoTemporadaSemanaDiaPerfil(pt.dataset) : '';
+    tip.innerHTML = `<div style="font-size:20px; font-weight:700; white-space:nowrap;">${esc(dia + f)}</div>${tsd ? `<div style="font-size:13px; opacity:.85;">${esc(tsd)}</div>` : ''}`;
+    tip.style.display = 'block';
+    visible = true;
+    posicionarTooltipGrafica(tip, e.clientX, e.clientY);
+  });
+  svg.addEventListener('mouseleave', ocultar);
+}
+
 /** Pinta la gráfica dentro de `wrap` y activa tooltip de mouse + teclado (mismo comportamiento que directorio.html). */
 function pintarGraficaPerfil(wrap, puntos, opts, nota){
+  // 04-nov-2026 (pedido usuaria, §PF352): se guardan los argumentos originales para repintar con otra vista; el recorte a las últimas 6 temporadas
+  // (pastilla, activada por defecto) y el zoom se aplican a TODO lo que sigue (gráfica y avisos), para que lo escrito coincida con lo dibujado.
+  PERFIL_GRAFICAS_PINTADAS.set(wrap, { puntos, opts, nota });
+  const vista = filtrarUltimasTemporadasPerfil(puntos, Array.isArray(opts.serieSemanal) ? opts.serieSemanal : null, PERFIL_VISTA.ultimas6 ? PERFIL_TEMPORADAS_VISTA : Infinity);
+  puntos = vista.puntos;
+  opts = Object.assign({}, opts, { zoom: PERFIL_VISTA.zoom });
+  if (Array.isArray(opts.serieSemanal)) opts.serieSemanal = vista.serie;
   let notaTope = '';
   if (opts.tope > 0){
     const anom = puntosSobreTope(filtrarDiasGuerraPerfil(puntos), opts.tope);
@@ -5950,9 +6046,19 @@ function pintarGraficaPerfil(wrap, puntos, opts, nota){
       notaMin = `<div class="pf-tope-resumen pf-tope-alerta">⚠ ${bajoMinimo.length} ${bajoMinimo.length === 1 ? 'valor está' : 'valores están'} por debajo del mínimo de ${esc(fmtNum(opts.minimo))} ${esc(opts.unidad || '')}: ${bajoMinimo.slice(-MAX_LISTA).map(x => `${esc(x.etiqueta)} (<b>${esc(fmtNum(x.valor))}</b>)`).join(', ')}${bajoMinimo.length > MAX_LISTA ? ` y ${bajoMinimo.length - MAX_LISTA} más antiguos` : ''}.</div>`;
     }
   }
-  wrap.innerHTML = `${leyendaPuntosGraficaHtml(!opts.sinHuecos, opts.tope, opts.vsAtaques, serieSemReal.length ? { tope: opts.topeSemanal > 0 ? opts.topeSemanal : 0 } : null, minimoEnLeyenda)}${perfilLineChartSvg(puntos, opts)}${notaTope}${notaExcede}${notaSem}${notaMin}${nota || ''}`;
+  wrap.innerHTML = `${barraVistaPerfilHtml(vista.total)}${leyendaPuntosGraficaHtml(!opts.sinHuecos, opts.tope, opts.vsAtaques, serieSemReal.length ? { tope: opts.topeSemanal > 0 ? opts.topeSemanal : 0 } : null, minimoEnLeyenda)}<div class="perfil-chart-scroll">${perfilLineChartSvg(puntos, opts)}</div>${notaTope}${notaExcede}${notaSem}${notaMin}${nota || ''}`;
+  wrap.querySelectorAll('.pf-vista [data-pv]').forEach(b => b.addEventListener('click', () => {
+    const a = b.getAttribute('data-pv'), iz = PERFIL_ZOOMS.indexOf(PERFIL_VISTA.zoom);
+    if (a === 'ultimas6') PERFIL_VISTA.ultimas6 = !PERFIL_VISTA.ultimas6;
+    else if (a === 'mas') PERFIL_VISTA.zoom = PERFIL_ZOOMS[Math.min(PERFIL_ZOOMS.length - 1, iz + 1)];
+    else if (a === 'menos') PERFIL_VISTA.zoom = PERFIL_ZOOMS[Math.max(0, iz - 1)];
+    repintarGraficasPerfil();
+  }));
+  const scroller = wrap.querySelector('.perfil-chart-scroll');
+  if (scroller) scroller.scrollLeft = scroller.scrollWidth; // lo más reciente a la vista
   const svg = wrap.querySelector('.ing-linechart-svg');
   if (!svg) return;
+  activarTooltipEjeXPerfil(svg);
   const tip = obtenerTooltipGrafica();
   svg.querySelectorAll('.ing-serie-pt').forEach(pt => {
     pt.addEventListener('mousemove', e => {
