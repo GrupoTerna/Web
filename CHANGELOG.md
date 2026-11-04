@@ -10,6 +10,7 @@ Lista corta de lo que se hizo, de más reciente a más antiguo y, dentro de cada
 
 ## Abiertos
 
+- **Sin probar en navegador real (4-nov-2026): «Buscar miembro» de `admin.html` lleva la vista al resultado (`PF350`).** Falta publicar `Web` (`sw.js` v203), entrar como admin, buscar un miembro por nombre y por Tag y comprobar que la página baja sola a la ficha y que el foco queda en el nombre; probar también un Tag inexistente (el error debe verse junto al buscador). Nada de Apps Script.
 - **Sin probar en navegador real (3-nov-2026): letra del eje X que se achica con muchos datos (`PF348`).** Falta publicar `Web` (`sw.js` v201) y abrir un perfil con historial largo (p. ej. «Ataques por semana»): las fechas deben leerse sin pisarse (mínimo 7; si no caben se omiten algunas) y la fila J V S D desaparece cuando es ilegible; revisar también el comparador del directorio con muchas semanas.
 - **Sin probar en Apps Script real ni en navegador real (3-nov-2026): permiso «Actualizar V. Guerra» y tope de consultas `/players` del botón «Actualizar» (`PF347`).** Falta correr `subirBaseDesdeGithub()` (proyecto **Generador**, archivo `01_Principal.gs`; cambia `37_Web_API.gs` y `41_Web_ActualizarRoster.gs`) **antes de cualquier descarga**, publicar `Web` (`sw.js` v200), dar el permiso desde `permisos.html` y probar con sesión de admin: con permiso, sin permiso y el cuarto pulso dentro de la hora (debe avisar con la hora en que se libera un cupo). Además, la usuaria debe confirmar el tope (3 por hora y 10 por día, elegido por Claude). → §PF347
 - **Sin probar en Apps Script real ni en navegador real (3-nov-2026): congelado de la guerra de lunes a miércoles en `clan.html` y en el perfil (`PF125`).** Falta correr `subirBaseDesdeGithub()` (proyecto **Generador**, archivo `01_Principal.gs`; cambia `37_Web_API.gs`) **antes de cualquier descarga** y abrir, un lunes a miércoles, `clan.html` («Última guerra (hasta el domingo)», sin «Pendientes»), un perfil («Medallas de la última guerra») y la ficha y el comparador del directorio («Ataques en la última guerra», con tope 16). Incluye el cuadrito «Ataques última guerra» de `admin.html`.
@@ -66,6 +67,10 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 - **Resuelto (24-oct-2026): token de administradores de `guerra.html`.** La usuaria comprobó en las Propiedades del script de Base que `DASHBOARD_TOKEN` tiene un valor distinto del que quedó en el historial público de este repo, así que ese valor ya no sirve. Se revisó el historial completo de `Web` y `Backend`: `CONTACTOS_TOKEN` y `CORRECCION_GUERRA_TOKEN` nunca estuvieron escritos como valor (en `Backend` solo aparecen como `_scriptToken('NOMBRE')`, que lee la Propiedad del script; en `Web` no aparecen). Lo único que figura como valor en el historial de `Web` es `WEB_MEMBER_TOKEN` (token de solo lectura, público por diseño; se rotó el 20-sep-2026) y `DASH_TOKEN` (ya inservible). No se escribe ningún valor aquí. → §PF029
 
 ---
+
+## 04-nov-2026
+
+- **`admin.html` (`buscarMiembro()`) y `sw.js` v203 · el botón «Buscar miembro» ya no parece muerto (pedido de la usuaria).** La ficha sale en `#miembroSec`, al final del panel, y no se desplazaba la vista hasta ella: arriba solo desaparecía «Buscando…». Ahora baja a la ficha y el foco queda en el nombre (respeta «reducir movimiento»). Prueba nueva `test/admin-buscar-miembro-scroll-dom.test.js`. → §PF350
 
 ## 03-nov-2026
 
