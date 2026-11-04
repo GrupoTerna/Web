@@ -6161,6 +6161,11 @@ function renderMiembro(j){
   const fameWrap = document.getElementById('mFameSemanaWrap');
   if (fameSem != null && fameSem !== ''){
     document.getElementById('mFameSemana').textContent = fmtNum(fameSem);
+    /* 03-nov-2026 (pedido usuaria): de lunes a miércoles el backend manda guerraSemana.congelada=true con las medallas del domingo anterior; el rótulo pasa a «Medallas de la última guerra». El texto es el nodo que sigue al <b>. [→ Contexto_Base_Web.md §PF125] */
+    const nodoRotuloFame = fameWrap.lastChild;
+    if (nodoRotuloFame && nodoRotuloFame.nodeType === 3){
+      nodoRotuloFame.nodeValue = (j.guerraSemana && j.guerraSemana.congelada === true) ? 'Medallas de la última guerra' : 'Medallas de la semana actual';
+    }
     fameWrap.style.display = '';
   } else {
     fameWrap.style.display = 'none';

@@ -1192,7 +1192,7 @@ function renderComparadorLado(jugador){
     extItem(jugador.vGuerra, 'V. Guerra', true),
     extItem(jugador.torneos, 'Torneos', true),
     // "Ataques en la semana actual" cuenta solo días de guerra (GC.ATAQUES_SEM); usa extItemAtaques() para agregar "/tope". Historial en CHANGELOG.md.
-    extItemAtaques(jugador.guerraSemana, 'Ataques en la semana actual'),
+    extItemAtaques(jugador.guerraSemana, (jugador.guerraSemana && jugador.guerraSemana.congelada === true) ? 'Ataques en la última guerra' : 'Ataques en la semana actual'), // 03-nov-2026: de lunes a miércoles el backend congela guerraSemana en el domingo anterior (congelada:true). [→ Contexto_Base_Web.md §PF125]
     extItem(ext.racha, 'Racha', true),
     // Se incluyen "Donaciones hechas" y "Donaciones recibidas" completas, sin abreviar. Historial en CHANGELOG.md.
     extItem(ext.donacionesRealizadas, 'Donaciones hechas', true),
@@ -1269,7 +1269,7 @@ function renderComparadorBarras(a, b){
     { icono:'🎖️', label:'V. Guerra',    va: a.vGuerra, vb: b.vGuerra },
     { icono:'🏅', label:'Torneos',      va: a.torneos, vb: b.torneos },
     // Mismo cambio de etiquetas/donaciones que arriba; el tope de ataques sale de cualquiera de los dos lados (comparten la semana). Historial en CHANGELOG.md.
-    { icono:'⚔️', label:'Ataques en la semana actual',
+    { icono:'⚔️', label: ((a.guerraSemana && a.guerraSemana.congelada === true) || (b.guerraSemana && b.guerraSemana.congelada === true)) ? 'Ataques en la última guerra' : 'Ataques en la semana actual', // 03-nov-2026 (§PF125)
       va: a.guerraSemana && a.guerraSemana.ataques, vb: b.guerraSemana && b.guerraSemana.ataques,
       maxAtaques: (a.guerraSemana && a.guerraSemana.ataquesMax) || (b.guerraSemana && b.guerraSemana.ataquesMax) || 0 },
     { icono:'🔥', label:'Racha',        va: extA.racha, vb: extB.racha },
