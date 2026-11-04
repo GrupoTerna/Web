@@ -385,6 +385,7 @@ function _manejarSesionVencida(tokenEnviado){
     if (!tokenEnviado || localStorage.getItem('terna_admin_token') !== tokenEnviado) return;
     localStorage.removeItem('terna_admin_token');
     localStorage.removeItem('terna_admin_info');
+    localStorage.removeItem('terna_panel_permisos');
   }catch(e){ return; /* localStorage inaccesible: no hay sesión que limpiar ni aviso útil */ }
   try{
     if (typeof actualizarNavCta === 'function') actualizarNavCta(); // auth.js: "Mi panel" -> "Acceder"

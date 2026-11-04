@@ -68,9 +68,27 @@ function adminPuedeVetar(){
  * (webAdminContenido) también exige el token en cada petición.
  */
 const SESSION_KEY_ADMIN = 'terna_admin_token';
+// PANEL DE PERMISOS EN EL NAV (04-nov-2026, pedido de la usuaria: «quita el panel de permisos de admin y ponlo como los
+// botones entre mensajes y admin»): el link «Permisos» nace oculto como «Mensajes» y solo se muestra si hay sesión Y el
+// backend confirmó (webAdminMisPermisos.panelPermisos) que este Celular es el de PANEL_PERMISOS_CELULAR. Esa confirmación
+// la guardan admin.html y permisos.html en esta clave; aquí solo se lee, para no preguntar al backend en cada página.
+// Es solo UX: permisos.html y el backend (_webPermisosExigirAcceso) vuelven a validar el acceso.
+const PANEL_PERMISOS_KEY = 'terna_panel_permisos';
+
+function guardarAccesoPanelPermisos(tieneAcceso){
+  try{
+    if(tieneAcceso) localStorage.setItem(PANEL_PERMISOS_KEY, '1');
+    else localStorage.removeItem(PANEL_PERMISOS_KEY);
+  }catch(err){ /* localStorage inaccesible: el link se queda oculto (falla cerrado) */ }
+  actualizarNavCta();
+}
 
 function actualizarNavCta(){
   const haySesion = !!localStorage.getItem(SESSION_KEY_ADMIN);
+  const verPermisos = haySesion && localStorage.getItem(PANEL_PERMISOS_KEY) === '1';
+  document.querySelectorAll('.nav .links a[data-page="permisos"]').forEach(a => {
+    a.style.display = verPermisos ? '' : 'none';
+  });
   document.querySelectorAll('.nav .links a.cta[data-page="admin"]').forEach(a => {
     a.textContent = haySesion ? 'Mi panel' : 'Acceder';
   });
@@ -112,6 +130,7 @@ function cerrarSesionAdmin(){
   const token = localStorage.getItem(SESSION_KEY_ADMIN);
   localStorage.removeItem(SESSION_KEY_ADMIN);
   localStorage.removeItem('terna_admin_info');
+  localStorage.removeItem(PANEL_PERMISOS_KEY);
   if(!token) return Promise.resolve();
   try{
     return apiPost('webAuthLogout', { sessionToken: token }).then(() => {}, () => { /* se ignora: el cierre local ya se hizo */ });

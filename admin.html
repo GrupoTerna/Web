@@ -286,6 +286,7 @@
       <a href="torneos.html" data-page="torneos">Torneos</a>
       <a href="comunidad.html" data-page="comunidad">Comunidad</a>
       <a href="mensajes.html" data-page="mensajes" style="display:none;">Mensajes</a>
+      <a href="permisos.html" data-page="permisos" style="display:none;">Permisos</a>
       <a href="admin.html" data-page="admin" class="cta">Acceder</a>
     </div>
   </div>
@@ -333,22 +334,6 @@
       <h3 style="font-size:15px; color:var(--gold); margin:10px 0 4px;">Cuentas a tu cargo</h3>
       <p class="text-dim" style="font-size:13px; margin:0 0 14px;">Copas, victorias de guerra y torneos de cada cuenta, de un vistazo.</p>
       <div id="misCuentasWrap"><div class="empty">Cargando tus cuentas…</div></div>
-    </div>
-
-    <!-- PANEL DE PERMISOS (19-sep-2026, pedido de Diana): card aparte que
-         lleva a permisos.html, la pantalla con los checkboxes de Funciones/
-         Cat_disp por administrador. Oculta por defecto (display:none) —
-         aplicarVisibilidadPanelPermisos() solo la muestra si el backend
-         confirma (webAdminMisPermisos) que este Celular es el guardado en
-         la Script Property PANEL_PERMISOS_CELULAR. El aislamiento real pasa
-         en el backend (_webPermisosExigirAcceso(), 34_Web_API.gs); esto es
-         solo para no mostrarle el atajo a quien de todos modos no puede
-         usarlo. -->
-    <div class="card pf-cinta" id="cardPanelPermisos" style="--cinta:url(Im%C3%A1genes/Banners/Fankit/cinta-admin-permisos.webp); display:none; margin-top:24px; border-color:var(--gold);">
-      <div class="eyebrow">Solo para ti</div>
-      <h3 style="font-size:15px; color:var(--gold); margin:10px 0 4px;">Panel de permisos</h3>
-      <p class="text-dim" style="font-size:13px; margin:0 0 14px;">Administra con checkboxes qué puede hacer cada administrador (Funciones) y qué categorías de mensajes puede ver (Cat_disp), en vez de editar la hoja a mano.</p>
-      <a href="permisos.html" class="btn btn-primary btn-block">Abrir panel de permisos</a>
     </div>
 
     <!-- "Buscar miembro" busca por Nombre, Nom_Multi o Tag en toda la base, con sugerencias mientras se escribe; si no hay coincidencias, prueba como Tag directo. -->
@@ -1788,21 +1773,26 @@ function aplicarVisibilidadPorFunciones(){
  * flag aparte que solo webAdminMisPermisos calcula comparando el Celular de
  * la sesión contra la Script Property PANEL_PERMISOS_CELULAR (ver
  * _webAdminMisPermisos(), 34_Web_API.gs) — no hay nada de eso en la sesión
- * guardada por webLogin. Si la llamada falla (sin conexión, etc.) la card
- * se queda oculta: fallar cerrado, nunca mostrar el atajo por error.
+ * guardada por webLogin.
+ * CAMBIO (04-nov-2026, pedido de la usuaria): ya no hay tarjeta en este panel;
+ * el acceso es el link «Permisos» del nav (entre Mensajes y Mi panel), en todas
+ * las páginas. El resultado se guarda con guardarAccesoPanelPermisos() (auth.js)
+ * y el nav lo muestra u oculta. Si la llamada falla (sin conexión, etc.) no se
+ * toca lo guardado ni se muestra nada nuevo: fallar cerrado.
  */
 async function aplicarVisibilidadPanelPermisos(){
   try{
     const data = await apiGetAuth('webAdminMisPermisos', {});
     if(manejarRespuestaAuth(data)) return;
-    document.getElementById('cardPanelPermisos').style.display = (data.ok && data.panelPermisos) ? '' : 'none';
+    guardarAccesoPanelPermisos(!!(data.ok && data.panelPermisos));
   }catch(err){
-    document.getElementById('cardPanelPermisos').style.display = 'none';
+    guardarAccesoPanelPermisos(false);
   }
 }
 function mostrarLogin(msg){
   localStorage.removeItem(SESSION_KEY);
   localStorage.removeItem(SESSION_ADMIN_KEY);
+  localStorage.removeItem('terna_panel_permisos');
   document.getElementById('panelSec').style.display = 'none';
   document.getElementById('loginSec').style.display = 'block';
   document.querySelector('.skip-link').setAttribute('href', '#loginSec');
