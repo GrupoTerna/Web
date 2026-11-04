@@ -2165,6 +2165,13 @@ async function buscarMiembro(){
     if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
     msgEl.innerHTML = '';
     renderMiembro(data.jugador);
+    // 04-nov-2026 (pedido usuaria, el botón «parecía no hacer nada»): #miembroSec está al final del panel, después de otras tarjetas; sin desplazarse, el resultado salía fuera de pantalla. Se lleva la vista al resultado y el foco al nombre (preventScroll: ya desplaza scrollIntoView), igual que H-1.
+    const secMiembro = document.getElementById('miembroSec');
+    const reducirMov = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    secMiembro.scrollIntoView({ behavior: reducirMov ? 'auto' : 'smooth', block: 'start' });
+    const nomMiembro = document.getElementById('mNombre');
+    nomMiembro.setAttribute('tabindex', '-1');
+    nomMiembro.focus({ preventScroll: true });
   }catch(err){
     msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
   }
