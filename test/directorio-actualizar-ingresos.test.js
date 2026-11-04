@@ -73,3 +73,10 @@ test('la recarga tras actualizar pide el roster fresco y no usa el estático', (
   const c = extraerFuncion(grande.length ? html : html, 'cargarIngresosRecientes');
   assert.match(c, /fresco \? apiGet\('webRoster', null, \{ sinCache: true \}\)/);
 });
+
+// §PF347 (3-nov-2026): al terminar en 'ok' el backend no repite su mensaje, así que la página debe mostrar por sí sola la nota de que V. Guerra no se consultó.
+test('al terminar muestra la nota playersNota del backend cuando no se consultó V. Guerra', () => {
+  const f = extraerFuncion(grande, 'iniciarActualizacionIngresos');
+  assert.match(f, /est\.playersNota \? ' ' \+ est\.playersNota : ''/, 'debe añadir playersNota al texto final');
+  assert.ok(f.indexOf("est.estado !== 'ok'") < f.indexOf('est.playersNota'), 'la nota va solo en el camino de éxito');
+});

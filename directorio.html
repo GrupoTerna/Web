@@ -3187,7 +3187,8 @@ async function iniciarActualizacionIngresos(){
     mostrarEstadoActualizarIngresos('Actualizado. Cargando los datos nuevos...');
     await cargarIngresosRecientes({ fresco: true });
     const hora = new Date().toLocaleTimeString('es-PE', { hour: 'numeric', minute: '2-digit' });
-    mostrarEstadoActualizarIngresos('Actualizado a las ' + hora + '. ' + resumenActualizacionIngresos(idsAntes, ingresosTodosCache));
+    // §PF347: si el backend no pidió /players (sin el permiso «Actualizar V. Guerra» o tope por hora/día alcanzado), lo dice aquí; con ok el backend no repite su mensaje.
+    mostrarEstadoActualizarIngresos('Actualizado a las ' + hora + '. ' + resumenActualizacionIngresos(idsAntes, ingresosTodosCache) + (est.playersNota ? ' ' + est.playersNota : ''));
   }catch(err){
     mostrarEstadoActualizarIngresos(err && err.message ? err.message : 'No se pudo actualizar.', true);
   }finally{
