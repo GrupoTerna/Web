@@ -393,8 +393,12 @@
                 <a class="btn btn-ghost" id="mVerPerfil" href="perfil.html" target="_blank" rel="noopener" style="margin-top:10px; font-size:12px;">Ver perfil completo</a>
               </div>
               <!-- 5-nov-2026 (pedido de la usuaria, tras verla en pantalla): la pastilla «Vetar» va arriba a la derecha de la ficha, no al pie; el formulario sigue abajo (#vetarMiembroBox). Se ve solo con la función «Vetar» (aplicarVisibilidadPorFunciones()). -->
-              <div id="vetarPastillaBox" style="display:none;">
-                <button type="button" class="tab-clan btn-vetar-pastilla" id="btnVetarPastilla" aria-expanded="false" aria-controls="vetarPanel" style="border-color:var(--danger); color:var(--danger);">🚫 Vetar</button>
+              <!-- 5-nov-2026 (pedido de la usuaria): junto a «Vetar» va la pastilla «¿Infiltrado?», que integra «Detección de infiltrados» a la ficha: consulta el Tag del miembro abierto y muestra el resultado en #infiltradoPanel. A diferencia de «Vetar», no pide una función aparte (todo admin con sesión puede consultarla, igual que #cardInfiltrados). -->
+              <div id="fichaAcciones" style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+                <div id="vetarPastillaBox" style="display:none;">
+                  <button type="button" class="tab-clan btn-vetar-pastilla" id="btnVetarPastilla" aria-expanded="false" aria-controls="vetarPanel" style="border-color:var(--danger); color:var(--danger);">🚫 Vetar</button>
+                </div>
+                <button type="button" class="tab-clan" id="btnInfiltradoPastilla" aria-expanded="false" aria-controls="infiltradoPanel">🕵️ ¿Infiltrado?</button>
               </div>
               <div class="stats-mini">
                 <span><b id="mVGuerra"></b>Victorias de guerra</span>
@@ -437,6 +441,12 @@
         </div>
 
         <!-- 5-nov-2026 (pedido de la usuaria): «Vetar miembro» se integró a «Buscar miembro». Con el perfil ya elegido se ve la pastilla «Vetar» y, al pulsarla, el resto de la antigua sección (Razón, Comentario y botón); el Tag es el del miembro de la ficha (miembroActual), ya no se escribe. Solo la ve quien tiene la función «Vetar» (aplicarVisibilidadPorFunciones()); el backend lo vuelve a validar en _webAdminVetar(). Vetar es de un solo sentido, sin «desvetar» desde la web; la lista de Razón debe actualizarse a mano si cambia en el backend. -->
+        <div id="infiltradoPanel" style="display:none; margin-top:18px;">
+          <h3 id="infFichaTitulo" style="font-size:15px; color:var(--gold); margin-bottom:14px;"></h3>
+          <div id="fichaInfMsg" aria-live="polite"></div>
+          <div id="fichaInfResultado" style="margin-top:4px;"></div>
+        </div>
+
         <div id="vetarMiembroBox" style="display:none; margin-top:18px;">
           <div id="vetarPanel" style="display:none; margin-top:14px;">
             <h3 id="vTitulo" style="font-size:15px; color:var(--gold); margin-bottom:14px;"></h3>
@@ -1563,6 +1573,7 @@ const SESSION_KEY = 'terna_admin_token';
 // cada recarga de la página. Ver 34_Web_API.gs / _webAuthLogin().
 const SESSION_ADMIN_KEY = 'terna_admin_info';
 let miembroActual = null; // guarda el tag actualmente cargado, para el guardado
+let _infFichaSeq = 0; // 5-nov-2026: número de la última consulta de «¿Infiltrado?» de la ficha; una respuesta con otro número es de una ficha anterior y se descarta
 let cerrandoSesion = false; // true entre "Cerrar sesión" y el siguiente login exitoso (ver logoutBtn / manejarRespuestaAuth)
 // FASE 7 (Parte B, 06-sep-2026): Nom_Multi de admins, cacheados por
 // cargarNomMultisAdmins() para reusarlos tanto en el <select> de autor de
@@ -1942,6 +1953,7 @@ function renderMiembro(j){
   document.getElementById('fPrestamo').value = ed.prestamo || '';
   document.getElementById('guardarMsg').innerHTML = '';
   reiniciarVetarMiembro(j); // 5-nov-2026: cada ficha nueva empieza con la pastilla «Vetar» cerrada y el formulario limpio
+  reiniciarInfiltradoFicha(j); // 5-nov-2026: y con «¿Infiltrado?» cerrada, sin resultado de la ficha anterior
 }
 
 /** 5-nov-2026 (pedido de la usuaria, «Vetar miembro» integrado a «Buscar miembro»): deja la pastilla «Vetar» de la ficha cerrada y su formulario vacío para el miembro `j`.
@@ -2189,8 +2201,13 @@ function _tablaCoincidencias(filas, conColumnaOrigenClan){
   </table></div>`;
 }
 
-function renderInfiltrado(data){
-  const cont = document.getElementById('infResultado');
+/** Veredicto «Sin señales» de la ficha: el jugador no figura en ninguna de las dos listas, y eso NO prueba que no sea infiltrado (mismo criterio que perfil.html, §PF196). */
+function _sinSenalesInfiltrado(){
+  return '<span class="badge">Sin señales</span><div class="text-dim" style="font-size:12px; margin-top:6px; max-width:320px;">Su clan actual no figura como rival de esta temporada ni en la lista de conflicto. Esto no prueba que no sea infiltrado: solo revisa esas dos listas.</div>';
+}
+
+/** `cont` y `conVeredicto` son para la pastilla «¿Infiltrado?» de la ficha (5-nov-2026): se pinta en #fichaInfResultado y, si el jugador no tiene señales, se dice «Sin señales» con la aclaración de que no prueba nada (mismo texto de perfil.html, §PF196). Sin argumentos es la tarjeta «Detección de infiltrados» de siempre. */
+function renderInfiltrado(data, cont = document.getElementById('infResultado'), conVeredicto = false){
   if(data.tipo === 'clan'){
     const c = data.clan;
     let filas = [];
@@ -2214,7 +2231,7 @@ function renderInfiltrado(data){
           <h3 style="font-size:17px;">${esc(j.nombre)} <span class="text-faint" style="font-family:var(--f-mono); font-size:12px;">${esc(j.tag)}</span></h3>
           <div class="text-dim" style="font-size:13px; margin-top:4px;">Clan actual: ${j.clanActual ? esc(j.clanActual) + ' (' + esc(j.clanActualTag) + ')' : 'Sin clan'}</div>
         </div>
-        <div>${_badgeRival(data.infoRival)}</div>
+        <div>${conVeredicto && !data.infoRival ? _sinSenalesInfiltrado() : _badgeRival(data.infoRival)}</div>
       </div>
       <div style="margin-top:14px;">${_tablaCoincidencias(data.historialTerna || [], false)}</div>`;
   }
@@ -2244,6 +2261,51 @@ async function buscarInfiltrado(){
 }
 document.getElementById('btnBuscarInfiltrado').addEventListener('click', buscarInfiltrado);
 document.getElementById('infTagInput').addEventListener('keydown', e => { if(e.key === 'Enter') buscarInfiltrado(); });
+
+/* 5-nov-2026 (pedido de la usuaria): «Detección de infiltrados» integrada a la ficha de «Buscar miembro». La pastilla #btnInfiltradoPastilla, junto a «Vetar», abre #infiltradoPanel y consulta
+   webAdminBuscarInfiltrado con el Tag de la ficha (miembroActual): no se escribe. La consulta se hace una vez al abrir; cerrar y volver a abrir muestra lo mismo, salvo que hubiera fallado.
+   La tarjeta «Detección de infiltrados» sigue aparte porque también revisa el Tag de un CLAN rival, que no tiene ficha. */
+function reiniciarInfiltradoFicha(j){
+  _infFichaSeq++; // descarta la respuesta de una consulta en vuelo de la ficha anterior
+  document.getElementById('infiltradoPanel').style.display = 'none';
+  const pastilla = document.getElementById('btnInfiltradoPastilla');
+  pastilla.classList.remove('activo');
+  pastilla.setAttribute('aria-expanded', 'false');
+  document.getElementById('infFichaTitulo').textContent = `¿Es infiltrado? ${j.nombre} (${j.tag})`;
+  document.getElementById('fichaInfMsg').innerHTML = '';
+  document.getElementById('fichaInfResultado').innerHTML = '';
+}
+
+async function verificarInfiltradoFicha(){
+  const msgEl = document.getElementById('fichaInfMsg');
+  const cont = document.getElementById('fichaInfResultado');
+  const tagNorm = miembroActual ? normalizarTag(miembroActual) : '';
+  if(!tagNorm){ msgEl.innerHTML = '<div class="msg msg-error">Primero busca un miembro.</div>'; return; }
+  const mio = ++_infFichaSeq;
+  cont.innerHTML = '';
+  msgEl.innerHTML = '<div class="empty">Verificando…</div>';
+  try{
+    const data = await apiGetAuth('webAdminBuscarInfiltrado', { tag: tagNorm });
+    if(mio !== _infFichaSeq) return; // se abrió otra ficha mientras tanto
+    if(manejarRespuestaAuth(data)) return;
+    if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
+    msgEl.innerHTML = '';
+    renderInfiltrado(data, cont, true);
+  }catch(err){
+    if(mio !== _infFichaSeq) return;
+    msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
+  }
+}
+
+document.getElementById('btnInfiltradoPastilla').addEventListener('click', () => {
+  const pastilla = document.getElementById('btnInfiltradoPastilla');
+  const panel = document.getElementById('infiltradoPanel');
+  const abrir = panel.style.display === 'none';
+  panel.style.display = abrir ? 'block' : 'none';
+  pastilla.classList.toggle('activo', abrir);
+  pastilla.setAttribute('aria-expanded', abrir ? 'true' : 'false');
+  if(abrir && !document.getElementById('fichaInfResultado').innerHTML) verificarInfiltradoFicha();
+});
 
 document.getElementById('btnGuardar').addEventListener('click', () => conBotonOcupado(document.getElementById('btnGuardar'), async () => {
   const msgEl = document.getElementById('guardarMsg');

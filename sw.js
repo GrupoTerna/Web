@@ -263,7 +263,8 @@
 // v214 (5-nov-2026): las 11 páginas con barra de navegación, admin.html y auth.js cambiaron (CORE_ASSETS) y se creó noticias.html -- el tablero de Noticias de la semana ya no es una tarjeta de admin.html: es el link «Noticias» del nav, entre Comunidad y Mensajes, que solo se ve con sesión (§PF364).
 // v215 (5-nov-2026): admin.html cambió (CORE_ASSETS) -- «Vetar miembro» ya no es una tarjeta aparte («Directorio»): es la pastilla «Vetar» de la ficha de «Buscar miembro», con el Tag del miembro elegido y el resto de la sección (Razón, Comentario y botón) al pulsarla (§PF365).
 // v216 (5-nov-2026): admin.html cambió (CORE_ASSETS) -- la pastilla «Vetar» pasó a la cabecera de la ficha de «Buscar miembro» (arriba a la derecha) y el campo «Préstamo» pide el nombre de la persona a quien se prestó la cuenta (§PF365).
-const CACHE_NAME = 'terna-static-v216';
+// v217 (5-nov-2026): admin.html cambió (CORE_ASSETS) -- junto a la pastilla «Vetar» de la ficha de «Buscar miembro» sale la pastilla «¿Infiltrado?», que integra «Detección de infiltrados» a la ficha con el Tag del miembro abierto (§PF366).
+const CACHE_NAME = 'terna-static-v217';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
