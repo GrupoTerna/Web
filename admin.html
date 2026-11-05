@@ -47,7 +47,7 @@
      centralizados en assets/styles.css, idénticos carácter por carácter a
      los de directorio.html. .mr-rango (arriba) NO se movió: aquí lleva
      text-align:right de más que directorio.html no tiene. */
-  /* .nm-modo-selector alterna "Ingresar tag" / "Buscar en Directorio" al
+  /* .nm-modo-selector alterna "Tag o nombre" / "Buscar en Directorio" al
      registrar un miembro nuevo; .nm-dir-lista muestra los .miembro-row del
      clan elegido con scroll fijo (no flotante como .sugerencias-dropdown).
      .mr-celular indica de un vistazo si el miembro ya tiene celular. */
@@ -339,15 +339,80 @@
     <!-- "Buscar miembro" busca por Nombre, Nom_Multi o Tag en toda la base, con sugerencias mientras se escribe; si no hay coincidencias, prueba como Tag directo. -->
     <div class="card pf-cinta" style="--cinta:url(Im%C3%A1genes/Banners/Fankit/cinta-admin-buscar.webp); margin-top:24px;">
       <div class="eyebrow">Buscar miembro</div>
-      <p class="text-dim" style="font-size:13px; margin:10px 0 14px;">Busca por nombre, Nom_Multi o Tag — cualquier miembro con registro en la Familia (activo o inactivo), en cualquier clan. Si el jugador no tiene ningún registro con nosotros, igual se puede buscar directo por su Tag.</p>
-      <div class="buscador-wrap">
-        <div class="buscador">
-          <input type="text" id="tagInput" aria-label="Buscar por nombre, Nom_Multi o tag" placeholder="Nombre, Nom_Multi o Tag…" autocapitalize="characters" autocomplete="off">
-          <button type="button" class="btn btn-primary" id="btnBuscar">Buscar miembro</button>
+      <p class="text-dim" style="font-size:13px; margin:10px 0 14px;">Busca por nombre, Nom_Multi o Tag — cualquier miembro con registro en la Familia (activo o inactivo), en cualquier clan. Si escribes el Tag de un jugador que no tiene ningún registro con nosotros, aquí mismo se puede registrar como miembro nuevo.</p>
+      <!-- 5-nov-2026 (pedido de la usuaria): «Registrar miembro nuevo» se integró a «Buscar miembro»: un solo punto de entrada. Si el Tag ya existe sale su ficha; si no, se verifica contra la API de Clash Royale y sigue el Paso 2 de registro (#nmPaso2). La pastilla «Buscar en Directorio» solo la ve quien tiene la función «Registrar miembro nuevo» (la lista de miembros del clan la pide con ese permiso). -->
+      <div class="field" id="nmModoCampo" style="display:none;">
+        <label>¿Cómo quieres buscar al miembro?</label>
+        <div class="nm-modo-selector" id="nmModoSelector">
+          <button type="button" class="tab-clan btn-toggle-nmmodo activo" data-modo="tag">Tag o nombre</button>
+          <button type="button" class="tab-clan btn-toggle-nmmodo" data-modo="directorio">Buscar en Directorio</button>
         </div>
-        <div id="buscarSugerencias" class="sugerencias-dropdown" style="display:none;"></div>
       </div>
+
+      <div id="nmModoTagBox">
+        <div class="buscador-wrap">
+          <div class="buscador">
+            <input type="text" id="tagInput" aria-label="Buscar por nombre, Nom_Multi o tag" placeholder="Nombre, Nom_Multi o Tag…" autocapitalize="characters" autocomplete="off">
+            <button type="button" class="btn btn-primary" id="btnBuscar">Buscar miembro</button>
+          </div>
+          <div id="buscarSugerencias" class="sugerencias-dropdown" style="display:none;"></div>
+        </div>
+      </div>
+
+      <div id="nmModoDirBox" style="display:none;">
+        <div class="field">
+          <label for="nmDirClanSelect">Clan</label>
+          <select id="nmDirClanSelect"></select>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="nmDirRangoFiltro">Filtrar por Rango</label>
+            <select id="nmDirRangoFiltro">
+              <option value="">Todos los rangos</option>
+              <option value="Líder">Líder</option>
+              <option value="Colíder">Colíder</option>
+              <option value="Veterano">Veterano</option>
+              <option value="Miembro">Miembro</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="nmDirCelularFiltro">Filtrar por celular</label>
+            <select id="nmDirCelularFiltro">
+              <option value="">Todos</option>
+              <option value="con">Con celular registrado</option>
+              <option value="sin">Sin celular registrado</option>
+            </select>
+          </div>
+        </div>
+        <div id="nmDirListaMsg"></div>
+        <div id="nmDirLista" class="nm-dir-lista"></div>
+      </div>
+
       <div id="buscarMsg"></div>
+      <div id="nmVerificarMsg"></div>
+
+      <div id="nmPaso2" style="display:none; margin-top:18px; padding-top:18px; border-top:1px solid var(--line);">
+        <h3 style="font-size:15px; color:var(--gold); margin-bottom:14px;">Registrar miembro nuevo</h3>
+        <div class="field">
+          <label for="nmNomMultiSelect">Nombre multicuenta</label>
+          <select id="nmNomMultiSelect"><option value="">Cargando…</option></select>
+        </div>
+        <div class="field" id="nmNomMultiNuevoWrap">
+          <input type="text" id="nmNomMultiNuevo" aria-label="Nombre de la multicuenta nueva" placeholder="Nombre de la multicuenta nueva" style="display:none;">
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="nmPrefijo">Prefijo (país)</label>
+            <input type="text" id="nmPrefijo" placeholder="Ej: 51">
+          </div>
+          <div class="field">
+            <label for="nmCelular">Celular</label>
+            <input type="text" id="nmCelular" placeholder="Ej: 987654321">
+          </div>
+        </div>
+        <button type="button" class="btn btn-primary btn-block" id="btnNmGuardar" style="margin-top:6px;">Guardar registro</button>
+        <div id="nmGuardarMsg"></div>
+      </div>
 
       <!-- 5-nov-2026 (pedido de la usuaria): la ficha del miembro buscado sale AQUÍ, dentro de «Buscar miembro»; antes estaba al final de todo el panel, después de Directorio, Torneos y Noticias. -->
       <div id="miembroSec" style="display:none; margin-top:18px;">
@@ -359,6 +424,7 @@
               <div>
                 <h3 id="mNombre" style="font-size:19px; font-family:var(--f-display); text-transform:uppercase;"></h3>
                 <div class="text-faint" id="mSub" style="font-family:var(--f-mono); font-size:12px; margin-top:4px;"></div>
+                <a class="btn btn-ghost" id="mVerPerfil" href="perfil.html" target="_blank" rel="noopener" style="margin-top:10px; font-size:12px;">Ver perfil completo</a>
               </div>
               <div class="stats-mini">
                 <span><b id="mVGuerra"></b>Victorias de guerra</span>
@@ -418,86 +484,9 @@
       </div>
     </div>
 
-    <!-- "Directorio" agrupa Registrar y Vetar miembro como subsecciones plegables de un solo contenedor en vez de dos cards separadas. -->
+    <!-- "Directorio" agrupa las acciones sobre el Directorio; hoy solo «Vetar miembro». 5-nov-2026: «Registrar miembro nuevo» se integró a «Buscar miembro» (un solo punto de entrada por Tag o nombre). -->
     <div class="card admin-grupo pf-cinta" id="directorioGrupo" style="--cinta:url(Im%C3%A1genes/Banners/Fankit/cinta-index-clanes.webp); margin-top:24px;">
       <div class="eyebrow">Directorio</div>
-
-      <!-- Registrar miembro nuevo en dos pasos: Paso 1 verifica el Tag contra la API; Paso 2 se habilita solo tras un "Verificar" exitoso. -->
-      <details class="admin-subseccion" id="cardRegistrarNuevo" open>
-        <summary><span class="cat-titulo">Registrar miembro nuevo</span></summary>
-        <div class="admin-subseccion-body">
-          <!-- #nmModoTagBox es el flujo de Tag escrito a mano; #nmModoDirBox deja elegir un Clan y clickear un miembro para llenar el Tag. -->
-          <div class="field">
-            <label>¿Cómo quieres identificar al miembro?</label>
-            <!-- Botones .tab-clan (mismas pastillas de Torneos/Sorteos) en vez de radios para elegir el modo de registro. -->
-            <div class="nm-modo-selector" id="nmModoSelector">
-              <button type="button" class="tab-clan btn-toggle-nmmodo activo" data-modo="tag">Ingresar tag</button>
-              <button type="button" class="tab-clan btn-toggle-nmmodo" data-modo="directorio">Buscar en Directorio</button>
-            </div>
-          </div>
-
-          <div id="nmModoTagBox">
-            <div class="field">
-              <label for="nmTag">Tag</label>
-              <input type="text" id="nmTag" placeholder="Ej: #ABC123XYZ" autocapitalize="characters">
-            </div>
-            <button class="btn btn-primary" id="btnNmVerificar" type="button">Verificar</button>
-          </div>
-
-          <div id="nmModoDirBox" style="display:none;">
-            <div class="field">
-              <label for="nmDirClanSelect">Clan</label>
-              <select id="nmDirClanSelect"></select>
-            </div>
-            <div class="field-row">
-              <div class="field">
-                <label for="nmDirRangoFiltro">Filtrar por Rango</label>
-                <select id="nmDirRangoFiltro">
-                  <option value="">Todos los rangos</option>
-                  <option value="Líder">Líder</option>
-                  <option value="Colíder">Colíder</option>
-                  <option value="Veterano">Veterano</option>
-                  <option value="Miembro">Miembro</option>
-                </select>
-              </div>
-              <div class="field">
-                <label for="nmDirCelularFiltro">Filtrar por celular</label>
-                <select id="nmDirCelularFiltro">
-                  <option value="">Todos</option>
-                  <option value="con">Con celular registrado</option>
-                  <option value="sin">Sin celular registrado</option>
-                </select>
-              </div>
-            </div>
-            <div id="nmDirListaMsg"></div>
-            <div id="nmDirLista" class="nm-dir-lista"></div>
-          </div>
-
-          <div id="nmVerificarMsg"></div>
-
-          <div id="nmPaso2" style="display:none; margin-top:18px; padding-top:18px; border-top:1px solid var(--line);">
-            <div class="field">
-              <label for="nmNomMultiSelect">Nombre multicuenta</label>
-              <select id="nmNomMultiSelect"><option value="">Cargando…</option></select>
-            </div>
-            <div class="field" id="nmNomMultiNuevoWrap">
-              <input type="text" id="nmNomMultiNuevo" aria-label="Nombre de la multicuenta nueva" placeholder="Nombre de la multicuenta nueva" style="display:none;">
-            </div>
-            <div class="field-row">
-              <div class="field">
-                <label for="nmPrefijo">Prefijo (país)</label>
-                <input type="text" id="nmPrefijo" placeholder="Ej: 51">
-              </div>
-              <div class="field">
-                <label for="nmCelular">Celular</label>
-                <input type="text" id="nmCelular" placeholder="Ej: 987654321">
-              </div>
-            </div>
-            <button type="button" class="btn btn-primary btn-block" id="btnNmGuardar" style="margin-top:6px;">Guardar registro</button>
-            <div id="nmGuardarMsg"></div>
-          </div>
-        </div>
-      </details>
 
       <!-- Vetar es de un solo sentido, sin opción de "desvetar" desde la web; la lista de Razón debe actualizarse a mano si cambia en el backend. -->
       <details class="admin-subseccion" id="cardVetar">
@@ -1742,8 +1731,21 @@ function mostrarPanel(){
   });
 }
 
-/** FASE 4 (26-ago-2026): muestra/oculta las cards de "Registrar miembro
- *  nuevo" y "Vetar miembro" según la columna Funciones del admin logueado
+/** true si el admin con sesión iniciada tiene la función «Registrar miembro nuevo»
+ *  (copia de Funciones guardada al iniciar sesión). Es solo UX: el backend la vuelve a
+ *  validar en _webAdminRegistrarNuevo(). 5-nov-2026: la usa también mostrarRegistroNuevo(). */
+function adminPuedeRegistrar(){
+  let funciones = '';
+  const adminGuardado = localStorage.getItem(SESSION_ADMIN_KEY);
+  if(adminGuardado){
+    try{ funciones = String(JSON.parse(adminGuardado).funciones || ''); }catch(err){ /* se deja vacío */ }
+  }
+  return funciones.indexOf('Registrar miembro nuevo') !== -1;
+}
+
+/** FASE 4 (26-ago-2026): muestra/oculta la card "Vetar miembro" y la pastilla
+ *  "Buscar en Directorio" (registro de miembros nuevos, ver «Buscar miembro»)
+ *  según la columna Funciones del admin logueado
  *  (texto libre separado por comas, ver Sección 7.3 de
  *  arquitectura-web-familia-terna.md — nunca un único valor, un admin
  *  puede tener ambas funciones a la vez). Es solo UX: el backend
@@ -1757,12 +1759,13 @@ function aplicarVisibilidadPorFunciones(){
   if(adminGuardado){
     try{ funciones = String(JSON.parse(adminGuardado).funciones || ''); }catch(err){ /* se deja vacío */ }
   }
-  const puedeRegistrar = funciones.indexOf('Registrar miembro nuevo') !== -1;
+  const puedeRegistrar = adminPuedeRegistrar();
   const puedeVetar = funciones.indexOf('Vetar') !== -1;
-  document.getElementById('cardRegistrarNuevo').style.display = puedeRegistrar ? '' : 'none';
+  // 5-nov-2026: «Registrar miembro nuevo» ya no es una tarjeta aparte, sino parte de «Buscar miembro». Con el permiso se ve la pastilla «Buscar en Directorio» (la lista de miembros del clan la pide con ese permiso) y el Paso 2 de registro; sin él, «Buscar miembro» queda con la sola búsqueda por Tag o nombre. Historial en CHANGELOG.md.
+  document.getElementById('nmModoCampo').style.display = puedeRegistrar ? '' : 'none';
   document.getElementById('cardVetar').style.display = puedeVetar ? '' : 'none';
-  // #cardInfiltrados vive junto a "Buscar miembro"; ya no fuerza visible el contenedor "Directorio" si queda vacío. Historial en CHANGELOG.md.
-  document.getElementById('directorioGrupo').style.display = (puedeRegistrar || puedeVetar) ? '' : 'none';
+  // #cardInfiltrados vive junto a "Buscar miembro"; el contenedor "Directorio" solo trae «Vetar miembro», así que se ve solo con esa función.
+  document.getElementById('directorioGrupo').style.display = puedeVetar ? '' : 'none';
 }
 
 /**
@@ -1965,6 +1968,7 @@ function renderMiembro(j){
   document.getElementById('miembroSec').style.display = 'block';
   document.getElementById('mNombre').textContent = j.nombre;
   document.getElementById('mSub').innerHTML = `${esc(j.tag)} · ${j.clan ? enlaceClan(j.clan) : '—'} · ${esc(j.rango)} · ${esc(j.estado)}`;
+  document.getElementById('mVerPerfil').href = 'perfil.html?tag=' + encodeURIComponent(j.tag); // 5-nov-2026: gráficas e historial completos en perfil.html (otra pestaña)
   document.getElementById('mVGuerra').textContent = fmtNum(j.vGuerra);
   document.getElementById('mTorneos').textContent = fmtNum(j.torneos);
   document.getElementById('mAtaques').textContent = fmtNum(j.guerraSemana.ataques);
@@ -2100,6 +2104,7 @@ async function buscarSugerenciasMiembro(q){
   }
 }
 document.getElementById('tagInput').addEventListener('input', e => {
+  invalidarRegistroNuevo(); // 5-nov-2026: escribir otra cosa invalida el Tag que estaba listo para registrar (antes lo hacía editar #nmTag)
   clearTimeout(_sugerenciasMiembroTimer);
   const q = e.target.value;
   _sugerenciasMiembroTimer = setTimeout(() => buscarSugerenciasMiembro(q), 250);
@@ -2120,6 +2125,9 @@ async function buscarMiembro(){
   msgEl.innerHTML = '';
   document.getElementById('buscarSugerencias').style.display = 'none';
   document.getElementById('miembroSec').style.display = 'none';
+  // 5-nov-2026: cada búsqueda nueva oculta el Paso 2 de «Registrar miembro nuevo» y su aviso (con comprobación de existencia: los tests montan solo parte del DOM).
+  const regPaso2 = document.getElementById('nmPaso2'); if(regPaso2) regPaso2.style.display = 'none';
+  const regAviso = document.getElementById('nmVerificarMsg'); if(regAviso) regAviso.innerHTML = '';
   clearTimeout(_sugerenciasMiembroTimer); _sugerenciasMiembroSeq++; // se cancelan las sugerencias de la caja pendientes o en vuelo
   if(!raw){ msgEl.innerHTML = '<div class="msg msg-error">Escribe un nombre, Nom_Multi o Tag.</div>'; return; }
 
@@ -2169,6 +2177,8 @@ async function buscarMiembro(){
     if(manejarRespuestaAuth(data)) return;
     if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
     msgEl.innerHTML = '';
+    // 5-nov-2026: un Tag que no está en Directorio ni en Inactivos (el backend lo marca con `sinRegistro`) no tiene ficha de gestión: sigue el Paso 2 de «Registrar miembro nuevo». El backend ya lo consultó en la API de Clash Royale, así que no se verifica otra vez.
+    if(data.jugador && data.jugador.sinRegistro === true){ mostrarRegistroNuevo(data.jugador); return; }
     renderMiembro(data.jugador);
     // 04-nov-2026 (pedido usuaria, el botón «parecía no hacer nada»): #miembroSec estaba al final del panel, después de otras tarjetas, y el resultado salía fuera de pantalla (desde el 5-nov-2026 está dentro de «Buscar miembro»; se mantiene el desplazamiento por si queda bajo el borde de la ventana). Se lleva la vista al resultado y el foco al nombre (preventScroll: ya desplaza scrollIntoView), igual que H-1.
     const secMiembro = document.getElementById('miembroSec');
@@ -8148,18 +8158,47 @@ document.getElementById('btnGuardarResolucion').addEventListener('click', () => 
   }
 }));
 
-/* ---------- Fase 4: registrar miembro nuevo (2 pasos) ---------- */
-// Ver Sección 7.4 de arquitectura-web-familia-terna.md. Paso 1
-// (webAdminVerificarTag) valida el Tag contra la API antes de habilitar
-// el Paso 2 — cualquier edición del Tag después de verificar invalida esa
-// verificación y hay que volver a apretar "Verificar".
+/* ---------- Fase 4: registrar miembro nuevo (integrado a «Buscar miembro») ---------- */
+// Ver Sección 7.4 de arquitectura-web-familia-terna.md. CAMBIO (5-nov-2026, pedido de la usuaria): «Registrar miembro nuevo» ya
+// no es una tarjeta aparte con su propia caja de Tag y su botón «Verificar»; se identifica al jugador en «Buscar miembro» (Tag o nombre).
+// Si el Tag ya está en Directorio o Inactivos sale su ficha; si no, webAdminBuscarMiembro responde `sinRegistro` (ya consultó la API de
+// Clash Royale, la misma fuente de webAdminVerificarTag) y sigue el Paso 2 (#nmPaso2) con mostrarRegistroNuevo(). Cualquier cambio en la
+// caja de búsqueda después invalida el Tag listo (invalidarRegistroNuevo()). Los comentarios de más abajo que hablan de #nmTag, de «Ingresar tag»
+// o de «Verificar» describen cómo era antes; esa caja y ese botón ya no existen.
 
 let nmTagVerificado = null;
 
-document.getElementById('nmTag').addEventListener('input', () => {
+/** Invalida el Tag listo para registrar y oculta el Paso 2 y su aviso: se llama al escribir en el buscador y al cambiar de pastilla, para no guardar un registro con el Tag de una búsqueda anterior. */
+function invalidarRegistroNuevo(){
   nmTagVerificado = null;
   document.getElementById('nmPaso2').style.display = 'none';
-});
+  document.getElementById('nmVerificarMsg').innerHTML = '';
+}
+
+/** Paso 2 de «Registrar miembro nuevo» tras una búsqueda cuyo Tag no tiene registro con nosotros (`j` = jugador de webAdminBuscarMiembro con `sinRegistro`).
+ *  Sin la función «Registrar miembro nuevo» solo se avisa (el backend lo vuelve a validar en _webAdminRegistrarNuevo()). */
+function mostrarRegistroNuevo(j){
+  const msgEl = document.getElementById('nmVerificarMsg');
+  const aviso = `Encontrado en Clash Royale: <b>${esc(j.nombre)}</b>${j.clan ? ' · ' + enlaceClan(j.clan) : ''} · ${esc(j.tag)}. Todavía no tiene registro con nosotros.`;
+  if(!adminPuedeRegistrar()){
+    nmTagVerificado = null;
+    document.getElementById('nmPaso2').style.display = 'none';
+    msgEl.innerHTML = `<div class="msg">${aviso} No tienes permiso para registrar miembros nuevos.</div>`;
+    return;
+  }
+  nmTagVerificado = j.tag;
+  msgEl.innerHTML = `<div class="msg msg-ok">${aviso} Completa los datos para registrarlo.</div>`;
+  document.getElementById('nmNomMultiNuevo').style.display = 'none';
+  document.getElementById('nmNomMultiNuevo').value = '';
+  document.getElementById('nmPrefijo').value = '';
+  document.getElementById('nmCelular').value = '';
+  document.getElementById('nmGuardarMsg').innerHTML = '';
+  document.getElementById('nmPaso2').style.display = 'block';
+  cargarNomMultisExistentes();
+  const reducirMov = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  msgEl.scrollIntoView({ behavior: reducirMov ? 'auto' : 'smooth', block: 'start' });
+  document.getElementById('nmNomMultiSelect').focus({ preventScroll: true });
+}
 
 document.getElementById('nmNomMultiSelect').addEventListener('change', () => {
   const esNueva = document.getElementById('nmNomMultiSelect').value === '__nuevo__';
@@ -8209,11 +8248,10 @@ document.getElementById('nmNomMultiSelect').addEventListener('change', () => {
  *      #nmDirCelularFiltro) filtran en memoria sobre _nmDirMiembrosCache
  *      (una sola carga por clan, cacheada en _nmDirCacheClan) sin volver
  *      a pedir nada al backend.
- *   4) Click en un miembro de la lista: llena #nmTag con su Tag y llama a
- *      verificarTagNuevoMiembro() -- "cuando se elija al jugador, se
- *      retoma el flujo donde se quedó 'Ingresar tag'", es decir, de ahí
- *      en adelante es EXACTAMENTE el mismo Paso 2 (#nmPaso2) sin importar
- *      por cuál de los dos modos se llegó al Tag.
+ *   4) Click en un miembro de la lista: ese miembro ya está en el Directorio,
+ *      así que se vuelve a la pastilla «Tag o nombre», se llena #tagInput con
+ *      su Tag y se llama a buscarMiembro(), igual que al elegir una sugerencia
+ *      (5-nov-2026; antes llenaba #nmTag y llamaba a verificarTagNuevoMiembro()).
  */
 let _nmDirCacheClan = null; // clan cuyos miembros están en _nmDirMiembrosCache
 let _nmDirMiembrosCache = [];
@@ -8222,27 +8260,27 @@ let _nmDirMiembrosCache = [];
    cuál de los 2 botones .btn-toggle-nmmodo tiene la clase .activo -- mismo
    patrón que el switcher .btn-toggle-torsor (Torneos/Sorteos/Cambio de
    rango) más abajo. El comportamiento no cambia: se sigue llamando a
-   actualizarModoRegistrarNuevo() en cada cambio, y "Ingresar tag" sigue
+   actualizarModoBuscarMiembro() en cada cambio, y "Ingresar tag" sigue
    siendo el modo por defecto (es el que trae .activo en el HTML). */
 document.querySelectorAll('.btn-toggle-nmmodo').forEach(btn => {
   btn.addEventListener('click', () => {
     if(btn.classList.contains('activo')) return; // ya estaba en ese modo: nada que hacer
     document.querySelectorAll('.btn-toggle-nmmodo').forEach(b => b.classList.toggle('activo', b === btn));
-    actualizarModoRegistrarNuevo();
+    actualizarModoBuscarMiembro();
   });
 });
 
 /** Modo elegido hoy: 'tag' | 'directorio' (se lee del botón .activo). */
-function modoRegistrarNuevoActual(){
+function modoBuscarMiembroActual(){
   const activo = document.querySelector('.btn-toggle-nmmodo.activo');
   return activo ? activo.dataset.modo : 'tag';
 }
 
-function actualizarModoRegistrarNuevo(){
-  const esDirectorio = modoRegistrarNuevoActual() === 'directorio';
+function actualizarModoBuscarMiembro(){
+  const esDirectorio = modoBuscarMiembroActual() === 'directorio';
   document.getElementById('nmModoTagBox').style.display = esDirectorio ? 'none' : '';
   document.getElementById('nmModoDirBox').style.display = esDirectorio ? '' : 'none';
-  document.getElementById('nmVerificarMsg').innerHTML = '';
+  invalidarRegistroNuevo(); // al cambiar de pastilla se descarta un Paso 2 abierto
   if(esDirectorio) initModoDirectorioNM();
 }
 
@@ -8325,44 +8363,11 @@ function _renderListaMiembrosClanNM(){
 document.getElementById('nmDirLista').addEventListener('click', (e) => {
   const fila = e.target.closest('.js-nm-dir-miembro');
   if(!fila) return;
-  document.getElementById('nmTag').value = fila.dataset.tag;
-  verificarTagNuevoMiembro(); // "se retoma el flujo donde se quedó Ingresar tag"
+  document.querySelectorAll('.btn-toggle-nmmodo').forEach(b => b.classList.toggle('activo', b.dataset.modo === 'tag'));
+  actualizarModoBuscarMiembro();
+  document.getElementById('tagInput').value = fila.dataset.tag;
+  buscarMiembro();
 });
-
-async function verificarTagNuevoMiembro(){
-  const msgEl = document.getElementById('nmVerificarMsg');
-  const crudo = document.getElementById('nmTag').value.trim();
-  const tagNorm = normalizarTag(crudo);
-  msgEl.innerHTML = '';
-  document.getElementById('nmPaso2').style.display = 'none';
-  nmTagVerificado = null;
-  if(!tagNorm){ msgEl.innerHTML = '<div class="msg msg-error">Escribe un Tag válido.</div>'; return; }
-  // 5-nov-2026 (pedido de la usuaria, «ahora le pone #»): un nombre escrito aquí (p. ej. «chistris») se convertía en «#CHISTRIS» y la API respondía «No encontré ese Tag». Si lo escrito no parece un Tag (ver _pareceTag()), no se toca el campo ni se consulta la API: se explica qué hacer.
-  if(!_pareceTag(crudo)){
-    msgEl.innerHTML = `<div class="msg msg-error">«${esc(crudo)}» no parece un Tag: los Tags de Clash Royale solo usan los caracteres 0, 2, 8, 9, P, Y, L, Q, G, R, J, C, U y V. Si es un nombre, usa «Buscar en Directorio» (arriba) o el buscador «Buscar miembro».</div>`;
-    return;
-  }
-  document.getElementById('nmTag').value = tagNorm;
-  msgEl.innerHTML = '<div class="empty">Verificando…</div>';
-  try{
-    const data = await apiGetAuth('webAdminVerificarTag', { tag: tagNorm });
-    if(manejarRespuestaAuth(data)) return;
-    if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
-    nmTagVerificado = data.jugador.tag;
-    msgEl.innerHTML = `<div class="msg msg-ok">Encontrado (${esc(data.fuente)}): <b>${esc(data.jugador.nombre)}</b>${data.jugador.clan ? ' · ' + enlaceClan(data.jugador.clan) : ''}</div>`;
-    document.getElementById('nmNomMultiNuevo').style.display = 'none';
-    document.getElementById('nmNomMultiNuevo').value = '';
-    document.getElementById('nmPrefijo').value = '';
-    document.getElementById('nmCelular').value = '';
-    document.getElementById('nmGuardarMsg').innerHTML = '';
-    document.getElementById('nmPaso2').style.display = 'block';
-    cargarNomMultisExistentes();
-  }catch(err){
-    msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
-  }
-}
-document.getElementById('btnNmVerificar').addEventListener('click', verificarTagNuevoMiembro);
-document.getElementById('nmTag').addEventListener('keydown', e => { if(e.key === 'Enter') verificarTagNuevoMiembro(); });
 
 /** Puebla el <select> de Nombre multicuenta con los Nom_Multi ya usados en
  *  el sistema (webAdminNomMultisExistentes → _obtenerNomMultisDistintos(),
@@ -8388,7 +8393,7 @@ async function cargarNomMultisExistentes(){
 document.getElementById('btnNmGuardar').addEventListener('click', () => conBotonOcupado(document.getElementById('btnNmGuardar'), async () => {
   const msgEl = document.getElementById('nmGuardarMsg');
   msgEl.innerHTML = '';
-  if(!nmTagVerificado){ msgEl.innerHTML = '<div class="msg msg-error">Verifica el Tag primero.</div>'; return; }
+  if(!nmTagVerificado){ msgEl.innerHTML = '<div class="msg msg-error">Busca primero al jugador por su Tag.</div>'; return; }
   const selVal = document.getElementById('nmNomMultiSelect').value;
   const nomMulti = selVal === '__nuevo__' ? document.getElementById('nmNomMultiNuevo').value.trim() : selVal;
   const payload = {
@@ -8405,12 +8410,12 @@ document.getElementById('btnNmGuardar').addEventListener('click', () => conBoton
     if(manejarRespuestaAuth(data)) return;
     if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
     // FIX (05-oct-2026, P-13): #nmGuardarMsg está DENTRO de #nmPaso2, que se oculta justo aquí, así que el aviso de éxito nunca se veía; ahora va en #nmVerificarMsg (fuera de #nmPaso2, con aria-live). El foco, que caía en <body> al ocultarse el botón, pasa al campo Tag (listo para registrar a otro) o, si se usó \"Buscar en Directorio\" y ese campo está oculto, a la pastilla del modo activo. Historial en CHANGELOG.md.
-    document.getElementById('nmTag').value = '';
+    // CAMBIO (5-nov-2026): el campo es #tagInput de «Buscar miembro» (siempre a la vista aquí: el Paso 2 solo sale tras buscar por Tag o nombre).
+    document.getElementById('tagInput').value = '';
     document.getElementById('nmPaso2').style.display = 'none';
     nmTagVerificado = null;
     document.getElementById('nmVerificarMsg').innerHTML = '<div class="msg msg-ok">Miembro registrado correctamente.</div>';
-    const destinoFoco = document.getElementById('nmTag').offsetParent !== null ? document.getElementById('nmTag') : document.querySelector('.btn-toggle-nmmodo.activo');
-    if(destinoFoco) destinoFoco.focus();
+    document.getElementById('tagInput').focus();
   }catch(err){
     msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
   }
