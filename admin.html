@@ -475,7 +475,7 @@
     </div>
 
     <!-- 5-nov-2026 (pedido de la usuaria, §PF368): «Detección de infiltrados: revisar un clan» pasó a ser «Buscar clan», una tarjeta del mismo nivel y estilo que «Buscar miembro» (antes era una subsección dentro de ella). Por ahora se busca por Tag; la usuaria pidió dejar el sitio para ingresar después las características de los clanes deseados. La ficha del clan lleva las pastillas «Vetar» (agrega el clan a la hoja Conflictos) y «¿Infiltrado?» (cruza sus miembros actuales con nuestro roster). -->
-    <div class="card pf-cinta" id="cardBuscarClan" style="--cinta:url(Im%C3%A1genes/Banners/Fankit/cinta-admin-buscar.webp); margin-top:24px;">
+    <div class="card pf-cinta" id="cardBuscarClan" style="--cinta:url(Im%C3%A1genes/Banners/Fankit/cinta-clan-roster.webp); margin-top:24px;">
       <div class="eyebrow">Buscar clan</div>
       <p class="text-dim" style="font-size:13px; margin:10px 0 14px;">Busca un clan por su Tag (con o sin #). Verás su ficha y si es rival de esta temporada o está en la lista de conflicto (hoja «Conflictos»); desde ahí puedes vetarlo o revisar si tiene infiltrados entre sus miembros actuales.</p>
       <div class="buscador">
@@ -2343,7 +2343,7 @@ function _seccionExMiembrosClan(data){
     return `<div style="margin-top:10px;"><div style="font-weight:600; font-size:13px; margin-bottom:4px;">${esc(k)} <span class="text-faint" style="font-weight:400;">(${filas.length})</span></div>${filas.length ? _tablaExMiembros(filas, true) : '<div class="text-faint" style="font-size:12px;">Ninguno.</div>'}</div>`;
   }).join('');
   const pie = `<div class="text-faint" style="font-size:11px; margin-top:6px;">«Semanas en este clan» y «Primera → última» salen del historial de guerra de RoyaleAPI${data.esClanVetado ? '; con «—», figura en nuestro roster por su Clan Tag o por la razón «NARANJA x», pero no hay semanas en el índice' : ''}. Recién se están guardando los perfiles completos, así que al principio habrá pocos.</div>`;
-  return titulo + `<div class="text-dim" style="font-size:12px; margin-bottom:8px; max-width:520px;">${nota}</div>${aviso}`
+  return titulo + `<div class="text-dim" style="font-size:12px; margin-bottom:8px;">${nota}</div>${aviso}`
     + subtitulo(`Activos en nuestros clanes (${activos.length})`) + bloquesActivos
     + subtitulo(`Inactivos: ya no están en nuestros clanes (${inactivos.length})`)
     + (inactivos.length ? _tablaExMiembros(inactivos, false) : '<div class="empty">Ninguno.</div>')
@@ -2360,8 +2360,8 @@ function renderInfiltrado(data, cont, conVeredicto = false){
       // Pastilla «¿Infiltrado?» de la ficha del clan (§PF368): el nombre, el Tag y la marca de rival ya están en la cabecera de la ficha; aquí solo el veredicto y la tabla.
       const n = filas.length;
       const veredictoClan = n
-        ? `<span class="badge badge-warn">${n === 1 ? '1 miembro actual figura' : n + ' miembros actuales figuran'} en nuestro roster</span><div class="text-dim" style="font-size:12px; margin-top:6px; max-width:420px;">Son miembros de este clan que también están en Directorio, Inactivos o Vetados.</div>`
-        : '<span class="badge">Sin coincidencias</span><div class="text-dim" style="font-size:12px; margin-top:6px; max-width:420px;">Ninguno de sus miembros actuales figura en nuestro roster (Directorio, Inactivos o Vetados). Esto no prueba que no haya infiltrados: solo revisa a quienes están hoy en el clan.</div>';
+        ? `<span class="badge badge-warn">${n === 1 ? '1 miembro actual figura' : n + ' miembros actuales figuran'} en nuestro roster</span><div class="text-dim" style="font-size:12px; margin-top:6px;">Son miembros de este clan que también están en Directorio, Inactivos o Vetados.</div>`
+        : '<span class="badge">Sin coincidencias</span><div class="text-dim" style="font-size:12px; margin-top:6px;">Ninguno de sus miembros actuales figura en nuestro roster (Directorio, Inactivos o Vetados). Esto no prueba que no haya infiltrados: solo revisa a quienes están hoy en el clan.</div>';
       cont.innerHTML = `<div>${veredictoClan}</div>` + (n ? `<div style="margin-top:14px;">${_tablaCoincidencias(filas, true)}</div>` : '') + _seccionExMiembrosClan(data);
       cont.querySelectorAll('.tabla-coincidencias-wrap').forEach(w => activarBarraScrollTabla(w));
       return;
