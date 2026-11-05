@@ -1812,6 +1812,7 @@ document.getElementById('btnLogin').addEventListener('click', async () => {
   const avisoLento = setTimeout(() => {
     msgEl.innerHTML = '<div class="msg">El servidor está tardando en responder. Sigue intentando, no cierres esta página…</div>';
   }, 6000);
+  iniciandoSesion = true; // ver manejarRespuestaAuth()
   try{
     const data = await apiPost('webLogin', { celular, clave });
     if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error || 'No se pudo iniciar sesión.')}</div>`; return; }
@@ -1846,6 +1847,7 @@ document.getElementById('btnLogin').addEventListener('click', async () => {
   }catch(err){
     msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
   }finally{
+    iniciandoSesion = false;
     clearTimeout(avisoLento);
     btn.disabled = false;
     btn.textContent = textoBtn;
@@ -1900,9 +1902,18 @@ document.getElementById('btnAbrirSorteo').addEventListener('click', () => {
 
 // Si la sesión vino vencida/inválida, cualquier respuesta con ok:false y
 // error de sesión nos regresa al login en vez de mostrar el mensaje suelto.
+// 5-nov-2026 (pedido de la usuaria: «cuando la sesión vence o la cierro e ingreso mis datos en la misma pestaña sin recargar, siempre da error; tengo que recargar»).
+// Causa: al vencer la sesión el panel ya tenía peticiones en la cola y otras que se encadenan solas (cargarNomMultisAdmins().then(cargarAscensosEditables), etc.) y se arman
+// SIN token o con el viejo. Salen detrás del login, y su «Sesión inválida» llegaba justo después de ingresar: mostrarLogin() borraba el token NUEVO y volvía a pintar el error.
+// Recargar vaciaba esa cola y por eso entonces sí funcionaba. Ahora (1) mientras se inicia sesión (iniciandoSesion) esas respuestas se ignoran, y (2) una respuesta cuyo
+// token de envío (data._tokenEnviado, lo pone api.js) no es el guardado hoy es de la sesión anterior y no toca la sesión nueva. Historial en CHANGELOG.md.
+let iniciandoSesion = false;
 function manejarRespuestaAuth(data){
   if(data && data.ok === false && /sesión|sesion/i.test(String(data.error||''))){
     if(cerrandoSesion) return true; // el propio cierre de sesión invalidó el token; no mostrar el error
+    if(iniciandoSesion) return true; // hay un login en curso: este aviso es de la sesión anterior
+    const actual = localStorage.getItem(SESSION_KEY);
+    if(actual && data._tokenEnviado !== undefined && data._tokenEnviado !== actual) return true; // petición de la sesión anterior: la sesión nueva sigue válida
     mostrarLogin(data.error);
     return true;
   }

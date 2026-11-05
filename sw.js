@@ -271,7 +271,8 @@
 // v222 (5-nov-2026): admin.html cambió (CORE_ASSETS) -- «¿Infiltrado?» de «Buscar clan» lista a los jugadores nuestros que pasaron por cualquier clan, según el índice de clanes externos (§PF369).
 // v223 (5-nov-2026): admin.html cambió (CORE_ASSETS) -- la tabla «Jugadores nuestros que pasaron por este clan» suma la columna «Semanas en este clan» (§PF369).
 // v224 (5-nov-2026): admin.html cambió (CORE_ASSETS) -- la nota al pie de «Semanas en este clan» menciona «NARANJA x» solo en el clan vetado (§PF369).
-const CACHE_NAME = 'terna-static-v224';
+// v225 (5-nov-2026): admin.html y assets/js/core/api.js cambiaron (CORE_ASSETS) -- al iniciar sesión sin recargar tras vencer o cerrar la sesión, las respuestas «sesión inválida» de la sesión anterior ya no borran la sesión nueva (api.js marca el token enviado; manejarRespuestaAuth() de admin.html lo compara).
+const CACHE_NAME = 'terna-static-v225';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y

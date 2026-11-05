@@ -496,14 +496,32 @@ async function apiGet(accion, params, opts){
 }
 
 
+/**
+ * _marcarTokenEnviado(data, tokenEnviado)
+ * 5-nov-2026 (pedido de la usuaria: «cuando la sesión vence o la cierro e ingreso mis datos en la misma pestaña sin recargar, siempre da error»):
+ * agrega a la respuesta, como propiedad NO enumerable (no sale en JSON.stringify, for...in ni deepEqual), el token de sesión con que se armó
+ * esa petición. Con él, quien reciba un «sesión inválida» puede saber si la respuesta es de la sesión anterior (token distinto del guardado hoy)
+ * y no tratarla como un fallo de la sesión nueva (ver manejarRespuestaAuth() en admin.html). Si la respuesta no es un objeto no hace nada.
+ */
+function _marcarTokenEnviado(data, tokenEnviado){
+  if (data && typeof data === 'object'){
+    try{ Object.defineProperty(data, '_tokenEnviado', { value: String(tokenEnviado || ''), enumerable: false, configurable: true }); }
+    catch(e){ /* objeto congelado o sin permiso: queda sin marca, como antes */ }
+  }
+  return data;
+}
+
+
 /** POST a una acción del portal (login / acciones de admin). */
 async function apiPost(accion, body){
   const url = `${WEBAPP_URL}?accion=${encodeURIComponent(accion)}`;
-  return await _fetchYParsear(url, {
+  const data = await _fetchYParsear(url, {
     method:'POST',
     cache:'no-store',
     body: JSON.stringify(body||{})
   });
+  // Solo si el cuerpo trae sessionToken (acciones de admin); webLogin no lo trae y no se marca.
+  return (body && typeof body === 'object' && 'sessionToken' in body) ? _marcarTokenEnviado(data, body.sessionToken) : data;
 }
 
 
@@ -511,7 +529,7 @@ async function apiPost(accion, body){
 async function apiGetAuth(accion, params){
   const token = localStorage.getItem('terna_admin_token');
   const qs = new URLSearchParams({ accion, sessionToken: token || '', ...(params||{}) });
-  return await _fetchYParsear(`${WEBAPP_URL}?${qs.toString()}`, { cache:'no-store' });
+  return _marcarTokenEnviado(await _fetchYParsear(`${WEBAPP_URL}?${qs.toString()}`, { cache:'no-store' }), token);
 }
 
 
