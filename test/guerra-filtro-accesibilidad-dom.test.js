@@ -142,3 +142,20 @@ test('accesibilidad guerra: el orden elegido se dice con aria-pressed y el embud
   pop.querySelector('.rt-filtro-aceptar').click();
   assert.equal(btn.getAttribute('aria-label'), 'Ordenar o filtrar por Nombre', 'marcar todo = sin filtro');
 });
+
+// NUEVO (4-nov-2026, pedido de la usuaria: «cuando trato de bajar para aceptar el filtro, se cierra»): el scroll del propio cuadro o de su lista de valores no lo cierra; el de la página sí.
+test('accesibilidad guerra: el scroll dentro del cuadro no lo cierra y el de la página sí', async () => {
+  const w = montar();
+  const pop = await abrir(w, 'nombre');
+  pop.dispatchEvent(new w.Event('scroll')); // el cuadro tiene max-height y overflow: se desplaza para llegar a «Aceptar»
+  assert.ok(w.document.querySelector('.rt-filtro-pop'), 'scroll del cuadro: sigue abierto');
+  pop.querySelector('.rt-filtro-lista').dispatchEvent(new w.Event('scroll'));
+  assert.ok(w.document.querySelector('.rt-filtro-pop'), 'scroll de la lista de valores: sigue abierto');
+  assert.equal(boton(w, 'nombre').getAttribute('aria-expanded'), 'true');
+  w.document.dispatchEvent(new w.Event('scroll'));
+  assert.equal(w.document.querySelector('.rt-filtro-pop'), null, 'scroll de la página: se cierra, como antes');
+  assert.equal(boton(w, 'nombre').getAttribute('aria-expanded'), 'false');
+  await abrir(w, 'nombre');
+  w.document.querySelector('.rt-filtro-aceptar').click();
+  assert.equal(w.document.querySelector('.rt-filtro-pop'), null, 'Aceptar sigue cerrando el cuadro');
+});

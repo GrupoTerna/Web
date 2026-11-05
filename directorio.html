@@ -1829,8 +1829,13 @@ function cerrarFiltroPopover(devolverFoco){
   }
   document.removeEventListener('keydown', cerrarFiltroPopoverConEscape, true);
   document.removeEventListener('mousedown', cerrarFiltroPopoverSiFuera, true);
-  window.removeEventListener('scroll', cerrarFiltroPopover, true);
+  window.removeEventListener('scroll', cerrarFiltroPopoverSiScrollFuera, true);
   window.removeEventListener('resize', cerrarFiltroPopover, true);
+}
+// 4-nov-2026: el scroll del propio cuadro (el cuadro y su lista de valores tienen overflow) no lo cierra; antes cualquier scroll lo cerraba y no se llegaba a «Aceptar». Un scroll de la página u otro bloque sí lo cierra, como antes.
+function cerrarFiltroPopoverSiScrollFuera(e){
+  if (rosterFiltroPopEl && e && e.target instanceof Node && rosterFiltroPopEl.contains(e.target)) return;
+  cerrarFiltroPopover();
 }
 function cerrarFiltroPopoverConEscape(e){ if (e.key === 'Escape') cerrarFiltroPopover(true); }
 function cerrarFiltroPopoverSiFuera(e){
@@ -2004,7 +2009,7 @@ function abrirFiltroColumna(col, btnEl, wrap){
   setTimeout(() => {
     document.addEventListener('keydown', cerrarFiltroPopoverConEscape, true);
     document.addEventListener('mousedown', cerrarFiltroPopoverSiFuera, true);
-    window.addEventListener('scroll', cerrarFiltroPopover, true);
+    window.addEventListener('scroll', cerrarFiltroPopoverSiScrollFuera, true);
     window.addEventListener('resize', cerrarFiltroPopover, true);
   }, 0);
 }

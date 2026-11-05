@@ -254,7 +254,7 @@
 // v206 (4-nov-2026): clan.html, directorio.html, assets/styles.css y el nuevo assets/js/features/vista-grafica.js cambiaron (CORE_ASSETS) -- las gráficas de copas del clan, «… por semana» de Ingresos recientes y «Cara a cara» llevan la pastilla «Últimas 6 temporadas», el zoom +/− con barra de desplazamiento y el tooltip grande de la fecha en el eje X, como las del perfil (§PF353).
 // v204 (4-nov-2026): las 11 páginas con barra de navegación, admin.html, permisos.html, auth.js y api.js cambiaron (CORE_ASSETS) -- el panel de permisos ya no es una tarjeta de admin.html: es el link «Permisos» del nav, entre Mensajes y Mi panel (§PF351).
 // v203 (4-nov-2026): admin.html cambió (CORE_ASSETS) -- «Buscar miembro» lleva la vista al resultado y el foco al nombre; antes el resultado salía al final del panel, fuera de pantalla, y el botón parecía no hacer nada (§PF350).
-const CACHE_NAME = 'terna-static-v206';
+const CACHE_NAME = 'terna-static-v207';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
