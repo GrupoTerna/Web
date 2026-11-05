@@ -193,7 +193,7 @@ test('estructura de admin.html: la pastilla «¿Infiltrado?» va junto a «Vetar
   assert.ok(HTML.includes("webAdminBuscarInfiltrado"), 'usa el mismo endpoint');
 });
 
-// ----- §PF367 (6-nov-2026): clanes externos en la pastilla y tarjeta solo para clanes -----
+// ----- §PF367 (5-nov-2026): clanes externos en la pastilla y tarjeta solo para clanes -----
 const EXTERNOS = [
   { tag: '#9VR2J8VP', nombre: 'Nova Perú', semanas: 3, primera: { temporada: 25, semana: 4 }, ultima: { temporada: 26, semana: 3 }, infoRival: null },
   { tag: '#RIVAL1', nombre: 'Clan Enemigo', semanas: 1, primera: { temporada: 27, semana: 1 }, ultima: { temporada: 27, semana: 1 }, infoRival: { fuente: 'manual', motivo: 'Sabotaje' } }
