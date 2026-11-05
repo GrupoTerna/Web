@@ -2284,6 +2284,14 @@ function _tablaClanesExternos(lista, disponible){
 }
 
 /** `cont` y `conVeredicto` son para la pastilla «¿Infiltrado?» de la ficha (5-nov-2026): se pinta en #fichaInfResultado y, si el jugador no tiene señales, se dice «Sin señales» con la aclaración de que no prueba nada (mismo texto de perfil.html, §PF196). `cont` es obligatorio. Con `conVeredicto` y un clan (pastilla de «Buscar clan», §PF368) se pinta solo el veredicto y la tabla de miembros que figuran en nuestro roster; sin `conVeredicto` queda el formato anterior (cabecera y tabla), que ya no usa ninguna pantalla. */
+/** Clan vetado (NARANJA x): jugadores nuestros que pasaron por él y ya salieron (hoy en Inactivos o Vetados); no salen en su lista actual. Solo viene en la respuesta del clan vetado (data.esClanVetado). */
+function _seccionExMiembrosClanVetado(data){
+  if(!data.esClanVetado) return '';
+  const ex = data.exMiembros || [];
+  const titulo = '<div class="text-dim" style="font-size:12px; text-transform:uppercase; letter-spacing:.04em; margin:18px 0 6px;">Jugadores nuestros que pasaron por este clan</div>';
+  if(!ex.length) return titulo + '<div class="empty">Ninguno figura en Directorio, Inactivos ni Vetados con este clan o con la razón «NARANJA x».</div>';
+  return titulo + `<div class="text-dim" style="font-size:12px; margin-bottom:8px; max-width:520px;">Ya no están en el clan. Salen de nuestro roster por su Clan Tag, o porque su Razón o su Clan es «NARANJA x».</div>${_tablaCoincidencias(ex, false)}`;
+}
 function renderInfiltrado(data, cont, conVeredicto = false){
   if(data.tipo === 'clan'){
     const c = data.clan;
@@ -2297,7 +2305,7 @@ function renderInfiltrado(data, cont, conVeredicto = false){
       const veredictoClan = n
         ? `<span class="badge badge-warn">${n === 1 ? '1 miembro actual figura' : n + ' miembros actuales figuran'} en nuestro roster</span><div class="text-dim" style="font-size:12px; margin-top:6px; max-width:420px;">Son miembros de este clan que también están en Directorio, Inactivos o Vetados.</div>`
         : '<span class="badge">Sin coincidencias</span><div class="text-dim" style="font-size:12px; margin-top:6px; max-width:420px;">Ninguno de sus miembros actuales figura en nuestro roster (Directorio, Inactivos o Vetados). Esto no prueba que no haya infiltrados: solo revisa a quienes están hoy en el clan.</div>';
-      cont.innerHTML = `<div>${veredictoClan}</div>` + (n ? `<div style="margin-top:14px;">${_tablaCoincidencias(filas, true)}</div>` : '');
+      cont.innerHTML = `<div>${veredictoClan}</div>` + (n ? `<div style="margin-top:14px;">${_tablaCoincidencias(filas, true)}</div>` : '') + _seccionExMiembrosClanVetado(data);
       cont.querySelectorAll('.tabla-coincidencias-wrap').forEach(w => activarBarraScrollTabla(w));
       return;
     }
@@ -2377,6 +2385,8 @@ function reiniciarFichaClan(data){
   document.getElementById('cSub').textContent = [c.tag, c.ubicacion, _tipoClanTexto(c.tipo)].filter(Boolean).join(' · ');
   document.getElementById('cBadge').innerHTML = _marcaClan(c, data.infoRival);
   document.getElementById('cVerClan').href = 'https://royaleapi.com/clan/' + encodeURIComponent(String(c.tag).replace('#', ''));
+  // El botón lleva el ícono de RoyaleAPI como en las demás páginas (ICONO_ROYALEAPI, assets/js/data/clan-badges.js); sin ese archivo cargado queda solo el texto.
+  document.getElementById('cVerClan').innerHTML = (typeof ICONO_ROYALEAPI !== 'undefined' ? ICONO_ROYALEAPI : '') + 'Ver clan en RoyaleAPI';
   document.getElementById('cMiembros').textContent = _numeroClan(c.miembros);
   document.getElementById('cPuntos').textContent = _numeroClan(c.puntos);
   document.getElementById('cTrofeos').textContent = _numeroClan(c.trofeosGuerra);

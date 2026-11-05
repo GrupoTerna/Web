@@ -267,7 +267,8 @@
 // v218 (5-nov-2026): admin.html cambió (CORE_ASSETS) -- la pastilla «¿Infiltrado?» de la ficha suma los clanes externos donde el jugador jugó guerra (JSON individual) y la tarjeta «Detección de infiltrados» pasa a revisar solo clanes (§PF367).
 // v219 (5-nov-2026): admin.html cambió (CORE_ASSETS) -- «Detección de infiltrados: revisar un clan» pasa a ser la tarjeta «Buscar clan» (ficha con «Vetar» y «¿Infiltrado?») y las semanas anteriores a la T1 interna se muestran con la temporada de Supercell (§PF368).
 // v220 (5-nov-2026): admin.html cambió (CORE_ASSETS) -- el clan vetado (NARANJA x) se muestra como «Clan vetado» en «Buscar clan» y en «¿Infiltrado?», y su «Vetar» queda bloqueado (§PF368).
-const CACHE_NAME = 'terna-static-v220';
+// v221 (5-nov-2026): admin.html cambió (CORE_ASSETS) -- el botón «Ver clan en RoyaleAPI» lleva el ícono y, en el clan vetado, «¿Infiltrado?» lista a los jugadores nuestros que pasaron por él y ya salieron (§PF368).
+const CACHE_NAME = 'terna-static-v221';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y

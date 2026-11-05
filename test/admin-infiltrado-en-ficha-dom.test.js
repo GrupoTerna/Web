@@ -342,6 +342,46 @@ test('el clan vetado (NARANJA x) sale como «Clan vetado», no como de la Famili
   assert.match(id(w, 'btnClanVetarPastilla').textContent, /Clan vetado/);
 });
 
+test('el botón «Ver clan en RoyaleAPI» lleva el ícono de RoyaleAPI (ICONO_ROYALEAPI) y sigue apuntando al clan; sin ese archivo cargado queda solo el texto (5-nov-2026)', async () => {
+  let w = montar({ respuestas: [respuestaClan()] });
+  await buscarClanEn(w, '#CLAN1');
+  assert.equal(id(w, 'cVerClan').querySelector('img'), null);
+  assert.equal(id(w, 'cVerClan').textContent.trim(), 'Ver clan en RoyaleAPI');
+  w = montar({ respuestas: [respuestaClan()] });
+  ev(w, `var ICONO_ROYALEAPI = '<img src="https://cdn.royaleapi.com/x.png" alt="" width="14" height="14">';`);
+  await buscarClanEn(w, '#CLAN1');
+  assert.ok(id(w, 'cVerClan').querySelector('img'), 'el botón trae el ícono');
+  assert.equal(id(w, 'cVerClan').textContent.trim(), 'Ver clan en RoyaleAPI');
+  assert.equal(id(w, 'cVerClan').href, 'https://royaleapi.com/clan/CLAN1');
+});
+
+test('clan vetado: «¿Infiltrado?» lista a los jugadores nuestros que pasaron por él y ya salieron (Inactivos/Vetados), aunque no haya coincidencias con sus miembros actuales (5-nov-2026)', async () => {
+  const w = montar({ respuestas: [respuestaClan({ infoRival: { fuente: 'vetado', motivo: 'Clan vetado' } }), { ok: true, tipo: 'clan', clan: { tag: '#CLAN1', nombre: 'NARANJA x', miembros: 12 }, infoRival: null, coincidencias: [],
+    esClanVetado: true, exMiembros: [
+      { origen: 'Inactivos', tag: '#C3', nombre: 'Ex Vetado Uno', clan: 'Terna 2', razon: 'NARANJA x' },
+      { origen: 'Vetados', tag: '#E5', nombre: 'Ex Vetado Dos', clan: 'Terna 3', razon: 'NARANJA x' }] }] });
+  await buscarClanEn(w, '#CLAN1');
+  clic(w, 'btnClanInfiltradoPastilla'); await esperar();
+  const t = id(w, 'clanInfResultado').textContent;
+  assert.match(t, /Sin coincidencias/);
+  assert.match(t, /Jugadores nuestros que pasaron por este clan/);
+  assert.match(t, /Ex Vetado Uno/);
+  assert.match(t, /Ex Vetado Dos/);
+  assert.match(t, /Inactivos/);
+  assert.match(t, /Vetados/);
+});
+
+test('clan vetado sin ex miembros en el roster lo dice; un clan que no es el vetado no muestra esa sección (5-nov-2026)', async () => {
+  let w = montar({ respuestas: [respuestaClan(), { ok: true, tipo: 'clan', clan: { tag: '#CLAN1', nombre: 'NARANJA x', miembros: 12 }, infoRival: null, coincidencias: [], esClanVetado: true, exMiembros: [] }] });
+  await buscarClanEn(w, '#CLAN1');
+  clic(w, 'btnClanInfiltradoPastilla'); await esperar();
+  assert.match(id(w, 'clanInfResultado').textContent, /Ninguno figura en Directorio, Inactivos ni Vetados/);
+  w = montar({ respuestas: [respuestaClan(), { ok: true, tipo: 'clan', clan: { tag: '#CLAN1', nombre: 'Clan Rival', miembros: 48 }, infoRival: null, coincidencias: [] }] });
+  await buscarClanEn(w, '#CLAN1');
+  clic(w, 'btnClanInfiltradoPastilla'); await esperar();
+  assert.doesNotMatch(id(w, 'clanInfResultado').textContent, /pasaron por este clan/);
+});
+
 test('«Buscar clan»: Tag vacío no consulta; un error del backend se muestra y no abre la ficha; si falla la red se avisa', async () => {
   let w = montar();
   await buscarClanEn(w, '  ');
