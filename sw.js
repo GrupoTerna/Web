@@ -275,7 +275,8 @@
 // v226 (5-nov-2026): admin.html cambió (CORE_ASSETS) -- «Jugadores nuestros que pasaron por este clan» se separa en activos (por clan nuestro) e inactivos, con semanas y primera → última (§PF372).
 // v227 (5-nov-2026): admin.html cambió (CORE_ASSETS) -- «Buscar clan» estrena su propia cinta (cinta-clan-roster.webp, ya en el sitio; antes repetía la de «Buscar miembro») y los textos de «¿Infiltrado?» ya no tienen ancho máximo: usan todo el ancho de la tarjeta, como la descripción de arriba.
 // v228 (5-nov-2026): admin.html cambió (CORE_ASSETS) -- los activos de «Jugadores nuestros que pasaron por este clan» ya no salen en bloques verticales: una sola tabla con pastillas por clan nuestro, con su cantidad entre paréntesis, como el roster del Directorio (§PF374).
-const CACHE_NAME = 'terna-static-v228';
+// v229 (5-nov-2026): assets/js/features/mini-historial.js y assets/styles.css cambiaron (CORE_ASSETS) -- ⚠️ a la derecha del 📈 (solo admins) en quien estuvo en un clan vetado o rival; paso 1 de §PF375, el clic aún no abre nada.
+const CACHE_NAME = 'terna-static-v229';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y

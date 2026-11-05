@@ -27,7 +27,9 @@ test('con sesión de admin y el Tag en la lista: el ícono de WhatsApp va a la i
   assert.match(h, /<svg-wsp>/);
   assert.ok(h.indexOf('hist-wsp') < h.indexOf('btn-hist-jugador'), 'el WhatsApp va antes (a la izquierda) del 📈');
   assert.doesNotMatch(h, /<a[ >]/, 'sin enlace');
-  assert.ok(w._pedidos.length >= 1 && [...w._pedidos].every(x => x === 'webAdminTagsConWsp'), 'solo pide webAdminTagsConWsp (el autoarranque de jsdom puede sumar una segunda llamada)');
+  // 5-nov-2026 (§PF375): el módulo ahora también pide webAdminTagsClanesSospechosos (el ⚠️); aquí solo se cuenta lo del WhatsApp.
+  const wsp = [...w._pedidos].filter(x => x !== 'webAdminTagsClanesSospechosos');
+  assert.ok(wsp.length >= 1 && wsp.every(x => x === 'webAdminTagsConWsp'), 'pide webAdminTagsConWsp para el WhatsApp (el autoarranque de jsdom puede sumar una segunda llamada)');
 });
 
 test('un Tag que no está en la lista, o sin sesión de admin, lleva solo el 📈 y no se pide nada al backend', async () => {
@@ -88,7 +90,7 @@ test('con data-sin-wsp-tags en <body> no se pide la lista de WhatsApp, aunque se
   assert.equal(w.eval('JSON.stringify(_pedidos)'), '[]', 'no pidió nada');
   const v = cargar({ tags: ['ABC'] });
   await v.wspCargarTags();
-  assert.ok(v.eval('_pedidos.length') >= 1 && v.eval('_pedidos.every(a => a === "webAdminTagsConWsp")'), 'sin el atributo sí pide la lista (jsdom puede disparar además la carga automática de DOMContentLoaded)');
+  assert.ok(v.eval('_pedidos.length') >= 1 && v.eval('_pedidos.filter(a => a !== "webAdminTagsClanesSospechosos").every(a => a === "webAdminTagsConWsp")'), 'sin el atributo sí pide la lista (jsdom puede disparar además la carga automática de DOMContentLoaded; el ⚠️ de §PF375 pide su propio resumen)');
 });
 test('perfil.html marca su <body> con data-sin-wsp-tags', () => {
   assert.match(fs.readFileSync(path.join(__dirname, '..', 'perfil.html'), 'utf8'), /<body data-page="perfil" data-sin-wsp-tags>/);

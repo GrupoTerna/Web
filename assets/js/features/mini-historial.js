@@ -28,7 +28,8 @@ function botonHistJugador(f, opts){
   const sinWsp = !!(opts && opts.sinWsp);
   const adminOk = typeof esAdminLogueado === 'function' && esAdminLogueado();
   const wsp = (!sinWsp && adminOk && (f.tieneWsp === true || wspTieneTag(f.tag))) ? iconoWspHistHtml(f) : '';
-  return wsp + `<button type="button" class="btn-hist-jugador"${sinWsp ? ' data-sin-wsp="1"' : ''} data-tag="${esc(f.tag)}" data-nombre="${esc(f.nombre || f.tag)}" title="Ver historial de guerra" aria-label="Historial de guerra de ${esc(f.nombre || f.tag)}">📈</button>`;
+  const alerta = (adminOk && alertaClanesDe(f.tag)) ? botonAlertaClanesHtml(f) : '';
+  return wsp + `<button type="button" class="btn-hist-jugador"${sinWsp ? ' data-sin-wsp="1"' : ''} data-tag="${esc(f.tag)}" data-nombre="${esc(f.nombre || f.tag)}" title="Ver historial de guerra" aria-label="Historial de guerra de ${esc(f.nombre || f.tag)}">📈</button>` + alerta;
 }
 function wspRepintar(){
   document.querySelectorAll('.btn-hist-jugador').forEach(b => {
@@ -50,6 +51,46 @@ async function wspCargarTags(){
   }catch(_){ /* sin la lista solo falta el ícono de WhatsApp; el 📈 sigue igual */ }
 }
 if (typeof document !== 'undefined') { if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wspCargarTags); else wspCargarTags(); }
+/* 5-nov-2026 (pedido de la usuaria, §PF375): ⚠️ permanente a la DERECHA del 📈 en los jugadores que estuvieron en un clan vetado o rival de la guerra. Solo admins. El resumen (un archivo pequeño del backend, con caché) lo pide alertaCargarTags() a webAdminTagsClanesSospechosos: { ok, actualizado, jugadores: { 'TAGSINNUMERAL': { n, tipos } } }. Igual que el WhatsApp, si la lista llega después de pintar una tabla, alertaRepintar() inserta el ⚠️ en los botones ya existentes; si el backend falla solo falta el ⚠️. perfil.html (data-sin-wsp-tags) no lo pide. El clic lo atiende el modal del paso 2 de §PF375. */
+let alertaTags = null; // Map de Tag en mayúsculas y sin # -> { n, tipos }; null = sin cargar o sin sesión de admin
+function alertaClanesDe(tag){ return (alertaTags && alertaTags.get(wspClaveTag(tag))) || null; }
+function alertaTextoClanes(a){
+  const n = Number(a && a.n) || 0;
+  const tipos = (a && Array.isArray(a.tipos)) ? a.tipos : [];
+  const vet = tipos.includes('vetado'), riv = tipos.includes('rival');
+  const uno = n === 1;
+  const que = (vet && riv) ? (uno ? 'vetado o rival' : 'vetados o rivales') : (vet ? (uno ? 'vetado' : 'vetados') : (uno ? 'rival' : 'rivales'));
+  return `Estuvo en ${n} ${uno ? 'clan' : 'clanes'} ${que}`;
+}
+function botonAlertaClanesHtml(f){
+  const a = alertaClanesDe(f.tag);
+  if (!a) return '';
+  const nombre = f.nombre || f.tag;
+  const txt = alertaTextoClanes(a);
+  return `<button type="button" class="btn-alerta-clanes" data-tag="${esc(f.tag)}" data-nombre="${esc(nombre)}" title="${esc(txt)}. Clic para ver las semanas" aria-label="Alerta de ${esc(nombre)}: ${esc(txt)}">⚠️</button>`;
+}
+function alertaRepintar(){
+  if (!alertaTags) return;
+  document.querySelectorAll('.btn-hist-jugador').forEach(b => {
+    const sig = b.nextElementSibling;
+    if (sig && sig.classList.contains('btn-alerta-clanes')) return;
+    if (!alertaClanesDe(b.dataset.tag)) return;
+    b.insertAdjacentHTML('afterend', botonAlertaClanesHtml({ tag: b.dataset.tag, nombre: b.dataset.nombre }));
+  });
+}
+async function alertaCargarTags(){
+  if (typeof esAdminLogueado !== 'function' || !esAdminLogueado()) return;
+  if (document.body && document.body.hasAttribute('data-sin-wsp-tags')) return;
+  try{
+    const data = await apiGetAuth('webAdminTagsClanesSospechosos', {});
+    if (!data || data.ok === false || !data.jugadores || typeof data.jugadores !== 'object') return;
+    const mapa = new Map();
+    Object.keys(data.jugadores).forEach(t => { const a = data.jugadores[t]; if (a && Number(a.n) > 0) mapa.set(wspClaveTag(t), { n: Number(a.n), tipos: Array.isArray(a.tipos) ? a.tipos : [] }); });
+    alertaTags = mapa;
+    alertaRepintar();
+  }catch(_){ /* sin el resumen solo falta el ⚠️; el 📈 y el WhatsApp siguen igual */ }
+}
+if (typeof document !== 'undefined') { if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', alertaCargarTags); else alertaCargarTags(); }
 /* 23-oct-2026 (tanda 4, P3): cabecera con los datos del perfil (clan actual, torre del rey, nivel de XP, colección, victorias de guerra, copas y vigencia). Es PÚBLICA y sale de `webPerfil` (los mismos campos que la cabecera de perfil.html: j.clan, rawClash.kingTowerLevel, rawClash.expLevel o extendido.nivelXp, extendido.nivelCartas, j.vGuerra, j.copas, j.vigencia). Se pide aparte y DESPUÉS de pintar la tabla (histAbrir no la espera); si falla o no trae ningún dato, la cabecera no aparece. [→ Contexto_Base_Web.md §PF179] */
 function histFechaVigencia(v){
   const d = v instanceof Date ? v : new Date(v);
