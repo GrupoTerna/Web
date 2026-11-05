@@ -24,10 +24,15 @@ const i = HTML.indexOf(INICIO);
 const f = HTML.indexOf(FIN, i + 1);
 assert.ok(i >= 0 && f > i, 'marcadores de buscarMiembro() no encontrados (¿se reorganizó admin.html?)');
 const CODIGO = HTML.slice(i, f);
+// 5-nov-2026: se usa la _pareceTag() REAL de admin.html (antes el test llevaba una copia con la regla vieja de 4+ letras o números).
+const iTag = HTML.indexOf('function _pareceTag(texto){');
+const fTag = HTML.indexOf('async function buscarMiembro(){');
+assert.ok(iTag >= 0 && fTag > iTag, 'marcadores de _pareceTag() no encontrados (¿se reorganizó admin.html?)');
+const CODIGO_TAG = HTML.slice(iTag, fTag);
 
 function montar({ reducirMovimiento = false } = {}){
   const dom = new JSDOM(`<!doctype html><html><body>
-    <input id="tagInput" value="#ABC123">
+    <input id="tagInput" value="#2GG8PJ8GC">
     <div id="buscarSugerencias" style="display:none"></div>
     <div id="buscarMsg"></div>
     <div id="miembroSec" style="display:none"><h3 id="mNombre"></h3></div>
@@ -40,7 +45,7 @@ function montar({ reducirMovimiento = false } = {}){
   window.matchMedia = () => ({ matches: reducirMovimiento });
   window.eval(`
     var _sugerenciasMiembroCache = [];
-    function _pareceTag(t){ return /^#?[A-Za-z0-9]{4,}$/.test(String(t||'')); }
+    ${CODIGO_TAG}
     function normalizarTag(t){ return String(t).toUpperCase(); }
     function esc(t){ return String(t); }
     function manejarRespuestaAuth(){ return false; }
@@ -48,7 +53,7 @@ function montar({ reducirMovimiento = false } = {}){
     function _ordenarSugerenciasMiembro(x){ return x; }
     var jugadorMostrado = null;
     function renderMiembro(j){ jugadorMostrado = j; document.getElementById('miembroSec').style.display = 'block'; }
-    var respuestaApi = { ok: true, jugador: { tag: '#ABC123', nombre: 'Prueba' } };
+    var respuestaApi = { ok: true, jugador: { tag: '#2GG8PJ8GC', nombre: 'Prueba' } };
     async function apiGetAuth(){ return respuestaApi; }
     ${CODIGO}
     window.buscarMiembro = buscarMiembro;

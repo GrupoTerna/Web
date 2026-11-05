@@ -2101,11 +2101,12 @@ document.getElementById('tagInput').addEventListener('input', e => {
   _sugerenciasMiembroTimer = setTimeout(() => buscarSugerenciasMiembro(q), 250);
 });
 
-/** true si `texto` "parece" un Tag de Clash Royale (con o sin '#'), igual
- * de permisivo que el chequeo ya usado en directorio.html cuando el
- * directorio todavía no cargó (mismo patrón /^#?[A-Za-z0-9]{4,}$/). */
+/** true si `texto` "parece" un Tag de Clash Royale (con o sin '#').
+ * 5-nov-2026 (pedido de la usuaria: «lo de admin tampoco funciona»): antes bastaban 4 o más letras o números, así que un nombre como «chistris» se tomaba por Tag,
+ * se consultaba directo y respondía «No encontré ese Tag» sin buscar por nombre. Los Tags de Clash Royale solo usan estos 14 caracteres (0289PYLQGRJCUV), así que
+ * un texto con otras letras es un nombre. Un nombre que, por casualidad, use solo esos caracteres se resuelve antes contra las sugerencias (ver buscarMiembro()). */
 function _pareceTag(texto){
-  return /^#?[A-Za-z0-9]{4,}$/.test(String(texto||'').replace(/\s+/g, ''));
+  return /^#?[0289PYLQGRJCUV]{4,12}$/i.test(String(texto||'').replace(/\s+/g, ''));
 }
 
 async function buscarMiembro(){
@@ -2117,29 +2118,34 @@ async function buscarMiembro(){
   document.getElementById('miembroSec').style.display = 'none';
   if(!raw){ msgEl.innerHTML = '<div class="msg msg-error">Escribe un nombre, Nom_Multi o Tag.</div>'; return; }
 
-  // Si ya coincide con una sugerencia cacheada (nombre o nomMulti exacto,
-  // o hay una sola coincidencia parcial), se resuelve directo a su Tag sin
-  // esperar otro Enter — mismo criterio de "una sola coincidencia se
-  // resuelve sola" que usa buscarMiembro() de directorio.html.
+  // Nombre o Nom_Multi (lo que no parece un Tag): se pide la lista fresca al backend con lo escrito, sin depender de las sugerencias de la caja (5-nov-2026: si se
+  // pulsaba «Buscar» antes de los 250 ms de espera, o la última respuesta de sugerencias fallaba, la lista cacheada estaba vacía o era de otro texto y se
+  // consultaba el nombre como si fuera un Tag). Mismo criterio de «una sola coincidencia se resuelve sola» que buscarMiembro() de directorio.html.
+  const unicoTag = (lista) => { const tags = [...new Set(lista.map(m => m.tag))]; return tags.length === 1 ? tags[0] : null; };
+  const q = raw.toLowerCase();
+  const exactasDe = (lista) => lista.filter(m => String(m.nombre||'').toLowerCase() === q || String(m.nomMulti||'').toLowerCase() === q);
   let tagFinal = null;
-  if(!_pareceTag(raw) && _sugerenciasMiembroCache.length){
-    const q = raw.toLowerCase();
-    const exactas = _sugerenciasMiembroCache.filter(m =>
-      String(m.nombre||'').toLowerCase() === q || String(m.nomMulti||'').toLowerCase() === q);
-    if(exactas.length === 1){
-      tagFinal = exactas[0].tag;
-    } else if(_sugerenciasMiembroCache.length === 1){
-      tagFinal = _sugerenciasMiembroCache[0].tag;
-    } else if(_sugerenciasMiembroCache.length > 1){
-      msgEl.innerHTML = '<div class="msg">Hay varias coincidencias — elige una de la lista de arriba.</div>';
-      renderSugerenciasMiembro(_ordenarSugerenciasMiembro(_sugerenciasMiembroCache));
-      return;
-    } else {
+  if(!_pareceTag(raw)){
+    msgEl.innerHTML = '<div class="msg">Buscando…</div>';
+    let lista = _sugerenciasMiembroCache;
+    try{
+      const sug = await apiGetAuth('webAdminBuscarMiembroSugerencias', { q: raw });
+      if(manejarRespuestaAuth(sug)) return;
+      if(sug && sug.ok && Array.isArray(sug.resultados)){ lista = sug.resultados; _sugerenciasMiembroCache = lista; }
+    }catch(err){ /* sin red: se usa lo que ya había en la caja de sugerencias */ }
+    if(!lista.length){
       msgEl.innerHTML = '<div class="msg msg-error">No se encontró ningún miembro con ese nombre. Si es un jugador sin registro con nosotros, escribe directamente su Tag.</div>';
       return;
     }
+    tagFinal = unicoTag(exactasDe(lista)) || unicoTag(lista);
+    if(!tagFinal){
+      msgEl.innerHTML = '<div class="msg">Hay varias coincidencias — elige una de la lista de arriba.</div>';
+      renderSugerenciasMiembro(_ordenarSugerenciasMiembro(lista));
+      return;
+    }
   } else {
-    tagFinal = normalizarTag(raw);
+    // Parece un Tag, pero si coincide exactamente con el nombre de un miembro de la caja de sugerencias, manda el nombre.
+    tagFinal = unicoTag(exactasDe(_sugerenciasMiembroCache)) || normalizarTag(raw);
   }
 
   if(!tagFinal){ msgEl.innerHTML = '<div class="msg msg-error">Escribe un nombre, Nom_Multi o Tag válido.</div>'; return; }
