@@ -37,7 +37,7 @@ function montar({ funciones = 'Registrar miembro nuevo', respuesta, sesionRota =
       <select id="nmNomMultiSelect"></select><input id="nmNomMultiNuevo" value="x" style="display:block"><input id="nmPrefijo" value="51"><input id="nmCelular" value="999"><div id="nmGuardarMsg">viejo</div>
     </div>
     <div id="miembroSec" style="display:none"><h3 id="mNombre"></h3></div>
-    <div id="nmModoCampo" style="display:none"></div><div id="vetarMiembroBox" style="display:none"></div>
+    <div id="nmModoCampo" style="display:none"></div><div id="vetarPastillaBox" style="display:none"></div><div id="vetarMiembroBox" style="display:none"></div>
   </body></html>`, { runScripts: 'outside-only', pretendToBeVisual: true, url: 'https://terna.example/' });
   const w = dom.window;
   w.HTMLElement.prototype.scrollIntoView = function(){ w.__scroll.push(this.id); };
@@ -145,6 +145,7 @@ test('aplicarVisibilidadPorFunciones(): la pastilla «Buscar en Directorio» sal
     ev(w, 'aplicarVisibilidadPorFunciones()');
     assert.equal(id(w, 'nmModoCampo').style.display, campo, `pastilla con «${funciones}»`);
     assert.equal(id(w, 'vetarMiembroBox').style.display, vetar, `Vetar con «${funciones}»`);
+    assert.equal(id(w, 'vetarPastillaBox').style.display, vetar, `pastilla Vetar con «${funciones}»`);
   }
 });
 

@@ -392,6 +392,10 @@
                 <div class="text-faint" id="mSub" style="font-family:var(--f-mono); font-size:12px; margin-top:4px;"></div>
                 <a class="btn btn-ghost" id="mVerPerfil" href="perfil.html" target="_blank" rel="noopener" style="margin-top:10px; font-size:12px;">Ver perfil completo</a>
               </div>
+              <!-- 5-nov-2026 (pedido de la usuaria, tras verla en pantalla): la pastilla «Vetar» va arriba a la derecha de la ficha, no al pie; el formulario sigue abajo (#vetarMiembroBox). Se ve solo con la función «Vetar» (aplicarVisibilidadPorFunciones()). -->
+              <div id="vetarPastillaBox" style="display:none;">
+                <button type="button" class="tab-clan btn-vetar-pastilla" id="btnVetarPastilla" aria-expanded="false" aria-controls="vetarPanel" style="border-color:var(--danger); color:var(--danger);">🚫 Vetar</button>
+              </div>
               <div class="stats-mini">
                 <span><b id="mVGuerra"></b>Victorias de guerra</span>
                 <span><b id="mTorneos"></b>Torneos</span>
@@ -424,7 +428,7 @@
             </div>
             <div class="field">
               <label for="fPrestamo">Préstamo</label>
-              <input type="text" id="fPrestamo" placeholder="Detalle del préstamo (si aplica)">
+              <input type="text" id="fPrestamo" placeholder="Nombre de la persona a quien se prestó la cuenta (si aplica)">
             </div>
             <button type="button" class="btn btn-primary btn-block" id="btnGuardar" style="margin-top:6px;">Guardar cambios</button>
             <div id="guardarMsg"></div>
@@ -434,9 +438,6 @@
 
         <!-- 5-nov-2026 (pedido de la usuaria): «Vetar miembro» se integró a «Buscar miembro». Con el perfil ya elegido se ve la pastilla «Vetar» y, al pulsarla, el resto de la antigua sección (Razón, Comentario y botón); el Tag es el del miembro de la ficha (miembroActual), ya no se escribe. Solo la ve quien tiene la función «Vetar» (aplicarVisibilidadPorFunciones()); el backend lo vuelve a validar en _webAdminVetar(). Vetar es de un solo sentido, sin «desvetar» desde la web; la lista de Razón debe actualizarse a mano si cambia en el backend. -->
         <div id="vetarMiembroBox" style="display:none; margin-top:18px;">
-          <div class="nm-modo-selector">
-            <button type="button" class="tab-clan btn-vetar-pastilla" id="btnVetarPastilla" aria-expanded="false" aria-controls="vetarPanel" style="border-color:var(--danger); color:var(--danger);">🚫 Vetar</button>
-          </div>
           <div id="vetarPanel" style="display:none; margin-top:14px;">
             <h3 id="vTitulo" style="font-size:15px; color:var(--gold); margin-bottom:14px;"></h3>
             <div class="field">
@@ -1691,7 +1692,8 @@ function aplicarVisibilidadPorFunciones(){
   const puedeVetar = funciones.indexOf('Vetar') !== -1;
   // 5-nov-2026: «Registrar miembro nuevo» ya no es una tarjeta aparte, sino parte de «Buscar miembro». Con el permiso se ve la pastilla «Buscar en Directorio» (la lista de miembros del clan la pide con ese permiso) y el Paso 2 de registro; sin él, «Buscar miembro» queda con la sola búsqueda por Tag o nombre. Historial en CHANGELOG.md.
   document.getElementById('nmModoCampo').style.display = puedeRegistrar ? '' : 'none';
-  // 5-nov-2026: «Vetar miembro» ya no es una tarjeta aparte: es la pastilla #btnVetarPastilla al pie de la ficha de «Buscar miembro». Solo la ve quien tiene la función «Vetar». Historial en CHANGELOG.md.
+  // 5-nov-2026: «Vetar miembro» ya no es una tarjeta aparte: es la pastilla #btnVetarPastilla, arriba a la derecha de la ficha de «Buscar miembro», y el formulario #vetarMiembroBox al pie de la ficha. Solo la ve quien tiene la función «Vetar». Historial en CHANGELOG.md.
+  document.getElementById('vetarPastillaBox').style.display = puedeVetar ? '' : 'none';
   document.getElementById('vetarMiembroBox').style.display = puedeVetar ? '' : 'none';
 }
 

@@ -26,8 +26,8 @@ const CODIGO_REINICIO = trozo('function reiniciarVetarMiembro(j){', '/**\n * FIX
 const CODIGO_VETAR = trozo("document.getElementById('btnVetarPastilla').addEventListener", '</script>\n</body>', 'manejadores de vetar');
 
 const ESTRUCTURA = `
+  <div id="vetarPastillaBox"><button type="button" class="tab-clan" id="btnVetarPastilla" aria-expanded="false">🚫 Vetar</button></div>
   <div id="vetarMiembroBox">
-    <div class="nm-modo-selector"><button type="button" class="tab-clan" id="btnVetarPastilla" aria-expanded="false">🚫 Vetar</button></div>
     <div id="vetarPanel" style="display:none">
       <h3 id="vTitulo"></h3>
       <select id="vRazon"><option value="">Elige una razón…</option><option value="NARANJA x">NARANJA x</option><option value="Solicitud propia">Solicitud propia</option></select>
@@ -180,21 +180,34 @@ test('si falla la red, se avisa y se puede reintentar', async () => {
   assert.equal(id(w, 'btnVetar').style.display, '');
 });
 
-test('estructura de admin.html: la pastilla «Vetar» y su panel están dentro de la ficha (#miembroSec), después de los datos de gestión, y empiezan ocultos', () => {
+test('estructura de admin.html: la pastilla «Vetar» va en la cabecera de la ficha (arriba a la derecha) y el formulario al pie, después de los datos de gestión; ambos empiezan ocultos', () => {
   const doc = new JSDOM(HTML).window.document; // sin ejecutar scripts
   const g = (x) => doc.getElementById(x);
   const ficha = g('miembroSec');
-  for (const x of ['vetarMiembroBox', 'btnVetarPastilla', 'vetarPanel', 'vTitulo', 'vRazon', 'vComentario', 'btnVetar', 'vMsg']){
+  for (const x of ['vetarPastillaBox', 'btnVetarPastilla', 'vetarMiembroBox', 'vetarPanel', 'vTitulo', 'vRazon', 'vComentario', 'btnVetar', 'vMsg']){
     assert.ok(g(x), `falta #${x}`);
     assert.ok(ficha.contains(g(x)), `#${x} no está dentro de la ficha`);
   }
-  assert.ok(g('guardarMsg').compareDocumentPosition(g('vetarMiembroBox')) & 4, '«Vetar» va después de «Datos de gestión»');
+  const cabecera = g('mNombre').closest('.perfil-cabecera');
+  assert.ok(cabecera.contains(g('btnVetarPastilla')), 'la pastilla va en la cabecera de la ficha, junto al nombre');
+  assert.ok(g('mVerPerfil').compareDocumentPosition(g('vetarPastillaBox')) & 4, 'la pastilla va después del bloque del nombre');
+  assert.ok(g('vetarPastillaBox').compareDocumentPosition(cabecera.querySelector('.stats-mini')) & 4, 'y antes de las estadísticas');
+  assert.ok(!g('vetarMiembroBox').contains(g('btnVetarPastilla')), 'el formulario ya no lleva la pastilla');
+  assert.ok(g('guardarMsg').compareDocumentPosition(g('vetarMiembroBox')) & 4, 'el formulario va después de «Datos de gestión»');
+  assert.equal(g('vetarPastillaBox').style.display, 'none', 'oculta hasta saber que tiene la función «Vetar»');
   assert.equal(g('vetarMiembroBox').style.display, 'none', 'oculto hasta saber que tiene la función «Vetar»');
   assert.equal(g('vetarPanel').style.display, 'none', 'el panel empieza cerrado');
   assert.ok(g('btnVetarPastilla').classList.contains('tab-clan'), 'es una pastilla .tab-clan, como las de «Tag o nombre» y «Buscar en Directorio»');
-  assert.ok(g('btnVetarPastilla').closest('.nm-modo-selector'));
   assert.equal(g('vTag'), null, 'ya no hay caja de Tag: se usa la de la ficha');
   assert.equal(g('cardVetar'), null);
   assert.equal(g('directorioGrupo'), null);
   assert.equal(doc.querySelectorAll('#vRazon option').length, 7, 'la lista de razones es la misma de antes (6 razones + «Elige una razón…»)');
+});
+
+// NUEVO (5-nov-2026, pedido de la usuaria): en «Préstamo» no se escribe un detalle, se escribe el nombre de la persona a quien se prestó la cuenta.
+test('el campo «Préstamo» de la ficha pide el nombre de la persona a quien se prestó la cuenta, no un detalle', () => {
+  const doc = new JSDOM(HTML).window.document;
+  const ph = doc.getElementById('fPrestamo').getAttribute('placeholder');
+  assert.match(ph, /Nombre de la persona a quien se prestó la cuenta/);
+  assert.doesNotMatch(ph, /[Dd]etalle/);
 });
