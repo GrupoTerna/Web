@@ -2234,7 +2234,7 @@ function _tablaCoincidencias(filas, conColumnaOrigenClan){
     <tr>
       ${conColumnaOrigenClan ? `<td>${esc(f.nombreEnClanRival)} <span class="text-faint">(${esc(f.tagEnClanRival)})</span></td><td>${esc(f.rolEnClanRival)}</td>` : ''}
       <td>${esc(f.origen)}</td>
-      <td>${f.origen === 'Directorio' ? enlaceJugador(f.nombre, f.tag) : esc(f.nombre)} <span class="text-faint">(${esc(f.tag)})</span></td>
+      <td>${f.origen === 'Directorio' ? enlaceJugador(f.nombre, f.tag) : esc(f.nombre || '—')} <span class="text-faint">(${esc(f.tag)})</span></td>
       <td>${f.clan ? enlaceClan(f.clan) : '—'}</td>
       <td>${esc(f.razon || '—')}</td>
     </tr>`).join('');
@@ -2284,13 +2284,22 @@ function _tablaClanesExternos(lista, disponible){
 }
 
 /** `cont` y `conVeredicto` son para la pastilla «¿Infiltrado?» de la ficha (5-nov-2026): se pinta en #fichaInfResultado y, si el jugador no tiene señales, se dice «Sin señales» con la aclaración de que no prueba nada (mismo texto de perfil.html, §PF196). `cont` es obligatorio. Con `conVeredicto` y un clan (pastilla de «Buscar clan», §PF368) se pinta solo el veredicto y la tabla de miembros que figuran en nuestro roster; sin `conVeredicto` queda el formato anterior (cabecera y tabla), que ya no usa ninguna pantalla. */
-/** Clan vetado (NARANJA x): jugadores nuestros que pasaron por él y ya salieron (hoy en Inactivos o Vetados); no salen en su lista actual. Solo viene en la respuesta del clan vetado (data.esClanVetado). */
-function _seccionExMiembrosClanVetado(data){
-  if(!data.esClanVetado) return '';
+/** Jugadores nuestros que pasaron por el clan y ya no están en él (§PF368 para el clan vetado, §PF369 para cualquier clan). Vienen del índice de clanes externos del backend (data.exMiembros, data.indiceClanesDisponible); el clan vetado además suma lo que dice «NARANJA x» en Inactivos y Vetados (data.esClanVetado). Con un backend anterior al índice, sin esClanVetado ni indiceClanesDisponible, no se pinta nada. */
+function _seccionExMiembrosClan(data){
   const ex = data.exMiembros || [];
+  const sinIndice = data.indiceClanesDisponible === false;
+  if(!data.esClanVetado && data.indiceClanesDisponible === undefined) return '';
   const titulo = '<div class="text-dim" style="font-size:12px; text-transform:uppercase; letter-spacing:.04em; margin:18px 0 6px;">Jugadores nuestros que pasaron por este clan</div>';
-  if(!ex.length) return titulo + '<div class="empty">Ninguno figura en Directorio, Inactivos ni Vetados con este clan o con la razón «NARANJA x».</div>';
-  return titulo + `<div class="text-dim" style="font-size:12px; margin-bottom:8px; max-width:520px;">Ya no están en el clan. Salen de nuestro roster por su Clan Tag, o porque su Razón o su Clan es «NARANJA x».</div>${_tablaCoincidencias(ex, false)}`;
+  if(!ex.length){
+    if(data.esClanVetado) return titulo + '<div class="empty">Ninguno figura en Directorio, Inactivos ni Vetados con este clan o con la razón «NARANJA x».</div>';
+    if(sinIndice) return titulo + '<div class="empty">Aún no hay un índice completo de clanes externos, así que no se puede saber quiénes pasaron por este clan.</div>';
+    return titulo + '<div class="empty">Ningún jugador nuestro figura en el historial de guerra de este clan, aparte de sus miembros actuales.</div>';
+  }
+  const nota = data.esClanVetado
+    ? 'Ya no están en el clan. Salen de nuestro roster por su Clan Tag, o porque su Razón o su Clan es «NARANJA x».'
+    : 'Ya no están en el clan. Salen del historial de guerra de nuestros jugadores (RoyaleAPI); quien no está en ninguna hoja figura como «Fuera del roster».';
+  const aviso = sinIndice ? '<div class="text-faint" style="font-size:11px; margin-bottom:8px;">El índice de clanes externos aún no está completo: solo se muestra lo del clan vetado.</div>' : '';
+  return titulo + `<div class="text-dim" style="font-size:12px; margin-bottom:8px; max-width:520px;">${nota}</div>${aviso}${_tablaCoincidencias(ex, false)}`;
 }
 function renderInfiltrado(data, cont, conVeredicto = false){
   if(data.tipo === 'clan'){
@@ -2305,7 +2314,7 @@ function renderInfiltrado(data, cont, conVeredicto = false){
       const veredictoClan = n
         ? `<span class="badge badge-warn">${n === 1 ? '1 miembro actual figura' : n + ' miembros actuales figuran'} en nuestro roster</span><div class="text-dim" style="font-size:12px; margin-top:6px; max-width:420px;">Son miembros de este clan que también están en Directorio, Inactivos o Vetados.</div>`
         : '<span class="badge">Sin coincidencias</span><div class="text-dim" style="font-size:12px; margin-top:6px; max-width:420px;">Ninguno de sus miembros actuales figura en nuestro roster (Directorio, Inactivos o Vetados). Esto no prueba que no haya infiltrados: solo revisa a quienes están hoy en el clan.</div>';
-      cont.innerHTML = `<div>${veredictoClan}</div>` + (n ? `<div style="margin-top:14px;">${_tablaCoincidencias(filas, true)}</div>` : '') + _seccionExMiembrosClanVetado(data);
+      cont.innerHTML = `<div>${veredictoClan}</div>` + (n ? `<div style="margin-top:14px;">${_tablaCoincidencias(filas, true)}</div>` : '') + _seccionExMiembrosClan(data);
       cont.querySelectorAll('.tabla-coincidencias-wrap').forEach(w => activarBarraScrollTabla(w));
       return;
     }

@@ -382,6 +382,40 @@ test('clan vetado sin ex miembros en el roster lo dice; un clan que no es el vet
   assert.doesNotMatch(id(w, 'clanInfResultado').textContent, /pasaron por este clan/);
 });
 
+const respuestaClanIndice = extra => ({ ok: true, tipo: 'clan', clan: { tag: '#CLAN1', nombre: 'Clan Rival', miembros: 48 }, infoRival: null, coincidencias: [], ...extra });
+
+test('cualquier clan con índice de clanes externos: «¿Infiltrado?» lista a los jugadores nuestros que pasaron por él, también los «Fuera del roster» sin nombre (5-nov-2026, §PF369)', async () => {
+  const w = montar({ respuestas: [respuestaClan(), respuestaClanIndice({ indiceClanesDisponible: true, exMiembros: [
+    { origen: 'Inactivos', tag: '#C3', nombre: 'Ex Inactivo', clan: 'Terna 2', razon: 'Salió', semanas: 5 },
+    { origen: 'Fuera del roster', tag: '#Z9', nombre: '', clan: '', razon: '', semanas: 2 }] })] });
+  await buscarClanEn(w, '#CLAN1');
+  clic(w, 'btnClanInfiltradoPastilla'); await esperar();
+  const t = id(w, 'clanInfResultado').textContent;
+  assert.match(t, /Jugadores nuestros que pasaron por este clan/);
+  assert.match(t, /Ex Inactivo/);
+  assert.match(t, /Fuera del roster/);
+  assert.match(t, /#Z9/);
+  assert.doesNotMatch(t, /Aún no hay un índice/);
+});
+
+test('clan sin índice completo (indiceClanesDisponible false): lo dice y no inventa ex miembros (5-nov-2026, §PF369)', async () => {
+  const w = montar({ respuestas: [respuestaClan(), respuestaClanIndice({ indiceClanesDisponible: false, exMiembros: [] })] });
+  await buscarClanEn(w, '#CLAN1');
+  clic(w, 'btnClanInfiltradoPastilla'); await esperar();
+  const t = id(w, 'clanInfResultado').textContent;
+  assert.match(t, /Jugadores nuestros que pasaron por este clan/);
+  assert.match(t, /Aún no hay un índice completo de clanes externos/);
+});
+
+test('clan con índice pero sin coincidencias: dice que ningún jugador nuestro figura en su historial (5-nov-2026, §PF369)', async () => {
+  const w = montar({ respuestas: [respuestaClan(), respuestaClanIndice({ indiceClanesDisponible: true, exMiembros: [] })] });
+  await buscarClanEn(w, '#CLAN1');
+  clic(w, 'btnClanInfiltradoPastilla'); await esperar();
+  const t = id(w, 'clanInfResultado').textContent;
+  assert.match(t, /Ningún jugador nuestro figura en el historial de guerra de este clan/);
+  assert.doesNotMatch(t, /Aún no hay un índice/);
+});
+
 test('«Buscar clan»: Tag vacío no consulta; un error del backend se muestra y no abre la ficha; si falla la red se avisa', async () => {
   let w = montar();
   await buscarClanEn(w, '  ');
