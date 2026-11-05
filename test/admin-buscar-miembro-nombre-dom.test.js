@@ -155,6 +155,6 @@ test('la ficha del miembro buscado (#miembroSec) está dentro de la tarjeta «Bu
   const msg = doc.getElementById('buscarMsg');
   assert.ok(msg.compareDocumentPosition(ficha) & 4, 'va después de #buscarMsg'); // 4 = DOCUMENT_POSITION_FOLLOWING
   assert.ok(ficha.compareDocumentPosition(doc.getElementById('cardInfiltrados')) & 4, 'y antes de «Detección de infiltrados»');
-  assert.ok(!doc.getElementById('directorioGrupo').contains(ficha));
+  assert.equal(doc.getElementById('directorioGrupo'), null, 'el grupo «Directorio» ya no existe');
   for (const id of ['mNombre', 'fPrefijo', 'fCelular', 'fNomMulti', 'fPrestamo', 'btnGuardar', 'guardarMsg']) assert.ok(ficha.querySelector('#' + id), `#${id} sigue dentro de la ficha`);
 });

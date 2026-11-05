@@ -431,6 +431,34 @@
           </div>
 
         </div>
+
+        <!-- 5-nov-2026 (pedido de la usuaria): «Vetar miembro» se integró a «Buscar miembro». Con el perfil ya elegido se ve la pastilla «Vetar» y, al pulsarla, el resto de la antigua sección (Razón, Comentario y botón); el Tag es el del miembro de la ficha (miembroActual), ya no se escribe. Solo la ve quien tiene la función «Vetar» (aplicarVisibilidadPorFunciones()); el backend lo vuelve a validar en _webAdminVetar(). Vetar es de un solo sentido, sin «desvetar» desde la web; la lista de Razón debe actualizarse a mano si cambia en el backend. -->
+        <div id="vetarMiembroBox" style="display:none; margin-top:18px;">
+          <div class="nm-modo-selector">
+            <button type="button" class="tab-clan btn-vetar-pastilla" id="btnVetarPastilla" aria-expanded="false" aria-controls="vetarPanel" style="border-color:var(--danger); color:var(--danger);">🚫 Vetar</button>
+          </div>
+          <div id="vetarPanel" style="display:none; margin-top:14px;">
+            <h3 id="vTitulo" style="font-size:15px; color:var(--gold); margin-bottom:14px;"></h3>
+            <div class="field">
+              <label for="vRazon">Razón</label>
+              <select id="vRazon">
+                <option value="">Elige una razón…</option>
+                <option value="NARANJA x">NARANJA x</option>
+                <option value="Vetado por clan">Vetado por clan</option>
+                <option value="Incumplimiento de ataques">Incumplimiento de ataques</option>
+                <option value="Conducta inapropiada">Conducta inapropiada</option>
+                <option value="Inactividad prolongada">Inactividad prolongada</option>
+                <option value="Solicitud propia">Solicitud propia</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="vComentario">Comentario (opcional)</label>
+              <textarea id="vComentario" rows="6" placeholder="Detalle adicional para el registro de Comentarios"></textarea>
+            </div>
+            <button type="button" class="btn btn-primary btn-block" id="btnVetar" style="margin-top:6px; border-color:var(--danger);">Vetar</button>
+            <div id="vMsg"></div>
+          </div>
+        </div>
       </div>
 
       <!-- "Detección de infiltrados" vive junto a "Buscar miembro" (antes estaba en Directorio); mismo comportamiento y backend. -->
@@ -450,41 +478,7 @@
       </div>
     </div>
 
-    <!-- "Directorio" agrupa las acciones sobre el Directorio; hoy solo «Vetar miembro». 5-nov-2026: «Registrar miembro nuevo» se integró a «Buscar miembro» (un solo punto de entrada por Tag o nombre). -->
-    <div class="card admin-grupo pf-cinta" id="directorioGrupo" style="--cinta:url(Im%C3%A1genes/Banners/Fankit/cinta-index-clanes.webp); margin-top:24px;">
-      <div class="eyebrow">Directorio</div>
-
-      <!-- Vetar es de un solo sentido, sin opción de "desvetar" desde la web; la lista de Razón debe actualizarse a mano si cambia en el backend. -->
-      <details class="admin-subseccion" id="cardVetar">
-        <summary><span class="cat-titulo">Vetar miembro</span></summary>
-        <div class="admin-subseccion-body">
-          <div class="field">
-            <label for="vTag">Tag</label>
-            <input type="text" id="vTag" placeholder="Ej: #ABC123XYZ" autocapitalize="characters">
-          </div>
-          <div class="field">
-            <label for="vRazon">Razón</label>
-            <select id="vRazon">
-              <option value="">Elige una razón…</option>
-              <option value="NARANJA x">NARANJA x</option>
-              <option value="Vetado por clan">Vetado por clan</option>
-              <option value="Incumplimiento de ataques">Incumplimiento de ataques</option>
-              <option value="Conducta inapropiada">Conducta inapropiada</option>
-              <option value="Inactividad prolongada">Inactividad prolongada</option>
-              <option value="Solicitud propia">Solicitud propia</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="vComentario">Comentario (opcional)</label>
-            <textarea id="vComentario" rows="6" placeholder="Detalle adicional para el registro de Comentarios"></textarea>
-          </div>
-          <button type="button" class="btn btn-primary btn-block" id="btnVetar" style="margin-top:6px; border-color:var(--danger);">Vetar</button>
-          <div id="vMsg"></div>
-        </div>
-      </details>
-
-      <!-- "Participación de hoy en guerra" se retiró de aquí porque duplicaba directorio.html; vive solo ahí. -->
-    </div>
+    <!-- 5-nov-2026 (pedido de la usuaria): el grupo «Directorio» (solo traía la tarjeta «Vetar miembro») se retiró: «Vetar miembro» pasó a la ficha de «Buscar miembro» como la pastilla #btnVetarPastilla. Historial en CHANGELOG.md. -->
 
     <!-- "Torneos y sorteos" agrupa ambos en un contenedor con subsecciones; reutiliza las mismas funciones que ya usa el bot de WhatsApp. -->
     <div class="card admin-grupo pf-cinta" style="--cinta:url(Im%C3%A1genes/Banners/Fankit/cinta-torneos-cabecera.webp); margin-top:24px;">
@@ -1697,9 +1691,8 @@ function aplicarVisibilidadPorFunciones(){
   const puedeVetar = funciones.indexOf('Vetar') !== -1;
   // 5-nov-2026: «Registrar miembro nuevo» ya no es una tarjeta aparte, sino parte de «Buscar miembro». Con el permiso se ve la pastilla «Buscar en Directorio» (la lista de miembros del clan la pide con ese permiso) y el Paso 2 de registro; sin él, «Buscar miembro» queda con la sola búsqueda por Tag o nombre. Historial en CHANGELOG.md.
   document.getElementById('nmModoCampo').style.display = puedeRegistrar ? '' : 'none';
-  document.getElementById('cardVetar').style.display = puedeVetar ? '' : 'none';
-  // #cardInfiltrados vive junto a "Buscar miembro"; el contenedor "Directorio" solo trae «Vetar miembro», así que se ve solo con esa función.
-  document.getElementById('directorioGrupo').style.display = puedeVetar ? '' : 'none';
+  // 5-nov-2026: «Vetar miembro» ya no es una tarjeta aparte: es la pastilla #btnVetarPastilla al pie de la ficha de «Buscar miembro». Solo la ve quien tiene la función «Vetar». Historial en CHANGELOG.md.
+  document.getElementById('vetarMiembroBox').style.display = puedeVetar ? '' : 'none';
 }
 
 /**
@@ -1946,6 +1939,23 @@ function renderMiembro(j){
   document.getElementById('fNomMulti').value = ed.nomMulti || '';
   document.getElementById('fPrestamo').value = ed.prestamo || '';
   document.getElementById('guardarMsg').innerHTML = '';
+  reiniciarVetarMiembro(j); // 5-nov-2026: cada ficha nueva empieza con la pastilla «Vetar» cerrada y el formulario limpio
+}
+
+/** 5-nov-2026 (pedido de la usuaria, «Vetar miembro» integrado a «Buscar miembro»): deja la pastilla «Vetar» de la ficha cerrada y su formulario vacío para el miembro `j`.
+ *  Se llama desde renderMiembro() en cada ficha nueva, para no vetar a alguien con la razón o el comentario de una ficha anterior. */
+function reiniciarVetarMiembro(j){
+  document.getElementById('vetarPanel').style.display = 'none';
+  const pastilla = document.getElementById('btnVetarPastilla');
+  pastilla.classList.remove('activo');
+  pastilla.setAttribute('aria-expanded', 'false');
+  pastilla.disabled = false;
+  pastilla.textContent = '🚫 Vetar';
+  document.getElementById('vTitulo').textContent = `Vetar a ${j.nombre} (${j.tag})`;
+  document.getElementById('vRazon').value = '';
+  document.getElementById('vComentario').value = '';
+  document.getElementById('vMsg').innerHTML = '';
+  document.getElementById('btnVetar').style.display = '';
 }
 
 /**
@@ -8017,15 +8027,26 @@ document.getElementById('btnNmGuardar').addEventListener('click', () => conBoton
 // deshacer desde la web (Sección 7.6) — por eso el confirm() antes de
 // disparar el request, además del color de aviso en el botón.
 
+// 5-nov-2026 (pedido de la usuaria): «Vetar miembro» se integró a la ficha de «Buscar miembro». La pastilla #btnVetarPastilla abre/cierra #vetarPanel (Razón, Comentario y botón)
+// y el Tag es el del miembro de la ficha (miembroActual), ya no se escribe. Al vetar con éxito se oculta el botón y la pastilla queda bloqueada («Vetado») hasta buscar a otro miembro.
+document.getElementById('btnVetarPastilla').addEventListener('click', () => {
+  const pastilla = document.getElementById('btnVetarPastilla');
+  const panel = document.getElementById('vetarPanel');
+  const abrir = panel.style.display === 'none';
+  panel.style.display = abrir ? 'block' : 'none';
+  pastilla.classList.toggle('activo', abrir);
+  pastilla.setAttribute('aria-expanded', abrir ? 'true' : 'false');
+  if(abrir) document.getElementById('vRazon').focus({ preventScroll: false });
+});
+
 document.getElementById('btnVetar').addEventListener('click', () => conBotonOcupado(document.getElementById('btnVetar'), async () => {
   const msgEl = document.getElementById('vMsg');
   msgEl.innerHTML = '';
-  const tagNorm = normalizarTag(document.getElementById('vTag').value);
+  const tagNorm = miembroActual ? normalizarTag(miembroActual) : '';
   const razon = document.getElementById('vRazon').value;
   const comentario = document.getElementById('vComentario').value.trim();
-  if(!tagNorm){ msgEl.innerHTML = '<div class="msg msg-error">Escribe un Tag válido.</div>'; return; }
+  if(!tagNorm){ msgEl.innerHTML = '<div class="msg msg-error">Primero busca un miembro.</div>'; return; }
   if(!razon){ msgEl.innerHTML = '<div class="msg msg-error">Elige una Razón.</div>'; return; }
-  document.getElementById('vTag').value = tagNorm;
   if(!window.confirm(`¿Vetar a ${tagNorm}? Esta acción no se puede deshacer desde la web.`)) return;
   try{
     const data = await apiPost('webAdminVetar', {
@@ -8035,9 +8056,12 @@ document.getElementById('btnVetar').addEventListener('click', () => conBotonOcup
     if(manejarRespuestaAuth(data)) return;
     if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
     msgEl.innerHTML = '<div class="msg msg-ok">Miembro vetado.</div>';
-    document.getElementById('vTag').value = '';
     document.getElementById('vRazon').value = '';
     document.getElementById('vComentario').value = '';
+    document.getElementById('btnVetar').style.display = 'none'; // conBotonOcupado() lo vuelve a habilitar al terminar, así que se oculta para no vetar dos veces
+    const pastilla = document.getElementById('btnVetarPastilla');
+    pastilla.disabled = true;
+    pastilla.textContent = '🚫 Vetado';
   }catch(err){
     msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
   }

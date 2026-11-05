@@ -37,7 +37,7 @@ function montar({ funciones = 'Registrar miembro nuevo', respuesta, sesionRota =
       <select id="nmNomMultiSelect"></select><input id="nmNomMultiNuevo" value="x" style="display:block"><input id="nmPrefijo" value="51"><input id="nmCelular" value="999"><div id="nmGuardarMsg">viejo</div>
     </div>
     <div id="miembroSec" style="display:none"><h3 id="mNombre"></h3></div>
-    <div id="nmModoCampo" style="display:none"></div><div id="cardVetar"></div><div id="directorioGrupo"></div>
+    <div id="nmModoCampo" style="display:none"></div><div id="vetarMiembroBox" style="display:none"></div>
   </body></html>`, { runScripts: 'outside-only', pretendToBeVisual: true, url: 'https://terna.example/' });
   const w = dom.window;
   w.HTMLElement.prototype.scrollIntoView = function(){ w.__scroll.push(this.id); };
@@ -133,19 +133,18 @@ test('adminPuedeRegistrar(): solo con la función «Registrar miembro nuevo» en
   assert.equal(ev(w, 'adminPuedeRegistrar()'), false);
 });
 
-test('aplicarVisibilidadPorFunciones(): la pastilla «Buscar en Directorio» sale solo con «Registrar miembro nuevo»; el grupo «Directorio» y «Vetar miembro» solo con «Vetar»', () => {
+test('aplicarVisibilidadPorFunciones(): la pastilla «Buscar en Directorio» sale solo con «Registrar miembro nuevo»; la pastilla «Vetar» de la ficha solo con «Vetar»', () => {
   const casos = [
-    ['Registrar miembro nuevo', '', 'none', 'none'],
-    ['Vetar', 'none', '', ''],
-    ['Registrar miembro nuevo, Vetar', '', '', ''],
-    ['', 'none', 'none', 'none']
+    ['Registrar miembro nuevo', '', 'none'],
+    ['Vetar', 'none', ''],
+    ['Registrar miembro nuevo, Vetar', '', ''],
+    ['', 'none', 'none']
   ];
-  for (const [funciones, campo, vetar, grupo] of casos){
+  for (const [funciones, campo, vetar] of casos){
     const w = montar({ funciones });
     ev(w, 'aplicarVisibilidadPorFunciones()');
     assert.equal(id(w, 'nmModoCampo').style.display, campo, `pastilla con «${funciones}»`);
-    assert.equal(id(w, 'cardVetar').style.display, vetar, `Vetar con «${funciones}»`);
-    assert.equal(id(w, 'directorioGrupo').style.display, grupo, `grupo Directorio con «${funciones}»`);
+    assert.equal(id(w, 'vetarMiembroBox').style.display, vetar, `Vetar con «${funciones}»`);
   }
 });
 
@@ -182,7 +181,9 @@ test('estructura de admin.html: «Registrar miembro nuevo» vive dentro de «Bus
   antes('nmVerificarMsg', 'nmPaso2'); antes('nmPaso2', 'miembroSec'); antes('miembroSec', 'cardInfiltrados');
   assert.deepEqual([...doc.querySelectorAll('.btn-toggle-nmmodo')].map(b => [b.dataset.modo, b.textContent.trim()]), [['tag', 'Tag o nombre'], ['directorio', 'Buscar en Directorio']]);
   assert.equal(g('nmModoCampo').style.display, 'none', 'la pastilla empieza oculta hasta saber el permiso');
-  assert.ok(g('directorioGrupo').contains(g('cardVetar')), '«Vetar miembro» sigue en el grupo «Directorio»');
+  assert.equal(g('directorioGrupo'), null, 'el grupo «Directorio» (solo traía «Vetar miembro») ya no existe');
+  assert.equal(g('cardVetar'), null, 'la tarjeta «Vetar miembro» aparte ya no existe');
+  assert.equal(g('vTag'), null, 'la caja de Tag de vetar ya no existe: se usa el Tag de la ficha');
   assert.equal(g('mVerPerfil').getAttribute('target'), '_blank');
   assert.equal(g('mVerPerfil').getAttribute('rel'), 'noopener');
   assert.ok(HTML.includes("'perfil.html?tag=' + encodeURIComponent(j.tag)"), 'renderMiembro() arma el enlace a perfil.html con el Tag');
