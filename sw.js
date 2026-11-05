@@ -264,7 +264,8 @@
 // v215 (5-nov-2026): admin.html cambió (CORE_ASSETS) -- «Vetar miembro» ya no es una tarjeta aparte («Directorio»): es la pastilla «Vetar» de la ficha de «Buscar miembro», con el Tag del miembro elegido y el resto de la sección (Razón, Comentario y botón) al pulsarla (§PF365).
 // v216 (5-nov-2026): admin.html cambió (CORE_ASSETS) -- la pastilla «Vetar» pasó a la cabecera de la ficha de «Buscar miembro» (arriba a la derecha) y el campo «Préstamo» pide el nombre de la persona a quien se prestó la cuenta (§PF365).
 // v217 (5-nov-2026): admin.html cambió (CORE_ASSETS) -- junto a la pastilla «Vetar» de la ficha de «Buscar miembro» sale la pastilla «¿Infiltrado?», que integra «Detección de infiltrados» a la ficha con el Tag del miembro abierto (§PF366).
-const CACHE_NAME = 'terna-static-v217';
+// v218 (6-nov-2026): admin.html cambió (CORE_ASSETS) -- la pastilla «¿Infiltrado?» de la ficha suma los clanes externos donde el jugador jugó guerra (JSON individual) y la tarjeta «Detección de infiltrados» pasa a revisar solo clanes (§PF367).
+const CACHE_NAME = 'terna-static-v218';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y

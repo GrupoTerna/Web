@@ -475,11 +475,11 @@
       <!-- "Detección de infiltrados" vive junto a "Buscar miembro" (antes estaba en Directorio); mismo comportamiento y backend. -->
       <div style="margin-top:22px; padding-top:18px; border-top:1px solid var(--line);">
         <details class="admin-subseccion" id="cardInfiltrados">
-          <summary><span class="cat-titulo">Detección de infiltrados</span></summary>
+          <summary><span class="cat-titulo">Detección de infiltrados: revisar un clan</span></summary>
           <div class="admin-subseccion-body">
-            <p class="text-dim" style="font-size:13px; margin:0 0 14px;">Escribe el Tag de un clan rival o de un jugador puntual. Se revisa contra los clanes rivales de esta temporada, la lista manual de conflicto (hoja "Conflictos") y nuestro propio roster (Directorio/Inactivos/Vetados).</p>
+            <p class="text-dim" style="font-size:13px; margin:0 0 14px;">Escribe el Tag de un clan rival. Se revisa contra los clanes rivales de esta temporada, la lista manual de conflicto (hoja "Conflictos") y nuestro propio roster (Directorio/Inactivos/Vetados). Para revisar a un jugador usa la pastilla «🕵️ ¿Infiltrado?» de su ficha, en «Buscar miembro».</p>
             <div class="buscador">
-              <input type="text" id="infTagInput" aria-label="Tag del clan rival o del jugador" placeholder="Ej: #ABC123XYZ" autocapitalize="characters">
+              <input type="text" id="infTagInput" aria-label="Tag del clan rival" placeholder="Ej: #ABC123XYZ" autocapitalize="characters">
               <button type="button" class="btn btn-primary" id="btnBuscarInfiltrado">Buscar</button>
             </div>
             <div id="infMsg"></div>
@@ -2202,8 +2202,33 @@ function _tablaCoincidencias(filas, conColumnaOrigenClan){
 }
 
 /** Veredicto «Sin señales» de la ficha: el jugador no figura en ninguna de las dos listas, y eso NO prueba que no sea infiltrado (mismo criterio que perfil.html, §PF196). */
-function _sinSenalesInfiltrado(){
-  return '<span class="badge">Sin señales</span><div class="text-dim" style="font-size:12px; margin-top:6px; max-width:320px;">Su clan actual no figura como rival de esta temporada ni en la lista de conflicto. Esto no prueba que no sea infiltrado: solo revisa esas dos listas.</div>';
+function _sinSenalesInfiltrado(conExternos = false){
+  const que = conExternos ? 'Ni su clan actual ni los clanes externos donde jugó guerra figuran como rival de esta temporada ni en la lista de conflicto.' : 'Su clan actual no figura como rival de esta temporada ni en la lista de conflicto.';
+  return `<span class="badge">Sin señales</span><div class="text-dim" style="font-size:12px; margin-top:6px; max-width:320px;">${que} Esto no prueba que no sea infiltrado: solo revisa esas dos listas.</div>`;
+}
+
+/** Veredicto de la ficha cuando su clan actual está limpio pero jugó guerra en un clan que HOY figura como rival o en conflicto (§PF367). `rivales` = clanesExternos con infoRival. */
+function _alertaClanExternoRival(rivales){
+  const nombres = rivales.map(c => esc(c.nombre || c.tag)).join(', ');
+  return `<span class="badge badge-warn">Jugó en un clan rival o en conflicto</span><div class="text-dim" style="font-size:12px; margin-top:6px; max-width:320px;">${rivales.length === 1 ? 'Clan' : 'Clanes'}: ${nombres}. Su clan actual está limpio; revisa la tabla de abajo.</div>`;
+}
+
+/** Clanes externos donde el jugador jugó guerra, de su JSON individual de RoyaleAPI (§PF367). Solo ve semanas con fila de guerra. `disponible` false = el backend no pudo leer el JSON. */
+function _tablaClanesExternos(lista, disponible){
+  if(!disponible) return '<div class="empty">No se pudo leer su historial de guerra.</div>';
+  if(!lista.length) return '<div class="empty">Sin clanes externos en su historial de guerra (puede que aún no tenga su JSON completo o que no haya jugado fuera).</div>';
+  const pto = p => p ? `T${esc(p.temporada)} S${esc(p.semana)}` : '—';
+  const filas = lista.map(c => `
+    <tr>
+      <td>${esc(c.nombre || '—')}${c.tag ? ` <span class="text-faint">(${esc(c.tag)})</span>` : ''}</td>
+      <td>${esc(c.semanas)}</td>
+      <td>${pto(c.primera)} → ${pto(c.ultima)}</td>
+      <td>${c.infoRival ? _badgeRival(c.infoRival) : '—'}</td>
+    </tr>`).join('');
+  return `<div class="tabla-coincidencias-wrap" style="overflow-x:auto;"><table>
+    <thead><tr><th scope="col">Clan</th><th scope="col">Semanas</th><th scope="col">Primera → última</th><th scope="col">Hoy</th></tr></thead>
+    <tbody>${filas}</tbody>
+  </table></div>`;
 }
 
 /** `cont` y `conVeredicto` son para la pastilla «¿Infiltrado?» de la ficha (5-nov-2026): se pinta en #fichaInfResultado y, si el jugador no tiene señales, se dice «Sin señales» con la aclaración de que no prueba nada (mismo texto de perfil.html, §PF196). Sin argumentos es la tarjeta «Detección de infiltrados» de siempre. */
@@ -2225,15 +2250,27 @@ function renderInfiltrado(data, cont = document.getElementById('infResultado'), 
       <div style="margin-top:14px;">${_tablaCoincidencias(filas, true)}</div>`;
   } else if(data.tipo === 'jugador'){
     const j = data.jugador;
+    const externos = data.clanesExternos || [];
+    const rivalesExt = externos.filter(c => c.infoRival);
+    // Pastilla de la ficha (conVeredicto): su fila del Directorio es él mismo, así que solo se muestra el roster si aparece además en Inactivos o Vetados; y se agregan los clanes externos (§PF367).
+    const rosterFicha = (data.historialTerna || []).filter(f => f.origen !== 'Directorio');
+    const veredicto = !conVeredicto ? _badgeRival(data.infoRival)
+      : data.infoRival ? _badgeRival(data.infoRival)
+      : rivalesExt.length ? _alertaClanExternoRival(rivalesExt)
+      : _sinSenalesInfiltrado(data.clanesExternosDisponible !== false);
+    const cuerpo = !conVeredicto ? _tablaCoincidencias(data.historialTerna || [], false)
+      : (rosterFicha.length ? `<div style="margin-bottom:14px;">${_tablaCoincidencias(rosterFicha, false)}</div>` : '')
+        + `<div class="text-dim" style="font-size:12px; text-transform:uppercase; letter-spacing:.04em; margin-bottom:6px;">Clanes externos donde jugó guerra</div>`
+        + _tablaClanesExternos(externos, data.clanesExternosDisponible !== false);
     cont.innerHTML = `
       <div class="perfil-cabecera">
         <div>
           <h3 style="font-size:17px;">${esc(j.nombre)} <span class="text-faint" style="font-family:var(--f-mono); font-size:12px;">${esc(j.tag)}</span></h3>
           <div class="text-dim" style="font-size:13px; margin-top:4px;">Clan actual: ${j.clanActual ? esc(j.clanActual) + ' (' + esc(j.clanActualTag) + ')' : 'Sin clan'}</div>
         </div>
-        <div>${conVeredicto && !data.infoRival ? _sinSenalesInfiltrado() : _badgeRival(data.infoRival)}</div>
+        <div>${veredicto}</div>
       </div>
-      <div style="margin-top:14px;">${_tablaCoincidencias(data.historialTerna || [], false)}</div>`;
+      <div style="margin-top:14px;">${cuerpo}</div>`;
   }
   // FIX (18-sep-2026, pedido usuario -- "ninguna de las tablas debe tener
   // la barra nativa"): _tablaCoincidencias() tenía overflow-x:auto sin
@@ -2250,7 +2287,7 @@ async function buscarInfiltrado(){
   document.getElementById('infTagInput').value = tagNorm;
   msgEl.innerHTML = '<div class="empty">Buscando…</div>';
   try{
-    const data = await apiGetAuth('webAdminBuscarInfiltrado', { tag: tagNorm });
+    const data = await apiGetAuth('webAdminBuscarInfiltrado', { tag: tagNorm, soloClan: '1' }); // 6-nov-2026 (§PF367): la tarjeta solo revisa clanes; al jugador lo cubre la pastilla de la ficha
     if(manejarRespuestaAuth(data)) return;
     if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
     msgEl.innerHTML = '';
