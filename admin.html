@@ -111,6 +111,26 @@
      izquierda de la celda. */
   .cr-grid-table td{text-align:center; padding:4px 6px;}
   .cr-grid-table th{padding:6px 6px;}
+  /* 5-nov-2026 (pedido de la usuaria, §PF374): «Activos en nuestros clanes» de «¿Tiene infiltrados?» imita el roster de directorio.html: pastillas por clan nuestro con su cantidad entre paréntesis (mismo aspecto que .clan-tab-btn) y una sola tabla .roster-table del clan elegido. La tipografía del encabezado y el borde vienen de .roster-table en assets/styles.css; el centrado, el relleno y el tamaño de las celdas se copian aquí de directorio.html (que los declara en su propio <style>). */
+  .ex-clan-pills{display:flex; gap:9px; flex-wrap:wrap; margin:6px 0 14px;}
+  .ex-clan-pill{
+    font-family:var(--f-mono); font-weight:700; font-size:12px; letter-spacing:.03em;
+    padding:8px 15px; border-radius:999px; border:1px solid var(--line); color:var(--text-dim);
+    cursor:pointer; background:var(--surface-card); transition:all .18s ease; display:inline-flex; align-items:center; gap:7px;
+  }
+  .ex-clan-pill .ex-clan-pill-count{font-family:var(--f-mono); font-size:10.5px; color:var(--text-faint); font-weight:400;}
+  .ex-clan-pill:hover{border-color:var(--line-strong); color:var(--text);}
+  .ex-clan-pill.active{color:#fff; border-color:var(--purple); background:rgba(162,57,255,.18); box-shadow:0 0 12px rgba(162,57,255,.18);}
+  .ex-clan-pill.active .ex-clan-pill-count{color:var(--purple-light);}
+  .ex-activos-tabla{border:1px solid var(--line); border-radius:var(--radius-sm); overflow:hidden;}
+  .ex-activos-tabla .roster-clan-header{padding:14px 13px 8px;}
+  .ex-activos-tabla .roster-clan-title{font-size:15px; margin:0; color:var(--purple-light); text-transform:uppercase;}
+  .ex-activos-tabla .roster-table th, .ex-activos-tabla .roster-table td{padding:11px 13px; text-align:center; white-space:nowrap;}
+  .ex-activos-tabla .roster-table tbody td{border-bottom:1px solid rgba(162,57,255,.06); font-size:13px; color:var(--text);}
+  .ex-activos-tabla .roster-table td.rt-num{font-family:var(--f-mono); color:var(--text-faint);}
+  .ex-activos-tabla .roster-table td.rt-nombre{font-weight:700; text-align:left;}
+  .ex-activos-tabla .roster-table td.rt-periodo, .ex-activos-tabla .roster-table td.rt-semanas{font-family:var(--f-mono); color:var(--text-dim);}
+  .ex-activos-tabla .ex-activos-vacio{padding:6px 13px 14px; font-size:12px;}
   /* FIX (19-sep-2026, Fase 0 re-verificada): .btn-icono (+ .btn-icono.copiado)
      centralizado en assets/styles.css — era idéntico carácter por carácter
      al de mensajes.html; permisos.html tenía una versión distinta sin saber
@@ -2303,16 +2323,59 @@ function _etiquetaPuntoClan(p){
 }
 
 /** Tabla de «pasaron por este clan» (§PF372). activos: los de Directorio, ya agrupados por clan nuestro (sin columna Origen, Clan ni Razón); inactivos: Inactivos, Vetados y fuera del roster. */
-function _tablaExMiembros(filas, activos){
-  const celdaRoster = f => `${f.origen === 'Directorio' ? enlaceJugador(f.nombre, f.tag) : esc(f.nombre || '—')} <span class="text-faint">(${esc(f.tag)})</span>`;
-  const periodo = f => (f.primera || f.ultima) ? `${_etiquetaPuntoClan(f.primera)} → ${_etiquetaPuntoClan(f.ultima)}` : '—';
-  const filasHtml = filas.map(f => activos
-    ? `<tr><td>${celdaRoster(f)}</td><td>${f.semanas ? esc(f.semanas) : '—'}</td><td>${periodo(f)}</td></tr>`
-    : `<tr><td>${esc(f.origen)}</td><td>${celdaRoster(f)}</td><td>${f.clan ? enlaceClan(f.clan) : '—'}</td><td>${esc(f.razon || '—')}</td><td>${f.semanas ? esc(f.semanas) : '—'}</td><td>${periodo(f)}</td></tr>`).join('');
-  const cabecera = activos
-    ? '<th scope="col">Nuestro roster</th><th scope="col">Semanas en este clan</th><th scope="col">Primera → última</th>'
-    : '<th scope="col">Origen</th><th scope="col">Nuestro roster</th><th scope="col">Último clan nuestro</th><th scope="col">Razón</th><th scope="col">Semanas en este clan</th><th scope="col">Primera → última</th>';
+/** Celda «Nuestro roster» y texto «Primera → última» de las tablas de «pasaron por este clan» (§PF372, compartidas con la tabla de activos de §PF374). */
+function _celdaRosterEx(f){
+  return `${f.origen === 'Directorio' ? enlaceJugador(f.nombre, f.tag) : esc(f.nombre || '—')} <span class="text-faint">(${esc(f.tag)})</span>`;
+}
+function _periodoEx(f){
+  return (f.primera || f.ultima) ? `${_etiquetaPuntoClan(f.primera)} → ${_etiquetaPuntoClan(f.ultima)}` : '—';
+}
+
+/** Tabla de los inactivos de «pasaron por este clan» (§PF372): Inactivos, Vetados y fuera del roster. Los activos van en _tablaActivosClan() (§PF374). */
+function _tablaExMiembros(filas){
+  const filasHtml = filas.map(f => `<tr><td>${esc(f.origen)}</td><td>${_celdaRosterEx(f)}</td><td>${f.clan ? enlaceClan(f.clan) : '—'}</td><td>${esc(f.razon || '—')}</td><td>${f.semanas ? esc(f.semanas) : '—'}</td><td>${_periodoEx(f)}</td></tr>`).join('');
+  const cabecera = '<th scope="col">Origen</th><th scope="col">Nuestro roster</th><th scope="col">Último clan nuestro</th><th scope="col">Razón</th><th scope="col">Semanas en este clan</th><th scope="col">Primera → última</th>';
   return `<div class="tabla-coincidencias-wrap" style="overflow-x:auto;"><table><thead><tr>${cabecera}</tr></thead><tbody>${filasHtml}</tbody></table></div>`;
+}
+
+/** Activos de «pasaron por este clan» agrupados por clan nuestro (§PF374): primero los de CLANES_REQUISITOS (salen siempre, aunque estén vacíos), luego cualquier otro nombre que traiga el Directorio. */
+function _gruposActivosClan(data){
+  const activos = (data.exMiembros || []).filter(f => f.origen === 'Directorio');
+  const grupos = {};
+  activos.forEach(f => { const k = f.clan || 'Sin clan'; (grupos[k] = grupos[k] || []).push(f); });
+  const nuestros = (typeof CLANES_REQUISITOS !== 'undefined' && Array.isArray(CLANES_REQUISITOS)) ? CLANES_REQUISITOS.map(String) : [];
+  const orden = nuestros.concat(Object.keys(grupos).filter(k => !nuestros.includes(k)));
+  return { activos, grupos, orden };
+}
+
+/** Una sola tabla, la del clan nuestro elegido en las pastillas (§PF374), con la misma estructura que el roster de directorio.html: título del clan con su cantidad, N° a la izquierda y las columnas de «pasaron por este clan». */
+function _tablaActivosClan(clan, filas){
+  const n = filas.length;
+  const titulo = `<div class="roster-clan-header"><h3 class="roster-clan-title">${esc(clan)} <span class="text-faint" style="font-family:var(--f-mono); font-size:12px; font-weight:400;">(${n} miembro${n === 1 ? '' : 's'})</span></h3></div>`;
+  if(!n) return titulo + '<div class="text-faint ex-activos-vacio">Ninguno.</div>';
+  const filasHtml = filas.map((f, i) => `<tr><td class="rt-num">${i + 1}</td><td class="rt-nombre">${_celdaRosterEx(f)}</td><td class="rt-semanas">${f.semanas ? esc(f.semanas) : '—'}</td><td class="rt-periodo">${_periodoEx(f)}</td></tr>`).join('');
+  return titulo + `<div class="tabla-coincidencias-wrap roster-table-wrap" style="overflow-x:auto;"><table class="roster-table"><thead><tr><th scope="col">N°</th><th scope="col">Nuestro roster</th><th scope="col">Semanas en este clan</th><th scope="col">Primera → última</th></tr></thead><tbody>${filasHtml}</tbody></table></div>`;
+}
+
+/** Pastillas de clan (con su cantidad entre paréntesis) y la tabla del clan activo. Arranca en el primer clan que tenga activos; si ninguno tiene, en el primero. */
+function _bloqueActivosClan(g){
+  if(!g.orden.length) return '<div class="empty">Ninguno.</div>';
+  const inicial = g.orden.find(k => (g.grupos[k] || []).length) || g.orden[0];
+  const pastillas = g.orden.map(k => `<button type="button" class="ex-clan-pill${k === inicial ? ' active' : ''}" data-clan="${esc(k)}" aria-pressed="${k === inicial}">${esc(k)} <span class="ex-clan-pill-count">(${(g.grupos[k] || []).length})</span></button>`).join('');
+  return `<div data-ex-activos><div class="ex-clan-pills" role="group" aria-label="Clan nuestro">${pastillas}</div><div class="ex-activos-tabla">${_tablaActivosClan(inicial, g.grupos[inicial] || [])}</div></div>`;
+}
+
+/** Hace que cada pastilla cambie la tabla de activos al clan elegido (§PF374). Se llama después de pintar el resultado en el contenedor. */
+function _enlazarActivosClan(cont, data){
+  const bloque = cont.querySelector('[data-ex-activos]');
+  if(!bloque) return;
+  const grupos = _gruposActivosClan(data).grupos;
+  const caja = bloque.querySelector('.ex-activos-tabla');
+  bloque.querySelectorAll('.ex-clan-pill').forEach(btn => btn.addEventListener('click', () => {
+    bloque.querySelectorAll('.ex-clan-pill').forEach(b => { const on = b === btn; b.classList.toggle('active', on); b.setAttribute('aria-pressed', String(on)); });
+    caja.innerHTML = _tablaActivosClan(btn.dataset.clan, grupos[btn.dataset.clan] || []);
+    caja.querySelectorAll('.tabla-coincidencias-wrap').forEach(w => activarBarraScrollTabla(w));
+  }));
 }
 
 /** Jugadores nuestros que pasaron por el clan y ya no están en él (§PF368 para el clan vetado, §PF369 para cualquier clan, §PF372 separados en activos por clan nuestro e inactivos). Vienen del índice de clanes externos del backend (data.exMiembros, data.indiceClanesDisponible); el clan vetado además suma lo que dice «NARANJA x» en Inactivos y Vetados (data.esClanVetado). Con un backend anterior al índice, sin esClanVetado ni indiceClanesDisponible, no se pinta nada. Activos = origen Directorio, agrupados por su clan (los de CLANES_REQUISITOS siempre salen, aunque estén vacíos); inactivos = el resto. */
@@ -2327,26 +2390,18 @@ function _seccionExMiembrosClan(data){
     if(sinIndice) return titulo + '<div class="empty">Aún no hay un índice completo de clanes externos, así que no se puede saber quiénes pasaron por este clan.</div>';
     return titulo + '<div class="empty">Ningún jugador nuestro figura en el historial de guerra de este clan, aparte de sus miembros actuales.</div>';
   }
-  const activos = ex.filter(f => f.origen === 'Directorio');
+  const g = _gruposActivosClan(data);
+  const activos = g.activos;
   const inactivos = ex.filter(f => f.origen !== 'Directorio');
   const nota = data.esClanVetado
     ? 'Ya no están en el clan. Salen de nuestro roster por su Clan Tag, o porque su Razón o su Clan es «NARANJA x».'
     : 'Ya no están en el clan. Salen del historial de guerra de nuestros jugadores (RoyaleAPI); quien no está en ninguna hoja figura como «Fuera del roster».';
   const aviso = sinIndice ? '<div class="text-faint" style="font-size:11px; margin-bottom:8px;">El índice de clanes externos aún no está completo: solo se muestra lo del clan vetado.</div>' : '';
-  // Activos: un bloque por clan nuestro (primero los de CLANES_REQUISITOS, luego cualquier otro nombre que traiga el Directorio).
-  const grupos = {};
-  activos.forEach(f => { const k = f.clan || 'Sin clan'; (grupos[k] = grupos[k] || []).push(f); });
-  const nuestros = (typeof CLANES_REQUISITOS !== 'undefined' && Array.isArray(CLANES_REQUISITOS)) ? CLANES_REQUISITOS.map(String) : [];
-  const orden = nuestros.concat(Object.keys(grupos).filter(k => !nuestros.includes(k)));
-  const bloquesActivos = orden.map(k => {
-    const filas = grupos[k] || [];
-    return `<div style="margin-top:10px;"><div style="font-weight:600; font-size:13px; margin-bottom:4px;">${esc(k)} <span class="text-faint" style="font-weight:400;">(${filas.length})</span></div>${filas.length ? _tablaExMiembros(filas, true) : '<div class="text-faint" style="font-size:12px;">Ninguno.</div>'}</div>`;
-  }).join('');
   const pie = `<div class="text-faint" style="font-size:11px; margin-top:6px;">«Semanas en este clan» y «Primera → última» salen del historial de guerra de RoyaleAPI${data.esClanVetado ? '; con «—», figura en nuestro roster por su Clan Tag o por la razón «NARANJA x», pero no hay semanas en el índice' : ''}. Recién se están guardando los perfiles completos, así que al principio habrá pocos.</div>`;
   return titulo + `<div class="text-dim" style="font-size:12px; margin-bottom:8px;">${nota}</div>${aviso}`
-    + subtitulo(`Activos en nuestros clanes (${activos.length})`) + bloquesActivos
+    + subtitulo(`Activos en nuestros clanes (${activos.length})`) + _bloqueActivosClan(g)
     + subtitulo(`Inactivos: ya no están en nuestros clanes (${inactivos.length})`)
-    + (inactivos.length ? _tablaExMiembros(inactivos, false) : '<div class="empty">Ninguno.</div>')
+    + (inactivos.length ? _tablaExMiembros(inactivos) : '<div class="empty">Ninguno.</div>')
     + pie;
 }
 function renderInfiltrado(data, cont, conVeredicto = false){
@@ -2364,6 +2419,7 @@ function renderInfiltrado(data, cont, conVeredicto = false){
         : '<span class="badge">Sin coincidencias</span><div class="text-dim" style="font-size:12px; margin-top:6px;">Ninguno de sus miembros actuales figura en nuestro roster (Directorio, Inactivos o Vetados). Esto no prueba que no haya infiltrados: solo revisa a quienes están hoy en el clan.</div>';
       cont.innerHTML = `<div>${veredictoClan}</div>` + (n ? `<div style="margin-top:14px;">${_tablaCoincidencias(filas, true)}</div>` : '') + _seccionExMiembrosClan(data);
       cont.querySelectorAll('.tabla-coincidencias-wrap').forEach(w => activarBarraScrollTabla(w));
+      _enlazarActivosClan(cont, data);
       return;
     }
     cont.innerHTML = `

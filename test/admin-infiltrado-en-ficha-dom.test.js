@@ -414,15 +414,19 @@ test('«pasaron por este clan» separa ACTIVOS por clan nuestro (Directorio) e I
   const t = cont.textContent;
   assert.match(t, /Activos en nuestros clanes \(2\)/);
   assert.match(t, /Inactivos: ya no están en nuestros clanes \(2\)/);
-  // un bloque por clan nuestro, también los vacíos, en el orden de CLANES_REQUISITOS
-  const nombres = [...cont.querySelectorAll('div[style*="font-weight:600"]')].map(d => d.textContent.replace(/\s+/g, ' ').trim());
-  assert.deepEqual(nombres, ['Grupo乂Terna™ (0)', 'GrupoXTerna™2 (2)', 'Mini乂Ternas™ (0)']);
-  assert.equal([...cont.querySelectorAll('.text-faint')].filter(d => d.textContent.trim() === 'Ninguno.').length, 2, 'los dos clanes sin activos dicen «Ninguno.»');
+  // §PF374: una pastilla por clan nuestro (también los vacíos, en el orden de CLANES_REQUISITOS) con su cantidad entre paréntesis, y una sola tabla de activos
+  const pastillas = [...cont.querySelectorAll('.ex-clan-pill')].map(b => b.textContent.replace(/\s+/g, ' ').trim());
+  assert.deepEqual(pastillas, ['Grupo乂Terna™ (0)', 'GrupoXTerna™2 (2)', 'Mini乂Ternas™ (0)']);
+  assert.equal(cont.querySelectorAll('.ex-activos-tabla table').length, 1, 'una sola tabla de activos');
+  assert.equal(cont.querySelector('.ex-clan-pill.active').textContent.replace(/\s+/g, ' ').trim(), 'GrupoXTerna™2 (2)', 'arranca en el primer clan con activos');
+  assert.match(cont.querySelector('.ex-activos-tabla .roster-clan-title').textContent.replace(/\s+/g, ' ').trim(), /^GrupoXTerna™2 \(2 miembros\)$/);
   const tablas = [...cont.querySelectorAll('table')];
-  const tablaActivos = tablas.find(x => /Activo Uno/.test(x.textContent));
+  const tablaActivos = cont.querySelector('.ex-activos-tabla table');
+  assert.ok(tablaActivos.classList.contains('roster-table'), 'misma tabla que el roster de directorio');
+  assert.deepEqual([...tablaActivos.querySelectorAll('thead th')].map(th => th.textContent.trim()), ['N°', 'Nuestro roster', 'Semanas en este clan', 'Primera → última']);
   assert.doesNotMatch(tablaActivos.textContent, /Ex Inactivo/);
   const fila = [...tablaActivos.querySelectorAll('tbody tr')].find(tr => /Activo Uno/.test(tr.textContent));
-  assert.deepEqual([...fila.querySelectorAll('td')].map(td => td.textContent.replace(/\s+/g, ' ').trim()), ['Activo Uno (#A1)', '3', 'T5 S1 → T5 S3']);
+  assert.deepEqual([...fila.querySelectorAll('td')].map(td => td.textContent.replace(/\s+/g, ' ').trim()), ['1', 'Activo Uno (#A1)', '3', 'T5 S1 → T5 S3']);
   const tablaInactivos = tablas.find(x => /Ex Inactivo/.test(x.textContent));
   assert.match(tablaInactivos.textContent, /Fuera del roster/);
   assert.match(tablaInactivos.textContent, /#Z9/);
@@ -430,6 +434,30 @@ test('«pasaron por este clan» separa ACTIVOS por clan nuestro (Directorio) e I
   assert.match(tablaInactivos.textContent, /Último clan nuestro/);
   assert.doesNotMatch(t, /Aún no hay un índice/);
   assert.doesNotMatch(t, /NARANJA x/);
+});
+
+test('las pastillas de clan cambian la tabla de activos: sigue habiendo una sola tabla y un clan vacío dice «Ninguno.» (5-nov-2026, §PF374)', async () => {
+  const w = montar({ respuestas: [respuestaClan(), respuestaClanIndice({ indiceClanesDisponible: true, exMiembros: [
+    { origen: 'Directorio', tag: '#A1', nombre: 'Activo Uno', clan: 'GrupoXTerna™2', razon: '', semanas: 3, primera: pt(5, 1), ultima: pt(5, 3) },
+    { origen: 'Directorio', tag: '#B1', nombre: 'Activo Mini', clan: 'Mini乂Ternas™', razon: '', semanas: 1, primera: pt(4, 2), ultima: pt(4, 2) }] })] });
+  w.eval("var CLANES_REQUISITOS = ['Grupo乂Terna™', 'GrupoXTerna™2', 'Mini乂Ternas™'];");
+  await buscarClanEn(w, '#CLAN1');
+  clic(w, 'btnClanInfiltradoPastilla'); await esperar();
+  const cont = id(w, 'clanInfResultado');
+  const pastilla = n => [...cont.querySelectorAll('.ex-clan-pill')].find(b => b.textContent.includes(n));
+  const caja = () => cont.querySelector('.ex-activos-tabla');
+  assert.match(caja().textContent, /Activo Uno/);
+  pastilla('Mini').click();
+  assert.equal(cont.querySelectorAll('.ex-activos-tabla table').length, 1);
+  assert.match(caja().textContent, /Activo Mini/);
+  assert.doesNotMatch(caja().textContent, /Activo Uno/);
+  assert.equal(pastilla('Mini').getAttribute('aria-pressed'), 'true');
+  assert.equal(pastilla('GrupoXTerna™2').getAttribute('aria-pressed'), 'false');
+  assert.equal(cont.querySelectorAll('.ex-clan-pill.active').length, 1);
+  pastilla('Grupo乂Terna™').click();
+  assert.equal(caja().querySelector('table'), null, 'un clan sin activos no pinta tabla');
+  assert.match(caja().textContent, /\(0 miembros\)/);
+  assert.match(caja().textContent, /Ninguno\./);
 });
 
 test('sin activos ni inactivos que mostrar en uno de los dos grupos: lo dice (5-nov-2026, §PF372)', async () => {

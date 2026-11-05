@@ -274,7 +274,8 @@
 // v225 (5-nov-2026): admin.html y assets/js/core/api.js cambiaron (CORE_ASSETS) -- al iniciar sesión sin recargar tras vencer o cerrar la sesión, las respuestas «sesión inválida» de la sesión anterior ya no borran la sesión nueva (api.js marca el token enviado; manejarRespuestaAuth() de admin.html lo compara).
 // v226 (5-nov-2026): admin.html cambió (CORE_ASSETS) -- «Jugadores nuestros que pasaron por este clan» se separa en activos (por clan nuestro) e inactivos, con semanas y primera → última (§PF372).
 // v227 (5-nov-2026): admin.html cambió (CORE_ASSETS) -- «Buscar clan» estrena su propia cinta (cinta-clan-roster.webp, ya en el sitio; antes repetía la de «Buscar miembro») y los textos de «¿Infiltrado?» ya no tienen ancho máximo: usan todo el ancho de la tarjeta, como la descripción de arriba.
-const CACHE_NAME = 'terna-static-v227';
+// v228 (5-nov-2026): admin.html cambió (CORE_ASSETS) -- los activos de «Jugadores nuestros que pasaron por este clan» ya no salen en bloques verticales: una sola tabla con pastillas por clan nuestro, con su cantidad entre paréntesis, como el roster del Directorio (§PF374).
+const CACHE_NAME = 'terna-static-v228';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
