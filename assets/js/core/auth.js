@@ -95,6 +95,11 @@ function actualizarNavCta(){
   document.querySelectorAll('.nav .links a.cta[data-page="admin"]').forEach(a => {
     a.textContent = haySesion ? 'Mi panel' : 'Acceder';
   });
+  // NOTICIAS (5-nov-2026, pedido de la usuaria: «mueve el panel de noticias a su propio botón entre comunidad y mensajes»): igual que
+  // «Mensajes», solo se ve con sesión de admin. Es solo UX: noticias.html redirige al login sin token y webAdminNoticiasSemana exige el token.
+  document.querySelectorAll('.nav .links a[data-page="noticias"]').forEach(a => {
+    a.style.display = haySesion ? '' : 'none';
+  });
   document.querySelectorAll('.nav .links a[data-page="mensajes"]').forEach(a => {
     a.style.display = haySesion ? '' : 'none';
   });

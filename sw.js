@@ -260,7 +260,8 @@
 // v211 (5-nov-2026): admin.html cambió (CORE_ASSETS) -- «Registrar miembro nuevo» → «Ingresar tag» no convierte un nombre en «#NOMBRE»; «Buscar miembro» resuelve a la única coincidencia que contiene lo escrito y su lista de sugerencias tiene fondo opaco (§PF350).
 // v212 (5-nov-2026): admin.html cambió (CORE_ASSETS) -- la ficha del miembro buscado sale dentro de la tarjeta «Buscar miembro» y no al final de todo el panel (§PF350).
 // v213 (5-nov-2026): admin.html cambió (CORE_ASSETS) -- «Registrar miembro nuevo» se integró a «Buscar miembro»: un Tag sin registro abre el Paso 2 de registro y uno con registro abre su ficha, con botón «Ver perfil completo» (§PF350).
-const CACHE_NAME = 'terna-static-v213';
+// v214 (5-nov-2026): las 11 páginas con barra de navegación, admin.html y auth.js cambiaron (CORE_ASSETS) y se creó noticias.html -- el tablero de Noticias de la semana ya no es una tarjeta de admin.html: es el link «Noticias» del nav, entre Comunidad y Mensajes, que solo se ve con sesión (§PF364).
+const CACHE_NAME = 'terna-static-v214';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y

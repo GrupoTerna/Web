@@ -14,7 +14,7 @@ Son páginas HTML con JavaScript plano. **No hay paso de compilación ni empaque
 | `clan.html`, `comunidad.html`, `directorio.html`, `perfil.html` | Clan, comunidad, directorio de miembros y perfil de jugador. |
 | `guerra.html` | Guerra en vivo. |
 | `torneos.html` | Torneos. |
-| `sorteo.html`, `mensajes.html`, `permisos.html`, `admin.html` | Páginas de administración: ruleta de sorteo, mensajes, permisos y panel de admin. `robots.txt` pide que no se indexen. |
+| `sorteo.html`, `mensajes.html`, `noticias.html`, `permisos.html`, `admin.html` | Páginas de administración: ruleta de sorteo, mensajes, noticias de la semana, permisos y panel de admin. `robots.txt` pide que no se indexen. |
 | `404.html` | Página de error. |
 | `assets/common.js`, `assets/styles.css` | Configuración y utilidades compartidas por todas las páginas, y la hoja de estilos común. |
 | `assets/js/` | El resto del JavaScript compartido: `core/` (`config.js`, `api.js`, `auth.js`), `data/` (cartas y escudos), `features/`, `ui/` y `util.js`. |
