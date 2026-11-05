@@ -1742,6 +1742,7 @@ let rosterFiltrosSeleccion = {};
 let rosterOrden = null;
 let rosterFiltroPopEl = null; // popover de filtro abierto actualmente (o null)
 let rosterFiltroBtnEl = null; // el embudo que abrió el cuadro (para su aria-expanded y para devolverle el foco)
+let rosterFiltroAncho = 0; // ancho de la ventana al abrir el cuadro: solo un cambio de ancho (girar el móvil) lo cierra; el alto cambia con la barra de direcciones y el teclado
 let rosterMiembrosBase = []; // miembros del clan activo, en el orden original del backend (sin ordenar)
 // Letra A-Z/# elegida en #rosterLetraFilter; se reinicia al cambiar de clan y se combina con los demás filtros sin pisarse. Historial en CHANGELOG.md.
 let rosterLetraSeleccionada = null;
@@ -1830,12 +1831,16 @@ function cerrarFiltroPopover(devolverFoco){
   document.removeEventListener('keydown', cerrarFiltroPopoverConEscape, true);
   document.removeEventListener('mousedown', cerrarFiltroPopoverSiFuera, true);
   window.removeEventListener('scroll', cerrarFiltroPopoverSiScrollFuera, true);
-  window.removeEventListener('resize', cerrarFiltroPopover, true);
+  window.removeEventListener('resize', cerrarFiltroPopoverSiCambiaAncho, true);
 }
 // 4-nov-2026: el scroll del propio cuadro (el cuadro y su lista de valores tienen overflow) no lo cierra; antes cualquier scroll lo cerraba y no se llegaba a «Aceptar». Un scroll de la página u otro bloque sí lo cierra, como antes.
 function cerrarFiltroPopoverSiScrollFuera(e){
   if (rosterFiltroPopEl && e && e.target instanceof Node && rosterFiltroPopEl.contains(e.target)) return;
   cerrarFiltroPopover();
+}
+// 5-nov-2026 (PF361, 2.ª parte): en el móvil, la barra de direcciones y el teclado cambian el alto de la ventana (evento resize) y eso cerraba el cuadro mientras se desplazaba o se escribía en el buscador.
+function cerrarFiltroPopoverSiCambiaAncho(){
+  if (window.innerWidth !== rosterFiltroAncho) cerrarFiltroPopover();
 }
 function cerrarFiltroPopoverConEscape(e){ if (e.key === 'Escape') cerrarFiltroPopover(true); }
 function cerrarFiltroPopoverSiFuera(e){
@@ -1998,10 +2003,17 @@ function abrirFiltroColumna(col, btnEl, wrap){
   const r = btnEl.getBoundingClientRect();
   const popAncho = 250;
   let left = Math.min(r.left, window.innerWidth - popAncho - 12);
-  let top = r.bottom + 6;
-  if (top + 400 > window.innerHeight) top = Math.max(8, r.top - 406);
   pop.style.left = Math.max(8, left) + 'px';
-  pop.style.top = top + 'px';
+  // 5-nov-2026 (PF361, 2.ª parte): el cuadro mide más de lo que se suponía (≈560 px) y, al colgar de un embudo a media pantalla, «Aceptar» quedaba bajo el borde de la ventana; como es `position:fixed` y cabe en 80vh no tenía scroll propio, así que al arrastrar solo se movía la página y eso lo cerraba. Ahora se mide, se pone del lado con más espacio y su alto máximo es el espacio libre de ese lado: si no cabe, se desplaza por dentro hasta «Aceptar».
+  const margenV = 8;
+  const libreAbajo = window.innerHeight - r.bottom - 6 - margenV;
+  const libreArriba = r.top - 6 - margenV;
+  const altoCuadro = pop.scrollHeight; // alto natural del contenido (0 en jsdom)
+  const abajo = altoCuadro <= libreAbajo || libreAbajo >= libreArriba;
+  const altoMax = Math.max(abajo ? libreAbajo : libreArriba, 100);
+  pop.style.maxHeight = altoMax + 'px';
+  pop.style.top = (abajo ? r.bottom + 6 : Math.max(margenV, r.top - 6 - Math.min(altoCuadro, altoMax))) + 'px';
+  rosterFiltroAncho = window.innerWidth;
   pop.tabIndex = -1; // el cuadro es el último nodo del <body>: sin esto, con teclado no se llega a él
   pop.style.outline = 'none';
   pop.focus({ preventScroll: true });
@@ -2010,7 +2022,7 @@ function abrirFiltroColumna(col, btnEl, wrap){
     document.addEventListener('keydown', cerrarFiltroPopoverConEscape, true);
     document.addEventListener('mousedown', cerrarFiltroPopoverSiFuera, true);
     window.addEventListener('scroll', cerrarFiltroPopoverSiScrollFuera, true);
-    window.addEventListener('resize', cerrarFiltroPopover, true);
+    window.addEventListener('resize', cerrarFiltroPopoverSiCambiaAncho, true);
   }, 0);
 }
 

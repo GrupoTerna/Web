@@ -255,7 +255,8 @@
 // v204 (4-nov-2026): las 11 páginas con barra de navegación, admin.html, permisos.html, auth.js y api.js cambiaron (CORE_ASSETS) -- el panel de permisos ya no es una tarjeta de admin.html: es el link «Permisos» del nav, entre Mensajes y Mi panel (§PF351).
 // v203 (4-nov-2026): admin.html cambió (CORE_ASSETS) -- «Buscar miembro» lleva la vista al resultado y el foco al nombre; antes el resultado salía al final del panel, fuera de pantalla, y el botón parecía no hacer nada (§PF350).
 // v208 (4-nov-2026): admin.html cambió (CORE_ASSETS) -- la tarjeta de Noticias muestra «Trofeos de guerra: pendientes» cuando el resultado de la semana aún no se aplica (§PF362).
-const CACHE_NAME = 'terna-static-v208';
+// v209 (4-nov-2026): guerra.html, directorio.html y assets/styles.css cambiaron (CORE_ASSETS) -- el cuadro de filtro de columnas se coloca dentro de la ventana, se desplaza por dentro hasta «Aceptar» y ya no se cierra con el resize del móvil (§PF361).
+const CACHE_NAME = 'terna-static-v209';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y

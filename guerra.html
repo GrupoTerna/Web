@@ -890,6 +890,7 @@ const ICONO_FILTRO_GRID = '<svg viewBox="0 0 16 16" fill="currentColor" xmlns="h
 const gridEstados = {}; // gridId -> { filtros:{colKey: Set|{{operador,valor}}}, orden:{colKey,dir}|null }
 let gridFiltroPopEl = null;
 let gridFiltroBtnEl = null; // el embudo que abrió el cuadro (para su aria-expanded y para devolverle el foco)
+let gridFiltroAncho = 0; // ancho de la ventana al abrir el cuadro: solo un cambio de ancho (girar el móvil) lo cierra; el alto cambia con la barra de direcciones y el teclado
 
 function gridEstadoDe(gridId){
   if (!gridEstados[gridId]) gridEstados[gridId] = { filtros:{}, orden:null };
@@ -980,12 +981,16 @@ function cerrarGridFiltroPopover(devolverFoco){
   document.removeEventListener('keydown', cerrarGridFiltroPopoverConEscape, true);
   document.removeEventListener('mousedown', cerrarGridFiltroPopoverSiFuera, true);
   window.removeEventListener('scroll', cerrarGridFiltroPopoverSiScrollFuera, true);
-  window.removeEventListener('resize', cerrarGridFiltroPopover, true);
+  window.removeEventListener('resize', cerrarGridFiltroPopoverSiCambiaAncho, true);
 }
 // 4-nov-2026: el scroll del propio cuadro (el cuadro y su lista de valores tienen overflow) no lo cierra; antes cualquier scroll lo cerraba y no se llegaba a «Aceptar». Un scroll de la página u otro bloque sí lo cierra, como antes.
 function cerrarGridFiltroPopoverSiScrollFuera(e){
   if (gridFiltroPopEl && e && e.target instanceof Node && gridFiltroPopEl.contains(e.target)) return;
   cerrarGridFiltroPopover();
+}
+// 5-nov-2026 (PF361, 2.ª parte): en el móvil, la barra de direcciones y el teclado cambian el alto de la ventana (evento resize) y eso cerraba el cuadro mientras se desplazaba o se escribía en el buscador.
+function cerrarGridFiltroPopoverSiCambiaAncho(){
+  if (window.innerWidth !== gridFiltroAncho) cerrarGridFiltroPopover();
 }
 function cerrarGridFiltroPopoverConEscape(e){ if (e.key === 'Escape') cerrarGridFiltroPopover(true); }
 function cerrarGridFiltroPopoverSiFuera(e){
@@ -1382,10 +1387,17 @@ function abrirGridFiltroColumna(gridId, col, btnEl, tabla, filasBase, columnas, 
   const r = btnEl.getBoundingClientRect();
   const popAncho = 250;
   let left = Math.min(r.left, window.innerWidth - popAncho - 12);
-  let top = r.bottom + 6;
-  if (top + 420 > window.innerHeight) top = Math.max(8, r.top - 426);
   pop.style.left = Math.max(8, left) + 'px';
-  pop.style.top = top + 'px';
+  // 5-nov-2026 (PF361, 2.ª parte): el cuadro mide más de lo que se suponía (≈560 px) y, al colgar de un embudo a media pantalla, «Aceptar» quedaba bajo el borde de la ventana; como es `position:fixed` y cabe en 80vh no tenía scroll propio, así que al arrastrar solo se movía la página y eso lo cerraba. Ahora se mide, se pone del lado con más espacio y su alto máximo es el espacio libre de ese lado: si no cabe, se desplaza por dentro hasta «Aceptar».
+  const margenV = 8;
+  const libreAbajo = window.innerHeight - r.bottom - 6 - margenV;
+  const libreArriba = r.top - 6 - margenV;
+  const altoCuadro = pop.scrollHeight; // alto natural del contenido (0 en jsdom)
+  const abajo = altoCuadro <= libreAbajo || libreAbajo >= libreArriba;
+  const altoMax = Math.max(abajo ? libreAbajo : libreArriba, 100);
+  pop.style.maxHeight = altoMax + 'px';
+  pop.style.top = (abajo ? r.bottom + 6 : Math.max(margenV, r.top - 6 - Math.min(altoCuadro, altoMax))) + 'px';
+  gridFiltroAncho = window.innerWidth;
   pop.tabIndex = -1; // el cuadro es el último nodo del <body>: sin esto, con teclado no se llega a él
   pop.style.outline = 'none';
   pop.focus({ preventScroll: true });
@@ -1394,7 +1406,7 @@ function abrirGridFiltroColumna(gridId, col, btnEl, tabla, filasBase, columnas, 
     document.addEventListener('keydown', cerrarGridFiltroPopoverConEscape, true);
     document.addEventListener('mousedown', cerrarGridFiltroPopoverSiFuera, true);
     window.addEventListener('scroll', cerrarGridFiltroPopoverSiScrollFuera, true);
-    window.addEventListener('resize', cerrarGridFiltroPopover, true);
+    window.addEventListener('resize', cerrarGridFiltroPopoverSiCambiaAncho, true);
   }, 0);
 }
 

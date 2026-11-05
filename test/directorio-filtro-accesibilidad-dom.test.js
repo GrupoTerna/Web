@@ -114,6 +114,7 @@ test('accesibilidad directorio: cerrar por clic fuera, scroll o resize no roba e
   assert.equal(w.document.activeElement, otro);
   await abrir(w, 'nombre');
   otro.focus();
+  w.innerWidth = w.innerWidth - 200; // 5-nov-2026: solo un cambio de ancho cierra el cuadro
   w.dispatchEvent(new w.Event('resize'));
   assert.equal(w.document.querySelector('.rt-filtro-pop'), null);
   assert.equal(w.document.activeElement, otro);
@@ -160,4 +161,50 @@ test('accesibilidad directorio: el scroll dentro del cuadro no lo cierra y el de
   await abrir(w, 'nombre');
   w.document.querySelector('.rt-filtro-aceptar').click();
   assert.equal(w.document.querySelector('.rt-filtro-pop'), null, 'Aceptar sigue cerrando el cuadro');
+});
+
+// NUEVO (5-nov-2026, PF361 2.ª parte: «todavía no se puede desplazar en el filtro, se desaparece»): el cuadro se mide y se coloca para que «Aceptar» quede a la vista,
+// y el resize del móvil (barra de direcciones, teclado) ya no lo cierra. LÍMITE: jsdom no calcula el diseño; aquí se simulan el alto del contenido y la posición del embudo.
+const medir = (w, scrollHeight, rect) => {
+  Object.defineProperty(w.HTMLElement.prototype, 'scrollHeight', { get(){ return scrollHeight; }, configurable: true });
+  w.HTMLElement.prototype.getBoundingClientRect = function(){ return Object.assign({ left: 20, right: 60, width: 40, height: 20 }, rect); };
+};
+
+test('accesibilidad directorio: si el cuadro no cabe bajo el embudo pero sí encima, se coloca encima y no sobresale de la ventana', async () => {
+  const w = montar();
+  w.innerHeight = 800;
+  medir(w, 560, { top: 600, bottom: 620 }); // abajo quedan 166 px; arriba 578 px
+  const pop = await abrir(w, 'nombre');
+  const top = parseFloat(pop.style.top);
+  assert.ok(top >= 8 && top + 560 <= 600 - 6, `encima del embudo y dentro de la ventana (top=${top})`);
+  assert.ok(parseFloat(pop.style.maxHeight) >= 560, 'cabe entero: sin recorte');
+});
+
+test('accesibilidad directorio: si no cabe ni arriba ni abajo, su alto máximo es el espacio libre y se desplaza por dentro hasta «Aceptar»', async () => {
+  const w = montar();
+  w.innerHeight = 500;
+  medir(w, 560, { top: 240, bottom: 260 }); // abajo 226 px; arriba 226 px
+  const pop = await abrir(w, 'nombre');
+  const top = parseFloat(pop.style.top);
+  const maxH = parseFloat(pop.style.maxHeight);
+  assert.ok(maxH < 560, 'el alto se limita: el cuadro tiene scroll propio');
+  assert.ok(top + maxH <= 500 - 8, `no sobresale por abajo (top=${top}, máx=${maxH})`);
+  assert.ok(top >= 8, 'no sobresale por arriba');
+});
+
+test('accesibilidad directorio: el resize que solo cambia el alto (barra de direcciones, teclado) no cierra el cuadro; uno que cambia el ancho sí', async () => {
+  const w = montar();
+  const pop = await abrir(w, 'nombre');
+  w.innerHeight = w.innerHeight - 120;
+  w.dispatchEvent(new w.Event('resize'));
+  assert.ok(w.document.querySelector('.rt-filtro-pop') === pop, 'solo cambió el alto: sigue abierto');
+  w.innerWidth = w.innerWidth - 200;
+  w.dispatchEvent(new w.Event('resize'));
+  assert.equal(w.document.querySelector('.rt-filtro-pop'), null, 'cambió el ancho (giro del móvil): se cierra');
+});
+
+test('estilos directorio: el cuadro y su lista no pasan el arrastre a la página al llegar al final', () => {
+  const css = fs.readFileSync(path.join(__dirname, '..', 'assets', 'styles.css'), 'utf8');
+  assert.match(css, /\.rt-filtro-pop\{[^}]*overscroll-behavior:contain/);
+  assert.match(css, /\.rt-filtro-lista\{[^}]*overscroll-behavior:contain/);
 });
