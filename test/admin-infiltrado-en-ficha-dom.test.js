@@ -333,6 +333,15 @@ test('un clan sin señales lo dice sin afirmar de más; uno de la Familia no se 
   assert.match(id(w, 'btnClanVetarPastilla').textContent, /En conflicto/);
 });
 
+test('el clan vetado (NARANJA x) sale como «Clan vetado», no como de la Familia, y su «Vetar» queda bloqueado (5-nov-2026)', async () => {
+  const w = montar({ respuestas: [respuestaClan({ infoRival: { fuente: 'vetado', nombre: 'NARANJA x', motivo: 'Clan vetado' } })] });
+  await buscarClanEn(w, '#CLAN1');
+  assert.match(id(w, 'cBadge').textContent, /Clan vetado/);
+  assert.doesNotMatch(id(w, 'cBadge').textContent, /Clan de la Familia/);
+  assert.equal(id(w, 'btnClanVetarPastilla').disabled, true);
+  assert.match(id(w, 'btnClanVetarPastilla').textContent, /Clan vetado/);
+});
+
 test('«Buscar clan»: Tag vacío no consulta; un error del backend se muestra y no abre la ficha; si falla la red se avisa', async () => {
   let w = montar();
   await buscarClanEn(w, '  ');

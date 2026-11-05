@@ -2212,7 +2212,8 @@ document.getElementById('tagInput').addEventListener('keydown', e => { if(e.key 
 function _badgeRival(infoRival){
   if(!infoRival) return '';
   let etiqueta = 'En lista de conflicto';
-  if(infoRival.fuente === 'currentriverrace') etiqueta = 'Rival de esta temporada';
+  if(infoRival.fuente === 'vetado') etiqueta = 'Clan vetado';
+  else if(infoRival.fuente === 'currentriverrace') etiqueta = 'Rival de esta temporada';
   else if(infoRival.fuente === 'currentriverrace+manual') etiqueta = 'Rival de esta temporada + conflicto manual';
   let detalle = [];
   if(infoRival.clanTernaNombre) detalle.push(`vs. ${esc(infoRival.clanTernaNombre)}`);
@@ -2362,8 +2363,9 @@ function _marcaClan(c, infoRival){
 function _estadoPastillaVetarClan(c, infoRival){
   const pastilla = document.getElementById('btnClanVetarPastilla');
   const yaManual = !!(infoRival && String(infoRival.fuente || '').indexOf('manual') !== -1);
-  pastilla.disabled = !!(c.esNuestro || yaManual);
-  pastilla.textContent = c.esNuestro ? '🚫 Clan de la Familia' : (yaManual ? '🚫 En conflicto' : '🚫 Vetar');
+  const yaVetado = !!(infoRival && infoRival.fuente === 'vetado');
+  pastilla.disabled = !!(c.esNuestro || yaManual || yaVetado);
+  pastilla.textContent = c.esNuestro ? '🚫 Clan de la Familia' : (yaVetado ? '🚫 Clan vetado' : (yaManual ? '🚫 En conflicto' : '🚫 Vetar'));
   pastilla.classList.remove('activo');
   pastilla.setAttribute('aria-expanded', 'false');
 }
