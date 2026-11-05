@@ -4852,12 +4852,14 @@ function ntPanelPosiciones(sec){
                 : '= igual que la anterior';
     }
     const dT = c.variacionTrofeos > 0 ? `+${ntN(c.variacionTrofeos)}` : ntN(c.variacionTrofeos);
-    return `<div class="nt-clan-card" style="--nt:${col}" title="${esc(c.clan)}: puesto ${esc(puesto)}, ${ntN(c.trofeos)} trofeos de guerra">
+    const trofPend = (c.trofeos === null || c.trofeos === undefined); // 04-nov-2026: el resultado de la semana aún no se aplica (se conoce al empezar la siguiente)
+    const trofTxt = trofPend ? 'Trofeos de guerra: pendientes' : `${ntN(c.trofeos)} trofeos de guerra (${esc(dT)})`;
+    return `<div class="nt-clan-card" style="--nt:${col}" title="${esc(c.clan)}: puesto ${esc(puesto)}, ${trofPend ? 'trofeos de guerra pendientes' : ntN(c.trofeos) + ' trofeos de guerra'}">
       <div class="nt-clan-nombre">${enlaceClan(c.clan)}</div>
       <div class="nt-puesto">${esc(puesto)}</div>
       <div class="text-dim" style="font-size:12px;">${variacion}</div>
       <div style="margin:8px 0 2px;">${ntSpark((c.tendencia || []).map(x => x.trofeos), col)}</div>
-      <div class="text-dim" style="font-size:12px;">${ntN(c.trofeos)} trofeos de guerra (${esc(dT)})</div>
+      <div class="text-dim" style="font-size:12px;">${trofTxt}</div>
       <div class="text-faint" style="font-size:11px; margin-top:2px;">${c.coliseo ? 'Coliseo: sin barco' : 'Barco: ' + ntN(c.barco)}</div>
     </div>`;
   }).join('');
