@@ -349,6 +349,58 @@
       </div>
       <div id="buscarMsg"></div>
 
+      <!-- 5-nov-2026 (pedido de la usuaria): la ficha del miembro buscado sale AQUÍ, dentro de «Buscar miembro»; antes estaba al final de todo el panel, después de Directorio, Torneos y Noticias. -->
+      <div id="miembroSec" style="display:none; margin-top:18px;">
+        <div class="grid-2">
+
+          <!-- Datos del jugador (solo lectura) + progreso -->
+          <div class="card">
+            <div class="perfil-cabecera">
+              <div>
+                <h3 id="mNombre" style="font-size:19px; font-family:var(--f-display); text-transform:uppercase;"></h3>
+                <div class="text-faint" id="mSub" style="font-family:var(--f-mono); font-size:12px; margin-top:4px;"></div>
+              </div>
+              <div class="stats-mini">
+                <span><b id="mVGuerra"></b>Victorias de guerra</span>
+                <span><b id="mTorneos"></b>Torneos</span>
+                <span><b id="mAtaques"></b>Ataques/sem</span>
+              </div>
+            </div>
+
+            <div style="margin-top:20px;">
+              <div class="tabs" id="mReqTabs" style="display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap;"></div>
+              <div id="mReqContenido"></div>
+            </div>
+          </div>
+
+          <!-- Campos editables de gestión -->
+          <div class="card">
+            <h3 style="font-size:15px; color:var(--gold); margin-bottom:16px;">Datos de gestión</h3>
+            <div class="field-row">
+              <div class="field">
+                <label for="fPrefijo">Prefijo (país)</label>
+                <input type="text" id="fPrefijo" placeholder="Ej: 51">
+              </div>
+              <div class="field">
+                <label for="fCelular">Celular</label>
+                <input type="text" id="fCelular" placeholder="Ej: 987654321">
+              </div>
+            </div>
+            <div class="field">
+              <label for="fNomMulti">Nombre multicuenta</label>
+              <input type="text" id="fNomMulti" placeholder="Nombre de referencia">
+            </div>
+            <div class="field">
+              <label for="fPrestamo">Préstamo</label>
+              <input type="text" id="fPrestamo" placeholder="Detalle del préstamo (si aplica)">
+            </div>
+            <button type="button" class="btn btn-primary btn-block" id="btnGuardar" style="margin-top:6px;">Guardar cambios</button>
+            <div id="guardarMsg"></div>
+          </div>
+
+        </div>
+      </div>
+
       <!-- "Detección de infiltrados" vive junto a "Buscar miembro" (antes estaba en Directorio); mismo comportamiento y backend. -->
       <div style="margin-top:22px; padding-top:18px; border-top:1px solid var(--line);">
         <details class="admin-subseccion" id="cardInfiltrados">
@@ -1562,57 +1614,6 @@
 
     <!-- Sección "Mensajes": migrada a mensajes.html (19-sep-2026), con su propio botón en el nav (solo visible con sesión de admin). -->
 
-    <div id="miembroSec" style="display:none; margin-top:24px;">
-      <div class="grid-2">
-
-        <!-- Datos del jugador (solo lectura) + progreso -->
-        <div class="card">
-          <div class="perfil-cabecera">
-            <div>
-              <h3 id="mNombre" style="font-size:19px; font-family:var(--f-display); text-transform:uppercase;"></h3>
-              <div class="text-faint" id="mSub" style="font-family:var(--f-mono); font-size:12px; margin-top:4px;"></div>
-            </div>
-            <div class="stats-mini">
-              <span><b id="mVGuerra"></b>Victorias de guerra</span>
-              <span><b id="mTorneos"></b>Torneos</span>
-              <span><b id="mAtaques"></b>Ataques/sem</span>
-            </div>
-          </div>
-
-          <div style="margin-top:20px;">
-            <div class="tabs" id="mReqTabs" style="display:flex; gap:8px; margin-bottom:14px; flex-wrap:wrap;"></div>
-            <div id="mReqContenido"></div>
-          </div>
-        </div>
-
-        <!-- Campos editables de gestión -->
-        <div class="card">
-          <h3 style="font-size:15px; color:var(--gold); margin-bottom:16px;">Datos de gestión</h3>
-          <div class="field-row">
-            <div class="field">
-              <label for="fPrefijo">Prefijo (país)</label>
-              <input type="text" id="fPrefijo" placeholder="Ej: 51">
-            </div>
-            <div class="field">
-              <label for="fCelular">Celular</label>
-              <input type="text" id="fCelular" placeholder="Ej: 987654321">
-            </div>
-          </div>
-          <div class="field">
-            <label for="fNomMulti">Nombre multicuenta</label>
-            <input type="text" id="fNomMulti" placeholder="Nombre de referencia">
-          </div>
-          <div class="field">
-            <label for="fPrestamo">Préstamo</label>
-            <input type="text" id="fPrestamo" placeholder="Detalle del préstamo (si aplica)">
-          </div>
-          <button type="button" class="btn btn-primary btn-block" id="btnGuardar" style="margin-top:6px;">Guardar cambios</button>
-          <div id="guardarMsg"></div>
-        </div>
-
-      </div>
-    </div>
-
   </div>
 </section>
 
@@ -2169,7 +2170,7 @@ async function buscarMiembro(){
     if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
     msgEl.innerHTML = '';
     renderMiembro(data.jugador);
-    // 04-nov-2026 (pedido usuaria, el botón «parecía no hacer nada»): #miembroSec está al final del panel, después de otras tarjetas; sin desplazarse, el resultado salía fuera de pantalla. Se lleva la vista al resultado y el foco al nombre (preventScroll: ya desplaza scrollIntoView), igual que H-1.
+    // 04-nov-2026 (pedido usuaria, el botón «parecía no hacer nada»): #miembroSec estaba al final del panel, después de otras tarjetas, y el resultado salía fuera de pantalla (desde el 5-nov-2026 está dentro de «Buscar miembro»; se mantiene el desplazamiento por si queda bajo el borde de la ventana). Se lleva la vista al resultado y el foco al nombre (preventScroll: ya desplaza scrollIntoView), igual que H-1.
     const secMiembro = document.getElementById('miembroSec');
     const reducirMov = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     secMiembro.scrollIntoView({ behavior: reducirMov ? 'auto' : 'smooth', block: 'start' });

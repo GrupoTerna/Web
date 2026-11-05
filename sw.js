@@ -258,7 +258,8 @@
 // v209 (4-nov-2026): guerra.html, directorio.html y assets/styles.css cambiaron (CORE_ASSETS) -- el cuadro de filtro de columnas se coloca dentro de la ventana, se desplaza por dentro hasta «Aceptar» y ya no se cierra con el resize del móvil (§PF361).
 // v210 (4-nov-2026): admin.html cambió (CORE_ASSETS) -- «Buscar miembro» busca por nombre o Nom_Multi: ya no toma por Tag cualquier texto de 4 o más letras y números (§PF350).
 // v211 (5-nov-2026): admin.html cambió (CORE_ASSETS) -- «Registrar miembro nuevo» → «Ingresar tag» no convierte un nombre en «#NOMBRE»; «Buscar miembro» resuelve a la única coincidencia que contiene lo escrito y su lista de sugerencias tiene fondo opaco (§PF350).
-const CACHE_NAME = 'terna-static-v211';
+// v212 (5-nov-2026): admin.html cambió (CORE_ASSETS) -- la ficha del miembro buscado sale dentro de la tarjeta «Buscar miembro» y no al final de todo el panel (§PF350).
+const CACHE_NAME = 'terna-static-v212';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y

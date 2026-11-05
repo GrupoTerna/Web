@@ -143,3 +143,18 @@ test('el desplegable de sugerencias tiene fondo opaco (con --surface, al 75 %, s
   assert.match(css, /background:var\(--bg-2\)/);
   assert.doesNotMatch(css, /background:var\(--surface\)/);
 });
+
+// NUEVO (5-nov-2026, pedido de la usuaria: la ficha salía «al final de la web»): #miembroSec (ficha del miembro buscado) estaba al final del panel, después de Directorio,
+// Torneos y Noticias. Ahora va dentro de la tarjeta «Buscar miembro», bajo el buscador. LÍMITE: solo se comprueba el HTML; no se ve el diseño en un navegador.
+test('la ficha del miembro buscado (#miembroSec) está dentro de la tarjeta «Buscar miembro», bajo el aviso del buscador y antes de «Detección de infiltrados»', () => {
+  const doc = new JSDOM(HTML).window.document; // sin ejecutar scripts
+  const ficha = doc.getElementById('miembroSec');
+  const tarjeta = doc.getElementById('tagInput').closest('.card');
+  assert.ok(ficha && tarjeta, 'existen la ficha y la tarjeta del buscador');
+  assert.ok(tarjeta.contains(ficha), 'la ficha está dentro de la tarjeta Buscar miembro');
+  const msg = doc.getElementById('buscarMsg');
+  assert.ok(msg.compareDocumentPosition(ficha) & 4, 'va después de #buscarMsg'); // 4 = DOCUMENT_POSITION_FOLLOWING
+  assert.ok(ficha.compareDocumentPosition(doc.getElementById('cardInfiltrados')) & 4, 'y antes de «Detección de infiltrados»');
+  assert.ok(!doc.getElementById('directorioGrupo').contains(ficha));
+  for (const id of ['mNombre', 'fPrefijo', 'fCelular', 'fNomMulti', 'fPrestamo', 'btnGuardar', 'guardarMsg']) assert.ok(ficha.querySelector('#' + id), `#${id} sigue dentro de la ficha`);
+});
