@@ -32,7 +32,7 @@
   .buscador-wrap{position:relative;}
   .sugerencias-dropdown{
     position:absolute; left:0; right:0; top:calc(100% + 4px); z-index:20;
-    background:var(--surface); border:1px solid var(--line-strong); border-radius:var(--radius-sm);
+    background:var(--bg-2); border:1px solid var(--line-strong); border-radius:var(--radius-sm); /* 5-nov-2026: opaco; con --surface (75 %) se transparentaban el aviso «Buscando…» y la tarjeta de debajo */
     max-height:320px; overflow-y:auto; box-shadow:0 10px 30px rgba(0,0,0,.35);
   }
   .miembro-row{
@@ -2038,6 +2038,7 @@ function renderMiembro(j){
  */
 let _sugerenciasMiembroCache = [];
 let _sugerenciasMiembroTimer = null;
+let _sugerenciasMiembroSeq = 0; // 5-nov-2026: numera cada petición de sugerencias; una respuesta tardía (o el «Buscar» pulsado después) invalida a las anteriores para que no reabran la lista
 
 function _ordenarSugerenciasMiembro(lista){
   return (lista || []).slice().sort((a, b) => {
@@ -2082,9 +2083,11 @@ document.addEventListener('click', e => {
 });
 
 async function buscarSugerenciasMiembro(q){
+  const seq = ++_sugerenciasMiembroSeq;
   if(!q || q.trim().length < 2){ renderSugerenciasMiembro([]); return; }
   try{
     const data = await apiGetAuth('webAdminBuscarMiembroSugerencias', { q: q.trim() });
+    if(seq !== _sugerenciasMiembroSeq) return; // llegó tarde: ya hay otra petición o se pulsó «Buscar miembro»
     if(!data || !data.ok || !Array.isArray(data.resultados)){ renderSugerenciasMiembro([]); return; }
     _sugerenciasMiembroCache = data.resultados;
     renderSugerenciasMiembro(_ordenarSugerenciasMiembro(data.resultados));
@@ -2116,6 +2119,7 @@ async function buscarMiembro(){
   msgEl.innerHTML = '';
   document.getElementById('buscarSugerencias').style.display = 'none';
   document.getElementById('miembroSec').style.display = 'none';
+  clearTimeout(_sugerenciasMiembroTimer); _sugerenciasMiembroSeq++; // se cancelan las sugerencias de la caja pendientes o en vuelo
   if(!raw){ msgEl.innerHTML = '<div class="msg msg-error">Escribe un nombre, Nom_Multi o Tag.</div>'; return; }
 
   // Nombre o Nom_Multi (lo que no parece un Tag): se pide la lista fresca al backend con lo escrito, sin depender de las sugerencias de la caja (5-nov-2026: si se
@@ -2124,6 +2128,10 @@ async function buscarMiembro(){
   const unicoTag = (lista) => { const tags = [...new Set(lista.map(m => m.tag))]; return tags.length === 1 ? tags[0] : null; };
   const q = raw.toLowerCase();
   const exactasDe = (lista) => lista.filter(m => String(m.nombre||'').toLowerCase() === q || String(m.nomMulti||'').toLowerCase() === q);
+  // Los nombres de Clash Royale llevan adornos (siglas del clan, íconos): «chistris» no es igual a «ᴳ⅄ᵀ ⚜ Chistris», pero sí está contenido. El backend también devuelve parecidos que no lo contienen.
+  const plano = (t) => String(t||'').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  const qPlano = plano(raw);
+  const contienenDe = (lista) => lista.filter(m => plano(m.nombre).includes(qPlano) || plano(m.nomMulti).includes(qPlano));
   let tagFinal = null;
   if(!_pareceTag(raw)){
     msgEl.innerHTML = '<div class="msg">Buscando…</div>';
@@ -2137,7 +2145,7 @@ async function buscarMiembro(){
       msgEl.innerHTML = '<div class="msg msg-error">No se encontró ningún miembro con ese nombre. Si es un jugador sin registro con nosotros, escribe directamente su Tag.</div>';
       return;
     }
-    tagFinal = unicoTag(exactasDe(lista)) || unicoTag(lista);
+    tagFinal = unicoTag(exactasDe(lista)) || unicoTag(contienenDe(lista)) || unicoTag(lista);
     if(!tagFinal){
       msgEl.innerHTML = '<div class="msg">Hay varias coincidencias — elige una de la lista de arriba.</div>';
       renderSugerenciasMiembro(_ordenarSugerenciasMiembro(lista));
@@ -8322,11 +8330,17 @@ document.getElementById('nmDirLista').addEventListener('click', (e) => {
 
 async function verificarTagNuevoMiembro(){
   const msgEl = document.getElementById('nmVerificarMsg');
-  const tagNorm = normalizarTag(document.getElementById('nmTag').value);
+  const crudo = document.getElementById('nmTag').value.trim();
+  const tagNorm = normalizarTag(crudo);
   msgEl.innerHTML = '';
   document.getElementById('nmPaso2').style.display = 'none';
   nmTagVerificado = null;
   if(!tagNorm){ msgEl.innerHTML = '<div class="msg msg-error">Escribe un Tag válido.</div>'; return; }
+  // 5-nov-2026 (pedido de la usuaria, «ahora le pone #»): un nombre escrito aquí (p. ej. «chistris») se convertía en «#CHISTRIS» y la API respondía «No encontré ese Tag». Si lo escrito no parece un Tag (ver _pareceTag()), no se toca el campo ni se consulta la API: se explica qué hacer.
+  if(!_pareceTag(crudo)){
+    msgEl.innerHTML = `<div class="msg msg-error">«${esc(crudo)}» no parece un Tag: los Tags de Clash Royale solo usan los caracteres 0, 2, 8, 9, P, Y, L, Q, G, R, J, C, U y V. Si es un nombre, usa «Buscar en Directorio» (arriba) o el buscador «Buscar miembro».</div>`;
+    return;
+  }
   document.getElementById('nmTag').value = tagNorm;
   msgEl.innerHTML = '<div class="empty">Verificando…</div>';
   try{

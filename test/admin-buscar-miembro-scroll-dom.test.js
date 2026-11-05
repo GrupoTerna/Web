@@ -44,6 +44,7 @@ function montar({ reducirMovimiento = false } = {}){
   window.HTMLElement.prototype.focus = function(opts){ llamadas.foco.push({ id: this.id, opts }); return focoOriginal.call(this, opts); };
   window.matchMedia = () => ({ matches: reducirMovimiento });
   window.eval(`
+    var _sugerenciasMiembroTimer = null, _sugerenciasMiembroSeq = 0;
     var _sugerenciasMiembroCache = [];
     ${CODIGO_TAG}
     function normalizarTag(t){ return String(t).toUpperCase(); }

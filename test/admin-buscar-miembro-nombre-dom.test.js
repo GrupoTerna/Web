@@ -32,6 +32,7 @@ function montar({ valor, sugerencias, falloSugerencias = false, cache = [] }){
   window.__falloSugerencias = falloSugerencias;
   window.__cache = cache;
   window.eval(`
+    var _sugerenciasMiembroTimer = null, _sugerenciasMiembroSeq = 0;
     var _sugerenciasMiembroCache = window.__cache;
     function normalizarTag(t){ return '#' + String(t).replace('#','').toUpperCase(); }
     function esc(t){ return String(t); }
@@ -114,4 +115,31 @@ test('un Tag escrito sigue yendo directo al perfil, sin pedir sugerencias', asyn
   assert.equal(llamadas.length, 1);
   assert.equal(llamadas[0].accion, 'webAdminBuscarMiembro');
   assert.equal(llamadas[0].params.tag, '#2GG8PJ8GC');
+});
+
+test('con nombres adornados («ᴳ⅄ᵀ ⚜ Chistris») y parecidos que no lo contienen, resuelve a la única coincidencia que contiene lo escrito (sin importar tildes ni mayúsculas)', async () => {
+  const lista = [
+    { tag: '#2GG8PJ8GC', nombre: 'ᴳ⅄ᵀ ⚜ Chistris', nomMulti: 'Diana', clan: 'Terna', estado: 'Activo' },
+    { tag: '#20YVVYCU2', nombre: 'ᴳ⅄ᵀ ♣ Richard', nomMulti: '', clan: 'Terna', estado: 'Activo' },
+    { tag: '#QCGGPYCYJ', nombre: 'matichu', nomMulti: '', clan: 'Terna', estado: 'Activo' }
+  ];
+  const w = montar({ valor: 'chistris', sugerencias: lista });
+  await w.buscarMiembro();
+  assert.equal(ev(w, 'llamadas')[1].params.tag, '#2GG8PJ8GC');
+  const w2 = montar({ valor: 'DIANÁ', sugerencias: lista });
+  await w2.buscarMiembro();
+  assert.equal(ev(w2, 'llamadas')[1].params.tag, '#2GG8PJ8GC', 'también por Nom_Multi, sin tildes ni mayúsculas');
+});
+
+test('el «Buscar miembro» invalida las sugerencias de la caja pendientes: una respuesta tardía no reabre la lista', async () => {
+  const w = montar({ valor: 'chistris', sugerencias: [] });
+  const antes = ev(w, '_sugerenciasMiembroSeq');
+  await w.buscarMiembro();
+  assert.equal(ev(w, '_sugerenciasMiembroSeq'), antes + 1);
+});
+
+test('el desplegable de sugerencias tiene fondo opaco (con --surface, al 75 %, se transparentaba lo de debajo)', () => {
+  const css = HTML.slice(HTML.indexOf('.sugerencias-dropdown{'), HTML.indexOf('.miembro-row{'));
+  assert.match(css, /background:var\(--bg-2\)/);
+  assert.doesNotMatch(css, /background:var\(--surface\)/);
 });
