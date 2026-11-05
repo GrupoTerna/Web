@@ -270,7 +270,8 @@
 // v221 (5-nov-2026): admin.html cambió (CORE_ASSETS) -- el botón «Ver clan en RoyaleAPI» lleva el ícono y, en el clan vetado, «¿Infiltrado?» lista a los jugadores nuestros que pasaron por él y ya salieron (§PF368).
 // v222 (5-nov-2026): admin.html cambió (CORE_ASSETS) -- «¿Infiltrado?» de «Buscar clan» lista a los jugadores nuestros que pasaron por cualquier clan, según el índice de clanes externos (§PF369).
 // v223 (5-nov-2026): admin.html cambió (CORE_ASSETS) -- la tabla «Jugadores nuestros que pasaron por este clan» suma la columna «Semanas en este clan» (§PF369).
-const CACHE_NAME = 'terna-static-v223';
+// v224 (5-nov-2026): admin.html cambió (CORE_ASSETS) -- la nota al pie de «Semanas en este clan» menciona «NARANJA x» solo en el clan vetado (§PF369).
+const CACHE_NAME = 'terna-static-v224';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y

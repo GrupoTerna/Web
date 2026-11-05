@@ -395,6 +395,7 @@ test('cualquier clan con índice de clanes externos: «¿Infiltrado?» lista a l
   assert.match(t, /Ex Inactivo/);
   assert.match(t, /Fuera del roster/);
   assert.match(t, /#Z9/);
+  assert.doesNotMatch(t, /NARANJA x/);
   assert.doesNotMatch(t, /Aún no hay un índice/);
 });
 
@@ -410,6 +411,7 @@ test('la tabla de «pasaron por este clan» trae «Semanas en este clan»: el va
   const celdas = n => [...filas.find(tr => tr.textContent.includes(n)).querySelectorAll('td')].map(td => td.textContent.trim());
   assert.equal(celdas('Con Semanas').at(-1), '7');
   assert.equal(celdas('Sin Semanas').at(-1), '—');
+  assert.match(cont.textContent, /razón «NARANJA x», pero no hay semanas/);
 });
 
 test('clan sin índice completo (indiceClanesDisponible false): lo dice y no inventa ex miembros (5-nov-2026, §PF369)', async () => {
