@@ -265,7 +265,8 @@
 // v216 (5-nov-2026): admin.html cambió (CORE_ASSETS) -- la pastilla «Vetar» pasó a la cabecera de la ficha de «Buscar miembro» (arriba a la derecha) y el campo «Préstamo» pide el nombre de la persona a quien se prestó la cuenta (§PF365).
 // v217 (5-nov-2026): admin.html cambió (CORE_ASSETS) -- junto a la pastilla «Vetar» de la ficha de «Buscar miembro» sale la pastilla «¿Infiltrado?», que integra «Detección de infiltrados» a la ficha con el Tag del miembro abierto (§PF366).
 // v218 (5-nov-2026): admin.html cambió (CORE_ASSETS) -- la pastilla «¿Infiltrado?» de la ficha suma los clanes externos donde el jugador jugó guerra (JSON individual) y la tarjeta «Detección de infiltrados» pasa a revisar solo clanes (§PF367).
-const CACHE_NAME = 'terna-static-v218';
+// v219 (5-nov-2026): admin.html cambió (CORE_ASSETS) -- «Detección de infiltrados: revisar un clan» pasa a ser la tarjeta «Buscar clan» (ficha con «Vetar» y «¿Infiltrado?») y las semanas anteriores a la T1 interna se muestran con la temporada de Supercell (§PF368).
+const CACHE_NAME = 'terna-static-v219';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y

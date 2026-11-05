@@ -11,6 +11,7 @@ const { JSDOM } = require('jsdom');
 // no pide una función aparte: todo admin con sesión puede consultarla, igual que la tarjeta «Detección de infiltrados», que sigue aparte porque también revisa el Tag de un CLAN rival.
 //
 // Se extraen funciones REALES del <script> inline de admin.html entre marcadores (si alguien lo reorganiza, los marcadores fallan a propósito) y la estructura se lee del HTML real.
+// §PF368 (5-nov-2026): la tarjeta «Detección de infiltrados: revisar un clan» pasó a ser «Buscar clan» (tarjeta aparte, con ficha y las pastillas «Vetar» y «¿Infiltrado?»); sus pruebas están al final, con la tarjeta real del HTML.
 // LÍMITE: DOM y backend simulados (la respuesta usa la forma real de _buscarInfiltrado(): { ok, tipo:'jugador', jugador, infoRival, historialTerna }); no prueba el backend real ni el aspecto en un navegador.
 
 const HTML = fs.readFileSync(path.join(__dirname, '..', 'admin.html'), 'utf8');
@@ -21,8 +22,10 @@ const trozo = (ini, fin, nombre) => {
   return HTML.slice(i, f);
 };
 
-const CODIGO_RENDER = trozo('function _badgeRival(infoRival){', 'async function buscarInfiltrado(){', '_badgeRival()/_tablaCoincidencias()/renderInfiltrado()');
-const CODIGO_TARJETA = trozo('async function buscarInfiltrado(){', "document.getElementById('btnBuscarInfiltrado').addEventListener", 'buscarInfiltrado() de la tarjeta');
+const CODIGO_RENDER = trozo('function _badgeRival(infoRival){', 'let clanActual = null;', '_badgeRival()/_tablaCoincidencias()/renderInfiltrado()');
+// §PF368: «Buscar clan» (ficha, «¿Infiltrado?» y «Vetar» del clan) y su tarjeta real del HTML.
+const CODIGO_CLAN = trozo('let clanActual = null;', '/* 5-nov-2026 (pedido de la usuaria): «Detección de infiltrados» integrada a la ficha', '«Buscar clan»');
+const TARJETA_CLAN = trozo('<div class="card pf-cinta" id="cardBuscarClan"', '<!-- 5-nov-2026 (pedido de la usuaria): el grupo «Directorio»', 'tarjeta «Buscar clan»');
 const CODIGO_FICHA = trozo('function reiniciarInfiltradoFicha(j){', "document.getElementById('btnGuardar').addEventListener", 'reiniciarInfiltradoFicha()/verificarInfiltradoFicha()/pastilla');
 
 const ESTRUCTURA = `
@@ -30,17 +33,22 @@ const ESTRUCTURA = `
   <div id="infiltradoPanel" style="display:none">
     <h3 id="infFichaTitulo"></h3><div id="fichaInfMsg"></div><div id="fichaInfResultado"></div>
   </div>
-  <input id="infTagInput"><div id="infMsg"></div>
-  <div id="infResultado"></div>`;
+  ${TARJETA_CLAN}`;
 
-function montar({ respuestas = [], falla = false } = {}){
+function montar({ respuestas = [], falla = false, respuestasPost = [], confirma = true } = {}){
   const dom = new JSDOM(`<!doctype html><html><body>${ESTRUCTURA}</body></html>`, { runScripts: 'outside-only', pretendToBeVisual: true, url: 'https://terna.example/' });
   const w = dom.window;
   w.__respuestas = respuestas.slice();
   w.__falla = falla;
+  w.__respuestasPost = respuestasPost.slice();
+  w.__confirma = confirma;
   w.eval(`
-    var miembroActual = null, _infFichaSeq = 0, llamadas = [], pendientes = [];
-    function normalizarTag(t){ return '#' + String(t).replace('#','').toUpperCase(); }
+    var miembroActual = null, _infFichaSeq = 0, llamadas = [], llamadasPost = [], pendientes = [], SESSION_KEY = 'sess';
+    localStorage.setItem('sess', 'tok123');
+    window.confirm = function(){ return window.__confirma !== false; };
+    async function conBotonOcupado(btn, fn){ if(!btn || btn.disabled) return; btn.disabled = true; try{ return await fn(); } finally { btn.disabled = false; } }
+    function apiPost(accion, cuerpo){ llamadasPost.push({ accion, cuerpo }); const r = window.__respuestasPost.shift(); return Promise.resolve(r); }
+    function normalizarTag(t){ const v = String(t||'').trim().toUpperCase().replace(/^#/, ''); return v ? '#' + v : ''; } // igual que assets/js/util.js
     function esc(t){ return String(t); }
     function enlaceJugador(n){ return String(n); }
     function enlaceClan(c){ return String(c); }
@@ -55,12 +63,14 @@ function montar({ respuestas = [], falla = false } = {}){
       return Promise.resolve(r);
     }
     ${CODIGO_RENDER}
-    ${CODIGO_TARJETA}
+    ${CODIGO_CLAN}
     ${CODIGO_FICHA}
     window.reiniciarInfiltradoFicha = reiniciarInfiltradoFicha;
     window.verificarInfiltradoFicha = verificarInfiltradoFicha;
     window.renderInfiltrado = renderInfiltrado;
-    window.buscarInfiltrado = buscarInfiltrado;
+    window.buscarClan = buscarClan;
+    window.reiniciarFichaClan = reiniciarFichaClan;
+    window.verificarInfiltradosClan = verificarInfiltradosClan;
   `);
   return w;
 }
@@ -91,7 +101,7 @@ test('la pastilla abre el panel y consulta webAdminBuscarInfiltrado con el Tag d
   assert.match(id(w, 'fichaInfResultado').textContent, /Rival de esta temporada/);
   assert.match(id(w, 'fichaInfResultado').textContent, /vs\. Terna 2/);
   assert.match(id(w, 'fichaInfResultado').textContent, /Clan actual: Clan Rival \(#RIVAL1\)/);
-  assert.equal(id(w, 'infResultado').innerHTML, '', 'no toca el resultado de la tarjeta «Detección de infiltrados»');
+  assert.equal(id(w, 'clanInfResultado').innerHTML, '', 'no toca el resultado de «Buscar clan»');
 });
 
 test('cerrar y volver a abrir muestra lo mismo sin volver a consultar', async () => {
@@ -116,12 +126,18 @@ test('sin señales dice «Sin señales» y aclara que eso no prueba que no sea i
   assert.match(t, /no prueba que no sea infiltrado/);
 });
 
-test('la tarjeta «Detección de infiltrados» de siempre (renderInfiltrado sin argumentos) sigue pintando en #infResultado y sin el veredicto «Sin señales»', () => {
+test('renderInfiltrado de un clan en modo ficha: solo veredicto y tabla, sin repetir la cabecera del clan', () => {
   const w = montar();
-  w.renderInfiltrado(respuestaJugador(null));
-  assert.match(id(w, 'infResultado').textContent, /Miembro Registrado/);
-  assert.doesNotMatch(id(w, 'infResultado').textContent, /Sin señales/);
-  assert.equal(id(w, 'fichaInfResultado').innerHTML, '');
+  const cont = id(w, 'clanInfResultado');
+  w.renderInfiltrado({ ok: true, tipo: 'clan', clan: { tag: '#CLAN1', nombre: 'Clan Rival', miembros: 50 }, infoRival: null,
+    coincidencias: [{ tagEnClanRival: '#M1', nombreEnClanRival: 'Infiltrado Uno', rolEnClanRival: 'Miembro', coincidencias: [{ origen: 'Directorio', nombre: 'Nuestro Miembro', tag: '#M1', clan: 'Terna', razon: '' }] }] }, cont, true);
+  assert.match(cont.textContent, /1 miembro actual figura en nuestro roster/);
+  assert.match(cont.textContent, /Infiltrado Uno/);
+  assert.doesNotMatch(cont.textContent, /50 miembros actuales/, 'la cabecera del clan ya está en la ficha');
+  w.renderInfiltrado({ ok: true, tipo: 'clan', clan: { tag: '#CLAN1', nombre: 'Clan Rival', miembros: 50 }, infoRival: null, coincidencias: [] }, cont, true);
+  assert.match(cont.textContent, /Sin coincidencias/);
+  assert.match(cont.textContent, /no prueba que no haya infiltrados/);
+  assert.equal(cont.querySelector('table'), null);
 });
 
 test('si el backend responde con error, se muestra; al cerrar y volver a abrir se reintenta', async () => {
@@ -174,7 +190,7 @@ test('reiniciarInfiltradoFicha(): una ficha nueva cierra el panel, borra el resu
   assert.equal(id(w, 'infFichaTitulo').textContent, '¿Es infiltrado? Otra Persona (#OTRO)');
 });
 
-test('estructura de admin.html: la pastilla «¿Infiltrado?» va junto a «Vetar» en la cabecera de la ficha, siempre visible; su panel va antes del formulario de vetar; la tarjeta «Detección de infiltrados» sigue', () => {
+test('estructura de admin.html: la pastilla «¿Infiltrado?» va junto a «Vetar» en la cabecera de la ficha, siempre visible; su panel va antes del formulario de vetar; los clanes tienen su tarjeta «Buscar clan»', () => {
   const doc = new JSDOM(HTML).window.document; // sin ejecutar scripts
   const g = (x) => doc.getElementById(x);
   const ficha = g('miembroSec');
@@ -189,7 +205,8 @@ test('estructura de admin.html: la pastilla «¿Infiltrado?» va junto a «Vetar
   assert.equal(g('infiltradoPanel').style.display, 'none', 'el panel empieza cerrado');
   assert.ok(g('infiltradoPanel').compareDocumentPosition(g('vetarMiembroBox')) & 4, 'el panel va antes del formulario de vetar');
   assert.ok(g('guardarMsg').compareDocumentPosition(g('infiltradoPanel')) & 4, 'y después de «Datos de gestión»');
-  assert.ok(g('cardInfiltrados') && g('infTagInput') && g('btnBuscarInfiltrado'), 'la tarjeta «Detección de infiltrados» (que también revisa clanes rivales) sigue');
+  assert.ok(g('cardBuscarClan') && g('clanTagInput') && g('btnBuscarClan'), 'los clanes tienen su propia tarjeta «Buscar clan» (§PF368)');
+  assert.equal(g('cardInfiltrados'), null, 'la tarjeta «Detección de infiltrados: revisar un clan» ya no existe');
   assert.ok(HTML.includes("webAdminBuscarInfiltrado"), 'usa el mismo endpoint');
 });
 
@@ -246,30 +263,183 @@ test('en la ficha su fila del Directorio (él mismo) no se repite; si además es
   assert.match(t, /Vetados/); assert.match(t, /Sabotaje/);
 });
 
-test('la tarjeta «Detección de infiltrados» pide solo clanes (soloClan) y sigue pintando un clan', async () => {
-  const w = montar({ respuestas: [{ ok: true, tipo: 'clan', clan: { tag: '#CLAN1', nombre: 'Clan Rival', miembros: 50 }, infoRival: { fuente: 'currentriverrace', clanTernaNombre: 'Terna 1' }, coincidencias: [] }] });
-  id(w, 'infTagInput').value = 'clan1';
-  w.buscarInfiltrado(); await esperar();
+// ----- §PF368 (5-nov-2026): temporada de Supercell en las semanas anteriores a la T1 interna -----
+test('las semanas anteriores a la T1 interna (temporada <= 0) se muestran con la temporada de Supercell, con una nota; las demás siguen como «T26 S3»', async () => {
+  const w = montar({ respuestas: [Object.assign(respuestaJugador(null), { clanesExternos: [
+    { tag: '#RYLRJ2UP', nombre: 'NICOL ARMY', semanas: 2, primera: { temporada: 0, semana: 3, temporadaRoyaleApi: 111, supercell: '2024-08' }, ultima: { temporada: 0, semana: 4, temporadaRoyaleApi: 111, supercell: '2024-08' }, infoRival: null },
+    { tag: '#9VR2J8VP', nombre: 'Nova Perú', semanas: 1, primera: { temporada: 26, semana: 3, temporadaRoyaleApi: 137, supercell: '2026-10' }, ultima: { temporada: 26, semana: 3, temporadaRoyaleApi: 137, supercell: '2026-10' }, infoRival: null }
+  ], clanesExternosDisponible: true })] });
+  abrirFicha(w); clic(w, 'btnInfiltradoPastilla'); await esperar();
+  const t = id(w, 'fichaInfResultado').textContent;
+  assert.match(t, /2024-08 S3 → 2024-08 S4/);
+  assert.doesNotMatch(t, /T0 S/);
+  assert.match(t, /T26 S3 → T26 S3/, 'una temporada positiva sigue con su número propio');
+  assert.doesNotMatch(t, /2026-10/, 'solo se usa Supercell donde la temporada propia es <= 0');
+  assert.match(t, /anteriores a la T1 interna se muestran con la temporada de Supercell/);
+});
+
+test('si el backend aún no manda el id de Supercell, una temporada <= 0 se muestra como antes y sin la nota', async () => {
+  const w = montar({ respuestas: [Object.assign(respuestaJugador(null), { clanesExternos: [
+    { tag: '#OLD', nombre: 'Clan Viejo', semanas: 1, primera: { temporada: -7, semana: 2 }, ultima: { temporada: -7, semana: 2 }, infoRival: null }
+  ], clanesExternosDisponible: true })] });
+  abrirFicha(w); clic(w, 'btnInfiltradoPastilla'); await esperar();
+  const t = id(w, 'fichaInfResultado').textContent;
+  assert.match(t, /T-7 S2/);
+  assert.doesNotMatch(t, /temporada de Supercell/);
+});
+
+// ----- §PF368 (5-nov-2026): tarjeta «Buscar clan» con su ficha y las pastillas «Vetar» y «¿Infiltrado?» -----
+const CLAN = { tag: '#CLAN1', nombre: 'Clan Rival', miembros: 48, puntos: 61234, trofeosGuerra: 3210, ubicacion: 'Perú', tipo: 'inviteOnly', copasRequeridas: 4000, esNuestro: false };
+const respuestaClan = (extra = {}) => Object.assign({ ok: true, clan: Object.assign({}, CLAN, extra.clan || {}), esRivalTemporada: !!extra.infoRival, infoRival: extra.infoRival || null }, {});
+const buscarClanEn = async (w, tag, respuesta) => {
+  id(w, 'clanTagInput').value = tag;
+  w.buscarClan(); await esperar();
+};
+
+test('«Buscar clan» consulta webAdminBuscarClan con el Tag normalizado y pinta la ficha del clan', async () => {
+  const w = montar({ respuestas: [respuestaClan({ infoRival: { fuente: 'currentriverrace', clanTernaNombre: 'Terna 1' } })] });
+  await buscarClanEn(w, 'clan1');
   const ll = ev(w, 'llamadas');
   assert.equal(ll.length, 1);
-  assert.equal(ll[0].params.soloClan, '1');
+  assert.equal(ll[0].accion, 'webAdminBuscarClan');
   assert.equal(ll[0].params.tag, '#CLAN1');
-  assert.match(id(w, 'infResultado').textContent, /Clan Rival/);
-  assert.match(id(w, 'infResultado').textContent, /Rival de esta temporada/);
+  assert.equal(id(w, 'clanSec').style.display, 'block');
+  assert.equal(id(w, 'cNombre').textContent, 'Clan Rival');
+  assert.match(id(w, 'cSub').textContent, /#CLAN1 · Perú · Solo invitación/);
+  assert.equal(id(w, 'cMiembros').textContent, '48');
+  assert.match(id(w, 'cPuntos').textContent, /61.?234/);
+  assert.match(id(w, 'cTrofeos').textContent, /3.?210/);
+  assert.match(id(w, 'cBadge').textContent, /Rival de esta temporada/);
+  assert.equal(id(w, 'cVerClan').href, 'https://royaleapi.com/clan/CLAN1');
+  assert.equal(id(w, 'clanInfTitulo').textContent, '¿Tiene infiltrados? Clan Rival (#CLAN1)');
+  assert.equal(id(w, 'btnClanVetarPastilla').disabled, false);
+  assert.equal(id(w, 'btnClanVetarPastilla').textContent, '🚫 Vetar');
 });
 
-test('si en la tarjeta se escribe un Tag de jugador, el aviso del backend lo manda a la pastilla de la ficha', async () => {
-  const w = montar({ respuestas: [{ ok: false, error: 'No encontré ningún clan con ese Tag. Si es un jugador, usa la pastilla «¿Infiltrado?» de su ficha en «Buscar miembro».' }] });
-  id(w, 'infTagInput').value = '#2GG8PJ8GC';
-  w.buscarInfiltrado(); await esperar();
-  assert.match(id(w, 'infMsg').textContent, /pastilla «¿Infiltrado\?»/);
-  assert.equal(id(w, 'infResultado').innerHTML, '');
+test('un clan sin señales lo dice sin afirmar de más; uno de la Familia no se puede vetar; uno ya en conflicto manual tampoco', async () => {
+  let w = montar({ respuestas: [respuestaClan()] });
+  await buscarClanEn(w, '#CLAN1');
+  assert.match(id(w, 'cBadge').textContent, /No figura como rival ni en conflicto/);
+  assert.match(id(w, 'cBadge').textContent, /Solo compara con los rivales de esta temporada/);
+  w = montar({ respuestas: [respuestaClan({ clan: { esNuestro: true } })] });
+  await buscarClanEn(w, '#CLAN1');
+  assert.match(id(w, 'cBadge').textContent, /Clan de la Familia/);
+  assert.equal(id(w, 'btnClanVetarPastilla').disabled, true);
+  assert.match(id(w, 'btnClanVetarPastilla').textContent, /Clan de la Familia/);
+  w = montar({ respuestas: [respuestaClan({ infoRival: { fuente: 'manual', motivo: 'Sabotaje' } })] });
+  await buscarClanEn(w, '#CLAN1');
+  assert.match(id(w, 'cBadge').textContent, /En lista de conflicto/);
+  assert.equal(id(w, 'btnClanVetarPastilla').disabled, true);
+  assert.match(id(w, 'btnClanVetarPastilla').textContent, /En conflicto/);
 });
 
-test('estructura de admin.html: la tarjeta de abajo habla solo de clanes y remite a la pastilla para un jugador', () => {
+test('«Buscar clan»: Tag vacío no consulta; un error del backend se muestra y no abre la ficha; si falla la red se avisa', async () => {
+  let w = montar();
+  await buscarClanEn(w, '  ');
+  assert.equal(ev(w, 'llamadas').length, 0);
+  assert.match(id(w, 'clanBuscarMsg').textContent, /Escribe el Tag de un clan/);
+  w = montar({ respuestas: [{ ok: false, error: 'No encontré ningún clan con ese Tag.' }] });
+  await buscarClanEn(w, '#NOEXISTE');
+  assert.match(id(w, 'clanBuscarMsg').textContent, /No encontré ningún clan/);
+  assert.notEqual(id(w, 'clanSec').style.display, 'block');
+  w = montar({ falla: true });
+  await buscarClanEn(w, '#CLAN1');
+  assert.match(id(w, 'clanBuscarMsg').textContent, /Error de conexión: sin red/);
+});
+
+test('una búsqueda nueva oculta la ficha anterior, y una respuesta tardía de una búsqueda vieja no se pinta', async () => {
+  const w = montar({ respuestas: [() => respuestaClan({ clan: { nombre: 'Clan Viejo' } }), respuestaClan({ clan: { nombre: 'Clan Nuevo', tag: '#CLAN2' } })] });
+  id(w, 'clanTagInput').value = '#CLAN1'; w.buscarClan(); await esperar();   // queda en vuelo
+  id(w, 'clanTagInput').value = '#CLAN2'; w.buscarClan(); await esperar();   // la segunda llega primero
+  assert.equal(id(w, 'cNombre').textContent, 'Clan Nuevo');
+  ev(w, 'pendientes.forEach(f => f())'); await esperar();                    // llega la vieja
+  assert.equal(id(w, 'cNombre').textContent, 'Clan Nuevo', 'la respuesta vieja se descarta');
+});
+
+test('la pastilla «¿Infiltrado?» del clan pide webAdminBuscarInfiltrado con soloClan y el Tag de la ficha, y pinta el resultado una sola vez', async () => {
+  const w = montar({ respuestas: [respuestaClan(), { ok: true, tipo: 'clan', clan: { tag: '#CLAN1', nombre: 'Clan Rival', miembros: 48 }, infoRival: null,
+    coincidencias: [{ tagEnClanRival: '#M1', nombreEnClanRival: 'Infiltrado Uno', rolEnClanRival: 'Miembro', coincidencias: [{ origen: 'Directorio', nombre: 'Nuestro Miembro', tag: '#M1', clan: 'Terna', razon: '' }] }] }] });
+  await buscarClanEn(w, '#CLAN1');
+  assert.equal(id(w, 'clanInfiltradoPanel').style.display, 'none');
+  clic(w, 'btnClanInfiltradoPastilla'); await esperar();
+  const ll = ev(w, 'llamadas');
+  assert.equal(ll.length, 2);
+  assert.equal(ll[1].accion, 'webAdminBuscarInfiltrado');
+  assert.deepEqual(JSON.parse(JSON.stringify(ll[1].params)), { tag: '#CLAN1', soloClan: '1' });
+  assert.equal(id(w, 'clanInfiltradoPanel').style.display, 'block');
+  assert.equal(id(w, 'btnClanInfiltradoPastilla').getAttribute('aria-expanded'), 'true');
+  assert.match(id(w, 'clanInfResultado').textContent, /Infiltrado Uno/);
+  clic(w, 'btnClanInfiltradoPastilla'); clic(w, 'btnClanInfiltradoPastilla'); await esperar();
+  assert.equal(ev(w, 'llamadas').length, 2, 'cerrar y volver a abrir no consulta otra vez');
+});
+
+test('«¿Infiltrado?» del clan: un error se muestra y al volver a abrir se reintenta; sin ficha no consulta', async () => {
+  const w = montar({ respuestas: [respuestaClan(), { ok: false, error: 'Falló la API' }, { ok: true, tipo: 'clan', clan: { tag: '#CLAN1', nombre: 'Clan Rival', miembros: 48 }, infoRival: null, coincidencias: [] }] });
+  await w.verificarInfiltradosClan();
+  assert.match(id(w, 'clanInfMsg').textContent, /Primero busca un clan/);
+  assert.equal(ev(w, 'llamadas').length, 0);
+  await buscarClanEn(w, '#CLAN1');
+  clic(w, 'btnClanInfiltradoPastilla'); await esperar();
+  assert.match(id(w, 'clanInfMsg').textContent, /Falló la API/);
+  clic(w, 'btnClanInfiltradoPastilla'); clic(w, 'btnClanInfiltradoPastilla'); await esperar();
+  assert.match(id(w, 'clanInfResultado').textContent, /Sin coincidencias/);
+});
+
+test('«Vetar» del clan: sin motivo no manda nada; si se cancela la confirmación tampoco; con motivo manda webAdminVetarClan y deja el clan en conflicto', async () => {
+  const w = montar({ respuestas: [respuestaClan()], respuestasPost: [{ ok: true, nombre: 'Clan Rival' }] });
+  await buscarClanEn(w, '#CLAN1');
+  clic(w, 'btnClanVetarPastilla');
+  assert.equal(id(w, 'clanVetarPanel').style.display, 'block');
+  assert.equal(id(w, 'clanVTitulo').textContent, 'Vetar el clan Clan Rival (#CLAN1)');
+  clic(w, 'btnClanVetar'); await esperar();
+  assert.match(id(w, 'clanVMsg').textContent, /Escribe el motivo del veto/);
+  assert.equal(ev(w, 'llamadasPost').length, 0);
+  id(w, 'clanVMotivo').value = '  Sabotaje en guerra  ';
+  w.__confirma = false;
+  clic(w, 'btnClanVetar'); await esperar();
+  assert.equal(ev(w, 'llamadasPost').length, 0, 'cancelar la confirmación no manda nada');
+  w.__confirma = true;
+  clic(w, 'btnClanVetar'); await esperar(); await esperar();
+  const post = ev(w, 'llamadasPost');
+  assert.equal(post.length, 1);
+  assert.equal(post[0].accion, 'webAdminVetarClan');
+  assert.deepEqual(JSON.parse(JSON.stringify(post[0].cuerpo)), { sessionToken: 'tok123', datos: { tag: '#CLAN1', motivo: 'Sabotaje en guerra' } });
+  assert.match(id(w, 'clanVMsg').textContent, /Clan vetado/);
+  assert.match(id(w, 'cBadge').textContent, /En lista de conflicto/);
+  assert.equal(id(w, 'btnClanVetarPastilla').disabled, true);
+  assert.equal(id(w, 'btnClanVetarPastilla').textContent, '🚫 Vetado');
+  assert.equal(id(w, 'btnClanVetar').style.display, 'none', 'no se puede vetar dos veces');
+  assert.equal(id(w, 'clanVMotivo').value, '');
+});
+
+test('«Vetar» del clan: un error del backend se muestra y el clan no cambia de estado', async () => {
+  const w = montar({ respuestas: [respuestaClan()], respuestasPost: [{ ok: false, error: 'Ese clan ya está en la lista de conflicto.' }] });
+  await buscarClanEn(w, '#CLAN1');
+  id(w, 'clanVMotivo').value = 'Motivo';
+  clic(w, 'btnClanVetar'); await esperar(); await esperar();
+  assert.match(id(w, 'clanVMsg').textContent, /ya está en la lista de conflicto/);
+  assert.equal(id(w, 'btnClanVetarPastilla').disabled, false);
+  assert.match(id(w, 'cBadge').textContent, /No figura como rival/);
+});
+
+test('estructura de admin.html: «Buscar clan» es una tarjeta aparte, del mismo estilo y nivel que «Buscar miembro», con «Vetar» y «¿Infiltrado?» en la cabecera de su ficha', () => {
   const doc = new JSDOM(HTML).window.document;
-  const card = doc.getElementById('cardInfiltrados');
-  assert.match(card.textContent, /revisar un clan/i);
-  assert.match(card.textContent, /pastilla «🕵️ ¿Infiltrado\?»/);
-  assert.doesNotMatch(card.textContent, /o de un jugador puntual/);
+  const g = (x) => doc.getElementById(x);
+  const tarjetaClan = g('cardBuscarClan');
+  const tarjetaMiembro = g('tagInput').closest('.card');
+  assert.ok(tarjetaClan.matches('.card.pf-cinta'), 'mismo estilo de tarjeta con cinta');
+  assert.equal(tarjetaClan.querySelector('.eyebrow').textContent, 'Buscar clan');
+  assert.equal(tarjetaClan.parentElement, tarjetaMiembro.parentElement, 'mismo nivel que «Buscar miembro»');
+  assert.ok(tarjetaMiembro.compareDocumentPosition(tarjetaClan) & 4, 'va después de «Buscar miembro»');
+  assert.ok(!tarjetaMiembro.contains(tarjetaClan), 'ya no es una subsección dentro de «Buscar miembro»');
+  assert.equal(g('btnBuscarClan').textContent.trim(), 'Buscar clan');
+  const cab = g('cNombre').closest('.perfil-cabecera');
+  assert.ok(cab.contains(g('clanAcciones')) && g('clanAcciones').contains(g('btnClanVetarPastilla')) && g('clanAcciones').contains(g('btnClanInfiltradoPastilla')), 'las dos pastillas van en la cabecera de la ficha');
+  assert.ok(g('btnClanVetarPastilla').compareDocumentPosition(g('btnClanInfiltradoPastilla')) & 4, '«¿Infiltrado?» va después de «Vetar»');
+  assert.ok(!g('clanVetarPastillaBox').contains(g('btnClanInfiltradoPastilla')), '«¿Infiltrado?» no depende de la función «Vetar»');
+  for (const x of ['clanSec', 'clanInfiltradoPanel', 'clanVetarPanel']) assert.equal(g(x).style.display, 'none', `#${x} empieza oculto`);
+  assert.equal(g('clanVetarBox').style.display, 'none', 'el formulario de vetar empieza oculto hasta saber que tiene la función «Vetar»');
+  assert.ok(g('clanInfiltradoPanel').compareDocumentPosition(g('clanVetarBox')) & 4, 'el panel va antes del formulario de vetar');
+  assert.equal(g('cardInfiltrados'), null);
+  assert.ok(HTML.includes("'webAdminBuscarClan'") && HTML.includes("'webAdminVetarClan'"), 'usa los endpoints nuevos');
 });

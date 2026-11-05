@@ -472,20 +472,59 @@
         </div>
       </div>
 
-      <!-- "Detección de infiltrados" vive junto a "Buscar miembro" (antes estaba en Directorio); mismo comportamiento y backend. -->
-      <div style="margin-top:22px; padding-top:18px; border-top:1px solid var(--line);">
-        <details class="admin-subseccion" id="cardInfiltrados">
-          <summary><span class="cat-titulo">Detección de infiltrados: revisar un clan</span></summary>
-          <div class="admin-subseccion-body">
-            <p class="text-dim" style="font-size:13px; margin:0 0 14px;">Escribe el Tag de un clan rival. Se revisa contra los clanes rivales de esta temporada, la lista manual de conflicto (hoja "Conflictos") y nuestro propio roster (Directorio/Inactivos/Vetados). Para revisar a un jugador usa la pastilla «🕵️ ¿Infiltrado?» de su ficha, en «Buscar miembro».</p>
-            <div class="buscador">
-              <input type="text" id="infTagInput" aria-label="Tag del clan rival" placeholder="Ej: #ABC123XYZ" autocapitalize="characters">
-              <button type="button" class="btn btn-primary" id="btnBuscarInfiltrado">Buscar</button>
+    </div>
+
+    <!-- 5-nov-2026 (pedido de la usuaria, §PF368): «Detección de infiltrados: revisar un clan» pasó a ser «Buscar clan», una tarjeta del mismo nivel y estilo que «Buscar miembro» (antes era una subsección dentro de ella). Por ahora se busca por Tag; la usuaria pidió dejar el sitio para ingresar después las características de los clanes deseados. La ficha del clan lleva las pastillas «Vetar» (agrega el clan a la hoja Conflictos) y «¿Infiltrado?» (cruza sus miembros actuales con nuestro roster). -->
+    <div class="card pf-cinta" id="cardBuscarClan" style="--cinta:url(Im%C3%A1genes/Banners/Fankit/cinta-admin-buscar.webp); margin-top:24px;">
+      <div class="eyebrow">Buscar clan</div>
+      <p class="text-dim" style="font-size:13px; margin:10px 0 14px;">Busca un clan por su Tag (con o sin #). Verás su ficha y si es rival de esta temporada o está en la lista de conflicto (hoja «Conflictos»); desde ahí puedes vetarlo o revisar si tiene infiltrados entre sus miembros actuales.</p>
+      <div class="buscador">
+        <input type="text" id="clanTagInput" aria-label="Tag del clan" placeholder="Ej: #ABC123XYZ" autocapitalize="characters" autocomplete="off">
+        <button type="button" class="btn btn-primary" id="btnBuscarClan">Buscar clan</button>
+      </div>
+      <div id="clanBuscarMsg"></div>
+
+      <div id="clanSec" style="display:none; margin-top:18px;">
+        <div class="card">
+          <div class="perfil-cabecera">
+            <div>
+              <h3 id="cNombre" style="font-size:19px; font-family:var(--f-display); text-transform:uppercase;"></h3>
+              <div class="text-faint" id="cSub" style="font-family:var(--f-mono); font-size:12px; margin-top:4px;"></div>
+              <div id="cBadge" style="margin-top:10px;"></div>
+              <a class="btn btn-ghost" id="cVerClan" href="https://royaleapi.com/" target="_blank" rel="noopener" style="margin-top:10px; font-size:12px;">Ver clan en RoyaleAPI</a>
             </div>
-            <div id="infMsg"></div>
-            <div id="infResultado" style="margin-top:16px;"></div>
+            <div id="clanAcciones" style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+              <div id="clanVetarPastillaBox" style="display:none;">
+                <button type="button" class="tab-clan btn-vetar-pastilla" id="btnClanVetarPastilla" aria-expanded="false" aria-controls="clanVetarPanel" style="border-color:var(--danger); color:var(--danger);">🚫 Vetar</button>
+              </div>
+              <button type="button" class="tab-clan" id="btnClanInfiltradoPastilla" aria-expanded="false" aria-controls="clanInfiltradoPanel">🕵️ ¿Infiltrado?</button>
+            </div>
+            <div class="stats-mini">
+              <span><b id="cMiembros"></b>Miembros</span>
+              <span><b id="cPuntos"></b>Puntos de clan</span>
+              <span><b id="cTrofeos"></b>Trofeos de guerra</span>
+            </div>
           </div>
-        </details>
+        </div>
+
+        <div id="clanInfiltradoPanel" style="display:none; margin-top:18px;">
+          <h3 id="clanInfTitulo" style="font-size:15px; color:var(--gold); margin-bottom:14px;"></h3>
+          <div id="clanInfMsg" aria-live="polite"></div>
+          <div id="clanInfResultado" style="margin-top:4px;"></div>
+        </div>
+
+        <!-- Como el veto de jugadores, solo lo ve quien tiene la función «Vetar» (aplicarVisibilidadPorFunciones()); el backend lo vuelve a validar en _webAdminVetarClan(). Vetar un clan lo agrega a «Conflictos»; es de un solo sentido, sin «desvetar» desde la web. -->
+        <div id="clanVetarBox" style="display:none; margin-top:18px;">
+          <div id="clanVetarPanel" style="display:none; margin-top:14px;">
+            <h3 id="clanVTitulo" style="font-size:15px; color:var(--gold); margin-bottom:14px;"></h3>
+            <div class="field">
+              <label for="clanVMotivo">Motivo</label>
+              <input type="text" id="clanVMotivo" maxlength="200" placeholder="Por qué se veta este clan (se guarda en la hoja Conflictos)">
+            </div>
+            <button type="button" class="btn btn-primary btn-block" id="btnClanVetar" style="margin-top:6px; border-color:var(--danger);">Vetar clan</button>
+            <div id="clanVMsg"></div>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -1706,6 +1745,9 @@ function aplicarVisibilidadPorFunciones(){
   // 5-nov-2026: «Vetar miembro» ya no es una tarjeta aparte: es la pastilla #btnVetarPastilla, arriba a la derecha de la ficha de «Buscar miembro», y el formulario #vetarMiembroBox al pie de la ficha. Solo la ve quien tiene la función «Vetar». Historial en CHANGELOG.md.
   document.getElementById('vetarPastillaBox').style.display = puedeVetar ? '' : 'none';
   document.getElementById('vetarMiembroBox').style.display = puedeVetar ? '' : 'none';
+  // 5-nov-2026 (§PF368): lo mismo para vetar un clan desde «Buscar clan».
+  document.getElementById('clanVetarPastillaBox').style.display = puedeVetar ? '' : 'none';
+  document.getElementById('clanVetarBox').style.display = puedeVetar ? '' : 'none';
 }
 
 /**
@@ -2217,7 +2259,16 @@ function _alertaClanExternoRival(rivales){
 function _tablaClanesExternos(lista, disponible){
   if(!disponible) return '<div class="empty">No se pudo leer su historial de guerra.</div>';
   if(!lista.length) return '<div class="empty">Sin clanes externos en su historial de guerra (puede que aún no tenga su JSON completo o que no haya jugado fuera).</div>';
-  const pto = p => p ? `T${esc(p.temporada)} S${esc(p.semana)}` : '—';
+  // 5-nov-2026 (§PF368, pedido de la usuaria): las semanas anteriores a la T1 de la numeración interna (temporada <= 0, que se leían «T-7 S2») se muestran con la temporada de Supercell («AAAA-MM»).
+  let hayAntesDeT1 = false;
+  const pto = p => {
+    if(!p) return '—';
+    if(Number(p.temporada) <= 0 && p.supercell){
+      hayAntesDeT1 = true;
+      return `<span title="Temporada Supercell ${esc(p.supercell)} (anterior a la T1 interna)">${esc(p.supercell)} S${esc(p.semana)}</span>`;
+    }
+    return `T${esc(p.temporada)} S${esc(p.semana)}`;
+  };
   const filas = lista.map(c => `
     <tr>
       <td>${esc(c.nombre || '—')}${c.tag ? ` <span class="text-faint">(${esc(c.tag)})</span>` : ''}</td>
@@ -2228,17 +2279,27 @@ function _tablaClanesExternos(lista, disponible){
   return `<div class="tabla-coincidencias-wrap" style="overflow-x:auto;"><table>
     <thead><tr><th scope="col">Clan</th><th scope="col">Semanas</th><th scope="col">Primera → última</th><th scope="col">Hoy</th></tr></thead>
     <tbody>${filas}</tbody>
-  </table></div>`;
+  </table></div>${hayAntesDeT1 ? '<div class="text-faint" style="font-size:11px; margin-top:6px;">Las semanas anteriores a la T1 interna se muestran con la temporada de Supercell (AAAA-MM).</div>' : ''}`;
 }
 
-/** `cont` y `conVeredicto` son para la pastilla «¿Infiltrado?» de la ficha (5-nov-2026): se pinta en #fichaInfResultado y, si el jugador no tiene señales, se dice «Sin señales» con la aclaración de que no prueba nada (mismo texto de perfil.html, §PF196). Sin argumentos es la tarjeta «Detección de infiltrados» de siempre. */
-function renderInfiltrado(data, cont = document.getElementById('infResultado'), conVeredicto = false){
+/** `cont` y `conVeredicto` son para la pastilla «¿Infiltrado?» de la ficha (5-nov-2026): se pinta en #fichaInfResultado y, si el jugador no tiene señales, se dice «Sin señales» con la aclaración de que no prueba nada (mismo texto de perfil.html, §PF196). `cont` es obligatorio. Con `conVeredicto` y un clan (pastilla de «Buscar clan», §PF368) se pinta solo el veredicto y la tabla de miembros que figuran en nuestro roster; sin `conVeredicto` queda el formato anterior (cabecera y tabla), que ya no usa ninguna pantalla. */
+function renderInfiltrado(data, cont, conVeredicto = false){
   if(data.tipo === 'clan'){
     const c = data.clan;
     let filas = [];
     (data.coincidencias || []).forEach(m => {
       m.coincidencias.forEach(match => filas.push(Object.assign({tagEnClanRival:m.tagEnClanRival, nombreEnClanRival:m.nombreEnClanRival, rolEnClanRival:m.rolEnClanRival}, match)));
     });
+    if(conVeredicto){
+      // Pastilla «¿Infiltrado?» de la ficha del clan (§PF368): el nombre, el Tag y la marca de rival ya están en la cabecera de la ficha; aquí solo el veredicto y la tabla.
+      const n = filas.length;
+      const veredictoClan = n
+        ? `<span class="badge badge-warn">${n === 1 ? '1 miembro actual figura' : n + ' miembros actuales figuran'} en nuestro roster</span><div class="text-dim" style="font-size:12px; margin-top:6px; max-width:420px;">Son miembros de este clan que también están en Directorio, Inactivos o Vetados.</div>`
+        : '<span class="badge">Sin coincidencias</span><div class="text-dim" style="font-size:12px; margin-top:6px; max-width:420px;">Ninguno de sus miembros actuales figura en nuestro roster (Directorio, Inactivos o Vetados). Esto no prueba que no haya infiltrados: solo revisa a quienes están hoy en el clan.</div>';
+      cont.innerHTML = `<div>${veredictoClan}</div>` + (n ? `<div style="margin-top:14px;">${_tablaCoincidencias(filas, true)}</div>` : '');
+      cont.querySelectorAll('.tabla-coincidencias-wrap').forEach(w => activarBarraScrollTabla(w));
+      return;
+    }
     cont.innerHTML = `
       <div class="perfil-cabecera">
         <div>
@@ -2278,30 +2339,162 @@ function renderInfiltrado(data, cont = document.getElementById('infResultado'), 
   cont.querySelectorAll('.tabla-coincidencias-wrap').forEach(w => activarBarraScrollTabla(w));
 }
 
-async function buscarInfiltrado(){
-  const tagNorm = normalizarTag(document.getElementById('infTagInput').value);
-  const msgEl = document.getElementById('infMsg');
+/* 5-nov-2026 (pedido de la usuaria, §PF368): «Buscar clan». Antes la tarjeta «Detección de infiltrados: revisar un clan» solo mostraba una tabla; ahora es una tarjeta del mismo nivel que «Buscar miembro»: se busca el Tag
+   (webAdminBuscarClan: una consulta a /clans más la lista de rivales y conflicto), sale la ficha del clan y de ahí cuelgan dos pastillas. «¿Infiltrado?» consulta webAdminBuscarInfiltrado con soloClan (miembros actuales
+   del clan que figuran en nuestro roster); «Vetar» (solo con la función «Vetar») manda webAdminVetarClan, que agrega el clan a la hoja «Conflictos». Un clan de la Familia no se puede vetar. */
+let clanActual = null; // ficha abierta: { tag, nombre, ..., esNuestro } de webAdminBuscarClan
+let _clanBuscarSeq = 0; // número de la última búsqueda; una respuesta con otro número es de una búsqueda anterior y se descarta
+let _clanInfSeq = 0; // ídem para la consulta de «¿Infiltrado?» de la ficha del clan
+
+function _tipoClanTexto(t){
+  return ({ open:'Abierto', inviteOnly:'Solo invitación', closed:'Cerrado' })[t] || '';
+}
+function _numeroClan(n){
+  return (n === null || n === undefined || n === '') ? '—' : Number(n).toLocaleString('es-PE');
+}
+/** Marca bajo el nombre: clan de la Familia, rival/en conflicto, o ninguna señal (que no prueba nada: la lista de rivales es solo la de hoy). */
+function _marcaClan(c, infoRival){
+  if(c.esNuestro) return '<span class="badge">Clan de la Familia</span>';
+  if(infoRival) return _badgeRival(infoRival);
+  return '<span class="badge">No figura como rival ni en conflicto</span><div class="text-dim" style="font-size:12px; margin-top:6px; max-width:320px;">Solo compara con los rivales de esta temporada y la hoja «Conflictos».</div>';
+}
+/** Deja la pastilla «Vetar» del clan según su estado: normal, bloqueada si es de la Familia o si ya está en la lista manual de conflicto. */
+function _estadoPastillaVetarClan(c, infoRival){
+  const pastilla = document.getElementById('btnClanVetarPastilla');
+  const yaManual = !!(infoRival && String(infoRival.fuente || '').indexOf('manual') !== -1);
+  pastilla.disabled = !!(c.esNuestro || yaManual);
+  pastilla.textContent = c.esNuestro ? '🚫 Clan de la Familia' : (yaManual ? '🚫 En conflicto' : '🚫 Vetar');
+  pastilla.classList.remove('activo');
+  pastilla.setAttribute('aria-expanded', 'false');
+}
+function reiniciarFichaClan(data){
+  const c = data.clan;
+  clanActual = c;
+  _clanInfSeq++; // descarta la respuesta de una consulta en vuelo de la ficha anterior
+  document.getElementById('cNombre').textContent = c.nombre;
+  document.getElementById('cSub').textContent = [c.tag, c.ubicacion, _tipoClanTexto(c.tipo)].filter(Boolean).join(' · ');
+  document.getElementById('cBadge').innerHTML = _marcaClan(c, data.infoRival);
+  document.getElementById('cVerClan').href = 'https://royaleapi.com/clan/' + encodeURIComponent(String(c.tag).replace('#', ''));
+  document.getElementById('cMiembros').textContent = _numeroClan(c.miembros);
+  document.getElementById('cPuntos').textContent = _numeroClan(c.puntos);
+  document.getElementById('cTrofeos').textContent = _numeroClan(c.trofeosGuerra);
+  // «¿Infiltrado?» cerrada y sin resultado de la ficha anterior
+  document.getElementById('clanInfiltradoPanel').style.display = 'none';
+  const pi = document.getElementById('btnClanInfiltradoPastilla');
+  pi.classList.remove('activo');
+  pi.setAttribute('aria-expanded', 'false');
+  document.getElementById('clanInfTitulo').textContent = `¿Tiene infiltrados? ${c.nombre} (${c.tag})`;
+  document.getElementById('clanInfMsg').innerHTML = '';
+  document.getElementById('clanInfResultado').innerHTML = '';
+  // «Vetar» cerrada y con el formulario vacío
+  document.getElementById('clanVetarPanel').style.display = 'none';
+  document.getElementById('clanVTitulo').textContent = `Vetar el clan ${c.nombre} (${c.tag})`;
+  document.getElementById('clanVMotivo').value = '';
+  document.getElementById('clanVMsg').innerHTML = '';
+  document.getElementById('btnClanVetar').style.display = '';
+  _estadoPastillaVetarClan(c, data.infoRival);
+  document.getElementById('clanSec').style.display = 'block';
+}
+
+async function buscarClan(){
+  const tagNorm = normalizarTag(document.getElementById('clanTagInput').value);
+  const msgEl = document.getElementById('clanBuscarMsg');
   msgEl.innerHTML = '';
-  document.getElementById('infResultado').innerHTML = '';
-  if(!tagNorm){ msgEl.innerHTML = '<div class="msg msg-error">Escribe un Tag válido.</div>'; return; }
-  document.getElementById('infTagInput').value = tagNorm;
+  document.getElementById('clanSec').style.display = 'none';
+  clanActual = null;
+  const mio = ++_clanBuscarSeq;
+  _clanInfSeq++;
+  if(!tagNorm){ msgEl.innerHTML = '<div class="msg msg-error">Escribe el Tag de un clan.</div>'; return; }
+  document.getElementById('clanTagInput').value = tagNorm;
   msgEl.innerHTML = '<div class="empty">Buscando…</div>';
   try{
-    const data = await apiGetAuth('webAdminBuscarInfiltrado', { tag: tagNorm, soloClan: '1' }); // 5-nov-2026 (§PF367): la tarjeta solo revisa clanes; al jugador lo cubre la pastilla de la ficha
+    const data = await apiGetAuth('webAdminBuscarClan', { tag: tagNorm });
+    if(mio !== _clanBuscarSeq) return;
     if(manejarRespuestaAuth(data)) return;
     if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
     msgEl.innerHTML = '';
-    renderInfiltrado(data);
+    reiniciarFichaClan(data);
   }catch(err){
+    if(mio !== _clanBuscarSeq) return;
     msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
   }
 }
-document.getElementById('btnBuscarInfiltrado').addEventListener('click', buscarInfiltrado);
-document.getElementById('infTagInput').addEventListener('keydown', e => { if(e.key === 'Enter') buscarInfiltrado(); });
+document.getElementById('btnBuscarClan').addEventListener('click', () => conBotonOcupado(document.getElementById('btnBuscarClan'), buscarClan));
+document.getElementById('clanTagInput').addEventListener('keydown', e => { if(e.key === 'Enter') conBotonOcupado(document.getElementById('btnBuscarClan'), buscarClan); });
+
+async function verificarInfiltradosClan(){
+  const msgEl = document.getElementById('clanInfMsg');
+  const cont = document.getElementById('clanInfResultado');
+  const tagNorm = clanActual ? normalizarTag(clanActual.tag) : '';
+  if(!tagNorm){ msgEl.innerHTML = '<div class="msg msg-error">Primero busca un clan.</div>'; return; }
+  const mio = ++_clanInfSeq;
+  cont.innerHTML = '';
+  msgEl.innerHTML = '<div class="empty">Verificando…</div>';
+  try{
+    const data = await apiGetAuth('webAdminBuscarInfiltrado', { tag: tagNorm, soloClan: '1' });
+    if(mio !== _clanInfSeq) return; // se abrió otra ficha mientras tanto
+    if(manejarRespuestaAuth(data)) return;
+    if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
+    msgEl.innerHTML = '';
+    renderInfiltrado(data, cont, true);
+  }catch(err){
+    if(mio !== _clanInfSeq) return;
+    msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
+  }
+}
+document.getElementById('btnClanInfiltradoPastilla').addEventListener('click', () => {
+  const pastilla = document.getElementById('btnClanInfiltradoPastilla');
+  const panel = document.getElementById('clanInfiltradoPanel');
+  const abrir = panel.style.display === 'none';
+  panel.style.display = abrir ? 'block' : 'none';
+  pastilla.classList.toggle('activo', abrir);
+  pastilla.setAttribute('aria-expanded', abrir ? 'true' : 'false');
+  if(abrir && !document.getElementById('clanInfResultado').innerHTML) verificarInfiltradosClan();
+});
+
+document.getElementById('btnClanVetarPastilla').addEventListener('click', () => {
+  const pastilla = document.getElementById('btnClanVetarPastilla');
+  const panel = document.getElementById('clanVetarPanel');
+  const abrir = panel.style.display === 'none';
+  panel.style.display = abrir ? 'block' : 'none';
+  pastilla.classList.toggle('activo', abrir);
+  pastilla.setAttribute('aria-expanded', abrir ? 'true' : 'false');
+  if(abrir) document.getElementById('clanVMotivo').focus({ preventScroll: false });
+});
+
+document.getElementById('btnClanVetar').addEventListener('click', () => conBotonOcupado(document.getElementById('btnClanVetar'), async () => {
+  const msgEl = document.getElementById('clanVMsg');
+  msgEl.innerHTML = '';
+  const tagNorm = clanActual ? normalizarTag(clanActual.tag) : '';
+  const motivo = document.getElementById('clanVMotivo').value.trim();
+  if(!tagNorm){ msgEl.innerHTML = '<div class="msg msg-error">Primero busca un clan.</div>'; return; }
+  if(!motivo){ msgEl.innerHTML = '<div class="msg msg-error">Escribe el motivo del veto.</div>'; return; }
+  if(!window.confirm(`¿Vetar el clan ${clanActual.nombre} (${tagNorm})? Pasará a la lista de conflicto y no se puede deshacer desde la web.`)) return;
+  const mio = _clanBuscarSeq;
+  try{
+    const data = await apiPost('webAdminVetarClan', {
+      sessionToken: localStorage.getItem(SESSION_KEY),
+      datos: { tag: tagNorm, motivo: motivo }
+    });
+    if(manejarRespuestaAuth(data)) return;
+    if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
+    msgEl.innerHTML = '<div class="msg msg-ok">Clan vetado: ya figura en la lista de conflicto.</div>';
+    document.getElementById('clanVMotivo').value = '';
+    document.getElementById('btnClanVetar').style.display = 'none'; // conBotonOcupado() lo vuelve a habilitar al terminar, así que se oculta para no vetar dos veces
+    if(mio === _clanBuscarSeq){ // la ficha sigue siendo la misma: se actualiza la marca y se bloquea la pastilla
+      const info = { fuente: 'manual', motivo: motivo };
+      document.getElementById('cBadge').innerHTML = _marcaClan(clanActual, info);
+      _estadoPastillaVetarClan(clanActual, info);
+      document.getElementById('btnClanVetarPastilla').textContent = '🚫 Vetado';
+    }
+  }catch(err){
+    msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
+  }
+}));
 
 /* 5-nov-2026 (pedido de la usuaria): «Detección de infiltrados» integrada a la ficha de «Buscar miembro». La pastilla #btnInfiltradoPastilla, junto a «Vetar», abre #infiltradoPanel y consulta
    webAdminBuscarInfiltrado con el Tag de la ficha (miembroActual): no se escribe. La consulta se hace una vez al abrir; cerrar y volver a abrir muestra lo mismo, salvo que hubiera fallado.
-   La tarjeta «Detección de infiltrados» sigue aparte porque también revisa el Tag de un CLAN rival, que no tiene ficha. */
+   Desde el 5-nov-2026 (§PF368) los clanes tienen su propia tarjeta, «Buscar clan», con la misma pastilla en su ficha. */
 function reiniciarInfiltradoFicha(j){
   _infFichaSeq++; // descarta la respuesta de una consulta en vuelo de la ficha anterior
   document.getElementById('infiltradoPanel').style.display = 'none';

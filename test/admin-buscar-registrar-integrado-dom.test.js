@@ -38,6 +38,7 @@ function montar({ funciones = 'Registrar miembro nuevo', respuesta, sesionRota =
     </div>
     <div id="miembroSec" style="display:none"><h3 id="mNombre"></h3></div>
     <div id="nmModoCampo" style="display:none"></div><div id="vetarPastillaBox" style="display:none"></div><div id="vetarMiembroBox" style="display:none"></div>
+    <div id="clanVetarPastillaBox" style="display:none"></div><div id="clanVetarBox" style="display:none"></div>
   </body></html>`, { runScripts: 'outside-only', pretendToBeVisual: true, url: 'https://terna.example/' });
   const w = dom.window;
   w.HTMLElement.prototype.scrollIntoView = function(){ w.__scroll.push(this.id); };
@@ -146,6 +147,8 @@ test('aplicarVisibilidadPorFunciones(): la pastilla «Buscar en Directorio» sal
     assert.equal(id(w, 'nmModoCampo').style.display, campo, `pastilla con «${funciones}»`);
     assert.equal(id(w, 'vetarMiembroBox').style.display, vetar, `Vetar con «${funciones}»`);
     assert.equal(id(w, 'vetarPastillaBox').style.display, vetar, `pastilla Vetar con «${funciones}»`);
+    assert.equal(id(w, 'clanVetarBox').style.display, vetar, `Vetar clan con «${funciones}»`); // §PF368
+    assert.equal(id(w, 'clanVetarPastillaBox').style.display, vetar, `pastilla Vetar de «Buscar clan» con «${funciones}»`);
   }
 });
 
@@ -173,13 +176,14 @@ test('estructura de admin.html: «Registrar miembro nuevo» vive dentro de «Bus
   assert.equal(g('btnNmVerificar'), null, 'el botón «Verificar» ya no existe');
   const tarjeta = g('miembroSec').closest('.card');
   assert.match(tarjeta.querySelector('.eyebrow').textContent, /Buscar miembro/);
-  for (const x of ['tagInput', 'nmModoCampo', 'nmModoSelector', 'nmModoDirBox', 'nmDirLista', 'buscarMsg', 'nmVerificarMsg', 'nmPaso2', 'btnNmGuardar', 'cardInfiltrados', 'mVerPerfil']){
+  for (const x of ['tagInput', 'nmModoCampo', 'nmModoSelector', 'nmModoDirBox', 'nmDirLista', 'buscarMsg', 'nmVerificarMsg', 'nmPaso2', 'btnNmGuardar', 'mVerPerfil']){
     assert.ok(g(x), `falta #${x}`);
     assert.equal(g(x).closest('.card.pf-cinta'), tarjeta, `#${x} no está dentro de «Buscar miembro»`);
   }
   const antes = (a, b) => assert.ok(g(a).compareDocumentPosition(g(b)) & 4, `#${a} debe ir antes de #${b}`);
   antes('tagInput', 'nmModoDirBox'); antes('nmModoDirBox', 'buscarMsg'); antes('buscarMsg', 'nmVerificarMsg');
-  antes('nmVerificarMsg', 'nmPaso2'); antes('nmPaso2', 'miembroSec'); antes('miembroSec', 'cardInfiltrados');
+  antes('nmVerificarMsg', 'nmPaso2'); antes('nmPaso2', 'miembroSec'); antes('miembroSec', 'cardBuscarClan');
+  assert.notEqual(g('cardBuscarClan').closest('.card.pf-cinta'), g('miembroSec').closest('.card.pf-cinta'), '«Buscar clan» es una tarjeta aparte, del mismo nivel que «Buscar miembro» (§PF368)');
   assert.deepEqual([...doc.querySelectorAll('.btn-toggle-nmmodo')].map(b => [b.dataset.modo, b.textContent.trim()]), [['tag', 'Tag o nombre'], ['directorio', 'Buscar en Directorio']]);
   assert.equal(g('nmModoCampo').style.display, 'none', 'la pastilla empieza oculta hasta saber el permiso');
   assert.equal(g('directorioGrupo'), null, 'el grupo «Directorio» (solo traía «Vetar miembro») ya no existe');
