@@ -399,19 +399,62 @@ test('cualquier clan con índice de clanes externos: «¿Infiltrado?» lista a l
   assert.doesNotMatch(t, /Aún no hay un índice/);
 });
 
-test('la tabla de «pasaron por este clan» trae «Semanas en este clan»: el valor del índice, y «—» para quien sale solo por la regla de NARANJA x (5-nov-2026, §PF369)', async () => {
+const pt = (temporada, semana, supercell = null) => ({ temporada, semana, temporadaRoyaleApi: null, supercell });
+
+test('«pasaron por este clan» separa ACTIVOS por clan nuestro (Directorio) e INACTIVOS (Inactivos, Vetados, fuera del roster), con semanas y primera → última (5-nov-2026, §PF372)', async () => {
+  const w = montar({ respuestas: [respuestaClan(), respuestaClanIndice({ indiceClanesDisponible: true, exMiembros: [
+    { origen: 'Directorio', tag: '#A1', nombre: 'Activo Uno', clan: 'GrupoXTerna™2', razon: '', semanas: 3, primera: pt(5, 1), ultima: pt(5, 3) },
+    { origen: 'Directorio', tag: '#A2', nombre: 'Activo Dos', clan: 'GrupoXTerna™2', razon: '', semanas: 1, primera: pt(4, 2), ultima: pt(4, 2) },
+    { origen: 'Inactivos', tag: '#I1', nombre: 'Ex Inactivo', clan: 'Terna 3', razon: 'Salió', semanas: 2, primera: pt(0, 4, '2024-08'), ultima: pt(1, 1) },
+    { origen: 'Fuera del roster', tag: '#Z9', nombre: '', clan: '', razon: '', semanas: 2, primera: pt(2, 1), ultima: pt(2, 2) }] })] });
+  w.eval("var CLANES_REQUISITOS = ['Grupo乂Terna™', 'GrupoXTerna™2', 'Mini乂Ternas™'];");
+  await buscarClanEn(w, '#CLAN1');
+  clic(w, 'btnClanInfiltradoPastilla'); await esperar();
+  const cont = id(w, 'clanInfResultado');
+  const t = cont.textContent;
+  assert.match(t, /Activos en nuestros clanes \(2\)/);
+  assert.match(t, /Inactivos: ya no están en nuestros clanes \(2\)/);
+  // un bloque por clan nuestro, también los vacíos, en el orden de CLANES_REQUISITOS
+  const nombres = [...cont.querySelectorAll('div[style*="font-weight:600"]')].map(d => d.textContent.replace(/\s+/g, ' ').trim());
+  assert.deepEqual(nombres, ['Grupo乂Terna™ (0)', 'GrupoXTerna™2 (2)', 'Mini乂Ternas™ (0)']);
+  assert.equal([...cont.querySelectorAll('.text-faint')].filter(d => d.textContent.trim() === 'Ninguno.').length, 2, 'los dos clanes sin activos dicen «Ninguno.»');
+  const tablas = [...cont.querySelectorAll('table')];
+  const tablaActivos = tablas.find(x => /Activo Uno/.test(x.textContent));
+  assert.doesNotMatch(tablaActivos.textContent, /Ex Inactivo/);
+  const fila = [...tablaActivos.querySelectorAll('tbody tr')].find(tr => /Activo Uno/.test(tr.textContent));
+  assert.deepEqual([...fila.querySelectorAll('td')].map(td => td.textContent.replace(/\s+/g, ' ').trim()), ['Activo Uno (#A1)', '3', 'T5 S1 → T5 S3']);
+  const tablaInactivos = tablas.find(x => /Ex Inactivo/.test(x.textContent));
+  assert.match(tablaInactivos.textContent, /Fuera del roster/);
+  assert.match(tablaInactivos.textContent, /#Z9/);
+  assert.match(tablaInactivos.textContent, /2024-08 S4 → T1 S1/, 'antes de la T1 interna se muestra la temporada Supercell');
+  assert.match(tablaInactivos.textContent, /Último clan nuestro/);
+  assert.doesNotMatch(t, /Aún no hay un índice/);
+  assert.doesNotMatch(t, /NARANJA x/);
+});
+
+test('sin activos ni inactivos que mostrar en uno de los dos grupos: lo dice (5-nov-2026, §PF372)', async () => {
+  const w = montar({ respuestas: [respuestaClan(), respuestaClanIndice({ indiceClanesDisponible: true, exMiembros: [
+    { origen: 'Vetados', tag: '#V1', nombre: 'Solo Vetado', clan: 'Terna 3', razon: 'x', semanas: 1 }] })] });
+  await buscarClanEn(w, '#CLAN1');
+  clic(w, 'btnClanInfiltradoPastilla'); await esperar();
+  const t = id(w, 'clanInfResultado').textContent;
+  assert.match(t, /Activos en nuestros clanes \(0\)/);
+  assert.match(t, /Inactivos: ya no están en nuestros clanes \(1\)/);
+  assert.match(t, /Solo Vetado/);
+});
+
+test('clan vetado: quien sale solo por la regla de «NARANJA x» (sin semanas en el índice) muestra «—» y la nota lo explica (5-nov-2026, §PF372)', async () => {
   const w = montar({ respuestas: [respuestaClan(), respuestaClanIndice({ esClanVetado: true, indiceClanesDisponible: true, exMiembros: [
-    { origen: 'Inactivos', tag: '#C3', nombre: 'Con Semanas', clan: 'Terna 2', razon: 'NARANJA x', semanas: 7 },
+    { origen: 'Inactivos', tag: '#C3', nombre: 'Con Semanas', clan: 'Terna 2', razon: 'NARANJA x', semanas: 7, primera: pt(3, 1), ultima: pt(3, 7) },
     { origen: 'Vetados', tag: '#E5', nombre: 'Sin Semanas', clan: '', razon: 'NARANJA x' }] })] });
   await buscarClanEn(w, '#CLAN1');
   clic(w, 'btnClanInfiltradoPastilla'); await esperar();
   const cont = id(w, 'clanInfResultado');
-  assert.match(cont.textContent, /Semanas en este clan/);
-  const filas = [...cont.querySelectorAll('tbody tr')].filter(tr => /Semanas|Con Semanas|Sin Semanas/.test(tr.textContent));
-  const celdas = n => [...filas.find(tr => tr.textContent.includes(n)).querySelectorAll('td')].map(td => td.textContent.trim());
-  assert.equal(celdas('Con Semanas').at(-1), '7');
-  assert.equal(celdas('Sin Semanas').at(-1), '—');
+  const celdas = n => [...[...cont.querySelectorAll('tbody tr')].find(tr => tr.textContent.includes(n)).querySelectorAll('td')].map(td => td.textContent.replace(/\s+/g, ' ').trim());
+  assert.deepEqual(celdas('Con Semanas').slice(-2), ['7', 'T3 S1 → T3 S7']);
+  assert.deepEqual(celdas('Sin Semanas').slice(-2), ['—', '—']);
   assert.match(cont.textContent, /razón «NARANJA x», pero no hay semanas/);
+  assert.match(cont.textContent, /Recién se están guardando los perfiles completos/);
 });
 
 test('clan sin índice completo (indiceClanesDisponible false): lo dice y no inventa ex miembros (5-nov-2026, §PF369)', async () => {
