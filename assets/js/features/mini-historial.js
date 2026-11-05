@@ -91,6 +91,72 @@ async function alertaCargarTags(){
   }catch(_){ /* sin el resumen solo falta el ⚠️; el 📈 y el WhatsApp siguen igual */ }
 }
 if (typeof document !== 'undefined') { if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', alertaCargarTags); else alertaCargarTags(); }
+/* 5-nov-2026 (§PF375, paso 2): modal propio del ⚠️ (#alertaFondo, aparte de #histFondo del 📈). Pide webAdminClanesSospechososJugador (tag) y por cada clan vetado o rival del jugador muestra su nombre, Tag, tipo, semanas jugadas, «primera → última» y la tabla de esas semanas (ataques, barcos y medallas por semana; son filas `externa` del JSON individual de RoyaleAPI, §PF340, no el historial diario del 📈). Si el JSON individual no se pudo leer (historialDisponible:false) se siguen mostrando los clanes y sus semanas del archivo de alertas. Cierra con ×, clic fuera o Esc. */
+let alertaSolicitud = 0;
+function alertaAsegurarModal(){
+  if (document.getElementById('alertaFondo')) return;
+  const d = document.createElement('div');
+  d.className = 'hist-fondo'; d.id = 'alertaFondo'; d.setAttribute('role', 'dialog'); d.setAttribute('aria-modal', 'true'); d.setAttribute('aria-labelledby', 'alertaTitulo');
+  d.innerHTML = '<div class="hist-panel alerta-panel"><div class="hist-cab"><div><h3 id="alertaTitulo">⚠️ Clanes vetados o rivales</h3><div class="hist-nota" id="alertaSub" style="margin:2px 0 0;"></div></div>'
+    + '<button type="button" class="hist-cerrar" id="alertaCerrar" aria-label="Cerrar">×</button></div><div id="alertaCuerpo" aria-live="polite"></div></div>';
+  document.body.appendChild(d);
+}
+function alertaCerrar(){ const f = document.getElementById('alertaFondo'); if (f) f.classList.remove('abierto'); alertaSolicitud++; }
+function alertaPuntoTxt(p){
+  if (!p) return '—';
+  if (Number(p.temporada) <= 0 && p.supercell) return `${esc(p.supercell)} S${esc(p.semana)}`;
+  return `T${esc(p.temporada)} S${esc(p.semana)}`;
+}
+function alertaTiposHtml(tipos){
+  const t = Array.isArray(tipos) ? tipos : [];
+  return (t.includes('rival') ? '<span class="alerta-tipo alerta-tipo-rival">Rival</span>' : '') + (t.includes('vetado') ? '<span class="alerta-tipo alerta-tipo-vetado">Vetado</span>' : '');
+}
+function alertaFilaHtml(r, idx){
+  const temp = Number(r.temporada) > 0 ? String(Number(r.temporada)) : (r.supercell ? esc(r.supercell) : '–');
+  const num = v => (v === null || v === undefined) ? '—' : fmtNum(v);
+  return `<tr><td>${idx + 1}</td><td>${temp}</td><td>${histSemanaTxt(r)}${r.cerrada === false ? ' · en curso' : ''}</td><td>${num(r.ataques)}</td><td>${num(r.barcos)}</td><td>${num(r.fame)}</td></tr>`;
+}
+function alertaClanHtml(c, historialDisponible){
+  const filas = Array.isArray(c.filas) ? c.filas : [];
+  const n = Number(c.semanas) || filas.length;
+  const periodo = (c.primera || c.ultima) ? `${alertaPuntoTxt(c.primera)} → ${alertaPuntoTxt(c.ultima)}` : '—';
+  const detalle = filas.length
+    ? `<div class="hist-tabla-scroll"><table class="hist-tabla alerta-tabla"><thead><tr><th>N°</th><th>Temporada</th><th>Semana</th><th>Ataques</th><th>Barcos</th><th>Medallas</th></tr></thead><tbody>${filas.map(alertaFilaHtml).join('')}</tbody></table></div>`
+    : `<p class="hist-nota">${historialDisponible ? 'Sin detalle semanal guardado para este clan.' : 'No se pudo leer el historial del jugador: solo se muestran las semanas del archivo de alertas.'}</p>`;
+  return `<section class="alerta-clan"><h4 class="alerta-clan-nombre">${esc(c.nombre || c.tag || 'Clan sin nombre')} <span class="alerta-clan-tag">${esc(c.tag || '')}</span> ${alertaTiposHtml(c.tipos)}</h4>`
+    + `<p class="hist-nota alerta-clan-resumen"><b>${esc(n)}</b> ${n === 1 ? 'semana' : 'semanas'} · ${periodo}</p>${detalle}</section>`;
+}
+function alertaPintar(data){
+  const clanes = Array.isArray(data && data.clanes) ? data.clanes : [];
+  const cuerpo = document.getElementById('alertaCuerpo');
+  if (!clanes.length){ cuerpo.innerHTML = '<p class="hist-nota">Sin clanes vetados ni rivales registrados para este jugador.</p>'; return; }
+  cuerpo.innerHTML = clanes.map(c => alertaClanHtml(c, data.historialDisponible !== false)).join('')
+    + '<p class="hist-nota">«Rival»: clan que fue rival de nuestra guerra en la temporada en que se detectó. «Vetado»: clan de la lista de conflictos o vetado. La alerta es permanente: se conserva aunque el clan deje de ser rival. Las semanas son las jugadas en ese clan, según el historial individual.</p>';
+}
+async function alertaAbrir(tag, nombre){
+  alertaAsegurarModal();
+  document.getElementById('alertaSub').innerHTML = `${enlaceJugador(nombre || tag, tag)} · ${esc(tag)}`;
+  document.getElementById('alertaCuerpo').innerHTML = '<p class="hist-nota">Cargando clanes…</p>';
+  document.getElementById('alertaFondo').classList.add('abierto');
+  const mia = ++alertaSolicitud;
+  try{
+    const data = await apiGetAuth('webAdminClanesSospechososJugador', { tag });
+    if (mia !== alertaSolicitud) return; // se cerró o se abrió otro jugador mientras cargaba
+    if (!data || data.ok === false) throw new Error((data && data.error) || 'sin respuesta');
+    alertaPintar(data);
+  }catch(e){
+    if (mia !== alertaSolicitud) return;
+    document.getElementById('alertaCuerpo').innerHTML = '<p class="hist-nota">No se pudo cargar el detalle. Intenta de nuevo en un momento.</p>';
+  }
+}
+if (typeof document !== 'undefined'){
+document.addEventListener('click', ev => {
+  const b = ev.target.closest && ev.target.closest('.btn-alerta-clanes');
+  if (b){ ev.preventDefault(); alertaAbrir(b.dataset.tag, b.dataset.nombre); return; }
+  if (ev.target.id === 'alertaFondo' || ev.target.id === 'alertaCerrar') alertaCerrar();
+});
+document.addEventListener('keydown', ev => { if (ev.key === 'Escape') alertaCerrar(); });
+}
 /* 23-oct-2026 (tanda 4, P3): cabecera con los datos del perfil (clan actual, torre del rey, nivel de XP, colección, victorias de guerra, copas y vigencia). Es PÚBLICA y sale de `webPerfil` (los mismos campos que la cabecera de perfil.html: j.clan, rawClash.kingTowerLevel, rawClash.expLevel o extendido.nivelXp, extendido.nivelCartas, j.vGuerra, j.copas, j.vigencia). Se pide aparte y DESPUÉS de pintar la tabla (histAbrir no la espera); si falla o no trae ningún dato, la cabecera no aparece. [→ Contexto_Base_Web.md §PF179] */
 function histFechaVigencia(v){
   const d = v instanceof Date ? v : new Date(v);
@@ -168,7 +234,7 @@ function histClaseColorAtaques(r){
   if (a >= 1) return 'hist-a13'; // 1, 2 o 3 ataques: amarillo (la usuaria confirmó el 22-oct-2026 que el 1 también va en amarillo)
   return '';
 }
-function histCerrar(){ document.getElementById('histFondo').classList.remove('abierto'); histSolicitud++; }
+function histCerrar(){ const f = document.getElementById('histFondo'); if (f) f.classList.remove('abierto'); histSolicitud++; } // 5-nov-2026 (§PF375): sin error si Esc llega antes de que exista la ventana del 📈
 let histTag = '', histNombre = '', histRegsA = [];
 /* Solo días de guerra (jueves a domingo): un registro de lunes a miércoles es entrenamiento y no se muestra ni se cuenta. */
 function histSoloGuerra(regs){
