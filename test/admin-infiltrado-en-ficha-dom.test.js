@@ -398,6 +398,20 @@ test('cualquier clan con índice de clanes externos: «¿Infiltrado?» lista a l
   assert.doesNotMatch(t, /Aún no hay un índice/);
 });
 
+test('la tabla de «pasaron por este clan» trae «Semanas en este clan»: el valor del índice, y «—» para quien sale solo por la regla de NARANJA x (5-nov-2026, §PF369)', async () => {
+  const w = montar({ respuestas: [respuestaClan(), respuestaClanIndice({ esClanVetado: true, indiceClanesDisponible: true, exMiembros: [
+    { origen: 'Inactivos', tag: '#C3', nombre: 'Con Semanas', clan: 'Terna 2', razon: 'NARANJA x', semanas: 7 },
+    { origen: 'Vetados', tag: '#E5', nombre: 'Sin Semanas', clan: '', razon: 'NARANJA x' }] })] });
+  await buscarClanEn(w, '#CLAN1');
+  clic(w, 'btnClanInfiltradoPastilla'); await esperar();
+  const cont = id(w, 'clanInfResultado');
+  assert.match(cont.textContent, /Semanas en este clan/);
+  const filas = [...cont.querySelectorAll('tbody tr')].filter(tr => /Semanas|Con Semanas|Sin Semanas/.test(tr.textContent));
+  const celdas = n => [...filas.find(tr => tr.textContent.includes(n)).querySelectorAll('td')].map(td => td.textContent.trim());
+  assert.equal(celdas('Con Semanas').at(-1), '7');
+  assert.equal(celdas('Sin Semanas').at(-1), '—');
+});
+
 test('clan sin índice completo (indiceClanesDisponible false): lo dice y no inventa ex miembros (5-nov-2026, §PF369)', async () => {
   const w = montar({ respuestas: [respuestaClan(), respuestaClanIndice({ indiceClanesDisponible: false, exMiembros: [] })] });
   await buscarClanEn(w, '#CLAN1');
