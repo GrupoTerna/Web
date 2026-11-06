@@ -287,7 +287,8 @@
 // v238 (5-nov-2026): mini-historial.js y directorio.html cambiaron (CORE_ASSETS) -- orden unificado ⚠️, WhatsApp, 📈 en todos los lugares donde aparecen y los cinco íconos (RoyaleAPI, CWStats, ⚠️, WhatsApp, 📈) en «Ingresos recientes» (§PF383).
 // v237 (5-nov-2026): admin.html cambió (CORE_ASSETS) -- en la ficha de «Buscar clan», Miembros, Puntos de clan y Trofeos de guerra pasan bajo la fila del Tag, en tarjetitas con el valor centrado (§PF382).
 // v240 (5-nov-2026): perfil.html y mini-historial.js cambiaron (CORE_ASSETS) -- ⚠️ de clanes vetados o rivales a la izquierda del botón de RoyaleAPI (abre el modal), letras de los cuadritos más chicas y títulos de las minigráficas centrados (§PF385).
-const CACHE_NAME = 'terna-static-v240';
+// v241 (5-nov-2026): perfil.html cambió (CORE_ASSETS) -- las fichas de carta (Mazo actual, Colección, Cartas de torre) ya no reservan filas vacías: si falta un dato, los demás suben en el mismo orden (§PF386).
+const CACHE_NAME = 'terna-static-v241';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y

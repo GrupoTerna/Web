@@ -1912,11 +1912,10 @@ function estrellasHtml(starLevel){
  * @param {string} htmlPlaceholder - contenido oculto (mismo alto) cuando mostrar es false.
  * @returns {string}
  */
+/* 5-nov-2026 (pedido de la usuaria, §PF386): las fichas de carta ya NO reservan filas vacías. Si un dato falta (rareza, tipo, elixir, oro, moneda de héroe), no se pinta nada y los demás suben, respetando el orden. Los parámetros `reservar` y `htmlPlaceholder` se conservan para no tocar a los llamadores, pero ya no se usan; la fila de Héroe/Evolución sigue pegada al fondo de la tarjeta. */
 function _filaFicha(reservar, mostrar, htmlVisible, htmlPlaceholder){
-  if (!reservar) return '';
-  return mostrar
-    ? `<div class="cc-meta">${htmlVisible}</div>`
-    : `<div class="cc-meta" style="visibility:hidden;" aria-hidden="true">${htmlPlaceholder}</div>`;
+  void reservar; void htmlPlaceholder;
+  return mostrar ? `<div class="cc-meta">${htmlVisible}</div>` : '';
 }
 
 /**
@@ -3145,12 +3144,10 @@ function _oroHtml(oro){
   return `<div class="cc-meta"><span class="cc-oro" title="Oro necesario para subir de nivel">${_ICONO_ORO_HTML}${oro != null ? esc(fmtNum(oro)) : '\u2014'}</span></div>`;
 }
 function _filaCostoMejora(reservar, tieneValor, htmlValor, htmlSinDato){
-  if (!reservar) return '';
+  void reservar;
   if (tieneValor) return htmlValor;
-  // Sin dato: en modo prueba se ve el "—"; si no, se reserva el alto invisible.
-  return COLECCION_ESPACIO_COSTO_MEJORA
-    ? htmlSinDato
-    : htmlSinDato.replace('<div ', '<div style="visibility:hidden;" aria-hidden="true" ');
+  // Sin dato: solo en modo prueba se ve el "—"; si no, no se pinta nada (§PF386, ya no se reserva el alto).
+  return COLECCION_ESPACIO_COSTO_MEJORA ? htmlSinDato : '';
 }
 const _ICONO_ORO_HTML = '<img src="assets/Im%C3%A1genes/%C3%8Dconos/Fankit/Gold.webp" alt="Oro" onerror="this.replaceWith(document.createTextNode(\'\\u{1FA99}\'));">';
 /**
@@ -3228,9 +3225,8 @@ function _heroePorDesbloquear(maxEvo, evoNivel, esCampeon){
   return (mx === 2 || mx === 3) && ev !== 2 && ev !== 3;
 }
 function _filaHeroCoin(reservar, mostrar){
-  if (!reservar) return '';
-  return mostrar ? _heroCoinHtml()
-    : _heroCoinHtml().replace('<div ', '<div style="visibility:hidden;" aria-hidden="true" ');
+  void reservar;
+  return mostrar ? _heroCoinHtml() : '';
 }
 /**
  * _ICONO_GUERRA_HTML
