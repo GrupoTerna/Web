@@ -63,12 +63,17 @@ test('sin sesión de admin no se pide el resumen ni se pinta el ⚠️', async (
   assert.doesNotMatch(w.botonHistJugador({ tag: '#ABC', nombre: 'Ana' }), /btn-alerta-clanes/);
 });
 
-test('con data-sin-wsp-tags en <body> (perfil.html) no se pide el resumen', async () => {
+// CAMBIADA (5-nov-2026, §PF385): antes el perfil (data-sin-wsp-tags) no pedía el resumen; ahora sí, porque pinta su ⚠️ junto a RoyaleAPI, y avisa con el evento 'alerta-tags-listas'.
+test('con data-sin-wsp-tags en <body> (perfil.html) sí se pide el resumen y se emite alerta-tags-listas', async () => {
   const w = cargar();
   w.document.body.setAttribute('data-sin-wsp-tags', '');
+  let avisos = 0;
+  w.document.addEventListener('alerta-tags-listas', () => { avisos++; });
   await w.alertaCargarTags();
   await esperar();
-  assert.equal(pedidosAlerta(w).length, 0);
+  assert.ok(pedidosAlerta(w).length >= 1, 'pide el resumen (jsdom puede disparar además la carga automática de DOMContentLoaded)');
+  assert.ok(avisos >= 1, 'emite alerta-tags-listas');
+  assert.match(w.botonAlertaClanesHtml({ tag: '#ABC', nombre: 'Ana' }), /btn-alerta-clanes/);
 });
 
 test('si el resumen llega después de pintar la tabla, el ⚠️ se inserta a la izquierda del 📈 (y del WhatsApp si lo hay) y no se duplica', async () => {

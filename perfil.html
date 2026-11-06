@@ -132,6 +132,14 @@
     background:transparent; cursor:pointer; transition:all .18s ease;
   }
   .ext-links a:hover, .ext-links button:hover{border-color:var(--purple); background:rgba(162,57,255,.1); color:var(--purple-light);}
+  /* 5-nov-2026 (pedido de la usuaria, §PF385): ⚠️ de «estuvo en un clan vetado o rival» a la IZQUIERDA del botón de RoyaleAPI. Es una pastilla de la misma altura que las demás de la fila; el clic abre el modal #alertaFondo de mini-historial.js (alertaAbrir). Solo admins con el Tag en el resumen. */
+  .ext-links .btn-alerta-clanes{margin:0; padding:8px 12px; line-height:inherit; font-size:13px; vertical-align:baseline;}
+  .ext-links .btn-alerta-clanes:hover, .ext-links .btn-alerta-clanes:focus-visible{border-color:var(--gold); background:rgba(243,169,34,.12); transform:none;}
+  /* 5-nov-2026 (pedido de la usuaria, §PF385): letras de los cuadritos (#mCuadritosWrap) un poco más chicas y menos relleno, para que la sección no quede tan larga. Solo en el perfil: .ext-item vive en assets/styles.css y es el mismo de directorio.html. */
+  #mCuadritosWrap .ext-grid{gap:10px; margin-top:0;}
+  #mCuadritosWrap .ext-item{padding:8px 10px;}
+  #mCuadritosWrap .ext-item .v{font-size:16px;}
+  #mCuadritosWrap .ext-item .k{font-size:11px; margin-top:1px;}
   /* .ingreso-row (la base): centralizado en assets/styles.css (19-sep-2026,
      Fase 3, octavo lote) — idéntico carácter por carácter al de index.html. */
   /* :last-child (arriba) y .ingreso-links (abajo) centralizados en
@@ -384,7 +392,7 @@
    * .mini-pie-cuerpo/.mini-disp-cuerpo también centran su contenido (donut+
    * leyenda en los dos pastel, chips+SVG en los dos de dispersión) en vez
    * de quedar pegados a la izquierda. */
-  .mini-pie-titulo{display:flex; align-items:center; justify-content:center; gap:7px; font-family:var(--f-mono); font-size:13px; font-weight:800; color:var(--text-dim); text-transform:uppercase; letter-spacing:.12em; margin-bottom:16px;}
+  .mini-pie-titulo{display:flex; flex-wrap:wrap; text-align:center; align-items:center; justify-content:center; gap:7px; font-family:var(--f-mono); font-size:13px; font-weight:800; color:var(--text-dim); text-transform:uppercase; letter-spacing:.12em; margin-bottom:16px;}
   .mini-pie-titulo .ico{font-size:13px; line-height:1; filter:drop-shadow(0 0 4px rgba(162,57,255,.6));}
   .mini-pie-cuerpo{display:flex; align-items:center; justify-content:center; gap:20px; flex-wrap:wrap; flex:1;}
   .mini-pie-donut-wrap{position:relative; width:104px; height:104px; flex-shrink:0;}
@@ -5384,6 +5392,7 @@ const COLOR_SERIE_ACUMULADO_PERFIL = '#3ddc97'; // tercer color de PALETA_SERIES
 const TOPE_ATAQUES_SEMANA_PERFIL = 16;
 const TOPE_MEDALLAS_SEMANA_PERFIL = 3600;
 const TOPE_BARCOS_SEMANA_PERFIL = 16;
+let perfilAlertaJugador = { tag: '', nombre: '' }; // 5-nov-2026 (§PF385): jugador del ⚠️ junto a RoyaleAPI (se declara antes de renderMiembro() para no caer en la zona muerta del let)
 let perfilGraficaCtx = { nombre: '', tag: '', clan: '' }; // lo fija renderMiembro() antes de pintar
 
 function fmtFechaLargaDDMMYYYYPerfil(t){
@@ -6336,6 +6345,8 @@ function renderMiembro(j){
   document.getElementById('mRoyaleCwstatsBtns').innerHTML = `
     ${enlacesExt.royaleApi ? `<a href="${esc(enlacesExt.royaleApi)}" target="_blank" rel="noopener">${ICONO_ROYALEAPI}RoyaleAPI</a>` : ''}
     ${enlacesExt.cwStats ? `<a href="${esc(enlacesExt.cwStats)}" target="_blank" rel="noopener">${ICONO_CWSTATS}CWStats</a>` : ''}`;
+  perfilAlertaJugador = { tag: j.tag || '', nombre: j.nombre || '' }; // 5-nov-2026 (§PF385): el ⚠️ se antepone a RoyaleAPI; si el resumen llega después, lo pinta el evento 'alerta-tags-listas'
+  perfilAlertaPintar();
 
   document.getElementById('btnVerTorneosJugador').dataset.tag = j.tag;
   const btnOtras = document.getElementById('btnVerOtrasCuentas');
@@ -6930,6 +6941,18 @@ document.getElementById('btnVetarJugador').addEventListener('click', function(){
   mostrarFormVetar(this.dataset.tag);
 });
 
+/* 5-nov-2026 (pedido de la usuaria, §PF385): ⚠️ «Estuvo en N clanes vetados o rivales» a la izquierda del botón de RoyaleAPI. Usa botonAlertaClanesHtml() y el resumen de mini-historial.js (solo admins; el Tag debe figurar en el resumen). El clic lo atiende el listener global de mini-historial.js, que abre el modal #alertaFondo con los clanes y las semanas. Si el resumen llega después de pintar el perfil, 'alerta-tags-listas' vuelve a llamar a esta función. [→ Contexto_Base_Web.md §PF385] */
+function perfilAlertaPintar(){
+  const caja = document.getElementById('mRoyaleCwstatsBtns');
+  if (!caja) return;
+  const previo = caja.querySelector('.btn-alerta-clanes');
+  if (previo) previo.remove();
+  const { tag, nombre } = perfilAlertaJugador;
+  if (!tag || typeof esAdminLogueado !== 'function' || !esAdminLogueado() || typeof botonAlertaClanesHtml !== 'function') return;
+  const h = botonAlertaClanesHtml({ tag, nombre });
+  if (h) caja.insertAdjacentHTML('afterbegin', h);
+}
+document.addEventListener('alerta-tags-listas', perfilAlertaPintar);
 /* 24-oct-2026 (tanda 12 de Consolidado_Mini_Historial_y_Perfil.md, §PF200): enlaces a RoyaleAPI y CWStats del perfil. Salen de ext.royaleApi / ext.cwStats
  * (los arma el backend con las celdas de Directorio). Las cuentas de la hoja Inactivos casi nunca traen esas celdas (1 187 de 1 211 filas vacías en
  * Backup_Inactivos.csv), así que el backend no mandaba el enlace y el admin no veía los botones. Con sesión de admin, si falta el enlace se arma desde el

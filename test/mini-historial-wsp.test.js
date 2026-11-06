@@ -87,7 +87,8 @@ test('con data-sin-wsp-tags en <body> no se pide la lista de WhatsApp, aunque se
   w.document.body.setAttribute('data-sin-wsp-tags', '');
   await w.wspCargarTags();
   await esperar(); // deja correr también la carga automática de DOMContentLoaded
-  assert.equal(w.eval('JSON.stringify(_pedidos)'), '[]', 'no pidió nada');
+  // 5-nov-2026 (§PF385): el perfil sí pide el resumen de alertas (⚠️ junto a RoyaleAPI); lo que no pide es la lista de WhatsApp.
+  assert.equal(w.eval('JSON.stringify(_pedidos.filter(a => a === "webAdminTagsConWsp"))'), '[]', 'no pidió la lista de WhatsApp');
   const v = cargar({ tags: ['ABC'] });
   await v.wspCargarTags();
   assert.ok(v.eval('_pedidos.length') >= 1 && v.eval('_pedidos.filter(a => a !== "webAdminTagsClanesSospechosos").every(a => a === "webAdminTagsConWsp")'), 'sin el atributo sí pide la lista (jsdom puede disparar además la carga automática de DOMContentLoaded; el ⚠️ de §PF375 pide su propio resumen)');

@@ -54,7 +54,7 @@ async function wspCargarTags(){
   }catch(_){ /* sin la lista solo falta el ícono de WhatsApp; el 📈 sigue igual */ }
 }
 if (typeof document !== 'undefined') { if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wspCargarTags); else wspCargarTags(); }
-/* 5-nov-2026 (pedido de la usuaria, §PF375): ⚠️ permanente (desde §PF383 a la IZQUIERDA del WhatsApp y del 📈; antes iba a la derecha del 📈) en los jugadores que estuvieron en un clan vetado o rival de la guerra. Solo admins. El resumen (un archivo pequeño del backend, con caché) lo pide alertaCargarTags() a webAdminTagsClanesSospechosos: { ok, actualizado, jugadores: { 'TAGSINNUMERAL': { n, tipos } } }. Igual que el WhatsApp, si la lista llega después de pintar una tabla, alertaRepintar() inserta el ⚠️ en los botones ya existentes; si el backend falla solo falta el ⚠️. perfil.html (data-sin-wsp-tags) no lo pide. El clic lo atiende el modal del paso 2 de §PF375. */
+/* 5-nov-2026 (pedido de la usuaria, §PF375): ⚠️ permanente (desde §PF383 a la IZQUIERDA del WhatsApp y del 📈; antes iba a la derecha del 📈) en los jugadores que estuvieron en un clan vetado o rival de la guerra. Solo admins. El resumen (un archivo pequeño del backend, con caché) lo pide alertaCargarTags() a webAdminTagsClanesSospechosos: { ok, actualizado, jugadores: { 'TAGSINNUMERAL': { n, tipos } } }. Igual que el WhatsApp, si la lista llega después de pintar una tabla, alertaRepintar() inserta el ⚠️ en los botones ya existentes; si el backend falla solo falta el ⚠️. perfil.html (data-sin-wsp-tags) sí lo pide desde §PF385 (5-nov-2026) y, al llegar, emite el evento 'alerta-tags-listas' para pintar su ⚠️ junto a RoyaleAPI. El clic lo atiende el modal del paso 2 de §PF375. */
 let alertaTags = null; // Map de Tag en mayúsculas y sin # -> { n, tipos }; null = sin cargar o sin sesión de admin
 function alertaClanesDe(tag){ return (alertaTags && alertaTags.get(wspClaveTag(tag))) || null; }
 function alertaTextoClanes(a){
@@ -85,7 +85,7 @@ function alertaRepintar(){
 }
 async function alertaCargarTags(){
   if (typeof esAdminLogueado !== 'function' || !esAdminLogueado()) return;
-  if (document.body && document.body.hasAttribute('data-sin-wsp-tags')) return;
+  // 5-nov-2026 (§PF385): perfil.html (data-sin-wsp-tags) ya NO queda fuera: muestra el ⚠️ a la izquierda del botón de RoyaleAPI y necesita el resumen. Lo que sigue excluido en el perfil es solo la lista de WhatsApp.
   try{
     const data = await apiGetAuth('webAdminTagsClanesSospechosos', {});
     if (!data || data.ok === false || !data.jugadores || typeof data.jugadores !== 'object') return;
@@ -93,6 +93,8 @@ async function alertaCargarTags(){
     Object.keys(data.jugadores).forEach(t => { const a = data.jugadores[t]; if (a && Number(a.n) > 0) mapa.set(wspClaveTag(t), { n: Number(a.n), tipos: Array.isArray(a.tipos) ? a.tipos : [] }); });
     alertaTags = mapa;
     alertaRepintar();
+    // §PF385: avisa a las páginas que pintan su propio ⚠️ fuera de las tablas (perfil.html, junto al botón de RoyaleAPI).
+    if (typeof CustomEvent === 'function') document.dispatchEvent(new CustomEvent('alerta-tags-listas'));
   }catch(_){ /* sin el resumen solo falta el ⚠️; el 📈 y el WhatsApp siguen igual */ }
 }
 if (typeof document !== 'undefined') { if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', alertaCargarTags); else alertaCargarTags(); }
