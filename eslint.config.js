@@ -29,6 +29,8 @@ const GLOBALES_COMPARTIDOS = [
   'joinModalTriggerEl', 'lineaMinimoSvg', 'lineasTemporalesSvg', 'marcarNavActiva', 'minimoMetricaGuerra', 'normalizarTag', 'obtenerTooltipGrafica', 'posicionarTooltipGrafica', 'ordenClanIndex',
   'ordenarClanes', 'pintarFiltroLetra', 'pisoEjeConNegativos', 'primerLunesDelMesJS', 'primeraLetraFiltro', 'sincronizarScrollHorizontal', 'traducirNombreCarta',
   'urlValida',
+  // 6-nov-2026: estado de página que grid-guerra.js lee y que declara cada página que lo carga (guerra.html y clan.html).
+  'DIAS', 'letraSeleccionadaPend', 'letraSeleccionadaActivos', 'letraSeleccionadaTemporada', 'busquedaPend', 'busquedaActivos', 'busquedaTemporada', 'soloCeroActivos', 'soloCeroTemporada',
   'botonHistJugador', 'coincideBusqueda', 'normalizarBusqueda', 'pintarBuscadorTabla', 'textoCuentaBuscador',
   'VISTA_GRAFICA', 'VISTA_GRAFICAS_MONTADAS', 'VISTA_GRAFICA_DIAS', 'VISTA_GRAFICA_TEMPORADAS', 'VISTA_GRAFICA_ZOOMS', 'vistaGraficaBarraHtml', 'vistaGraficaEstiloSvg',
   'vistaGraficaEsFecha', 'vistaGraficaFecha', 'vistaGraficaFmtFecha', 'vistaGraficaMontar', 'vistaGraficaPintar', 'vistaGraficaRepintarTodas', 'vistaGraficaTooltipEjeX', 'vistaGraficaVisibles'

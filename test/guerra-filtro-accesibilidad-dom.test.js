@@ -13,7 +13,8 @@ const { JSDOM } = require('jsdom');
 //
 // NO se carga guerra.html entero: se extraen del <script> inline REAL los tramos entre marcadores. LÍMITE: DOM de jsdom; no prueba el CSS ni un navegador real.
 
-const HTML = fs.readFileSync(path.join(__dirname, '..', 'guerra.html'), 'utf8');
+// 6-nov-2026: el cuadro de filtro de las cuadrículas se movió a assets/js/features/grid-guerra.js (lo comparte clan.html).
+const HTML = fs.readFileSync(path.join(__dirname, '..', 'assets', 'js', 'features', 'grid-guerra.js'), 'utf8');
 
 function tramo(inicio, fin, nombre){
   const i = HTML.indexOf(inicio);
@@ -26,7 +27,7 @@ const CODIGO = [
   tramo('const gridEstados = {};', 'function thFiltroGrid', 'el estado por tabla, las variables del cuadro y gridEstadoDe'),
   tramo('function thFiltroGrid', '/** 5 columnas fijas J/V/S/D/Total', 'thFiltroGrid'),
   tramo('function cerrarGridFiltroPopover(', 'function compararPorGridColumna', 'el cierre del cuadro y valoresUnicosGridColumna'),
-  tramo('function gridActualizarIconos', '/* gestionarTabsClan(', 'gridActualizarIconos, abrirGridFiltroColumna e inicializarGridFiltro')
+  tramo('function gridActualizarIconos', '/* fin del motor de cuadrículas de guerra */', 'gridActualizarIconos, abrirGridFiltroColumna e inicializarGridFiltro')
 ].join('\n');
 
 function montar(){

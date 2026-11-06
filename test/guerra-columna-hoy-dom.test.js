@@ -14,9 +14,9 @@ const { loadBrowserScriptsWithDom } = require('./load-browser-script');
 // real (líneas laterales y fondo del encabezado) ni el contraste en un navegador real.
 
 const html = fs.readFileSync(path.join(__dirname, '..', 'guerra.html'), 'utf8');
-const scripts = [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m => m[1]);
-const grande = scripts.find(t => t.includes('function colHoyDiario'));
-assert.ok(grande, 'no se encontró colHoyDiario() en un <script> inline de guerra.html');
+// 6-nov-2026: el motor de las cuadrículas se movió del <script> inline de guerra.html a assets/js/features/grid-guerra.js (lo comparte clan.html).
+const grande = fs.readFileSync(path.join(__dirname, '..', 'assets', 'js', 'features', 'grid-guerra.js'), 'utf8');
+assert.ok(grande.includes('function colHoyDiario'), 'no se encontró colHoyDiario() en assets/js/features/grid-guerra.js');
 const I = grande.indexOf('const UMBRAL_VERDE_SEMANAL');
 const F = grande.indexOf('/* 19-oct-2026 (pedido usuario): Nombre, Rango y Estado');
 assert.ok(I >= 0 && F > I, 'marcadores del tramo de helpers de las cuadrículas no encontrados (¿se reorganizó guerra.html?)');

@@ -117,7 +117,8 @@ test('gridAplicarFiltros(): la búsqueda se combina con la letra y renumera solo
         <tr data-letra="A" data-buscar="Alberto #ALB"><td class="col-n"></td></tr>
         <tr data-letra="B" data-buscar="Beto #BBB"><td class="col-n"></td></tr>
       </tbody></table></div></div>`);
-  const trozo = (re) => { const r = html.match(re); assert.ok(r, 'no se encontró en guerra.html: ' + re); return r[0]; };
+  const gridJs = fs.readFileSync(path.join(__dirname, '..', 'assets', 'js', 'features', 'grid-guerra.js'), 'utf8'); // 6-nov-2026: gridAplicarFiltros() vive ahora en grid-guerra.js
+  const trozo = (re) => { const r = gridJs.match(re) || html.match(re); assert.ok(r, 'no se encontró en guerra.html ni en grid-guerra.js: ' + re); return r[0]; };
   // Se ejecuta el cuerpo REAL de gridAplicarFiltros() con los helpers de las demás partes de la página reducidos a lo mínimo.
   const cuerpo = trozo(/function gridAplicarFiltros\(gridId, tabla\)\{[\s\S]*?\n\}\n/);
   w.eval(`
@@ -152,5 +153,5 @@ test('guerra.html: cada tabla de jugadores tiene su caja arriba de las pestañas
   }
   assert.equal((html.match(/<tr data-letra="[^"]*" data-buscar="/g) || []).length, 3, 'las filas de Pendientes, Valores diarios y Valores semanales llevan data-buscar');
   assert.ok((html.match(/<li data-buscar="/g) || []).length >= 2, 'Participación de Hoy: cuentas y multiclan llevan data-buscar');
-  assert.match(html, /coincideBusqueda\(fila\.dataset\.buscar, busquedaDeGridId\(gridId\)\)/);
+  assert.match(fs.readFileSync(path.join(__dirname, '..', 'assets', 'js', 'features', 'grid-guerra.js'), 'utf8'), /coincideBusqueda\(fila\.dataset\.buscar, busquedaDeGridId\(gridId\)\)/);
 });
