@@ -5015,6 +5015,9 @@ function renderMazoActual(mazoActual, ext, j){
     const urlsRc = rc.iconUrls || {};
     const d = _datosCarta(c.name);
     const tipoTxt = _tipoCartaTxt(c, d);
+    // FIX (05-nov-2026, pedido de la usuaria — "el CSV sí tiene toda la información, incluyendo el costo del elixir, pero el perfil no lo muestra"): rareza y elixir salían solo de DATOS_CARTAS_MAZO (por nombre), así que una carta que el diccionario no tiene (Ronin, Montapuercos) quedaba sin chip de rareza ni elixir aunque el backend ya mandaba c.rarity y c.elixirCost desde Backup_Cards.csv. Ahora manda el dato del backend (mismo criterio que Colección, Carta favorita y Torres) y el diccionario queda solo de respaldo.
+    const rarezaClave = rarezaKey(c.rarity) || (d && d.rareza) || '';
+    const elixirCoste = c.elixirCost != null ? c.elixirCost : (d && d.elixir != null ? d.elixir : null);
     const starLevel = c.starLevel != null ? c.starLevel : (rc.starLevel || 0);
     const count = c.count != null ? c.count : rc.count;
     // FIX (23-sep-2026, AVISO 8): cartas para subir de nivel. mazoActual.cartas
@@ -5060,7 +5063,7 @@ function renderMazoActual(mazoActual, ext, j){
     const activaHero = !!(heroOk && heroIcon && imgSrc === heroIcon);
     const activaEvo = !!(hasEvo && evoIcon && imgSrc === evoIcon);
     return {
-      c, d, tipoTxt, starLevel, count, cartasSig, alTope, hasEvo, evoIcon, heroIcon, imgSrc, activaHero, activaEvo,
+      c, d, tipoTxt, rarezaClave, elixirCoste, starLevel, count, cartasSig, alTope, hasEvo, evoIcon, heroIcon, imgSrc, activaHero, activaEvo,
       // 24-sep-2026 (pedido usuario): se conserva `rc` (rawClash(j).currentDeck[]
       // de esta misma carta) para la tabla de costos — mazoActual.cartas (c) no
       // trae costosNiveles/costoTotal/costoCompleto, solo rc los trae (mismo
@@ -5071,9 +5074,9 @@ function renderMazoActual(mazoActual, ext, j){
       heroePorDesbloq: _heroePorDesbloquear(c.maxEvolutionLevel != null ? c.maxEvolutionLevel : rc.maxEvolutionLevel, evoLvl, !!(d && d.rareza === 'campeon')),
       mostrarHeroe: heroOk,
       mostrarEvo: hasEvo,
-      mostrarRareza: !!d,
+      mostrarRareza: !!(rarezaClave && RAREZA_CARTA_TXT[rarezaClave]),
       mostrarTipo: !!tipoTxt,
-      mostrarElixir: !!((d && d.elixir != null) || starLevel)
+      mostrarElixir: !!(elixirCoste != null || starLevel)
     };
   });
   // Flags de sección: se reserva una fila solo si ALGUNA de las 8 fichas del mazo la usa. Ver _filaFicha().
@@ -5084,7 +5087,7 @@ function renderMazoActual(mazoActual, ext, j){
   const seccionMazoHeroCoin = datosCartas.some(x => x.heroePorDesbloq);
 
   const cartasHtml = datosCartas.map(x => {
-    const { c, d, tipoTxt, starLevel, count, cartasSig, alTope, heroIcon, evoIcon, imgSrc, activaHero, activaEvo } = x;
+    const { c, d, tipoTxt, rarezaClave, elixirCoste, starLevel, count, cartasSig, alTope, heroIcon, evoIcon, imgSrc, activaHero, activaEvo } = x;
     // FIX (23-sep-2026, pedido usuario — "en el mazo actual falta agregar
     // los bordes dorados para cartas al nivel 16"): la clase "max-level"
     // (.col-card.max-level, border-color:var(--gold)) ya existía en el CSS
@@ -5119,13 +5122,13 @@ function renderMazoActual(mazoActual, ext, j){
                (Colección, Cartas de torre, Carta favorita, Cartas más
                usadas). -->
           ${_filaFicha(seccionMazoRareza, x.mostrarRareza,
-            d ? `<span class="cc-rareza" data-rareza="${d.rareza}">${esc(RAREZA_CARTA_TXT[d.rareza])}</span>` : '',
+            rarezaClave && RAREZA_CARTA_TXT[rarezaClave] ? `<span class="cc-rareza" data-rareza="${rarezaClave}">${esc(RAREZA_CARTA_TXT[rarezaClave])}</span>` : '',
             `<span class="cc-rareza">&nbsp;</span>`)}
           ${_filaFicha(seccionMazoTipo, x.mostrarTipo,
             `<span class="cc-tipo">${esc(tipoTxt)}</span>`,
             `<span class="cc-tipo">&nbsp;</span>`)}
           ${_filaFicha(seccionMazoElixir, x.mostrarElixir,
-            `${d && d.elixir != null ? `<span class="cc-elixir"><img src="assets/Im%C3%A1genes/%C3%8Dconos/Fankit/Elixir.webp" alt="Elixir">${esc(String(d.elixir))}</span>` : ''}${estrellasHtml(starLevel)}`,
+            `${elixirCoste != null ? `<span class="cc-elixir"><img src="assets/Im%C3%A1genes/%C3%8Dconos/Fankit/Elixir.webp" alt="Elixir">${esc(String(elixirCoste))}</span>` : ''}${estrellasHtml(starLevel)}`,
             `<span class="cc-elixir"><img src="assets/Im%C3%A1genes/%C3%8Dconos/Fankit/Elixir.webp" alt="Elixir">&nbsp;</span>`)}
           <div class="text-faint" style="font-family:var(--f-mono); font-size:13px;">
             Nivel ${esc(String(c.nivel != null ? c.nivel : '\u2014'))}
