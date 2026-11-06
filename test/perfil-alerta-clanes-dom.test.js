@@ -109,7 +109,9 @@ test('renderMiembro() fija el jugador y pinta el ⚠️ justo después de armar 
 test('cuadritos: letras más chicas que las de la base compartida (19/13 px) y títulos de minigráficas centrados aunque se partan', () => {
   assert.match(html, /#mCuadritosWrap \.ext-item \.v\{font-size:16px;\}/);
   assert.match(html, /#mCuadritosWrap \.ext-item \.k\{font-size:11px;/);
-  assert.match(html, /\.mini-pie-titulo\{display:flex; flex-wrap:wrap; text-align:center; align-items:center; justify-content:center;/);
+  // 6-nov-2026: el título ya no es flex con wrap (dejaba el emoji solo arriba); es un bloque centrado con el ícono en línea.
+  assert.match(html, /\.mini-pie-titulo\{display:block; text-align:center;/);
+  assert.match(html, /\.mini-pie-titulo \.ico\{display:inline;/);
   const css = fs.readFileSync(path.join(__dirname, '..', 'assets/styles.css'), 'utf8');
   assert.match(css, /\.ext-item \.v\{[^}]*font-size:19px/, 'la base compartida con directorio.html no se toca');
 });
