@@ -76,6 +76,14 @@
   .perfil-cabecera .stats-mini{display:flex; gap:18px; font-family:var(--f-mono); font-size:13px; color:var(--text-dim);}
   /* 20-sep-2026 (D-3 b2): font-family:inherit neutraliza el font-family:var(--f-display) que ahora declara
      assets/styles.css para esta misma regla; inherit = lo que este número ya usaba (la fuente del contenedor). */
+  /* 5-nov-2026 (§PF381): pastillas RoyaleAPI/CWStats de la ficha de «Buscar clan»; mismo formato que .ext-links a de directorio.html, en fila a la derecha y en mayúsculas como pidió la usuaria. */
+  #clanExtLinks{margin-top:0; gap:8px; justify-content:flex-end;}
+  #clanExtLinks a{
+    font-family:var(--f-mono); font-size:13px; font-weight:600; color:var(--purple-light); text-transform:uppercase; letter-spacing:.04em;
+    border:1px solid var(--line); padding:8px 14px; border-radius:var(--radius-sm); text-decoration:none;
+    transition:all .18s ease;
+  }
+  #clanExtLinks a:hover{border-color:var(--purple); background:rgba(162,57,255,.1); color:var(--purple-light);}
   .perfil-cabecera .stats-mini b{color:var(--text); font-size:15px; display:block; font-family:inherit;}
   /* FIX (18-sep-2026, Fase 3 del refactor CSS): .req-row/.lbl/.progress
      centralizados en assets/styles.css, idénticos carácter por carácter a
@@ -537,13 +545,19 @@
               <h3 id="cNombre" style="font-size:19px; font-family:var(--f-display); text-transform:uppercase;"></h3>
               <div class="text-faint" id="cSub" style="font-family:var(--f-mono); font-size:13px; margin-top:4px;"></div>
               <div id="cBadge" style="margin-top:10px;"></div>
-              <a class="btn btn-ghost" id="cVerClan" href="https://royaleapi.com/" target="_blank" rel="noopener" style="margin-top:10px; font-size:13px;">Ver clan en RoyaleAPI</a>
             </div>
-            <div id="clanAcciones" style="display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
+            <div id="clanColumnaDer" style="display:flex; flex-direction:column; align-items:flex-end; gap:10px;">
+            <div id="clanAcciones" style="display:flex; align-items:center; gap:6px; flex-wrap:wrap; justify-content:flex-end;">
               <div id="clanVetarPastillaBox" style="display:none;">
                 <button type="button" class="tab-clan btn-vetar-pastilla" id="btnClanVetarPastilla" aria-expanded="false" aria-controls="clanVetarPanel" style="border-color:var(--danger); color:var(--danger);">🚫 Vetar</button>
               </div>
               <button type="button" class="tab-clan" id="btnClanInfiltradoPastilla" aria-expanded="false" aria-controls="clanInfiltradoPanel">🕵️ ¿Infiltrado?</button>
+            </div>
+            <!-- 5-nov-2026 (pedido de la usuaria, §PF381): RoyaleAPI y CWStats pasan de un botón suelto bajo el nombre a dos pastillas con ícono y texto, como en directorio, debajo de «En conflicto» y «¿Infiltrado?». Los ids cVerClan (RoyaleAPI) y cVerClanCw (CWStats) los rellena reiniciarFichaClan(). -->
+            <div class="ext-links" id="clanExtLinks">
+              <a id="cVerClan" href="https://royaleapi.com/" target="_blank" rel="noopener">RoyaleAPI</a>
+              <a id="cVerClanCw" href="https://cwstats.com/" target="_blank" rel="noopener">CWStats</a>
+            </div>
             </div>
             <div class="stats-mini">
               <span><b id="cMiembros"></b>Miembros</span>
@@ -2541,9 +2555,12 @@ function reiniciarFichaClan(data){
   document.getElementById('cNombre').textContent = c.nombre;
   document.getElementById('cSub').textContent = [c.tag, c.ubicacion, _tipoClanTexto(c.tipo)].filter(Boolean).join(' · ');
   document.getElementById('cBadge').innerHTML = _marcaClan(c, data.infoRival);
-  document.getElementById('cVerClan').href = 'https://royaleapi.com/clan/' + encodeURIComponent(String(c.tag).replace('#', ''));
-  // El botón lleva el ícono de RoyaleAPI como en las demás páginas (ICONO_ROYALEAPI, assets/js/data/clan-badges.js); sin ese archivo cargado queda solo el texto.
-  document.getElementById('cVerClan').innerHTML = (typeof ICONO_ROYALEAPI !== 'undefined' ? ICONO_ROYALEAPI : '') + 'Ver clan en RoyaleAPI';
+  const tagUrl = encodeURIComponent(String(c.tag).replace('#', ''));
+  // Los botones llevan el ícono de cada servicio como en las demás páginas (ICONO_ROYALEAPI e ICONO_CWSTATS, assets/js/data/clan-badges.js); sin ese archivo cargado queda solo el texto.
+  document.getElementById('cVerClan').href = 'https://royaleapi.com/clan/' + tagUrl;
+  document.getElementById('cVerClan').innerHTML = (typeof ICONO_ROYALEAPI !== 'undefined' ? ICONO_ROYALEAPI : '') + 'RoyaleAPI';
+  document.getElementById('cVerClanCw').href = 'https://cwstats.com/clan/' + tagUrl;
+  document.getElementById('cVerClanCw').innerHTML = (typeof ICONO_CWSTATS !== 'undefined' ? ICONO_CWSTATS : '') + 'CWStats';
   document.getElementById('cMiembros').textContent = _numeroClan(c.miembros);
   document.getElementById('cPuntos').textContent = _numeroClan(c.puntos);
   document.getElementById('cTrofeos').textContent = _numeroClan(c.trofeosGuerra);

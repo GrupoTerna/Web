@@ -342,17 +342,28 @@ test('el clan vetado (NARANJA x) sale como «Clan vetado», no como de la Famili
   assert.match(id(w, 'btnClanVetarPastilla').textContent, /Clan vetado/);
 });
 
-test('el botón «Ver clan en RoyaleAPI» lleva el ícono de RoyaleAPI (ICONO_ROYALEAPI) y sigue apuntando al clan; sin ese archivo cargado queda solo el texto (5-nov-2026)', async () => {
+test('RoyaleAPI y CWStats son pastillas con ícono y texto, debajo de «Vetar» y «¿Infiltrado?», y apuntan al clan; sin clan-badges.js queda solo el texto (5-nov-2026, §PF381)', async () => {
   let w = montar({ respuestas: [respuestaClan()] });
   await buscarClanEn(w, '#CLAN1');
   assert.equal(id(w, 'cVerClan').querySelector('img'), null);
-  assert.equal(id(w, 'cVerClan').textContent.trim(), 'Ver clan en RoyaleAPI');
+  assert.equal(id(w, 'cVerClan').textContent.trim(), 'RoyaleAPI');
+  assert.equal(id(w, 'cVerClanCw').querySelector('img'), null);
+  assert.equal(id(w, 'cVerClanCw').textContent.trim(), 'CWStats');
   w = montar({ respuestas: [respuestaClan()] });
-  ev(w, `var ICONO_ROYALEAPI = '<img src="https://cdn.royaleapi.com/x.png" alt="" width="14" height="14">';`);
+  ev(w, `var ICONO_ROYALEAPI = '<img src="https://cdn.royaleapi.com/x.png" alt="" width="14" height="14">'; var ICONO_CWSTATS = '<img src="https://assets.cwstats.com/x.webp" alt="" width="14" height="14">';`);
   await buscarClanEn(w, '#CLAN1');
-  assert.ok(id(w, 'cVerClan').querySelector('img'), 'el botón trae el ícono');
-  assert.equal(id(w, 'cVerClan').textContent.trim(), 'Ver clan en RoyaleAPI');
+  assert.ok(id(w, 'cVerClan').querySelector('img'), 'RoyaleAPI trae el ícono');
+  assert.ok(id(w, 'cVerClanCw').querySelector('img'), 'CWStats trae el ícono');
+  assert.equal(id(w, 'cVerClan').textContent.trim(), 'RoyaleAPI');
+  assert.equal(id(w, 'cVerClanCw').textContent.trim(), 'CWStats');
   assert.equal(id(w, 'cVerClan').href, 'https://royaleapi.com/clan/CLAN1');
+  assert.equal(id(w, 'cVerClanCw').href, 'https://cwstats.com/clan/CLAN1');
+  // Ubicación: la fila de enlaces va en la columna derecha, después de las pastillas «Vetar» y «¿Infiltrado?».
+  const col = id(w, 'clanColumnaDer');
+  const hijos = Array.from(col.children).map(h => h.id);
+  assert.deepEqual(hijos, ['clanAcciones', 'clanExtLinks']);
+  assert.equal(id(w, 'cVerClan').parentElement.id, 'clanExtLinks');
+  assert.equal(id(w, 'cVerClanCw').parentElement.id, 'clanExtLinks');
 });
 
 test('clan vetado: «¿Infiltrado?» lista a los jugadores nuestros que pasaron por él y ya salieron (Inactivos/Vetados), aunque no haya coincidencias con sus miembros actuales (5-nov-2026)', async () => {
