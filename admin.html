@@ -574,604 +574,909 @@
 
     <!-- 5-nov-2026 (pedido de la usuaria): el grupo «Directorio» (solo traía la tarjeta «Vetar miembro») se retiró: «Vetar miembro» pasó a la ficha de «Buscar miembro» como la pastilla #btnVetarPastilla. Historial en CHANGELOG.md. -->
 
-    <!-- "Torneos y sorteos" agrupa ambos en un contenedor con subsecciones; reutiliza las mismas funciones que ya usa el bot de WhatsApp. -->
+    <!-- Torneos, Sorteos y Cambio de rango: tres tarjetas propias (§PF377). Cada una trae su wizard de Registrar/Modificar/Planificar y, como líneas plegables, sus dependencias (vigente, resultados, ruleta, editar autor); reutilizan las mismas funciones que ya usa el bot de WhatsApp. -->
     <div class="card admin-grupo pf-cinta" style="--cinta:url(Im%C3%A1genes/Banners/Fankit/cinta-torneos-cabecera.webp); margin-top:24px;">
-      <div class="eyebrow">Torneos y sorteos</div>
+      <div class="eyebrow">Torneos</div>
 
-      <!-- Wizard de 3 pasos para Torneos (Acción → Tipo → Campos); "Planificar" es un tercer camino separado porque el link real se genera después con los premios ya listos. -->
-      <!-- Dos botones .tab-clan alternan entre el wizard de Torneos y el de Sorteos. -->
-      <details class="admin-subseccion" open>
-        <summary><span class="cat-titulo">Planificar, registrar o modificar torneos o sorteos</span></summary>
+      <div id="panelTorneosAccion">
+
+      <!-- "Torneo vigente" es el control web de Extra!Torneo_Vigente_ID (antes se editaba a mano en la hoja). -->
+      <details class="admin-subseccion" style="margin-bottom:14px;">
+        <summary><span class="cat-titulo">Torneo vigente</span></summary>
         <div class="admin-subseccion-body">
+          <p class="text-dim" style="font-size:13px; margin:0 0 14px;">Define cuál torneo usan los cálculos automáticos (Barcos, requisitos, calificados) que no reciben un torneo puntual elegido en su propio formulario. "Ninguno" = usar el más reciente por fecha (comportamiento de respaldo).</p>
+          <div class="field">
+            <label for="vigenteTorneoSelect">Torneo vigente</label>
+            <select id="vigenteTorneoSelect">
+              <option value="">Cargando…</option>
+            </select>
+          </div>
+          <button type="button" class="btn btn-primary" id="btnGuardarVigenteTorneo" style="margin-top:6px;">Guardar</button>
+          <div id="vigenteTorneoMsg" style="margin-top:8px;"></div>
+        </div>
+      </details>
 
-          <div class="contenido-tabs" style="margin-bottom:14px;">
-            <button type="button" class="tab-clan btn-toggle-torsor activo" data-panel="torneos" aria-pressed="true">Torneos</button>
-            <button type="button" class="tab-clan btn-toggle-torsor" data-panel="sorteos" aria-pressed="false">Sorteos</button>
-            <!-- Tercer tab "Cambio de rango", mismo mecanismo .btn-toggle-torsor que Torneos/Sorteos. -->
-            <button type="button" class="tab-clan btn-toggle-torsor" data-panel="cambiorango" aria-pressed="false">Cambio de rango</button>
+      <div id="torneoPaso1">
+        <div class="field">
+          <label for="torneoAccion">¿Qué quieres hacer?</label>
+          <select id="torneoAccion">
+            <option value="">Elige una opción…</option>
+            <option value="planificar">Planificar torneo</option>
+            <option value="registrar">Registrar torneo</option>
+            <option value="modificar">Modificar torneo</option>
+          </select>
+        </div>
+        <button type="button" class="btn btn-primary btn-block" id="btnTorneoPaso1" style="margin-top:6px;">Continuar</button>
+      </div>
+
+      <div id="torneoPaso2" style="display:none;">
+        <a href="#" id="torneoVolverPaso1" class="text-dim" style="font-size:13px; display:inline-block; margin-bottom:10px;">‹ Cambiar</a>
+        <div class="field">
+          <label for="torneoTipo">¿Qué tipo de torneo es?</label>
+          <select id="torneoTipo">
+            <option value="">Elige una opción…</option>
+            <option value="principal">Torneo principal</option>
+            <option value="continuacion">Torneo de continuación</option>
+          </select>
+        </div>
+        <button type="button" class="btn btn-primary btn-block" id="btnTorneoPaso2" style="margin-top:6px;">Continuar</button>
+      </div>
+
+      <div id="torneoPaso3" style="display:none;">
+        <a href="#" id="torneoVolverPaso2" class="text-dim" style="font-size:13px; display:inline-block; margin-bottom:10px;">‹ Cambiar</a>
+
+        <div id="camposRegistrar" style="display:none;">
+          <!-- Botón que precarga Organizador/Cuenta/Comentario del último torneo registrado; conectado a webAdminUltimoRegistro (34_Web_API.gs). -->
+          <button type="button" class="btn btn-ghost btn-block" id="btnPrecargarUltimoTorneo" style="margin-bottom:14px;">↻ Precargar datos del último torneo registrado</button>
+
+          <div class="field">
+            <label for="tLink">Link del torneo</label>
+            <input type="text" id="tLink" placeholder="https://link.clashroyale.com/...">
+          </div>
+          <div class="field-row" id="filaFechaHoraReg">
+            <div class="field">
+              <label for="tFechaTexto">Fecha</label>
+              <div class="campo-fecha-wrap">
+                <input type="text" id="tFechaTexto" placeholder="dd/mm/aaaa" inputmode="numeric" maxlength="10" autocomplete="off">
+                <input type="date" id="tFecha" class="campo-oculto-visual" tabindex="-1" aria-hidden="true">
+                <button type="button" class="btn-calendario" id="btnCalendarioReg" title="Abrir calendario" aria-label="Abrir calendario">📅</button>
+              </div>
+            </div>
+            <div class="field">
+              <label for="tHoraHH">Hora</label>
+              <div class="campo-hora-wrap">
+                <input type="text" id="tHoraHH" class="campo-hora-hh" placeholder="hh" inputmode="numeric" maxlength="2" autocomplete="off">
+                <span class="campo-hora-separador">:</span>
+                <input type="text" id="tHoraMM" aria-label="Minutos" class="campo-hora-mm" placeholder="mm" inputmode="numeric" maxlength="2" autocomplete="off">
+                <select id="tHoraAmPm" aria-label="AM o PM">
+                  <option value="AM">AM</option>
+                  <option value="PM">PM</option>
+                </select>
+                <input type="time" id="tHora" class="campo-oculto-visual" tabindex="-1" aria-hidden="true">
+              </div>
+            </div>
           </div>
 
-          <div id="panelTorneosAccion">
+          <!-- "Lo organicé yo" deja usar el admin de la sesión como organizador; el dropdown lista los Nom_Multi de los admins. Fase 11 (plan T_Lista, ver 24_Torneos_Core.gs): texto de ayuda deja claro que es un fallback. Historial en CHANGELOG.md. -->
+          <div class="field" style="margin-top:14px;">
+            <label for="tAutorSelect">¿Quién organizó el torneo?</label>
+            <select id="tAutorSelect">
+              <option value="">Lo organicé yo (el admin de esta sesión)</option>
+              <option value="__otro__">Ninguna de las anteriores</option>
+            </select>
+            <input type="text" id="tAutorManual" aria-label="Nombre de quien organizó el torneo" placeholder="Nombre de quien organizó" style="margin-top:8px; display:none;">
+            <p class="text-dim" style="font-size:13px; margin:6px 0 0;">Solo se usa si el torneo no trae organizador en su propio registro de RoyaleAPI.</p>
+          </div>
 
-          <!-- "Torneo vigente" es el control web de Extra!Torneo_Vigente_ID (antes se editaba a mano en la hoja). -->
-          <details class="admin-subseccion" style="margin-bottom:14px;">
-            <summary><span class="cat-titulo">Torneo vigente</span></summary>
-            <div class="admin-subseccion-body">
-              <p class="text-dim" style="font-size:13px; margin:0 0 14px;">Define cuál torneo usan los cálculos automáticos (Barcos, requisitos, calificados) que no reciben un torneo puntual elegido en su propio formulario. "Ninguno" = usar el más reciente por fecha (comportamiento de respaldo).</p>
-              <div class="field">
-                <label for="vigenteTorneoSelect">Torneo vigente</label>
-                <select id="vigenteTorneoSelect">
-                  <option value="">Cargando…</option>
-                </select>
-              </div>
-              <button type="button" class="btn btn-primary" id="btnGuardarVigenteTorneo" style="margin-top:6px;">Guardar</button>
-              <div id="vigenteTorneoMsg" style="margin-top:8px;"></div>
-            </div>
-          </details>
+          <!-- El cuadro de cuenta organizadora aparece solo con un Nom_Multi elegido; el clan se detecta solo desde el backend. -->
+          <div class="field" id="tCuentaOrgBox" style="display:none; margin-top:10px;">
+            <label for="tCuentaOrgSelect">¿Con cuál cuenta organizó?</label>
+            <select id="tCuentaOrgSelect">
+              <option value="">Elige la cuenta…</option>
+            </select>
+            <div id="tCuentaOrgInfo" class="text-dim" style="font-size:13px; margin-top:6px;"></div>
+          </div>
 
-          <div id="torneoPaso1">
+          <!-- El selector de semanas está documentado junto a cargarSemanasRecientes()/pintarSemanasSelector() en el <script>; el backend ya usa esas semanas para promediar trofeos/ataques y contar torneos (verificado 20-sep-2026). -->
+          <div class="field" id="semanaSelectorWrapReg" style="margin-top:14px;">
+            <label>¿Qué semanas se deben evaluar para este torneo?</label>
+            <p class="text-dim" style="font-size:13px; margin:0 0 8px;">Se marcan las 2 más recientes por defecto — usualmente son las que definen si un jugador puede participar.</p>
+            <div class="semana-selector" id="semanasSelectorReg"></div>
+          </div>
+        </div>
+
+        <div id="camposModificar" style="display:none;">
+          <div class="field" style="margin-bottom:12px;">
+            <label for="tSelectHoy">Torneo</label>
+            <select id="tSelectHoy"><option value="">Cargando torneos…</option></select>
+            <!-- Ingresar link es una opción más de #tSelectHoy (no un control aparte, se limpia al elegir otra opción); solo existe en Torneos, no en Sorteos. Historial en CHANGELOG.md. -->
+            <input type="text" id="tModificarLink" aria-label="Link del torneo a modificar" placeholder="https://link.clashroyale.com/..." style="margin-top:8px; display:none;">
+            <!-- Fase 11 (plan T_Lista, ver 24_Torneos_Core.gs): nota sobre el alcance de "Ingresar link"; texto actualizado el 02-oct-2026 porque la Fase 12 ya está en el backend. Historial en CHANGELOG.md. -->
+            <p class="text-dim" style="font-size:13px; margin:6px 0 0;">"Ingresar link" también sirve para corregir el link de un torneo ya registrado: pega el link nuevo y pon la misma fecha y hora (hasta el minuto) con la que quedó registrado, y se corrige esa misma fila en vez de crear otra. Si la fecha u hora no coinciden con ningún torneo registrado, se registra un torneo nuevo. Si el link es de otro torneo, se vuelve a detectar el organizador y los demás datos. En una corrección no se aplican el organizador, las semanas, los requisitos ni el comentario de este formulario.</p>
+          </div>
+          <!-- PF105 (18-oct-2026): en «Modificar» primero se elige el torneo y recién después su tipo (principal o continuación), ya precargado con el que tiene y editable. Fuente única: #torneoTipo (lo sincroniza initTorneoWizard()). -->
+          <div class="field" id="modTipoBox" style="display:none; margin-bottom:12px;">
+            <label for="torneoTipoMod">¿Qué tipo de torneo es?</label>
+            <select id="torneoTipoMod">
+              <option value="principal">Torneo principal</option>
+              <option value="continuacion">Torneo de continuación</option>
+            </select>
+          </div>
+          <div class="field-row" id="filaFechaHoraMod">
             <div class="field">
-              <label for="torneoAccion">¿Qué quieres hacer?</label>
-              <select id="torneoAccion">
-                <option value="">Elige una opción…</option>
-                <option value="planificar">Planificar torneo</option>
-                <option value="registrar">Registrar torneo</option>
-                <option value="modificar">Modificar torneo</option>
+              <label for="tFechaModTexto">Nueva fecha</label>
+              <div class="campo-fecha-wrap">
+                <input type="text" id="tFechaModTexto" placeholder="dd/mm/aaaa" inputmode="numeric" maxlength="10" autocomplete="off">
+                <input type="date" id="tFechaMod" class="campo-oculto-visual" tabindex="-1" aria-hidden="true">
+                <button type="button" class="btn-calendario" id="btnCalendarioMod" title="Abrir calendario" aria-label="Abrir calendario">📅</button>
+              </div>
+            </div>
+            <div class="field">
+              <label for="tHoraModHH">Nueva hora</label>
+              <div class="campo-hora-wrap">
+                <input type="text" id="tHoraModHH" class="campo-hora-hh" placeholder="hh" inputmode="numeric" maxlength="2" autocomplete="off">
+                <span class="campo-hora-separador">:</span>
+                <input type="text" id="tHoraModMM" aria-label="Minutos" class="campo-hora-mm" placeholder="mm" inputmode="numeric" maxlength="2" autocomplete="off">
+                <select id="tHoraModAmPm" aria-label="AM o PM">
+                  <option value="AM">AM</option>
+                  <option value="PM">PM</option>
+                </select>
+                <input type="time" id="tHoraMod" class="campo-oculto-visual" tabindex="-1" aria-hidden="true">
+              </div>
+            </div>
+          </div>
+
+          <!-- Modificar torneo: autor y premios son opcionales, "Sin cambios" muestra el autor ya cargado y el editor de premios precarga los valores existentes; conectado con el backend. Fase 11 (plan T_Lista, ver 24_Torneos_Core.gs): si el torneo elegido trae Organizador_Fuente='API', este bloque se reemplaza por #tAutorSoloLecturaMod (mismo bloqueo que ya aplica el backend en _webAdminTorneoModificar()). Historial en CHANGELOG.md. -->
+          <div class="field" id="tAutorEditableModWrap" style="margin-top:14px;">
+            <label for="tAutorSelectMod">¿Quién organizó el torneo?</label>
+            <select id="tAutorSelectMod">
+              <option value="">Sin cambios (mantener autor actual)</option>
+              <option value="__otro__">Ninguna de las anteriores</option>
+            </select>
+            <input type="text" id="tAutorManualMod" aria-label="Nombre de quien organizó el torneo" placeholder="Nombre de quien organizó" style="margin-top:8px; display:none;">
+          </div>
+          <div class="field" id="tAutorSoloLecturaMod" style="display:none; margin-top:14px;">
+            <label>¿Quién organizó el torneo?</label>
+            <p class="text-dim" style="font-size:13px; margin:0;" id="tAutorSoloLecturaModTexto"></p>
+          </div>
+
+          <!-- Mismo cuadro de cuenta/clan que Registrar, pero opcional en Modificar: si no se toca, no pisa lo ya guardado. -->
+          <div class="field" id="tCuentaOrgBoxMod" style="display:none; margin-top:10px;">
+            <label for="tCuentaOrgSelectMod">¿Con cuál cuenta organizó?</label>
+            <select id="tCuentaOrgSelectMod">
+              <option value="">Elige la cuenta…</option>
+            </select>
+            <div id="tCuentaOrgInfoMod" class="text-dim" style="font-size:13px; margin-top:6px;"></div>
+          </div>
+
+          <!-- Selector de semanas, mismo criterio documentado junto a #camposRegistrar. -->
+          <div class="field" id="semanaSelectorWrapMod" style="margin-top:14px;">
+            <label>¿Qué semanas se deben evaluar para este torneo?</label>
+            <p class="text-dim" style="font-size:13px; margin:0 0 8px;">Se marcan las 2 más recientes por defecto — usualmente son las que definen si un jugador puede participar.</p>
+            <div class="semana-selector" id="semanasSelectorMod"></div>
+          </div>
+
+          <div style="margin-top:14px; padding-top:14px; border-top:1px solid var(--line);">
+            <label style="display:block; margin-bottom:4px;">Premios</label>
+            <p class="text-dim" style="font-size:13px; margin:0 0 10px;">Se muestran los premios ya registrados para este torneo (si todavía no tiene, no se muestra ninguno). Déjalos tal cual si no quieres cambiarlos, o edítalos — usualmente son 3, pero puedes agregar más o quitar los que no necesites. Si quitas todos, se conservan los ya registrados.</p>
+            <div id="premiosEditorMod"></div>
+            <button type="button" class="btn btn-ghost btn-block" id="btnAgregarPremioMod" style="margin-top:10px;">+ Agregar premio</button>
+          </div>
+        </div>
+
+        <!-- "Planificar torneo" reusa el patrón de autor de #camposRegistrar con ids propios; el editor de premios vive en #premiosEditor. -->
+        <div id="camposPlanificar" style="display:none;">
+          <div class="field-row" id="filaFechaHoraPlan">
+            <div class="field">
+              <label for="tFechaPlanTexto">Fecha</label>
+              <div class="campo-fecha-wrap">
+                <input type="text" id="tFechaPlanTexto" placeholder="dd/mm/aaaa" inputmode="numeric" maxlength="10" autocomplete="off">
+                <input type="date" id="tFechaPlan" class="campo-oculto-visual" tabindex="-1" aria-hidden="true">
+                <button type="button" class="btn-calendario" id="btnCalendarioPlan" title="Abrir calendario" aria-label="Abrir calendario">📅</button>
+              </div>
+            </div>
+            <div class="field">
+              <label for="tHoraPlanHH">Hora</label>
+              <div class="campo-hora-wrap">
+                <input type="text" id="tHoraPlanHH" class="campo-hora-hh" placeholder="hh" inputmode="numeric" maxlength="2" autocomplete="off">
+                <span class="campo-hora-separador">:</span>
+                <input type="text" id="tHoraPlanMM" aria-label="Minutos" class="campo-hora-mm" placeholder="mm" inputmode="numeric" maxlength="2" autocomplete="off">
+                <select id="tHoraPlanAmPm" aria-label="AM o PM">
+                  <option value="AM">AM</option>
+                  <option value="PM">PM</option>
+                </select>
+                <input type="time" id="tHoraPlan" class="campo-oculto-visual" tabindex="-1" aria-hidden="true">
+              </div>
+            </div>
+          </div>
+
+          <!-- Fase 11 (plan T_Lista, ver 24_Torneos_Core.gs): mismo texto de ayuda que Registrar. Historial en CHANGELOG.md. -->
+          <div class="field" style="margin-top:14px;">
+            <label for="tAutorSelectPlan">¿Quién organiza el torneo?</label>
+            <select id="tAutorSelectPlan">
+              <option value="">Lo organizo yo (el admin de esta sesión)</option>
+              <option value="__otro__">Ninguna de las anteriores</option>
+            </select>
+            <input type="text" id="tAutorManualPlan" aria-label="Nombre de quien organiza el torneo" placeholder="Nombre de quien organiza" style="margin-top:8px; display:none;">
+            <p class="text-dim" style="font-size:13px; margin:6px 0 0;">Solo se usa si el torneo no trae organizador en su propio registro de RoyaleAPI.</p>
+          </div>
+
+          <!-- Mismo cuadro de cuenta/clan que #camposRegistrar. -->
+          <div class="field" id="tCuentaOrgBoxPlan" style="display:none; margin-top:10px;">
+            <label for="tCuentaOrgSelectPlan">¿Con cuál cuenta organiza?</label>
+            <select id="tCuentaOrgSelectPlan">
+              <option value="">Elige la cuenta…</option>
+            </select>
+            <div id="tCuentaOrgInfoPlan" class="text-dim" style="font-size:13px; margin-top:6px;"></div>
+          </div>
+
+          <!-- Selector de semanas, mismo criterio que #camposRegistrar. -->
+          <div class="field" id="semanaSelectorWrapPlan" style="margin-top:14px;">
+            <label>¿Qué semanas se deben evaluar para este torneo?</label>
+            <p class="text-dim" style="font-size:13px; margin:0 0 8px;">Se marcan las 2 más recientes por defecto — usualmente son las que definen si un jugador puede participar.</p>
+            <div class="semana-selector" id="semanasSelectorPlan"></div>
+          </div>
+
+          <div style="margin-top:14px; padding-top:14px; border-top:1px solid var(--line);">
+            <label style="display:block; margin-bottom:4px;">Premios</label>
+            <p class="text-dim" style="font-size:13px; margin:0 0 10px;">Usualmente son 3, pero puedes agregar más o quitar los que no necesites.</p>
+            <div id="premiosEditor"></div>
+            <button type="button" class="btn btn-ghost btn-block" id="btnAgregarPremio" style="margin-top:10px;">+ Agregar premio</button>
+          </div>
+        </div>
+
+        <!-- Formulario de requisitos por clan (trofeos/ataques + 3 criterios Sí/No), un solo nodo compartido entre Registrar/Modificar/Planificar que mostrarPaso3() reubica con JS antes del selector de semanas de cada rama. Conectado con el backend. Historial en CHANGELOG.md. -->
+        <div id="requisitosTorneoBox" style="margin-top:14px; padding-top:14px; border-top:1px solid var(--line);">
+          <h3 style="font-size:15px; color:var(--gold); margin:0 0 4px;">Requisitos para participar en torneos</h3>
+          <p class="text-dim" style="font-size:13px; margin:0 0 4px;">Requerimiento mínimo de medallas de guerra para mantenerse en cada clan.</p>
+          <div id="reqTrofeosGuerraGrid"></div>
+
+          <h3 style="font-size:15px; color:var(--gold); margin:20px 0 4px;">Ataques mínimos por semana por clan</h3>
+          <p class="text-dim" style="font-size:13px; margin:0 0 4px;">Cantidad mínima de ataques de guerra por semana requerida en cada clan.</p>
+          <div id="reqAtaquesSemanaGrid"></div>
+
+          <h3 style="font-size:15px; color:var(--gold); margin:20px 0 4px;">Ataques a barcos permitidos por semana</h3>
+          <p class="text-dim" style="font-size:13px; margin:0 0 4px;">Es un promedio semanal, no la cantidad acumulada. Si no se desea excluir a nadie por ataques a barcos, selecciona 16. Si no se desea permitir ningún ataque a barcos, selecciona 0.</p>
+          <div class="field">
+            <label for="reqAtaquesBarcos">Ataques a barcos permitidos por semana</label>
+            <select id="reqAtaquesBarcos">
+              <option value="0">0</option>
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+              <option value="5">5</option>
+              <option value="6">6</option>
+              <option value="7">7</option>
+              <option value="8">8</option>
+              <option value="9">9</option>
+              <option value="10">10</option>
+              <option value="11">11</option>
+              <option value="12">12</option>
+              <option value="13">13</option>
+              <option value="14">14</option>
+              <option value="15">15</option>
+              <option value="16" selected>16</option>
+            </select>
+          </div>
+
+          <!-- Miembro activo/WhatsApp arrancan en "Sí" y Reacción en "No" por defecto, sin opción "Elige…". -->
+          <h3 style="font-size:15px; color:var(--gold); margin:20px 0 4px;">Otros criterios</h3>
+          <div class="field">
+            <label for="reqMiembroActivo">Miembro activo</label>
+            <select id="reqMiembroActivo">
+              <option value="Sí" selected>Sí</option>
+              <option value="No">No</option>
+            </select>
+          </div>
+          <div class="field" style="margin-top:10px;">
+            <label for="reqReaccion">Reacción</label>
+            <select id="reqReaccion">
+              <option value="Sí">Sí</option>
+              <option value="No" selected>No</option>
+            </select>
+          </div>
+          <div class="field" style="margin-top:10px;">
+            <label for="reqPresenciaWhatsapp">Presencia en el grupo de WhatsApp</label>
+            <select id="reqPresenciaWhatsapp">
+              <option value="Sí" selected>Sí</option>
+              <option value="No">No</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- #camposTorneoPrincipal es un único nodo que se reubica con JS justo antes de fecha/hora cuando el torneo es de continuación. -->
+        <div id="camposTorneoPrincipal" style="display:none; margin-top:14px; padding-top:14px; border-top:1px solid var(--line);">
+          <label style="display:block; margin-bottom:4px;">¿Cuál es el torneo principal?</label>
+          <p class="text-dim" style="font-size:13px; margin:0 0 8px;">Abre cada uno para ver su hora y link, y elige de cuál es continuación.</p>
+          <div id="torneoPrincipalLista"><div class="empty">Cargando torneos de hoy…</div></div>
+          <div id="torneoPrincipalElegidoMsg" style="margin-top:8px;"></div>
+        </div>
+
+        <!-- Cuadro de Comentario, un solo nodo compartido entre las 3 ramas de Torneos, ubicado justo antes del botón de acción final; conectado con el backend (columna Comentario de T_Lista). Historial en CHANGELOG.md. -->
+        <div id="comentarioTorneoBox" style="margin-top:14px; padding-top:14px; border-top:1px solid var(--line);">
+          <div class="field">
+            <label for="tComentario">Comentario</label>
+            <textarea id="tComentario" rows="3" placeholder="Opcional -- cualquier nota sobre este torneo"></textarea>
+          </div>
+        </div>
+
+        <button type="button" class="btn btn-primary btn-block" id="btnRegistrarTorneo" style="margin-top:14px; display:none;">Registrar torneo</button>
+        <button type="button" class="btn btn-primary btn-block" id="btnModificarTorneo" style="margin-top:14px; display:none;">Guardar cambios</button>
+        <button type="button" class="btn btn-primary btn-block" id="btnPlanificarTorneo" style="margin-top:14px; display:none;">Planificar torneo</button>
+        <div id="registrarTorneoMsg"></div>
+        <div id="modificarTorneoMsg"></div>
+        <div id="planificarTorneoMsg"></div>
+      </div>
+
+      </div>
+
+  <details class="admin-subseccion">
+    <summary><span class="cat-titulo">Ganadores del torneo más reciente</span></summary>
+    <div class="admin-subseccion-body">
+      <div id="ganadoresMsg"></div>
+      <div id="ganadoresLista"></div>
+
+      <!-- Formulario chico para registrar una resolución manual (descalificación/desempate) sobre una cuenta puntual del torneo. -->
+      <div id="resolucionForm" style="display:none; margin-top:16px; padding-top:16px; border-top:1px solid var(--line);">
+        <div id="resolucionParaTexto" class="text-dim" style="font-size:13px; margin-bottom:10px;"></div>
+        <div class="field">
+          <label for="resTipo">Tipo de resolución</label>
+          <select id="resTipo" aria-describedby="resolucionParaTexto">
+            <option value="Descalificado">Descalificado</option>
+            <option value="Empate - Reparto de premio">Empate - Reparto de premio</option>
+            <option value="Empate - Partida de desempate">Empate - Partida de desempate</option>
+            <!-- "Cuenta prestada" es un tipo de resolución que no castiga ni mueve el puesto, solo deja constancia de quién jugó. -->
+            <option value="Cuenta prestada">Cuenta prestada — premio a quien jugó</option>
+          </select>
+        </div>
+        <div class="field" id="resPuestoFinalWrap" style="display:none;">
+          <label for="resPuestoFinal">Puesto final (tras la partida de desempate)</label>
+          <input type="number" id="resPuestoFinal" min="1" step="1">
+        </div>
+        <div class="field" id="resMotivoDescalificadoWrap" style="display:none;">
+          <label for="resMotivoDescalificadoSelect">Motivo</label>
+          <select id="resMotivoDescalificadoSelect">
+            <option value="">-- Seleccionar --</option>
+            <option value="No está en el grupo de WhatsApp de ganadores">No está en el grupo de WhatsApp de ganadores</option>
+            <option value="No reaccionó a la publicación">No reaccionó a la publicación</option>
+            <option value="No se encuentra en el clan">No se encuentra en el clan</option>
+            <option value="No alcanzó el mínimo de medallas de guerra">No alcanzó el mínimo de medallas de guerra</option>
+            <option value="No realizó la cantidad de ataques requeridos para este torneo">No realizó la cantidad de ataques requeridos para este torneo</option>
+            <option value="__otro__">Otro (especificar)</option>
+          </select>
+        </div>
+        <!-- Mismo patrón que el dropdown de Descalificado, uno por cada variante de Empate. -->
+        <div class="field" id="resMotivoRepartoWrap" style="display:none;">
+          <label for="resMotivoRepartoSelect">Motivo</label>
+          <select id="resMotivoRepartoSelect">
+            <option value="">-- Seleccionar --</option>
+            <option value="Premio se reparte en partes iguales entre los empatados">Premio se reparte en partes iguales entre los empatados</option>
+            <option value="Premio se reparte proporcional a las medallas">Premio se reparte proporcional a las medallas</option>
+            <option value="__otro__">Otro (especificar)</option>
+          </select>
+        </div>
+        <div class="field" id="resMotivoDesempateWrap" style="display:none;">
+          <label for="resMotivoDesempateSelect">Motivo</label>
+          <select id="resMotivoDesempateSelect">
+            <option value="">-- Seleccionar --</option>
+            <option value="Ganó la partida de desempate">Ganó la partida de desempate</option>
+            <option value="Perdió la partida de desempate">Perdió la partida de desempate</option>
+            <option value="No se presentó a la partida de desempate">No se presentó a la partida de desempate</option>
+            <option value="__otro__">Otro (especificar)</option>
+          </select>
+        </div>
+        <div class="field" id="resMotivoWrap">
+          <label for="resMotivo">Motivo</label>
+          <input type="text" id="resMotivo" placeholder="La razón del castigo o el detalle del desempate — queda visible en el Doc y en la web">
+        </div>
+        <div class="field-row">
+          <button type="button" class="btn btn-primary" id="btnGuardarResolucion">Guardar resolución</button>
+          <button type="button" class="btn" id="btnCancelarResolucion">Cancelar</button>
+        </div>
+        <div id="resolucionMsg"></div>
+      </div>
+    </div>
+  </details>
+    </div>
+
+    <div class="card admin-grupo pf-cinta" style="--cinta:url(Im%C3%A1genes/Banners/Fankit/cinta-sorteo-titulo.webp); margin-top:24px;">
+      <div class="eyebrow">Sorteos</div>
+
+      <!-- Panel de Sorteos del toggle Torneos/Sorteos: Paso 1 y Paso 2 replican el mecanismo de Torneos; Paso 3 trae los campos reales (ver mostrarPaso3Sorteo()). Historial en CHANGELOG.md. -->
+      <div id="panelSorteosAccion">
+
+        <!-- Gemelo del control "Torneo vigente" pero para Extra!Sorteo_Vigente_ID. -->
+        <details class="admin-subseccion" style="margin-bottom:14px;">
+          <summary><span class="cat-titulo">Sorteo vigente</span></summary>
+          <div class="admin-subseccion-body">
+            <p class="text-dim" style="font-size:13px; margin:0 0 14px;">Define cuál sorteo usan los cálculos automáticos que no reciben un sorteo puntual elegido en su propio formulario. "Ninguno" = usar el más reciente por fecha (comportamiento de respaldo).</p>
+            <div class="field">
+              <label for="vigenteSorteoSelect">Sorteo vigente</label>
+              <select id="vigenteSorteoSelect">
+                <option value="">Cargando…</option>
               </select>
             </div>
-            <button type="button" class="btn btn-primary btn-block" id="btnTorneoPaso1" style="margin-top:6px;">Continuar</button>
+            <button type="button" class="btn btn-primary" id="btnGuardarVigenteSorteo" style="margin-top:6px;">Guardar</button>
+            <div id="vigenteSorteoMsg" style="margin-top:8px;"></div>
           </div>
+        </details>
 
-          <div id="torneoPaso2" style="display:none;">
-            <a href="#" id="torneoVolverPaso1" class="text-dim" style="font-size:13px; display:inline-block; margin-bottom:10px;">‹ Cambiar</a>
-            <div class="field">
-              <label for="torneoTipo">¿Qué tipo de torneo es?</label>
-              <select id="torneoTipo">
-                <option value="">Elige una opción…</option>
-                <option value="principal">Torneo principal</option>
-                <option value="continuacion">Torneo de continuación</option>
+        <div id="sorteoPaso1">
+          <div class="field">
+            <label for="sorteoAccion">¿Qué quieres hacer?</label>
+            <select id="sorteoAccion">
+              <option value="">Elige una opción…</option>
+              <option value="planificar">Planificar sorteo</option>
+              <option value="registrar">Registrar sorteo</option>
+              <option value="modificar">Modificar sorteo</option>
+            </select>
+          </div>
+          <button type="button" class="btn btn-primary btn-block" id="btnSorteoPaso1" style="margin-top:6px;">Continuar</button>
+        </div>
+
+        <div id="sorteoPaso2" style="display:none; margin-top:14px;">
+          <a href="#" id="sorteoVolverPaso1" class="text-dim" style="font-size:13px; display:inline-block; margin-bottom:10px;">‹ Cambiar</a>
+          <div class="field">
+            <label for="sorteoTipo">¿Qué tipo de sorteo es?</label>
+            <select id="sorteoTipo">
+              <option value="">Elige una opción…</option>
+              <option value="principal">Sorteo principal</option>
+              <option value="continuacion">Sorteo de continuación</option>
+            </select>
+          </div>
+          <button type="button" class="btn btn-primary btn-block" id="btnSorteoPaso2" style="margin-top:6px;">Continuar</button>
+        </div>
+
+        <div id="sorteoPaso3" style="display:none; margin-top:14px;">
+          <a href="#" id="sorteoVolverPaso2" class="text-dim" style="font-size:13px; display:inline-block; margin-bottom:10px;">‹ Cambiar</a>
+
+          <!-- Paso 3 de Sorteos: mismos 3 contenedores que Torneos, conectados de punta a punta a sus endpoints. -->
+          <!-- "Registrar sorteo" usa el mismo patrón que Torneos, sin selector de semanas, editor de premios ni link (Sorteos no tiene esos conceptos aquí). -->
+          <div id="camposRegistrarSorteo" style="display:none;">
+            <!-- Botón para precargar el último sorteo registrado, gemelo del de Torneos; mismo endpoint webAdminUltimoRegistro (categoria:'Sorteo'). -->
+            <button type="button" class="btn btn-ghost btn-block" id="btnPrecargarUltimoSorteo" style="margin-bottom:14px;">↻ Precargar datos del último sorteo registrado</button>
+
+            <div class="field-row" id="filaFechaHoraSorteoReg">
+              <div class="field">
+                <label for="sFechaTexto">Fecha</label>
+                <div class="campo-fecha-wrap">
+                  <input type="text" id="sFechaTexto" placeholder="dd/mm/aaaa" inputmode="numeric" maxlength="10" autocomplete="off">
+                  <input type="date" id="sFecha" class="campo-oculto-visual" tabindex="-1" aria-hidden="true">
+                  <button type="button" class="btn-calendario" id="btnCalendarioSorteoReg" title="Abrir calendario" aria-label="Abrir calendario">📅</button>
+                </div>
+              </div>
+              <div class="field">
+                <label for="sHoraHH">Hora</label>
+                <div class="campo-hora-wrap">
+                  <input type="text" id="sHoraHH" class="campo-hora-hh" placeholder="hh" inputmode="numeric" maxlength="2" autocomplete="off">
+                  <span class="campo-hora-separador">:</span>
+                  <input type="text" id="sHoraMM" aria-label="Minutos" class="campo-hora-mm" placeholder="mm" inputmode="numeric" maxlength="2" autocomplete="off">
+                  <select id="sHoraAmPm" aria-label="AM o PM">
+                    <option value="AM">AM</option>
+                    <option value="PM">PM</option>
+                  </select>
+                  <input type="time" id="sHora" class="campo-oculto-visual" tabindex="-1" aria-hidden="true">
+                </div>
+              </div>
+            </div>
+
+            <div class="field" style="margin-top:14px;">
+              <label for="sAutorSelect">¿Quién organizó el sorteo?</label>
+              <select id="sAutorSelect">
+                <option value="">Lo organicé yo (el admin de esta sesión)</option>
+                <option value="__otro__">Ninguna de las anteriores</option>
+              </select>
+              <input type="text" id="sAutorManual" aria-label="Nombre de quien organizó el sorteo" placeholder="Nombre de quien organizó" style="margin-top:8px; display:none;">
+            </div>
+
+            <div class="field" id="sCuentaOrgBox" style="display:none; margin-top:10px;">
+              <label for="sCuentaOrgSelect">¿Con cuál cuenta organizó?</label>
+              <select id="sCuentaOrgSelect">
+                <option value="">Elige la cuenta…</option>
+              </select>
+              <div id="sCuentaOrgInfo" class="text-dim" style="font-size:13px; margin-top:6px;"></div>
+            </div>
+
+            <!-- El selector de semanas de Sorteos sí es necesario (evalúa Min_S); reutiliza las mismas funciones que Torneos con contenedor propio. -->
+            <div class="field" id="semanaSelectorWrapSorteoReg" style="margin-top:14px;">
+              <label>¿Qué semanas se deben evaluar para este sorteo?</label>
+              <p class="text-dim" style="font-size:13px; margin:0 0 8px;">Se marcan las 2 más recientes por defecto — usualmente son las que definen si un jugador puede participar.</p>
+              <div class="semana-selector" id="semanasSelectorSorteoReg"></div>
+            </div>
+          </div>
+          <div id="camposModificarSorteo" style="display:none;">
+            <!-- "Modificar sorteo" se puebla igual que Torneos, sin opción "Ingresar link" (Sorteos no tiene ese concepto). -->
+            <div class="field" style="margin-bottom:12px;">
+              <label for="sSelectHoy">Sorteo</label>
+              <select id="sSelectHoy"><option value="">Cargando sorteos de hoy…</option></select>
+            </div>
+            <!-- PF107 (18-oct-2026): igual que en «Modificar torneo», primero se elige el sorteo y recién después su tipo (principal o continuación), ya precargado con el que tiene y editable. Fuente única: #sorteoTipo (lo sincroniza aplicarTipoModificarSorteo()). -->
+            <div class="field" id="sModTipoBox" style="display:none; margin-bottom:12px;">
+              <label for="sorteoTipoMod">¿Qué tipo de sorteo es?</label>
+              <select id="sorteoTipoMod">
+                <option value="principal">Sorteo principal</option>
+                <option value="continuacion">Sorteo de continuación</option>
               </select>
             </div>
-            <button type="button" class="btn btn-primary btn-block" id="btnTorneoPaso2" style="margin-top:6px;">Continuar</button>
+            <div class="field-row" id="filaFechaHoraSorteoMod">
+              <div class="field">
+                <label for="sFechaModTexto">Nueva fecha</label>
+                <div class="campo-fecha-wrap">
+                  <input type="text" id="sFechaModTexto" placeholder="dd/mm/aaaa" inputmode="numeric" maxlength="10" autocomplete="off">
+                  <input type="date" id="sFechaMod" class="campo-oculto-visual" tabindex="-1" aria-hidden="true">
+                  <button type="button" class="btn-calendario" id="btnCalendarioSorteoMod" title="Abrir calendario" aria-label="Abrir calendario">📅</button>
+                </div>
+              </div>
+              <div class="field">
+                <label for="sHoraModHH">Nueva hora</label>
+                <div class="campo-hora-wrap">
+                  <input type="text" id="sHoraModHH" class="campo-hora-hh" placeholder="hh" inputmode="numeric" maxlength="2" autocomplete="off">
+                  <span class="campo-hora-separador">:</span>
+                  <input type="text" id="sHoraModMM" aria-label="Minutos" class="campo-hora-mm" placeholder="mm" inputmode="numeric" maxlength="2" autocomplete="off">
+                  <select id="sHoraModAmPm" aria-label="AM o PM">
+                    <option value="AM">AM</option>
+                    <option value="PM">PM</option>
+                  </select>
+                  <input type="time" id="sHoraMod" class="campo-oculto-visual" tabindex="-1" aria-hidden="true">
+                </div>
+              </div>
+            </div>
+
+            <!-- Mismo patrón que Torneos: "Sin cambios" en vez de "Lo organicé yo" porque se edita un sorteo existente. -->
+            <div class="field" style="margin-top:14px;">
+              <label for="sAutorSelectMod">¿Quién organizó el sorteo?</label>
+              <select id="sAutorSelectMod">
+                <option value="">Sin cambios (mantener autor actual)</option>
+                <option value="__otro__">Ninguna de las anteriores</option>
+              </select>
+              <input type="text" id="sAutorManualMod" aria-label="Nombre de quien organizó el sorteo" placeholder="Nombre de quien organizó" style="margin-top:8px; display:none;">
+            </div>
+
+            <div class="field" id="sCuentaOrgBoxMod" style="display:none; margin-top:10px;">
+              <label for="sCuentaOrgSelectMod">¿Con cuál cuenta organizó?</label>
+              <select id="sCuentaOrgSelectMod">
+                <option value="">Elige la cuenta…</option>
+              </select>
+              <div id="sCuentaOrgInfoMod" class="text-dim" style="font-size:13px; margin-top:6px;"></div>
+            </div>
+
+            <!-- Editor de premios de "Modificar sorteo", reutiliza las mismas funciones que Torneos; ya se puebla con los premios del sorteo elegido. -->
+            <div style="margin-top:14px; padding-top:14px; border-top:1px solid var(--line);">
+              <label style="display:block; margin-bottom:4px;">Premios</label>
+              <p class="text-dim" style="font-size:13px; margin:0 0 10px;">Se muestran los premios ya registrados para este sorteo (si todavía no tiene, no se muestra ninguno). Déjalos tal cual si no quieres cambiarlos, o edítalos — usualmente son 3, pero puedes agregar más o quitar los que no necesites. Si quitas todos, se conservan los ya registrados.</p>
+              <div id="premiosEditorSorteoMod"></div>
+              <button type="button" class="btn btn-ghost btn-block" id="btnAgregarPremioSorteoMod" style="margin-top:10px;">+ Agregar premio</button>
+            </div>
+
+            <!-- Selector de semanas de "Modificar sorteo", mismo patrón
+                 que Torneos (#semanasSelectorMod). -->
+            <div class="field" id="semanaSelectorWrapSorteoMod" style="margin-top:14px;">
+              <label>¿Qué semanas se deben evaluar para este sorteo?</label>
+              <p class="text-dim" style="font-size:13px; margin:0 0 8px;">Se marcan las 2 más recientes por defecto — usualmente son las que definen si un jugador puede participar.</p>
+              <div class="semana-selector" id="semanasSelectorSorteoMod"></div>
+            </div>
+          </div>
+          <div id="camposPlanificarSorteo" style="display:none;">
+            <!-- "Planificar sorteo": fecha/hora + autor + cuenta + premios, mismo patrón que Torneos. -->
+            <div class="field-row" id="filaFechaHoraSorteoPlan">
+              <div class="field">
+                <label for="sFechaPlanTexto">Fecha</label>
+                <div class="campo-fecha-wrap">
+                  <input type="text" id="sFechaPlanTexto" placeholder="dd/mm/aaaa" inputmode="numeric" maxlength="10" autocomplete="off">
+                  <input type="date" id="sFechaPlan" class="campo-oculto-visual" tabindex="-1" aria-hidden="true">
+                  <button type="button" class="btn-calendario" id="btnCalendarioSorteoPlan" title="Abrir calendario" aria-label="Abrir calendario">📅</button>
+                </div>
+              </div>
+              <div class="field">
+                <label for="sHoraPlanHH">Hora</label>
+                <div class="campo-hora-wrap">
+                  <input type="text" id="sHoraPlanHH" class="campo-hora-hh" placeholder="hh" inputmode="numeric" maxlength="2" autocomplete="off">
+                  <span class="campo-hora-separador">:</span>
+                  <input type="text" id="sHoraPlanMM" aria-label="Minutos" class="campo-hora-mm" placeholder="mm" inputmode="numeric" maxlength="2" autocomplete="off">
+                  <select id="sHoraPlanAmPm" aria-label="AM o PM">
+                    <option value="AM">AM</option>
+                    <option value="PM">PM</option>
+                  </select>
+                  <input type="time" id="sHoraPlan" class="campo-oculto-visual" tabindex="-1" aria-hidden="true">
+                </div>
+              </div>
+            </div>
+
+            <div class="field" style="margin-top:14px;">
+              <label for="sAutorSelectPlan">¿Quién organiza el sorteo?</label>
+              <select id="sAutorSelectPlan">
+                <option value="">Lo organizo yo (el admin de esta sesión)</option>
+                <option value="__otro__">Ninguna de las anteriores</option>
+              </select>
+              <input type="text" id="sAutorManualPlan" aria-label="Nombre de quien organiza el sorteo" placeholder="Nombre de quien organiza" style="margin-top:8px; display:none;">
+            </div>
+
+            <div class="field" id="sCuentaOrgBoxPlan" style="display:none; margin-top:10px;">
+              <label for="sCuentaOrgSelectPlan">¿Con cuál cuenta organiza?</label>
+              <select id="sCuentaOrgSelectPlan">
+                <option value="">Elige la cuenta…</option>
+              </select>
+              <div id="sCuentaOrgInfoPlan" class="text-dim" style="font-size:13px; margin-top:6px;"></div>
+            </div>
+
+            <!-- Selector de semanas real, mismo patrón que Torneos. -->
+            <div class="field" id="semanaSelectorWrapSorteoPlan" style="margin-top:14px;">
+              <label>¿Qué semanas se deben evaluar para este sorteo?</label>
+              <p class="text-dim" style="font-size:13px; margin:0 0 8px;">Se marcan las 2 más recientes por defecto — usualmente son las que definen si un jugador puede participar.</p>
+              <div class="semana-selector" id="semanasSelectorSorteoPlan"></div>
+            </div>
+
+            <!-- Editor de premios de "Planificar sorteo", mismo mecanismo que el de Modificar sorteo. -->
+            <div style="margin-top:14px; padding-top:14px; border-top:1px solid var(--line);">
+              <label style="display:block; margin-bottom:4px;">Premios</label>
+              <p class="text-dim" style="font-size:13px; margin:0 0 10px;">Usualmente son 3, pero puedes agregar más o quitar los que no necesites.</p>
+              <div id="premiosEditorSorteoPlan"></div>
+              <button type="button" class="btn btn-ghost btn-block" id="btnAgregarPremioSorteoPlan" style="margin-top:10px;">+ Agregar premio</button>
+            </div>
           </div>
 
-          <div id="torneoPaso3" style="display:none;">
-            <a href="#" id="torneoVolverPaso2" class="text-dim" style="font-size:13px; display:inline-block; margin-bottom:10px;">‹ Cambiar</a>
+          <!-- Requisitos para participar del sorteo (Delta + "Torneos jugados" C1-C4), reutiliza los mismos helpers que Torneos con contenedores propios de Sorteos; conectado con el backend. Historial en CHANGELOG.md. -->
+          <div id="requisitosSorteoBox" style="margin-top:14px; padding-top:14px; border-top:1px solid var(--line);">
+            <h3 style="font-size:15px; color:var(--gold); margin:0 0 4px;">Requisitos para participar en sorteos</h3>
+            <p class="text-dim" style="font-size:13px; margin:0 0 4px;">Requerimiento mínimo de medallas de guerra para mantenerse en cada clan.</p>
+            <div id="reqTrofeosGuerraGridSorteo"></div>
 
-            <div id="camposRegistrar" style="display:none;">
-              <!-- Botón que precarga Organizador/Cuenta/Comentario del último torneo registrado; conectado a webAdminUltimoRegistro (34_Web_API.gs). -->
-              <button type="button" class="btn btn-ghost btn-block" id="btnPrecargarUltimoTorneo" style="margin-bottom:14px;">↻ Precargar datos del último torneo registrado</button>
+            <h3 style="font-size:15px; color:var(--gold); margin:20px 0 4px;">Ataques mínimos por semana por clan</h3>
+            <p class="text-dim" style="font-size:13px; margin:0 0 4px;">Cantidad mínima de ataques de guerra por semana requerida en cada clan.</p>
+            <div id="reqAtaquesSemanaGridSorteo"></div>
 
-              <div class="field">
-                <label for="tLink">Link del torneo</label>
-                <input type="text" id="tLink" placeholder="https://link.clashroyale.com/...">
-              </div>
-              <div class="field-row" id="filaFechaHoraReg">
-                <div class="field">
-                  <label for="tFechaTexto">Fecha</label>
-                  <div class="campo-fecha-wrap">
-                    <input type="text" id="tFechaTexto" placeholder="dd/mm/aaaa" inputmode="numeric" maxlength="10" autocomplete="off">
-                    <input type="date" id="tFecha" class="campo-oculto-visual" tabindex="-1" aria-hidden="true">
-                    <button type="button" class="btn-calendario" id="btnCalendarioReg" title="Abrir calendario" aria-label="Abrir calendario">📅</button>
-                  </div>
-                </div>
-                <div class="field">
-                  <label for="tHoraHH">Hora</label>
-                  <div class="campo-hora-wrap">
-                    <input type="text" id="tHoraHH" class="campo-hora-hh" placeholder="hh" inputmode="numeric" maxlength="2" autocomplete="off">
-                    <span class="campo-hora-separador">:</span>
-                    <input type="text" id="tHoraMM" aria-label="Minutos" class="campo-hora-mm" placeholder="mm" inputmode="numeric" maxlength="2" autocomplete="off">
-                    <select id="tHoraAmPm" aria-label="AM o PM">
-                      <option value="AM">AM</option>
-                      <option value="PM">PM</option>
-                    </select>
-                    <input type="time" id="tHora" class="campo-oculto-visual" tabindex="-1" aria-hidden="true">
-                  </div>
-                </div>
-              </div>
-
-              <!-- "Lo organicé yo" deja usar el admin de la sesión como organizador; el dropdown lista los Nom_Multi de los admins. Fase 11 (plan T_Lista, ver 24_Torneos_Core.gs): texto de ayuda deja claro que es un fallback. Historial en CHANGELOG.md. -->
-              <div class="field" style="margin-top:14px;">
-                <label for="tAutorSelect">¿Quién organizó el torneo?</label>
-                <select id="tAutorSelect">
-                  <option value="">Lo organicé yo (el admin de esta sesión)</option>
-                  <option value="__otro__">Ninguna de las anteriores</option>
-                </select>
-                <input type="text" id="tAutorManual" aria-label="Nombre de quien organizó el torneo" placeholder="Nombre de quien organizó" style="margin-top:8px; display:none;">
-                <p class="text-dim" style="font-size:13px; margin:6px 0 0;">Solo se usa si el torneo no trae organizador en su propio registro de RoyaleAPI.</p>
-              </div>
-
-              <!-- El cuadro de cuenta organizadora aparece solo con un Nom_Multi elegido; el clan se detecta solo desde el backend. -->
-              <div class="field" id="tCuentaOrgBox" style="display:none; margin-top:10px;">
-                <label for="tCuentaOrgSelect">¿Con cuál cuenta organizó?</label>
-                <select id="tCuentaOrgSelect">
-                  <option value="">Elige la cuenta…</option>
-                </select>
-                <div id="tCuentaOrgInfo" class="text-dim" style="font-size:13px; margin-top:6px;"></div>
-              </div>
-
-              <!-- El selector de semanas está documentado junto a cargarSemanasRecientes()/pintarSemanasSelector() en el <script>; el backend ya usa esas semanas para promediar trofeos/ataques y contar torneos (verificado 20-sep-2026). -->
-              <div class="field" id="semanaSelectorWrapReg" style="margin-top:14px;">
-                <label>¿Qué semanas se deben evaluar para este torneo?</label>
-                <p class="text-dim" style="font-size:13px; margin:0 0 8px;">Se marcan las 2 más recientes por defecto — usualmente son las que definen si un jugador puede participar.</p>
-                <div class="semana-selector" id="semanasSelectorReg"></div>
-              </div>
+            <h3 style="font-size:15px; color:var(--gold); margin:20px 0 4px;">Ataques a barcos permitidos por semana</h3>
+            <p class="text-dim" style="font-size:13px; margin:0 0 4px;">Es un promedio semanal, no la cantidad acumulada. Si no se desea excluir a nadie por ataques a barcos, selecciona 16. Si no se desea permitir ningún ataque a barcos, selecciona 0.</p>
+            <div class="field">
+              <label for="reqAtaquesBarcosSorteo">Ataques a barcos permitidos por semana</label>
+              <select id="reqAtaquesBarcosSorteo">
+                <option value="0">0</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+                <option value="4">4</option>
+                <option value="5">5</option>
+                <option value="6">6</option>
+                <option value="7">7</option>
+                <option value="8">8</option>
+                <option value="9">9</option>
+                <option value="10">10</option>
+                <option value="11">11</option>
+                <option value="12">12</option>
+                <option value="13">13</option>
+                <option value="14">14</option>
+                <option value="15">15</option>
+                <option value="16" selected>16</option>
+              </select>
             </div>
 
-            <div id="camposModificar" style="display:none;">
-              <div class="field" style="margin-bottom:12px;">
-                <label for="tSelectHoy">Torneo</label>
-                <select id="tSelectHoy"><option value="">Cargando torneos…</option></select>
-                <!-- Ingresar link es una opción más de #tSelectHoy (no un control aparte, se limpia al elegir otra opción); solo existe en Torneos, no en Sorteos. Historial en CHANGELOG.md. -->
-                <input type="text" id="tModificarLink" aria-label="Link del torneo a modificar" placeholder="https://link.clashroyale.com/..." style="margin-top:8px; display:none;">
-                <!-- Fase 11 (plan T_Lista, ver 24_Torneos_Core.gs): nota sobre el alcance de "Ingresar link"; texto actualizado el 02-oct-2026 porque la Fase 12 ya está en el backend. Historial en CHANGELOG.md. -->
-                <p class="text-dim" style="font-size:13px; margin:6px 0 0;">"Ingresar link" también sirve para corregir el link de un torneo ya registrado: pega el link nuevo y pon la misma fecha y hora (hasta el minuto) con la que quedó registrado, y se corrige esa misma fila en vez de crear otra. Si la fecha u hora no coinciden con ningún torneo registrado, se registra un torneo nuevo. Si el link es de otro torneo, se vuelve a detectar el organizador y los demás datos. En una corrección no se aplican el organizador, las semanas, los requisitos ni el comentario de este formulario.</p>
-              </div>
-              <!-- PF105 (18-oct-2026): en «Modificar» primero se elige el torneo y recién después su tipo (principal o continuación), ya precargado con el que tiene y editable. Fuente única: #torneoTipo (lo sincroniza initTorneoWizard()). -->
-              <div class="field" id="modTipoBox" style="display:none; margin-bottom:12px;">
-                <label for="torneoTipoMod">¿Qué tipo de torneo es?</label>
-                <select id="torneoTipoMod">
-                  <option value="principal">Torneo principal</option>
-                  <option value="continuacion">Torneo de continuación</option>
-                </select>
-              </div>
-              <div class="field-row" id="filaFechaHoraMod">
-                <div class="field">
-                  <label for="tFechaModTexto">Nueva fecha</label>
-                  <div class="campo-fecha-wrap">
-                    <input type="text" id="tFechaModTexto" placeholder="dd/mm/aaaa" inputmode="numeric" maxlength="10" autocomplete="off">
-                    <input type="date" id="tFechaMod" class="campo-oculto-visual" tabindex="-1" aria-hidden="true">
-                    <button type="button" class="btn-calendario" id="btnCalendarioMod" title="Abrir calendario" aria-label="Abrir calendario">📅</button>
-                  </div>
-                </div>
-                <div class="field">
-                  <label for="tHoraModHH">Nueva hora</label>
-                  <div class="campo-hora-wrap">
-                    <input type="text" id="tHoraModHH" class="campo-hora-hh" placeholder="hh" inputmode="numeric" maxlength="2" autocomplete="off">
-                    <span class="campo-hora-separador">:</span>
-                    <input type="text" id="tHoraModMM" aria-label="Minutos" class="campo-hora-mm" placeholder="mm" inputmode="numeric" maxlength="2" autocomplete="off">
-                    <select id="tHoraModAmPm" aria-label="AM o PM">
-                      <option value="AM">AM</option>
-                      <option value="PM">PM</option>
-                    </select>
-                    <input type="time" id="tHoraMod" class="campo-oculto-visual" tabindex="-1" aria-hidden="true">
-                  </div>
-                </div>
-              </div>
+            <h3 style="font-size:15px; color:var(--gold); margin:20px 0 4px;">Torneos jugados mínimos por clan</h3>
+            <p class="text-dim" style="font-size:13px; margin:0 0 4px;">Cantidad mínima de torneos jugados requerida en cada clan — este requisito es exclusivo de Sorteos, Torneos no lo tiene. <strong>Es obligatorio llenar los 4 clanes: si no quieres considerar los torneos en este sorteo, escribe 0.</strong></p>
+            <div id="reqTorneosGridSorteo"></div>
 
-              <!-- Modificar torneo: autor y premios son opcionales, "Sin cambios" muestra el autor ya cargado y el editor de premios precarga los valores existentes; conectado con el backend. Fase 11 (plan T_Lista, ver 24_Torneos_Core.gs): si el torneo elegido trae Organizador_Fuente='API', este bloque se reemplaza por #tAutorSoloLecturaMod (mismo bloqueo que ya aplica el backend en _webAdminTorneoModificar()). Historial en CHANGELOG.md. -->
-              <div class="field" id="tAutorEditableModWrap" style="margin-top:14px;">
-                <label for="tAutorSelectMod">¿Quién organizó el torneo?</label>
-                <select id="tAutorSelectMod">
-                  <option value="">Sin cambios (mantener autor actual)</option>
-                  <option value="__otro__">Ninguna de las anteriores</option>
-                </select>
-                <input type="text" id="tAutorManualMod" aria-label="Nombre de quien organizó el torneo" placeholder="Nombre de quien organizó" style="margin-top:8px; display:none;">
-              </div>
-              <div class="field" id="tAutorSoloLecturaMod" style="display:none; margin-top:14px;">
-                <label>¿Quién organizó el torneo?</label>
-                <p class="text-dim" style="font-size:13px; margin:0;" id="tAutorSoloLecturaModTexto"></p>
-              </div>
-
-              <!-- Mismo cuadro de cuenta/clan que Registrar, pero opcional en Modificar: si no se toca, no pisa lo ya guardado. -->
-              <div class="field" id="tCuentaOrgBoxMod" style="display:none; margin-top:10px;">
-                <label for="tCuentaOrgSelectMod">¿Con cuál cuenta organizó?</label>
-                <select id="tCuentaOrgSelectMod">
-                  <option value="">Elige la cuenta…</option>
-                </select>
-                <div id="tCuentaOrgInfoMod" class="text-dim" style="font-size:13px; margin-top:6px;"></div>
-              </div>
-
-              <!-- Selector de semanas, mismo criterio documentado junto a #camposRegistrar. -->
-              <div class="field" id="semanaSelectorWrapMod" style="margin-top:14px;">
-                <label>¿Qué semanas se deben evaluar para este torneo?</label>
-                <p class="text-dim" style="font-size:13px; margin:0 0 8px;">Se marcan las 2 más recientes por defecto — usualmente son las que definen si un jugador puede participar.</p>
-                <div class="semana-selector" id="semanasSelectorMod"></div>
-              </div>
-
-              <div style="margin-top:14px; padding-top:14px; border-top:1px solid var(--line);">
-                <label style="display:block; margin-bottom:4px;">Premios</label>
-                <p class="text-dim" style="font-size:13px; margin:0 0 10px;">Se muestran los premios ya registrados para este torneo (si todavía no tiene, no se muestra ninguno). Déjalos tal cual si no quieres cambiarlos, o edítalos — usualmente son 3, pero puedes agregar más o quitar los que no necesites. Si quitas todos, se conservan los ya registrados.</p>
-                <div id="premiosEditorMod"></div>
-                <button type="button" class="btn btn-ghost btn-block" id="btnAgregarPremioMod" style="margin-top:10px;">+ Agregar premio</button>
-              </div>
+            <h3 style="font-size:15px; color:var(--gold); margin:20px 0 4px;">Delta</h3>
+            <p class="text-dim" style="font-size:13px; margin:0 0 8px;">Escalón de medallas extra que suma un ticket adicional en la ruleta — un solo valor para los 4 clanes (no hay Delta por clan, ver sección 5.1.1 del consolidado).</p>
+            <div class="field">
+              <label for="reqDeltaSorteo">Delta</label>
+              <input type="text" id="reqDeltaSorteo" inputmode="numeric" placeholder="Ejm: 100">
             </div>
 
-            <!-- "Planificar torneo" reusa el patrón de autor de #camposRegistrar con ids propios; el editor de premios vive en #premiosEditor. -->
-            <div id="camposPlanificar" style="display:none;">
-              <div class="field-row" id="filaFechaHoraPlan">
-                <div class="field">
-                  <label for="tFechaPlanTexto">Fecha</label>
-                  <div class="campo-fecha-wrap">
-                    <input type="text" id="tFechaPlanTexto" placeholder="dd/mm/aaaa" inputmode="numeric" maxlength="10" autocomplete="off">
-                    <input type="date" id="tFechaPlan" class="campo-oculto-visual" tabindex="-1" aria-hidden="true">
-                    <button type="button" class="btn-calendario" id="btnCalendarioPlan" title="Abrir calendario" aria-label="Abrir calendario">📅</button>
-                  </div>
-                </div>
-                <div class="field">
-                  <label for="tHoraPlanHH">Hora</label>
-                  <div class="campo-hora-wrap">
-                    <input type="text" id="tHoraPlanHH" class="campo-hora-hh" placeholder="hh" inputmode="numeric" maxlength="2" autocomplete="off">
-                    <span class="campo-hora-separador">:</span>
-                    <input type="text" id="tHoraPlanMM" aria-label="Minutos" class="campo-hora-mm" placeholder="mm" inputmode="numeric" maxlength="2" autocomplete="off">
-                    <select id="tHoraPlanAmPm" aria-label="AM o PM">
-                      <option value="AM">AM</option>
-                      <option value="PM">PM</option>
-                    </select>
-                    <input type="time" id="tHoraPlan" class="campo-oculto-visual" tabindex="-1" aria-hidden="true">
-                  </div>
-                </div>
-              </div>
-
-              <!-- Fase 11 (plan T_Lista, ver 24_Torneos_Core.gs): mismo texto de ayuda que Registrar. Historial en CHANGELOG.md. -->
-              <div class="field" style="margin-top:14px;">
-                <label for="tAutorSelectPlan">¿Quién organiza el torneo?</label>
-                <select id="tAutorSelectPlan">
-                  <option value="">Lo organizo yo (el admin de esta sesión)</option>
-                  <option value="__otro__">Ninguna de las anteriores</option>
-                </select>
-                <input type="text" id="tAutorManualPlan" aria-label="Nombre de quien organiza el torneo" placeholder="Nombre de quien organiza" style="margin-top:8px; display:none;">
-                <p class="text-dim" style="font-size:13px; margin:6px 0 0;">Solo se usa si el torneo no trae organizador en su propio registro de RoyaleAPI.</p>
-              </div>
-
-              <!-- Mismo cuadro de cuenta/clan que #camposRegistrar. -->
-              <div class="field" id="tCuentaOrgBoxPlan" style="display:none; margin-top:10px;">
-                <label for="tCuentaOrgSelectPlan">¿Con cuál cuenta organiza?</label>
-                <select id="tCuentaOrgSelectPlan">
-                  <option value="">Elige la cuenta…</option>
-                </select>
-                <div id="tCuentaOrgInfoPlan" class="text-dim" style="font-size:13px; margin-top:6px;"></div>
-              </div>
-
-              <!-- Selector de semanas, mismo criterio que #camposRegistrar. -->
-              <div class="field" id="semanaSelectorWrapPlan" style="margin-top:14px;">
-                <label>¿Qué semanas se deben evaluar para este torneo?</label>
-                <p class="text-dim" style="font-size:13px; margin:0 0 8px;">Se marcan las 2 más recientes por defecto — usualmente son las que definen si un jugador puede participar.</p>
-                <div class="semana-selector" id="semanasSelectorPlan"></div>
-              </div>
-
-              <div style="margin-top:14px; padding-top:14px; border-top:1px solid var(--line);">
-                <label style="display:block; margin-bottom:4px;">Premios</label>
-                <p class="text-dim" style="font-size:13px; margin:0 0 10px;">Usualmente son 3, pero puedes agregar más o quitar los que no necesites.</p>
-                <div id="premiosEditor"></div>
-                <button type="button" class="btn btn-ghost btn-block" id="btnAgregarPremio" style="margin-top:10px;">+ Agregar premio</button>
-              </div>
+            <h3 style="font-size:15px; color:var(--gold); margin:20px 0 4px;">Otros criterios</h3>
+            <div class="field">
+              <label for="reqMiembroActivoSorteo">Miembro activo</label>
+              <select id="reqMiembroActivoSorteo">
+                <option value="Sí" selected>Sí</option>
+                <option value="No">No</option>
+              </select>
             </div>
-
-            <!-- Formulario de requisitos por clan (trofeos/ataques + 3 criterios Sí/No), un solo nodo compartido entre Registrar/Modificar/Planificar que mostrarPaso3() reubica con JS antes del selector de semanas de cada rama. Conectado con el backend. Historial en CHANGELOG.md. -->
-            <div id="requisitosTorneoBox" style="margin-top:14px; padding-top:14px; border-top:1px solid var(--line);">
-              <h3 style="font-size:15px; color:var(--gold); margin:0 0 4px;">Requisitos para participar en torneos</h3>
-              <p class="text-dim" style="font-size:13px; margin:0 0 4px;">Requerimiento mínimo de medallas de guerra para mantenerse en cada clan.</p>
-              <div id="reqTrofeosGuerraGrid"></div>
-
-              <h3 style="font-size:15px; color:var(--gold); margin:20px 0 4px;">Ataques mínimos por semana por clan</h3>
-              <p class="text-dim" style="font-size:13px; margin:0 0 4px;">Cantidad mínima de ataques de guerra por semana requerida en cada clan.</p>
-              <div id="reqAtaquesSemanaGrid"></div>
-
-              <h3 style="font-size:15px; color:var(--gold); margin:20px 0 4px;">Ataques a barcos permitidos por semana</h3>
-              <p class="text-dim" style="font-size:13px; margin:0 0 4px;">Es un promedio semanal, no la cantidad acumulada. Si no se desea excluir a nadie por ataques a barcos, selecciona 16. Si no se desea permitir ningún ataque a barcos, selecciona 0.</p>
-              <div class="field">
-                <label for="reqAtaquesBarcos">Ataques a barcos permitidos por semana</label>
-                <select id="reqAtaquesBarcos">
-                  <option value="0">0</option>
-                  <option value="1">1</option>
-                  <option value="2">2</option>
-                  <option value="3">3</option>
-                  <option value="4">4</option>
-                  <option value="5">5</option>
-                  <option value="6">6</option>
-                  <option value="7">7</option>
-                  <option value="8">8</option>
-                  <option value="9">9</option>
-                  <option value="10">10</option>
-                  <option value="11">11</option>
-                  <option value="12">12</option>
-                  <option value="13">13</option>
-                  <option value="14">14</option>
-                  <option value="15">15</option>
-                  <option value="16" selected>16</option>
-                </select>
-              </div>
-
-              <!-- Miembro activo/WhatsApp arrancan en "Sí" y Reacción en "No" por defecto, sin opción "Elige…". -->
-              <h3 style="font-size:15px; color:var(--gold); margin:20px 0 4px;">Otros criterios</h3>
-              <div class="field">
-                <label for="reqMiembroActivo">Miembro activo</label>
-                <select id="reqMiembroActivo">
-                  <option value="Sí" selected>Sí</option>
-                  <option value="No">No</option>
-                </select>
-              </div>
-              <div class="field" style="margin-top:10px;">
-                <label for="reqReaccion">Reacción</label>
-                <select id="reqReaccion">
-                  <option value="Sí">Sí</option>
-                  <option value="No" selected>No</option>
-                </select>
-              </div>
-              <div class="field" style="margin-top:10px;">
-                <label for="reqPresenciaWhatsapp">Presencia en el grupo de WhatsApp</label>
-                <select id="reqPresenciaWhatsapp">
-                  <option value="Sí" selected>Sí</option>
-                  <option value="No">No</option>
-                </select>
-              </div>
+            <div class="field" style="margin-top:10px;">
+              <label for="reqReaccionSorteo">Reacción</label>
+              <select id="reqReaccionSorteo">
+                <option value="Sí">Sí</option>
+                <option value="No" selected>No</option>
+              </select>
             </div>
-
-            <!-- #camposTorneoPrincipal es un único nodo que se reubica con JS justo antes de fecha/hora cuando el torneo es de continuación. -->
-            <div id="camposTorneoPrincipal" style="display:none; margin-top:14px; padding-top:14px; border-top:1px solid var(--line);">
-              <label style="display:block; margin-bottom:4px;">¿Cuál es el torneo principal?</label>
-              <p class="text-dim" style="font-size:13px; margin:0 0 8px;">Abre cada uno para ver su hora y link, y elige de cuál es continuación.</p>
-              <div id="torneoPrincipalLista"><div class="empty">Cargando torneos de hoy…</div></div>
-              <div id="torneoPrincipalElegidoMsg" style="margin-top:8px;"></div>
+            <div class="field" style="margin-top:10px;">
+              <label for="reqPresenciaWhatsappSorteo">Presencia en el grupo de WhatsApp</label>
+              <select id="reqPresenciaWhatsappSorteo">
+                <option value="Sí" selected>Sí</option>
+                <option value="No">No</option>
+              </select>
             </div>
-
-            <!-- Cuadro de Comentario, un solo nodo compartido entre las 3 ramas de Torneos, ubicado justo antes del botón de acción final; conectado con el backend (columna Comentario de T_Lista). Historial en CHANGELOG.md. -->
-            <div id="comentarioTorneoBox" style="margin-top:14px; padding-top:14px; border-top:1px solid var(--line);">
-              <div class="field">
-                <label for="tComentario">Comentario</label>
-                <textarea id="tComentario" rows="3" placeholder="Opcional -- cualquier nota sobre este torneo"></textarea>
-              </div>
-            </div>
-
-            <button type="button" class="btn btn-primary btn-block" id="btnRegistrarTorneo" style="margin-top:14px; display:none;">Registrar torneo</button>
-            <button type="button" class="btn btn-primary btn-block" id="btnModificarTorneo" style="margin-top:14px; display:none;">Guardar cambios</button>
-            <button type="button" class="btn btn-primary btn-block" id="btnPlanificarTorneo" style="margin-top:14px; display:none;">Planificar torneo</button>
-            <div id="registrarTorneoMsg"></div>
-            <div id="modificarTorneoMsg"></div>
-            <div id="planificarTorneoMsg"></div>
           </div>
 
+          <!-- Equivalente a #camposTorneoPrincipal pero resuelto por ID en vez de por Tag (Sorteos no usa Tag_Tor). -->
+          <div id="camposSorteoPrincipal" style="display:none;">
+            <div class="text-dim" style="font-size:13px; margin-bottom:8px;">¿Cuál es el sorteo principal?</div>
+            <div id="sorteoPrincipalLista"></div>
+            <div id="sorteoPrincipalElegidoMsg"></div>
           </div>
 
-          <!-- Panel de Sorteos del toggle Torneos/Sorteos: Paso 1 y Paso 2 replican el mecanismo de Torneos; Paso 3 trae los campos reales (ver mostrarPaso3Sorteo()). Historial en CHANGELOG.md. -->
-          <div id="panelSorteosAccion" style="display:none;">
+          <!-- Cuadro de Comentario, un solo nodo compartido entre las 3 ramas de Sorteos; ya conectado al payload. -->
+          <div id="comentarioSorteoBox" style="margin-top:14px; padding-top:14px; border-top:1px solid var(--line);">
+            <div class="field">
+              <label for="sComentario">Comentario</label>
+              <textarea id="sComentario" rows="3" placeholder="Opcional -- cualquier nota sobre este sorteo"></textarea>
+            </div>
+          </div>
 
-            <!-- Gemelo del control "Torneo vigente" pero para Extra!Sorteo_Vigente_ID. -->
-            <details class="admin-subseccion" style="margin-bottom:14px;">
-              <summary><span class="cat-titulo">Sorteo vigente</span></summary>
+          <!-- Los 3 botones de acción de Sorteos, mismo patrón que Torneos. -->
+          <button type="button" class="btn btn-primary btn-block" id="btnRegistrarSorteo" style="margin-top:14px; display:none;">Registrar sorteo</button>
+          <button type="button" class="btn btn-primary btn-block" id="btnModificarSorteo" style="margin-top:14px; display:none;">Guardar cambios</button>
+          <button type="button" class="btn btn-primary btn-block" id="btnPlanificarSorteo" style="margin-top:14px; display:none;">Planificar sorteo</button>
+          <div id="registrarSorteoMsg"></div>
+          <div id="modificarSorteoMsg"></div>
+          <div id="planificarSorteoMsg"></div>
+        </div>
+
+
+      </div>
+
+  <!-- Herramienta standalone sin backend propio; se abre en pestaña nueva sin rel="noopener" para heredar el sessionStorage. -->
+  <details class="admin-subseccion">
+    <summary><span class="cat-titulo">🎡 Ruleta de sorteos</span></summary>
+    <div class="admin-subseccion-body">
+      <p class="text-dim" style="font-size:13px; margin:0 0 14px;">Sorteo en vivo con ruleta, lista de participantes y exportación del acta a Word.</p>
+      <button type="button" class="btn btn-primary" id="btnAbrirSorteo">Abrir Ruleta de Sorteos</button>
+    </div>
+  </details>
+    </div>
+
+    <div class="card admin-grupo pf-cinta" style="--cinta:url(Im%C3%A1genes/Banners/Fankit/cinta-comunidad-ascensos.webp); margin-top:24px;">
+      <div class="eyebrow">Cambio de rango</div>
+
+      <!-- Panel del tercer tab (Cambio de Rango). -->
+      <div id="panelCambioRangoAccion">
+
+        <!-- Gemelo de «Torneo vigente» y «Sorteo vigente», pero para el par Ascenso/Descenso de Extra (PF286). -->
+        <details class="admin-subseccion" style="margin-bottom:14px;">
+          <summary><span class="cat-titulo">Cambio de rango vigente</span></summary>
+          <div class="admin-subseccion-body">
+            <p class="text-dim" style="font-size:13px; margin:0 0 14px;">Define qué par de Ascenso y Descenso usan los documentos de cambio de rango (cambios aplicados, calificados y no calificados) y los mínimos de G que se leen de él. Al guardar, los documentos se actualizan. «Ninguno» deja de actualizarlos hasta que fijes otro par. Al comenzar una temporada, el sistema crea un par nuevo y lo deja como vigente.</p>
+            <div class="field">
+              <label for="vigenteCRSelect">Par vigente</label>
+              <select id="vigenteCRSelect">
+                <option value="">Cargando…</option>
+              </select>
+            </div>
+            <button type="button" class="btn btn-primary" id="btnGuardarVigenteCR" style="margin-top:6px;">Guardar</button>
+            <div id="vigenteCRMsg" style="margin-top:8px;"></div>
+          </div>
+        </details>
+
+        <!-- Wizard de Cambio de Rango: Registrar o Editar corrida (sin tercer paso de "tipo" como Torneos). -->
+        <div id="crPaso1">
+          <div class="field">
+            <label for="crAccion">¿Qué quieres hacer?</label>
+            <select id="crAccion">
+              <option value="">Elige una opción…</option>
+              <option value="registrar">Registrar nueva corrida</option>
+              <option value="modificar">Editar corrida existente</option>
+              <!-- Tercera opción del wizard: "Ver propuestas" de una corrida ya existente, sin precargar el formulario completo. -->
+              <option value="ver">Ver propuestas de una corrida</option>
+              <!-- Cuarta opción: «Verificar» un cambio de rango ya aplicado, sin registrar, editar ni planificar (PF286 punto 11 (c)). -->
+              <option value="verificar">Verificar un cambio de rango aplicado</option>
+            </select>
+          </div>
+          <button type="button" class="btn btn-primary btn-block" id="btnCrPaso1" style="margin-top:6px;">Continuar</button>
+        </div>
+
+        <div id="crPaso2" style="display:none;">
+          <a href="#" id="crVolverPaso1" class="text-dim" style="font-size:13px; display:inline-block; margin-bottom:10px;">‹ Cambiar</a>
+
+          <!-- Solo visible en modo "modificar"; el <select> de corridas se puebla con _webCRListaListar(). -->
+          <div id="crSelectorParBox" style="display:none;">
+            <div class="field">
+              <label for="crSelectPar">¿Cuál corrida?</label>
+              <select id="crSelectPar">
+                <option value="">Elige una opción…</option>
+              </select>
+            </div>
+          </div>
+
+          <div id="crPaso2Msg" class="text-dim" style="font-size:13px; margin-top:10px;"></div>
+
+          <!-- Rama «verificar» (PF286 punto 11 (c)): compara las propuestas de la corrida más reciente con lo realmente aplicado en Historial_A/D. Marca «Realizado» las propuestas que el Directorio ya muestra cumplidas y luego compara. -->
+          <div id="crVerificarBox" style="display:none; margin-top:10px;">
+            <p class="text-dim" style="font-size:13px; margin:0 0 10px;">Compara las propuestas de una corrida de Historial_A/D con los cambios realmente aplicados y avisa si falta aplicar algo o si se aplicó algo que no estaba propuesto. Antes de comparar, marca «Realizado» en Historial_A/D las propuestas que el Directorio ya muestra cumplidas.</p>
+            <div class="field">
+              <label for="crVerificarPar">Corrida a verificar</label>
+              <select id="crVerificarPar"><option value="">La más reciente con propuestas</option></select>
+            </div>
+            <button type="button" class="btn btn-ghost" id="btnCrVerificar">↻ Volver a verificar</button>
+            <div id="crVerificarMsg" style="margin-top:10px;"></div>
+            <div id="crVerificarResultado" style="margin-top:10px;"></div>
+          </div>
+
+          <!-- Cambio de rango, Paso 3: campos comunes a Ascenso y Descenso (Fecha, Hora, Semanas, Organizador, Comentario). Historial en CHANGELOG.md. -->
+          <div id="crPaso3" style="display:none; margin-top:14px; padding-top:14px; border-top:1px solid var(--line);">
+            <!-- Botón para precargar la última corrida de Cambio de Rango ya registrada (equivalente al de Torneos/Sorteos), solo visible en modo Registrar. Usa webCRListaListar/webCRListaFilaPorId, que ya existen en el backend. Historial en CHANGELOG.md. -->
+            <div id="crPrecargarUltimoBox" style="display:none; margin-bottom:14px;">
+              <button type="button" class="btn btn-ghost btn-block" id="btnCrPrecargarUltimo">↻ Precargar datos de la última corrida registrada</button>
+            </div>
+
+            <!-- Fecha/hora de Cambio de Rango se muestran igual que en Torneos, aunque la fuente real sigue siendo ISO/24h. -->
+            <div class="field-row">
+              <div class="field">
+                <label for="crFechaTexto">Fecha</label>
+                <div class="campo-fecha-wrap">
+                  <input type="text" id="crFechaTexto" placeholder="dd/mm/aaaa" inputmode="numeric" maxlength="10" autocomplete="off">
+                  <input type="date" id="crFecha" class="campo-oculto-visual" tabindex="-1" aria-hidden="true">
+                  <button type="button" class="btn-calendario" id="btnCalendarioCR" title="Abrir calendario" aria-label="Abrir calendario">📅</button>
+                </div>
+              </div>
+              <div class="field">
+                <label for="crHoraHH">Hora</label>
+                <div class="campo-hora-wrap">
+                  <input type="text" id="crHoraHH" class="campo-hora-hh" placeholder="hh" inputmode="numeric" maxlength="2" autocomplete="off">
+                  <span class="campo-hora-separador">:</span>
+                  <input type="text" id="crHoraMM" aria-label="Minutos" class="campo-hora-mm" placeholder="mm" inputmode="numeric" maxlength="2" autocomplete="off">
+                  <select id="crHoraAmPm" aria-label="AM o PM">
+                    <option value="AM">AM</option>
+                    <option value="PM">PM</option>
+                  </select>
+                  <input type="time" id="crHora" class="campo-oculto-visual" tabindex="-1" aria-hidden="true">
+                </div>
+              </div>
+            </div>
+
+            <!-- Selector de semanas de Cambio de Rango por temporada + checkboxes en vez de texto libre; el formato que viaja al backend no cambió. -->
+            <div class="field" id="crSemanasWrap" style="margin-top:14px;">
+              <div class="cr-semanas-cabecera">
+                <label>¿Qué semanas se deben evaluar para esta corrida?</label>
+                <button type="button" class="btn btn-ghost btn-compacto" id="btnCrAgregarTemporada">+ Añadir temporada</button>
+              </div>
+              <div id="crTemporadasContainer"></div>
+            </div>
+
+            <!-- El organizador de Cambio de Rango es un dropdown de Nom_Multi, sin exponer esa palabra al usuario final. -->
+            <div class="field">
+              <label for="crOrganizadorSelect">¿Quién organizó esta corrida?</label>
+              <select id="crOrganizadorSelect">
+                <option value="">Yo (el admin de esta sesión)</option>
+                <option value="__otro__">Ninguna de las anteriores</option>
+              </select>
+              <input type="text" id="crOrganizadorManual" aria-label="Nombre de quien organizó la corrida" placeholder="Nombre de quien organizó" style="margin-top:8px; display:none;">
+            </div>
+            <div class="field">
+              <label for="crComentario">Comentario</label>
+              <textarea id="crComentario" rows="3" placeholder="Opcional -- cualquier nota sobre esta corrida"></textarea>
+            </div>
+
+            <!-- Paso 4: tabla de Trofeos/Ataques por clan y rol; "Min CR" se muestra como "Trofeos" al admin, y Descenso arranca oculto hasta terminar Ascenso. -->
+            <div class="cr-requisitos-bloque" id="crRequisitosAscenso">
+              <div class="cr-requisitos-header"><span class="cat-titulo">Requisitos de Ascenso</span></div>
               <div class="admin-subseccion-body">
-                <p class="text-dim" style="font-size:13px; margin:0 0 14px;">Define cuál sorteo usan los cálculos automáticos que no reciben un sorteo puntual elegido en su propio formulario. "Ninguno" = usar el más reciente por fecha (comportamiento de respaldo).</p>
+                <p class="text-dim" style="font-size:13px; margin:0 0 10px;">Medallas mínimas y ataques mínimos de guerra requeridos por clan y por rol (Miembro/Veterano/Colíder) para calificar en esta corrida.</p>
+                <!-- FIX (18-sep-2026, pedido usuario -- "ninguna de las
+                     tablas debe tener la barra nativa"): id agregado
+                     para que pintarGridCR() pueda llamar a
+                     activarBarraScrollTabla() sobre este wrap después
+                     de llenar el tbody. -->
+                <div id="crAscensoTablaWrap" style="overflow-x:auto;">
+                  <!-- FIX (B-8, 18-sep-2026): scope="col"/"colgroup" en
+                       esta tabla y las otras 3 de admin.html que no lo
+                       tenían (Descenso, coincidencias de infiltrados,
+                       propuestas de corrección de guerra). Son tablas
+                       estáticas sin ordenamiento, así que no aplica
+                       aria-sort aquí (eso ya está hecho donde sí hay
+                       columnas ordenables: roster y log de guerra). -->
+                  <table class="cr-grid-table">
+                    <thead>
+                      <tr><th scope="col" rowspan="2">Clan</th><th scope="colgroup" colspan="2">Miembro</th><th scope="colgroup" colspan="2">Veterano</th><th scope="colgroup" colspan="2">Colíder</th></tr>
+                      <tr><th scope="col">Medallas</th><th scope="col">Ataques</th><th scope="col">Medallas</th><th scope="col">Ataques</th><th scope="col">Medallas</th><th scope="col">Ataques</th></tr>
+                    </thead>
+                    <tbody id="crGridAscenso"></tbody>
+                  </table>
+                </div>
+
+                <!-- Cambio de rango, Paso 6: Barcos/Miembro activo/WhatsApp, un valor único por mitad del par (no por clan). Historial en CHANGELOG.md. -->
+                <h3 style="font-size:15px; color:var(--gold); margin:20px 0 4px;">Otros criterios</h3>
+                <p class="text-dim" style="font-size:13px; margin:0 0 10px;">Es el máximo permitido sobre la SUMA de ataques a barcos de todas las semanas evaluadas, no un promedio: el valor se compara tal cual, sin multiplicarlo por las semanas. Si no se desea permitir ningún ataque a barcos, selecciona 0.</p>
                 <div class="field">
-                  <label for="vigenteSorteoSelect">Sorteo vigente</label>
-                  <select id="vigenteSorteoSelect">
-                    <option value="">Cargando…</option>
-                  </select>
-                </div>
-                <button type="button" class="btn btn-primary" id="btnGuardarVigenteSorteo" style="margin-top:6px;">Guardar</button>
-                <div id="vigenteSorteoMsg" style="margin-top:8px;"></div>
-              </div>
-            </details>
-
-            <div id="sorteoPaso1">
-              <div class="field">
-                <label for="sorteoAccion">¿Qué quieres hacer?</label>
-                <select id="sorteoAccion">
-                  <option value="">Elige una opción…</option>
-                  <option value="planificar">Planificar sorteo</option>
-                  <option value="registrar">Registrar sorteo</option>
-                  <option value="modificar">Modificar sorteo</option>
-                </select>
-              </div>
-              <button type="button" class="btn btn-primary btn-block" id="btnSorteoPaso1" style="margin-top:6px;">Continuar</button>
-            </div>
-
-            <div id="sorteoPaso2" style="display:none; margin-top:14px;">
-              <a href="#" id="sorteoVolverPaso1" class="text-dim" style="font-size:13px; display:inline-block; margin-bottom:10px;">‹ Cambiar</a>
-              <div class="field">
-                <label for="sorteoTipo">¿Qué tipo de sorteo es?</label>
-                <select id="sorteoTipo">
-                  <option value="">Elige una opción…</option>
-                  <option value="principal">Sorteo principal</option>
-                  <option value="continuacion">Sorteo de continuación</option>
-                </select>
-              </div>
-              <button type="button" class="btn btn-primary btn-block" id="btnSorteoPaso2" style="margin-top:6px;">Continuar</button>
-            </div>
-
-            <div id="sorteoPaso3" style="display:none; margin-top:14px;">
-              <a href="#" id="sorteoVolverPaso2" class="text-dim" style="font-size:13px; display:inline-block; margin-bottom:10px;">‹ Cambiar</a>
-
-              <!-- Paso 3 de Sorteos: mismos 3 contenedores que Torneos, conectados de punta a punta a sus endpoints. -->
-              <!-- "Registrar sorteo" usa el mismo patrón que Torneos, sin selector de semanas, editor de premios ni link (Sorteos no tiene esos conceptos aquí). -->
-              <div id="camposRegistrarSorteo" style="display:none;">
-                <!-- Botón para precargar el último sorteo registrado, gemelo del de Torneos; mismo endpoint webAdminUltimoRegistro (categoria:'Sorteo'). -->
-                <button type="button" class="btn btn-ghost btn-block" id="btnPrecargarUltimoSorteo" style="margin-bottom:14px;">↻ Precargar datos del último sorteo registrado</button>
-
-                <div class="field-row" id="filaFechaHoraSorteoReg">
-                  <div class="field">
-                    <label for="sFechaTexto">Fecha</label>
-                    <div class="campo-fecha-wrap">
-                      <input type="text" id="sFechaTexto" placeholder="dd/mm/aaaa" inputmode="numeric" maxlength="10" autocomplete="off">
-                      <input type="date" id="sFecha" class="campo-oculto-visual" tabindex="-1" aria-hidden="true">
-                      <button type="button" class="btn-calendario" id="btnCalendarioSorteoReg" title="Abrir calendario" aria-label="Abrir calendario">📅</button>
-                    </div>
-                  </div>
-                  <div class="field">
-                    <label for="sHoraHH">Hora</label>
-                    <div class="campo-hora-wrap">
-                      <input type="text" id="sHoraHH" class="campo-hora-hh" placeholder="hh" inputmode="numeric" maxlength="2" autocomplete="off">
-                      <span class="campo-hora-separador">:</span>
-                      <input type="text" id="sHoraMM" aria-label="Minutos" class="campo-hora-mm" placeholder="mm" inputmode="numeric" maxlength="2" autocomplete="off">
-                      <select id="sHoraAmPm" aria-label="AM o PM">
-                        <option value="AM">AM</option>
-                        <option value="PM">PM</option>
-                      </select>
-                      <input type="time" id="sHora" class="campo-oculto-visual" tabindex="-1" aria-hidden="true">
-                    </div>
-                  </div>
-                </div>
-
-                <div class="field" style="margin-top:14px;">
-                  <label for="sAutorSelect">¿Quién organizó el sorteo?</label>
-                  <select id="sAutorSelect">
-                    <option value="">Lo organicé yo (el admin de esta sesión)</option>
-                    <option value="__otro__">Ninguna de las anteriores</option>
-                  </select>
-                  <input type="text" id="sAutorManual" aria-label="Nombre de quien organizó el sorteo" placeholder="Nombre de quien organizó" style="margin-top:8px; display:none;">
-                </div>
-
-                <div class="field" id="sCuentaOrgBox" style="display:none; margin-top:10px;">
-                  <label for="sCuentaOrgSelect">¿Con cuál cuenta organizó?</label>
-                  <select id="sCuentaOrgSelect">
-                    <option value="">Elige la cuenta…</option>
-                  </select>
-                  <div id="sCuentaOrgInfo" class="text-dim" style="font-size:13px; margin-top:6px;"></div>
-                </div>
-
-                <!-- El selector de semanas de Sorteos sí es necesario (evalúa Min_S); reutiliza las mismas funciones que Torneos con contenedor propio. -->
-                <div class="field" id="semanaSelectorWrapSorteoReg" style="margin-top:14px;">
-                  <label>¿Qué semanas se deben evaluar para este sorteo?</label>
-                  <p class="text-dim" style="font-size:13px; margin:0 0 8px;">Se marcan las 2 más recientes por defecto — usualmente son las que definen si un jugador puede participar.</p>
-                  <div class="semana-selector" id="semanasSelectorSorteoReg"></div>
-                </div>
-              </div>
-              <div id="camposModificarSorteo" style="display:none;">
-                <!-- "Modificar sorteo" se puebla igual que Torneos, sin opción "Ingresar link" (Sorteos no tiene ese concepto). -->
-                <div class="field" style="margin-bottom:12px;">
-                  <label for="sSelectHoy">Sorteo</label>
-                  <select id="sSelectHoy"><option value="">Cargando sorteos de hoy…</option></select>
-                </div>
-                <!-- PF107 (18-oct-2026): igual que en «Modificar torneo», primero se elige el sorteo y recién después su tipo (principal o continuación), ya precargado con el que tiene y editable. Fuente única: #sorteoTipo (lo sincroniza aplicarTipoModificarSorteo()). -->
-                <div class="field" id="sModTipoBox" style="display:none; margin-bottom:12px;">
-                  <label for="sorteoTipoMod">¿Qué tipo de sorteo es?</label>
-                  <select id="sorteoTipoMod">
-                    <option value="principal">Sorteo principal</option>
-                    <option value="continuacion">Sorteo de continuación</option>
-                  </select>
-                </div>
-                <div class="field-row" id="filaFechaHoraSorteoMod">
-                  <div class="field">
-                    <label for="sFechaModTexto">Nueva fecha</label>
-                    <div class="campo-fecha-wrap">
-                      <input type="text" id="sFechaModTexto" placeholder="dd/mm/aaaa" inputmode="numeric" maxlength="10" autocomplete="off">
-                      <input type="date" id="sFechaMod" class="campo-oculto-visual" tabindex="-1" aria-hidden="true">
-                      <button type="button" class="btn-calendario" id="btnCalendarioSorteoMod" title="Abrir calendario" aria-label="Abrir calendario">📅</button>
-                    </div>
-                  </div>
-                  <div class="field">
-                    <label for="sHoraModHH">Nueva hora</label>
-                    <div class="campo-hora-wrap">
-                      <input type="text" id="sHoraModHH" class="campo-hora-hh" placeholder="hh" inputmode="numeric" maxlength="2" autocomplete="off">
-                      <span class="campo-hora-separador">:</span>
-                      <input type="text" id="sHoraModMM" aria-label="Minutos" class="campo-hora-mm" placeholder="mm" inputmode="numeric" maxlength="2" autocomplete="off">
-                      <select id="sHoraModAmPm" aria-label="AM o PM">
-                        <option value="AM">AM</option>
-                        <option value="PM">PM</option>
-                      </select>
-                      <input type="time" id="sHoraMod" class="campo-oculto-visual" tabindex="-1" aria-hidden="true">
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Mismo patrón que Torneos: "Sin cambios" en vez de "Lo organicé yo" porque se edita un sorteo existente. -->
-                <div class="field" style="margin-top:14px;">
-                  <label for="sAutorSelectMod">¿Quién organizó el sorteo?</label>
-                  <select id="sAutorSelectMod">
-                    <option value="">Sin cambios (mantener autor actual)</option>
-                    <option value="__otro__">Ninguna de las anteriores</option>
-                  </select>
-                  <input type="text" id="sAutorManualMod" aria-label="Nombre de quien organizó el sorteo" placeholder="Nombre de quien organizó" style="margin-top:8px; display:none;">
-                </div>
-
-                <div class="field" id="sCuentaOrgBoxMod" style="display:none; margin-top:10px;">
-                  <label for="sCuentaOrgSelectMod">¿Con cuál cuenta organizó?</label>
-                  <select id="sCuentaOrgSelectMod">
-                    <option value="">Elige la cuenta…</option>
-                  </select>
-                  <div id="sCuentaOrgInfoMod" class="text-dim" style="font-size:13px; margin-top:6px;"></div>
-                </div>
-
-                <!-- Editor de premios de "Modificar sorteo", reutiliza las mismas funciones que Torneos; ya se puebla con los premios del sorteo elegido. -->
-                <div style="margin-top:14px; padding-top:14px; border-top:1px solid var(--line);">
-                  <label style="display:block; margin-bottom:4px;">Premios</label>
-                  <p class="text-dim" style="font-size:13px; margin:0 0 10px;">Se muestran los premios ya registrados para este sorteo (si todavía no tiene, no se muestra ninguno). Déjalos tal cual si no quieres cambiarlos, o edítalos — usualmente son 3, pero puedes agregar más o quitar los que no necesites. Si quitas todos, se conservan los ya registrados.</p>
-                  <div id="premiosEditorSorteoMod"></div>
-                  <button type="button" class="btn btn-ghost btn-block" id="btnAgregarPremioSorteoMod" style="margin-top:10px;">+ Agregar premio</button>
-                </div>
-
-                <!-- Selector de semanas de "Modificar sorteo", mismo patrón
-                     que Torneos (#semanasSelectorMod). -->
-                <div class="field" id="semanaSelectorWrapSorteoMod" style="margin-top:14px;">
-                  <label>¿Qué semanas se deben evaluar para este sorteo?</label>
-                  <p class="text-dim" style="font-size:13px; margin:0 0 8px;">Se marcan las 2 más recientes por defecto — usualmente son las que definen si un jugador puede participar.</p>
-                  <div class="semana-selector" id="semanasSelectorSorteoMod"></div>
-                </div>
-              </div>
-              <div id="camposPlanificarSorteo" style="display:none;">
-                <!-- "Planificar sorteo": fecha/hora + autor + cuenta + premios, mismo patrón que Torneos. -->
-                <div class="field-row" id="filaFechaHoraSorteoPlan">
-                  <div class="field">
-                    <label for="sFechaPlanTexto">Fecha</label>
-                    <div class="campo-fecha-wrap">
-                      <input type="text" id="sFechaPlanTexto" placeholder="dd/mm/aaaa" inputmode="numeric" maxlength="10" autocomplete="off">
-                      <input type="date" id="sFechaPlan" class="campo-oculto-visual" tabindex="-1" aria-hidden="true">
-                      <button type="button" class="btn-calendario" id="btnCalendarioSorteoPlan" title="Abrir calendario" aria-label="Abrir calendario">📅</button>
-                    </div>
-                  </div>
-                  <div class="field">
-                    <label for="sHoraPlanHH">Hora</label>
-                    <div class="campo-hora-wrap">
-                      <input type="text" id="sHoraPlanHH" class="campo-hora-hh" placeholder="hh" inputmode="numeric" maxlength="2" autocomplete="off">
-                      <span class="campo-hora-separador">:</span>
-                      <input type="text" id="sHoraPlanMM" aria-label="Minutos" class="campo-hora-mm" placeholder="mm" inputmode="numeric" maxlength="2" autocomplete="off">
-                      <select id="sHoraPlanAmPm" aria-label="AM o PM">
-                        <option value="AM">AM</option>
-                        <option value="PM">PM</option>
-                      </select>
-                      <input type="time" id="sHoraPlan" class="campo-oculto-visual" tabindex="-1" aria-hidden="true">
-                    </div>
-                  </div>
-                </div>
-
-                <div class="field" style="margin-top:14px;">
-                  <label for="sAutorSelectPlan">¿Quién organiza el sorteo?</label>
-                  <select id="sAutorSelectPlan">
-                    <option value="">Lo organizo yo (el admin de esta sesión)</option>
-                    <option value="__otro__">Ninguna de las anteriores</option>
-                  </select>
-                  <input type="text" id="sAutorManualPlan" aria-label="Nombre de quien organiza el sorteo" placeholder="Nombre de quien organiza" style="margin-top:8px; display:none;">
-                </div>
-
-                <div class="field" id="sCuentaOrgBoxPlan" style="display:none; margin-top:10px;">
-                  <label for="sCuentaOrgSelectPlan">¿Con cuál cuenta organiza?</label>
-                  <select id="sCuentaOrgSelectPlan">
-                    <option value="">Elige la cuenta…</option>
-                  </select>
-                  <div id="sCuentaOrgInfoPlan" class="text-dim" style="font-size:13px; margin-top:6px;"></div>
-                </div>
-
-                <!-- Selector de semanas real, mismo patrón que Torneos. -->
-                <div class="field" id="semanaSelectorWrapSorteoPlan" style="margin-top:14px;">
-                  <label>¿Qué semanas se deben evaluar para este sorteo?</label>
-                  <p class="text-dim" style="font-size:13px; margin:0 0 8px;">Se marcan las 2 más recientes por defecto — usualmente son las que definen si un jugador puede participar.</p>
-                  <div class="semana-selector" id="semanasSelectorSorteoPlan"></div>
-                </div>
-
-                <!-- Editor de premios de "Planificar sorteo", mismo mecanismo que el de Modificar sorteo. -->
-                <div style="margin-top:14px; padding-top:14px; border-top:1px solid var(--line);">
-                  <label style="display:block; margin-bottom:4px;">Premios</label>
-                  <p class="text-dim" style="font-size:13px; margin:0 0 10px;">Usualmente son 3, pero puedes agregar más o quitar los que no necesites.</p>
-                  <div id="premiosEditorSorteoPlan"></div>
-                  <button type="button" class="btn btn-ghost btn-block" id="btnAgregarPremioSorteoPlan" style="margin-top:10px;">+ Agregar premio</button>
-                </div>
-              </div>
-
-              <!-- Requisitos para participar del sorteo (Delta + "Torneos jugados" C1-C4), reutiliza los mismos helpers que Torneos con contenedores propios de Sorteos; conectado con el backend. Historial en CHANGELOG.md. -->
-              <div id="requisitosSorteoBox" style="margin-top:14px; padding-top:14px; border-top:1px solid var(--line);">
-                <h3 style="font-size:15px; color:var(--gold); margin:0 0 4px;">Requisitos para participar en sorteos</h3>
-                <p class="text-dim" style="font-size:13px; margin:0 0 4px;">Requerimiento mínimo de medallas de guerra para mantenerse en cada clan.</p>
-                <div id="reqTrofeosGuerraGridSorteo"></div>
-
-                <h3 style="font-size:15px; color:var(--gold); margin:20px 0 4px;">Ataques mínimos por semana por clan</h3>
-                <p class="text-dim" style="font-size:13px; margin:0 0 4px;">Cantidad mínima de ataques de guerra por semana requerida en cada clan.</p>
-                <div id="reqAtaquesSemanaGridSorteo"></div>
-
-                <h3 style="font-size:15px; color:var(--gold); margin:20px 0 4px;">Ataques a barcos permitidos por semana</h3>
-                <p class="text-dim" style="font-size:13px; margin:0 0 4px;">Es un promedio semanal, no la cantidad acumulada. Si no se desea excluir a nadie por ataques a barcos, selecciona 16. Si no se desea permitir ningún ataque a barcos, selecciona 0.</p>
-                <div class="field">
-                  <label for="reqAtaquesBarcosSorteo">Ataques a barcos permitidos por semana</label>
-                  <select id="reqAtaquesBarcosSorteo">
+                  <label for="crBarcosAscenso">Ataques a barcos permitidos por semana</label>
+                  <select id="crBarcosAscenso">
                     <option value="0">0</option>
                     <option value="1">1</option>
                     <option value="2">2</option>
@@ -1191,434 +1496,121 @@
                     <option value="16" selected>16</option>
                   </select>
                 </div>
-
-                <h3 style="font-size:15px; color:var(--gold); margin:20px 0 4px;">Torneos jugados mínimos por clan</h3>
-                <p class="text-dim" style="font-size:13px; margin:0 0 4px;">Cantidad mínima de torneos jugados requerida en cada clan — este requisito es exclusivo de Sorteos, Torneos no lo tiene. <strong>Es obligatorio llenar los 4 clanes: si no quieres considerar los torneos en este sorteo, escribe 0.</strong></p>
-                <div id="reqTorneosGridSorteo"></div>
-
-                <h3 style="font-size:15px; color:var(--gold); margin:20px 0 4px;">Delta</h3>
-                <p class="text-dim" style="font-size:13px; margin:0 0 8px;">Escalón de medallas extra que suma un ticket adicional en la ruleta — un solo valor para los 4 clanes (no hay Delta por clan, ver sección 5.1.1 del consolidado).</p>
-                <div class="field">
-                  <label for="reqDeltaSorteo">Delta</label>
-                  <input type="text" id="reqDeltaSorteo" inputmode="numeric" placeholder="Ejm: 100">
-                </div>
-
-                <h3 style="font-size:15px; color:var(--gold); margin:20px 0 4px;">Otros criterios</h3>
-                <div class="field">
-                  <label for="reqMiembroActivoSorteo">Miembro activo</label>
-                  <select id="reqMiembroActivoSorteo">
+                <div class="field" style="margin-top:10px;">
+                  <label for="crMiembroActivoAscenso">Miembro activo</label>
+                  <select id="crMiembroActivoAscenso">
                     <option value="Sí" selected>Sí</option>
                     <option value="No">No</option>
                   </select>
                 </div>
                 <div class="field" style="margin-top:10px;">
-                  <label for="reqReaccionSorteo">Reacción</label>
-                  <select id="reqReaccionSorteo">
+                  <label for="crWhatsappAscenso">Presencia en el grupo de WhatsApp</label>
+                  <select id="crWhatsappAscenso">
                     <option value="Sí">Sí</option>
                     <option value="No" selected>No</option>
                   </select>
                 </div>
+
+                <!-- Botón "Continuar" al terminar Ascenso oculta esos valores y muestra el panel de Descenso. -->
+                <button type="button" class="btn btn-primary btn-block" id="btnCrContinuarAscenso" style="margin-top:16px;">Continuar</button>
+              </div>
+            </div>
+            <div class="cr-requisitos-bloque" id="crRequisitosDescenso" style="display:none;">
+              <div class="cr-requisitos-header"><span class="cat-titulo">Requisitos de Descenso</span></div>
+              <div class="admin-subseccion-body">
+                <a href="#" id="crVolverAscenso" class="text-dim" style="font-size:13px; display:inline-block; margin-bottom:10px;">‹ Volver a Requisitos de Ascenso</a>
+                <p class="text-dim" style="font-size:13px; margin:0 0 10px;">Medallas mínimas y ataques mínimos de guerra requeridos por clan y por rol (Miembro/Veterano/Colíder) para calificar en esta corrida.</p>
+                <div id="crDescensoTablaWrap" style="overflow-x:auto;">
+                  <table class="cr-grid-table">
+                    <thead>
+                      <tr><th scope="col" rowspan="2">Clan</th><th scope="colgroup" colspan="2">Miembro</th><th scope="colgroup" colspan="2">Veterano</th><th scope="colgroup" colspan="2">Colíder</th></tr>
+                      <tr><th scope="col">Medallas</th><th scope="col">Ataques</th><th scope="col">Medallas</th><th scope="col">Ataques</th><th scope="col">Medallas</th><th scope="col">Ataques</th></tr>
+                    </thead>
+                    <tbody id="crGridDescenso"></tbody>
+                  </table>
+                </div>
+
+                <!-- Mismos 3 campos, mitad Descenso -- ver el comentario
+                     grande junto a los de Ascenso arriba. -->
+                <h3 style="font-size:15px; color:var(--gold); margin:20px 0 4px;">Otros criterios</h3>
+                <p class="text-dim" style="font-size:13px; margin:0 0 10px;">Es el máximo permitido sobre la SUMA de ataques a barcos de todas las semanas evaluadas, no un promedio: el valor se compara tal cual, sin multiplicarlo por las semanas. Si no se desea permitir ningún ataque a barcos, selecciona 0.</p>
+                <div class="field">
+                  <label for="crBarcosDescenso">Ataques a barcos permitidos por semana</label>
+                  <select id="crBarcosDescenso">
+                    <option value="0">0</option>
+                    <option value="1">1</option>
+                    <option value="2">2</option>
+                    <option value="3">3</option>
+                    <option value="4">4</option>
+                    <option value="5">5</option>
+                    <option value="6">6</option>
+                    <option value="7">7</option>
+                    <option value="8">8</option>
+                    <option value="9">9</option>
+                    <option value="10">10</option>
+                    <option value="11">11</option>
+                    <option value="12">12</option>
+                    <option value="13">13</option>
+                    <option value="14">14</option>
+                    <option value="15">15</option>
+                    <option value="16" selected>16</option>
+                  </select>
+                </div>
                 <div class="field" style="margin-top:10px;">
-                  <label for="reqPresenciaWhatsappSorteo">Presencia en el grupo de WhatsApp</label>
-                  <select id="reqPresenciaWhatsappSorteo">
+                  <label for="crMiembroActivoDescenso">Miembro activo</label>
+                  <select id="crMiembroActivoDescenso">
                     <option value="Sí" selected>Sí</option>
                     <option value="No">No</option>
                   </select>
                 </div>
-              </div>
-
-              <!-- Equivalente a #camposTorneoPrincipal pero resuelto por ID en vez de por Tag (Sorteos no usa Tag_Tor). -->
-              <div id="camposSorteoPrincipal" style="display:none;">
-                <div class="text-dim" style="font-size:13px; margin-bottom:8px;">¿Cuál es el sorteo principal?</div>
-                <div id="sorteoPrincipalLista"></div>
-                <div id="sorteoPrincipalElegidoMsg"></div>
-              </div>
-
-              <!-- Cuadro de Comentario, un solo nodo compartido entre las 3 ramas de Sorteos; ya conectado al payload. -->
-              <div id="comentarioSorteoBox" style="margin-top:14px; padding-top:14px; border-top:1px solid var(--line);">
-                <div class="field">
-                  <label for="sComentario">Comentario</label>
-                  <textarea id="sComentario" rows="3" placeholder="Opcional -- cualquier nota sobre este sorteo"></textarea>
-                </div>
-              </div>
-
-              <!-- Los 3 botones de acción de Sorteos, mismo patrón que Torneos. -->
-              <button type="button" class="btn btn-primary btn-block" id="btnRegistrarSorteo" style="margin-top:14px; display:none;">Registrar sorteo</button>
-              <button type="button" class="btn btn-primary btn-block" id="btnModificarSorteo" style="margin-top:14px; display:none;">Guardar cambios</button>
-              <button type="button" class="btn btn-primary btn-block" id="btnPlanificarSorteo" style="margin-top:14px; display:none;">Planificar sorteo</button>
-              <div id="registrarSorteoMsg"></div>
-              <div id="modificarSorteoMsg"></div>
-              <div id="planificarSorteoMsg"></div>
-            </div>
-
-
-          </div>
-
-          <!-- Panel del tercer tab (Cambio de Rango). -->
-          <div id="panelCambioRangoAccion" style="display:none;">
-
-            <!-- Gemelo de «Torneo vigente» y «Sorteo vigente», pero para el par Ascenso/Descenso de Extra (PF286). -->
-            <details class="admin-subseccion" style="margin-bottom:14px;">
-              <summary><span class="cat-titulo">Cambio de rango vigente</span></summary>
-              <div class="admin-subseccion-body">
-                <p class="text-dim" style="font-size:13px; margin:0 0 14px;">Define qué par de Ascenso y Descenso usan los documentos de cambio de rango (cambios aplicados, calificados y no calificados) y los mínimos de G que se leen de él. Al guardar, los documentos se actualizan. «Ninguno» deja de actualizarlos hasta que fijes otro par. Al comenzar una temporada, el sistema crea un par nuevo y lo deja como vigente.</p>
-                <div class="field">
-                  <label for="vigenteCRSelect">Par vigente</label>
-                  <select id="vigenteCRSelect">
-                    <option value="">Cargando…</option>
-                  </select>
-                </div>
-                <button type="button" class="btn btn-primary" id="btnGuardarVigenteCR" style="margin-top:6px;">Guardar</button>
-                <div id="vigenteCRMsg" style="margin-top:8px;"></div>
-              </div>
-            </details>
-
-            <!-- Wizard de Cambio de Rango: Registrar o Editar corrida (sin tercer paso de "tipo" como Torneos). -->
-            <div id="crPaso1">
-              <div class="field">
-                <label for="crAccion">¿Qué quieres hacer?</label>
-                <select id="crAccion">
-                  <option value="">Elige una opción…</option>
-                  <option value="registrar">Registrar nueva corrida</option>
-                  <option value="modificar">Editar corrida existente</option>
-                  <!-- Tercera opción del wizard: "Ver propuestas" de una corrida ya existente, sin precargar el formulario completo. -->
-                  <option value="ver">Ver propuestas de una corrida</option>
-                  <!-- Cuarta opción: «Verificar» un cambio de rango ya aplicado, sin registrar, editar ni planificar (PF286 punto 11 (c)). -->
-                  <option value="verificar">Verificar un cambio de rango aplicado</option>
-                </select>
-              </div>
-              <button type="button" class="btn btn-primary btn-block" id="btnCrPaso1" style="margin-top:6px;">Continuar</button>
-            </div>
-
-            <div id="crPaso2" style="display:none;">
-              <a href="#" id="crVolverPaso1" class="text-dim" style="font-size:13px; display:inline-block; margin-bottom:10px;">‹ Cambiar</a>
-
-              <!-- Solo visible en modo "modificar"; el <select> de corridas se puebla con _webCRListaListar(). -->
-              <div id="crSelectorParBox" style="display:none;">
-                <div class="field">
-                  <label for="crSelectPar">¿Cuál corrida?</label>
-                  <select id="crSelectPar">
-                    <option value="">Elige una opción…</option>
+                <div class="field" style="margin-top:10px;">
+                  <label for="crWhatsappDescenso">Presencia en el grupo de WhatsApp</label>
+                  <select id="crWhatsappDescenso">
+                    <option value="Sí">Sí</option>
+                    <option value="No" selected>No</option>
                   </select>
                 </div>
               </div>
-
-              <div id="crPaso2Msg" class="text-dim" style="font-size:13px; margin-top:10px;"></div>
-
-              <!-- Rama «verificar» (PF286 punto 11 (c)): compara las propuestas de la corrida más reciente con lo realmente aplicado en Historial_A/D. Marca «Realizado» las propuestas que el Directorio ya muestra cumplidas y luego compara. -->
-              <div id="crVerificarBox" style="display:none; margin-top:10px;">
-                <p class="text-dim" style="font-size:13px; margin:0 0 10px;">Compara las propuestas de una corrida de Historial_A/D con los cambios realmente aplicados y avisa si falta aplicar algo o si se aplicó algo que no estaba propuesto. Antes de comparar, marca «Realizado» en Historial_A/D las propuestas que el Directorio ya muestra cumplidas.</p>
-                <div class="field">
-                  <label for="crVerificarPar">Corrida a verificar</label>
-                  <select id="crVerificarPar"><option value="">La más reciente con propuestas</option></select>
-                </div>
-                <button type="button" class="btn btn-ghost" id="btnCrVerificar">↻ Volver a verificar</button>
-                <div id="crVerificarMsg" style="margin-top:10px;"></div>
-                <div id="crVerificarResultado" style="margin-top:10px;"></div>
-              </div>
-
-              <!-- Cambio de rango, Paso 3: campos comunes a Ascenso y Descenso (Fecha, Hora, Semanas, Organizador, Comentario). Historial en CHANGELOG.md. -->
-              <div id="crPaso3" style="display:none; margin-top:14px; padding-top:14px; border-top:1px solid var(--line);">
-                <!-- Botón para precargar la última corrida de Cambio de Rango ya registrada (equivalente al de Torneos/Sorteos), solo visible en modo Registrar. Usa webCRListaListar/webCRListaFilaPorId, que ya existen en el backend. Historial en CHANGELOG.md. -->
-                <div id="crPrecargarUltimoBox" style="display:none; margin-bottom:14px;">
-                  <button type="button" class="btn btn-ghost btn-block" id="btnCrPrecargarUltimo">↻ Precargar datos de la última corrida registrada</button>
-                </div>
-
-                <!-- Fecha/hora de Cambio de Rango se muestran igual que en Torneos, aunque la fuente real sigue siendo ISO/24h. -->
-                <div class="field-row">
-                  <div class="field">
-                    <label for="crFechaTexto">Fecha</label>
-                    <div class="campo-fecha-wrap">
-                      <input type="text" id="crFechaTexto" placeholder="dd/mm/aaaa" inputmode="numeric" maxlength="10" autocomplete="off">
-                      <input type="date" id="crFecha" class="campo-oculto-visual" tabindex="-1" aria-hidden="true">
-                      <button type="button" class="btn-calendario" id="btnCalendarioCR" title="Abrir calendario" aria-label="Abrir calendario">📅</button>
-                    </div>
-                  </div>
-                  <div class="field">
-                    <label for="crHoraHH">Hora</label>
-                    <div class="campo-hora-wrap">
-                      <input type="text" id="crHoraHH" class="campo-hora-hh" placeholder="hh" inputmode="numeric" maxlength="2" autocomplete="off">
-                      <span class="campo-hora-separador">:</span>
-                      <input type="text" id="crHoraMM" aria-label="Minutos" class="campo-hora-mm" placeholder="mm" inputmode="numeric" maxlength="2" autocomplete="off">
-                      <select id="crHoraAmPm" aria-label="AM o PM">
-                        <option value="AM">AM</option>
-                        <option value="PM">PM</option>
-                      </select>
-                      <input type="time" id="crHora" class="campo-oculto-visual" tabindex="-1" aria-hidden="true">
-                    </div>
-                  </div>
-                </div>
-
-                <!-- Selector de semanas de Cambio de Rango por temporada + checkboxes en vez de texto libre; el formato que viaja al backend no cambió. -->
-                <div class="field" id="crSemanasWrap" style="margin-top:14px;">
-                  <div class="cr-semanas-cabecera">
-                    <label>¿Qué semanas se deben evaluar para esta corrida?</label>
-                    <button type="button" class="btn btn-ghost btn-compacto" id="btnCrAgregarTemporada">+ Añadir temporada</button>
-                  </div>
-                  <div id="crTemporadasContainer"></div>
-                </div>
-
-                <!-- El organizador de Cambio de Rango es un dropdown de Nom_Multi, sin exponer esa palabra al usuario final. -->
-                <div class="field">
-                  <label for="crOrganizadorSelect">¿Quién organizó esta corrida?</label>
-                  <select id="crOrganizadorSelect">
-                    <option value="">Yo (el admin de esta sesión)</option>
-                    <option value="__otro__">Ninguna de las anteriores</option>
-                  </select>
-                  <input type="text" id="crOrganizadorManual" aria-label="Nombre de quien organizó la corrida" placeholder="Nombre de quien organizó" style="margin-top:8px; display:none;">
-                </div>
-                <div class="field">
-                  <label for="crComentario">Comentario</label>
-                  <textarea id="crComentario" rows="3" placeholder="Opcional -- cualquier nota sobre esta corrida"></textarea>
-                </div>
-
-                <!-- Paso 4: tabla de Trofeos/Ataques por clan y rol; "Min CR" se muestra como "Trofeos" al admin, y Descenso arranca oculto hasta terminar Ascenso. -->
-                <div class="cr-requisitos-bloque" id="crRequisitosAscenso">
-                  <div class="cr-requisitos-header"><span class="cat-titulo">Requisitos de Ascenso</span></div>
-                  <div class="admin-subseccion-body">
-                    <p class="text-dim" style="font-size:13px; margin:0 0 10px;">Medallas mínimas y ataques mínimos de guerra requeridos por clan y por rol (Miembro/Veterano/Colíder) para calificar en esta corrida.</p>
-                    <!-- FIX (18-sep-2026, pedido usuario -- "ninguna de las
-                         tablas debe tener la barra nativa"): id agregado
-                         para que pintarGridCR() pueda llamar a
-                         activarBarraScrollTabla() sobre este wrap después
-                         de llenar el tbody. -->
-                    <div id="crAscensoTablaWrap" style="overflow-x:auto;">
-                      <!-- FIX (B-8, 18-sep-2026): scope="col"/"colgroup" en
-                           esta tabla y las otras 3 de admin.html que no lo
-                           tenían (Descenso, coincidencias de infiltrados,
-                           propuestas de corrección de guerra). Son tablas
-                           estáticas sin ordenamiento, así que no aplica
-                           aria-sort aquí (eso ya está hecho donde sí hay
-                           columnas ordenables: roster y log de guerra). -->
-                      <table class="cr-grid-table">
-                        <thead>
-                          <tr><th scope="col" rowspan="2">Clan</th><th scope="colgroup" colspan="2">Miembro</th><th scope="colgroup" colspan="2">Veterano</th><th scope="colgroup" colspan="2">Colíder</th></tr>
-                          <tr><th scope="col">Medallas</th><th scope="col">Ataques</th><th scope="col">Medallas</th><th scope="col">Ataques</th><th scope="col">Medallas</th><th scope="col">Ataques</th></tr>
-                        </thead>
-                        <tbody id="crGridAscenso"></tbody>
-                      </table>
-                    </div>
-
-                    <!-- Cambio de rango, Paso 6: Barcos/Miembro activo/WhatsApp, un valor único por mitad del par (no por clan). Historial en CHANGELOG.md. -->
-                    <h3 style="font-size:15px; color:var(--gold); margin:20px 0 4px;">Otros criterios</h3>
-                    <p class="text-dim" style="font-size:13px; margin:0 0 10px;">Es el máximo permitido sobre la SUMA de ataques a barcos de todas las semanas evaluadas, no un promedio: el valor se compara tal cual, sin multiplicarlo por las semanas. Si no se desea permitir ningún ataque a barcos, selecciona 0.</p>
-                    <div class="field">
-                      <label for="crBarcosAscenso">Ataques a barcos permitidos por semana</label>
-                      <select id="crBarcosAscenso">
-                        <option value="0">0</option>
-                        <option value="1">1</option>
-                        <option value="2">2</option>
-                        <option value="3">3</option>
-                        <option value="4">4</option>
-                        <option value="5">5</option>
-                        <option value="6">6</option>
-                        <option value="7">7</option>
-                        <option value="8">8</option>
-                        <option value="9">9</option>
-                        <option value="10">10</option>
-                        <option value="11">11</option>
-                        <option value="12">12</option>
-                        <option value="13">13</option>
-                        <option value="14">14</option>
-                        <option value="15">15</option>
-                        <option value="16" selected>16</option>
-                      </select>
-                    </div>
-                    <div class="field" style="margin-top:10px;">
-                      <label for="crMiembroActivoAscenso">Miembro activo</label>
-                      <select id="crMiembroActivoAscenso">
-                        <option value="Sí" selected>Sí</option>
-                        <option value="No">No</option>
-                      </select>
-                    </div>
-                    <div class="field" style="margin-top:10px;">
-                      <label for="crWhatsappAscenso">Presencia en el grupo de WhatsApp</label>
-                      <select id="crWhatsappAscenso">
-                        <option value="Sí">Sí</option>
-                        <option value="No" selected>No</option>
-                      </select>
-                    </div>
-
-                    <!-- Botón "Continuar" al terminar Ascenso oculta esos valores y muestra el panel de Descenso. -->
-                    <button type="button" class="btn btn-primary btn-block" id="btnCrContinuarAscenso" style="margin-top:16px;">Continuar</button>
-                  </div>
-                </div>
-                <div class="cr-requisitos-bloque" id="crRequisitosDescenso" style="display:none;">
-                  <div class="cr-requisitos-header"><span class="cat-titulo">Requisitos de Descenso</span></div>
-                  <div class="admin-subseccion-body">
-                    <a href="#" id="crVolverAscenso" class="text-dim" style="font-size:13px; display:inline-block; margin-bottom:10px;">‹ Volver a Requisitos de Ascenso</a>
-                    <p class="text-dim" style="font-size:13px; margin:0 0 10px;">Medallas mínimas y ataques mínimos de guerra requeridos por clan y por rol (Miembro/Veterano/Colíder) para calificar en esta corrida.</p>
-                    <div id="crDescensoTablaWrap" style="overflow-x:auto;">
-                      <table class="cr-grid-table">
-                        <thead>
-                          <tr><th scope="col" rowspan="2">Clan</th><th scope="colgroup" colspan="2">Miembro</th><th scope="colgroup" colspan="2">Veterano</th><th scope="colgroup" colspan="2">Colíder</th></tr>
-                          <tr><th scope="col">Medallas</th><th scope="col">Ataques</th><th scope="col">Medallas</th><th scope="col">Ataques</th><th scope="col">Medallas</th><th scope="col">Ataques</th></tr>
-                        </thead>
-                        <tbody id="crGridDescenso"></tbody>
-                      </table>
-                    </div>
-
-                    <!-- Mismos 3 campos, mitad Descenso -- ver el comentario
-                         grande junto a los de Ascenso arriba. -->
-                    <h3 style="font-size:15px; color:var(--gold); margin:20px 0 4px;">Otros criterios</h3>
-                    <p class="text-dim" style="font-size:13px; margin:0 0 10px;">Es el máximo permitido sobre la SUMA de ataques a barcos de todas las semanas evaluadas, no un promedio: el valor se compara tal cual, sin multiplicarlo por las semanas. Si no se desea permitir ningún ataque a barcos, selecciona 0.</p>
-                    <div class="field">
-                      <label for="crBarcosDescenso">Ataques a barcos permitidos por semana</label>
-                      <select id="crBarcosDescenso">
-                        <option value="0">0</option>
-                        <option value="1">1</option>
-                        <option value="2">2</option>
-                        <option value="3">3</option>
-                        <option value="4">4</option>
-                        <option value="5">5</option>
-                        <option value="6">6</option>
-                        <option value="7">7</option>
-                        <option value="8">8</option>
-                        <option value="9">9</option>
-                        <option value="10">10</option>
-                        <option value="11">11</option>
-                        <option value="12">12</option>
-                        <option value="13">13</option>
-                        <option value="14">14</option>
-                        <option value="15">15</option>
-                        <option value="16" selected>16</option>
-                      </select>
-                    </div>
-                    <div class="field" style="margin-top:10px;">
-                      <label for="crMiembroActivoDescenso">Miembro activo</label>
-                      <select id="crMiembroActivoDescenso">
-                        <option value="Sí" selected>Sí</option>
-                        <option value="No">No</option>
-                      </select>
-                    </div>
-                    <div class="field" style="margin-top:10px;">
-                      <label for="crWhatsappDescenso">Presencia en el grupo de WhatsApp</label>
-                      <select id="crWhatsappDescenso">
-                        <option value="Sí">Sí</option>
-                        <option value="No" selected>No</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-
-                <button type="button" class="btn btn-primary btn-block" id="btnCrGuardar" style="margin-top:14px;">Guardar corrida</button>
-                <div id="crGuardarMsg"></div>
-              </div>
-
-              <!-- Botón "Registrar en Sheets" (antes "Generar propuestas") de Cambio de Rango, hermano de #crPaso3 para poder mostrarse solo en modo "ver"; con el mismo estilo fijo de encabezado que el resto del wizard. El botón "Ver propuestas" se quitó porque al elegir la corrida la tabla ya se calcula sola (ver seleccionarCorridaParaVerPropuestas()); el botón que queda vive ahora en la esquina superior derecha del encabezado de esta sección, no junto a la tabla. Historial en CHANGELOG.md. -->
-              <div class="cr-requisitos-bloque" id="crPropuestasBloque">
-                <div class="cr-requisitos-header" style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
-                  <span class="cat-titulo">Propuestas de cambio de rango</span>
-                  <button type="button" class="btn btn-primary" id="btnCrGenerarPropuestas" style="display:none;">Registrar en Sheets</button>
-                </div>
-                <div class="admin-subseccion-body">
-                  <div id="crPropuestasBox" style="display:none;">
-                    <!-- Explica qué hace el único botón que queda ("Registrar en Sheets", arriba en el encabezado). La tabla de abajo se recalcula sola al elegir la corrida. -->
-                    <p class="text-dim" style="font-size:13px; margin:0 0 10px;">La tabla se calcula sola al elegir la corrida -- no escribe nada en la hoja todavía. <strong>Registrar en Sheets</strong> agrega lo que muestre la tabla a Historial_A/D como "Planificado" -- ahí sí queda guardado. No duplica las que ya estén pendientes.</p>
-                    <div id="crPropuestasMsg" style="margin-top:10px;"></div>
-                    <div id="crPropuestasTablaWrap" style="margin-top:10px;"></div>
-                  </div>
-                  <!-- El texto de aviso varía según el modo (Registrar/Editar vs. Ver propuestas). -->
-                  <div id="crPropuestasSinGuardar" class="text-dim" style="font-size:13px;">Guarda la corrida primero -- las propuestas se calculan sobre la corrida ya guardada en CR_Lista.</div>
-                </div>
-              </div>
             </div>
 
+            <button type="button" class="btn btn-primary btn-block" id="btnCrGuardar" style="margin-top:14px;">Guardar corrida</button>
+            <div id="crGuardarMsg"></div>
           </div>
 
-        </div>
-      </details>
-
-      <details class="admin-subseccion">
-        <summary><span class="cat-titulo">Ganadores del torneo más reciente</span></summary>
-        <div class="admin-subseccion-body">
-          <div id="ganadoresMsg"></div>
-          <div id="ganadoresLista"></div>
-
-          <!-- Formulario chico para registrar una resolución manual (descalificación/desempate) sobre una cuenta puntual del torneo. -->
-          <div id="resolucionForm" style="display:none; margin-top:16px; padding-top:16px; border-top:1px solid var(--line);">
-            <div id="resolucionParaTexto" class="text-dim" style="font-size:13px; margin-bottom:10px;"></div>
-            <div class="field">
-              <label for="resTipo">Tipo de resolución</label>
-              <select id="resTipo" aria-describedby="resolucionParaTexto">
-                <option value="Descalificado">Descalificado</option>
-                <option value="Empate - Reparto de premio">Empate - Reparto de premio</option>
-                <option value="Empate - Partida de desempate">Empate - Partida de desempate</option>
-                <!-- "Cuenta prestada" es un tipo de resolución que no castiga ni mueve el puesto, solo deja constancia de quién jugó. -->
-                <option value="Cuenta prestada">Cuenta prestada — premio a quien jugó</option>
-              </select>
+          <!-- Botón "Registrar en Sheets" (antes "Generar propuestas") de Cambio de Rango, hermano de #crPaso3 para poder mostrarse solo en modo "ver"; con el mismo estilo fijo de encabezado que el resto del wizard. El botón "Ver propuestas" se quitó porque al elegir la corrida la tabla ya se calcula sola (ver seleccionarCorridaParaVerPropuestas()); el botón que queda vive ahora en la esquina superior derecha del encabezado de esta sección, no junto a la tabla. Historial en CHANGELOG.md. -->
+          <div class="cr-requisitos-bloque" id="crPropuestasBloque">
+            <div class="cr-requisitos-header" style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+              <span class="cat-titulo">Propuestas de cambio de rango</span>
+              <button type="button" class="btn btn-primary" id="btnCrGenerarPropuestas" style="display:none;">Registrar en Sheets</button>
             </div>
-            <div class="field" id="resPuestoFinalWrap" style="display:none;">
-              <label for="resPuestoFinal">Puesto final (tras la partida de desempate)</label>
-              <input type="number" id="resPuestoFinal" min="1" step="1">
+            <div class="admin-subseccion-body">
+              <div id="crPropuestasBox" style="display:none;">
+                <!-- Explica qué hace el único botón que queda ("Registrar en Sheets", arriba en el encabezado). La tabla de abajo se recalcula sola al elegir la corrida. -->
+                <p class="text-dim" style="font-size:13px; margin:0 0 10px;">La tabla se calcula sola al elegir la corrida -- no escribe nada en la hoja todavía. <strong>Registrar en Sheets</strong> agrega lo que muestre la tabla a Historial_A/D como "Planificado" -- ahí sí queda guardado. No duplica las que ya estén pendientes.</p>
+                <div id="crPropuestasMsg" style="margin-top:10px;"></div>
+                <div id="crPropuestasTablaWrap" style="margin-top:10px;"></div>
+              </div>
+              <!-- El texto de aviso varía según el modo (Registrar/Editar vs. Ver propuestas). -->
+              <div id="crPropuestasSinGuardar" class="text-dim" style="font-size:13px;">Guarda la corrida primero -- las propuestas se calculan sobre la corrida ya guardada en CR_Lista.</div>
             </div>
-            <div class="field" id="resMotivoDescalificadoWrap" style="display:none;">
-              <label for="resMotivoDescalificadoSelect">Motivo</label>
-              <select id="resMotivoDescalificadoSelect">
-                <option value="">-- Seleccionar --</option>
-                <option value="No está en el grupo de WhatsApp de ganadores">No está en el grupo de WhatsApp de ganadores</option>
-                <option value="No reaccionó a la publicación">No reaccionó a la publicación</option>
-                <option value="No se encuentra en el clan">No se encuentra en el clan</option>
-                <option value="No alcanzó el mínimo de medallas de guerra">No alcanzó el mínimo de medallas de guerra</option>
-                <option value="No realizó la cantidad de ataques requeridos para este torneo">No realizó la cantidad de ataques requeridos para este torneo</option>
-                <option value="__otro__">Otro (especificar)</option>
-              </select>
-            </div>
-            <!-- Mismo patrón que el dropdown de Descalificado, uno por cada variante de Empate. -->
-            <div class="field" id="resMotivoRepartoWrap" style="display:none;">
-              <label for="resMotivoRepartoSelect">Motivo</label>
-              <select id="resMotivoRepartoSelect">
-                <option value="">-- Seleccionar --</option>
-                <option value="Premio se reparte en partes iguales entre los empatados">Premio se reparte en partes iguales entre los empatados</option>
-                <option value="Premio se reparte proporcional a las medallas">Premio se reparte proporcional a las medallas</option>
-                <option value="__otro__">Otro (especificar)</option>
-              </select>
-            </div>
-            <div class="field" id="resMotivoDesempateWrap" style="display:none;">
-              <label for="resMotivoDesempateSelect">Motivo</label>
-              <select id="resMotivoDesempateSelect">
-                <option value="">-- Seleccionar --</option>
-                <option value="Ganó la partida de desempate">Ganó la partida de desempate</option>
-                <option value="Perdió la partida de desempate">Perdió la partida de desempate</option>
-                <option value="No se presentó a la partida de desempate">No se presentó a la partida de desempate</option>
-                <option value="__otro__">Otro (especificar)</option>
-              </select>
-            </div>
-            <div class="field" id="resMotivoWrap">
-              <label for="resMotivo">Motivo</label>
-              <input type="text" id="resMotivo" placeholder="La razón del castigo o el detalle del desempate — queda visible en el Doc y en la web">
-            </div>
-            <div class="field-row">
-              <button type="button" class="btn btn-primary" id="btnGuardarResolucion">Guardar resolución</button>
-              <button type="button" class="btn" id="btnCancelarResolucion">Cancelar</button>
-            </div>
-            <div id="resolucionMsg"></div>
           </div>
         </div>
-      </details>
 
-      <!-- Herramienta standalone sin backend propio; se abre en pestaña nueva sin rel="noopener" para heredar el sessionStorage. -->
-      <details class="admin-subseccion">
-        <summary><span class="cat-titulo">🎡 Ruleta de sorteos</span></summary>
-        <div class="admin-subseccion-body">
-          <p class="text-dim" style="font-size:13px; margin:0 0 14px;">Sorteo en vivo con ruleta, lista de participantes y exportación del acta a Word.</p>
-          <button type="button" class="btn btn-primary" id="btnAbrirSorteo">Abrir Ruleta de Sorteos</button>
-        </div>
-      </details>
+      </div>
 
-      <!-- Panel para editar el Autor de un registro de ascenso/descenso ya guardado, sin depender de una Función de admin dedicada. -->
-      <details class="admin-subseccion">
-        <summary><span class="cat-titulo">Editar autor de ascenso</span></summary>
-        <div class="admin-subseccion-body">
-          <p class="text-dim" style="font-size:13px; margin:0 0 14px;">Corrige quién figura como autor de un cambio de rango. El cambio queda registrado en el Comentario de ese mismo registro (autor anterior, autor nuevo y quién lo editó).</p>
-          <div class="buscador">
-            <input type="text" id="ascEditBuscar" aria-label="Filtrar cambios de rango por nombre o tag" placeholder="Filtrar por nombre o Tag…">
-            <button type="button" class="btn btn-primary" id="btnRefrescarAscensosEditables">↻ Refrescar</button>
-          </div>
-          <div id="ascEditMsg"></div>
-          <div id="ascEditLista" style="margin-top:14px;"></div>
-        </div>
-      </details>
+  <!-- Panel para editar el Autor de un registro de ascenso/descenso ya guardado, sin depender de una Función de admin dedicada. -->
+  <details class="admin-subseccion">
+    <summary><span class="cat-titulo">Editar autor de ascenso</span></summary>
+    <div class="admin-subseccion-body">
+      <p class="text-dim" style="font-size:13px; margin:0 0 14px;">Corrige quién figura como autor de un cambio de rango. El cambio queda registrado en el Comentario de ese mismo registro (autor anterior, autor nuevo y quién lo editó).</p>
+      <div class="buscador">
+        <input type="text" id="ascEditBuscar" aria-label="Filtrar cambios de rango por nombre o tag" placeholder="Filtrar por nombre o Tag…">
+        <button type="button" class="btn btn-primary" id="btnRefrescarAscensosEditables">↻ Refrescar</button>
+      </div>
+      <div id="ascEditMsg"></div>
+      <div id="ascEditLista" style="margin-top:14px;"></div>
+    </div>
+  </details>
     </div>
 
     <!-- Sección "Noticias de la semana": migrada a noticias.html (5-nov-2026), con su propio botón en el nav (solo visible con sesión de admin). El historial del tablero está en CHANGELOG.md. -->
@@ -7434,33 +7426,13 @@ document.getElementById('vigenteCRSelect').closest('details').addEventListener('
 document.getElementById('btnGuardarVigenteCR').addEventListener('click', guardarVigenteCR);
 
 /**
- * FIX (08-sep-2026, pedido usuario): toggle horizontal Torneos/Sorteos de
- * "Planificar, registrar o modificar torneos o sorteos". Solo
- * muestra/oculta los dos paneles ya pintados en el HTML (#panelTorneosAccion/
- * #panelSorteosAccion) — no pide nada al backend, así que no reutiliza
- * cargarGrupoToggle() de mensajes.html (esa función sí pide contenido de categorías reales).
- * FIX (10-sep-2026): "Sorteos" tiene sus tres pasos reales (ver
- * #panelSorteosAccion en el HTML y los listeners de
- * btnSorteoPaso1/btnSorteoPaso2 más abajo); el segundo "Continuar"
- * revela #sorteoPaso3 con los campos del formulario.
- * FIX (13-sep-2026, pedido del usuario -- Fase 7 del plan de Cambio de
- * Rango, PASO 1): se suma el tercer panel (#panelCambioRangoAccion) al
- * mismo switcher -- ver el nuevo botón data-panel="cambiorango" en el
- * HTML. Su contenido (wizard de Registrar/Editar corrida) ya está
- * completo, más abajo en este mismo <script>.
+ * Torneos, Sorteos y Cambio de rango son tarjetas propias (§PF377, 05-nov-2026): ya no hay
+ * selector de pastillas ni se ocultan paneles; #panelTorneosAccion, #panelSorteosAccion y
+ * #panelCambioRangoAccion quedan siempre visibles dentro de su tarjeta. El wizard de Sorteos
+ * (btnSorteoPaso1/btnSorteoPaso2, más abajo) revela #sorteoPaso3 con los campos del formulario;
+ * el de Cambio de rango (Registrar/Editar corrida) está más abajo en este mismo <script>.
  */
-// Los contenedores de resultado (#…Msg) ya existen vacíos en el HTML; con aria-live="polite" un lector de pantalla anuncia el éxito o el error al llenarse. Historial en CHANGELOG.md.
 document.querySelectorAll('[id$="Msg"]').forEach(el => el.setAttribute('aria-live', 'polite'));
-
-document.querySelectorAll('.btn-toggle-torsor').forEach(btn => {
-  btn.addEventListener('click', () => {
-    if(btn.classList.contains('activo')) return;
-    document.querySelectorAll('.btn-toggle-torsor').forEach(b => { b.classList.toggle('activo', b === btn); b.setAttribute('aria-pressed', b === btn ? 'true' : 'false'); }); // aria-pressed: el estado activo ya no depende solo de la clase CSS. Historial en CHANGELOG.md.
-    document.getElementById('panelTorneosAccion').style.display = (btn.dataset.panel === 'torneos') ? '' : 'none';
-    document.getElementById('panelSorteosAccion').style.display = (btn.dataset.panel === 'sorteos') ? '' : 'none';
-    document.getElementById('panelCambioRangoAccion').style.display = (btn.dataset.panel === 'cambiorango') ? '' : 'none';
-  });
-});
 
 /** Wizard de Sorteos, por tramos (ver comentario grande junto a
  *  #panelSorteosAccion en el HTML) -- mismo mecanismo que
