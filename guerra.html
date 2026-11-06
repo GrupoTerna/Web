@@ -572,6 +572,8 @@ let lastEsViejo = false;
 let prevValues  = {};
 // estado de los selectores, a nivel de módulo para que sobrevivan a cada repintado de render() (cada REFRESH_INTERVAL_MS). null = "vigente" (semana/temporada). Historial en CHANGELOG.md.
 const TAB_TODOS = '__todos__';
+// 6-nov-2026 (pedido de la usuaria): clan.html enlaza a guerra.html?clan=<nombre>. Ese clan arranca elegido en las pestañas de clan de todas las tablas (Pendientes, Participación de Hoy, Valores diarios y Valores semanales); si el clan no está en una tabla, esa tabla arranca con el clan Principal como siempre. Historial en CHANGELOG.md.
+const CLAN_PRESELECCIONADO = (new URLSearchParams(location.search).get('clan') || '').trim().toLowerCase();
 let clanSeleccionadoActivos = null;
 let clanSeleccionadoTemporada = null;
 // FIX (12-sep-2026, pedido usuario — "en pendientes de atacar y en
@@ -713,7 +715,7 @@ function gestionarTabsClan(tabsWrapId, wrapId, obtenerSel, fijarSel){
   if (!cards.length){ tabsWrap.innerHTML = ''; return; }
   const clanes = cards.map(c => c.dataset.clan);
   if (obtenerSel() && obtenerSel() !== TAB_TODOS && !clanes.includes(obtenerSel())) fijarSel(null);
-  if (!obtenerSel()) fijarSel(clanes[0]); // default: clan Principal, nunca Todos
+  if (!obtenerSel()) fijarSel((CLAN_PRESELECCIONADO && clanes.find(c => String(c).trim().toLowerCase() === CLAN_PRESELECCIONADO)) || clanes[0]); // default: el clan de ?clan= (viene de clan.html) o, si no hay, el Principal; nunca Todos
   const aplicarFiltro = () => {
     const sel = obtenerSel();
     cards.forEach(card => { card.style.display = (sel === TAB_TODOS || card.dataset.clan === sel) ? '' : 'none'; });
