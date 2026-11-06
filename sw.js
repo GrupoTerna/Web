@@ -302,8 +302,9 @@
 // v254 (6-nov-2026): clan.html y el nuevo assets/js/features/roster-tabla.js cambiaron (CORE_ASSETS) -- el roster de clan.html se reemplaza por «Directorio por clan», la misma tabla de directorio.html pero solo con el clan de la página; «Ver en el Directorio» lleva a directorio.html con ese clan elegido.
 // v255 (6-nov-2026): clan.html cambió (CORE_ASSETS) -- el dashboard de clan ordena sus tarjetas: datos del clan, Directorio por clan, Guerra y Evolución (antes el directorio iba al final).
 // v256 (6-nov-2026): directorio.html cambió (CORE_ASSETS) -- en «Ingresos recientes», las pastillas «⚔️ Ataques», «⭐ Medallas» y «🚢 Barcos» de «Semana actual» dejan el emoji y la etiqueta en una sola línea.
+// v258 (6-nov-2026): directorio.html cambió (CORE_ASSETS) -- el aviso «Estuvo en un clan rival» de Ingresos recientes dice cuando solo coincide el nombre del clan y no hay Tag para confirmarlo.
 // v257 (6-nov-2026): guerra.html cambió (CORE_ASSETS) -- cada tarjeta de «Guerra de Hoy» muestra bajo «N/M atacaron hoy» cuántas cuentas nuevas pueden participar (solo admin) y «Participación de Hoy» separa reservadas, reemplazables y cuentas que se pueden agregar.
-const CACHE_NAME = 'terna-static-v257';
+const CACHE_NAME = 'terna-static-v258';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
