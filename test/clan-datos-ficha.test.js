@@ -68,7 +68,8 @@ function cargarFicha() {
   const ctx = { esc: s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])), fmtNum: n => Number(n).toLocaleString('en-US'),
     urlValida: u => /^https:\/\//.test(String(u || '')), ICONO_ROYALEAPI: '<i>R</i>', ICONO_CWSTATS: '<i>C</i>', clanCardCabeceraHtml: () => '<h3>CABECERA</h3>' };
   vm.createContext(ctx);
-  vm.runInContext(CLAN.slice(CLAN.indexOf('const TIPOS_CLAN'), CLAN.indexOf('\n', CLAN.indexOf('const TIPOS_CLAN'))) + '\n' + extraer(CLAN, 'function clanDatosHtml') + '\n' + extraer(CLAN, 'function clanFichaHtml'), ctx);
+  const CLAN_CARD = fs.readFileSync(path.join(__dirname, '..', 'assets', 'js', 'features', 'clan-card.js'), 'utf8');
+  vm.runInContext(CLAN.slice(CLAN.indexOf('const TIPOS_CLAN'), CLAN.indexOf('\n', CLAN.indexOf('const TIPOS_CLAN'))) + '\n' + extraer(CLAN, 'function clanDatosHtml') + '\n' + extraer(CLAN_CARD, 'function clanRankingItems') + '\n' + extraer(CLAN, 'function clanRankingHtml') + '\n' + extraer(CLAN, 'function clanFichaHtml'), ctx);
   return ctx;
 }
 const CLAN_FICHA = { nombre: 'X', lider: 'Caandre', liga: 'Legendaria II', requerimiento: 14000, miembros: 49, copas: 138905, trofeos: 4151, donaciones: 12720, tipo: 'open', pais: 'Peru',

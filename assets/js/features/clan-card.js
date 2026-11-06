@@ -203,3 +203,22 @@ function envolverLiderEnTarjeta(card, href, titulo){
   contenedor.insertBefore(a, mover[0]);
   mover.forEach(n => a.appendChild(n));
 }
+
+/**
+ * clanRankingItems(ranking) — 6-nov-2026 (pedido de la usuaria, §PF393): puestos del clan en los rankings semanales que manda el backend en el campo `ranking`
+ * de webClanInfo y webAdminBuscarClan: { fecha, copas: { local, global }, guerra: { local, global } } («local» es Perú). Devuelve [[valor, etiqueta], ...] solo con los
+ * rankings que traen un puesto (número mayor que 0); si no hay ninguno (ranking null, sin campo o todo vacío) devuelve [] y la página oculta la sección entera.
+ * Compartida por clan.html y la ficha de «Buscar clan» de admin.html, para que las dos muestren lo mismo y en el mismo orden.
+ */
+function clanRankingItems(ranking){
+  if (!ranking || typeof ranking !== 'object') return [];
+  const puesto = grupo => grupo && Number(grupo.local) > 0 ? Number(grupo.local) : null;
+  const global = grupo => grupo && Number(grupo.global) > 0 ? Number(grupo.global) : null;
+  const filas = [
+    [puesto(ranking.copas),  'Copas · Perú'],
+    [global(ranking.copas),  'Copas · Mundo'],
+    [puesto(ranking.guerra), 'Guerra · Perú'],
+    [global(ranking.guerra), 'Guerra · Mundo']
+  ];
+  return filas.filter(([n]) => n !== null).map(([n, etiqueta]) => ['#' + fmtNum(n), etiqueta]);
+}

@@ -66,6 +66,14 @@
   .cd-copas-pt{fill:#a239ff; stroke:var(--bg); stroke-width:1.5; cursor:default;}
   .cd-copas-pt-vacio{fill:none; stroke:#a239ff; stroke-width:2;}
   .cd-copas-pt:focus{outline:2px solid var(--text); outline-offset:2px;}
+  /* 6-nov-2026 (pedido de la usuaria): tabla del roster con encabezados y valores centrados (también en vertical), salvo los valores de Nombre, que van a la izquierda (su encabezado sí se centra). Los íconos ⚠️, WhatsApp y 📈 van pegados a la derecha de la celda del nombre, como en Directorio (.col-jugador-* de styles.css). */
+  #clanRosterWrap .tbl-pendientes th, #clanRosterWrap .tbl-pendientes td{text-align:center; vertical-align:middle; font-size:13px;}
+  #clanRosterWrap .tbl-pendientes td.col-nombre{text-align:left;}
+  #clanRosterWrap .tbl-pendientes td.col-n{color:var(--text-faint);}
+  #clanRosterWrap .tbl-pendientes td.col-perfil-icons{white-space:nowrap;}
+  #clanRosterWrap .tbl-pendientes td.col-perfil-icons a{display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; margin:0 2px; color:var(--text-dim); vertical-align:middle; transition:color .18s ease;}
+  #clanRosterWrap .tbl-pendientes td.col-perfil-icons a:hover{color:var(--purple-light);}
+  #clanRosterWrap .tbl-pendientes td.col-perfil-icons svg{width:16px; height:16px; fill:currentColor;}
 </style>
 </head>
 <body data-page="clan">
@@ -162,6 +170,7 @@
 <script src="assets/js/features/clan-card.js"></script>
 <script src="assets/js/features/timeline-svg.js"></script>
 <script src="assets/js/features/vista-grafica.js"></script>
+<script src="assets/js/features/mini-historial.js"></script>
 <script src="assets/common.js"></script>
 <script>
 /**
@@ -211,7 +220,7 @@ const TIPOS_CLAN = { open: 'Abierto', inviteOnly: 'Solo invitación', closed: 'C
 /** 5-nov-2026 (pedido de la usuaria, §PF391): «Datos del clan» con lo que webClanInfo ya manda y la tarjeta no mostraba (miembros, puntos de clan, trofeos de guerra,
  *  donaciones por semana, tipo, país y descripción). En webClanInfo `copas` son los puntos de clan (clanScore) y `trofeos` los trofeos de guerra (clanWarTrophies):
  *  la hoja Clan los llama al revés. Solo se pinta lo que trae dato; '' si no hay nada. Desde el 5-nov-2026 ya no es una tarjeta aparte: es la sección que clanFichaHtml()
- *  pone debajo de Líder, Liga y Mín. trofeos, dentro de la misma tarjeta. 6-nov-2026 (pedido de la usuaria): se quitó el título «Datos del clan»; quedan la línea divisoria y las cifras. */
+ *  pone debajo de Líder, Liga y Mín. trofeos, dentro de la misma tarjeta. 6-nov-2026 (pedido de la usuaria): se quitó el título «Datos del clan» y después la línea divisoria; quedan solo las cifras. */
 function clanDatosHtml(c){
   const datos = [];
   if (Number(c.miembros) > 0) datos.push([`${fmtNum(c.miembros)}/50`, 'Miembros']);
@@ -224,9 +233,22 @@ function clanDatosHtml(c){
   if (!datos.length && !descripcion) return '';
   const stats = datos.map(([valor, etiqueta]) => `<div class="stat"><b>${esc(valor)}</b><span>${esc(etiqueta)}</span></div>`).join('');
   return `
-    <div id="clanDatosSec" style="margin-top:16px; border-top:1px solid var(--line); padding-top:18px;">
+    <div id="clanDatosSec" style="margin-top:16px;">
       ${stats ? `<div class="cd-guerra-stats">${stats}</div>` : ''}
       ${descripcion ? `<p class="text-dim" id="clanDescripcion" style="text-align:center; font-size:14px; margin-top:16px;">${esc(descripcion)}</p>` : ''}
+    </div>`;
+}
+
+/** 6-nov-2026 (pedido de la usuaria, §PF393): puesto del clan en los rankings semanales de Perú y del mundo (copas y guerra), con lo que webClanInfo manda en `ranking`. Solo se pintan los rankings que traen
+ *  puesto (clanRankingItems(), clan-card.js); si no hay ninguno, devuelve '' y la sección no aparece. */
+function clanRankingHtml(c){
+  const items = clanRankingItems(c && c.ranking);
+  if (!items.length) return '';
+  const stats = items.map(([valor, etiqueta]) => `<div class="stat"><b>${esc(valor)}</b><span>${esc(etiqueta)}</span></div>`).join('');
+  return `
+    <div id="clanRankingSec" style="margin-top:16px;">
+      <div class="text-faint" style="text-align:center; font-family:var(--f-mono); font-size:13px; text-transform:uppercase; letter-spacing:.08em;">Rankings</div>
+      <div class="cd-guerra-stats">${stats}</div>
     </div>`;
 }
 
@@ -253,7 +275,7 @@ function clanFichaHtml(c, idx){
           <span class="text-dim">🏆 Mín. trofeos: <b style="color:var(--text);">${esc(reqTxt)}</b></span>
         </div>
       </div>
-      ${clanDatosHtml(c)}${botones}
+      ${clanDatosHtml(c)}${clanRankingHtml(c)}${botones}
     </div>`;
 }
 
@@ -334,7 +356,7 @@ function renderClanRoster(clanRoster){
           return `
             <tr class="js-clan-roster-fila" data-letra="${esc(primeraLetraFiltro(m.nombre))}">
               <td class="col-n">${i + 1}</td>
-              <td class="col-nombre">${enlaceJugador(m.nombre, m.tag)}</td>
+              <td class="col-nombre"><div class="col-jugador-inner"><span class="col-jugador-nombre">${enlaceJugador(m.nombre, m.tag)}</span><span class="col-jugador-extras">${botonHistJugador({ tag: m.tag, nombre: m.nombre })}</span></div></td>
               <td class="col-tag">${esc(m.tag || '—')}</td>
               <td>${esc(m.rango || '—')}</td>
               <td>${m.copas != null ? fmtNum(m.copas) : '—'}</td>
