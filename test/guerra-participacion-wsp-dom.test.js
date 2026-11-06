@@ -83,7 +83,8 @@ test('el render separa las inactivas de las reservadas activas y cuenta los cupo
   assert.match(html, /const CUENTAS_MAX_DIA = 50;/);
   assert.match(html, /const activasRes = c\.reservadas\.filter\(cta => cta\.inactiva !== true\);/);
   assert.match(html, /const inactivasRes = c\.reservadas\.filter\(cta => cta\.inactiva === true\);/);
-  assert.match(html, /Math\.max\(0, CUENTAS_MAX_DIA - c\.reservadas\.length\)/);
+  // 6-nov-2026: el cálculo de cupos pasó a desgloseCuposClan() (ver test/guerra-cupos-desglose.test.js)
+  assert.match(html, /libres: Math\.max\(0, CUENTAS_MAX_DIA - res\.length\)/);
   assert.match(html, /Fuera del clan con ataques hoy \(\$\{inactivasRes\.length\}\)/);
   // el total de «Reservadas» sigue incluyendo a las inactivas (ocupan cupo)
   assert.match(html, /🔒 Reservadas \(\$\{c\.reservadas\.length\}\)/);

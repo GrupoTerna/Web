@@ -95,13 +95,14 @@
   /* Alinea entre tarjetas cada sección (cabecera, puesto, números, barra, asistencia, pronóstico) aunque una cabecera sea más alta que otra: cada tarjeta comparte las filas de la grilla (subgrid). Sin soporte, queda el layout normal. */
   @supports (grid-template-rows: subgrid){
     .clan-grid{row-gap:0; margin-bottom:-16px;} /* 13-oct-2026: quita los 16 px de margin-bottom de la última fila de tarjetas para que la separación con la sección siguiente sea la estándar (§PF069) */
-    .clan-card{display:grid; grid-template-rows:subgrid; grid-row:span 6; row-gap:0; margin-bottom:16px; align-content:start;}
+    .clan-card{display:grid; grid-template-rows:subgrid; grid-row:span 7; row-gap:0; margin-bottom:16px; align-content:start;}
     .clan-card > .clan-cab{grid-row:1;}
     .clan-card > .clan-puesto{grid-row:2;}
     .clan-card > .stats{grid-row:3;}
     .clan-card > .bar{grid-row:4;}
     .clan-card > .clan-atq{grid-row:5;}
-    .clan-card > .clan-pron{grid-row:6;}
+    .clan-card > .clan-cupos{grid-row:6;}
+    .clan-card > .clan-pron{grid-row:7;}
   }
   .clan-card .name{font-family:var(--f-display); font-size:18px; font-weight:800; text-transform:uppercase; color:var(--text); text-align:center;}
   /* .stats no tenía justify-content, así que la fila de números quedaba pegada a la izquierda (flex-start por defecto). Historial en CHANGELOG.md. */
@@ -224,6 +225,16 @@
   /* 2-nov-2026 (pedido de la usuaria, §PF344): cuentas inactivas que atacaron hoy. Siguen ocupando uno de los 50 cupos del día, así que se listan dentro de las reservadas, en un subgrupo aparte y más tenues (mismo .72 que las filas inactivas de Valores diarios). */
   .part-cupos{font-family:var(--f-mono); font-size:13px; color:var(--text-dim); margin-top:6px;}
   .part-cupos strong{color:var(--text);}
+  /* 6-nov-2026 (pedido de la usuaria): desglose de «Participación de Hoy» en tres filas (reservadas, reemplazables y cuentas que se pueden agregar) para que no se confunda si una cantidad incluye a la otra. */
+  .part-resumen{display:grid; gap:6px; margin-top:8px; font-family:var(--f-mono); font-size:13px; color:var(--text-dim); line-height:1.5;}
+  .part-res-fila{display:grid; grid-template-columns:auto 1fr; gap:4px 10px; align-items:baseline;}
+  .part-res-n{font-family:var(--f-display); font-weight:800; font-size:15px; color:var(--text); white-space:nowrap;}
+  .part-res-fila strong{color:var(--text);}
+  .part-res-nota{color:var(--text-faint);}
+  /* Línea de cupos bajo «N/M atacaron hoy» en cada tarjeta de Guerra de Hoy (solo admin, día de guerra). */
+  .clan-cupos{margin-top:6px; font-family:var(--f-mono); font-size:13px; line-height:1.5; color:var(--text-dim); text-align:center;}
+  .clan-cupos strong{color:var(--text);}
+  .clan-cupos .cupos-det{display:block; color:var(--text-faint);}
   .part-lista li.part-inactiva{opacity:.72;}
   .part-inactiva-badge{margin-left:6px; padding:1px 6px; border-radius:999px; font-family:var(--f-mono); font-size:13px; font-weight:700; letter-spacing:.04em; border:1px solid var(--line); color:var(--text-faint);}
 
@@ -970,6 +981,7 @@ function render(data){
       <div class="clan-atq" style="margin-top:10px;font-size:13px;color:var(--text-dim);font-family:var(--f-mono);text-align:center;">
         ${fmtNum(g.atacaron)}/${fmtNum(g.totalHoy)} atacaron ${ctx.esDiaGuerra ? 'hoy' : 'en la última guerra'} (${pct}%)
       </div>
+      <div class="clan-cupos" data-clan="${esc(nombre)}" hidden></div>
       ${g.metaCruzada === true ? '<div class="clan-meta" style="margin-top:6px;text-align:center;"><span class="badge badge-ok" title="El clan ya cruzó la meta: atacar hoy es opcional y no cuenta como falta">✅ Meta ya cruzada · ataque opcional</span></div>' : ''}
       <div class="clan-pron" data-clan="${esc(nombre)}" hidden></div>
     </div>`;
@@ -978,6 +990,7 @@ function render(data){
     const slug = 'clan' + idx;
     setNum(slug + '-atq', g.ataques); setNum(slug + '-fame', g.fame); setNum(slug + '-barc', g.barcos);
   });
+  aplicarCuposEnTarjetas(); // 6-nov-2026: las tarjetas se recrean en cada render(): se vuelve a pintar la línea de cupos con los últimos datos de «Participación de Hoy»
   actualizarPuestosClanes(); // las tarjetas se recrean en cada render(): se vuelve a pintar el puesto en el mismo ciclo, sin parpadeo
   if(diaPuestosSel) cargarPuestosDia(false); // día elegido: refresca los puestos cerrados (apiGet cachea 2 min)
   // FIX (03-sep-2026, pedido usuario): la sección completa se oculta en
@@ -1606,6 +1619,36 @@ function pendientesHoy(cta){
   return Number.isFinite(usados) ? Math.max(0, ATAQUES_MAX_HOY - usados) : 1; // sin dato del backend: se asume 1 usado
 }
 
+/* 6-nov-2026 (pedido de la usuaria): desglose de cupos de un clan (datos de webAdminParticipacionHoyGuerra). `reservadas` incluye a las que ya salieron del clan; `libres` = tope del día − reservadas; `reemplazables` son cuentas del clan sin ataques hoy y NO se suman a `libres`. */
+function desgloseCuposClan(c){
+  const res = (c && c.reservadas) || [];
+  const fuera = res.filter(cta => cta.inactiva === true).length;
+  const activas = res.filter(cta => cta.inactiva !== true);
+  const conPendientes = activas.filter(cta => pendientesHoy(cta) > 0).length;
+  return {
+    reservadas: res.length, conPendientes, sinPendientes: activas.length - conPendientes, fuera,
+    reemplazables: ((c && c.disponibles) || []).length,
+    libres: Math.max(0, CUENTAS_MAX_DIA - res.length)
+  };
+}
+/* Línea bajo «N/M atacaron hoy» de cada tarjeta de Guerra de Hoy. Solo se llena con datos de «Participación de Hoy» (admin, día de guerra); sin ellos queda oculta. Las tarjetas se rehacen en cada render(), por eso los datos se guardan aparte y se vuelven a pintar. */
+let cuposPorClanGuerra = null;
+function textoCuposTarjeta(d){
+  const cabeza = d.libres > 0
+    ? `Pueden participar <strong>${d.libres}</strong> cuenta${d.libres === 1 ? '' : 's'} nueva${d.libres === 1 ? '' : 's'} más`
+    : 'Sin cupos libres para cuentas nuevas';
+  const det = `${d.reservadas} de ${CUENTAS_MAX_DIA} cupos usados: ${d.sinPendientes} sin ataques pendientes, ${d.conPendientes} con ataques pendientes${d.fuera ? ` y ${d.fuera} fuera del clan` : ''}`;
+  return `${cabeza}<span class="cupos-det">(${det})</span>`;
+}
+function aplicarCuposEnTarjetas(){
+  document.querySelectorAll('#clanGrid .clan-cupos[data-clan]').forEach(el => {
+    const c = cuposPorClanGuerra ? cuposPorClanGuerra.find(x => x.clan === el.dataset.clan) : null;
+    if(!c){ el.hidden = true; el.innerHTML = ''; return; }
+    el.innerHTML = textoCuposTarjeta(desgloseCuposClan(c));
+    el.hidden = false;
+  });
+}
+
 /* NUEVO (24-oct-2026, tanda 14): buscador de «Participación de Hoy». Oculta las cuentas que no coinciden (clase .busq-oculta, que no choca con el display que ponen las pestañas de clan) y las tarjetas que se quedan sin ninguna. */
 function aplicarBusquedaParticipacion(){
   const wrap = document.getElementById('participacionHoyWrap');
@@ -1635,10 +1678,13 @@ function renderParticipacionHoyGuerra(clanes, multiClan){
     const inactivasRes = c.reservadas.filter(cta => cta.inactiva === true);
     const conPendientes = activasRes.filter(cta => pendientesHoy(cta) > 0);
     const sinPendientes = activasRes.filter(cta => pendientesHoy(cta) === 0);
-    const cuposLibres = Math.max(0, CUENTAS_MAX_DIA - c.reservadas.length);
-    const cuposHtml = `<div class="part-cupos">Cupos de hoy: <strong>${c.reservadas.length} de ${CUENTAS_MAX_DIA}</strong> · ` +
-      (cuposLibres > 0 ? `pueden participar <strong>${cuposLibres}</strong> cuenta${cuposLibres === 1 ? '' : 's'} nueva${cuposLibres === 1 ? '' : 's'}` : 'sin cupos libres para cuentas nuevas') +
-      (inactivasRes.length ? ` (incluye ${inactivasRes.length} fuera del clan)` : '') + `</div>`;
+    const d = desgloseCuposClan(c);
+    // 6-nov-2026: tres filas con su número delante. «Reservadas» y «cupos libres» suman 50; las reemplazables NO se suman a los cupos libres (si atacan, usan esos mismos cupos).
+    const cuposHtml = `<div class="part-resumen">
+            <div class="part-res-fila"><span class="part-res-n">🔒 ${d.reservadas}</span><span><strong>Reservadas</strong> · ya atacaron hoy y usan cupo (${d.reservadas} de ${CUENTAS_MAX_DIA}): ${d.conPendientes} con ataques pendientes, ${d.sinPendientes} sin pendientes${d.fuera ? ` y ${d.fuera} fuera del clan` : ''}.</span></div>
+            <div class="part-res-fila"><span class="part-res-n">✅ ${d.reemplazables}</span><span><strong>Reemplazables</strong> · cuentas del clan que todavía no atacaron; aún no usan cupo.</span></div>
+            <div class="part-res-fila"><span class="part-res-n">➕ ${d.libres}</span><span><strong>Cuentas que se pueden agregar</strong> · cupos libres (${CUENTAS_MAX_DIA} − ${d.reservadas}). <span class="part-res-nota">Es el total: las ${d.reemplazables} reemplazables no se suman a este número; si atacan, usan estos mismos cupos.</span></span></div>
+          </div>`;
     const inactivasHtml = !inactivasRes.length ? '' : `
           <div class="part-subhead">Fuera del clan con ataques hoy (${inactivasRes.length})</div>
           ${_listaCuentasHtml(inactivasRes, null)}`;
@@ -1682,14 +1728,15 @@ async function cargarParticipacionHoySiAdmin(ctx){
   const section = document.getElementById('participacionHoySection');
   const wrap = document.getElementById('participacionHoyWrap');
   const tabsWrap = document.getElementById('participacionHoyClanTabs');
-  if (!ctx.esDiaGuerra || !esAdminLogueado()){ section.style.display = 'none'; wrap.innerHTML = ''; tabsWrap.innerHTML = ''; return; }
+  if (!ctx.esDiaGuerra || !esAdminLogueado()){ section.style.display = 'none'; wrap.innerHTML = ''; tabsWrap.innerHTML = ''; cuposPorClanGuerra = null; aplicarCuposEnTarjetas(); return; }
   try{
     const data = await apiGetAuth('webAdminParticipacionHoyGuerra', {});
-    if (!data || data.ok === false){ section.style.display = 'none'; wrap.innerHTML = ''; tabsWrap.innerHTML = ''; return; }
+    if (!data || data.ok === false){ section.style.display = 'none'; wrap.innerHTML = ''; tabsWrap.innerHTML = ''; cuposPorClanGuerra = null; aplicarCuposEnTarjetas(); return; }
     const clanes = (data.clanes || []).slice().sort((a, b) => ordenClanIndex(a.clan) - ordenClanIndex(b.clan));
-    if (!clanes.length){ section.style.display = 'none'; wrap.innerHTML = ''; tabsWrap.innerHTML = ''; return; }
+    if (!clanes.length){ section.style.display = 'none'; wrap.innerHTML = ''; tabsWrap.innerHTML = ''; cuposPorClanGuerra = null; aplicarCuposEnTarjetas(); return; }
 
     wrap.innerHTML = renderParticipacionHoyGuerra(clanes, data.multiClan || []);
+    cuposPorClanGuerra = clanes; aplicarCuposEnTarjetas();
     section.style.display = 'block';
     gestionarTabsClan('participacionHoyClanTabs', 'participacionHoyWrap', () => clanSeleccionadoParticipacion, v => clanSeleccionadoParticipacion = v);
     pintarBuscadorTabla('participacionHoyBuscador', { placeholder:'Buscar jugador o Tag…', ariaLabel:'Buscar jugador en Participación de Hoy', fijar: v => busquedaParticipacion = v, onCambio: aplicarBusquedaParticipacion });
@@ -1700,6 +1747,7 @@ async function cargarParticipacionHoySiAdmin(ctx){
     section.style.display = 'none';
     wrap.innerHTML = '';
     tabsWrap.innerHTML = '';
+    cuposPorClanGuerra = null; aplicarCuposEnTarjetas();
   }
 }
 
@@ -2024,6 +2072,7 @@ function pintarValoresDiaEnTarjetas(){
     const txt = card.querySelector('.clan-atq');
     if(txt) txt.textContent = v ? `${fmtNum(v.atacaron)}/${fmtNum(v.totalHoy)} atacaron ${etiqueta} (${pct}%)` : `Sin valores registrados ${etiqueta}`;
     const meta = card.querySelector('.clan-meta'); if(meta) meta.style.display = conDia ? 'none' : ''; // la meta cruzada es de hoy: no aplica a otro día
+    const cupos = card.querySelector('.clan-cupos'); if(cupos) cupos.style.display = conDia ? 'none' : ''; // los cupos también son de hoy
   });
   if(letra && letra === base && estado === 'base') estado = 'dia'; // el día que ya muestran las tarjetas
   return estado;
