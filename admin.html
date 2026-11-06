@@ -2826,7 +2826,7 @@ async function cargarMisCuentas(){
     const barra = (valor, max, color) => {
       const v = Number(valor) || 0;
       const pct = Math.max(2, Math.round((v / max) * 100));
-      return `<div style="height:4px; border-radius:2px; background:var(--surface); overflow:hidden;"><div style="height:100%; width:${pct}%; background:${color};"></div></div>`;
+      return `<div style="flex:1; min-width:0; height:4px; border-radius:2px; background:var(--surface); overflow:hidden;"><div style="height:100%; width:${pct}%; background:${color};"></div></div>`;
     };
     const todas = [];
     clanes.forEach(c => {
@@ -2843,8 +2843,8 @@ async function cargarMisCuentas(){
             <div style="font-family:var(--f-display); font-weight:700; font-size:13px; color:var(--gold); text-transform:uppercase; letter-spacing:.04em; margin-bottom:12px; text-align:center;">🍀 ${enlaceClan(m._clan)}</div>
             <div style="font-weight:600; font-size:14px; text-align:center;">${enlaceJugador(m.nombre, m.tag)}</div>
             <div style="font-family:var(--f-mono); font-size:13px; color:var(--text-faint); margin-top:2px; text-align:center;">${esc(m.tag)} · ${esc(m.rango)}</div>
-            <!-- clan/nombre/tag-rango/vigencia quedan centrados, pero las 3 filas de Copas/V.Guerra/Torneos siguen alineadas a la izquierda entre sí, centradas como bloque. -->
-            <div style="display:flex; flex-direction:column; gap:5px; margin:9px auto 0; width:fit-content;">
+            <!-- clan/nombre/tag-rango/vigencia quedan centrados, pero las 3 filas de Copas/V.Guerra/Torneos ocupan todo el ancho de la tarjeta, alineadas entre sí; la barra (flex:1) rellena lo que sobra a la derecha del número (5-nov-2026: antes, con ancho fit-content y la barra sin ancho, quedaba en 0 px y no se veía). -->
+            <div style="display:flex; flex-direction:column; gap:5px; margin:9px 0 0; width:100%;">
               <div style="display:flex; align-items:center; gap:6px; font-family:var(--f-mono); font-size:13px; color:var(--text-dim);"><span style="min-width:64px; flex-shrink:0; white-space:nowrap;">🏆 ${fmtNum(m.copas)}</span>${barra(m.copas, m._maxCopas, 'var(--gold)')}</div>
               <div style="display:flex; align-items:center; gap:6px; font-family:var(--f-mono); font-size:13px; color:var(--text-dim);"><span style="min-width:64px; flex-shrink:0; white-space:nowrap;">🎖️ ${fmtNum(m.vGuerra)}</span>${barra(m.vGuerra, m._maxVGuerra, 'var(--purple-light)')}</div>
               <div style="display:flex; align-items:center; gap:6px; font-family:var(--f-mono); font-size:13px; color:var(--text-dim);"><span style="min-width:64px; flex-shrink:0; white-space:nowrap;">🏅 ${fmtNum(m.torneos)}</span>${barra(m.torneos, m._maxTorneos, 'var(--silver)')}</div>
