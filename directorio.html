@@ -486,6 +486,9 @@
   .nuevo-card .nc-stat.nc-stat-semana{background:rgba(162,57,255,.07); border-color:var(--line-strong);}
   .nuevo-card .nc-stat b{display:block; font-family:var(--f-display); font-weight:800; font-size:15px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
   .nuevo-card .nc-stat span{display:block; font-family:var(--f-mono); font-size:13px; color:var(--text-dim); text-transform:uppercase; letter-spacing:.02em; margin-top:2px; line-height:1.25; overflow-wrap:anywhere;}
+  /* 6-nov-2026 (pedido de la usuaria, §PF396): en «Semana actual» el emoji de «⚔️ Ataques», «⭐ Medallas» y «🚢 Barcos» bajaba solo a otra línea porque la etiqueta partía en el espacio. Ahora la etiqueta va en UNA línea (nowrap) y su letra se ajusta al ancho de la cuadrícula (unidades cqw; 11px de respaldo si el navegador no las soporta). */
+  .nuevo-card .nc-stats-semana{container-type:inline-size;}
+  .nuevo-card .nc-stat-semana span{white-space:nowrap; overflow-wrap:normal; letter-spacing:0; font-size:11px; font-size:clamp(8px, calc(4.7cqw - 2px), 13px);}
   .nuevo-card .nc-subtitulo{font-family:var(--f-mono); font-size:13px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--purple-light); margin-top:12px;}
   .nuevo-card .nc-subtitulo + .nc-stats-grid{margin-top:6px;}
   /* Desglose diario (jueves a domingo) de la semana actual, igual al de index: una fila por métrica, una columna por día. Un día sin jugar llega como null y se muestra "—". */
@@ -2836,7 +2839,7 @@ function nuevoCardHtml(n){
           ${n.vigencia ? `<div class="nc-stat nc-stat-ancho"><b>${esc(fmtFechaVigenciaCorta(n.vigencia))}</b><span>🕒 Vigencia</span></div>` : ''}
         </div>
         <div class="nc-subtitulo">${ingresosGuerraCongelada ? 'Última guerra (hasta el domingo)' : 'Semana actual'}</div>
-        <div class="nc-stats-grid">
+        <div class="nc-stats-grid nc-stats-semana">
           ${ingresoStatHtml(sem.ataques, '⚔️ Ataques', { semana: true })}
           ${ingresoStatHtml(sem.puntaje, '⭐ Medallas', { semana: true })}
           ${ingresoStatHtml(sem.barcos, '🚢 Barcos', { semana: true })}
