@@ -299,7 +299,8 @@
 // v253 (6-nov-2026): admin.html y perfil.html cambiaron (CORE_ASSETS) -- la ficha de «Buscar clan» muestra el puesto del clan en los rankings de Perú y del mundo, y el perfil el puesto en Camino de Leyendas; ambos se ocultan si no hay datos.
 // v252 (6-nov-2026): clan.html y assets/js/features/clan-card.js cambiaron (CORE_ASSETS) -- sin línea divisoria en las cifras del clan, sección «Rankings» (se oculta si no hay datos) e íconos ⚠️, WhatsApp y 📈 junto al nombre en el roster, con la tabla centrada.
 // v251 (6-nov-2026): clan.html cambió (CORE_ASSETS) -- se quitó el título «Datos del clan» de la tarjeta del clan (pedido de la usuaria).
-const CACHE_NAME = 'terna-static-v253';
+// v254 (6-nov-2026): clan.html y el nuevo assets/js/features/roster-tabla.js cambiaron (CORE_ASSETS) -- el roster de clan.html se reemplaza por «Directorio por clan», la misma tabla de directorio.html pero solo con el clan de la página; «Ver en el Directorio» lleva a directorio.html con ese clan elegido.
+const CACHE_NAME = 'terna-static-v254';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
@@ -332,6 +333,7 @@ const CORE_ASSETS = [
   'assets/js/features/timeline-svg.js',
   'assets/js/features/vista-grafica.js',
   'assets/js/features/mini-historial.js',
+  'assets/js/features/roster-tabla.js',
   'assets/js/features/join-modal.js',
   'assets/Im%C3%A1genes/Logo%20Terna/logo-cuadrado.jpg',
   'assets/Im%C3%A1genes/Logo%20Terna/icon-192.png',

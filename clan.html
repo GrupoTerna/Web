@@ -66,14 +66,43 @@
   .cd-copas-pt{fill:#a239ff; stroke:var(--bg); stroke-width:1.5; cursor:default;}
   .cd-copas-pt-vacio{fill:none; stroke:#a239ff; stroke-width:2;}
   .cd-copas-pt:focus{outline:2px solid var(--text); outline-offset:2px;}
-  /* 6-nov-2026 (pedido de la usuaria): tabla del roster con encabezados y valores centrados (también en vertical), salvo los valores de Nombre, que van a la izquierda (su encabezado sí se centra). Los íconos ⚠️, WhatsApp y 📈 van pegados a la derecha de la celda del nombre, como en Directorio (.col-jugador-* de styles.css). */
-  #clanRosterWrap .tbl-pendientes th, #clanRosterWrap .tbl-pendientes td{text-align:center; vertical-align:middle; font-size:13px;}
-  #clanRosterWrap .tbl-pendientes td.col-nombre{text-align:left;}
-  #clanRosterWrap .tbl-pendientes td.col-n{color:var(--text-faint);}
-  #clanRosterWrap .tbl-pendientes td.col-perfil-icons{white-space:nowrap;}
-  #clanRosterWrap .tbl-pendientes td.col-perfil-icons a{display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; margin:0 2px; color:var(--text-dim); vertical-align:middle; transition:color .18s ease;}
-  #clanRosterWrap .tbl-pendientes td.col-perfil-icons a:hover{color:var(--purple-light);}
-  #clanRosterWrap .tbl-pendientes td.col-perfil-icons svg{width:16px; height:16px; fill:currentColor;}
+  /* 6-nov-2026 (pedido de la usuaria): «Directorio por clan» de este clan, con la misma tabla de directorio.html (assets/js/features/roster-tabla.js). Las reglas son las de directorio.html; el widget de filtro por columna (.rt-*) ya está en assets/styles.css. */
+  .roster-clan-header{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 13px 4px;}
+  .roster-clan-title{font-size:15px; margin:0; color:var(--purple-light);}
+  .roster-table{min-width:1100px;}
+  .roster-table th, .roster-table td{padding:11px 13px; text-align:center; white-space:nowrap;}
+  .roster-table tbody td{border-bottom:1px solid rgba(162,57,255,.06); font-size:13px; color:var(--text);}
+  .roster-table tbody tr{cursor:pointer; transition:background .15s ease;}
+  .roster-table tbody tr:hover{background:rgba(162,57,255,.1);}
+  .roster-table td.rt-num{font-family:var(--f-mono); color:var(--text-faint); font-size:13px;}
+  .roster-table td.rt-nombre{font-weight:700; font-size:13px; text-align:left;}
+  .roster-table td.rt-vigencia{text-align:left;}
+  .roster-table td.rt-tag, .roster-table td.rt-rango, .roster-table td.rt-ranking,
+  .roster-table td.rt-nivelxp, .roster-table td.rt-nivelcartas, .roster-table td.rt-copas,
+  .roster-table td.rt-arena, .roster-table td.rt-vguerra, .roster-table td.rt-vigencia{
+    font-family:var(--f-mono); font-size:13px; color:var(--text-dim);
+  }
+  .roster-table td.rt-tag, .roster-table td.rt-rango{text-transform:uppercase; letter-spacing:.03em;}
+  .roster-table tbody .empty{white-space:normal;}
+  .roster-table td.rt-perfil a{display:inline-flex; align-items:center; justify-content:center; width:22px; height:22px; margin:0 2px; color:var(--text-dim); vertical-align:middle; transition:color .18s ease;}
+  .roster-table td.rt-perfil a:hover{color:var(--purple-light);}
+  .roster-table td.rt-perfil svg{width:16px; height:16px; fill:currentColor;}
+  .roster-topbar{padding:10px 13px; border-bottom:1px solid var(--line);}
+  .roster-top-scroll{width:100%; overflow-x:auto; overflow-y:hidden; height:14px; -webkit-overflow-scrolling:touch;
+    scrollbar-width:thin; scrollbar-color:var(--purple-light) rgba(255,255,255,.06);}
+  .roster-top-scroll::-webkit-scrollbar{height:10px;}
+  .roster-top-scroll::-webkit-scrollbar-track{background:rgba(255,255,255,.06); border-radius:6px;}
+  .roster-top-scroll::-webkit-scrollbar-thumb{background:var(--purple-light); border-radius:6px;}
+  .roster-top-scroll-inner{height:1px;}
+  .rt-limpiar-filtros{
+    appearance:none; -webkit-appearance:none; -moz-appearance:none;
+    flex-shrink:0; display:inline-flex; align-items:center; gap:6px;
+    font-family:var(--f-mono); font-size:13px; font-weight:700; color:var(--text-dim);
+    background:transparent; border:1px solid var(--line); border-radius:6px; padding:7px 12px;
+    cursor:pointer; transition:all .15s ease; white-space:nowrap;
+  }
+  .rt-limpiar-filtros:hover:not(:disabled){border-color:var(--purple-light); color:var(--text); background:rgba(162,57,255,.12);}
+  .rt-limpiar-filtros:disabled{opacity:.4; cursor:default; background:transparent; border-color:var(--line); color:var(--text-dim);}
 </style>
 </head>
 <body data-page="clan">
@@ -136,15 +165,16 @@
         <div id="clanCopasWrap" style="margin-top:8px;"><div class="loading-block"><div class="spinner"></div></div></div>
       </div>
 
-      <!-- ---------- Roster ---------- -->
+      <!-- ---------- Directorio por clan (6-nov-2026, pedido de la usuaria): la tabla de directorio.html, solo con este clan. Código en assets/js/features/roster-tabla.js ---------- -->
       <div class="card pf-cinta pf-cinta--anidada" style="padding:0; margin-top:20px; --cinta:url(Im%C3%A1genes/Banners/Fankit/cinta-clan-roster.webp);">
         <div class="cd-roster-header">
-          <h2 class="pf-subtitulo" style="margin:0;">Roster</h2>
+          <h2 class="pf-subtitulo" style="margin:0;">Directorio por clan</h2>
           <a href="#" id="clanVerDirectorioLink" class="text-dim" style="font-family:var(--f-mono); font-size:13px; display:inline-block; padding:5px 0;">Ver en el Directorio &rarr;</a>
         </div>
-        <!-- Fila A-Z/# para filtrar por primera letra del nombre, mismo patrón que #rosterLetraFilter de directorio.html: reusa pintarFiltroLetra()/LETRAS_FILTRO de assets/js/ui/filters.js. Historial en CHANGELOG.md. -->
-        <div class="tabs-row" id="clanRosterLetraFilter" style="margin:0 20px 12px;"></div>
-        <div id="clanRosterWrap" style="padding:0 20px 20px;"></div>
+        <!-- Letras A-Z/# y buscador por nombre o Tag: mismos componentes que #rosterLetraFilter y #rosterBuscador de directorio.html. -->
+        <div class="tabs-row" id="rosterLetraFilter" style="margin:0 20px 12px;"></div>
+        <div class="buscador-tabla" id="rosterBuscador" style="margin:0 20px 12px;"></div>
+        <div id="rosterWrap" style="padding:0 20px 20px;"></div>
       </div>
     </div>
   </section>
@@ -171,6 +201,7 @@
 <script src="assets/js/features/timeline-svg.js"></script>
 <script src="assets/js/features/vista-grafica.js"></script>
 <script src="assets/js/features/mini-historial.js"></script>
+<script src="assets/js/features/roster-tabla.js"></script>
 <script src="assets/common.js"></script>
 <script>
 /**
@@ -185,24 +216,11 @@
  *   - webClanInfo:    básico (líder, liga, escudo, links, métricas totales)
  *   - webRoster:      roster completo del clan
  *   - webGuerraEnVivo: resumen de guerra de esta semana + pendientes del clan
- * Alcance "Básico + roster + resumen de guerra de esta semana" acordado
- * con el usuario — sin el sistema de filtros/orden por columna que tiene
- * el roster completo de directorio.html (eso queda disponible desde el
- * link "Ver en el Directorio" de esta misma página).
- * CORRECCIÓN A LO DICHO ANTES (23-sep-2026, pedido explícito del usuario):
- * la exclusión de arriba sigue vigente para el sistema de filtros/orden
- * POR COLUMNA (Rango/Copas/V. Guerra, etc.), pero SÍ se agrega el filtro
- * A-Z/# por primera letra del nombre — mismo patrón que ya usan el roster
- * de directorio.html (#rosterLetraFilter) y las 3 tablas de guerra.html,
- * reusando tal cual pintarFiltroLetra()/LETRAS_FILTRO/primeraLetraFiltro()
- * de assets/js/ui/filters.js (ya cargado en esta página, ver <script> más
- * abajo). Es solo ocultar/mostrar filas ya pintadas por su primera letra,
- * no un sistema de orden/filtro por columna, así que no contradice la
- * exclusión original.
+ * CAMBIO (6-nov-2026, pedido de la usuaria): el roster simple se reemplazó por «Directorio por clan» solo con este clan: la misma tabla de
+ * directorio.html, con filtro y orden por columna, letras A-Z/# y buscador por nombre o Tag (código en assets/js/features/roster-tabla.js).
+ * «Ver en el Directorio» lleva a directorio.html?clan=...#roster, con este clan ya elegido. Historial en CHANGELOG.md.
  */
 const NOMBRE_CLAN_QUERY = (new URLSearchParams(location.search).get('clan') || '').trim();
-// Letra A-Z/# elegida en #clanRosterLetraFilter (ver docblock de arriba, corrección 23-sep-2026). Esta página carga una sola vez (no hay pestañas de clan que resetear), así que no hace falta limpiarla en ningún otro punto.
-let clanRosterLetraSeleccionada = null;
 
 function clanCoincide(nombreClan){
   return String(nombreClan || '').trim().toLowerCase() === NOMBRE_CLAN_QUERY.toLowerCase();
@@ -330,52 +348,12 @@ function renderClanGuerra(dataGuerra, nombreClan, desdeViejo){
     </div>${avisoViejo}`;
 }
 
-/** Pinta la tabla básica del roster del clan (sin filtros/orden, ver
- * docblock de arriba). Reutiliza enlaceJugador() para el nombre, igual
- * que el resto del sitio. */
+/** Pinta «Directorio por clan» con solo los miembros de este clan (renderRosterClan(), assets/js/features/roster-tabla.js) y deja el botón «Ver en el
+ * Directorio» apuntando a directorio.html con este clan preseleccionado (?clan=; directorio.html lo lee con clanIdxDesdeQuery()). */
 function renderClanRoster(clanRoster){
-  const wrap = document.getElementById('clanRosterWrap');
-  const miembros = (clanRoster && clanRoster.miembros) || [];
   document.getElementById('clanVerDirectorioLink').href =
     'directorio.html?clan=' + encodeURIComponent(clanRoster.nombre) + '#roster';
-  if (!miembros.length){
-    wrap.innerHTML = '<div class="empty">Este clan todavía no tiene miembros registrados.</div>';
-    return;
-  }
-  wrap.innerHTML = `
-    <div class="table-scroll">
-      <table class="tbl-pendientes">
-        <thead><tr>
-          <th scope="col">N°</th><th scope="col">Nombre</th><th scope="col">Tag</th>
-          <th scope="col">Rango</th><th scope="col">Copas</th><th scope="col">V. Guerra</th><th scope="col">Perfil</th>
-        </tr></thead>
-        <tbody>${miembros.map((m, i) => {
-          const royaleOk = urlValida(m.royaleApi);
-          const cwOk = urlValida(m.cwStats);
-          const vGuerra = m.vGuerra != null ? m.vGuerra : m.victoriasGuerra;
-          return `
-            <tr class="js-clan-roster-fila" data-letra="${esc(primeraLetraFiltro(m.nombre))}">
-              <td class="col-n">${i + 1}</td>
-              <td class="col-nombre"><div class="col-jugador-inner"><span class="col-jugador-nombre">${enlaceJugador(m.nombre, m.tag)}</span><span class="col-jugador-extras">${botonHistJugador({ tag: m.tag, nombre: m.nombre })}</span></div></td>
-              <td class="col-tag">${esc(m.tag || '—')}</td>
-              <td>${esc(m.rango || '—')}</td>
-              <td>${m.copas != null ? fmtNum(m.copas) : '—'}</td>
-              <td>${vGuerra != null ? fmtNum(vGuerra) : '—'}</td>
-              <td class="col-perfil-icons">${royaleOk ? `<a href="${esc(m.royaleApi)}" target="_blank" rel="noopener" aria-label="RoyaleAPI" title="RoyaleAPI">${ICONO_ROYALEAPI}</a>` : ''}${cwOk ? `<a href="${esc(m.cwStats)}" target="_blank" rel="noopener" aria-label="CWStats" title="CWStats">${ICONO_CWSTATS}</a>` : ''}</td>
-            </tr>`;
-        }).join('')}
-        </tbody>
-      </table>
-    </div>`;
-  activarBarraScrollTabla(wrap.querySelector('.table-scroll'));
-  pintarFiltroLetra('clanRosterLetraFilter', LETRAS_FILTRO, () => clanRosterLetraSeleccionada, v => clanRosterLetraSeleccionada = v, aplicarFiltroLetraClanRoster);
-}
-
-/** Oculta (display:none) las filas del roster cuya primera letra de nombre no calce con clanRosterLetraSeleccionada; sin letra elegida, se ven todas. Mismo criterio que aplicarFiltroLetraIngresos() de directorio.html, pero sobre <tr> en vez de tarjetas. */
-function aplicarFiltroLetraClanRoster(){
-  document.querySelectorAll('#clanRosterWrap .js-clan-roster-fila').forEach(fila => {
-    fila.style.display = (!clanRosterLetraSeleccionada || fila.dataset.letra === clanRosterLetraSeleccionada) ? '' : 'none';
-  });
+  renderRosterClan(clanRoster);
 }
 
 /* Archivos estáticos (rama `data`). ?t= por bloques de 5 min: GitHub ya sirve el archivo con ~5 min de caché; esto solo evita que el navegador se quede con uno más viejo. Ajusta el repo en las URL si no es GrupoTerna/Web. */
@@ -600,7 +578,7 @@ async function cargarClan(){
 
     renderClanBasico(clanInfo, idx);
     renderClanRoster(clanRoster);
-    marcarDatosGuardados(document.getElementById('clanRosterWrap'), rRoster.guardadoDesde, ' margin:0 20px 16px;'); // CAMBIO (09-oct-2026, Fase 5): «⚠ Datos guardados» si el roster es el respaldo local o el JSON vencido
+    marcarDatosGuardados(document.getElementById('rosterWrap'), rRoster.guardadoDesde, ' margin:0 20px 16px;'); // CAMBIO (09-oct-2026, Fase 5): «⚠ Datos guardados» si el roster es el respaldo local o el JSON vencido
   }catch(err){
     mostrarErrorClan('Error de conexión: ' + err.message);
     return;

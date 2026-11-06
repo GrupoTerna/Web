@@ -69,17 +69,21 @@ test('clan.html: la ficha pinta los rankings después de las cifras y antes de l
   assert.match(ficha, /\$\{clanDatosHtml\(c\)\}\$\{clanRankingHtml\(c\)\}\$\{botones\}/);
 });
 
-test('clan.html: el nombre del roster lleva ⚠️, WhatsApp y 📈 (botonHistJugador) a la derecha, como en Directorio', () => {
+// 6-nov-2026 (pedido de la usuaria): el roster simple de clan.html se reemplazó por «Directorio por clan» (assets/js/features/roster-tabla.js); estos dos tests
+// pasaron a mirar la tabla nueva. El comportamiento completo está en clan-directorio-por-clan-dom.test.js.
+test('clan.html: el nombre del directorio lleva ⚠️, WhatsApp y 📈 (botonHistJugador) a la derecha, como en Directorio', () => {
   assert.match(CLAN, /<script src="assets\/js\/features\/mini-historial\.js"><\/script>/);
-  const roster = extraer(CLAN, 'function renderClanRoster');
-  assert.match(roster, /<td class="col-nombre"><div class="col-jugador-inner"><span class="col-jugador-nombre">\$\{enlaceJugador\(m\.nombre, m\.tag\)\}<\/span><span class="col-jugador-extras">\$\{botonHistJugador\(\{ tag: m\.tag, nombre: m\.nombre \}\)\}<\/span><\/div><\/td>/);
+  assert.match(CLAN, /<script src="assets\/js\/features\/roster-tabla\.js"><\/script>/);
+  const TABLA = fs.readFileSync(path.join(__dirname, '..', 'assets', 'js', 'features', 'roster-tabla.js'), 'utf8');
+  assert.match(TABLA, /key:'nombre'[^\n]*extra:m => botonHistJugador\(\{ tag:m\.tag, nombre:m\.nombre \}\)/);
+  assert.match(extraer(TABLA, 'function celdaHtmlRoster'), /<div class="col-jugador-inner"><span class="col-jugador-nombre">\$\{contenido\}<\/span><span class="col-jugador-extras">\$\{col\.extra\(m, i\)\}<\/span><\/div>/);
 });
 
-test('clan.html: tabla del roster centrada (encabezados y valores), Nombre a la izquierda en los valores y todo centrado en vertical', () => {
-  assert.match(CLAN, /#clanRosterWrap \.tbl-pendientes th, #clanRosterWrap \.tbl-pendientes td\{text-align:center; vertical-align:middle;/);
-  assert.match(CLAN, /#clanRosterWrap \.tbl-pendientes td\.col-nombre\{text-align:left;\}/);
-  assert.doesNotMatch(CLAN, /th\.col-nombre\{text-align:left/, 'el encabezado de Nombre sigue centrado');
-  assert.doesNotMatch(CLAN, /td\.col-tag\{[^}]*text-align:left/, 'Tag también va centrado');
+test('clan.html: tabla del directorio centrada (encabezados y valores), Nombre a la izquierda en los valores', () => {
+  assert.match(CLAN, /\.roster-table th, \.roster-table td\{padding:11px 13px; text-align:center; white-space:nowrap;\}/);
+  assert.match(CLAN, /\.roster-table td\.rt-nombre\{font-weight:700; font-size:13px; text-align:left;\}/);
+  assert.doesNotMatch(CLAN, /th\.rt-nombre\{[^}]*text-align:left/, 'el encabezado de Nombre sigue centrado');
+  assert.doesNotMatch(CLAN, /td\.rt-tag\{[^}]*text-align:left/, 'Tag también va centrado');
 });
 
 // ---- admin.html: ficha de «Buscar clan» ----
