@@ -293,7 +293,8 @@
 // v244 (5-nov-2026): perfil.html cambió (CORE_ASSETS) -- en «Mazo actual» la rareza y el elixir salen del dato del backend (Backup_Cards.csv) y el diccionario local queda de respaldo; Ronin y Montapuercos ya los muestran (§PF389).
 // v246 (5-nov-2026): admin.html cambió (CORE_ASSETS) -- en las tarjetas de «Tus cuentas» las copas, victorias de guerra y torneos ya no se parten (ícono y número en una línea) y «Vigencia:» queda en una línea con su fecha en la siguiente, pegada a la derecha, cuando no caben juntas.
 // v247 (5-nov-2026): admin.html cambió (CORE_ASSETS) -- en las tarjetas de «Tus cuentas» las barras de Copas, Victorias de guerra y Torneos ya se ven: ocupan el ancho que sobra a la derecha del número.
-const CACHE_NAME = 'terna-static-v247';
+// v248 (5-nov-2026): admin.html cambió (CORE_ASSETS) -- la ficha de «Buscar clan» toma el aspecto de la cabecera del perfil de jugador: cinta de fondo, nombre en dorado brillante y estadísticas en cuadritos parejos.
+const CACHE_NAME = 'terna-static-v248';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
