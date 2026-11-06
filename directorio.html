@@ -831,6 +831,8 @@
     <div class="clan-tabs" id="clanTabs"></div>
     <!-- Fila A-Z/# para filtrar por primera letra del nombre, mismo patrón que guerra.html; persiste fuera de #rosterWrap y se resetea al cambiar de clan. Historial en CHANGELOG.md. -->
     <div class="tabs-row" id="rosterLetraFilter" style="margin-top:12px;"></div>
+    <!-- NUEVO (5-nov-2026, §PF384, pedido de la usuaria): buscador por nombre o Tag del roster; mismo componente que guerra.html (pintarBuscadorTabla() de assets/js/ui/filters.js). Vive fuera de #rosterWrap, así que no se repinta al cambiar de clan. -->
+    <div class="buscador-tabla" id="rosterBuscador"></div>
     <div id="rosterWrap">
       <div class="loading-block"><div class="spinner"></div></div>
     </div>
@@ -1750,6 +1752,8 @@ let rosterFiltroAncho = 0; // ancho de la ventana al abrir el cuadro: solo un ca
 let rosterMiembrosBase = []; // miembros del clan activo, en el orden original del backend (sin ordenar)
 // Letra A-Z/# elegida en #rosterLetraFilter; se reinicia al cambiar de clan y se combina con los demás filtros sin pisarse. Historial en CHANGELOG.md.
 let rosterLetraSeleccionada = null;
+// Texto del buscador #rosterBuscador (nombre o Tag, §PF384). Se conserva al cambiar de clan y se combina con la letra y los filtros por columna.
+let rosterBusqueda = '';
 
 /* primeraLetraFiltro(nombre), LETRAS_FILTRO y pintarFiltroLetra() se
  * consolidaron en assets/common.js (18-sep-2026, código repetido entre
@@ -2067,6 +2071,7 @@ function actualizarBotonLimpiarFiltros(wrap){
 function aplicarFiltrosRoster(wrap){
   const cols = Object.keys(rosterFiltrosSeleccion);
   const filas = wrap.querySelectorAll('tbody tr.js-miembro');
+  let coincidenBusqueda = 0; // filas del clan activo que calzan con el buscador (para el contador «N de M»)
   filas.forEach(fila => {
     const pasaCols = cols.every(colKey => {
       const col = ROSTER_COLUMNAS.find(c => c.key === colKey);
@@ -2091,8 +2096,13 @@ function aplicarFiltrosRoster(wrap){
     });
     // La fila también debe pasar el filtro por letra elegido, además de los filtros por columna. Historial en CHANGELOG.md.
     const pasaLetra = !rosterLetraSeleccionada || fila.dataset.letra === rosterLetraSeleccionada;
-    fila.style.display = (pasaCols && pasaLetra) ? '' : 'none';
+    // Buscador por nombre o Tag (§PF384): coincidencia parcial, sin tildes ni mayúsculas, todas las palabras en cualquier orden.
+    const pasaBusqueda = coincideBusqueda(fila.dataset.buscar, rosterBusqueda);
+    if (pasaBusqueda) coincidenBusqueda++;
+    fila.style.display = (pasaCols && pasaLetra && pasaBusqueda) ? '' : 'none';
   });
+  const cuenta = document.querySelector('#rosterBuscador .buscador-cuenta');
+  if (cuenta) cuenta.textContent = normalizarBusqueda(rosterBusqueda) ? textoCuentaBuscador(coincidenBusqueda, filas.length, coincidenBusqueda) : '';
 }
 
 /** Arma el <td> de una celda, agregando data-raw (el valor crudo, sin
@@ -2122,7 +2132,7 @@ function celdaHtmlRoster(col, m, i){
 function filasHtmlRoster(miembros){
   return miembros.map((m, i) => {
     const celdas = ROSTER_COLUMNAS.map(c => celdaHtmlRoster(c, m, i)).join('');
-    return `<tr class="js-miembro" data-tag="${esc(m.tag)}" data-letra="${esc(primeraLetraFiltro(m.nombre))}">${celdas}</tr>`;
+    return `<tr class="js-miembro" data-tag="${esc(m.tag)}" data-letra="${esc(primeraLetraFiltro(m.nombre))}" data-buscar="${esc((m.nombre || '') + ' ' + (m.tag || ''))}">${celdas}</tr>`;
   }).join('');
 }
 
@@ -2182,6 +2192,11 @@ function renderRosterClanActivo(){
     const rosterWrap = document.getElementById('rosterWrap');
     if (rosterWrap) aplicarFiltrosRoster(rosterWrap);
   });
+  // Buscador por nombre o Tag: se pinta una sola vez (guardia dentro de pintarBuscadorTabla()); lo escrito se conserva al cambiar de clan. §PF384
+  pintarBuscadorTabla('rosterBuscador', { placeholder:'Buscar jugador o Tag…', ariaLabel:'Buscar jugador en el roster', fijar: v => rosterBusqueda = v, onCambio: () => {
+    const rosterWrap = document.getElementById('rosterWrap');
+    if (rosterWrap) aplicarFiltrosRoster(rosterWrap);
+  } });
   const letraFilterWrap = document.getElementById('rosterLetraFilter');
   if (letraFilterWrap) letraFilterWrap.querySelectorAll('.letra-btn').forEach(b => b.classList.remove('active'));
 
