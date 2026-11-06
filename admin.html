@@ -550,7 +550,7 @@
         <div class="card">
           <div class="perfil-cabecera">
             <div>
-              <h3 id="cNombre" style="font-size:19px; font-family:var(--f-display); text-transform:uppercase;"></h3>
+              <div style="display:flex; align-items:center; gap:4px;"><span id="cEscudo"></span><h3 id="cNombre" style="font-size:19px; font-family:var(--f-display); text-transform:uppercase;"></h3></div>
               <div class="text-faint" id="cSub" style="font-family:var(--f-mono); font-size:13px; margin-top:4px;"></div>
               <!-- 5-nov-2026 (pedido de la usuaria, §PF382): Miembros, Puntos de clan y Trofeos de guerra pasan bajo la fila del Tag, como tres tarjetitas con el valor centrado. Clase propia (.clan-stats) para no tocar .stats-mini de las otras fichas; los ids cMiembros, cPuntos y cTrofeos no cambian. -->
               <div class="clan-stats" id="clanStats">
@@ -558,6 +558,17 @@
                 <span><b id="cPuntos"></b>Puntos de clan</span>
                 <span><b id="cTrofeos"></b>Trofeos de guerra</span>
               </div>
+              <!-- 5-nov-2026 (pedido de la usuaria, §PF391): más datos de /clans bajo las tres tarjetitas; los que salen de la lista de miembros (copas promedio, activos) los calcula _resumenMiembrosClan_() en el backend. -->
+              <div class="clan-stats" id="clanStats2">
+                <span><b id="cLiga"></b>Liga de guerra</span>
+                <span><b id="cDonaciones"></b>Donaciones por semana</span>
+                <span><b id="cCopasProm"></b>Copas promedio</span>
+                <span><b id="cActivos"></b>Activos en 7 días</span>
+                <span><b id="cCopasReq"></b>Copas requeridas</span>
+              </div>
+              <div class="text-dim" id="cLider" style="font-size:13px; margin-top:12px;"></div>
+              <div class="text-dim" id="cDescripcion" style="font-size:13px; margin-top:6px;"></div>
+              <div class="text-faint" id="cFuente" style="font-size:13px; margin-top:8px;"></div>
               <div id="cBadge" style="margin-top:10px;"></div>
             </div>
             <div id="clanColumnaDer" style="display:flex; flex-direction:column; align-items:flex-end; gap:10px;">
@@ -2538,6 +2549,12 @@ let _clanInfSeq = 0; // ídem para la consulta de «¿Infiltrado?» de la ficha 
 function _tipoClanTexto(t){
   return ({ open:'Abierto', inviteOnly:'Solo invitación', closed:'Cerrado' })[t] || '';
 }
+/** §PF391: de cuándo son los datos de la ficha. `origen` viene de _obtenerClanDelDia_(): 'api' y 'drive_hoy' son de hoy; 'drive_anterior' es el último dato guardado porque Supercell no respondió. */
+function _textoFuenteClan(fecha, origen){
+  const f = fecha ? ` (${fecha})` : '';
+  if(origen === 'drive_anterior') return `⚠ Supercell no respondió: son los últimos datos guardados${f}.`;
+  return fecha ? `Datos del clan consultados el ${fecha}. Se actualizan una vez al día.` : '';
+}
 function _numeroClan(n){
   return (n === null || n === undefined || n === '') ? '—' : Number(n).toLocaleString('es-PE');
 }
@@ -2573,6 +2590,17 @@ function reiniciarFichaClan(data){
   document.getElementById('cMiembros').textContent = _numeroClan(c.miembros);
   document.getElementById('cPuntos').textContent = _numeroClan(c.puntos);
   document.getElementById('cTrofeos').textContent = _numeroClan(c.trofeosGuerra);
+  // §PF391: más datos de /clans. Todo con textContent (la descripción la escribe el líder del clan externo).
+  document.getElementById('cEscudo').innerHTML = (c.badgeId && typeof iconoBadgeClanHtml === 'function') ? iconoBadgeClanHtml(c.badgeId, { size: 34 }) : '';
+  document.getElementById('cLiga').textContent = c.liga || '—';
+  document.getElementById('cDonaciones').textContent = _numeroClan(c.donacionesSemana);
+  document.getElementById('cCopasProm').textContent = _numeroClan(c.copasPromedio);
+  document.getElementById('cActivos').textContent = (c.activos7d === null || c.activos7d === undefined) ? '—' : `${c.activos7d}/${_numeroClan(c.miembros)}`;
+  document.getElementById('cCopasReq').textContent = _numeroClan(c.copasRequeridas);
+  const nCo = Number(c.coLideres) || 0;
+  document.getElementById('cLider').textContent = c.lider ? `👑 Líder: ${c.lider}${nCo ? ` · ${nCo} ${nCo === 1 ? 'colíder' : 'colíderes'}` : ''}` : '';
+  document.getElementById('cDescripcion').textContent = c.descripcion || '';
+  document.getElementById('cFuente').textContent = _textoFuenteClan(data.fechaConsulta, data.origenDatos);
   // «¿Infiltrado?» cerrada y sin resultado de la ficha anterior
   document.getElementById('clanInfiltradoPanel').style.display = 'none';
   const pi = document.getElementById('btnClanInfiltradoPastilla');

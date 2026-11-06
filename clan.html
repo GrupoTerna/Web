@@ -205,12 +205,37 @@ function mostrarErrorClan(msg){
   document.getElementById('clanError').innerHTML = `<div class="msg msg-error">${esc(msg)}</div>`;
 }
 
+/** Tipos de clan que manda Supercell (el mismo texto que «Buscar clan» de admin.html). */
+const TIPOS_CLAN = { open: 'Abierto', inviteOnly: 'Solo invitación', closed: 'Cerrado' };
+
+/** 5-nov-2026 (pedido de la usuaria, §PF391): «Datos del clan» con lo que webClanInfo ya manda y la tarjeta no mostraba (miembros, puntos de clan, trofeos de guerra,
+ *  donaciones por semana, tipo, país y descripción). En webClanInfo `copas` son los puntos de clan (clanScore) y `trofeos` los trofeos de guerra (clanWarTrophies):
+ *  la hoja Clan los llama al revés. Solo se pinta lo que trae dato; '' si no hay nada. Se agrega debajo de clanCardHtml() sin tocarlo (es compartido con Inicio y Directorio). */
+function clanDatosHtml(c){
+  const datos = [];
+  if (Number(c.miembros) > 0) datos.push([`${fmtNum(c.miembros)}/50`, 'Miembros']);
+  if (Number(c.copas) > 0) datos.push([fmtNum(c.copas), 'Puntos de clan']);
+  if (Number(c.trofeos) > 0) datos.push([fmtNum(c.trofeos), 'Trofeos de guerra']);
+  if (Number(c.donaciones) > 0) datos.push([fmtNum(c.donaciones), 'Donaciones por semana']);
+  if (TIPOS_CLAN[c.tipo]) datos.push([TIPOS_CLAN[c.tipo], 'Tipo']);
+  if (c.pais) datos.push([c.pais, 'País']);
+  const descripcion = String(c.descripcion || '').trim();
+  if (!datos.length && !descripcion) return '';
+  const stats = datos.map(([valor, etiqueta]) => `<div class="stat"><b>${esc(valor)}</b><span>${esc(etiqueta)}</span></div>`).join('');
+  return `
+    <div class="card" id="clanDatosCard" style="padding:24px; margin-top:20px;">
+      <h2 class="pf-subtitulo">Datos del clan</h2>
+      ${stats ? `<div class="cd-guerra-stats">${stats}</div>` : ''}
+      ${descripcion ? `<p class="text-dim" id="clanDescripcion" style="text-align:center; font-size:14px; margin-top:16px;">${esc(descripcion)}</p>` : ''}
+    </div>`;
+}
+
 /** Pinta el bloque "Básico" reutilizando clanCardHtml() (mismo componente
  * que Inicio/Directorio) — sin botones "Ver clan"/"Unirse", ya estamos
  * dentro del dashboard de ese clan. */
 function renderClanBasico(clanInfo, idx){
   const wrap = document.getElementById('clanInfoWrap');
-  wrap.innerHTML = clanCardHtml(clanInfo, idx, { mostrarVerClan: false, mostrarUnirse: false });
+  wrap.innerHTML = clanCardHtml(clanInfo, idx, { mostrarVerClan: false, mostrarUnirse: false }) + clanDatosHtml(clanInfo);
   // Accesibilidad (30-sep-2026, auditoría de clan.html): la página no tenía <h1> y el
   // nombre del clan sale como <h3> (clanCardHtml() es compartido con Inicio y
   // Directorio, donde sí cuelga de un <h2>). Aquí es el título de la página, así que
