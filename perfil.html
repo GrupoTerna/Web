@@ -5259,7 +5259,8 @@ function renderMazoActual(mazoActual, ext, j){
     </div>`;
   }
 
-  const promedioHtml = (mazoActual.elixirPromedio !== null && mazoActual.elixirPromedio !== undefined)
+  // FIX (06-nov-2026, error «Cannot read properties of null (reading 'elixirPromedio')» al abrir un perfil): el backend manda mazoActual = null cuando Cards_2 todavía no tiene datos de este Tag (_webMazoActualDesdeCards2()); el resto de la función ya lo tolera (mazoActual && ...), solo faltaba esta lectura. Historial en CHANGELOG.md.
+  const promedioHtml = (mazoActual && mazoActual.elixirPromedio !== null && mazoActual.elixirPromedio !== undefined)
     ? `<div class="text-dim" style="font-size:13px; margin-top:16px;">Coste de elixir promedio: <b>${esc(String(mazoActual.elixirPromedio))}</b></div>`
     : '';
 
