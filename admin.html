@@ -2845,11 +2845,12 @@ async function cargarMisCuentas(){
             <div style="font-family:var(--f-mono); font-size:13px; color:var(--text-faint); margin-top:2px; text-align:center;">${esc(m.tag)} · ${esc(m.rango)}</div>
             <!-- clan/nombre/tag-rango/vigencia quedan centrados, pero las 3 filas de Copas/V.Guerra/Torneos siguen alineadas a la izquierda entre sí, centradas como bloque. -->
             <div style="display:flex; flex-direction:column; gap:5px; margin:9px auto 0; width:fit-content;">
-              <div style="display:flex; align-items:center; gap:6px; font-family:var(--f-mono); font-size:13px; color:var(--text-dim);"><span style="width:64px; flex-shrink:0;">🏆 ${fmtNum(m.copas)}</span>${barra(m.copas, m._maxCopas, 'var(--gold)')}</div>
-              <div style="display:flex; align-items:center; gap:6px; font-family:var(--f-mono); font-size:13px; color:var(--text-dim);"><span style="width:64px; flex-shrink:0;">🎖️ ${fmtNum(m.vGuerra)}</span>${barra(m.vGuerra, m._maxVGuerra, 'var(--purple-light)')}</div>
-              <div style="display:flex; align-items:center; gap:6px; font-family:var(--f-mono); font-size:13px; color:var(--text-dim);"><span style="width:64px; flex-shrink:0;">🏅 ${fmtNum(m.torneos)}</span>${barra(m.torneos, m._maxTorneos, 'var(--silver)')}</div>
+              <div style="display:flex; align-items:center; gap:6px; font-family:var(--f-mono); font-size:13px; color:var(--text-dim);"><span style="min-width:64px; flex-shrink:0; white-space:nowrap;">🏆 ${fmtNum(m.copas)}</span>${barra(m.copas, m._maxCopas, 'var(--gold)')}</div>
+              <div style="display:flex; align-items:center; gap:6px; font-family:var(--f-mono); font-size:13px; color:var(--text-dim);"><span style="min-width:64px; flex-shrink:0; white-space:nowrap;">🎖️ ${fmtNum(m.vGuerra)}</span>${barra(m.vGuerra, m._maxVGuerra, 'var(--purple-light)')}</div>
+              <div style="display:flex; align-items:center; gap:6px; font-family:var(--f-mono); font-size:13px; color:var(--text-dim);"><span style="min-width:64px; flex-shrink:0; white-space:nowrap;">🏅 ${fmtNum(m.torneos)}</span>${barra(m.torneos, m._maxTorneos, 'var(--silver)')}</div>
             </div>
-            ${m.vigencia ? `<div style="font-family:var(--f-mono); font-size:13px; color:var(--text-faint); margin-top:6px; text-align:center;">Vigencia: ${esc(fmtFechaVigenciaAdmin(m.vigencia))}</div>` : ''}
+            <!-- Vigencia (5-nov-2026): el rótulo y la fecha no se parten por dentro; si no caben juntos, el rótulo queda en una línea y la fecha en la siguiente, pegada a la derecha (margin-left:auto). -->
+            ${m.vigencia ? `<div style="font-family:var(--f-mono); font-size:13px; color:var(--text-faint); margin-top:6px; display:flex; flex-wrap:wrap; column-gap:6px;"><span style="white-space:nowrap;">Vigencia:</span><span style="margin-left:auto; white-space:nowrap;">${esc(fmtFechaVigenciaAdmin(m.vigencia))}</span></div>` : ''}
           </div>`).join('')}
       </div>`;
   }catch(err){
