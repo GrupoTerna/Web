@@ -210,7 +210,8 @@ const TIPOS_CLAN = { open: 'Abierto', inviteOnly: 'Solo invitación', closed: 'C
 
 /** 5-nov-2026 (pedido de la usuaria, §PF391): «Datos del clan» con lo que webClanInfo ya manda y la tarjeta no mostraba (miembros, puntos de clan, trofeos de guerra,
  *  donaciones por semana, tipo, país y descripción). En webClanInfo `copas` son los puntos de clan (clanScore) y `trofeos` los trofeos de guerra (clanWarTrophies):
- *  la hoja Clan los llama al revés. Solo se pinta lo que trae dato; '' si no hay nada. Se agrega debajo de clanCardHtml() sin tocarlo (es compartido con Inicio y Directorio). */
+ *  la hoja Clan los llama al revés. Solo se pinta lo que trae dato; '' si no hay nada. Desde el 5-nov-2026 ya no es una tarjeta aparte: es la sección que clanFichaHtml()
+ *  pone debajo de Líder, Liga y Mín. trofeos, dentro de la misma tarjeta. */
 function clanDatosHtml(c){
   const datos = [];
   if (Number(c.miembros) > 0) datos.push([`${fmtNum(c.miembros)}/50`, 'Miembros']);
@@ -223,19 +224,45 @@ function clanDatosHtml(c){
   if (!datos.length && !descripcion) return '';
   const stats = datos.map(([valor, etiqueta]) => `<div class="stat"><b>${esc(valor)}</b><span>${esc(etiqueta)}</span></div>`).join('');
   return `
-    <div class="card" id="clanDatosCard" style="padding:24px; margin-top:20px;">
-      <h2 class="pf-subtitulo">Datos del clan</h2>
+    <div id="clanDatosSec" style="margin-top:16px; border-top:1px solid var(--line); padding-top:18px;">
+      <h2 class="pf-subtitulo" style="text-align:center;">Datos del clan</h2>
       ${stats ? `<div class="cd-guerra-stats">${stats}</div>` : ''}
       ${descripcion ? `<p class="text-dim" id="clanDescripcion" style="text-align:center; font-size:14px; margin-top:16px;">${esc(descripcion)}</p>` : ''}
     </div>`;
 }
 
-/** Pinta el bloque "Básico" reutilizando clanCardHtml() (mismo componente
- * que Inicio/Directorio) — sin botones "Ver clan"/"Unirse", ya estamos
+/** 5-nov-2026 (pedido de la usuaria): una sola tarjeta para el clan, en este orden: cabecera (insignia, escudo, nombre y Tag), Líder, Liga y Mín. trofeos (los tres con el mismo estilo),
+ *  «Datos del clan» y, como cierre, los botones RoyaleAPI y CWStats. Reutiliza clanCardCabeceraHtml() (compartida con Inicio, Directorio y guerra.html) y NO toca clanCardHtml(): Inicio y
+ *  Directorio siguen con su tarjeta de siempre, con «Mín. trofeos» a la derecha. */
+function clanFichaHtml(c, idx){
+  const lider = c.lider || '—';
+  const liga = c.liga || '—';
+  const reqTxt = c.requerimiento > 0 ? fmtNum(c.requerimiento) + '+' : '—';
+  const royaleOk = urlValida(c.royaleApi);
+  const cwOk = urlValida(c.cwStats);
+  const botones = (royaleOk || cwOk) ? `
+    <div id="clanEnlacesExt" style="display:flex; gap:10px; margin-top:18px; flex-wrap:wrap;">
+      ${royaleOk ? `<a class="btn btn-ghost" style="flex:1; text-align:center; font-size:13px; padding:9px 10px;" href="${esc(c.royaleApi)}" target="_blank" rel="noopener">${ICONO_ROYALEAPI}RoyaleAPI</a>` : ''}
+      ${cwOk ? `<a class="btn btn-ghost" style="flex:1; text-align:center; font-size:13px; padding:9px 10px;" href="${esc(c.cwStats)}" target="_blank" rel="noopener">${ICONO_CWSTATS}CWStats</a>` : ''}
+    </div>` : '';
+  return `
+    <div class="card card-hover clan-card" id="clanFichaCard" data-reveal style="padding:24px; display:flex; flex-direction:column;">${clanCardCabeceraHtml(c, idx, {})}
+      <div style="display:flex; justify-content:center; margin-top:12px;">
+        <div style="display:flex; flex-direction:column; align-items:flex-start; gap:4px; font-size:13px;">
+          <span class="text-dim">👑 Líder: <b style="color:var(--text);">${esc(lider)}</b></span>
+          <span class="text-dim">🛡️ Liga: <b style="color:var(--text);">${esc(liga)}</b></span>
+          <span class="text-dim">🏆 Mín. trofeos: <b style="color:var(--text);">${esc(reqTxt)}</b></span>
+        </div>
+      </div>
+      ${clanDatosHtml(c)}${botones}
+    </div>`;
+}
+
+/** Pinta el bloque "Básico" con clanFichaHtml() (una sola tarjeta; la cabecera es la misma de Inicio/Directorio) — sin botones "Ver clan"/"Unirse", ya estamos
  * dentro del dashboard de ese clan. */
 function renderClanBasico(clanInfo, idx){
   const wrap = document.getElementById('clanInfoWrap');
-  wrap.innerHTML = clanCardHtml(clanInfo, idx, { mostrarVerClan: false, mostrarUnirse: false }) + clanDatosHtml(clanInfo);
+  wrap.innerHTML = clanFichaHtml(clanInfo, idx);
   // Accesibilidad (30-sep-2026, auditoría de clan.html): la página no tenía <h1> y el
   // nombre del clan sale como <h3> (clanCardHtml() es compartido con Inicio y
   // Directorio, donde sí cuelga de un <h2>). Aquí es el título de la página, así que

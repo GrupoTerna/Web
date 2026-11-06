@@ -55,10 +55,47 @@ test('clan.html: la descripción se escapa (la escribe el líder del clan)', () 
   assert.match(html, /&lt;img src=x onerror=alert\(1\)&gt; &amp; más/);
 });
 
-test('clan.html: renderClanBasico agrega los datos sin cambiar el título de la página (primer h3 = nombre del clan)', () => {
+test('clan.html: renderClanBasico pinta una sola tarjeta (clanFichaHtml) y «Datos del clan» ya no es una tarjeta aparte; el título de la página sigue siendo el primer h3', () => {
   const cuerpo = extraer(CLAN, 'function renderClanBasico');
-  assert.match(cuerpo, /clanCardHtml\(clanInfo, idx, \{ mostrarVerClan: false, mostrarUnirse: false \}\) \+ clanDatosHtml\(clanInfo\)/);
-  assert.match(extraer(CLAN, 'function clanDatosHtml'), /<h2 class="pf-subtitulo">/, 'el título nuevo es h2, no h3');
+  assert.match(cuerpo, /wrap\.innerHTML = clanFichaHtml\(clanInfo, idx\);/);
+  assert.doesNotMatch(cuerpo, /clanCardHtml\(clanInfo/, 'ya no se llama a la tarjeta compartida');
+  const datos = extraer(CLAN, 'function clanDatosHtml');
+  assert.match(datos, /<h2 class="pf-subtitulo"/, 'el título de la sección es h2, no h3');
+  assert.doesNotMatch(datos, /class="card"/, 'ya no es una tarjeta aparte');
+});
+
+function cargarFicha() {
+  const ctx = { esc: s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])), fmtNum: n => Number(n).toLocaleString('en-US'),
+    urlValida: u => /^https:\/\//.test(String(u || '')), ICONO_ROYALEAPI: '<i>R</i>', ICONO_CWSTATS: '<i>C</i>', clanCardCabeceraHtml: () => '<h3>CABECERA</h3>' };
+  vm.createContext(ctx);
+  vm.runInContext(CLAN.slice(CLAN.indexOf('const TIPOS_CLAN'), CLAN.indexOf('\n', CLAN.indexOf('const TIPOS_CLAN'))) + '\n' + extraer(CLAN, 'function clanDatosHtml') + '\n' + extraer(CLAN, 'function clanFichaHtml'), ctx);
+  return ctx;
+}
+const CLAN_FICHA = { nombre: 'X', lider: 'Caandre', liga: 'Legendaria II', requerimiento: 14000, miembros: 49, copas: 138905, trofeos: 4151, donaciones: 12720, tipo: 'open', pais: 'Peru',
+  descripcion: 'Familia Terna', royaleApi: 'https://royaleapi.com/clan/X', cwStats: 'https://cwstats.com/clan/X' };
+
+test('clan.html: la ficha es una sola tarjeta y va en orden: cabecera, Líder, Liga, Mín. trofeos, Datos del clan y, al final, RoyaleAPI y CWStats (5-nov-2026)', () => {
+  const html = cargarFicha().clanFichaHtml(CLAN_FICHA, 0);
+  assert.equal((html.match(/class="card /g) || []).length, 1, 'una sola tarjeta');
+  const pos = ['CABECERA', 'Líder:', 'Liga:', 'Mín. trofeos:', 'Datos del clan', 'Miembros', 'Donaciones por semana', 'País', 'Familia Terna', 'RoyaleAPI', 'CWStats'].map(x => html.indexOf(x));
+  assert.ok(pos.every(n => n >= 0), 'faltan: ' + pos.join(','));
+  assert.deepEqual(pos, [...pos].sort((a, b) => a - b), 'orden: ' + pos.join(','));
+});
+
+test('clan.html: «Mín. trofeos» lleva el mismo estilo que Liga (ícono, texto y valor en negrita blanca), no a la derecha', () => {
+  const html = cargarFicha().clanFichaHtml(CLAN_FICHA, 0);
+  assert.match(html, /<span class="text-dim">🛡️ Liga: <b style="color:var\(--text\);">Legendaria II<\/b><\/span>/);
+  assert.match(html, /<span class="text-dim">🏆 Mín\. trofeos: <b style="color:var\(--text\);">14,000\+<\/b><\/span>/);
+  assert.doesNotMatch(html, /justify-content:space-between/, 'ya no va en una fila aparte a la derecha');
+  assert.match(cargarFicha().clanFichaHtml({ ...CLAN_FICHA, requerimiento: 0 }, 0), /Mín\. trofeos: <b[^>]*>—<\/b>/);
+});
+
+test('clan.html: sin enlaces válidos no hay botones, y un clan sin datos no deja una sección vacía', () => {
+  const { clanFichaHtml } = cargarFicha();
+  const sin = clanFichaHtml({ nombre: 'X', lider: 'A', liga: 'B', requerimiento: 0, royaleApi: '', cwStats: '' }, 0);
+  assert.doesNotMatch(sin, /RoyaleAPI|CWStats|clanEnlacesExt/);
+  assert.doesNotMatch(sin, /Datos del clan/);
+  assert.match(clanFichaHtml({ ...CLAN_FICHA, cwStats: '' }, 0), /RoyaleAPI/);
 });
 
 test('admin.html: la ficha de «Buscar clan» tiene los elementos nuevos y la descripción va con textContent', () => {
