@@ -299,6 +299,8 @@
   .insignias-subcat--sola, .leyendas-subcat--sola{margin-top:0; padding-top:0; border-top:0;}
   /* FIX (23-sep-2026, pedido usuario — "camino de leyendas no parece tener el mismo tamaño o peso que ligas"): en la card "Competitivo" las dos subsecciones usan exactamente el mismo encabezado, sin variante "--sola" (que quitaba la línea divisoria solo a la primera y la hacía verse distinta). El espaciado va en el bloque contenedor, no en el <h3>. */
   .leyendas-bloque{margin-top:18px;}
+  /* 6-nov-2026 (pedido de la usuaria, §PF393): puesto en el ranking de Camino de Leyendas de Perú y del mundo, bajo los anillos de la tarjeta. */
+  .leyendas-ranking{display:flex; flex-wrap:wrap; justify-content:center; gap:6px 22px; margin-top:16px; text-align:center;}
   /* FIX (12-oct-2026, pedido usuario -- "competitivo podría verse de una forma más gráfica ... como las minigráficas"): Camino de Leyendas y Camino de Trofeos pasan de dos tablas de texto a dos tarjetas .mini-pie (mismo vidrio y brillo que las minigráficas): anillos de liga y barras de trofeos. [→ Contexto_Base_Web.md §PF053] */
   .leyendas-grid{display:grid; grid-template-columns:minmax(0,1.2fr) minmax(0,1fr); gap:16px; margin-top:6px;}
   .leyendas-grid--solo{grid-template-columns:minmax(0,1fr);}
@@ -2559,11 +2561,21 @@ function renderCaminoLeyendas(j){
         ${datos.length ? `<div class="liga-anillo-dato liga-anillo-dato--fuerte">${datos.join(' \u00b7 ')}</div>` : ''}
       </div>`;
   };
-  const cardLeyendas = temporadasPol.length ? `
+  // 6-nov-2026 (§PF393): puesto en el ranking de Camino de Leyendas de Perú y del mundo (j.ranking, semanal: lunes). Solo se muestra el que trae puesto; sin ninguno (null) no aparece nada.
+  // El puesto mundial es el de la temporada j.ranking.temporada («AAAA-MM»). Si no hubiera anillos de liga pero sí ranking, la tarjeta sale solo con el ranking.
+  const rk = (j && j.ranking && typeof j.ranking === 'object') ? j.ranking : null;
+  const rkDato = x => (x && (num(x.puesto) || 0) > 0) ? { puesto: num(x.puesto), elo: num(x.elo) } : null;
+  const rkLocal = rk ? rkDato(rk.local) : null, rkGlobal = rk ? rkDato(rk.global) : null;
+  const rkLinea = (et, d) => `<div class="liga-anillo-dato liga-anillo-dato--fuerte">${esc(et)} #${esc(fmtNum(d.puesto))}${(d.elo || 0) > 0 ? ` \u00b7 ${esc(fmtNum(d.elo))} elo` : ''}</div>`;
+  const rkTemporada = rk ? idATxt(rk.temporada) : null;
+  const rankingLeyendas = (rkLocal || rkGlobal) ? `
+      <div class="leyendas-ranking" id="mLeyendasRanking">${rkLocal ? rkLinea('Ranking Per\u00fa', rkLocal) : ''}${rkGlobal ? rkLinea('Ranking mundial', rkGlobal) : ''}</div>
+      <div class="mini-pie-nota">El ranking se actualiza cada lunes${rkGlobal && rkTemporada ? `; el mundial es de ${esc(rkTemporada)}` : ''}</div>` : '';
+  const cardLeyendas = (temporadasPol.length || rankingLeyendas) ? `
     <div class="mini-pie">
-      <div class="mini-pie-titulo">${_ICONO_LEYENDAS_HTML}Camino de Leyendas</div>
+      <div class="mini-pie-titulo">${_ICONO_LEYENDAS_HTML}Camino de Leyendas</div>${temporadasPol.length ? `
       <div class="liga-anillos">${temporadasPol.map(anillo).join('')}</div>
-      <div class="mini-pie-nota">El anillo marca la liga alcanzada, de 1 a ${MAX_LIGA}</div>
+      <div class="mini-pie-nota">El anillo marca la liga alcanzada, de 1 a ${MAX_LIGA}</div>` : ''}${rankingLeyendas}
     </div>` : '';
 
   // Camino de Trofeos: una barra por registro, todas a la misma escala (la mayor cifra de la tarjeta = barra llena). La marca vertical es el máximo que alcanzó en esa temporada.

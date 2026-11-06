@@ -597,6 +597,8 @@
                 <span><b id="cActivos"></b>Activos en 7 días</span>
                 <span><b id="cCopasReq"></b>Copas requeridas</span>
               </div>
+              <!-- 6-nov-2026 (pedido de la usuaria, §PF393): puesto del clan en los rankings semanales de Perú y del mundo (copas y guerra), con el campo `ranking` que manda webAdminBuscarClan. Solo salen los rankings con puesto; sin ninguno, el bloque queda oculto (pintarRankingClan()). -->
+              <div class="clan-stats" id="clanStatsRanking" style="display:none;"></div>
               <div id="cLider"></div>
               <div class="text-dim" id="cDescripcion" style="font-size:14px; margin-top:8px;"></div>
               <div class="text-faint" id="cFuente" style="font-size:13px; margin-top:8px;"></div>
@@ -2605,6 +2607,22 @@ function _estadoPastillaVetarClan(c, infoRival){
   pastilla.classList.remove('activo');
   pastilla.setAttribute('aria-expanded', 'false');
 }
+/** 6-nov-2026 (§PF393): pinta en #clanStatsRanking solo los rankings con puesto (clanRankingItems(), clan-card.js, compartida con clan.html) y oculta el bloque si no hay ninguno. Todo con textContent. */
+function pintarRankingClan(c){
+  const cont = document.getElementById('clanStatsRanking');
+  if (!cont) return;
+  cont.textContent = '';
+  const items = (typeof clanRankingItems === 'function') ? clanRankingItems(c && c.ranking) : [];
+  items.forEach(([valor, etiqueta]) => {
+    const caja = document.createElement('span');
+    const b = document.createElement('b');
+    b.textContent = valor;
+    caja.appendChild(b);
+    caja.appendChild(document.createTextNode(etiqueta));
+    cont.appendChild(caja);
+  });
+  cont.style.display = items.length ? '' : 'none';
+}
 function reiniciarFichaClan(data){
   const c = data.clan;
   clanActual = c;
@@ -2628,6 +2646,7 @@ function reiniciarFichaClan(data){
   document.getElementById('cCopasProm').textContent = _numeroClan(c.copasPromedio);
   document.getElementById('cActivos').textContent = (c.activos7d === null || c.activos7d === undefined) ? '—' : `${c.activos7d}/${_numeroClan(c.miembros)}`;
   document.getElementById('cCopasReq').textContent = _numeroClan(c.copasRequeridas);
+  pintarRankingClan(c); // §PF393
   const nCo = Number(c.coLideres) || 0;
   document.getElementById('cLider').textContent = c.lider ? `👑 Líder: ${c.lider}${nCo ? ` · ${nCo} ${nCo === 1 ? 'colíder' : 'colíderes'}` : ''}` : '';
   document.getElementById('cDescripcion').textContent = c.descripcion || '';

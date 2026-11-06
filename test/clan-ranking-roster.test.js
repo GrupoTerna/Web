@@ -81,3 +81,82 @@ test('clan.html: tabla del roster centrada (encabezados y valores), Nombre a la 
   assert.doesNotMatch(CLAN, /th\.col-nombre\{text-align:left/, 'el encabezado de Nombre sigue centrado');
   assert.doesNotMatch(CLAN, /td\.col-tag\{[^}]*text-align:left/, 'Tag también va centrado');
 });
+
+// ---- admin.html: ficha de «Buscar clan» ----
+const ADMIN = fs.readFileSync(path.join(__dirname, '..', 'admin.html'), 'utf8');
+
+function cargarAdminRanking(ranking) {
+  const { JSDOM } = require('jsdom');
+  const dom = new JSDOM('<div class="clan-stats" id="clanStatsRanking" style="display:none;"><span>viejo</span></div>');
+  const ctx = { document: dom.window.document, fmtNum: n => Number(n).toLocaleString('en-US') };
+  vm.createContext(ctx);
+  vm.runInContext(extraer(CLAN_CARD, 'function clanRankingItems') + '\n' + extraer(ADMIN, 'function pintarRankingClan'), ctx);
+  ctx.pintarRankingClan({ ranking });
+  return dom.window.document.getElementById('clanStatsRanking');
+}
+
+test('admin.html: «Buscar clan» tiene un solo bloque de rankings y reiniciarFichaClan lo pinta', () => {
+  assert.equal(ADMIN.split('id="clanStatsRanking"').length - 1, 1);
+  assert.match(extraer(ADMIN, 'function reiniciarFichaClan'), /pintarRankingClan\(c\);/);
+});
+
+test('admin.html: pintarRankingClan muestra solo los rankings con puesto y limpia lo de la ficha anterior', () => {
+  const cont = cargarAdminRanking({ copas: { local: 317, global: null }, guerra: { local: null, global: 4500 } });
+  assert.notEqual(cont.style.display, 'none');
+  const cajas = [...cont.querySelectorAll('span')].map(sp => [sp.querySelector('b').textContent, sp.textContent.replace(sp.querySelector('b').textContent, '')]);
+  assert.deepEqual(cajas, [['#317', 'Copas · Perú'], ['#4,500', 'Guerra · Mundo']]);
+  assert.ok(!cont.textContent.includes('viejo'));
+});
+
+test('admin.html: pintarRankingClan oculta el bloque cuando el clan no figura en ningún ranking', () => {
+  for (const r of [null, undefined, { copas: { local: null, global: null }, guerra: { local: null, global: null } }]) {
+    const cont = cargarAdminRanking(r);
+    assert.equal(cont.style.display, 'none');
+    assert.equal(cont.children.length, 0);
+  }
+});
+
+// ---- perfil.html: puesto en Camino de Leyendas ----
+const PERFIL = fs.readFileSync(path.join(__dirname, '..', 'perfil.html'), 'utf8');
+
+function pintarLeyendas(j) {
+  const { JSDOM } = require('jsdom');
+  const dom = new JSDOM('<div id="mLeyendasCard" style="display:none"><div id="mLeyendasContenido"></div></div>');
+  const ctx = { document: dom.window.document, esc, fmtNum: n => Number(n).toLocaleString('en-US'), rawClash: x => x.rawClash || {}, _ICONO_LEYENDAS_HTML: '', MESES_ES: ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre'] };
+  vm.createContext(ctx);
+  vm.runInContext(extraer(PERFIL, 'function renderCaminoLeyendas'), ctx);
+  ctx.renderCaminoLeyendas(j);
+  return { card: dom.window.document.getElementById('mLeyendasCard'), cont: dom.window.document.getElementById('mLeyendasContenido') };
+}
+const RAW_LEYENDAS = { currentPathOfLegendSeasonResult: { leagueNumber: 7, trophies: 2200, rank: null } };
+
+test('perfil.html: el puesto de Camino de Leyendas muestra Perú y mundo con su elo, y el mundial dice de qué temporada es', () => {
+  const { card, cont } = pintarLeyendas({ rawClash: RAW_LEYENDAS, ranking: { fecha: '2026-11-03', temporada: '2026-10', local: { puesto: 130, elo: 2345 }, global: { puesto: 6403, elo: 2301 } } });
+  assert.notEqual(card.style.display, 'none');
+  const bloque = cont.querySelector('#mLeyendasRanking');
+  assert.ok(bloque, 'falta el bloque de ranking');
+  assert.match(bloque.textContent, /Ranking Perú #130 · 2,345 elo/);
+  assert.match(bloque.textContent, /Ranking mundial #6,403 · 2,301 elo/);
+  assert.match(cont.textContent, /el mundial es de octubre, 2026/);
+});
+
+test('perfil.html: muestra solo el ranking que trae puesto y se oculta del todo si no figura (ranking null)', () => {
+  const solo = pintarLeyendas({ rawClash: RAW_LEYENDAS, ranking: { local: null, global: { puesto: 99, elo: 0 } } }).cont;
+  assert.doesNotMatch(solo.querySelector('#mLeyendasRanking').textContent, /Perú/);
+  assert.match(solo.querySelector('#mLeyendasRanking').textContent, /Ranking mundial #99$/, 'sin elo no se escribe «0 elo»');
+  for (const r of [null, undefined, { local: null, global: null }, { local: { puesto: 0 }, global: {} }]) {
+    const { cont } = pintarLeyendas({ rawClash: RAW_LEYENDAS, ranking: r });
+    assert.equal(cont.querySelector('#mLeyendasRanking'), null);
+    assert.doesNotMatch(cont.textContent, /Ranking|se actualiza cada lunes/);
+  }
+});
+
+test('perfil.html: sin anillos de liga pero con ranking, la tarjeta sale con el ranking; sin ninguno de los dos, queda oculta', () => {
+  const conRank = pintarLeyendas({ rawClash: {}, ranking: { local: { puesto: 5, elo: 3000 }, global: null } });
+  assert.notEqual(conRank.card.style.display, 'none');
+  assert.match(conRank.cont.textContent, /Ranking Perú #5/);
+  assert.doesNotMatch(conRank.cont.textContent, /El anillo marca/);
+  const nada = pintarLeyendas({ rawClash: {}, ranking: null });
+  assert.equal(nada.card.style.display, 'none');
+  assert.equal(nada.cont.innerHTML, '');
+});

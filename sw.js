@@ -296,9 +296,10 @@
 // v248 (5-nov-2026): admin.html cambió (CORE_ASSETS) -- la ficha de «Buscar clan» toma el aspecto de la cabecera del perfil de jugador: cinta de fondo, nombre en dorado brillante y estadísticas en cuadritos parejos.
 // v249 (5-nov-2026): admin.html cambió (CORE_ASSETS) -- el panel «¿Infiltrado?» de «Buscar clan» y de «Buscar miembro» se rediseña: título dorado, veredicto en recuadro con marca de color, secciones con línea fina, tabla sin cajas anidadas y avisos «Ninguno.» compactos.
 // v250 (5-nov-2026): clan.html cambió (CORE_ASSETS) -- el dashboard de clan junta «Datos del clan» en la tarjeta principal: debajo de Líder y Liga va «Mín. trofeos» con el mismo estilo, luego los datos y, como cierre, los botones RoyaleAPI y CWStats.
+// v253 (6-nov-2026): admin.html y perfil.html cambiaron (CORE_ASSETS) -- la ficha de «Buscar clan» muestra el puesto del clan en los rankings de Perú y del mundo, y el perfil el puesto en Camino de Leyendas; ambos se ocultan si no hay datos.
 // v252 (6-nov-2026): clan.html y assets/js/features/clan-card.js cambiaron (CORE_ASSETS) -- sin línea divisoria en las cifras del clan, sección «Rankings» (se oculta si no hay datos) e íconos ⚠️, WhatsApp y 📈 junto al nombre en el roster, con la tabla centrada.
 // v251 (6-nov-2026): clan.html cambió (CORE_ASSETS) -- se quitó el título «Datos del clan» de la tarjeta del clan (pedido de la usuaria).
-const CACHE_NAME = 'terna-static-v252';
+const CACHE_NAME = 'terna-static-v253';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
