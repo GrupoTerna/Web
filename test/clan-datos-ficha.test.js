@@ -60,7 +60,7 @@ test('clan.html: renderClanBasico pinta una sola tarjeta (clanFichaHtml) y «Dat
   assert.match(cuerpo, /wrap\.innerHTML = clanFichaHtml\(clanInfo, idx\);/);
   assert.doesNotMatch(cuerpo, /clanCardHtml\(clanInfo/, 'ya no se llama a la tarjeta compartida');
   const datos = extraer(CLAN, 'function clanDatosHtml');
-  assert.match(datos, /<h2 class="pf-subtitulo"/, 'el título de la sección es h2, no h3');
+  assert.doesNotMatch(datos, /<h2|Datos del clan<\/h/, 'desde el 6-nov-2026 la sección no lleva título (pedido de la usuaria)');
   assert.doesNotMatch(datos, /class="card"/, 'ya no es una tarjeta aparte');
 });
 
@@ -74,10 +74,10 @@ function cargarFicha() {
 const CLAN_FICHA = { nombre: 'X', lider: 'Caandre', liga: 'Legendaria II', requerimiento: 14000, miembros: 49, copas: 138905, trofeos: 4151, donaciones: 12720, tipo: 'open', pais: 'Peru',
   descripcion: 'Familia Terna', royaleApi: 'https://royaleapi.com/clan/X', cwStats: 'https://cwstats.com/clan/X' };
 
-test('clan.html: la ficha es una sola tarjeta y va en orden: cabecera, Líder, Liga, Mín. trofeos, Datos del clan y, al final, RoyaleAPI y CWStats (5-nov-2026)', () => {
+test('clan.html: la ficha es una sola tarjeta y va en orden: cabecera, Líder, Liga, Mín. trofeos, las cifras del clan (sin título desde el 6-nov-2026) y, al final, RoyaleAPI y CWStats', () => {
   const html = cargarFicha().clanFichaHtml(CLAN_FICHA, 0);
   assert.equal((html.match(/class="card /g) || []).length, 1, 'una sola tarjeta');
-  const pos = ['CABECERA', 'Líder:', 'Liga:', 'Mín. trofeos:', 'Datos del clan', 'Miembros', 'Donaciones por semana', 'País', 'Familia Terna', 'RoyaleAPI', 'CWStats'].map(x => html.indexOf(x));
+  const pos = ['CABECERA', 'Líder:', 'Liga:', 'Mín. trofeos:', 'Miembros', 'Donaciones por semana', 'País', 'Familia Terna', 'RoyaleAPI', 'CWStats'].map(x => html.indexOf(x));
   assert.ok(pos.every(n => n >= 0), 'faltan: ' + pos.join(','));
   assert.deepEqual(pos, [...pos].sort((a, b) => a - b), 'orden: ' + pos.join(','));
 });

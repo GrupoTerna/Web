@@ -211,7 +211,7 @@ const TIPOS_CLAN = { open: 'Abierto', inviteOnly: 'Solo invitación', closed: 'C
 /** 5-nov-2026 (pedido de la usuaria, §PF391): «Datos del clan» con lo que webClanInfo ya manda y la tarjeta no mostraba (miembros, puntos de clan, trofeos de guerra,
  *  donaciones por semana, tipo, país y descripción). En webClanInfo `copas` son los puntos de clan (clanScore) y `trofeos` los trofeos de guerra (clanWarTrophies):
  *  la hoja Clan los llama al revés. Solo se pinta lo que trae dato; '' si no hay nada. Desde el 5-nov-2026 ya no es una tarjeta aparte: es la sección que clanFichaHtml()
- *  pone debajo de Líder, Liga y Mín. trofeos, dentro de la misma tarjeta. */
+ *  pone debajo de Líder, Liga y Mín. trofeos, dentro de la misma tarjeta. 6-nov-2026 (pedido de la usuaria): se quitó el título «Datos del clan»; quedan la línea divisoria y las cifras. */
 function clanDatosHtml(c){
   const datos = [];
   if (Number(c.miembros) > 0) datos.push([`${fmtNum(c.miembros)}/50`, 'Miembros']);
@@ -225,7 +225,6 @@ function clanDatosHtml(c){
   const stats = datos.map(([valor, etiqueta]) => `<div class="stat"><b>${esc(valor)}</b><span>${esc(etiqueta)}</span></div>`).join('');
   return `
     <div id="clanDatosSec" style="margin-top:16px; border-top:1px solid var(--line); padding-top:18px;">
-      <h2 class="pf-subtitulo" style="text-align:center;">Datos del clan</h2>
       ${stats ? `<div class="cd-guerra-stats">${stats}</div>` : ''}
       ${descripcion ? `<p class="text-dim" id="clanDescripcion" style="text-align:center; font-size:14px; margin-top:16px;">${esc(descripcion)}</p>` : ''}
     </div>`;
