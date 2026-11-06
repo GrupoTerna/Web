@@ -29,7 +29,7 @@ function clanCardCabeceraHtml(c, i, opts){
         <span class="badge ${badge.cls}">${esc(badge.label)}</span>
       </div>
       <h3 style="font-size:20px; text-align:center;">${iconoBadgeHtml}${nombreHtml}</h3>
-      <div class="text-faint" style="font-family:var(--f-mono); font-size:12px; margin-top:4px; text-align:center;">${esc(c.clanTag||'')}</div>`;
+      <div class="text-faint" style="font-family:var(--f-mono); font-size:13px; margin-top:4px; text-align:center;">${esc(c.clanTag||'')}</div>`;
 }
 
 
@@ -85,8 +85,8 @@ function clanCardHtml(c, i, opts){
         <span class="text-faint">Mín. trofeos</span><b style="color:var(--gold);">${reqTxt} 🏆</b>
       </div>
       ${(royaleApiOk || cwStatsOk) ? `<div style="display:flex; gap:10px; margin-top:14px; flex-wrap:wrap;">
-        ${royaleApiOk ? `<a class="btn btn-ghost" style="flex:1; text-align:center; font-size:12px; padding:9px 10px;" href="${esc(c.royaleApi)}" target="_blank" rel="noopener">${ICONO_ROYALEAPI}RoyaleAPI</a>` : ''}
-        ${cwStatsOk  ? `<a class="btn btn-ghost" style="flex:1; text-align:center; font-size:12px; padding:9px 10px;" href="${esc(c.cwStats)}" target="_blank" rel="noopener">${ICONO_CWSTATS}CWStats</a>` : ''}
+        ${royaleApiOk ? `<a class="btn btn-ghost" style="flex:1; text-align:center; font-size:13px; padding:9px 10px;" href="${esc(c.royaleApi)}" target="_blank" rel="noopener">${ICONO_ROYALEAPI}RoyaleAPI</a>` : ''}
+        ${cwStatsOk  ? `<a class="btn btn-ghost" style="flex:1; text-align:center; font-size:13px; padding:9px 10px;" href="${esc(c.cwStats)}" target="_blank" rel="noopener">${ICONO_CWSTATS}CWStats</a>` : ''}
       </div>` : ''}
       ${opts.mostrarVerClan ? `<a class="btn btn-primary btn-block" href="${esc(verClanHref)}" style="margin-top:12px;">Ver clan</a>` : ''}
       ${opts.mostrarUnirse ? `<button type="button" class="btn btn-ghost btn-block js-solicitar-unirme" data-clan="${esc(nombre)}" style="margin-top:12px;">Unirse a este clan</button>` : ''}

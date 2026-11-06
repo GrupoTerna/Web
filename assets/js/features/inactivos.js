@@ -329,7 +329,7 @@ async function agregarTarjetaCuentasInactivasSiAdmin(grid){
              administradores'"): faltaba text-align:center (el resto del
              bloque — insignia y título — ya estaba centrado desde el FIX
              del 16-sep-2026 anterior, esta línea quedó afuera por error). -->
-        <div class="text-faint" style="font-family:var(--f-mono); font-size:12px; margin-top:4px; text-align:center;">Solo visible para administradores</div>
+        <div class="text-faint" style="font-family:var(--f-mono); font-size:13px; margin-top:4px; text-align:center;">Solo visible para administradores</div>
         <div style="flex:1; min-height:8px;"></div>
         <div style="font-family:var(--f-mono); font-size:13px; border-top:1px solid var(--line); padding-top:12px; color:var(--text-dim); text-align:center;">
           ${fmtNum(cuentas.length)} cuenta(s) inactiva(s)

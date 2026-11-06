@@ -279,7 +279,8 @@
 // v230 (5-nov-2026): assets/js/features/mini-historial.js y assets/styles.css cambiaron (CORE_ASSETS) -- el clic en el ⚠️ abre su modal: clanes vetados o rivales del jugador con tipo, semanas, primera → última y tabla de sus semanas; paso 2 de §PF375.
 // v231 (5-nov-2026): directorio.html cambió (CORE_ASSETS) -- el clic en el ⚠️ no abre además el perfil de la fila o tarjeta, y en Ingresos recientes va a la derecha del 📈 con su caja de 28 px; paso 3 de §PF375.
 // v232 (5-nov-2026): admin.html cambió (CORE_ASSETS) -- los paneles «¿Infiltrado?» se leen mejor: superficie propia, textos de apoyo de 15 px, títulos con marca dorada, encabezados de tabla en dorado y pastillas con borde visible (§PF374).
-const CACHE_NAME = 'terna-static-v232';
+// v233 (5-nov-2026): assets/styles.css, assets/js/features/clan-card.js, assets/js/features/inactivos.js, assets/js/util.js y todas las páginas cambiaron (CORE_ASSETS) -- ninguna letra de texto baja de 13 px (salvo los ejes de las gráficas y las etiquetas dentro de figuras pequeñas) y los grises de apoyo --text-dim y --text-faint se aclaran (§PF374).
+const CACHE_NAME = 'terna-static-v233';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y

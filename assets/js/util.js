@@ -307,7 +307,7 @@ function marcarDatosGuardados(el, desde, estiloExtra){
   const aviso = el.ownerDocument.createElement('div');
   aviso.className = 'text-faint js-aviso-guardado';
   aviso.setAttribute('role', 'status');
-  aviso.style.cssText = 'text-align:center; margin-top:12px; font-size:12px;' + (estiloExtra || '');
+  aviso.style.cssText = 'text-align:center; margin-top:12px; font-size:13px;' + (estiloExtra || '');
   aviso.textContent = '⚠ Datos guardados: el servidor no responde (' + fmtTiempoRelativo(desde) + ').';
   el.insertAdjacentElement('afterend', aviso);
   return aviso;
