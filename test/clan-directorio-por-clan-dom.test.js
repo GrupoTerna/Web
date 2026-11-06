@@ -110,3 +110,10 @@ test('tocar una fila lleva al perfil del jugador en vez de abrir el panel de Dir
   assert.match(src, /rosterAbrirMiembro\(row\.dataset\.tag\);/);
   assert.doesNotMatch(src, /buscarMiembro\(/);
 });
+
+test('clan.html: el orden de las tarjetas es dashboard, Directorio por clan, Guerra y Evolución (pedido de la usuaria, 6-nov-2026)', () => {
+  const pos = id => { const i = CLAN.indexOf(`id="${id}"`); assert.ok(i >= 0, 'falta #' + id); return i; };
+  assert.ok(pos('clanInfoWrap') < pos('rosterWrap'), 'el dashboard va antes del directorio');
+  assert.ok(pos('rosterWrap') < pos('clanGuerraWrap'), 'el directorio va antes de Guerra');
+  assert.ok(pos('clanGuerraWrap') < pos('clanCopasWrap'), 'Guerra va antes de Evolución');
+});
