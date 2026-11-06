@@ -181,6 +181,27 @@
   .inf-panel .tabla-coincidencias-wrap tbody td, .inf-panel .ex-activos-tabla .roster-table tbody td{font-size:15px; color:#fff; border-bottom:1px solid rgba(162,57,255,.22);}
   .inf-panel .ex-activos-tabla .roster-table td.rt-num, .inf-panel .ex-activos-tabla .roster-table td.rt-periodo, .inf-panel .ex-activos-tabla .roster-table td.rt-semanas{color:#d5dbe8;}
   .inf-panel .tabla-coincidencias-wrap tbody tr:nth-child(even) td{background:rgba(162,57,255,.08);}
+  /* 5-nov-2026 (pedido de la usuaria: «se ve bien fea» la sección de infiltrados): rediseño solo de presentación, en la línea de la ficha del clan y del perfil de jugador. Título en dorado brillante con su separador, el veredicto como recuadro con marca de color (violeta si no hay coincidencias, rojo si las hay), títulos de sección sin barra gruesa (solo una línea fina debajo), tabla sin cajas anidadas y con la columna del nombre alineada a la izquierda también en el encabezado, y los «Ninguno.» como avisos compactos en vez de grandes bloques centrados. Los textos, ids y clases del HTML que arma renderInfiltrado() no cambian; ningún texto baja de 13 px. */
+  .inf-panel{padding:24px 26px; border-top:3px solid var(--purple); box-shadow:0 8px 30px rgba(0,0,0,.28);}
+  .inf-panel .inf-titulo{font-family:var(--f-display); font-size:19px; font-weight:800; text-transform:uppercase; letter-spacing:.03em; margin:0 0 16px; padding-bottom:12px; border-bottom:1px solid var(--line); background:linear-gradient(180deg,#fff3b8 0%,#ffd84d 45%,#f3a922 100%); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; color:#ffd84d; filter:drop-shadow(0 0 6px rgba(255,200,60,.3));}
+  .inf-panel .inf-veredicto{display:flex; flex-direction:column; align-items:flex-start; gap:10px; padding:14px 16px; border:1px solid var(--line-strong); border-left:4px solid var(--purple-light); border-radius:var(--radius-sm); background:rgba(162,57,255,.09);}
+  .inf-panel .inf-veredicto:has(.badge-warn){border-color:rgba(251,113,133,.5); border-left-color:#fb7185; background:rgba(244,63,94,.09);}
+  .inf-panel .inf-veredicto .inf-nota{margin:0; font-size:14px;}
+  .inf-panel .inf-nota{font-size:14px; line-height:1.6;}
+  .inf-panel .inf-sub{font-size:14px; color:var(--gold-light); letter-spacing:.08em; margin:26px 0 12px; padding:0 0 8px; border-left:0; border-bottom:1px solid var(--line);}
+  .inf-panel .empty{padding:12px 14px; font-size:14px; text-align:left; background:rgba(255,255,255,.03); border:1px dashed var(--line-strong); border-radius:var(--radius-sm);}
+  .inf-panel .ex-clan-pills{margin:0 0 12px;}
+  .inf-panel .ex-activos-tabla{background:rgba(9,11,18,.55); border-radius:var(--radius);}
+  .inf-panel .ex-activos-tabla .roster-clan-header{padding:14px 16px 10px;}
+  .inf-panel .ex-activos-tabla .roster-clan-title{font-size:16px;}
+  .inf-panel .ex-activos-tabla .tabla-coincidencias-wrap{border:0; border-top:1px solid var(--line-strong); border-radius:0;}
+  .inf-panel .ex-activos-tabla .roster-table thead th:nth-child(2){text-align:left;}
+  .inf-panel .ex-activos-tabla .ex-activos-vacio{padding:2px 16px 16px; font-size:14px;}
+  .inf-panel .roster-table thead th, .inf-panel .tabla-coincidencias-wrap thead th{font-size:13px; letter-spacing:.06em; background:rgba(255,255,255,.05);}
+  .inf-panel .tabla-coincidencias-wrap tbody td, .inf-panel .ex-activos-tabla .roster-table tbody td{font-size:14px;}
+  .inf-panel .roster-table tbody tr:hover td, .inf-panel .tabla-coincidencias-wrap tbody tr:hover td{background:rgba(162,57,255,.14);}
+  .inf-panel .inf-pie{margin-top:22px; padding-top:12px; border-top:1px solid var(--line);}
+  @media (max-width:640px){ .inf-panel{padding:16px;} .inf-panel .inf-titulo{font-size:17px;} }
   /* FIX (19-sep-2026, Fase 0 re-verificada): .btn-icono (+ .btn-icono.copiado)
      centralizado en assets/styles.css — era idéntico carácter por carácter
      al de mensajes.html; permisos.html tenía una versión distinta sin saber
@@ -514,7 +535,7 @@
 
         <!-- 5-nov-2026 (pedido de la usuaria): «Vetar miembro» se integró a «Buscar miembro». Con el perfil ya elegido se ve la pastilla «Vetar» y, al pulsarla, el resto de la antigua sección (Razón, Comentario y botón); el Tag es el del miembro de la ficha (miembroActual), ya no se escribe. Solo la ve quien tiene la función «Vetar» (aplicarVisibilidadPorFunciones()); el backend lo vuelve a validar en _webAdminVetar(). Vetar es de un solo sentido, sin «desvetar» desde la web; la lista de Razón debe actualizarse a mano si cambia en el backend. -->
         <div id="infiltradoPanel" class="inf-panel" style="display:none; margin-top:18px;">
-          <h3 id="infFichaTitulo" style="font-size:19px; color:var(--gold-light); margin-bottom:16px;"></h3>
+          <h3 id="infFichaTitulo" class="inf-titulo"></h3>
           <div id="fichaInfMsg" aria-live="polite"></div>
           <div id="fichaInfResultado" style="margin-top:4px;"></div>
         </div>
@@ -598,7 +619,7 @@
         </div>
 
         <div id="clanInfiltradoPanel" class="inf-panel" style="display:none; margin-top:18px;">
-          <h3 id="clanInfTitulo" style="font-size:19px; color:var(--gold-light); margin-bottom:16px;"></h3>
+          <h3 id="clanInfTitulo" class="inf-titulo"></h3>
           <div id="clanInfMsg" aria-live="polite"></div>
           <div id="clanInfResultado" style="margin-top:4px;"></div>
         </div>
@@ -2503,9 +2524,9 @@ function renderInfiltrado(data, cont, conVeredicto = false){
       // Pastilla «¿Infiltrado?» de la ficha del clan (§PF368): el nombre, el Tag y la marca de rival ya están en la cabecera de la ficha; aquí solo el veredicto y la tabla.
       const n = filas.length;
       const veredictoClan = n
-        ? `<span class="badge badge-warn">${n === 1 ? '1 miembro actual figura' : n + ' miembros actuales figuran'} en nuestro roster</span><div class="inf-nota" style="margin-top:8px;">Son miembros de este clan que también están en Directorio, Inactivos o Vetados.</div>`
-        : '<span class="badge">Sin coincidencias</span><div class="inf-nota" style="margin-top:8px;">Ninguno de sus miembros actuales figura en nuestro roster (Directorio, Inactivos o Vetados). Esto no prueba que no haya infiltrados: solo revisa a quienes están hoy en el clan.</div>';
-      cont.innerHTML = `<div>${veredictoClan}</div>` + (n ? `<div style="margin-top:14px;">${_tablaCoincidencias(filas, true)}</div>` : '') + _seccionExMiembrosClan(data);
+        ? `<span class="badge badge-warn">${n === 1 ? '1 miembro actual figura' : n + ' miembros actuales figuran'} en nuestro roster</span><div class="inf-nota">Son miembros de este clan que también están en Directorio, Inactivos o Vetados.</div>`
+        : '<span class="badge">Sin coincidencias</span><div class="inf-nota">Ninguno de sus miembros actuales figura en nuestro roster (Directorio, Inactivos o Vetados). Esto no prueba que no haya infiltrados: solo revisa a quienes están hoy en el clan.</div>';
+      cont.innerHTML = `<div class="inf-veredicto">${veredictoClan}</div>` + (n ? `<div style="margin-top:14px;">${_tablaCoincidencias(filas, true)}</div>` : '') + _seccionExMiembrosClan(data);
       cont.querySelectorAll('.tabla-coincidencias-wrap').forEach(w => activarBarraScrollTabla(w));
       _enlazarActivosClan(cont, data);
       return;

@@ -34,3 +34,18 @@ test('las estadísticas del clan van en una grilla pareja de cuadritos y ninguna
 test('Líder, descripción y fuente no dejan huecos cuando vienen vacíos', () => {
   assert.match(HTML, /#cLider:empty, #cDescripcion:empty, #cFuente:empty\{display:none;\}/);
 });
+
+test('el panel «¿Infiltrado?» usa el título dorado y el veredicto en recuadro (los dos paneles)', () => {
+  assert.match(HTML, /<h3 id="clanInfTitulo" class="inf-titulo"><\/h3>/);
+  assert.match(HTML, /<h3 id="infFichaTitulo" class="inf-titulo"><\/h3>/);
+  assert.ok(HTML.includes('<div class="inf-veredicto">${veredictoClan}</div>'));
+  assert.match(HTML, /\.inf-panel \.inf-veredicto:has\(\.badge-warn\)\{/);
+});
+
+test('el rediseño del panel «¿Infiltrado?» no baja de 13 px ningún texto', () => {
+  const i = HTML.indexOf('.inf-panel{padding:24px 26px;');
+  const f = HTML.indexOf('@media (max-width:640px){ .inf-panel{padding:16px;}', i);
+  assert.ok(i > 0 && f > i);
+  const tamanos = [...HTML.slice(i, f).matchAll(/font-size:(\d+)px/g)].map(m => Number(m[1]));
+  assert.ok(tamanos.length > 5 && tamanos.every(n => n >= 13), 'tamaños: ' + tamanos.join(', '));
+});

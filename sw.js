@@ -294,7 +294,8 @@
 // v246 (5-nov-2026): admin.html cambió (CORE_ASSETS) -- en las tarjetas de «Tus cuentas» las copas, victorias de guerra y torneos ya no se parten (ícono y número en una línea) y «Vigencia:» queda en una línea con su fecha en la siguiente, pegada a la derecha, cuando no caben juntas.
 // v247 (5-nov-2026): admin.html cambió (CORE_ASSETS) -- en las tarjetas de «Tus cuentas» las barras de Copas, Victorias de guerra y Torneos ya se ven: ocupan el ancho que sobra a la derecha del número.
 // v248 (5-nov-2026): admin.html cambió (CORE_ASSETS) -- la ficha de «Buscar clan» toma el aspecto de la cabecera del perfil de jugador: cinta de fondo, nombre en dorado brillante y estadísticas en cuadritos parejos.
-const CACHE_NAME = 'terna-static-v248';
+// v249 (5-nov-2026): admin.html cambió (CORE_ASSETS) -- el panel «¿Infiltrado?» de «Buscar clan» y de «Buscar miembro» se rediseña: título dorado, veredicto en recuadro con marca de color, secciones con línea fina, tabla sin cajas anidadas y avisos «Ninguno.» compactos.
+const CACHE_NAME = 'terna-static-v249';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
