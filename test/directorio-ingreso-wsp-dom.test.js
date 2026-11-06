@@ -44,7 +44,11 @@ const construir = new Function(`
   const esCuentaAdminIngreso = () => false;
   const tieneWspIngreso = n => !!(n && n.tieneWsp === true);
   // Simula botonHistJugador de mini-historial.js: con sinWsp no antepone ícono propio.
-  const botonHistJugador = (f, opts) => '<button class="btn-hist-jugador"' + (opts && opts.sinWsp ? ' data-sin-wsp="1"' : '') + ' data-tag="' + f.tag + '">📈</button>';
+  const botonHistJugador = (f, opts) => '<button class="btn-hist-jugador"' + (opts && opts.sinWsp ? ' data-sin-wsp="1"' : '') + (opts && opts.sinAlerta ? ' data-sin-alerta="1"' : '') + ' data-tag="' + f.tag + '">📈</button>';
+  // 5-nov-2026 (§PF383): simulan la sesión de admin y la lista de alertas (globalThis.__alerta = Set de Tags; sin él no hay sesión).
+  const esAdminLogueado = () => !!globalThis.__alerta;
+  const alertaClanesDe = t => (globalThis.__alerta && globalThis.__alerta.has(t)) ? { n: 1, tipos: ['rival'] } : null;
+  const botonAlertaClanesHtml = f => '<button class="btn-alerta-clanes" data-tag="' + f.tag + '">⚠️</button>';
   ${lineaConst}
   ${extraerFuncion(grande, 'nuevoCardHtml')}
   return nuevoCardHtml;
@@ -87,4 +91,35 @@ test('el 📈 sale también sin WhatsApp, sin RoyaleAPI y sin CWStats (solo con 
   assert.match(h, /btn-hist-jugador/);
   assert.doesNotMatch(h, /ico-wsp/);
   assert.doesNotMatch(construir({ nombre: 'Sin tag', clan: 'X' }), /btn-hist-jugador/);
+});
+
+// NUEVO (5-nov-2026, §PF383, pedido de la usuaria): en «Ingresos recientes» salen hasta cinco íconos, en este orden:
+// RoyaleAPI, CWStats, ⚠️, WhatsApp y 📈 (el ⚠️ y el 📈 son los mismos botones del mini historial, uno solo de cada).
+test('con los cinco íconos el orden es RoyaleAPI, CWStats, ⚠️, WhatsApp, 📈, y cada uno sale una sola vez', () => {
+  globalThis.__alerta = new Set(['#AAA']);
+  try{
+    const h = construir({ ...base, tieneWsp: true });
+    const pos = ['<i-royale>', '<i-cw>', 'btn-alerta-clanes', 'class="ico-wsp"', 'btn-hist-jugador'].map(x => h.indexOf(x));
+    assert.ok(pos.every(i => i >= 0), 'están los cinco: ' + pos.join(','));
+    assert.deepEqual([...pos].sort((a, b) => a - b), pos, 'orden RoyaleAPI, CWStats, ⚠️, WhatsApp, 📈');
+    assert.equal((h.match(/btn-alerta-clanes/g) || []).length, 1);
+    assert.equal((h.match(/btn-hist-jugador/g) || []).length, 1);
+    assert.match(h, /data-sin-alerta="1"/, 'el 📈 no antepone otro ⚠️');
+  } finally { delete globalThis.__alerta; }
+});
+
+test('sin sesión de admin o con el Tag fuera de la lista de alertas no sale el ⚠️', () => {
+  assert.doesNotMatch(construir({ ...base, tieneWsp: true }), /btn-alerta-clanes/, 'sin sesión');
+  globalThis.__alerta = new Set(['#OTRO']);
+  try{ assert.doesNotMatch(construir({ ...base, tieneWsp: true }), /btn-alerta-clanes/, 'Tag fuera de la lista'); }
+  finally { delete globalThis.__alerta; }
+});
+
+test('el ⚠️ sale solo, sin RoyaleAPI, CWStats ni WhatsApp, y la caja .links se pinta igual', () => {
+  globalThis.__alerta = new Set(['#B']);
+  try{
+    const h = construir({ tag: '#B', nombre: 'Beto', clan: 'X' });
+    assert.match(h, /class="links"/);
+    assert.ok(h.indexOf('btn-alerta-clanes') < h.indexOf('btn-hist-jugador'));
+  } finally { delete globalThis.__alerta; }
 });

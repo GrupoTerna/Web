@@ -22,14 +22,17 @@ function iconoWspHistHtml(f){
   const n = f.nombre || f.tag;
   return `<span class="hist-wsp" role="img" aria-label="Tenemos el número de WhatsApp de ${esc(n)}" title="Tenemos su número de WhatsApp">${ICONO_WSP_SOLO}</span>`;
 }
-/* opts.sinWsp (23-oct-2026, tanda 2): la tarjeta de «Ingresos recientes» ya pinta su propio ícono de WhatsApp (.ico-wsp), así que aquí no se antepone otro ni wspRepintar() lo añade después. */
+/* opts.sinWsp (23-oct-2026, tanda 2): la tarjeta de «Ingresos recientes» ya pinta su propio ícono de WhatsApp (.ico-wsp), así que aquí no se antepone otro ni wspRepintar() lo añade después.
+   opts.sinAlerta (5-nov-2026, §PF383): la misma tarjeta pinta además su propio ⚠️ (botonAlertaClanesHtml) para dejar el orden RoyaleAPI, CWStats, ⚠️, WhatsApp, 📈; aquí no se antepone otro.
+   Orden unificado (5-nov-2026, §PF383, pedido de la usuaria): ⚠️ a la izquierda, WhatsApp en el medio y 📈 a la derecha, en todos los lugares donde aparezcan. */
 function botonHistJugador(f, opts){
   if (!f || !f.tag) return '';
   const sinWsp = !!(opts && opts.sinWsp);
+  const sinAlerta = !!(opts && opts.sinAlerta);
   const adminOk = typeof esAdminLogueado === 'function' && esAdminLogueado();
   const wsp = (!sinWsp && adminOk && (f.tieneWsp === true || wspTieneTag(f.tag))) ? iconoWspHistHtml(f) : '';
-  const alerta = (adminOk && alertaClanesDe(f.tag)) ? botonAlertaClanesHtml(f) : '';
-  return wsp + `<button type="button" class="btn-hist-jugador"${sinWsp ? ' data-sin-wsp="1"' : ''} data-tag="${esc(f.tag)}" data-nombre="${esc(f.nombre || f.tag)}" title="Ver historial de guerra" aria-label="Historial de guerra de ${esc(f.nombre || f.tag)}">📈</button>` + alerta;
+  const alerta = (!sinAlerta && adminOk && alertaClanesDe(f.tag)) ? botonAlertaClanesHtml(f) : '';
+  return alerta + wsp + `<button type="button" class="btn-hist-jugador"${sinWsp ? ' data-sin-wsp="1"' : ''} data-tag="${esc(f.tag)}" data-nombre="${esc(f.nombre || f.tag)}" title="Ver historial de guerra" aria-label="Historial de guerra de ${esc(f.nombre || f.tag)}">📈</button>`;
 }
 function wspRepintar(){
   document.querySelectorAll('.btn-hist-jugador').forEach(b => {
@@ -37,7 +40,7 @@ function wspRepintar(){
     const prev = b.previousElementSibling;
     if (prev && prev.classList.contains('hist-wsp')) return;
     if (!wspTieneTag(b.dataset.tag)) return;
-    b.insertAdjacentHTML('beforebegin', iconoWspHistHtml({ tag: b.dataset.tag, nombre: b.dataset.nombre }));
+    b.insertAdjacentHTML('beforebegin', iconoWspHistHtml({ tag: b.dataset.tag, nombre: b.dataset.nombre })); // justo antes del 📈 y, por tanto, después del ⚠️ si ya está
   });
 }
 async function wspCargarTags(){
@@ -51,7 +54,7 @@ async function wspCargarTags(){
   }catch(_){ /* sin la lista solo falta el ícono de WhatsApp; el 📈 sigue igual */ }
 }
 if (typeof document !== 'undefined') { if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', wspCargarTags); else wspCargarTags(); }
-/* 5-nov-2026 (pedido de la usuaria, §PF375): ⚠️ permanente a la DERECHA del 📈 en los jugadores que estuvieron en un clan vetado o rival de la guerra. Solo admins. El resumen (un archivo pequeño del backend, con caché) lo pide alertaCargarTags() a webAdminTagsClanesSospechosos: { ok, actualizado, jugadores: { 'TAGSINNUMERAL': { n, tipos } } }. Igual que el WhatsApp, si la lista llega después de pintar una tabla, alertaRepintar() inserta el ⚠️ en los botones ya existentes; si el backend falla solo falta el ⚠️. perfil.html (data-sin-wsp-tags) no lo pide. El clic lo atiende el modal del paso 2 de §PF375. */
+/* 5-nov-2026 (pedido de la usuaria, §PF375): ⚠️ permanente (desde §PF383 a la IZQUIERDA del WhatsApp y del 📈; antes iba a la derecha del 📈) en los jugadores que estuvieron en un clan vetado o rival de la guerra. Solo admins. El resumen (un archivo pequeño del backend, con caché) lo pide alertaCargarTags() a webAdminTagsClanesSospechosos: { ok, actualizado, jugadores: { 'TAGSINNUMERAL': { n, tipos } } }. Igual que el WhatsApp, si la lista llega después de pintar una tabla, alertaRepintar() inserta el ⚠️ en los botones ya existentes; si el backend falla solo falta el ⚠️. perfil.html (data-sin-wsp-tags) no lo pide. El clic lo atiende el modal del paso 2 de §PF375. */
 let alertaTags = null; // Map de Tag en mayúsculas y sin # -> { n, tipos }; null = sin cargar o sin sesión de admin
 function alertaClanesDe(tag){ return (alertaTags && alertaTags.get(wspClaveTag(tag))) || null; }
 function alertaTextoClanes(a){
@@ -72,10 +75,12 @@ function botonAlertaClanesHtml(f){
 function alertaRepintar(){
   if (!alertaTags) return;
   document.querySelectorAll('.btn-hist-jugador').forEach(b => {
-    const sig = b.nextElementSibling;
-    if (sig && sig.classList.contains('btn-alerta-clanes')) return;
+    const prev = b.previousElementSibling;
+    const wsp = (prev && (prev.classList.contains('hist-wsp') || prev.classList.contains('ico-wsp'))) ? prev : null;
+    const ant = wsp ? wsp.previousElementSibling : prev; // lo que ya está a la izquierda del WhatsApp (o del 📈 si no hay WhatsApp)
+    if (ant && ant.classList.contains('btn-alerta-clanes')) return;
     if (!alertaClanesDe(b.dataset.tag)) return;
-    b.insertAdjacentHTML('afterend', botonAlertaClanesHtml({ tag: b.dataset.tag, nombre: b.dataset.nombre }));
+    (wsp || b).insertAdjacentHTML('beforebegin', botonAlertaClanesHtml({ tag: b.dataset.tag, nombre: b.dataset.nombre }));
   });
 }
 async function alertaCargarTags(){

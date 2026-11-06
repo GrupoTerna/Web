@@ -6,7 +6,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { loadBrowserScriptsWithDom } = require('./load-browser-script');
 
-// NUEVO (5-nov-2026, pedido de la usuaria; §PF375, paso 1): ⚠️ permanente a la DERECHA del 📈 para quien estuvo en un clan vetado o rival.
+// NUEVO (5-nov-2026, pedido de la usuaria; §PF375, paso 1): ⚠️ permanente para quien estuvo en un clan vetado o rival. Desde §PF383 (5-nov-2026) va a la IZQUIERDA: orden ⚠️, WhatsApp, 📈.
 // Se carga el mini-historial.js REAL con jsdom; apiGetAuth() y esAdminLogueado() se simulan (no hay backend).
 // LÍMITE: no prueba el CSS ni el aspecto real; el modal del clic es el paso 2.
 
@@ -28,12 +28,12 @@ function cargar({ admin = true, resumen = RESUMEN, falla = false, detalle = null
 const esperar = () => new Promise(r => setTimeout(r, 20));
 const pedidosAlerta = w => JSON.parse(w.eval('JSON.stringify(_pedidos)')).filter(x => x === 'webAdminTagsClanesSospechosos');
 
-test('admin con el Tag en el resumen: el ⚠️ va después (a la derecha) del 📈, con aviso accesible y sin cuenta de clanes en 0', async () => {
+test('admin con el Tag en el resumen: el ⚠️ va antes (a la izquierda) del 📈, con aviso accesible y sin cuenta de clanes en 0', async () => {
   const w = cargar();
   await w.alertaCargarTags();
   const h = w.botonHistJugador({ tag: '#abc', nombre: 'Ana' });
   assert.match(h, /class="btn-alerta-clanes"/);
-  assert.ok(h.indexOf('btn-hist-jugador') < h.indexOf('btn-alerta-clanes'), 'el ⚠️ va a la derecha del 📈');
+  assert.ok(h.indexOf('btn-alerta-clanes') < h.indexOf('btn-hist-jugador'), 'el ⚠️ va a la izquierda del 📈');
   assert.match(h, /data-tag="#abc"/);
   assert.match(h, /Estuvo en 2 clanes vetados o rivales/);
   assert.match(w.botonHistJugador({ tag: '#XYZ', nombre: 'Uno' }), /Estuvo en 1 clan rival/);
@@ -41,12 +41,18 @@ test('admin con el Tag en el resumen: el ⚠️ va después (a la derecha) del �
   assert.doesNotMatch(w.botonHistJugador({ tag: '#ZZZ', nombre: 'Otro' }), /btn-alerta-clanes/, 'un Tag fuera del resumen lleva solo el 📈');
 });
 
-test('el ⚠️ no desplaza al WhatsApp: el orden es WhatsApp, 📈, ⚠️; y con sinWsp (Ingresos recientes) el ⚠️ sigue saliendo', async () => {
+test('con los tres íconos el orden es ⚠️, WhatsApp, 📈 (función real); con sinWsp el ⚠️ sigue saliendo y con sinAlerta no', async () => {
   const w = cargar();
   await w.alertaCargarTags();
   const h = w.botonHistJugador({ tag: '#ABC', nombre: 'Ana', tieneWsp: true });
-  assert.ok(h.indexOf('hist-wsp') < h.indexOf('btn-hist-jugador') && h.indexOf('btn-hist-jugador') < h.indexOf('btn-alerta-clanes'));
-  assert.match(w.botonHistJugador({ tag: '#ABC', nombre: 'Ana' }, { sinWsp: true }), /btn-alerta-clanes/);
+  const iA = h.indexOf('btn-alerta-clanes'), iW = h.indexOf('hist-wsp'), iH = h.indexOf('btn-hist-jugador');
+  assert.ok(iA >= 0 && iA < iW && iW < iH, 'orden ⚠️, WhatsApp, 📈');
+  const sinWsp = w.botonHistJugador({ tag: '#ABC', nombre: 'Ana' }, { sinWsp: true });
+  assert.match(sinWsp, /btn-alerta-clanes/);
+  assert.ok(sinWsp.indexOf('btn-alerta-clanes') < sinWsp.indexOf('btn-hist-jugador'));
+  const sinAlerta = w.botonHistJugador({ tag: '#ABC', nombre: 'Ana', tieneWsp: true }, { sinAlerta: true });
+  assert.doesNotMatch(sinAlerta, /btn-alerta-clanes/);
+  assert.ok(sinAlerta.indexOf('hist-wsp') < sinAlerta.indexOf('btn-hist-jugador'));
 });
 
 test('sin sesión de admin no se pide el resumen ni se pinta el ⚠️', async () => {
@@ -65,7 +71,7 @@ test('con data-sin-wsp-tags en <body> (perfil.html) no se pide el resumen', asyn
   assert.equal(pedidosAlerta(w).length, 0);
 });
 
-test('si el resumen llega después de pintar la tabla, el ⚠️ se inserta a la derecha de cada 📈 y no se duplica', async () => {
+test('si el resumen llega después de pintar la tabla, el ⚠️ se inserta a la izquierda del 📈 (y del WhatsApp si lo hay) y no se duplica', async () => {
   const w = cargar();
   const celda = w.document.getElementById('celda');
   celda.innerHTML = '<span class="col-jugador-extras">' + w.botonHistJugador({ tag: '#ABC', nombre: 'Ana' }) + '</span><span class="col-jugador-extras">' + w.botonHistJugador({ tag: '#ZZZ', nombre: 'Otro' }) + '</span>';
@@ -73,9 +79,42 @@ test('si el resumen llega después de pintar la tabla, el ⚠️ se inserta a la
   await w.alertaCargarTags();
   assert.equal(celda.querySelectorAll('.btn-alerta-clanes').length, 1);
   const btn = celda.querySelector('.btn-hist-jugador[data-tag="#ABC"]');
-  assert.ok(btn.nextElementSibling.classList.contains('btn-alerta-clanes'));
+  assert.ok(btn.previousElementSibling.classList.contains('btn-alerta-clanes'), 'el ⚠️ queda justo antes del 📈');
   w.alertaRepintar();
   assert.equal(celda.querySelectorAll('.btn-alerta-clanes').length, 1, 'una segunda pasada no duplica');
+});
+
+// NUEVO (5-nov-2026, §PF383): las listas de WhatsApp y de alertas llegan en cualquier orden y el resultado siempre es ⚠️, WhatsApp, 📈.
+test('si el WhatsApp ya está pintado y después llega el resumen, el ⚠️ se inserta ANTES del WhatsApp; no se duplica', async () => {
+  const w = cargar();
+  const celda = w.document.getElementById('celda');
+  celda.innerHTML = '<span class="col-jugador-extras">' + w.botonHistJugador({ tag: '#ABC', nombre: 'Ana', tieneWsp: true }) + '</span>';
+  assert.equal(celda.querySelectorAll('.btn-alerta-clanes').length, 0);
+  await w.alertaCargarTags();
+  const ico = [...celda.querySelectorAll('.col-jugador-extras > *')].map(e => e.className.split(' ')[0]);
+  assert.deepEqual(ico, ['btn-alerta-clanes', 'hist-wsp', 'btn-hist-jugador']);
+  w.alertaRepintar();
+  assert.equal(celda.querySelectorAll('.btn-alerta-clanes').length, 1);
+});
+
+test('si el ⚠️ ya está pintado y después llega la lista de WhatsApp, el WhatsApp queda entre el ⚠️ y el 📈', async () => {
+  const w = cargar();
+  await w.alertaCargarTags();
+  const celda = w.document.getElementById('celda');
+  celda.innerHTML = '<span class="col-jugador-extras">' + w.botonHistJugador({ tag: '#ABC', nombre: 'Ana' }) + '</span>';
+  w.eval(`var _prev = window.apiGetAuth; window.apiGetAuth = function(accion, params){ return accion === 'webAdminTagsConWsp' ? Promise.resolve({ ok: true, tags: ['ABC'] }) : _prev(accion, params); };`);
+  await w.wspCargarTags(); // la lista de WhatsApp llega después de pintar: wspRepintar() lo inserta
+  const ico = [...celda.querySelectorAll('.col-jugador-extras > *')].map(e => e.className.split(' ')[0]);
+  assert.deepEqual(ico, ['btn-alerta-clanes', 'hist-wsp', 'btn-hist-jugador']);
+});
+
+test('con la tarjeta de Ingresos recientes (WhatsApp propio .ico-wsp y 📈 con data-sin-wsp) el ⚠️ tardío entra antes del .ico-wsp', async () => {
+  const w = cargar();
+  const celda = w.document.getElementById('celda');
+  celda.innerHTML = '<div class="links"><span class="ico-wsp"></span>' + w.botonHistJugador({ tag: '#ABC', nombre: 'Ana' }, { sinWsp: true, sinAlerta: true }) + '</div>';
+  await w.alertaCargarTags();
+  const ico = [...celda.querySelectorAll('.links > *')].map(e => e.className.split(' ')[0]);
+  assert.deepEqual(ico, ['btn-alerta-clanes', 'ico-wsp', 'btn-hist-jugador']);
 });
 
 test('si el backend falla o no manda jugadores, no se rompe y no se pinta nada', async () => {

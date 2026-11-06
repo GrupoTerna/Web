@@ -2791,6 +2791,7 @@ function nuevoCardHtml(n){
   const royaleOk = urlValida(n.royaleApi);
   const cwOk = urlValida(n.cwstats);
   const histOk = !!n.tag; // 23-oct-2026 (tanda 2): el 📈 va siempre que haya Tag, tenga o no WhatsApp
+  const alertaOk = !!n.tag && typeof esAdminLogueado === 'function' && esAdminLogueado() && !!alertaClanesDe(n.tag); // 5-nov-2026 (§PF383): el ⚠️ va entre CWStats y WhatsApp (orden RoyaleAPI, CWStats, ⚠️, WhatsApp, 📈)
   const wspOk = n.tieneWsp === true; // 22-oct-2026: solo llega con sesión de admin (el backend lo quita para el público); es un ícono informativo, sin enlace ni número
   const incluido = ingresoIncluido(n);
   const sem = n.guerraSemana || {};
@@ -2803,11 +2804,12 @@ function nuevoCardHtml(n){
         <div class="nc-fecha">${fecha ? 'Ingresó el ' + esc(fecha) : 'Fecha de ingreso no registrada'}</div>
         <div class="nc-clan-row">
           <div class="clan">${esc(n.clan)}</div>
-          ${(royaleOk || cwOk || wspOk || histOk) ? `<div class="links">
+          ${(royaleOk || cwOk || alertaOk || wspOk || histOk) ? `<div class="links">
             ${royaleOk ? `<a href="${esc(n.royaleApi)}" target="_blank" rel="noopener" aria-label="RoyaleAPI de ${esc(n.nombre)}" title="RoyaleAPI">${ICONO_ROYALEAPI}</a>` : ''}
             ${cwOk ? `<a href="${esc(n.cwstats)}" target="_blank" rel="noopener" aria-label="CWStats de ${esc(n.nombre)}" title="CWStats">${ICONO_CWSTATS}</a>` : ''}
+            ${alertaOk ? botonAlertaClanesHtml({ tag: n.tag, nombre: n.nombre }) : ''}
             ${wspOk ? `<span class="ico-wsp" role="img" aria-label="Tenemos el número de WhatsApp de ${esc(n.nombre)}" title="Tenemos su número de WhatsApp">${ICONO_WSP_SOLO}</span>` : ''}
-            ${histOk ? botonHistJugador({ tag: n.tag, nombre: n.nombre }, { sinWsp: true }) : ''}
+            ${histOk ? botonHistJugador({ tag: n.tag, nombre: n.nombre }, { sinWsp: true, sinAlerta: true }) : ''}
           </div>` : ''}
         </div>
         ${ingBadgeRivalHtml(n.esRivalTemporada, n.clanRivalDetectado)}
