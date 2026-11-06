@@ -503,6 +503,9 @@
   /* 23-oct-2026 (tanda 2): el 📈 del mini historial va a la derecha del ícono de WhatsApp, con la misma caja de 28 px que los demás. */
   .nuevo-card .links .btn-hist-jugador{display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; margin:0; padding:0; font-size:13px; opacity:1; border:1px solid var(--line); border-radius:var(--radius-sm); transition:all .18s ease;}
   .nuevo-card .links .btn-hist-jugador:hover, .nuevo-card .links .btn-hist-jugador:focus-visible{border-color:var(--purple); background:rgba(162,57,255,.12);}
+  /* 5-nov-2026 (§PF375): el ⚠️ de clanes vetados o rivales va a la derecha del 📈, con la misma caja de 28 px. */
+  .nuevo-card .links .btn-alerta-clanes{display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; margin:0; padding:0; font-size:13px; border:1px solid var(--line); border-radius:var(--radius-sm); transition:all .18s ease;}
+  .nuevo-card .links .btn-alerta-clanes:hover, .nuevo-card .links .btn-alerta-clanes:focus-visible{border-color:var(--gold); background:rgba(243,169,34,.12); transform:none;}
   /* Los íconos (assets/js/data/clan-badges.js) traen tamaño y margen derecho en línea pensados para ir junto a un texto; aquí van solos y centrados. */
   .nuevo-card .links a img{width:18px; height:18px; margin:0 !important; vertical-align:0 !important;}
 
@@ -2136,7 +2139,8 @@ function pintarFilasRoster(wrap, miembros){
     row.addEventListener('click', e => {
       // La columna "Perfil" trae enlaces reales a RoyaleAPI/CWStats (target="_blank"): si el clic cae en cualquier <a>, actúa ese enlace y no se abre también el perfil interno.
       // Igual con el 📈 del mini historial (22-oct-2026): abre su propia ventana y no debe abrir además el perfil.
-      if (e.target.closest('a, .btn-hist-jugador')) return;
+      // Igual con el ⚠️ de clanes vetados o rivales (5-nov-2026, §PF375): abre su propio modal.
+      if (e.target.closest('a, .btn-hist-jugador, .btn-alerta-clanes')) return;
       buscarMiembro(row.dataset.tag);
     });
   });
@@ -2914,8 +2918,8 @@ function renderNuevoGrid(){
   nuevoGrid.innerHTML = ingresosTodosCache.map(nuevoCardHtml).join('');
   nuevoGrid.querySelectorAll('.js-nuevo-card').forEach(card => {
     const linksBox = card.querySelector('.links');
-    // El 📈 sí debe llegar al listener global de mini-historial.js; todo lo demás de .links no abre el perfil de la tarjeta.
-    if (linksBox) linksBox.addEventListener('click', e => { if (!e.target.closest('.btn-hist-jugador')) e.stopPropagation(); });
+    // El 📈 y el ⚠️ (§PF375) sí deben llegar al listener global de mini-historial.js; todo lo demás de .links no abre el perfil de la tarjeta.
+    if (linksBox) linksBox.addEventListener('click', e => { if (!e.target.closest('.btn-hist-jugador, .btn-alerta-clanes')) e.stopPropagation(); });
     const check = card.querySelector('.js-ingreso-check');
     if (check){
       check.addEventListener('click', e => e.stopPropagation());
@@ -2927,7 +2931,7 @@ function renderNuevoGrid(){
     }
     card.addEventListener('click', e => {
       // El nombre es un enlace real (teclado/lectores de pantalla): si el clic cae en cualquier <a>, actúa el enlace y no se abre una segunda pestaña.
-      if (e.target.closest('a, .btn-hist-jugador')) return;
+      if (e.target.closest('a, .btn-hist-jugador, .btn-alerta-clanes')) return;
       if (!card.dataset.tag) return;
       window.open('perfil.html?tag=' + encodeURIComponent(card.dataset.tag), '_blank');
     });

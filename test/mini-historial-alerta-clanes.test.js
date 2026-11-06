@@ -171,3 +171,10 @@ test('styles.css trae los estilos del ⚠️', () => {
   assert.match(css, /\.alerta-tipo-rival\{/);
   assert.match(css, /\.alerta-tipo-vetado\{/);
 });
+
+test('directorio.html: el clic del ⚠️ no abre además el perfil de la fila ni de la tarjeta, y en Ingresos recientes lleva su caja de 28 px', () => {
+  const d = fs.readFileSync(path.join(__dirname, '..', 'directorio.html'), 'utf8');
+  assert.equal((d.match(/closest\('a, \.btn-hist-jugador, \.btn-alerta-clanes'\)/g) || []).length, 2, 'fila del roster y tarjeta de ingreso');
+  assert.match(d, /closest\('\.btn-hist-jugador, \.btn-alerta-clanes'\)\) e\.stopPropagation\(\)/, 'la caja de .links deja pasar el ⚠️');
+  assert.match(d, /\.nuevo-card \.links \.btn-alerta-clanes\{display:inline-flex;[^}]*width:28px; height:28px;/);
+});

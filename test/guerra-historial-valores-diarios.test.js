@@ -79,7 +79,8 @@ test('guerra.html y directorio.html cargan mini-historial.js y no lo duplican', 
     assert.ok(!/function histAbrir|id="histFondo"/.test(h), 'el modal y sus funciones viven solo en mini-historial.js');
   }
   assert.match(d, /extra:m => botonHistJugador\(\{ tag:m\.tag, nombre:m\.nombre \}\)/, 'la columna Nombre del directorio lleva el 📈');
-  assert.match(d, /e\.target\.closest\('a, \.btn-hist-jugador'\)/, 'el clic en el 📈 no abre además el perfil');
+  // 5-nov-2026 (§PF375): la excepción también cubre el ⚠️ (.btn-alerta-clanes).
+  assert.match(d, /e\.target\.closest\('a, \.btn-hist-jugador(, \.btn-alerta-clanes)?'\)/, 'el clic en el 📈 no abre además el perfil');
 });
 
 test('Pendientes de Atacar lleva el 📈 del mini historial junto al nombre', () => {
