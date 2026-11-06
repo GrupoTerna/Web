@@ -283,7 +283,8 @@
 // v234 (5-nov-2026): admin.html cambió (CORE_ASSETS) -- Torneos, Sorteos y Cambio de rango pasan a tres tarjetas propias, sin el selector de pastillas; cada una lleva sus dependencias (§PF377, parte 1).
 // v235 (5-nov-2026): admin.html cambió (CORE_ASSETS) -- Torneos, Sorteos y Cambio de rango: las acciones pasan a pastillas (el select y «Continuar» quedan ocultos), una sola línea dorada abierta por tarjeta y rótulos Configuración, Acciones, Resultados y Extras (§PF377, parte 2).
 // v236 (5-nov-2026): admin.html cambió (CORE_ASSETS) -- en la ficha de «Buscar clan», RoyaleAPI y CWStats pasan a pastillas con ícono y texto, debajo de «Vetar» y «¿Infiltrado?» (§PF381).
-const CACHE_NAME = 'terna-static-v236';
+// v237 (5-nov-2026): admin.html cambió (CORE_ASSETS) -- en la ficha de «Buscar clan», Miembros, Puntos de clan y Trofeos de guerra pasan bajo la fila del Tag, en tarjetitas con el valor centrado (§PF382).
+const CACHE_NAME = 'terna-static-v237';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y

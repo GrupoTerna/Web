@@ -366,6 +366,17 @@ test('RoyaleAPI y CWStats son pastillas con ícono y texto, debajo de «Vetar» 
   assert.equal(id(w, 'cVerClanCw').parentElement.id, 'clanExtLinks');
 });
 
+test('Miembros, Puntos de clan y Trofeos de guerra van bajo la fila del Tag, en tarjetitas propias, y conservan sus valores (5-nov-2026, §PF382)', async () => {
+  const w = montar({ respuestas: [respuestaClan()] });
+  await buscarClanEn(w, '#CLAN1');
+  const stats = id(w, 'clanStats');
+  assert.equal(stats.previousElementSibling.id, 'cSub', 'las estadísticas van justo debajo de la fila del Tag');
+  assert.equal(stats.className, 'clan-stats');
+  assert.deepEqual(Array.from(stats.children).map(h => h.querySelector('b').id), ['cMiembros', 'cPuntos', 'cTrofeos']);
+  assert.equal(id(w, 'cMiembros').textContent, '48');
+  assert.equal(id(w, 'clanColumnaDer').querySelector('#cMiembros'), null, 'ya no están en la columna derecha');
+});
+
 test('clan vetado: «¿Infiltrado?» lista a los jugadores nuestros que pasaron por él y ya salieron (Inactivos/Vetados), aunque no haya coincidencias con sus miembros actuales (5-nov-2026)', async () => {
   const w = montar({ respuestas: [respuestaClan({ infoRival: { fuente: 'vetado', motivo: 'Clan vetado' } }), { ok: true, tipo: 'clan', clan: { tag: '#CLAN1', nombre: 'NARANJA x', miembros: 12 }, infoRival: null, coincidencias: [],
     esClanVetado: true, exMiembros: [
