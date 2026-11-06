@@ -651,4 +651,16 @@ function inicializarGridFiltro(gridId, tabla, columnas, filasBase, renderFila){
     });
   });
 }
+/** aplicarFiltroLetraGrid(tablasWrapId) → reaplica, en cada tabla ya
+ * pintada dentro de `tablasWrapId`, el filtro combinado (letra + columna)
+ * vía gridAplicarFiltros(). Se llama tras cada clic en una letra; el
+ * filtro/orden numérico ya vigente de cada tabla no se pierde porque
+ * gridAplicarFiltros() lee ambos estados. */
+function aplicarFiltroLetraGrid(tablasWrapId){
+  const wrap = document.getElementById(tablasWrapId);
+  if (!wrap) return;
+  wrap.querySelectorAll('table[data-grid-id]').forEach(tabla => {
+    gridAplicarFiltros(tabla.dataset.gridId, tabla);
+  });
+}
 /* fin del motor de cuadrículas de guerra */

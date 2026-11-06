@@ -103,6 +103,12 @@
   }
   .rt-limpiar-filtros:hover:not(:disabled){border-color:var(--purple-light); color:var(--text); background:rgba(162,57,255,.12);}
   .rt-limpiar-filtros:disabled{opacity:.4; cursor:default; background:transparent; border-color:var(--line); color:var(--text-dim);}
+  /* 6-nov-2026 (pedido de la usuaria): «Valores semanales» de este clan. La tabla, sus colores y el filtro por columna son los de guerra.html (assets/styles.css y assets/js/features/grid-guerra.js); aquí solo falta lo que guerra.html tiene en su <style>. */
+  #clanSemanalesCard .table-scroll{position:relative;}
+  #clanSemanalesCard .table-scroll table{min-width:420px;}
+  #clanSemanalesCard .cd-sem-selectores{display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; margin-top:12px;}
+  #clanSemanalesCard .cd-sem-selectores select{font-family:var(--f-mono); font-size:13px; background:var(--surface-card); color:var(--text); border:1px solid var(--line-strong); border-radius:var(--radius-sm); padding:5px 10px;}
+  #clanSemanalesCard .ai-clan-card{margin-bottom:0;}
 </style>
 </head>
 <body data-page="clan">
@@ -170,6 +176,30 @@
         <div id="clanGuerraWrap" style="margin-top:8px;"></div>
       </div>
 
+      <!-- ---------- Valores semanales de este clan (6-nov-2026, pedido de la usuaria): la misma tabla de guerra.html, solo con este clan. Código en assets/js/features/grid-guerra.js; se pinta con los datos de guerra.json que ya carga esta página. Los ids son los de guerra.html a propósito: el motor de la tabla los usa (buscador, letras, «Solo con 0 ataques»). ---------- -->
+      <div class="card pf-cinta" id="clanSemanalesCard" style="padding:24px; margin-top:20px; display:none; --cinta:url(Im%C3%A1genes/Banners/Fankit/cinta-guerra-semanales.webp);">
+        <div class="eyebrow">Guerra</div>
+        <h2 class="pf-subtitulo">🗓️ Valores semanales</h2>
+        <div id="clanSemanalesCuerpo">
+          <div class="cd-sem-selectores">
+            <select id="anioTemporadaSelect" aria-label="Año de los valores semanales" style="display:none;"></select>
+            <select id="temporadaSelect" aria-label="Temporada de los valores semanales" style="display:none;"></select>
+          </div>
+          <div class="grid-leyenda text-faint" style="display:flex; flex-wrap:wrap; gap:6px 16px; font-family:var(--f-mono); font-size:13px; margin-top:12px; line-height:1.6;">
+            <span><b class="ai-cell ai-cell-full">16</b> Semana completa (4 ataques x 4 días)</span>
+            <span><b class="ai-cell ai-cell-part">1-15</b> Ataques parciales</span>
+            <span><b class="ai-cell ai-cell-zero">0</b> Estuvo en el clan y no atacó</span>
+            <span><b>(vacío)</b> No estuvo en el clan ese día o semana</span>
+            <span><b style="color:var(--danger);">▌</b> Fila resaltada: estuvo y tiene algún 0</span>
+            <span><b class="ai-hoy-muestra">Sem</b> Columna marcada: la semana de guerra en curso (en entrenamiento, la última jugada)</span>
+          </div>
+          <div class="buscador-tabla" id="controlTemporadaBuscador"></div>
+          <div class="tabs-row" id="controlTemporadaLetraFilter" style="margin-top:10px;"></div>
+          <div style="margin-top:10px;"><button type="button" class="btn-solo-cero" id="soloCeroTemporadaBtn" aria-pressed="false" title="Muestra solo a quienes estuvieron en el clan y tienen al menos un 0 en Ataques (las celdas vacías no cuentan)">Solo con 0 ataques</button></div>
+        </div>
+        <div id="controlTemporadaWrap" style="margin-top:14px;"></div>
+      </div>
+
       <!-- ---------- Evolución: copas del clan (12-oct-2026, pedido usuario) ---------- -->
       <div class="card pf-cinta" id="clanCopasCard" style="padding:24px; margin-top:20px; --cinta:url(Im%C3%A1genes/Banners/Fankit/cinta-clan-evolucion.webp);">
         <div class="eyebrow">Evolución</div>
@@ -202,6 +232,7 @@
 <script src="assets/js/features/vista-grafica.js"></script>
 <script src="assets/js/features/mini-historial.js"></script>
 <script src="assets/js/features/roster-tabla.js"></script>
+<script src="assets/js/features/grid-guerra.js"></script>
 <script src="assets/common.js"></script>
 <script>
 /**
@@ -344,7 +375,7 @@ function renderClanGuerra(dataGuerra, nombreClan, desdeViejo){
       <div class="stat"><b>${fmtNum(pendientesClan)}</b><span>Pendientes</span></div>`}
     </div>
     <div style="text-align:center; margin-top:16px;">
-      <a href="guerra.html" class="text-dim" style="font-family:var(--f-mono); font-size:13px;">Ver Guerra en vivo &rarr;</a>
+      <a href="guerra.html?clan=${encodeURIComponent(entradaGuerra[0])}" class="text-dim" style="font-family:var(--f-mono); font-size:13px;">Ver Guerra en vivo &rarr;</a>
     </div>${avisoViejo}`;
 }
 
@@ -406,6 +437,7 @@ async function cargarGuerraClan(nombreClan){
   try{
     const r = await clanObtenerGuerra();
     renderClanGuerra(r.data || {}, nombreClan, r.guardadoDesde || null); // CAMBIO (09-oct-2026, Fase 5): también con el respaldo local (antes solo con el JSON vencido)
+    renderClanValoresSemanales(r.data || {}); // 6-nov-2026: la tabla de Valores semanales de este clan, con los mismos datos
   }catch(err){
     wrap.innerHTML = `<div class="empty">No se pudo cargar el resumen de guerra: ${esc(err.message)}</div>`;
   }
@@ -545,6 +577,138 @@ async function cargarCopasClan(clanInfo){
     }
   }catch(err){
     wrap.innerHTML = clanCopasAviso('No se pudo cargar el historial de copas: ' + esc(err && err.message ? err.message : 'error de conexión') + '.');
+  }
+}
+/* ---------- Valores semanales de este clan (6-nov-2026, pedido de la usuaria) ----------
+ * La misma tabla de «🗓️ Valores semanales» de guerra.html, solo con este clan: columnas por semana, Total/Prom y %, colores, columna de la semana en
+ * curso, filtro y orden por columna, totales, Copiar/CSV, letras A-Z/#, buscador y «Solo con 0 ataques». Todo el motor es de
+ * assets/js/features/grid-guerra.js (compartido con guerra.html). Los datos son los de guerra.json que esta página ya carga para el resumen:
+ * controlTemporadaPorClan/Semanas (temporada vigente) y controlTemporadaPorTemporada (las demás, con sus selectores de año y temporada).
+ * Estado que espera el motor (en guerra.html lo declara la página): */
+const DIAS = [{ letra:'J', label:'Jue' }, { letra:'V', label:'Vie' }, { letra:'S', label:'Sáb' }, { letra:'D', label:'Dom' }];
+let letraSeleccionadaPend = null, letraSeleccionadaActivos = null, letraSeleccionadaTemporada = null;
+let busquedaPend = '', busquedaActivos = '', busquedaTemporada = '';
+let soloCeroActivos = false, soloCeroTemporada = false;
+let anioSemanalSel = null, temporadaSemanalSel = null, datosSemanales = null;
+
+/** Filas de este clan y etiquetas de semana de una temporada. La vigente sale de controlTemporadaPorClan si controlTemporadaPorTemporada no la trae; el resto, solo de controlTemporadaPorTemporada. */
+function clanSemanalesFuente(data, temporada){
+  const pt = data.controlTemporadaPorTemporada && data.controlTemporadaPorTemporada[temporada];
+  const def = data.controlTemporadaSelectores && data.controlTemporadaSelectores.porDefecto;
+  const esVigente = temporada === undefined || temporada === null || (def && String(def.temporada) === String(temporada));
+  let porClan = {}, semanas = [];
+  if (pt){ porClan = pt.porClan || {}; semanas = pt.semanas || []; }
+  else if (esVigente){ porClan = data.controlTemporadaPorClan || {}; semanas = data.controlTemporadaSemanas || []; }
+  const par = Object.entries(porClan).find(([nombre]) => clanCoincide(nombre));
+  return { nombre: par ? par[0] : null, filas: par && Array.isArray(par[1]) ? par[1] : [], semanas: Array.isArray(semanas) ? semanas : [] };
+}
+/** true si alguna fila trae al menos un valor (el 0 cuenta: «estuvo y no atacó»); una temporada sin ninguno no se ofrece en el selector (mismo criterio que guerra.html). */
+function clanSemanalesConValores(filas){
+  return (filas || []).some(f => ['ataques', 'puntaje', 'barcos'].some(k => { const m = f && f[k]; return !!m && Array.isArray(m.semanas) && m.semanas.some(v => v !== null && v !== undefined); }));
+}
+/** Años y temporadas del selector en los que ESTE clan tiene valores; null si no hay ninguna. */
+function clanSemanalesOpciones(data){
+  const sel = data.controlTemporadaSelectores;
+  if (!sel || !Array.isArray(sel.anios) || !sel.anios.length) return null;
+  const temporadasPorAnio = {};
+  sel.anios.forEach(a => { temporadasPorAnio[a] = ((sel.temporadasPorAnio || {})[a] || []).filter(t => clanSemanalesConValores(clanSemanalesFuente(data, t.temporada).filas)); });
+  const anios = sel.anios.filter(a => temporadasPorAnio[a].length);
+  return anios.length ? { anios, temporadasPorAnio, porDefecto: sel.porDefecto || null } : null;
+}
+/** Pinta los dos selectores (año y temporada) y deja elegida una temporada con datos. */
+function clanSemanalesPintarSelectores(op){
+  const selAnio = document.getElementById('anioTemporadaSelect');
+  const selTemp = document.getElementById('temporadaSelect');
+  if (anioSemanalSel === null && op.porDefecto){ anioSemanalSel = op.porDefecto.anio; temporadaSemanalSel = op.porDefecto.temporada; }
+  if (!((op.temporadasPorAnio[anioSemanalSel] || []).some(t => String(t.temporada) === String(temporadaSemanalSel)))){
+    const anio = ((op.temporadasPorAnio[anioSemanalSel] || []).length) ? anioSemanalSel : op.anios.slice().sort((a, b) => Number(b) - Number(a))[0];
+    anioSemanalSel = anio;
+    temporadaSemanalSel = op.temporadasPorAnio[anio][0].temporada;
+  }
+  selAnio.style.display = '';
+  selAnio.innerHTML = op.anios.map(a => `<option value="${esc(a)}"${String(a) === String(anioSemanalSel) ? ' selected' : ''}>${esc(a)}</option>`).join('');
+  selTemp.style.display = '';
+  selTemp.innerHTML = (op.temporadasPorAnio[anioSemanalSel] || []).map(t => `<option value="${esc(t.temporada)}"${String(t.temporada) === String(temporadaSemanalSel) ? ' selected' : ''}>${esc(t.label)}</option>`).join('');
+  selAnio.onchange = () => {
+    anioSemanalSel = selAnio.value;
+    const temps = op.temporadasPorAnio[anioSemanalSel] || [];
+    temporadaSemanalSel = temps.length ? temps[0].temporada : null;
+    clanSemanalesPintarSelectores(op);
+    clanSemanalesPintarTabla();
+  };
+  selTemp.onchange = () => { temporadaSemanalSel = selTemp.value; clanSemanalesPintarTabla(); };
+}
+/** Pinta la tabla de la temporada elegida (solo este clan). Es la misma que arma guerra.html, con el motor de grid-guerra.js. */
+function clanSemanalesPintarTabla(){
+  const wrap = document.getElementById('controlTemporadaWrap');
+  if (!wrap || !datosSemanales) return;
+  const { nombre, filas, semanas } = clanSemanalesFuente(datosSemanales, temporadaSemanalSel);
+  if (!nombre || !filas.length || !semanas.length){
+    wrap.innerHTML = '<div class="empty">Sin valores semanales registrados para este clan en esta temporada.</div>';
+    return;
+  }
+  const nSem = semanas.length;
+  const colHoySem = colHoySemanal(datosSemanales, temporadaSemanalSel, semanas);
+  const renderFila = f => `
+    <tr data-letra="${esc(primeraLetraFiltro(f.nombre || f.tag))}" data-buscar="${esc((f.nombre || '') + ' ' + (f.tag || ''))}" data-rango="${esc(f.rango || '')}" class="${f.activo === false ? 'fila-inactivo' : ''}">
+      <td class="col-n"></td>
+      ${celdaJugadorGrid(f)}
+      ${celdasSemanas(f.ataques, 'ai-grp-atq', true, 'atq', colHoySem && colHoySem.idx)}
+      ${celdasSemanas(f.puntaje, 'ai-grp-pje', false, 'pje', colHoySem && colHoySem.idx)}
+      ${celdasSemanas(f.barcos, 'ai-grp-brc', false, 'brc', colHoySem && colHoySem.idx)}
+    </tr>`;
+  const gridId = `temporada:${nombre}`;
+  wrap.innerHTML = `
+    <div class="ai-clan-card" data-clan="${esc(nombre)}">
+      <div class="ai-clan-head"><h3>${esc(nombre)} <span class="text-faint" style="font-family:var(--f-mono); font-size:13px; font-weight:400;">${textoContadorClan(filas)}</span></h3>${botonesExportGrid(gridId)}</div>
+      <div class="table-scroll"><table class="tbl-activos-grid tbl-temporada-grid" data-grid-id="${esc(gridId)}">
+        <thead>
+          <tr>
+            <th class="col-n" rowspan="2" scope="col">N°</th>
+            ${thFiltroGrid('col-jugador', 'Nombre', 'nombre', 'rowspan="2"')}
+            ${thFiltroGrid('col-rango', 'Rango', 'rango', 'rowspan="2"')}
+            ${thFiltroGrid('col-estado', 'Estado', 'estado', 'rowspan="2"')}
+            <th class="ai-grp-atq" colspan="${nSem + 2}" scope="colgroup"><span class="ai-grp-label">Ataques</span></th>
+            <th class="ai-grp-pje" colspan="${nSem + 2}" scope="colgroup"><span class="ai-grp-label">Medallas</span></th>
+            <th class="ai-grp-brc" colspan="${nSem + 2}" scope="colgroup"><span class="ai-grp-label">Barcos</span></th>
+          </tr>
+          <tr>
+            ${filaSubEncabezadosSemanas('ai-grp-atq', 'atq', semanas, 'Total', colHoySem)}
+            ${filaSubEncabezadosSemanas('ai-grp-pje', 'pje', semanas, 'Prom', colHoySem)}
+            ${filaSubEncabezadosSemanas('ai-grp-brc', 'brc', semanas, 'Total', colHoySem)}
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table></div>
+    </div>`;
+  const tabla = wrap.querySelector(`table[data-grid-id="${CSS.escape(gridId)}"]`);
+  inicializarGridFiltro(gridId, tabla, columnasTemporadaDef(nSem), filas, renderFila);
+  activarBarraScrollTablas(wrap.querySelectorAll('.table-scroll'));
+}
+/** Muestra la tarjeta de Valores semanales con los datos de guerra de esta página (la llama cargarGuerraClan()). */
+function renderClanValoresSemanales(data){
+  const card = document.getElementById('clanSemanalesCard');
+  const wrap = document.getElementById('controlTemporadaWrap');
+  if (!card || !wrap) return;
+  datosSemanales = data || {};
+  const cuerpo = document.getElementById('clanSemanalesCuerpo');
+  card.style.display = '';
+  const op = clanSemanalesOpciones(datosSemanales);
+  if (!op){
+    cuerpo.style.display = 'none';
+    wrap.innerHTML = '<div class="empty">Sin valores semanales registrados para este clan por ahora.</div>';
+    return;
+  }
+  cuerpo.style.display = '';
+  clanSemanalesPintarSelectores(op);
+  clanSemanalesPintarTabla();
+  // Se pintan una sola vez (pintarBuscadorTabla() y pintarFiltroLetra() lo vigilan); el estado vive en busquedaTemporada y letraSeleccionadaTemporada.
+  pintarBuscadorTabla('controlTemporadaBuscador', { placeholder:'Buscar jugador o Tag…', ariaLabel:'Buscar jugador en Valores semanales', fijar: v => busquedaTemporada = v, onCambio: () => aplicarFiltroLetraGrid('controlTemporadaWrap') });
+  pintarFiltroLetra('controlTemporadaLetraFilter', LETRAS_FILTRO, () => letraSeleccionadaTemporada, v => letraSeleccionadaTemporada = v, () => aplicarFiltroLetraGrid('controlTemporadaWrap'));
+  const btnCero = document.getElementById('soloCeroTemporadaBtn');
+  if (!btnCero.dataset.enlazado){
+    btnCero.dataset.enlazado = '1';
+    btnCero.addEventListener('click', () => { soloCeroTemporada = !soloCeroTemporada; aplicarFiltroLetraGrid('controlTemporadaWrap'); actualizarBotonSoloCero('temporada:'); });
   }
 }
 async function cargarClan(){
