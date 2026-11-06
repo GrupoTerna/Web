@@ -281,7 +281,8 @@
 // v232 (5-nov-2026): admin.html cambió (CORE_ASSETS) -- los paneles «¿Infiltrado?» se leen mejor: superficie propia, textos de apoyo de 15 px, títulos con marca dorada, encabezados de tabla en dorado y pastillas con borde visible (§PF374).
 // v233 (5-nov-2026): assets/styles.css, assets/js/features/clan-card.js, assets/js/features/inactivos.js, assets/js/util.js y todas las páginas cambiaron (CORE_ASSETS) -- ninguna letra de texto baja de 13 px (salvo los ejes de las gráficas y las etiquetas dentro de figuras pequeñas) y los grises de apoyo --text-dim y --text-faint se aclaran (§PF374).
 // v234 (5-nov-2026): admin.html cambió (CORE_ASSETS) -- Torneos, Sorteos y Cambio de rango pasan a tres tarjetas propias, sin el selector de pastillas; cada una lleva sus dependencias (§PF377, parte 1).
-const CACHE_NAME = 'terna-static-v234';
+// v235 (5-nov-2026): admin.html cambió (CORE_ASSETS) -- Torneos, Sorteos y Cambio de rango: las acciones pasan a pastillas (el select y «Continuar» quedan ocultos), una sola línea dorada abierta por tarjeta y rótulos Configuración, Acciones, Resultados y Extras (§PF377, parte 2).
+const CACHE_NAME = 'terna-static-v235';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y

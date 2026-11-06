@@ -159,6 +159,8 @@
      centralizado en assets/styles.css — era idéntico carácter por carácter
      al de mensajes.html; permisos.html tenía una versión distinta sin saber
      que este componente ya existía, ya corregida para usar esta misma. */
+  /* Rótulo pequeño que separa lo que se configura, lo que se hace y los resultados dentro de las tarjetas de Torneos, Sorteos y Cambio de rango (§PF377). */
+  .admin-rotulo{font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--text-dim); margin:0 0 8px;}
   /* Fase 3, sub-lote 1 (19-sep-2026): .contenido-item, .contenido-tabs, .tab-clan,
      .admin-grupo y .admin-subseccion (+ sus hijos) viven ahora en assets/styles.css,
      compartidos con mensajes.html. .admin-subseccion-body también (movida el 20-sep-2026,
@@ -575,12 +577,13 @@
     <!-- 5-nov-2026 (pedido de la usuaria): el grupo «Directorio» (solo traía la tarjeta «Vetar miembro») se retiró: «Vetar miembro» pasó a la ficha de «Buscar miembro» como la pastilla #btnVetarPastilla. Historial en CHANGELOG.md. -->
 
     <!-- Torneos, Sorteos y Cambio de rango: tres tarjetas propias (§PF377). Cada una trae su wizard de Registrar/Modificar/Planificar y, como líneas plegables, sus dependencias (vigente, resultados, ruleta, editar autor); reutilizan las mismas funciones que ya usa el bot de WhatsApp. -->
-    <div class="card admin-grupo pf-cinta" style="--cinta:url(Im%C3%A1genes/Banners/Fankit/cinta-torneos-cabecera.webp); margin-top:24px;">
+    <div class="card admin-grupo pf-cinta" data-acordeon style="--cinta:url(Im%C3%A1genes/Banners/Fankit/cinta-torneos-cabecera.webp); margin-top:24px;">
       <div class="eyebrow">Torneos</div>
 
       <div id="panelTorneosAccion">
 
       <!-- "Torneo vigente" es el control web de Extra!Torneo_Vigente_ID (antes se editaba a mano en la hoja). -->
+      <div class="admin-rotulo">Configuración</div>
       <details class="admin-subseccion" style="margin-bottom:14px;">
         <summary><span class="cat-titulo">Torneo vigente</span></summary>
         <div class="admin-subseccion-body">
@@ -597,7 +600,14 @@
       </details>
 
       <div id="torneoPaso1">
-        <div class="field">
+        <div class="admin-rotulo" id="torneoAccionRotulo">Acciones</div>
+        <div class="contenido-tabs" id="torneoAccionPastillas" role="group" aria-labelledby="torneoAccionRotulo" style="margin-bottom:14px;">
+          <button type="button" class="tab-clan" data-accion="planificar" aria-pressed="false">Planificar</button>
+          <button type="button" class="tab-clan" data-accion="registrar" aria-pressed="false">Registrar</button>
+          <button type="button" class="tab-clan" data-accion="modificar" aria-pressed="false">Modificar</button>
+        </div>
+        <!-- El select y «Continuar» siguen aquí, ocultos: las pastillas ponen el valor y pulsan «Continuar» (§PF377). -->
+        <div class="field" style="display:none;">
           <label for="torneoAccion">¿Qué quieres hacer?</label>
           <select id="torneoAccion">
             <option value="">Elige una opción…</option>
@@ -606,7 +616,7 @@
             <option value="modificar">Modificar torneo</option>
           </select>
         </div>
-        <button type="button" class="btn btn-primary btn-block" id="btnTorneoPaso1" style="margin-top:6px;">Continuar</button>
+        <button type="button" class="btn btn-primary btn-block" id="btnTorneoPaso1" style="display:none;">Continuar</button>
       </div>
 
       <div id="torneoPaso2" style="display:none;">
@@ -911,6 +921,7 @@
 
       </div>
 
+  <div class="admin-rotulo">Resultados</div>
   <details class="admin-subseccion">
     <summary><span class="cat-titulo">Ganadores del torneo más reciente</span></summary>
     <div class="admin-subseccion-body">
@@ -980,13 +991,14 @@
   </details>
     </div>
 
-    <div class="card admin-grupo pf-cinta" style="--cinta:url(Im%C3%A1genes/Banners/Fankit/cinta-sorteo-titulo.webp); margin-top:24px;">
+    <div class="card admin-grupo pf-cinta" data-acordeon style="--cinta:url(Im%C3%A1genes/Banners/Fankit/cinta-sorteo-titulo.webp); margin-top:24px;">
       <div class="eyebrow">Sorteos</div>
 
       <!-- Panel de Sorteos del toggle Torneos/Sorteos: Paso 1 y Paso 2 replican el mecanismo de Torneos; Paso 3 trae los campos reales (ver mostrarPaso3Sorteo()). Historial en CHANGELOG.md. -->
       <div id="panelSorteosAccion">
 
         <!-- Gemelo del control "Torneo vigente" pero para Extra!Sorteo_Vigente_ID. -->
+        <div class="admin-rotulo">Configuración</div>
         <details class="admin-subseccion" style="margin-bottom:14px;">
           <summary><span class="cat-titulo">Sorteo vigente</span></summary>
           <div class="admin-subseccion-body">
@@ -1003,7 +1015,13 @@
         </details>
 
         <div id="sorteoPaso1">
-          <div class="field">
+          <div class="admin-rotulo" id="sorteoAccionRotulo">Acciones</div>
+          <div class="contenido-tabs" id="sorteoAccionPastillas" role="group" aria-labelledby="sorteoAccionRotulo" style="margin-bottom:14px;">
+            <button type="button" class="tab-clan" data-accion="planificar" aria-pressed="false">Planificar</button>
+            <button type="button" class="tab-clan" data-accion="registrar" aria-pressed="false">Registrar</button>
+            <button type="button" class="tab-clan" data-accion="modificar" aria-pressed="false">Modificar</button>
+          </div>
+          <div class="field" style="display:none;">
             <label for="sorteoAccion">¿Qué quieres hacer?</label>
             <select id="sorteoAccion">
               <option value="">Elige una opción…</option>
@@ -1012,7 +1030,7 @@
               <option value="modificar">Modificar sorteo</option>
             </select>
           </div>
-          <button type="button" class="btn btn-primary btn-block" id="btnSorteoPaso1" style="margin-top:6px;">Continuar</button>
+          <button type="button" class="btn btn-primary btn-block" id="btnSorteoPaso1" style="display:none;">Continuar</button>
         </div>
 
         <div id="sorteoPaso2" style="display:none; margin-top:14px;">
@@ -1314,6 +1332,7 @@
       </div>
 
   <!-- Herramienta standalone sin backend propio; se abre en pestaña nueva sin rel="noopener" para heredar el sessionStorage. -->
+  <div class="admin-rotulo">Extras</div>
   <details class="admin-subseccion">
     <summary><span class="cat-titulo">🎡 Ruleta de sorteos</span></summary>
     <div class="admin-subseccion-body">
@@ -1323,13 +1342,14 @@
   </details>
     </div>
 
-    <div class="card admin-grupo pf-cinta" style="--cinta:url(Im%C3%A1genes/Banners/Fankit/cinta-comunidad-ascensos.webp); margin-top:24px;">
+    <div class="card admin-grupo pf-cinta" data-acordeon style="--cinta:url(Im%C3%A1genes/Banners/Fankit/cinta-comunidad-ascensos.webp); margin-top:24px;">
       <div class="eyebrow">Cambio de rango</div>
 
       <!-- Panel del tercer tab (Cambio de Rango). -->
       <div id="panelCambioRangoAccion">
 
         <!-- Gemelo de «Torneo vigente» y «Sorteo vigente», pero para el par Ascenso/Descenso de Extra (PF286). -->
+        <div class="admin-rotulo">Configuración</div>
         <details class="admin-subseccion" style="margin-bottom:14px;">
           <summary><span class="cat-titulo">Cambio de rango vigente</span></summary>
           <div class="admin-subseccion-body">
@@ -1347,7 +1367,14 @@
 
         <!-- Wizard de Cambio de Rango: Registrar o Editar corrida (sin tercer paso de "tipo" como Torneos). -->
         <div id="crPaso1">
-          <div class="field">
+          <div class="admin-rotulo" id="crAccionRotulo">Acciones</div>
+          <div class="contenido-tabs" id="crAccionPastillas" role="group" aria-labelledby="crAccionRotulo" style="margin-bottom:14px;">
+            <button type="button" class="tab-clan" data-accion="registrar" aria-pressed="false">Nueva corrida</button>
+            <button type="button" class="tab-clan" data-accion="modificar" aria-pressed="false">Editar</button>
+            <button type="button" class="tab-clan" data-accion="ver" aria-pressed="false">Ver propuestas</button>
+            <button type="button" class="tab-clan" data-accion="verificar" aria-pressed="false">Verificar</button>
+          </div>
+          <div class="field" style="display:none;">
             <label for="crAccion">¿Qué quieres hacer?</label>
             <select id="crAccion">
               <option value="">Elige una opción…</option>
@@ -1359,7 +1386,7 @@
               <option value="verificar">Verificar un cambio de rango aplicado</option>
             </select>
           </div>
-          <button type="button" class="btn btn-primary btn-block" id="btnCrPaso1" style="margin-top:6px;">Continuar</button>
+          <button type="button" class="btn btn-primary btn-block" id="btnCrPaso1" style="display:none;">Continuar</button>
         </div>
 
         <div id="crPaso2" style="display:none;">
@@ -1599,6 +1626,7 @@
       </div>
 
   <!-- Panel para editar el Autor de un registro de ascenso/descenso ya guardado, sin depender de una Función de admin dedicada. -->
+  <div class="admin-rotulo">Extras</div>
   <details class="admin-subseccion">
     <summary><span class="cat-titulo">Editar autor de ascenso</span></summary>
     <div class="admin-subseccion-body">
@@ -3786,14 +3814,14 @@ function initTorneoWizard(){
     ev.preventDefault();
     paso2.style.display = 'none';
     paso3.style.display = 'none';
-    selAccion.focus();
+    (document.querySelector('#torneoAccionPastillas .activo') || document.querySelector('#torneoAccionPastillas [data-accion]') || selAccion).focus();
   });
 
   document.getElementById('torneoVolverPaso2').addEventListener('click', (ev) => {
     ev.preventDefault();
     paso3.style.display = 'none';
     // PF105: en «Modificar» no hubo paso 2, así que «Cambiar» vuelve al paso 1.
-    if(selAccion.value === 'modificar'){ selAccion.focus(); return; }
+    if(selAccion.value === 'modificar'){ (document.querySelector('#torneoAccionPastillas .activo') || document.querySelector('#torneoAccionPastillas [data-accion]') || selAccion).focus(); return; }
     selTipo.focus();
   });
 
@@ -6485,7 +6513,7 @@ document.getElementById('crVolverPaso1').addEventListener('click', (e) => {
   crIdExistenteActual = '';
   crIdDescensoActual = '';
   actualizarVisibilidadPropuestasCR();
-  document.getElementById('crAccion').focus(); // #crPaso2 (donde estaba el foco) se acaba de ocultar
+  (document.querySelector('#crAccionPastillas .activo') || document.querySelector('#crAccionPastillas [data-accion]') || document.getElementById('crAccion')).focus(); // #crPaso2 (donde estaba el foco) se acaba de ocultar
 });
 
 /**
@@ -7434,6 +7462,23 @@ document.getElementById('btnGuardarVigenteCR').addEventListener('click', guardar
  */
 document.querySelectorAll('[id$="Msg"]').forEach(el => el.setAttribute('aria-live', 'polite'));
 
+/** Pastillas de acción de Torneos, Sorteos y Cambio de rango (§PF377): ponen el valor del <select> oculto
+ *  (#torneoAccion, #sorteoAccion, #crAccion) y pulsan su «Continuar» oculto, así que todo el flujo de pasos queda igual. */
+[['torneoAccion','btnTorneoPaso1','torneoAccionPastillas'], ['sorteoAccion','btnSorteoPaso1','sorteoAccionPastillas'], ['crAccion','btnCrPaso1','crAccionPastillas']].forEach(([idSel, idBtn, idGrupo]) => {
+  const sel = document.getElementById(idSel), btn = document.getElementById(idBtn), grupo = document.getElementById(idGrupo);
+  if(!sel || !btn || !grupo) return;
+  const pastillas = Array.from(grupo.querySelectorAll('[data-accion]'));
+  const marcar = () => pastillas.forEach(p => { const on = p.dataset.accion === sel.value; p.classList.toggle('activo', on); p.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+  pastillas.forEach(p => p.addEventListener('click', () => { sel.value = p.dataset.accion; marcar(); btn.click(); }));
+  sel.addEventListener('change', marcar);
+});
+
+/** Acordeón (§PF377): dentro de cada tarjeta con data-acordeon solo queda abierta una línea dorada a la vez. */
+document.querySelectorAll('[data-acordeon]').forEach(tarjeta => {
+  const lineas = Array.from(tarjeta.querySelectorAll('details.admin-subseccion'));
+  lineas.forEach(d => d.addEventListener('toggle', () => { if(d.open) lineas.forEach(o => { if(o !== d) o.open = false; }); }));
+});
+
 /** Wizard de Sorteos, por tramos (ver comentario grande junto a
  *  #panelSorteosAccion en el HTML) -- mismo mecanismo que
  *  btnTorneoPaso1/btnTorneoPaso2/torneoVolverPaso1/torneoVolverPaso2 dentro
@@ -7464,7 +7509,7 @@ document.getElementById('sorteoVolverPaso1').addEventListener('click', (ev) => {
   ev.preventDefault();
   document.getElementById('sorteoPaso2').style.display = 'none';
   document.getElementById('sorteoPaso3').style.display = 'none';
-  document.getElementById('sorteoAccion').focus();
+  (document.querySelector('#sorteoAccionPastillas .activo') || document.querySelector('#sorteoAccionPastillas [data-accion]') || document.getElementById('sorteoAccion')).focus();
 });
 
 /** FIX (10-sep-2026, sección 5.4 del consolidado — esqueleto de ruteo del
@@ -7587,7 +7632,7 @@ document.getElementById('sorteoVolverPaso2').addEventListener('click', (ev) => {
   ev.preventDefault();
   document.getElementById('sorteoPaso3').style.display = 'none';
   // PF107: en «Modificar» no hubo paso 2, así que «Cambiar» vuelve al paso 1.
-  if(document.getElementById('sorteoAccion').value === 'modificar'){ document.getElementById('sorteoAccion').focus(); return; }
+  if(document.getElementById('sorteoAccion').value === 'modificar'){ (document.querySelector('#sorteoAccionPastillas .activo') || document.querySelector('#sorteoAccionPastillas [data-accion]') || document.getElementById('sorteoAccion')).focus(); return; }
   document.getElementById('sorteoTipo').focus();
 });
 
