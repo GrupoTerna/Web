@@ -305,7 +305,8 @@
 // v258 (6-nov-2026): directorio.html cambió (CORE_ASSETS) -- el aviso «Estuvo en un clan rival» de Ingresos recientes dice cuando solo coincide el nombre del clan y no hay Tag para confirmarlo.
 // v257 (6-nov-2026): guerra.html cambió (CORE_ASSETS) -- cada tarjeta de «Guerra de Hoy» muestra bajo «N/M atacaron hoy» cuántas cuentas nuevas pueden participar (solo admin) y «Participación de Hoy» separa reservadas, reemplazables y cuentas que se pueden agregar.
 // v259 (6-nov-2026): clan.html, guerra.html, directorio.html, assets/styles.css y el nuevo assets/js/features/grid-guerra.js cambiaron (CORE_ASSETS) -- clan.html muestra «Valores semanales» solo con su clan; «Ver Guerra en vivo» abre guerra.html con ese clan elegido y «Ver en el Directorio» filtra también «Ingresos recientes» para ese clan.
-const CACHE_NAME = 'terna-static-v259';
+// v260 (6-nov-2026): clan.html y directorio.html cambiaron (CORE_ASSETS) -- «Ver en el Directorio» manda también el Tag del clan y «Ingresos recientes» se filtra para ese clan comparando por Tag (el nombre solo de respaldo; regla de §PF401).
+const CACHE_NAME = 'terna-static-v260';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y

@@ -2878,11 +2878,15 @@ let ingresosOcultarConWsp = false;
 let ingresosOcultarSinPendientes = false;
 /* 19-oct-2026 (pedido usuaria): el backend manda guerraCongelada=true de lunes a miércoles; la cuadrícula de Ataques/Medallas/Barcos muestra entonces lo último de la guerra (hasta el domingo) y se rotula «Última guerra» hasta que empiece la siguiente. [→ Contexto_Base_Web.md §PF125] */
 let ingresosGuerraCongelada = false;
-/** 6-nov-2026 (pedido de la usuaria): clan.html enlaza a directorio.html?clan=<nombre>#roster. Además de elegir ese clan en «Directorio por clan», «Ingresos recientes» arranca filtrado para ese clan: solo sus miembros quedan marcados (pastilla del clan, contador y gráficas); las demás tarjetas se atenúan como con cualquier pastilla, sin desaparecer. Devuelve el Set de tags a marcar, o null si no hay ?clan= o ese clan no tiene ingresos (entonces se ve todo, como siempre). */
-function seleccionIngresosDeClan(grupos, clanQuery){
-  const q = String(clanQuery || '').trim().toLowerCase();
-  if (!q) return null;
-  const g = (grupos || []).find(x => String((x && x.clan) || '').trim().toLowerCase() === q);
+/** 6-nov-2026 (pedido de la usuaria): clan.html enlaza a directorio.html?clan=<nombre>&tag=<Tag>#roster. Además de elegir ese clan en «Directorio por clan», «Ingresos recientes» arranca filtrado para ese clan: solo sus miembros quedan marcados (pastilla del clan, contador y gráficas); las demás tarjetas se atenúan como con cualquier pastilla, sin desaparecer. Regla de la usuaria (§PF401): el clan se compara por Tag. Si llega el Tag, se busca el grupo cuyo `clanTag` (el de sus miembros; §PF405) coincide; el nombre solo se usa de respaldo, y solo con grupos que no traen Tag (datos anteriores), sin confirmar por Tag (criterio 2 del plan Clanes por Tag). Devuelve el Set de tags de jugador a marcar, o null si no hay clan en la dirección o ese clan no tiene ingresos (entonces se ve todo, como siempre). */
+function tagClanNormalizado(t){ return String(t || '').trim().replace(/^#/, '').toUpperCase(); }
+function seleccionIngresosDeClan(grupos, clanQuery, tagQuery){
+  const tag = tagClanNormalizado(tagQuery);
+  const nombre = String(clanQuery || '').trim().toLowerCase();
+  if (!tag && !nombre) return null;
+  const tagDe = g => tagClanNormalizado(((g && g.miembros) || []).map(m => m && m.clanTag).find(Boolean));
+  let g = tag ? (grupos || []).find(x => tagDe(x) === tag) : null;
+  if (!g && nombre) g = (grupos || []).find(x => !tagDe(x) && String((x && x.clan) || '').trim().toLowerCase() === nombre);
   return g && Array.isArray(g.miembros) && g.miembros.length ? new Set(g.miembros.map(claveIngreso)) : null;
 }
 
@@ -3219,7 +3223,7 @@ async function cargarIngresosRecientes(opts){
     construirFiltroIngresos(nuevos);
     // 6-nov-2026: solo en la carga de la página; tras «Actualizar» (fresco) se vuelve a ver todo, como antes.
     if (!fresco){
-      const selClan = seleccionIngresosDeClan(ingresosGrupos, new URLSearchParams(location.search).get('clan'));
+      const selClan = seleccionIngresosDeClan(ingresosGrupos, new URLSearchParams(location.search).get('clan'), new URLSearchParams(location.search).get('tag'));
       if (selClan) ingresosSeleccionados = selClan;
     }
     renderNuevoGrid();
