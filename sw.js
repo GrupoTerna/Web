@@ -309,7 +309,8 @@
 // v261 (6-nov-2026): guerra.html y clan.html cambiaron (CORE_ASSETS) -- las pestañas de clan, la preselección (?tag=), los cupos y la cabecera de las tarjetas de guerra comparan por Tag con el nombre de respaldo; clan.html compara su clan por Tag y «Ver Guerra en vivo» manda también el Tag (§PF412).
 // v262 (6-nov-2026): directorio.html cambió (CORE_ASSETS) -- el «Directorio por clan» que arranca elegido, los grupos y pastillas de «Ingresos recientes» y la leyenda de las gráficas comparan por Tag con el nombre de respaldo, y un ?tag= junto a ?clan= (el de «Ver en el Directorio» de clan.html) ya no redirige a perfil.html
 // v263 (6-nov-2026): torneos.html cambió (CORE_ASSETS) -- el cruce del podio por fecha y clan y el ranking de victorias identifican el clan por Tag (clanTag), con el nombre de respaldo
-const CACHE_NAME = 'terna-static-v263';
+// v264 (6-nov-2026): assets/js/util.js, assets/js/features/clan-card.js e index.html cambiaron (CORE_ASSETS) -- enlaceClan() acepta el Tag del clan y agrega &tag= al enlace; Inicio (aniversarios y rankings), las tarjetas de clan, perfil.html y permisos.html pasan o agrupan por clanTag, con el nombre de respaldo
+const CACHE_NAME = 'terna-static-v264';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y

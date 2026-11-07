@@ -23,7 +23,7 @@ function clanCardCabeceraHtml(c, i, opts){
   // enlaceJugador() ya usaba para nombres de jugador. Solo se activa si
   // hay c.nombre real (si no lo hay, se usaba el label del badge como
   // respaldo, y ese no identifica un clan real para armar el link).
-  const nombreHtml = c.nombre ? enlaceClan(c.nombre) : esc(nombre);
+  const nombreHtml = c.nombre ? enlaceClan(c.nombre, { tag: c.clanTag }) : esc(nombre); // §PF415 (6d): el enlace lleva &tag=
   return `
       <div style="display:flex; justify-content:center; gap:8px; flex-wrap:wrap; margin-bottom:14px;">
         <span class="badge ${badge.cls}">${esc(badge.label)}</span>
@@ -130,7 +130,7 @@ function chartCardHtml(titulo, icono, clanes, campo, formatFn){
     // (ej. el comparador "Cara a cara" jugador vs jugador).
     return `
       <div class="chart-row chart-row-clan">
-        <span class="chart-label chart-label-fuerte" title="${esc(nombreClan)}">${enlaceClan(nombreClan)}</span>
+        <span class="chart-label chart-label-fuerte" title="${esc(nombreClan)}">${enlaceClan(nombreClan, { tag: c.clanTag })}</span>
         <span class="chart-track"><span class="chart-fill" style="width:${pct}%"></span></span>
         <span class="chart-val">${esc(txt)}</span>
       </div>`;

@@ -850,7 +850,7 @@ async function cargarAniversarios(){
       <div class="aniversario-row">
         <div>
           <div class="av-nombre">🎉 ${enlaceJugador(a.nombre, a.tag)}</div>
-          <div class="av-detalle">${enlaceClan(a.clan)} · en la Familia desde el ${esc(a.fechaIngTxt)}</div>
+          <div class="av-detalle">${enlaceClan(a.clan, { tag: a.clanTag })} · en la Familia desde el ${esc(a.fechaIngTxt)}</div>
         </div>
         <div class="av-hito">${hitoTxt} · ${cuandoTxt}</div>
       </div>`;
@@ -870,7 +870,7 @@ cargarAniversarios();
    esc/fmtNum/apiGet/traducirNombreCarta (assets/common.js), ya incluido
    en esta página, así que no necesitó ningún ajuste al moverse. */
 /**
- * renderRankingRow(pos, nombre, valor, sufijo, tag, clan)
+ * renderRankingRow(pos, nombre, valor, sufijo, tag, clan, clanTag)
  * Fila compartida por las 4 listas de 'webRankings' — evita repetir el
  * mismo template 4 veces.
  * FIX (04-sep-2026, pedido usuario — "los nombres deben tener link al
@@ -888,7 +888,7 @@ cargarAniversarios();
  * encoge por culpa del sufijo "batallas" (o de cualquier otro valor
  * largo) empujándolo desde el mismo renglón.
  */
-function renderRankingRow(pos, nombre, valor, sufijo, tag, clan){
+function renderRankingRow(pos, nombre, valor, sufijo, tag, clan, clanTag){ // clanTag: §PF415 (6d), solo para armar el enlace del clan por Tag
   const nombreHtml = tag
     ? `<a class="rk-nombre" href="perfil.html?tag=${encodeURIComponent(tag)}" target="_blank" rel="noopener">${esc(nombre)}</a>`
     : `<span class="rk-nombre">${esc(nombre)}</span>`;
@@ -897,7 +897,7 @@ function renderRankingRow(pos, nombre, valor, sufijo, tag, clan){
     <div class="rk-main">
       ${nombreHtml}
       <div class="rk-sub">
-        ${clan ? `<span class="rk-clan">${enlaceClan(clan)}</span>` : '<span></span>'}
+        ${clan ? `<span class="rk-clan">${enlaceClan(clan, { tag: clanTag })}</span>` : '<span></span>'}
         <span class="rk-valor">${fmtNum(valor)}${sufijo ? ' ' + sufijo : ''}</span>
       </div>
     </div>
@@ -910,7 +910,7 @@ function pintarRanking(elId, lista, sufijo){
     wrap.innerHTML = '<div class="empty" style="padding:16px 0;">Todavía no hay datos.</div>';
     return;
   }
-  wrap.innerHTML = lista.map((m, i) => renderRankingRow(i + 1, m.nombre, m.valor, sufijo, m.tag, m.clan)).join('');
+  wrap.innerHTML = lista.map((m, i) => renderRankingRow(i + 1, m.nombre, m.valor, sufijo, m.tag, m.clan, m.clanTag)).join('');
 }
 
 /**

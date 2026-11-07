@@ -14,9 +14,9 @@ const { clanCardCabeceraHtml, clanCardHtml, chartCardHtml } = loadBrowserScripts
   'assets/js/features/clan-card.js'
 ]);
 
-test('clanCardCabeceraHtml() con c.nombre real arma el link clickeable a clan.html (enlaceClan)', () => {
+test('clanCardCabeceraHtml() con c.nombre real arma el link clickeable a clan.html (enlaceClan), con el Tag del clan (&tag=, §PF415)', () => {
   const html = clanCardCabeceraHtml({ nombre: 'Familia Terna', clanTag: '#ABC123' }, 0);
-  assert.match(html, /<a class="clan-link" href="clan\.html\?clan=Familia(%20|\+)Terna" target="_blank" rel="noopener">Familia Terna<span class="sr-only"> \(se abre en una pestaña nueva\)<\/span><\/a>/);
+  assert.match(html, /<a class="clan-link" href="clan\.html\?clan=Familia(%20|\+)Terna&tag=%23ABC123" target="_blank" rel="noopener">Familia Terna<span class="sr-only"> \(se abre en una pestaña nueva\)<\/span><\/a>/);
   assert.match(html, /#ABC123/);
 });
 

@@ -410,19 +410,36 @@ function pintarLista(){
  * todas seguidas sin separación visual. Conserva el orden en que aparece
  * cada clan por primera vez en `cuentas` (mismo orden que ya trae el
  * backend). Las cuentas sin clan asignado quedan bajo "Sin clan".
+ * Clanes por Tag, tanda 6d (6-nov-2026, §PF415): la clave del grupo es el Tag
+ * del clan (`clanTag`, §PF405) y el nombre solo es la clave de una cuenta que
+ * no trae Tag; así dos clanes con el mismo nombre y distinto Tag no se juntan.
+ * El texto mostrado sigue siendo el nombre del clan.
  */
 function agruparCuentasPorClan(cuentas){
   if(!cuentas || !cuentas.length) return '';
-  const porClan = new Map();
+  const porClan = new Map(); // clave -> { nombre, miembros[] }
   const ordenClanes = [];
+  const normTag = t => String(t || '').replace('#', '').trim().toUpperCase();
+  // Una cuenta sin Tag cae en el grupo de su clan si ese nombre aparece con UN solo Tag entre las cuentas; con dos Tags distintos no se adivina.
+  const tagsPorNombre = new Map();
   cuentas.forEach(c => {
-    const clan = c.clan || 'Sin clan';
-    if(!porClan.has(clan)){ porClan.set(clan, []); ordenClanes.push(clan); }
-    porClan.get(clan).push(c.nombre || c.tag);
+    const t = normTag(c.clanTag);
+    if(!c.clan || !t) return;
+    if(!tagsPorNombre.has(c.clan)) tagsPorNombre.set(c.clan, new Set());
+    tagsPorNombre.get(c.clan).add(t);
   });
-  return ordenClanes.map(clan => {
-    const nombres = porClan.get(clan).map(n => esc(n)).join(', ');
-    return `<div class="grupo-clan"><span class="nombre-clan">${esc(clan)}</span> — ${nombres}</div>`;
+  cuentas.forEach(c => {
+    const nombreClan = c.clan || 'Sin clan';
+    const tagsDelNombre = tagsPorNombre.get(c.clan);
+    const tagClan = normTag(c.clanTag) || (tagsDelNombre && tagsDelNombre.size === 1 ? Array.from(tagsDelNombre)[0] : '');
+    const clave = tagClan ? 'tag:' + tagClan : 'nombre:' + nombreClan;
+    if(!porClan.has(clave)){ porClan.set(clave, { nombre: nombreClan, miembros: [] }); ordenClanes.push(clave); }
+    porClan.get(clave).miembros.push(c.nombre || c.tag);
+  });
+  return ordenClanes.map(clave => {
+    const g = porClan.get(clave);
+    const nombres = g.miembros.map(n => esc(n)).join(', ');
+    return `<div class="grupo-clan"><span class="nombre-clan">${esc(g.nombre)}</span> — ${nombres}</div>`;
   }).join('');
 }
 

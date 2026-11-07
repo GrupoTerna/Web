@@ -143,6 +143,10 @@ function enlaceJugador(nombre, tag, opts){
  *   "clan-link", que ya trae subrayado on-hover — ver styles.css).
  * opts.mismaVentana: si true, navega en la misma pestaña en vez de abrir
  *   una nueva (por defecto abre nueva pestaña, igual que enlaceJugador()).
+ * opts.tag: Tag del clan (clanTag del objeto que se pinta). Clanes por Tag,
+ *   tanda 6d (6-nov-2026, §PF415): si viene, se agrega &tag= al enlace y
+ *   clan.html identifica el clan por ese Tag; el nombre de ?clan= queda solo
+ *   de respaldo. Sin Tag el enlace es el de siempre (solo ?clan=).
  */
 function enlaceClan(nombre, opts){
   opts = opts || {};
@@ -151,7 +155,9 @@ function enlaceClan(nombre, opts){
   const clase = 'clan-link' + (opts.clase ? ' ' + opts.clase : '');
   const target = opts.mismaVentana ? '' : ' target="_blank" rel="noopener"';
   const aviso = opts.mismaVentana ? '' : '<span class="sr-only"> (se abre en una pestaña nueva)</span>'; // Q-2 (§PF050)
-  return `<a class="${clase}" href="clan.html?clan=${encodeURIComponent(nombre)}"${target}>${nombreEsc}${aviso}</a>`;
+  const tagClan = String(opts.tag === undefined || opts.tag === null ? '' : opts.tag).trim();
+  const paramTag = tagClan ? '&tag=' + encodeURIComponent(tagClan) : '';
+  return `<a class="${clase}" href="clan.html?clan=${encodeURIComponent(nombre)}${paramTag}"${target}>${nombreEsc}${aviso}</a>`;
 }
 
 
