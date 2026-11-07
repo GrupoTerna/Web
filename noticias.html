@@ -222,15 +222,20 @@ const NT_PALETA = ['#3987e5', '#d95926', '#199e70', '#c98500', '#d55181', '#9085
 const NT_INGRESO = '#3987e5', NT_SALIDA = '#e66767';                                    // par divergente azul/rojo
 let _ntColores = {};
 
-function ntColor(clan){
-  const k = String(clan || '').trim().toLowerCase();
+// Clave de identidad de un clan en esta pantalla: su Tag (clanTag) y, solo si el dato no lo trae, el nombre. Clanes por Tag, tanda 6e (§PF416).
+function ntClave(o){
+  o = o || {};
+  return String(o.clanTag || '').trim().toLowerCase() || String(o.clan || '').trim().toLowerCase();
+}
+function ntColor(clave){
+  const k = String(clave || '').trim().toLowerCase();
   if(!(k in _ntColores)) _ntColores[k] = Object.keys(_ntColores).length;
   return NT_PALETA[_ntColores[k] % NT_PALETA.length];
 }
 function ntRegistrarClanes(d){
   _ntColores = {};
   [d.posiciones, d.guerra, d.barcos, d.movimientos].forEach(s => {
-    if(s && s.ok && Array.isArray(s.clanes)) s.clanes.forEach(c => ntColor(c.clan));
+    if(s && s.ok && Array.isArray(s.clanes)) s.clanes.forEach(c => ntColor(ntClave(c)));
   });
 }
 const ntN = n => Number(n || 0).toLocaleString('es-PE');
@@ -399,8 +404,8 @@ function ntPanelPosiciones(sec){
   if(!ntOk(sec)) return ntErrorSeccion(sec, 'Posiciones finales');
   if(!sec.clanes.length) return ntPanel('Posiciones finales', '', '<div class="empty">Sin clanes para mostrar.</div>', true);
   const tarjetas = sec.clanes.map(c => {
-    const col = ntColor(c.clan);
-    if(c.sinDatos) return `<div class="nt-clan-card" style="--nt:${col}"><div class="nt-clan-nombre">${enlaceClan(c.clan)}</div><div class="empty" style="margin-top:8px;">Sin datos de guerra esta semana.</div></div>`;
+    const col = ntColor(ntClave(c));
+    if(c.sinDatos) return `<div class="nt-clan-card" style="--nt:${col}"><div class="nt-clan-nombre">${enlaceClan(c.clan, { tag: c.clanTag })}</div><div class="empty" style="margin-top:8px;">Sin datos de guerra esta semana.</div></div>`;
     const puesto = c.puesto > 0 ? `${c.puestoEstimado ? '~' : ''}${c.puesto}.º` : 'Sin dato';
     let variacion = '<span class="text-faint">sin semana anterior</span>';
     if(c.variacionPuesto !== null && c.variacionPuesto !== undefined){
@@ -412,7 +417,7 @@ function ntPanelPosiciones(sec){
     const trofPend = (c.trofeos === null || c.trofeos === undefined); // 04-nov-2026: el resultado de la semana aún no se aplica (se conoce al empezar la siguiente)
     const trofTxt = trofPend ? 'Trofeos de guerra: pendientes' : `${ntN(c.trofeos)} trofeos de guerra (${esc(dT)})`;
     return `<div class="nt-clan-card" style="--nt:${col}" title="${esc(c.clan)}: puesto ${esc(puesto)}, ${trofPend ? 'trofeos de guerra pendientes' : ntN(c.trofeos) + ' trofeos de guerra'}">
-      <div class="nt-clan-nombre">${enlaceClan(c.clan)}</div>
+      <div class="nt-clan-nombre">${enlaceClan(c.clan, { tag: c.clanTag })}</div>
       <div class="nt-puesto">${esc(puesto)}</div>
       <div class="text-dim" style="font-size:13px;">${variacion}</div>
       <div style="margin:8px 0 2px;">${ntSpark((c.tendencia || []).map(x => x.trofeos), col)}</div>
@@ -427,8 +432,8 @@ function ntPanelPosiciones(sec){
 function ntPanelFame(sec){
   if(!ntOk(sec)) return ntErrorSeccion(sec, 'Medallas de guerra');
   if(!sec.clanes.length) return ntPanel('Medallas de guerra', '', '<div class="empty">Sin datos de guerra para esta semana.</div>', false);
-  const barras = ntBarras(sec.clanes.map(c => ({ label: c.clan, valor: c.fame, color: ntColor(c.clan) })));
-  const lineas = ntLineas(sec.clanes.map(c => ({ nombre: c.clan, color: ntColor(c.clan), valores: c.fameDias })), ['Jue', 'Vie', 'Sáb', 'Dom']);
+  const barras = ntBarras(sec.clanes.map(c => ({ label: c.clan, valor: c.fame, color: ntColor(ntClave(c)) })));
+  const lineas = ntLineas(sec.clanes.map(c => ({ nombre: c.clan, color: ntColor(ntClave(c)), valores: c.fameDias })), ['Jue', 'Vie', 'Sáb', 'Dom']);
   return ntPanel('Medallas de guerra', 'Medallas totales de cada clan y cómo fueron creciendo día a día.',
     `${barras}<div style="margin-top:16px;">${lineas}</div>`, false);
 }
@@ -437,7 +442,7 @@ function ntPanelParticipacion(sec){
   if(!ntOk(sec)) return ntErrorSeccion(sec, 'Participación en guerra');
   if(!sec.clanes.length) return ntPanel('Participación en guerra', '', '<div class="empty">Sin datos de guerra para esta semana.</div>', false);
   const barras = ntBarras(sec.clanes.map(c => ({
-    label: c.clan, valor: c.participacion, color: ntColor(c.clan),
+    label: c.clan, valor: c.participacion, color: ntColor(ntClave(c)),
     texto: `${c.participacion.toLocaleString('es-PE')}%`,
     titulo: `${c.clan}: ${ntN(c.ataques)} de ${ntN(c.ataquesPosibles)} ataques exigidos (${c.participacion}%), ${c.completos} jugador(es) con todos sus ataques exigidos`
   })), 100);
@@ -458,10 +463,12 @@ function ntPanelTopFame(sec){
   if(!ntOk(sec)) return ntErrorSeccion(sec, 'Top de medallas');
   if(!sec.topFame.length) return ntPanel('Top de medallas', '', '<div class="empty">Sin medallas registradas esta semana.</div>', false);
   const cuerpo = ntBarras(sec.topFame.map((j, i) => ({
-    label: `${i + 1}. ${j.nombre}`, valor: j.fame, color: ntColor(j.clan),
+    label: `${i + 1}. ${j.nombre}`, valor: j.fame, color: ntColor(ntClave(j)),
     titulo: `${j.nombre} (${j.clan}): ${ntN(j.fame)} medallas, ${j.ataques} ataque(s)`
   })));
-  const clanes = [...new Set(sec.topFame.map(j => j.clan))].map(c => `<span><span class="nt-dot" style="background:${ntColor(c)}"></span>${esc(c)}</span>`).join('');
+  const clavesLeyenda = new Map(); // clave (Tag o nombre) -> nombre del clan; dos clanes de igual nombre y distinto Tag no se mezclan
+  sec.topFame.forEach(j => { const k = ntClave(j); if(!clavesLeyenda.has(k)) clavesLeyenda.set(k, j.clan); });
+  const clanes = [...clavesLeyenda].map(([k, nombre]) => `<span><span class="nt-dot" style="background:${ntColor(k)}"></span>${esc(nombre)}</span>`).join('');
   return ntPanel('Top de medallas', 'Los jugadores que más medallas aportaron en toda la familia.', `${cuerpo}<div class="nt-leyenda">${clanes}</div>`, false);
 }
 
@@ -479,7 +486,7 @@ function ntPanelBarcos(sec){
   const pie = `<p class="nt-nota">${nota.join(' ')}</p>`;
   if(!sec.clanes.length) return ntPanel('Ataques a barcos', '', `<div class="empty">Sin ataques a barcos registrados en esta semana.</div>${pie}`, false);
 
-  const barras = ntBarras(sec.clanes.map(c => ({ label: c.clan, valor: c.totalAtaques, color: ntColor(c.clan) })));
+  const barras = ntBarras(sec.clanes.map(c => ({ label: c.clan, valor: c.totalAtaques, color: ntColor(ntClave(c)) })));
   const pasados = sec.clanes.flatMap(c => c.jugadores.filter(j => j.excede).map(j => ({ j, clan: c.clan })));
   const alerta = pasados.length
     ? `<div style="margin-top:10px;">${pasados.map(p => `<span class="badge badge-warn" title="${esc(p.clan)}${(p.j.excedeEn || []).length ? ' · ' + esc(p.j.excedeEn.join(' | ')) : ''}">${esc(p.j.nombre || p.j.tag)}: ${esc(p.j.ataques)}</span> `).join('')}<span class="text-faint" style="font-size:13px;">se pasaron del máximo</span></div>` : '';
@@ -505,7 +512,7 @@ function ntPanelAscensos(sec){
   const linea = c => `
     <div class="nt-linea" ${c.esAscensoClan ? 'style="border-left:4px solid #b3e5fc; padding-left:10px;"' : ''}>
       <div style="font-weight:700; font-size:13px;">${enlaceJugador(c.nombre || c.tag, c.tag)} <span class="text-faint" style="font-family:var(--f-mono); font-size:13px;">${esc(c.tag)}</span></div>
-      <div class="text-dim">${c.esAscensoClan ? 'Ascenso de clan' : `${esc(c.tipo)}: ${esc(c.rangoAnterior || '—')} → ${esc(c.rangoNuevo || '—')}`} · ${c.clan ? enlaceClan(c.clan) : '—'} · ${esc(c.fechaTxt)}</div>
+      <div class="text-dim">${c.esAscensoClan ? 'Ascenso de clan' : `${esc(c.tipo)}: ${esc(c.rangoAnterior || '—')} → ${esc(c.rangoNuevo || '—')}`} · ${c.clan ? enlaceClan(c.clan, { tag: c.clanTag }) : '—'} · ${esc(c.fechaTxt)}</div>
       <div class="text-dim">Hecho por: <b>${esc(c.autor || 'sin autor')}</b></div>
     </div>`;
   return ntPanel('Ascensos y descensos', `${ntN(sec.cambios.length)} cambio(s) de rango en la semana${clanN.c ? ` (${clanN.c} ascenso(s) de clan, resaltados en azul)` : ''}.`,
@@ -525,7 +532,7 @@ function ntPanelMovimientos(sec){
       ], max)}</div>`;
   }).join('');
   const leyenda = `<div class="nt-leyenda"><span><span class="nt-dot" style="background:${NT_INGRESO}"></span>Ingresos y reingresos</span><span><span class="nt-dot" style="background:${NT_SALIDA}"></span>Salidas y expulsiones</span></div>`;
-  const lista = sec.lista.map(m => `<div class="nt-linea">${enlaceJugador(m.nombre || m.tag, m.tag)} · <b>${esc(m.movimiento)}</b> · ${m.clan ? enlaceClan(m.clan) : '—'} · ${esc(m.fechaTxt)}</div>`).join('');
+  const lista = sec.lista.map(m => `<div class="nt-linea">${enlaceJugador(m.nombre || m.tag, m.tag)} · <b>${esc(m.movimiento)}</b> · ${m.clan ? enlaceClan(m.clan, { tag: m.clanTag }) : '—'} · ${esc(m.fechaTxt)}</div>`).join('');
   return ntPanel('Ingresos y salidas', 'Quién entró y quién salió de los clanes esta semana.',
     `${bloques}${leyenda}<details class="nt-detalle"><summary>Ver los ${ntN(sec.total)} movimientos</summary>${lista}${sec.total > sec.lista.length ? '<p class="nt-nota">Se muestran solo los primeros movimientos.</p>' : ''}</details>
      <p class="nt-nota">Es lo que quedó registrado en el historial de ingresos y salidas.</p>`, false);

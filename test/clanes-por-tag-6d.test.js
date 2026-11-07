@@ -128,6 +128,6 @@ return lineChartLegendHtml;`)(enlaceClan, (n, t) => n, ['#000'], [], () => 0);
   assert.equal((html.match(/ing-linechart-legend-clan/g) || []).length, 2);
 });
 
-test('§PF415 cableado: noticias.html NO usa clanTag a propósito (40_Web_Noticias.gs no lo manda todavía)', () => {
-  assert.doesNotMatch(leer('noticias.html'), /clanTag/);
+test('§PF416 cableado: noticias.html ya usa clanTag (la 6e hizo que 40_Web_Noticias.gs lo mande; antes de ella esta prueba exigía lo contrario)', () => {
+  assert.match(leer('noticias.html'), /clanTag/);
 });

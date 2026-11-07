@@ -311,7 +311,8 @@
 // v263 (6-nov-2026): torneos.html cambió (CORE_ASSETS) -- el cruce del podio por fecha y clan y el ranking de victorias identifican el clan por Tag (clanTag), con el nombre de respaldo
 // v264 (6-nov-2026): assets/js/util.js, assets/js/features/clan-card.js e index.html cambiaron (CORE_ASSETS) -- enlaceClan() acepta el Tag del clan y agrega &tag= al enlace; Inicio (aniversarios y rankings), las tarjetas de clan, perfil.html y permisos.html pasan o agrupan por clanTag, con el nombre de respaldo
 // v265 (6-nov-2026): directorio.html cambió (CORE_ASSETS) -- el título del «Directorio por clan» y la leyenda de las gráficas de «Ingresos recientes» enlazan al clan con su Tag (&tag=)
-const CACHE_NAME = 'terna-static-v265';
+// v266 (6-nov-2026): noticias.html cambió (CORE_ASSETS) -- el color de cada clan, la leyenda del «Top de medallas» y los enlaces al clan (&tag=) de Posiciones, Ascensos e Ingresos y salidas usan el Tag (clanTag), con el nombre de respaldo (§PF416)
+const CACHE_NAME = 'terna-static-v266';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
