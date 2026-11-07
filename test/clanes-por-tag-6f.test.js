@@ -5,7 +5,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 
-// NUEVO (7-nov-2026, tanda 6f de Clanes por Tag, §PF417): los enlaces de clan que seguían por nombre pasan el Tag ahora que el backend
+// NUEVO (6-nov-2026, tanda 6f de Clanes por Tag, §PF417): los enlaces de clan que seguían por nombre pasan el Tag ahora que el backend
 // lo manda (ascensos editables, propuestas de cambio de rango, Mis cuentas y ficha de infiltrado). Cableado por texto sobre los archivos
 // reales. LÍMITE: no ejecuta las pantallas. `perfil.html` b.miClan sigue por nombre a propósito (dato externo de la API de Clash Royale).
 const leer = f => fs.readFileSync(path.join(__dirname, '..', f), 'utf8');

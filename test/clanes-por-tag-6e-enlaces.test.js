@@ -19,7 +19,7 @@ test('§PF416 admin: ficha de miembro, participantes de resolución y «Encontra
   assert.match(ADMIN, /enlaceClan\(p\.clan, \{ tag: p\.clanTag \}\)/);
   assert.match(ADMIN, /' · ' \+ enlaceClan\(j\.clan, \{ tag: j\.clanTag \}\)/);
 });
-// 6f (7-nov-2026): el backend ya manda clanTag en esos payloads (§PF417), así que la espera terminó; ver clanes-por-tag-6f.test.js.
+// 6f (6-nov-2026): el backend ya manda clanTag en esos payloads (§PF417), así que la espera terminó; ver clanes-por-tag-6f.test.js.
 test('§PF416 admin: los sitios que esperaban al backend pasaron a usar el Tag en la 6f', () => {
   assert.doesNotMatch(ADMIN, /enlaceClan\(m\._clan\)/);
   assert.doesNotMatch(ADMIN, /enlaceClan\(a\.clan\)/);
