@@ -275,7 +275,7 @@ test('clan.html: sin historial solo sale el aviso, sin barra de vista', async ()
 
 // ---------------- directorio.html: Ingresos recientes y Cara a cara ----------------
 const DIR = scriptDe('directorio.html', 'function lineChartSvg');
-const NOMBRES_DIR = ['semanaLabel', 'semanaOrden', 'construirSemanasMaestras', 'numeroSemanaVieja', 'semanaLabelCorta', 'construirFechasEstimadasSemanasViejas',
+const NOMBRES_DIR = ['tagClanNormalizado', 'claveClanMiembro', 'semanaLabel', 'semanaOrden', 'construirSemanasMaestras', 'numeroSemanaVieja', 'semanaLabelCorta', 'construirFechasEstimadasSemanasViejas',
   'fmtFechaCortaDDMM', 'fmtFechaLargaDDMMYYYY', 'textoTemporadaSemanaDiaIngreso', 'attrsTemporadaSemanaDiaIngreso', 'lineChartSvg',
   'etiquetaPuntoIngreso', 'htmlTooltipPuntoIngreso', 'activarTooltipsGraficasIngresos', 'lineChartLegendHtml', 'renderComparativaSemanal',
   'guerraComparadorMetricaSvg', 'montarComparadorGuerraChart', 'renderComparadorGuerraChart', 'fmtFecha'];

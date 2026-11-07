@@ -2263,11 +2263,19 @@ function renderRosterClanActivo(){
  * selecciona esa pestaña de entrada y hace scroll suave hasta el directorio.
  */
 function clanIdxDesdeQuery(){
+  /* Clanes por Tag, tanda 6b (6-nov-2026, §PF413): ?tag= (que agrega clan.html) elige el clan por su Tag; ?clan= es solo el respaldo. Un Tag que no está NO se adivina por nombre cuando ese nombre pertenece a un clan con Tag (mismo criterio que seleccionIngresosDeClan() y que guerra.html, §PF412). Sin ?tag= (enlace antiguo, como el «Ver clan» de Inicio) se busca por nombre. Historial en CHANGELOG.md. */
   const params = new URLSearchParams(location.search);
-  const clanParam = params.get('clan');
-  if (!clanParam) return -1;
-  const q = clanParam.trim().toLowerCase();
-  return rosterData.findIndex(c => (c.nombre || '').trim().toLowerCase() === q);
+  const tag = tagClanNormalizado(params.get('tag'));
+  const nombre = String(params.get('clan') || '').trim().toLowerCase();
+  if (!tag && !nombre) return -1;
+  const tagDe = c => tagClanNormalizado(c && c.clanTag);
+  const nombreDe = c => String((c && c.nombre) || '').trim().toLowerCase();
+  if (tag){
+    const i = rosterData.findIndex(c => tagDe(c) === tag);
+    if (i >= 0) return i;
+    return nombre ? rosterData.findIndex(c => !tagDe(c) && nombreDe(c) === nombre) : -1;
+  }
+  return rosterData.findIndex(c => nombreDe(c) === nombre);
 }
 
 /* NUEVO (08-oct-2026): el roster sale primero de un archivo estático (roster.json en la rama `data` de GitHub, lo publica el bot desde Apps Script, ver 51_Publicar_Roster.gs), igual que guerra.html con guerra.json. Si el archivo no existe, falla o tiene más de ROSTER_ESTATICO_EDAD_MAX_MS, se pide a Apps Script (webRoster) como antes. Ajusta el repo en la URL si no es GrupoTerna/Web. */
@@ -2309,8 +2317,10 @@ async function cargarRoster(){
     }
 
     // Un link directo con ?tag=TAG redirige a perfil.html en la misma pestaña (un popup se bloquearía sin gesto del usuario). Historial en CHANGELOG.md.
+    // §PF413 (6b): con ?clan= el ?tag= es el del CLAN (lo agrega clan.html a «Ver en el Directorio»), no el de un jugador: no se redirige a perfil.html.
     const tagParam = new URLSearchParams(location.search).get('tag');
-    if (tagParam){ location.replace('perfil.html?tag=' + encodeURIComponent(tagParam)); return; }
+    const hayClanParam = !!String(new URLSearchParams(location.search).get('clan') || '').trim();
+    if (tagParam && !hayClanParam){ location.replace('perfil.html?tag=' + encodeURIComponent(tagParam)); return; }
   }catch(err){
     wrap.innerHTML = `<div class="card"><div class="empty">No se pudo cargar el directorio: ${esc(err.message)}</div></div>`;
   }
@@ -2606,8 +2616,9 @@ function htmlTooltipPuntoIngreso(pt){
 function lineChartLegendHtml(miembros){
   let clanPrevio;
   const items = miembros.map((m, i) => {
-    const esNuevoGrupo = m.clan !== clanPrevio;
-    clanPrevio = m.clan;
+    const claveClan = claveClanMiembro(m); // §PF413 (6b): por Tag; dos clanes con el mismo nombre ya no se funden en una sola cabecera
+    const esNuevoGrupo = claveClan !== clanPrevio;
+    clanPrevio = claveClan;
     const clanLabel = m.clan || CLAN_LABELS_CORTOS[ordenClanIndex(m.clan)] || '—';
     return `${esNuevoGrupo ? `<span class="ing-linechart-legend-clan">${enlaceClan(clanLabel)}</span>` : ''}
     <span class="ing-linechart-legend-item">
@@ -3008,7 +3019,7 @@ function actualizarPillsIngresos(){
     }
     const miembros = (clan === '__todos__')
       ? ingresosTodosCache
-      : ((ingresosGrupos.find(g => g.clan === clan) || {}).miembros || []);
+      : ((ingresosGrupos.find(g => g.clave === btn.dataset.clave) || {}).miembros || []); // §PF413 (6b): por clave (Tag), no por nombre
     const estado = estadoDe(miembros);
     btn.classList.toggle('active', estado === 'todos');
     btn.classList.toggle('parcial', estado === 'parcial');
@@ -3088,12 +3099,17 @@ function inicializarToggleGraficasIngresos(){
 /** Agrupa `nuevos` por clan preservando el orden en que ya vienen (clan
  * fijo de la Familia vía ordenClanIndex(), alfabético dentro de cada
  * clan — ver el .sort() en cargarIngresosRecientes()). */
+/** §PF413 (6b): clave de agrupación de un clan. Por Tag cuando el miembro lo trae (clanTag aditivo, §PF405); sin Tag, por nombre como antes. */
+function claveClanMiembro(m){
+  const t = tagClanNormalizado(m && m.clanTag);
+  return t ? 'tag:' + t : 'nombre:' + String((m && m.clan) || '—');
+}
 function agruparPorClanEnOrden(nuevos){
   const grupos = [];
   const indice = new Map();
   nuevos.forEach(n => {
-    const clave = n.clan || '—';
-    if (!indice.has(clave)){ indice.set(clave, grupos.length); grupos.push({ clan: clave, miembros: [] }); }
+    const clave = claveClanMiembro(n);
+    if (!indice.has(clave)){ indice.set(clave, grupos.length); grupos.push({ clan: n.clan || '—', clave, miembros: [] }); }
     grupos[indice.get(clave)].miembros.push(n);
   });
   return grupos;
@@ -3125,7 +3141,7 @@ function construirFiltroIngresos(nuevos){
   wrap.innerHTML = `
     <button type="button" class="ing-pill active" data-clan="__todos__" aria-pressed="true">Todos</button>
     ${ingresosGrupos.map(g => `
-      <button type="button" class="ing-pill active" data-clan="${esc(g.clan)}" aria-pressed="true">
+      <button type="button" class="ing-pill active" data-clan="${esc(g.clan)}" data-clave="${esc(g.clave)}" aria-pressed="true">
         ${esc(g.clan)} <span class="ing-pill-count">${g.miembros.length}</span>
       </button>`).join('')}
     ${nuevos.some(esCuentaAdminIngreso) ? `<button type="button" class="ing-pill ing-pill-admin${ingresosOcultarAdmins ? ' active' : ''}" data-clan="__admins__" aria-pressed="${ingresosOcultarAdmins}" title="Oculta las tarjetas y saca de las gráficas y del contador las cuentas de los administradores mientras recorres los clanes">🛡️ Ocultar admins <span class="ing-pill-count">${nuevos.filter(esCuentaAdminIngreso).length}</span></button>` : ''}
@@ -3148,7 +3164,7 @@ function construirFiltroIngresos(nuevos){
       } else if (clan === '__todos__'){
         ingresosSeleccionados = new Set(ingresosTodosCache.map(claveIngreso));
       } else {
-        const grupo = ingresosGrupos.find(g => g.clan === clan);
+        const grupo = ingresosGrupos.find(g => g.clave === btn.dataset.clave); // §PF413 (6b): por clave (Tag), no por nombre
         if (!grupo) return;
         // Con alguna pastilla de «Ocultar» activa, la pastilla de clan opera solo sobre las cuentas visibles (las ocultas siguen sin verse).
         const relevantes = grupo.miembros.filter(m => !ingresoOculto(m));
