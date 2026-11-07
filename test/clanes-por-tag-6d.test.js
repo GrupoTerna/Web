@@ -106,6 +106,28 @@ test('§PF415 cableado: index, perfil y clan-card pasan el clanTag que ya trae s
   assert.equal((card.match(/\{ tag: c\.clanTag \}/g) || []).length, 2);
 });
 
+test('§PF415 cableado: directorio.html pasa el clanTag en el título del roster y en la leyenda de las gráficas', () => {
+  const dir = leer('directorio.html');
+  assert.match(dir, /enlaceClan\(clan\.nombre, \{ tag: clan\.clanTag \}\)/);
+  assert.match(dir, /enlaceClan\(clanLabel, \{ tag: m\.clanTag \}\)/);
+});
+
+test('§PF415 directorio: la leyenda de las gráficas enlaza cada clan con su Tag (dos clanes del mismo nombre, enlaces distintos)', () => {
+  const DIR = leer('directorio.html');
+  const f = new Function('enlaceClan', 'enlaceJugador', 'PALETA_SERIES', 'CLAN_LABELS_CORTOS', 'ordenClanIndex',
+    `${extraerFuncion(DIR, 'tagClanNormalizado')}
+${extraerFuncion(DIR, 'claveClanMiembro')}
+${extraerFuncion(DIR, 'lineChartLegendHtml')}
+return lineChartLegendHtml;`)(enlaceClan, (n, t) => n, ['#000'], [], () => 0);
+  const html = f([
+    { clan: 'Argentina', clanTag: '#AAA111', nombre: 'a', tag: '#1' },
+    { clan: 'Argentina', clanTag: '#BBB222', nombre: 'b', tag: '#2' }
+  ]);
+  assert.match(html, /tag=%23AAA111/);
+  assert.match(html, /tag=%23BBB222/);
+  assert.equal((html.match(/ing-linechart-legend-clan/g) || []).length, 2);
+});
+
 test('§PF415 cableado: noticias.html NO usa clanTag a propósito (40_Web_Noticias.gs no lo manda todavía)', () => {
   assert.doesNotMatch(leer('noticias.html'), /clanTag/);
 });
