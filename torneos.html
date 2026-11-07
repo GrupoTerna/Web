@@ -516,10 +516,16 @@ async function cargarTorneos(){
     // agrega también por si el historial no lo incluye.
     const historialList = (historialData && historialData.historial) || [];
     const mapaTop3 = new Map();
+    /* Clanes por Tag, tanda 6c (6-nov-2026, §PF414): el respaldo por fecha + clan cruza por el Tag del clan (clanTag); el nombre solo se usa cuando el torneo no trae Tag (datos anteriores), y un Tag distinto nunca se confunde con el nombre. Historial en CHANGELOG.md. */
+    const claveFechaClan = (t, porNombre) => 'fc:' + t.fecha + '|' + (porNombre ? 'nombre:' + (t.clan || '') : 'tag:' + tagClanTorneo(t));
     const indexar = (t) => {
       if (!t) return;
       if (t.idTorneo != null) mapaTop3.set('id:' + t.idTorneo, t);
-      if (t.fecha) mapaTop3.set('fc:' + t.fecha + '|' + (t.clan || ''), t);
+      if (t.fecha) mapaTop3.set(claveFechaClan(t, !tagClanTorneo(t)), t);
+    };
+    const buscarPorFechaYClan = (t) => {
+      if (!t.fecha) return null;
+      return (tagClanTorneo(t) && mapaTop3.get(claveFechaClan(t, false))) || mapaTop3.get(claveFechaClan(t, true)) || null; // el nombre solo encuentra torneos sin Tag
     };
     historialList.forEach(indexar);
     indexar(g);
@@ -527,8 +533,7 @@ async function cargarTorneos(){
     torneosWrap.innerHTML = torneos.map(t => {
       const fechaTxt = t.fecha ? new Date(t.fecha).toLocaleDateString('es-PE', { day:'2-digit', month:'2-digit', year:'numeric' }) : '—';
       const idFila = t.idTorneo ?? t.id; // la lista de _webTorneos() trae `id`; ganadores e historial traen `idTorneo`
-      const match = (idFila != null && mapaTop3.get('id:' + idFila)) ||
-                    (t.fecha && mapaTop3.get('fc:' + t.fecha + '|' + (t.clan || ''))) || null;
+      const match = (idFila != null && mapaTop3.get('id:' + idFila)) || buscarPorFechaYClan(t) || null;
       let top3 = (match && match.top3) || [];
       // Si la fila de la raíz no trae podio propio, se usa el de otra parte del mismo grupo.
       if (!top3.length && Array.isArray(t.idsPartes)){
@@ -563,13 +568,17 @@ async function cargarTorneos(){
 cargarTorneos();
 cargarSalonDeLaFama();
 
+/** §PF414 (6c): Tag del clan de un torneo o de un participante (`clanTag`, aditivo junto a `clan`), sin # y en mayúsculas; '' si no lo trae (datos anteriores, clan externo). */
+function tagClanTorneo(o){ return String((o && o.clanTag) || '').trim().replace(/^#/, '').toUpperCase(); }
+
 /**
  * calcularRankingVictoriasTorneos(historial)
  * Suma victorias por jugador a través de `t.participantes` (todos los
  * que ganaron al menos una partida, no solo el top 3) en TODAS sus
  * apariciones del historial (últimos 30 torneos, 34_Web_API.gs). Se
- * agrupa por nombre + clan (no por Tag) para no mezclar jugadores
- * distintos con el mismo nombre en clanes distintos — límite conocido: si
+ * agrupa por nombre + clan (no por el Tag del jugador) para no mezclar jugadores
+ * distintos con el mismo nombre en clanes distintos; el clan se identifica por su
+ * Tag (clanTag, §PF414) y, sin Tag, por su nombre — límite conocido: si
  * un mismo jugador cambió de nombre entre torneos, sus victorias quedan
  * repartidas en dos filas.
  * CAMBIO (28-sep-2026, Fase 5b tanda D, AVISO A9): se arrastra `tag` (el
@@ -583,12 +592,21 @@ cargarSalonDeLaFama();
  */
 function calcularRankingVictoriasTorneos(historial){
   const mapa = new Map();
+  /* §PF414 (6c): nombre de clan -> su Tag, con lo que trae el propio historial (null si ese nombre aparece con dos Tags distintos: ahí no se adivina). Así una fila antigua sin clanTag cae con su clan y no parte a un jugador en dos. */
+  const tagPorNombre = new Map();
+  (historial || []).forEach(t => (t.participantes || t.top3 || []).forEach(p => {
+    const tg = tagClanTorneo(p);
+    if (!p || !p.clan || !tg) return;
+    if (!tagPorNombre.has(p.clan)) tagPorNombre.set(p.clan, tg);
+    else if (tagPorNombre.get(p.clan) !== tg) tagPorNombre.set(p.clan, null);
+  }));
   (historial || []).forEach(t => {
     (t.participantes || t.top3 || []).forEach(p => {
       if (!p || !p.nombre) return;
       const victorias = Number(p.victorias) || 0;
       if (!victorias) return;
-      const clave = `${p.nombre}|${p.clan || ''}`;
+      const tagClan = tagClanTorneo(p) || tagPorNombre.get(p.clan) || '';
+      const clave = `${p.nombre}|${tagClan ? 'tag:' + tagClan : 'nombre:' + (p.clan || '')}`;
       const actual = mapa.get(clave) || { nombre: p.nombre, clan: p.clan || '', victorias: 0, apariciones: 0, tag: null };
       actual.victorias += victorias;
       actual.apariciones += 1;

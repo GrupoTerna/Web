@@ -1073,6 +1073,25 @@
 
   // ---------- Participants panel ----------
   var SIN_CLAN_LABEL = 'Sin clan asignado';
+  /* Clanes por Tag, tanda 6c (6-nov-2026, §PF414): los grupos de la lista se separan por el Tag del clan (clanTag), no por su nombre; dos clanes con el mismo nombre y distinto Tag ya no se funden en un solo grupo. El nombre queda de respaldo para participantes sin Tag. Historial en CHANGELOG.md. */
+  var SIN_CLAN_CLAVE = 'sin-clan';
+  function tagClanNorm(t){ return String(t || '').trim().replace(/^#/, '').toUpperCase(); }
+  /* nombre de clan -> su Tag, con lo que traen los propios participantes; null si ese nombre aparece con dos Tags distintos (ahí no se adivina). Sirve para que un participante sin Tag (p. ej. de un backend anterior) caiga en el grupo de su clan y no en uno aparte. */
+  function mapaTagPorNombreClan(lista){
+    var mapa = {};
+    lista.forEach(function(p){
+      var t = tagClanNorm(p && p.clanTag);
+      if (!p || !p.clan || !t) return;
+      if (!(p.clan in mapa)) mapa[p.clan] = t;
+      else if (mapa[p.clan] !== t) mapa[p.clan] = null;
+    });
+    return mapa;
+  }
+  function claveClanParticipante(p, mapa){
+    var t = tagClanNorm(p && p.clanTag) || (p && p.clan && mapa[p.clan]) || '';
+    if (t) return 'tag:' + t;
+    return (p && p.clan) ? 'nombre:' + p.clan : SIN_CLAN_CLAVE;
+  }
 
   function renderParticipants(){
     partCount.textContent = participants.length;
@@ -1091,22 +1110,24 @@
     // "Sin clan asignado" al final). Cada grupo tiene su propio checkbox
     // para marcar/desmarcar a todos sus miembros de un tiro, y cada
     // participante tiene su propio checkbox individual.
-    var grupos = {};      // nombre de clan (o SIN_CLAN_LABEL) -> array de participantes
+    var grupos = {};      // clave del clan (Tag; o nombre si no hay Tag; o SIN_CLAN_CLAVE) -> { nombre, miembros }
     var ordenGrupos = [];
+    var tagPorNombre = mapaTagPorNombreClan(participants);
     participants.forEach(function(p){
-      var key = p.clan || SIN_CLAN_LABEL;
-      if (!grupos[key]){ grupos[key] = []; ordenGrupos.push(key); }
-      grupos[key].push(p);
+      var key = claveClanParticipante(p, tagPorNombre);
+      if (!grupos[key]){ grupos[key] = { nombre: p.clan || SIN_CLAN_LABEL, miembros: [] }; ordenGrupos.push(key); }
+      grupos[key].miembros.push(p);
     });
     // "Sin clan asignado" siempre al final, sin importar cuándo se agregó
-    if (grupos[SIN_CLAN_LABEL]){
-      ordenGrupos = ordenGrupos.filter(function(k){ return k !== SIN_CLAN_LABEL; });
-      ordenGrupos.push(SIN_CLAN_LABEL);
+    if (grupos[SIN_CLAN_CLAVE]){
+      ordenGrupos = ordenGrupos.filter(function(k){ return k !== SIN_CLAN_CLAVE; });
+      ordenGrupos.push(SIN_CLAN_CLAVE);
     }
 
-    ordenGrupos.forEach(function(clanNombre){
-      var miembros = grupos[clanNombre];
-      participantsList.appendChild(buildClanGroupHeader(clanNombre, miembros));
+    ordenGrupos.forEach(function(key){
+      var grupo = grupos[key];
+      var miembros = grupo.miembros;
+      participantsList.appendChild(buildClanGroupHeader(grupo.nombre, miembros, key === SIN_CLAN_CLAVE));
       miembros.forEach(function(p){
         participantsList.appendChild(buildParticipantRow(p, colorIndexByActive, total));
       });
@@ -1116,10 +1137,9 @@
   // Header de grupo: checkbox que marca/desmarca a TODOS los miembros de
   // ese clan de un tiro (p.ej. un sorteo que es solo para 2 de los 4
   // clanes), en vez de tener que sacar a cada persona a mano.
-  function buildClanGroupHeader(clanNombre, miembros){
+  function buildClanGroupHeader(clanNombre, miembros, esSinClan){
     var activos = miembros.filter(function(p){ return p.active; }).length;
     var allActive = activos === miembros.length;
-    var esSinClan = clanNombre === SIN_CLAN_LABEL;
 
     var header = document.createElement('label');
     header.className = 'clan-group-header' + (esSinClan ? ' sin-clan' : '') + (activos === 0 ? ' all-off' : '');
@@ -2021,7 +2041,7 @@
     participants.push({
       id: 'p_' + Date.now() + '_' + Math.floor(Math.random()*9999),
       name: m.nombre, weight: 1, active: true,
-      clan: m.clan || null, tag: m.tag, manual: true
+      clan: m.clan || null, clanTag: tagClanNorm(m.clanTag), tag: m.tag, manual: true // §PF414 (6c)
     });
     renderParticipants();
     renderWheel();
@@ -2081,11 +2101,12 @@
               : (typeof p.peso === 'number' && p.peso > 0) ? p.peso
               : 1;
             nuevos.push({
-              id: 'q_' + c.nombre.replace(/[^a-z0-9]/gi,'') + '_' + i + '_' + Date.now(),
+              id: 'q_' + (tagClanNorm(c.clanTag) || c.nombre).replace(/[^a-z0-9]/gi,'') + '_' + i + '_' + Date.now(), // §PF414 (6c): con el Tag, dos clanes del mismo nombre no repiten el id
               name: p.nombre,
               weight: pesoBackend,
               active: true,
               clan: c.nombre,
+              clanTag: tagClanNorm(c.clanTag), // §PF414 (6c): '' si el backend es anterior
 // se guarda el tag real del participante calificado -- cuando salga sorteado, spin() lo propaga al objeto winner, y de ahí guardarResolucionGanador() lo manda tal cual a S_Asistencia sin pedirle nada al admin. Historial en CHANGELOG.md.
               tag: p.tag || null
             });

@@ -67,7 +67,7 @@ test('el miembro elegido entra con su Tag y su clan', () => {
   const j = html.indexOf('  function elegirSugerencia(i){', i);
   assert.ok(i > 0 && j > i);
   const cuerpo = html.slice(i, j);
-  assert.match(cuerpo, /clan: m\.clan \|\| null, tag: m\.tag, manual: true/);
+  assert.match(cuerpo, /clan: m\.clan \|\| null, clanTag: tagClanNorm\(m\.clanTag\), tag: m\.tag, manual: true/); // §PF414 (6c): además del nombre lleva el Tag del clan
   assert.match(cuerpo, /ya está en la lista/);
 });
 

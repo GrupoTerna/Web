@@ -308,7 +308,8 @@
 // v260 (6-nov-2026): clan.html y directorio.html cambiaron (CORE_ASSETS) -- «Ver en el Directorio» manda también el Tag del clan y «Ingresos recientes» se filtra para ese clan comparando por Tag (el nombre solo de respaldo; regla de §PF401).
 // v261 (6-nov-2026): guerra.html y clan.html cambiaron (CORE_ASSETS) -- las pestañas de clan, la preselección (?tag=), los cupos y la cabecera de las tarjetas de guerra comparan por Tag con el nombre de respaldo; clan.html compara su clan por Tag y «Ver Guerra en vivo» manda también el Tag (§PF412).
 // v262 (6-nov-2026): directorio.html cambió (CORE_ASSETS) -- el «Directorio por clan» que arranca elegido, los grupos y pastillas de «Ingresos recientes» y la leyenda de las gráficas comparan por Tag con el nombre de respaldo, y un ?tag= junto a ?clan= (el de «Ver en el Directorio» de clan.html) ya no redirige a perfil.html
-const CACHE_NAME = 'terna-static-v262';
+// v263 (6-nov-2026): torneos.html cambió (CORE_ASSETS) -- el cruce del podio por fecha y clan y el ranking de victorias identifican el clan por Tag (clanTag), con el nombre de respaldo
+const CACHE_NAME = 'terna-static-v263';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
