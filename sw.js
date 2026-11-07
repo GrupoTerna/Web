@@ -313,7 +313,8 @@
 // v265 (6-nov-2026): directorio.html cambió (CORE_ASSETS) -- el título del «Directorio por clan» y la leyenda de las gráficas de «Ingresos recientes» enlazan al clan con su Tag (&tag=)
 // v266 (6-nov-2026): noticias.html cambió (CORE_ASSETS) -- el color de cada clan, la leyenda del «Top de medallas» y los enlaces al clan (&tag=) de Posiciones, Ascensos e Ingresos y salidas usan el Tag (clanTag), con el nombre de respaldo (§PF416)
 // v267 (6-nov-2026): admin.html y assets/js/features/mini-historial.js cambiaron (CORE_ASSETS) -- el clan de la ficha de miembro, de la cabecera del mini historial, de los participantes de la resolución de torneos y del «Encontrado en Clash Royale» enlazan con su Tag (&tag=) cuando el backend lo manda (§PF416)
-const CACHE_NAME = 'terna-static-v267';
+// v268 (7-nov-2026): admin.html y perfil.html cambiaron (CORE_ASSETS) -- los siete enlaces de clan que seguían por nombre (ficha de infiltrado en admin y perfil, Mis cuentas, ascensos editables y propuestas de cambio de rango) enlazan con su Tag (&tag=) ahora que el backend lo manda (§PF417); perfil.html b.miClan sigue por nombre a propósito
+const CACHE_NAME = 'terna-static-v268';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
