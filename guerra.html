@@ -585,6 +585,30 @@ let prevValues  = {};
 const TAB_TODOS = '__todos__';
 // 6-nov-2026 (pedido de la usuaria): clan.html enlaza a guerra.html?clan=<nombre>. Ese clan arranca elegido en las pestañas de clan de todas las tablas (Pendientes, Participación de Hoy, Valores diarios y Valores semanales); si el clan no está en una tabla, esa tabla arranca con el clan Principal como siempre. Historial en CHANGELOG.md.
 const CLAN_PRESELECCIONADO = (new URLSearchParams(location.search).get('clan') || '').trim().toLowerCase();
+/* Clanes por Tag, tanda 6a (6-nov-2026, §PF412): clan.html agrega &tag= al enlace. Si llega, ese Tag manda y el nombre de ?clan= queda solo de respaldo (enlaces antiguos sin &tag=, o tarjetas sin Tag porque guerra.json es de un backend anterior). */
+const TAG_PRESELECCIONADO = (new URLSearchParams(location.search).get('tag') || '').replace('#', '').trim().toUpperCase();
+/* Tag de un clan por su nombre, con el mapa clanTagPorClan que trae guerra.json (§PF411). '' si el mapa no llegó (backend anterior), si el clan no está o si es externo: en esos casos todo cae al nombre, como antes. */
+function clanTagDeNombreGuerra(nombre){
+  const m = ultimoDataGuerra && ultimoDataGuerra.clanTagPorClan;
+  if(!m || typeof m !== 'object') return '';
+  return _normTagGuerra(m[String(nombre === undefined || nombre === null ? '' : nombre).trim()]);
+}
+/* Atributos que llevan las tarjetas de clan: el nombre (para mostrar y para el respaldo) y, si se conoce, el Tag (para comparar). */
+function atributosClanGuerra(nombre){
+  const t = clanTagDeNombreGuerra(nombre);
+  return `data-clan="${esc(nombre)}"${t ? ` data-clan-tag="${esc(t)}"` : ''}`;
+}
+/* Clave con la que las pestañas de clan identifican una tarjeta: el Tag si lo tiene y, si no, el nombre. El prefijo evita que un nombre se confunda con un Tag. */
+function claveClanTarjetaGuerra(el){
+  const t = el && el.dataset && el.dataset.clanTag;
+  return t ? 'tag:' + t : 'nombre:' + String((el && el.dataset && el.dataset.clan) || '');
+}
+/* ¿La tarjeta es el clan que pidió ?clan=&tag=? Por Tag cuando ambos lo tienen; si no, por el nombre de ?clan=. */
+function tarjetaEsClanPreseleccionado(el){
+  const t = el && el.dataset && el.dataset.clanTag;
+  if(TAG_PRESELECCIONADO && t) return t === TAG_PRESELECCIONADO;
+  return !!CLAN_PRESELECCIONADO && String((el && el.dataset && el.dataset.clan) || '').trim().toLowerCase() === CLAN_PRESELECCIONADO;
+}
 let clanSeleccionadoActivos = null;
 let clanSeleccionadoTemporada = null;
 // FIX (12-sep-2026, pedido usuario — "en pendientes de atacar y en
@@ -724,16 +748,17 @@ function gestionarTabsClan(tabsWrapId, wrapId, obtenerSel, fijarSel){
   const wrap = document.getElementById(wrapId);
   const cards = Array.from(wrap.querySelectorAll('.ai-clan-card'));
   if (!cards.length){ tabsWrap.innerHTML = ''; return; }
-  const clanes = cards.map(c => c.dataset.clan);
-  if (obtenerSel() && obtenerSel() !== TAB_TODOS && !clanes.includes(obtenerSel())) fijarSel(null);
-  if (!obtenerSel()) fijarSel((CLAN_PRESELECCIONADO && clanes.find(c => String(c).trim().toLowerCase() === CLAN_PRESELECCIONADO)) || clanes[0]); // default: el clan de ?clan= (viene de clan.html) o, si no hay, el Principal; nunca Todos
+  // §PF412 (6a): cada pestaña se identifica por el Tag de su tarjeta (data-clan-tag) y, si la tarjeta no lo trae, por el nombre; el texto del botón sigue siendo el nombre.
+  const claves = cards.map(claveClanTarjetaGuerra);
+  if (obtenerSel() && obtenerSel() !== TAB_TODOS && !claves.includes(obtenerSel())) fijarSel(null);
+  if (!obtenerSel()){ const pre = cards.find(tarjetaEsClanPreseleccionado); fijarSel(pre ? claveClanTarjetaGuerra(pre) : claves[0]); } // default: el clan de ?tag= (o de ?clan= si no hay Tag; viene de clan.html) o, si no hay, el Principal; nunca Todos
   const aplicarFiltro = () => {
     const sel = obtenerSel();
-    cards.forEach(card => { card.style.display = (sel === TAB_TODOS || card.dataset.clan === sel) ? '' : 'none'; });
+    cards.forEach(card => { card.style.display = (sel === TAB_TODOS || claveClanTarjetaGuerra(card) === sel) ? '' : 'none'; });
     Object.keys(BUSCADOR_DE_SECCION).forEach(actualizarCuentaBuscador); // tanda 14: el «en otro clan» depende de la pestaña
     if (typeof aplicarBusquedaParticipacion === 'function' && wrapId === 'participacionHoyWrap') aplicarBusquedaParticipacion();
   };
-  const botones = clanes.map(c => ({ valor: c, label: c })).concat([{ valor: TAB_TODOS, label: 'Todos' }]);
+  const botones = cards.map((c, i) => ({ valor: claves[i], label: c.dataset.clan })).concat([{ valor: TAB_TODOS, label: 'Todos' }]);
   tabsWrap.innerHTML = botones.map(b => `
     <button type="button" class="tab-btn clan-tab-sel${b.valor === obtenerSel() ? ' active' : ''}" data-valor="${esc(b.valor)}">${esc(b.label)}</button>`).join('');
   tabsWrap.querySelectorAll('.clan-tab-sel').forEach((btn, idx) => {
@@ -952,9 +977,9 @@ function render(data){
     const pct = g.totalHoy ? Math.round((g.atacaron / g.totalHoy) * 100) : 0;
     const slug = 'clan' + idx;
     return `
-    <div class="card clan-card" data-clan="${esc(nombre)}">
-      <div class="clan-cab" data-clan="${esc(nombre)}">${cabeceraClanGuerraHtml(nombre)}</div>
-      <div class="clan-puesto" data-clan="${esc(nombre)}" style="display:none; margin-top:10px; font-family:var(--f-mono); font-size:13px; color:var(--text-dim); text-align:center;"></div>
+    <div class="card clan-card" ${atributosClanGuerra(nombre)}>
+      <div class="clan-cab" ${atributosClanGuerra(nombre)}>${cabeceraClanGuerraHtml(nombre)}</div>
+      <div class="clan-puesto" ${atributosClanGuerra(nombre)} style="display:none; margin-top:10px; font-family:var(--f-mono); font-size:13px; color:var(--text-dim); text-align:center;"></div>
       <div class="stats">
         <div class="stat"><b class="st-atq" id="${slug}-atq">${fmtNum(g.ataques)}</b><span>Ataques</span></div>
         <div class="stat"><b class="st-fame" id="${slug}-fame">${fmtNum(g.fame)}</b><span>Medallas</span></div>
@@ -968,9 +993,9 @@ function render(data){
       <div class="clan-atq" style="margin-top:10px;font-size:13px;color:var(--text-dim);font-family:var(--f-mono);text-align:center;">
         ${fmtNum(g.atacaron)}/${fmtNum(g.totalHoy)} atacaron ${ctx.esDiaGuerra ? 'hoy' : 'en la última guerra'} (${pct}%)
       </div>
-      <div class="clan-cupos" data-clan="${esc(nombre)}" hidden></div>
+      <div class="clan-cupos" ${atributosClanGuerra(nombre)} hidden></div>
       ${g.metaCruzada === true ? '<div class="clan-meta" style="margin-top:6px;text-align:center;"><span class="badge badge-ok" title="El clan ya cruzó la meta: atacar hoy es opcional y no cuenta como falta">✅ Meta ya cruzada · ataque opcional</span></div>' : ''}
-      <div class="clan-pron" data-clan="${esc(nombre)}" hidden></div>
+      <div class="clan-pron" ${atributosClanGuerra(nombre)} hidden></div>
     </div>`;
   }).join('') : '<div class="empty">Sin datos de guerra registrados para hoy.</div>';
   clanes.forEach(([nombre, g], idx) => {
@@ -1052,7 +1077,7 @@ function render(data){
   pendWrap.innerHTML = clanesPend.length ? clanesPend.map(clanNombre => {
     const filas = pendPorClan[clanNombre];
     return `
-    <div class="card ai-clan-card" data-clan="${esc(clanNombre)}" style="padding:16px;">
+    <div class="card ai-clan-card" ${atributosClanGuerra(clanNombre)} style="padding:16px;">
       <h3>${enlaceClan(clanNombre)} <span class="text-faint" style="font-family:var(--f-mono); font-size:13px; font-weight:400;">(${filas.length} pendiente${filas.length === 1 ? '' : 's'})</span></h3>
       <div class="table-scroll"><table class="tbl-pendientes" data-grid-id="pend:${esc(clanNombre)}">
         <thead><tr>
@@ -1131,7 +1156,7 @@ function render(data){
     document.getElementById('controlActivosWrap').innerHTML = clanesControlActivos.map(clanNombre => {
       const filas = controlActivos[clanNombre];
       return `
-        <div class="card ai-clan-card" data-clan="${esc(clanNombre)}" style="padding:16px;">
+        <div class="card ai-clan-card" ${atributosClanGuerra(clanNombre)} style="padding:16px;">
           <div class="ai-clan-head"><h3>${enlaceClan(clanNombre)} <span class="text-faint" style="font-family:var(--f-mono); font-size:13px; font-weight:400;">${textoContadorClan(filas)}</span></h3>${botonesExportGrid('activos:' + clanNombre)}</div>
           <div class="table-scroll"><table class="tbl-activos-grid" data-grid-id="activos:${esc(clanNombre)}">
             <thead>
@@ -1211,7 +1236,7 @@ function render(data){
     document.getElementById('controlTemporadaWrap').innerHTML = clanesControlTemporada.map(clanNombre => {
       const filas = controlTemporada[clanNombre];
       return `
-        <div class="card ai-clan-card" data-clan="${esc(clanNombre)}" style="padding:16px;">
+        <div class="card ai-clan-card" ${atributosClanGuerra(clanNombre)} style="padding:16px;">
           <div class="ai-clan-head"><h3>${enlaceClan(clanNombre)} <span class="text-faint" style="font-family:var(--f-mono); font-size:13px; font-weight:400;">${textoContadorClan(filas)}</span></h3>${botonesExportGrid('temporada:' + clanNombre)}</div>
           <div class="table-scroll"><table class="tbl-activos-grid tbl-temporada-grid" data-grid-id="temporada:${esc(clanNombre)}">
             <thead>
@@ -1542,7 +1567,7 @@ async function cargarAportesInactivosSiAdmin(ctx){
       huboTarjetaNueva = true;
       const div = document.createElement('div');
       div.innerHTML = `
-        <div class="card ai-clan-card" data-clan="${esc(clanNombre)}" style="padding:16px;">
+        <div class="card ai-clan-card" ${atributosClanGuerra(clanNombre)} style="padding:16px;">
           <h3>${enlaceClan(clanNombre)} <span class="text-faint" style="font-family:var(--f-mono); font-size:13px; font-weight:400;">(0 activos)</span></h3>
           <div class="ai-inactivos-wrap" data-clan-inactivos="${esc(clanNombre)}">${bloqueHtml(filas)}</div>
         </div>`;
@@ -1629,7 +1654,9 @@ function textoCuposTarjeta(d){
 }
 function aplicarCuposEnTarjetas(){
   document.querySelectorAll('#clanGrid .clan-cupos[data-clan]').forEach(el => {
-    const c = cuposPorClanGuerra ? cuposPorClanGuerra.find(x => x.clan === el.dataset.clan) : null;
+    // §PF412 (6a): webAdminParticipacionHoyGuerra solo manda el nombre del clan; se compara por Tag (el de la tarjeta contra el que el mapa clanTagPorClan da a ese nombre) y, si alguno falta, por nombre.
+    const tagTarjeta = el.dataset.clanTag || '';
+    const c = cuposPorClanGuerra ? cuposPorClanGuerra.find(x => { const tx = clanTagDeNombreGuerra(x.clan); return (tagTarjeta && tx) ? tx === tagTarjeta : x.clan === el.dataset.clan; }) : null;
     if(!c){ el.hidden = true; el.innerHTML = ''; return; }
     el.innerHTML = textoCuposTarjeta(desgloseCuposClan(c));
     el.hidden = false;
@@ -1676,7 +1703,7 @@ function renderParticipacionHoyGuerra(clanes, multiClan){
           <div class="part-subhead">Fuera del clan con ataques hoy (${inactivasRes.length})</div>
           ${_listaCuentasHtml(inactivasRes, null)}`;
     return `
-    <div class="card ai-clan-card" data-clan="${esc(c.clan)}" style="padding:16px;">
+    <div class="card ai-clan-card" ${atributosClanGuerra(c.clan)} style="padding:16px;">
       <div class="part-clan-nombre">${enlaceClan(c.clan)}</div>
       <div class="part-scroll tabla-scroll-wrap scroll-morado" tabindex="0" role="region" aria-label="Participación de hoy de ${esc(c.clan)}">
       <div class="part-grid">
@@ -1746,10 +1773,12 @@ function _normNombreClanGuerra(s){
   return t;
 }
 function _normTagGuerra(t){ return String(t || '').replace('#', '').trim().toUpperCase(); }
-function infoClanGuerraPorNombre(nombre){
+function infoClanGuerraPorNombre(nombre, tag){
   if(!clanInfoGuerra || !clanInfoGuerra.length) return null;
   const n = _normNombreClanGuerra(nombre);
-  let idx = clanInfoGuerra.findIndex(c => c && _normNombreClanGuerra(c.nombre) === n);
+  const t = _normTagGuerra(tag === undefined ? clanTagDeNombreGuerra(nombre) : tag); // §PF412 (6a): primero por Tag (el del mapa clanTagPorClan de guerra.json); el nombre y el orden fijo quedan de respaldo
+  let idx = t ? clanInfoGuerra.findIndex(c => c && _normTagGuerra(c.clanTag) === t) : -1;
+  if(idx < 0) idx = clanInfoGuerra.findIndex(c => c && _normNombreClanGuerra(c.nombre) === n);
   if(idx < 0) idx = ordenClanIndex(nombre); // mismo criterio de orden que el resto del sitio
   const c = clanInfoGuerra[idx];
   return c ? { c, i: idx } : null;

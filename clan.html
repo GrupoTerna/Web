@@ -253,7 +253,18 @@
  */
 const NOMBRE_CLAN_QUERY = (new URLSearchParams(location.search).get('clan') || '').trim();
 
-function clanCoincide(nombreClan){
+/* Clanes por Tag, tanda 6a (6-nov-2026, §PF412): el clan de la página se identifica por su Tag. Llega en ?tag= (guerra.html y directorio.html lo agregan al enlace) o, si el enlace es antiguo, se toma de webClanInfo cuando se encuentra el clan por nombre. El nombre de ?clan= queda de respaldo para todo lo que no trae Tag (guerra.json de un backend anterior, clanes externos). */
+function normTagClanPagina(t){ return String(t || '').replace('#', '').trim().toUpperCase(); }
+let tagClanPagina = normTagClanPagina(new URLSearchParams(location.search).get('tag'));
+let mapaTagPorClan = null; // clanTagPorClan de guerra.json (§PF411): { nombreDeClan: clanTag }
+function tagDeNombreClanPagina(nombre){
+  if (!mapaTagPorClan || typeof mapaTagPorClan !== 'object') return '';
+  return normTagClanPagina(mapaTagPorClan[String(nombre === undefined || nombre === null ? '' : nombre).trim()]);
+}
+/** ¿Este clan (nombre y, si el objeto lo trae, clanTag) es el de la página? Por Tag cuando se conoce el de la página y el del objeto (o el que el mapa da a su nombre); si no, por nombre. */
+function clanCoincide(nombreClan, tagDelObjeto){
+  const tn = normTagClanPagina(tagDelObjeto) || tagDeNombreClanPagina(nombreClan);
+  if (tagClanPagina && tn) return tagClanPagina === tn;
   return String(nombreClan || '').trim().toLowerCase() === NOMBRE_CLAN_QUERY.toLowerCase();
 }
 
@@ -358,13 +369,14 @@ function renderClanGuerra(dataGuerra, nombreClan, desdeViejo){
   document.getElementById('clanGuerraTitulo').textContent = congelada
     ? `Última guerra (hasta el ${nomDiaCong}) — Temporada ${ctx.temporada ?? '—'}`
     : `Resumen de guerra — Temporada ${ctx.temporada ?? '—'}, Semana ${(Number(ctx.sectionIndex) || 0) + 1}`;
+  mapaTagPorClan = (dataGuerra && dataGuerra.clanTagPorClan) || mapaTagPorClan; // §PF412 (6a)
   const entradaGuerra = Object.entries(dataGuerra.guerraPorClan || {}).find(([nombre]) => clanCoincide(nombre));
   if (!entradaGuerra){
     wrap.innerHTML = '<div class="empty">Sin datos de guerra registrados para este clan por ahora.</div>' + avisoViejo;
     return;
   }
   const g = entradaGuerra[1];
-  const pendientesClan = (dataGuerra.pendientes || []).filter(p => clanCoincide(p.clan)).length;
+  const pendientesClan = (dataGuerra.pendientes || []).filter(p => clanCoincide(p.clan, p.clanTag)).length;
   const pct = g.totalHoy ? Math.round((g.atacaron / g.totalHoy) * 100) : 0;
   wrap.innerHTML = `
     <div class="cd-guerra-stats">
@@ -375,7 +387,7 @@ function renderClanGuerra(dataGuerra, nombreClan, desdeViejo){
       <div class="stat"><b>${fmtNum(pendientesClan)}</b><span>Pendientes</span></div>`}
     </div>
     <div style="text-align:center; margin-top:16px;">
-      <a href="guerra.html?clan=${encodeURIComponent(entradaGuerra[0])}" class="text-dim" style="font-family:var(--f-mono); font-size:13px;">Ver Guerra en vivo &rarr;</a>
+      <a href="guerra.html?clan=${encodeURIComponent(entradaGuerra[0])}${(tagClanPagina || tagDeNombreClanPagina(entradaGuerra[0])) ? '&tag=' + encodeURIComponent(tagClanPagina || tagDeNombreClanPagina(entradaGuerra[0])) : ''}" class="text-dim" style="font-family:var(--f-mono); font-size:13px;">Ver Guerra en vivo &rarr;</a>
     </div>${avisoViejo}`;
 }
 
@@ -692,6 +704,7 @@ function renderClanValoresSemanales(data){
   const wrap = document.getElementById('controlTemporadaWrap');
   if (!card || !wrap) return;
   datosSemanales = data || {};
+  mapaTagPorClan = (data && data.clanTagPorClan) || mapaTagPorClan; // §PF412 (6a): clanSemanalesFuente() compara por Tag con este mapa
   const cuerpo = document.getElementById('clanSemanalesCuerpo');
   card.style.display = '';
   const op = clanSemanalesOpciones(datosSemanales);
@@ -722,15 +735,16 @@ async function cargarClan(){
     const [rInfo, rRoster] = await Promise.all([clanObtenerInfo(), clanObtenerRoster()]);
     const dataInfo = rInfo.data, dataRoster = rRoster.data;
     const clanesInfo = ordenarClanes(dataInfo.clanes || []);
-    const idx = clanesInfo.findIndex(c => clanCoincide(c.nombre));
+    const idx = clanesInfo.findIndex(c => clanCoincide(c.nombre, c.clanTag));
     if (idx < 0){
       mostrarErrorClan('No se encontró este clan.');
       return;
     }
     clanInfo = clanesInfo[idx];
+    tagClanPagina = normTagClanPagina(clanInfo.clanTag) || tagClanPagina; // §PF412 (6a): con el clan ya encontrado se usa su Tag (enlaces antiguos sin &tag=)
     document.title = `${clanInfo.nombre || 'Clan'} — Familia Terna`;
 
-    const clanRoster = (dataRoster.clanes || []).find(c => clanCoincide(c.nombre)) || { nombre: clanInfo.nombre, miembros: [] };
+    const clanRoster = (dataRoster.clanes || []).find(c => clanCoincide(c.nombre, c.clanTag)) || { nombre: clanInfo.nombre, miembros: [] };
 
     document.getElementById('clanCargando').style.display = 'none';
     document.getElementById('clanContenido').style.display = 'block';

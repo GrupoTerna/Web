@@ -18,7 +18,9 @@ const fin = grande.indexOf('/* NUEVO (24-oct-2026, tanda 14)');
 assert.ok(ini >= 0 && fin > ini, 'marcadores no encontrados');
 
 function construir(doc){
-  return new Function('document', `${grande.slice(ini, fin)}
+  // §PF412: aplicarCuposEnTarjetas() compara por Tag con clanTagDeNombreGuerra() (que vive fuera de este tramo); aquí no hay mapa de Tags, así que queda el respaldo por nombre. La comparación por Tag se prueba en guerra-clan-preseleccionado-dom.test.js.
+  return new Function('document', `function clanTagDeNombreGuerra(){ return ''; }
+    ${grande.slice(ini, fin)}
     return { desgloseCuposClan, textoCuposTarjeta, aplicarCuposEnTarjetas, fijar: v => { cuposPorClanGuerra = v; } };`)(doc);
 }
 const mk = (n, extra) => Array.from({ length: n }, (_, i) => Object.assign({ tag: '#T' + i, nombre: 'J' + i }, extra));
@@ -76,6 +78,6 @@ test('la tarjeta tiene su fila propia en la grilla (cupos en la 6 y pronóstico 
   assert.match(html, /grid-row:span 7;/);
   assert.match(html, /\.clan-card > \.clan-cupos\{grid-row:6;\}/);
   assert.match(html, /\.clan-card > \.clan-pron\{grid-row:7;\}/);
-  assert.match(html, /<div class="clan-cupos" data-clan="\$\{esc\(nombre\)\}" hidden><\/div>/);
+  assert.match(html, /<div class="clan-cupos" \$\{atributosClanGuerra\(nombre\)\} hidden><\/div>/); // §PF412: el nombre y el Tag de la tarjeta salen de atributosClanGuerra()
   assert.match(html, /cupos\.style\.display = conDia \? 'none' : ''/);
 });

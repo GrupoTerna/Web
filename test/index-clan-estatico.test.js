@@ -41,7 +41,7 @@ assert.ok(scriptClan, 'no se encontró el tramo de archivos estáticos en un <sc
 const TRAMO_CLAN_FUENTES = tramo(scriptClan, 'const HOME_ESTATICO_URL', '/** Resumen de guerra: se carga aparte', 'clanObtenerInfo()/Roster()/Guerra()');
 const TRAMO_CLAN_CARGAR_GUERRA = tramo(scriptClan, '/** Resumen de guerra: se carga aparte', 'async function cargarClan()', 'cargarGuerraClan()');
 const TRAMO_CLAN_RENDER_GUERRA = tramo(scriptClan, '/** Pinta el resumen de guerra', '/** Pinta «Directorio por clan» con solo los miembros', 'renderClanGuerra()');
-const TRAMO_CLAN_COINCIDE = tramo(scriptClan, 'function clanCoincide', 'function mostrarErrorClan', 'clanCoincide()');
+const TRAMO_CLAN_COINCIDE = tramo(scriptClan, '/* Clanes por Tag, tanda 6a', 'function mostrarErrorClan', 'clanCoincide()'); // §PF412: desde el comentario que abre los ayudantes de Tag (normTagClanPagina, tagClanPagina, mapaTagPorClan) hasta clanCoincide()
 assert.ok(TRAMO_CLAN_FUENTES.includes('async function clanObtenerInfo') && TRAMO_CLAN_FUENTES.includes('async function clanObtenerGuerra'));
 
 const HORA = 60 * 60 * 1000;
