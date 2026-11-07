@@ -2096,7 +2096,7 @@ function renderMiembro(j){
   miembroActual = j.tag;
   document.getElementById('miembroSec').style.display = 'block';
   document.getElementById('mNombre').textContent = j.nombre;
-  document.getElementById('mSub').innerHTML = `${esc(j.tag)} · ${j.clan ? enlaceClan(j.clan) : '—'} · ${esc(j.rango)} · ${esc(j.estado)}`;
+  document.getElementById('mSub').innerHTML = `${esc(j.tag)} · ${j.clan ? enlaceClan(j.clan, { tag: j.clanTag }) : '—'} · ${esc(j.rango)} · ${esc(j.estado)}`;
   document.getElementById('mVerPerfil').href = 'perfil.html?tag=' + encodeURIComponent(j.tag); // 5-nov-2026: gráficas e historial completos en perfil.html (otra pestaña)
   document.getElementById('mVGuerra').textContent = fmtNum(j.vGuerra);
   document.getElementById('mTorneos').textContent = fmtNum(j.torneos);
@@ -8066,7 +8066,7 @@ function filaParticipanteResolucion(p){
     <div class="contenido-item">
       <div class="cab">
         <span class="etiqueta">Puesto ${esc(p.puesto)} — ${p.tag ? enlaceJugador(p.nombre, p.tag) : esc(p.nombre)}</span>
-        <span class="clan-chip">${p.clan ? enlaceClan(p.clan) : '—'}</span>
+        <span class="clan-chip">${p.clan ? enlaceClan(p.clan, { tag: p.clanTag }) : '—'}</span>
       </div>
       <div class="ganador-victorias">${fmtNum(p.victorias)} victorias</div>
       ${estadoHtml}
@@ -8345,7 +8345,7 @@ function invalidarRegistroNuevo(){
  *  Sin la función «Registrar miembro nuevo» solo se avisa (el backend lo vuelve a validar en _webAdminRegistrarNuevo()). */
 function mostrarRegistroNuevo(j){
   const msgEl = document.getElementById('nmVerificarMsg');
-  const aviso = `Encontrado en Clash Royale: <b>${esc(j.nombre)}</b>${j.clan ? ' · ' + enlaceClan(j.clan) : ''} · ${esc(j.tag)}. Todavía no tiene registro con nosotros.`;
+  const aviso = `Encontrado en Clash Royale: <b>${esc(j.nombre)}</b>${j.clan ? ' · ' + enlaceClan(j.clan, { tag: j.clanTag }) : ''} · ${esc(j.tag)}. Todavía no tiene registro con nosotros.`;
   if(!adminPuedeRegistrar()){
     nmTagVerificado = null;
     document.getElementById('nmPaso2').style.display = 'none';

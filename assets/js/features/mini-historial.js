@@ -179,7 +179,7 @@ function histCabeceraPerfilHtml(j){
   const num = v => (v !== null && v !== undefined && v !== '' && isFinite(Number(v))) ? fmtNum(Number(v)) : null;
   const vig = j.vigencia ?? ext.vigencia ?? ext.ultimaConexion;
   const datos = [
-    ['Clan', j.clan ? enlaceClan(j.clan) : null],
+    ['Clan', j.clan ? enlaceClan(j.clan, { tag: j.clanTag }) : null], // §PF416 (6e): webPerfil ya manda clanTag
     ['Torre del rey', num(raw.kingTowerLevel)],
     ['Nivel de XP', num(raw.expLevel !== undefined && raw.expLevel !== null ? raw.expLevel : ext.nivelXp)],
     ['Colección', num(ext.nivelCartas)],
