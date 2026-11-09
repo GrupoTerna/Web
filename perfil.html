@@ -6755,7 +6755,15 @@ function pintarBatallasRecientes(batallas){
     // al perfil a propósito.
     var miNombre = b.miNombre || '—';
     var miClanNom = b.miClan || '';
-    var miClanHtml = miClanNom ? ` (${enlaceClan(miClanNom, { tag: b.miClanTag })})` : '';
+    // §PF428 (8-nov-2026, pedido de la usuaria): un clan propio externo (el backend manda miClanTagExt solo si no es Terna) enlaza a su página de
+    // RoyaleAPI, porque clan.html solo conoce nuestros clanes («No se encontró este clan»). Si no llega ningún Tag, queda como antes.
+    var miClanHtml = '';
+    if (miClanNom) {
+      var tagExtRA = b.miClanTag ? '' : String(b.miClanTagExt || '').replace('#', '');
+      miClanHtml = tagExtRA
+        ? ` (<a class="clan-link" href="https://royaleapi.com/clan/${encodeURIComponent(tagExtRA)}" target="_blank" rel="noopener">${esc(miClanNom)}<span class="sr-only"> (se abre en RoyaleAPI, en una pestaña nueva)</span></a>)`
+        : ` (${enlaceClan(miClanNom, { tag: b.miClanTag })})`;
+    }
     var rivalHtml = b.rivalNombre ? `${esc(b.rivalNombre)}${b.rivalClan ? ' (' + esc(b.rivalClan) + ')' : ''}` : 'Rival desconocido';
     var vsHtml = `<span class="bt-yo">${esc(miNombre)}${miClanHtml}</span> <span class="bt-vs-txt">vs.</span> <span class="bt-rival">${rivalHtml}</span>`;
     var modoHtml = `${iconoModoHtml ? `<span class="bt-modo-ico">${iconoModoHtml}</span>` : ''}<span title="${esc(modoTip)}">${esc(b.modoTxt || 'Modo no registrado')}</span>`;

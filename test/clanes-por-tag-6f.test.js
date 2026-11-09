@@ -25,7 +25,13 @@ test('§PF417 ficha de infiltrado: las dos tablas de admin y la de perfil pasan 
   assert.equal(enAdmin.length, 2);
   assert.match(PERFIL, /f\.clan \? enlaceClan\(f\.clan, \{ tag: f\.clanTag \}\) : '—'/);
 });
-// 6g (6-nov-2026, §PF418): el backend manda miClanTag solo si el clan es Terna; uno externo llega con '' y enlaza por nombre.
+// 6g (6-nov-2026, §PF418): el backend manda miClanTag solo si el clan es Terna; uno externo llega con '' (desde §PF428 va a RoyaleAPI con miClanTagExt).
 test('§PF418 perfil: el clan propio de cada batalla enlaza con b.miClanTag', () => {
   assert.match(PERFIL, /enlaceClan\(miClanNom, \{ tag: b\.miClanTag \}\)/);
+});
+// §PF428 (8-nov-2026): el clan propio externo de la batalla enlaza a RoyaleAPI con miClanTagExt; si no hay ningún Tag, queda enlaceClan() por nombre.
+test('§PF428 perfil: el clan propio externo de cada batalla enlaza a RoyaleAPI', () => {
+  assert.match(PERFIL, /b\.miClanTag \? '' : String\(b\.miClanTagExt \|\| ''\)\.replace\('#', ''\)/);
+  assert.match(PERFIL, /href="https:\/\/royaleapi\.com\/clan\/\$\{encodeURIComponent\(tagExtRA\)\}" target="_blank" rel="noopener"/);
+  assert.match(PERFIL, /: ` \(\$\{enlaceClan\(miClanNom, \{ tag: b\.miClanTag \}\)\}\)`;/);
 });
