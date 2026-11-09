@@ -317,7 +317,8 @@
 // v269 (6-nov-2026): perfil.html cambió (CORE_ASSETS) -- el clan propio de cada batalla enlaza con su Tag (&tag=) cuando el backend manda miClanTag, que solo llega si el clan es Terna (§PF418)
 // v270 (6-nov-2026): index.html cambió (CORE_ASSETS) -- el Top de la semana y su selector de clan muestran solo el nombre del clan, sin las etiquetas Principal, Clan 2, Clan 3 ni Mini, que se reservan para las tarjetas de clan (§PF420)
 // v271 (8-nov-2026): perfil.html cambió (CORE_ASSETS) -- el clan propio externo de cada batalla del perfil enlaza a su página de RoyaleAPI (royaleapi.com/clan/<Tag>) cuando el backend manda miClanTagExt (§PF428); el clan Terna sigue con clan.html y &tag=
-const CACHE_NAME = 'terna-static-v271';
+// v272 (8-nov-2026): perfil.html cambió (CORE_ASSETS) -- el clan del rival de cada batalla del perfil enlaza a su página de RoyaleAPI cuando el backend manda rivalClanTag (§PF429); sin Tag queda texto plano
+const CACHE_NAME = 'terna-static-v272';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y

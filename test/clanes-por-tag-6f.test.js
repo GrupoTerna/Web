@@ -35,3 +35,9 @@ test('§PF428 perfil: el clan propio externo de cada batalla enlaza a RoyaleAPI'
   assert.match(PERFIL, /href="https:\/\/royaleapi\.com\/clan\/\$\{encodeURIComponent\(tagExtRA\)\}" target="_blank" rel="noopener"/);
   assert.match(PERFIL, /: ` \(\$\{enlaceClan\(miClanNom, \{ tag: b\.miClanTag \}\)\}\)`;/);
 });
+// §PF429 (8-nov-2026): el clan del rival enlaza a RoyaleAPI con rivalClanTag; sin Tag queda texto plano.
+test('§PF429 perfil: el clan del rival de cada batalla enlaza a RoyaleAPI', () => {
+  assert.match(PERFIL, /String\(b\.rivalClanTag \|\| ''\)\.replace\('#', ''\)/);
+  assert.match(PERFIL, /href="https:\/\/royaleapi\.com\/clan\/\$\{encodeURIComponent\(tagRivalRA\)\}" target="_blank" rel="noopener"/);
+  assert.match(PERFIL, /: ` \(\$\{esc\(b\.rivalClan\)\}\)`\);/);
+});

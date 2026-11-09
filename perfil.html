@@ -6764,7 +6764,12 @@ function pintarBatallasRecientes(batallas){
         ? ` (<a class="clan-link" href="https://royaleapi.com/clan/${encodeURIComponent(tagExtRA)}" target="_blank" rel="noopener">${esc(miClanNom)}<span class="sr-only"> (se abre en RoyaleAPI, en una pestaña nueva)</span></a>)`
         : ` (${enlaceClan(miClanNom, { tag: b.miClanTag })})`;
     }
-    var rivalHtml = b.rivalNombre ? `${esc(b.rivalNombre)}${b.rivalClan ? ' (' + esc(b.rivalClan) + ')' : ''}` : 'Rival desconocido';
+    // §PF429 (8-nov-2026, pedido de la usuaria): el clan del rival enlaza a su página de RoyaleAPI cuando el backend manda rivalClanTag; sin Tag queda texto plano.
+    var tagRivalRA = String(b.rivalClanTag || '').replace('#', '');
+    var rivalClanHtml = !b.rivalClan ? '' : (tagRivalRA
+      ? ` (<a class="clan-link" href="https://royaleapi.com/clan/${encodeURIComponent(tagRivalRA)}" target="_blank" rel="noopener">${esc(b.rivalClan)}<span class="sr-only"> (se abre en RoyaleAPI, en una pestaña nueva)</span></a>)`
+      : ` (${esc(b.rivalClan)})`);
+    var rivalHtml = b.rivalNombre ? `${esc(b.rivalNombre)}${rivalClanHtml}` : 'Rival desconocido';
     var vsHtml = `<span class="bt-yo">${esc(miNombre)}${miClanHtml}</span> <span class="bt-vs-txt">vs.</span> <span class="bt-rival">${rivalHtml}</span>`;
     var modoHtml = `${iconoModoHtml ? `<span class="bt-modo-ico">${iconoModoHtml}</span>` : ''}<span title="${esc(modoTip)}">${esc(b.modoTxt || 'Modo no registrado')}</span>`;
     var arenaHtml = b.arenaTxt ? `<span title="${esc(arenaTip)}">${esc(b.arenaTxt)}</span>` : '<span>—</span>';
