@@ -105,6 +105,10 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 
 ---
 
+## 14-nov-2026
+
+- **`guerra.html` (`desgloseCuposClan()`: campo nuevo `extras`; `textoReemplazablesYExtras()` nueva; `textoCuposTarjeta()` y la fila ➕ de `renderParticipacionHoyGuerra()`), `test/guerra-cupos-desglose.test.js`, `test/guerra-participacion-wsp-dom.test.js` y `sw.js` v273 · Los cupos libres nombran cuántos son reemplazables y cuántos extras.** La fila «➕ Cuentas que se pueden agregar» de «Participación de Hoy» y la línea de cupos de la tarjeta de Guerra de Hoy dicen ahora, por ejemplo, «2 reemplazables y 5 extras» (extras = libres − reemplazables, sin bajar de 0), con los mismos números que el resumen del Mensaje de Guerra. `§PF455`.
+
 ## 08-nov-2026
 
 - **`perfil.html` (`pintarBatallasRecientes()`: variables `tagRivalRA` y `rivalClanHtml`), `test/clanes-por-tag-6f.test.js` y `sw.js` v272 · El clan del rival de cada batalla enlaza a RoyaleAPI.** Si el backend manda `rivalClanTag` (`37_Web_API.gs`, `_webBattlelogJugador()`), el clan entre paréntesis del rival abre `https://royaleapi.com/clan/<Tag>` en pestaña nueva; sin Tag queda en texto plano. Reemplaza la decisión del 27-sep-2026 de dejar el clan rival sin enlace.

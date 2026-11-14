@@ -21,7 +21,7 @@ function construir(doc){
   // §PF412: aplicarCuposEnTarjetas() compara por Tag con clanTagDeNombreGuerra() (que vive fuera de este tramo); aquí no hay mapa de Tags, así que queda el respaldo por nombre. La comparación por Tag se prueba en guerra-clan-preseleccionado-dom.test.js.
   return new Function('document', `function clanTagDeNombreGuerra(){ return ''; }
     ${grande.slice(ini, fin)}
-    return { desgloseCuposClan, textoCuposTarjeta, aplicarCuposEnTarjetas, fijar: v => { cuposPorClanGuerra = v; } };`)(doc);
+    return { desgloseCuposClan, textoReemplazablesYExtras, textoCuposTarjeta, aplicarCuposEnTarjetas, fijar: v => { cuposPorClanGuerra = v; } };`)(doc);
 }
 const mk = (n, extra) => Array.from({ length: n }, (_, i) => Object.assign({ tag: '#T' + i, nombre: 'J' + i }, extra));
 // Ejemplo de la usuaria: 38 sin pendientes + 2 con pendientes + 2 fuera del clan = 42 reservadas; 3 reemplazables; quedan 8 de 50.
@@ -33,8 +33,9 @@ const clan = {
 
 test('el desglose separa reservadas, reemplazables y cupos libres sin mezclarlos', () => {
   const d = construir(null).desgloseCuposClan(clan);
-  assert.deepEqual({ ...d }, { reservadas: 42, conPendientes: 2, sinPendientes: 38, fuera: 2, reemplazables: 3, libres: 8 });
+  assert.deepEqual({ ...d }, { reservadas: 42, conPendientes: 2, sinPendientes: 38, fuera: 2, reemplazables: 3, libres: 8, extras: 5 });
   assert.equal(d.reservadas + d.libres, 50, 'reservadas + libres = tope del día');
+  assert.equal(d.reemplazables + d.extras, d.libres, 'los cupos libres = reemplazables + extras (14-nov-2026)');
 });
 
 test('sin cupos libres no se inventan cuentas nuevas y el tope nunca da negativo', () => {
@@ -48,7 +49,7 @@ test('la línea de la tarjeta dice cuántas cuentas nuevas pueden participar y d
   const c = construir(null);
   const t = c.textoCuposTarjeta(c.desgloseCuposClan(clan));
   assert.match(t, /Pueden participar <strong>8<\/strong> cuentas nuevas más/);
-  assert.match(t, /42 de 50 cupos usados: 38 sin ataques pendientes, 2 con ataques pendientes y 2 fuera del clan/);
+  assert.match(t, /3 reemplazables y 5 extras; 42 de 50 cupos usados: 38 sin ataques pendientes, 2 con ataques pendientes y 2 fuera del clan/);
 });
 
 test('aplicarCuposEnTarjetas pinta la línea en la tarjeta de su clan y oculta las demás', () => {
@@ -71,7 +72,8 @@ test('«Participación de Hoy» muestra tres filas y aclara que las reemplazable
   assert.match(html, /<span class="part-res-n">🔒 \$\{d\.reservadas\}<\/span>/);
   assert.match(html, /<span class="part-res-n">✅ \$\{d\.reemplazables\}<\/span>/);
   assert.match(html, /<span class="part-res-n">➕ \$\{d\.libres\}<\/span>/);
-  assert.match(html, /las \$\{d\.reemplazables\} reemplazables no se suman a este número/);
+  assert.match(html, /<strong>\$\{textoReemplazablesYExtras\(d\)\}<\/strong>/);
+  assert.match(html, /Las reemplazables ya están dentro de este número/);
 });
 
 test('la tarjeta tiene su fila propia en la grilla (cupos en la 6 y pronóstico en la 7) y se oculta al ver otro día', () => {
@@ -80,4 +82,15 @@ test('la tarjeta tiene su fila propia en la grilla (cupos en la 6 y pronóstico 
   assert.match(html, /\.clan-card > \.clan-pron\{grid-row:7;\}/);
   assert.match(html, /<div class="clan-cupos" \$\{atributosClanGuerra\(nombre\)\} hidden><\/div>/); // §PF412: el nombre y el Tag de la tarjeta salen de atributosClanGuerra()
   assert.match(html, /cupos\.style\.display = conDia \? 'none' : ''/);
+});
+
+test('14-nov-2026: el desglose nombra las reemplazables y las extras (ejemplo de la captura: 43 reservadas, 2 reemplazables, 7 libres, 5 extras)', () => {
+  const c = construir(null);
+  const captura = { clan: 'GrupoXTerna™', reservadas: [...mk(42, { ataquesHoy: 4 }), ...mk(1, { ataquesHoy: 1 })], disponibles: mk(2, {}) };
+  const d = c.desgloseCuposClan(captura);
+  assert.equal(d.libres, 7);
+  assert.equal(d.extras, 5);
+  assert.equal(c.textoReemplazablesYExtras(d), '2 reemplazables y 5 extras');
+  assert.equal(c.textoReemplazablesYExtras({ reemplazables: 1, extras: 1 }), '1 reemplazable y 1 extra');
+  assert.equal(c.desgloseCuposClan({ clan: 'X', reservadas: mk(49, { ataquesHoy: 4 }), disponibles: mk(3, {}) }).extras, 0, 'con más reemplazables que libres, extras no baja de 0');
 });

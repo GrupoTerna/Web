@@ -1637,11 +1637,18 @@ function desgloseCuposClan(c){
   const fuera = res.filter(cta => cta.inactiva === true).length;
   const activas = res.filter(cta => cta.inactiva !== true);
   const conPendientes = activas.filter(cta => pendientesHoy(cta) > 0).length;
+  const reemplazables = ((c && c.disponibles) || []).length;
+  const libres = Math.max(0, CUENTAS_MAX_DIA - res.length);
   return {
     reservadas: res.length, conPendientes, sinPendientes: activas.length - conPendientes, fuera,
-    reemplazables: ((c && c.disponibles) || []).length,
-    libres: Math.max(0, CUENTAS_MAX_DIA - res.length)
+    reemplazables,
+    libres,
+    extras: Math.max(0, libres - reemplazables) // 14-nov-2026: los cupos libres = reemplazables + extras (las reemplazables son parte de los libres); mismas cuentas que el resumen del Mensaje de Guerra (30_Mensajes.gs, §PF455)
   };
+}
+/* 14-nov-2026: «2 reemplazables y 5 extras» (singular con 1). */
+function textoReemplazablesYExtras(d){
+  return `${d.reemplazables} reemplazable${d.reemplazables === 1 ? '' : 's'} y ${d.extras} extra${d.extras === 1 ? '' : 's'}`;
 }
 /* Línea bajo «N/M atacaron hoy» de cada tarjeta de Guerra de Hoy. Solo se llena con datos de «Participación de Hoy» (admin, día de guerra); sin ellos queda oculta. Las tarjetas se rehacen en cada render(), por eso los datos se guardan aparte y se vuelven a pintar. */
 let cuposPorClanGuerra = null;
@@ -1649,7 +1656,7 @@ function textoCuposTarjeta(d){
   const cabeza = d.libres > 0
     ? `Pueden participar <strong>${d.libres}</strong> cuenta${d.libres === 1 ? '' : 's'} nueva${d.libres === 1 ? '' : 's'} más`
     : 'Sin cupos libres para cuentas nuevas';
-  const det = `${d.reservadas} de ${CUENTAS_MAX_DIA} cupos usados: ${d.sinPendientes} sin ataques pendientes, ${d.conPendientes} con ataques pendientes${d.fuera ? ` y ${d.fuera} fuera del clan` : ''}`;
+  const det = `${d.libres > 0 ? textoReemplazablesYExtras(d) + '; ' : ''}${d.reservadas} de ${CUENTAS_MAX_DIA} cupos usados: ${d.sinPendientes} sin ataques pendientes, ${d.conPendientes} con ataques pendientes${d.fuera ? ` y ${d.fuera} fuera del clan` : ''}`;
   return `${cabeza}<span class="cupos-det">(${det})</span>`;
 }
 function aplicarCuposEnTarjetas(){
@@ -1697,7 +1704,7 @@ function renderParticipacionHoyGuerra(clanes, multiClan){
     const cuposHtml = `<div class="part-resumen">
             <div class="part-res-fila"><span class="part-res-n">🔒 ${d.reservadas}</span><span><strong>Reservadas</strong> · ya atacaron hoy y usan cupo (${d.reservadas} de ${CUENTAS_MAX_DIA}): ${d.conPendientes} con ataques pendientes, ${d.sinPendientes} sin pendientes${d.fuera ? ` y ${d.fuera} fuera del clan` : ''}.</span></div>
             <div class="part-res-fila"><span class="part-res-n">✅ ${d.reemplazables}</span><span><strong>Reemplazables</strong> · cuentas del clan que todavía no atacaron; aún no usan cupo.</span></div>
-            <div class="part-res-fila"><span class="part-res-n">➕ ${d.libres}</span><span><strong>Cuentas que se pueden agregar</strong> · cupos libres (${CUENTAS_MAX_DIA} − ${d.reservadas}). <span class="part-res-nota">Es el total: las ${d.reemplazables} reemplazables no se suman a este número; si atacan, usan estos mismos cupos.</span></span></div>
+            <div class="part-res-fila"><span class="part-res-n">➕ ${d.libres}</span><span><strong>Cuentas que se pueden agregar</strong> · cupos libres (${CUENTAS_MAX_DIA} − ${d.reservadas}): <strong>${textoReemplazablesYExtras(d)}</strong>. <span class="part-res-nota">Las reemplazables ya están dentro de este número; si atacan, usan estos mismos cupos.</span></span></div>
           </div>`;
     const inactivasHtml = !inactivasRes.length ? '' : `
           <div class="part-subhead">Fuera del clan con ataques hoy (${inactivasRes.length})</div>
