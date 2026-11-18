@@ -84,6 +84,21 @@
     transition:all .18s ease;
   }
   #clanExtLinks a:hover{border-color:var(--purple); background:rgba(162,57,255,.1); color:var(--purple-light);}
+  /* 18-nov-2026 (§PF508): tarjeta «Clanes externos». Las pastillas RoyaleAPI/CWStats repiten el formato de #clanExtLinks, en tamaño chico para caber en cada fila. */
+  .ce-filtros{display:flex; gap:8px; flex-wrap:wrap; margin-top:14px;}
+  .ce-clan{border:1px solid var(--line-strong); border-radius:var(--radius); background:rgba(27,32,54,.94); margin-top:12px; overflow:hidden;}
+  .ce-clan > summary{display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:12px 16px; cursor:pointer; list-style:none;}
+  .ce-clan > summary::-webkit-details-marker{display:none;}
+  .ce-nombre{font-family:var(--f-display); text-transform:uppercase; font-weight:700; color:var(--gold);}
+  .ce-tag{font-family:var(--f-mono); font-size:13px; color:#aeb9cc;}
+  .ce-cuenta{font-family:var(--f-mono); font-size:13px; color:#d5dbe8; margin-left:auto;}
+  .ce-cuerpo{padding:0 16px 14px;}
+  .ce-ext{display:inline-flex; gap:6px; flex-wrap:wrap; vertical-align:middle;}
+  .ce-ext a{font-family:var(--f-mono); font-size:12px; font-weight:600; color:var(--purple-light); text-transform:uppercase; letter-spacing:.04em; border:1px solid var(--line); padding:4px 9px; border-radius:var(--radius-sm); text-decoration:none; white-space:nowrap; transition:all .18s ease;}
+  .ce-ext a:hover{border-color:var(--purple); background:rgba(162,57,255,.1);}
+  .ce-clan table{width:100%; border-collapse:collapse; font-size:14px;}
+  .ce-clan th{color:var(--gold); text-align:left; font-weight:600; padding:6px 8px; border-bottom:1px solid var(--line-strong);}
+  .ce-clan td{padding:6px 8px; border-bottom:1px solid var(--line); vertical-align:middle;}
   /* 5-nov-2026 (§PF382, rediseño pedido por la usuaria: «un mejor aspecto, como los perfiles de jugadores»): la ficha de «Buscar clan» toma el aspecto de la cabecera de perfil.html: cinta de fondo (.pf-cinta--cabecera, aquí con cinta-clan-cabecera.webp), nombre en dorado brillante (#cNombre, mismo degradado que #mNombre de perfil.html) y las estadísticas como «cuadritos» en una grilla pareja (como .ext-grid/.ext-item de perfil). Ningún texto baja de 13 px. Los ids y el orden del HTML no cambian. */
   .pf-cinta--cabecera::before{height:120px; opacity:.55;}
   .pf-cinta--cabecera > .perfil-cabecera{position:relative; z-index:1;}
@@ -639,6 +654,24 @@
           </div>
         </div>
       </div>
+    </div>
+
+    <!-- 18-nov-2026 (pedido de la usuaria, §PF508): «Clanes externos». Lista de los clanes externos, vetados y rivales donde algún jugador nuestro jugó guerra, con esos jugadores. Pide webAdminClanesExternos (solo lee Drive: el índice, las alertas y los nombres). Clanes y jugadores llevan enlace dentro de la web (el clan abre «Buscar clan», el jugador abre su perfil) y a RoyaleAPI y CWStats con sus íconos. Todo lo que viene del backend se pinta con esc(). -->
+    <div class="card pf-cinta" id="cardClanesExternos" style="--cinta:url(Im%C3%A1genes/Banners/Fankit/cinta-admin-buscar.webp); margin-top:24px;">
+      <div class="eyebrow">Clanes externos</div>
+      <p class="text-dim" style="font-size:13px; margin:10px 0 14px;">Clanes externos, vetados y rivales en los que jugó guerra alguno de nuestros jugadores, con los miembros que hemos compartido alguna vez. Sale del índice de clanes externos, que se actualiza cada martes; no consulta a Supercell.</p>
+      <div class="buscador">
+        <input type="text" id="ceFiltroTexto" aria-label="Filtrar por clan, jugador o Tag" placeholder="Filtrar por clan, jugador o Tag" autocomplete="off">
+        <button type="button" class="btn btn-primary" id="btnCargarClanesExternos">Cargar lista</button>
+      </div>
+      <div class="ce-filtros" id="ceFiltros" role="group" aria-label="Tipo de clan" style="display:none;">
+        <button type="button" class="tab-clan activo" data-ce-tipo="todos" aria-pressed="true">Todos</button>
+        <button type="button" class="tab-clan" data-ce-tipo="rival" aria-pressed="false">Rivales</button>
+        <button type="button" class="tab-clan" data-ce-tipo="vetado" aria-pressed="false">Vetados</button>
+        <button type="button" class="tab-clan" data-ce-tipo="externo" aria-pressed="false">Solo externos</button>
+      </div>
+      <div id="ceMsg" aria-live="polite"></div>
+      <div id="ceLista"></div>
     </div>
 
     <!-- 5-nov-2026 (pedido de la usuaria): el grupo «Directorio» (solo traía la tarjeta «Vetar miembro») se retiró: «Vetar miembro» pasó a la ficha de «Buscar miembro» como la pastilla #btnVetarPastilla. Historial en CHANGELOG.md. -->
@@ -1825,6 +1858,7 @@ function mostrarPanel(){
   // cargarAscensosEditables() se encadena después de cargarNomMultisAdmins() para que los <select> de "Editar autor" ya tengan opciones al pintarse. Historial en CHANGELOG.md.
   cargarNomMultisAdmins().then(cargarAscensosEditables);
   cargarGanadoresTorneo();
+  abrirClanDesdeUrl(); // §PF508: admin.html?clan=%23TAG abre «Buscar clan» con ese clan
   // FIX (17-oct-2026): la carga inicial de semanas corre al abrir la página, antes del login; si falló por falta de sesión, se repite aquí con sesión válida (si ya hay semanas en caché no vuelve a pedir). [→ Contexto_Base_Web.md §PF097]
   cargarSemanasRecientes().then(function(){ repintarSelectoresSemanas(); });
   // Los grids de requisitos se piden a webAdminClanesFamilia() recién en mostrarPanel() (requiere sessionToken) y antes de precargar los valores ya guardados. Historial en CHANGELOG.md.
@@ -2694,6 +2728,133 @@ async function buscarClan(){
 }
 document.getElementById('btnBuscarClan').addEventListener('click', () => conBotonOcupado(document.getElementById('btnBuscarClan'), buscarClan));
 document.getElementById('clanTagInput').addEventListener('keydown', e => { if(e.key === 'Enter') conBotonOcupado(document.getElementById('btnBuscarClan'), buscarClan); });
+
+/* 18-nov-2026 (pedido de la usuaria, §PF508): tarjeta «Clanes externos». Pide webAdminClanesExternos una vez por pulsación de «Cargar lista» y filtra en el navegador (tipo y texto).
+   Cada clan: nombre con enlace interno a «Buscar clan» (admin.html?clan=%23TAG), Tag, marcas Rival/Vetado y pastillas RoyaleAPI y CWStats con su ícono. Cada jugador: nombre con enlace a su perfil (enlaceJugador), Tag y las mismas dos pastillas.
+   Todo dato del backend va con esc(); los Tags se normalizan y se codifican antes de entrar en una URL. */
+let _ceDatos = null; // última respuesta { clanes, actualizado, indiceCompleto }
+let _ceTipo = 'todos';
+
+function _ceTagUrl(tag){
+  return encodeURIComponent(String(tag || '').replace(/^#/, '').toUpperCase().replace(/[^0-9A-Z]/g, ''));
+}
+function _ceEnlacesExternos(tag, tipo){
+  const t = _ceTagUrl(tag);
+  if(!t) return '';
+  const ra = typeof ICONO_ROYALEAPI !== 'undefined' ? ICONO_ROYALEAPI : '';
+  const cw = typeof ICONO_CWSTATS !== 'undefined' ? ICONO_CWSTATS : '';
+  return `<span class="ce-ext"><a href="https://royaleapi.com/${tipo}/${t}" target="_blank" rel="noopener">${ra}RoyaleAPI<span class="sr-only"> (se abre en una pestaña nueva)</span></a><a href="https://cwstats.com/${tipo}/${t}" target="_blank" rel="noopener">${cw}CWStats<span class="sr-only"> (se abre en una pestaña nueva)</span></a></span>`;
+}
+function _ceEnlaceClanInterno(nombre, tag){
+  const t = _ceTagUrl(tag);
+  const texto = esc(nombre || tag || '—');
+  if(!t) return texto;
+  return `<a class="clan-link ce-clan-link" href="admin.html?clan=%23${t}#cardBuscarClan" data-ce-clan="#${t}">${texto}</a>`;
+}
+function _ceMarcas(c){
+  const m = [];
+  if((c.tipos || []).indexOf('rival') !== -1) m.push(`<span class="badge badge-warn">Rival${c.hoy ? ' (hoy)' : ''}</span>`);
+  if((c.tipos || []).indexOf('vetado') !== -1) m.push(`<span class="badge badge-warn">Vetado${c.hoy ? '' : ' (antes)'}</span>`);
+  if(!m.length) m.push('<span class="badge">Externo</span>');
+  return m.join(' ');
+}
+/** Un clan que es rival y vetado a la vez sale en los dos filtros; «externo» es el que no es ni rival ni vetado. */
+function _ceEsTipo(c, tipo){
+  const t = c.tipos || [];
+  if(tipo === 'todos') return true;
+  if(tipo === 'externo') return !t.length;
+  return t.indexOf(tipo) !== -1;
+}
+function _ceCoincide(c, txt){
+  if(!txt) return true;
+  const q = txt.toLowerCase();
+  if(String(c.nombre || '').toLowerCase().indexOf(q) !== -1 || String(c.tag || '').toLowerCase().indexOf(q) !== -1) return true;
+  return (c.jugadores || []).some(j => String(j.nombre || '').toLowerCase().indexOf(q) !== -1 || String(j.tag || '').toLowerCase().indexOf(q) !== -1);
+}
+function _ceFilaJugador(j){
+  return `<tr>
+    <td>${enlaceJugador(j.nombre || j.tag, j.tag)}</td>
+    <td class="text-faint" style="font-family:var(--f-mono); font-size:13px;">${esc(j.tag)}</td>
+    <td>${esc(j.semanas)}</td>
+    <td>${_etiquetaPuntoClan(j.primera)} → ${_etiquetaPuntoClan(j.ultima)}</td>
+    <td>${_ceEnlacesExternos(j.tag, 'player')}</td>
+  </tr>`;
+}
+function _ceBloqueClan(c){
+  const js = c.jugadores || [];
+  const cuerpo = js.length
+    ? `<div style="overflow-x:auto;"><table><thead><tr><th scope="col">Jugador</th><th scope="col">Tag</th><th scope="col">Semanas</th><th scope="col">Primera → última</th><th scope="col">Enlaces</th></tr></thead><tbody>${js.map(_ceFilaJugador).join('')}</tbody></table></div>`
+    : '<div class="text-dim" style="font-size:14px; padding:6px 0;">Ningún jugador nuestro figura en este clan en el índice.</div>';
+  return `<details class="ce-clan">
+    <summary>
+      <span class="ce-nombre">${_ceEnlaceClanInterno(c.nombre, c.tag)}</span>
+      <span class="ce-tag">${esc(c.tag)}</span>
+      ${_ceMarcas(c)}
+      ${_ceEnlacesExternos(c.tag, 'clan')}
+      <span class="ce-cuenta">${js.length} ${js.length === 1 ? 'jugador' : 'jugadores'}</span>
+    </summary>
+    <div class="ce-cuerpo">${cuerpo}</div>
+  </details>`;
+}
+function pintarClanesExternos(){
+  const cont = document.getElementById('ceLista');
+  const msg = document.getElementById('ceMsg');
+  if(!_ceDatos){ cont.innerHTML = ''; return; }
+  const txt = document.getElementById('ceFiltroTexto').value.trim();
+  const lista = (_ceDatos.clanes || []).filter(c => _ceEsTipo(c, _ceTipo) && _ceCoincide(c, txt));
+  const nota = [];
+  if(_ceDatos.actualizado) nota.push(`Índice actualizado: ${esc(_ceDatos.actualizado)}.`);
+  if(_ceDatos.indiceCompleto === false) nota.push('El índice está incompleto: pueden faltar jugadores.');
+  msg.innerHTML = `<div class="text-faint" style="font-size:13px; margin-top:10px;">${lista.length} de ${(_ceDatos.clanes || []).length} clanes. ${nota.join(' ')}</div>`;
+  cont.innerHTML = lista.length ? lista.map(_ceBloqueClan).join('') : '<div class="empty">Ningún clan coincide con el filtro.</div>';
+}
+async function cargarClanesExternos(){
+  const msg = document.getElementById('ceMsg');
+  msg.innerHTML = '<div class="empty">Cargando…</div>';
+  try{
+    const data = await apiGetAuth('webAdminClanesExternos');
+    if(manejarRespuestaAuth(data)) return;
+    if(!data.ok){ msg.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
+    _ceDatos = data;
+    document.getElementById('ceFiltros').style.display = 'flex';
+    pintarClanesExternos();
+  }catch(err){
+    msg.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
+  }
+}
+/** Abre «Buscar clan» con el Tag dado (enlace interno de la lista y de admin.html?clan=%23TAG). */
+function abrirClanEnBuscar(tag){
+  const tagNorm = normalizarTag(tag);
+  if(!tagNorm) return;
+  document.getElementById('clanTagInput').value = tagNorm;
+  const card = document.getElementById('cardBuscarClan');
+  if(card && card.scrollIntoView) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  return buscarClan();
+}
+function abrirClanDesdeUrl(){
+  const q = new URLSearchParams(window.location.search).get('clan');
+  if(q) abrirClanEnBuscar(q);
+}
+document.getElementById('btnCargarClanesExternos').addEventListener('click', () => conBotonOcupado(document.getElementById('btnCargarClanesExternos'), cargarClanesExternos));
+document.getElementById('ceFiltroTexto').addEventListener('input', pintarClanesExternos);
+document.getElementById('ceFiltros').addEventListener('click', e => {
+  const b = e.target.closest('[data-ce-tipo]');
+  if(!b) return;
+  _ceTipo = b.getAttribute('data-ce-tipo');
+  document.querySelectorAll('#ceFiltros [data-ce-tipo]').forEach(x => {
+    const on = x === b;
+    x.classList.toggle('activo', on);
+    x.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+  pintarClanesExternos();
+});
+document.getElementById('ceLista').addEventListener('click', e => {
+  const a = e.target.closest('a[data-ce-clan]');
+  if(!a) return;
+  e.preventDefault();
+  e.stopPropagation(); // no abre ni cierra el <details> del clan
+  abrirClanEnBuscar(a.getAttribute('data-ce-clan'));
+});
 
 async function verificarInfiltradosClan(){
   const msgEl = document.getElementById('clanInfMsg');
