@@ -111,6 +111,7 @@ Se actualiza al cumplirse o cambiar; al cumplirse, la línea se borra (queda la 
 
 ## 19-nov-2026
 
+- **`admin.html` (estilos `.inf-panel .roster-table thead th` y `.inf-panel .tabla-coincidencias-wrap thead th`), `test/admin-encabezado-tablas-opaco.test.js` (nuevo) y `sw.js` v292 · Las filas de «Inactivos» ya no atraviesan el encabezado.** El fondo del encabezado fijo era casi transparente y pisaba el color opaco de `assets/styles.css`; ahora es sólido. `PF378`.
 - **`admin.html` (pastilla `#btnClanInfiltradoPastilla`, título `#clanInfTitulo`, `renderInfiltrado()` en su rama de clan, `_seccionExMiembrosClan()`; texto de ayuda de la tarjeta «Buscar clan»), `test/admin-infiltrado-en-ficha-dom.test.js`, `test/admin-buscar-clan-cinta-ancho.test.js` y `sw.js` v291 · «Buscar clan»: títulos y avisos sin la palabra «infiltrado».** La pastilla «¿Infiltrado?» del clan pasa a «Cruce con roster» y el título del panel a «Cruce con nuestro roster: <clan>». El veredicto lleva su propio subtítulo («Miembros actuales de este clan que figuran en nuestro roster») y, si no hay ninguno, dice «Ningún miembro actual está en nuestro roster» y aclara que no incluye a quienes ya salieron. La sección de abajo pasa de «pasaron por este clan» a «Jugadores nuestros que jugaron guerra en este clan», con «Activos: hoy están en nuestros clanes» e «Inactivos: ya no están en nuestros clanes», y aclara que el historial no dice en qué sentido se movieron. La ficha de «Buscar miembro» conserva «¿Es infiltrado?». `PF378`.
 
 ## 18-nov-2026

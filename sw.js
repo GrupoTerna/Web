@@ -331,7 +331,8 @@
 // v283 (18-nov-2026): directorio.html cambió (CORE_ASSETS) -- en «Ingresos recientes», al apagar una tarjeta (desmarcar su casilla) baja al final de su clan: el orden es clan, visibles antes que apagadas, XP de mayor a menor y nombre.
 // v284 (18-nov-2026): directorio.html cambió (CORE_ASSETS) -- en «Ingresos recientes», el aviso de un clan de la hoja Conflictos (el que se veta desde «Buscar clan») dice «Estuvo en un clan vetado» y no «rival»; «rival» queda para los clanes de la carrera de la temporada.
 // v291 (19-nov-2026): admin.html cambió (CORE_ASSETS) -- en «Buscar clan», la pastilla pasa de «¿Infiltrado?» a «Cruce con roster» y el panel separa con títulos propios los miembros actuales del clan que están en nuestro roster y los jugadores nuestros que jugaron guerra en ese clan (§PF378).
-const CACHE_NAME = 'terna-static-v291';
+// v292 (19-nov-2026): admin.html cambió (CORE_ASSETS) -- en «Buscar clan», el encabezado fijo de las tablas del panel «Cruce con roster» tiene fondo opaco y las filas ya no lo atraviesan al desplazar (§PF378).
+const CACHE_NAME = 'terna-static-v292';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
