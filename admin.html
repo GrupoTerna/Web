@@ -114,6 +114,14 @@
   .ce-ext{display:inline-flex; gap:6px; flex-wrap:wrap; vertical-align:middle;}
   .ce-ext a{font-family:var(--f-mono); font-size:12px; font-weight:600; color:var(--purple-light); text-transform:uppercase; letter-spacing:.04em; border:1px solid var(--line); padding:4px 9px; border-radius:var(--radius-sm); text-decoration:none; white-space:nowrap; transition:all .18s ease;}
   .ce-ext a:hover{border-color:var(--purple); background:rgba(162,57,255,.1);}
+  /* 18-nov-2026 (pedido de la usuaria): pastilla «Vetar» junto a RoyaleAPI y CWStats, de clanes y de jugadores. */
+  .ce-ext button{font-family:var(--f-mono); font-size:12px; font-weight:600; color:var(--danger); background:transparent; text-transform:uppercase; letter-spacing:.04em; border:1px solid var(--danger); padding:4px 9px; border-radius:var(--radius-sm); white-space:nowrap; cursor:pointer; transition:all .18s ease;}
+  .ce-ext button:hover:not(:disabled){background:rgba(255,80,80,.12);}
+  .ce-ext button:disabled{opacity:.6; cursor:default;}
+  .ce-veto-fondo{position:fixed; inset:0; z-index:1000; display:none; align-items:center; justify-content:center; padding:16px; background:rgba(8,10,20,.75);}
+  .ce-veto-panel{width:100%; max-width:460px; max-height:90vh; overflow:auto; background:rgba(27,32,54,.98); border:1px solid var(--line-strong); border-radius:var(--radius); padding:18px;}
+  .ce-veto-acciones{display:flex; gap:10px; margin-top:10px;}
+  .ce-veto-acciones .btn{flex:1;}
   .ce-clan table{width:100%; border-collapse:collapse; font-size:14px;}
   .ce-clan th{color:var(--gold); text-align:center; font-weight:600; padding:6px 8px; border-bottom:1px solid var(--line-strong);}
   .ce-clan td{padding:6px 8px; border-bottom:1px solid var(--line); vertical-align:middle; text-align:center;}
@@ -1798,6 +1806,30 @@
 <script src="assets/js/features/inactivos.js"></script>
 <script src="assets/js/features/timeline-svg.js"></script>
 <script src="assets/common.js"></script>
+<!-- 18-nov-2026 (pedido de la usuaria): diálogo de las pastillas «Vetar» de «Clanes externos». Para un clan pide el Motivo (webAdminVetarClan); para un jugador, la Razón y un Comentario opcional (webAdminVetar). Es el mismo veto de «Buscar clan» y «Buscar miembro»: solo lo ve quien tiene la función «Vetar» y el backend lo vuelve a validar. -->
+<div class="ce-veto-fondo" id="ceVetoFondo" role="dialog" aria-modal="true" aria-labelledby="ceVetoTitulo">
+  <div class="ce-veto-panel">
+    <h3 id="ceVetoTitulo" style="font-size:15px; color:var(--gold); margin-bottom:14px;"></h3>
+    <div class="field" id="ceVetoCampoMotivo">
+      <label for="ceVetoMotivo">Motivo</label>
+      <input type="text" id="ceVetoMotivo" maxlength="200" placeholder="Por qué se veta este clan (se guarda en la hoja Conflictos)">
+    </div>
+    <div class="field" id="ceVetoCampoRazon">
+      <label for="ceVetoRazon">Razón</label>
+      <select id="ceVetoRazon"></select>
+    </div>
+    <div class="field" id="ceVetoCampoComentario">
+      <label for="ceVetoComentario">Comentario (opcional)</label>
+      <textarea id="ceVetoComentario" rows="4" placeholder="Detalle adicional para el registro de Comentarios"></textarea>
+    </div>
+    <div id="ceVetoMsg" aria-live="polite"></div>
+    <div class="ce-veto-acciones">
+      <button type="button" class="btn btn-ghost" id="ceVetoCerrar">Cerrar</button>
+      <button type="button" class="btn btn-primary" id="ceVetoEnviar" style="border-color:var(--danger);">Vetar</button>
+    </div>
+  </div>
+</div>
+
 <script>
 const SESSION_KEY = 'terna_admin_token';
 // FASE 5 (26-ago-2026): junto con el token, ahora se guarda también la
@@ -2469,12 +2501,8 @@ function _tablaClanesExternos(lista, disponible){
   // 5-nov-2026 (§PF368, pedido de la usuaria): las semanas anteriores a la T1 de la numeración interna (temporada <= 0, que se leían «T-7 S2») se muestran con la temporada de Supercell («AAAA-MM»).
   let hayAntesDeT1 = false;
   const pto = p => {
-    if(!p) return '—';
-    if(Number(p.temporada) <= 0 && p.supercell){
-      hayAntesDeT1 = true;
-      return `<span title="Temporada Supercell ${esc(p.supercell)} (anterior a la T1 interna)">${esc(p.supercell)} S${esc(p.semana)}</span>`;
-    }
-    return `T${esc(p.temporada)} S${esc(p.semana)}`;
+    if(p && p.supercell && Number(p.temporada) <= 0) hayAntesDeT1 = true;
+    return _etiquetaPuntoClan(p);
   };
   const filas = lista.map(c => `
     <tr>
@@ -2493,7 +2521,11 @@ function _tablaClanesExternos(lista, disponible){
 /** «T5 S3» o, antes de la T1 interna, «2024-08 S4» (temporada Supercell), igual que _tablaClanesExternos(). */
 function _etiquetaPuntoClan(p){
   if(!p) return '—';
-  if(Number(p.temporada) <= 0 && p.supercell) return `<span title="Temporada Supercell ${esc(p.supercell)} (anterior a la T1 interna)">${esc(p.supercell)} S${esc(p.semana)}</span>`;
+  if(p.supercell){
+    const t = Number(p.temporada);
+    const aclaracion = t <= 0 ? 'anterior a la T1 interna' : `T${t} interna`;
+    return `<span title="Temporada Supercell ${esc(p.supercell)} (${aclaracion})">${esc(p.supercell)} S${esc(p.semana)}</span>`;
+  }
   return `T${esc(p.temporada)} S${esc(p.semana)}`;
 }
 
@@ -2777,12 +2809,29 @@ const CE_GRUPO_SIN_TERNA = 'Rivales de semanas anteriores';
 function _ceTagUrl(tag){
   return encodeURIComponent(String(tag || '').replace(/^#/, '').toUpperCase().replace(/[^0-9A-Z]/g, ''));
 }
-function _ceEnlacesExternos(tag, tipo){
+/** Permiso «Vetar» de la sesión de admin (el mismo criterio de aplicarVisibilidadPorFunciones()); el backend lo vuelve a validar. */
+function _adminPuedeVetar(){
+  try{
+    const g = localStorage.getItem(SESSION_ADMIN_KEY);
+    return !!g && String(JSON.parse(g).funciones || '').indexOf('Vetar') !== -1;
+  }catch(err){ return false; }
+}
+const _ceVetadosSesion = {}; // vetos hechos desde esta tarjeta en esta sesión: 'clan:#TAG' o 'jugador:#TAG'
+/** Pastilla «🚫 Vetar» (18-nov-2026). tipo: 'clan' o 'jugador'. Solo con la función «Vetar»; queda bloqueada («Vetado») si ya está vetado. */
+function _ceBotonVetar(tipo, tag, nombre, yaVetado){
+  if(!_adminPuedeVetar()) return '';
+  const t = normalizarTag(tag);
+  if(!t) return '';
+  const vetado = !!yaVetado || !!_ceVetadosSesion[tipo + ':' + t];
+  return `<button type="button" class="ce-vetar" data-ce-vetar="${tipo}" data-ce-tag="${esc(t)}" data-ce-nombre="${esc(nombre || '')}"${vetado ? ' disabled' : ''}>🚫 ${vetado ? 'Vetado' : 'Vetar'}</button>`;
+}
+function _ceEnlacesExternos(tag, tipo, nombre, yaVetado){
   const t = _ceTagUrl(tag);
   if(!t) return '';
   const ra = typeof ICONO_ROYALEAPI !== 'undefined' ? ICONO_ROYALEAPI : '';
   const cw = typeof ICONO_CWSTATS !== 'undefined' ? ICONO_CWSTATS : '';
-  return `<span class="ce-ext"><a href="https://royaleapi.com/${tipo}/${t}" target="_blank" rel="noopener">${ra}RoyaleAPI<span class="sr-only"> (se abre en una pestaña nueva)</span></a><a href="https://cwstats.com/${tipo}/${t}" target="_blank" rel="noopener">${cw}CWStats<span class="sr-only"> (se abre en una pestaña nueva)</span></a></span>`;
+  const vetar = _ceBotonVetar(tipo === 'clan' ? 'clan' : 'jugador', tag, nombre, yaVetado);
+  return `<span class="ce-ext"><a href="https://royaleapi.com/${tipo}/${t}" target="_blank" rel="noopener">${ra}RoyaleAPI<span class="sr-only"> (se abre en una pestaña nueva)</span></a><a href="https://cwstats.com/${tipo}/${t}" target="_blank" rel="noopener">${cw}CWStats<span class="sr-only"> (se abre en una pestaña nueva)</span></a>${vetar}</span>`;
 }
 function _ceEnlaceClanInterno(nombre, tag){
   const t = _ceTagUrl(tag);
@@ -2854,7 +2903,7 @@ function _ceFilaJugador(j){
     <td>${(j.clanActual || j.clanActualTag) ? _ceEnlaceClanInterno(j.clanActual, j.clanActualTag) : '<span class="text-faint">—</span>'}</td>
     <td>${esc(_ceNum(j.semanas))}</td>
     <td>${_etiquetaPuntoClan(j.primera)} → ${_etiquetaPuntoClan(j.ultima)}</td>
-    <td>${_ceEnlacesExternos(j.tag, 'player')}</td>
+    <td>${_ceEnlacesExternos(j.tag, 'player', j.nombre)}</td>
   </tr>`;
 }
 /** La tabla de jugadores se arma recién al abrir el clan (con 1 400 clanes, armarlas todas haría lenta la página). Los activos van primero. */
@@ -2878,7 +2927,7 @@ function _ceBloqueClan(c, idx){
       <span class="ce-nombre">${_ceEnlaceClanInterno(c.nombre, c.tag)}</span>
       <span class="ce-tag">${esc(c.tag)}</span>
       ${_ceMarcas(c)}
-      ${_ceEnlacesExternos(c.tag, 'clan')}
+      ${_ceEnlacesExternos(c.tag, 'clan', c.nombre, (c.tipos || []).indexOf('vetado') !== -1)}
       <span class="ce-cuenta">${esc(_ceNum(c.activos || 0))} ${(c.activos || 0) === 1 ? 'activo' : 'activos'} · ${esc(_ceNum(c.inactivos || 0))} ${(c.inactivos || 0) === 1 ? 'inactivo' : 'inactivos'} · ${esc(_ceNum(n))} en total</span>
     </summary>
     <div class="ce-cuerpo"></div>
@@ -2986,12 +3035,76 @@ document.getElementById('ceLista').addEventListener('click', e => {
     pintarClanesExternos(false);
     return;
   }
+  const bv = e.target.closest('button[data-ce-vetar]');
+  if(bv){
+    e.preventDefault();
+    e.stopPropagation(); // no abre ni cierra el <details> del clan
+    if(!bv.disabled) _ceAbrirVeto(bv.getAttribute('data-ce-vetar'), bv.getAttribute('data-ce-tag'), bv.getAttribute('data-ce-nombre'));
+    return;
+  }
   const a = e.target.closest('a[data-ce-clan]');
   if(!a) return;
   e.preventDefault();
   e.stopPropagation(); // no abre ni cierra el <details> del clan
   abrirClanEnBuscar(a.getAttribute('data-ce-clan'));
 });
+
+/* 18-nov-2026 (pedido de la usuaria): vetar un clan o un jugador desde «Clanes externos». Reutiliza los endpoints de «Buscar clan» (webAdminVetarClan: agrega el clan a «Conflictos») y de «Buscar miembro» (webAdminVetar:
+   el jugador debe figurar en Directorio o Inactivos). Las razones se copian de #vRazon para tener una sola lista. Es de un solo sentido, sin «desvetar» desde la web. */
+let _ceVetoCtx = null; // { tipo, tag, nombre } del veto abierto
+function _ceAbrirVeto(tipo, tag, nombre){
+  _ceVetoCtx = { tipo: tipo, tag: tag, nombre: nombre };
+  const esClan = tipo === 'clan';
+  document.getElementById('ceVetoTitulo').textContent = esClan ? `Vetar el clan ${nombre || tag} (${tag})` : `Vetar a ${nombre || tag} (${tag})`;
+  document.getElementById('ceVetoCampoMotivo').style.display = esClan ? '' : 'none';
+  document.getElementById('ceVetoCampoRazon').style.display = esClan ? 'none' : '';
+  document.getElementById('ceVetoCampoComentario').style.display = esClan ? 'none' : '';
+  document.getElementById('ceVetoRazon').innerHTML = document.getElementById('vRazon').innerHTML;
+  document.getElementById('ceVetoRazon').value = '';
+  document.getElementById('ceVetoMotivo').value = '';
+  document.getElementById('ceVetoComentario').value = '';
+  document.getElementById('ceVetoMsg').innerHTML = '';
+  document.getElementById('ceVetoEnviar').style.display = '';
+  document.getElementById('ceVetoFondo').style.display = 'flex';
+  (esClan ? document.getElementById('ceVetoMotivo') : document.getElementById('ceVetoRazon')).focus();
+}
+function _ceCerrarVeto(){
+  _ceVetoCtx = null;
+  document.getElementById('ceVetoFondo').style.display = 'none';
+}
+document.getElementById('ceVetoCerrar').addEventListener('click', _ceCerrarVeto);
+document.getElementById('ceVetoFondo').addEventListener('click', e => { if(e.target.id === 'ceVetoFondo') _ceCerrarVeto(); });
+document.addEventListener('keydown', e => { if(e.key === 'Escape' && _ceVetoCtx) _ceCerrarVeto(); });
+document.getElementById('ceVetoEnviar').addEventListener('click', () => conBotonOcupado(document.getElementById('ceVetoEnviar'), async () => {
+  const ctx = _ceVetoCtx;
+  if(!ctx) return;
+  const msgEl = document.getElementById('ceVetoMsg');
+  msgEl.innerHTML = '';
+  const esClan = ctx.tipo === 'clan';
+  let datos;
+  if(esClan){
+    const motivo = document.getElementById('ceVetoMotivo').value.trim();
+    if(!motivo){ msgEl.innerHTML = '<div class="msg msg-error">Escribe el motivo del veto.</div>'; return; }
+    if(!window.confirm(`¿Vetar el clan ${ctx.nombre || ctx.tag} (${ctx.tag})? Pasará a la lista de conflicto y no se puede deshacer desde la web.`)) return;
+    datos = { tag: ctx.tag, motivo: motivo };
+  }else{
+    const razon = document.getElementById('ceVetoRazon').value;
+    if(!razon){ msgEl.innerHTML = '<div class="msg msg-error">Elige una Razón.</div>'; return; }
+    if(!window.confirm(`¿Vetar a ${ctx.nombre || ctx.tag} (${ctx.tag})? Esta acción no se puede deshacer desde la web.`)) return;
+    datos = { tag: ctx.tag, razon: razon, comentario: document.getElementById('ceVetoComentario').value.trim() };
+  }
+  try{
+    const data = await apiPost(esClan ? 'webAdminVetarClan' : 'webAdminVetar', { sessionToken: localStorage.getItem(SESSION_KEY), datos: datos });
+    if(manejarRespuestaAuth(data)) return;
+    if(!data.ok){ msgEl.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
+    _ceVetadosSesion[ctx.tipo + ':' + ctx.tag] = true;
+    msgEl.innerHTML = `<div class="msg msg-ok">${esClan ? 'Clan vetado: ya figura en la lista de conflicto.' : 'Jugador vetado.'}</div>`;
+    document.getElementById('ceVetoEnviar').style.display = 'none'; // conBotonOcupado() lo vuelve a habilitar al terminar, así que se oculta para no vetar dos veces
+    pintarClanesExternos(false); // la pastilla pasa a «Vetado» sin cerrar los clanes abiertos
+  }catch(err){
+    msgEl.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
+  }
+}));
 // `toggle` no sube por el DOM: se escucha en captura. La tabla se arma la primera vez que se abre el clan.
 document.getElementById('ceLista').addEventListener('toggle', e => {
   const d = e.target;

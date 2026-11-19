@@ -28,7 +28,9 @@ const CODIGO_CLAN = trozo('let clanActual = null;', '/* 5-nov-2026 (pedido de la
 const TARJETA_CLAN = trozo('<div class="card pf-cinta" id="cardBuscarClan"', '<!-- 5-nov-2026 (pedido de la usuaria): el grupo «Directorio»', 'tarjeta «Buscar clan»');
 const CODIGO_FICHA = trozo('function reiniciarInfiltradoFicha(j){', "document.getElementById('btnGuardar').addEventListener", 'reiniciarInfiltradoFicha()/verificarInfiltradoFicha()/pastilla');
 
+const DIALOGO_VETO = trozo('<div class="ce-veto-fondo"', '<script', 'diálogo de vetos de «Clanes externos»'); // el código de CODIGO_CLAN llega hasta la tarjeta «Clanes externos» y su diálogo
 const ESTRUCTURA = `
+  ${DIALOGO_VETO}
   <button type="button" id="btnInfiltradoPastilla" aria-expanded="false">🕵️ ¿Infiltrado?</button>
   <div id="infiltradoPanel" style="display:none">
     <h3 id="infFichaTitulo"></h3><div id="fichaInfMsg"></div><div id="fichaInfResultado"></div>
@@ -264,7 +266,7 @@ test('en la ficha su fila del Directorio (él mismo) no se repite; si además es
 });
 
 // ----- §PF368 (5-nov-2026): temporada de Supercell en las semanas anteriores a la T1 interna -----
-test('las semanas anteriores a la T1 interna (temporada <= 0) se muestran con la temporada de Supercell, con una nota; las demás siguen como «T26 S3»', async () => {
+test('las semanas anteriores a la T1 interna (temporada <= 0) se muestran con la temporada de Supercell, con una nota; las internas positivas también (18-nov-2026)', async () => {
   const w = montar({ respuestas: [Object.assign(respuestaJugador(null), { clanesExternos: [
     { tag: '#RYLRJ2UP', nombre: 'NICOL ARMY', semanas: 2, primera: { temporada: 0, semana: 3, temporadaRoyaleApi: 111, supercell: '2024-08' }, ultima: { temporada: 0, semana: 4, temporadaRoyaleApi: 111, supercell: '2024-08' }, infoRival: null },
     { tag: '#9VR2J8VP', nombre: 'Nova Perú', semanas: 1, primera: { temporada: 26, semana: 3, temporadaRoyaleApi: 137, supercell: '2026-10' }, ultima: { temporada: 26, semana: 3, temporadaRoyaleApi: 137, supercell: '2026-10' }, infoRival: null }
@@ -273,8 +275,8 @@ test('las semanas anteriores a la T1 interna (temporada <= 0) se muestran con la
   const t = id(w, 'fichaInfResultado').textContent;
   assert.match(t, /2024-08 S3 → 2024-08 S4/);
   assert.doesNotMatch(t, /T0 S/);
-  assert.match(t, /T26 S3 → T26 S3/, 'una temporada positiva sigue con su número propio');
-  assert.doesNotMatch(t, /2026-10/, 'solo se usa Supercell donde la temporada propia es <= 0');
+  assert.match(t, /2026-10 S3 → 2026-10 S3/, 'desde el 18-nov-2026 también las temporadas internas positivas se muestran con el id de Supercell');
+  assert.doesNotMatch(t, /T26 S3/);
   assert.match(t, /anteriores a la T1 interna se muestran con la temporada de Supercell/);
 });
 

@@ -20,6 +20,7 @@ const trozo = (ini, fin, nombre) => {
 };
 const CODIGO = trozo('let _ceDatos = null;', 'async function verificarInfiltradosClan(){', 'tarjeta Clanes externos');
 const ETIQUETA = trozo('function _etiquetaPuntoClan(p){', '/** Tabla de «pasaron por este clan»', '_etiquetaPuntoClan()');
+const DIALOGO_VETO = trozo('<div class="ce-veto-fondo"', '<script', 'diálogo de vetos');
 const TARJETA = trozo('<div class="card pf-cinta" id="cardClanesExternos"', '<!-- 5-nov-2026 (pedido de la usuaria): el grupo «Directorio»', 'HTML de la tarjeta');
 
 const jug = (n, activo) => ({ tag: '#P' + n, nombre: 'J' + n, activo, semanas: 2, primera: { temporada: 5, semana: 1, supercell: '' }, ultima: { temporada: 5, semana: 3, supercell: '' } });
@@ -32,15 +33,19 @@ const DATOS = { ok: true, actualizado: '2026-11-17 09:05', indiceCompleto: true,
 ] };
 const muchos = n => ({ ok: true, actualizado: 'x', indiceCompleto: true, total: n, clanes: Array.from({ length: n }, (_, i) => ({ tag: '#E' + String(i).padStart(3, '0'), nombre: 'Ext ' + String(i).padStart(3, '0'), tipos: [], hoy: false, ternaTag: '', ternaNombre: '', activos: 0, inactivos: 1, jugadores: [jug(i, false)] })) });
 
-function montar(respuesta = DATOS){
-  const dom = new JSDOM(`<!doctype html><html><body>${TARJETA}<input id="clanTagInput"><div id="cardBuscarClan"></div></body></html>`, { runScripts: 'outside-only', pretendToBeVisual: true, url: 'https://terna.example/' });
+function montar(respuesta = DATOS, opciones = {}){
+  const dom = new JSDOM(`<!doctype html><html><body>${TARJETA}${DIALOGO_VETO}<input id="clanTagInput"><div id="cardBuscarClan"></div><select id="vRazon"><option value="">Elige…</option><option value="NARANJA x">NARANJA x</option></select></body></html>`, { runScripts: 'outside-only', pretendToBeVisual: true, url: 'https://terna.example/' });
   const w = dom.window;
-  w.__respuesta = respuesta; w.__buscados = []; w.__llamadas = [];
+  w.__respuesta = respuesta; w.__buscados = []; w.__llamadas = []; w.__posts = []; w.__respuestaPost = opciones.respuestaPost || { ok: true }; w.__confirmar = true;
+  if(opciones.funciones !== undefined) w.localStorage.setItem('terna_admin_info', JSON.stringify({ funciones: opciones.funciones }));
   w.eval(`
     var ICONO_ROYALEAPI = '<img class="ico-ra" alt="">', ICONO_CWSTATS = '<img class="ico-cw" alt="">';
     function esc(s){ return String(s === undefined || s === null ? '' : s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
     function normalizarTag(t){ let v = String(t||'').trim().toUpperCase().replace(/^#/, ''); return v ? '#' + v : ''; }
     function manejarRespuestaAuth(){ return false; }
+    var SESSION_KEY = 'terna_admin_token', SESSION_ADMIN_KEY = 'terna_admin_info';
+    async function apiPost(accion, cuerpo){ window.__posts.push({ accion: accion, cuerpo: cuerpo }); return window.__respuestaPost; }
+    window.confirm = () => window.__confirmar;
     async function conBotonOcupado(b, fn){ return fn(); }
     async function apiGetAuth(accion){ window.__llamadas.push(accion); return window.__respuesta; }
     async function buscarClan(){ window.__buscados.push(document.getElementById('clanTagInput').value); }
@@ -265,4 +270,83 @@ test('en Rivales el orden elegido se aplica dentro de cada grupo y los grupos se
   ordenar(w, 'nombre', 'desc');
   assert.deepEqual(nombres(w), ['Beta', 'Zeta', 'Alfa'], 'dentro de «Terna Uno» se invierte; el grupo no se mueve');
   assert.match(id(w, 'ceMsg').textContent, /El orden se aplica dentro de cada grupo/);
+});
+
+
+// 18-nov-2026 (pedido de la usuaria): pastillas «Vetar» de clanes y de jugadores, y temporadas en formato Supercell.
+test('sin la función «Vetar» no hay pastillas de veto', async () => {
+  const w = montar(DATOS, { funciones: 'Registrar' });
+  await cargar(w); categoria(w, 'rival');
+  assert.equal(w.document.querySelectorAll('[data-ce-vetar]').length, 0);
+});
+
+test('con la función «Vetar» cada clan y cada jugador lleva su pastilla, junto a RoyaleAPI y CWStats', async () => {
+  const w = montar(DATOS, { funciones: 'Registrar,Vetar' });
+  await cargar(w); categoria(w, 'rival');
+  const clan = w.document.querySelector('details.ce-clan');
+  assert.equal(clan.querySelectorAll('summary button[data-ce-vetar="clan"]').length, 1);
+  assert.equal(clan.querySelector('summary .ce-ext button').getAttribute('data-ce-tag'), '#AAA111');
+  abrir(w, clan);
+  const botones = clan.querySelectorAll('.ce-cuerpo button[data-ce-vetar="jugador"]');
+  assert.equal(botones.length, 2);
+  assert.equal(botones[0].closest('td').querySelectorAll('a').length, 2, 'las pastillas de RoyaleAPI y CWStats siguen');
+});
+
+test('un clan que ya figura como vetado muestra la pastilla bloqueada', async () => {
+  const w = montar(DATOS, { funciones: 'Vetar' });
+  await cargar(w); categoria(w, 'vetado');
+  const b = w.document.querySelector('[data-ce-vetar="clan"]');
+  assert.equal(b.disabled, true);
+  assert.match(b.textContent, /Vetado/);
+});
+
+test('vetar un clan pide el motivo, llama a webAdminVetarClan con el Tag y deja la pastilla en «Vetado»', async () => {
+  const w = montar(DATOS, { funciones: 'Vetar' });
+  await cargar(w); categoria(w, 'rival');
+  const clan = w.document.querySelector('details.ce-clan');
+  clan.querySelector('summary button[data-ce-vetar="clan"]').click();
+  assert.equal(clan.open, false, 'la pastilla no abre ni cierra el clan');
+  assert.equal(id(w, 'ceVetoFondo').style.display, 'flex');
+  assert.match(id(w, 'ceVetoTitulo').textContent, /#AAA111/);
+  assert.notEqual(id(w, 'ceVetoCampoMotivo').style.display, 'none');
+  assert.equal(id(w, 'ceVetoCampoRazon').style.display, 'none');
+  id(w, 'ceVetoEnviar').click(); await esperar();
+  assert.match(id(w, 'ceVetoMsg').textContent, /Escribe el motivo/);
+  assert.equal(w.__posts.length, 0);
+  id(w, 'ceVetoMotivo').value = 'Infiltra gente';
+  id(w, 'ceVetoEnviar').click(); await esperar();
+  assert.equal(w.__posts.length, 1);
+  assert.equal(w.__posts[0].accion, 'webAdminVetarClan');
+  assert.deepEqual(JSON.parse(JSON.stringify(w.__posts[0].cuerpo.datos)), { tag: '#AAA111', motivo: 'Infiltra gente' });
+  assert.match(id(w, 'ceVetoMsg').textContent, /Clan vetado/);
+  const b = w.document.querySelector('details.ce-clan summary button[data-ce-vetar="clan"]');
+  assert.equal(b.disabled, true);
+});
+
+test('vetar un jugador pide la razón, llama a webAdminVetar y un error del backend se muestra', async () => {
+  const w = montar(DATOS, { funciones: 'Vetar', respuestaPost: { ok: false, error: 'No encontré ese Tag <b>' } });
+  await cargar(w); categoria(w, 'rival');
+  const clan = w.document.querySelector('details.ce-clan'); abrir(w, clan);
+  clan.querySelector('.ce-cuerpo button[data-ce-vetar="jugador"]').click();
+  assert.equal(id(w, 'ceVetoCampoMotivo').style.display, 'none');
+  assert.notEqual(id(w, 'ceVetoCampoRazon').style.display, 'none');
+  id(w, 'ceVetoEnviar').click(); await esperar();
+  assert.match(id(w, 'ceVetoMsg').textContent, /Elige una Razón/);
+  id(w, 'ceVetoRazon').value = 'NARANJA x'; id(w, 'ceVetoComentario').value = ' detalle ';
+  id(w, 'ceVetoEnviar').click(); await esperar();
+  assert.equal(w.__posts[0].accion, 'webAdminVetar');
+  assert.deepEqual(JSON.parse(JSON.stringify(w.__posts[0].cuerpo.datos)), { tag: '#P1', razon: 'NARANJA x', comentario: 'detalle' });
+  assert.match(id(w, 'ceVetoMsg').textContent, /No encontré ese Tag <b>/);
+  assert.equal(id(w, 'ceVetoMsg').querySelector('b'), null, 'el texto del backend se escapa');
+  assert.equal(clan.querySelector('.ce-cuerpo button[data-ce-vetar="jugador"]').disabled, false, 'con error la pastilla no se bloquea');
+});
+
+test('«Primera → última» muestra todas las temporadas con el id de Supercell cuando el backend lo manda', async () => {
+  const datos = { ...DATOS, clanes: [{ ...DATOS.clanes[0], jugadores: [{ ...jug(1, true), primera: { temporada: 24, semana: 4, supercell: '2026-10' }, ultima: { temporada: 25, semana: 2, supercell: '2026-11' } }] }] };
+  const w = montar(datos);
+  await cargar(w); categoria(w, 'rival');
+  const clan = w.document.querySelector('details.ce-clan'); abrir(w, clan);
+  const t = clan.querySelector('.ce-cuerpo').textContent.replace(/\s+/g, ' ');
+  assert.match(t, /2026-10 S4 → 2026-11 S2/);
+  assert.doesNotMatch(t, /T24 S4/);
 });
