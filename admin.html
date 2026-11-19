@@ -2906,9 +2906,9 @@ function _ceFilaJugador(j){
     <td>${_ceEnlacesExternos(j.tag, 'player', j.nombre)}</td>
   </tr>`;
 }
-/** La tabla de jugadores se arma recién al abrir el clan (con 1 400 clanes, armarlas todas haría lenta la página). Van por semanas (mayor a menor) y luego por nombre (A-Z). */
+/** La tabla de jugadores se arma recién al abrir el clan (con 1 400 clanes, armarlas todas haría lenta la página). Van activos primero, luego por semanas (mayor a menor) y luego por nombre (A-Z). */
 function _ceTablaJugadores(c){
-  const js = (c.jugadores || []).slice().sort((a, b) => ((b.semanas || 0) - (a.semanas || 0)) || String(a.nombre || a.tag || '').localeCompare(String(b.nombre || b.tag || ''), 'es', { sensitivity: 'base' }));
+  const js = (c.jugadores || []).slice().sort((a, b) => ((b.activo ? 1 : 0) - (a.activo ? 1 : 0)) || ((b.semanas || 0) - (a.semanas || 0)) || String(a.nombre || a.tag || '').localeCompare(String(b.nombre || b.tag || ''), 'es', { sensitivity: 'base' }));
   if(!js.length) return '<div class="text-dim" style="font-size:14px; padding:6px 0;">Ningún jugador nuestro figura en este clan en el índice.</div>';
   return `<div style="overflow-x:auto;"><table><thead><tr><th scope="col">Jugador</th><th scope="col">Tag</th><th scope="col">Estado</th><th scope="col">Clan actual</th><th scope="col">Semanas</th><th scope="col">Primera → última</th><th scope="col">Enlaces</th></tr></thead><tbody>${js.map(_ceFilaJugador).join('')}</tbody></table></div>`;
 }
