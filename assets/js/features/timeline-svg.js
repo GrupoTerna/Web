@@ -346,3 +346,126 @@ function activarTecladoPuntosGrafica(svg, opts){
     if (destino) destino.focus();
   });
 }
+
+
+/* =========================================================================
+ * Resalte de la serie completa al acercarse a un punto (pedido de la usuaria, 18-nov-2026):
+ * en las gráficas con varias series los puntos de series distintas se sobreponen y la
+ * continuación de la serie que interesa quedaba tapada. Al acercar el cursor a un punto
+ * (o al enfocarlo con el teclado, o al tocarlo en pantallas táctiles) se resalta TODA su
+ * serie: las demás se atenúan y una copia de la serie (línea más gruesa y puntos más
+ * grandes) se dibuja encima de todo, así se ve completa aunque otros puntos la tapen.
+ * La copia no recibe el cursor (pointer-events:none), por lo que el tooltip de cada
+ * punto sigue funcionando igual. Los estilos están en assets/styles.css (.serie-*).
+ * ========================================================================= */
+
+/**
+ * activarResalteSerieGrafica(svg, opts)
+ * Cada elemento de una serie (tramos <path>/<polyline> y puntos <circle>) lleva data-serie-clave="<clave de la serie>";
+ * no hace falta agruparlos ni cambiar su orden de dibujo.
+ * opts.selector   selector CSS de los puntos dentro del svg (por defecto 'circle').
+ * opts.distancia  distancia máxima, en píxeles de pantalla, entre el cursor y un punto para resaltar su serie (por defecto 18).
+ * Con una sola serie no hace nada (no habría qué comparar). Es idempotente: una segunda llamada sobre el mismo svg sale de inmediato.
+ */
+function activarResalteSerieGrafica(svg, opts){
+  opts = opts || {};
+  if (!svg || svg.dataset.resalteActivo === '1') return;
+  const claveDe = el => el.getAttribute('data-serie-clave');
+  const porSerie = new Map();
+  svg.querySelectorAll('[data-serie-clave]').forEach(el => {
+    const k = claveDe(el);
+    if (!porSerie.has(k)) porSerie.set(k, []);
+    porSerie.get(k).push(el);
+  });
+  if (porSerie.size < 2) return;
+  svg.dataset.resalteActivo = '1';
+
+  const DIST = opts.distancia > 0 ? Number(opts.distancia) : 18;
+  const puntos = Array.from(svg.querySelectorAll(opts.selector || 'circle'))
+    .map(pt => ({ k: claveDe(pt), cx: Number(pt.getAttribute('cx')), cy: Number(pt.getAttribute('cy')) }))
+    .filter(p => p.k !== null && isFinite(p.cx) && isFinite(p.cy));
+
+  // Del espacio del svg (viewBox) a pantalla: escala uniforme del 'meet' centrado, igual que dibuja el navegador.
+  const aPantalla = () => {
+    const r = svg.getBoundingClientRect();
+    const vb = (svg.getAttribute('viewBox') || '').trim().split(/[\s,]+/).map(Number);
+    if (!r.width || !r.height || vb.length < 4 || vb.some(isNaN) || !(vb[2] > 0) || !(vb[3] > 0)) return null;
+    const s = Math.min(r.width / vb[2], r.height / vb[3]);
+    return { s, ox: r.left + (r.width - vb[2] * s) / 2 - vb[0] * s, oy: r.top + (r.height - vb[3] * s) / 2 - vb[1] * s };
+  };
+
+  // Punto más cercano al cursor: devuelve { k, d }. Con dos puntos exactamente encimados gana el último en el DOM, el mismo al que apunta el tooltip.
+  const masCercano = (clientX, clientY) => {
+    const m = aPantalla();
+    if (!m) return null;
+    let mejor = null;
+    puntos.forEach(p => {
+      const d = Math.hypot(m.ox + p.cx * m.s - clientX, m.oy + p.cy * m.s - clientY);
+      if (!mejor || d <= mejor.d) mejor = { k: p.k, d };
+    });
+    return mejor;
+  };
+  const distanciaASerie = (k, clientX, clientY) => {
+    const m = aPantalla();
+    if (!m) return Infinity;
+    return puntos.reduce((mn, p) => p.k === k ? Math.min(mn, Math.hypot(m.ox + p.cx * m.s - clientX, m.oy + p.cy * m.s - clientY)) : mn, Infinity);
+  };
+
+  let activa = null, copia = null;
+  const limpiar = () => {
+    if (activa === null) return;
+    (porSerie.get(activa) || []).forEach(el => el.classList.remove('serie-activa'));
+    svg.classList.remove('serie-resaltando');
+    if (copia){ copia.remove(); copia = null; }
+    activa = null;
+  };
+  const resaltar = k => {
+    if (k === activa || !porSerie.has(k)) return;
+    limpiar();
+    activa = k;
+    svg.classList.add('serie-resaltando');
+    const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+    g.setAttribute('class', 'serie-resalte');
+    g.setAttribute('pointer-events', 'none');
+    g.setAttribute('aria-hidden', 'true');
+    porSerie.get(k).forEach(el => {
+      const c = el.cloneNode(true); // se clona ANTES de marcar el original, para que la copia no herede 'serie-activa'
+      el.classList.add('serie-activa');
+      // La copia es solo dibujo: sin clave de serie, sin foco, sin etiquetas de lectores de pantalla y sin tooltip nativo.
+      [c, ...c.querySelectorAll('*')].forEach(n => {
+        ['data-serie-clave', 'data-kb', 'tabindex', 'role', 'aria-label', 'id'].forEach(a => n.removeAttribute(a));
+        const cls = n.getAttribute('class');
+        if (cls) n.setAttribute('class', cls.split(/\s+/).map(x => x === 'ing-serie-pt' ? 'serie-resalte-pt' : x).join(' '));
+      });
+      c.querySelectorAll('title').forEach(t => t.remove());
+      g.appendChild(c);
+    });
+    svg.appendChild(g); // al final: queda encima de todas las series
+    copia = g;
+  };
+
+  // Ratón y lápiz: se resalta la serie del punto más cercano si está a menos de DIST px. Para no parpadear al ir de un punto a otro por la línea,
+  // la serie ya resaltada se mantiene mientras el cursor siga a menos de 1,8 × DIST de alguno de sus puntos (o sobre su línea) y no haya un punto ajeno más cerca que DIST.
+  svg.addEventListener('pointermove', e => {
+    if (e.pointerType === 'touch') return;
+    const sobre = e.target && e.target.closest ? e.target.closest('[data-serie-clave]') : null; // el cursor justo sobre una línea o un punto
+    if (sobre){ resaltar(claveDe(sobre)); return; }
+    const c = masCercano(e.clientX, e.clientY);
+    if (c && c.d <= DIST){ resaltar(c.k); return; }
+    if (activa !== null && distanciaASerie(activa, e.clientX, e.clientY) <= DIST * 1.8) return;
+    limpiar();
+  });
+  svg.addEventListener('pointerleave', e => { if (e.pointerType !== 'touch') limpiar(); });
+  // Pantallas táctiles: tocar cerca de un punto resalta su serie; tocar en un espacio vacío la suelta.
+  svg.addEventListener('pointerdown', e => {
+    if (e.pointerType !== 'touch') return;
+    const c = masCercano(e.clientX, e.clientY);
+    if (c && c.d <= DIST * 1.5) resaltar(c.k); else limpiar();
+  });
+  // Teclado: el punto enfocado resalta su serie (el tooltip de teclado ya se abre con ese mismo foco).
+  svg.addEventListener('focusin', e => {
+    const k = e.target && e.target.getAttribute ? claveDe(e.target) : null;
+    if (k !== null) resaltar(k);
+  });
+  svg.addEventListener('focusout', limpiar);
+}

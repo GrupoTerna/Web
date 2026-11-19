@@ -323,7 +323,8 @@
 // v275 (18-nov-2026): admin.html cambió (CORE_ASSETS) -- «Clanes externos» muestra primero las categorías Rivales (agrupados por el clan nuestro al que enfrentan), Vetados y Externos, con «Ver más», activos e inactivos por clan y un filtro de clanes con miembros activos (§PF509).
 // v276 (18-nov-2026): admin.html cambió (CORE_ASSETS) -- el filtro de texto y la casilla de «Clanes externos» toman el estilo oscuro del sitio (el campo salía blanco).
 // v277 (18-nov-2026): admin.html cambió (CORE_ASSETS) -- «Clanes externos» muestra los números con coma de miles y suma «Ordenar por» (nombre, Tag, activos, inactivos o totales, ascendente o descendente).
-const CACHE_NAME = 'terna-static-v277';
+// v278 (18-nov-2026): assets/js/features/timeline-svg.js, assets/styles.css y directorio.html cambiaron (CORE_ASSETS) -- en las gráficas con varias series, al acercarse a un punto se resalta toda su serie (§PF511).
+const CACHE_NAME = 'terna-static-v278';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y

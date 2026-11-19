@@ -5834,7 +5834,7 @@ function perfilLineChartSvg(puntos, opts){
   for (let i = 0; i < n - 1; i++){
     const a = puntos[i], b = puntos[i + 1];
     const dashed = !(a.real && b.real);
-    path += `<path class="ing-serie-line${dashed ? ' ing-serie-line-dashed' : ''}" d="M ${xPos(i).toFixed(1)} ${yPos(a.valor).toFixed(1)} L ${xPos(i + 1).toFixed(1)} ${yPos(b.valor).toFixed(1)}" stroke="${COLOR_SERIE_PERFIL}"></path>`;
+    path += `<path class="ing-serie-line${dashed ? ' ing-serie-line-dashed' : ''}" data-serie-clave="dia" d="M ${xPos(i).toFixed(1)} ${yPos(a.valor).toFixed(1)} L ${xPos(i + 1).toFixed(1)} ${yPos(b.valor).toFixed(1)}" stroke="${COLOR_SERIE_PERFIL}"></path>`;
   }
   const circles = puntos.map((p, i) => {
     // 19-oct-2026 (pedido usuaria): en la gráfica de barcos, un día con más barcos que ataques también es anomalía (p.excedeAtaques trae los ataques de ese día; lo calcula renderMetricaSemanal()).
@@ -5842,7 +5842,7 @@ function perfilLineChartSvg(puntos, opts){
     const bajoMin = hayBajo && p.real && Number(p.valor) < minimo;
     const anomalia = (!!tope && p.real && Number(p.valor) > tope) || excedeAtaques || bajoMin;
     return `
-      <circle class="ing-serie-pt${p.real ? '' : ' serie-pt-vacio'}${anomalia ? ' serie-pt-anomalia' : ''}" cx="${xPos(i).toFixed(1)}" cy="${yPos(p.valor).toFixed(1)}" r="${anomalia ? 6.5 : R_PUNTO_PERFIL}"
+      <circle class="ing-serie-pt${p.real ? '' : ' serie-pt-vacio'}${anomalia ? ' serie-pt-anomalia' : ''}" data-serie-clave="dia" cx="${xPos(i).toFixed(1)}" cy="${yPos(p.valor).toFixed(1)}" r="${anomalia ? 6.5 : R_PUNTO_PERFIL}"
         fill="${p.real ? (anomalia ? 'var(--danger)' : COLOR_SERIE_PERFIL) : 'none'}" stroke="${p.real ? 'var(--bg)' : COLOR_SERIE_PERFIL}" stroke-width="${p.real ? 1.5 : 2}"
         data-nombre="${esc(perfilGraficaCtx.nombre)}" data-tag="${esc(perfilGraficaCtx.tag)}" data-valor="${p.valor}" ${p.real ? '' : ' data-sin-dato="1"'} data-prefijo="${esc(p.real ? prefijo : '')}"
         data-clan="${esc(p.real ? (p.clan || perfilGraficaCtx.clan || '—') : (p.motivo || 'Sin dato — sin clan o sin participar'))}"
@@ -5872,7 +5872,7 @@ function perfilLineChartSvg(puntos, opts){
   const puntoCoincide = q => { const p = puntos[q.i]; return !!p && !!p.real && Math.abs(yPos(p.valor) - yPos(q.valor)) <= TOL_COINCIDE_PX; };
   let pathSem = '';
   for (let k = 0; k < ptsSem.length - 1; k++){
-    pathSem += `<path class="ing-serie-line ing-serie-line-acum${tramoCoincide(ptsSem[k], ptsSem[k + 1]) ? ' ing-serie-line-acum-coincide' : ''}" d="M ${xPos(ptsSem[k].i).toFixed(1)} ${yPos(ptsSem[k].valor).toFixed(1)} L ${xPos(ptsSem[k + 1].i).toFixed(1)} ${yPos(ptsSem[k + 1].valor).toFixed(1)}" stroke="${COLOR_SERIE_ACUMULADO_PERFIL}"></path>`;
+    pathSem += `<path class="ing-serie-line ing-serie-line-acum${tramoCoincide(ptsSem[k], ptsSem[k + 1]) ? ' ing-serie-line-acum-coincide' : ''}" data-serie-clave="acum" d="M ${xPos(ptsSem[k].i).toFixed(1)} ${yPos(ptsSem[k].valor).toFixed(1)} L ${xPos(ptsSem[k + 1].i).toFixed(1)} ${yPos(ptsSem[k + 1].valor).toFixed(1)}" stroke="${COLOR_SERIE_ACUMULADO_PERFIL}"></path>`;
   }
   const circlesSem = ptsSem.map(q => {
     const superaTope = !!topeSem && Number(q.valor) > topeSem;
@@ -5882,7 +5882,7 @@ function perfilLineChartSvg(puntos, opts){
     const coincide = puntoCoincide(q);
     const rAcum = anomalia ? (coincide ? R_ANOMALIA_ACUMULADO_PERFIL : R_ANOMALIA_ACUMULADO_PERFIL - 1) : (coincide ? R_PUNTO_ACUMULADO_PERFIL : R_PUNTO_ACUMULADO_PERFIL - 2);
     return `
-      <circle class="ing-serie-pt${anomalia ? ' serie-pt-anomalia' : ''}" cx="${xPos(q.i).toFixed(1)}" cy="${yPos(q.valor).toFixed(1)}" r="${rAcum}"
+      <circle class="ing-serie-pt${anomalia ? ' serie-pt-anomalia' : ''}" data-serie-clave="acum" cx="${xPos(q.i).toFixed(1)}" cy="${yPos(q.valor).toFixed(1)}" r="${rAcum}"
         fill="${anomalia ? 'var(--danger)' : COLOR_SERIE_ACUMULADO_PERFIL}" stroke="var(--bg)" stroke-width="1.5"
         data-nombre="${esc(perfilGraficaCtx.nombre)}" data-tag="${esc(perfilGraficaCtx.tag)}" data-valor="${q.valor}" data-prefijo=""
         data-clan="${esc(q.clan || perfilGraficaCtx.clan || '—')}" data-serie="acum" data-serie-et="Acumulado de la semana"
@@ -6106,6 +6106,8 @@ function pintarGraficaPerfil(wrap, puntos, opts, nota){
     htmlTooltip: htmlTooltipPuntoPerfil,
     titulo: (opts.ejeY || 'Valor') + ' por semana'
   });
+  // 18-nov-2026 (pedido usuaria): al acercarse a un punto se resalta toda su serie (día o acumulado); activarResalteSerieGrafica() vive en timeline-svg.js.
+  activarResalteSerieGrafica(svg, { selector: '.ing-serie-pt' });
 }
 
 function renderRankingChart(ext){

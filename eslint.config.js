@@ -21,7 +21,7 @@ const GLOBALES_COMPARTIDOS = [
   'SESSION_KEY_ADMIN', 'WEBAPP_URL', 'WEB_MEMBER_TOKEN', 'WSP_GRUPO_URL', '_MAX_INTENTOS_FETCH', '_MAX_PETICIONES_SIMULTANEAS',
   '_REINTENTO_ESPERA_MS', '_colaPeticiones', '_encolarPeticion', '_enviarVetoInactivo', '_esErrorDeRed', '_fetchYParsear',
   '_fetchYParsearInterno', '_filaInactivoHtml', '_mensajeErrorRed', '_mismaFecha', '_obtenerVistaInactivos', '_peticionesActivas',
-  '_renderVistaInactivos', '_toggleFormVetarInactivo', 'abrirModalUnirse', 'activarBarraScrollTabla', 'activarTecladoPuntosGrafica', 'actualizarNavCta',
+  '_renderVistaInactivos', '_toggleFormVetarInactivo', 'abrirModalUnirse', 'activarBarraScrollTabla', 'activarResalteSerieGrafica', 'activarTecladoPuntosGrafica', 'actualizarNavCta',
   'adminPuedeVetar', 'agregarTarjetaCuentasInactivasSiAdmin', 'apiGet', 'apiGetAuth', 'apiGetPublicoConEstatico', 'apiGetUltimaActualizacion', 'apiPost', 'cerrarModalUnirse',
   'chartCardHtml', 'clanCardHtml', 'claveTemporadaFecha', 'debounce', 'enlaceClan', 'enlaceJugador', 'esAdminLogueado', 'esInicioAnio',
   'esInicioSemana', 'esInicioTemporada', 'esc', 'etiquetaPuntoSerie', 'fitOneLine', 'fitOneLineAll',

@@ -334,7 +334,7 @@ function ntLineas(series, etiquetas){
       <text x="${L - 6}" y="${(y + 3.5).toFixed(1)}" text-anchor="end" font-size="10" fill="#898781">${esc(compacto(Math.round(max * f)))}</text>`;
   }).join('');
   const xs = etiquetas.map((t, i) => `<text x="${X(i).toFixed(1)}" y="${H - 6}" text-anchor="middle" font-size="10" fill="#898781">${esc(t)}</text>`).join('');
-  const lineas = series.map(s => {
+  const lineas = series.map((s, si) => {
     // Tramos de dias consecutivos con dato: un dia sin dato corta la linea en vez de bajarla a 0.
     const tramos = [];
     let actual = [];
@@ -343,8 +343,8 @@ function ntLineas(series, etiquetas){
       else if(actual.length){ tramos.push(actual); actual = []; }
     });
     if(actual.length) tramos.push(actual);
-    const trazos = tramos.filter(t => t.length > 1).map(t => `<polyline points="${t.join(' ')}" fill="none" stroke="${s.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`).join('');
-    const puntos = s.valores.map((v, i) => hayDato(v) ? `<circle cx="${X(i).toFixed(1)}" cy="${Y(Number(v)).toFixed(1)}" r="4" fill="${s.color}" stroke="#0b0c10" stroke-width="2"><title>${esc(s.nombre)} · ${esc(etiquetas[i])}: ${ntN(v)}</title></circle>` : '').join('');
+    const trazos = tramos.filter(t => t.length > 1).map(t => `<polyline data-serie-clave="s${si}" points="${t.join(' ')}" fill="none" stroke="${s.color}" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>`).join('');
+    const puntos = s.valores.map((v, i) => hayDato(v) ? `<circle data-serie-clave="s${si}" cx="${X(i).toFixed(1)}" cy="${Y(Number(v)).toFixed(1)}" r="4" fill="${s.color}" stroke="#0b0c10" stroke-width="2"><title>${esc(s.nombre)} · ${esc(etiquetas[i])}: ${ntN(v)}</title></circle>` : '').join('');
     return `${trazos}${puntos}`;
   }).join('');
   const leyenda = series.map(s => `<span><span class="nt-dot" style="background:${s.color}"></span>${esc(s.nombre)}</span>`).join('');
@@ -551,6 +551,8 @@ function renderNoticias(d){
       ${ntPanelAscensos(d.ascensos)}
       ${ntPanelMovimientos(d.movimientos)}
     </div>`;
+  // 18-nov-2026 (pedido usuaria): en la gráfica de medallas por día, al acercarse a un punto se resalta toda la serie de ese clan (los puntos de clanes con la misma cifra se sobreponen). activarResalteSerieGrafica() vive en timeline-svg.js; las mini-tendencias de una sola serie no se tocan.
+  document.querySelectorAll('#noticiasDash svg.nt-svg').forEach(svg => activarResalteSerieGrafica(svg));
 }
 
 /** Pide las semanas y arma el tablero de la elegida (la más reciente, por defecto). También es el reintento de «Actualizar» cuando no hubo semanas. */

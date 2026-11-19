@@ -1398,7 +1398,7 @@ function guerraComparadorMetricaSvg(a, b, campo, tituloMetrica, fechas, indicePo
     .map(r => `${(PAD_L + indicePorFecha.get(r.fecha)*stepX).toFixed(1)},${escalaY(Number(r[campo]) || 0).toFixed(1)}`)
     .join(' ');
   // Cada punto usa <title> como tooltip nativo (sin JS/CSS extra), con Nombre/Clan/métrica/Fecha. Historial en CHANGELOG.md.
-  const circulosDe = (serie, color, nombre, clan) => serie
+  const circulosDe = (serie, color, nombre, clan, clave) => serie
     .filter(r => indicePorFecha.has(r.fecha))
     .map(r => {
       const cx = (PAD_L + indicePorFecha.get(r.fecha)*stepX).toFixed(1);
@@ -1406,7 +1406,7 @@ function guerraComparadorMetricaSvg(a, b, campo, tituloMetrica, fechas, indicePo
       const valor = fmtNum(Number(r[campo]) || 0);
       const bajoMin = (Number(r[campo]) || 0) < minimoCC;
       const tip = `${nombre || ''}${clan ? ' — ' + clan : ''}\n${tituloMetrica}: ${valor}\nDía: ${fmtFecha(r.fecha)}${bajoMin ? '\n⚠ Por debajo del mínimo de ' + fmtNum(minimoCC) : ''}`;
-      return `<circle cx="${cx}" cy="${cy}" r="${bajoMin ? 5 : 3.5}" fill="${bajoMin ? 'var(--danger)' : color}" stroke="var(--bg)" stroke-width="1"><title>${esc(tip)}</title></circle>`;
+      return `<circle data-serie-clave="${clave}" cx="${cx}" cy="${cy}" r="${bajoMin ? 5 : 3.5}" fill="${bajoMin ? 'var(--danger)' : color}" stroke="var(--bg)" stroke-width="1"><title>${esc(tip)}</title></circle>`;
     })
     .join('');
 
@@ -1426,10 +1426,10 @@ function guerraComparadorMetricaSvg(a, b, campo, tituloMetrica, fechas, indicePo
       ${lineasTemporales}
       ${hayBajoCC ? lineaMinimoSvg(escalaY(minimoCC), PAD_L, W - PAD_R, minimoCC) : ''}
       ${etiquetas.map(e => `<text class="axis-label axis-label-month" x="${e.x}" y="${H - 6}" text-anchor="end" transform="rotate(-45 ${e.x} ${H - 6})">${esc(e.texto)}</text>`).join('')}
-      ${a.length ? `<polyline points="${puntosDe(a)}" fill="none" stroke="${colorA}" stroke-width="2.5"/>` : ''}
-      ${b.length ? `<polyline points="${puntosDe(b)}" fill="none" stroke="${colorB}" stroke-width="2.5"/>` : ''}
-      ${circulosDe(a, colorA, nombreA, clanA)}
-      ${circulosDe(b, colorB, nombreB, clanB)}
+      ${a.length ? `<polyline data-serie-clave="a" points="${puntosDe(a)}" fill="none" stroke="${colorA}" stroke-width="2.5"/>` : ''}
+      ${b.length ? `<polyline data-serie-clave="b" points="${puntosDe(b)}" fill="none" stroke="${colorB}" stroke-width="2.5"/>` : ''}
+      ${circulosDe(a, colorA, nombreA, clanA, 'a')}
+      ${circulosDe(b, colorB, nombreB, clanB, 'b')}
       ${ejeXTitle}
       ${ejeYTitle}
     </svg>`;
@@ -1460,7 +1460,7 @@ function montarComparadorGuerraChart(raiz){
       const indice = new Map(fechas.map((f, i) => [f, i]));
       return { html: guerraComparadorMetricaSvg(a, b, campo, ctx.titulos[campo], fechas, indice, ctx.nombreA, ctx.clanA, ctx.nombreB, ctx.clanB, { zoom: vista.zoom }), total: v.total };
     };
-    const despues = el => el.querySelectorAll('svg.linechart-svg').forEach(svg => activarTecladoPuntosGrafica(svg, { serieDe: pt => pt.getAttribute('fill') }));
+    const despues = el => el.querySelectorAll('svg.linechart-svg').forEach(svg => { activarTecladoPuntosGrafica(svg, { serieDe: pt => pt.getAttribute('fill') }); activarResalteSerieGrafica(svg); }); // 18-nov-2026: el resalte de la serie completa va junto al teclado
     if (typeof vistaGraficaMontar === 'function') vistaGraficaMontar(hueco, dibujar, despues);
     else { hueco.innerHTML = dibujar({ ultimas6: false, zoom: 1 }).html; despues(hueco); }
   });
@@ -2550,7 +2550,7 @@ function lineChartSvg(miembros, campo, semanas, opts){
     for (let i = 0; i < secuencia.length - 1; i++){
       const a = secuencia[i], b = secuencia[i + 1];
       const dashed = !(a.real && b.real);
-      path += `<path class="ing-serie-line${dashed ? ' ing-serie-line-dashed' : ''}" d="M ${xPos(a.idx).toFixed(1)} ${yPos(a.valor).toFixed(1)} L ${xPos(b.idx).toFixed(1)} ${yPos(b.valor).toFixed(1)}" stroke="${color}"></path>`;
+      path += `<path class="ing-serie-line${dashed ? ' ing-serie-line-dashed' : ''}" data-serie-clave="s${si}" d="M ${xPos(a.idx).toFixed(1)} ${yPos(a.valor).toFixed(1)} L ${xPos(b.idx).toFixed(1)} ${yPos(b.valor).toFixed(1)}" stroke="${color}"></path>`;
     }
     const circles = secuencia.map(p => {
       const fEst = fechasEstimadas.get(p.semana);
@@ -2558,7 +2558,7 @@ function lineChartSvg(miembros, campo, semanas, opts){
       const bajoMin = hayBajo && p.real && Number(p.valor) < minimo;
       const anomalia = (!!tope && p.real && Number(p.valor) > tope) || bajoMin; // igual al tope NO es anomalía
       return `
-      <circle class="ing-serie-pt${p.real ? '' : ' serie-pt-vacio'}${anomalia ? ' serie-pt-anomalia' : ''}" cx="${xPos(p.idx).toFixed(1)}" cy="${yPos(p.valor).toFixed(1)}" r="${anomalia ? 6.5 : 5}"
+      <circle class="ing-serie-pt${p.real ? '' : ' serie-pt-vacio'}${anomalia ? ' serie-pt-anomalia' : ''}" data-serie-clave="s${si}" cx="${xPos(p.idx).toFixed(1)}" cy="${yPos(p.valor).toFixed(1)}" r="${anomalia ? 6.5 : 5}"
         fill="${p.real ? (anomalia ? 'var(--danger)' : color) : 'none'}" stroke="${p.real ? 'var(--bg)' : color}" stroke-width="${p.real ? 1.5 : 2}"
         data-nombre="${esc(m.nombre || '')}" data-tag="${esc(m.tag || '')}" data-clan-actual="${esc(m.clan || '')}" data-valor="${p.valor}" data-clan="${esc(p.real ? p.clan : 'Sin dato — sin clan o sin participar')}"
         data-semana="${esc(semanaTooltip)}"${attrsTemporadaSemanaDiaIngreso(p)} data-unidad="${esc(opts.unidad || '')}"${(!!tope && p.real && Number(p.valor) > tope) ? ` data-tope="${tope}"` : ''}${bajoMin ? ` data-minimo="${minimo}"` : ''}></circle>`;
@@ -2652,6 +2652,8 @@ function activarTooltipsGraficasIngresos(raiz){
     etiqueta: etiquetaPuntoIngreso,
     htmlTooltip: htmlTooltipPuntoIngreso
   }));
+  // 18-nov-2026 (pedido usuaria): al acercarse a un punto se resalta toda su serie (los puntos de varios miembros se sobreponen y tapaban su continuación). activarResalteSerieGrafica() vive en timeline-svg.js.
+  raiz.querySelectorAll('.ing-linechart-svg').forEach(svg => activarResalteSerieGrafica(svg, { selector: '.ing-serie-pt' }));
 }
 
 /** Arma las tres gráficas comparativas (Ataques, Puntaje y Barcos por
