@@ -321,7 +321,8 @@
 // v273 (14-nov-2026): guerra.html cambió (CORE_ASSETS) -- «Participación de Hoy» y la línea de cupos de cada tarjeta de Guerra de Hoy nombran cuántos de los cupos libres son reemplazables y cuántos extras («7 cupos libres: 2 reemplazables y 5 extras»), como el resumen del Mensaje de Guerra (§PF455)
 // v274 (18-nov-2026): admin.html cambió (CORE_ASSETS) -- nueva tarjeta «Clanes externos»: lista de clanes externos, vetados y rivales con los jugadores nuestros que pasaron por ellos; clan y jugador enlazan dentro de la web y a RoyaleAPI y CWStats con sus íconos (§PF508).
 // v275 (18-nov-2026): admin.html cambió (CORE_ASSETS) -- «Clanes externos» muestra primero las categorías Rivales (agrupados por el clan nuestro al que enfrentan), Vetados y Externos, con «Ver más», activos e inactivos por clan y un filtro de clanes con miembros activos (§PF509).
-const CACHE_NAME = 'terna-static-v275';
+// v276 (18-nov-2026): admin.html cambió (CORE_ASSETS) -- el filtro de texto y la casilla de «Clanes externos» toman el estilo oscuro del sitio (el campo salía blanco).
+const CACHE_NAME = 'terna-static-v276';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
