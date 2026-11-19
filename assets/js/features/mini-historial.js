@@ -126,7 +126,7 @@ function alertaAsegurarModal(){
   const d = document.createElement('div');
   d.className = 'hist-fondo'; d.id = 'alertaFondo'; d.setAttribute('role', 'dialog'); d.setAttribute('aria-modal', 'true'); d.setAttribute('aria-labelledby', 'alertaTitulo');
   d.innerHTML = '<div class="hist-panel alerta-panel"><div class="hist-cab"><div><h3 id="alertaTitulo">⚠️ Clanes vetados o rivales</h3><div class="hist-nota" id="alertaSub" style="margin:2px 0 0;"></div></div>'
-    + '<button type="button" class="hist-cerrar" id="alertaCerrar" aria-label="Cerrar">×</button></div><div id="alertaCuerpo" aria-live="polite"></div></div>';
+    + '<button type="button" class="hist-cerrar" id="alertaCerrar" aria-label="Cerrar">×</button></div><div id="alertaPerfil" class="hist-perfil"></div><div id="alertaCuerpo" aria-live="polite"></div></div>';
   document.body.appendChild(d);
 }
 function alertaCerrar(){ const f = document.getElementById('alertaFondo'); if (f) f.classList.remove('abierto'); alertaSolicitud++; }
@@ -139,34 +139,90 @@ function alertaTiposHtml(tipos){
   const t = Array.isArray(tipos) ? tipos : [];
   return (t.includes('rival') ? '<span class="alerta-tipo alerta-tipo-rival">Rival</span>' : '') + (t.includes('vetado') ? '<span class="alerta-tipo alerta-tipo-vetado">Vetado</span>' : '');
 }
-function alertaFilaHtml(r, idx){
+/* 19-nov-2026 (pedido de la usuaria): el modal del ⚠️ toma el aspecto del de 📈: franja con los datos del perfil, tarjetas de resumen por clan (.hist-resumen), fila en rojo con 0 ataques, verde con la semana completa (16) y amarilla con 1 a 15, sombreado alterno al cambiar de temporada y «Ver más» (28 filas al abrir y 28 más por clic). Usa hist-tabla-dia para heredar esos colores. */
+const ALERTA_FILAS_INICIALES = 28;
+const ALERTA_FILAS_MAS = 28;
+let alertaClanesDatos = [];
+let alertaLimites = [];
+let alertaHistorialOk = true;
+const alertaNum = v => (v === null || v === undefined || v === '' || !isFinite(Number(v))) ? null : Number(v);
+function alertaClaseFila(r){
+  const a = alertaNum(r.ataques);
+  if (a === null) return '';
+  if (a <= 0) return 'hist-cero';
+  return a >= HIST_ATAQUES_MAX * 4 ? 'hist-a4' : 'hist-a13'; // semana completa = 4 días x 4 ataques
+}
+function alertaFilaHtml(r, idx, clase){
   const temp = Number(r.temporada) > 0 ? String(Number(r.temporada)) : (r.supercell ? esc(r.supercell) : '–');
   const num = v => (v === null || v === undefined) ? '—' : fmtNum(v);
-  return `<tr><td>${idx + 1}</td><td>${temp}</td><td>${histSemanaTxt(r)}${r.cerrada === false ? ' · en curso' : ''}</td><td>${num(r.ataques)}</td><td>${num(r.barcos)}</td><td>${num(r.fame)}</td></tr>`;
+  return `<tr class="${clase}"><td>${idx + 1}</td><td>${temp}</td><td>${histSemanaTxt(r)}${r.cerrada === false ? ' · en curso' : ''}</td><td>${num(r.ataques)}</td><td>${num(r.barcos)}</td><td>${num(r.fame)}</td></tr>`;
 }
-function alertaClanHtml(c, historialDisponible){
+function alertaResumenHtml(filas, n){
+  const conDato = filas.filter(r => alertaNum(r.ataques) !== null);
+  const suma = k => filas.reduce((t, r) => t + (alertaNum(r[k]) || 0), 0);
+  const atq = suma('ataques');
+  const ceros = conDato.filter(r => alertaNum(r.ataques) <= 0).length;
+  return `<div class="hist-resumen">
+      <div><b>${esc(n)}</b>${n === 1 ? 'semana' : 'semanas'}</div>
+      <div><b>${fmtNum(atq)}</b>ataques</div>
+      <div class="${ceros ? 'hist-malo' : ''}"><b>${ceros}</b>semanas con 0 ataques</div>
+      <div><b>${conDato.length ? histFmtDec(atq / conDato.length) : '—'}</b>ataques por semana</div>
+      <div><b>${fmtNum(suma('fame'))}</b>medallas</div>
+      <div><b>${fmtNum(suma('barcos'))}</b>barcos</div>
+    </div>`;
+}
+/* La tabla y su «Ver más» de un clan (se vuelve a escribir entera al pedir más filas). */
+function alertaDetalleHtml(c, idx){
+  const filas = Array.isArray(c.filas) ? c.filas : [];
+  if (!filas.length) return `<p class="hist-nota">${alertaHistorialOk ? 'Sin detalle semanal guardado para este clan.' : 'No se pudo leer el historial del jugador: solo se muestran las semanas del archivo de alertas.'}</p>`;
+  const visibles = filas.slice(0, alertaLimites[idx] || ALERTA_FILAS_INICIALES);
+  let prev = null, alt = false;
+  const cuerpo = visibles.map((r, k) => {
+    const clave = Number(r.temporada) > 0 ? 'T' + Number(r.temporada) : String(r.supercell || '');
+    if (prev !== null && clave !== prev) alt = !alt;
+    prev = clave;
+    return alertaFilaHtml(r, k, [alertaClaseFila(r), alt ? 'hist-sem-b' : ''].filter(Boolean).join(' '));
+  }).join('');
+  return `<div class="hist-tabla-scroll"><table class="hist-tabla hist-tabla-dia alerta-tabla"><thead><tr><th>N°</th><th>Temporada</th><th>Semana</th><th>Ataques</th><th>Barcos</th><th>Medallas</th></tr></thead><tbody>${cuerpo}</tbody></table></div>`
+    + (filas.length > visibles.length ? `<button type="button" class="btn-solo-cero hist-mas" data-alerta-mas="${idx}">Ver más</button>` : '');
+}
+function alertaClanHtml(c, idx){
   const filas = Array.isArray(c.filas) ? c.filas : [];
   const n = Number(c.semanas) || filas.length;
   const periodo = (c.primera || c.ultima) ? `${alertaPuntoTxt(c.primera)} → ${alertaPuntoTxt(c.ultima)}` : '—';
-  const detalle = filas.length
-    ? `<div class="hist-tabla-scroll"><table class="hist-tabla alerta-tabla"><thead><tr><th>N°</th><th>Temporada</th><th>Semana</th><th>Ataques</th><th>Barcos</th><th>Medallas</th></tr></thead><tbody>${filas.map(alertaFilaHtml).join('')}</tbody></table></div>`
-    : `<p class="hist-nota">${historialDisponible ? 'Sin detalle semanal guardado para este clan.' : 'No se pudo leer el historial del jugador: solo se muestran las semanas del archivo de alertas.'}</p>`;
   return `<section class="alerta-clan"><h4 class="alerta-clan-nombre">${esc(c.nombre || c.tag || 'Clan sin nombre')} <span class="alerta-clan-tag">${esc(c.tag || '')}</span> ${alertaTiposHtml(c.tipos)}</h4>`
-    + `<p class="hist-nota alerta-clan-resumen"><b>${esc(n)}</b> ${n === 1 ? 'semana' : 'semanas'} · ${periodo}</p>${detalle}</section>`;
+    + `<p class="hist-nota alerta-clan-resumen"><b>${esc(n)}</b> ${n === 1 ? 'semana' : 'semanas'} · ${periodo}</p>`
+    + (filas.length ? alertaResumenHtml(filas, n) : '')
+    + `<div class="alerta-detalle" data-alerta-idx="${idx}">${alertaDetalleHtml(c, idx)}</div></section>`;
 }
 function alertaPintar(data){
   const clanes = Array.isArray(data && data.clanes) ? data.clanes : [];
   const cuerpo = document.getElementById('alertaCuerpo');
   if (!clanes.length){ cuerpo.innerHTML = '<p class="hist-nota">Sin clanes vetados ni rivales registrados para este jugador.</p>'; return; }
-  cuerpo.innerHTML = clanes.map(c => alertaClanHtml(c, data.historialDisponible !== false)).join('')
+  alertaClanesDatos = clanes;
+  alertaLimites = clanes.map(() => ALERTA_FILAS_INICIALES);
+  alertaHistorialOk = data.historialDisponible !== false;
+  cuerpo.innerHTML = clanes.map((c, i) => alertaClanHtml(c, i)).join('')
     + '<p class="hist-nota">«Rival»: clan que fue rival de nuestra guerra en la temporada en que se detectó. «Vetado»: clan de la lista de conflictos o vetado. La alerta es permanente: se conserva aunque el clan deje de ser rival. Las semanas son las jugadas en ese clan, según el historial individual.</p>';
+}
+async function alertaCargarCabecera(tag, mia){
+  try{
+    const data = await apiGet('webPerfil', { tag }, { ttlMs: 300000, staleIfError: true, conSesion: true });
+    const j = histJugadorDeRespuesta(data);
+    if (mia !== alertaSolicitud || !j) return;
+    const el = document.getElementById('alertaPerfil');
+    if (el) el.innerHTML = histCabeceraPerfilHtml(j);
+  }catch(_){ /* sin la cabecera solo falta ese resumen; las tablas ya se pintan */ }
 }
 async function alertaAbrir(tag, nombre){
   alertaAsegurarModal();
-  document.getElementById('alertaSub').innerHTML = `${enlaceJugador(nombre || tag, tag)} · ${esc(tag)}`;
+  document.getElementById('alertaTitulo').innerHTML = `⚠️ ${enlaceJugador(nombre || tag, tag)}`; // 19-nov-2026: como el 📈, el título es el jugador con enlace a su perfil
+  document.getElementById('alertaSub').textContent = `${tag} · Clanes vetados o rivales`;
+  document.getElementById('alertaPerfil').innerHTML = '';
   document.getElementById('alertaCuerpo').innerHTML = '<p class="hist-nota">Cargando clanes…</p>';
   document.getElementById('alertaFondo').classList.add('abierto');
   const mia = ++alertaSolicitud;
+  alertaCargarCabecera(tag, mia); // en paralelo, sin esperarla
   try{
     const data = await apiGetAuth('webAdminClanesSospechososJugador', { tag });
     if (mia !== alertaSolicitud) return; // se cerró o se abrió otro jugador mientras cargaba
@@ -181,6 +237,14 @@ if (typeof document !== 'undefined'){
 document.addEventListener('click', ev => {
   const b = ev.target.closest && ev.target.closest('.btn-alerta-clanes');
   if (b){ ev.preventDefault(); alertaAbrir(b.dataset.tag, b.dataset.nombre); return; }
+  const mas = ev.target.closest && ev.target.closest('[data-alerta-mas]');
+  if (mas){
+    const idx = Number(mas.dataset.alertaMas);
+    alertaLimites[idx] = (alertaLimites[idx] || ALERTA_FILAS_INICIALES) + ALERTA_FILAS_MAS;
+    const cont = mas.closest('.alerta-detalle');
+    if (cont && alertaClanesDatos[idx]) cont.innerHTML = alertaDetalleHtml(alertaClanesDatos[idx], idx);
+    return;
+  }
   if (ev.target.id === 'alertaFondo' || ev.target.id === 'alertaCerrar') alertaCerrar();
 });
 document.addEventListener('keydown', ev => { if (ev.key === 'Escape') alertaCerrar(); });

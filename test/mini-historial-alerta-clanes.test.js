@@ -246,3 +246,47 @@ test('un caché vencido no se usa y sin sesión de admin no se lee', async () =>
   await w2.alertaCargarTags();
   assert.equal(w2.alertaClanesDe('#ABC'), null);
 });
+
+// NUEVO (19-nov-2026, pedido de la usuaria): el modal del ⚠️ toma el aspecto del modal del 📈 (franja de perfil, título con el jugador, tarjetas de resumen, color por fila, sombreado por temporada y «Ver más»).
+const filasN = (n, f) => Array.from({ length: n }, (_, i) => f(i));
+test('el modal del ⚠️ lleva título con enlace al jugador, franja de perfil, tarjetas de resumen y filas coloreadas', async () => {
+  const detalle = { ok: true, historialDisponible: true, clanes: [{ tag: '#CL', nombre: 'Clan Uno', tipos: ['vetado'], semanas: 4, primera: { temporada: 20, semana: 2 }, ultima: { temporada: 21, semana: 1 }, filas: [
+    { temporada: 21, semana: 1, ataques: 16, fame: 2000, barcos: 0 }, { temporada: 20, semana: 4, ataques: 0, fame: 100, barcos: 0 },
+    { temporada: 20, semana: 3, ataques: 12, fame: 1000, barcos: 1 }, { temporada: 20, semana: 2, ataques: null, fame: null, barcos: null } ] }] };
+  const w = cargar({ detalle });
+  w.eval(`window.apiGet = function(accion){ return Promise.resolve({ ok: true, jugador: { clan: 'Terna Uno', clanTag: '#T1', copas: 14000, vGuerra: 500 } }); };`);
+  const fondo = await abrirAlerta(w);
+  await esperar();
+  assert.match(fondo.querySelector('#alertaTitulo').innerHTML, /perfil\.html\?tag=/, 'el título enlaza al perfil');
+  assert.match(fondo.querySelector('#alertaSub').textContent, /#ABC · Clanes vetados o rivales/);
+  assert.match(fondo.querySelector('#alertaPerfil').textContent, /Clan: Terna Uno/);
+  assert.match(fondo.querySelector('#alertaPerfil').textContent, /Copas: 14.?000/);
+  const tarjetas = [...fondo.querySelectorAll('.hist-resumen div')].map(d => d.textContent.replace(/\s+/g, ' ').trim());
+  assert.equal(tarjetas.length, 6);
+  assert.match(tarjetas[0], /^4\s?semanas/); assert.match(tarjetas[1], /^28\s?ataques/); assert.match(tarjetas[5], /^1\s?barcos/);
+  assert.match(tarjetas[2], /^1\s?semanas con 0 ataques/); assert.match(tarjetas[3], /^9[,.]3\s?ataques por semana/); assert.match(tarjetas[4], /^3.?100\s?medallas/);
+  assert.equal(fondo.querySelector('.hist-resumen .hist-malo').textContent.includes('0 ataques'), true, 'la tarjeta de ceros va en rojo');
+  const filas = [...fondo.querySelectorAll('tbody tr')];
+  assert.deepEqual(filas.map(f => f.className.split(' ').filter(c => /^hist-(a4|a13|cero)$/.test(c))[0] || ''), ['hist-a4', 'hist-cero', 'hist-a13', ''], '16 verde, 0 rojo, 12 amarillo, sin dato sin color');
+  assert.equal(fondo.querySelector('table').classList.contains('hist-tabla-dia'), true);
+  assert.equal(filas[0].classList.contains('hist-sem-b'), false);
+  assert.equal(filas[1].classList.contains('hist-sem-b'), true, 'sombreado al cambiar de temporada');
+  assert.equal(filas[2].classList.contains('hist-sem-b'), true, 'misma temporada, mismo sombreado');
+});
+
+test('con muchas semanas salen 28 y «Ver más» agrega otras 28 sin tocar los demás clanes', async () => {
+  const detalle = { ok: true, clanes: [
+    { tag: '#A', nombre: 'Largo', tipos: ['vetado'], semanas: 70, filas: filasN(70, i => ({ temporada: 30 - Math.floor(i / 4), semana: 4 - (i % 4), ataques: 16, fame: 1, barcos: 0 })) },
+    { tag: '#B', nombre: 'Corto', tipos: ['rival'], semanas: 2, filas: filasN(2, i => ({ temporada: 5, semana: 2 - i, ataques: 16, fame: 1, barcos: 0 })) } ] };
+  const w = cargar({ detalle });
+  const fondo = await abrirAlerta(w);
+  const filasDe = k => fondo.querySelectorAll('.alerta-clan')[k].querySelectorAll('tbody tr').length;
+  assert.equal(filasDe(0), 28);
+  fondo.querySelector('[data-alerta-mas="0"]').click();
+  assert.equal(filasDe(0), 56);
+  assert.equal(filasDe(1), 2);
+  assert.equal(fondo.querySelectorAll('[data-alerta-mas]').length, 1);
+  fondo.querySelector('[data-alerta-mas="0"]').click();
+  assert.equal(filasDe(0), 70);
+  assert.equal(fondo.querySelectorAll('[data-alerta-mas]').length, 0, 'sin más filas desaparece el botón');
+});
