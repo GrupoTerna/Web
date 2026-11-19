@@ -334,7 +334,8 @@
 // v292 (19-nov-2026): admin.html cambió (CORE_ASSETS) -- en «Buscar clan», el encabezado fijo de las tablas del panel «Cruce con roster» tiene fondo opaco y las filas ya no lo atraviesan al desplazar (§PF378).
 // v293 (19-nov-2026): admin.html cambió (CORE_ASSETS) -- en «Clanes externos», el enlace de la columna «Clan actual» lleva al dashboard del clan (clan.html?clan=…&tag=…) y no a «Buscar clan» de admin.html.
 // v294 (19-nov-2026): assets/js/features/mini-historial.js, assets/js/core/auth.js y assets/js/core/api.js cambiaron (CORE_ASSETS) -- el resumen del ⚠️ se guarda en sessionStorage para que salga junto con la tabla; se borra al cerrar sesión.
-const CACHE_NAME = 'terna-static-v294';
+// v295 (19-nov-2026): admin.html cambió (CORE_ASSETS) -- las tablas de jugadores de «Clanes externos» (rivales, vetados y externos) llevan en cada columna, menos «Enlaces», el embudo de orden y filtro; el orden predeterminado se mantiene.
+const CACHE_NAME = 'terna-static-v295';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y

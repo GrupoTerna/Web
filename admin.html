@@ -2921,7 +2921,34 @@ function _ceFilaJugador(j){
 function _ceTablaJugadores(c){
   const js = (c.jugadores || []).slice().sort((a, b) => ((b.activo ? 1 : 0) - (a.activo ? 1 : 0)) || ((b.semanas || 0) - (a.semanas || 0)) || String(a.nombre || a.tag || '').localeCompare(String(b.nombre || b.tag || ''), 'es', { sensitivity: 'base' }));
   if(!js.length) return '<div class="text-dim" style="font-size:14px; padding:6px 0;">Ningún jugador nuestro figura en este clan en el índice.</div>';
-  return `<div style="overflow-x:auto;"><table><thead><tr><th scope="col">Jugador</th><th scope="col">Tag</th><th scope="col">Estado</th><th scope="col">Clan actual</th><th scope="col">Semanas</th><th scope="col">Primera → última</th><th scope="col">Enlaces</th></tr></thead><tbody>${js.map(_ceFilaJugador).join('')}</tbody></table></div>`;
+  const clave = 'ce-' + String(c.tag || '').replace(/[^0-9A-Za-z]/g, '').toUpperCase();
+  /* 19-nov-2026 (pedido de la usuaria): cada columna (menos «Enlaces») lleva el embudo de orden y filtro de la rama «verificar». El orden predeterminado es el de arriba (activos, semanas, nombre) y «Quitar orden» vuelve a él. */
+  const vacio = v => { const t = String(v == null ? '' : v).trim(); return t === '' ? '—' : t; };
+  const plano = html => _textoPlanoVerifCR(html);
+  const claveSemana = p => { // para ordenar «Primera → última» por la primera semana; las temporadas internas (T…) van después de las anteriores a ellas (año-mes de Supercell)
+    if(!p) return null;
+    if(p.supercell && Number(p.temporada) <= 0){ const m = String(p.supercell).match(/^(\d{4})-(\d{1,2})$/); return m ? (Number(m[1]) * 100 + Number(m[2])) * 100 + (Number(p.semana) || 0) : null; }
+    return 1e9 + (Number(p.temporada) || 0) * 100 + (Number(p.semana) || 0);
+  };
+  const clavePorTexto = new Map();
+  const filas = js.map(j => {
+    const rango = plano(_etiquetaPuntoClan(j.primera)) + ' → ' + plano(_etiquetaPuntoClan(j.ultima));
+    clavePorTexto.set(rango, claveSemana(j.primera));
+    const vals = [vacio(j.nombre || j.tag), vacio(j.tag), j.activo ? 'Activo' : 'Inactivo', vacio(j.clanActual || j.clanActualTag), vacio(_ceNum(j.semanas)), rango];
+    return { j, vals, buscar: vals.join(' ') };
+  });
+  const cols = [
+    { key: 'jugador', label: 'Jugador' }, { key: 'tag', label: 'Tag' }, { key: 'estado', label: 'Estado' }, { key: 'clanActual', label: 'Clan actual' },
+    { key: 'semanas', label: 'Semanas', tipo: 'numero', ord: v => Number(String(v).replace(/,/g, '')) },
+    { key: 'periodo', label: 'Primera → última', tipo: 'fecha', ord: v => { const k = clavePorTexto.get(v); return k == null ? null : k; } },
+    { key: 'enlaces', label: 'Enlaces', sinFiltro: true }
+  ];
+  const previo = _tablasCE[clave];
+  _tablasCE[clave] = { titulo: 'Jugadores de ' + (c.nombre || c.tag), cols, filas, estado: previo ? previo.estado : { filtros: {}, orden: null }, busqueda: '', filaHtml: f => _ceFilaJugador(f.j) };
+  const encabezados = cols.map(k => k.sinFiltro
+    ? `<th scope="col">${esc(k.label)}</th>`
+    : `<th scope="col" aria-sort="none"><div class="rt-th-inner"><span>${esc(k.label)}</span><span class="rt-orden-indicador" data-col="${k.key}"></span><button type="button" class="rt-filtro-btn" data-col="${k.key}" title="Ordenar o filtrar por ${esc(k.label)}" aria-label="Ordenar o filtrar por ${esc(k.label)}" aria-haspopup="dialog" aria-expanded="false">${ICONO_FILTRO_VERIF_CR}</button></div></th>`).join('');
+  return `<div style="overflow-x:auto;" data-crv="${clave}"><table aria-label="${esc(_tablasCE[clave].titulo)}"><thead><tr>${encabezados}</tr></thead><tbody>${filas.map(_tablasCE[clave].filaHtml).join('')}</tbody></table></div>`;
 }
 function _ceLlenarCuerpo(d){
   const cuerpo = d.querySelector('.ce-cuerpo');
@@ -2930,6 +2957,13 @@ function _ceLlenarCuerpo(d){
   if(!c) return;
   cuerpo.innerHTML = _ceTablaJugadores(c);
   cuerpo.setAttribute('data-listo', '1');
+  const wrapTabla = cuerpo.querySelector('[data-crv]');
+  if(wrapTabla){
+    const clave = wrapTabla.getAttribute('data-crv');
+    wrapTabla.querySelectorAll('.rt-filtro-btn').forEach(btn => btn.addEventListener('click', () => _abrirFiltroVerifCR(clave, btn.dataset.col, btn)));
+    const t = _tablasCE[clave];
+    if(t && (t.estado.orden || Object.keys(t.estado.filtros).length)) _repintarTablaVerifCR(clave); // el clan se volvió a pintar: conserva su orden y sus filtros
+  }
 }
 function _ceBloqueClan(c, idx){
   const n = (c.jugadores || []).length;
@@ -3007,6 +3041,8 @@ async function cargarClanesExternos(){
     if(manejarRespuestaAuth(data)) return;
     if(!data.ok){ msg.innerHTML = `<div class="msg msg-error">${esc(data.error)}</div>`; return; }
     _ceDatos = data;
+    _cerrarPopVerifCR();
+    Object.keys(_tablasCE).forEach(k => { delete _tablasCE[k]; }); // datos nuevos: el orden y los filtros de la lista anterior no valen
     pintarClanesExternos();
   }catch(err){
     msg.innerHTML = `<div class="msg msg-error">Error de conexión: ${esc(err.message)}</div>`;
@@ -7101,6 +7137,9 @@ function _detalleRequisitosCR(x){
  * viejo ocultaría valores que aún no existían. [→ Contexto_Base_Web.md §PF286]
  */
 const _tablasVerifCR = {}; // clave de tabla -> { titulo, cols, filas, estado:{ filtros:{colKey:Set}, orden:{colKey,dir}|null }, busqueda }
+/* 19-nov-2026 (pedido de la usuaria): las tablas de jugadores de «Clanes externos» usan este mismo desplegable de orden y filtro. Sus tablas viven aparte en _tablasCE (clave 'ce-<TAG>'), para que una nueva verificación no las borre; _tablaFiltrable() busca en los dos almacenes. Una tabla puede traer `filaHtml(fila)` (cómo pintar su fila; por defecto la de la verificación) y columnas con `sinFiltro:true` (sin embudo) o `tipo:'numero'|'fecha'|'texto'` (rotula el orden). [→ Contexto_Base_Web.md §PF286] */
+const _tablasCE = {};
+function _tablaFiltrable(clave){ return _tablasVerifCR[clave] || _tablasCE[clave] || null; }
 let _popVerifCREl = null;
 let _popVerifCRBtn = null; // el embudo que abrió el cuadro (para devolverle el foco y su aria-expanded)
 const ICONO_FILTRO_VERIF_CR = '<svg viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M1 2.5A.5.5 0 0 1 1.5 2h13a.5.5 0 0 1 .4.8L10 9.4V13a.5.5 0 0 1-.2.4l-2 1.5A.5.5 0 0 1 7 14.5v-5.1L1.1 2.8A.5.5 0 0 1 1 2.5z"/></svg>';
@@ -7165,7 +7204,7 @@ function _filasVisiblesVerifCR(t){
 }
 
 function _actualizarIconosVerifCR(clave, wrap){
-  const t = _tablasVerifCR[clave];
+  const t = _tablaFiltrable(clave);
   wrap.querySelectorAll('.rt-filtro-btn').forEach(btn => {
     const conFiltro = !!t.estado.filtros[btn.dataset.col];
     btn.classList.toggle('activo', conFiltro);
@@ -7182,12 +7221,12 @@ function _actualizarIconosVerifCR(clave, wrap){
 
 /** _repintarTablaVerifCR(clave) → vuelve a escribir el <tbody> con la búsqueda, los filtros y el orden de ese momento, y actualiza el contador («3 de 8») y los íconos. */
 function _repintarTablaVerifCR(clave){
-  const t = _tablasVerifCR[clave];
-  const wrap = document.querySelector(`.tabla-propuestas-cr-wrap[data-crv="${clave}"]`);
+  const t = _tablaFiltrable(clave);
+  const wrap = document.querySelector(`[data-crv="${clave}"]`);
   if (!t || !wrap) return;
   const filas = _filasVisiblesVerifCR(t);
   const tbody = wrap.querySelector('tbody');
-  tbody.innerHTML = filas.length ? filas.map(_filaHtmlVerifCR).join('') : `<tr><td colspan="${t.cols.length}" class="empty" style="text-align:center;">Sin coincidencias.</td></tr>`;
+  tbody.innerHTML = filas.length ? filas.map(t.filaHtml || _filaHtmlVerifCR).join('') : `<tr><td colspan="${t.cols.length}" class="empty" style="text-align:center;">Sin coincidencias.</td></tr>`;
   const cuenta = document.querySelector(`#crvBuscador-${clave} .buscador-cuenta`);
   if (cuenta){
     const hayFiltro = Object.keys(t.estado.filtros).length > 0 || !!normalizarBusqueda(t.busqueda);
@@ -7215,7 +7254,7 @@ function _cerrarPopVerifCRAlDesplazar(e){ if (_popVerifCREl && _popVerifCREl.con
 
 /** _abrirFiltroVerifCR(clave, colKey, btnEl) → abre el desplegable de una columna: orden ascendente/descendente, quitar orden y lista de valores con casillas (con su buscador). */
 function _abrirFiltroVerifCR(clave, colKey, btnEl){
-  const t = _tablasVerifCR[clave];
+  const t = _tablaFiltrable(clave);
   if (!t) return;
   const i = t.cols.findIndex(c => c.key === colKey);
   const col = t.cols[i];
@@ -7228,7 +7267,9 @@ function _abrirFiltroVerifCR(clave, colKey, btnEl){
   const previa = t.estado.filtros[colKey];
   const temp = new Set(previa || valores);
   const ordenActivo = t.estado.orden && t.estado.orden.colKey === colKey ? t.estado.orden.dir : null;
-  const esFecha = !!col.ord;
+  const tipoCol = col.tipo || (col.ord ? 'fecha' : 'texto');
+  const rotAsc = tipoCol === 'fecha' ? '↑ Más antigua primero' : (tipoCol === 'numero' ? '↑ Menor a mayor' : '↑ A → Z');
+  const rotDesc = tipoCol === 'fecha' ? '↓ Más reciente primero' : (tipoCol === 'numero' ? '↓ Mayor a menor' : '↓ Z → A');
 
   const pop = document.createElement('div');
   pop.className = 'rt-filtro-pop';
@@ -7238,8 +7279,8 @@ function _abrirFiltroVerifCR(clave, colKey, btnEl){
   pop.setAttribute('aria-label', 'Ordenar o filtrar por ' + col.label);
   pop.innerHTML = `
     <div class="rt-filtro-orden">
-      <button type="button" class="rt-orden-btn${ordenActivo === 'asc' ? ' activo' : ''}" data-dir="asc" aria-pressed="${ordenActivo === 'asc'}">${esFecha ? '↑ Más antigua primero' : '↑ A → Z'}</button>
-      <button type="button" class="rt-orden-btn${ordenActivo === 'desc' ? ' activo' : ''}" data-dir="desc" aria-pressed="${ordenActivo === 'desc'}">${esFecha ? '↓ Más reciente primero' : '↓ Z → A'}</button>
+      <button type="button" class="rt-orden-btn${ordenActivo === 'asc' ? ' activo' : ''}" data-dir="asc" aria-pressed="${ordenActivo === 'asc'}">${rotAsc}</button>
+      <button type="button" class="rt-orden-btn${ordenActivo === 'desc' ? ' activo' : ''}" data-dir="desc" aria-pressed="${ordenActivo === 'desc'}">${rotDesc}</button>
       ${ordenActivo ? '<button type="button" class="rt-orden-quitar">✕ Quitar orden</button>' : ''}
     </div>
     <div class="rt-filtro-divisor"></div>

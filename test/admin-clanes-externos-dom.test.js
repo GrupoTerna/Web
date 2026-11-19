@@ -18,6 +18,8 @@ const trozo = (ini, fin, nombre) => {
   assert.ok(i >= 0 && f > i, `marcadores de ${nombre} no encontrados (¿se reorganizó admin.html?)`);
   return HTML.slice(i, f);
 };
+const FILTROS = fs.readFileSync(path.join(__dirname, '..', 'assets', 'js', 'ui', 'filters.js'), 'utf8');
+const CODIGO_FILTRO = trozo('const _tablasVerifCR = {};', '/** _activarTablasVerifCR(cont)', 'desplegable de orden y filtro (rama verificar)');
 const CODIGO = trozo('let _ceDatos = null;', 'async function verificarInfiltradosClan(){', 'tarjeta Clanes externos');
 const ETIQUETA = trozo('function _etiquetaPuntoClan(p){', '/** Tabla de «pasaron por este clan»', '_etiquetaPuntoClan()');
 const DIALOGO_VETO = trozo('<div class="ce-veto-fondo"', '<script', 'diálogo de vetos');
@@ -50,6 +52,8 @@ function montar(respuesta = DATOS, opciones = {}){
     async function apiGetAuth(accion){ window.__llamadas.push(accion); return window.__respuesta; }
     async function buscarClan(){ window.__buscados.push(document.getElementById('clanTagInput').value); }
     ${UTIL.slice(UTIL.indexOf('function enlaceJugador('), UTIL.indexOf('/**\n * fmtTiempoRelativo('))}
+    ${FILTROS}
+    ${CODIGO_FILTRO}
     ${ETIQUETA}
     ${CODIGO}
   `);
@@ -394,4 +398,97 @@ test('«Primera → última» muestra todas las temporadas con el id de Supercel
   const t = clan.querySelector('.ce-cuerpo').textContent.replace(/\s+/g, ' ');
   assert.match(t, /2026-10 S4 → 2026-11 S2/);
   assert.doesNotMatch(t, /T24 S4/);
+});
+
+// NUEVO (19-nov-2026, pedido de la usuaria): cada columna de la tabla de jugadores (menos «Enlaces») lleva el embudo de orden y filtro; el orden predeterminado se mantiene y «Quitar orden» vuelve a él.
+const jugX = (n, activo, semanas, clanActual, primera) => ({ tag: '#P' + n, nombre: 'J' + n, activo, semanas, clanActual: clanActual || '', clanActualTag: clanActual ? '#C' + n : '', primera: primera || { temporada: 5, semana: 1, supercell: '' }, ultima: { temporada: 5, semana: 3, supercell: '' } });
+async function abrirConJugadores(jugadores){
+  const w = montar({ ...DATOS, clanes: [{ ...DATOS.clanes[0], jugadores }] });
+  await cargar(w);
+  categoria(w, 'rival');
+  const clan = w.document.querySelector('.ce-clan');
+  abrir(w, clan);
+  return { w, clan };
+}
+const filasNombres = clan => [...clan.querySelectorAll('tbody tr')].map(tr => { const td = tr.querySelectorAll('td')[0]; const a = td.querySelector('a'); return (a ? [...a.childNodes].filter(n => n.nodeType === 3).map(n => n.textContent).join('') : td.textContent).trim(); });
+const abrirEmbudo = (w, clan, col) => { clan.querySelector(`.rt-filtro-btn[data-col="${col}"]`).click(); return w.document.querySelector('.rt-filtro-pop'); };
+
+test('la tabla de jugadores trae un embudo en cada columna menos «Enlaces»', async () => {
+  const { clan } = await abrirConJugadores([jugX(1, true, 3), jugX(2, false, 9)]);
+  assert.deepEqual([...clan.querySelectorAll('.rt-filtro-btn')].map(b => b.dataset.col), ['jugador', 'tag', 'estado', 'clanActual', 'semanas', 'periodo']);
+  assert.equal(clan.querySelectorAll('thead th')[6].querySelector('button'), null);
+});
+
+test('el orden predeterminado se mantiene; ordenar por Semanas de mayor a menor y «Quitar orden» vuelve al predeterminado', async () => {
+  const { w, clan } = await abrirConJugadores([jugX(1, true, 3), jugX(2, true, 12), jugX(3, false, 40), jugX(4, true, 7)]);
+  assert.deepEqual(filasNombres(clan), ['J2', 'J4', 'J1', 'J3'], 'predeterminado: activos, semanas y nombre');
+  let pop = abrirEmbudo(w, clan, 'semanas');
+  assert.match(pop.textContent, /Menor a mayor/);
+  pop.querySelector('[data-dir="desc"]').click();
+  assert.deepEqual(filasNombres(clan), ['J3', 'J2', 'J4', 'J1']);
+  assert.equal(clan.querySelector('thead th:nth-child(5)').getAttribute('aria-sort'), 'descending');
+  pop = abrirEmbudo(w, clan, 'semanas');
+  pop.querySelector('[data-dir="asc"]').click();
+  assert.deepEqual(filasNombres(clan), ['J1', 'J4', 'J2', 'J3']);
+  pop = abrirEmbudo(w, clan, 'semanas');
+  pop.querySelector('.rt-orden-quitar').click();
+  assert.deepEqual(filasNombres(clan), ['J2', 'J4', 'J1', 'J3']);
+});
+
+test('filtrar por Estado deja solo los marcados y el embudo queda activo; con todo marcado se quita el filtro', async () => {
+  const { w, clan } = await abrirConJugadores([jugX(1, true, 3), jugX(2, false, 12), jugX(3, false, 40)]);
+  const pop = abrirEmbudo(w, clan, 'estado');
+  pop.querySelector('[data-modo="ninguno"]').click();
+  pop.querySelector('input[value="Inactivo"]').click();
+  pop.querySelector('.rt-filtro-aceptar').click();
+  assert.deepEqual(filasNombres(clan), ['J3', 'J2']);
+  assert.equal(clan.querySelector('.rt-filtro-btn[data-col="estado"]').classList.contains('activo'), true);
+  const pop2 = abrirEmbudo(w, clan, 'estado');
+  pop2.querySelector('[data-modo="todo"]').click();
+  pop2.querySelector('.rt-filtro-aceptar').click();
+  assert.deepEqual(filasNombres(clan), ['J1', 'J3', 'J2']);
+  assert.equal(clan.querySelector('.rt-filtro-btn[data-col="estado"]').classList.contains('activo'), false);
+});
+
+test('Clan actual: las celdas vacías (—) van al final al ordenar, en los dos sentidos; Primera → última ordena por la primera semana', async () => {
+  const { w, clan } = await abrirConJugadores([
+    jugX(1, true, 3, 'Beta', { temporada: 5, semana: 4, supercell: '' }),
+    jugX(2, true, 2, '', { temporada: -7, semana: 2, supercell: '2024-08' }),
+    jugX(3, true, 1, 'Alfa', { temporada: 5, semana: 1, supercell: '' })
+  ]);
+  abrirEmbudo(w, clan, 'clanActual').querySelector('[data-dir="asc"]').click();
+  assert.deepEqual(filasNombres(clan), ['J3', 'J1', 'J2']);
+  abrirEmbudo(w, clan, 'clanActual').querySelector('[data-dir="desc"]').click();
+  assert.deepEqual(filasNombres(clan), ['J1', 'J3', 'J2']);
+  abrirEmbudo(w, clan, 'periodo').querySelector('[data-dir="asc"]').click();
+  assert.deepEqual(filasNombres(clan), ['J2', 'J3', 'J1'], 'primero el de 2024-08, luego T5 S1 y T5 S4');
+});
+
+test('al cerrar y volver a abrir el clan se conservan su orden y sus filtros; una carga nueva de la lista los borra', async () => {
+  const { w, clan } = await abrirConJugadores([jugX(1, true, 3), jugX(2, true, 12), jugX(3, true, 7)]);
+  abrirEmbudo(w, clan, 'semanas').querySelector('[data-dir="asc"]').click();
+  assert.deepEqual(filasNombres(clan), ['J1', 'J3', 'J2']);
+  clan.querySelector('.ce-cuerpo').removeAttribute('data-listo'); // como cuando la lista se vuelve a pintar
+  abrir(w, clan);
+  w.eval('_ceLlenarCuerpo(document.querySelector(".ce-clan"))');
+  assert.deepEqual(filasNombres(clan), ['J1', 'J3', 'J2'], 'conserva el orden elegido');
+  await cargar(w);
+  categoria(w, 'rival');
+  const clan2 = w.document.querySelector('.ce-clan');
+  abrir(w, clan2);
+  assert.deepEqual(filasNombres(clan2), ['J2', 'J3', 'J1'], 'una carga nueva vuelve al predeterminado');
+});
+
+test('los botones «Vetar» siguen ahí y abren el diálogo después de ordenar', async () => {
+  const w = montar({ ...DATOS, clanes: [{ ...DATOS.clanes[0], jugadores: [jugX(1, true, 3), jugX(2, true, 12)] }] }, { funciones: 'Vetar' });
+  await cargar(w);
+  categoria(w, 'rival');
+  const clan = w.document.querySelector('.ce-clan');
+  abrir(w, clan);
+  abrirEmbudo(w, clan, 'semanas').querySelector('[data-dir="asc"]').click();
+  const botones = clan.querySelectorAll('tbody button[data-ce-vetar="jugador"]');
+  assert.equal(botones.length, 2);
+  assert.equal(botones[0].getAttribute('data-ce-tag'), '#P1', 'el primero es el de menos semanas');
+  botones[0].click();
+  assert.match(w.document.getElementById('ceVetoTitulo').textContent, /Vetar a J1/);
 });
