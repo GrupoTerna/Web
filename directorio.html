@@ -2863,7 +2863,7 @@ function fechaIngresoTexto(n){
 /** Clave con la que se identifica a cada miembro en el Set de seleccionados (mismo valor que data-tag de su tarjeta). */
 function claveIngreso(n){ return (n && n.tag) || ''; }
 
-/** Aviso "Estuvo en un clan rival" — copia reducida del de index.html (ingBadgeRivalHtml) para no perder ese dato al uniformizar las tarjetas. Solo aparece si el backend marca esRivalTemporada. */
+/** Aviso "Estuvo en un clan rival" o "vetado" — copia reducida del de index.html (ingBadgeRivalHtml) para no perder ese dato al uniformizar las tarjetas. Solo aparece si el backend marca esRivalTemporada. 18-nov-2026: el rótulo sale de clanRivalDetectado.fuente: un clan de la hoja Conflictos (fuente 'manual', el que se veta desde «Buscar clan») es VETADO, no rival; solo 'currentriverrace' es rival de la temporada. */
 function ingBadgeRivalHtml(esRivalTemporada, clanRivalDetectado){
   if (!esRivalTemporada) return '';
   const info = clanRivalDetectado || {};
@@ -2872,8 +2872,13 @@ function ingBadgeRivalHtml(esRivalTemporada, clanRivalDetectado){
   if (info.motivo) detalle.push(esc(info.motivo));
   // 6-nov-2026 (§PF400): 'nombre' = solo coincide el nombre del clan y no hay Tag para confirmarlo (puede ser otro clan con el mismo nombre); 'tag' = confirmado por Tag.
   if (info.confirmacion === 'nombre') detalle.push('coincide solo el nombre, sin Tag para confirmarlo');
+  // 18-nov-2026: 'manual' (hoja Conflictos, veto desde la web) y 'vetado' = clan vetado; 'currentriverrace' = rival de la temporada; 'currentriverrace+manual' = ambos. Sin fuente se conserva «rival».
+  const fuente = String(info.fuente || '');
+  const esVetado = fuente === 'manual' || fuente === 'vetado' || fuente.indexOf('+manual') >= 0;
+  const esRival = fuente.indexOf('currentriverrace') >= 0 || !esVetado;
+  const rotulo = (esVetado && esRival) ? 'Estuvo en un clan vetado y rival' : (esVetado ? 'Estuvo en un clan vetado' : 'Estuvo en un clan rival');
   return `<div class="ing-rival">
-    <span class="badge badge-warn">Estuvo en un clan rival</span>
+    <span class="badge badge-warn">${rotulo}</span>
     ${detalle.length ? `<div class="ing-rival-detalle">${detalle.join(' · ')}</div>` : ''}
   </div>`;
 }
