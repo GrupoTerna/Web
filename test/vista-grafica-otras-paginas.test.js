@@ -277,14 +277,14 @@ test('clan.html: sin historial solo sale el aviso, sin barra de vista', async ()
 const DIR = scriptDe('directorio.html', 'function lineChartSvg');
 const NOMBRES_DIR = ['tagClanNormalizado', 'claveClanMiembro', 'semanaLabel', 'semanaOrden', 'construirSemanasMaestras', 'numeroSemanaVieja', 'semanaLabelCorta', 'construirFechasEstimadasSemanasViejas',
   'fmtFechaCortaDDMM', 'fmtFechaLargaDDMMYYYY', 'textoTemporadaSemanaDiaIngreso', 'attrsTemporadaSemanaDiaIngreso', 'lineChartSvg',
-  'etiquetaPuntoIngreso', 'htmlTooltipPuntoIngreso', 'activarTooltipsGraficasIngresos', 'lineChartLegendHtml', 'renderComparativaSemanal',
+  'etiquetaPuntoIngreso', 'htmlTooltipPuntoIngreso', 'activarTooltipsGraficasIngresos', 'lineChartLegendHtml', 'ingresosSeriesPorValorY', 'renderComparativaSemanal',
   'guerraComparadorMetricaSvg', 'montarComparadorGuerraChart', 'renderComparadorGuerraChart', 'fmtFecha'];
 function cargarDir(){
   const w = loadBrowserScriptsWithDom(UTIL, '<div id="g"></div><div id="chartsWrap"></div><div id="comp"></div>');
-  w.eval(CONST_VISTA + "const PALETA_SERIES = ['#a239ff','#f3a922','#3ddc97'];\nconst TOPE_ATAQUES_SEMANA = 16, TOPE_MEDALLAS_SEMANA = 3600, TOPE_BARCOS_SEMANA = 16, MIN_SEMANAS_POR_MIEMBRO = 5;\n" +
+  w.eval(CONST_VISTA + "const PALETA_SERIES = ['#a239ff','#f3a922','#3ddc97'];\nconst TOPE_ATAQUES_SEMANA = 16, TOPE_MEDALLAS_SEMANA = 3600, TOPE_BARCOS_SEMANA = 16, MIN_SEMANAS_POR_MIEMBRO = 5;\nconst ingresosFiltroY = { ataques: null, puntaje: null, barcos: null };\n" +
     (DIR.match(/let COMPARADOR_GRAFICA_CTX = null;/) || [''])[0] + '\n' +
     NOMBRES_DIR.map(n => extraerFuncion(DIR, n)).join('\n') +
-    '\nwindow.__t = { lineChartSvg, guerraComparadorMetricaSvg, renderComparativaSemanal, renderComparadorGuerraChart, montarComparadorGuerraChart };');
+    '\nwindow.__t = { lineChartSvg, ingresosSeriesPorValorY, guerraComparadorMetricaSvg, renderComparativaSemanal, renderComparadorGuerraChart, montarComparadorGuerraChart };');
   return w;
 }
 const SEMANAS14 = domingos().map(dd);
@@ -430,4 +430,158 @@ test('cara a cara: sin historial solo sale el aviso y montar no pinta nada', () 
   w.__t.montarComparadorGuerraChart(comp);
   assert.equal(comp.querySelector('.pf-vista'), null);
   assert.match(comp.textContent, /Todavía no hay historial de días de guerra/);
+});
+
+
+// ---------------- directorio.html: filtro por valor de Y en las gráficas de Ingresos recientes (18-nov-2026, §PF512) ----------------
+// Pedido de la usuaria: ver solo las series cuyos valores (todos) estén por debajo de un tope (Ataques, Medallas) o por encima de un piso (Barcos).
+// LÍMITE: DOM simulado (jsdom), no un navegador; el temporizador de escritura se salta con el evento «change».
+const serieFija = (nombre, tag, ataques, puntaje, barcos) => ({ nombre, tag, clan: 'Terna',
+  historialSemanal: SEMANAS14.map(semana => ({ semana, clan: 'Terna', ataques, puntaje, barcos })) });
+const BAJO = () => serieFija('Bajito', '#BAJO', 6, 1500, 8);   // ataques 6, medallas 1500, barcos 8
+const ALTO = () => serieFija('Altote', '#ALTO', 14, 3000, 14); // ataques 14, medallas 3000, barcos 14
+const tagsDe = svgOuter => [...new Set((svgOuter.match(/data-tag="[^"]*"/g) || []))].sort();
+const graficas = cont => [...cont.querySelectorAll('.ing-linechart-card')];
+function escribirFiltro(w, cont, campo, valor){
+  const inp = cont.querySelector(`#ingFiltroY-${campo}`);
+  inp.value = String(valor);
+  inp.dispatchEvent(new w.Event('change', { bubbles: true }));
+}
+
+test('filtro Y: ingresosSeriesPorValorY compara con estrictos, usa solo los registros reales y conserva la posición original', () => {
+  const w = cargarDir();
+  const f = w.__t.ingresosSeriesPorValorY;
+  const ms = [BAJO(), ALTO(), serieFija('Sin datos', '#NADA', 1, 1, 1)];
+  ms[2].historialSemanal = [];
+  const menor = f(ms, 'ataques', 'menor', 12, null);
+  assert.deepEqual(menor.lista.map(m => m.tag), ['#BAJO']);
+  assert.equal(menor.idxs.join(','), '0');
+  const mayor = f(ms, 'barcos', 'mayor', 10, null);
+  assert.deepEqual(mayor.lista.map(m => m.tag), ['#ALTO']);
+  assert.equal(mayor.idxs.join(','), '1', 'conserva su posición en la lista completa (color estable)');
+  assert.equal(f(ms, 'ataques', 'menor', 6, null).lista.length, 0, 'igual al tope NO cuenta: «menos de 6» deja fuera a quien tiene 6');
+  assert.equal(f(ms, 'barcos', 'mayor', 14, null).lista.length, 0, 'igual al piso NO cuenta: «mayor que 14» deja fuera a quien tiene 14');
+  assert.equal(f(ms, 'ataques', 'menor', 100, null).lista.length, 2, 'un miembro sin registros nunca se muestra con filtro');
+});
+
+test('filtro Y: todos los valores deben cumplirlo; un solo valor que lo rompa deja fuera a la serie', () => {
+  const w = cargarDir();
+  const m = serieFija('Mixto', '#MIX', 6, 1500, 8);
+  m.historialSemanal[3].ataques = 13;
+  assert.equal(w.__t.ingresosSeriesPorValorY([m], 'ataques', 'menor', 12, null).lista.length, 0);
+  assert.equal(w.__t.ingresosSeriesPorValorY([m], 'ataques', 'menor', 14, null).lista.length, 1);
+  const etiquetas = new Set(SEMANAS14.filter((s, i) => i !== 3));
+  assert.equal(w.__t.ingresosSeriesPorValorY([m], 'ataques', 'menor', 12, etiquetas).lista.length, 1, 'si la semana que lo rompe no se ve, no cuenta');
+});
+
+test('filtro Y: cada gráfica trae su control (Ataques y Medallas «menores», Barcos «mayores») y arranca sin filtro', () => {
+  const w = cargarDir();
+  const cont = w.document.getElementById('chartsWrap');
+  w.__t.renderComparativaSemanal(cont, [BAJO(), ALTO()]);
+  const cartas = graficas(cont);
+  assert.equal(cartas.length, 3);
+  assert.match(cartas[0].querySelector('.ing-filtro-y label').textContent, /menores que/);
+  assert.match(cartas[1].querySelector('.ing-filtro-y label').textContent, /menores que/);
+  assert.match(cartas[2].querySelector('.ing-filtro-y label').textContent, /mayores que/);
+  cartas.forEach(c => {
+    assert.equal(c.querySelector('.ing-filtro-y-input').value, '');
+    assert.equal(c.querySelector('.ing-filtro-y-quitar').hidden, true);
+    assert.deepEqual(tagsDe(c.querySelector('svg.ing-linechart-svg').outerHTML), ['data-tag="#ALTO"', 'data-tag="#BAJO"']);
+  });
+});
+
+test('filtro Y: «menos de 12 ataques» deja solo a la serie con todos sus valores por debajo; las otras gráficas no cambian', () => {
+  const w = cargarDir();
+  const cont = w.document.getElementById('chartsWrap');
+  w.__t.renderComparativaSemanal(cont, [BAJO(), ALTO()]);
+  escribirFiltro(w, cont, 'ataques', 12);
+  const [ataques, medallas, barcos] = graficas(cont);
+  assert.deepEqual(tagsDe(ataques.querySelector('svg.ing-linechart-svg').outerHTML), ['data-tag="#BAJO"']);
+  assert.deepEqual(tagsDe(medallas.querySelector('svg.ing-linechart-svg').outerHTML), ['data-tag="#ALTO"', 'data-tag="#BAJO"'], 'medallas sin filtro');
+  assert.deepEqual(tagsDe(barcos.querySelector('svg.ing-linechart-svg').outerHTML), ['data-tag="#ALTO"', 'data-tag="#BAJO"'], 'barcos sin filtro');
+  assert.equal(ataques.querySelector('.ing-filtro-y-quitar').hidden, false);
+  assert.match(ataques.textContent, /Filtro: solo series con todos sus valores menores que 12 · 1 de 2 series/);
+});
+
+test('filtro Y: la leyenda lista solo las series que se ven y cada una conserva su color', () => {
+  const w = cargarDir();
+  const cont = w.document.getElementById('chartsWrap');
+  w.__t.renderComparativaSemanal(cont, [BAJO(), ALTO()]);
+  escribirFiltro(w, cont, 'ataques', 20); // las dos pasan
+  escribirFiltro(w, cont, 'puntaje', 2400); // solo la baja
+  const medallas = graficas(cont)[1];
+  const leyenda = medallas.querySelector('.ing-linechart-legend').textContent;
+  assert.match(leyenda, /Bajito/);
+  assert.doesNotMatch(leyenda, /Altote/);
+  const barcos = graficas(cont)[2];
+  escribirFiltro(w, cont, 'barcos', 10); // «mayor que 10»: solo la alta, que es la 2.ª de la lista completa
+  const svg = graficas(cont)[2].querySelector('svg.ing-linechart-svg').outerHTML;
+  assert.match(svg, /stroke="#f3a922"/, 'Altote es la serie 2: conserva el color 2 de la paleta, no pasa a ser el 1');
+  assert.doesNotMatch(svg, /stroke="#a239ff"/);
+  assert.match(graficas(cont)[2].querySelector('.ing-linechart-legend').innerHTML, /background:#f3a922/);
+  assert.ok(barcos);
+});
+
+test('filtro Y: Barcos usa «mayor que» (deja a quien tiene todos sus valores por encima)', () => {
+  const w = cargarDir();
+  const cont = w.document.getElementById('chartsWrap');
+  w.__t.renderComparativaSemanal(cont, [BAJO(), ALTO()]);
+  escribirFiltro(w, cont, 'barcos', 10);
+  assert.deepEqual(tagsDe(graficas(cont)[2].querySelector('svg.ing-linechart-svg').outerHTML), ['data-tag="#ALTO"']);
+  assert.match(graficas(cont)[2].textContent, /mayores que 10 · 1 de 2 series/);
+});
+
+test('filtro Y: si ninguna serie cumple se avisa en la gráfica y se puede quitar el filtro', () => {
+  const w = cargarDir();
+  const cont = w.document.getElementById('chartsWrap');
+  w.__t.renderComparativaSemanal(cont, [BAJO(), ALTO()]);
+  escribirFiltro(w, cont, 'ataques', 3);
+  const carta = graficas(cont)[0];
+  assert.match(carta.querySelector('.gv-chart').textContent, /Ninguna serie tiene todos sus valores menores que 3/);
+  assert.equal(carta.querySelector('svg.ing-linechart-svg'), null);
+  carta.querySelector('.ing-filtro-y-quitar').click();
+  const despues = graficas(cont)[0];
+  assert.deepEqual(tagsDe(despues.querySelector('svg.ing-linechart-svg').outerHTML), ['data-tag="#ALTO"', 'data-tag="#BAJO"']);
+  assert.equal(despues.querySelector('.ing-filtro-y-input').value, '');
+  assert.equal(despues.querySelector('.ing-filtro-y-quitar').hidden, true);
+});
+
+test('filtro Y: un valor vacío o inválido equivale a no filtrar, y el 0 sí es un valor válido', () => {
+  const w = cargarDir();
+  const cont = w.document.getElementById('chartsWrap');
+  w.__t.renderComparativaSemanal(cont, [BAJO(), ALTO()]);
+  escribirFiltro(w, cont, 'ataques', 12);
+  escribirFiltro(w, cont, 'ataques', '');
+  assert.deepEqual(tagsDe(graficas(cont)[0].querySelector('svg.ing-linechart-svg').outerHTML), ['data-tag="#ALTO"', 'data-tag="#BAJO"']);
+  escribirFiltro(w, cont, 'barcos', 0); // «mayor que 0»: pasan las dos
+  assert.deepEqual(tagsDe(graficas(cont)[2].querySelector('svg.ing-linechart-svg').outerHTML), ['data-tag="#ALTO"', 'data-tag="#BAJO"']);
+  assert.match(graficas(cont)[2].textContent, /mayores que 0 · 2 de 2 series/);
+});
+
+test('filtro Y: el filtro se conserva al repintar las gráficas (cambia la selección de miembros) y respeta la vista de temporadas', () => {
+  const w = cargarDir();
+  const cont = w.document.getElementById('chartsWrap');
+  w.__t.renderComparativaSemanal(cont, [BAJO(), ALTO()]);
+  escribirFiltro(w, cont, 'ataques', 12);
+  w.__t.renderComparativaSemanal(cont, [BAJO(), ALTO(), serieFija('Otro', '#OTRO', 2, 900, 3)]);
+  const carta = graficas(cont)[0];
+  assert.equal(carta.querySelector('.ing-filtro-y-input').value, '12', 'el campo vuelve con el valor guardado');
+  assert.deepEqual(tagsDe(carta.querySelector('svg.ing-linechart-svg').outerHTML), ['data-tag="#BAJO"', 'data-tag="#OTRO"']);
+});
+
+test('filtro Y: con «Últimas 6 temporadas» se miden solo las semanas que se ven (una semana vieja alta no descalifica a la serie)', () => {
+  const w = cargarDir();
+  const c = w.document.getElementById('chartsWrap');
+  const reciente = serieFija('Reciente', '#REC', 6, 1500, 8);
+  reciente.historialSemanal[0].ataques = 15; // la semana más vieja de la serie
+  const viejo = serieFija('Viejo', '#VIEJO', 1, 1500, 8); // solo trae las 5 semanas más antiguas: amplía el eje a más de 6 temporadas
+  viejo.historialSemanal = viejo.historialSemanal.slice(0, 5);
+  w.__t.renderComparativaSemanal(c, [reciente, viejo]);
+  const pill = c.querySelector('[data-pv="ultimas6"]');
+  assert.equal(pill.disabled, false, 'hay más de 6 temporadas: la vista recortada está disponible (si no, esta prueba no prueba nada)');
+  escribirFiltro(w, c, 'ataques', 12);
+  assert.deepEqual(tagsDe(graficas(c)[0].querySelector('svg.ing-linechart-svg').outerHTML), ['data-tag="#REC"'], 'recortada: la semana vieja de Reciente no cuenta y Viejo no tiene semanas visibles');
+  c.querySelector('[data-pv="ultimas6"]').click(); // ver todas las temporadas
+  assert.deepEqual(tagsDe(graficas(c)[0].querySelector('svg.ing-linechart-svg').outerHTML), ['data-tag="#VIEJO"'], 'con todas las semanas, Reciente (15 en la más vieja) queda fuera y Viejo entra');
+
 });

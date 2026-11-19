@@ -2536,7 +2536,7 @@ function lineChartSvg(miembros, campo, semanas, opts){
   }).join('');
 
   const seriesSvg = miembros.map((m, si) => {
-    const color = PALETA_SERIES[si % PALETA_SERIES.length];
+    const color = PALETA_SERIES[(opts.coloresIdx ? opts.coloresIdx[si] : si) % PALETA_SERIES.length]; // 18-nov-2026: con el filtro por valor de Y cada miembro conserva su color de la lista completa
     const puntos = (m.historialSemanal || [])
       .map(h => ({ idx: semanas.indexOf(semanaLabel(h.semana)), valor: Number(h[campo]) || 0, clan: h.clan || m.clan || '—', semana: semanaLabel(h.semana), temporada: h.temporada, semanaGuerra: h.semanaGuerra, diaGuerra: h.diaGuerra }))
       .filter(p => p.idx >= 0)
@@ -2621,7 +2621,7 @@ function htmlTooltipPuntoIngreso(pt){
  * assets/common.js — se usa m.clan (nombre real) siempre que exista, y
  * solo se cae a CLAN_LABELS_CORTOS como respaldo si el backend no
  * mandara clan para ese miembro. */
-function lineChartLegendHtml(miembros){
+function lineChartLegendHtml(miembros, coloresIdx){
   let clanPrevio;
   const items = miembros.map((m, i) => {
     const claveClan = claveClanMiembro(m); // §PF413 (6b): por Tag; dos clanes con el mismo nombre ya no se funden en una sola cabecera
@@ -2630,7 +2630,7 @@ function lineChartLegendHtml(miembros){
     const clanLabel = m.clan || CLAN_LABELS_CORTOS[ordenClanIndex(m.clan)] || '—';
     return `${esNuevoGrupo ? `<span class="ing-linechart-legend-clan">${enlaceClan(clanLabel, { tag: m.clanTag })}</span>` : ''}
     <span class="ing-linechart-legend-item">
-      <span class="ing-linechart-legend-dot" style="background:${PALETA_SERIES[i % PALETA_SERIES.length]};"></span>
+      <span class="ing-linechart-legend-dot" style="background:${PALETA_SERIES[(coloresIdx ? coloresIdx[i] : i) % PALETA_SERIES.length]};"></span>
       ${enlaceJugador(m.nombre, m.tag)}
     </span>`;
   }).join('');
@@ -2664,6 +2664,22 @@ function activarTooltipsGraficasIngresos(raiz){
   raiz.querySelectorAll('.ing-linechart-svg').forEach(svg => activarResalteSerieGrafica(svg, { selector: '.ing-serie-pt' }));
 }
 
+/** 18-nov-2026 (pedido de la usuaria): filtro por valor del eje Y de cada gráfica de «Ingresos recientes». null = sin filtro. Se guarda aquí (y no en el DOM) porque renderComparativaSemanal() reconstruye las tarjetas al cambiar la selección de miembros. [→ Contexto_Base_Web.md §PF512] */
+const ingresosFiltroY = { ataques: null, puntaje: null, barcos: null };
+
+/** Series (miembros) cuyos valores TODOS cumplen el filtro del eje Y: modo 'menor' = todos menores que `limite`, modo 'mayor' = todos mayores que `limite` (estrictos). Se miden solo los registros reales de las semanas dibujadas (`etiquetas`, o todas si es null); un miembro sin registros en esas semanas no se muestra. Devuelve la lista y, por cada miembro, su posición en la lista original (para conservar el color). */
+function ingresosSeriesPorValorY(miembros, campo, modo, limite, etiquetas){
+  const idxs = [];
+  const lista = miembros.filter((m, i) => {
+    const vals = (m.historialSemanal || []).filter(h => !etiquetas || etiquetas.has(semanaLabel(h.semana))).map(h => Number(h[campo]) || 0);
+    if (!vals.length) return false;
+    const ok = modo === 'mayor' ? vals.every(v => v > limite) : vals.every(v => v < limite);
+    if (ok) idxs.push(i);
+    return ok;
+  });
+  return { lista, idxs };
+}
+
 /** Arma las tres gráficas comparativas (Ataques, Puntaje y Barcos por
  * semana, una serie por miembro nuevo). Si nadie trae historialSemanal
  * todavía, no dibuja nada en vez de mostrar gráficas vacías. */
@@ -2676,15 +2692,22 @@ function renderComparativaSemanal(container, miembrosTodos){
   // 04-nov-2026 (pedido usuaria, §PF353): cada gráfica lleva su barra de vista (pastilla «Últimas 6 temporadas», zoom y tooltip del eje X; vista-grafica.js).
   // La leyenda se arma al pintar (depende de lo que se ve: el mínimo solo se menciona si hay un valor por debajo entre las semanas visibles).
   const cartasVista = [];
-  const chartCard = (icono, titulo, campo, unidad, tope) => {
-    cartasVista.push({ titulo, campo, unidad, tope });
+  // modo del filtro por valor de Y: Ataques y Medallas buscan a los que están por debajo de un tope («menor»); Barcos, a los que están por encima de un piso («mayor»).
+  const chartCard = (icono, titulo, campo, unidad, tope, modo) => {
+    cartasVista.push({ titulo, campo, unidad, tope, modo });
+    const fy = ingresosFiltroY[campo];
     return `
       <div class="card ing-linechart-card">
         <div class="chart-title">${icono} ${titulo}</div>
+        <div class="ing-filtro-y">
+          <label for="ingFiltroY-${campo}" title="Se miden las semanas que se ven en la gráfica (respeta «Últimas ${VISTA_GRAFICA_TEMPORADAS} temporadas»)">Ver solo series con todos sus valores ${modo === 'mayor' ? 'mayores' : 'menores'} que</label>
+          <input type="number" id="ingFiltroY-${campo}" class="ing-filtro-y-input" data-campo="${campo}" min="0" step="any" inputmode="decimal" placeholder="Valor" value="${fy == null ? '' : fy}">
+          <button type="button" class="ing-filtro-y-quitar" data-campo="${campo}"${fy == null ? ' hidden' : ''}>Quitar filtro</button>
+        </div>
         <div class="gv-chart"></div>
       </div>`;
   };
-  const leyendaCard = (tope, hayBajoMin) => `
+  const leyendaCard = (tope, hayBajoMin, lista, idxs, filtroTxt) => `
         <div class="ing-chart-leyenda">
           <div class="ing-chart-leyenda-fila">
             <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><circle cx="5" cy="5" r="4" fill="var(--text-dim)"></circle></svg>
@@ -2702,38 +2725,74 @@ function renderComparativaSemanal(container, miembrosTodos){
             <svg width="22" height="10" viewBox="0 0 22 10" aria-hidden="true"><line x1="0" y1="5" x2="22" y2="5" stroke="var(--gold)" stroke-width="1.8" stroke-dasharray="4 3"></line></svg>
             Línea punteada = mínimo (${esc(fmtNum(minimoMetricaGuerra()))}) · punto rojo = por debajo del mínimo (anomalía)
           </div>` : ''}
+          ${filtroTxt ? `<div class="ing-chart-leyenda-fila">${esc(filtroTxt)}</div>` : ''}
         </div>
-        ${lineChartLegendHtml(miembros)}`;
+        ${lineChartLegendHtml(lista, idxs)}`;
   container.innerHTML = `
     <div class="comparativa-grid">
-      ${chartCard('⚔️', 'Ataques por semana', 'ataques', 'ataques', TOPE_ATAQUES_SEMANA)}
-      ${chartCard('⭐', 'Medallas por semana', 'puntaje', 'de medallas', TOPE_MEDALLAS_SEMANA)}
-      ${chartCard('🚢', 'Barcos por semana', 'barcos', 'barcos', TOPE_BARCOS_SEMANA)}
+      ${chartCard('⚔️', 'Ataques por semana', 'ataques', 'ataques', TOPE_ATAQUES_SEMANA, 'menor')}
+      ${chartCard('⭐', 'Medallas por semana', 'puntaje', 'de medallas', TOPE_MEDALLAS_SEMANA, 'menor')}
+      ${chartCard('🚢', 'Barcos por semana', 'barcos', 'barcos', TOPE_BARCOS_SEMANA, 'mayor')}
     </div>
     ${hayEstimadas ? `<p class="text-faint" style="font-size:13px; margin-top:8px;">≈ Fecha estimada: registros de antes de que se guardara la fecha real de cada semana (esquema viejo "Semana N"), calculada contando semanas hacia atrás desde el primer registro con fecha real.</p>` : ''}`;
   const huecos = Array.from(container.querySelectorAll('.gv-chart'));
   const fechasSem = (() => { const est = construirFechasEstimadasSemanasViejas(semanas); return semanas.map(s => (typeof vistaGraficaFecha === 'function' ? vistaGraficaFecha(s) : null) || est.get(s) || null); })();
-  cartasVista.forEach((c, i) => {
-    const hueco = huecos[i];
-    if (!hueco) return;
+  // Dibuja una gráfica con la vista dada ({ ultimas6, zoom }) y el filtro por valor de Y de su métrica. Devuelve { antes, html, total } (lo que espera vistaGraficaMontar).
+  const dibujarCarta = (c, vista) => {
     const ejeY = c.titulo.split(' ')[0];
+    const v = typeof vistaGraficaVisibles === 'function'
+      ? vistaGraficaVisibles(fechasSem, vista.ultimas6 ? VISTA_GRAFICA_TEMPORADAS : Infinity)
+      : { visibles: semanas.map(() => true), total: 0, recortado: false };
+    const etiquetas = new Set(semanas.filter((s, k) => v.visibles[k]).map(semanaLabel));
+    const fy = ingresosFiltroY[c.campo];
+    const sel = fy == null ? { lista: miembros, idxs: null } : ingresosSeriesPorValorY(miembros, c.campo, c.modo, fy, etiquetas);
+    if (!sel.lista.length){
+      return { antes: '', html: `<div class="empty">Ninguna serie tiene todos sus valores ${c.modo === 'mayor' ? 'mayores' : 'menores'} que ${esc(fmtNum(fy))}. Cambia el valor o quita el filtro.</div>`, total: v.total };
+    }
+    const filtroTxt = fy == null ? '' : `Filtro: solo series con todos sus valores ${c.modo === 'mayor' ? 'mayores' : 'menores'} que ${fmtNum(fy)} · ${sel.lista.length} de ${miembros.length} series`;
+    const hayBajoMin = sel.lista.some(m => hayBajoMinimo((m.historialSemanal || []).filter(h => etiquetas.has(semanaLabel(h.semana))).map(h => Number(h[c.campo]) || 0), minimoMetricaGuerra()));
+    return {
+      antes: leyendaCard(c.tope, hayBajoMin, sel.lista, sel.idxs, filtroTxt),
+      html: lineChartSvg(sel.lista, c.campo, semanas, { unidad: c.unidad, ejeY, tope: c.tope, minimo: minimoMetricaGuerra(), visibles: v.recortado ? v.visibles : null, zoom: vista.zoom, coloresIdx: sel.idxs }),
+      total: v.total
+    };
+  };
+  const pintarCarta = (i) => {
+    const hueco = huecos[i], c = cartasVista[i];
+    if (!hueco || !c) return;
     // Sin vista-grafica.js (no debería pasar) se pinta como antes: todo el historial, sin barra.
     if (typeof vistaGraficaMontar !== 'function'){
-      hueco.innerHTML = leyendaCard(c.tope, miembros.some(m => hayBajoMinimo((m.historialSemanal || []).map(h => Number(h[c.campo]) || 0), minimoMetricaGuerra()))) + lineChartSvg(miembros, c.campo, semanas, { unidad: c.unidad, ejeY, tope: c.tope, minimo: minimoMetricaGuerra() });
+      const r = dibujarCarta(c, { ultimas6: false, zoom: 1 });
+      hueco.innerHTML = r.antes + r.html;
       activarTooltipsGraficasIngresos(hueco);
       return;
     }
-    vistaGraficaMontar(hueco, vista => {
-      const v = vistaGraficaVisibles(fechasSem, vista.ultimas6 ? VISTA_GRAFICA_TEMPORADAS : Infinity);
-      const etiquetas = new Set(semanas.filter((s, k) => v.visibles[k]).map(semanaLabel));
-      const hayBajoMin = miembros.some(m => hayBajoMinimo((m.historialSemanal || []).filter(h => etiquetas.has(semanaLabel(h.semana))).map(h => Number(h[c.campo]) || 0), minimoMetricaGuerra()));
-      return {
-        antes: leyendaCard(c.tope, hayBajoMin),
-        html: lineChartSvg(miembros, c.campo, semanas, { unidad: c.unidad, ejeY, tope: c.tope, minimo: minimoMetricaGuerra(), visibles: v.recortado ? v.visibles : null, zoom: vista.zoom }),
-        total: v.total
-      };
-    }, el => activarTooltipsGraficasIngresos(el));
+    vistaGraficaMontar(hueco, vista => dibujarCarta(c, vista), el => activarTooltipsGraficasIngresos(el));
+  };
+  cartasVista.forEach((c, i) => pintarCarta(i));
+  // Filtro por valor de Y: al escribir (con una pausa corta) se repinta solo esa gráfica; el control está fuera de .gv-chart, así que el campo no pierde el foco.
+  container.querySelectorAll('.ing-filtro-y-input').forEach(inp => {
+    let t = null;
+    const aplicar = () => {
+      const campo = inp.dataset.campo;
+      const n = inp.value.trim() === '' ? NaN : Number(inp.value.replace(',', '.'));
+      ingresosFiltroY[campo] = Number.isFinite(n) && n >= 0 ? n : null;
+      const quitar = container.querySelector(`.ing-filtro-y-quitar[data-campo="${campo}"]`);
+      if (quitar) quitar.hidden = ingresosFiltroY[campo] == null;
+      pintarCarta(cartasVista.findIndex(c => c.campo === campo));
+    };
+    inp.addEventListener('input', () => { clearTimeout(t); t = setTimeout(aplicar, 250); });
+    inp.addEventListener('change', () => { clearTimeout(t); aplicar(); });
   });
+  container.querySelectorAll('.ing-filtro-y-quitar').forEach(btn => btn.addEventListener('click', () => {
+    const campo = btn.dataset.campo;
+    const inp = container.querySelector(`.ing-filtro-y-input[data-campo="${campo}"]`);
+    if (inp) inp.value = '';
+    ingresosFiltroY[campo] = null;
+    btn.hidden = true;
+    pintarCarta(cartasVista.findIndex(c => c.campo === campo));
+    if (inp) inp.focus();
+  }));
 }
 
 /**
