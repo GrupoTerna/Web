@@ -74,6 +74,8 @@ function botonAlertaClanesHtml(f){
 }
 function alertaRepintar(){
   if (!alertaTags) return;
+  // 19-nov-2026: si el resumen nuevo ya no incluye a alguien que salió del caché, se le quita el ⚠️.
+  document.querySelectorAll('.btn-alerta-clanes').forEach(a => { if (!alertaClanesDe(a.dataset.tag)) a.remove(); });
   document.querySelectorAll('.btn-hist-jugador').forEach(b => {
     const prev = b.previousElementSibling;
     const wsp = (prev && (prev.classList.contains('hist-wsp') || prev.classList.contains('ico-wsp'))) ? prev : null;
@@ -83,19 +85,38 @@ function alertaRepintar(){
     (wsp || b).insertAdjacentHTML('beforebegin', botonAlertaClanesHtml({ tag: b.dataset.tag, nombre: b.dataset.nombre }));
   });
 }
+/* 19-nov-2026 (pedido de la usuaria): el resumen se guarda en sessionStorage (solo esa pestaña, se borra al cerrarla) para que el ⚠️ salga junto con la tabla en las visitas siguientes; la petición al backend se hace igual y, al llegar, actualiza el caché y corrige lo pintado. El caché solo se lee con sesión de admin y vence a las 12 h. */
+const ALERTA_CACHE_CLAVE = 'terna_alerta_tags_v1';
+const ALERTA_CACHE_MS = 12 * 60 * 60 * 1000;
+function alertaCacheLeer(){
+  try{
+    const c = JSON.parse(sessionStorage.getItem(ALERTA_CACHE_CLAVE) || 'null');
+    if (c && typeof c.t === 'number' && Date.now() - c.t < ALERTA_CACHE_MS && c.jugadores && typeof c.jugadores === 'object') return c.jugadores;
+  }catch(_){ /* sin caché se pide al backend como siempre */ }
+  return null;
+}
+function alertaCacheGuardar(jugadores){
+  try{ sessionStorage.setItem(ALERTA_CACHE_CLAVE, JSON.stringify({ t: Date.now(), jugadores: jugadores })); }catch(_){ /* sin almacenamiento solo falta el caché */ }
+}
+function alertaAplicar(jugadores){
+  const mapa = new Map();
+  Object.keys(jugadores).forEach(t => { const a = jugadores[t]; if (a && Number(a.n) > 0) mapa.set(wspClaveTag(t), { n: Number(a.n), tipos: Array.isArray(a.tipos) ? a.tipos : [] }); });
+  alertaTags = mapa;
+  alertaRepintar();
+  // §PF385: avisa a las páginas que pintan su propio ⚠️ fuera de las tablas (perfil.html, junto al botón de RoyaleAPI).
+  if (typeof CustomEvent === 'function') document.dispatchEvent(new CustomEvent('alerta-tags-listas'));
+}
 async function alertaCargarTags(){
   if (typeof esAdminLogueado !== 'function' || !esAdminLogueado()) return;
   // 5-nov-2026 (§PF385): perfil.html (data-sin-wsp-tags) ya NO queda fuera: muestra el ⚠️ a la izquierda del botón de RoyaleAPI y necesita el resumen. Lo que sigue excluido en el perfil es solo la lista de WhatsApp.
+  const enCache = alertaCacheLeer();
+  if (enCache) alertaAplicar(enCache);
   try{
     const data = await apiGetAuth('webAdminTagsClanesSospechosos', {});
     if (!data || data.ok === false || !data.jugadores || typeof data.jugadores !== 'object') return;
-    const mapa = new Map();
-    Object.keys(data.jugadores).forEach(t => { const a = data.jugadores[t]; if (a && Number(a.n) > 0) mapa.set(wspClaveTag(t), { n: Number(a.n), tipos: Array.isArray(a.tipos) ? a.tipos : [] }); });
-    alertaTags = mapa;
-    alertaRepintar();
-    // §PF385: avisa a las páginas que pintan su propio ⚠️ fuera de las tablas (perfil.html, junto al botón de RoyaleAPI).
-    if (typeof CustomEvent === 'function') document.dispatchEvent(new CustomEvent('alerta-tags-listas'));
-  }catch(_){ /* sin el resumen solo falta el ⚠️; el 📈 y el WhatsApp siguen igual */ }
+    alertaCacheGuardar(data.jugadores);
+    alertaAplicar(data.jugadores);
+  }catch(_){ /* sin el resumen solo falta el ⚠️ (o queda el del caché); el 📈 y el WhatsApp siguen igual */ }
 }
 if (typeof document !== 'undefined') { if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', alertaCargarTags); else alertaCargarTags(); }
 /* 5-nov-2026 (§PF375, paso 2): modal propio del ⚠️ (#alertaFondo, aparte de #histFondo del 📈). Pide webAdminClanesSospechososJugador (tag) y por cada clan vetado o rival del jugador muestra su nombre, Tag, tipo, semanas jugadas, «primera → última» y la tabla de esas semanas (ataques, barcos y medallas por semana; son filas `externa` del JSON individual de RoyaleAPI, §PF340, no el historial diario del 📈). Si el JSON individual no se pudo leer (historialDisponible:false) se siguen mostrando los clanes y sus semanas del archivo de alertas. Cierra con ×, clic fuera o Esc. */

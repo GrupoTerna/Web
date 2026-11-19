@@ -139,6 +139,7 @@ function cerrarSesionAdmin(){
   localStorage.removeItem(SESSION_KEY_ADMIN);
   localStorage.removeItem('terna_admin_info');
   localStorage.removeItem(PANEL_PERMISOS_KEY);
+  try{ sessionStorage.removeItem('terna_alerta_tags_v1'); }catch(_){ /* caché del ⚠️ (mini-historial.js) */ }
   if(!token) return Promise.resolve();
   try{
     return apiPost('webAuthLogout', { sessionToken: token }).then(() => {}, () => { /* se ignora: el cierre local ya se hizo */ });

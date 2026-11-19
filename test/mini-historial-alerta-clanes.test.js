@@ -222,3 +222,27 @@ test('directorio.html: el clic del ⚠️ no abre además el perfil de la fila n
   assert.match(d, /closest\('\.btn-hist-jugador, \.btn-alerta-clanes'\)\) e\.stopPropagation\(\)/, 'la caja de .links deja pasar el ⚠️');
   assert.match(d, /\.nuevo-card \.links \.btn-alerta-clanes\{display:inline-flex;[^}]*width:28px; height:28px;/);
 });
+
+// NUEVO (19-nov-2026, pedido de la usuaria): el resumen del ⚠️ se guarda en sessionStorage; con caché el ⚠️ sale antes de que responda el backend y la respuesta nueva corrige lo pintado.
+test('con caché el ⚠️ sale sin esperar al backend y la respuesta nueva quita a quien ya no figura', async () => {
+  const w = cargar({ resumen: { ok: true, jugadores: { XYZ: { n: 1, tipos: ['rival'] } } } });
+  w.sessionStorage.setItem('terna_alerta_tags_v1', JSON.stringify({ t: Date.now(), jugadores: { ABC: { n: 2, tipos: ['vetado'] } } }));
+  w.document.getElementById('celda').innerHTML = w.botonHistJugador({ tag: '#ABC', nombre: 'Ana' });
+  const p = w.alertaCargarTags();
+  assert.ok(w.alertaClanesDe('#ABC'), 'con el caché ya figura antes de que responda el backend');
+  await p;
+  assert.equal(w.alertaClanesDe('#ABC'), null, 'la respuesta nueva reemplaza al caché');
+  assert.ok(w.alertaClanesDe('#XYZ'));
+  assert.equal(w.document.querySelectorAll('.btn-alerta-clanes').length, 0, 'se quitó el ⚠️ de quien ya no figura');
+  assert.ok(JSON.parse(w.sessionStorage.getItem('terna_alerta_tags_v1')).jugadores.XYZ, 'el caché queda con el resumen nuevo');
+});
+
+test('un caché vencido no se usa y sin sesión de admin no se lee', async () => {
+  const w = cargar();
+  w.sessionStorage.setItem('terna_alerta_tags_v1', JSON.stringify({ t: Date.now() - 13 * 3600 * 1000, jugadores: { OLD: { n: 1, tipos: ['rival'] } } }));
+  assert.equal(w.alertaCacheLeer(), null);
+  const w2 = cargar({ admin: false });
+  w2.sessionStorage.setItem('terna_alerta_tags_v1', JSON.stringify({ t: Date.now(), jugadores: { ABC: { n: 1, tipos: ['rival'] } } }));
+  await w2.alertaCargarTags();
+  assert.equal(w2.alertaClanesDe('#ABC'), null);
+});
