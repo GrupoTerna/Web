@@ -169,6 +169,22 @@ test('la tabla trae la columna «Clan actual»: enlace para el activo y «—» 
   assert.equal(filas[1].querySelectorAll('td')[3].textContent.trim(), '—');
 });
 
+// NUEVO (18-nov-2026, §PF515): el inactivo muestra su último clan conocido; si el backend solo conoce el Tag del clan, sale ese Tag.
+test('el inactivo muestra su último clan conocido en «Clan actual»', async () => {
+  const datos = { ...DATOS, clanes: [{ ...DATOS.clanes[0], jugadores: [{ ...jug(1, false), clanActual: 'GrupoXTerna™2', clanActualTag: '#GYCU9YRG', clanUltimo: true }, jug(2, false)] }] };
+  const w = montar(datos);
+  await cargar(w);
+  categoria(w, 'rival');
+  const clan = w.document.querySelector('.ce-clan');
+  abrir(w, clan);
+  const filas = clan.querySelectorAll('tbody tr');
+  const celda = filas[0].querySelectorAll('td')[3];
+  assert.equal(celda.textContent.trim(), 'GrupoXTerna™2');
+  assert.equal(celda.querySelector('a.ce-clan-link').getAttribute('href'), 'admin.html?clan=%23GYCU9YRG#cardBuscarClan');
+  assert.match(celda.getAttribute('title'), /Último clan conocido/);
+  assert.equal(filas[1].querySelectorAll('td')[3].textContent.trim(), '—', 'sin dato queda «—»');
+});
+
 test('lo que manda el backend se escapa y un error del backend se muestra', async () => {
   const w = montar();
   await cargar(w);
