@@ -30,8 +30,8 @@ test('los textos de la sección «¿Tiene infiltrados?» no limitan el ancho con
   const ini = HTML.indexOf('function _seccionExMiembrosClan(');
   const fin = HTML.indexOf('/* 5-nov-2026 (pedido de la usuaria, §PF368): «Buscar clan».', ini); // hasta donde acaba la sección «¿Tiene infiltrados?»; el texto de la ficha del clan (más abajo) no cuenta
   assert.ok(ini >= 0 && fin > ini, 'marcadores no encontrados (¿se reorganizó admin.html?)');
-  const ini2 = HTML.indexOf('Sin coincidencias', ini);
+  const ini2 = HTML.indexOf('Ningún miembro actual está en nuestro roster', ini);
   const trozo = HTML.slice(ini, fin);
-  assert.ok(ini2 > ini, 'se encontró el texto «Sin coincidencias»');
+  assert.ok(ini2 > ini, 'se encontró el texto «Ningún miembro actual está en nuestro roster»');
   assert.ok(!/max-width:\s*\d+px/.test(trozo), 'sin max-width en px en esa sección');
 });

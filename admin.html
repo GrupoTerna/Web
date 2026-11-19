@@ -613,7 +613,7 @@
     <!-- 5-nov-2026 (pedido de la usuaria, §PF368): «Detección de infiltrados: revisar un clan» pasó a ser «Buscar clan», una tarjeta del mismo nivel y estilo que «Buscar miembro» (antes era una subsección dentro de ella). Por ahora se busca por Tag; la usuaria pidió dejar el sitio para ingresar después las características de los clanes deseados. La ficha del clan lleva las pastillas «Vetar» (agrega el clan a la hoja Conflictos) y «¿Infiltrado?» (cruza sus miembros actuales con nuestro roster). -->
     <div class="card pf-cinta" id="cardBuscarClan" style="--cinta:url(Im%C3%A1genes/Banners/Fankit/cinta-clan-roster.webp); margin-top:24px;">
       <div class="eyebrow">Buscar clan</div>
-      <p class="text-dim" style="font-size:13px; margin:10px 0 14px;">Busca un clan por su Tag (con o sin #). Verás su ficha y si es rival de esta temporada o está en la lista de conflicto (hoja «Conflictos»); desde ahí puedes vetarlo o revisar si tiene infiltrados entre sus miembros actuales.</p>
+      <p class="text-dim" style="font-size:13px; margin:10px 0 14px;">Busca un clan por su Tag (con o sin #). Verás su ficha y si es rival de esta temporada o está en la lista de conflicto (hoja «Conflictos»); desde ahí puedes vetarlo o cruzar sus miembros actuales con nuestro roster.</p>
       <div class="buscador">
         <input type="text" id="clanTagInput" aria-label="Tag del clan" placeholder="Ej: #ABC123XYZ" autocapitalize="characters" autocomplete="off">
         <button type="button" class="btn btn-primary" id="btnBuscarClan">Buscar clan</button>
@@ -652,7 +652,7 @@
               <div id="clanVetarPastillaBox" style="display:none;">
                 <button type="button" class="tab-clan btn-vetar-pastilla" id="btnClanVetarPastilla" aria-expanded="false" aria-controls="clanVetarPanel" style="border-color:var(--danger); color:var(--danger);">🚫 Vetar</button>
               </div>
-              <button type="button" class="tab-clan" id="btnClanInfiltradoPastilla" aria-expanded="false" aria-controls="clanInfiltradoPanel">🕵️ ¿Infiltrado?</button>
+              <button type="button" class="tab-clan" id="btnClanInfiltradoPastilla" aria-expanded="false" aria-controls="clanInfiltradoPanel">🔎 Cruce con roster</button>
             </div>
             <!-- 5-nov-2026 (pedido de la usuaria, §PF381): RoyaleAPI y CWStats pasan de un botón suelto bajo el nombre a dos pastillas con ícono y texto, como en directorio, debajo de «En conflicto» y «¿Infiltrado?». Los ids cVerClan (RoyaleAPI) y cVerClanCw (CWStats) los rellena reiniciarFichaClan(). -->
             <div class="ext-links" id="clanExtLinks">
@@ -2596,7 +2596,7 @@ function _seccionExMiembrosClan(data){
   const sinIndice = data.indiceClanesDisponible === false;
   if(!data.esClanVetado && data.indiceClanesDisponible === undefined) return '';
   const subtitulo = t => `<div class="inf-sub">${t}</div>`;
-  const titulo = subtitulo('Jugadores nuestros que pasaron por este clan');
+  const titulo = subtitulo('Jugadores nuestros que jugaron guerra en este clan');
   if(!ex.length){
     if(data.esClanVetado) return titulo + '<div class="empty">Ninguno figura en Directorio, Inactivos ni Vetados con este clan o con la razón «NARANJA x».</div>';
     if(sinIndice) return titulo + '<div class="empty">Aún no hay un índice completo de clanes externos, así que no se puede saber quiénes pasaron por este clan.</div>';
@@ -2607,11 +2607,11 @@ function _seccionExMiembrosClan(data){
   const inactivos = ex.filter(f => f.origen !== 'Directorio');
   const nota = data.esClanVetado
     ? 'Ya no están en el clan. Salen de nuestro roster por su Clan Tag, o porque su Razón o su Clan es «NARANJA x».'
-    : 'Ya no están en el clan. Salen del historial de guerra de nuestros jugadores (RoyaleAPI); quien no está en ninguna hoja figura como «Fuera del roster».';
+    : 'Ya no están en este clan. Salen del historial de guerra de RoyaleAPI: jugaron guerra aquí en las semanas que indica la tabla. El historial no dice si venían de este clan hacia el nuestro o al revés. «Activos» son los que hoy están en alguno de nuestros clanes; «Inactivos», los que ya no. Quien no está en ninguna hoja figura como «Fuera del roster».';
   const aviso = sinIndice ? '<div class="inf-pie" style="margin:0 0 10px;">El índice de clanes externos aún no está completo: solo se muestra lo del clan vetado.</div>' : '';
   const pie = `<div class="inf-pie">«Semanas en este clan» y «Primera → última» salen del historial de guerra de RoyaleAPI${data.esClanVetado ? '; con «—», figura en nuestro roster por su Clan Tag o por la razón «NARANJA x», pero no hay semanas en el índice' : ''}. Recién se están guardando los perfiles completos, así que al principio habrá pocos.</div>`;
   return titulo + `<div class="inf-nota">${nota}</div>${aviso}`
-    + subtitulo(`Activos en nuestros clanes (${activos.length})`) + _bloqueActivosClan(g)
+    + subtitulo(`Activos: hoy están en nuestros clanes (${activos.length})`) + _bloqueActivosClan(g)
     + subtitulo(`Inactivos: ya no están en nuestros clanes (${inactivos.length})`)
     + (inactivos.length ? _tablaExMiembros(inactivos) : '<div class="empty">Ninguno.</div>')
     + pie;
@@ -2628,8 +2628,8 @@ function renderInfiltrado(data, cont, conVeredicto = false){
       const n = filas.length;
       const veredictoClan = n
         ? `<span class="badge badge-warn">${n === 1 ? '1 miembro actual figura' : n + ' miembros actuales figuran'} en nuestro roster</span><div class="inf-nota">Son miembros de este clan que también están en Directorio, Inactivos o Vetados.</div>`
-        : '<span class="badge">Sin coincidencias</span><div class="inf-nota">Ninguno de sus miembros actuales figura en nuestro roster (Directorio, Inactivos o Vetados). Esto no prueba que no haya infiltrados: solo revisa a quienes están hoy en el clan.</div>';
-      cont.innerHTML = `<div class="inf-veredicto">${veredictoClan}</div>` + (n ? `<div style="margin-top:14px;">${_tablaCoincidencias(filas, true)}</div>` : '') + _seccionExMiembrosClan(data);
+        : '<span class="badge">Ningún miembro actual está en nuestro roster</span><div class="inf-nota">Ninguno de los que hoy están en este clan figura en Directorio, Inactivos ni Vetados. Esta revisión no incluye a los jugadores nuestros que jugaron guerra aquí y ya salieron: esos están más abajo.</div>';
+      cont.innerHTML = `<div class="inf-sub">Miembros actuales de este clan que figuran en nuestro roster</div><div class="inf-veredicto">${veredictoClan}</div>` + (n ? `<div style="margin-top:14px;">${_tablaCoincidencias(filas, true)}</div>` : '') + _seccionExMiembrosClan(data);
       cont.querySelectorAll('.tabla-coincidencias-wrap').forEach(w => activarBarraScrollTabla(w));
       _enlazarActivosClan(cont, data);
       return;
@@ -2757,7 +2757,7 @@ function reiniciarFichaClan(data){
   const pi = document.getElementById('btnClanInfiltradoPastilla');
   pi.classList.remove('activo');
   pi.setAttribute('aria-expanded', 'false');
-  document.getElementById('clanInfTitulo').textContent = `¿Tiene infiltrados? ${c.nombre} (${c.tag})`;
+  document.getElementById('clanInfTitulo').textContent = `Cruce con nuestro roster: ${c.nombre} (${c.tag})`;
   document.getElementById('clanInfMsg').innerHTML = '';
   document.getElementById('clanInfResultado').innerHTML = '';
   // «Vetar» cerrada y con el formulario vacío

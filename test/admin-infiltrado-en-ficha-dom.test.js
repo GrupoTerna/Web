@@ -137,8 +137,8 @@ test('renderInfiltrado de un clan en modo ficha: solo veredicto y tabla, sin rep
   assert.match(cont.textContent, /Infiltrado Uno/);
   assert.doesNotMatch(cont.textContent, /50 miembros actuales/, 'la cabecera del clan ya está en la ficha');
   w.renderInfiltrado({ ok: true, tipo: 'clan', clan: { tag: '#CLAN1', nombre: 'Clan Rival', miembros: 50 }, infoRival: null, coincidencias: [] }, cont, true);
-  assert.match(cont.textContent, /Sin coincidencias/);
-  assert.match(cont.textContent, /no prueba que no haya infiltrados/);
+  assert.match(cont.textContent, /Ningún miembro actual está en nuestro roster/);
+  assert.match(cont.textContent, /no incluye a los jugadores nuestros que jugaron guerra aquí y ya salieron/);
   assert.equal(cont.querySelector('table'), null);
 });
 
@@ -313,7 +313,7 @@ test('«Buscar clan» consulta webAdminBuscarClan con el Tag normalizado y pinta
   assert.match(id(w, 'cTrofeos').textContent, /3.?210/);
   assert.match(id(w, 'cBadge').textContent, /Rival de esta temporada/);
   assert.equal(id(w, 'cVerClan').href, 'https://royaleapi.com/clan/CLAN1');
-  assert.equal(id(w, 'clanInfTitulo').textContent, '¿Tiene infiltrados? Clan Rival (#CLAN1)');
+  assert.equal(id(w, 'clanInfTitulo').textContent, 'Cruce con nuestro roster: Clan Rival (#CLAN1)');
   assert.equal(id(w, 'btnClanVetarPastilla').disabled, false);
   assert.equal(id(w, 'btnClanVetarPastilla').textContent, '🚫 Vetar');
 });
@@ -387,8 +387,8 @@ test('clan vetado: «¿Infiltrado?» lista a los jugadores nuestros que pasaron 
   await buscarClanEn(w, '#CLAN1');
   clic(w, 'btnClanInfiltradoPastilla'); await esperar();
   const t = id(w, 'clanInfResultado').textContent;
-  assert.match(t, /Sin coincidencias/);
-  assert.match(t, /Jugadores nuestros que pasaron por este clan/);
+  assert.match(t, /Ningún miembro actual está en nuestro roster/);
+  assert.match(t, /Jugadores nuestros que jugaron guerra en este clan/);
   assert.match(t, /Ex Vetado Uno/);
   assert.match(t, /Ex Vetado Dos/);
   assert.match(t, /Inactivos/);
@@ -403,7 +403,7 @@ test('clan vetado sin ex miembros en el roster lo dice; un clan que no es el vet
   w = montar({ respuestas: [respuestaClan(), { ok: true, tipo: 'clan', clan: { tag: '#CLAN1', nombre: 'Clan Rival', miembros: 48 }, infoRival: null, coincidencias: [] }] });
   await buscarClanEn(w, '#CLAN1');
   clic(w, 'btnClanInfiltradoPastilla'); await esperar();
-  assert.doesNotMatch(id(w, 'clanInfResultado').textContent, /pasaron por este clan/);
+  assert.doesNotMatch(id(w, 'clanInfResultado').textContent, /jugaron guerra en este clan/);
 });
 
 const respuestaClanIndice = extra => ({ ok: true, tipo: 'clan', clan: { tag: '#CLAN1', nombre: 'Clan Rival', miembros: 48 }, infoRival: null, coincidencias: [], ...extra });
@@ -415,7 +415,7 @@ test('cualquier clan con índice de clanes externos: «¿Infiltrado?» lista a l
   await buscarClanEn(w, '#CLAN1');
   clic(w, 'btnClanInfiltradoPastilla'); await esperar();
   const t = id(w, 'clanInfResultado').textContent;
-  assert.match(t, /Jugadores nuestros que pasaron por este clan/);
+  assert.match(t, /Jugadores nuestros que jugaron guerra en este clan/);
   assert.match(t, /Ex Inactivo/);
   assert.match(t, /Fuera del roster/);
   assert.match(t, /#Z9/);
@@ -436,7 +436,7 @@ test('«pasaron por este clan» separa ACTIVOS por clan nuestro (Directorio) e I
   clic(w, 'btnClanInfiltradoPastilla'); await esperar();
   const cont = id(w, 'clanInfResultado');
   const t = cont.textContent;
-  assert.match(t, /Activos en nuestros clanes \(2\)/);
+  assert.match(t, /Activos: hoy están en nuestros clanes \(2\)/);
   assert.match(t, /Inactivos: ya no están en nuestros clanes \(2\)/);
   // §PF374: una pastilla por clan nuestro (también los vacíos, en el orden de CLANES_REQUISITOS) con su cantidad entre paréntesis, y una sola tabla de activos
   const pastillas = [...cont.querySelectorAll('.ex-clan-pill')].map(b => b.textContent.replace(/\s+/g, ' ').trim());
@@ -490,7 +490,7 @@ test('sin activos ni inactivos que mostrar en uno de los dos grupos: lo dice (5-
   await buscarClanEn(w, '#CLAN1');
   clic(w, 'btnClanInfiltradoPastilla'); await esperar();
   const t = id(w, 'clanInfResultado').textContent;
-  assert.match(t, /Activos en nuestros clanes \(0\)/);
+  assert.match(t, /Activos: hoy están en nuestros clanes \(0\)/);
   assert.match(t, /Inactivos: ya no están en nuestros clanes \(1\)/);
   assert.match(t, /Solo Vetado/);
 });
@@ -514,7 +514,7 @@ test('clan sin índice completo (indiceClanesDisponible false): lo dice y no inv
   await buscarClanEn(w, '#CLAN1');
   clic(w, 'btnClanInfiltradoPastilla'); await esperar();
   const t = id(w, 'clanInfResultado').textContent;
-  assert.match(t, /Jugadores nuestros que pasaron por este clan/);
+  assert.match(t, /Jugadores nuestros que jugaron guerra en este clan/);
   assert.match(t, /Aún no hay un índice completo de clanes externos/);
 });
 
@@ -576,7 +576,7 @@ test('«¿Infiltrado?» del clan: un error se muestra y al volver a abrir se rei
   clic(w, 'btnClanInfiltradoPastilla'); await esperar();
   assert.match(id(w, 'clanInfMsg').textContent, /Falló la API/);
   clic(w, 'btnClanInfiltradoPastilla'); clic(w, 'btnClanInfiltradoPastilla'); await esperar();
-  assert.match(id(w, 'clanInfResultado').textContent, /Sin coincidencias/);
+  assert.match(id(w, 'clanInfResultado').textContent, /Ningún miembro actual está en nuestro roster/);
 });
 
 test('«Vetar» del clan: sin motivo no manda nada; si se cancela la confirmación tampoco; con motivo manda webAdminVetarClan y deja el clan en conflicto', async () => {
