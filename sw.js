@@ -328,7 +328,8 @@
 // v280 (18-nov-2026): directorio.html cambió (CORE_ASSETS) -- cada gráfica de «Ingresos recientes» (Ataques, Medallas y Barcos) trae un filtro por valor del eje Y: solo las series con todos sus valores por debajo de un tope (Ataques, Medallas) o por encima de un piso (Barcos) (§PF512).
 // v281 (18-nov-2026): admin.html cambió (CORE_ASSETS) -- en «Clanes externos» los valores de las tres tarjetas de categoría y los de la tabla de jugadores van centrados (salvo la columna Jugador, a la izquierda); los encabezados van centrados.
 // v282 (18-nov-2026): admin.html cambió (CORE_ASSETS) -- la tabla de jugadores de «Clanes externos» suma la columna «Clan actual» (clan nuestro del jugador activo, con enlace a «Buscar clan»; «—» si ya no está en la Familia).
-const CACHE_NAME = 'terna-static-v282';
+// v283 (18-nov-2026): directorio.html cambió (CORE_ASSETS) -- en «Ingresos recientes», al apagar una tarjeta (desmarcar su casilla) baja al final de su clan: el orden es clan, visibles antes que apagadas, XP de mayor a menor y nombre.
+const CACHE_NAME = 'terna-static-v283';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y

@@ -3032,7 +3032,8 @@ function renderNuevoGrid(){
     return;
   }
   nuevoGrid.innerHTML = ingresosTodosCache.map(nuevoCardHtml).join('');
-  nuevoGrid.querySelectorAll('.js-nuevo-card').forEach(card => {
+  nuevoGrid.querySelectorAll('.js-nuevo-card').forEach((card, i) => {
+    card.dataset.idx = String(i); // 18-nov-2026: posición en ingresosTodosCache; reordenarTarjetasIngresos() la usa para saber qué tarjeta es cuál
     const linksBox = card.querySelector('.links');
     // El 📈 y el ⚠️ (§PF375) sí deben llegar al listener global de mini-historial.js; todo lo demás de .links no abre el perfil de la tarjeta.
     if (linksBox) linksBox.addEventListener('click', e => { if (!e.target.closest('.btn-hist-jugador, .btn-alerta-clanes')) e.stopPropagation(); });
@@ -3099,6 +3100,38 @@ function actualizarPillsIngresos(){
   });
 }
 
+/** Nivel (XP) de un ingreso como número; sin dato o ilegible cuenta como el más bajo, para que quede al final de su grupo. */
+function xpIngresoNumero(n){
+  const v = Number(n && n.nivelXp);
+  return (n && n.nivelXp !== null && n.nivelXp !== undefined && n.nivelXp !== '' && Number.isFinite(v)) ? v : -Infinity;
+}
+/** 18-nov-2026 (pedido de la usuaria): orden de las tarjetas de «Ingresos recientes»: 1) clan (orden fijo de la Familia, ordenClanIndex), 2) visibles antes que apagadas (marcadas antes que desmarcadas u ocultas), 3) XP de mayor a menor, 4) nombre. */
+function compararTarjetasIngresos(a, b){
+  const porClan = ordenClanIndex(a.clan) - ordenClanIndex(b.clan);
+  if (porClan !== 0) return porClan;
+  const va = ingresoIncluido(a) ? 0 : 1, vb = ingresoIncluido(b) ? 0 : 1;
+  if (va !== vb) return va - vb;
+  const xa = xpIngresoNumero(a), xb = xpIngresoNumero(b);
+  if (xa !== xb) return xa < xb ? 1 : -1;
+  return (a.nombre || '').localeCompare(b.nombre || '', 'es', { sensitivity: 'base' });
+}
+/** Reordena las tarjetas ya pintadas (sin reconstruirlas) según compararTarjetasIngresos(). Si el foco estaba en un checkbox se lo devuelve, porque mover un nodo puede quitárselo. */
+function reordenarTarjetasIngresos(){
+  const grid = document.getElementById('nuevoGrid');
+  if (!grid) return;
+  const tarjetas = Array.from(grid.querySelectorAll('.js-nuevo-card'));
+  if (tarjetas.length < 2) return;
+  const porIdx = new Map(tarjetas.map(c => [Number(c.dataset.idx), c]));
+  const orden = ingresosTodosCache.map((n, i) => ({ n, i })).filter(x => porIdx.has(x.i));
+  orden.sort((x, y) => compararTarjetasIngresos(x.n, y.n) || (x.i - y.i));
+  const nuevas = orden.map(x => porIdx.get(x.i));
+  if (nuevas.length !== tarjetas.length || nuevas.every((c, k) => c === tarjetas[k])) return;
+  const foco = document.activeElement;
+  const teniaFoco = !!(foco && grid.contains(foco));
+  grid.append(...nuevas);
+  if (teniaFoco && document.activeElement !== foco && typeof foco.focus === 'function') foco.focus({ preventScroll: true });
+}
+
 function aplicarFiltroIngresos(){
   const total = ingresosTodosCache.length;
   const filtrados = ingresosTodosCache.filter(ingresoIncluido);
@@ -3126,6 +3159,7 @@ function aplicarFiltroIngresos(){
     const check = card.querySelector('.js-ingreso-check');
     if (check && !oculta && check.checked !== incluido) check.checked = incluido;
   });
+  reordenarTarjetasIngresos(); // 18-nov-2026: una tarjeta apagada baja al final de su clan
   actualizarPillsIngresos();
 
   // Las gráficas solo se recalculan si están visibles; si están ocultas, se pintan recién al abrirlas. Historial en CHANGELOG.md.
@@ -3172,7 +3206,7 @@ function inicializarToggleGraficasIngresos(){
 
 /** Agrupa `nuevos` por clan preservando el orden en que ya vienen (clan
  * fijo de la Familia vía ordenClanIndex(), alfabético dentro de cada
- * clan — ver el .sort() en cargarIngresosRecientes()). */
+ * clan — ver el .sort() en cargarIngresosRecientes(); desde el 18-nov-2026 las tarjetas pintadas se reordenan con compararTarjetasIngresos()). */
 /** §PF413 (6b): clave de agrupación de un clan. Por Tag cuando el miembro lo trae (clanTag aditivo, §PF405); sin Tag, por nombre como antes. */
 function claveClanMiembro(m){
   const t = tagClanNormalizado(m && m.clanTag);
