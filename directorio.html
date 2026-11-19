@@ -2864,22 +2864,39 @@ function fechaIngresoTexto(n){
 function claveIngreso(n){ return (n && n.tag) || ''; }
 
 /** Aviso "Estuvo en un clan rival" o "vetado" — copia reducida del de index.html (ingBadgeRivalHtml) para no perder ese dato al uniformizar las tarjetas. Solo aparece si el backend marca esRivalTemporada. 18-nov-2026: el rótulo sale de clanRivalDetectado.fuente: un clan de la hoja Conflictos (fuente 'manual', el que se veta desde «Buscar clan») es VETADO, no rival; solo 'currentriverrace' es rival de la temporada. */
-function ingBadgeRivalHtml(esRivalTemporada, clanRivalDetectado){
+function ingBadgeRivalHtml(esRivalTemporada, clanRivalDetectado, clanesRivalesDetectados){
   if (!esRivalTemporada) return '';
-  const info = clanRivalDetectado || {};
-  const detalle = [];
-  if (info.nombre) detalle.push(`estuvo en ${esc(info.nombre)}`);
-  if (info.motivo) detalle.push(esc(info.motivo));
-  // 6-nov-2026 (§PF400): 'nombre' = solo coincide el nombre del clan y no hay Tag para confirmarlo (puede ser otro clan con el mismo nombre); 'tag' = confirmado por Tag.
-  if (info.confirmacion === 'nombre') detalle.push('coincide solo el nombre, sin Tag para confirmarlo');
+  // 18-nov-2026 (§PF520): el backend manda TODOS los clanes rival/vetado en que estuvo (clanesRivalesDetectados, el principal primero); si no llega la lista (backend viejo), se usa el único clanRivalDetectado.
+  const clanes = (Array.isArray(clanesRivalesDetectados) && clanesRivalesDetectados.length) ? clanesRivalesDetectados : [clanRivalDetectado || {}];
   // 18-nov-2026: 'manual' (hoja Conflictos, veto desde la web) y 'vetado' = clan vetado; 'currentriverrace' = rival de la temporada; 'currentriverrace+manual' = ambos. Sin fuente se conserva «rival».
-  const fuente = String(info.fuente || '');
-  const esVetado = fuente === 'manual' || fuente === 'vetado' || fuente.indexOf('+manual') >= 0;
-  const esRival = fuente.indexOf('currentriverrace') >= 0 || !esVetado;
-  const rotulo = (esVetado && esRival) ? 'Estuvo en un clan vetado y rival' : (esVetado ? 'Estuvo en un clan vetado' : 'Estuvo en un clan rival');
+  const tipoDe = info => {
+    const fuente = String((info && info.fuente) || '');
+    const esVetado = fuente === 'manual' || fuente === 'vetado' || fuente.indexOf('+manual') >= 0;
+    const esRival = fuente.indexOf('currentriverrace') >= 0 || !esVetado;
+    return { esVetado, esRival };
+  };
+  const varios = clanes.length > 1;
+  const lineas = clanes.map(info => {
+    info = info || {};
+    const t = tipoDe(info);
+    const detalle = [];
+    if (info.nombre) detalle.push(`estuvo en ${esc(info.nombre)}${varios ? ` (${t.esVetado && t.esRival ? 'vetado y rival' : (t.esVetado ? 'vetado' : 'rival')})` : ''}`);
+    if (info.motivo) detalle.push(esc(info.motivo));
+    // 6-nov-2026 (§PF400): 'nombre' = solo coincide el nombre del clan y no hay Tag para confirmarlo (puede ser otro clan con el mismo nombre); 'tag' = confirmado por Tag.
+    if (info.confirmacion === 'nombre') detalle.push('coincide solo el nombre, sin Tag para confirmarlo');
+    return detalle.length ? `<div class="ing-rival-detalle">${detalle.join(' · ')}</div>` : '';
+  }).join('');
+  let rotulo;
+  if (!varios) {
+    const t = tipoDe(clanes[0]);
+    rotulo = (t.esVetado && t.esRival) ? 'Estuvo en un clan vetado y rival' : (t.esVetado ? 'Estuvo en un clan vetado' : 'Estuvo en un clan rival');
+  } else {
+    const hayVetado = clanes.some(c => tipoDe(c).esVetado), hayRival = clanes.some(c => tipoDe(c).esRival);
+    rotulo = (hayVetado && hayRival) ? 'Estuvo en clanes vetados y rivales' : (hayVetado ? 'Estuvo en clanes vetados' : 'Estuvo en clanes rivales');
+  }
   return `<div class="ing-rival">
     <span class="badge badge-warn">${rotulo}</span>
-    ${detalle.length ? `<div class="ing-rival-detalle">${detalle.join(' · ')}</div>` : ''}
+    ${lineas}
   </div>`;
 }
 
@@ -2917,7 +2934,7 @@ function nuevoCardHtml(n){
             ${histOk ? botonHistJugador({ tag: n.tag, nombre: n.nombre }, { sinWsp: true, sinAlerta: true }) : ''}
           </div>` : ''}
         </div>
-        ${ingBadgeRivalHtml(n.esRivalTemporada, n.clanRivalDetectado)}
+        ${ingBadgeRivalHtml(n.esRivalTemporada, n.clanRivalDetectado, n.clanesRivalesDetectados)}
         <div class="nc-stats-grid">
           ${ingresoStatHtml(n.copas, '🏆 Copas')}
           ${ingresoStatHtml(n.vGuerra != null ? n.vGuerra : n.victoriasGuerra, '🎖️ V. Guerra')}

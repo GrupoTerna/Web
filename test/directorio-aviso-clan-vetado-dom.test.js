@@ -49,3 +49,20 @@ test('rival y vetado a la vez dice las dos cosas; sin fuente se conserva «rival
   assert.match(badge(true, { nombre: 'X' }), /Estuvo en un clan rival</);
   assert.equal(badge(false, null), '');
 });
+
+// NUEVO (18-nov-2026, §PF520): con un clan vetado y uno rival a la vez, el aviso lista los dos y dice cuál es cuál.
+test('dos clanes (uno vetado y uno rival): el aviso muestra ambos, cada uno con su tipo', () => {
+  const principal = { nombre: 'OTRO', fuente: 'currentriverrace', motivo: '', confirmacion: 'tag' };
+  const h = badge(true, principal, [principal, { nombre: 'NARANJA x', fuente: 'vetado', motivo: 'Clan vetado', confirmacion: 'tag' }]);
+  assert.match(h, /Estuvo en clanes vetados y rivales</);
+  assert.match(h, /estuvo en OTRO \(rival\)/);
+  assert.match(h, /estuvo en NARANJA x \(vetado\) · Clan vetado/);
+  assert.equal((h.match(/ing-rival-detalle/g) || []).length, 2);
+});
+
+test('la lista con un solo clan se ve igual que antes, y dos vetados dicen «clanes vetados»', () => {
+  const uno = { nombre: 'NARANJA x', fuente: 'vetado', motivo: 'Clan vetado' };
+  assert.match(badge(true, uno, [uno]), /Estuvo en un clan vetado</);
+  assert.doesNotMatch(badge(true, uno, [uno]), /\(vetado\)/);
+  assert.match(badge(true, uno, [uno, { nombre: 'Z', fuente: 'manual' }]), /Estuvo en clanes vetados</);
+});

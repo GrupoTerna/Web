@@ -47,7 +47,7 @@ const WEB_MEMBER_TOKEN = '8adb26e9c98bd188ac4572997bdd38f1fc252f57'; // debe ser
  *    la cuenta). guerra.html solo los pinta a admins, pero viajan a cualquiera
  *    que tenga el token.
  *  - webIngresosRecientes: CAMBIO (28-sep-2026, Fase 5b tanda B): esRivalTemporada
- *    y clanRivalDetectado {nombre, fuente, motivo} (cruce contra clanes rivales
+ *    y clanRivalDetectado {nombre, fuente, motivo} (más clanesRivalesDetectados, la lista completa; cruce contra clanes rivales
  *    y la lista manual "Conflictos") ya NO salen con este token solo: únicamente
  *    con sessionToken de admin (directorio.html manda conSesion:true).
  *  - webPerfil / webCompararJugadores: CAMBIO (Fase 5b tanda A): el estado
