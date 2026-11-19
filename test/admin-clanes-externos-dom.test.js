@@ -49,7 +49,7 @@ function montar(respuesta = DATOS, opciones = {}){
     async function conBotonOcupado(b, fn){ return fn(); }
     async function apiGetAuth(accion){ window.__llamadas.push(accion); return window.__respuesta; }
     async function buscarClan(){ window.__buscados.push(document.getElementById('clanTagInput').value); }
-    ${UTIL.slice(UTIL.indexOf('function enlaceJugador('), UTIL.indexOf('/**\n * enlaceClan('))}
+    ${UTIL.slice(UTIL.indexOf('function enlaceJugador('), UTIL.indexOf('/**\n * fmtTiempoRelativo('))}
     ${ETIQUETA}
     ${CODIGO}
   `);
@@ -186,7 +186,10 @@ test('la tabla trae la columna «Clan actual»: enlace para el activo y «—» 
   assert.deepEqual(cab, ['Jugador', 'Tag', 'Estado', 'Clan actual', 'Semanas', 'Primera → última', 'Enlaces']);
   const filas = clan.querySelectorAll('tbody tr');
   const celdaActivo = filas[0].querySelectorAll('td')[3];
-  assert.equal(celdaActivo.querySelector('a.ce-clan-link').getAttribute('href'), 'admin.html?clan=%23T1#cardBuscarClan');
+  // 19-nov-2026 (pedido de la usuaria): el «Clan actual» es de la Familia y lleva al dashboard del clan (clan.html), no a «Buscar clan» de admin.html.
+  const enlaceActivo = celdaActivo.querySelector('a.clan-link');
+  assert.equal(enlaceActivo.getAttribute('href'), 'clan.html?clan=' + encodeURIComponent('Grupo Terna <i>1</i>') + '&tag=%23T1');
+  assert.equal(enlaceActivo.hasAttribute('data-ce-clan'), false, 'no pasa por el manejador que abre «Buscar clan»');
   assert.equal(celdaActivo.querySelector('i'), null, 'el HTML del nombre del clan no se interpreta');
   assert.equal(filas[1].querySelectorAll('td')[3].textContent.trim(), '—');
 });
@@ -202,7 +205,11 @@ test('el inactivo muestra su último clan conocido en «Clan actual»', async ()
   const filas = clan.querySelectorAll('tbody tr');
   const celda = filas[0].querySelectorAll('td')[3];
   assert.equal(celda.textContent.trim(), 'GrupoXTerna™2');
-  assert.equal(celda.querySelector('a.ce-clan-link').getAttribute('href'), 'admin.html?clan=%23GYCU9YRG#cardBuscarClan');
+  assert.equal(celda.querySelector('a.clan-link').getAttribute('href'), 'clan.html?clan=' + encodeURIComponent('GrupoXTerna™2') + '&tag=%23GYCU9YRG');
+  const ev = new w.MouseEvent('click', { bubbles: true, cancelable: true });
+  celda.querySelector('a.clan-link').dispatchEvent(ev);
+  assert.equal(ev.defaultPrevented, false, 'el clic navega a clan.html y no abre «Buscar clan»');
+  assert.deepEqual(w.__buscados, []);
   assert.match(celda.getAttribute('title'), /Último clan conocido/);
   assert.equal(filas[1].querySelectorAll('td')[3].textContent.trim(), '—', 'sin dato queda «—»');
 });
