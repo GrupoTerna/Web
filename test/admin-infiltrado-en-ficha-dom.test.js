@@ -116,7 +116,7 @@ test('cerrar y volver a abrir muestra lo mismo sin volver a consultar', async ()
   clic(w, 'btnInfiltradoPastilla');
   assert.equal(id(w, 'infiltradoPanel').style.display, 'block');
   assert.equal(ev(w, 'llamadas.length'), 1);
-  assert.match(id(w, 'fichaInfResultado').textContent, /En lista de conflicto/);
+  assert.match(id(w, 'fichaInfResultado').textContent, /Clan vetado/);
 });
 
 test('sin señales dice «Sin señales» y aclara que eso no prueba que no sea infiltrado', async () => {
@@ -226,14 +226,14 @@ test('la pastilla muestra los clanes externos donde jugó guerra, con semanas, r
   assert.match(t, /Clanes externos donde jugó guerra/);
   assert.match(t, /Nova Perú/); assert.match(t, /#9VR2J8VP/);
   assert.match(t, /T25 S4 → T26 S3/);
-  assert.match(t, /En lista de conflicto/);
+  assert.match(t, /Clan vetado/);
   assert.equal(cont.querySelectorAll('tbody tr').length, 2);
 });
 
-test('clan actual limpio pero con un clan externo rival o en conflicto: el veredicto avisa en vez de «Sin señales»', async () => {
+test('clan actual limpio pero con un clan externo vetado: el veredicto avisa en vez de «Sin señales»', async () => {
   const w = montar({ respuestas: [Object.assign(respuestaJugador(null), { clanesExternos: EXTERNOS, clanesExternosDisponible: true })] });
   const t = (await abrirYEsperar(w)).textContent;
-  assert.match(t, /Jugó en un clan rival o en conflicto/);
+  assert.match(t, /Jugó en un clan vetado/);
   assert.match(t, /Clan Enemigo/);
   assert.doesNotMatch(t, /Sin señales/);
 });
@@ -321,7 +321,7 @@ test('«Buscar clan» consulta webAdminBuscarClan con el Tag normalizado y pinta
 test('un clan sin señales lo dice sin afirmar de más; uno de la Familia no se puede vetar; uno ya en conflicto manual tampoco', async () => {
   let w = montar({ respuestas: [respuestaClan()] });
   await buscarClanEn(w, '#CLAN1');
-  assert.match(id(w, 'cBadge').textContent, /No figura como rival ni en conflicto/);
+  assert.match(id(w, 'cBadge').textContent, /No figura como rival ni como vetado/);
   assert.match(id(w, 'cBadge').textContent, /Solo compara con los rivales de esta temporada/);
   w = montar({ respuestas: [respuestaClan({ clan: { esNuestro: true } })] });
   await buscarClanEn(w, '#CLAN1');
@@ -330,7 +330,7 @@ test('un clan sin señales lo dice sin afirmar de más; uno de la Familia no se 
   assert.match(id(w, 'btnClanVetarPastilla').textContent, /Clan de la Familia/);
   w = montar({ respuestas: [respuestaClan({ infoRival: { fuente: 'manual', motivo: 'Sabotaje' } })] });
   await buscarClanEn(w, '#CLAN1');
-  assert.match(id(w, 'cBadge').textContent, /En lista de conflicto/);
+  assert.match(id(w, 'cBadge').textContent, /Clan vetado/);
   assert.equal(id(w, 'btnClanVetarPastilla').disabled, true);
   assert.match(id(w, 'btnClanVetarPastilla').textContent, /En conflicto/);
 });
@@ -599,7 +599,7 @@ test('«Vetar» del clan: sin motivo no manda nada; si se cancela la confirmaci�
   assert.equal(post[0].accion, 'webAdminVetarClan');
   assert.deepEqual(JSON.parse(JSON.stringify(post[0].cuerpo)), { sessionToken: 'tok123', datos: { tag: '#CLAN1', motivo: 'Sabotaje en guerra' } });
   assert.match(id(w, 'clanVMsg').textContent, /Clan vetado/);
-  assert.match(id(w, 'cBadge').textContent, /En lista de conflicto/);
+  assert.match(id(w, 'cBadge').textContent, /Clan vetado/);
   assert.equal(id(w, 'btnClanVetarPastilla').disabled, true);
   assert.equal(id(w, 'btnClanVetarPastilla').textContent, '🚫 Vetado');
   assert.equal(id(w, 'btnClanVetar').style.display, 'none', 'no se puede vetar dos veces');

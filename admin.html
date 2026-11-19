@@ -2444,15 +2444,15 @@ document.getElementById('tagInput').addEventListener('keydown', e => { if(e.key 
 // trae data.tipo:'clan'|'jugador' y arma cada caso distinto (ver ahí la
 // forma exacta). Este render solo interpreta esa forma, no decide nada.
 
-/** Arma el badge "Rival de esta temporada" / "En lista de conflicto"
+/** Arma el badge "Rival de esta temporada" / "Clan vetado"
  *  según data.infoRival.fuente ('currentriverrace', 'manual' o
  *  'currentriverrace+manual', ver _getRivalesYConflicto()). */
 function _badgeRival(infoRival){
   if(!infoRival) return '';
-  let etiqueta = 'En lista de conflicto';
-  if(infoRival.fuente === 'vetado') etiqueta = 'Clan vetado';
-  else if(infoRival.fuente === 'currentriverrace') etiqueta = 'Rival de esta temporada';
-  else if(infoRival.fuente === 'currentriverrace+manual') etiqueta = 'Rival de esta temporada + conflicto manual';
+  // 18-nov-2026 (§PF518): un clan de la hoja Conflictos ('manual') o el vetado fijo ('vetado') es VETADO, no rival; solo 'currentriverrace' es rival de la temporada.
+  let etiqueta = 'Clan vetado';
+  if(infoRival.fuente === 'currentriverrace') etiqueta = 'Rival de esta temporada';
+  else if(infoRival.fuente === 'currentriverrace+manual') etiqueta = 'Rival de esta temporada y clan vetado';
   let detalle = [];
   if(infoRival.clanTernaNombre) detalle.push(`vs. ${esc(infoRival.clanTernaNombre)}`);
   if(infoRival.motivo) detalle.push(esc(infoRival.motivo));
@@ -2488,10 +2488,15 @@ function _sinSenalesInfiltrado(conExternos = false){
   return `<span class="badge">Sin señales</span><div class="text-dim" style="font-size:13px; margin-top:6px; max-width:320px;">${que} Esto no prueba que no sea infiltrado: solo revisa esas dos listas.</div>`;
 }
 
-/** Veredicto de la ficha cuando su clan actual está limpio pero jugó guerra en un clan que HOY figura como rival o en conflicto (§PF367). `rivales` = clanesExternos con infoRival. */
+/** Veredicto de la ficha cuando su clan actual está limpio pero jugó guerra en un clan que HOY figura como rival o vetado (§PF367). `rivales` = clanesExternos con infoRival. */
 function _alertaClanExternoRival(rivales){
   const nombres = rivales.map(c => esc(c.nombre || c.tag)).join(', ');
-  return `<span class="badge badge-warn">Jugó en un clan rival o en conflicto</span><div class="text-dim" style="font-size:13px; margin-top:6px; max-width:320px;">${rivales.length === 1 ? 'Clan' : 'Clanes'}: ${nombres}. Su clan actual está limpio; revisa la tabla de abajo.</div>`;
+  // §PF518: el rótulo dice si el clan fue rival, vetado o ambos, según la fuente de cada uno (antes: «rival o en conflicto»).
+  const fuentes = rivales.map(c => String((c.infoRival && c.infoRival.fuente) || ''));
+  const hayRival = fuentes.some(f => f.indexOf('currentriverrace') !== -1);
+  const hayVetado = fuentes.some(f => f.indexOf('currentriverrace') === -1 || f.indexOf('manual') !== -1);
+  const rotulo = (hayRival && hayVetado) ? 'Jugó en un clan rival o vetado' : (hayVetado ? 'Jugó en un clan vetado' : 'Jugó en un clan rival');
+  return `<span class="badge badge-warn">${rotulo}</span><div class="text-dim" style="font-size:13px; margin-top:6px; max-width:320px;">${rivales.length === 1 ? 'Clan' : 'Clanes'}: ${nombres}. Su clan actual está limpio; revisa la tabla de abajo.</div>`;
 }
 
 /** Clanes externos donde el jugador jugó guerra, de su JSON individual de RoyaleAPI (§PF367). Solo ve semanas con fila de guerra. `disponible` false = el backend no pudo leer el JSON. */
@@ -2691,7 +2696,7 @@ function _numeroClan(n){
 function _marcaClan(c, infoRival){
   if(c.esNuestro) return '<span class="badge">Clan de la Familia</span>';
   if(infoRival) return _badgeRival(infoRival);
-  return '<span class="badge">No figura como rival ni en conflicto</span><div class="text-dim" style="font-size:13px; margin-top:6px; max-width:320px;">Solo compara con los rivales de esta temporada y la hoja «Conflictos».</div>';
+  return '<span class="badge">No figura como rival ni como vetado</span><div class="text-dim" style="font-size:13px; margin-top:6px; max-width:320px;">Solo compara con los rivales de esta temporada y los clanes vetados (hoja «Conflictos»).</div>';
 }
 /** Deja la pastilla «Vetar» del clan según su estado: normal, bloqueada si es de la Familia o si ya está en la lista manual de conflicto. */
 function _estadoPastillaVetarClan(c, infoRival){

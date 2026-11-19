@@ -59,16 +59,16 @@ test('clan rival de la temporada: veredicto de advertencia con el clan contra el
   await w.verificarInfiltradoPerfil();
   const el = w.document.getElementById('mInfiltradoResultado');
   assert.ok(el.querySelector('.badge-warn'));
-  assert.match(el.textContent, /Rival de esta temporada \+ conflicto manual/);
+  assert.match(el.textContent, /Rival de esta temporada y clan vetado/);
   assert.match(el.textContent, /vs\. Terna 1/);
   assert.match(el.textContent, /Sabotaje previo/);
   assert.match(el.textContent, /Clan actual: Clan Rival \(#RIVAL1\)/);
 });
 
-test('solo lista de conflicto: etiqueta «En lista de conflicto»', async () => {
+test('solo lista de conflicto: etiqueta «Clan vetado»', async () => {
   const w = cargar({ ok: true, tipo: 'jugador', jugador: JUGADOR, infoRival: { fuente: 'manual', motivo: 'x' }, historialTerna: [] });
   await w.verificarInfiltradoPerfil();
-  assert.match(w.document.getElementById('mInfiltradoResultado').textContent, /En lista de conflicto/);
+  assert.match(w.document.getElementById('mInfiltradoResultado').textContent, /Clan vetado/);
 });
 
 test('sin señales: no se pinta advertencia y se aclara que no prueba que no sea infiltrado', async () => {
