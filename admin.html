@@ -95,6 +95,11 @@
   .ce-controles input[type="text"]{flex:1 1 220px; min-width:0; background:var(--bg-2); border:1px solid var(--line); color:var(--text); padding:11px 16px; border-radius:var(--radius-sm); font-family:var(--f-body); font-size:15px; transition:all .18s ease;}
   .ce-controles input[type="text"]:focus{border-color:var(--purple); box-shadow:0 0 0 3px rgba(162,57,255,.2); outline:none;}
   .ce-controles input[type="text"]::placeholder{color:var(--text-faint); opacity:1;}
+  .ce-orden{display:inline-flex; align-items:center; gap:8px; font-size:14px; color:#d5dbe8;}
+  .ce-controles select{background:var(--bg-2); border:1px solid var(--line); color:var(--text); padding:10px 12px; border-radius:var(--radius-sm); font-family:var(--f-body); font-size:14px; cursor:pointer; transition:all .18s ease;}
+  .ce-controles select:focus{border-color:var(--purple); box-shadow:0 0 0 3px rgba(162,57,255,.2); outline:none;}
+  .ce-controles select:disabled{opacity:.55; cursor:not-allowed;}
+  .ce-controles select option{background:var(--bg-2); color:var(--text);}
   .ce-check{display:inline-flex; align-items:center; gap:8px; font-size:14px; color:#d5dbe8; cursor:pointer;}
   .ce-check input[type="checkbox"]{flex-shrink:0; width:16px; height:16px; margin:0; cursor:pointer; accent-color:var(--purple-light);}
   .ce-grupo{font-family:var(--f-display); text-transform:uppercase; font-size:14px; color:var(--gold); margin:18px 0 0; padding-left:10px; border-left:3px solid var(--gold);}
@@ -678,6 +683,20 @@
       <div class="ce-cats" id="ceCategorias" role="group" aria-label="Categoría de clan" style="display:none;"></div>
       <div class="ce-controles" id="ceControles" style="display:none;">
         <input type="text" id="ceFiltroTexto" aria-label="Filtrar por clan, jugador o Tag" placeholder="Filtrar por clan, jugador o Tag" autocomplete="off">
+        <label class="ce-orden">Ordenar por
+          <select id="ceOrden" aria-label="Ordenar los clanes por">
+            <option value="">Predeterminado (activos, totales, nombre)</option>
+            <option value="nombre">Nombre del clan</option>
+            <option value="tag">Tag</option>
+            <option value="activos">Miembros activos</option>
+            <option value="inactivos">Miembros inactivos</option>
+            <option value="total">Miembros totales</option>
+          </select>
+        </label>
+        <select id="ceOrdenDir" aria-label="Sentido del orden" disabled>
+          <option value="asc">Ascendente</option>
+          <option value="desc">Descendente</option>
+        </select>
         <label class="ce-check"><input type="checkbox" id="ceSoloActivos"> Solo clanes con miembros activos</label>
       </div>
       <div id="ceLista"></div>
@@ -2746,6 +2765,11 @@ let _ceTipo = '';       // '', 'rival', 'vetado' o 'externo': nada se lista hast
 let _ceLimite = 20;     // cuántos clanes se muestran; «Ver más» suma otros CE_PAGINA
 let _ceVisibles = [];   // clanes que cumplen los filtros, en el orden en que se pintan
 const CE_PAGINA = 20;
+/** 18-nov-2026: los números de esta tarjeta se muestran con coma como separador de miles (1,559); es solo visual, los datos no cambian. */
+function _ceNum(n){
+  const v = Number(n);
+  return Number.isFinite(v) ? v.toLocaleString('en-US') : String(n === undefined || n === null ? '' : n);
+}
 const CE_GRUPO_SIN_TERNA = 'Rivales de semanas anteriores';
 
 function _ceTagUrl(tag){
@@ -2786,8 +2810,28 @@ function _ceCoincide(c, txt){
 function _ceGrupoDe(c){
   return c.ternaNombre ? String(c.ternaNombre) : CE_GRUPO_SIN_TERNA;
 }
-function _ceOrdenar(lista, tipo){
-  const porClan = (a, b) => ((b.activos || 0) - (a.activos || 0)) || ((b.jugadores || []).length - (a.jugadores || []).length) || String(a.nombre || '').localeCompare(String(b.nombre || ''));
+/** Cantidad de jugadores nuestros que figuran en el clan (activos + inactivos). */
+function _ceTotal(c){ return (c.jugadores || []).length; }
+/** Comparador del orden elegido en «Ordenar por» (nombre, tag, activos, inactivos o total) y su sentido; el empate se desata por nombre y luego por Tag. Sin criterio devuelve null (queda el orden predeterminado). */
+function _ceComparador(orden, dir){
+  const porNombre = (a, b) => String(a.nombre || '').localeCompare(String(b.nombre || ''), 'es', { sensitivity: 'base' });
+  const limpio = c => String(c.tag || '').replace(/^#/, '').toUpperCase();
+  const porTag = (a, b) => { const x = limpio(a), y = limpio(b); return x < y ? -1 : (x > y ? 1 : 0); };
+  const campos = {
+    nombre: porNombre,
+    tag: porTag,
+    activos: (a, b) => (a.activos || 0) - (b.activos || 0),
+    inactivos: (a, b) => (a.inactivos || 0) - (b.inactivos || 0),
+    total: (a, b) => _ceTotal(a) - _ceTotal(b)
+  };
+  const f = campos[orden];
+  if(!f) return null;
+  const sentido = dir === 'desc' ? -1 : 1;
+  return (a, b) => (sentido * f(a, b)) || porNombre(a, b) || porTag(a, b);
+}
+function _ceOrdenar(lista, tipo, orden, dir){
+  const elegido = _ceComparador(orden, dir);
+  const porClan = elegido || ((a, b) => ((b.activos || 0) - (a.activos || 0)) || ((b.jugadores || []).length - (a.jugadores || []).length) || String(a.nombre || '').localeCompare(String(b.nombre || '')));
   if(tipo !== 'rival') return lista.slice().sort(porClan);
   return lista.slice().sort((a, b) => {
     const ga = _ceGrupoDe(a), gb = _ceGrupoDe(b);
@@ -2805,7 +2849,7 @@ function _ceFilaJugador(j){
     <td>${enlaceJugador(j.nombre || j.tag, j.tag)}</td>
     <td class="text-faint" style="font-family:var(--f-mono); font-size:13px;">${esc(j.tag)}</td>
     <td>${estado}</td>
-    <td>${esc(j.semanas)}</td>
+    <td>${esc(_ceNum(j.semanas))}</td>
     <td>${_etiquetaPuntoClan(j.primera)} → ${_etiquetaPuntoClan(j.ultima)}</td>
     <td>${_ceEnlacesExternos(j.tag, 'player')}</td>
   </tr>`;
@@ -2832,7 +2876,7 @@ function _ceBloqueClan(c, idx){
       <span class="ce-tag">${esc(c.tag)}</span>
       ${_ceMarcas(c)}
       ${_ceEnlacesExternos(c.tag, 'clan')}
-      <span class="ce-cuenta">${esc(c.activos || 0)} ${(c.activos || 0) === 1 ? 'activo' : 'activos'} · ${esc(c.inactivos || 0)} ${(c.inactivos || 0) === 1 ? 'inactivo' : 'inactivos'} · ${n} en total</span>
+      <span class="ce-cuenta">${esc(_ceNum(c.activos || 0))} ${(c.activos || 0) === 1 ? 'activo' : 'activos'} · ${esc(_ceNum(c.inactivos || 0))} ${(c.inactivos || 0) === 1 ? 'inactivo' : 'inactivos'} · ${esc(_ceNum(n))} en total</span>
     </summary>
     <div class="ce-cuerpo"></div>
   </details>`;
@@ -2843,7 +2887,7 @@ function _cePintarCategorias(){
   cont.innerHTML = defs.map(([tipo, rotulo]) => {
     const del = (_ceDatos.clanes || []).filter(c => _ceEsTipo(c, tipo));
     const conActivos = del.filter(c => (c.activos || 0) > 0).length;
-    return `<button type="button" class="ce-cat" data-ce-tipo="${tipo}" aria-pressed="${_ceTipo === tipo ? 'true' : 'false'}"><b>${del.length}</b>${rotulo}<small>${conActivos} con miembros activos</small></button>`;
+    return `<button type="button" class="ce-cat" data-ce-tipo="${tipo}" aria-pressed="${_ceTipo === tipo ? 'true' : 'false'}"><b>${esc(_ceNum(del.length))}</b>${rotulo}<small>${esc(_ceNum(conActivos))} con miembros activos</small></button>`;
   }).join('');
   cont.style.display = 'grid';
 }
@@ -2858,16 +2902,20 @@ function pintarClanesExternos(reiniciarLimite){
   if(_ceDatos.indiceCompleto === false) nota.push('El índice está incompleto: pueden faltar jugadores.');
   document.getElementById('ceControles').style.display = _ceTipo ? 'flex' : 'none';
   if(!_ceTipo){
-    msg.innerHTML = `<div class="text-faint" style="font-size:13px; margin-top:10px;">${(_ceDatos.clanes || []).length} clanes en total. Elige una categoría para ver sus clanes. ${nota.join(' ')}</div>`;
+    msg.innerHTML = `<div class="text-faint" style="font-size:13px; margin-top:10px;">${esc(_ceNum((_ceDatos.clanes || []).length))} clanes en total. Elige una categoría para ver sus clanes. ${nota.join(' ')}</div>`;
     cont.innerHTML = '';
     _ceVisibles = [];
     return;
   }
   const txt = document.getElementById('ceFiltroTexto').value.trim();
   const soloAct = document.getElementById('ceSoloActivos').checked;
-  _ceVisibles = _ceOrdenar((_ceDatos.clanes || []).filter(c => _ceEsTipo(c, _ceTipo) && (!soloAct || (c.activos || 0) > 0) && _ceCoincide(c, txt)), _ceTipo);
+  const orden = document.getElementById('ceOrden').value;
+  const selDir = document.getElementById('ceOrdenDir');
+  selDir.disabled = !orden;
+  _ceVisibles = _ceOrdenar((_ceDatos.clanes || []).filter(c => _ceEsTipo(c, _ceTipo) && (!soloAct || (c.activos || 0) > 0) && _ceCoincide(c, txt)), _ceTipo, orden, selDir.value);
   const mostrados = _ceVisibles.slice(0, _ceLimite);
-  msg.innerHTML = `<div class="text-faint" style="font-size:13px; margin-top:10px;">Mostrando ${mostrados.length} de ${_ceVisibles.length} clanes. ${nota.join(' ')}</div>`;
+  if(orden && _ceTipo === 'rival') nota.push('El orden se aplica dentro de cada grupo.');
+  msg.innerHTML = `<div class="text-faint" style="font-size:13px; margin-top:10px;">Mostrando ${esc(_ceNum(mostrados.length))} de ${esc(_ceNum(_ceVisibles.length))} clanes. ${nota.join(' ')}</div>`;
   if(!_ceVisibles.length){ cont.innerHTML = '<div class="empty">Ningún clan coincide con el filtro.</div>'; return; }
   let grupoPrevio = null;
   const trozos = mostrados.map((c, i) => {
@@ -2876,7 +2924,7 @@ function pintarClanesExternos(reiniciarLimite){
       const g = _ceGrupoDe(c);
       if(g !== grupoPrevio){
         const nG = _ceVisibles.filter(x => _ceGrupoDe(x) === g).length;
-        cab = `<h3 class="ce-grupo">${g === CE_GRUPO_SIN_TERNA ? esc(g) : 'Enfrentan a ' + esc(g)} (${nG})</h3>`;
+        cab = `<h3 class="ce-grupo">${g === CE_GRUPO_SIN_TERNA ? esc(g) : 'Enfrentan a ' + esc(g)} (${esc(_ceNum(nG))})</h3>`;
         grupoPrevio = g;
       }
     }
@@ -2884,7 +2932,7 @@ function pintarClanesExternos(reiniciarLimite){
   });
   const resto = _ceVisibles.length - mostrados.length;
   const abiertos = reiniciarLimite === false ? Array.from(cont.querySelectorAll('details.ce-clan[open]')).map(d => d.getAttribute('data-ce-idx')) : [];
-  cont.innerHTML = trozos.join('') + (resto > 0 ? `<button type="button" class="btn btn-ghost ce-mas" id="ceVerMas">Ver más (${resto} ${resto === 1 ? 'restante' : 'restantes'})</button>` : '');
+  cont.innerHTML = trozos.join('') + (resto > 0 ? `<button type="button" class="btn btn-ghost ce-mas" id="ceVerMas">Ver más (${esc(_ceNum(resto))} ${resto === 1 ? 'restante' : 'restantes'})</button>` : '');
   // «Ver más» no cierra los clanes que ya estaban abiertos (los índices no cambian: mismo orden y mismos filtros).
   abiertos.forEach(i => { const d = cont.querySelector(`details.ce-clan[data-ce-idx="${i}"]`); if(d){ d.open = true; _ceLlenarCuerpo(d); } });
 }
@@ -2917,6 +2965,12 @@ function abrirClanDesdeUrl(){
 document.getElementById('btnCargarClanesExternos').addEventListener('click', () => conBotonOcupado(document.getElementById('btnCargarClanesExternos'), cargarClanesExternos));
 document.getElementById('ceFiltroTexto').addEventListener('input', () => pintarClanesExternos());
 document.getElementById('ceSoloActivos').addEventListener('change', () => pintarClanesExternos());
+// Al cambiar el criterio, el sentido vuelve al natural: nombre y Tag de A a Z; cantidades de mayor a menor.
+document.getElementById('ceOrden').addEventListener('change', e => {
+  document.getElementById('ceOrdenDir').value = (e.target.value === 'nombre' || e.target.value === 'tag') ? 'asc' : 'desc';
+  pintarClanesExternos();
+});
+document.getElementById('ceOrdenDir').addEventListener('change', () => pintarClanesExternos());
 document.getElementById('ceCategorias').addEventListener('click', e => {
   const b = e.target.closest('[data-ce-tipo]');
   if(!b) return;

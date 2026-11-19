@@ -156,3 +156,96 @@ test('lo que manda el backend se escapa y un error del backend se muestra', asyn
   await cargar(w2);
   assert.match(id(w2, 'ceMsg').textContent, /Aún no hay un índice/);
 });
+
+// NUEVO (18-nov-2026, pedido de la usuaria): números con coma como separador de miles (solo visual) y opciones de orden por nombre, Tag, activos, inactivos y totales.
+const ORDEN_DATOS = (() => {
+  const js = n => Array.from({ length: n }, (_, i) => jug(i, false));
+  const c = (tag, nombre, activos, inactivos) => ({ tag, nombre, tipos: [], hoy: false, ternaTag: '', ternaNombre: '', activos, inactivos, jugadores: js(activos + inactivos) });
+  // Los Tags no siguen el orden alfabético de los nombres, para distinguir un orden del otro.
+  return { ok: true, actualizado: 'x', indiceCompleto: true, total: 4, clanes: [c('#CCC', 'Beta', 2, 1), c('#DDD', 'alfa', 0, 5), c('#AAA', 'Charlie', 2, 4), c('#BBB', 'Delta', 1, 0)] };
+})();
+const ordenar = (w, criterio, sentido) => {
+  const sel = id(w, 'ceOrden');
+  sel.value = criterio;
+  sel.dispatchEvent(new w.Event('change', { bubbles: true }));
+  if(sentido){
+    const d = id(w, 'ceOrdenDir');
+    d.value = sentido;
+    d.dispatchEvent(new w.Event('change', { bubbles: true }));
+  }
+};
+
+test('los números de la tarjeta llevan coma como separador de miles y los datos no cambian', async () => {
+  const w = montar({ ...muchos(1234), clanes: [{ tag: '#BIG111', nombre: 'Grande', tipos: [], hoy: false, ternaTag: '', ternaNombre: '', activos: 1234, inactivos: 5678, jugadores: [jug(1, true)] }, ...muchos(1233).clanes] });
+  await cargar(w);
+  assert.equal(w.document.querySelector('[data-ce-tipo="externo"] b').textContent, '1,234');
+  assert.match(id(w, 'ceMsg').textContent, /1,234 clanes en total/);
+  categoria(w, 'externo');
+  assert.match(id(w, 'ceMsg').textContent, /Mostrando 20 de 1,234 clanes/);
+  assert.match(id(w, 'ceVerMas').textContent, /1,214 restantes/);
+  assert.match(w.document.querySelector('.ce-cuenta').textContent, /1,234 activos · 5,678 inactivos · 1 en total/);
+  assert.equal(w.__respuesta.clanes[0].activos, 1234, 'el dato sigue siendo un número, sin coma');
+  assert.equal(w.eval('_ceNum(999)'), '999');
+  assert.equal(w.eval('_ceNum(1000)'), '1,000');
+  assert.equal(w.eval('_ceNum(1234567)'), '1,234,567');
+});
+
+test('«Ordenar por» ordena por nombre, Tag, activos, inactivos y totales, en los dos sentidos', async () => {
+  const w = montar(ORDEN_DATOS);
+  await cargar(w);
+  categoria(w, 'externo');
+  assert.deepEqual(nombres(w), ['Charlie', 'Beta', 'Delta', 'alfa'], 'predeterminado: más activos, luego más totales y luego nombre');
+  assert.equal(id(w, 'ceOrdenDir').disabled, true, 'sin criterio no hay sentido que elegir');
+  const casos = [
+    ['nombre', 'asc', ['alfa', 'Beta', 'Charlie', 'Delta']],
+    ['nombre', 'desc', ['Delta', 'Charlie', 'Beta', 'alfa']],
+    ['tag', 'asc', ['Charlie', 'Delta', 'Beta', 'alfa']],
+    ['tag', 'desc', ['alfa', 'Beta', 'Delta', 'Charlie']],
+    ['activos', 'desc', ['Beta', 'Charlie', 'Delta', 'alfa']],
+    ['activos', 'asc', ['alfa', 'Delta', 'Beta', 'Charlie']],
+    ['inactivos', 'desc', ['alfa', 'Charlie', 'Beta', 'Delta']],
+    ['inactivos', 'asc', ['Delta', 'Beta', 'Charlie', 'alfa']],
+    ['total', 'desc', ['Charlie', 'alfa', 'Beta', 'Delta']],
+    ['total', 'asc', ['Delta', 'Beta', 'alfa', 'Charlie']]
+  ];
+  for(const [criterio, sentido, esperado] of casos){
+    ordenar(w, criterio, sentido);
+    assert.deepEqual(nombres(w), esperado, `${criterio} ${sentido}`);
+    assert.equal(id(w, 'ceOrdenDir').disabled, false);
+  }
+  ordenar(w, '');
+  assert.deepEqual(nombres(w), ['Charlie', 'Beta', 'Delta', 'alfa'], 'volver a «Predeterminado»');
+  assert.equal(id(w, 'ceOrdenDir').disabled, true);
+});
+
+test('al cambiar el criterio, el sentido vuelve al natural y «Ver más» vuelve a empezar', async () => {
+  const w = montar(muchos(45));
+  await cargar(w);
+  categoria(w, 'externo');
+  id(w, 'ceVerMas').click();
+  assert.equal(w.document.querySelectorAll('.ce-clan').length, 40);
+  ordenar(w, 'nombre');
+  assert.equal(id(w, 'ceOrdenDir').value, 'asc', 'nombre: de A a Z');
+  assert.equal(w.document.querySelectorAll('.ce-clan').length, 20, 'al cambiar el orden se vuelve a la primera página');
+  ordenar(w, 'activos');
+  assert.equal(id(w, 'ceOrdenDir').value, 'desc', 'cantidades: de mayor a menor');
+  ordenar(w, 'tag');
+  assert.equal(id(w, 'ceOrdenDir').value, 'asc');
+});
+
+test('en Rivales el orden elegido se aplica dentro de cada grupo y los grupos se mantienen', async () => {
+  const dato = { ok: true, actualizado: 'x', indiceCompleto: true, total: 3, clanes: [
+    { tag: '#R1', nombre: 'Zeta', tipos: ['rival'], hoy: true, ternaTag: '#T1', ternaNombre: 'Terna Uno', activos: 1, inactivos: 0, jugadores: [jug(1, true)] },
+    { tag: '#R2', nombre: 'Alfa', tipos: ['rival'], hoy: true, ternaTag: '#T1', ternaNombre: 'Terna Uno', activos: 0, inactivos: 2, jugadores: [jug(2, false), jug(3, false)] },
+    { tag: '#R3', nombre: 'Beta', tipos: ['rival'], hoy: true, ternaTag: '#T0', ternaNombre: 'Terna Cero', activos: 0, inactivos: 0, jugadores: [] }
+  ] };
+  const w = montar(dato);
+  await cargar(w);
+  categoria(w, 'rival');
+  ordenar(w, 'nombre', 'asc');
+  assert.deepEqual([...w.document.querySelectorAll('.ce-grupo')].map(h => h.textContent), ['Enfrentan a Terna Cero (1)', 'Enfrentan a Terna Uno (2)']);
+  assert.deepEqual(nombres(w), ['Beta', 'Alfa', 'Zeta']);
+  ordenar(w, 'nombre', 'desc');
+  assert.deepEqual(nombres(w), ['Beta', 'Zeta', 'Alfa'], 'dentro de «Terna Uno» se invierte; el grupo no se mueve');
+  assert.match(id(w, 'ceMsg').textContent, /El orden se aplica dentro de cada grupo/);
+});

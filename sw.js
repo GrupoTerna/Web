@@ -322,7 +322,8 @@
 // v274 (18-nov-2026): admin.html cambió (CORE_ASSETS) -- nueva tarjeta «Clanes externos»: lista de clanes externos, vetados y rivales con los jugadores nuestros que pasaron por ellos; clan y jugador enlazan dentro de la web y a RoyaleAPI y CWStats con sus íconos (§PF508).
 // v275 (18-nov-2026): admin.html cambió (CORE_ASSETS) -- «Clanes externos» muestra primero las categorías Rivales (agrupados por el clan nuestro al que enfrentan), Vetados y Externos, con «Ver más», activos e inactivos por clan y un filtro de clanes con miembros activos (§PF509).
 // v276 (18-nov-2026): admin.html cambió (CORE_ASSETS) -- el filtro de texto y la casilla de «Clanes externos» toman el estilo oscuro del sitio (el campo salía blanco).
-const CACHE_NAME = 'terna-static-v276';
+// v277 (18-nov-2026): admin.html cambió (CORE_ASSETS) -- «Clanes externos» muestra los números con coma de miles y suma «Ordenar por» (nombre, Tag, activos, inactivos o totales, ascendente o descendente).
+const CACHE_NAME = 'terna-static-v277';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
