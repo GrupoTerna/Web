@@ -336,7 +336,8 @@
 // v294 (19-nov-2026): assets/js/features/mini-historial.js, assets/js/core/auth.js y assets/js/core/api.js cambiaron (CORE_ASSETS) -- el resumen del ⚠️ se guarda en sessionStorage para que salga junto con la tabla; se borra al cerrar sesión.
 // v295 (19-nov-2026): admin.html cambió (CORE_ASSETS) -- las tablas de jugadores de «Clanes externos» (rivales, vetados y externos) llevan en cada columna, menos «Enlaces», el embudo de orden y filtro; el orden predeterminado se mantiene.
 // v296 (19-nov-2026): assets/js/features/mini-historial.js cambió (CORE_ASSETS) -- el modal del ⚠️ toma el aspecto del modal del 📈: título con el jugador, franja de perfil, tarjetas de resumen por clan, filas coloreadas, sombreado por temporada y «Ver más».
-const CACHE_NAME = 'terna-static-v296';
+// v297 (19-nov-2026): assets/js/features/mini-historial.js cambió (CORE_ASSETS) -- el modal del ⚠️ suma una leyenda de colores: menos de 16 ataques puede ser normal si el clan ya cruzó la meta.
+const CACHE_NAME = 'terna-static-v297';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y

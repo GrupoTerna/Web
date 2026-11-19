@@ -269,6 +269,7 @@ test('el modal del ⚠️ lleva título con enlace al jugador, franja de perfil,
   const filas = [...fondo.querySelectorAll('tbody tr')];
   assert.deepEqual(filas.map(f => f.className.split(' ').filter(c => /^hist-(a4|a13|cero)$/.test(c))[0] || ''), ['hist-a4', 'hist-cero', 'hist-a13', ''], '16 verde, 0 rojo, 12 amarillo, sin dato sin color');
   assert.equal(fondo.querySelector('table').classList.contains('hist-tabla-dia'), true);
+  assert.match(fondo.querySelector('.alerta-leyenda').textContent, /16 ataques.*menos de 16.*cruzado la meta/s, 'la leyenda aclara que menos de 16 puede ser por meta cruzada');
   assert.equal(filas[0].classList.contains('hist-sem-b'), false);
   assert.equal(filas[1].classList.contains('hist-sem-b'), true, 'sombreado al cambiar de temporada');
   assert.equal(filas[2].classList.contains('hist-sem-b'), true, 'misma temporada, mismo sombreado');

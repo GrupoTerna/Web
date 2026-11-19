@@ -203,7 +203,8 @@ function alertaPintar(data){
   alertaLimites = clanes.map(() => ALERTA_FILAS_INICIALES);
   alertaHistorialOk = data.historialDisponible !== false;
   cuerpo.innerHTML = clanes.map((c, i) => alertaClanHtml(c, i)).join('')
-    + '<p class="hist-nota">«Rival»: clan que fue rival de nuestra guerra en la temporada en que se detectó. «Vetado»: clan de la lista de conflictos o vetado. La alerta es permanente: se conserva aunque el clan deje de ser rival. Las semanas son las jugadas en ese clan, según el historial individual.</p>';
+    + '<p class="hist-nota">«Rival»: clan que fue rival de nuestra guerra en la temporada en que se detectó. «Vetado»: clan de la lista de conflictos o vetado. La alerta es permanente: se conserva aunque el clan deje de ser rival. Las semanas son las jugadas en ese clan, según el historial individual.</p>'
+    + '<p class="hist-nota alerta-leyenda">Color de cada semana: verde con 16 ataques (el tope semanal), amarillo con menos de 16 y rojo con 0. Menos de 16 puede ser normal si el clan ya había cruzado la meta: el historial de clanes externos no indica si la cruzó.</p>';
 }
 async function alertaCargarCabecera(tag, mia){
   try{
