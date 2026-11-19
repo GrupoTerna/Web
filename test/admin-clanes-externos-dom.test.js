@@ -147,6 +147,23 @@ test('enlaces: clan dentro de la web, y RoyaleAPI y CWStats con ícono en el cla
   assert.deepEqual(w.__buscados, ['#AAA111']);
 });
 
+// NUEVO (18-nov-2026, pedido de la usuaria): columna «Clan actual» en la tabla de jugadores; el activo trae su clan nuestro (con enlace a «Buscar clan») y el inactivo, «—».
+test('la tabla trae la columna «Clan actual»: enlace para el activo y «—» para el inactivo', async () => {
+  const datos = { ...DATOS, clanes: [{ ...DATOS.clanes[0], jugadores: [{ ...jug(1, true), clanActual: 'Grupo Terna <i>1</i>', clanActualTag: '#T1' }, jug(2, false)] }] };
+  const w = montar(datos);
+  await cargar(w);
+  categoria(w, 'rival');
+  const clan = w.document.querySelector('.ce-clan');
+  abrir(w, clan);
+  const cab = [...clan.querySelectorAll('thead th')].map(th => th.textContent);
+  assert.deepEqual(cab, ['Jugador', 'Tag', 'Estado', 'Clan actual', 'Semanas', 'Primera → última', 'Enlaces']);
+  const filas = clan.querySelectorAll('tbody tr');
+  const celdaActivo = filas[0].querySelectorAll('td')[3];
+  assert.equal(celdaActivo.querySelector('a.ce-clan-link').getAttribute('href'), 'admin.html?clan=%23T1#cardBuscarClan');
+  assert.equal(celdaActivo.querySelector('i'), null, 'el HTML del nombre del clan no se interpreta');
+  assert.equal(filas[1].querySelectorAll('td')[3].textContent.trim(), '—');
+});
+
 test('lo que manda el backend se escapa y un error del backend se muestra', async () => {
   const w = montar();
   await cargar(w);

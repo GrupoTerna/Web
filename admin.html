@@ -2851,6 +2851,7 @@ function _ceFilaJugador(j){
     <td>${enlaceJugador(j.nombre || j.tag, j.tag)}</td>
     <td class="text-faint" style="font-family:var(--f-mono); font-size:13px;">${esc(j.tag)}</td>
     <td>${estado}</td>
+    <td>${(j.clanActual || j.clanActualTag) ? _ceEnlaceClanInterno(j.clanActual, j.clanActualTag) : '<span class="text-faint">—</span>'}</td>
     <td>${esc(_ceNum(j.semanas))}</td>
     <td>${_etiquetaPuntoClan(j.primera)} → ${_etiquetaPuntoClan(j.ultima)}</td>
     <td>${_ceEnlacesExternos(j.tag, 'player')}</td>
@@ -2860,7 +2861,7 @@ function _ceFilaJugador(j){
 function _ceTablaJugadores(c){
   const js = (c.jugadores || []).slice().sort((a, b) => (b.activo ? 1 : 0) - (a.activo ? 1 : 0));
   if(!js.length) return '<div class="text-dim" style="font-size:14px; padding:6px 0;">Ningún jugador nuestro figura en este clan en el índice.</div>';
-  return `<div style="overflow-x:auto;"><table><thead><tr><th scope="col">Jugador</th><th scope="col">Tag</th><th scope="col">Estado</th><th scope="col">Semanas</th><th scope="col">Primera → última</th><th scope="col">Enlaces</th></tr></thead><tbody>${js.map(_ceFilaJugador).join('')}</tbody></table></div>`;
+  return `<div style="overflow-x:auto;"><table><thead><tr><th scope="col">Jugador</th><th scope="col">Tag</th><th scope="col">Estado</th><th scope="col">Clan actual</th><th scope="col">Semanas</th><th scope="col">Primera → última</th><th scope="col">Enlaces</th></tr></thead><tbody>${js.map(_ceFilaJugador).join('')}</tbody></table></div>`;
 }
 function _ceLlenarCuerpo(d){
   const cuerpo = d.querySelector('.ce-cuerpo');
