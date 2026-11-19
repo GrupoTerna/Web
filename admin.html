@@ -2897,7 +2897,7 @@ function _ceOrdenar(lista, tipo, orden, dir){
 function _ceFilaJugador(j){
   const estado = j.activo ? '<span class="badge">Activo</span>' : '<span class="badge badge-warn">Inactivo</span>';
   return `<tr>
-    <td>${enlaceJugador(j.nombre || j.tag, j.tag)}</td>
+    <td>${enlaceJugador(j.nombre || j.tag, j.tag)}${j.sinPerfil === 'Baneado' ? ' <span class="ce-baneado" role="img" aria-label="Baneado por Supercell" title="Baneado por Supercell (RoyaleAPI da 404): este es el último nombre que se conoce">⛔</span>' : ''}</td>
     <td class="text-faint" style="font-family:var(--f-mono); font-size:13px;">${esc(j.tag)}</td>
     <td>${estado}</td>
     <td${j.clanUltimo ? ' title="Último clan conocido (ya no está en la Familia)"' : ''}>${(j.clanActual || j.clanActualTag) ? _ceEnlaceClanInterno(j.clanActual, j.clanActualTag) : '<span class="text-faint">—</span>'}</td>
@@ -2906,9 +2906,9 @@ function _ceFilaJugador(j){
     <td>${_ceEnlacesExternos(j.tag, 'player', j.nombre)}</td>
   </tr>`;
 }
-/** La tabla de jugadores se arma recién al abrir el clan (con 1 400 clanes, armarlas todas haría lenta la página). Los activos van primero. */
+/** La tabla de jugadores se arma recién al abrir el clan (con 1 400 clanes, armarlas todas haría lenta la página). Van por semanas (mayor a menor) y luego por nombre (A-Z). */
 function _ceTablaJugadores(c){
-  const js = (c.jugadores || []).slice().sort((a, b) => (b.activo ? 1 : 0) - (a.activo ? 1 : 0));
+  const js = (c.jugadores || []).slice().sort((a, b) => ((b.semanas || 0) - (a.semanas || 0)) || String(a.nombre || a.tag || '').localeCompare(String(b.nombre || b.tag || ''), 'es', { sensitivity: 'base' }));
   if(!js.length) return '<div class="text-dim" style="font-size:14px; padding:6px 0;">Ningún jugador nuestro figura en este clan en el índice.</div>';
   return `<div style="overflow-x:auto;"><table><thead><tr><th scope="col">Jugador</th><th scope="col">Tag</th><th scope="col">Estado</th><th scope="col">Clan actual</th><th scope="col">Semanas</th><th scope="col">Primera → última</th><th scope="col">Enlaces</th></tr></thead><tbody>${js.map(_ceFilaJugador).join('')}</tbody></table></div>`;
 }

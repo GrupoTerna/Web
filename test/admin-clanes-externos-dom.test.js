@@ -81,7 +81,7 @@ test('Rivales se agrupa por el clan nuestro al que enfrentan y deja los de seman
   assert.deepEqual(nombres(w), ['Rivales <b>X</b>', 'Rival Uno', 'Rival Viejo'], 'por nombre del clan nuestro; los de antes, al final');
 });
 
-test('cada clan cuenta activos e inactivos y la tabla distingue el estado de cada jugador, con los activos primero', async () => {
+test('cada clan cuenta activos e inactivos y la tabla distingue el estado de cada jugador', async () => {
   const w = montar();
   await cargar(w);
   categoria(w, 'rival');
@@ -92,6 +92,27 @@ test('cada clan cuenta activos e inactivos y la tabla distingue el estado de cad
   const estados = [...clan.querySelectorAll('tbody tr')].map(tr => tr.children[2].textContent);
   assert.deepEqual(estados, ['Activo', 'Inactivo']);
   assert.match(clan.textContent, /2024-08 S2/);
+});
+
+// NUEVO (18-nov-2026, §PF516): la tabla va por semanas (mayor a menor) y luego por nombre; el baneado de la lista «sin perfil» lleva ⛔ junto al último nombre que se conoce.
+test('los jugadores van por semanas y luego por nombre, y el baneado lleva el emoji', async () => {
+  const js = [
+    { ...jug(1, true), nombre: 'Zeta', semanas: 1 },
+    { ...jug(2, false), nombre: 'jamr', semanas: 1, sinPerfil: 'Baneado' },
+    { ...jug(3, false), nombre: 'Ana', semanas: 1, sinPerfil: 'Sin registro' },
+    { ...jug(4, true), nombre: 'Mia', semanas: 5 }
+  ];
+  const datos = { ...DATOS, clanes: [{ ...DATOS.clanes[0], jugadores: js }] };
+  const w = montar(datos);
+  await cargar(w);
+  categoria(w, 'rival');
+  const clan = w.document.querySelector('.ce-clan');
+  abrir(w, clan);
+  const filas = [...clan.querySelectorAll('tbody tr')];
+  assert.deepEqual(filas.map(tr => tr.children[0].querySelector('a').firstChild.textContent.trim()), ['Mia', 'Ana', 'jamr', 'Zeta']);
+  assert.equal(clan.querySelectorAll('.ce-baneado').length, 1, 'solo el Baneado lleva emoji');
+  assert.ok(filas[2].querySelector('.ce-baneado'));
+  assert.equal(filas[1].querySelector('.ce-baneado'), null, 'Sin registro no lleva emoji');
 });
 
 test('«Solo clanes con miembros activos» oculta los clanes sin activos y el texto busca entre los jugadores', async () => {
