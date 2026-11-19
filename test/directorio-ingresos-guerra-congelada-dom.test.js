@@ -31,6 +31,7 @@ function extraerFuncion(src, nombre){
 function crear(congelada){
   const codigo = `
     let ingresosOcultarAdmins = false, ingresosOcultarConWsp = false, ingresosOcultarSinPendientes = false;
+    const ingresosClanesOcultos = new Set(), claveClanMiembro = () => 'clan'; // 18-nov-2026 (§PF512)
     const sinPendientesIngreso = () => false;
     const tieneWspIngreso = () => false, botonHistJugador = () => '';
     let ingresosGuerraCongelada = ${congelada ? 'true' : 'false'};

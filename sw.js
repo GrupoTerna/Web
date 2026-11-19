@@ -324,7 +324,8 @@
 // v276 (18-nov-2026): admin.html cambió (CORE_ASSETS) -- el filtro de texto y la casilla de «Clanes externos» toman el estilo oscuro del sitio (el campo salía blanco).
 // v277 (18-nov-2026): admin.html cambió (CORE_ASSETS) -- «Clanes externos» muestra los números con coma de miles y suma «Ordenar por» (nombre, Tag, activos, inactivos o totales, ascendente o descendente).
 // v278 (18-nov-2026): assets/js/features/timeline-svg.js, assets/styles.css y directorio.html cambiaron (CORE_ASSETS) -- en las gráficas con varias series, al acercarse a un punto se resalta toda su serie (§PF511).
-const CACHE_NAME = 'terna-static-v278';
+// v279 (18-nov-2026): directorio.html cambió (CORE_ASSETS) -- en «Ingresos recientes», desmarcar un clan con su pastilla oculta las tarjetas de ese clan (la pastilla se queda para volver a marcarlo) (§PF512).
+const CACHE_NAME = 'terna-static-v279';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y

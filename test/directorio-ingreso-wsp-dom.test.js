@@ -40,6 +40,7 @@ const construir = new Function(`
   const fechaIngresoTexto = () => '', enlaceJugador = n => n, ingBadgeRivalHtml = () => '';
   const ingresoStatHtml = () => '', desgloseDiasHtml = () => '', fmtFechaVigenciaCorta = () => '';
   let ingresosOcultarAdmins = false, ingresosOcultarConWsp = false, ingresosOcultarSinPendientes = false, ingresosGuerraCongelada = false;
+  const ingresosClanesOcultos = new Set(), claveClanMiembro = () => 'clan'; // 18-nov-2026 (§PF512): la tarjeta lleva .oculto-clan si su clan está desmarcado
   const sinPendientesIngreso = () => false;
   const esCuentaAdminIngreso = () => false;
   const tieneWspIngreso = n => !!(n && n.tieneWsp === true);

@@ -567,7 +567,8 @@
   .nuevo-card{transition:opacity .18s ease;}
   .nuevo-card.excluido{opacity:.62;}
   /* «Ocultar admins» (19-oct-2026): la tarjeta de una cuenta de admin desaparece mientras la pastilla está activa. Clase propia y no style.display para no pisar el filtro A-Z (aplicarFiltroLetraIngresos). */
-  .nuevo-card.oculto-admin, .nuevo-card.oculto-wsp, .nuevo-card.oculto-pend{display:none;}
+  .nuevo-card.oculto-admin, .nuevo-card.oculto-wsp, .nuevo-card.oculto-pend, .nuevo-card.oculto-clan{display:none;}
+  /* 18-nov-2026 (pedido de la usuaria): .oculto-clan = la tarjeta de un clan DESELECCIONADO con su pastilla; la pastilla se queda para volver a marcarlo. Clase propia para no pisar el filtro A-Z (style.display). [→ Contexto_Base_Web.md §PF512] */
   .nuevo-card.excluido:hover{opacity:.9;}
   .nuevo-card .ing-rival{margin:8px 0 0;}
   .nuevo-card .ing-rival .badge{font-size:13px;}
@@ -644,6 +645,13 @@
   }
   .ing-chart-leyenda-fila{display:flex; align-items:center; gap:8px;}
   .ing-chart-leyenda svg{flex-shrink:0;}
+  /* 18-nov-2026 (pedido de la usuaria): filtro por valor del eje Y bajo el título de cada gráfica de «Ingresos recientes». Va fuera del contenedor que se repinta (.gv-chart) para no perder el foco al escribir. [→ Contexto_Base_Web.md §PF512] */
+  .ing-filtro-y{display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:0 0 12px; font-family:var(--f-mono); font-size:13px; color:var(--text-dim);}
+  .ing-filtro-y-input{width:96px; padding:5px 8px; border-radius:var(--radius-sm); border:1px solid var(--line-strong); background:var(--surface-card); color:var(--text); font-family:var(--f-mono); font-size:13px;}
+  .ing-filtro-y-input:focus-visible{outline:2px solid var(--gold); outline-offset:1px;}
+  .ing-filtro-y-quitar{padding:5px 10px; border-radius:var(--radius-sm); border:1px solid var(--line-gold); background:transparent; color:var(--gold); font-family:var(--f-mono); font-size:13px; cursor:pointer;}
+  .ing-filtro-y-quitar:hover{background:rgba(243,169,34,.12);}
+  .ing-filtro-y-quitar[hidden]{display:none;}
   .ing-linechart-svg{width:100%; height:auto; aspect-ratio:960/460; display:block; overflow:visible;}
   .ing-linechart-svg .ing-grid-line{stroke:var(--line-strong); stroke-width:1; opacity:.4;}
   .ing-linechart-svg .ing-serie-line-dashed{stroke-dasharray:5 4; opacity:.55;}
@@ -2830,7 +2838,7 @@ function nuevoCardHtml(n){
   const sem = n.guerraSemana || {};
   const fecha = fechaIngresoTexto(n);
   return `
-      <div class="card nuevo-card js-nuevo-card${incluido ? '' : ' excluido'}${ingresosOcultarAdmins && esCuentaAdminIngreso(n) ? ' oculto-admin' : ''}${ingresosOcultarConWsp && tieneWspIngreso(n) ? ' oculto-wsp' : ''}${ingresosOcultarSinPendientes && sinPendientesIngreso(n) ? ' oculto-pend' : ''}" data-tag="${esc(claveIngreso(n))}" data-letra="${esc(primeraLetraFiltro(n.nombre))}" style="cursor:pointer; position:relative;">
+      <div class="card nuevo-card js-nuevo-card${incluido ? '' : ' excluido'}${ingresosOcultarAdmins && esCuentaAdminIngreso(n) ? ' oculto-admin' : ''}${ingresosOcultarConWsp && tieneWspIngreso(n) ? ' oculto-wsp' : ''}${ingresosOcultarSinPendientes && sinPendientesIngreso(n) ? ' oculto-pend' : ''}${ingresosClanesOcultos.has(claveClanMiembro(n)) ? ' oculto-clan' : ''}" data-tag="${esc(claveIngreso(n))}" data-letra="${esc(primeraLetraFiltro(n.nombre))}" style="cursor:pointer; position:relative;">
         <input type="checkbox" class="js-ingreso-check" data-tag="${esc(claveIngreso(n))}"${incluido ? ' checked' : ''} aria-label="Incluir a ${esc(n.nombre)} en las gráficas">
         <div class="name">${enlaceJugador(n.nombre, n.tag)}</div>
         <div class="tag">${esc(n.tag || '—')}</div>
@@ -2874,10 +2882,13 @@ function nuevoCardHtml(n){
  *   - ingresosGrupos: la misma lista agrupada por clan, para las pastillas.
  * Marcar/desmarcar un checkbox o una pastilla solo cambia ese Set; después
  * aplicarFiltroIngresos() sincroniza checkboxes, pastillas, contador y
- * gráficas, sin repintar (ni perder el foco de) las tarjetas. */
+ * gráficas, sin repintar (ni perder el foco de) las tarjetas.
+ * 18-nov-2026 (pedido de la usuaria): desmarcar un CLAN con su pastilla sí oculta las tarjetas de ese clan (ingresosClanesOcultos); la pastilla se queda para volver a marcarlo. Desmarcar un miembro con su checkbox sigue sin ocultar su tarjeta (solo se atenúa). [→ Contexto_Base_Web.md §PF512] */
 let ingresosTodosCache = [];
 let ingresosSeleccionados = null;
 let ingresosGrupos = [];
+/** Claves de clan (claveClanMiembro: por Tag) desmarcados con su pastilla: sus tarjetas desaparecen (clase .oculto-clan) y su pastilla sigue a la vista. Solo cambia con las pastillas de clan y «Todos», nunca con el checkbox de una tarjeta. */
+let ingresosClanesOcultos = new Set();
 // Las 3 gráficas comparativas no se pintan al cargar (lo más caro de renderizar); arrancan cerradas y se muestran al abrir el botón, con el último filtro ya guardado. Historial en CHANGELOG.md.
 let ingresosGraficasVisibles = false;
 let ingresosUltimosFiltrados = [];
@@ -3037,7 +3048,7 @@ function aplicarFiltroIngresos(){
   const countEl = document.getElementById('nuevosCount');
   if (countEl) countEl.textContent = textoContadorIngresos(filtrados.length, total);
 
-  // Las tarjetas se quedan todas (solo cambia su checkbox y su intensidad), salvo las cuentas de admin con «Ocultar admins» activa: esas desaparecen (clase .oculto-admin) y reaparecen al apagarla.
+  // Las tarjetas se quedan todas (solo cambia su checkbox y su intensidad), salvo las cuentas de admin con «Ocultar admins» activa (clase .oculto-admin) y las de un clan desmarcado con su pastilla (clase .oculto-clan): esas desaparecen y reaparecen al volver a marcarlas.
   const porTag = new Map(ingresosTodosCache.map(n => [claveIngreso(n), n]));
   document.querySelectorAll('#nuevoGrid .js-nuevo-card').forEach(card => {
     const n = porTag.get(card.dataset.tag);
@@ -3045,10 +3056,12 @@ function aplicarFiltroIngresos(){
     const ocultaAdmin = !!(n && ingresosOcultarAdmins && esCuentaAdminIngreso(n));
     const ocultaWsp = !!(n && ingresosOcultarConWsp && tieneWspIngreso(n));
     const ocultaPend = !!(n && ingresosOcultarSinPendientes && sinPendientesIngreso(n));
-    const oculta = ocultaAdmin || ocultaWsp || ocultaPend;
+    const ocultaClan = !!(n && ingresosClanesOcultos.has(claveClanMiembro(n)));
+    const oculta = ocultaAdmin || ocultaWsp || ocultaPend || ocultaClan;
     card.classList.toggle('oculto-admin', ocultaAdmin);
     card.classList.toggle('oculto-wsp', ocultaWsp);
     card.classList.toggle('oculto-pend', ocultaPend);
+    card.classList.toggle('oculto-clan', ocultaClan);
     // Una cuenta de admin oculta no se atenúa: está fuera, no solo excluida de las gráficas.
     card.classList.toggle('excluido', !incluido && !oculta);
     const check = card.querySelector('.js-ingreso-check');
@@ -3125,7 +3138,8 @@ function agruparPorClanEnOrden(nuevos){
  * desaparecer"): las pastillas ya no ocultan tarjetas. Cada pastilla de
  * clan marca/desmarca a TODOS los miembros de ese clan en las gráficas
  * (si el clan ya está completo lo desmarca; si está vacío o parcial lo
- * completa); "Todos" siempre vuelve a marcar a todos de un solo clic (no
+ * completa; desde el 18-nov-2026 desmarcar el clan también oculta sus
+ * tarjetas, ver ingresosClanesOcultos); "Todos" siempre vuelve a marcar a todos de un solo clic (no
  * es un toggle, es un "reset"). El filtro fino por miembro sigue en el
  * checkbox de cada tarjeta y ambos se mantienen sincronizados. */
 function construirFiltroIngresos(nuevos){
@@ -3134,6 +3148,7 @@ function construirFiltroIngresos(nuevos){
 
   ingresosGrupos = agruparPorClanEnOrden(nuevos);
   ingresosSeleccionados = new Set(nuevos.map(claveIngreso));
+  ingresosClanesOcultos = new Set();
 
   if (!ingresosGrupos.length){
     wrap.innerHTML = '';
@@ -3165,6 +3180,7 @@ function construirFiltroIngresos(nuevos){
         ingresosOcultarSinPendientes = !ingresosOcultarSinPendientes; // igual: no toca ingresosSeleccionados
       } else if (clan === '__todos__'){
         ingresosSeleccionados = new Set(ingresosTodosCache.map(claveIngreso));
+        ingresosClanesOcultos = new Set(); // «Todos» también devuelve las tarjetas de los clanes desmarcados
       } else {
         const grupo = ingresosGrupos.find(g => g.clave === btn.dataset.clave); // §PF413 (6b): por clave (Tag), no por nombre
         if (!grupo) return;
@@ -3175,6 +3191,9 @@ function construirFiltroIngresos(nuevos){
           if (completo) ingresosSeleccionados.delete(claveIngreso(m));
           else ingresosSeleccionados.add(claveIngreso(m));
         });
+        // 18-nov-2026: desmarcar el clan oculta sus tarjetas (la pastilla se queda); volver a marcarlo las devuelve. [→ Contexto_Base_Web.md §PF512]
+        if (completo) ingresosClanesOcultos.add(grupo.clave);
+        else ingresosClanesOcultos.delete(grupo.clave);
       }
       aplicarFiltroIngresos();
     });
@@ -3243,6 +3262,8 @@ async function cargarIngresosRecientes(opts){
     if (!fresco){
       const selClan = seleccionIngresosDeClan(ingresosGrupos, new URLSearchParams(location.search).get('clan'), new URLSearchParams(location.search).get('tag'));
       if (selClan) ingresosSeleccionados = selClan;
+      // 18-nov-2026: los clanes que no son el de la dirección llegan desmarcados, así que sus tarjetas no se ven (su pastilla sí, para volver a marcarlos). [→ Contexto_Base_Web.md §PF512]
+      if (selClan) ingresosClanesOcultos = new Set(ingresosGrupos.filter(g => !g.miembros.some(m => selClan.has(claveIngreso(m)))).map(g => g.clave));
     }
     renderNuevoGrid();
     aplicarFiltroIngresos();
@@ -3253,6 +3274,7 @@ async function cargarIngresosRecientes(opts){
     ingresosTodosCache = [];
     ingresosSeleccionados = null;
     ingresosGrupos = [];
+    ingresosClanesOcultos = new Set();
     ingresosUltimosFiltrados = [];
     if (nuevoGrid) nuevoGrid.innerHTML = `<div class="empty">No se pudo cargar los ingresos recientes: ${esc(err.message)}</div>`;
     if (chartsWrap) chartsWrap.innerHTML = '';
