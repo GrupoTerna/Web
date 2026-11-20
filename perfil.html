@@ -1040,6 +1040,21 @@
   @media (max-width:640px){
     .bt-row{padding:14px 14px 14px 18px;}
     .bt-vs{flex-basis:100%;}
+    /* 20-nov-2026 (pedido de la usuaria, vista móvil «desencajada»): con flex-wrap cada dato caía en una fila distinta y a un ancho distinto (datos pegados a la izquierda, pastillas de marcador, resultado y badges sueltas). En móvil la fila pasa a una cuadrícula de 2 columnas: rival arriba (ancho completo); modo a la izquierda y arena a la derecha; marcador a la izquierda y resultado a la derecha; fecha y badges en la última fila, uno a cada lado. */
+    .bt-row{display:grid; grid-template-columns:minmax(0,1fr) minmax(84px,42%); gap:10px 12px; align-items:center;}
+    .bt-vs{grid-column:1 / -1;}
+    .bt-modo{grid-column:1; min-width:0;}
+    .bt-arena{grid-column:2; min-width:0; text-align:right;}
+    .bt-marcador{grid-column:1; justify-self:start; max-width:100%; white-space:normal;}
+    .bt-resultado{grid-column:2; justify-self:end; width:100%; max-width:96px; box-sizing:border-box;}
+    .bt-fecha{grid-column:1 / -1; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:6px 10px; text-align:left; white-space:normal;}
+  }
+  /* 20-nov-2026 (pedido de la usuaria): en «Camino de Trofeos» la cifra con su «máx.» no cabía a 360 px y se cortaba por la derecha. En pantallas angostas la cabecera de cada barra deja bajar la cifra a una segunda línea y la temporada y el «máx.» van en su propia línea, sin cortarse. */
+  @media (max-width:480px){
+    .trofeos-cab{flex-wrap:wrap; row-gap:2px;}
+    .trofeos-et{flex:1 1 auto; min-width:0;}
+    .trofeos-et small, .trofeos-val small{display:block; margin-left:0;}
+    .trofeos-val{margin-left:auto; text-align:right;}
   }
   /* Las reglas base de las cintas (.pf-cinta, ::before, eyebrow, --anidada) pasaron a assets/styles.css el 12-oct-2026 para usarlas en las demás páginas. [→ Contexto_Base_Web.md §PF065] */
   /* 12-oct-2026 (pedido usuario — "ponle un banner a la cabecera de perfil"): la tarjeta de cabecera era la única sin cinta. Usa la misma técnica (.pf-cinta + --cinta) con la cinta azul de Mazo actual (cinta-mazo-2.webp, ya publicada: no hay imagen nueva): el azul oscuro deja leer el nombre dorado y no choca con la cinta violeta de Competitivo, que va justo debajo. La franja es más alta (120 px) porque aquí no hay un eyebrow, sino el nombre, el escudo y los datos. .perfil-cabecera pasa a position:relative con z-index:1 para pintarse sobre la cinta (el ::before posicionado se pinta encima del contenido sin posicionar). [→ Contexto_Base_Web.md §PF064] */
