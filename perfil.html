@@ -73,6 +73,9 @@
   .perfil-cabecera-der{display:flex; flex-direction:column; align-items:flex-end; gap:14px; flex:1 1 auto; min-width:0;}
   .perfil-cabecera-der .ext-links{justify-content:flex-end; margin-top:0;}
   .perfil-cabecera-izq{display:flex; align-items:stretch; gap:14px; flex:0 1 auto; min-width:0; flex-wrap:wrap;}
+  /* 19-nov-2026 (pedido de la usuaria — «perfil.html no debe ser más ancho que index»): en el celular la cabecera del jugador ensanchaba toda la página (611 px en un viewport de 390). Causa: el <div> que envuelve el nombre y el subtítulo es un ítem flex con min-width:auto, así que no se achicaba por debajo de su texto más largo (nombre o clan sin espacios) y empujaba la tarjeta, el contenedor y el scroll horizontal. min-width:0 le permite achicarse y overflow-wrap:anywhere parte el texto en vez de desbordar. */
+  .perfil-cabecera-izq > div{min-width:0; max-width:100%;}
+  #mNombre, #mSub{overflow-wrap:anywhere;}
   #mClanIconoWrap{display:flex; align-items:center; justify-content:center; align-self:stretch;}
   #mClanIconoWrap img{width:auto; height:100%; max-height:84px; margin-right:0 !important;}
   #mInsigniaGuerraWrap{display:flex; align-items:center; justify-content:center; align-self:stretch;}
@@ -190,9 +193,11 @@
    * fija en 4 columnas siempre (8 cartas = 2 filas parejas de 4), con un
    * fallback a 2 columnas en pantallas angostas para que cada ficha no
    * quede demasiado angosta en celular. */
-  .mazo-chips{display:grid; grid-template-columns:repeat(4, 1fr); gap:12px;}
+  /* 19-nov-2026 (pedido de la usuaria, secciones de mazos): 1fr equivale a minmax(auto,1fr), así que una ficha con un nombre largo sin espacios impedía que su columna se achicara y ensanchaba la página en el celular. minmax(0,1fr) deja que las columnas se repartan el ancho de la tarjeta; el nombre ya se parte con .col-nombre-txt{max-width:100%}. */
+  .mazo-chips{display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:12px;}
+  .mazo-chips > *{min-width:0;}
   @media (max-width:640px){
-    .mazo-chips{grid-template-columns:repeat(2, 1fr);}
+    .mazo-chips{grid-template-columns:repeat(2, minmax(0,1fr));}
   }
   /* FIX (23-sep-2026, pedido usuario — "en Mazo actual la calidad tiene el
    * texto más grande que el nombre de la carta"): .cc-rareza usa fuente
@@ -707,6 +712,10 @@
   .panel-stats td:last-child{text-align:right; color:var(--text); font-family:var(--f-mono); font-size:13px; white-space:nowrap;}
   /* 14-oct-2026 (pedido usuario, zoom alto en móvil): con white-space:nowrap la celda de valor («Arena 3 · 900 🏆 (mejor 1,000)») hacía la tabla de «Progreso en eventos» más ancha que la tarjeta a 360 px y la página crecía 12 px; en pantallas angostas el valor puede bajar de línea. [→ Contexto_Base_Web.md §PF076] */
   @media (max-width:480px){ .panel-stats td:last-child{white-space:normal;} }
+  /* 19-nov-2026 (pedido de la usuaria — «perfil.html no debe ser más ancho que index»; «se ensancha en progreso de eventos y modo»): las claves del progreso (p. ej. «AutoPathOfLegend_Season_25_…») son una sola palabra larga y la tabla no podía achicarse por debajo de ella: en el celular medía 517 px y ensanchaba toda la página. overflow-wrap:anywhere las parte donde haga falta; table-layout:fixed y las dos columnas reparten el ancho de la tarjeta. */
+  .panel-stats{table-layout:fixed;}
+  .panel-stats td{overflow-wrap:anywhere;}
+  .panel-stats td:first-child{width:55%;}
   /* FIX (23-sep-2026, pedido usuario — "solo se hizo el cambio en la
      colección completa pero falta en las otras secciones de cartas en
      perfil.html"): "Carta favorita" deja de usar su propio wrapper
