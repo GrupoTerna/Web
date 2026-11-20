@@ -239,6 +239,11 @@
     #mNombre, #mSub{text-align:center;}
     /* 19-nov-2026 (captura del celular): «Carta favorita» (max-width:260px en línea) y «Carta de torre del mazo» (max-width:280px) quedaban pegadas a la izquierda de su tarjeta, con más margen a la derecha; se centran. Si la caja ocupa todo el ancho, el margen automático no cambia nada. */
     #mFavoritaContenido > .col-card, .mazo-layout > .mazo-layout-torre .col-card{margin-left:auto; margin-right:auto;}
+    /* 19-nov-2026 (capturas del celular, §PF529): (1) el gráfico «Cartas por nivel» quedaba unos 50 px a la izquierda del centro: al bajar de línea, su contenedor medía lo que el botón «Ver niveles y evoluciones» y la tarjeta se centraba solo dentro de ese ancho; ahora el contenedor ocupa toda la fila, el botón sigue a la izquierda y la tarjeta se centra. (2) La caja de «Carta favorita» quedaba casi pegada a su título. (3) «Costo de elixir promedio» va centrado, como las cajas de arriba. */
+    #mColeccionNivelPie.coleccion-nivel-pie-wrap{width:100%; align-items:flex-start;}
+    #mColeccionNivelPie .mini-pie{align-self:center;}
+    #mFavoritaContenido > .col-card{margin-top:14px;}
+    .mazo-elixir-prom{text-align:center;}
   }
   /* 19-nov-2026 (pedido de la usuaria — «quita el espacio vacío del fondo»): bajo la última tarjeta había unos 148 px vacíos antes del pie (80 px de relleno de <main>, 8 px de #perfilSec y 60 px de margen del <footer>). Se dejan 24 px. */
   footer{margin-top:24px;}
@@ -5335,7 +5340,7 @@ function renderMazoActual(mazoActual, ext, j){
 
   // FIX (06-nov-2026, error «Cannot read properties of null (reading 'elixirPromedio')» al abrir un perfil): el backend manda mazoActual = null cuando Cards_2 todavía no tiene datos de este Tag (_webMazoActualDesdeCards2()); el resto de la función ya lo tolera (mazoActual && ...), solo faltaba esta lectura. Historial en CHANGELOG.md.
   const promedioHtml = (mazoActual && mazoActual.elixirPromedio !== null && mazoActual.elixirPromedio !== undefined)
-    ? `<div class="text-dim" style="font-size:13px; margin-top:16px;">Costo de elixir promedio: <b>${esc(String(mazoActual.elixirPromedio))}</b></div>`
+    ? `<div class="text-dim mazo-elixir-prom" style="font-size:13px; margin-top:16px;">Costo de elixir promedio: <b>${esc(String(mazoActual.elixirPromedio))}</b></div>`
     : '';
 
   const mazoHtml = `<div class="mazo-chips mazo-chips-principal">${cartasHtml}</div>`;
