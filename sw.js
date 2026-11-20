@@ -343,7 +343,8 @@
 // v304 (19-nov-2026): perfil.html cambió (CORE_ASSETS) -- en celular, Copas va a la izquierda de Nivel de colección, los iconos de la cabecera quedan en la misma línea que su texto y «p. m.» no se parte (§PF525).
 // v305 (19-nov-2026): perfil.html cambió (CORE_ASSETS) -- en celular las cartas de «Mazo actual» y la carta de torre van en 2 columnas, con nombre, imagen y datos apilados y Héroe y Evolución en filas separadas (§PF525).
 // v306 (19-nov-2026): perfil.html cambió (CORE_ASSETS) -- en celular todas las fichas de carta (mazo, torre, favorita, colección y torres) se apilan en 2 columnas y el nombre del jugador, el estado y el clan van centrados (§PF525).
-const CACHE_NAME = 'terna-static-v306';
+// v307 (19-nov-2026): perfil.html cambió (CORE_ASSETS) -- en celular, el bloque de datos de cada carta (rareza, tipo, elixir, nivel, Héroe y Evolución) se centra en la tarjeta con sus filas alineadas a la izquierda (§PF525).
+const CACHE_NAME = 'terna-static-v307';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
