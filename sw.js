@@ -349,7 +349,8 @@
 // v310 (19-nov-2026): guerra.html, mensajes.html, perfil.html y torneos.html cambiaron (CORE_ASSETS) -- en celular (320 a 390 px) la cinta «Monitoreo en Vivo» de guerra, la fila «Ver todos los resultados» de torneos, los botones de cada contenido de mensajes y la tabla del modal de costo de perfil ya no se salen del ancho de la pantalla (§PF526).
 // v311 (19-nov-2026): perfil.html cambió (CORE_ASSETS) -- el texto «Coste de elixir promedio» pasa a «Costo» (léxico de Perú, como el resto de la web) y, en celular, «Carta favorita» y «Carta de torre del mazo» se centran en su tarjeta (§PF528).
 // v312 (19-nov-2026): perfil.html y assets/styles.css cambiaron (CORE_ASSETS) -- en celular el gráfico «Cartas por nivel» queda centrado, «Carta favorita» no queda pegada a su título y «Costo de elixir promedio» va centrado; la cabecera fija (.nav) pasa de 0.78 a 0.96 de opacidad para que no se lea el texto que pasa por detrás (§PF529).
-const CACHE_NAME = 'terna-static-v312';
+// v313 (19-nov-2026): assets/styles.css cambió (CORE_ASSETS) -- la cabecera fija (.nav) pasa de 0.96 de opacidad a sólida (rgb(4, 5, 8)), porque con 0.96 todavía se adivinaba el texto que pasa por detrás (§PF530).
+const CACHE_NAME = 'terna-static-v313';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y

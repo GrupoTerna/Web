@@ -38,9 +38,9 @@ test('en celular «Carta favorita» deja aire bajo su título y el costo de elix
   assert.ok(perfil.includes('class="text-dim mazo-elixir-prom"'));
 });
 
-test('la cabecera fija (.nav) es casi opaca y no lleva backdrop-filter', () => {
+test('la cabecera fija (.nav) es opaca del todo y no lleva backdrop-filter', () => {
   const css = sinComentarios(estilos);
   const { cuerpo } = cuerpoDe(css, '.nav');
-  assert.match(cuerpo, /background:\s*rgba\(4,\s*5,\s*8,\s*0\.96\)/);
+  assert.match(cuerpo, /background:\s*rgb\(4,\s*5,\s*8\)\s*;/);
   assert.doesNotMatch(cuerpo, /backdrop-filter/);
 });
