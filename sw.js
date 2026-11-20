@@ -341,7 +341,8 @@
 // v299 (19-nov-2026): comunidad.html e index.html cambiaron (CORE_ASSETS) -- el encabezado de Comunidad y la tarjeta «¿Nuevo en la Familia Terna?» ya no ensanchan la página en pantallas angostas (320 a 360 px).
 // v303 (19-nov-2026): perfil.html cambió (CORE_ASSETS) -- vista móvil ordenada: cabecera con los datos en cuadritos de 2 columnas y botones centrados, barras de requisitos con el valor junto a la barra y cuadritos sin huecos (§PF525).
 // v304 (19-nov-2026): perfil.html cambió (CORE_ASSETS) -- en celular, Copas va a la izquierda de Nivel de colección, los iconos de la cabecera quedan en la misma línea que su texto y «p. m.» no se parte (§PF525).
-const CACHE_NAME = 'terna-static-v304';
+// v305 (19-nov-2026): perfil.html cambió (CORE_ASSETS) -- en celular las cartas de «Mazo actual» y la carta de torre van en 2 columnas, con nombre, imagen y datos apilados y Héroe y Evolución en filas separadas (§PF525).
+const CACHE_NAME = 'terna-static-v305';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
