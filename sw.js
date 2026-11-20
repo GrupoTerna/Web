@@ -346,7 +346,8 @@
 // v307 (19-nov-2026): perfil.html cambió (CORE_ASSETS) -- en celular, el bloque de datos de cada carta (rareza, tipo, elixir, nivel, Héroe y Evolución) se centra en la tarjeta con sus filas alineadas a la izquierda (§PF525).
 // v308 (19-nov-2026): assets/styles.css cambió (CORE_ASSETS) -- el borde de la píldora de tipo de carta (.cc-tipo) es más visible, para que su borde izquierdo se vea alineado con el de la rareza (§PF525).
 // v309 (19-nov-2026): assets/styles.css cambió (CORE_ASSETS) -- el tipo de carta (.cc-tipo) y las píldoras Héroe/Evolución sin activar (.cc-badge) pasan de gris apagado a --silver, con borde más claro, para leerse mejor (§PF525).
-const CACHE_NAME = 'terna-static-v309';
+// v310 (19-nov-2026): guerra.html, mensajes.html, perfil.html y torneos.html cambiaron (CORE_ASSETS) -- en celular (320 a 390 px) la cinta «Monitoreo en Vivo» de guerra, la fila «Ver todos los resultados» de torneos, los botones de cada contenido de mensajes y la tabla del modal de costo de perfil ya no se salen del ancho de la pantalla (§PF526).
+const CACHE_NAME = 'terna-static-v310';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
