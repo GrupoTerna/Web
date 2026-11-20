@@ -196,9 +196,12 @@
   /* 19-nov-2026 (pedido de la usuaria, secciones de mazos): 1fr equivale a minmax(auto,1fr), así que una ficha con un nombre largo sin espacios impedía que su columna se achicara y ensanchaba la página en el celular. minmax(0,1fr) deja que las columnas se repartan el ancho de la tarjeta; el nombre ya se parte con .col-nombre-txt{max-width:100%}. */
   .mazo-chips{display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:12px;}
   .mazo-chips > *{min-width:0;}
-  @media (max-width:640px){
-    .mazo-chips{grid-template-columns:repeat(2, minmax(0,1fr));}
+  /* 19-nov-2026 (pedido de la usuaria — «el problema es solo el mazo actual»; «Colección completa» sale bien): con minmax(0,1fr) las fichas de 2 columnas medían unos 140 px en el celular y la imagen de 72 px más la ficha (Especial, Tropa, Héroe, Evolución) se salían del borde de cada carta. Debajo de 1000 px se usa el mismo patrón de .coleccion-grid (columnas de mínimo 210 px que se reparten el ancho: 1 en celular, 2 y 3 en pantallas medianas), con min(210px,100%) para que nunca pase del ancho de la tarjeta. De 1000 px en adelante se conservan las 4 columnas fijas (8 cartas = 2 filas parejas). */
+  @media (max-width:1000px){
+    .mazo-chips{grid-template-columns:repeat(auto-fill, minmax(min(210px,100%),1fr));}
   }
+  /* 19-nov-2026 (pedido de la usuaria — «quita el espacio vacío del fondo»): bajo la última tarjeta había unos 148 px vacíos antes del pie (80 px de relleno de <main>, 8 px de #perfilSec y 60 px de margen del <footer>). Se dejan 24 px. */
+  footer{margin-top:24px;}
   /* FIX (23-sep-2026, pedido usuario — "en Mazo actual la calidad tiene el
    * texto más grande que el nombre de la carta"): .cc-rareza usa fuente
    * monoespaciada (var(--f-mono)) con letter-spacing, que a igual
@@ -1104,7 +1107,7 @@
   </div>
 </nav>
 
-<main class="wrap" id="main-content" style="padding-top:36px; padding-bottom:80px; position:relative;">
+<main class="wrap" id="main-content" style="padding-top:36px; padding-bottom:0; position:relative;">
 
   <a href="directorio.html#roster" class="text-dim" style="font-family:var(--f-mono); font-size:13px; display:inline-block; padding:5px 0;">&larr; Volver al Directorio</a>
 
@@ -1112,7 +1115,7 @@
        pasa de #perfilCargando (spinner) a #perfilError o #perfilContenido
        una sola vez por carga de página (no hay auto-refresh aquí), así que
        anunciar el cambio no satura a un lector de pantalla. -->
-  <section id="perfilSec" style="padding:20px 0 8px;" aria-live="polite">
+  <section id="perfilSec" style="padding:20px 0 0;" aria-live="polite">
     <div id="perfilCargando" class="loading-block"><div class="spinner"></div></div>
     <div id="perfilError" style="display:none;"></div>
 
