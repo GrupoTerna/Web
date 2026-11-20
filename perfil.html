@@ -87,7 +87,14 @@
     .perfil-cabecera-der{align-items:stretch; flex:1 1 100%; width:100%;}
     .perfil-cabecera .stats-mini{display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; width:100%;}
     .perfil-cabecera .stats-mini > span{justify-content:center; background:rgba(255,255,255,.04); border:1px solid var(--line); border-radius:var(--radius-sm); padding:8px 6px; min-width:0;}
-    .perfil-cabecera .stats-mini span span{flex-wrap:wrap; justify-content:center; text-align:center;}
+    .perfil-cabecera .stats-mini span span{flex-wrap:nowrap; justify-content:center; text-align:center;}
+    .perfil-cabecera .stats-mini span span img{flex-shrink:0;}
+    #mTorreReyWrap, #mNivelExpWrap{order:0;}
+    #mCopasWrap{order:1;}
+    #mNivelColeccionWrap{order:2;}
+    #mVGuerraWrap{order:3;}
+    #mVigenciaWrap{order:4;}
+    #mFameSemanaWrap{order:5;}
     .perfil-cabecera-der .ext-links{justify-content:center;}
     #mReqContenido .req-row .lbl{width:100%; flex:1 1 100%;}
     #mReqContenido .req-row .progress{flex:1 1 0; min-width:0;}
@@ -1224,8 +1231,8 @@
                  mTorreReyWrap (se oculta solo si falta el dato — ver
                  renderStatsAvanzadasCabecera() más abajo). -->
             <span id="mNivelColeccionWrap" style="display:none;"><b id="mNivelColeccion">0</b><span style="display:inline-flex; flex-direction:row; align-items:center; gap:4px;"><img id="mIcoColeccion" src="assets/Im%C3%A1genes/%C3%8Dconos/Fankit/ico-cartas.webp" alt="" width="14" height="14" loading="lazy" decoding="async" style="object-fit:contain;">Nivel de colección</span></span>
-            <span><b id="mCopas">0</b>Copas</span>
-            <span><b id="mVGuerra">0</b><span style="display:inline-flex; flex-direction:row; align-items:center; gap:4px;"><img id="mIcoVGuerra" src="assets/Im%C3%A1genes/%C3%8Dconos/Fankit/Guerra.webp" alt="" width="14" height="14" loading="lazy" decoding="async" style="object-fit:contain;">V. Guerra</span></span>
+            <span id="mCopasWrap"><b id="mCopas">0</b>Copas</span>
+            <span id="mVGuerraWrap"><b id="mVGuerra">0</b><span style="display:inline-flex; flex-direction:row; align-items:center; gap:4px;"><img id="mIcoVGuerra" src="assets/Im%C3%A1genes/%C3%8Dconos/Fankit/Guerra.webp" alt="" width="14" height="14" loading="lazy" decoding="async" style="object-fit:contain;">V. Guerra</span></span>
             <!-- FIX (26-sep-2026, pedido usuario — "el cuadrito de ataques semanales que actualmente dice 8 ya no debe ir porque se está mostrando abajo"): se quita de la cabecera; el mismo dato (guerraSemana.ataques) ya se ve en la barra "Ataques/semana" de Requisitos para mantener el rango (antes "descender de rango" — ver FIX 27-sep-2026 en bloqueRequisitos()). mAtaques ya no existe en el DOM: si algún día se necesita de nuevo, ojo con el textContent de más abajo (renderMiembro()) que todavía intentaba escribirle. -->
             <span id="mFameSemanaWrap" style="display:none;"><b id="mFameSemana">0</b>Medallas de la semana actual</span>
             <!-- Vigencia (Última conexión) queda oculta hasta que el backend mande j.vigencia. Historial en CHANGELOG.md. -->
@@ -6375,7 +6382,7 @@ function renderMiembro(j){
   const vigenciaWrap = document.getElementById('mVigenciaWrap');
   const vigenciaRaw = j.vigencia ?? (j.extendido && (j.extendido.vigencia ?? j.extendido.ultimaConexion));
   if (vigenciaRaw){
-    document.getElementById('mVigencia').textContent = fmtFechaCorta(vigenciaRaw);
+    document.getElementById('mVigencia').textContent = fmtFechaCorta(vigenciaRaw).replace(/([ap])\. m\./gi, '$1.\u00a0m.'); // espacio duro: «p. m.» no se parte entre líneas
     vigenciaWrap.style.display = '';
   } else {
     vigenciaWrap.style.display = 'none';
