@@ -77,6 +77,21 @@ function debounce(fn, espera){
   };
 }
 
+/**
+ * graficaLienzo(anchoEscritorio, altoEscritorio)
+ * 20-nov-2026 (pedido de la usuaria: «las gráficas de la versión móvil deben ser más altas ... no deben estar tan achatadas ... se procura que las gráficas tengan un estilo estándar en toda la web»).
+ * Las gráficas de línea se dibujan en un lienzo SVG (viewBox) que se escala al ancho de la tarjeta. Con el lienzo de escritorio (640 o 960 de ancho) y 360 px de pantalla, la escala era de 0,36 a 0,5: la gráfica quedaba con un cuarto de la altura de su leyenda y las letras en 5 a 7 px.
+ * En pantallas de hasta 600 px el lienzo pasa a 480 x 420 (casi cuadrado, escala de 0,7 a 0,75): la misma gráfica sale más alta y con letras legibles. Es el MISMO lienzo para todas las gráficas de línea (Directorio, Ingresos recientes, perfil y clan), así que se ven iguales.
+ * Devuelve { ancho, alto, movil }; el llamador multiplica el ancho por el zoom y, si movil es true, pone el aspect-ratio en línea (el CSS de escritorio fija otro). Sin matchMedia (pruebas con jsdom) devuelve las medidas de escritorio.
+ */
+const GRAFICA_LIENZO_MOVIL = { ancho: 480, alto: 420 };
+function graficaLienzo(anchoEscritorio, altoEscritorio){
+  const movil = typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(max-width:600px)').matches;
+  return movil
+    ? { ancho: GRAFICA_LIENZO_MOVIL.ancho, alto: GRAFICA_LIENZO_MOVIL.alto, movil: true }
+    : { ancho: anchoEscritorio, alto: altoEscritorio, movil: false };
+}
+
 
 /**
  * urlValida(u)

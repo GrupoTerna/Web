@@ -498,7 +498,9 @@ function clanCopasSvg(puntos, opts){
   }
   puntos = serie;
   const zoom = opts.zoom > 1 ? Number(opts.zoom) : 1; // el zoom ensancha el lienzo (más espacio entre fechas); el <svg> se muestra a zoom veces su ancho normal dentro de un contenedor con barra de desplazamiento
-  const W = Math.round(960 * zoom), H = 320, PAD_R = 20, PAD_T = 20, PAD_B = 90;
+  // 20-nov-2026 (pedido de la usuaria, vista móvil): en pantallas de hasta 600 px el lienzo es el estándar de celular (480 x 420, graficaLienzo() de util.js) para que la gráfica no salga achatada. [→ Contexto_Base_Web.md §PF523]
+  const _lz = graficaLienzo(960, 320);
+  const W = Math.round(_lz.ancho * zoom), H = _lz.alto, PAD_R = 20, PAD_T = 20, PAD_B = 90;
   const vals = puntos.map(p => p.copas);
   const min = Math.min(...vals), max = Math.max(...vals);
   const relleno = Math.max((max - min) * 0.2, 50);
@@ -560,7 +562,7 @@ function clanCopasSvg(puntos, opts){
   const tituloY = `<text class="cd-copas-titulo-eje" x="14" y="${PAD_T + plotH / 2}" text-anchor="middle" transform="rotate(-90 14 ${PAD_T + plotH / 2})">COPAS</text>`;
   const vReal = reales.map(p => p.copas);
   // §PF353: con zoom > 1 el <svg> se muestra a zoom veces su ancho normal (el normal es el menor entre el contenedor y 960 px); data-gv-* alimentan el tooltip grande de la fecha en el eje X (vistaGraficaTooltipEjeX).
-  const estiloZoom = zoom > 1 ? ` style="width:calc(min(100%, 960px) * ${zoom}); aspect-ratio:${W}/${H}; max-width:none;"` : '';
+  const estiloZoom = (zoom > 1 || _lz.movil) ? ` style="width:calc(min(100%, 960px) * ${zoom}); aspect-ratio:${W}/${H}; max-width:none;"` : '';
   const svg = `<svg class="cd-copas-svg" viewBox="0 0 ${W} ${H}"${estiloZoom} role="group" aria-label="Copas del clan por día de guerra, de ${esc(fmtNum(vReal[0]))} a ${esc(fmtNum(vReal[vReal.length - 1]))}" data-gv-geom="0,${W},${H},${PAD_L},${PAD_L + plotW},${H - PAD_B}" data-gv-fechas="${esc(JSON.stringify(puntos.map(p => p.fecha)))}">${grid}${lineasDomingo}${letras}${etiquetas}${linea}${circulos}${tituloX}${tituloY}</svg>`;
   return opts.partes ? { leyenda, svg, total: totalTemporadas } : leyenda + svg;
 }

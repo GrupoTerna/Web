@@ -337,7 +337,8 @@
 // v295 (19-nov-2026): admin.html cambió (CORE_ASSETS) -- las tablas de jugadores de «Clanes externos» (rivales, vetados y externos) llevan en cada columna, menos «Enlaces», el embudo de orden y filtro; el orden predeterminado se mantiene.
 // v296 (19-nov-2026): assets/js/features/mini-historial.js cambió (CORE_ASSETS) -- el modal del ⚠️ toma el aspecto del modal del 📈: título con el jugador, franja de perfil, tarjetas de resumen por clan, filas coloreadas, sombreado por temporada y «Ver más».
 // v297 (19-nov-2026): assets/js/features/mini-historial.js cambió (CORE_ASSETS) -- el modal del ⚠️ suma una leyenda de colores: menos de 16 ataques puede ser normal si el clan ya cruzó la meta.
-const CACHE_NAME = 'terna-static-v297';
+// v298 (19-nov-2026): assets/js/util.js y directorio.html cambiaron (CORE_ASSETS) -- graficaLienzo(): en celular (hasta 600 px) las gráficas de línea usan un lienzo de 480 x 420 y salen más altas, con letras legibles; clan.html y perfil.html también cambiaron (fuera de CORE_ASSETS).
+const CACHE_NAME = 'terna-static-v298';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y

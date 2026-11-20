@@ -5731,7 +5731,9 @@ function perfilLineChartSvg(puntos, opts){
     puntos.splice(i + 1, 0, { semana: fecha, valor: Math.round(valor * 100) / 100, real: false, motivo: 'Sin dato todavía — domingo con valor estimado' });
   }
   const zoom = opts.zoom > 1 ? Number(opts.zoom) : 1; // 04-nov-2026 (pedido usuaria, §PF352): el zoom ensancha el lienzo (más espacio entre fechas); el <svg> se muestra a zoom×100 % de ancho dentro de un contenedor con barra de desplazamiento y la altura no cambia.
-  const W = Math.round(960 * zoom), H = 320, PAD_R = 20, PAD_T = 20, PAD_B = 90;
+  // 20-nov-2026 (pedido de la usuaria, vista móvil): en pantallas de hasta 600 px el lienzo es el estándar de celular (480 x 420, graficaLienzo() de util.js) para que la gráfica no salga achatada. [→ Contexto_Base_Web.md §PF523]
+  const _lz = graficaLienzo(960, 320);
+  const W = Math.round(_lz.ancho * zoom), H = _lz.alto, PAD_R = 20, PAD_T = 20, PAD_B = 90;
   const pasos = 4, prefijo = opts.prefijo || '';
   const tope = opts.tope > 0 ? Number(opts.tope) : 0;
   // 19-oct-2026 (pedido usuaria): segunda serie opcional con los ACUMULADOS de la semana, un punto por domingo (opts.serieSemanal = [{ semana, valor, real, clan, excedeAtaques? }]); su tope va en opts.topeSemanal. No se une con los puntos diarios: la línea va de domingo a domingo.
@@ -5908,7 +5910,7 @@ function perfilLineChartSvg(puntos, opts){
   const ejeYTitle = opts.ejeY
     ? `<text class="ing-axis-title" x="14" y="${PAD_T + plotH / 2}" text-anchor="middle" transform="rotate(-90 14 ${PAD_T + plotH / 2})">${esc(opts.ejeY)}</text>`
     : '';
-  return `<svg class="ing-linechart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet"${zoom > 1 ? ` style="width:${Math.round(zoom * 100)}%; aspect-ratio:${W}/${H};"` : ''} data-xgeom="${PAD_L},${plotW},${PAD_R},${PAD_B},${H},${W}" data-xfechas="${esc(JSON.stringify(puntos.map(q => q.semana)))}">${bandasTemporada}${gridLines.join('')}${gridMedios}${lineasTemporales}${lineasDomingo}${xLetrasDia}${xLabels}${lineaTope}${lineaTopeSem}${lineaMin}${pathSem}${circlesSem}${path}${circles}${ejeXTitle}${ejeYTitle}</svg>`;
+  return `<svg class="ing-linechart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet"${(zoom > 1 || _lz.movil) ? ` style="width:${Math.round(zoom * 100)}%; aspect-ratio:${W}/${H};"` : ''} data-xgeom="${PAD_L},${plotW},${PAD_R},${PAD_B},${H},${W}" data-xfechas="${esc(JSON.stringify(puntos.map(q => q.semana)))}">${bandasTemporada}${gridLines.join('')}${gridMedios}${lineasTemporales}${lineasDomingo}${xLetrasDia}${xLabels}${lineaTope}${lineaTopeSem}${lineaMin}${pathSem}${circlesSem}${path}${circles}${ejeXTitle}${ejeYTitle}</svg>`;
 }
 
 /** Mini-leyenda de arriba de cada gráfica (idéntica a la de directorio.html). */
