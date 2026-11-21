@@ -27,10 +27,10 @@ function extraerFuncion(src, nombre){
   }
   throw new Error(`llaves sin cerrar en ${nombre}`);
 }
-const NOMBRES = ['tagClanNormalizado', 'claveClanMiembro', 'claveIngreso', 'esCuentaAdminIngreso', 'tieneWspIngreso', 'diaActualIngresos', 'diaActualIngresosCache', 'sinPendientesIngreso', 'conBarcosSemanaIngreso',
+const NOMBRES = ['tagClanNormalizado', 'claveClanMiembro', 'claveIngreso', 'esCuentaAdminIngreso', 'tieneWspIngreso', 'diaActualIngresos', 'diaActualIngresosCache', 'sinPendientesIngreso', 'conBarcosSemanaIngreso', 'conInactividadIngreso', 'conAlertaClanIngreso', 'ocultoPorFiltrosIngreso', 'claveFiltroIngreso', 'pillsSoloMuestraIngresosHtml',
   'ingresoOculto', 'ingresoIncluido', 'textoContadorIngresos', 'agruparPorClanEnOrden', 'actualizarPillsIngresos', 'xpIngresoNumero', 'compararTarjetasIngresos', 'reordenarTarjetasIngresos', 'aplicarFiltroIngresos', 'construirFiltroIngresos'];
 const CODIGO = `
-let ingresosTodosCache = [], ingresosSeleccionados = null, ingresosGrupos = [], ingresosGraficasVisibles = false, ingresosUltimosFiltrados = [], ingresosOcultarAdmins = false, ingresosOcultarConWsp = false, ingresosOcultarSinPendientes = false, ingresosSoloBarcos = false, ingresosClanesOcultos = new Set();
+let ingresosTodosCache = [], ingresosSeleccionados = null, ingresosGrupos = [], ingresosGraficasVisibles = false, ingresosUltimosFiltrados = [], ingresosOcultarAdmins = false, ingresosOcultarConWsp = false, ingresosOcultarSinPendientes = false, ingresosFiltros = { barcos: false, sinBarcos: false, inactivo: false, alerta: false }, ingresosClanesOcultos = new Set();
 const INGRESOS_ATAQUES_DIA_MAX = 4;
 let _diaActualIngresosRef = null, _diaActualIngresosIdx = -1;
 function pintarGraficasIngresos(){}
@@ -198,4 +198,19 @@ test('semana: con la guerra congelada (lunes a miércoles) se mide toda la seman
   ];
   const w = montar(lista);
   assert.deepEqual(lista.map(n => w.__t.sinPendientesIngreso(n)), [true, false, false]);
+});
+
+// NUEVO (21-nov-2026, pedido de la usuaria): quien acaba de ingresar no debe contar como faltante por los días anteriores a su ingreso. El
+// backend deja `null` en los días sin fila de la cuenta (`37_Web_API.gs`, «Un día sin fila del jugador queda null»), y esos días no cuentan.
+test('recién ingresado: entra el domingo y hace sus 4 ataques, no se le exige jueves a sábado', () => {
+  const lista = [
+    { tag: '#N1', nombre: 'Uno', clan: 'Terna', ...ataques([null, null, null, 4]) }, // ingresó el domingo y completó: sin pendientes
+    { tag: '#N2', nombre: 'Dos', clan: 'Terna', ...ataques([null, null, null, 2]) }, // ingresó el domingo y le faltan 2: con pendientes
+    { tag: '#N3', nombre: 'Tres', clan: 'Terna', ...ataques([null, null, 0, 4]) },   // ingresó el sábado y no atacó: ese sábado sí es falta
+    { tag: '#N4', nombre: 'Cuatro', clan: 'Terna', ...ataques([4, 4, 4, 4]) }
+  ];
+  const w = montar(lista);
+  assert.deepEqual(lista.map(n => w.__t.sinPendientesIngreso(n)), [true, false, false, true]);
+  pill(w).click();
+  assert.deepEqual(tags(w), ['#N2', '#N3']);
 });

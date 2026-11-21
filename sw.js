@@ -354,7 +354,8 @@
 // v315 (21-nov-2026): admin.html cambió (CORE_ASSETS) -- la tabla de propuestas de Cambio de rango trae un 📜 junto a cada nombre que abre una ventana con los cambios de rango anteriores de esa cuenta, leídos de Historial_A/D (§PF286 punto 17 (a)).
 // v316 (21-nov-2026): directorio.html cambió (CORE_ASSETS) -- «Ingresos recientes» trae la pastilla «🚢 Solo con barcos», que deja solo a quienes hicieron ataques de barcos en la semana de guerra, de jueves a sábado (§PF553).
 // v317 (21-nov-2026): directorio.html cambió (CORE_ASSETS) -- «⚔️ Ocultar sin pendientes» pasa a medirse por la semana de guerra (no solo el día actual) y «🚢 Solo con barcos» cuenta también el domingo (§PF553).
-const CACHE_NAME = 'terna-static-v317';
+// v318 (21-nov-2026): directorio.html cambió (CORE_ASSETS) -- «Ingresos recientes» trae las pastillas «🚢 Sin barcos», «😴 Con días inactivos» (1 o más) y, para admins, «⚠️ Con alerta de clan» (§PF553).
+const CACHE_NAME = 'terna-static-v318';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y

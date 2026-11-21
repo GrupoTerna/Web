@@ -27,10 +27,10 @@ function extraerFuncion(src, nombre){
   }
   throw new Error(`llaves sin cerrar en ${nombre}`);
 }
-const NOMBRES = ['tagClanNormalizado', 'claveClanMiembro', 'claveIngreso', 'esCuentaAdminIngreso', 'tieneWspIngreso', 'diaActualIngresos', 'diaActualIngresosCache', 'sinPendientesIngreso', 'conBarcosSemanaIngreso',
+const NOMBRES = ['tagClanNormalizado', 'claveClanMiembro', 'claveIngreso', 'esCuentaAdminIngreso', 'tieneWspIngreso', 'diaActualIngresos', 'diaActualIngresosCache', 'sinPendientesIngreso', 'conBarcosSemanaIngreso', 'conInactividadIngreso', 'conAlertaClanIngreso', 'ocultoPorFiltrosIngreso', 'claveFiltroIngreso', 'pillsSoloMuestraIngresosHtml',
   'ingresoOculto', 'ingresoIncluido', 'textoContadorIngresos', 'agruparPorClanEnOrden', 'actualizarPillsIngresos', 'xpIngresoNumero', 'compararTarjetasIngresos', 'reordenarTarjetasIngresos', 'aplicarFiltroIngresos', 'construirFiltroIngresos'];
 const CODIGO = `
-let ingresosTodosCache = [], ingresosSeleccionados = null, ingresosGrupos = [], ingresosGraficasVisibles = false, ingresosUltimosFiltrados = [], ingresosOcultarAdmins = false, ingresosOcultarConWsp = false, ingresosOcultarSinPendientes = false, ingresosSoloBarcos = false, ingresosClanesOcultos = new Set();
+let ingresosTodosCache = [], ingresosSeleccionados = null, ingresosGrupos = [], ingresosGraficasVisibles = false, ingresosUltimosFiltrados = [], ingresosOcultarAdmins = false, ingresosOcultarConWsp = false, ingresosOcultarSinPendientes = false, ingresosFiltros = { barcos: false, sinBarcos: false, inactivo: false, alerta: false }, ingresosClanesOcultos = new Set();
 const INGRESOS_ATAQUES_DIA_MAX = 4;
 let _diaActualIngresosRef = null, _diaActualIngresosIdx = -1;
 function pintarGraficasIngresos(){}
@@ -92,7 +92,7 @@ test('al activarla solo quedan en contador, gráficas y tarjetas quienes hiciero
   assert.equal(w.document.getElementById('nuevosCount').textContent, '4 de 6 jugadores');
   assert.equal(pill(w).getAttribute('aria-pressed'), 'true');
   assert.ok(pill(w).classList.contains('active'));
-  const oculta = t => w.document.querySelector(`.js-nuevo-card[data-tag="${t}"]`).classList.contains('oculto-barcos');
+  const oculta = t => w.document.querySelector(`.js-nuevo-card[data-tag="${t}"]`).classList.contains('oculto-filtro');
   assert.equal(oculta('#A2'), true);
   assert.equal(oculta('#B2'), false, 'solo domingo: cuenta');
   assert.equal(oculta('#A1'), false);
@@ -125,4 +125,64 @@ test('se combina con las de «Ocultar»: basta con que una saque la tarjeta', ()
   pill(w).click();
   w.document.querySelector('#ingClanPills .ing-pill[data-clan="__admins__"]').click();
   assert.deepEqual(tags(w), ['#A2']);
+});
+
+// NUEVO (21-nov-2026, pedido de la usuaria): «🚢 Sin barcos», «😴 Con días inactivos» (1 o más) y «⚠️ Con alerta de clan» (solo admins).
+const pillDe = (w, clan) => w.document.querySelector(`#ingClanPills .ing-pill[data-clan="${clan}"]`);
+
+test('«Sin barcos» deja a quienes no hicieron ninguno, y es excluyente con «Solo con barcos»', () => {
+  const w = montar(LISTA);
+  assert.equal(pillDe(w, '__sinbarcos__').querySelector('.ing-pill-count').textContent, '2');
+  pillDe(w, '__sinbarcos__').click();
+  assert.deepEqual(tags(w), ['#A2', '#C2']);
+  pill(w).click(); // «Solo con barcos» apaga «Sin barcos»
+  assert.deepEqual(tags(w), ['#A1', '#B1', '#B2', '#C1']);
+  assert.equal(pillDe(w, '__sinbarcos__').getAttribute('aria-pressed'), 'false');
+  pillDe(w, '__sinbarcos__').click(); // y al revés
+  assert.deepEqual(tags(w), ['#A2', '#C2']);
+  assert.equal(pill(w).getAttribute('aria-pressed'), 'false');
+});
+
+test('«Con días inactivos»: con 1 día inactivo ya aparece; 0 o sin dato, no', () => {
+  const lista = [
+    { tag: '#I1', nombre: 'Uno', clan: 'Terna', diasInactivo: 1 },
+    { tag: '#I2', nombre: 'Dos', clan: 'Terna', diasInactivo: 0 },
+    { tag: '#I3', nombre: 'Tres', clan: 'Terna 2', diasInactivo: 6 },
+    { tag: '#I4', nombre: 'Cuatro', clan: 'Terna 2' },
+    { tag: '#I5', nombre: 'Cinco', clan: 'Terna 2', diasInactivo: '2' }
+  ];
+  const w = montar(lista);
+  assert.equal(pillDe(w, '__inactivo__').querySelector('.ing-pill-count').textContent, '3');
+  pillDe(w, '__inactivo__').click();
+  assert.deepEqual(tags(w), ['#I1', '#I3', '#I5']);
+  assert.equal(w.document.getElementById('nuevosCount').textContent, '3 de 5 jugadores');
+});
+
+test('«Con alerta de clan»: solo con sesión de admin y solo con quienes traen ⚠️', () => {
+  const lista = [{ tag: '#W1', nombre: 'Uno', clan: 'Terna' }, { tag: '#W2', nombre: 'Dos', clan: 'Terna' }, { tag: '#W3', nombre: 'Tres', clan: 'Terna 2' }];
+  const w0 = montar(lista); // sin sesión de admin: no existe la pastilla
+  assert.equal(pillDe(w0, '__alerta__'), null);
+  const w = loadBrowserScriptsWithDom(['assets/js/util.js'], '<div id="ingClanPills"></div><span id="nuevosCount"></span><div id="nuevoGrid"></div>');
+  w.esAdminLogueado = () => true;
+  w.alertaClanesDe = t => (t === '#W2' || t === '#W3') ? { n: 1, tipos: ['rival'] } : null;
+  w.eval(CODIGO);
+  w.document.getElementById('nuevoGrid').innerHTML = lista.map(n => `<div class="js-nuevo-card" data-tag="${n.tag}"><input type="checkbox" class="js-ingreso-check" data-tag="${n.tag}" checked></div>`).join('');
+  w.__t.cargar(lista);
+  w.__t.aplicarFiltroIngresos();
+  assert.equal(pillDe(w, '__alerta__').querySelector('.ing-pill-count').textContent, '2');
+  pillDe(w, '__alerta__').click();
+  assert.deepEqual(tags(w), ['#W2', '#W3']);
+  assert.ok(w.document.querySelector('.js-nuevo-card[data-tag="#W1"]').classList.contains('oculto-filtro'));
+});
+
+test('las pastillas de «solo muestra» se combinan: basta con que una saque la tarjeta', () => {
+  const lista = [
+    { tag: '#M1', nombre: 'Uno', clan: 'Terna', diasInactivo: 2, ...barcos([1, 0, 0, 0]) },
+    { tag: '#M2', nombre: 'Dos', clan: 'Terna', diasInactivo: 0, ...barcos([1, 0, 0, 0]) },
+    { tag: '#M3', nombre: 'Tres', clan: 'Terna', diasInactivo: 3, ...barcos([0, 0, 0, 0]) }
+  ];
+  const w = montar(lista);
+  pill(w).click();
+  pillDe(w, '__inactivo__').click();
+  assert.deepEqual(tags(w), ['#M1']);
 });

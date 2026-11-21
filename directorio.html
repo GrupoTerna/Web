@@ -567,7 +567,7 @@
   .nuevo-card{transition:opacity .18s ease;}
   .nuevo-card.excluido{opacity:.62;}
   /* «Ocultar admins» (19-oct-2026): la tarjeta de una cuenta de admin desaparece mientras la pastilla está activa. Clase propia y no style.display para no pisar el filtro A-Z (aplicarFiltroLetraIngresos). */
-  .nuevo-card.oculto-admin, .nuevo-card.oculto-wsp, .nuevo-card.oculto-pend, .nuevo-card.oculto-barcos, .nuevo-card.oculto-clan{display:none;}
+  .nuevo-card.oculto-admin, .nuevo-card.oculto-wsp, .nuevo-card.oculto-pend, .nuevo-card.oculto-filtro, .nuevo-card.oculto-clan{display:none;}
   /* 18-nov-2026 (pedido de la usuaria): .oculto-clan = la tarjeta de un clan DESELECCIONADO con su pastilla; la pastilla se queda para volver a marcarlo. Clase propia para no pisar el filtro A-Z (style.display). [→ Contexto_Base_Web.md §PF512] */
   .nuevo-card.excluido:hover{opacity:.9;}
   .nuevo-card .ing-rival{margin:8px 0 0;}
@@ -2923,7 +2923,7 @@ function nuevoCardHtml(n){
   const sem = n.guerraSemana || {};
   const fecha = fechaIngresoTexto(n);
   return `
-      <div class="card nuevo-card js-nuevo-card${incluido ? '' : ' excluido'}${ingresosOcultarAdmins && esCuentaAdminIngreso(n) ? ' oculto-admin' : ''}${ingresosOcultarConWsp && tieneWspIngreso(n) ? ' oculto-wsp' : ''}${ingresosOcultarSinPendientes && sinPendientesIngreso(n) ? ' oculto-pend' : ''}${ingresosSoloBarcos && !conBarcosSemanaIngreso(n) ? ' oculto-barcos' : ''}${ingresosClanesOcultos.has(claveClanMiembro(n)) ? ' oculto-clan' : ''}" data-tag="${esc(claveIngreso(n))}" data-letra="${esc(primeraLetraFiltro(n.nombre))}" style="cursor:pointer; position:relative;">
+      <div class="card nuevo-card js-nuevo-card${incluido ? '' : ' excluido'}${ingresosOcultarAdmins && esCuentaAdminIngreso(n) ? ' oculto-admin' : ''}${ingresosOcultarConWsp && tieneWspIngreso(n) ? ' oculto-wsp' : ''}${ingresosOcultarSinPendientes && sinPendientesIngreso(n) ? ' oculto-pend' : ''}${ocultoPorFiltrosIngreso(n) ? ' oculto-filtro' : ''}${ingresosClanesOcultos.has(claveClanMiembro(n)) ? ' oculto-clan' : ''}" data-tag="${esc(claveIngreso(n))}" data-letra="${esc(primeraLetraFiltro(n.nombre))}" style="cursor:pointer; position:relative;">
         <input type="checkbox" class="js-ingreso-check" data-tag="${esc(claveIngreso(n))}"${incluido ? ' checked' : ''} aria-label="Incluir a ${esc(n.nombre)} en las gráficas">
         <div class="name">${enlaceJugador(n.nombre, n.tag)}</div>
         <div class="tag">${esc(n.tag || '—')}</div>
@@ -2985,8 +2985,8 @@ let ingresosOcultarAdmins = false;
 let ingresosOcultarConWsp = false;
 /* 24-oct-2026 (pedido de la usuaria, tanda 9; P17 a P20 respondidas): pastilla «⚔️ Ocultar sin pendientes». Saca de la vista (tarjeta, contador y gráficas) a quien ya hizo todos sus ataques de la SEMANA (desde el 21-nov-2026; antes solo miraba el día actual); se queda quien tiene algún ataque pendiente, también de un día anterior (§PF553). La ven todos (el dato de ataques es público). De lunes a miércoles (entrenamiento) los datos están congelados como quedaron el domingo y la pastilla sigue disponible: sirve para revisar los ataques de la última guerra. [→ Contexto_Base_Web.md §PF225] */
 let ingresosOcultarSinPendientes = false;
-/* 21-nov-2026 (pedido de la usuaria): pastilla «🚢 Solo con barcos». Al revés que las de «Ocultar»: mientras está activa SOLO quedan (tarjeta, contador y gráficas) quienes hicieron ataques de barcos en la semana de guerra, en cualquier día de la semana de guerra (jueves a domingo); el resto desaparece. La semana la define el backend por periodIndex (con lunes a miércoles congelada como quedó el domingo), nunca la hora real del navegador. [→ Contexto_Base_Web.md §PF553] */
-let ingresosSoloBarcos = false;
+/* 21-nov-2026 (pedido de la usuaria): pastillas de «solo muestra» en «Ingresos recientes». Al revés que las de «Ocultar», mientras una está activa SOLO quedan (tarjeta, contador y gráficas) quienes la cumplen; el resto desaparece. `barcos` («🚢 Solo con barcos»): hizo ataques de barcos en la semana de guerra, en cualquier día de jueves a domingo. `sinBarcos` («🚢 Sin barcos»): no hizo ninguno (excluyente con la anterior). `inactivo` («😴 Con días inactivos»): 1 o más días inactivo. `alerta` («⚠️ Con alerta de clan», solo admins): estuvo en un clan vetado o rival. La semana la define el backend por periodIndex (con lunes a miércoles congelada como quedó el domingo), nunca la hora real del navegador. [→ Contexto_Base_Web.md §PF553] */
+let ingresosFiltros = { barcos: false, sinBarcos: false, inactivo: false, alerta: false };
 /* 19-oct-2026 (pedido usuaria): el backend manda guerraCongelada=true de lunes a miércoles; la cuadrícula de Ataques/Medallas/Barcos muestra entonces lo último de la guerra (hasta el domingo) y se rotula «Última guerra» hasta que empiece la siguiente. [→ Contexto_Base_Web.md §PF125] */
 let ingresosGuerraCongelada = false;
 /** 6-nov-2026 (pedido de la usuaria): clan.html enlaza a directorio.html?clan=<nombre>&tag=<Tag>#roster. Además de elegir ese clan en «Directorio por clan», «Ingresos recientes» arranca filtrado para ese clan: solo sus miembros quedan marcados (pastilla del clan, contador y gráficas); las demás tarjetas se atenúan como con cualquier pastilla, sin desaparecer. Regla de la usuaria (§PF401): el clan se compara por Tag. Si llega el Tag, se busca el grupo cuyo `clanTag` (el de sus miembros; §PF405) coincide; el nombre solo se usa de respaldo, y solo con grupos que no traen Tag (datos anteriores), sin confirmar por Tag (criterio 2 del plan Clanes por Tag). Devuelve el Set de tags de jugador a marcar, o null si no hay clan en la dirección o ese clan no tiene ingresos (entonces se ve todo, como siempre). */
@@ -3009,9 +3009,9 @@ function esCuentaAdminIngreso(n){
 function tieneWspIngreso(n){
   return !!(n && n.tieneWsp === true);
 }
-/** Cuenta oculta por alguna pastilla activa (admins, con número, sin pendientes, o sin barcos con «Solo con barcos»): sin tarjeta, fuera de gráficas y contador. */
+/** Cuenta oculta por alguna pastilla activa (admins, con número, sin pendientes, o las de «solo muestra»: barcos, sin barcos, inactivos y alerta): sin tarjeta, fuera de gráficas y contador. */
 function ingresoOculto(n){
-  return (ingresosOcultarAdmins && esCuentaAdminIngreso(n)) || (ingresosOcultarConWsp && tieneWspIngreso(n)) || (ingresosOcultarSinPendientes && sinPendientesIngreso(n)) || (ingresosSoloBarcos && !conBarcosSemanaIngreso(n));
+  return (ingresosOcultarAdmins && esCuentaAdminIngreso(n)) || (ingresosOcultarConWsp && tieneWspIngreso(n)) || (ingresosOcultarSinPendientes && sinPendientesIngreso(n)) || ocultoPorFiltrosIngreso(n);
 }
 /** Tope diario de ataques de guerra (mismo valor que HIST_ATAQUES_MAX del mini historial). */
 const INGRESOS_ATAQUES_DIA_MAX = 4;
@@ -3059,6 +3059,23 @@ function conBarcosSemanaIngreso(n){
   const b = n && n.guerraSemanaDias && n.guerraSemanaDias.barcos;
   if (Array.isArray(b)) return b.some(positivo);
   return positivo(n && n.guerraSemana && n.guerraSemana.barcos);
+}
+/** 1 o más días inactivo (el dato 😴 de la tarjeta; pedido de la usuaria, 21-nov-2026: «con un día inactivo ya debe aparecer»). */
+function conInactividadIngreso(n){
+  return Number(n && n.diasInactivo) >= 1;
+}
+/** Cuenta con el ⚠️ de clan vetado o rival. Solo existe para admins: el resumen (`alertaTags`, mini-historial.js) solo se carga con sesión de admin. */
+function conAlertaClanIngreso(n){
+  return !!(n && n.tag) && typeof esAdminLogueado === 'function' && esAdminLogueado() && typeof alertaClanesDe === 'function' && !!alertaClanesDe(n.tag);
+}
+/** La cuenta queda fuera por alguna pastilla de «solo muestra» activa (barcos, sin barcos, inactivos, alerta). */
+function ocultoPorFiltrosIngreso(n){
+  const f = ingresosFiltros;
+  return (f.barcos && !conBarcosSemanaIngreso(n)) || (f.sinBarcos && conBarcosSemanaIngreso(n)) || (f.inactivo && !conInactividadIngreso(n)) || (f.alerta && !conAlertaClanIngreso(n));
+}
+/** data-clan de cada pastilla de «solo muestra» → su clave en `ingresosFiltros`; null si no es una de ellas. */
+function claveFiltroIngreso(clan){
+  return { __barcos__: 'barcos', __sinbarcos__: 'sinBarcos', __inactivo__: 'inactivo', __alerta__: 'alerta' }[clan] || null; // clan-por-nombre-ok: «clan» es el data-clan de la pastilla, no el nombre de un clan
 }
 /** Incluido en gráficas y contador: marcado en el Set y que ninguna pastilla de «Ocultar» activa lo saque. */
 function ingresoIncluido(n){
@@ -3132,9 +3149,10 @@ function actualizarPillsIngresos(){
       btn.setAttribute('aria-pressed', String(ingresosOcultarSinPendientes));
       return;
     }
-    if (clan === '__barcos__'){ // clan-por-nombre-ok: es el data-clan de la pastilla, no el nombre de un clan
-      btn.classList.toggle('active', ingresosSoloBarcos);
-      btn.setAttribute('aria-pressed', String(ingresosSoloBarcos));
+    const claveFiltro = claveFiltroIngreso(clan);
+    if (claveFiltro){
+      btn.classList.toggle('active', ingresosFiltros[claveFiltro]);
+      btn.setAttribute('aria-pressed', String(ingresosFiltros[claveFiltro]));
       return;
     }
     const miembros = (clan === '__todos__')
@@ -3195,13 +3213,13 @@ function aplicarFiltroIngresos(){
     const ocultaAdmin = !!(n && ingresosOcultarAdmins && esCuentaAdminIngreso(n));
     const ocultaWsp = !!(n && ingresosOcultarConWsp && tieneWspIngreso(n));
     const ocultaPend = !!(n && ingresosOcultarSinPendientes && sinPendientesIngreso(n));
-    const ocultaBarcos = !!(n && ingresosSoloBarcos && !conBarcosSemanaIngreso(n));
+    const ocultaFiltro = !!(n && ocultoPorFiltrosIngreso(n));
     const ocultaClan = !!(n && ingresosClanesOcultos.has(claveClanMiembro(n)));
-    const oculta = ocultaAdmin || ocultaWsp || ocultaPend || ocultaBarcos || ocultaClan;
+    const oculta = ocultaAdmin || ocultaWsp || ocultaPend || ocultaFiltro || ocultaClan;
     card.classList.toggle('oculto-admin', ocultaAdmin);
     card.classList.toggle('oculto-wsp', ocultaWsp);
     card.classList.toggle('oculto-pend', ocultaPend);
-    card.classList.toggle('oculto-barcos', ocultaBarcos);
+    card.classList.toggle('oculto-filtro', ocultaFiltro);
     card.classList.toggle('oculto-clan', ocultaClan);
     // Una cuenta de admin oculta no se atenúa: está fuera, no solo excluida de las gráficas.
     card.classList.toggle('excluido', !incluido && !oculta);
@@ -3272,6 +3290,32 @@ function agruparPorClanEnOrden(nuevos){
   return grupos;
 }
 
+/** Pastillas de «solo muestra» (barcos, sin barcos, inactivos y, solo admins, alerta de clan) con el número de cuentas que dejarían. Cada una aparece si alguien la cumple o si ya está activa (para poder apagarla tras recargar). */
+function pillsSoloMuestraIngresosHtml(nuevos){
+  const f = ingresosFiltros;
+  const conBarcos = nuevos.filter(conBarcosSemanaIngreso).length, sinBarcos = nuevos.length - conBarcos;
+  const inactivos = nuevos.filter(conInactividadIngreso).length, alertas = nuevos.filter(conAlertaClanIngreso).length;
+  const pill = (clase, clan, activa, titulo, texto, cuenta) => `<button type="button" class="ing-pill ${clase}${activa ? ' active' : ''}" data-clan="${clan}" aria-pressed="${activa}" title="${titulo}">${texto} <span class="ing-pill-count">${cuenta}</span></button>`;
+  return [
+    (f.barcos || conBarcos) ? pill('ing-pill-barcos', '__barcos__', f.barcos, 'Muestra solo a quienes hicieron ataques de barcos en la semana de guerra, en cualquier día de jueves a domingo. La semana es la de la guerra, no la hora real: de lunes a miércoles se ve lo que quedó el domingo, hasta el jueves siguiente', '🚢 Solo con barcos', conBarcos) : '',
+    (f.sinBarcos || (conBarcos && sinBarcos)) ? pill('ing-pill-sinbarcos', '__sinbarcos__', f.sinBarcos, 'Muestra solo a quienes no han hecho ningún ataque de barcos en la semana de guerra (jueves a domingo). De lunes a miércoles se ve lo que quedó el domingo', '🚢 Sin barcos', sinBarcos) : '',
+    (f.inactivo || inactivos) ? pill('ing-pill-inactivo', '__inactivo__', f.inactivo, 'Muestra solo a quienes tienen 1 o más días inactivo', '😴 Con días inactivos', inactivos) : '',
+    (f.alerta || alertas) ? pill('ing-pill-alerta', '__alerta__', f.alerta, 'Muestra solo a las cuentas con el ⚠️: estuvieron en un clan vetado o rival (solo lo ves como administrador)', '⚠️ Con alerta de clan', alertas) : ''
+  ].join('\n    ');
+}
+// El resumen de alertas (⚠️) llega después de pintar las pastillas (solo admins, con caché y luego con la respuesta del backend): al llegar se vuelve a pintar solo la pastilla de alerta, sin tocar el resto del filtro.
+if (typeof document !== 'undefined') document.addEventListener('alerta-tags-listas', () => {
+  const wrap = document.getElementById('ingClanPills');
+  if (!wrap || !ingresosTodosCache.length) return;
+  const viejo = wrap.querySelector('.ing-pill-alerta');
+  if (viejo) viejo.remove();
+  const n = ingresosTodosCache.filter(conAlertaClanIngreso).length;
+  if (n || ingresosFiltros.alerta){
+    wrap.insertAdjacentHTML('beforeend', `<button type="button" class="ing-pill ing-pill-alerta${ingresosFiltros.alerta ? ' active' : ''}" data-clan="__alerta__" aria-pressed="${ingresosFiltros.alerta}" title="Muestra solo a las cuentas con el ⚠️: estuvieron en un clan vetado o rival (solo lo ves como administrador)">⚠️ Con alerta de clan <span class="ing-pill-count">${n}</span></button>`);
+  }
+  aplicarFiltroIngresos();
+});
+
 /** Pinta la fila de pastillas de clan ("Todos" + una por clan) y reinicia
  * la selección a "todos incluidos". Se llama una sola vez por carga de
  * datos; el estado de cada pastilla lo actualiza actualizarPillsIngresos()
@@ -3306,7 +3350,7 @@ function construirFiltroIngresos(nuevos){
     ${nuevos.some(esCuentaAdminIngreso) ? `<button type="button" class="ing-pill ing-pill-admin${ingresosOcultarAdmins ? ' active' : ''}" data-clan="__admins__" aria-pressed="${ingresosOcultarAdmins}" title="Oculta las tarjetas y saca de las gráficas y del contador las cuentas de los administradores mientras recorres los clanes">🛡️ Ocultar admins <span class="ing-pill-count">${nuevos.filter(esCuentaAdminIngreso).length}</span></button>` : ''}
     ${nuevos.some(tieneWspIngreso) ? `<button type="button" class="ing-pill ing-pill-wsp${ingresosOcultarConWsp ? ' active' : ''}" data-clan="__wsp__" aria-pressed="${ingresosOcultarConWsp}" title="Oculta las tarjetas y saca de las gráficas y del contador a quienes ya tienen número de WhatsApp registrado (solo lo ves como administrador)">📱 Ocultar con número <span class="ing-pill-count">${nuevos.filter(tieneWspIngreso).length}</span></button>` : ''}
     ${nuevos.some(sinPendientesIngreso) ? `<button type="button" class="ing-pill ing-pill-pend${ingresosOcultarSinPendientes ? ' active' : ''}" data-clan="__pend__" aria-pressed="${ingresosOcultarSinPendientes}" title="Oculta las tarjetas y saca de las gráficas y del contador a quienes ya hicieron todos sus ataques de la semana (4 por día, de jueves al día actual); se quedan los que tienen algún ataque pendiente, también de un día anterior. De lunes a miércoles usa lo último de la guerra, congelado como quedó el domingo">⚔️ Ocultar sin pendientes <span class="ing-pill-count">${nuevos.filter(sinPendientesIngreso).length}</span></button>` : ''}
-    ${(ingresosSoloBarcos || nuevos.some(conBarcosSemanaIngreso)) ? `<button type="button" class="ing-pill ing-pill-barcos${ingresosSoloBarcos ? ' active' : ''}" data-clan="__barcos__" aria-pressed="${ingresosSoloBarcos}" title="Muestra solo a quienes hicieron ataques de barcos en la semana de guerra, en cualquier día de la semana de guerra (jueves a domingo). La semana es la de la guerra, no la hora real: de lunes a miércoles se ve lo que quedó el domingo, hasta el jueves siguiente">🚢 Solo con barcos <span class="ing-pill-count">${nuevos.filter(conBarcosSemanaIngreso).length}</span></button>` : ''}`;
+    ${pillsSoloMuestraIngresosHtml(nuevos)}`;
 
   // Un solo listener delegado por carga (el contenedor se reutiliza entre cargas).
   if (!wrap.dataset.enlazado){
@@ -3321,8 +3365,11 @@ function construirFiltroIngresos(nuevos){
         ingresosOcultarConWsp = !ingresosOcultarConWsp; // igual: no toca ingresosSeleccionados
       } else if (clan === '__pend__'){
         ingresosOcultarSinPendientes = !ingresosOcultarSinPendientes; // igual: no toca ingresosSeleccionados
-      } else if (clan === '__barcos__'){ // clan-por-nombre-ok: es el data-clan de la pastilla, no el nombre de un clan
-        ingresosSoloBarcos = !ingresosSoloBarcos; // igual: no toca ingresosSeleccionados
+      } else if (claveFiltroIngreso(clan)){
+        const k = claveFiltroIngreso(clan);
+        ingresosFiltros[k] = !ingresosFiltros[k]; // igual: no toca ingresosSeleccionados
+        if (ingresosFiltros[k] && k === 'barcos') ingresosFiltros.sinBarcos = false; // «Solo con barcos» y «Sin barcos» se excluyen
+        if (ingresosFiltros[k] && k === 'sinBarcos') ingresosFiltros.barcos = false;
       } else if (clan === '__todos__'){
         ingresosSeleccionados = new Set(ingresosTodosCache.map(claveIngreso));
         ingresosClanesOcultos = new Set(); // «Todos» también devuelve las tarjetas de los clanes desmarcados

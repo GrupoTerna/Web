@@ -26,10 +26,10 @@ function extraerFuncion(src, nombre){
   }
   throw new Error(`llaves sin cerrar en ${nombre}`);
 }
-const NOMBRES = ['tagClanNormalizado', 'claveClanMiembro', 'claveIngreso', 'esCuentaAdminIngreso', 'tieneWspIngreso', 'diaActualIngresos', 'diaActualIngresosCache', 'sinPendientesIngreso', 'conBarcosSemanaIngreso',
+const NOMBRES = ['tagClanNormalizado', 'claveClanMiembro', 'claveIngreso', 'esCuentaAdminIngreso', 'tieneWspIngreso', 'diaActualIngresos', 'diaActualIngresosCache', 'sinPendientesIngreso', 'conBarcosSemanaIngreso', 'conInactividadIngreso', 'conAlertaClanIngreso', 'ocultoPorFiltrosIngreso', 'claveFiltroIngreso', 'pillsSoloMuestraIngresosHtml',
   'ingresoOculto', 'ingresoIncluido', 'textoContadorIngresos', 'agruparPorClanEnOrden', 'actualizarPillsIngresos', 'xpIngresoNumero', 'compararTarjetasIngresos', 'reordenarTarjetasIngresos', 'aplicarFiltroIngresos', 'construirFiltroIngresos'];
 const CODIGO = `
-let ingresosTodosCache = [], ingresosSeleccionados = null, ingresosGrupos = [], ingresosGraficasVisibles = false, ingresosUltimosFiltrados = [], ingresosOcultarAdmins = false, ingresosOcultarConWsp = false, ingresosOcultarSinPendientes = false, ingresosSoloBarcos = false, ingresosClanesOcultos = new Set();
+let ingresosTodosCache = [], ingresosSeleccionados = null, ingresosGrupos = [], ingresosGraficasVisibles = false, ingresosUltimosFiltrados = [], ingresosOcultarAdmins = false, ingresosOcultarConWsp = false, ingresosOcultarSinPendientes = false, ingresosFiltros = { barcos: false, sinBarcos: false, inactivo: false, alerta: false }, ingresosClanesOcultos = new Set();
 const INGRESOS_ATAQUES_DIA_MAX = 4;
 let _diaActualIngresosRef = null, _diaActualIngresosIdx = -1;
 function pintarGraficasIngresos(){}

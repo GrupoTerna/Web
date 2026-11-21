@@ -39,10 +39,10 @@ const construir = new Function(`
   const ingresoIncluido = () => true, claveIngreso = n => n.tag, primeraLetraFiltro = () => 'A';
   const fechaIngresoTexto = () => '', enlaceJugador = n => n, ingBadgeRivalHtml = () => '';
   const ingresoStatHtml = () => '', desgloseDiasHtml = () => '', fmtFechaVigenciaCorta = () => '';
-  let ingresosOcultarAdmins = false, ingresosOcultarConWsp = false, ingresosOcultarSinPendientes = false, ingresosSoloBarcos = false, ingresosGuerraCongelada = false;
+  let ingresosOcultarAdmins = false, ingresosOcultarConWsp = false, ingresosOcultarSinPendientes = false, ingresosFiltros = { barcos: false, sinBarcos: false, inactivo: false, alerta: false }, ingresosGuerraCongelada = false;
   const ingresosClanesOcultos = new Set(), claveClanMiembro = () => 'clan'; // 18-nov-2026 (§PF512): la tarjeta lleva .oculto-clan si su clan está desmarcado
   const sinPendientesIngreso = () => false;
-    const conBarcosSemanaIngreso = () => true;
+    const ocultoPorFiltrosIngreso = () => false;
   const esCuentaAdminIngreso = () => false;
   const tieneWspIngreso = n => !!(n && n.tieneWsp === true);
   // Simula botonHistJugador de mini-historial.js: con sinWsp no antepone ícono propio.
