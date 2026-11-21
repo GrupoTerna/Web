@@ -31,7 +31,7 @@ const NOMBRES = ['tagClanNormalizado', 'claveClanMiembro', 'claveIngreso', 'esCu
   'ingresoOculto', 'ingresoIncluido', 'textoContadorIngresos', 'agruparPorClanEnOrden', 'actualizarPillsIngresos', 'xpIngresoNumero', 'compararTarjetasIngresos', 'reordenarTarjetasIngresos', 'aplicarFiltroIngresos', 'construirFiltroIngresos'];
 const CODIGO = `
 let ingresosTodosCache = [], ingresosSeleccionados = null, ingresosGrupos = [], ingresosGraficasVisibles = false, ingresosUltimosFiltrados = [], ingresosOcultarAdmins = false, ingresosOcultarConWsp = false, ingresosOcultarSinPendientes = false, ingresosSoloBarcos = false, ingresosClanesOcultos = new Set();
-const INGRESOS_ATAQUES_DIA_MAX = 4, INGRESOS_DIAS_BARCOS = 3;
+const INGRESOS_ATAQUES_DIA_MAX = 4;
 let _diaActualIngresosRef = null, _diaActualIngresosIdx = -1;
 function pintarGraficasIngresos(){}
 ${NOMBRES.map(n => extraerFuncion(grande, n)).join('\n')}
@@ -139,7 +139,7 @@ test('día opcional (meta del clan cruzada): sin pendientes aunque tenga 0 a 3 a
   const op = (viernes, n) => ({ ...n, diasOpcionales: [false, viernes, false, false] });
   const lista = [
     op(true, VIERNES[1]),  // 3 ataques, pero el clan ya cruzó la meta hoy
-    op(true, VIERNES[2]),  // 0 ataques, mismo caso
+    op(true, VIERNES[2]),  // 0 ataques hoy, pero el jueves dejó 2: con la regla de la semana sigue con pendientes
     op(true, VIERNES[3]),  // sin dato de hoy, mismo caso
     op(true, VIERNES[4]),  // sin guerraSemanaDias, mismo caso
     op(false, VIERNES[2]), // el clan no cruzó la meta: 0 ataques sigue siendo pendiente
@@ -149,16 +149,53 @@ test('día opcional (meta del clan cruzada): sin pendientes aunque tenga 0 a 3 a
   ];
   const w = montar(lista);
   const s = n => w.__t.sinPendientesIngreso(n);
-  assert.deepEqual(lista.map(s), [true, true, true, true, false, false, false, true]);
+  assert.deepEqual(lista.map(s), [true, false, true, true, false, false, false, true]);
 });
 
 test('día opcional: la pastilla oculta a esas cuentas y las cuenta en su número', () => {
   const lista = [
-    { ...VIERNES[2], tag: '#O1', diasOpcionales: [false, true, false, false] },
+    { ...VIERNES[1], tag: '#O1', diasOpcionales: [false, true, false, false] },
     { ...VIERNES[2], tag: '#O2' },
     VIERNES[0]
   ];
   const w = montar(lista);
   const hechas = lista.filter(n => w.__t.sinPendientesIngreso(n)).map(n => n.tag);
   assert.deepEqual(hechas, ['#O1', '#A1']);
+});
+
+// NUEVO (21-nov-2026, pedido de la usuaria): «sin pendientes» se mide por la SEMANA de guerra, no solo por el día actual, para no ocultar a
+// quien dejó ataques incompletos en un día anterior. Cuentan todos los días de jueves al día actual (el último con dato); un día opcional
+// (meta del clan cruzada) no exige nada; un día sin dato cuenta como pendiente salvo antes de su primer dato (aún no estaba).
+test('semana: un día anterior incompleto deja pendientes aunque hoy esté completo', () => {
+  const lista = [
+    { tag: '#S1', nombre: 'Uno', clan: 'Terna', ...ataques([3, 4, null, null]) },   // jueves incompleto
+    { tag: '#S2', nombre: 'Dos', clan: 'Terna', ...ataques([4, 4, null, null]) },   // todo completo
+    { tag: '#S3', nombre: 'Tres', clan: 'Terna', ...ataques([null, 4, null, null]) }, // entró el viernes: el jueves no cuenta
+    { tag: '#S4', nombre: 'Cuatro', clan: 'Terna', ...ataques([4, null, null, null]) }, // sin dato de hoy: se queda
+    { tag: '#S5', nombre: 'Cinco', clan: 'Terna', ...ataques([0, 4, null, null]) }  // 0 el jueves: pendiente
+  ];
+  const w = montar(lista);
+  assert.deepEqual(lista.map(n => w.__t.sinPendientesIngreso(n)), [false, true, true, false, false]);
+  pill(w).click();
+  assert.deepEqual(tags(w), ['#S1', '#S4', '#S5']);
+});
+
+test('semana: un día opcional en el medio no exige ataques y un día sin dato tras el primer dato sí', () => {
+  const lista = [
+    { tag: '#T1', nombre: 'Uno', clan: 'Terna', diasOpcionales: [false, true, false, false], ...ataques([4, 1, 4, null]) },
+    { tag: '#T2', nombre: 'Dos', clan: 'Terna', ...ataques([4, null, 4, null]) }, // hueco el viernes tras haber jugado el jueves
+    { tag: '#T3', nombre: 'Tres', clan: 'Terna', ...ataques([4, 4, 4, null]) }
+  ];
+  const w = montar(lista);
+  assert.deepEqual(lista.map(n => w.__t.sinPendientesIngreso(n)), [true, false, true]);
+});
+
+test('semana: con la guerra congelada (lunes a miércoles) se mide toda la semana hasta el domingo', () => {
+  const lista = [
+    { tag: '#D1', nombre: 'Uno', clan: 'Terna', ...ataques([4, 4, 4, 4]) },
+    { tag: '#D2', nombre: 'Dos', clan: 'Terna', ...ataques([4, 2, 4, 4]) }, // el viernes quedó incompleto
+    { tag: '#D3', nombre: 'Tres', clan: 'Terna', ...ataques([4, 4, 4, 3]) }
+  ];
+  const w = montar(lista);
+  assert.deepEqual(lista.map(n => w.__t.sinPendientesIngreso(n)), [true, false, false]);
 });

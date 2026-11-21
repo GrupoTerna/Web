@@ -33,7 +33,7 @@ const NOMBRES = ['tagClanNormalizado', 'claveClanMiembro', 'claveIngreso', 'esCu
   'actualizarPillsIngresos', 'xpIngresoNumero', 'compararTarjetasIngresos', 'reordenarTarjetasIngresos', 'aplicarFiltroIngresos', 'construirFiltroIngresos'];
 const CODIGO = `
 let ingresosTodosCache = [], ingresosSeleccionados = null, ingresosGrupos = [], ingresosGraficasVisibles = false, ingresosUltimosFiltrados = [], ingresosOcultarAdmins = false, ingresosOcultarConWsp = false, ingresosOcultarSinPendientes = false, ingresosSoloBarcos = false, ingresosClanesOcultos = new Set();
-const INGRESOS_ATAQUES_DIA_MAX = 4, INGRESOS_DIAS_BARCOS = 3;
+const INGRESOS_ATAQUES_DIA_MAX = 4;
 let _diaActualIngresosRef = null, _diaActualIngresosIdx = -1;
 function pintarGraficasIngresos(){}
 ${NOMBRES.map(n => extraerFuncion(grande, n)).join('\n')}

@@ -8,7 +8,7 @@ const { loadBrowserScriptsWithDom } = require('./load-browser-script');
 
 // NUEVO (21-nov-2026, pedido de la usuaria): pastilla «🚢 Solo con barcos» en «Ingresos recientes» de directorio.html. Al revés que las de
 // «Ocultar»: activa, SOLO quedan (tarjeta, contador y gráficas) quienes hicieron ataques de barcos en la semana de guerra, en cualquier día de
-// jueves a sábado (el domingo no cuenta). La semana la fija el backend por periodIndex y la congela de lunes a miércoles como quedó el domingo:
+// jueves a domingo (el domingo sí cuenta). La semana la fija el backend por periodIndex y la congela de lunes a miércoles como quedó el domingo:
 // la pastilla lee `guerraSemanaDias.barcos` y nunca la fecha del navegador. Se extraen del <script> inline REAL las funciones por nombre.
 // LÍMITE: DOM simulado, no un navegador.
 
@@ -31,7 +31,7 @@ const NOMBRES = ['tagClanNormalizado', 'claveClanMiembro', 'claveIngreso', 'esCu
   'ingresoOculto', 'ingresoIncluido', 'textoContadorIngresos', 'agruparPorClanEnOrden', 'actualizarPillsIngresos', 'xpIngresoNumero', 'compararTarjetasIngresos', 'reordenarTarjetasIngresos', 'aplicarFiltroIngresos', 'construirFiltroIngresos'];
 const CODIGO = `
 let ingresosTodosCache = [], ingresosSeleccionados = null, ingresosGrupos = [], ingresosGraficasVisibles = false, ingresosUltimosFiltrados = [], ingresosOcultarAdmins = false, ingresosOcultarConWsp = false, ingresosOcultarSinPendientes = false, ingresosSoloBarcos = false, ingresosClanesOcultos = new Set();
-const INGRESOS_ATAQUES_DIA_MAX = 4, INGRESOS_DIAS_BARCOS = 3;
+const INGRESOS_ATAQUES_DIA_MAX = 4;
 let _diaActualIngresosRef = null, _diaActualIngresosIdx = -1;
 function pintarGraficasIngresos(){}
 ${NOMBRES.map(n => extraerFuncion(grande, n)).join('\n')}
@@ -46,7 +46,7 @@ const LISTA = [
   { tag: '#A1', nombre: 'Ana', clan: 'Terna', ...barcos([0, 2, 0, 0]) },        // viernes
   { tag: '#A2', nombre: 'Ben', clan: 'Terna', ...barcos([0, 0, 0, 0]) },        // ninguno
   { tag: '#B1', nombre: 'Cai', clan: 'Terna 2', ...barcos([1, null, null, null]) }, // jueves
-  { tag: '#B2', nombre: 'Dan', clan: 'Terna 2', ...barcos([0, 0, 0, 3]) },      // solo domingo: no cuenta
+  { tag: '#B2', nombre: 'Dan', clan: 'Terna 2', ...barcos([0, 0, 0, 3]) },      // solo domingo: cuenta
   { tag: '#C1', nombre: 'Eli', clan: 'Terna 3', ...barcos([null, null, 5, null]) }, // sábado
   { tag: '#C2', nombre: 'Fio', clan: 'Terna 3', ...barcos([null, null, null, null]) } // sin días jugados
 ];
@@ -62,9 +62,9 @@ function montar(lista){
 const pill = w => w.document.querySelector('#ingClanPills .ing-pill[data-clan="__barcos__"]');
 const tags = w => w.__t.filtrados.map(n => n.tag);
 
-test('con barcos = algún día de jueves a sábado con más de 0; el domingo y los días sin dato no cuentan', () => {
+test('con barcos = algún día de jueves a domingo con más de 0; los días sin dato no cuentan', () => {
   const w = montar(LISTA);
-  assert.deepEqual(LISTA.map(n => w.__t.conBarcosSemanaIngreso(n)), [true, false, true, false, true, false]);
+  assert.deepEqual(LISTA.map(n => w.__t.conBarcosSemanaIngreso(n)), [true, false, true, true, true, false]);
 });
 
 test('sin desglose diario usa el total de barcos de la semana (es lo único que hay); sin nada, no cuenta', () => {
@@ -80,7 +80,7 @@ test('la pastilla la ve todo el público y cuenta a quienes dejaría', () => {
   const w = montar(LISTA);
   assert.ok(pill(w));
   assert.match(pill(w).textContent, /Solo con barcos/);
-  assert.equal(pill(w).querySelector('.ing-pill-count').textContent, '3');
+  assert.equal(pill(w).querySelector('.ing-pill-count').textContent, '4');
   assert.equal(pill(w).getAttribute('aria-pressed'), 'false');
 });
 
@@ -88,13 +88,13 @@ test('al activarla solo quedan en contador, gráficas y tarjetas quienes hiciero
   const w = montar(LISTA);
   assert.deepEqual(tags(w), ['#A1', '#A2', '#B1', '#B2', '#C1', '#C2']);
   pill(w).click();
-  assert.deepEqual(tags(w), ['#A1', '#B1', '#C1']);
-  assert.equal(w.document.getElementById('nuevosCount').textContent, '3 de 6 jugadores');
+  assert.deepEqual(tags(w), ['#A1', '#B1', '#B2', '#C1']);
+  assert.equal(w.document.getElementById('nuevosCount').textContent, '4 de 6 jugadores');
   assert.equal(pill(w).getAttribute('aria-pressed'), 'true');
   assert.ok(pill(w).classList.contains('active'));
   const oculta = t => w.document.querySelector(`.js-nuevo-card[data-tag="${t}"]`).classList.contains('oculto-barcos');
   assert.equal(oculta('#A2'), true);
-  assert.equal(oculta('#B2'), true, 'solo domingo: oculta');
+  assert.equal(oculta('#B2'), false, 'solo domingo: cuenta');
   assert.equal(oculta('#A1'), false);
   pill(w).click();
   assert.deepEqual(tags(w), ['#A1', '#A2', '#B1', '#B2', '#C1', '#C2']);
@@ -106,7 +106,7 @@ test('de lunes a miércoles (congelada) se lee lo que mandó el backend, sin mir
   const w = montar(LISTA);
   assert.ok(!/new Date\(|Date\.now\(/.test(w.__t.conBarcosSemanaIngreso.toString()), 'la regla no debe usar la fecha del navegador');
   pill(w).click();
-  assert.deepEqual(tags(w), ['#A1', '#B1', '#C1']);
+  assert.deepEqual(tags(w), ['#A1', '#B1', '#B2', '#C1']);
 });
 
 test('si nadie hizo barcos la pastilla no aparece y nadie se oculta', () => {

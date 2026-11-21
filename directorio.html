@@ -2983,9 +2983,9 @@ let ingresosLetraSeleccionada = null;
 let ingresosOcultarAdmins = false;
 // 23-oct-2026 (pedido de la usuaria, tanda 2): pastilla «Ocultar con número», solo admins (tieneWsp no llega sin sesión). Igual que «Ocultar admins»: las cuentas con celular registrado salen de las gráficas y del contador y sus tarjetas desaparecen (P4: «sí»).
 let ingresosOcultarConWsp = false;
-/* 24-oct-2026 (pedido de la usuaria, tanda 9; P17 a P20 respondidas): pastilla «⚔️ Ocultar sin pendientes». Saca de la vista (tarjeta, contador y gráficas) a quien ya hizo sus 4 ataques del día; se queda quien tiene 0 a 3 (le quedan ataques). La ven todos (el dato de ataques es público). De lunes a miércoles (entrenamiento) los datos están congelados como quedaron el domingo y la pastilla sigue disponible: sirve para revisar los ataques de la última guerra. [→ Contexto_Base_Web.md §PF225] */
+/* 24-oct-2026 (pedido de la usuaria, tanda 9; P17 a P20 respondidas): pastilla «⚔️ Ocultar sin pendientes». Saca de la vista (tarjeta, contador y gráficas) a quien ya hizo todos sus ataques de la SEMANA (desde el 21-nov-2026; antes solo miraba el día actual); se queda quien tiene algún ataque pendiente, también de un día anterior (§PF553). La ven todos (el dato de ataques es público). De lunes a miércoles (entrenamiento) los datos están congelados como quedaron el domingo y la pastilla sigue disponible: sirve para revisar los ataques de la última guerra. [→ Contexto_Base_Web.md §PF225] */
 let ingresosOcultarSinPendientes = false;
-/* 21-nov-2026 (pedido de la usuaria): pastilla «🚢 Solo con barcos». Al revés que las de «Ocultar»: mientras está activa SOLO quedan (tarjeta, contador y gráficas) quienes hicieron ataques de barcos en la semana de guerra, en cualquier día de jueves a sábado; el resto desaparece. La semana la define el backend por periodIndex (con lunes a miércoles congelada como quedó el domingo), nunca la hora real del navegador. [→ Contexto_Base_Web.md §PF553] */
+/* 21-nov-2026 (pedido de la usuaria): pastilla «🚢 Solo con barcos». Al revés que las de «Ocultar»: mientras está activa SOLO quedan (tarjeta, contador y gráficas) quienes hicieron ataques de barcos en la semana de guerra, en cualquier día de la semana de guerra (jueves a domingo); el resto desaparece. La semana la define el backend por periodIndex (con lunes a miércoles congelada como quedó el domingo), nunca la hora real del navegador. [→ Contexto_Base_Web.md §PF553] */
 let ingresosSoloBarcos = false;
 /* 19-oct-2026 (pedido usuaria): el backend manda guerraCongelada=true de lunes a miércoles; la cuadrícula de Ataques/Medallas/Barcos muestra entonces lo último de la guerra (hasta el domingo) y se rotula «Última guerra» hasta que empiece la siguiente. [→ Contexto_Base_Web.md §PF125] */
 let ingresosGuerraCongelada = false;
@@ -3035,24 +3035,29 @@ function diaActualIngresosCache(){
   }
   return _diaActualIngresosIdx;
 }
-/** Ya hizo todos sus ataques del día actual (4 o más), o su clan ya había cruzado la meta ese día (atacar era opcional: caso (b) de P18, `PF225`, 31-oct-2026; lo marca el backend en `diasOpcionales`, 4 booleanos J/V/S/D, y vale aunque no haya dato de ataques de ese día). Sin dato de ese día (null, o ingreso sin guerraSemanaDias) y sin día opcional NO cuenta: se queda visible, porque 0 ataques también es «pendiente» y no se sabe que haya terminado. */
+/** Sin ataques pendientes en la SEMANA de guerra (21-nov-2026, pedido de la usuaria; antes solo miraba el día actual): en todos los días de jueves hasta el «día actual» (`diaActualIngresos`) hizo sus 4 ataques o ese día era opcional (su clan ya había cruzado la meta; lo marca el backend en `diasOpcionales`, 4 booleanos J/V/S/D). Quien dejó ataques incompletos en un día anterior sigue con pendientes y se queda visible. Un día sin dato (null) cuenta como pendiente, salvo los días anteriores a su primer dato (antes de que entrara a la guerra o al clan). Sin ningún dato de la semana solo cuenta si el día actual era opcional. Lunes a miércoles el día actual es el domingo (datos congelados). */
 function sinPendientesIngreso(n){
   const idx = diaActualIngresosCache();
   if (idx < 0) return false;
-  if (n && Array.isArray(n.diasOpcionales) && n.diasOpcionales[idx] === true) return true;
+  const op = (n && Array.isArray(n.diasOpcionales)) ? n.diasOpcionales : [];
   const a = n && n.guerraSemanaDias && n.guerraSemanaDias.ataques;
-  if (!Array.isArray(a)) return false;
-  const v = a[idx];
-  if (v === null || v === undefined || v === '' || isNaN(Number(v))) return false;
-  return Number(v) >= INGRESOS_ATAQUES_DIA_MAX;
+  const val = i => (Array.isArray(a) && a[i] !== null && a[i] !== undefined && a[i] !== '' && !isNaN(Number(a[i]))) ? Number(a[i]) : null;
+  let primero = -1;
+  for (let d = 0; d <= idx; d++){ if (val(d) !== null){ primero = d; break; } }
+  if (primero < 0) return op[idx] === true;
+  for (let d = 0; d <= idx; d++){
+    if (op[d] === true) continue;
+    const v = val(d);
+    if (v === null){ if (d < primero) continue; return false; }
+    if (v < INGRESOS_ATAQUES_DIA_MAX) return false;
+  }
+  return true;
 }
-/** Días de guerra que cuentan para la pastilla «Solo con barcos»: jueves, viernes y sábado (posiciones 0, 1 y 2 de J/V/S/D; el domingo no cuenta, pedido de la usuaria, 21-nov-2026). */
-const INGRESOS_DIAS_BARCOS = 3;
-/** Hizo ataques de barcos en la semana de guerra, de jueves a sábado. Lee el desglose diario que manda el backend (`guerraSemanaDias.barcos`, valor de cada día, `null` = día no jugado), ya fijado por periodIndex y congelado de lunes a miércoles: no usa la fecha del navegador. Sin desglose diario (ingreso sin fila en «Nuevos») usa el total de barcos de la semana, que es lo único que hay. */
+/** Hizo ataques de barcos en la semana de guerra (cualquier día, de jueves a domingo). Lee el desglose diario que manda el backend (`guerraSemanaDias.barcos`, valor de cada día, `null` = día no jugado), ya fijado por periodIndex y congelado de lunes a miércoles como quedó el domingo: no usa la fecha del navegador. Sin desglose diario (ingreso sin fila en «Nuevos») usa el total de barcos de la semana, que es lo único que hay. */
 function conBarcosSemanaIngreso(n){
   const positivo = v => v !== null && v !== undefined && v !== '' && Number(v) > 0;
   const b = n && n.guerraSemanaDias && n.guerraSemanaDias.barcos;
-  if (Array.isArray(b)) return b.slice(0, INGRESOS_DIAS_BARCOS).some(positivo);
+  if (Array.isArray(b)) return b.some(positivo);
   return positivo(n && n.guerraSemana && n.guerraSemana.barcos);
 }
 /** Incluido en gráficas y contador: marcado en el Set y que ninguna pastilla de «Ocultar» activa lo saque. */
@@ -3300,8 +3305,8 @@ function construirFiltroIngresos(nuevos){
       </button>`).join('')}
     ${nuevos.some(esCuentaAdminIngreso) ? `<button type="button" class="ing-pill ing-pill-admin${ingresosOcultarAdmins ? ' active' : ''}" data-clan="__admins__" aria-pressed="${ingresosOcultarAdmins}" title="Oculta las tarjetas y saca de las gráficas y del contador las cuentas de los administradores mientras recorres los clanes">🛡️ Ocultar admins <span class="ing-pill-count">${nuevos.filter(esCuentaAdminIngreso).length}</span></button>` : ''}
     ${nuevos.some(tieneWspIngreso) ? `<button type="button" class="ing-pill ing-pill-wsp${ingresosOcultarConWsp ? ' active' : ''}" data-clan="__wsp__" aria-pressed="${ingresosOcultarConWsp}" title="Oculta las tarjetas y saca de las gráficas y del contador a quienes ya tienen número de WhatsApp registrado (solo lo ves como administrador)">📱 Ocultar con número <span class="ing-pill-count">${nuevos.filter(tieneWspIngreso).length}</span></button>` : ''}
-    ${nuevos.some(sinPendientesIngreso) ? `<button type="button" class="ing-pill ing-pill-pend${ingresosOcultarSinPendientes ? ' active' : ''}" data-clan="__pend__" aria-pressed="${ingresosOcultarSinPendientes}" title="Oculta las tarjetas y saca de las gráficas y del contador a quienes ya hicieron sus 4 ataques del día; se quedan los que aún tienen ataques pendientes (de 0 a 3 hechos). De lunes a miércoles usa lo último de la guerra, congelado como quedó el domingo">⚔️ Ocultar sin pendientes <span class="ing-pill-count">${nuevos.filter(sinPendientesIngreso).length}</span></button>` : ''}
-    ${(ingresosSoloBarcos || nuevos.some(conBarcosSemanaIngreso)) ? `<button type="button" class="ing-pill ing-pill-barcos${ingresosSoloBarcos ? ' active' : ''}" data-clan="__barcos__" aria-pressed="${ingresosSoloBarcos}" title="Muestra solo a quienes hicieron ataques de barcos en la semana de guerra, en cualquier día de jueves a sábado. La semana es la de la guerra (no la hora real) y, de domingo a miércoles, se queda como terminó hasta el jueves siguiente">🚢 Solo con barcos <span class="ing-pill-count">${nuevos.filter(conBarcosSemanaIngreso).length}</span></button>` : ''}`;
+    ${nuevos.some(sinPendientesIngreso) ? `<button type="button" class="ing-pill ing-pill-pend${ingresosOcultarSinPendientes ? ' active' : ''}" data-clan="__pend__" aria-pressed="${ingresosOcultarSinPendientes}" title="Oculta las tarjetas y saca de las gráficas y del contador a quienes ya hicieron todos sus ataques de la semana (4 por día, de jueves al día actual); se quedan los que tienen algún ataque pendiente, también de un día anterior. De lunes a miércoles usa lo último de la guerra, congelado como quedó el domingo">⚔️ Ocultar sin pendientes <span class="ing-pill-count">${nuevos.filter(sinPendientesIngreso).length}</span></button>` : ''}
+    ${(ingresosSoloBarcos || nuevos.some(conBarcosSemanaIngreso)) ? `<button type="button" class="ing-pill ing-pill-barcos${ingresosSoloBarcos ? ' active' : ''}" data-clan="__barcos__" aria-pressed="${ingresosSoloBarcos}" title="Muestra solo a quienes hicieron ataques de barcos en la semana de guerra, en cualquier día de la semana de guerra (jueves a domingo). La semana es la de la guerra, no la hora real: de lunes a miércoles se ve lo que quedó el domingo, hasta el jueves siguiente">🚢 Solo con barcos <span class="ing-pill-count">${nuevos.filter(conBarcosSemanaIngreso).length}</span></button>` : ''}`;
 
   // Un solo listener delegado por carga (el contenedor se reutiliza entre cargas).
   if (!wrap.dataset.enlazado){

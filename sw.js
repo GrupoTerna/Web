@@ -353,7 +353,8 @@
 // v314 (19-nov-2026): guerra.html cambió (CORE_ASSETS) -- las pestañas Jue–Dom pueden encogerse (min-width:0) y, debajo de 340 px, se reduce hueco, relleno y letra: a 320 px «DOM 22-nov.» se salía 12 px de la pantalla (§PF531).
 // v315 (21-nov-2026): admin.html cambió (CORE_ASSETS) -- la tabla de propuestas de Cambio de rango trae un 📜 junto a cada nombre que abre una ventana con los cambios de rango anteriores de esa cuenta, leídos de Historial_A/D (§PF286 punto 17 (a)).
 // v316 (21-nov-2026): directorio.html cambió (CORE_ASSETS) -- «Ingresos recientes» trae la pastilla «🚢 Solo con barcos», que deja solo a quienes hicieron ataques de barcos en la semana de guerra, de jueves a sábado (§PF553).
-const CACHE_NAME = 'terna-static-v316';
+// v317 (21-nov-2026): directorio.html cambió (CORE_ASSETS) -- «⚔️ Ocultar sin pendientes» pasa a medirse por la semana de guerra (no solo el día actual) y «🚢 Solo con barcos» cuenta también el domingo (§PF553).
+const CACHE_NAME = 'terna-static-v317';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
