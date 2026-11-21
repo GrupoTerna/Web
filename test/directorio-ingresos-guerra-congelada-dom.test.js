@@ -30,9 +30,10 @@ function extraerFuncion(src, nombre){
 
 function crear(congelada){
   const codigo = `
-    let ingresosOcultarAdmins = false, ingresosOcultarConWsp = false, ingresosOcultarSinPendientes = false;
+    let ingresosOcultarAdmins = false, ingresosOcultarConWsp = false, ingresosOcultarSinPendientes = false, ingresosSoloBarcos = false;
     const ingresosClanesOcultos = new Set(), claveClanMiembro = () => 'clan'; // 18-nov-2026 (§PF512)
     const sinPendientesIngreso = () => false;
+    const conBarcosSemanaIngreso = () => true;
     const tieneWspIngreso = () => false, botonHistJugador = () => '';
     let ingresosGuerraCongelada = ${congelada ? 'true' : 'false'};
     const esc = v => String(v == null ? '' : v);

@@ -352,7 +352,8 @@
 // v313 (19-nov-2026): assets/styles.css cambió (CORE_ASSETS) -- la cabecera fija (.nav) pasa de 0.96 de opacidad a sólida (rgb(4, 5, 8)), porque con 0.96 todavía se adivinaba el texto que pasa por detrás (§PF530).
 // v314 (19-nov-2026): guerra.html cambió (CORE_ASSETS) -- las pestañas Jue–Dom pueden encogerse (min-width:0) y, debajo de 340 px, se reduce hueco, relleno y letra: a 320 px «DOM 22-nov.» se salía 12 px de la pantalla (§PF531).
 // v315 (21-nov-2026): admin.html cambió (CORE_ASSETS) -- la tabla de propuestas de Cambio de rango trae un 📜 junto a cada nombre que abre una ventana con los cambios de rango anteriores de esa cuenta, leídos de Historial_A/D (§PF286 punto 17 (a)).
-const CACHE_NAME = 'terna-static-v315';
+// v316 (21-nov-2026): directorio.html cambió (CORE_ASSETS) -- «Ingresos recientes» trae la pastilla «🚢 Solo con barcos», que deja solo a quienes hicieron ataques de barcos en la semana de guerra, de jueves a sábado (§PF553).
+const CACHE_NAME = 'terna-static-v316';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
