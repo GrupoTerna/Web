@@ -7700,7 +7700,7 @@ function _filaPropuestaCR(p, i){
   return `
     <tr>
       <td>${i + 1}</td>
-      <td>${enlaceJugador(p.nombre, p.tag)}</td>
+      <td>${enlaceJugador(p.nombre, p.tag)}${botonHistRangoCR(p)}</td>
       <td>${esc(p.tag)}</td>
       <td>${p.clan ? enlaceClan(p.clan, { tag: p.clanTag }) : '—'}</td>
       <td>${esc(p.rangoActual)}</td>
@@ -7711,6 +7711,66 @@ function _filaPropuestaCR(p, i){
       <td>${esc(p.detalle)}</td>
     </tr>`;
 }
+
+/* Modal «Cambios de rango anteriores» de la tabla de propuestas (21-nov-2026, PF286 punto 17 (a); pedido de la usuaria del 28-oct-2026).
+   Un 📜 junto al nombre abre una ventana con los cambios de rango de esa cuenta que ya constan en Historial_A/D (Ascenso, Degradación, Expulsión y Ascenso de clan; las propuestas aún «Planificado» no cuentan),
+   del más reciente al más antiguo, con fecha, temporada, semana y día. Pide webCRHistorialJugador (GET con sesión de admin; solo lee). Reutiliza los estilos .hist-* de assets/styles.css; no usa mini-historial.js,
+   que admin.html no carga, ni la clase .btn-hist-jugador, para no abrir por error el historial de guerra. Historial en CHANGELOG.md. */
+function botonHistRangoCR(p){
+  if(!p || !p.tag) return '';
+  const n = p.nombre || p.tag;
+  return `<button type="button" class="btn-hist-rango" data-tag="${esc(p.tag)}" data-nombre="${esc(n)}" title="Ver sus cambios de rango anteriores" aria-label="Ver los cambios de rango anteriores de ${esc(n)}" style="background:none;border:0;cursor:pointer;font-size:13px;padding:0 4px;margin-left:4px;opacity:.7;vertical-align:middle;">📜</button>`;
+}
+function _tablaHistRangoCR(cambios){
+  if(!Array.isArray(cambios) || !cambios.length){
+    return '<div class="hist-nota">Esta cuenta no tiene cambios de rango registrados en Historial_A/D.</div>';
+  }
+  const filas = cambios.map(c => {
+    const cambio = (c.rango && c.rango2) ? `${esc(c.rango)} → ${esc(c.rango2)}` : esc(c.rango || c.rango2 || '—');
+    return `<tr><td>${esc(c.fechaTxt || '—')}</td><td>${esc(c.temporada ?? '—')}</td><td>${esc(c.semana ?? '—')}</td><td>${esc(c.dia ?? '—')}</td><td>${esc(c.tipo)}</td><td>${cambio}</td><td>${esc(c.clan || '—')}</td></tr>`;
+  }).join('');
+  return `<div class="hist-tabla-scroll"><table class="hist-tabla"><thead><tr><th>Fecha</th><th>Temporada</th><th>Semana</th><th>Día</th><th>Tipo</th><th>Cambio</th><th>Clan</th></tr></thead><tbody>${filas}</tbody></table></div>`;
+}
+function _asegurarModalHistRangoCR(){
+  let fondo = document.getElementById('crHistRangoFondo');
+  if(fondo) return fondo;
+  fondo = document.createElement('div');
+  fondo.className = 'hist-fondo'; fondo.id = 'crHistRangoFondo';
+  fondo.setAttribute('role', 'dialog'); fondo.setAttribute('aria-modal', 'true'); fondo.setAttribute('aria-labelledby', 'crHistRangoTitulo');
+  fondo.innerHTML = '<div class="hist-panel"><div class="hist-cab"><div><h3 id="crHistRangoTitulo">Cambios de rango anteriores</h3><div class="hist-nota" id="crHistRangoSub" style="margin:2px 0 0;"></div></div>'
+    + '<button type="button" class="hist-cerrar" id="crHistRangoCerrar" aria-label="Cerrar">×</button></div><div id="crHistRangoCuerpo" aria-live="polite"></div></div>';
+  document.body.appendChild(fondo);
+  const cerrar = () => fondo.classList.remove('abierto');
+  fondo.addEventListener('click', e => { if(e.target === fondo) cerrar(); });
+  document.getElementById('crHistRangoCerrar').addEventListener('click', cerrar);
+  document.addEventListener('keydown', e => { if(e.key === 'Escape') cerrar(); });
+  return fondo;
+}
+let _histRangoPeticionCR = 0; // solo se pinta la respuesta de la última cuenta pedida
+async function abrirHistRangoCR(tag, nombre){
+  const fondo = _asegurarModalHistRangoCR();
+  const cuerpo = document.getElementById('crHistRangoCuerpo');
+  document.getElementById('crHistRangoSub').textContent = `${nombre || tag} · ${tag}`;
+  cuerpo.innerHTML = '<div class="hist-nota">Cargando…</div>';
+  fondo.classList.add('abierto');
+  const mia = ++_histRangoPeticionCR;
+  try{
+    const data = await apiGetAuth('webCRHistorialJugador', { tag });
+    if(mia !== _histRangoPeticionCR) return;
+    if(!data || data.ok === false || data.error){
+      cuerpo.innerHTML = `<div class="hist-nota">${esc((data && (data.error || data.mensaje)) || 'No se pudo leer el historial.')}</div>`;
+      return;
+    }
+    cuerpo.innerHTML = _tablaHistRangoCR(data.cambios);
+  }catch(err){
+    if(mia !== _histRangoPeticionCR) return;
+    cuerpo.innerHTML = '<div class="hist-nota">No se pudo leer el historial. Inténtalo de nuevo.</div>';
+  }
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest && e.target.closest('.btn-hist-rango');
+  if(b) abrirHistRangoCR(b.dataset.tag, b.dataset.nombre);
+});
 
 // La tabla de propuestas de Cambio de Rango se reordena en el frontend: Clan → Rango actual → Tipo → Nombre. Historial en CHANGELOG.md.
 const RANGO_ORDEN_CR = ['Líder', 'Colíder', 'Veterano', 'Miembro'];
