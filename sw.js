@@ -359,7 +359,8 @@
 // v320 (22-nov-2026): perfil.html y assets/js/features/timeline-svg.js cambiaron (CORE_ASSETS) -- en las gráficas de perfil el punto estimado ya no parpadea y muestra su valor (marcado «estimado»), y las líneas de unión muestran nombre, tag y clan actual al pasar el cursor (§PF066).
 // v321 (22-nov-2026): perfil.html cambió (CORE_ASSETS) -- en las gráficas de perfil un día sin dato ya no lleva punto: la línea une el último punto con dato con el siguiente (tramo punteado) y la leyenda lo explica (§PF066).
 // v322 (22-nov-2026): perfil.html cambió (CORE_ASSETS) -- en las gráficas de medallas, ataques y barcos del perfil, los administradores ven una serie azul con el total de cada semana jugada en un clan externo (un punto por domingo y clan, con tooltip, leyenda, tope semanal y aviso); el resto de usuarios no ve cambios (§PF066).
-const CACHE_NAME = 'terna-static-v322';
+// v323 (22-nov-2026): perfil.html cambió (CORE_ASSETS) -- en el modal «Costo de mejora», el nivel que las cartas todavía no completan muestra 76/180 arriba, el avance dentro de la parte llena de la barra y lo que falta dentro de la parte vacía.
+const CACHE_NAME = 'terna-static-v323';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y

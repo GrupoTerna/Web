@@ -990,9 +990,13 @@
      este modal. */
   .cc-barra-cartas{margin-top:18px;}
   .cc-barra-cartas .lbl{font-family:var(--f-mono); font-size:13px; color:var(--text-dim); margin-bottom:24px;}
-  .cc-barra-pista{position:relative; height:14px; margin:0 1px 22px;}
+  .cc-barra-pista{position:relative; height:18px; margin:0 1px 22px;}
   .cc-barra-tramo{position:absolute; top:0; height:100%; border-radius:3px; overflow:hidden;}
   .cc-barra-tramo i{display:block; height:100%;}
+  /* 22-nov-2026 (pedido usuaria): en el nivel que las cartas todavía no completan, el avance (p. ej. 76) va dentro de la parte llena y lo que falta (p. ej. 104) dentro de la parte vacía; arriba queda 76/180. */
+  .cc-barra-dentro{position:absolute; top:0; height:100%; display:flex; align-items:center; justify-content:center; font-family:var(--f-mono); font-size:11px; font-weight:700; line-height:1; white-space:nowrap; pointer-events:none;}
+  .cc-barra-dentro--avance{left:0; color:#06060d;}
+  .cc-barra-dentro--falta{color:var(--text-dim);}
   .cc-barra-cifra{position:absolute; top:-20px; transform:translateX(-50%); font-family:var(--f-mono); font-size:13px; font-weight:700; color:var(--text); white-space:nowrap;}
   .cc-barra-marca{position:absolute; top:100%; padding-top:5px; font-family:var(--f-mono); font-size:10px; color:var(--text-faint); white-space:nowrap;}
   .cc-barra-marca::before{content:''; position:absolute; left:50%; top:0; width:1px; height:5px; background:var(--line-strong); transform:translateX(-50%);}
@@ -3489,12 +3493,20 @@ function _barraCartasSegmentadaHtml(niveles, countNum, totalCartas){
     const fillPct = cartas > 0 ? (have / cartas) * 100 : 100;
     const color = _PALETA_BARRA_TRAMOS[i % _PALETA_BARRA_TRAMOS.length];
     const esUltimo = i === niveles.length - 1;
+    // 22-nov-2026 (pedido usuaria): si el nivel no se completa, arriba va «tiene/necesita», el avance dentro de la parte llena y lo que falta dentro de la parte vacía. Cada cifra interior solo se pinta si su parte mide al menos 8 % de toda la barra (si no, no entra).
+    const incompleto = cartas > 0 && have < cartas;
+    const cifraArriba = incompleto ? `${fmtNum(have)}/${fmtNum(cartas)}` : fmtNum(cartas);
+    const faltan = cartas - have;
+    const dentro = incompleto
+      ? ((have > 0 && anchoPct * fillPct / 100 >= 8 ? `<span class="cc-barra-dentro cc-barra-dentro--avance" style="width:${fillPct}%;">${esc(fmtNum(have))}</span>` : '') +
+         (anchoPct * (100 - fillPct) / 100 >= 8 ? `<span class="cc-barra-dentro cc-barra-dentro--falta" style="left:${fillPct}%; width:${100 - fillPct}%;">${esc(fmtNum(faltan))}</span>` : ''))
+      : '';
     marcas.push(`<span class="cc-barra-marca" style="left:${esUltimo ? 100 : (acumHasta / totalCartas) * 100}%; transform:translateX(${esUltimo ? '-100%' : '-50%'});">${esc(String(n.hasta))}</span>`);
     acumPrevio = acumHasta;
     return `
-        <div class="cc-barra-cifra" style="left:${izqPct + anchoPct / 2}%;">${esc(fmtNum(cartas))}</div>
+        <div class="cc-barra-cifra" style="left:${izqPct + anchoPct / 2}%;">${esc(cifraArriba)}</div>
         <div class="cc-barra-tramo" style="left:${izqPct}%; width:${anchoPct}%; background:${color}33;">
-          <i style="width:${fillPct}%; background:${color};"></i>
+          <i style="width:${fillPct}%; background:${color};"></i>${dentro}
         </div>`;
   }).join('');
   return `
