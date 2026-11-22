@@ -12,6 +12,10 @@ Lista corta de lo que se hizo, de más reciente a más antiguo y, dentro de cada
 
 **Los pendientes del frontend ya no se llevan aquí: están en `Pendientes.md` del repo `Backend`** (grupo C, «Solo falta probar en navegador o celular», y los de Apps Script que también tocan a `Web`). Al abrir uno nuevo se agrega allí con su `§PF`; al cerrarlo se borra de allí y se anota en su sección del contexto. La lista anterior de esta sección (93 entradas) sigue en git: `git show 3c35049:CHANGELOG.md`. `[→ Contexto_Base_Web.md §PF547]`
 
+## 22-nov-2026
+
+- **`guerra.html` (sección `#dashGuerraSection`; `puestoMedallasDiaDeGrupo()`, `pendientesDeClanGuerra()`, `opcionMensajeDeClanGuerra()`, `dashGuerraTarjetaHtml()`, `pintarDashboardGuerra()`, `pintarMetaDashboardGuerra()`, `dashGuerraActivarClics()`, `cargarDashboardGuerraSiAdmin()` nuevas; `textoFrescoMensajeGuerra()` sacada del «Copiar» de `cargarMensajesGuerraSiAdmin()`; `pintarMetaMensajesGuerra()`, `regenerarMensajesGuerra()`, `actualizarPuestosClanes()`, `cargar()`), `test/guerra-dashboard-dom.test.js` (nuevo) y `sw.js` v319 · «📊 Dashboard de guerra» solo para admins y en día de guerra.** Una tarjeta por clan con el puesto de hoy (medallas del día), las medallas que faltan para el 1.º, los ataques pendientes y «Copiar mensaje»; los mensajes de más de 5 min se actualizan solos una vez por carga (§PF556).
+
 ## 21-nov-2026
 
 - **`admin.html` (`botonHistRangoCR()`, `_tablaHistRangoCR()`, `_asegurarModalHistRangoCR()`, `abrirHistRangoCR()` nuevas; `_filaPropuestaCR()`), `test/cambio-rango-historial-dom.test.js` (nuevo) y `sw.js` v315 · Tabla de propuestas de Cambio de rango: un 📜 junto a cada nombre abre la ventana «Cambios de rango anteriores».** Lista los cambios de rango de esa cuenta que constan en `Historial_A/D` (Ascenso, Degradación, Expulsión y Ascenso de clan), del más reciente al más antiguo, con fecha, temporada, semana y día; pide `webCRHistorialJugador` (backend: `24_Historial_Ascensos.gs`, `37_Web_API.gs`, `38_Web_Endpoints.gs`). Sin probar en navegador real ni en Apps Script real (`§PF286` punto 17 (a)).

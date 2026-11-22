@@ -355,7 +355,8 @@
 // v316 (21-nov-2026): directorio.html cambió (CORE_ASSETS) -- «Ingresos recientes» trae la pastilla «🚢 Solo con barcos», que deja solo a quienes hicieron ataques de barcos en la semana de guerra, de jueves a sábado (§PF553).
 // v317 (21-nov-2026): directorio.html cambió (CORE_ASSETS) -- «⚔️ Ocultar sin pendientes» pasa a medirse por la semana de guerra (no solo el día actual) y «🚢 Solo con barcos» cuenta también el domingo (§PF553).
 // v318 (21-nov-2026): directorio.html cambió (CORE_ASSETS) -- «Ingresos recientes» trae las pastillas «🚢 Sin barcos», «😴 Con días inactivos» (1 o más) y, para admins, «⚠️ Con alerta de clan» (§PF553).
-const CACHE_NAME = 'terna-static-v318';
+// v319 (22-nov-2026): guerra.html cambió (CORE_ASSETS) -- sección «📊 Dashboard de guerra» para admins en día de guerra: por clan, el puesto de hoy, las medallas que faltan para el 1.º, los ataques pendientes y «Copiar mensaje»; si los mensajes tienen más de 5 min pide sola la actualización (§PF556).
+const CACHE_NAME = 'terna-static-v319';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y

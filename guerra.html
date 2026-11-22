@@ -205,6 +205,30 @@
   .btn-msj-guerra.vieja{color:var(--warn, #f5b942);}
   .btn-msj-guerra.vieja::after{content:' ⚠';}
 
+  /* §PF556 (21-nov-2026, pedido de la usuaria): «📊 Dashboard de guerra», solo admins y solo en día de guerra. Una tarjeta por clan con tres números grandes (puesto de hoy, medallas que faltan, ataques pendientes) y su «Copiar mensaje». */
+  .dash-nota{font-family:var(--f-mono); font-size:13px; line-height:1.6; margin:12px 0 0;}
+  .dash-meta{display:flex; flex-wrap:wrap; align-items:center; gap:6px 12px; margin-top:10px; font-size:13px; color:var(--text-dim);}
+  .dash-meta[hidden]{display:none;}
+  .dash-meta.vieja .msj-guerra-edad{color:var(--warn, #f5b942);}
+  .dash-meta .msj-guerra-estado.es-error{color:var(--danger);}
+  .dash-grid{display:grid; grid-template-columns:repeat(auto-fit, minmax(min(100%, 280px), 1fr)); gap:14px; margin-top:16px;}
+  .dash-clan{padding:16px; display:flex; flex-direction:column; gap:12px; min-width:0;}
+  .dash-clan-nombre{font-weight:700; font-size:16px; color:var(--purple-light); overflow-wrap:anywhere;}
+  .dash-clan-nombre a{color:inherit;}
+  .dash-nums{display:grid; grid-template-columns:repeat(3, minmax(0, 1fr)); gap:8px; text-align:center;}
+  .dash-num{border:1px solid var(--line); border-radius:var(--radius-sm); padding:10px 4px; min-width:0;}
+  .dash-num b{display:block; font-family:var(--f-mono); font-size:22px; line-height:1.2; overflow-wrap:anywhere;}
+  .dash-num span{display:block; font-size:13px; color:var(--text-dim); line-height:1.3; margin-top:4px;}
+  .dash-num.es-primero b{color:var(--ok);}
+  .dash-num.es-pend b{color:var(--warn, #f5b942);}
+  .dash-num.es-limpio b{color:var(--ok);}
+  .dash-detalle{margin:0; font-family:var(--f-mono); font-size:13px; line-height:1.6; color:var(--text-dim);}
+  .dash-copiar{width:100%; min-height:44px; background:rgba(162,57,255,.1); border:1px solid var(--line-strong); color:var(--text); font-family:var(--f-mono); font-size:13px; font-weight:700; letter-spacing:.03em; text-transform:uppercase; padding:8px 14px; cursor:pointer; border-radius:var(--radius-sm); transition:all .18s ease;}
+  .dash-copiar:hover{border-color:var(--purple); color:var(--purple-light); background:rgba(162,57,255,.2);}
+  .dash-copiar.copiado{color:var(--ok); border-color:var(--ok);}
+  .dash-sin-mensaje{margin:0; font-size:13px; color:var(--text-dim); line-height:1.5; text-align:center; padding:8px 0;}
+  .dash-aviso{margin:16px 0 0; font-size:13px; color:var(--text-dim);}
+
   /* FASE 3 del plan de fases (punto 3 del documento — "cuentas y ataques disponibles por día"): sección solo-admin y solo día de guerra (mismo criterio que Mensajes de Guerra / Aportes de Inactivos de arriba). Backend ya listo desde antes… Historial en CHANGELOG.md. */
   #participacionHoySection{display:none;}
   .part-grid{display:grid; grid-template-columns:1fr 1fr; gap:14px;}
@@ -403,6 +427,16 @@
   <div id="status" aria-live="polite">Conectando con la API de Guerra…</div>
 
   <div id="content" style="display:none">
+
+    <!-- §PF556 (21-nov-2026, pedido de la usuaria: «algo fácil de ver y entender» para los admins, que son los colíderes y el líder): puesto de hoy, medallas que faltan, ataques pendientes y «Copiar mensaje» de cada clan en una sola vista. Solo admins y solo en día de guerra; la muestra cargarDashboardGuerraSiAdmin(). [→ Contexto_Base_Web.md §PF556] -->
+    <section id="dashGuerraSection" aria-labelledby="dashGuerraTitulo" style="padding:var(--gap-seccion) 0 0; display:none;">
+      <div class="sec-head" style="display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:6px 12px; border-bottom:1px solid var(--line); padding-bottom:12px;">
+        <h2 id="dashGuerraTitulo" style="font-size:22px;">📊 Dashboard de guerra</h2>
+      </div>
+      <p class="text-faint dash-nota">Puesto y medallas son de HOY (no de la semana), igual que en el mensaje de guerra. Toca «Copiar mensaje» y pégalo en el grupo de WhatsApp. Se actualiza solo cada minuto.</p>
+      <div class="dash-meta" id="dashGuerraMeta" hidden></div>
+      <div class="dash-grid" id="dashGuerraWrap"></div>
+    </section>
 
     <section style="padding:var(--gap-seccion) 0 calc(var(--gap-seccion) / 2);">
       <!-- 11-oct-2026 (pedido usuario): se quita el encabezado visible «Guerra de Hoy»; queda solo para lectores de pantalla. «Ver pronóstico» y el conteo de clanes subieron a la fila del título. -->
@@ -726,7 +760,7 @@ async function cargar(manual){
     const r = await obtenerDatosGuerra();
     const data = r.data;
     render(data);
-    if(pronosticoVisible || ultimoPronosticoData) cargarPronosticoGuerra(data.ctx || {}, manual); // sin await. 11-oct-2026: la primera carga ya no es automática, la pide «Ver pronóstico»; después sí se refresca sola
+    if(pronosticoVisible || ultimoPronosticoData) cargarPronosticoGuerra(data.ctx || {}, manual || dashGuerraVisible); // sin await. §PF556: con el dashboard a la vista el puesto no usa la caché de 2 min del navegador. 11-oct-2026: la primera carga ya no es automática, la pide «Ver pronóstico»; después sí se refresca sola
     lastFetchAt = new Date(); // cuándo esta página obtuvo la respuesta (antes: r.desde = hora de publicación del archivo)
     lastPublicadoAt = r.estatico ? r.desde : null;
     lastEsViejo = !!r.viejo;
@@ -1293,6 +1327,7 @@ function render(data){
   // deben moverse a Directorio (al final)"). Esta página ya no pinta esa
   // sección — ver cargarIngresosRecientes() en directorio.html.
   cargarMensajesGuerraSiAdmin(ctx);
+  cargarDashboardGuerraSiAdmin(ctx); // §PF556
   cargarAportesInactivosSiAdmin(ctx);
   cargarParticipacionHoySiAdmin(ctx);
   document.getElementById('updatedAt').textContent =
@@ -1325,6 +1360,12 @@ let msjGuerraElab = null;             // última «elaboracion» recibida de web
 let msjGuerraRegenerando = false;
 let msjGuerraPuedeRegenerar = null;   // null = todavía sin consultar
 let msjGuerraEstado = { texto: '', error: false };
+/* §PF556 (21-nov-2026): lo que cargó la última petición de mensajes, para que el «📊 Dashboard de guerra» ponga el «Copiar mensaje» de cada clan sin pedirlos otra vez. `msjGuerraErrorCarga` va vacío si todo salió bien. */
+let msjGuerraOpciones = [];
+let msjGuerraCargado = false;
+let msjGuerraErrorCarga = '';
+/** Avisa al dashboard (si la página lo tiene) de que cambiaron los mensajes o su antigüedad. */
+function repintarDashboardGuerra(){ if (typeof pintarDashboardGuerra === 'function') pintarDashboardGuerra(); }
 
 /** Antigüedad de los mensajes generados: { ms, texto, hora, vieja } o null si no se sabe (sin hora registrada o categoría no generada). */
 function edadMensajesGuerra(elab, ahoraMs){
@@ -1345,6 +1386,7 @@ function pintarMetaMensajesGuerra(){
   const edad = edadMensajesGuerra(msjGuerraElab);
   const pastilla = document.getElementById('btnMsjGuerra');
   if (pastilla) pastilla.classList.toggle('vieja', !!(edad && edad.vieja));
+  if (typeof pintarMetaDashboardGuerra === 'function') pintarMetaDashboardGuerra(edad); // §PF556: la misma antigüedad, el mismo «Regenerar» y el mismo avance, también en el dashboard
   const meta = document.getElementById('msjGuerraMeta');
   if (!meta) return;
   const partes = [];
@@ -1435,18 +1477,43 @@ async function regenerarMensajesGuerra(){
   }
   if (regenerados){
     await cargarMensajesGuerraSiAdmin({ esDiaGuerra: true }, { fresco: true });
+    if (typeof cargarPronosticoGuerra === 'function') await cargarPronosticoGuerra({ esDiaGuerra: true }, true); // §PF556: el puesto y las medallas del dashboard se piden sin caché del navegador al terminar
     msjGuerraTextoEstado('Mensajes regenerados.');
   }
+}
+
+/** Pide el mensaje SIN caché del servidor y devuelve el texto a copiar (§PF181). Lo usan el «Copiar» de la fila de mensajes y el del dashboard (§PF556), así los dos se comportan igual.
+ *  `nota` recibe { sinRefrescar, desaparecio }; `alRenovar(nueva)` recibe la opción fresca para que quien llama la guarde. Si la opción ya no existe NO se copia nada viejo. */
+async function textoFrescoMensajeGuerra(base, nota, alRenovar){
+  let f = null;
+  try{
+    f = await apiGetAuth('webAdminContenido', { categoria: 'Mensaje de Guerra', fresco: '1' });
+    if (!f || f.ok === false || !Array.isArray(f.opciones)) f = null;
+  }catch(errFresco){ f = null; }
+  if (!f){ nota.sinRefrescar = true; return base.contenido || ''; }
+  msjGuerraElab = f.elaboracion || msjGuerraElab;
+  msjGuerraOpciones = f.opciones; // la lista fresca también es la del dashboard
+  pintarMetaMensajesGuerra();
+  const nueva = f.opciones.find(x => claveOpcionMensajeGuerra(x) === claveOpcionMensajeGuerra(base));
+  if (!nueva){ nota.desaparecio = true; throw new Error('Ya no hay mensaje para esta opción'); }
+  if (alRenovar) alRenovar(nueva);
+  return nueva.contenido || '';
 }
 
 /* cargarMensajesGuerraSiAdmin(ctx, opts) Historial en CHANGELOG.md. opts.fresco = pedir sin caché del servidor (tras regenerar). */
 async function cargarMensajesGuerraSiAdmin(ctx, opts){
   const wrap = document.getElementById('msjGuerraWrap');
-  if (!ctx.esDiaGuerra || !esAdminLogueado()){ wrap.innerHTML = ''; pintarPastillaMensajesGuerra(false); return; }
+  if (!ctx.esDiaGuerra || !esAdminLogueado()){ wrap.innerHTML = ''; msjGuerraOpciones = []; msjGuerraCargado = false; msjGuerraErrorCarga = ''; pintarPastillaMensajesGuerra(false); return; }
   pintarPastillaMensajesGuerra(true);
   const META = '<div class="msj-guerra-meta" id="msjGuerraMeta" hidden></div>';
   // 23-oct-2026: antes cualquier fallo o lista vacía dejaba la fila en blanco y no se sabía por qué; ahora un admin ve el motivo.
-  const avisar = (texto, conMeta) => { wrap.innerHTML = `<p class="msj-guerra-aviso">✉ ${esc(texto)}</p>` + (conMeta ? META : ''); if (conMeta) pintarMetaMensajesGuerra(); };
+  // §PF556: `avisar` también deja dicho al dashboard qué pasó (sin conMeta = error; con conMeta = no hay mensajes generados todavía).
+  const avisar = (texto, conMeta) => {
+    wrap.innerHTML = `<p class="msj-guerra-aviso">✉ ${esc(texto)}</p>` + (conMeta ? META : '');
+    msjGuerraOpciones = []; msjGuerraCargado = true; msjGuerraErrorCarga = conMeta ? '' : String(texto || '');
+    if (conMeta) pintarMetaMensajesGuerra();
+    repintarDashboardGuerra();
+  };
   if (!msjGuerraRegenerando) msjGuerraEstado = { texto: '', error: false }; // un aviso de una acción anterior no se arrastra para siempre
   try{
     const data = await apiGetAuth('webAdminContenido', (opts && opts.fresco) ? { categoria: 'Mensaje de Guerra', fresco: '1' } : { categoria: 'Mensaje de Guerra' });
@@ -1459,11 +1526,13 @@ async function cargarMensajesGuerraSiAdmin(ctx, opts){
     if (!opciones.length){
       avisar('No hay mensajes de guerra generados ahora mismo (se crean cuando hay jugadores pendientes).', true);
     } else {
+      msjGuerraOpciones = opciones; msjGuerraCargado = true; msjGuerraErrorCarga = '';
       wrap.innerHTML = opciones.map((o, i) => {
         const etiqueta = esc(o.etiqueta || o.subcategoria || o.clan || ('Opción ' + (i + 1)));
         return `<button type="button" class="btn-copiar-mg" data-idx="${i}" data-label="⧉ Copiar — ${etiqueta}">⧉ Copiar — ${etiqueta}</button>`;
       }).join('') + META;
       pintarMetaMensajesGuerra();
+      repintarDashboardGuerra();
       wrap.querySelectorAll('.btn-copiar-mg').forEach(btn => {
         btn.addEventListener('click', async () => {
           const idx = Number(btn.dataset.idx);
@@ -1471,20 +1540,7 @@ async function cargarMensajesGuerraSiAdmin(ctx, opts){
           const textoOriginal = btn.dataset.label;
           const nota = { sinRefrescar: false, desaparecio: false };
           // Al hacer clic se vuelve a pedir el mensaje SIN caché: lo que se copia sale de la hoja Mensajes de este momento, no de la foto guardada al repintar.
-          const promesaTexto = (async () => {
-            let f = null;
-            try{
-              f = await apiGetAuth('webAdminContenido', { categoria: 'Mensaje de Guerra', fresco: '1' });
-              if (!f || f.ok === false || !Array.isArray(f.opciones)) f = null;
-            }catch(errFresco){ f = null; }
-            if (!f){ nota.sinRefrescar = true; return base.contenido || ''; }
-            msjGuerraElab = f.elaboracion || msjGuerraElab;
-            pintarMetaMensajesGuerra();
-            const nueva = f.opciones.find(x => claveOpcionMensajeGuerra(x) === claveOpcionMensajeGuerra(base));
-            if (!nueva){ nota.desaparecio = true; throw new Error('Ya no hay mensaje para esta opción'); }
-            opciones[idx] = nueva;
-            return nueva.contenido || '';
-          })();
+          const promesaTexto = textoFrescoMensajeGuerra(base, nota, nueva => { opciones[idx] = nueva; });
           try{
             await copiarTextoMensajeGuerra(promesaTexto);
             const edad = edadMensajesGuerra(msjGuerraElab);
@@ -1751,6 +1807,226 @@ function renderParticipacionHoyGuerra(clanes, multiClan){
   return clanesHtml + multiClanHtml;
 }
 
+/* §PF556 (21-nov-2026, pedido de la usuaria): «📊 Dashboard de guerra» para los admins (colíderes y líder), arriba de la página y solo en día de guerra. Una tarjeta por clan Terna con
+ * tres números grandes —el puesto de HOY, las medallas que faltan para el 1.º y los ataques pendientes— y el «Copiar mensaje» de ese clan. No pide nada nuevo al backend: junta lo que ya
+ * llega (guerraPorClan y pendientes del JSON de guerra, webPronosticoGuerra y los mensajes de webAdminContenido). «Puesto» = medallas del DÍA entre los clanes de su carrera, la misma
+ * definición del mensaje de guerra (_puestoMedallasDiaPorClan_(), 30_Mensajes.gs, §PF532); no el acumulado de la semana, que sigue en las tarjetas de abajo. El clan se identifica por
+ * Tag (clanTagDeNombreGuerra()); solo si guerra.json no trae el mapa se cae al nombre. Si un clan de la carrera no tiene fama de hoy, no se inventa el puesto: se muestra «—». */
+let dashGuerraVisible = false;
+let dashGuerraUltimoHtml = '';
+let dashGuerraAutoRegenHecho = false; // la actualización automática de mensajes viejos se pide una sola vez por carga de página
+let dashGuerraAutoMotivo = '';
+let dashGuerraClicsListos = false;
+
+/** Puesto de hoy de un clan propio entre los de su carrera. `grupo` = { propio, rivales } de agruparPronosticoPorClan(). Devuelve null si no se puede saber con certeza,
+ *  { sinMedallas:true } si nadie sumó medallas, o { puesto, total, medallas, estado: 'detras'|'primero'|'empate', diferencia, rival } (mismo cálculo que el backend). */
+function puestoMedallasDiaDeGrupo(grupo){
+  if(!grupo || !grupo.propio) return null;
+  const todos = [grupo.propio].concat(grupo.rivales || []);
+  const enCarrera = Number(grupo.propio.clanesEnCarrera);
+  if(enCarrera > 0 && todos.length !== enCarrera) return null; // falta algún clan de la carrera (p. ej. otro clan Terna comparte carrera): no se inventa
+  const medallas = todos.map(c => {
+    const f = c && c.fameHoy;
+    return (f === null || f === undefined || f === '' || !isFinite(Number(f))) ? null : Number(f);
+  });
+  if(todos.length < 2 || medallas.some(m => m === null)) return null; // a algún clan le falta la fama de hoy
+  const yo = medallas[0];
+  const otros = todos.slice(1).map((c, i) => ({ nombre: String(c.nombre || c.clanTag || ''), medallas: medallas[i + 1] }));
+  const mejor = otros.reduce((a, b) => (b.medallas > a.medallas ? b : a));
+  if(yo <= 0 && mejor.medallas <= 0) return { sinMedallas: true, total: todos.length };
+  const masQueYo = otros.filter(o => o.medallas > yo).length;
+  const r = { puesto: masQueYo + 1, total: todos.length, medallas: yo, estado: '', diferencia: 0, rival: mejor };
+  if(masQueYo > 0){ r.estado = 'detras'; r.diferencia = mejor.medallas - yo; }
+  else if(mejor.medallas === yo){ r.estado = 'empate'; }
+  else { r.estado = 'primero'; r.diferencia = yo - mejor.medallas; }
+  return r;
+}
+
+/** Jugadores y ataques que faltan de un clan (por Tag; por nombre solo si guerra.json no trae clanTagPorClan). */
+function pendientesDeClanGuerra(tag, nombre){
+  const pend = (ultimoDataGuerra && ultimoDataGuerra.pendientes) || [];
+  let jugadores = 0, ataques = 0;
+  pend.forEach(p => {
+    const tp = clanTagDeNombreGuerra(p && p.clan);
+    const coincide = (tag && tp) ? tp === tag : _normNombreClanGuerra(p && p.clan) === _normNombreClanGuerra(nombre); // clan-por-nombre-ok: respaldo declarado cuando guerra.json es de un backend anterior (§PF412)
+    if(!coincide) return;
+    jugadores++;
+    ataques += Number(p.faltantes) || 0;
+  });
+  return { jugadores, ataques };
+}
+
+/** El mensaje «Particular» de un clan, por Tag; por nombre solo si el mapa no llegó. */
+function opcionMensajeDeClanGuerra(tag, nombre){
+  return msjGuerraOpciones.find(o => {
+    if(!o || String(o.subcategoria || '') !== 'Particular') return false;
+    const to = clanTagDeNombreGuerra(o.clan);
+    return (tag && to) ? to === tag : _normNombreClanGuerra(o.clan) === _normNombreClanGuerra(nombre); // clan-por-nombre-ok: respaldo declarado cuando guerra.json es de un backend anterior (§PF412)
+  }) || null;
+}
+
+function dashGuerraTarjetaHtml(nombre, g, grupo){
+  const tag = clanTagDeNombreGuerra(nombre);
+  const r = puestoMedallasDiaDeGrupo(grupo);
+  const pend = pendientesDeClanGuerra(tag, nombre);
+  let numPuesto = '—', txtPuesto = 'Puesto de hoy', clasePuesto = '';
+  let numFalta = '—', txtFalta = 'Medallas que faltan', claseFalta = '';
+  let detalle = '';
+  if(r && r.sinMedallas){
+    detalle = 'Todavía nadie suma medallas hoy.';
+  } else if(r){
+    numPuesto = r.puesto + '.º';
+    txtPuesto = 'de ' + r.total + ' clanes · hoy';
+    clasePuesto = r.puesto === 1 ? ' es-primero' : '';
+    const rival = esc(r.rival.nombre) + ' (' + fmtNum(r.rival.medallas) + ')';
+    if(r.estado === 'detras'){
+      numFalta = fmtNum(r.diferencia); txtFalta = 'faltan para el 1.º';
+      detalle = '🏅 Hoy: ' + fmtNum(r.medallas) + ' medallas. 1.º: ' + rival + '.';
+    } else if(r.estado === 'primero'){
+      numFalta = '+' + fmtNum(r.diferencia); txtFalta = 'de ventaja sobre el 2.º'; claseFalta = ' es-primero';
+      detalle = '🥇 Hoy: ' + fmtNum(r.medallas) + ' medallas. 2.º: ' + rival + '.';
+    } else {
+      numFalta = '0'; txtFalta = 'empate en el 1.º'; claseFalta = ' es-primero';
+      detalle = '🥇 Hoy: ' + fmtNum(r.medallas) + ' medallas, igual que ' + rival + '.';
+    }
+  } else {
+    detalle = ultimoPronosticoData ? 'Falta la fama de hoy de algún clan de la carrera: no se calcula el puesto para no inventarlo.' : 'Cargando puestos…';
+  }
+  const propio = grupo && grupo.propio;
+  if(propio && Number(propio.puesto) > 0) detalle += ' Acumulado de la semana: ' + propio.puesto + '.º' + (propio.estimado ? ' (estimado)' : '') + '.';
+  const claseAtq = pend.ataques > 0 ? ' es-pend' : ' es-limpio';
+  const txtAtq = pend.jugadores > 0 ? 'ataques pendientes · ' + pend.jugadores + (pend.jugadores === 1 ? ' jugador' : ' jugadores') : 'ataques pendientes';
+  const op = opcionMensajeDeClanGuerra(tag, nombre);
+  let accion;
+  if(op){
+    accion = '<button type="button" class="dash-copiar" data-clave="' + esc(claveOpcionMensajeGuerra(op)) + '">⧉ Copiar mensaje</button>';
+  } else if(!msjGuerraCargado){
+    accion = '<p class="dash-sin-mensaje">✉ Cargando mensaje…</p>';
+  } else if(msjGuerraErrorCarga){
+    accion = '<p class="dash-sin-mensaje">✉ No se pudo cargar el mensaje: ' + esc(msjGuerraErrorCarga.replace(/^No se pudieron cargar los mensajes de guerra:?\s*/, '')) + '</p>';
+  } else if(pend.jugadores === 0){
+    accion = '<p class="dash-sin-mensaje">✉ Sin mensaje: este clan no tiene jugadores pendientes. ✅</p>';
+  } else {
+    accion = '<p class="dash-sin-mensaje">✉ El mensaje de este clan todavía no se genera. Usa «Actualizar ahora».</p>';
+  }
+  return '<div class="card dash-clan" ' + atributosClanGuerra(nombre) + '>' +
+    '<div class="dash-clan-nombre">' + enlaceClan(nombre, { tag: tag ? '#' + tag : '' }) + '</div>' +
+    '<div class="dash-nums">' +
+      '<div class="dash-num' + clasePuesto + '"><b>' + esc(numPuesto) + '</b><span>' + esc(txtPuesto) + '</span></div>' +
+      '<div class="dash-num' + claseFalta + '"><b>' + esc(numFalta) + '</b><span>' + esc(txtFalta) + '</span></div>' +
+      '<div class="dash-num' + claseAtq + '"><b>' + fmtNum(pend.ataques) + '</b><span>' + esc(txtAtq) + '</span></div>' +
+    '</div>' +
+    '<p class="dash-detalle">' + detalle + '</p>' +
+    accion +
+  '</div>';
+}
+
+/** Dibuja las tarjetas. Si el HTML no cambió no se toca el DOM, para no borrar el «✔ Copiado» ni mover el foco. */
+function pintarDashboardGuerra(){
+  const wrap = document.getElementById('dashGuerraWrap');
+  if(!wrap || !dashGuerraVisible) return;
+  const clanes = Object.entries((ultimoDataGuerra && ultimoDataGuerra.guerraPorClan) || {}).sort((a, b) => ordenClanIndex(a[0]) - ordenClanIndex(b[0]));
+  let html;
+  if(!clanes.length){
+    html = '<p class="dash-aviso">Todavía no hay datos de guerra de los clanes.</p>';
+  } else {
+    const grupos = ultimoPronosticoData ? agruparPronosticoPorClan(ultimoPronosticoData).porTag : {};
+    html = clanes.map(([nombre, g]) => {
+      const tag = clanTagDeNombreGuerra(nombre);
+      let grupo = tag ? grupos[tag] : null;
+      if(!tag){ // clan-por-nombre-ok: respaldo declarado cuando guerra.json es de un backend anterior (§PF412)
+        const k = Object.keys(grupos).find(t => _normNombreClanGuerra(grupos[t].propio.nombre) === _normNombreClanGuerra(nombre));
+        grupo = k ? grupos[k] : null;
+      }
+      return dashGuerraTarjetaHtml(nombre, g, grupo || null);
+    }).join('');
+  }
+  if(html === dashGuerraUltimoHtml) return;
+  wrap.innerHTML = html;
+  dashGuerraUltimoHtml = html;
+}
+
+/** Línea de antigüedad de los mensajes, «↻ Actualizar ahora» y avance, bajo el título. También decide si pide sola la actualización cuando los mensajes están viejos (una vez por carga). */
+function pintarMetaDashboardGuerra(edad){
+  const meta = document.getElementById('dashGuerraMeta');
+  if(!meta) return;
+  if(!dashGuerraVisible){ meta.hidden = true; meta.innerHTML = ''; return; }
+  const partes = [];
+  if(edad){
+    partes.push('<span class="msj-guerra-edad">🕒 Mensajes elaborados ' + esc(edad.texto) + (edad.hora ? ' (' + esc(edad.hora) + ')' : '') + '.' +
+      (edad.vieja ? ' Pueden no incluir los últimos ataques.' : '') + '</span>');
+  }
+  if(msjGuerraPuedeRegenerar){
+    partes.push('<button type="button" class="btn-regen-mg" id="btnRegenDashGuerra" title="Pide datos nuevos del juego y rehace los mensajes; tarda unos minutos"' + (msjGuerraRegenerando ? ' disabled aria-busy="true"' : '') + '>' +
+      (msjGuerraRegenerando ? '⏳ Actualizando…' : '↻ Actualizar ahora') + '</button>');
+  }
+  if(msjGuerraRegenerando && dashGuerraAutoMotivo){
+    partes.push('<span class="msj-guerra-estado">Los mensajes eran de ' + esc(dashGuerraAutoMotivo) + ': se actualizan solos.</span>');
+  }
+  if(msjGuerraEstado.texto){
+    partes.push('<span class="msj-guerra-estado' + (msjGuerraEstado.error ? ' es-error' : '') + '" role="status">' + esc(msjGuerraEstado.texto) + '</span>');
+  }
+  meta.className = 'dash-meta' + (edad && edad.vieja ? ' vieja' : '');
+  meta.innerHTML = partes.join('');
+  meta.hidden = !partes.length;
+  const b = document.getElementById('btnRegenDashGuerra');
+  if(b) b.onclick = regenerarMensajesGuerra;
+  // Los colíderes no tienen que saber que existe el botón: si los mensajes pasan de 5 min y la cuenta puede regenerar, se pide sola (una vez por carga; el backend sigue validando todo).
+  if(msjGuerraPuedeRegenerar && edad && edad.vieja && !msjGuerraRegenerando && !dashGuerraAutoRegenHecho){
+    dashGuerraAutoRegenHecho = true;
+    dashGuerraAutoMotivo = edad.texto;
+    regenerarMensajesGuerra(); // sin await: avanza por su cuenta y repinta esta línea
+  }
+}
+
+/** «Copiar mensaje» de cada tarjeta: delegado en el contenedor (las tarjetas se redibujan). Copia el texto SIN caché, igual que la fila de mensajes. */
+function dashGuerraActivarClics(){
+  const wrap = document.getElementById('dashGuerraWrap');
+  if(!wrap || dashGuerraClicsListos) return;
+  dashGuerraClicsListos = true;
+  wrap.addEventListener('click', async (ev) => {
+    const btn = ev.target && ev.target.closest ? ev.target.closest('.dash-copiar') : null;
+    if(!btn || btn.disabled) return;
+    const clave = btn.dataset.clave;
+    const base = msjGuerraOpciones.find(o => claveOpcionMensajeGuerra(o) === clave);
+    if(!base) return;
+    const textoOriginal = btn.textContent;
+    const nota = { sinRefrescar: false, desaparecio: false };
+    const promesaTexto = textoFrescoMensajeGuerra(base, nota);
+    try{
+      await copiarTextoMensajeGuerra(promesaTexto);
+      const edad = edadMensajesGuerra(msjGuerraElab);
+      btn.textContent = '✔ Copiado' + (nota.sinRefrescar ? ' (sin refrescar)' : (edad && edad.vieja ? ' · ' + edad.texto : ''));
+      btn.classList.add('copiado');
+    }catch(err){
+      btn.textContent = nota.desaparecio ? 'Ya no hay mensaje de este clan' : 'No se pudo copiar';
+      if(nota.desaparecio){ pintarDashboardGuerra(); return; } // la lista fresca ya no trae ese mensaje: se redibuja sin él
+    }
+    setTimeout(() => { btn.textContent = textoOriginal; btn.classList.remove('copiado'); }, 1600);
+  });
+}
+
+/** Muestra u oculta la sección (solo admins y solo en día de guerra) y pide el pronóstico la primera vez; después lo refresca cargar() cada minuto. */
+async function cargarDashboardGuerraSiAdmin(ctx){
+  const sec = document.getElementById('dashGuerraSection');
+  const wrap = document.getElementById('dashGuerraWrap');
+  if(!sec || !wrap) return;
+  if(!ctx.esDiaGuerra || !esAdminLogueado()){
+    dashGuerraVisible = false;
+    sec.style.display = 'none';
+    wrap.innerHTML = '';
+    dashGuerraUltimoHtml = '';
+    pintarMetaDashboardGuerra(null);
+    return;
+  }
+  dashGuerraVisible = true;
+  sec.style.display = '';
+  dashGuerraActivarClics();
+  pintarDashboardGuerra();
+  pintarMetaMensajesGuerra();
+  if(!ultimoPronosticoData) await cargarPronosticoGuerra(ctx, true); // sin caché del navegador (la de 2 min); el servidor guarda la suya 2 min
+}
+
 /* cargarParticipacionHoySiAdmin(ctx) Mismo criterio de robustez que cargarMensajesGuerraSiAdmin() / cargarAportesInactivosSiAdmin(): no se pide ni se muestra nada si no hay sesión de admin (esAdminLogueado()) o no es día de guerra (ctx.esDiaGuerra) —… */
 async function cargarParticipacionHoySiAdmin(ctx){
   const section = document.getElementById('participacionHoySection');
@@ -1932,6 +2208,7 @@ function pintarPronosticoEnTarjetas(){
 function actualizarPuestosClanes(){
   pintarPronosticoEnTarjetas();
   pintarPuestosDiaEnTarjetas(); // el puesto de cada tarjeta: en vivo (hoy) o al cierre del día elegido en Jue–Dom
+  if(typeof pintarDashboardGuerra === 'function') pintarDashboardGuerra(); // §PF556: el dashboard usa el mismo pronóstico
 }
 function actualizarCabecerasClanes(){
   document.querySelectorAll('#clanGrid .clan-cab').forEach(el => { el.innerHTML = cabeceraClanGuerraHtml(el.dataset.clan); });
