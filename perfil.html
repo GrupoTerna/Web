@@ -5920,19 +5920,24 @@ function perfilLineChartSvg(puntos, opts){
     const y = yPos(topeSem).toFixed(1);
     return `<line class="linea-tope" x1="${PAD_L}" y1="${y}" x2="${W - PAD_R}" y2="${y}"></line><text class="tope-label" x="${W - PAD_R}" y="${(yPos(topeSem) - 7).toFixed(1)}" text-anchor="end">Tope semanal: ${esc(fmtNum(topeSem))}</text>`;
   })() : '';
+  // 22-nov-2026 (pedido usuaria): un día sin dato (real:false, incluido el domingo estimado) no lleva punto y la línea une el último punto con dato con el siguiente que tenga dato; el tramo que salta uno o más días sin dato va punteado. El día sin dato conserva su lugar en el eje X. [→ Contexto_Base_Web.md §PF066]
+  const idxReales = [];
+  puntos.forEach((p, i) => { if (p.real) idxReales.push(i); });
   let path = '';
-  for (let i = 0; i < n - 1; i++){
-    const a = puntos[i], b = puntos[i + 1];
-    const dashed = !(a.real && b.real);
-    path += `<path class="ing-serie-line${dashed ? ' ing-serie-line-dashed' : ''}" data-serie-clave="dia" d="M ${xPos(i).toFixed(1)} ${yPos(a.valor).toFixed(1)} L ${xPos(i + 1).toFixed(1)} ${yPos(b.valor).toFixed(1)}" stroke="${COLOR_SERIE_PERFIL}"></path>`;
+  for (let k = 0; k < idxReales.length - 1; k++){
+    const i = idxReales[k], j = idxReales[k + 1];
+    const dashed = j - i > 1;
+    path += `<path class="ing-serie-line${dashed ? ' ing-serie-line-dashed' : ''}" data-serie-clave="dia" d="M ${xPos(i).toFixed(1)} ${yPos(puntos[i].valor).toFixed(1)} L ${xPos(j).toFixed(1)} ${yPos(puntos[j].valor).toFixed(1)}" stroke="${COLOR_SERIE_PERFIL}"></path>`;
   }
   // 22-nov-2026 (pedido usuaria): tramos invisibles y anchos sobre cada línea de unión; al pasar el cursor por cualquier parte de la serie muestran nombre, tag y clan actual (htmlTooltipLineaPerfil()). No llevan data-serie-clave: no forman parte del resalte de la serie.
   const _datosHit = `data-nombre="${esc(perfilGraficaCtx.nombre)}" data-tag="${esc(perfilGraficaCtx.tag)}" data-clan="${esc(perfilGraficaCtx.clan || '—')}"`;
   let hitDia = '';
-  for (let i = 0; i < n - 1; i++){
-    hitDia += `<path class="ing-serie-hit" data-serie-hit="dia" ${_datosHit} d="M ${xPos(i).toFixed(1)} ${yPos(puntos[i].valor).toFixed(1)} L ${xPos(i + 1).toFixed(1)} ${yPos(puntos[i + 1].valor).toFixed(1)}"></path>`;
+  for (let k = 0; k < idxReales.length - 1; k++){
+    const i = idxReales[k], j = idxReales[k + 1];
+    hitDia += `<path class="ing-serie-hit" data-serie-hit="dia" ${_datosHit} d="M ${xPos(i).toFixed(1)} ${yPos(puntos[i].valor).toFixed(1)} L ${xPos(j).toFixed(1)} ${yPos(puntos[j].valor).toFixed(1)}"></path>`;
   }
   const circles = puntos.map((p, i) => {
+    if (!p.real) return ''; // 22-nov-2026 (pedido usuaria): sin dato no hay punto.
     // 19-oct-2026 (pedido usuaria): en la gráfica de barcos, un día con más barcos que ataques también es anomalía (p.excedeAtaques trae los ataques de ese día; lo calcula renderMetricaSemanal()).
     const excedeAtaques = p.real && p.excedeAtaques != null;
     const bajoMin = hayBajo && p.real && Number(p.valor) < minimo;
@@ -5940,8 +5945,8 @@ function perfilLineChartSvg(puntos, opts){
     return `
       <circle class="ing-serie-pt${p.real ? '' : ' serie-pt-vacio'}${anomalia ? ' serie-pt-anomalia' : ''}" data-serie-clave="dia" cx="${xPos(i).toFixed(1)}" cy="${yPos(p.valor).toFixed(1)}" r="${anomalia ? 6.5 : R_PUNTO_PERFIL}"
         fill="${p.real ? (anomalia ? 'var(--danger)' : COLOR_SERIE_PERFIL) : 'none'}" stroke="${p.real ? 'var(--bg)' : COLOR_SERIE_PERFIL}" stroke-width="${p.real ? 1.5 : 2}"
-        data-nombre="${esc(perfilGraficaCtx.nombre)}" data-tag="${esc(perfilGraficaCtx.tag)}" data-valor="${p.valor}" ${p.real ? '' : ' data-sin-dato="1"'}${(!p.real && p.estimado) ? ' data-estimado="1"' : ''} data-prefijo="${esc((p.real || p.estimado) ? prefijo : '')}"
-        data-clan="${esc((p.real || p.estimado) ? (p.clan || perfilGraficaCtx.clan || '—') : (p.motivo || 'Sin dato — sin clan o sin participar'))}"${(!p.real && p.estimado) ? ` data-motivo="${esc(p.motivo || '')}"` : ''}
+        data-nombre="${esc(perfilGraficaCtx.nombre)}" data-tag="${esc(perfilGraficaCtx.tag)}" data-valor="${p.valor}" data-prefijo="${esc(prefijo)}"
+        data-clan="${esc(p.clan || perfilGraficaCtx.clan || '—')}"
         data-serie="dia" data-semana="${esc(p.semana)}"${attrsTemporadaSemanaDiaPerfil(p)} data-unidad="${esc(opts.unidad || '')}"${(!!tope && p.real && Number(p.valor) > tope) ? ` data-tope="${tope}"` : ''}${excedeAtaques ? ` data-excede-ataques="${p.excedeAtaques}"` : ''}${bajoMin ? ` data-minimo="${minimo}"` : ''}></circle>`;
   }).join('');
 
@@ -6005,8 +6010,8 @@ function leyendaPuntosGraficaHtml(conHuecos, tope, vsAtaques, serieSemanal, mini
         Punto relleno = valor real registrado
       </div>
       ${conHuecos === false ? '' : `<div class="ing-chart-leyenda-fila">
-        <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><circle cx="5" cy="5" r="3.4" fill="none" stroke="var(--text-dim)" stroke-width="1.6"></circle></svg>
-        Punto solo con borde = sin dato esa semana
+        <svg width="22" height="10" viewBox="0 0 22 10" aria-hidden="true"><line x1="0" y1="5" x2="22" y2="5" stroke="var(--text-dim)" stroke-width="2" stroke-dasharray="4 3"></line></svg>
+        Línea punteada = tramo sin dato entre dos puntos
       </div>`}
       ${tope ? `<div class="ing-chart-leyenda-fila">
         <svg width="22" height="10" viewBox="0 0 22 10" aria-hidden="true"><line x1="0" y1="5" x2="22" y2="5" stroke="var(--gold)" stroke-width="1.8" stroke-dasharray="4 3"></line></svg>

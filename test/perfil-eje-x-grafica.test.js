@@ -41,7 +41,9 @@ function cargar(){
 // 2026-10-01 es jueves.
 const pt = (semana, valor, real = true) => ({ semana, valor, real, clan: 'Terna' });
 const rotuladas = svg => [...svg.matchAll(/rotate\(-45[^>]*>(\d\d\/\d\d)</g)].map(m => m[1]);
+// 22-nov-2026: un día sin dato (también el domingo estimado) ya no dibuja punto; conserva su lugar en el eje X (data-xfechas).
 const huecos = svg => (svg.match(/ing-serie-pt serie-pt-vacio/g) || []).length;
+const fechasEje = svg => JSON.parse(svg.match(/data-xfechas="([^"]*)"/)[1].replace(/&quot;/g, '"'));
 
 test('con más de 7 días rotula solo las fechas de los domingos', () => {
   const w = cargar();
@@ -51,31 +53,36 @@ test('con más de 7 días rotula solo las fechas de los domingos', () => {
   assert.equal(huecos(svg), 0, 'ambas semanas traen domingo: no hay placeholder');
 });
 
-test('con 7 días o menos rotula todos, y si falta el domingo agrega un placeholder con esa fecha', () => {
+test('con 7 días o menos rotula todos, y si falta el domingo conserva su lugar en el eje sin dibujar punto', () => {
   const w = cargar();
   const svg = w.__t.perfilLineChartSvg([pt('01/10/2026', 10), pt('02/10/2026', 20), pt('03/10/2026', 30)], {});
   assert.equal(JSON.stringify(rotuladas(svg)), JSON.stringify(['01/10', '02/10', '03/10', '04/10']));
-  assert.equal(huecos(svg), 1);
+  assert.equal(huecos(svg), 0, 'sin dato no hay punto');
   assert.equal((svg.match(/class="linea-domingo"/g) || []).length, 1);
   assert.ok(svg.includes('>D</text>'));
-  assert.ok(svg.includes('data-semana="04/10/2026"'));
-  assert.ok(svg.includes('data-valor="30"'), 'sin vecino posterior mantiene el último valor');
+  assert.equal(JSON.stringify(fechasEje(svg)), JSON.stringify(['01/10/2026', '02/10/2026', '03/10/2026', '04/10/2026']));
+  assert.ok(!svg.includes('data-semana="04/10/2026"'), 'el domingo sin dato no lleva círculo');
 });
 
-test('el domingo que falta entre dos semanas se interpola entre el sábado y el jueves siguiente; con más de 7 puntos solo rotula domingos', () => {
+test('el domingo que falta entre dos semanas no lleva punto y la línea une el sábado con el jueves siguiente (tramo punteado); con más de 7 puntos solo rotula domingos', () => {
   const w = cargar();
   const svg = w.__t.perfilLineChartSvg([pt('01/10/2026', 100), pt('02/10/2026', 100), pt('03/10/2026', 100),
     pt('08/10/2026', 600), pt('09/10/2026', 600), pt('10/10/2026', 600), pt('11/10/2026', 600)], {});
-  assert.equal(huecos(svg), 1);
-  assert.ok(svg.includes('data-semana="04/10/2026"') && svg.includes('data-valor="200"'), '04/10: 1 de los 5 días entre el 03 (100) y el 08 (600)');
+  assert.equal(huecos(svg), 0);
+  assert.ok(!svg.includes('data-semana="04/10/2026"'));
+  assert.ok(fechasEje(svg).includes('04/10/2026'), 'conserva su lugar en el eje');
+  assert.equal((svg.match(/ing-serie-line ing-serie-line-dashed/g) || []).length, 1, 'un solo tramo punteado: el que salta el domingo');
+  assert.equal((svg.match(/<path class="ing-serie-line/g) || []).length, 6, 'siete puntos con dato = seis tramos unidos');
   assert.equal(JSON.stringify(rotuladas(svg)), JSON.stringify(['04/10', '11/10']));
 });
 
-test('un domingo ya presente como hueco sin dato no se duplica con un placeholder', () => {
+
+test('un domingo ya presente como hueco sin dato no se duplica con un placeholder y no lleva punto', () => {
   const w = cargar();
   const svg = w.__t.perfilLineChartSvg([pt('02/10/2026', 5), pt('03/10/2026', 6), pt('04/10/2026', 0, false)], {});
-  assert.equal(huecos(svg), 1);
-  assert.equal((svg.match(/data-semana="04\/10\/2026"/g) || []).length, 1);
+  assert.equal(huecos(svg), 0);
+  assert.equal(fechasEje(svg).filter(f => f === '04/10/2026').length, 1, 'una sola fecha en el eje');
+  assert.ok(!svg.includes('data-semana="04/10/2026"'));
 });
 
 test('el placeholder no cuenta como anomalía ni altera el aviso de topes', () => {

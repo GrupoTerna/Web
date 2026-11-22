@@ -6,8 +6,8 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { loadBrowserScriptsWithDom } = require('./load-browser-script');
 
-// NUEVO (22-nov-2026, pedido de la usuaria): en perfil.html (1) el punto estimado (domingo sin dato con valor interpolado) recibe el cursor en todo su círculo
-// y su tooltip muestra el valor marcado como estimado; (2) las líneas de unión muestran nombre, tag y clan actual al pasar el cursor por cualquier parte de la serie.
+// NUEVO (22-nov-2026, pedido de la usuaria): en perfil.html (1) un día sin dato (también el domingo estimado) no lleva punto y la línea une el último punto con dato
+// con el siguiente; (2) las líneas de unión muestran nombre, tag y clan actual al pasar el cursor por cualquier parte de la serie.
 // Mismo método que perfil-eje-x-grafica.test.js (funciones extraídas del <script> inline real). LÍMITE: prueba el SVG y los eventos en jsdom, no un navegador real.
 
 const html = fs.readFileSync(path.join(__dirname, '..', 'perfil.html'), 'utf8');
@@ -47,35 +47,31 @@ const dibujar = (w, puntos) => {
 };
 const mover = (w, el) => el.dispatchEvent(new w.MouseEvent('mousemove', { bubbles: true, clientX: 50, clientY: 50 }));
 
-test('el domingo estimado marca el punto como estimado y conserva su valor y el clan actual', () => {
+test('un día sin dato (incluido el domingo estimado) no lleva punto y la línea une el último punto con dato con el siguiente', () => {
   const w = cargar();
-  const svg = w.__t.perfilLineChartSvg([pt('01/10/2026', 10), pt('02/10/2026', 20), pt('03/10/2026', 30)], {});
-  const m = svg.match(/<circle[^>]*data-semana="04\/10\/2026"[^>]*>/);
-  assert.ok(m, 'no se dibujó el punto del domingo estimado');
-  assert.ok(m[0].includes('data-estimado="1"') && m[0].includes('data-sin-dato="1"'));
-  assert.ok(m[0].includes('data-valor="30"') && m[0].includes('data-clan="Terna"'));
+  const wrap = dibujar(w, [pt('01/10/2026', 10), pt('02/10/2026', 20), pt('03/10/2026', 0, false), pt('04/10/2026', 40), pt('08/10/2026', 50)]);
+  const fechas = [...wrap.querySelectorAll('.ing-serie-pt')].map(c => c.dataset.semana);
+  assert.equal(JSON.stringify(fechas), JSON.stringify(['01/10/2026', '02/10/2026', '04/10/2026', '08/10/2026']), 'sin círculo en el 03/10');
+  assert.equal(wrap.querySelectorAll('.ing-serie-pt.serie-pt-vacio').length, 0);
+  const lineas = [...wrap.querySelectorAll('path.ing-serie-line[data-serie-clave="dia"]')];
+  assert.equal(lineas.length, 3, 'cuatro puntos con dato = tres tramos');
+  assert.equal(lineas.filter(l => l.classList.contains('ing-serie-line-dashed')).length, 1, 'solo el tramo 02/10 → 04/10 salta un día sin dato');
 });
 
-test('el tooltip del punto estimado muestra el valor marcado como estimado; el hueco sin dato sigue sin número', () => {
+test('la leyenda ya no habla de punto con borde y explica el tramo punteado', () => {
   const w = cargar();
-  const wrap = dibujar(w, [pt('01/10/2026', 10), pt('02/10/2026', 20), pt('03/10/2026', 30)]);
-  const est = wrap.querySelector('.ing-serie-pt[data-estimado="1"]');
-  assert.ok(est);
-  const t = w.__t.htmlTooltipPuntoPerfil(est);
-  assert.ok(t.includes('30 medallas (estimado)') && t.includes('Terna') && t.includes('Chistris'), t);
-  assert.ok(w.__t.etiquetaPuntoPerfil(est).includes('(estimado)'));
-  const hueco = wrap.ownerDocument.createElement('circle');
-  hueco.dataset.sinDato = '1'; hueco.dataset.nombre = 'Chistris'; hueco.dataset.clan = 'Sin dato — sin clan'; hueco.dataset.semana = '04/10/2026'; hueco.dataset.valor = '0';
-  assert.ok(!w.__t.htmlTooltipPuntoPerfil(hueco).includes('medallas'), 'el hueco real no lleva número');
+  const wrap = dibujar(w, [pt('01/10/2026', 10), pt('02/10/2026', 20)]);
+  assert.ok(!wrap.innerHTML.includes('Punto solo con borde'));
+  assert.ok(wrap.innerHTML.includes('tramo sin dato'));
 });
 
-test('al pasar el mouse por el punto estimado el tooltip se muestra con su valor', () => {
+test('el punto con dato recibe el cursor en todo su círculo y su tooltip muestra el valor', () => {
   const w = cargar();
-  const wrap = dibujar(w, [pt('01/10/2026', 10), pt('02/10/2026', 20), pt('03/10/2026', 30)]);
-  mover(w, wrap.querySelector('.ing-serie-pt[data-estimado="1"]'));
+  const wrap = dibujar(w, [pt('01/10/2026', 10), pt('02/10/2026', 20)]);
+  mover(w, wrap.querySelector('.ing-serie-pt'));
   const tip = w.document.getElementById('chartTooltip');
   assert.equal(tip.style.display, 'block');
-  assert.ok(tip.innerHTML.includes('(estimado)'));
+  assert.ok(tip.innerHTML.includes('medallas') && tip.innerHTML.includes('Terna'));
 });
 
 test('cada tramo de unión tiene un tramo ancho invisible que muestra nombre, tag y clan actual', () => {
