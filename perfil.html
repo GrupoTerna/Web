@@ -5578,6 +5578,10 @@ const TOPE_BARCOS_SEMANA_PERFIL = 16;
 // 22-nov-2026 (pedido de la usuaria; verificado con todos los JSON individuales descargados): en el perfil de RoyaleAPI la columna «Decks used» de las semanas hasta la temporada 104 SEMANA 2 (inclusive) sumaba también los mazos de los días de entrenamiento (lunes a miércoles): máximo 28 = 7 días x 4, en vez de 16. Desde la temporada 104, semana 3, el máximo vuelve a ser 16. Solo afecta a los ATAQUES de la serie azul (clan externo): las medallas no suben por entrenar y los barcos se comparan con los ataques de su fila. [→ Contexto_Base_Web.md §PF066]
 const PERFIL_ENTRENAMIENTO_CONTADO_HASTA = { temporadaRoyaleApi: 104, semana: 2 };
 const TOPE_ATAQUES_SEMANA_CON_ENTRENAMIENTO_PERFIL = 28;
+// 22-nov-2026 (pedido de la usuaria; medido en los JSON individuales; el texto de RoyaleAPI «cw2-player-history» NO explica estos dos casos): (1) en las temporadas 64 a 68 de RoyaleAPI la columna de ataques viene SIEMPRE en 0 aunque la fama sea mayor que 0: es «sin dato», no «no atacó»; (2) hasta la temporada 72 la fama semanal llega a 8 700 (desde la 73 el máximo es 3 600), así que 3 600 no sirve de tope en esas temporadas. [→ Contexto_Base_Web.md §PF066]
+const PERFIL_ATAQUES_SIN_DATO_HASTA_TEMPORADA_RAPI = 68;
+const PERFIL_ESCALA_FAMA_ANTIGUA_HASTA_TEMPORADA_RAPI = 72;
+const TOPE_MEDALLAS_SEMANA_ESCALA_ANTIGUA_PERFIL = 9000;
 let perfilAlertaJugador = { tag: '', nombre: '' }; // 5-nov-2026 (§PF385): jugador del ⚠️ junto a RoyaleAPI (se declara antes de renderMiembro() para no caer en la zona muerta del let)
 let perfilGraficaCtx = { nombre: '', tag: '', clan: '' }; // lo fija renderMiembro() antes de pintar
 
@@ -6122,13 +6126,19 @@ function perfilLineChartSvg(puntos, opts){
 /**
  * topeSemanalExternoPerfil(campo, fila, topeBase) (22-nov-2026): tope semanal que se aplica a una semana externa de la serie azul. Para ATAQUES de una semana
  * hasta la temporada 104 de RoyaleAPI, semana 2, es 28 (el perfil contaba los días de entrenamiento: ver PERFIL_ENTRENAMIENTO_CONTADO_HASTA); para cualquier otra
- * métrica o semana, y siempre que la fila no traiga `temporadaRoyaleAPI` (backend anterior), es el tope de siempre (topeBase).
+ * métrica o semana, y siempre que la fila no traiga `temporadaRoyaleAPI` (backend anterior), es el tope de siempre (topeBase). MEDALLAS: hasta la temporada 72 el tope es 9000
+ * (la fama llegó a 8 700; desde la 73 el máximo es 3 600). ataquesExternosSinDatoPerfil(fila): los ataques 0 de las temporadas 64 a 68 son «sin dato».
  */
+function ataquesExternosSinDatoPerfil(fila){
+  return !!fila && fila.temporadaRoyaleAPI != null && isFinite(Number(fila.temporadaRoyaleAPI)) && Number(fila.temporadaRoyaleAPI) <= PERFIL_ATAQUES_SIN_DATO_HASTA_TEMPORADA_RAPI && Number(fila.ataques) === 0;
+}
+
 function topeSemanalExternoPerfil(campo, fila, topeBase){
   const base = Number(topeBase) > 0 ? Number(topeBase) : 0;
-  if (campo !== 'ataques' || !base || !fila) return base;
+  if (!base || !fila || fila.temporadaRoyaleAPI == null) return base;
   const tr = Number(fila.temporadaRoyaleAPI), sem = Number(fila.semana);
-  if (fila.temporadaRoyaleAPI == null || !isFinite(tr) || !isFinite(sem)) return base;
+  if (campo === 'puntaje') return (isFinite(tr) && tr <= PERFIL_ESCALA_FAMA_ANTIGUA_HASTA_TEMPORADA_RAPI) ? Math.max(base, TOPE_MEDALLAS_SEMANA_ESCALA_ANTIGUA_PERFIL) : base;
+  if (campo !== 'ataques' || !isFinite(tr) || !isFinite(sem)) return base;
   const corte = PERFIL_ENTRENAMIENTO_CONTADO_HASTA;
   const conEntrenamiento = tr < corte.temporadaRoyaleApi || (tr === corte.temporadaRoyaleApi && sem <= corte.semana);
   return conEntrenamiento ? Math.max(base, TOPE_ATAQUES_SEMANA_CON_ENTRENAMIENTO_PERFIL) : base;
@@ -6511,10 +6521,10 @@ function renderMetricaSemanal(elId, historial, campo, opts){
   // 22-nov-2026 (pedido usuaria, solo admins): semanas jugadas en clanes externos (opts.externas = ext.semanasExternas de webPerfil: { temporada, semana, fecha (domingo, dd/MM/yyyy), clan, clanTag, ataques, fame, barcos }). Cada gráfica toma su campo (medallas = fame); una semana sin fecha o sin ese dato no se dibuja. Total de la semana: no se resta nada. [→ Contexto_Base_Web.md §PF066]
   const campoExt = { ataques: 'ataques', puntaje: 'fame', barcos: 'barcos' }[campo];
   const serieExterna = (Array.isArray(opts.externas) && campoExt) ? opts.externas
-    .filter(r => r && r.fecha && r[campoExt] != null && isFinite(Number(r[campoExt])) && !isNaN(parseFechaDDMMYYYY(r.fecha)))
+    .filter(r => r && r.fecha && r[campoExt] != null && isFinite(Number(r[campoExt])) && !isNaN(parseFechaDDMMYYYY(r.fecha)) && !(campo === 'ataques' && ataquesExternosSinDatoPerfil(r))) // 22-nov-2026: ataques 0 de las temporadas 64 a 68 = sin dato, no se dibuja
     .map(r => {
       const valor = Number(r[campoExt]);
-      const ataquesExt = (campo === 'barcos' && r.ataques != null && isFinite(Number(r.ataques))) ? Number(r.ataques) : null;
+      const ataquesExt = (campo === 'barcos' && r.ataques != null && isFinite(Number(r.ataques)) && !ataquesExternosSinDatoPerfil(r)) ? Number(r.ataques) : null; // sin dato de ataques no se compara con los barcos
       return { semana: String(r.fecha), temporada: r.temporada, semanaGuerra: r.semana, diaGuerra: 'Domingo', valor, real: true, clan: r.clan, clanTag: r.clanTag, topeSemana: topeSemanalExternoPerfil(campo, r, opts.topeSemanal), excedeAtaques: (ataquesExt != null && valor > ataquesExt) ? ataquesExt : undefined };
     }) : [];
   pintarGraficaPerfil(wrap, puntos, { ejeY: opts.tituloEje || '', unidad: unidades[opts.tituloEje] || '', base: 0, tope: opts.tope || 0, vsAtaques: !!opts.vsAtaques, serieSemanal: opts.topeSemanal > 0 ? serieSemanal : null, serieExterna: serieExterna.length ? serieExterna : null, topeSemanal: opts.topeSemanal || 0, minimo: minimoMetricaGuerra() });

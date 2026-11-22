@@ -32,9 +32,9 @@ function extraerFuncion(src, nombre){
 }
 const NOMBRES = ['parseFechaDDMMYYYY', 'fmtFechaLargaDDMMYYYYPerfil', 'semanaLabelCortaPerfil', 'filtrarDiasGuerraPerfil', 'puntosSobreTope',
   'ordenarHistorialPorSemana', 'completarSemanasSinDato', '_periodIndexRegistro', '_historialDiasGuerra', '_valoresDiariosDesdeAcumulado',
-  'textoTemporadaSemanaDiaPerfil', 'attrsTemporadaSemanaDiaPerfil', 'perfilLineChartSvg', 'leyendaPuntosGraficaHtml', 'filtrarUltimasTemporadasPerfil', 'barraVistaPerfilHtml', 'repintarGraficasPerfil', 'activarTooltipEjeXPerfil', 'pintarGraficaPerfil', 'etiquetaPuntoPerfil', 'htmlTooltipPuntoPerfil', 'topeSemanalExternoPerfil', 'renderMetricaSemanal', 'renderMetricasSemanales'];
+  'textoTemporadaSemanaDiaPerfil', 'attrsTemporadaSemanaDiaPerfil', 'perfilLineChartSvg', 'leyendaPuntosGraficaHtml', 'filtrarUltimasTemporadasPerfil', 'barraVistaPerfilHtml', 'repintarGraficasPerfil', 'activarTooltipEjeXPerfil', 'pintarGraficaPerfil', 'etiquetaPuntoPerfil', 'htmlTooltipPuntoPerfil', 'ataquesExternosSinDatoPerfil', 'topeSemanalExternoPerfil', 'renderMetricaSemanal', 'renderMetricasSemanales'];
 const CODIGO = NOMBRES.map(n => extraerFuncion(grande, n)).join('\n') +
-  "\nconst TOPE_ATAQUES_DIA = 4; const TOPE_MEDALLAS_DIA = 900; const TOPE_ATAQUES_SEMANA_PERFIL = 16; const TOPE_MEDALLAS_SEMANA_PERFIL = 3600; const TOPE_BARCOS_SEMANA_PERFIL = 16; const PERFIL_ENTRENAMIENTO_CONTADO_HASTA = { temporadaRoyaleApi: 104, semana: 2 }; const TOPE_ATAQUES_SEMANA_CON_ENTRENAMIENTO_PERFIL = 28;" +
+  "\nconst TOPE_ATAQUES_DIA = 4; const TOPE_MEDALLAS_DIA = 900; const TOPE_ATAQUES_SEMANA_PERFIL = 16; const TOPE_MEDALLAS_SEMANA_PERFIL = 3600; const TOPE_BARCOS_SEMANA_PERFIL = 16; const PERFIL_ENTRENAMIENTO_CONTADO_HASTA = { temporadaRoyaleApi: 104, semana: 2 }; const TOPE_ATAQUES_SEMANA_CON_ENTRENAMIENTO_PERFIL = 28; const PERFIL_ATAQUES_SIN_DATO_HASTA_TEMPORADA_RAPI = 68; const PERFIL_ESCALA_FAMA_ANTIGUA_HASTA_TEMPORADA_RAPI = 72; const TOPE_MEDALLAS_SEMANA_ESCALA_ANTIGUA_PERFIL = 9000;" +
   " const PERFIL_VISTA = { ultimas6: true, zoom: 1 }; const PERFIL_ZOOMS = [1, 1.5, 2, 3, 4, 6]; const PERFIL_TEMPORADAS_VISTA = 6; const PERFIL_GRAFICAS_PINTADAS = new Map();" +
   " const COLOR_SERIE_PERFIL = '#a239ff'; const COLOR_SERIE_ACUMULADO_PERFIL = '#3ddc97'; const COLOR_SERIE_EXTERNA_PERFIL = '#4ea1ff';" +
   " let perfilGraficaCtx = { nombre: 'Chistris', tag: '#2GG8PJ8GC', clan: 'Terna' };" +
@@ -196,6 +196,34 @@ test('el tope de 28 solo vale para ataques y solo si la fila trae temporadaRoyal
   const sinTemporada = pintar(w, DOS_SEMANAS, 'ataques', { tituloEje: 'Ataques', tope: 4, topeSemanal: 16, externas: [ext('11/10/2026', { ataques: 24 })] });
   assert.equal(azules(sinTemporada)[0].getAttribute('fill'), 'var(--danger)');
   assert.equal(azules(sinTemporada)[0].dataset.tope, '16');
+});
+
+test('ataques: en las temporadas 64 a 68 de RoyaleAPI el 0 es «sin dato» y no se dibuja; desde la 69 un 0 sí es un 0 real', () => {
+  const w = cargar(true);
+  const f = (tr, ataques, clanTag) => ext('11/10/2026', { temporadaRoyaleAPI: tr, semana: 1, ataques, clanTag, clan: clanTag });
+  const wrap = pintar(w, DOS_SEMANAS, 'ataques', { tituloEje: 'Ataques', tope: 4, topeSemanal: 16, externas: [f(64, 0, '#A'), f(68, 0, '#B'), f(69, 0, '#C'), f(110, 0, '#D')] });
+  assert.deepEqual(azules(wrap).map(p => p.dataset.clan).sort(), ['#C', '#D']);
+});
+
+test('barcos: con los ataques «sin dato» (T64 a T68) no hay anomalía «más barcos que ataques»; con ataques reales sigue igual', () => {
+  const w = cargar(true);
+  const f = (tr, ataques, barcos, clanTag) => ext('11/10/2026', { temporadaRoyaleAPI: tr, semana: 1, ataques, barcos, clanTag, clan: clanTag });
+  const wrap = pintar(w, DOS_SEMANAS, 'barcos', { tituloEje: 'Barcos', vsAtaques: true, topeSemanal: 16, externas: [f(66, 0, 9, '#A'), f(110, 6, 10, '#B')] });
+  const por = {}; azules(wrap).forEach(p => { por[p.dataset.clan] = p; });
+  assert.equal(por['#A'].getAttribute('fill'), '#4ea1ff');
+  assert.equal(por['#B'].getAttribute('fill'), 'var(--danger)');
+});
+
+test('medallas: hasta la temporada 72 de RoyaleAPI el tope es 9000 (la fama llegó a 8 700); desde la 73 sigue en 3600', () => {
+  const w = cargar(true);
+  const f = (tr, fame, clanTag) => ext('11/10/2026', { temporadaRoyaleAPI: tr, semana: 1, fame, clanTag, clan: clanTag });
+  const wrap = pintar(w, DOS_SEMANAS, 'puntaje', { externas: [f(70, 8700, '#A'), f(72, 9100, '#B'), f(73, 3700, '#C'), f(110, 3600, '#D')] });
+  const por = {}; azules(wrap).forEach(p => { por[p.dataset.clan] = p; });
+  assert.equal(por['#A'].getAttribute('fill'), '#4ea1ff');
+  assert.equal(por['#B'].getAttribute('fill'), 'var(--danger)');
+  assert.equal(por['#B'].dataset.tope, '9000');
+  assert.equal(por['#C'].getAttribute('fill'), 'var(--danger)');
+  assert.equal(por['#D'].getAttribute('fill'), '#4ea1ff');
 });
 
 test('barcos: más barcos que ataques en la misma fila externa es anomalía (como en la serie verde)', () => {
