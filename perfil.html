@@ -876,6 +876,11 @@
   .costo-modal.pf-cinta--modal > .costo-modal-close{z-index:2;}
   .costo-modal.pf-cinta--modal > h3{position:relative; z-index:1; text-shadow:0 1px 3px rgba(0,0,0,.6);}
   .costo-modal-sub{font-family:var(--f-mono); font-size:13px; color:var(--text-dim); margin-top:4px; min-height:16px;}
+  /* 22-nov-2026 (pedido de la usuaria): título del modal «Costo de mejora» = nombre y, debajo, rareza y tipo; imagen pequeña de la carta a la derecha. */
+  .costo-titulo{display:flex; align-items:center; justify-content:space-between; gap:12px;}
+  .costo-titulo-txt{display:flex; flex-direction:column; align-items:flex-start; gap:6px; min-width:0;}
+  .costo-titulo-pills{display:flex; flex-wrap:wrap; align-items:center; gap:8px;}
+  .costo-titulo-img{width:56px; height:auto; flex:0 0 auto; margin-left:auto; filter:drop-shadow(0 2px 4px rgba(0,0,0,.5));}
   /* 14-oct-2026 (pedido de la usuaria): ventana única «Sugerencias de mazo». Reusa .costo-modal-overlay/.costo-modal; solo agrega los campos. [→ Contexto_Base_Web.md §PF070] */
   .mazo-modal-campo{margin-top:18px;}
   .mazo-modal-campo label{display:block; font-family:var(--f-mono); font-size:13px; text-transform:uppercase; letter-spacing:.04em; color:var(--text-faint); margin-bottom:6px;}
@@ -1630,7 +1635,7 @@
   <div class="costo-modal pf-cinta pf-cinta--modal" id="costoModal" style="--cinta:url(Im%C3%A1genes/Banners/Fankit/cinta-mazo-2.webp);">
     <button type="button" class="costo-modal-close" id="costoModalClose" aria-label="Cerrar">&times;</button>
     <div class="eyebrow">Costo de mejora</div>
-    <h3 style="margin-top:6px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;" id="costoModalTitulo">—</h3>
+    <h3 class="costo-titulo" style="margin-top:6px;" id="costoModalTitulo">—</h3>
     <div class="costo-modal-sub" id="costoModalSub"></div>
     <div id="costoModalTablaWrap"></div>
   </div>
@@ -3593,7 +3598,11 @@ function abrirModalCostoCarta(nombreEs, nivelActual, obj){
   const rk = rarezaKey(obj.rarity);
   const tipoTxt = _tipoCartaTxt(obj, _datosCarta(nombreEs));
   const pillsHtml = `${rk ? `<span class="cc-rareza" data-rareza="${rk}">${esc(RAREZA_CARTA_TXT[rk])}</span>` : ''}${tipoTxt ? `<span class="cc-tipo">${esc(tipoTxt)}</span>` : ''}`;
-  document.getElementById('costoModalTitulo').innerHTML = `${esc(nombreEs || 'Carta')}${pillsHtml}`;
+  // 22-nov-2026 (pedido de la usuaria): la rareza y el tipo bajan a una fila debajo del nombre y la imagen de la carta,
+  // pequeña, va a la derecha. La imagen sale de obj.iconUrls.medium (igual que las fichas de carta); si falta o no carga, se oculta.
+  const imgCostoUrl = (obj && obj.iconUrls && (obj.iconUrls.medium || obj.iconUrls.large)) || '';
+  const imgCostoHtml = imgCostoUrl ? `<img class="costo-titulo-img" src="${esc(imgCostoUrl)}" alt="" onerror="this.style.display='none';">` : '';
+  document.getElementById('costoModalTitulo').innerHTML = `<span class="costo-titulo-txt"><span class="costo-titulo-nombre">${esc(nombreEs || 'Carta')}</span>${pillsHtml ? `<span class="costo-titulo-pills">${pillsHtml}</span>` : ''}</span>${imgCostoHtml}`;
   document.getElementById('costoModalSub').textContent = subPartes.join(' \u00b7 ');
   // Mejora 1: badge de nivel alcanzable con las cartas que ya tiene.
   const badgeNivelHtml = (countNum != null && nivelAlcanzable != null)
