@@ -5575,6 +5575,9 @@ const COLOR_SERIE_EXTERNA_PERFIL = '#4ea1ff'; // quinto color de PALETA_SERIES: 
 const TOPE_ATAQUES_SEMANA_PERFIL = 16;
 const TOPE_MEDALLAS_SEMANA_PERFIL = 3600;
 const TOPE_BARCOS_SEMANA_PERFIL = 16;
+// 22-nov-2026 (pedido de la usuaria; verificado con todos los JSON individuales descargados): en el perfil de RoyaleAPI la columna «Decks used» de las semanas hasta la temporada 104 SEMANA 2 (inclusive) sumaba también los mazos de los días de entrenamiento (lunes a miércoles): máximo 28 = 7 días x 4, en vez de 16. Desde la temporada 104, semana 3, el máximo vuelve a ser 16. Solo afecta a los ATAQUES de la serie azul (clan externo): las medallas no suben por entrenar y los barcos se comparan con los ataques de su fila. [→ Contexto_Base_Web.md §PF066]
+const PERFIL_ENTRENAMIENTO_CONTADO_HASTA = { temporadaRoyaleApi: 104, semana: 2 };
+const TOPE_ATAQUES_SEMANA_CON_ENTRENAMIENTO_PERFIL = 28;
 let perfilAlertaJugador = { tag: '', nombre: '' }; // 5-nov-2026 (§PF385): jugador del ⚠️ junto a RoyaleAPI (se declara antes de renderMiembro() para no caer en la zona muerta del let)
 let perfilGraficaCtx = { nombre: '', tag: '', clan: '' }; // lo fija renderMiembro() antes de pintar
 
@@ -6097,7 +6100,8 @@ function perfilLineChartSvg(puntos, opts){
     .filter(e => e.i !== undefined)
     .sort((a, b) => (a.i - b.i) || (Number(a.q.valor) - Number(b.q.valor)));
   const circlesExt = ptsExt.map(({ q, i }) => {
-    const superaTope = !!topeExt && Number(q.valor) > topeExt;
+    const topeQ = Number(q.topeSemana) > 0 ? Number(q.topeSemana) : topeExt; // 22-nov-2026: 28 en ataques hasta la T104 S2 (entrenamiento contado), ver topeSemanalExternoPerfil()
+    const superaTope = !!topeQ && Number(q.valor) > topeQ;
     const excedeAtaques = q.excedeAtaques != null;
     const anomalia = superaTope || excedeAtaques;
     return `
@@ -6105,7 +6109,7 @@ function perfilLineChartSvg(puntos, opts){
         fill="${anomalia ? 'var(--danger)' : COLOR_SERIE_EXTERNA_PERFIL}" stroke="${anomalia ? COLOR_SERIE_EXTERNA_PERFIL : 'var(--bg)'}" stroke-width="${anomalia ? 2.5 : 1.5}"
         data-nombre="${esc(perfilGraficaCtx.nombre)}" data-tag="${esc(perfilGraficaCtx.tag)}" data-valor="${q.valor}" data-prefijo=""
         data-clan="${esc(q.clan || 'Clan externo')}" data-serie="ext" data-serie-et="Clan externo · total de la semana"
-        data-semana="${esc(q.semana)}"${attrsTemporadaSemanaDiaPerfil(q)} data-unidad="${esc(opts.unidad || '')}"${superaTope ? ` data-tope="${topeExt}"` : ''}${excedeAtaques ? ` data-excede-ataques="${q.excedeAtaques}"` : ''}></circle>`;
+        data-semana="${esc(q.semana)}"${attrsTemporadaSemanaDiaPerfil(q)} data-unidad="${esc(opts.unidad || '')}"${superaTope ? ` data-tope="${topeQ}"` : ''}${excedeAtaques ? ` data-excede-ataques="${q.excedeAtaques}"` : ''}></circle>`;
   }).join('');
 
   const ejeXTitle = `<text class="ing-axis-title" x="${PAD_L + plotW / 2}" y="${H - 8}" text-anchor="middle">Fecha</text>`;
@@ -6113,6 +6117,21 @@ function perfilLineChartSvg(puntos, opts){
     ? `<text class="ing-axis-title" x="14" y="${PAD_T + plotH / 2}" text-anchor="middle" transform="rotate(-90 14 ${PAD_T + plotH / 2})">${esc(opts.ejeY)}</text>`
     : '';
   return `<svg class="ing-linechart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet"${(zoom > 1 || _lz.movil) ? ` style="width:${Math.round(zoom * 100)}%; aspect-ratio:${W}/${H};"` : ''} data-xgeom="${PAD_L},${plotW},${PAD_R},${PAD_B},${H},${W}" data-xfechas="${esc(JSON.stringify(puntos.map(q => q.semana)))}">${bandasTemporada}${gridLines.join('')}${gridMedios}${lineasTemporales}${lineasDomingo}${xLetrasDia}${xLabels}${lineaTope}${lineaTopeSem}${lineaMin}${hitSem}${hitDia}${pathSem}${circlesSem}${circlesExt}${path}${circles}${ejeXTitle}${ejeYTitle}</svg>`;
+}
+
+/**
+ * topeSemanalExternoPerfil(campo, fila, topeBase) (22-nov-2026): tope semanal que se aplica a una semana externa de la serie azul. Para ATAQUES de una semana
+ * hasta la temporada 104 de RoyaleAPI, semana 2, es 28 (el perfil contaba los días de entrenamiento: ver PERFIL_ENTRENAMIENTO_CONTADO_HASTA); para cualquier otra
+ * métrica o semana, y siempre que la fila no traiga `temporadaRoyaleAPI` (backend anterior), es el tope de siempre (topeBase).
+ */
+function topeSemanalExternoPerfil(campo, fila, topeBase){
+  const base = Number(topeBase) > 0 ? Number(topeBase) : 0;
+  if (campo !== 'ataques' || !base || !fila) return base;
+  const tr = Number(fila.temporadaRoyaleAPI), sem = Number(fila.semana);
+  if (fila.temporadaRoyaleAPI == null || !isFinite(tr) || !isFinite(sem)) return base;
+  const corte = PERFIL_ENTRENAMIENTO_CONTADO_HASTA;
+  const conEntrenamiento = tr < corte.temporadaRoyaleApi || (tr === corte.temporadaRoyaleApi && sem <= corte.semana);
+  return conEntrenamiento ? Math.max(base, TOPE_ATAQUES_SEMANA_CON_ENTRENAMIENTO_PERFIL) : base;
 }
 
 /** Mini-leyenda de arriba de cada gráfica (idéntica a la de directorio.html). */
@@ -6297,7 +6316,7 @@ function pintarGraficaPerfil(wrap, puntos, opts, nota){
     const MAX_LISTA_E = 10;
     const detalleE = q => `${esc(semanaLabelCortaPerfil(q.semana))} · ${esc(q.clan || 'clan externo')} (<b>${esc(fmtNum(q.valor))}</b>${q.excedeAtaques != null ? `, ${esc(fmtNum(q.excedeAtaques))} ataques` : ''})`;
     if (opts.topeSemanal > 0){
-      const anomE = serieExtReal.filter(q => Number(q.valor) > opts.topeSemanal);
+      const anomE = serieExtReal.filter(q => Number(q.valor) > (Number(q.topeSemana) > 0 ? Number(q.topeSemana) : opts.topeSemanal)); // 22-nov-2026: mismo tope por punto que el dibujo (28 en ataques hasta la T104 S2)
       notaExt += !anomE.length
         ? filaE('pf-tope-ok', `Ninguna semana en un clan externo supera el tope semanal de ${esc(fmtNum(opts.topeSemanal))} ${esc(opts.unidad || '')}.`)
         : filaE('pf-tope-alerta', `⚠ ${anomE.length} ${anomE.length === 1 ? 'semana en un clan externo supera' : 'semanas en clanes externos superan'} el tope semanal de ${esc(fmtNum(opts.topeSemanal))} ${esc(opts.unidad || '')}: ${anomE.slice(-MAX_LISTA_E).map(detalleE).join(', ')}${anomE.length > MAX_LISTA_E ? ` y ${anomE.length - MAX_LISTA_E} más antiguas` : ''}.`);
@@ -6496,7 +6515,7 @@ function renderMetricaSemanal(elId, historial, campo, opts){
     .map(r => {
       const valor = Number(r[campoExt]);
       const ataquesExt = (campo === 'barcos' && r.ataques != null && isFinite(Number(r.ataques))) ? Number(r.ataques) : null;
-      return { semana: String(r.fecha), temporada: r.temporada, semanaGuerra: r.semana, diaGuerra: 'Domingo', valor, real: true, clan: r.clan, clanTag: r.clanTag, excedeAtaques: (ataquesExt != null && valor > ataquesExt) ? ataquesExt : undefined };
+      return { semana: String(r.fecha), temporada: r.temporada, semanaGuerra: r.semana, diaGuerra: 'Domingo', valor, real: true, clan: r.clan, clanTag: r.clanTag, topeSemana: topeSemanalExternoPerfil(campo, r, opts.topeSemanal), excedeAtaques: (ataquesExt != null && valor > ataquesExt) ? ataquesExt : undefined };
     }) : [];
   pintarGraficaPerfil(wrap, puntos, { ejeY: opts.tituloEje || '', unidad: unidades[opts.tituloEje] || '', base: 0, tope: opts.tope || 0, vsAtaques: !!opts.vsAtaques, serieSemanal: opts.topeSemanal > 0 ? serieSemanal : null, serieExterna: serieExterna.length ? serieExterna : null, topeSemanal: opts.topeSemanal || 0, minimo: minimoMetricaGuerra() });
 }

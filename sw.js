@@ -362,7 +362,8 @@
 // v323 (22-nov-2026): perfil.html cambió (CORE_ASSETS) -- en el modal «Costo de mejora», el nivel que las cartas todavía no completan muestra 76/180 arriba, el avance dentro de la parte llena de la barra y lo que falta dentro de la parte vacía.
 // v324 (22-nov-2026): perfil.html cambió (CORE_ASSETS) -- en el modal «Costo de mejora», la rareza y el tipo bajan a una fila debajo del nombre de la carta y la imagen pequeña de la carta va a la derecha.
 // v325 (22-nov-2026): perfil.html cambió (CORE_ASSETS) -- en las fichas de carta, el contador de copias va en dorado brillante cuando alcanza para el nivel máximo; en «Colección completa», pastilla «Llegan al máximo» y pastilla de tres estados para las cartas que ya están al máximo.
-const CACHE_NAME = 'terna-static-v325';
+// v326 (22-nov-2026): perfil.html cambió (CORE_ASSETS) -- en la gráfica de ataques del perfil, los administradores ya no ven como anomalía las semanas externas con más de 16 ataques hasta la temporada 104 de RoyaleAPI, semana 2 (el perfil sumaba entonces los días de entrenamiento; tope 28); desde la semana 3 el tope sigue en 16.
+const CACHE_NAME = 'terna-static-v326';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y
