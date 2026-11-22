@@ -361,7 +361,8 @@
 // v322 (22-nov-2026): perfil.html cambió (CORE_ASSETS) -- en las gráficas de medallas, ataques y barcos del perfil, los administradores ven una serie azul con el total de cada semana jugada en un clan externo (un punto por domingo y clan, con tooltip, leyenda, tope semanal y aviso); el resto de usuarios no ve cambios (§PF066).
 // v323 (22-nov-2026): perfil.html cambió (CORE_ASSETS) -- en el modal «Costo de mejora», el nivel que las cartas todavía no completan muestra 76/180 arriba, el avance dentro de la parte llena de la barra y lo que falta dentro de la parte vacía.
 // v324 (22-nov-2026): perfil.html cambió (CORE_ASSETS) -- en el modal «Costo de mejora», la rareza y el tipo bajan a una fila debajo del nombre de la carta y la imagen pequeña de la carta va a la derecha.
-const CACHE_NAME = 'terna-static-v324';
+// v325 (22-nov-2026): perfil.html cambió (CORE_ASSETS) -- en las fichas de carta, el contador de copias va en dorado brillante cuando alcanza para el nivel máximo; en «Colección completa», pastilla «Llegan al máximo» y pastilla de tres estados para las cartas que ya están al máximo.
+const CACHE_NAME = 'terna-static-v325';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y

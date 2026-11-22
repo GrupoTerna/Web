@@ -609,6 +609,10 @@
      tiene ya alcanzan para subir de nivel (ver _cantidadCartasHtml()). Verde + negrita:
      no depende solo del color. */
   .cc-count.cc-count--alcanza{color:var(--ok); font-weight:700;}
+  /* 22-nov-2026 (pedido de la usuaria): las copias ya alcanzan para llevar la carta hasta el nivel máximo = dorado brillante (negrita + resplandor que late; sin movimiento si el sistema pide menos animación). */
+  .cc-count.cc-count--maximo{color:var(--gold-light); font-weight:800; text-shadow:0 0 5px rgba(255,200,87,.9), 0 0 12px rgba(243,169,34,.65); animation:cc-brillo-maximo 2.2s ease-in-out infinite;}
+  @keyframes cc-brillo-maximo{0%,100%{text-shadow:0 0 4px rgba(255,200,87,.8), 0 0 10px rgba(243,169,34,.5);} 50%{text-shadow:0 0 8px rgba(255,214,120,1), 0 0 20px rgba(243,169,34,.9);}}
+  @media (prefers-reduced-motion:reduce){ .cc-count.cc-count--maximo{animation:none;} }
   .coleccion-resumen{font-family:var(--f-mono); font-size:13px; color:var(--text-dim); margin-top:10px;}
   .coleccion-filtros{display:flex; gap:8px; flex-wrap:wrap; margin:14px 0 4px;}
   .coleccion-filtros button{
@@ -2528,7 +2532,7 @@ function renderCartaFavorita(j){
     <div class="col-card col-card--grande${alMax ? ' max-level' : ''}" style="max-width:260px;">
       <div class="col-nombre">
         <span class="col-nombre-txt">${esc(nombreEs)}</span>
-        ${count != null ? _cantidadCartasHtml(count, cartasSig) : ''}
+        ${count != null ? _cantidadCartasHtml(count, cartasSig, _cartaAlcanzaMaximo(cartaReal)) : ''}
       </div>
       <div class="col-cuerpo">
         ${urlValida(img) ? `<img src="${esc(img)}" alt="${esc(nombreEs)}" loading="lazy">` : ''}
@@ -2766,6 +2770,8 @@ function renderStatsAvanzadasCabecera(j){
 // _colCartaPasaFiltro): p.ej. rareza=Legendaria Y tipo=Tropa Y nivel=14.
 // Una categoría vacía (ningún botón de esa fila activo) no restringe nada.
 const _colFiltrosActivos = { rareza: new Set(), tipo: new Set(), nivel: new Set(), heroe: false, evolucion: false, mejora: false,
+  // 22-nov-2026 (pedido de la usuaria): alcanzaMax = solo las cartas cuyas copias ya alcanzan para el nivel máximo; estadoMax = '' (todas) | 'solo' (solo las que ya están al máximo) | 'ocultar' (sin las que ya están al máximo).
+  alcanzaMax: false, estadoMax: '',
   // FIX (07-oct-2026, pedido usuario): sub-filtros 'si' (desbloqueado) / 'no' (por desbloquear) de Héroe y Evolución.
   // Vacío = ambos; solo se usan mientras la pastilla Héroe/Evolución correspondiente esté activa.
   heroeEst: new Set(), evoEst: new Set() };
@@ -2956,7 +2962,27 @@ function _colCartaPasaFiltro(c){
     if (f.evoEst.size && !f.evoEst.has(_evoTiene(c) ? 'si' : 'no')) return false;
   }
   if (f.mejora && !_cartaMejoraDisponible(c)) return false;
+  if (f.alcanzaMax && !_cartaAlcanzaMaximo(c)) return false;
+  if (f.estadoMax === 'solo' && !_cartaAlMaximo(c)) return false;
+  if (f.estadoMax === 'ocultar' && _cartaAlMaximo(c)) return false;
   return true;
+}
+/**
+ * _cartaAlMaximo(c) / _cartaAlcanzaMaximo(c)
+ * 22-nov-2026 (pedido de la usuaria): _cartaAlMaximo = la carta ya está en su nivel máximo (mismo criterio de
+ * `alMax` de las fichas: level >= maxLevel). _cartaAlcanzaMaximo = NO está al máximo, trae la tabla de costos
+ * completa (costoCompleto !== false) y las copias que tiene (`count`) ya cubren las cartas de todo el tramo hasta el
+ * máximo (costoTotal.cartas, el mismo total de la ventana «Costo de mejora»). Solo compara cartas: el oro no entra.
+ * Con costoCompleto === false el total es solo un mínimo, así que no se afirma nada. Tolera cartas sin esos campos.
+ */
+function _cartaAlMaximo(c){
+  return !!(c && c.maxLevel != null && c.level != null && c.level >= c.maxLevel);
+}
+function _cartaAlcanzaMaximo(c){
+  if (!c || _cartaAlMaximo(c) || !_tieneTablaCostos(c) || c.costoCompleto === false) return false;
+  const total = c.costoTotal ? _numOrNull(c.costoTotal.cartas) : null;
+  const copias = _numOrNull(c.count);
+  return total != null && total > 0 && copias != null && copias >= total;
 }
 /**
  * _cartaMejoraDisponible(c)
@@ -3010,6 +3036,8 @@ function renderColeccion(j){
   _colFiltrosActivos.heroe = false;
   _colFiltrosActivos.evolucion = false;
   _colFiltrosActivos.mejora = false;
+  _colFiltrosActivos.alcanzaMax = false;
+  _colFiltrosActivos.estadoMax = '';
   _colFiltrosActivos.heroeEst.clear();
   _colFiltrosActivos.evoEst.clear();
 
@@ -3020,9 +3048,29 @@ function renderColeccion(j){
   // Héroe/Evolución (misma pastilla con emoji) y, como esas dos, se omite
   // sola si ninguna carta la cumple.
   const cantMejora = cartas.filter(_cartaMejoraDisponible).length;
+  // 22-nov-2026 (pedido de la usuaria): «Llegan al máximo» (solo las que ya alcanzan) y una pastilla de tres estados
+  // para las que YA están al máximo: todas -> solo al máximo -> sin las del máximo. Cada una se omite si ninguna carta aplica.
+  const cantAlcanzaMax = cartas.filter(_cartaAlcanzaMaximo).length;
+  const cantEnMaximo = cartas.filter(_cartaAlMaximo).length;
   const filtrosTop = document.getElementById('mColeccionFiltrosTop');
   filtrosTop.innerHTML = `<button type="button" data-cat="todos" class="activo">Todas (${cartas.length})</button>`
-    + (cantMejora ? `<button type="button" data-cat="mejora" class="cc-badge cc-badge-btn">\u2b06\ufe0f Mejora disponible (${cantMejora})</button>` : '');
+    + (cantMejora ? `<button type="button" data-cat="mejora" class="cc-badge cc-badge-btn">\u2b06\ufe0f Mejora disponible (${cantMejora})</button>` : '')
+    + (cantAlcanzaMax ? `<button type="button" data-cat="alcanzaMax" class="cc-badge cc-badge-btn" title="Solo las cartas cuyas copias ya alcanzan para llevarlas hasta el nivel máximo (aparte hace falta el oro)">\u{1F451} Llegan al m\u00e1ximo (${cantAlcanzaMax})</button>` : '')
+    + (cantEnMaximo ? `<button type="button" data-cat="estadoMax" class="cc-badge cc-badge-btn"></button>` : '');
+  // Pastilla de tres estados: el texto dice qué pasa al tocarla de nuevo.
+  const pintarBotonEstadoMax = () => {
+    const b = filtrosTop.querySelector('[data-cat="estadoMax"]');
+    if (!b) return;
+    const e = _colFiltrosActivos.estadoMax;
+    b.textContent = e === 'solo' ? `\u{1F3C6} Solo al m\u00e1ximo (${cantEnMaximo})`
+      : e === 'ocultar' ? `\u{1F6AB} Sin las del m\u00e1ximo (${cartas.length - cantEnMaximo})`
+      : `\u{1F3C6} Nivel m\u00e1ximo (${cantEnMaximo})`;
+    b.title = e === 'solo' ? 'Muestra solo las cartas que ya est\u00e1n al nivel m\u00e1ximo. Toca para ocultarlas.'
+      : e === 'ocultar' ? 'Oculta las cartas que ya est\u00e1n al nivel m\u00e1ximo. Toca para volver a ver todas.'
+      : 'Toca para ver solo las cartas que ya est\u00e1n al nivel m\u00e1ximo (un segundo toque las oculta).';
+    b.classList.toggle('is-activa', !!e);
+  };
+  pintarBotonEstadoMax();
 
   const raridades = ['campeon', 'legendaria', 'epica', 'especial', 'comun'];
   const presentes = raridades.filter(r => cartas.some(c => rarezaKey(c.rarity) === r));
@@ -3157,7 +3205,8 @@ function renderColeccion(j){
   ];
   const hayAlgunFiltroActivo = () =>
     _colFiltrosActivos.rareza.size || _colFiltrosActivos.tipo.size || _colFiltrosActivos.nivel.size ||
-    _colFiltrosActivos.heroe || _colFiltrosActivos.evolucion || _colFiltrosActivos.mejora;
+    _colFiltrosActivos.heroe || _colFiltrosActivos.evolucion || _colFiltrosActivos.mejora ||
+    _colFiltrosActivos.alcanzaMax || !!_colFiltrosActivos.estadoMax;
   const sincronizarBotonTodos = () => {
     filtrosTop.querySelector('[data-cat="todos"]').classList.toggle('activo', !hayAlgunFiltroActivo());
   };
@@ -3170,11 +3219,18 @@ function renderColeccion(j){
       _colFiltrosActivos.heroe = false;
       _colFiltrosActivos.evolucion = false;
       _colFiltrosActivos.mejora = false;
+      _colFiltrosActivos.alcanzaMax = false;
+      _colFiltrosActivos.estadoMax = '';
       _colFiltrosActivos.heroeEst.clear();
       _colFiltrosActivos.evoEst.clear();
       botonesFiltroColeccion().forEach(x => { x.classList.remove('activo'); x.classList.remove('is-activa'); });
+      pintarBotonEstadoMax();
       b.classList.add('activo');
-    } else if (cat === 'heroe' || cat === 'evolucion' || cat === 'mejora'){
+    } else if (cat === 'estadoMax'){
+      _colFiltrosActivos.estadoMax = _colFiltrosActivos.estadoMax === '' ? 'solo' : (_colFiltrosActivos.estadoMax === 'solo' ? 'ocultar' : '');
+      pintarBotonEstadoMax();
+      sincronizarBotonTodos();
+    } else if (cat === 'heroe' || cat === 'evolucion' || cat === 'mejora' || cat === 'alcanzaMax'){
       _colFiltrosActivos[cat] = !_colFiltrosActivos[cat];
       b.classList.toggle('is-activa', _colFiltrosActivos[cat]);
       if (!_colFiltrosActivos[cat]){ if (cat === 'heroe') _colFiltrosActivos.heroeEst.clear(); if (cat === 'evolucion') _colFiltrosActivos.evoEst.clear(); }
@@ -3226,9 +3282,10 @@ const COLECCION_ESPACIO_COSTO_MEJORA = false;
  * @param {?number} count - Copias que tiene el jugador. AVISO 7 (24-sep-2026): el backend ya lo manda
  *   de Backup_Cards_2.csv.Count y, si falta, del `count` del JSON de Drive (34_Web_API.gs, _webDatosDriveJugador()).
  * @param {*} cartasSig - cartasSiguienteNivel (Backup_Cards_3.csv vía backend); cualquier valor no numérico se ignora.
+ * @param {boolean=} alcanzaMax - 22-nov-2026: true si las copias alcanzan para el nivel máximo (_cartaAlcanzaMaximo()); lo pinta en dorado brillante.
  * @returns {string} HTML del span, o ''.
  */
-function _cantidadCartasHtml(count, cartasSig){
+function _cantidadCartasHtml(count, cartasSig, alcanzaMax){
   if (count === undefined || count === null || count === '') return '';
   const sig = (cartasSig !== undefined && cartasSig !== null && cartasSig !== '' && isFinite(Number(cartasSig))) ? Number(cartasSig) : null;
   if (sig == null) return `<span class="cc-count" title="Cantidad de cartas disponibles de este nombre">\u00d7${fmtNum(count)}</span>`;
@@ -3236,6 +3293,8 @@ function _cantidadCartasHtml(count, cartasSig){
   // copias necesarias se resalta. Solo se comparan las CARTAS: el oro no se
   // evalúa (decisión del usuario, ver AVISO 6), así que el título lo aclara.
   const alcanza = Number(count) >= sig;
+  // 22-nov-2026 (pedido de la usuaria): si las copias alcanzan para llevarla hasta el nivel máximo, el contador va en dorado brillante.
+  if (alcanzaMax) return `<span class="cc-count cc-count--maximo" title="Ya tienes las cartas necesarias para llevarla hasta el nivel máximo (aparte hace falta el oro)">${fmtNum(count)}/${fmtNum(sig)}</span>`;
   return alcanza
     ? `<span class="cc-count cc-count--alcanza" title="Ya tienes las cartas necesarias para subir al siguiente nivel (aparte hace falta el oro)">${fmtNum(count)}/${fmtNum(sig)}</span>`
     : `<span class="cc-count" title="Cartas que tienes / cartas necesarias para subir al siguiente nivel">${fmtNum(count)}/${fmtNum(sig)}</span>`;
@@ -4107,7 +4166,7 @@ function pintarColeccion(cartas){
     <div class="col-card col-card--grande${alMax ? ' max-level' : ''}" title="${esc(nombreEs)}" data-icon-base="${esc(iconoBase)}">
       <div class="col-nombre">
         <span class="col-nombre-txt">${esc(nombreEs)}</span>
-        ${!alMax ? _cantidadCartasHtml(c.count, x.cartasSig) : ''}
+        ${!alMax ? _cantidadCartasHtml(c.count, x.cartasSig, _cartaAlcanzaMaximo(c)) : ''}
       </div>
       <div class="col-cuerpo">
         ${img ? `<img class="cc-img" src="${esc(img)}" alt="" loading="lazy" onerror="this.style.visibility='hidden';">` : ''}
@@ -4241,7 +4300,7 @@ function renderCartasTorre(j){
     <div class="col-card col-card--grande${alMax ? ' max-level' : ''}">
       <div class="col-nombre">
         <span class="col-nombre-txt">${esc(nombreEs)}</span>
-        ${!alMax ? _cantidadCartasHtml(t.count, t.cartasSiguienteNivel) : ''}
+        ${!alMax ? _cantidadCartasHtml(t.count, t.cartasSiguienteNivel, _cartaAlcanzaMaximo(t)) : ''}
       </div>
       <div class="col-cuerpo">
         ${img ? `<img class="cc-img" src="${esc(img)}" alt="${esc(nombreEs)}" loading="lazy" onerror="_marcarCartaSinImagen(this);" onload="if(this.naturalWidth===0) _marcarCartaSinImagen(this);">` : ''}
@@ -5221,7 +5280,7 @@ function renderMazoActual(mazoActual, ext, j){
     <div class="col-card col-card--grande${alTope ? ' max-level' : ''}" data-icon-base="${esc(c.icon || '')}">
       <div class="col-nombre">
         <span class="col-nombre-txt">${esc(c.name)}</span>
-        ${!alTope ? _cantidadCartasHtml(count, cartasSig) : ''}
+        ${!alTope ? _cantidadCartasHtml(count, cartasSig, _cartaAlcanzaMaximo(c)) : ''}
       </div>
       <div class="col-cuerpo">
         ${imgSrc ? `<img class="cc-img" src="${esc(imgSrc)}" alt="${esc(c.name)}" loading="lazy" onerror="_marcarCartaSinImagen(this);" onload="if(this.naturalWidth===0) _marcarCartaSinImagen(this);">` : ''}
@@ -5325,7 +5384,7 @@ function renderMazoActual(mazoActual, ext, j){
         <div class="col-card col-card--grande${alMax ? ' max-level' : ''}">
           <div class="col-nombre">
             <span class="col-nombre-txt">${esc(nombreEs)}</span>
-            ${!alMax ? _cantidadCartasHtml(t.count, t.cartasSiguienteNivel) : ''}
+            ${!alMax ? _cantidadCartasHtml(t.count, t.cartasSiguienteNivel, _cartaAlcanzaMaximo(t)) : ''}
           </div>
           <div class="col-cuerpo">
             ${img ? `<img class="cc-img" src="${esc(img)}" alt="${esc(nombreEs)}" loading="lazy" onerror="_marcarCartaSinImagen(this);" onload="if(this.naturalWidth===0) _marcarCartaSinImagen(this);">` : ''}
