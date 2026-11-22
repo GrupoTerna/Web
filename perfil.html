@@ -5490,6 +5490,7 @@ const TOPE_ATAQUES_DIA = 4;
 const TOPE_MEDALLAS_DIA = 900;
 const COLOR_SERIE_PERFIL = '#a239ff'; // primer color de PALETA_SERIES de directorio.html
 const COLOR_SERIE_ACUMULADO_PERFIL = '#3ddc97'; // tercer color de PALETA_SERIES (el segundo, dorado, es el de las líneas de tope)
+const COLOR_SERIE_EXTERNA_PERFIL = '#4ea1ff'; // quinto color de PALETA_SERIES: total de la semana en un clan EXTERNO (22-nov-2026, solo admins). [→ Contexto_Base_Web.md §PF066]
 // Topes SEMANALES (19-oct-2026, pedido de la usuaria; los mismos de directorio.html): los barcos nunca superan a los ataques, por eso comparten el 16.
 const TOPE_ATAQUES_SEMANA_PERFIL = 16;
 const TOPE_MEDALLAS_SEMANA_PERFIL = 3600;
@@ -5803,6 +5804,21 @@ function perfilLineChartSvg(puntos, opts){
     const fecha = `${String(dom.getDate()).padStart(2, '0')}/${String(dom.getMonth() + 1).padStart(2, '0')}/${dom.getFullYear()}`;
     puntos.splice(i + 1, 0, { semana: fecha, valor: Math.round(valor * 100) / 100, real: false, estimado: true, motivo: 'Sin dato todavía — domingo con valor estimado' });
   }
+  // 22-nov-2026 (pedido usuaria, solo admins): semanas jugadas en un clan EXTERNO (opts.serieExterna = [{ semana: dd/MM/yyyy del domingo, valor, clan, clanTag, temporada, semanaGuerra, excedeAtaques? }]).
+  // Una semana jugada solo fuera no tiene ningún día en `puntos`, así que se le reserva su domingo en el eje X (real:false: sin punto y sin línea) para que el punto azul no se pierda. Va DESPUÉS del bucle de arriba para no quitarle el domingo estimado a una semana que sí tiene datos nuestros. [→ Contexto_Base_Web.md §PF066]
+  const serieExt = Array.isArray(opts.serieExterna) ? opts.serieExterna.filter(q => q && q.real !== false && isFinite(Number(q.valor)) && !isNaN(parseFechaDDMMYYYY(q.semana))) : [];
+  if (serieExt.length){
+    const _diaExt = t => { const d = new Date(t); d.setHours(0, 0, 0, 0); return d.getTime(); };
+    const enEje = new Set();
+    puntos.forEach(p => { const t = parseFechaDDMMYYYY(p.semana); if (!isNaN(t)) enEje.add(_diaExt(t)); });
+    serieExt.map(q => ({ k: _diaExt(parseFechaDDMMYYYY(q.semana)), texto: String(q.semana) })).sort((a, b) => a.k - b.k).forEach(e => {
+      if (enEje.has(e.k)) return;
+      enEje.add(e.k);
+      let pos = puntos.length;
+      for (let m = 0; m < puntos.length; m++){ const tm = parseFechaDDMMYYYY(puntos[m].semana); if (!isNaN(tm) && _diaExt(tm) > e.k){ pos = m; break; } }
+      puntos.splice(pos, 0, { semana: e.texto, valor: 0, real: false, sinDato: true, motivo: 'Semana jugada en un clan externo' });
+    });
+  }
   const zoom = opts.zoom > 1 ? Number(opts.zoom) : 1; // 04-nov-2026 (pedido usuaria, §PF352): el zoom ensancha el lienzo (más espacio entre fechas); el <svg> se muestra a zoom×100 % de ancho dentro de un contenedor con barra de desplazamiento y la altura no cambia.
   // 20-nov-2026 (pedido de la usuaria, vista móvil): en pantallas de hasta 600 px el lienzo es el estándar de celular (480 x 420, graficaLienzo() de util.js) para que la gráfica no salga achatada. [→ Contexto_Base_Web.md §PF523]
   const _lz = graficaLienzo(960, 320);
@@ -5817,10 +5833,11 @@ function perfilLineChartSvg(puntos, opts){
   const topeSem = serieSem.length && opts.topeSemanal > 0 ? Number(opts.topeSemanal) : 0;
   // 19-oct-2026 (pedido usuaria): mínimo (0) de las métricas de guerra (opts.minimo). Su línea solo se dibuja si hay un valor real por debajo; entonces el eje baja hasta incluirlo (pisoEjeConNegativos) y ese punto sale como anomalía.
   const minimo = opts.minimo != null ? Number(opts.minimo) : null;
-  const valoresReales = [...puntos.filter(p => p.real).map(p => Number(p.valor)), ...serieSem.map(q => Number(q.valor) || 0)];
+  const valoresReales = [...puntos.filter(p => p.real).map(p => Number(p.valor)), ...serieSem.map(q => Number(q.valor) || 0), ...serieExt.map(q => Number(q.valor) || 0)];
   const hayBajo = minimo != null && hayBajoMinimo(valoresReales, minimo);
   const base = hayBajo ? pisoEjeConNegativos(valoresReales, minimo, pasos, opts.base || 0) : (opts.base || 0);
-  const max = Math.max(tope, topeSem, ...valoresReales);
+  const topeExt = serieExt.length && opts.topeSemanal > 0 ? Number(opts.topeSemanal) : 0; // 22-nov-2026: lo externo se compara con el mismo tope semanal aunque no haya acumulado propio
+  const max = Math.max(tope, topeSem, topeExt, ...valoresReales);
   const rango = Math.ceil(((max - base) || pasos) / pasos) * pasos || pasos;
   const techo = base + rango;
   const valorMarca = i => base + (rango / pasos) * i;
@@ -5994,15 +6011,32 @@ function perfilLineChartSvg(puntos, opts){
         data-semana="${esc(q.semana)}"${attrsTemporadaSemanaDiaPerfil(q)} data-unidad="${esc(opts.unidad || '')}"${superaTope ? ` data-tope="${topeSem}"` : ''}${excedeAtaques ? ` data-excede-ataques="${q.excedeAtaques}"` : ''}${bajoMin ? ` data-minimo="${minimo}"` : ''}></circle>`;
   }).join('');
 
+  // 22-nov-2026 (pedido usuaria, solo admins): serie azul = total de la semana en un clan externo, un punto por domingo y clan (sin línea: dos semanas externas seguidas no implican que las intermedias también lo fueran). Es un <circle> como los demás para que el teclado, el tooltip y el resalte de serie funcionen igual (usan cx/cy). Con la anomalía (tope semanal o más barcos que ataques) se pinta en rojo con aro azul. [→ Contexto_Base_Web.md §PF066]
+  const ptsExt = serieExt
+    .map(q => ({ q, i: idxPorDia.get(claveDia(parseFechaDDMMYYYY(q.semana))) }))
+    .filter(e => e.i !== undefined)
+    .sort((a, b) => (a.i - b.i) || (Number(a.q.valor) - Number(b.q.valor)));
+  const circlesExt = ptsExt.map(({ q, i }) => {
+    const superaTope = !!topeExt && Number(q.valor) > topeExt;
+    const excedeAtaques = q.excedeAtaques != null;
+    const anomalia = superaTope || excedeAtaques;
+    return `
+      <circle class="ing-serie-pt ing-serie-pt-ext${anomalia ? ' serie-pt-anomalia' : ''}" data-serie-clave="ext" cx="${xPos(i).toFixed(1)}" cy="${yPos(q.valor).toFixed(1)}" r="${anomalia ? 6.5 : 5}"
+        fill="${anomalia ? 'var(--danger)' : COLOR_SERIE_EXTERNA_PERFIL}" stroke="${anomalia ? COLOR_SERIE_EXTERNA_PERFIL : 'var(--bg)'}" stroke-width="${anomalia ? 2.5 : 1.5}"
+        data-nombre="${esc(perfilGraficaCtx.nombre)}" data-tag="${esc(perfilGraficaCtx.tag)}" data-valor="${q.valor}" data-prefijo=""
+        data-clan="${esc(q.clan || 'Clan externo')}" data-serie="ext" data-serie-et="Clan externo · total de la semana"
+        data-semana="${esc(q.semana)}"${attrsTemporadaSemanaDiaPerfil(q)} data-unidad="${esc(opts.unidad || '')}"${superaTope ? ` data-tope="${topeExt}"` : ''}${excedeAtaques ? ` data-excede-ataques="${q.excedeAtaques}"` : ''}></circle>`;
+  }).join('');
+
   const ejeXTitle = `<text class="ing-axis-title" x="${PAD_L + plotW / 2}" y="${H - 8}" text-anchor="middle">Fecha</text>`;
   const ejeYTitle = opts.ejeY
     ? `<text class="ing-axis-title" x="14" y="${PAD_T + plotH / 2}" text-anchor="middle" transform="rotate(-90 14 ${PAD_T + plotH / 2})">${esc(opts.ejeY)}</text>`
     : '';
-  return `<svg class="ing-linechart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet"${(zoom > 1 || _lz.movil) ? ` style="width:${Math.round(zoom * 100)}%; aspect-ratio:${W}/${H};"` : ''} data-xgeom="${PAD_L},${plotW},${PAD_R},${PAD_B},${H},${W}" data-xfechas="${esc(JSON.stringify(puntos.map(q => q.semana)))}">${bandasTemporada}${gridLines.join('')}${gridMedios}${lineasTemporales}${lineasDomingo}${xLetrasDia}${xLabels}${lineaTope}${lineaTopeSem}${lineaMin}${hitSem}${hitDia}${pathSem}${circlesSem}${path}${circles}${ejeXTitle}${ejeYTitle}</svg>`;
+  return `<svg class="ing-linechart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet"${(zoom > 1 || _lz.movil) ? ` style="width:${Math.round(zoom * 100)}%; aspect-ratio:${W}/${H};"` : ''} data-xgeom="${PAD_L},${plotW},${PAD_R},${PAD_B},${H},${W}" data-xfechas="${esc(JSON.stringify(puntos.map(q => q.semana)))}">${bandasTemporada}${gridLines.join('')}${gridMedios}${lineasTemporales}${lineasDomingo}${xLetrasDia}${xLabels}${lineaTope}${lineaTopeSem}${lineaMin}${hitSem}${hitDia}${pathSem}${circlesSem}${circlesExt}${path}${circles}${ejeXTitle}${ejeYTitle}</svg>`;
 }
 
 /** Mini-leyenda de arriba de cada gráfica (idéntica a la de directorio.html). */
-function leyendaPuntosGraficaHtml(conHuecos, tope, vsAtaques, serieSemanal, minimo){
+function leyendaPuntosGraficaHtml(conHuecos, tope, vsAtaques, serieSemanal, minimo, hayExterna){
   return `
     <div class="ing-chart-leyenda">
       <div class="ing-chart-leyenda-fila">
@@ -6024,6 +6058,10 @@ function leyendaPuntosGraficaHtml(conHuecos, tope, vsAtaques, serieSemanal, mini
       <div class="ing-chart-leyenda-fila">
         <svg width="22" height="10" viewBox="0 0 22 10" aria-hidden="true"><line x1="0" y1="5" x2="22" y2="5" stroke="${COLOR_SERIE_ACUMULADO_PERFIL}" stroke-width="3"></line><circle cx="11" cy="5" r="3.5" fill="${COLOR_SERIE_ACUMULADO_PERFIL}"></circle></svg>
         Verde = acumulado de la semana (un punto por domingo, unidos de domingo a domingo)${serieSemanal.tope ? ` · línea punteada = tope semanal (${esc(fmtNum(serieSemanal.tope))})` : ''}
+      </div>` : ''}
+      ${hayExterna ? `<div class="ing-chart-leyenda-fila">
+        <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><circle cx="5" cy="5" r="4" fill="${COLOR_SERIE_EXTERNA_PERFIL}"></circle></svg>
+        Azul = total de la semana en un clan externo (un punto por domingo y clan; solo lo ven los administradores)
       </div>` : ''}
       ${minimo != null ? `<div class="ing-chart-leyenda-fila">
         <svg width="22" height="10" viewBox="0 0 22 10" aria-hidden="true"><line x1="0" y1="5" x2="22" y2="5" stroke="var(--gold)" stroke-width="1.8" stroke-dasharray="4 3"></line></svg>
@@ -6047,16 +6085,17 @@ const PERFIL_TEMPORADAS_VISTA = 6;
 const PERFIL_GRAFICAS_PINTADAS = new Map();
 
 /** Deja solo los puntos de las últimas `n` temporadas (misma clave de temporada que el sombreado: claveTemporadaFecha). Fechas ilegibles se conservan. */
-function filtrarUltimasTemporadasPerfil(puntos, serie, n){
+function filtrarUltimasTemporadasPerfil(puntos, serie, n, serieExt){
   const clave = q => { const t = parseFechaDDMMYYYY(q && q.semana); return isNaN(t) ? null : claveTemporadaFecha(new Date(t)); };
   const claves = new Set();
   puntos.forEach(q => { const k = clave(q); if (k != null) claves.add(k); });
   (serie || []).forEach(q => { const k = clave(q); if (k != null) claves.add(k); });
+  (serieExt || []).forEach(q => { const k = clave(q); if (k != null) claves.add(k); }); // 22-nov-2026: las semanas en clanes externos también cuentan como temporadas del recorte
   const orden = Array.from(claves).sort((a, b) => a - b);
-  if (orden.length <= n) return { puntos, serie, total: orden.length, recortado: false };
+  if (orden.length <= n) return { puntos, serie, serieExt, total: orden.length, recortado: false };
   const minK = orden[orden.length - n];
   const ok = q => { const k = clave(q); return k == null || k >= minK; };
-  return { puntos: puntos.filter(ok), serie: serie ? serie.filter(ok) : serie, total: orden.length, recortado: true };
+  return { puntos: puntos.filter(ok), serie: serie ? serie.filter(ok) : serie, serieExt: serieExt ? serieExt.filter(ok) : serieExt, total: orden.length, recortado: true };
 }
 
 function barraVistaPerfilHtml(total){
@@ -6120,10 +6159,11 @@ function pintarGraficaPerfil(wrap, puntos, opts, nota){
   // 04-nov-2026 (pedido usuaria, §PF352): se guardan los argumentos originales para repintar con otra vista; el recorte a las últimas 6 temporadas
   // (pastilla, activada por defecto) y el zoom se aplican a TODO lo que sigue (gráfica y avisos), para que lo escrito coincida con lo dibujado.
   PERFIL_GRAFICAS_PINTADAS.set(wrap, { puntos, opts, nota });
-  const vista = filtrarUltimasTemporadasPerfil(puntos, Array.isArray(opts.serieSemanal) ? opts.serieSemanal : null, PERFIL_VISTA.ultimas6 ? PERFIL_TEMPORADAS_VISTA : Infinity);
+  const vista = filtrarUltimasTemporadasPerfil(puntos, Array.isArray(opts.serieSemanal) ? opts.serieSemanal : null, PERFIL_VISTA.ultimas6 ? PERFIL_TEMPORADAS_VISTA : Infinity, Array.isArray(opts.serieExterna) ? opts.serieExterna : null);
   puntos = vista.puntos;
   opts = Object.assign({}, opts, { zoom: PERFIL_VISTA.zoom });
   if (Array.isArray(opts.serieSemanal)) opts.serieSemanal = vista.serie;
+  if (Array.isArray(opts.serieExterna)) opts.serieExterna = vista.serieExt;
   let notaTope = '';
   if (opts.tope > 0){
     const anom = puntosSobreTope(filtrarDiasGuerraPerfil(puntos), opts.tope);
@@ -6169,6 +6209,26 @@ function pintarGraficaPerfil(wrap, puntos, opts, nota){
         : fila('pf-tope-alerta', `⚠ ${exS.length} ${exS.length === 1 ? 'semana tiene' : 'semanas tienen'} más barcos que ataques acumulados: ${exS.slice(-MAX_LISTA).map(q => `${esc(semanaLabelCortaPerfil(q.semana))} (<b>${esc(fmtNum(q.valor))}</b> barcos, ${esc(fmtNum(q.excedeAtaques))} ataques)`).join(', ')}${exS.length > MAX_LISTA ? ` y ${exS.length - MAX_LISTA} más antiguas` : ''}.`);
     }
   }
+  // 22-nov-2026 (pedido usuaria, solo admins): avisos de la serie azul (semanas jugadas en clanes externos): mismo tope semanal y, en barcos, más barcos que ataques de esa misma semana. Mismos puntos que se dibujan.
+  let notaExt = '';
+  const serieExtReal = Array.isArray(opts.serieExterna) ? opts.serieExterna.filter(q => q && q.real !== false) : [];
+  if (serieExtReal.length){
+    const filaE = (cls, txt) => `<div class="pf-tope-resumen ${cls}">${txt}</div>`;
+    const MAX_LISTA_E = 10;
+    const detalleE = q => `${esc(semanaLabelCortaPerfil(q.semana))} · ${esc(q.clan || 'clan externo')} (<b>${esc(fmtNum(q.valor))}</b>${q.excedeAtaques != null ? `, ${esc(fmtNum(q.excedeAtaques))} ataques` : ''})`;
+    if (opts.topeSemanal > 0){
+      const anomE = serieExtReal.filter(q => Number(q.valor) > opts.topeSemanal);
+      notaExt += !anomE.length
+        ? filaE('pf-tope-ok', `Ninguna semana en un clan externo supera el tope semanal de ${esc(fmtNum(opts.topeSemanal))} ${esc(opts.unidad || '')}.`)
+        : filaE('pf-tope-alerta', `⚠ ${anomE.length} ${anomE.length === 1 ? 'semana en un clan externo supera' : 'semanas en clanes externos superan'} el tope semanal de ${esc(fmtNum(opts.topeSemanal))} ${esc(opts.unidad || '')}: ${anomE.slice(-MAX_LISTA_E).map(detalleE).join(', ')}${anomE.length > MAX_LISTA_E ? ` y ${anomE.length - MAX_LISTA_E} más antiguas` : ''}.`);
+    }
+    if (opts.vsAtaques){
+      const exE = serieExtReal.filter(q => q.excedeAtaques != null);
+      notaExt += !exE.length
+        ? filaE('pf-tope-ok', 'Ninguna semana en un clan externo tiene más barcos que ataques.')
+        : filaE('pf-tope-alerta', `⚠ ${exE.length} ${exE.length === 1 ? 'semana en un clan externo tiene' : 'semanas en clanes externos tienen'} más barcos que ataques: ${exE.slice(-MAX_LISTA_E).map(detalleE).join(', ')}${exE.length > MAX_LISTA_E ? ` y ${exE.length - MAX_LISTA_E} más antiguas` : ''}.`);
+    }
+  }
   // 19-oct-2026: aviso de valores por debajo del mínimo; solo existe si los hay (sin «ningún día…»: la línea tampoco se dibuja).
   let notaMin = '';
   let minimoEnLeyenda = null;
@@ -6181,7 +6241,7 @@ function pintarGraficaPerfil(wrap, puntos, opts, nota){
       notaMin = `<div class="pf-tope-resumen pf-tope-alerta">⚠ ${bajoMinimo.length} ${bajoMinimo.length === 1 ? 'valor está' : 'valores están'} por debajo del mínimo de ${esc(fmtNum(opts.minimo))} ${esc(opts.unidad || '')}: ${bajoMinimo.slice(-MAX_LISTA).map(x => `${esc(x.etiqueta)} (<b>${esc(fmtNum(x.valor))}</b>)`).join(', ')}${bajoMinimo.length > MAX_LISTA ? ` y ${bajoMinimo.length - MAX_LISTA} más antiguos` : ''}.</div>`;
     }
   }
-  wrap.innerHTML = `${barraVistaPerfilHtml(vista.total)}${leyendaPuntosGraficaHtml(!opts.sinHuecos, opts.tope, opts.vsAtaques, serieSemReal.length ? { tope: opts.topeSemanal > 0 ? opts.topeSemanal : 0 } : null, minimoEnLeyenda)}<div class="perfil-chart-scroll">${perfilLineChartSvg(puntos, opts)}</div>${notaTope}${notaExcede}${notaSem}${notaMin}${nota || ''}`;
+  wrap.innerHTML = `${barraVistaPerfilHtml(vista.total)}${leyendaPuntosGraficaHtml(!opts.sinHuecos, opts.tope, opts.vsAtaques, serieSemReal.length ? { tope: opts.topeSemanal > 0 ? opts.topeSemanal : 0 } : null, minimoEnLeyenda, serieExtReal.length > 0)}<div class="perfil-chart-scroll">${perfilLineChartSvg(puntos, opts)}</div>${notaTope}${notaExcede}${notaSem}${notaExt}${notaMin}${nota || ''}`;
   wrap.querySelectorAll('.pf-vista [data-pv]').forEach(b => b.addEventListener('click', () => {
     const a = b.getAttribute('data-pv'), iz = PERFIL_ZOOMS.indexOf(PERFIL_VISTA.zoom);
     if (a === 'ultimas6') PERFIL_VISTA.ultimas6 = !PERFIL_VISTA.ultimas6;
@@ -6349,7 +6409,16 @@ function renderMetricaSemanal(elId, historial, campo, opts){
     const ataquesAcum = (campo === 'barcos' && h.ataques != null && isFinite(Number(h.ataques))) ? Number(h.ataques) : null;
     return { semana: String(h.semana), temporada: h.temporada, semanaGuerra: h.semanaGuerra, diaGuerra: h.diaGuerra, valor: Number(h[campo]), real: true, clan: h.clan, excedeAtaques: (ataquesAcum != null && Number(h[campo]) > ataquesAcum) ? ataquesAcum : undefined };
   });
-  pintarGraficaPerfil(wrap, puntos, { ejeY: opts.tituloEje || '', unidad: unidades[opts.tituloEje] || '', base: 0, tope: opts.tope || 0, vsAtaques: !!opts.vsAtaques, serieSemanal: opts.topeSemanal > 0 ? serieSemanal : null, topeSemanal: opts.topeSemanal || 0, minimo: minimoMetricaGuerra() });
+  // 22-nov-2026 (pedido usuaria, solo admins): semanas jugadas en clanes externos (opts.externas = ext.semanasExternas de webPerfil: { temporada, semana, fecha (domingo, dd/MM/yyyy), clan, clanTag, ataques, fame, barcos }). Cada gráfica toma su campo (medallas = fame); una semana sin fecha o sin ese dato no se dibuja. Total de la semana: no se resta nada. [→ Contexto_Base_Web.md §PF066]
+  const campoExt = { ataques: 'ataques', puntaje: 'fame', barcos: 'barcos' }[campo];
+  const serieExterna = (Array.isArray(opts.externas) && campoExt) ? opts.externas
+    .filter(r => r && r.fecha && r[campoExt] != null && isFinite(Number(r[campoExt])) && !isNaN(parseFechaDDMMYYYY(r.fecha)))
+    .map(r => {
+      const valor = Number(r[campoExt]);
+      const ataquesExt = (campo === 'barcos' && r.ataques != null && isFinite(Number(r.ataques))) ? Number(r.ataques) : null;
+      return { semana: String(r.fecha), temporada: r.temporada, semanaGuerra: r.semana, diaGuerra: 'Domingo', valor, real: true, clan: r.clan, clanTag: r.clanTag, excedeAtaques: (ataquesExt != null && valor > ataquesExt) ? ataquesExt : undefined };
+    }) : [];
+  pintarGraficaPerfil(wrap, puntos, { ejeY: opts.tituloEje || '', unidad: unidades[opts.tituloEje] || '', base: 0, tope: opts.tope || 0, vsAtaques: !!opts.vsAtaques, serieSemanal: opts.topeSemanal > 0 ? serieSemanal : null, serieExterna: serieExterna.length ? serieExterna : null, topeSemanal: opts.topeSemanal || 0, minimo: minimoMetricaGuerra() });
 }
 
 /**
@@ -6361,9 +6430,11 @@ function renderMetricaSemanal(elId, historial, campo, opts){
  */
 function renderMetricasSemanales(ext){
   const historial = ext && Array.isArray(ext.historialRanking) ? ext.historialRanking : [];
-  renderMetricaSemanal('mAtaquesChart', historial, 'ataques', { tituloEje: 'Ataques', tope: TOPE_ATAQUES_DIA, topeSemanal: TOPE_ATAQUES_SEMANA_PERFIL });
-  renderMetricaSemanal('mPuntajeChart', historial, 'puntaje', { tituloEje: 'Medallas', tope: TOPE_MEDALLAS_DIA, topeSemanal: TOPE_MEDALLAS_SEMANA_PERFIL });
-  renderMetricaSemanal('mBarcosChart', historial, 'barcos', { tituloEje: 'Barcos', vsAtaques: true, topeSemanal: TOPE_BARCOS_SEMANA_PERFIL });
+  // 22-nov-2026 (pedido usuaria): semanas en clanes externos, solo para admins. El backend ya las manda solo con sesión de admin; aquí se vuelve a comprobar para que un dato que llegara de una copia guardada no se dibuje sin sesión. [→ Contexto_Base_Web.md §PF066]
+  const externas = (typeof esAdminLogueado === 'function' && esAdminLogueado() && ext && Array.isArray(ext.semanasExternas)) ? ext.semanasExternas : [];
+  renderMetricaSemanal('mAtaquesChart', historial, 'ataques', { tituloEje: 'Ataques', tope: TOPE_ATAQUES_DIA, topeSemanal: TOPE_ATAQUES_SEMANA_PERFIL, externas });
+  renderMetricaSemanal('mPuntajeChart', historial, 'puntaje', { tituloEje: 'Medallas', tope: TOPE_MEDALLAS_DIA, topeSemanal: TOPE_MEDALLAS_SEMANA_PERFIL, externas });
+  renderMetricaSemanal('mBarcosChart', historial, 'barcos', { tituloEje: 'Barcos', vsAtaques: true, topeSemanal: TOPE_BARCOS_SEMANA_PERFIL, externas });
 }
 
 // adminPuedeVetar() ahora vive en assets/common.js (1-sep-2026, reutilizada
