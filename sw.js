@@ -356,7 +356,8 @@
 // v317 (21-nov-2026): directorio.html cambió (CORE_ASSETS) -- «⚔️ Ocultar sin pendientes» pasa a medirse por la semana de guerra (no solo el día actual) y «🚢 Solo con barcos» cuenta también el domingo (§PF553).
 // v318 (21-nov-2026): directorio.html cambió (CORE_ASSETS) -- «Ingresos recientes» trae las pastillas «🚢 Sin barcos», «😴 Con días inactivos» (1 o más) y, para admins, «⚠️ Con alerta de clan» (§PF553).
 // v319 (22-nov-2026): guerra.html cambió (CORE_ASSETS) -- sección «📊 Dashboard de guerra» para admins en día de guerra: por clan, el puesto de hoy, las medallas que faltan para el 1.º, los ataques pendientes y «Copiar mensaje»; si los mensajes tienen más de 5 min pide sola la actualización (§PF556).
-const CACHE_NAME = 'terna-static-v319';
+// v320 (22-nov-2026): perfil.html y assets/js/features/timeline-svg.js cambiaron (CORE_ASSETS) -- en las gráficas de perfil el punto estimado ya no parpadea y muestra su valor (marcado «estimado»), y las líneas de unión muestran nombre, tag y clan actual al pasar el cursor (§PF066).
+const CACHE_NAME = 'terna-static-v320';
 
 // Shell mínimo precacheado en la instalación — páginas públicas más
 // visitadas y los assets que usa prácticamente toda la web. admin.html y

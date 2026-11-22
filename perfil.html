@@ -813,8 +813,12 @@
   .ing-linechart-svg .ing-serie-line{fill:none; stroke-width:3; opacity:.95;}
   /* 20-oct-2026: la línea del acumulado va debajo de la diaria. Solo el tramo en que coincide con la diaria (p. ej. todo en 0) se engrosa para asomar a ambos lados; el resto mide lo mismo que la diaria (corrección del 20-oct-2026). */
   .ing-linechart-svg .ing-serie-line.ing-serie-line-acum-coincide{stroke-width:6;}
-  .ing-linechart-svg .ing-serie-pt{cursor:pointer; transition:r .15s ease;}
+  /* 22-nov-2026 (pedido usuaria): el punto hueco (estimado, sin relleno) solo recibía el cursor en su borde de 2 px y, al crecer con :hover, el cursor quedaba fuera y el tooltip parpadeaba y se iba; pointer-events:all hace que todo el círculo (también el centro vacío) reciba el cursor. */
+  .ing-linechart-svg .ing-serie-pt{cursor:pointer; transition:r .15s ease; pointer-events:all;}
   .ing-linechart-svg .ing-serie-pt:hover{r:7;}
+  /* 22-nov-2026 (pedido usuaria): las líneas de unión no reciben el cursor; lo reciben tramos invisibles y más anchos (.ing-serie-hit) dibujados debajo de los puntos, para mostrar nombre, tag y clan actual en cualquier parte de la serie. */
+  .ing-linechart-svg .ing-serie-line{pointer-events:none;}
+  .ing-linechart-svg .ing-serie-hit{fill:none; stroke:transparent; stroke-width:16; stroke-linecap:round; pointer-events:stroke; cursor:pointer;}
   .ing-linechart-svg .ing-axis-title{fill:var(--text-dim); font-family:var(--f-mono); font-size:14px; font-weight:700; letter-spacing:.04em;}
   /* NUEVO (27-sep-2026, pedido usuario): línea guía vertical en cada
      domingo (cierre de semana de guerra) y el rótulo J/V/S/D sin rotar,
@@ -5723,14 +5727,20 @@ function etiquetaPuntoPerfil(pt){
   const d = pt.dataset;
   const tsd = textoTemporadaSemanaDiaPerfil(d);
   // 30-oct-2026 (PF066, decidido por la usuaria): un punto hueco («sin dato») no lleva número, solo la fecha y el motivo; el valor estimado por el backend (corrección) llega como punto real y sí lleva su número. [→ Contexto_Base_Web.md §PF066]
-  if (d.sinDato) return `${d.nombre || ''}${d.tag ? ' (' + d.tag + ')' : ''}: sin dato — ${d.clan || ''} · ${d.semana || ''}${tsd ? ' — ' + tsd : ''}`;
-  return `${d.nombre || ''}${d.tag ? ' (' + d.tag + ')' : ''}: ${d.prefijo || ''}${fmtNum(d.valor)} ${d.unidad || ''} — ${d.clan || ''} · ${d.semana || ''}${tsd ? ' — ' + tsd : ''}${d.tope ? ' — supera el tope de ' + fmtNum(d.tope) : ''}${d.excedeAtaques ? ' — más barcos que ataques (ataques ' + (d.serieEt ? 'acumulados' : 'ese día') + ': ' + fmtNum(d.excedeAtaques) + ')' : ''}${d.minimo ? ' — por debajo del mínimo de ' + fmtNum(d.minimo) : ''}${d.serieEt ? ' — ' + d.serieEt : ''}`;
+  if (d.sinDato && !d.estimado) return `${d.nombre || ''}${d.tag ? ' (' + d.tag + ')' : ''}: sin dato — ${d.clan || ''} · ${d.semana || ''}${tsd ? ' — ' + tsd : ''}`;
+  return `${d.nombre || ''}${d.tag ? ' (' + d.tag + ')' : ''}: ${d.prefijo || ''}${fmtNum(d.valor)} ${d.unidad || ''}${d.estimado ? ' (estimado)' : ''} — ${d.clan || ''} · ${d.semana || ''}${tsd ? ' — ' + tsd : ''}${d.tope ? ' — supera el tope de ' + fmtNum(d.tope) : ''}${d.excedeAtaques ? ' — más barcos que ataques (ataques ' + (d.serieEt ? 'acumulados' : 'ese día') + ': ' + fmtNum(d.excedeAtaques) + ')' : ''}${d.minimo ? ' — por debajo del mínimo de ' + fmtNum(d.minimo) : ''}${d.serieEt ? ' — ' + d.serieEt : ''}`;
+}
+/** 22-nov-2026 (pedido usuaria): tooltip de las líneas de unión: nombre, tag y clan actual de la persona (el clan de cada punto va en el tooltip del punto). */
+function htmlTooltipLineaPerfil(el){
+  const d = el.dataset;
+  return `<b>${esc(d.nombre || '')}${d.tag ? ' (' + esc(d.tag) + ')' : ''}</b><br><span style="color:var(--text-faint);">Clan actual: ${esc(d.clan || '—')}</span>`;
 }
 function htmlTooltipPuntoPerfil(pt){
   const d = pt.dataset;
   // 30-oct-2026 (PF066): el punto hueco muestra solo la fecha y el motivo, sin número. [→ Contexto_Base_Web.md §PF066]
-  if (d.sinDato) return `<b>${esc(d.nombre || '')}${d.tag ? ' (' + esc(d.tag) + ')' : ''}</b><br><span style="color:var(--text-faint);">Sin dato — ${esc(d.clan || '')} · ${esc(d.semana || '')}</span>${textoTemporadaSemanaDiaPerfil(d) ? `<br><span style="color:var(--text-faint);">${esc(textoTemporadaSemanaDiaPerfil(d))}</span>` : ''}`;
-  return `<b>${esc(d.nombre || '')}${d.tag ? ' (' + esc(d.tag) + ')' : ''}</b><br><span style="color:var(--text-faint);">${esc((d.prefijo || '') + fmtNum(d.valor))} ${esc(d.unidad || '')} — ${esc(d.clan || '')} · ${esc(d.semana || '')}</span>${textoTemporadaSemanaDiaPerfil(d) ? `<br><span style="color:var(--text-faint);">${esc(textoTemporadaSemanaDiaPerfil(d))}</span>` : ''}${d.tope ? `<br><span style="color:var(--danger);">⚠ Supera el tope de ${esc(fmtNum(d.tope))}</span>` : ''}${d.excedeAtaques ? `<br><span style="color:var(--danger);">⚠ Más barcos que ataques (ataques ${d.serieEt ? 'acumulados' : 'ese día'}: ${esc(fmtNum(d.excedeAtaques))})</span>` : ''}${d.minimo ? `<br><span style="color:var(--danger);">⚠ Por debajo del mínimo de ${esc(fmtNum(d.minimo))}</span>` : ''}${d.serieEt ? `<br><span style="color:var(--text-faint);">${esc(d.serieEt)}</span>` : ''}`;
+  if (d.sinDato && !d.estimado) return `<b>${esc(d.nombre || '')}${d.tag ? ' (' + esc(d.tag) + ')' : ''}</b><br><span style="color:var(--text-faint);">Sin dato — ${esc(d.clan || '')} · ${esc(d.semana || '')}</span>${textoTemporadaSemanaDiaPerfil(d) ? `<br><span style="color:var(--text-faint);">${esc(textoTemporadaSemanaDiaPerfil(d))}</span>` : ''}`;
+  // 22-nov-2026 (pedido usuaria): el punto estimado (domingo sin dato con valor interpolado) también muestra su valor, marcado como estimado. [→ Contexto_Base_Web.md §PF066]
+  return `<b>${esc(d.nombre || '')}${d.tag ? ' (' + esc(d.tag) + ')' : ''}</b><br><span style="color:var(--text-faint);">${esc((d.prefijo || '') + fmtNum(d.valor))} ${esc(d.unidad || '')}${d.estimado ? ' (estimado)' : ''} — ${esc(d.clan || '')} · ${esc(d.semana || '')}</span>${d.estimado && d.motivo ? `<br><span style="color:var(--text-faint);">${esc(d.motivo)}</span>` : ''}${textoTemporadaSemanaDiaPerfil(d) ? `<br><span style="color:var(--text-faint);">${esc(textoTemporadaSemanaDiaPerfil(d))}</span>` : ''}${d.tope ? `<br><span style="color:var(--danger);">⚠ Supera el tope de ${esc(fmtNum(d.tope))}</span>` : ''}${d.excedeAtaques ? `<br><span style="color:var(--danger);">⚠ Más barcos que ataques (ataques ${d.serieEt ? 'acumulados' : 'ese día'}: ${esc(fmtNum(d.excedeAtaques))})</span>` : ''}${d.minimo ? `<br><span style="color:var(--danger);">⚠ Por debajo del mínimo de ${esc(fmtNum(d.minimo))}</span>` : ''}${d.serieEt ? `<br><span style="color:var(--text-faint);">${esc(d.serieEt)}</span>` : ''}`;
 }
 
 /**
@@ -5791,7 +5801,7 @@ function perfilLineChartSvg(puntos, opts){
     if (ant && sig){ const f0 = parseFechaDDMMYYYY(ant.semana), f1 = parseFechaDDMMYYYY(sig.semana); valor = Number(ant.valor) + (Number(sig.valor) - Number(ant.valor)) * ((k - f0) / Math.max(f1 - f0, 1)); }
     const dom = new Date(k);
     const fecha = `${String(dom.getDate()).padStart(2, '0')}/${String(dom.getMonth() + 1).padStart(2, '0')}/${dom.getFullYear()}`;
-    puntos.splice(i + 1, 0, { semana: fecha, valor: Math.round(valor * 100) / 100, real: false, motivo: 'Sin dato todavía — domingo con valor estimado' });
+    puntos.splice(i + 1, 0, { semana: fecha, valor: Math.round(valor * 100) / 100, real: false, estimado: true, motivo: 'Sin dato todavía — domingo con valor estimado' });
   }
   const zoom = opts.zoom > 1 ? Number(opts.zoom) : 1; // 04-nov-2026 (pedido usuaria, §PF352): el zoom ensancha el lienzo (más espacio entre fechas); el <svg> se muestra a zoom×100 % de ancho dentro de un contenedor con barra de desplazamiento y la altura no cambia.
   // 20-nov-2026 (pedido de la usuaria, vista móvil): en pantallas de hasta 600 px el lienzo es el estándar de celular (480 x 420, graficaLienzo() de util.js) para que la gráfica no salga achatada. [→ Contexto_Base_Web.md §PF523]
@@ -5916,6 +5926,12 @@ function perfilLineChartSvg(puntos, opts){
     const dashed = !(a.real && b.real);
     path += `<path class="ing-serie-line${dashed ? ' ing-serie-line-dashed' : ''}" data-serie-clave="dia" d="M ${xPos(i).toFixed(1)} ${yPos(a.valor).toFixed(1)} L ${xPos(i + 1).toFixed(1)} ${yPos(b.valor).toFixed(1)}" stroke="${COLOR_SERIE_PERFIL}"></path>`;
   }
+  // 22-nov-2026 (pedido usuaria): tramos invisibles y anchos sobre cada línea de unión; al pasar el cursor por cualquier parte de la serie muestran nombre, tag y clan actual (htmlTooltipLineaPerfil()). No llevan data-serie-clave: no forman parte del resalte de la serie.
+  const _datosHit = `data-nombre="${esc(perfilGraficaCtx.nombre)}" data-tag="${esc(perfilGraficaCtx.tag)}" data-clan="${esc(perfilGraficaCtx.clan || '—')}"`;
+  let hitDia = '';
+  for (let i = 0; i < n - 1; i++){
+    hitDia += `<path class="ing-serie-hit" data-serie-hit="dia" ${_datosHit} d="M ${xPos(i).toFixed(1)} ${yPos(puntos[i].valor).toFixed(1)} L ${xPos(i + 1).toFixed(1)} ${yPos(puntos[i + 1].valor).toFixed(1)}"></path>`;
+  }
   const circles = puntos.map((p, i) => {
     // 19-oct-2026 (pedido usuaria): en la gráfica de barcos, un día con más barcos que ataques también es anomalía (p.excedeAtaques trae los ataques de ese día; lo calcula renderMetricaSemanal()).
     const excedeAtaques = p.real && p.excedeAtaques != null;
@@ -5924,8 +5940,8 @@ function perfilLineChartSvg(puntos, opts){
     return `
       <circle class="ing-serie-pt${p.real ? '' : ' serie-pt-vacio'}${anomalia ? ' serie-pt-anomalia' : ''}" data-serie-clave="dia" cx="${xPos(i).toFixed(1)}" cy="${yPos(p.valor).toFixed(1)}" r="${anomalia ? 6.5 : R_PUNTO_PERFIL}"
         fill="${p.real ? (anomalia ? 'var(--danger)' : COLOR_SERIE_PERFIL) : 'none'}" stroke="${p.real ? 'var(--bg)' : COLOR_SERIE_PERFIL}" stroke-width="${p.real ? 1.5 : 2}"
-        data-nombre="${esc(perfilGraficaCtx.nombre)}" data-tag="${esc(perfilGraficaCtx.tag)}" data-valor="${p.valor}" ${p.real ? '' : ' data-sin-dato="1"'} data-prefijo="${esc(p.real ? prefijo : '')}"
-        data-clan="${esc(p.real ? (p.clan || perfilGraficaCtx.clan || '—') : (p.motivo || 'Sin dato — sin clan o sin participar'))}"
+        data-nombre="${esc(perfilGraficaCtx.nombre)}" data-tag="${esc(perfilGraficaCtx.tag)}" data-valor="${p.valor}" ${p.real ? '' : ' data-sin-dato="1"'}${(!p.real && p.estimado) ? ' data-estimado="1"' : ''} data-prefijo="${esc((p.real || p.estimado) ? prefijo : '')}"
+        data-clan="${esc((p.real || p.estimado) ? (p.clan || perfilGraficaCtx.clan || '—') : (p.motivo || 'Sin dato — sin clan o sin participar'))}"${(!p.real && p.estimado) ? ` data-motivo="${esc(p.motivo || '')}"` : ''}
         data-serie="dia" data-semana="${esc(p.semana)}"${attrsTemporadaSemanaDiaPerfil(p)} data-unidad="${esc(opts.unidad || '')}"${(!!tope && p.real && Number(p.valor) > tope) ? ` data-tope="${tope}"` : ''}${excedeAtaques ? ` data-excede-ataques="${p.excedeAtaques}"` : ''}${bajoMin ? ` data-minimo="${minimo}"` : ''}></circle>`;
   }).join('');
 
@@ -5954,6 +5970,10 @@ function perfilLineChartSvg(puntos, opts){
   for (let k = 0; k < ptsSem.length - 1; k++){
     pathSem += `<path class="ing-serie-line ing-serie-line-acum${tramoCoincide(ptsSem[k], ptsSem[k + 1]) ? ' ing-serie-line-acum-coincide' : ''}" data-serie-clave="acum" d="M ${xPos(ptsSem[k].i).toFixed(1)} ${yPos(ptsSem[k].valor).toFixed(1)} L ${xPos(ptsSem[k + 1].i).toFixed(1)} ${yPos(ptsSem[k + 1].valor).toFixed(1)}" stroke="${COLOR_SERIE_ACUMULADO_PERFIL}"></path>`;
   }
+  let hitSem = '';
+  for (let k = 0; k < ptsSem.length - 1; k++){
+    hitSem += `<path class="ing-serie-hit" data-serie-hit="acum" ${_datosHit} d="M ${xPos(ptsSem[k].i).toFixed(1)} ${yPos(ptsSem[k].valor).toFixed(1)} L ${xPos(ptsSem[k + 1].i).toFixed(1)} ${yPos(ptsSem[k + 1].valor).toFixed(1)}"></path>`;
+  }
   const circlesSem = ptsSem.map(q => {
     const superaTope = !!topeSem && Number(q.valor) > topeSem;
     const excedeAtaques = q.excedeAtaques != null;
@@ -5973,7 +5993,7 @@ function perfilLineChartSvg(puntos, opts){
   const ejeYTitle = opts.ejeY
     ? `<text class="ing-axis-title" x="14" y="${PAD_T + plotH / 2}" text-anchor="middle" transform="rotate(-90 14 ${PAD_T + plotH / 2})">${esc(opts.ejeY)}</text>`
     : '';
-  return `<svg class="ing-linechart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet"${(zoom > 1 || _lz.movil) ? ` style="width:${Math.round(zoom * 100)}%; aspect-ratio:${W}/${H};"` : ''} data-xgeom="${PAD_L},${plotW},${PAD_R},${PAD_B},${H},${W}" data-xfechas="${esc(JSON.stringify(puntos.map(q => q.semana)))}">${bandasTemporada}${gridLines.join('')}${gridMedios}${lineasTemporales}${lineasDomingo}${xLetrasDia}${xLabels}${lineaTope}${lineaTopeSem}${lineaMin}${pathSem}${circlesSem}${path}${circles}${ejeXTitle}${ejeYTitle}</svg>`;
+  return `<svg class="ing-linechart-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet"${(zoom > 1 || _lz.movil) ? ` style="width:${Math.round(zoom * 100)}%; aspect-ratio:${W}/${H};"` : ''} data-xgeom="${PAD_L},${plotW},${PAD_R},${PAD_B},${H},${W}" data-xfechas="${esc(JSON.stringify(puntos.map(q => q.semana)))}">${bandasTemporada}${gridLines.join('')}${gridMedios}${lineasTemporales}${lineasDomingo}${xLetrasDia}${xLabels}${lineaTope}${lineaTopeSem}${lineaMin}${hitSem}${hitDia}${pathSem}${circlesSem}${path}${circles}${ejeXTitle}${ejeYTitle}</svg>`;
 }
 
 /** Mini-leyenda de arriba de cada gráfica (idéntica a la de directorio.html). */
@@ -6072,7 +6092,7 @@ function activarTooltipEjeXPerfil(svg){
   let visible = false;
   const ocultar = () => { if (visible){ tip.style.display = 'none'; visible = false; } };
   svg.addEventListener('mousemove', e => {
-    if (e.target && e.target.classList && e.target.classList.contains('ing-serie-pt')){ visible = false; return; } // el tooltip del punto manda
+    if (e.target && e.target.classList && (e.target.classList.contains('ing-serie-pt') || e.target.classList.contains('ing-serie-hit'))){ visible = false; return; } // el tooltip del punto o de la línea manda
     const r = svg.getBoundingClientRect();
     if (!r.width || !r.height){ ocultar(); return; }
     const ux = (e.clientX - r.left) / r.width * W, uy = (e.clientY - r.top) / r.height * H;
@@ -6177,6 +6197,15 @@ function pintarGraficaPerfil(wrap, puntos, opts, nota){
       posicionarTooltipGrafica(tip, e.clientX, e.clientY); // se voltea a la izquierda/arriba si no cabe. Historial en CHANGELOG.md.
     });
     pt.addEventListener('mouseleave', () => { tip.style.display = 'none'; });
+  });
+  // 22-nov-2026 (pedido usuaria): tooltip en las líneas de unión (nombre, tag y clan actual).
+  svg.querySelectorAll('.ing-serie-hit').forEach(h => {
+    h.addEventListener('mousemove', e => {
+      tip.innerHTML = htmlTooltipLineaPerfil(h);
+      tip.style.display = 'block';
+      posicionarTooltipGrafica(tip, e.clientX, e.clientY);
+    });
+    h.addEventListener('mouseleave', () => { tip.style.display = 'none'; });
   });
   // Teclado y lectores de pantalla: un Tab entra a la gráfica, ←/→ recorren las semanas.
   activarTecladoPuntosGrafica(svg, {

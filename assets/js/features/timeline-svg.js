@@ -450,6 +450,9 @@ function activarResalteSerieGrafica(svg, opts){
     if (e.pointerType === 'touch') return;
     const sobre = e.target && e.target.closest ? e.target.closest('[data-serie-clave]') : null; // el cursor justo sobre una línea o un punto
     if (sobre){ resaltar(claveDe(sobre)); return; }
+    // 22-nov-2026: tramo invisible y ancho sobre la línea (data-serie-hit="<clave de la serie>"), para páginas cuyas líneas no reciben el cursor (perfil.html).
+    const hit = e.target && e.target.getAttribute ? e.target.getAttribute('data-serie-hit') : null;
+    if (hit !== null && porSerie.has(hit)){ resaltar(hit); return; }
     const c = masCercano(e.clientX, e.clientY);
     if (c && c.d <= DIST){ resaltar(c.k); return; }
     if (activa !== null && distanciaASerie(activa, e.clientX, e.clientY) <= DIST * 1.8) return;
