@@ -52,6 +52,39 @@ function colHoySemanal(data, temporadaSel, semanasLabels){
 }
 /* NUEVO (05-oct-2026): `umbral` = ataques que exige esa semana = 16 menos 4 por cada día en que el clan ya había cruzado la meta (atacar era opcional). Sin dato de días opcionales vale 16, igual que antes. */
 function claseCeldaSemana(n, umbral){ const u = umbral === undefined ? UMBRAL_VERDE_SEMANAL : umbral; return n >= u ? 'ai-cell ai-cell-full' : (n > 0 ? 'ai-cell ai-cell-part' : 'ai-cell ai-cell-zero'); }
+/* NUEVO (23-nov-2026, pedido de la usuaria; criterio de Contexto_Base_Web.md §PF560 punto 8): estado de ataques de UN jugador en la cuadrícula, para las pastillas Todos / Completos / Incompletos.
+   Devuelve 'completo', 'incompleto' o '' (sin ningún día o semana cerrados que juzgar). Cada día se juzga por separado y nunca se suman ataques de un día a otro. Con el clan ya cruzado, un día opcional cuenta como completo con los ataques que sean (0 a 3 no es falta). Un día obligatorio ya cerrado con menos de 4 (incluido el 0) es incompleto. El día en curso con ataques pendientes no se juzga. `null` = no estuvo en el clan: tampoco se juzga. */
+function estadoAtaquesFilaDiaria(f, colHoy, enCurso){
+  const opc = Array.isArray(f && f.opc) ? f.opc : [];
+  let juzgados = 0, incompletos = 0;
+  ['j', 'v', 's', 'd'].forEach(k => {
+    const n = f ? f[k] : null;
+    if (n === null || n === undefined || !Number.isFinite(Number(n))) return;
+    const esOpc = opc.includes(k);
+    if (enCurso && colHoy && colHoy.key === k && !esOpc && Number(n) < 4) return; // día en curso: todavía puede atacar
+    juzgados++;
+    if (!esOpc && Number(n) < 4) incompletos++;
+  });
+  return incompletos ? 'incompleto' : (juzgados ? 'completo' : '');
+}
+/* Valores semanales solo trae el total de cada semana (no el de cada día): una semana por debajo de su umbral (16 menos 4 por cada día opcional) tiene seguro algún día obligatorio con menos de 4, así que «incompleto» es exacto; «completo» supone que no dejó un día obligatorio incompleto compensado con ataques de un día opcional (caso raro). La semana en curso con ataques pendientes no se juzga. */
+function estadoAtaquesFilaSemanal(f, colHoy, enCurso){
+  const m = f && f.ataques;
+  const semanas = Array.isArray(m && m.semanas) ? m.semanas : [];
+  const opcArr = Array.isArray(m && m.opc) ? m.opc : [];
+  let juzgadas = 0, incompletas = 0;
+  semanas.forEach((v, i) => {
+    if (v === null || v === undefined) return;
+    const n = Number(v) || 0;
+    const o = opcArr[i];
+    const nOpc = Math.max(0, Math.min(4, Array.isArray(o) ? o.length : (Number(o) || 0)));
+    const umbral = UMBRAL_VERDE_SEMANAL - 4 * nOpc;
+    if (enCurso && colHoy && colHoy.idx === i && n < umbral) return; // semana en curso: todavía puede atacar
+    juzgadas++;
+    if (n < umbral) incompletas++;
+  });
+  return incompletas ? 'incompleto' : (juzgadas ? 'completo' : '');
+}
 function claseCeldaCA(n){ return n >= 4 ? 'ai-cell ai-cell-full' : (n > 0 ? 'ai-cell ai-cell-part' : 'ai-cell ai-cell-zero'); }
 /* celdasMegacategoria(m, gpClase, conColor, keyPrefix) Historial en CHANGELOG.md. */
 function celdasMegacategoria(m, gpClase, conColor, keyPrefix, opc, colHoy){
@@ -332,11 +365,14 @@ function gridAplicarFiltros(gridId, tabla){
     const tieneCero = [...fila.querySelectorAll('[data-col^="atq-"]')].some(c => /^atq-(j|v|s|d|sem\d+)$/.test(c.dataset.col) && c.dataset.raw === '0' && !c.dataset.opc);
     fila.classList.toggle('ai-fila-cero', tieneCero);
     const pasaSoloCero = !soloCeroDeGridId(gridId) || tieneCero;
-    fila.style.display = (pasaCols && pasaLetra && pasaBusqueda && pasaSoloCero) ? '' : 'none';
+    const atqSel = atqFiltroDeGridId(gridId); // 'todos' | 'completos' | 'incompletos'
+    const pasaAtq = atqSel === 'todos' || fila.dataset.atqEstado === (atqSel === 'completos' ? 'completo' : 'incompleto');
+    fila.style.display = (pasaCols && pasaLetra && pasaBusqueda && pasaSoloCero && pasaAtq) ? '' : 'none';
   });
   renumerarFilas(tabla);
   gridActualizarTotales(tabla);
   actualizarBotonSoloCero(gridId);
+  actualizarPastillasAtaques(gridId);
   actualizarCuentaBuscador(String(gridId).split(':')[0]);
 }
 
@@ -480,6 +516,31 @@ function actualizarBotonSoloCero(gridId){
   const n = wrap.querySelectorAll('tbody tr.ai-fila-cero').length;
   btn.textContent = 'Solo con 0 ataques' + (n ? ' (' + n + ')' : '');
   btn.setAttribute('aria-pressed', String(act ? soloCeroActivos : soloCeroTemporada));
+}
+
+/* NUEVO (23-nov-2026): pastillas Todos / Completos / Incompletos de Valores diarios y Valores semanales (estado en guerra.html: filtroAtaquesActivos / filtroAtaquesTemporada). */
+function atqFiltroDeGridId(gridId){
+  if (typeof filtroAtaquesActivos === 'undefined') return 'todos'; // páginas que cargan este archivo sin las pastillas
+  if (gridId.startsWith('activos:')) return filtroAtaquesActivos;
+  if (gridId.startsWith('temporada:')) return filtroAtaquesTemporada;
+  return 'todos';
+}
+/* Cuenta los jugadores de toda la sección (todos los clanes) y marca la pastilla elegida. */
+function actualizarPastillasAtaques(gridId){
+  if (!gridId.startsWith('activos:') && !gridId.startsWith('temporada:')) return;
+  const act = gridId.startsWith('activos:');
+  const grupo = document.getElementById(act ? 'filtroAtaquesActivos' : 'filtroAtaquesTemporada');
+  const wrap = document.getElementById(act ? 'controlActivosWrap' : 'controlTemporadaWrap');
+  if (!grupo || !wrap) return;
+  const filas = wrap.querySelectorAll('tbody tr');
+  const cuenta = { todos: filas.length, completos: 0, incompletos: 0 };
+  filas.forEach(f => { if (f.dataset.atqEstado === 'completo') cuenta.completos++; else if (f.dataset.atqEstado === 'incompleto') cuenta.incompletos++; });
+  const sel = atqFiltroDeGridId(gridId);
+  grupo.querySelectorAll('[data-atq-filtro]').forEach(b => {
+    const k = b.dataset.atqFiltro;
+    b.textContent = b.dataset.atqTexto + ' (' + cuenta[k] + ')';
+    b.setAttribute('aria-pressed', String(k === sel));
+  });
 }
 
 function gridActualizarIconos(gridId, tabla){

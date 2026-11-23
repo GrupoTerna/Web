@@ -129,6 +129,8 @@ test('gridAplicarFiltros(): la búsqueda se combina con la letra y renumera solo
     function renumerarFilas(tabla){ let n = 0; tabla.querySelectorAll('tbody tr').forEach(tr => { tr.querySelector('td.col-n').textContent = tr.style.display === 'none' ? '' : String(++n); }); }
     function gridActualizarTotales(){}
     function actualizarBotonSoloCero(){}
+    function atqFiltroDeGridId(){ return 'todos'; }
+    function actualizarPastillasAtaques(){}
     ${trozo(/const BUSCADOR_DE_SECCION = \{[\s\S]*?\n\};\n/)}
     ${trozo(/function busquedaDeSeccion\(prefijo\)\{[\s\S]*?\n\}\n/)}
     ${trozo(/function busquedaDeGridId\(gridId\)\{[^\n]*\}\n/)}

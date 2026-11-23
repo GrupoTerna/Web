@@ -530,6 +530,8 @@
            clan) de esta cuadrícula a la vez, vía aplicarFiltroLetraGrid()
            como callback. -->
       <div class="tabs-row" id="controlActivosLetraFilter" style="margin-top:10px;"></div>
+      <div class="atq-filtro" id="filtroAtaquesActivos" role="group" aria-label="Filtrar jugadores por ataques completos o incompletos"><button type="button" class="btn-solo-cero atq-pastilla" data-atq-filtro="todos" data-atq-texto="Todos" aria-pressed="true">Todos</button><button type="button" class="btn-solo-cero atq-pastilla" data-atq-filtro="completos" data-atq-texto="Completos" aria-pressed="false">Completos</button><button type="button" class="btn-solo-cero atq-pastilla" data-atq-filtro="incompletos" data-atq-texto="Incompletos" aria-pressed="false">Incompletos</button></div>
+      <p class="atq-ayuda text-faint"><b>Completo:</b> todos sus días de guerra ya cerrados con 4 ataques; un día opcional (el clan ya cruzó la meta) cuenta como completo aunque haya hecho 0 a 3. <b>Incompleto:</b> algún día obligatorio ya cerrado con menos de 4 ataques (incluye los 0). Cada día se juzga por separado: no se suman ataques de un día a otro. El día en curso con ataques pendientes y los días en que no estuvo en el clan no cuentan.</p>
       <div style="margin-top:10px;"><button type="button" class="btn-solo-cero" id="soloCeroActivosBtn" aria-pressed="false" title="Muestra solo a quienes estuvieron en el clan y tienen al menos un 0 en Ataques (las celdas vacías no cuentan)">Solo con 0 ataques</button></div>
       <div id="controlActivosWrap" style="margin-top:14px;"></div>
     </section>
@@ -564,6 +566,8 @@
            Valores diarios de arriba (ver pintarFiltroLetra() en
            assets/js/ui/filters.js). -->
       <div class="tabs-row" id="controlTemporadaLetraFilter" style="margin-top:10px;"></div>
+      <div class="atq-filtro" id="filtroAtaquesTemporada" role="group" aria-label="Filtrar jugadores por ataques completos o incompletos"><button type="button" class="btn-solo-cero atq-pastilla" data-atq-filtro="todos" data-atq-texto="Todos" aria-pressed="true">Todos</button><button type="button" class="btn-solo-cero atq-pastilla" data-atq-filtro="completos" data-atq-texto="Completos" aria-pressed="false">Completos</button><button type="button" class="btn-solo-cero atq-pastilla" data-atq-filtro="incompletos" data-atq-texto="Incompletos" aria-pressed="false">Incompletos</button></div>
+      <p class="atq-ayuda text-faint"><b>Completo:</b> todas sus semanas ya cerradas en verde (16 ataques, menos 4 por cada día opcional). <b>Incompleto:</b> alguna semana cerrada por debajo de eso, es decir, con algún día obligatorio de menos de 4 ataques. Esta tabla solo trae el total de cada semana, así que no dice qué día falló; para eso mira Valores diarios. La semana en curso con ataques pendientes y las semanas en que no estuvo en el clan no cuentan.</p>
       <div style="margin-top:10px;"><button type="button" class="btn-solo-cero" id="soloCeroTemporadaBtn" aria-pressed="false" title="Muestra solo a quienes estuvieron en el clan y tienen al menos un 0 en Ataques (las celdas vacías no cuentan)">Solo con 0 ataques</button></div>
       <div id="controlTemporadaWrap" style="margin-top:14px;"></div>
     </section>
@@ -672,6 +676,9 @@ let letraSeleccionadaTemporada = null;
 // Parte 2 (05-oct-2026): filtro rápido "Solo con 0 ataques" por sección (a nivel de módulo para sobrevivir a render()).
 let soloCeroActivos = false;
 let soloCeroTemporada = false;
+// NUEVO (23-nov-2026): pastillas Todos / Completos / Incompletos de cada cuadrícula ('todos' | 'completos' | 'incompletos'), a nivel de módulo para sobrevivir a render(). [→ Contexto_Base_Web.md §PF561]
+let filtroAtaquesActivos = 'todos';
+let filtroAtaquesTemporada = 'todos';
 // antes solo existía sectionIndexSeleccionadoActivos (semana dentro de la temporada vigente); ahora se agregan anioSeleccionadoActivos/temporadaSeleccionadaActivos para poder elegir CUALQUIER combinación con datos. Historial en CHANGELOG.md.
 let anioSeleccionadoActivos = null;
 let temporadaSeleccionadaActivos = null;
@@ -1187,7 +1194,7 @@ function render(data){
     // NUEVO (23-oct-2026, tanda 6): columna del día de hoy (o del último día jugado en entrenamiento) para marcarla en esta cuadrícula; null si se eligió otra semana. [→ Contexto_Base_Web.md §PF176]
     const colHoyDia = colHoyDiario(data, temporadaSeleccionadaActivos, sectionIndexSeleccionadoActivos);
     const renderFilaActivos = f => `
-              <tr data-letra="${esc(primeraLetraFiltro(f.nombre || f.tag))}" data-buscar="${esc((f.nombre || '') + ' ' + (f.tag || ''))}" data-rango="${esc(f.rango || '')}" class="${f.activo === false ? 'fila-inactivo' : ''}">
+              <tr data-letra="${esc(primeraLetraFiltro(f.nombre || f.tag))}" data-buscar="${esc((f.nombre || '') + ' ' + (f.tag || ''))}" data-rango="${esc(f.rango || '')}" data-atq-estado="${estadoAtaquesFilaDiaria(f, colHoyDia, !!(data.ctx && data.ctx.esDiaGuerra))}" class="${f.activo === false ? 'fila-inactivo' : ''}">
                 <td class="col-n"></td>
                 ${celdaJugadorGrid(f)}
                 ${celdasMegacategoria({j:f.j, v:f.v, s:f.s, d:f.d, total:f.total}, 'ai-grp-atq', true, 'atq', f.opc, colHoyDia && colHoyDia.key)}
@@ -1267,7 +1274,7 @@ function render(data){
     // filaSubEncabezadosSemanas() (ver más arriba). Igual que en Activos,
     // el <tbody> arranca vacío y lo llena inicializarGridFiltro() más abajo.
     const renderFilaTemporada = f => `
-              <tr data-letra="${esc(primeraLetraFiltro(f.nombre || f.tag))}" data-buscar="${esc((f.nombre || '') + ' ' + (f.tag || ''))}" data-rango="${esc(f.rango || '')}" class="${f.activo === false ? 'fila-inactivo' : ''}">
+              <tr data-letra="${esc(primeraLetraFiltro(f.nombre || f.tag))}" data-buscar="${esc((f.nombre || '') + ' ' + (f.tag || ''))}" data-rango="${esc(f.rango || '')}" data-atq-estado="${estadoAtaquesFilaSemanal(f, colHoySem, !!(data.ctx && data.ctx.esDiaGuerra))}" class="${f.activo === false ? 'fila-inactivo' : ''}">
                 <td class="col-n"></td>
                 ${celdaJugadorGrid(f)}
                 ${celdasSemanas(f.ataques, 'ai-grp-atq', true, 'atq', colHoySem && colHoySem.idx)}
@@ -2597,6 +2604,9 @@ document.addEventListener('visibilitychange', () => {
 setInterval(actualizarAgoText, 1000);
 
 /* Parte 2 (05-oct-2026): botones "Solo con 0 ataques" (uno por sección). Reaplican el filtro combinado sobre las tablas ya pintadas. */
+/* 23-nov-2026: pastillas Todos / Completos / Incompletos de cada cuadrícula. */
+document.getElementById('filtroAtaquesActivos').addEventListener('click', e => { const b = e.target.closest('[data-atq-filtro]'); if (!b) return; filtroAtaquesActivos = b.dataset.atqFiltro; aplicarFiltroLetraGrid('controlActivosWrap'); });
+document.getElementById('filtroAtaquesTemporada').addEventListener('click', e => { const b = e.target.closest('[data-atq-filtro]'); if (!b) return; filtroAtaquesTemporada = b.dataset.atqFiltro; aplicarFiltroLetraGrid('controlTemporadaWrap'); });
 document.getElementById('soloCeroActivosBtn').addEventListener('click', () => { soloCeroActivos = !soloCeroActivos; aplicarFiltroLetraGrid('controlActivosWrap'); actualizarBotonSoloCero('activos:'); });
 document.getElementById('soloCeroTemporadaBtn').addEventListener('click', () => { soloCeroTemporada = !soloCeroTemporada; aplicarFiltroLetraGrid('controlTemporadaWrap'); actualizarBotonSoloCero('temporada:'); });
 </script>
