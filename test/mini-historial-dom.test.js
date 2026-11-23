@@ -345,14 +345,19 @@ test('Pastilla Todos / Completos / Incompletos: cuenta, filtra y muestra el aná
 
   const [porDia, porBarcos] = w.document.querySelectorAll('#histCuerpo .hist-tabla-incompletos');
   const f = [...porDia.querySelectorAll('tbody tr')].map(tr => [...tr.children].map(td => td.textContent));
-  assert.deepEqual(f.map(x => x[0]), ['J', 'V', 'S', 'D']);
+  assert.deepEqual(f.map(x => x[0]), ['Jueves', 'Viernes', 'Sábado', 'Domingo']);
   assert.deepEqual(f[0].slice(1), ['2', '0', '0 %', '0', '0']);
   assert.deepEqual(f[1].slice(1), ['2', '1', '50 %', '2', '1']);
   assert.deepEqual(f[2].slice(1), ['2', '2', '100 %', '5', '2']);
   assert.ok(porDia.querySelectorAll('tbody tr')[2].classList.contains('hist-top'), 'el día con más incompletos se resalta');
   const b = [...porBarcos.querySelectorAll('tbody tr')].map(tr => [...tr.children].map(td => td.textContent));
-  assert.deepEqual(b[0], ['Incompletos', '3', '3', '1', '2']);
-  assert.deepEqual(b[1], ['Completos', '5', '0', '0', '0']);
+  assert.deepEqual(b[0], ['Días incompletos', '3', '3', '1', '2']);
+  assert.deepEqual(b[1], ['Días completos', '5', '0', '0', '0']);
+  const frases = [...w.document.querySelectorAll('#histCuerpo .hist-an-conclusion')].map(e => e.textContent);
+  assert.match(frases[0], /sábado/, 'la conclusión nombra el día con más incompletos');
+  assert.match(frases[1], /hizo 3 barcos en 2 de 3 días/, 'la conclusión de barcos');
+  assert.equal(w.document.querySelectorAll('#histCuerpo .hist-an-tit').length, 2, 'cada tabla lleva su título');
+  assert.deepEqual([...porDia.querySelectorAll('thead th')].map(th => th.textContent), ['Día de la semana', 'Días jugados', 'Días incompletos', '% de incompletos', 'Ataques sin hacer', 'Barcos en esos días']);
 
   pastilla('completos').click();
   assert.equal(filasDia(), 5);

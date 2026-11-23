@@ -376,19 +376,44 @@ function histAnalisisIncompletos(regs, hoyIso){
   });
   return { por, g };
 }
+/* 23-nov-2026 (pedido de la usuaria: «no se entiende qué significa cada columna»): las dos tablas de análisis se rehicieron con título en forma de pregunta, una línea que explica qué cuenta cada fila, encabezados con la palabra completa, bordes visibles y una conclusión en una frase. Mismos cálculos de histAnalisisIncompletos(). [→ Contexto_Base_Web.md §PF562] */
+const HIST_NOMBRE_DIA = { J: 'Jueves', V: 'Viernes', S: 'Sábado', D: 'Domingo' };
 function histAnalisisHtml(regs, hoyIso){
   const { por, g } = histAnalisisIncompletos(regs, hoyIso);
   const maxInc = Math.max(...HIST_DIAS_GUERRA.map(l => por[l].inc));
   const filas = HIST_DIAS_GUERRA.map(l => {
     const d = por[l];
     const pct = d.dias ? Math.round(d.inc * 100 / d.dias) + ' %' : '–';
-    return `<tr${maxInc > 0 && d.inc === maxInc ? ' class="hist-top"' : ''}><td>${l}</td><td>${fmtNum(d.dias)}</td><td>${fmtNum(d.inc)}</td><td>${pct}</td><td>${fmtNum(d.faltan)}</td><td>${fmtNum(d.barcosInc)}</td></tr>`;
+    return `<tr${maxInc > 0 && d.inc === maxInc ? ' class="hist-top"' : ''}><th scope="row">${HIST_NOMBRE_DIA[l]}</th><td>${fmtNum(d.dias)}</td><td>${fmtNum(d.inc)}</td><td>${pct}</td><td>${fmtNum(d.faltan)}</td><td>${fmtNum(d.barcosInc)}</td></tr>`;
   }).join('');
+  const peores = HIST_DIAS_GUERRA.filter(l => maxInc > 0 && por[l].inc === maxInc);
+  const frasePeor = !maxInc
+    ? 'No dejó ataques sin hacer en ningún día de la semana.'
+    : (peores.length === 1
+      ? `El día en que más deja ataques sin hacer es el ${HIST_NOMBRE_DIA[peores[0]].toLowerCase()}: ${fmtNum(maxInc)} de ${fmtNum(por[peores[0]].dias)} (${Math.round(maxInc * 100 / por[peores[0]].dias)} %), con ${fmtNum(por[peores[0]].faltan)} ataques sin hacer.`
+      : `Los días en que más deja ataques sin hacer son ${peores.map(l => HIST_NOMBRE_DIA[l].toLowerCase()).join(' y ')}: ${fmtNum(maxInc)} días incompletos en cada uno.`);
   const prom = k => k.dias ? histFmtDec(k.barcos / k.dias) : '–';
-  const linea = (tit, k) => `<tr><td>${tit}</td><td>${fmtNum(k.dias)}</td><td>${fmtNum(k.barcos)}</td><td>${prom(k)}</td><td>${fmtNum(k.conBarcos)}</td></tr>`;
+  const linea = (tit, k) => `<tr><th scope="row">${tit}</th><td>${fmtNum(k.dias)}</td><td>${fmtNum(k.barcos)}</td><td>${prom(k)}</td><td>${fmtNum(k.conBarcos)}</td></tr>`;
+  const fraseBarcos = (!g.inc.barcos && !g.comp.barcos)
+    ? 'No hizo ataques a barcos en ningún día cerrado.'
+    : (!g.inc.dias
+      ? 'No tiene días incompletos, así que no hay con qué comparar.'
+      : (g.inc.barcos > 0
+        ? `En los días incompletos hizo ${fmtNum(g.inc.barcos)} barco${g.inc.barcos === 1 ? '' : 's'} en ${fmtNum(g.inc.conBarcos)} de ${fmtNum(g.inc.dias)} días.`
+        : 'En ningún día incompleto hizo barcos.'));
   return `
-    <div class="hist-tabla-scroll"><table class="hist-tabla hist-tabla-incompletos"><caption>Por día de la semana de guerra</caption><thead><tr><th>Día</th><th>Días</th><th>Incompl.</th><th>%</th><th>Faltaron</th><th>Barcos</th></tr></thead><tbody>${filas}</tbody></table></div>
-    <div class="hist-tabla-scroll"><table class="hist-tabla hist-tabla-incompletos"><caption>Barcos según el día</caption><thead><tr><th></th><th>Días</th><th>Barcos</th><th>Por día</th><th>Con barcos</th></tr></thead><tbody>${linea('Incompletos', g.inc)}${linea('Completos', g.comp)}</tbody></table></div>`;
+    <section class="hist-an">
+      <h4 class="hist-an-tit">¿Qué día de la semana deja ataques sin hacer?</h4>
+      <p class="hist-an-desc">Cada fila es un día de la semana de guerra. Un día es <b>incompleto</b> si ya cerró y el jugador hizo menos de 4 ataques (incluye 0).</p>
+      <div class="hist-tabla-scroll"><table class="hist-tabla hist-tabla-incompletos"><thead><tr><th scope="col">Día de la semana</th><th scope="col">Días jugados</th><th scope="col">Días incompletos</th><th scope="col">% de incompletos</th><th scope="col">Ataques sin hacer</th><th scope="col">Barcos en esos días</th></tr></thead><tbody>${filas}</tbody></table></div>
+      <p class="hist-an-conclusion">${frasePeor}</p>
+    </section>
+    <section class="hist-an">
+      <h4 class="hist-an-tit">¿Hace barcos en los días incompletos?</h4>
+      <p class="hist-an-desc">Compara los días incompletos con los completos (4 ataques, o un día opcional porque el clan ya había cruzado la meta).</p>
+      <div class="hist-tabla-scroll"><table class="hist-tabla hist-tabla-incompletos"><thead><tr><th scope="col">Tipo de día</th><th scope="col">Cantidad de días</th><th scope="col">Barcos en total</th><th scope="col">Barcos por día</th><th scope="col">Días con al menos 1 barco</th></tr></thead><tbody>${linea('Días incompletos', g.inc)}${linea('Días completos', g.comp)}</tbody></table></div>
+      <p class="hist-an-conclusion">${fraseBarcos}</p>
+    </section>`;
 }
 function histSelectorComparar(valor){
   const vistos = {};
@@ -438,7 +463,7 @@ function histCuerpoDiaHtml(registros, limite){
     ${filtrado ? histAnalisisHtml(desc, hoyIso) : ''}
     ${filtrado && !lista.length ? `<p class="hist-nota">Ningún día de guerra ${filtro === 'completos' ? 'completo' : 'incompleto'} en este período.</p>` : `<div class="hist-tabla-scroll"><table class="hist-tabla hist-tabla-dia"><thead><tr><th>N°</th><th>Fecha</th><th>Temporada</th><th>Semana</th><th>Día</th><th>Ataques</th><th>Barcos</th><th>Medallas</th></tr></thead><tbody>${filas}</tbody></table></div>`}
     ${lista.length > visibles.length ? `<button type="button" class="btn-solo-cero hist-mas" data-hist-mas="1">Ver más</button>` : ''}
-    <p class="hist-nota">Un 0 es un día de guerra en el que estuvo registrado y no atacó. Los días anteriores a su ingreso al clan no aparecen. Un día marcado como opcional (meta ya cruzada) no cuenta como falta. Solo se muestran días de guerra, no de entrenamiento.${filtrado ? ' Incompleto: día obligatorio ya cerrado con menos de 4 ataques (incluye los 0). Completo: 4 ataques, o un día opcional (el clan ya había cruzado la meta) con los que haya hecho. Cada día se juzga por separado: no se suman ataques de otro día, y el día en curso con ataques pendientes no cuenta. En la primera tabla, «Días» son los días cerrados de cada día de la semana, «Faltaron» los ataques que no hizo y «Barcos» los de esos días incompletos; en la segunda, «Con barcos» son los días en que hizo al menos un ataque a barcos.' : ''}${histNotasDiaEnCurso(hayHoy, hayPend)}</p>`;
+    <p class="hist-nota">Un 0 es un día de guerra en el que estuvo registrado y no atacó. Los días anteriores a su ingreso al clan no aparecen. Un día marcado como opcional (meta ya cruzada) no cuenta como falta. Solo se muestran días de guerra, no de entrenamiento.${filtrado ? ' Incompleto: día obligatorio ya cerrado con menos de 4 ataques (incluye los 0). Completo: 4 ataques, o un día opcional (el clan ya había cruzado la meta) con los que haya hecho. Cada día se juzga por separado: no se suman ataques de otro día, y el día en curso con ataques pendientes no cuenta. En rojo, el día de la semana con más días incompletos. «Barcos» son los ataques a barcos del día, como los manda el backend.' : ''}${histNotasDiaEnCurso(hayHoy, hayPend)}</p>`;
 }
 /* Pinta en `el` el cuerpo de días de un jugador y deja funcionando «Ver más». opts.prefijo() devuelve HTML que va antes (el selector «Comparar con» en la ventana); opts.despues() corre tras cada pintado (enlazar ese selector). Devuelve false si no hay registros de guerra. */
 function histPintarEn(el, registros, limite, opts){
