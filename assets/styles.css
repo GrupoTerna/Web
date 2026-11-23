@@ -1210,6 +1210,75 @@ footer .wrap span{text-align:justify; text-justify:inter-word;}
 .hist-tabla tr.hist-top td, .hist-tabla tr.hist-top th{color:var(--danger);}
 .btn-solo-cero{font-family:var(--f-mono); font-size:13px; background:var(--surface-card); color:var(--text-dim); border:1px solid var(--line-strong); border-radius:var(--radius-sm); padding:5px 12px; cursor:pointer;}
 .btn-solo-cero:hover{color:var(--text);}
+/* 23-nov-2026 (pedido de la usuaria): el historial de guerra se veía todo blanco y el gris (--text-dim) también parecía blanco. Colores propios por columna y por tipo de dato: azul para días, rojo para lo que falta, ámbar para porcentajes, cian para barcos, dorado para medallas, lila para temporada y semana; el cero va en un gris azulado que sí se distingue del blanco. Las filas en rojo (día con más incompletos) mandan sobre los colores de columna. [→ Contexto_Base_Web.md §PF562] */
+:root{--h-mute:#7d8aa6; --h-cian:#22d3ee; --h-azul:#7cb7ff; --h-rosa:#fb7185; --h-lila:#b4a0ff; --h-verde:#34d399; --h-ambar:#fbbf24;}
+.hist-res-col div{color:var(--text-faint);}
+.hist-res-col div:nth-child(1) b{color:var(--h-azul);}
+.hist-res-col div:nth-child(2) b{color:var(--gold-light);}
+.hist-res-col div:nth-child(4) b{color:var(--h-lila);}
+.hist-res-col div:nth-child(5) b{color:var(--h-ambar);}
+.hist-res-col div:nth-child(6) b{color:var(--h-cian);}
+.hist-tabla thead th{color:var(--purple-light); background:rgba(162,57,255,.14);}
+.hist-tabla-incompletos thead th{color:var(--purple-light); background:rgba(162,57,255,.16);}
+.hist-tabla-incompletos thead th:first-child{text-align:center;}
+.hist-tabla-incompletos tbody th{color:var(--h-azul);}
+.hist-tabla-incompletos td.hist-c-azul{color:var(--h-azul);}
+.hist-tabla-incompletos td.hist-c-mal{color:var(--h-rosa);}
+.hist-tabla-incompletos td.hist-c-amb{color:var(--h-ambar);}
+.hist-tabla-incompletos td.hist-c-bar{color:var(--h-cian);}
+.hist-tabla-incompletos td.hist-c-cero{color:var(--h-mute);}
+.hist-tabla-incompletos th.hist-c-mal-et{color:var(--h-rosa);}
+.hist-tabla-incompletos th.hist-c-ok-et{color:var(--h-verde);}
+.hist-tabla.hist-tabla-dia tr td.hist-c-tem{color:var(--purple-light);}
+.hist-tabla.hist-tabla-dia tr td.hist-c-sem{color:var(--h-lila);}
+.hist-tabla.hist-tabla-dia tr td.hist-c-dia{color:var(--h-azul);}
+.hist-tabla.hist-tabla-dia tr td.hist-c-atq{font-weight:700;}
+.hist-tabla.hist-tabla-dia tr td.hist-c-bar{color:var(--h-cian);}
+.hist-tabla.hist-tabla-dia tr td.hist-c-med{color:var(--gold-light);}
+.hist-tabla.hist-tabla-dia tr td.hist-c-cero{color:var(--h-mute);}
+.hist-tabla td.hist-vacio{text-align:center; color:var(--h-mute); padding:10px;}
+.hist-an-tit{color:var(--gold-light);}
+.hist-an-desc{color:var(--text-faint);}
+/* Pastillas: cada una con su color, también sin pulsar (antes todas se veían blancas); pulsada lleva fondo y borde del mismo color. */
+.hist-filtro{align-items:center;}
+.hist-filtro-et{font-family:var(--f-mono); font-size:12px; color:var(--text-faint); min-width:58px;}
+.hist-filtro .hist-pastilla{color:var(--gold-light);}
+.hist-filtro .hist-pastilla[data-hist-filtro="completos"]{color:var(--h-verde);}
+.hist-filtro .hist-pastilla[data-hist-filtro="incompletos"]{color:var(--h-rosa);}
+.hist-filtro .hist-pastilla[data-hist-barcos="con"]{color:var(--h-cian);}
+.hist-filtro .hist-pastilla[data-hist-barcos="sin"]{color:var(--h-lila);}
+.hist-filtro .hist-pastilla[aria-pressed="true"]{background:rgba(243,169,34,.16); color:var(--gold-light); border-color:var(--gold);}
+.hist-filtro .hist-pastilla[data-hist-filtro="completos"][aria-pressed="true"]{background:rgba(52,211,153,.16); color:var(--h-verde); border-color:var(--h-verde);}
+.hist-filtro .hist-pastilla[data-hist-filtro="incompletos"][aria-pressed="true"]{background:rgba(251,113,133,.16); color:var(--h-rosa); border-color:var(--h-rosa);}
+.hist-filtro .hist-pastilla[data-hist-barcos="con"][aria-pressed="true"]{background:rgba(34,211,238,.16); color:var(--h-cian); border-color:var(--h-cian);}
+.hist-filtro .hist-pastilla[data-hist-barcos="sin"][aria-pressed="true"]{background:rgba(180,160,255,.16); color:var(--h-lila); border-color:var(--h-lila);}
+/* Botones de orden y de filtro en cada encabezado; el ícono sale de ::before para que el texto del encabezado siga siendo solo su nombre. */
+.hist-th-in{display:flex; align-items:center; justify-content:center; flex-wrap:wrap; gap:2px 4px;}
+.hist-th-t{flex:0 0 100%; text-align:center;}
+.hist-th-btns{display:inline-flex; gap:2px;}
+.hist-th-btn{width:22px; height:22px; padding:0; display:inline-flex; align-items:center; justify-content:center; font-size:12px; line-height:1; color:var(--h-mute); background:transparent; border:1px solid transparent; border-radius:6px; cursor:pointer;}
+.hist-th-btn:hover, .hist-th-btn:focus-visible{color:var(--text); border-color:var(--line-strong);}
+.hist-th-ord::before{content:"↕";}
+.hist-th-ord[data-dir="asc"]::before{content:"↑";}
+.hist-th-ord[data-dir="desc"]::before{content:"↓";}
+.hist-th-ord[data-dir="asc"], .hist-th-ord[data-dir="desc"]{color:var(--gold-light); border-color:var(--gold);}
+.hist-th-fil::before{content:"▾";}
+.hist-th-fil[data-activo="1"], .hist-th-fil[aria-expanded="true"]{color:var(--h-cian); border-color:var(--h-cian); background:rgba(34,211,238,.12);}
+@media (pointer:coarse){.hist-th-btn{width:28px; height:28px; font-size:14px;}}
+.hist-ajustes{margin:6px 0 0;}
+.hist-reset{font-size:12px; padding:3px 10px;}
+.hist-fil-panel{margin:8px 0; padding:8px 10px; display:flex; flex-wrap:wrap; align-items:center; gap:8px 14px; font-family:var(--f-mono); font-size:12px; border:1px solid var(--h-cian); border-radius:var(--radius-sm); background:rgba(34,211,238,.06);}
+.hist-fil-tit{color:var(--h-cian); font-weight:700;}
+.hist-fil-campos{display:flex; flex-wrap:wrap; gap:6px 12px;}
+.hist-fil-op{display:inline-flex; align-items:center; gap:5px; color:var(--text);}
+.hist-fil-op input[type="number"], .hist-fil-op input[type="date"]{font-family:var(--f-mono); font-size:12px; color:var(--text); background:var(--surface-card); border:1px solid var(--line-strong); border-radius:6px; padding:3px 6px; color-scheme:dark;}
+.hist-fil-op input[type="number"]{width:7em;}
+.hist-fil-acciones{display:flex; flex-wrap:wrap; gap:6px;}
+.hist-fil-acciones .btn-solo-cero{font-size:12px; padding:3px 10px;}
+/* Notas del pie: una por línea. */
+.hist-nota-lista{list-style:none; padding:0; margin:12px 0 0; display:flex; flex-direction:column; gap:4px; line-height:1.5; color:var(--text-faint);}
+.hist-nota-lista li{position:relative; padding-left:14px;}
+.hist-nota-lista li::before{content:"•"; position:absolute; left:2px; color:var(--purple-light);}
 
 /* NUEVO (24-oct-2026, tanda 14 de Consolidado_Mini_Historial_y_Perfil.md, §PF224): buscador por nombre o Tag de las tablas de guerra (assets/js/ui/filters.js).
    Cápsula con lupa a la izquierda y ✕ a la derecha, del mismo estilo que las pastillas; el contador («3 de 40») va a su derecha. */

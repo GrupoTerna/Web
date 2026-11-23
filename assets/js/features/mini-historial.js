@@ -378,22 +378,132 @@ function histAnalisisIncompletos(regs, hoyIso){
 }
 /* 23-nov-2026 (pedido de la usuaria: «no se entiende qué significa cada columna»): las dos tablas de análisis se rehicieron con título en forma de pregunta, una línea que explica qué cuenta cada fila, encabezados con la palabra completa, bordes visibles y una conclusión en una frase. Mismos cálculos de histAnalisisIncompletos(). [→ Contexto_Base_Web.md §PF562] */
 const HIST_NOMBRE_DIA = { J: 'Jueves', V: 'Viernes', S: 'Sábado', D: 'Domingo' };
+/* 23-nov-2026 (pedido de la usuaria): pastillas «Con barcos / Sin barcos» y, en el encabezado de cada tabla del historial (días, por día de la semana y por tipo de día), un botón de orden y otro de filtro. Orden: un clic ordena de menor a mayor, otro de mayor a menor y el tercero lo quita; las filas sin dato (Temporada o Semana con «–») quedan siempre al final. Filtro: un panel sobre la tabla (fuera del contenedor con scroll, que lo recortaría) con mínimo y máximo para números, desde y hasta para fechas y casillas para listas; se aplica con «Aplicar» o con Enter. El orden y los filtros se calculan sobre los datos, no sobre las filas pintadas, así que «Ver más» respeta lo elegido. N° es la posición del día en la lista de las pastillas y no cambia al ordenar. Todo el estado vive a nivel de módulo y se reinicia en histAbrir(). */
+let histFiltroBarcos = 'todos'; // 'todos' | 'con' | 'sin'
+let histTablas = {};            // clave de tabla ('dia', 'sem', 'tipo') -> { ord: { c, d } | null, fil: { [columna]: { min, max } | { sel } } }
+let histPanel = null;           // { t, c } = panel de filtro abierto
+const HIST_NOMBRES_DIA = HIST_DIAS_GUERRA.map(l => HIST_NOMBRE_DIA[l]);
+const HIST_COLS = {
+  dia: [
+    { t: 'N°', tipo: 'num' }, { t: 'Fecha', tipo: 'fecha' }, { t: 'Temporada', tipo: 'num' }, { t: 'Semana', tipo: 'num' },
+    { t: 'Día', tipo: 'lista', orden: v => HIST_DIAS_GUERRA.indexOf(v), nombre: v => HIST_NOMBRE_DIA[v] || v },
+    { t: 'Ataques', tipo: 'num' }, { t: 'Barcos', tipo: 'num' }, { t: 'Medallas', tipo: 'num' }
+  ],
+  sem: [
+    { t: 'Día de la semana', tipo: 'lista', orden: v => HIST_NOMBRES_DIA.indexOf(v) }, { t: 'Días jugados', tipo: 'num' },
+    { t: 'Días incompletos', tipo: 'num' }, { t: '% de incompletos', tipo: 'num' }, { t: 'Ataques sin hacer', tipo: 'num' }, { t: 'Barcos en esos días', tipo: 'num' }
+  ],
+  tipo: [
+    { t: 'Tipo de día', tipo: 'lista' }, { t: 'Cantidad de días', tipo: 'num' }, { t: 'Barcos en total', tipo: 'num' },
+    { t: 'Barcos por día', tipo: 'num' }, { t: 'Días con al menos 1 barco', tipo: 'num' }
+  ]
+};
+function histEst(t){ return histTablas[t] || (histTablas[t] = { ord: null, fil: {} }); }
+function histPasaFiltro(col, f, v){
+  if (!f) return true;
+  if (col.tipo === 'lista') return !f.sel || !f.sel.length || f.sel.includes(v);
+  if (v == null) return false;
+  return (f.min == null || v >= f.min) && (f.max == null || v <= f.max);
+}
+/* `filas` = [{ v: [valor de cada columna], ... }]. Devuelve las que pasan los filtros de la tabla `t`, en el orden elegido. */
+function histFilasTabla(t, filas){
+  const e = histEst(t), cols = HIST_COLS[t];
+  let r = filas.filter(f => cols.every((col, c) => histPasaFiltro(col, e.fil[c], f.v[c])));
+  if (e.ord){
+    const c = e.ord.c, col = cols[c], s = e.ord.d === 'desc' ? -1 : 1;
+    const clave = v => (col.orden && v != null) ? col.orden(v) : v;
+    r = r.slice().sort((a, b) => {
+      const x = clave(a.v[c]), y = clave(b.v[c]);
+      if (x == null && y == null) return 0;
+      if (x == null) return 1;
+      if (y == null) return -1;
+      return (typeof x === 'number' ? x - y : String(x).localeCompare(String(y), 'es')) * s;
+    });
+  }
+  return r;
+}
+/* Los botones no llevan texto (el ícono sale por CSS) para que el texto del encabezado siga siendo solo su nombre. */
+function histThHtml(t, c){
+  const col = HIST_COLS[t][c], e = histEst(t), k = `${t}:${c}`;
+  const d = e.ord && e.ord.c === c ? e.ord.d : '';
+  const abierto = !!histPanel && histPanel.t === t && histPanel.c === c;
+  return `<th scope="col" class="hist-th"${d ? ` aria-sort="${d === 'asc' ? 'ascending' : 'descending'}"` : ''}><span class="hist-th-in"><span class="hist-th-t">${esc(col.t)}</span><span class="hist-th-btns"><button type="button" class="hist-th-btn hist-th-ord" data-hist-ord="${k}" data-dir="${d}" aria-label="Ordenar por ${esc(col.t)}" title="Ordenar"></button><button type="button" class="hist-th-btn hist-th-fil" data-hist-fil="${k}"${e.fil[c] ? ' data-activo="1"' : ''} aria-expanded="${abierto}" aria-label="Filtrar por ${esc(col.t)}" title="Filtrar"></button></span></span></th>`;
+}
+function histTheadHtml(t){ return `<thead><tr>${HIST_COLS[t].map((_, c) => histThHtml(t, c)).join('')}</tr></thead>`; }
+function histPanelHtml(t, filas){
+  if (!histPanel || histPanel.t !== t) return '';
+  const c = histPanel.c, col = HIST_COLS[t][c], f = histEst(t).fil[c] || {}, k = `${t}:${c}`;
+  let campos;
+  if (col.tipo === 'lista'){
+    const vals = [...new Set(filas.map(x => x.v[c]))].sort((a, b) => col.orden ? col.orden(a) - col.orden(b) : String(a).localeCompare(String(b), 'es'));
+    campos = vals.map(v => `<label class="hist-fil-op"><input type="checkbox" value="${esc(v)}"${!f.sel || f.sel.includes(v) ? ' checked' : ''}> ${esc(col.nombre ? col.nombre(v) : v)}</label>`).join('');
+  } else {
+    const fecha = col.tipo === 'fecha';
+    const campo = (nom, tit) => `<label class="hist-fil-op">${tit} <input type="${fecha ? 'date' : 'number'}"${fecha ? '' : ' step="any" inputmode="decimal"'} data-hist-campo="${nom}" value="${f[nom] == null ? '' : esc(f[nom])}"></label>`;
+    campos = campo('min', fecha ? 'Desde' : 'Mínimo') + campo('max', fecha ? 'Hasta' : 'Máximo');
+  }
+  return `<div class="hist-fil-panel" role="group" aria-label="Filtrar por ${esc(col.t)}" data-hist-panel="${k}"><b class="hist-fil-tit">Filtrar «${esc(col.t)}»</b><div class="hist-fil-campos">${campos}</div><div class="hist-fil-acciones"><button type="button" class="btn-solo-cero" data-hist-aplicar="1">Aplicar</button><button type="button" class="btn-solo-cero" data-hist-quitar="1">Quitar filtro</button><button type="button" class="btn-solo-cero" data-hist-cerrar="1">Cerrar</button></div></div>`;
+}
+/* Botón «Quitar orden y filtros» (solo si la tabla tiene alguno) y, debajo, el panel abierto. Va justo encima de la tabla. */
+function histBarraTabla(t, filas){
+  const e = histEst(t);
+  const hay = !!e.ord || Object.keys(e.fil).length > 0;
+  return (hay ? `<div class="hist-ajustes"><button type="button" class="btn-solo-cero hist-reset" data-hist-reset="${t}">Quitar orden y filtros de esta tabla</button></div>` : '') + histPanelHtml(t, filas);
+}
+function histCiclarOrden(k){
+  const [t, c] = k.split(':'), e = histEst(t), n = Number(c);
+  if (!e.ord || e.ord.c !== n) e.ord = { c: n, d: 'asc' };
+  else if (e.ord.d === 'asc') e.ord = { c: n, d: 'desc' };
+  else e.ord = null;
+}
+function histAlternarPanel(k){
+  const [t, c] = k.split(':'), n = Number(c);
+  const abierto = !!histPanel && histPanel.t === t && histPanel.c === n;
+  histPanel = abierto ? null : { t, c: n };
+  return !abierto;
+}
+/* Lee el panel abierto y guarda su filtro. Sin ninguna casilla marcada, o con todas, la columna queda sin filtro; con mínimo y máximo vacíos, también. */
+function histGuardarPanel(p){
+  const [t, c] = p.dataset.histPanel.split(':'), n = Number(c), col = HIST_COLS[t][n], e = histEst(t);
+  if (col.tipo === 'lista'){
+    const cks = [...p.querySelectorAll('input[type="checkbox"]')], sel = cks.filter(x => x.checked).map(x => x.value);
+    if (!sel.length || sel.length === cks.length) delete e.fil[n]; else e.fil[n] = { sel };
+    return;
+  }
+  const leer = nom => {
+    const x = p.querySelector(`[data-hist-campo="${nom}"]`).value.trim();
+    if (x === '') return null;
+    if (col.tipo === 'fecha') return x;
+    const num = parseFloat(x.replace(',', '.'));
+    return Number.isFinite(num) ? num : null;
+  };
+  const min = leer('min'), max = leer('max');
+  if (min == null && max == null) delete e.fil[n]; else e.fil[n] = { min, max };
+}
 function histAnalisisHtml(regs, hoyIso){
   const { por, g } = histAnalisisIncompletos(regs, hoyIso);
   const maxInc = Math.max(...HIST_DIAS_GUERRA.map(l => por[l].inc));
-  const filas = HIST_DIAS_GUERRA.map(l => {
+  const vacio = n => `<tr><td colspan="${n}" class="hist-vacio">Ninguna fila coincide con el filtro.</td></tr>`;
+  const num = (n, cls) => `<td class="${n > 0 ? cls : 'hist-c-cero'}">${fmtNum(n)}</td>`;
+  const datosSem = HIST_DIAS_GUERRA.map(l => {
     const d = por[l];
-    const pct = d.dias ? Math.round(d.inc * 100 / d.dias) + ' %' : '–';
-    return `<tr${maxInc > 0 && d.inc === maxInc ? ' class="hist-top"' : ''}><th scope="row">${HIST_NOMBRE_DIA[l]}</th><td>${fmtNum(d.dias)}</td><td>${fmtNum(d.inc)}</td><td>${pct}</td><td>${fmtNum(d.faltan)}</td><td>${fmtNum(d.barcosInc)}</td></tr>`;
-  }).join('');
+    return { l, d, top: maxInc > 0 && d.inc === maxInc, v: [HIST_NOMBRE_DIA[l], d.dias, d.inc, d.dias ? Math.round(d.inc * 100 / d.dias) : null, d.faltan, d.barcosInc] };
+  });
+  const filas = histFilasTabla('sem', datosSem).map(x => {
+    const d = x.d, pct = d.dias ? x.v[3] + ' %' : '–';
+    return `<tr${x.top ? ' class="hist-top"' : ''}><th scope="row" class="hist-c-et">${HIST_NOMBRE_DIA[x.l]}</th>${num(d.dias, 'hist-c-azul')}${num(d.inc, 'hist-c-mal')}<td class="${x.v[3] > 0 ? 'hist-c-amb' : 'hist-c-cero'}">${pct}</td>${num(d.faltan, 'hist-c-mal')}${num(d.barcosInc, 'hist-c-bar')}</tr>`;
+  }).join('') || vacio(6);
   const peores = HIST_DIAS_GUERRA.filter(l => maxInc > 0 && por[l].inc === maxInc);
   const frasePeor = !maxInc
     ? 'No dejó ataques sin hacer en ningún día de la semana.'
     : (peores.length === 1
       ? `El día en que más deja ataques sin hacer es el ${HIST_NOMBRE_DIA[peores[0]].toLowerCase()}: ${fmtNum(maxInc)} de ${fmtNum(por[peores[0]].dias)} (${Math.round(maxInc * 100 / por[peores[0]].dias)} %), con ${fmtNum(por[peores[0]].faltan)} ataques sin hacer.`
       : `Los días en que más deja ataques sin hacer son ${peores.map(l => HIST_NOMBRE_DIA[l].toLowerCase()).join(' y ')}: ${fmtNum(maxInc)} días incompletos en cada uno.`);
-  const prom = k => k.dias ? histFmtDec(k.barcos / k.dias) : '–';
-  const linea = (tit, k) => `<tr><th scope="row">${tit}</th><td>${fmtNum(k.dias)}</td><td>${fmtNum(k.barcos)}</td><td>${prom(k)}</td><td>${fmtNum(k.conBarcos)}</td></tr>`;
+  const datosTipo = [['Días incompletos', g.inc, 'hist-c-mal-et'], ['Días completos', g.comp, 'hist-c-ok-et']]
+    .map(([tit, k, cls]) => ({ tit, k, cls, v: [tit, k.dias, k.barcos, k.dias ? k.barcos / k.dias : null, k.conBarcos] }));
+  const filasTipo = histFilasTabla('tipo', datosTipo).map(({ tit, k, cls }) =>
+    `<tr><th scope="row" class="${cls}">${tit}</th>${num(k.dias, 'hist-c-azul')}${num(k.barcos, 'hist-c-bar')}<td class="${k.barcos > 0 ? 'hist-c-bar' : 'hist-c-cero'}">${k.dias ? histFmtDec(k.barcos / k.dias) : '–'}</td>${num(k.conBarcos, 'hist-c-bar')}</tr>`
+  ).join('') || vacio(5);
   const fraseBarcos = (!g.inc.barcos && !g.comp.barcos)
     ? 'No hizo ataques a barcos en ningún día cerrado.'
     : (!g.inc.dias
@@ -405,13 +515,15 @@ function histAnalisisHtml(regs, hoyIso){
     <section class="hist-an">
       <h4 class="hist-an-tit">¿Qué día de la semana deja ataques sin hacer?</h4>
       <p class="hist-an-desc">Cada fila es un día de la semana de guerra. Un día es <b>incompleto</b> si ya cerró y el jugador hizo menos de 4 ataques (incluye 0).</p>
-      <div class="hist-tabla-scroll"><table class="hist-tabla hist-tabla-incompletos"><thead><tr><th scope="col">Día de la semana</th><th scope="col">Días jugados</th><th scope="col">Días incompletos</th><th scope="col">% de incompletos</th><th scope="col">Ataques sin hacer</th><th scope="col">Barcos en esos días</th></tr></thead><tbody>${filas}</tbody></table></div>
+      ${histBarraTabla('sem', datosSem)}
+      <div class="hist-tabla-scroll"><table class="hist-tabla hist-tabla-incompletos">${histTheadHtml('sem')}<tbody>${filas}</tbody></table></div>
       <p class="hist-an-conclusion">${frasePeor}</p>
     </section>
     <section class="hist-an">
       <h4 class="hist-an-tit">¿Hace barcos en los días incompletos?</h4>
       <p class="hist-an-desc">Compara los días incompletos con los completos (4 ataques, o un día opcional porque el clan ya había cruzado la meta).</p>
-      <div class="hist-tabla-scroll"><table class="hist-tabla hist-tabla-incompletos"><thead><tr><th scope="col">Tipo de día</th><th scope="col">Cantidad de días</th><th scope="col">Barcos en total</th><th scope="col">Barcos por día</th><th scope="col">Días con al menos 1 barco</th></tr></thead><tbody>${linea('Días incompletos', g.inc)}${linea('Días completos', g.comp)}</tbody></table></div>
+      ${histBarraTabla('tipo', datosTipo)}
+      <div class="hist-tabla-scroll"><table class="hist-tabla hist-tabla-incompletos">${histTheadHtml('tipo')}<tbody>${filasTipo}</tbody></table></div>
       <p class="hist-an-conclusion">${fraseBarcos}</p>
     </section>`;
 }
@@ -431,6 +543,26 @@ function histEnlazarSelector(){
   });
 }
 /* 23-oct-2026 (tanda 5, parte 1): resumen + tabla de días + «Ver más» + nota, SIN el selector «Comparar con», para que lo usen la ventana del mini historial y la tarjeta «Historial de guerra» del perfil con la MISMA fuente y el MISMO armado (así los números coinciden; P6: 28 filas al abrir y 28 más por «Ver más»). `registros` ya pasó por histSoloGuerra(). `limite` = cuántas filas se ven. [→ Contexto_Base_Web.md §PF181] */
+/* 23-nov-2026 (pedido de la usuaria): las notas del pie van una por línea (lista) y no en un solo párrafo; incluyen las del día en curso. */
+function histNotasPieHtml(filtrado, hayHoy, hayPend){
+  const notas = [
+    'Un 0 es un día de guerra en el que estuvo registrado y no atacó.',
+    'Los días anteriores a su ingreso al clan no aparecen.',
+    'Un día marcado como opcional (meta ya cruzada) no cuenta como falta.',
+    'Solo se muestran días de guerra, no de entrenamiento.'
+  ];
+  if (filtrado) notas.push(
+    'Incompleto: día obligatorio ya cerrado con menos de 4 ataques (incluye los 0).',
+    'Completo: 4 ataques, o un día opcional (el clan ya había cruzado la meta) con los que haya hecho.',
+    'Cada día se juzga por separado: no se suman ataques de otro día, y el día en curso con ataques pendientes no cuenta.',
+    'En rojo, el día de la semana con más días incompletos.',
+    '«Barcos» son los ataques a barcos del día, como los manda el backend.'
+  );
+  notas.push('Con los botones de cada encabezado puedes ordenar y filtrar la tabla.');
+  if (hayHoy) notas.push('La fila sombreada es el día en curso: todavía no se cierra.');
+  if (hayPend) notas.push('<sup class="hist-ast" aria-hidden="true">*</sup> Día en curso: todavía tiene ataques pendientes.');
+  return `<ul class="hist-nota hist-nota-lista">${notas.map(n => `<li>${n}</li>`).join('')}</ul>`;
+}
 function histCuerpoDiaHtml(registros, limite){
   const desc = registros.slice().sort((a, b) => b.fecha.localeCompare(a.fecha));
   const st = histStats(desc), n = st.n;
@@ -439,19 +571,34 @@ function histCuerpoDiaHtml(registros, limite){
   const nComp = desc.filter(histEsCompleto).length;
   const filtro = histFiltroAtaques;
   const filtrado = filtro !== 'todos';
-  const lista = filtro === 'incompletos' ? desc.filter(r => histEsIncompleto(r, hoyIso)) : filtro === 'completos' ? desc.filter(histEsCompleto) : desc;
+  const porAtaques = filtro === 'incompletos' ? desc.filter(r => histEsIncompleto(r, hoyIso)) : filtro === 'completos' ? desc.filter(histEsCompleto) : desc;
+  /* Pastillas de barcos: se cuentan sobre los días que dejó la pastilla de ataques. Con barcos = al menos 1 ataque a barcos ese día. */
+  const conBarcos = r => (r.barcos || 0) > 0;
+  const nCon = porAtaques.filter(conBarcos).length, nSin = porAtaques.length - nCon;
+  const fb = histFiltroBarcos;
+  const base = fb === 'con' ? porAtaques.filter(conBarcos) : fb === 'sin' ? porAtaques.filter(r => !conBarcos(r)) : porAtaques;
+  const datos = base.map((r, i) => ({ r, n: i + 1, v: [i + 1, r.fecha, Number(r.temporada) > 0 ? Number(r.temporada) : null, Number(r.semana) > 0 ? Number(r.semana) : null, histDiaLetra(r.fecha), r.ataques || 0, r.barcos || 0, r.fame || 0] }));
+  const lista = histFilasTabla('dia', datos);
   const visibles = lista.slice(0, limite);
-  const hayHoy = visibles.some(r => r.fecha === hoyIso), hayPend = visibles.some(r => histPendiente(r, hoyIso));
+  const hayHoy = visibles.some(x => x.r.fecha === hoyIso), hayPend = visibles.some(x => histPendiente(x.r, hoyIso));
+  const ord = histEst('dia').ord;
+  const sombrear = !(ord && ord.c > 1); // el sombreado alterno por semana solo tiene sentido si las filas siguen el orden de las fechas
   let semPrev = null, semAlt = false;
-  const filas = visibles.map((r, idx) => {
+  const filas = visibles.map(({ r, n: num }) => {
     const sem = histClaveSemana(r);
     if (semPrev !== null && sem !== semPrev) semAlt = !semAlt;
     semPrev = sem;
-    const clases = [histClaseColorAtaques(r), semAlt ? 'hist-sem-b' : '', r.fecha === hoyIso ? 'hist-hoy' : ''].filter(Boolean).join(' ');
-    return `<tr class="${clases}"><td>${idx + 1}</td><td>${histFechaDMA(r.fecha)}${r.fecha === hoyIso ? ' · en curso' : ''}${r.opcional === true ? ' · opcional (meta cruzada)' : ''}</td><td>${histTemporadaTxt(r)}</td><td>${histSemanaTxt(r)}</td><td>${histDiaLetra(r.fecha)}</td><td>${fmtNum(r.ataques || 0)}${histPendiente(r, hoyIso) ? HIST_ASTERISCO : ''}</td><td>${fmtNum(r.barcos || 0)}</td><td>${fmtNum(r.fame || 0)}</td></tr>`;
+    const clases = [histClaseColorAtaques(r), sombrear && semAlt ? 'hist-sem-b' : '', r.fecha === hoyIso ? 'hist-hoy' : ''].filter(Boolean).join(' ');
+    const barcos = r.barcos || 0, fame = r.fame || 0;
+    return `<tr class="${clases}"><td>${num}</td><td>${histFechaDMA(r.fecha)}${r.fecha === hoyIso ? ' · en curso' : ''}${r.opcional === true ? ' · opcional (meta cruzada)' : ''}</td><td class="hist-c-tem">${histTemporadaTxt(r)}</td><td class="hist-c-sem">${histSemanaTxt(r)}</td><td class="hist-c-dia">${histDiaLetra(r.fecha)}</td><td class="hist-c-atq">${fmtNum(r.ataques || 0)}${histPendiente(r, hoyIso) ? HIST_ASTERISCO : ''}</td><td class="${barcos ? 'hist-c-bar' : 'hist-c-cero'}">${fmtNum(barcos)}</td><td class="${fame ? 'hist-c-med' : 'hist-c-cero'}">${fmtNum(fame)}</td></tr>`;
   }).join('');
+  const pastillas = (attr, aria, etiqueta, items, actual) => `<div class="hist-filtro" role="group" aria-label="${aria}"><span class="hist-filtro-et">${etiqueta}</span>${items.map(([k, t, c]) => `<button type="button" class="btn-solo-cero hist-pastilla" ${attr}="${k}" aria-pressed="${actual === k}">${t} (${c})</button>`).join('')}</div>`;
+  let cuerpoTabla;
+  if (filtrado && !porAtaques.length) cuerpoTabla = `<p class="hist-nota">Ningún día de guerra ${filtro === 'completos' ? 'completo' : 'incompleto'} en este período.</p>`;
+  else if (!lista.length) cuerpoTabla = '<p class="hist-nota">Ningún día coincide con los filtros elegidos.</p>';
+  else cuerpoTabla = `<div class="hist-tabla-scroll"><table class="hist-tabla hist-tabla-dia">${histTheadHtml('dia')}<tbody>${filas}</tbody></table></div>`;
   return `
-    <div class="hist-resumen">
+    <div class="hist-resumen hist-res-col">
       <div><b>${n}</b>días de guerra</div>
       <div><b>${fmtNum(st.atq)}</b>ataques</div>
       <div class="${st.ceros ? 'hist-malo' : ''}"><b>${st.ceros}</b>días con 0 ataques</div>
@@ -459,11 +606,13 @@ function histCuerpoDiaHtml(registros, limite){
       <div><b>${fmtNum(st.fame)}</b>medallas</div>
       <div><b>${fmtNum(st.barcos)}</b>barcos</div>
     </div>
-    <div class="hist-filtro" role="group" aria-label="Filtrar días por ataques">${[['todos', 'Todos', n], ['completos', 'Completos', nComp], ['incompletos', 'Incompletos', nInc]].map(([k, t, c]) => `<button type="button" class="btn-solo-cero hist-pastilla" data-hist-filtro="${k}" aria-pressed="${filtro === k}">${t} (${c})</button>`).join('')}</div>
+    ${pastillas('data-hist-filtro', 'Filtrar días por ataques', 'Ataques', [['todos', 'Todos', n], ['completos', 'Completos', nComp], ['incompletos', 'Incompletos', nInc]], filtro)}
+    ${pastillas('data-hist-barcos', 'Filtrar días por barcos', 'Barcos', [['todos', 'Todos', porAtaques.length], ['con', 'Con barcos', nCon], ['sin', 'Sin barcos', nSin]], fb)}
     ${filtrado ? histAnalisisHtml(desc, hoyIso) : ''}
-    ${filtrado && !lista.length ? `<p class="hist-nota">Ningún día de guerra ${filtro === 'completos' ? 'completo' : 'incompleto'} en este período.</p>` : `<div class="hist-tabla-scroll"><table class="hist-tabla hist-tabla-dia"><thead><tr><th>N°</th><th>Fecha</th><th>Temporada</th><th>Semana</th><th>Día</th><th>Ataques</th><th>Barcos</th><th>Medallas</th></tr></thead><tbody>${filas}</tbody></table></div>`}
+    ${histBarraTabla('dia', datos)}
+    ${cuerpoTabla}
     ${lista.length > visibles.length ? `<button type="button" class="btn-solo-cero hist-mas" data-hist-mas="1">Ver más</button>` : ''}
-    <p class="hist-nota">Un 0 es un día de guerra en el que estuvo registrado y no atacó. Los días anteriores a su ingreso al clan no aparecen. Un día marcado como opcional (meta ya cruzada) no cuenta como falta. Solo se muestran días de guerra, no de entrenamiento.${filtrado ? ' Incompleto: día obligatorio ya cerrado con menos de 4 ataques (incluye los 0). Completo: 4 ataques, o un día opcional (el clan ya había cruzado la meta) con los que haya hecho. Cada día se juzga por separado: no se suman ataques de otro día, y el día en curso con ataques pendientes no cuenta. En rojo, el día de la semana con más días incompletos. «Barcos» son los ataques a barcos del día, como los manda el backend.' : ''}${histNotasDiaEnCurso(hayHoy, hayPend)}</p>`;
+    ${histNotasPieHtml(filtrado, hayHoy, hayPend)}`;
 }
 /* Pinta en `el` el cuerpo de días de un jugador y deja funcionando «Ver más». opts.prefijo() devuelve HTML que va antes (el selector «Comparar con» en la ventana); opts.despues() corre tras cada pintado (enlazar ese selector). Devuelve false si no hay registros de guerra. */
 function histPintarEn(el, registros, limite, opts){
@@ -479,7 +628,26 @@ function histPintarEn(el, registros, limite, opts){
   if (typeof o.despues === 'function') o.despues();
   const mas = el.querySelector('[data-hist-mas]');
   if (mas) mas.addEventListener('click', () => histPintarEn(el, registros, lim + HIST_FILAS_MAS, o));
-  el.querySelectorAll('[data-hist-filtro]').forEach(b => b.addEventListener('click', () => { histFiltroAtaques = b.dataset.histFiltro; histPintarEn(el, registros, HIST_FILAS_INICIALES, o); }));
+  /* Cada cambio vuelve a pintar desde las primeras filas; `foco` devuelve el foco al botón que se tocó (teclado y lectores de pantalla). */
+  const rep = foco => { histPintarEn(el, registros, HIST_FILAS_INICIALES, o); if (foco){ const b = el.querySelector(foco); if (b) b.focus(); } };
+  el.querySelectorAll('[data-hist-filtro]').forEach(b => b.addEventListener('click', () => { histFiltroAtaques = b.dataset.histFiltro; histPanel = null; rep(`[data-hist-filtro="${b.dataset.histFiltro}"]`); }));
+  el.querySelectorAll('[data-hist-barcos]').forEach(b => b.addEventListener('click', () => { histFiltroBarcos = b.dataset.histBarcos; histPanel = null; rep(`[data-hist-barcos="${b.dataset.histBarcos}"]`); }));
+  el.querySelectorAll('[data-hist-ord]').forEach(b => b.addEventListener('click', () => { histCiclarOrden(b.dataset.histOrd); rep(`[data-hist-ord="${b.dataset.histOrd}"]`); }));
+  el.querySelectorAll('[data-hist-fil]').forEach(b => b.addEventListener('click', () => {
+    const abrio = histAlternarPanel(b.dataset.histFil);
+    rep(abrio ? null : `[data-hist-fil="${b.dataset.histFil}"]`);
+    if (abrio){ const x = el.querySelector('[data-hist-panel] input'); if (x) x.focus(); }
+  }));
+  el.querySelectorAll('[data-hist-reset]').forEach(b => b.addEventListener('click', () => { histTablas[b.dataset.histReset] = { ord: null, fil: {} }; histPanel = null; rep(null); }));
+  el.querySelectorAll('[data-hist-panel]').forEach(p => {
+    const k = p.dataset.histPanel, foco = `[data-hist-fil="${k}"]`;
+    p.querySelector('[data-hist-aplicar]').addEventListener('click', () => { histGuardarPanel(p); histPanel = null; rep(foco); });
+    p.querySelector('[data-hist-quitar]').addEventListener('click', () => { const [t, c] = k.split(':'); delete histEst(t).fil[Number(c)]; histPanel = null; rep(foco); });
+    p.querySelector('[data-hist-cerrar]').addEventListener('click', () => { histPanel = null; rep(foco); });
+    p.addEventListener('keydown', ev => {
+      if (ev.key === 'Enter' && ev.target.tagName === 'INPUT' && ev.target.type !== 'checkbox'){ ev.preventDefault(); p.querySelector('[data-hist-aplicar]').click(); }
+    });
+  });
   return true;
 }
 function histPintar(registros, limite){
@@ -547,7 +715,7 @@ async function histAbrir(tag, nombre){
   histAsegurarModal();
   const fondo = document.getElementById('histFondo');
   histTag = tag; histNombre = nombre || tag; histRegsA = [];
-  histFiltroAtaques = 'todos'; // 23-nov-2026: cada jugador se abre con todos sus días
+  histFiltroAtaques = 'todos'; histFiltroBarcos = 'todos'; histTablas = {}; histPanel = null; // 23-nov-2026: cada jugador se abre con todos sus días, sin orden ni filtros
   document.getElementById('histTitulo').innerHTML = enlaceJugador(nombre || tag, tag); // 23-oct-2026: el nombre lleva enlace a su perfil (nueva pestaña)
   document.getElementById('histSub').textContent = tag;
   document.getElementById('histPerfil').innerHTML = '';

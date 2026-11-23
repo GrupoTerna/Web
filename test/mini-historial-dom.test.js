@@ -416,3 +416,129 @@ test('El filtro vuelve a «Todos» al abrir el historial de otro jugador', async
   await esperar();
   assert.equal(w.document.querySelector('[data-hist-filtro="todos"]').getAttribute('aria-pressed'), 'true');
 });
+
+// NUEVO (23-nov-2026, pedido de la usuaria; §PF562): pastillas «Con barcos / Sin barcos», botones de orden y filtro en los encabezados,
+// encabezados «Día de la semana» y «Tipo de día» centrados (CSS) y notas del pie una por línea. DATA_INC trae barcos solo el 2-oct (1) y el 10-oct (2).
+const arranque = async () => { const w = cargar(DATA_INC); w.histAbrir('#ABC', 'Chistris'); await esperar(); return w; };
+const ataquesDia = w => celdas(w, '#histCuerpo .hist-tabla-dia tbody tr').map(f => f[5]);
+
+test('Pastillas de barcos: cuentan, filtran los días y se reinician al abrir otro jugador', async () => {
+  const w = await arranque();
+  const barcos = k => w.document.querySelector(`[data-hist-barcos="${k}"]`);
+  assert.match(barcos('todos').textContent, /\(8\)/);
+  assert.match(barcos('con').textContent, /\(2\)/, 'el 2 y el 10 de octubre');
+  assert.match(barcos('sin').textContent, /\(6\)/);
+  barcos('con').click();
+  assert.equal(barcos('con').getAttribute('aria-pressed'), 'true');
+  assert.equal(ataquesDia(w).length, 2);
+  barcos('sin').click();
+  assert.equal(ataquesDia(w).length, 6);
+  w.document.querySelector('[data-hist-filtro="incompletos"]').click();
+  assert.match(barcos('todos').textContent, /\(3\)/, 'los contadores de barcos parten de los días que deja la pastilla de ataques');
+  assert.match(barcos('con').textContent, /\(2\)/);
+  w.histAbrir('#DEF', 'Otro');
+  await esperar();
+  assert.equal(w.document.querySelector('[data-hist-barcos="todos"]').getAttribute('aria-pressed'), 'true');
+});
+
+test('Cada encabezado de las tablas lleva botón de orden y de filtro, y su texto sigue siendo solo el nombre', async () => {
+  const w = await arranque();
+  w.document.querySelector('[data-hist-filtro="incompletos"]').click();
+  const tablas = w.document.querySelectorAll('#histCuerpo table');
+  assert.equal(tablas.length, 3, 'por día de la semana, por tipo de día y los días');
+  tablas.forEach(t => t.querySelectorAll('thead th').forEach(th => {
+    assert.ok(th.querySelector('[data-hist-ord]'), `sin botón de orden en ${th.textContent}`);
+    assert.ok(th.querySelector('[data-hist-fil]'), `sin botón de filtro en ${th.textContent}`);
+    assert.equal(th.querySelector('[data-hist-ord]').textContent, '', 'el ícono sale por CSS');
+  }));
+  assert.deepEqual([...tablas[2].querySelectorAll('thead th')].map(th => th.textContent), ['N°', 'Fecha', 'Temporada', 'Semana', 'Día', 'Ataques', 'Barcos', 'Medallas']);
+});
+
+test('Orden por encabezado: de menor a mayor, de mayor a menor y sin orden; N° sigue siendo la posición original', async () => {
+  const w = await arranque();
+  const ord = () => w.document.querySelector('[data-hist-ord="dia:5"]');
+  assert.deepEqual(ataquesDia(w), ['4', '3', '4', '4', '4', '0', '2', '4']);
+  ord().click();
+  assert.deepEqual(ataquesDia(w).slice(0, 3), ['0', '2', '3']);
+  assert.equal(ord().dataset.dir, 'asc');
+  assert.equal(ord().closest('th').getAttribute('aria-sort'), 'ascending');
+  assert.equal(celdas(w, '#histCuerpo .hist-tabla-dia tbody tr')[0][0], '6', 'el día con 0 ataques era el sexto de la lista');
+  ord().click();
+  assert.equal(ataquesDia(w)[0], '4');
+  assert.equal(ord().dataset.dir, 'desc');
+  ord().click();
+  assert.deepEqual(ataquesDia(w), ['4', '3', '4', '4', '4', '0', '2', '4'], 'el tercer clic quita el orden');
+  assert.equal(ord().dataset.dir, '');
+});
+
+test('Filtro por encabezado: mínimo y máximo en los números, casillas en el Día, y «Quitar orden y filtros» lo deshace', async () => {
+  const w = await arranque();
+  w.document.querySelector('[data-hist-fil="dia:5"]').click();
+  const panel = () => w.document.querySelector('[data-hist-panel="dia:5"]');
+  assert.ok(panel(), 'el panel se abre sobre la tabla');
+  panel().querySelector('[data-hist-campo="min"]').value = '3';
+  panel().querySelector('[data-hist-aplicar]').click();
+  assert.equal(w.document.querySelector('[data-hist-panel]'), null, 'al aplicar se cierra');
+  assert.deepEqual(ataquesDia(w).sort(), ['3', '4', '4', '4', '4', '4']);
+  assert.equal(w.document.querySelector('[data-hist-fil="dia:5"]').dataset.activo, '1', 'el botón avisa que hay filtro');
+  w.document.querySelector('[data-hist-fil="dia:4"]').click();
+  const cks = [...w.document.querySelectorAll('[data-hist-panel="dia:4"] input[type="checkbox"]')];
+  assert.deepEqual(cks.map(c => c.value), ['J', 'V', 'S', 'D'], 'en el orden de la semana de guerra');
+  cks.find(c => c.value === 'S').checked = false;
+  w.document.querySelector('[data-hist-panel="dia:4"] [data-hist-aplicar]').click();
+  assert.deepEqual(ataquesDia(w), ['4', '4', '4', '4', '4'], 'sin los sábados (el 3 y el 10 de octubre)');
+  w.document.querySelector('[data-hist-reset="dia"]').click();
+  assert.equal(ataquesDia(w).length, 8);
+  assert.equal(w.document.querySelector('[data-hist-reset]'), null);
+});
+
+test('Un filtro sin coincidencias avisa y deja a la vista el botón para quitarlo', async () => {
+  const w = await arranque();
+  w.document.querySelector('[data-hist-fil="dia:5"]').click();
+  w.document.querySelector('[data-hist-campo="min"]').value = '9';
+  w.document.querySelector('[data-hist-aplicar]').click();
+  assert.match(w.document.getElementById('histCuerpo').textContent, /Ningún día coincide con los filtros elegidos/);
+  assert.ok(w.document.querySelector('[data-hist-reset="dia"]'));
+});
+
+test('Las tablas de análisis también se ordenan y filtran por fila', async () => {
+  const w = await arranque();
+  w.document.querySelector('[data-hist-filtro="incompletos"]').click();
+  w.document.querySelector('[data-hist-ord="sem:2"]').click();
+  w.document.querySelector('[data-hist-ord="sem:2"]').click();
+  const sem = () => [...w.document.querySelectorAll('#histCuerpo .hist-tabla-incompletos')][0];
+  const nombres = () => [...sem().querySelectorAll('tbody tr')].map(tr => tr.children[0].textContent);
+  assert.equal(nombres()[0], 'Sábado', 'de mayor a menor por días incompletos: el sábado tiene 2 y el viernes 1');
+  assert.equal(nombres().length, 4);
+  w.document.querySelector('[data-hist-fil="sem:0"]').click();
+  const cks = [...w.document.querySelectorAll('[data-hist-panel="sem:0"] input[type="checkbox"]')];
+  assert.deepEqual(cks.map(c => c.value), ['Jueves', 'Viernes', 'Sábado', 'Domingo']);
+  cks.forEach(c => { c.checked = c.value === 'Sábado'; });
+  w.document.querySelector('[data-hist-panel="sem:0"] [data-hist-aplicar]').click();
+  assert.deepEqual(nombres(), ['Sábado']);
+  assert.ok(sem().querySelector('tbody tr').classList.contains('hist-top'), 'el día con más incompletos sigue resaltado aunque se filtre');
+  assert.equal(w.document.querySelectorAll('#histCuerpo .hist-an-conclusion').length, 2, 'las conclusiones no dependen del filtro');
+});
+
+test('Las notas del pie van una por línea, en una lista', async () => {
+  const w = await arranque();
+  const items = () => [...w.document.querySelectorAll('#histCuerpo ul.hist-nota-lista > li')].map(li => li.textContent);
+  assert.ok(items().length >= 5);
+  assert.ok(items().some(t => /^Un 0 es un día de guerra/.test(t)));
+  assert.ok(items().some(t => /^Los días anteriores a su ingreso/.test(t)));
+  assert.ok(items().every(t => t.split('. ').length === 1 || /\)\.$|\.$/.test(t)), 'una frase por línea');
+  assert.equal(w.document.querySelector('#histCuerpo p.hist-nota'), null, 'ya no hay un párrafo con todas las notas juntas');
+  const antes = items().length;
+  w.document.querySelector('[data-hist-filtro="incompletos"]').click();
+  assert.equal(items().length, antes + 5, 'con el filtro se suman las cinco definiciones');
+  assert.ok(items().some(t => /^Incompleto: /.test(t)) && items().some(t => /^Completo: /.test(t)));
+});
+
+test('CSS: los encabezados «Día de la semana» y «Tipo de día» van centrados y las tablas ya no son todo blanco', () => {
+  const css = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'assets', 'styles.css'), 'utf8');
+  assert.match(css, /\.hist-tabla-incompletos thead th:first-child\{text-align:center;?\}/);
+  assert.match(css, /\.hist-th-t\{[^}]*flex:0 0 100%/);
+  assert.match(css, /--h-mute:#7d8aa6/);
+  assert.match(css, /\.hist-filtro \.hist-pastilla\[data-hist-barcos="con"\]\{color:var\(--h-cian\);?\}/);
+  assert.match(css, /\.hist-nota-lista\{list-style:none/);
+});
