@@ -324,59 +324,90 @@ const DATA_INC = { a: [
 ] };
 const celdas = (w, sel) => [...w.document.querySelectorAll(sel)].map(tr => [...tr.children].map(td => td.textContent));
 
-test('«Solo ataques incompletos»: cuenta, filtra, y muestra el análisis por día de la semana y por barcos', async () => {
+test('Pastilla Todos / Completos / Incompletos: cuenta, filtra y muestra el análisis por día de la semana y por barcos', async () => {
   const w = cargar(DATA_INC);
   w.histAbrir('#ABC', 'Chistris');
   await esperar();
-  const btn = () => w.document.querySelector('[data-hist-incompletos]');
-  assert.match(btn().textContent, /\(3\)/, 'V con 2, S con 0 y S con 3 = 3 días incompletos');
-  assert.equal(btn().getAttribute('aria-pressed'), 'false');
-  assert.equal(w.document.querySelectorAll('#histCuerpo .hist-tabla-dia tbody tr').length, 8);
-  assert.equal(w.document.querySelector('.hist-tabla-incompletos'), null, 'sin filtro no hay análisis');
+  const pastilla = k => w.document.querySelector(`[data-hist-filtro="${k}"]`);
+  const filasDia = () => w.document.querySelectorAll('#histCuerpo .hist-tabla-dia tbody tr').length;
+  assert.match(pastilla('todos').textContent, /\(8\)/);
+  assert.match(pastilla('completos').textContent, /\(5\)/, '5 días con 4 ataques');
+  assert.match(pastilla('incompletos').textContent, /\(3\)/, 'V con 2, S con 0 y S con 3');
+  assert.equal(pastilla('todos').getAttribute('aria-pressed'), 'true');
+  assert.equal(filasDia(), 8);
+  assert.equal(w.document.querySelector('.hist-tabla-incompletos'), null, 'con «Todos» no hay análisis');
 
-  btn().click();
-  assert.equal(btn().getAttribute('aria-pressed'), 'true');
+  pastilla('incompletos').click();
+  assert.equal(pastilla('incompletos').getAttribute('aria-pressed'), 'true');
+  assert.equal(pastilla('todos').getAttribute('aria-pressed'), 'false');
   const dias = celdas(w, '#histCuerpo .hist-tabla-dia tbody tr');
-  assert.equal(dias.length, 3);
   assert.deepEqual(dias.map(f => f[5]), ['3', '0', '2'], 'solo los incompletos, del más reciente al más antiguo');
 
   const [porDia, porBarcos] = w.document.querySelectorAll('#histCuerpo .hist-tabla-incompletos');
   const f = [...porDia.querySelectorAll('tbody tr')].map(tr => [...tr.children].map(td => td.textContent));
   assert.deepEqual(f.map(x => x[0]), ['J', 'V', 'S', 'D']);
-  assert.deepEqual(f[0].slice(1), ['2', '0', '0 %', '0', '0'], 'jueves: 2 días, ninguno incompleto');
-  assert.deepEqual(f[1].slice(1), ['2', '1', '50 %', '2', '1'], 'viernes: 1 de 2; faltaron 2 ataques; 1 barco');
-  assert.deepEqual(f[2].slice(1), ['2', '2', '100 %', '5', '2'], 'sábado: 2 de 2; faltaron 4+1; barcos 0+2 (el 1 acumulado del sábado 3 ya se contó el viernes)');
+  assert.deepEqual(f[0].slice(1), ['2', '0', '0 %', '0', '0']);
+  assert.deepEqual(f[1].slice(1), ['2', '1', '50 %', '2', '1']);
+  assert.deepEqual(f[2].slice(1), ['2', '2', '100 %', '5', '2']);
   assert.ok(porDia.querySelectorAll('tbody tr')[2].classList.contains('hist-top'), 'el día con más incompletos se resalta');
   const b = [...porBarcos.querySelectorAll('tbody tr')].map(tr => [...tr.children].map(td => td.textContent));
-  assert.deepEqual(b[0], ['Incompletos', '3', '3', '1', '2'], '3 días incompletos con 3 barcos en total (1 + 0 + 2), 2 de ellos con barcos');
+  assert.deepEqual(b[0], ['Incompletos', '3', '3', '1', '2']);
   assert.deepEqual(b[1], ['Completos', '5', '0', '0', '0']);
 
-  btn().click();
-  assert.equal(btn().getAttribute('aria-pressed'), 'false', 'segundo clic vuelve a todos los días');
-  assert.equal(w.document.querySelectorAll('#histCuerpo .hist-tabla-dia tbody tr').length, 8);
+  pastilla('completos').click();
+  assert.equal(filasDia(), 5);
+  assert.ok(w.document.querySelector('.hist-tabla-incompletos'), 'con «Completos» también se ve el análisis');
+  assert.ok(![...celdas(w, '#histCuerpo .hist-tabla-dia tbody tr')].some(fila => Number(fila[5]) < 4));
+
+  pastilla('todos').click();
+  assert.equal(filasDia(), 8);
 });
 
-test('«Solo ataques incompletos»: un día opcional con 0 no cuenta y, sin incompletos, se avisa en vez de pintar una tabla vacía', async () => {
+test('Clan ya cruzado: un día opcional con 0 a 3 ataques cuenta como completo; el sábado obligatorio con 3 sigue incompleto aunque el domingo lo "complete" (la suma no cuenta)', async () => {
+  const w = cargar({ a: [
+    { fecha: '2026-10-01', ataques: 4, fame: 400,  barcos: 0 },
+    { fecha: '2026-10-02', ataques: 4, fame: 800,  barcos: 0 },
+    { fecha: '2026-10-03', ataques: 3, fame: 1100, barcos: 0 }, // sábado obligatorio con 3: incompleto
+    { fecha: '2026-10-04', ataques: 1, fame: 1300, barcos: 0, opcional: true }, // domingo, clan ya cruzado: completo (3 + 1 = 4 no se suma)
+    { fecha: '2026-10-08', ataques: 0, fame: 0,    barcos: 0, opcional: true }, // clan ya cruzado antes: 0 ataques y completo
+    { fecha: '2026-10-09', ataques: 2, fame: 300,  barcos: 0, opcional: true },
+  ] });
+  w.histAbrir('#ABC', 'Chistris');
+  await esperar();
+  const pastilla = k => w.document.querySelector(`[data-hist-filtro="${k}"]`);
+  assert.match(pastilla('incompletos').textContent, /\(1\)/, 'solo el sábado con 3');
+  assert.match(pastilla('completos').textContent, /\(5\)/);
+  pastilla('incompletos').click();
+  const dias = celdas(w, '#histCuerpo .hist-tabla-dia tbody tr');
+  assert.equal(dias.length, 1);
+  assert.equal(dias[0][1].slice(0, 10), '03/10/2026');
+  assert.equal(dias[0][4], 'S');
+  pastilla('completos').click();
+  const comp = celdas(w, '#histCuerpo .hist-tabla-dia tbody tr').map(f => f[5]);
+  assert.deepEqual(comp.sort(), ['0', '1', '2', '4', '4'], 'los opcionales con 0, 1 y 2 están entre los completos');
+});
+
+test('Sin días completos o sin incompletos se avisa en vez de pintar una tabla vacía', async () => {
   const w = cargar({ a: [
     { fecha: '2026-10-01', ataques: 4, fame: 400, barcos: 0 },
     { fecha: '2026-10-02', ataques: 0, fame: 400, barcos: 0, opcional: true },
   ] });
   w.histAbrir('#ABC', 'Chistris');
   await esperar();
-  const btn = () => w.document.querySelector('[data-hist-incompletos]');
-  assert.match(btn().textContent, /\(0\)/);
-  btn().click();
+  const pastilla = k => w.document.querySelector(`[data-hist-filtro="${k}"]`);
+  assert.match(pastilla('incompletos').textContent, /\(0\)/);
+  pastilla('incompletos').click();
   assert.equal(w.document.querySelector('#histCuerpo .hist-tabla-dia'), null);
   assert.match(w.document.getElementById('histCuerpo').textContent, /Ningún día de guerra incompleto/);
 });
 
-test('el filtro se apaga al abrir el historial de otro jugador', async () => {
+test('El filtro vuelve a «Todos» al abrir el historial de otro jugador', async () => {
   const w = cargar(DATA_INC);
   w.histAbrir('#ABC', 'Chistris');
   await esperar();
-  w.document.querySelector('[data-hist-incompletos]').click();
-  assert.equal(w.document.querySelector('[data-hist-incompletos]').getAttribute('aria-pressed'), 'true');
+  w.document.querySelector('[data-hist-filtro="completos"]').click();
+  assert.equal(w.document.querySelector('[data-hist-filtro="completos"]').getAttribute('aria-pressed'), 'true');
   w.histAbrir('#DEF', 'Otro');
   await esperar();
-  assert.equal(w.document.querySelector('[data-hist-incompletos]').getAttribute('aria-pressed'), 'false');
+  assert.equal(w.document.querySelector('[data-hist-filtro="todos"]').getAttribute('aria-pressed'), 'true');
 });
