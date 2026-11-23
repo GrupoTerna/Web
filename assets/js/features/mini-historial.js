@@ -354,6 +354,40 @@ function histStats(regs){
   const t = (k) => regs.reduce((a, r) => a + (r[k] || 0), 0);
   return { n, ceros: regs.filter(histEsFalta).length, atq: t('ataques'), fame: t('fame'), barcos: t('barcos') };
 }
+/* 23-nov-2026 (pedido de la usuaria): filtro «Solo ataques incompletos» y su análisis por día de la semana y por barcos. Incompleto = día de guerra ya cerrado con menos de 4 ataques, incluidos los 0. No cuentan el día en curso (todavía puede atacar) ni los opcionales (meta ya cruzada). El estado vive a nivel de módulo para que sobreviva a «Ver más» y a cada repintado; histAbrir() lo apaga al abrir otro jugador. [→ Contexto_Base_Web.md §PF560] */
+let histSoloIncompletos = false;
+const histEsIncompleto = (r, hoyIso) => !!r && r.opcional !== true && (r.ataques || 0) < HIST_ATAQUES_MAX && !histPendiente(r, hoyIso);
+const HIST_DIAS_GUERRA = ['J', 'V', 'S', 'D'];
+/* Por cada día de la semana de guerra: días cerrados que contaban (sin opcionales ni el día en curso), cuántos quedaron incompletos, cuántos ataques faltaron y los barcos de esos días. Aparte, barcos en días incompletos frente a completos. `regs` ya pasó por histSoloGuerra(). */
+function histAnalisisIncompletos(regs, hoyIso){
+  const por = {};
+  HIST_DIAS_GUERRA.forEach(l => { por[l] = { dias: 0, inc: 0, faltan: 0, barcosInc: 0 }; });
+  const g = { inc: { dias: 0, barcos: 0, conBarcos: 0 }, comp: { dias: 0, barcos: 0, conBarcos: 0 } };
+  regs.forEach(r => {
+    if (r.opcional === true || histPendiente(r, hoyIso) || r.fecha === hoyIso) return;
+    const l = histDiaLetra(r.fecha), d = por[l];
+    if (!d) return;
+    const inc = histEsIncompleto(r, hoyIso), b = r.barcos || 0, k = inc ? g.inc : g.comp;
+    d.dias++;
+    k.dias++; k.barcos += b; if (b > 0) k.conBarcos++;
+    if (inc){ d.inc++; d.faltan += HIST_ATAQUES_MAX - (r.ataques || 0); d.barcosInc += b; }
+  });
+  return { por, g };
+}
+function histAnalisisHtml(regs, hoyIso){
+  const { por, g } = histAnalisisIncompletos(regs, hoyIso);
+  const maxInc = Math.max(...HIST_DIAS_GUERRA.map(l => por[l].inc));
+  const filas = HIST_DIAS_GUERRA.map(l => {
+    const d = por[l];
+    const pct = d.dias ? Math.round(d.inc * 100 / d.dias) + ' %' : '–';
+    return `<tr${maxInc > 0 && d.inc === maxInc ? ' class="hist-top"' : ''}><td>${l}</td><td>${fmtNum(d.dias)}</td><td>${fmtNum(d.inc)}</td><td>${pct}</td><td>${fmtNum(d.faltan)}</td><td>${fmtNum(d.barcosInc)}</td></tr>`;
+  }).join('');
+  const prom = k => k.dias ? histFmtDec(k.barcos / k.dias) : '–';
+  const linea = (tit, k) => `<tr><td>${tit}</td><td>${fmtNum(k.dias)}</td><td>${fmtNum(k.barcos)}</td><td>${prom(k)}</td><td>${fmtNum(k.conBarcos)}</td></tr>`;
+  return `
+    <div class="hist-tabla-scroll"><table class="hist-tabla hist-tabla-incompletos"><caption>Por día de la semana de guerra</caption><thead><tr><th>Día</th><th>Días</th><th>Incompl.</th><th>%</th><th>Faltaron</th><th>Barcos</th></tr></thead><tbody>${filas}</tbody></table></div>
+    <div class="hist-tabla-scroll"><table class="hist-tabla hist-tabla-incompletos"><caption>Barcos según el día</caption><thead><tr><th></th><th>Días</th><th>Barcos</th><th>Por día</th><th>Con barcos</th></tr></thead><tbody>${linea('Incompletos', g.inc)}${linea('Completos', g.comp)}</tbody></table></div>`;
+}
 function histSelectorComparar(valor){
   const vistos = {};
   document.querySelectorAll('.btn-hist-jugador').forEach(b => { if (b.dataset.tag !== histTag) vistos[b.dataset.tag] = b.dataset.nombre; });
@@ -374,7 +408,10 @@ function histCuerpoDiaHtml(registros, limite){
   const desc = registros.slice().sort((a, b) => b.fecha.localeCompare(a.fecha));
   const st = histStats(desc), n = st.n;
   const hoyIso = histHoyIso();
-  const visibles = desc.slice(0, limite);
+  const nInc = desc.filter(r => histEsIncompleto(r, hoyIso)).length;
+  const soloInc = histSoloIncompletos;
+  const lista = soloInc ? desc.filter(r => histEsIncompleto(r, hoyIso)) : desc;
+  const visibles = lista.slice(0, limite);
   const hayHoy = visibles.some(r => r.fecha === hoyIso), hayPend = visibles.some(r => histPendiente(r, hoyIso));
   let semPrev = null, semAlt = false;
   const filas = visibles.map((r, idx) => {
@@ -393,9 +430,11 @@ function histCuerpoDiaHtml(registros, limite){
       <div><b>${fmtNum(st.fame)}</b>medallas</div>
       <div><b>${fmtNum(st.barcos)}</b>barcos</div>
     </div>
-    <div class="hist-tabla-scroll"><table class="hist-tabla hist-tabla-dia"><thead><tr><th>N°</th><th>Fecha</th><th>Temporada</th><th>Semana</th><th>Día</th><th>Ataques</th><th>Barcos</th><th>Medallas</th></tr></thead><tbody>${filas}</tbody></table></div>
-    ${n > visibles.length ? `<button type="button" class="btn-solo-cero hist-mas" data-hist-mas="1">Ver más</button>` : ''}
-    <p class="hist-nota">Un 0 es un día de guerra en el que estuvo registrado y no atacó. Los días anteriores a su ingreso al clan no aparecen. Un día marcado como opcional (meta ya cruzada) no cuenta como falta. Solo se muestran días de guerra, no de entrenamiento.${histNotasDiaEnCurso(hayHoy, hayPend)}</p>`;
+    <div class="hist-filtro"><button type="button" class="btn-solo-cero" data-hist-incompletos="1" aria-pressed="${soloInc}">Solo ataques incompletos (${nInc})</button></div>
+    ${soloInc ? histAnalisisHtml(desc, hoyIso) : ''}
+    ${soloInc && !lista.length ? '<p class="hist-nota">Ningún día de guerra incompleto en este período.</p>' : `<div class="hist-tabla-scroll"><table class="hist-tabla hist-tabla-dia"><thead><tr><th>N°</th><th>Fecha</th><th>Temporada</th><th>Semana</th><th>Día</th><th>Ataques</th><th>Barcos</th><th>Medallas</th></tr></thead><tbody>${filas}</tbody></table></div>`}
+    ${lista.length > visibles.length ? `<button type="button" class="btn-solo-cero hist-mas" data-hist-mas="1">Ver más</button>` : ''}
+    <p class="hist-nota">Un 0 es un día de guerra en el que estuvo registrado y no atacó. Los días anteriores a su ingreso al clan no aparecen. Un día marcado como opcional (meta ya cruzada) no cuenta como falta. Solo se muestran días de guerra, no de entrenamiento.${soloInc ? ' Incompleto: día ya cerrado con menos de 4 ataques (incluye los 0); no cuentan el día en curso ni los opcionales. En la primera tabla, «Días» son los días cerrados de cada día de la semana, «Faltaron» los ataques que no hizo y «Barcos» los de esos días incompletos; en la segunda, «Con barcos» son los días en que hizo al menos un ataque a barcos.' : ''}${histNotasDiaEnCurso(hayHoy, hayPend)}</p>`;
 }
 /* Pinta en `el` el cuerpo de días de un jugador y deja funcionando «Ver más». opts.prefijo() devuelve HTML que va antes (el selector «Comparar con» en la ventana); opts.despues() corre tras cada pintado (enlazar ese selector). Devuelve false si no hay registros de guerra. */
 function histPintarEn(el, registros, limite, opts){
@@ -411,6 +450,8 @@ function histPintarEn(el, registros, limite, opts){
   if (typeof o.despues === 'function') o.despues();
   const mas = el.querySelector('[data-hist-mas]');
   if (mas) mas.addEventListener('click', () => histPintarEn(el, registros, lim + HIST_FILAS_MAS, o));
+  const inc = el.querySelector('[data-hist-incompletos]');
+  if (inc) inc.addEventListener('click', () => { histSoloIncompletos = !histSoloIncompletos; histPintarEn(el, registros, HIST_FILAS_INICIALES, o); });
   return true;
 }
 function histPintar(registros, limite){
@@ -478,6 +519,7 @@ async function histAbrir(tag, nombre){
   histAsegurarModal();
   const fondo = document.getElementById('histFondo');
   histTag = tag; histNombre = nombre || tag; histRegsA = [];
+  histSoloIncompletos = false; // 23-nov-2026: cada jugador se abre con todos sus días
   document.getElementById('histTitulo').innerHTML = enlaceJugador(nombre || tag, tag); // 23-oct-2026: el nombre lleva enlace a su perfil (nueva pestaña)
   document.getElementById('histSub').textContent = tag;
   document.getElementById('histPerfil').innerHTML = '';
