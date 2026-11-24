@@ -818,7 +818,7 @@
   .ing-linechart-svg .ing-serie-line-dashed{stroke-dasharray:5 4; opacity:.55;}
   .ing-linechart-svg .ing-axis-label{fill:var(--text-dim); font-family:var(--f-mono); font-size:15px; font-weight:600;}
   .ing-linechart-svg .ing-serie-line{fill:none; stroke-width:3; opacity:.95;}
-  /* 23-nov-2026 (pedido de la usuaria): la serie «promedio por día de la semana» es una recta horizontal por semana, dibujada DEBAJO de la diaria y más ancha (5) y translúcida, para que asome a ambos lados cuando el valor de cada día coincide con el promedio (p. ej. 4 ataques todos los días). [→ Contexto_Base_Web.md §PF566] */
+  /* 23-nov-2026 (pedido de la usuaria; 24-nov-2026: ahora es UNA recta con el promedio general, no una por semana): la serie del promedio es una recta horizontal de punta a punta, dibujada DEBAJO de la diaria y más ancha (5) y translúcida, para que asome a ambos lados cuando el valor de cada día coincide con el promedio (p. ej. 4 ataques todos los días). [→ Contexto_Base_Web.md §PF574] */
   .ing-linechart-svg .ing-serie-line.ing-serie-line-prom{stroke-width:5; opacity:.6; stroke-linecap:round;}
   /* 20-oct-2026: la línea del acumulado va debajo de la diaria. Solo el tramo en que coincide con la diaria (p. ej. todo en 0) se engrosa para asomar a ambos lados; el resto mide lo mismo que la diaria (corrección del 20-oct-2026). */
   .ing-linechart-svg .ing-serie-line.ing-serie-line-acum-coincide{stroke-width:6;}
@@ -5948,7 +5948,7 @@ function perfilLineChartSvg(puntos, opts){
   const hayBajo = minimo != null && hayBajoMinimo(valoresReales, minimo);
   const base = hayBajo ? pisoEjeConNegativos(valoresReales, minimo, pasos, opts.base || 0) : (opts.base || 0);
   const topeExt = serieExt.length && opts.topeSemanal > 0 ? Number(opts.topeSemanal) : 0; // 22-nov-2026: lo externo se compara con el mismo tope semanal aunque no haya acumulado propio
-  const max = Math.max(tope, topeSem, topeExt, ...valoresReales);
+  const max = Math.max(tope, topeSem, topeExt, ...valoresReales, (opts.promedioGeneral && isFinite(Number(opts.promedioGeneral.valor))) ? Number(opts.promedioGeneral.valor) : 0); // 24-nov-2026: el promedio general también cabe en el eje aunque la vista (últimas 6 temporadas) tenga valores menores
   const rango = Math.ceil(((max - base) || pasos) / pasos) * pasos || pasos;
   const techo = base + rango;
   const valorMarca = i => base + (rango / pasos) * i;
@@ -6078,27 +6078,14 @@ function perfilLineChartSvg(puntos, opts){
         data-serie="dia" data-semana="${esc(p.semana)}"${attrsTemporadaSemanaDiaPerfil(p)} data-unidad="${esc(opts.unidad || '')}"${(!!tope && p.real && Number(p.valor) > tope) ? ` data-tope="${tope}"` : ''}${excedeAtaques ? ` data-excede-ataques="${p.excedeAtaques}"` : ''}${bajoMin ? ` data-minimo="${minimo}"` : ''}></circle>`;
   }).join('');
 
-  // NUEVO (23-nov-2026, pedido de la usuaria, «agrega la serie ataques por día (función constante) a la gráfica de ataques; la misma lógica aplica para barcos y medallas»):
-  // opts.promedioSemana = true dibuja, por cada semana de guerra, una recta horizontal a la altura del PROMEDIO POR DÍA de esa semana (media de sus días con dato real; el hueco sin dato no cuenta),
-  // desde su primer día con dato hasta el último (una semana con un solo día lleva una marca corta; los días sin dato, como el domingo estimado de la semana en curso, no cuentan ni la alargan). Es una función constante POR SEMANA: no une una semana con la siguiente. Lleva un punto en el centro del tramo
-  // (entre dos días, para no taparse con los diarios) que da el tooltip y el teclado. Se dibuja debajo de la serie diaria. Todo vive aquí dentro (sin helpers de nivel superior) por la misma razón del comentario de arriba. [→ Contexto_Base_Web.md §PF566]
-  const ptsProm = [];
-  if (opts.promedioSemana){
-    const semanasProm = new Map();
-    puntos.forEach((q, i) => {
-      if (!q.real) return; // un día sin dato (incluido el domingo estimado de la semana en curso) no cuenta ni alarga la recta
-      const t = parseFechaDDMMYYYY(q.semana);
-      if (isNaN(t)) return;
-      const k = _claveDom(t);
-      if (!semanasProm.has(k)) semanasProm.set(k, { ini: i, fin: i, suma: 0, n: 0, clan: '', semana: String(q.semana) });
-      const w = semanasProm.get(k);
-      w.fin = i; w.suma += Number(q.valor) || 0; w.n++; w.semana = String(q.semana); if (q.clan) w.clan = q.clan;
-    });
-    semanasProm.forEach(w => ptsProm.push({ ini: w.ini, fin: w.fin, valor: Math.round(w.suma / w.n * 100) / 100, clan: w.clan, semana: w.semana }));
-  }
+  // 24-nov-2026 (aclaración de la usuaria; reemplaza la recta por semana del 23-nov): en las gráficas grandes el promedio es UNO solo, el promedio general de todos los registros diarios con dato
+  // que cuentan (opts.promedioGeneral = { valor, n, desde }, lo calcula renderMetricaSemanal con todo el historial, no solo con lo que muestra la vista) y la función constante cruza la gráfica de punta a punta a esa altura.
+  // Se dibuja debajo de la serie diaria. Lleva un punto en el centro que da el tooltip y el teclado. Todo vive aquí dentro (sin helpers de nivel superior) por la misma razón del comentario de arriba. [→ Contexto_Base_Web.md §PF574]
+  const pg = (opts.promedioGeneral && isFinite(Number(opts.promedioGeneral.valor)) && Number(opts.promedioGeneral.n) > 0) ? opts.promedioGeneral : null;
+  const ptsProm = pg ? [{ ini: 0, fin: n - 1, valor: Number(pg.valor), clan: perfilGraficaCtx.clan || '', semana: `${pg.n} ${Number(pg.n) === 1 ? 'día' : 'días'} desde el ${pg.desde}` }] : [];
   const _dProm = q => { const y = yPos(q.valor).toFixed(1); const x1 = q.fin > q.ini ? xPos(q.ini) : xPos(q.ini) - 8, x2 = q.fin > q.ini ? xPos(q.fin) : xPos(q.ini) + 8; return `M ${x1.toFixed(1)} ${y} L ${x2.toFixed(1)} ${y}`; };
   const pathProm = ptsProm.map(q => `<path class="ing-serie-line ing-serie-line-prom" data-serie-clave="prom" d="${_dProm(q)}" stroke="${COLOR_SERIE_PROMEDIO_PERFIL}"></path>`).join('');
-  const _datosProm = q => `data-nombre="${esc(perfilGraficaCtx.nombre)}" data-tag="${esc(perfilGraficaCtx.tag)}" data-valor="${q.valor}" data-prefijo="" data-clan="${esc(q.clan || perfilGraficaCtx.clan || '—')}" data-serie-et="Promedio por día de la semana" data-unidad="${esc(opts.unidad || '')}"`;
+  const _datosProm = q => `data-nombre="${esc(perfilGraficaCtx.nombre)}" data-tag="${esc(perfilGraficaCtx.tag)}" data-valor="${q.valor}" data-prefijo="" data-clan="${esc(q.clan || perfilGraficaCtx.clan || '—')}" data-serie-et="Promedio general por día" data-unidad="${esc(opts.unidad || '')}"`;
   const hitProm = ptsProm.map(q => `<path class="ing-serie-hit" data-serie-hit="prom" ${_datosProm(q)} d="${_dProm(q)}"></path>`).join('');
   const circlesProm = ptsProm.map(q => `
       <circle class="ing-serie-pt ing-serie-pt-prom" data-serie-clave="prom" cx="${((xPos(q.ini) + xPos(q.fin)) / 2).toFixed(1)}" cy="${yPos(q.valor).toFixed(1)}" r="4"
@@ -6220,7 +6207,7 @@ function leyendaPuntosGraficaHtml(conHuecos, tope, vsAtaques, serieSemanal, mini
       </div>` : ''}
       ${promedio ? `<div class="ing-chart-leyenda-fila">
         <svg width="22" height="10" viewBox="0 0 22 10" aria-hidden="true"><line x1="0" y1="5" x2="22" y2="5" stroke="${COLOR_SERIE_PROMEDIO_PERFIL}" stroke-width="4" stroke-linecap="round" opacity=".6"></line><circle cx="11" cy="5" r="3" fill="${COLOR_SERIE_PROMEDIO_PERFIL}"></circle></svg>
-        Celeste = promedio por día de cada semana (recta constante sobre los días jugados de esa semana)
+        Celeste = promedio general por día (recta constante; ${esc(String(promedio.n))} ${Number(promedio.n) === 1 ? 'día' : 'días'} con dato desde el ${esc(promedio.desde)})
       </div>` : ''}
       ${hayExterna ? `<div class="ing-chart-leyenda-fila">
         <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><circle cx="5" cy="5" r="4" fill="${COLOR_SERIE_EXTERNA_PERFIL}"></circle></svg>
@@ -6404,7 +6391,15 @@ function pintarGraficaPerfil(wrap, puntos, opts, nota){
       notaMin = `<div class="pf-tope-resumen pf-tope-alerta">⚠ ${bajoMinimo.length} ${bajoMinimo.length === 1 ? 'valor está' : 'valores están'} por debajo del mínimo de ${esc(fmtNum(opts.minimo))} ${esc(opts.unidad || '')}: ${bajoMinimo.slice(-MAX_LISTA).map(x => `${esc(x.etiqueta)} (<b>${esc(fmtNum(x.valor))}</b>)`).join(', ')}${bajoMinimo.length > MAX_LISTA ? ` y ${bajoMinimo.length - MAX_LISTA} más antiguos` : ''}.</div>`;
     }
   }
-  wrap.innerHTML = `${barraVistaPerfilHtml(vista.total)}${leyendaPuntosGraficaHtml(!opts.sinHuecos, opts.tope, opts.vsAtaques, serieSemReal.length ? { tope: opts.topeSemanal > 0 ? opts.topeSemanal : 0 } : null, minimoEnLeyenda, serieExtReal.length > 0, !!opts.promedioSemana)}<div class="perfil-chart-scroll">${perfilLineChartSvg(puntos, opts)}</div>${notaTope}${notaExcede}${notaSem}${notaExt}${notaMin}${nota || ''}`;
+  // 24-nov-2026 (aclaración de la usuaria): nota del promedio general. Solo cuentan las semanas POSTERIORES a la última que supera algún tope (la semana completa se descarta, para las tres métricas a la vez); antes de ese corte hay valores que vienen de los acumulados semanales de RoyaleAPI y no de nuestros registros diarios. [→ Contexto_Base_Web.md §PF574]
+  let notaProm = '';
+  if (opts.promedioGeneral){
+    const pgn = opts.promedioGeneral;
+    notaProm = Number(pgn.n) > 0
+      ? `<div class="pf-tope-resumen pf-tope-ok">Promedio general: <b>${esc(fmtNum(pgn.valor))}</b> ${esc(opts.unidad || '')} por día (${esc(String(pgn.n))} ${Number(pgn.n) === 1 ? 'día' : 'días'} con dato desde el ${esc(pgn.desde)}). No cuentan las semanas hasta la última que supera algún tope.</div>`
+      : `<div class="pf-tope-resumen pf-tope-alerta">Sin promedio general: ninguna semana con dato es posterior a la última que supera algún tope.</div>`;
+  }
+  wrap.innerHTML = `${barraVistaPerfilHtml(vista.total)}${leyendaPuntosGraficaHtml(!opts.sinHuecos, opts.tope, opts.vsAtaques, serieSemReal.length ? { tope: opts.topeSemanal > 0 ? opts.topeSemanal : 0 } : null, minimoEnLeyenda, serieExtReal.length > 0, (opts.promedioGeneral && Number(opts.promedioGeneral.n) > 0) ? opts.promedioGeneral : null)}<div class="perfil-chart-scroll">${perfilLineChartSvg(puntos, opts)}</div>${notaTope}${notaExcede}${notaSem}${notaExt}${notaMin}${notaProm}${nota || ''}`;
   wrap.querySelectorAll('.pf-vista [data-pv]').forEach(b => b.addEventListener('click', () => {
     const a = b.getAttribute('data-pv'), iz = PERFIL_ZOOMS.indexOf(PERFIL_VISTA.zoom);
     if (a === 'ultimas6') PERFIL_VISTA.ultimas6 = !PERFIL_VISTA.ultimas6;
@@ -6539,13 +6534,13 @@ function renderMetricaSemanal(elId, historial, campo, opts){
   opts = opts || {};
   const card = document.getElementById(elId + 'Card');
   const wrap = document.getElementById(elId);
-  if (!card || !wrap) return;
+  if (!card || !wrap) return { excesos: [] };
 
   const datos = _historialDiasGuerra((historial || []).filter(h => h && h[campo] != null)); // FIX (07-oct-2026): lunes = cierre del domingo
   if (!datos.length){
     card.style.display = 'none';
     wrap.innerHTML = '';
-    return;
+    return { excesos: [] };
   }
   card.style.display = '';
 
@@ -6581,7 +6576,33 @@ function renderMetricaSemanal(elId, historial, campo, opts){
       const ataquesExt = (campo === 'barcos' && r.ataques != null && isFinite(Number(r.ataques)) && !ataquesExternosSinDatoPerfil(r)) ? Number(r.ataques) : null; // sin dato de ataques no se compara con los barcos
       return { semana: String(r.fecha), temporada: r.temporada, semanaGuerra: r.semana, diaGuerra: 'Domingo', valor, real: true, clan: r.clan, clanTag: r.clanTag, topeSemana: topeSemanalExternoPerfil(campo, r, opts.topeSemanal), excedeAtaques: (ataquesExt != null && valor > ataquesExt) ? ataquesExt : undefined };
     }) : [];
-  pintarGraficaPerfil(wrap, puntos, { ejeY: opts.tituloEje || '', unidad: unidades[opts.tituloEje] || '', base: 0, tope: opts.tope || 0, vsAtaques: !!opts.vsAtaques, serieSemanal: opts.topeSemanal > 0 ? serieSemanal : null, serieExterna: serieExterna.length ? serieExterna : null, topeSemanal: opts.topeSemanal || 0, minimo: minimoMetricaGuerra(), promedioSemana: !!opts.promedioSemana });
+  // 24-nov-2026 (aclaración de la usuaria, «solo se toman en cuenta desde cuando no aparecen valores por encima de 16 ataques o 4 diarios, 3600 medallas semanales o 900 diarios; barcos, 4 al día o 16 semanales; si un criterio descarta una fecha, también se descarta en las otras métricas; se descarta la semana completa»):
+  // `excesos` = semana (clave = domingo de esa semana, en ms) de cada valor que supera un tope: diario (opts.topeDescarteDia o, si no está, opts.tope), acumulado semanal en cualquier día (opts.topeSemanal), o barcos de un día por encima de los ataques de ese día.
+  // Algunos de esos valores no son errores nuestros: vienen de la época en que RoyaleAPI publicaba solo acumulados semanales, y no se sabe la fecha exacta, por eso se corta donde dejan de aparecer.
+  // renderMetricasSemanales() corre primero las tres métricas con opts.soloCalcular y pasa el corte común (opts.corteExceso = la última semana con exceso de cualquiera de las tres); aquí solo cuentan los días reales de semanas POSTERIORES a ese corte. [→ Contexto_Base_Web.md §PF574]
+  const _domDe = t => { const d = new Date(t); d.setHours(0, 0, 0, 0); d.setDate(d.getDate() + ((7 - d.getDay()) % 7)); return d.getTime(); };
+  const topeDiaDescarte = opts.topeDescarteDia > 0 ? Number(opts.topeDescarteDia) : (opts.tope > 0 ? Number(opts.tope) : 0);
+  const topeSemDescarte = opts.topeSemanal > 0 ? Number(opts.topeSemanal) : 0;
+  const excesos = [];
+  puntos.forEach(p => {
+    if (!p.real) return; // un hueco sin dato (valor 0 inventado) no es un valor
+    const t = parseFechaDDMMYYYY(p.semana);
+    if (isNaN(t)) return;
+    if ((topeDiaDescarte > 0 && Number(p.valor) > topeDiaDescarte) || p.excedeAtaques != null) excesos.push(_domDe(t));
+  });
+  ordenados.forEach(h => {
+    const t = parseFechaDDMMYYYY(h.semana), v = Number(h[campo]);
+    if (!isNaN(t) && topeSemDescarte > 0 && isFinite(v) && v > topeSemDescarte) excesos.push(_domDe(t)); // el contador acumulado de la semana nunca supera el tope semanal
+  });
+  if (opts.soloCalcular) return { excesos };
+  let promedioGeneral = null;
+  if (opts.promediar){
+    const corte = opts.corteExceso != null ? Number(opts.corteExceso) : null;
+    const validos = puntos.filter(p => { if (!p.real) return false; const t = parseFechaDDMMYYYY(p.semana); return !isNaN(t) && (corte == null || _domDe(t) > corte); });
+    promedioGeneral = { valor: validos.length ? Math.round(validos.reduce((a, p) => a + (Number(p.valor) || 0), 0) / validos.length * 100) / 100 : 0, n: validos.length, desde: validos.length ? String(validos[0].semana) : '' };
+  }
+  pintarGraficaPerfil(wrap, puntos, { ejeY: opts.tituloEje || '', unidad: unidades[opts.tituloEje] || '', base: 0, tope: opts.tope || 0, vsAtaques: !!opts.vsAtaques, serieSemanal: opts.topeSemanal > 0 ? serieSemanal : null, serieExterna: serieExterna.length ? serieExterna : null, topeSemanal: opts.topeSemanal || 0, minimo: minimoMetricaGuerra(), promedioGeneral });
+  return { excesos };
 }
 
 /**
@@ -6595,9 +6616,18 @@ function renderMetricasSemanales(ext){
   const historial = ext && Array.isArray(ext.historialRanking) ? ext.historialRanking : [];
   // 22-nov-2026 (pedido usuaria): semanas en clanes externos, solo para admins. El backend ya las manda solo con sesión de admin; aquí se vuelve a comprobar para que un dato que llegara de una copia guardada no se dibuje sin sesión. [→ Contexto_Base_Web.md §PF066]
   const externas = (typeof esAdminLogueado === 'function' && esAdminLogueado() && ext && Array.isArray(ext.semanasExternas)) ? ext.semanasExternas : [];
-  renderMetricaSemanal('mAtaquesChart', historial, 'ataques', { tituloEje: 'Ataques', tope: TOPE_ATAQUES_DIA, topeSemanal: TOPE_ATAQUES_SEMANA_PERFIL, externas, promedioSemana: true });
-  renderMetricaSemanal('mPuntajeChart', historial, 'puntaje', { tituloEje: 'Medallas', tope: TOPE_MEDALLAS_DIA, topeSemanal: TOPE_MEDALLAS_SEMANA_PERFIL, externas, promedioSemana: true });
-  renderMetricaSemanal('mBarcosChart', historial, 'barcos', { tituloEje: 'Barcos', vsAtaques: true, topeSemanal: TOPE_BARCOS_SEMANA_PERFIL, externas, promedioSemana: true });
+  // 24-nov-2026 (aclaración de la usuaria): el promedio general de las tres gráficas parte de la misma semana, la siguiente a la última con algún valor sobre los topes en CUALQUIERA de las tres métricas (ataques 4 al día y 16 a la semana, medallas 900 y 3600, barcos 4 y 16). Primera pasada: solo calcula los excesos; segunda: dibuja con el corte común. [→ Contexto_Base_Web.md §PF574]
+  const metricas = [
+    ['mAtaquesChart', 'ataques', { tituloEje: 'Ataques', tope: TOPE_ATAQUES_DIA, topeSemanal: TOPE_ATAQUES_SEMANA_PERFIL, externas, promediar: true }],
+    ['mPuntajeChart', 'puntaje', { tituloEje: 'Medallas', tope: TOPE_MEDALLAS_DIA, topeSemanal: TOPE_MEDALLAS_SEMANA_PERFIL, externas, promediar: true }],
+    ['mBarcosChart', 'barcos', { tituloEje: 'Barcos', vsAtaques: true, topeDescarteDia: TOPE_ATAQUES_DIA, topeSemanal: TOPE_BARCOS_SEMANA_PERFIL, externas, promediar: true }] // barcos: tope diario 4 solo para el descarte (la gráfica no lo dibuja; los barcos nunca superan a los ataques)
+  ];
+  let corteExceso = null;
+  metricas.forEach(m => {
+    const r = renderMetricaSemanal(m[0], historial, m[1], Object.assign({}, m[2], { soloCalcular: true }));
+    ((r && r.excesos) || []).forEach(k => { if (corteExceso == null || k > corteExceso) corteExceso = k; });
+  });
+  metricas.forEach(m => renderMetricaSemanal(m[0], historial, m[1], Object.assign({}, m[2], { corteExceso })));
 }
 
 // adminPuedeVetar() ahora vive en assets/common.js (1-sep-2026, reutilizada

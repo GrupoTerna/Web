@@ -8,10 +8,11 @@ const { loadBrowserScriptsWithDom } = require('./load-browser-script');
 
 // NUEVO (23-nov-2026, pedido de la usuaria): «agrega la serie ataques por día (función constante) a la gráfica de ataques de
 // perfil.html y una serie sobre los ataques promedio de la semana a la minigráfica de ataques en la semana; la misma lógica
-// aplica para barcos y medallas».
-//  - Gráfica grande (perfilLineChartSvg, opts.promedioSemana): una recta horizontal por semana a la altura del promedio por día
-//    de esa semana, del primer al último día de la semana en el eje X, debajo de la serie diaria.
-//  - Minigráfica (_dispersionMiniHtml, serie con `constante: true`): el promedio repetido en cada día, con línea punteada y aro hueco.
+// aplica para barcos y medallas». ACLARADO el 24-nov-2026:
+//  - Minigráfica (_dispersionMiniHtml, serie con `constante: true`) y cuadritos de Ingresos recientes: el promedio de los días CON DATO de esa semana, repetido en cada día.
+//  - Gráfica grande (perfilLineChartSvg, opts.promedioGeneral): UNA recta constante con el promedio general de todos los registros diarios con dato, de punta a punta.
+//    Solo cuentan las semanas POSTERIORES a la última que supera algún tope (ataques 4 al día / 16 a la semana, medallas 900 / 3600, barcos 4 / 16, o más barcos que ataques);
+//    se descarta la semana completa y el corte es común a las tres métricas (renderMetricasSemanales, dos pasadas).
 // LÍMITE: se extraen las funciones del <script> inline REAL y se mira el SVG como texto/DOM simulado, no en un navegador.
 
 const html = fs.readFileSync(path.join(__dirname, '..', 'perfil.html'), 'utf8');
@@ -32,72 +33,68 @@ function extraerFuncion(src, nombre){
 }
 const NOMBRES = ['parseFechaDDMMYYYY', 'fmtFechaLargaDDMMYYYYPerfil', 'semanaLabelCortaPerfil', 'filtrarDiasGuerraPerfil', 'puntosSobreTope',
   'ordenarHistorialPorSemana', 'completarSemanasSinDato', '_periodIndexRegistro', '_historialDiasGuerra', '_valoresDiariosDesdeAcumulado',
-  'textoTemporadaSemanaDiaPerfil', 'attrsTemporadaSemanaDiaPerfil', 'perfilLineChartSvg', 'leyendaPuntosGraficaHtml', 'filtrarUltimasTemporadasPerfil', 'barraVistaPerfilHtml', 'repintarGraficasPerfil', 'activarTooltipEjeXPerfil', 'pintarGraficaPerfil', 'etiquetaPuntoPerfil', 'htmlTooltipLineaPerfil', 'htmlTooltipPuntoPerfil', 'renderMetricaSemanal'];
+  'textoTemporadaSemanaDiaPerfil', 'attrsTemporadaSemanaDiaPerfil', 'perfilLineChartSvg', 'leyendaPuntosGraficaHtml', 'filtrarUltimasTemporadasPerfil', 'barraVistaPerfilHtml', 'repintarGraficasPerfil', 'activarTooltipEjeXPerfil', 'pintarGraficaPerfil', 'etiquetaPuntoPerfil', 'htmlTooltipLineaPerfil', 'htmlTooltipPuntoPerfil', 'renderMetricaSemanal', 'renderMetricasSemanales'];
 const CODIGO = NOMBRES.map(n => extraerFuncion(grande, n)).join('\n') +
-  "\nconst TOPE_ATAQUES_DIA = 4; const PERFIL_VISTA = { ultimas6: true, zoom: 1 }; const PERFIL_ZOOMS = [1, 1.5, 2, 3, 4, 6]; const PERFIL_TEMPORADAS_VISTA = 6; const PERFIL_GRAFICAS_PINTADAS = new Map(); const COLOR_SERIE_PERFIL = '#a239ff'; const COLOR_SERIE_ACUMULADO_PERFIL = '#3ddc97'; const COLOR_SERIE_PROMEDIO_PERFIL = '#00d4ff'; let perfilGraficaCtx = { nombre: 'Chistris', tag: '#2GG8PJ8GC', clan: 'Terna' };" +
-  '\nwindow.__t = { renderMetricaSemanal, htmlTooltipLineaPerfil, htmlTooltipPuntoPerfil, etiquetaPuntoPerfil };';
+  "\nconst TOPE_ATAQUES_DIA = 4; const TOPE_ATAQUES_SEMANA_PERFIL = 16; const TOPE_MEDALLAS_DIA = 900; const TOPE_MEDALLAS_SEMANA_PERFIL = 3600; const TOPE_BARCOS_SEMANA_PERFIL = 16; const PERFIL_VISTA = { ultimas6: true, zoom: 1 }; const PERFIL_ZOOMS = [1, 1.5, 2, 3, 4, 6]; const PERFIL_TEMPORADAS_VISTA = 6; const PERFIL_GRAFICAS_PINTADAS = new Map(); const COLOR_SERIE_PERFIL = '#a239ff'; const COLOR_SERIE_ACUMULADO_PERFIL = '#3ddc97'; const COLOR_SERIE_PROMEDIO_PERFIL = '#00d4ff'; let perfilGraficaCtx = { nombre: 'Chistris', tag: '#2GG8PJ8GC', clan: 'Terna' };" +
+  '\nwindow.__t = { renderMetricaSemanal, renderMetricasSemanales, perfilLineChartSvg, htmlTooltipLineaPerfil, htmlTooltipPuntoPerfil, etiquetaPuntoPerfil };';
 
-function cargar(){
-  const window = loadBrowserScriptsWithDom(['assets/js/util.js', 'assets/js/features/timeline-svg.js'],
-    '<section id="mChartCard"><div id="mChart"></div></section>');
+const HTML_UNA = '<section id="mChartCard"><div id="mChart"></div></section>';
+const HTML_TRES = ['mAtaquesChart', 'mPuntajeChart', 'mBarcosChart'].map(id => `<section id="${id}Card"><div id="${id}"></div></section>`).join('');
+function cargar(html){
+  const window = loadBrowserScriptsWithDom(['assets/js/util.js', 'assets/js/features/timeline-svg.js'], html || HTML_UNA);
   window.eval(CODIGO);
   return window;
 }
-const reg = (fecha, ataques, barcos, puntaje) => ({ semana: fecha, ataques, barcos, puntaje, clan: 'Terna' });
+const reg = (fecha, ataques, barcos, puntaje, temporada) => Object.assign({ semana: fecha, ataques, barcos, puntaje, clan: 'Terna' }, temporada != null ? { temporada } : {});
 // 01/10/2026 es jueves. Contadores ACUMULADOS de cada semana; el valor de cada día sale de la resta.
-// Semana 1 (01-04/10): ataques por día 4, 4, 2, 3 = 13 → promedio 3,25. Medallas por día 800, 900, 900, 900 → promedio 875. Barcos 2, 3, 4, 4 → 3,25.
-// Semana 2 (08-11/10): ataques 4, 4, 4, 4 → promedio 4. Medallas 900 cada día → 900. Barcos 4, 4, 4, 4 → 4.
-const DOS_SEMANAS = [
-  reg('01/10/2026', 4, 2, 800), reg('02/10/2026', 8, 5, 1700), reg('03/10/2026', 10, 9, 2600), reg('04/10/2026', 13, 13, 3500),
-  reg('08/10/2026', 4, 4, 900), reg('09/10/2026', 8, 8, 1800), reg('10/10/2026', 12, 12, 2700), reg('11/10/2026', 16, 16, 3600)
-];
+// Semana 1 (01-04/10): ataques por día 4, 4, 2, 3. Medallas por día 800, 900, 900, 900. Barcos 2, 3, 2, 3 (nunca más que los ataques de ese día).
+// Semana 2 (08-11/10): 4 ataques, 900 medallas y 4 barcos cada día.
+const SEM1 = [reg('01/10/2026', 4, 2, 800), reg('02/10/2026', 8, 5, 1700), reg('03/10/2026', 10, 7, 2600), reg('04/10/2026', 13, 10, 3500)];
+const SEM2 = [reg('08/10/2026', 4, 4, 900), reg('09/10/2026', 8, 8, 1800), reg('10/10/2026', 12, 12, 2700), reg('11/10/2026', 16, 16, 3600)];
+const DOS_SEMANAS = SEM1.concat(SEM2);
+// Época en que RoyaleAPI publicaba un acumulado por semana (un registro el domingo 27/09): lo que trae sale como «diario» muy por encima de los topes.
+const SEMANAL_VIEJA = [reg('27/09/2026', 14, 6, 3000)];
 const pintar = (w, historial, campo, opts) => {
   w.__t.renderMetricaSemanal('mChart', historial, campo, Object.assign({ tituloEje: 'Ataques' }, opts));
   return w.document.getElementById('mChart');
 };
+const pintarTres = (w, historial) => {
+  w.__t.renderMetricasSemanales({ historialRanking: historial });
+  const g = id => w.document.getElementById(id);
+  return { ataques: g('mAtaquesChart'), medallas: g('mPuntajeChart'), barcos: g('mBarcosChart') };
+};
 const prom = wrap => [...wrap.querySelectorAll('.ing-serie-pt')].filter(c => c.dataset.serie === 'prom');
 const diarios = wrap => [...wrap.querySelectorAll('.ing-serie-pt')].filter(c => c.dataset.serie === 'dia');
 const rectasProm = wrap => [...wrap.querySelectorAll('path.ing-serie-line-prom')];
+const valorProm = wrap => { const p = prom(wrap); return p.length ? p[0].dataset.valor : null; };
 
-test('sin opts.promedioSemana no hay serie promedio ni fila de leyenda (lo de antes no cambia)', () => {
+test('sin opts.promediar no hay serie promedio ni fila de leyenda (lo de antes no cambia)', () => {
   const w = cargar();
   const wrap = pintar(w, DOS_SEMANAS, 'ataques', { tope: 4, topeSemanal: 16 });
   assert.equal(prom(wrap).length, 0);
   assert.equal(rectasProm(wrap).length, 0);
   assert.equal(wrap.querySelectorAll('[data-serie-clave="prom"]').length, 0);
-  assert.ok(!wrap.textContent.includes('promedio por día'));
+  assert.ok(!/Celeste|Promedio general/.test(wrap.textContent));
 });
 
-test('ataques: una recta horizontal por semana, a la altura del promedio por día de esa semana', () => {
+test('sin ningún valor sobre los topes: UNA sola recta con el promedio de todos los días con dato', () => {
   const w = cargar();
-  const wrap = pintar(w, DOS_SEMANAS, 'ataques', { tope: 4, topeSemanal: 16, promedioSemana: true });
-  const puntos = prom(wrap);
-  assert.deepEqual(puntos.map(c => c.dataset.valor), ['3.25', '4'], 'promedio por día: 13/4 y 16/4');
-  const rectas = rectasProm(wrap);
-  assert.equal(rectas.length, 2);
-  rectas.forEach((r, k) => {
-    const m = r.getAttribute('d').match(/M ([\d.]+) ([\d.]+) L ([\d.]+) ([\d.]+)/);
-    assert.equal(m[2], m[4], `semana ${k + 1}: función constante, mismo Y en los dos extremos`);
-    assert.equal(m[2], puntos[k].getAttribute('cy'), 'el punto del centro va a la altura de la recta');
-    assert.equal(r.getAttribute('stroke'), '#00d4ff');
-  });
-  assert.notEqual(rectas[0].getAttribute('d').split(' ')[2], rectas[1].getAttribute('d').split(' ')[2], 'cada semana, su propia altura');
-});
-
-test('la recta va del jueves al domingo de su semana y el punto cae en el centro del tramo', () => {
-  const w = cargar();
-  const wrap = pintar(w, DOS_SEMANAS, 'ataques', { tope: 4, topeSemanal: 16, promedioSemana: true });
+  const wrap = pintar(w, DOS_SEMANAS, 'ataques', { tope: 4, topeSemanal: 16, promediar: true });
+  assert.equal(rectasProm(wrap).length, 1, 'una sola recta, no una por semana');
+  assert.equal(prom(wrap).length, 1);
+  assert.equal(valorProm(wrap), '3.63', '(4+4+2+3+4+4+4+4)/8 = 3,625 → 3,63');
   const d = diarios(wrap);
-  const jue1 = d.find(c => c.dataset.semana === '01/10/2026'), dom1 = d.find(c => c.dataset.semana === '04/10/2026');
   const m = rectasProm(wrap)[0].getAttribute('d').match(/M ([\d.]+) ([\d.]+) L ([\d.]+) ([\d.]+)/);
-  assert.equal(Number(m[1]), Number(jue1.getAttribute('cx')));
-  assert.equal(Number(m[3]), Number(dom1.getAttribute('cx')));
-  assert.ok(Math.abs(Number(prom(wrap)[0].getAttribute('cx')) - (Number(m[1]) + Number(m[3])) / 2) < 0.06);
+  assert.equal(m[2], m[4], 'función constante: mismo Y en los dos extremos');
+  assert.equal(m[2], prom(wrap)[0].getAttribute('cy'));
+  assert.equal(Number(m[1]), Number(d[0].getAttribute('cx')), 'empieza en el primer día de la gráfica');
+  assert.equal(Number(m[3]), Number(d[d.length - 1].getAttribute('cx')), 'termina en el último día de la gráfica');
+  assert.equal(rectasProm(wrap)[0].getAttribute('stroke'), '#00d4ff');
 });
 
-test('el promedio se dibuja debajo de la serie diaria (rectas y puntos antes que los diarios)', () => {
+test('el promedio se dibuja debajo de la serie diaria (recta y punto antes que los diarios)', () => {
   const w = cargar();
-  const wrap = pintar(w, DOS_SEMANAS, 'ataques', { tope: 4, topeSemanal: 16, promedioSemana: true });
+  const wrap = pintar(w, DOS_SEMANAS, 'ataques', { tope: 4, topeSemanal: 16, promediar: true });
   const todos = [...wrap.querySelectorAll('path, circle')];
   const ultimoProm = Math.max(...[...rectasProm(wrap), ...prom(wrap)].map(e => todos.indexOf(e)));
   const primeroDia = Math.min(...diarios(wrap).map(e => todos.indexOf(e)), ...[...wrap.querySelectorAll('path.ing-serie-line[data-serie-clave="dia"]')].map(e => todos.indexOf(e)));
@@ -105,63 +102,112 @@ test('el promedio se dibuja debajo de la serie diaria (rectas y puntos antes que
   assert.equal(diarios(wrap).length, 8, 'los puntos diarios siguen intactos');
 });
 
-test('medallas y barcos: la misma lógica (promedio por día de cada semana)', () => {
-  const w = cargar();
-  const med = pintar(w, DOS_SEMANAS, 'puntaje', { tituloEje: 'Medallas', tope: 900, topeSemanal: 3600, promedioSemana: true });
-  assert.deepEqual(prom(med).map(c => c.dataset.valor), ['875', '900']);
-  const w2 = cargar();
-  const bar = pintar(w2, DOS_SEMANAS, 'barcos', { tituloEje: 'Barcos', vsAtaques: true, topeSemanal: 16, promedioSemana: true });
-  assert.deepEqual(prom(bar).map(c => c.dataset.valor), ['3.25', '4']);
+test('con un registro semanal de la época vieja (muy sobre los topes) solo cuentan las semanas posteriores', () => {
+  const w = cargar(HTML_TRES);
+  const g = pintarTres(w, SEMANAL_VIEJA.concat(DOS_SEMANAS));
+  // Ataques: 14 en un día (> 4) y acumulado 14 el 27/09 → esa semana se descarta; el promedio parte del 01/10.
+  assert.equal(valorProm(g.ataques), '3.63');
+  assert.equal(valorProm(g.medallas), '887.5', '(800+900+900+900+900+900+900+900)/8');
+  assert.equal(valorProm(g.barcos), '3.25', '(2+3+2+3+4+4+4+4)/8');
+  assert.match(g.ataques.textContent, /Promedio general: 3\.63 ataques por día \(8 días con dato desde el 01\/10\/2026\)/);
+  assert.match(g.medallas.textContent, /Promedio general: 887\.5 de medallas por día \(8 días con dato desde el 01\/10\/2026\)/);
 });
 
-test('semana en curso: promedia solo los días jugados; con un solo día lleva una marca corta', () => {
-  const w = cargar();
-  // Semana 1 completa y semana 2 con solo jueves (3) y viernes (5): promedio 4. Semana 3 con solo el jueves (2): una marca corta.
-  const h = [
-    reg('01/10/2026', 4, 2, 800), reg('02/10/2026', 8, 5, 1700), reg('03/10/2026', 12, 9, 2600), reg('04/10/2026', 16, 13, 3500),
-    reg('08/10/2026', 3, 1, 500), reg('09/10/2026', 8, 3, 1500),
-    reg('15/10/2026', 2, 1, 400)
-  ];
-  const wrap = pintar(w, h, 'ataques', { tope: 4, topeSemanal: 16, promedioSemana: true });
-  assert.deepEqual(prom(wrap).map(c => c.dataset.valor), ['4', '4', '2']);
-  const segunda = rectasProm(wrap)[1].getAttribute('d').match(/M ([\d.]+) ([\d.]+) L ([\d.]+) ([\d.]+)/);
-  const dSem2 = diarios(wrap).filter(c => ['08/10/2026', '09/10/2026'].includes(c.dataset.semana)).map(c => Number(c.getAttribute('cx')));
-  assert.deepEqual([Number(segunda[1]), Number(segunda[3])], dSem2, 'semana en curso: la recta cubre solo jueves y viernes, no el domingo estimado');
-  const ultima = rectasProm(wrap)[2].getAttribute('d').match(/M ([\d.]+) ([\d.]+) L ([\d.]+) ([\d.]+)/);
-  assert.ok(Math.abs((Number(ultima[3]) - Number(ultima[1])) - 16) < 0.2, 'un solo día: marca de 16 unidades centrada en el punto');
+test('el corte es común: un exceso solo en barcos descarta la misma semana en ataques y medallas', () => {
+  const w = cargar(HTML_TRES);
+  // Semana 1 con 7 barcos en un día (acumulado 2 → 9): supera el 4 diario de barcos y los ataques de ese día (4). Ataques y medallas están dentro de sus topes.
+  const sem1 = [reg('01/10/2026', 4, 2, 800), reg('02/10/2026', 8, 9, 1700), reg('03/10/2026', 10, 9, 2600), reg('04/10/2026', 13, 9, 3500)]; // barcos: 2, 7, 0, 0
+  const g = pintarTres(w, sem1.concat(SEM2));
+  assert.equal(valorProm(g.ataques), '4', 'solo cuenta la semana 2 (4 ataques por día)');
+  assert.equal(valorProm(g.medallas), '900');
+  assert.equal(valorProm(g.barcos), '4');
+  assert.match(g.ataques.textContent, /\(4 días con dato desde el 08\/10\/2026\)/);
 });
 
-test('el tooltip de la recta y el del punto dicen «Promedio por día de la semana» con el valor', () => {
+test('un acumulado semanal sobre el tope también corta (ataques con 17 al domingo, sin ningún día sobre 4 por la resta)', () => {
+  const w = cargar(HTML_TRES);
+  // Dos registros por semana (viernes y domingo): acumulado 8 y 17; el día sale 8 y 9 (> 4) y además 17 > 16 semanal.
+  const h = [reg('02/10/2026', 8, 2, 800), reg('04/10/2026', 17, 4, 1700)].concat(SEM2);
+  const g = pintarTres(w, h);
+  assert.match(g.ataques.textContent, /desde el 08\/10\/2026/);
+});
+
+test('si la última semana con dato ya supera un tope, no hay promedio general y se dice por qué', () => {
+  const w = cargar(HTML_TRES);
+  const g = pintarTres(w, SEM1.concat([reg('08/10/2026', 5, 4, 900), reg('09/10/2026', 8, 8, 1800)]));
+  for (const wrap of [g.ataques, g.medallas, g.barcos]){
+    assert.equal(rectasProm(wrap).length, 0);
+    assert.equal(prom(wrap).length, 0);
+    assert.match(wrap.textContent, /Sin promedio general: ninguna semana con dato es posterior a la última que supera algún tope/);
+    assert.ok(!/Celeste/.test(wrap.textContent), 'sin recta no hay fila de leyenda');
+  }
+});
+
+test('el promedio sale de TODO el historial, aunque la vista «últimas 6 temporadas» solo dibuje las últimas', () => {
+  const w = cargar(HTML_TRES);
+  // 48 semanas (jueves a domingo) desde el 02/10/2025: las primeras 8 con 2 ataques por día y las otras 40 con 4. Promedio de las 192 jornadas: (32 x 2 + 160 x 4) / 192 = 3,67.
+  const h = [];
+  const inicio = new Date(2025, 9, 2); // jueves
+  for (let s = 0; s < 48; s++){
+    const por = s < 8 ? 2 : 4;
+    for (let d = 0; d < 4; d++){
+      const f = new Date(inicio); f.setDate(f.getDate() + 7 * s + d);
+      const txt = String(f.getDate()).padStart(2, '0') + '/' + String(f.getMonth() + 1).padStart(2, '0') + '/' + f.getFullYear();
+      h.push(reg(txt, por * (d + 1), 1 * (d + 1), 600 * (d + 1)));
+    }
+  }
+  const g = pintarTres(w, h);
+  assert.equal(valorProm(g.ataques), '3.67');
+  assert.match(g.ataques.textContent, /\(192 días con dato desde el 02\/10\/2025\)/);
+  assert.ok(diarios(g.ataques).length < 192, 'la vista de las últimas 6 temporadas dibuja menos puntos que el historial');
+});
+
+test('el tooltip de la recta y el del punto dicen «Promedio general por día» con el valor', () => {
   const w = cargar();
-  const wrap = pintar(w, DOS_SEMANAS, 'ataques', { tope: 4, topeSemanal: 16, promedioSemana: true });
+  const wrap = pintar(w, DOS_SEMANAS, 'ataques', { tope: 4, topeSemanal: 16, promediar: true });
   const hit = wrap.querySelector('path.ing-serie-hit[data-serie-hit="prom"]');
   assert.ok(hit, 'falta el tramo sensible de la recta del promedio');
   const t = w.__t.htmlTooltipLineaPerfil(hit);
-  assert.match(t, /Promedio por día de la semana: 3\.25 ataques/);
+  assert.match(t, /Promedio general por día: 3\.63 ataques/);
   assert.match(t, /Clan actual: Terna/);
   const pt = prom(wrap)[0];
-  assert.match(w.__t.htmlTooltipPuntoPerfil(pt), /3\.25 ataques/);
-  assert.match(w.__t.etiquetaPuntoPerfil(pt), /Promedio por día de la semana/);
-  // Las líneas de siempre (sin data-serie-et) conservan su tooltip de antes: solo nombre, tag y clan.
+  assert.match(w.__t.htmlTooltipPuntoPerfil(pt), /3\.63 ataques/);
+  assert.match(w.__t.htmlTooltipPuntoPerfil(pt), /8 días desde el 01\/10\/2026/);
+  assert.match(w.__t.etiquetaPuntoPerfil(pt), /Promedio general por día/);
   const hitDia = wrap.querySelector('path.ing-serie-hit[data-serie-hit="dia"]');
-  assert.ok(!/Promedio/.test(w.__t.htmlTooltipLineaPerfil(hitDia)));
+  assert.ok(!/Promedio/.test(w.__t.htmlTooltipLineaPerfil(hitDia)), 'las líneas de siempre conservan su tooltip');
 });
 
-test('la leyenda explica la serie celeste solo cuando está activada', () => {
+test('la leyenda explica la serie celeste solo cuando hay promedio', () => {
   const w = cargar();
-  const con = pintar(w, DOS_SEMANAS, 'ataques', { tope: 4, topeSemanal: 16, promedioSemana: true });
-  assert.match(con.textContent, /Celeste = promedio por día de cada semana/);
+  const con = pintar(w, DOS_SEMANAS, 'ataques', { tope: 4, topeSemanal: 16, promediar: true });
+  assert.match(con.textContent, /Celeste = promedio general por día \(recta constante; 8 días con dato desde el 01\/10\/2026\)/);
   const w2 = cargar();
   const sin = pintar(w2, DOS_SEMANAS, 'ataques', { tope: 4, topeSemanal: 16 });
   assert.ok(!/Celeste/.test(sin.textContent));
 });
 
-test('renderMetricasSemanales activa el promedio en las tres gráficas (ataques, medallas y barcos)', () => {
-  const ini = grande.indexOf('function renderMetricasSemanales(');
-  assert.ok(ini >= 0);
+test('el eje Y incluye el promedio aunque ningún punto dibujado lo alcance (la recta nunca se sale de la gráfica)', () => {
+  const w = cargar();
+  // Todos los puntos valen 1 pero el promedio general (calculado sobre todo el historial) es 9: el eje debe subir hasta él.
+  const puntos = ['01/10/2026', '02/10/2026', '03/10/2026', '04/10/2026'].map(f => ({ semana: f, valor: 1, real: true, clan: 'Terna' }));
+  const cont = w.document.createElement('div');
+  cont.innerHTML = w.__t.perfilLineChartSvg(puntos, { unidad: 'ataques', base: 0, promedioGeneral: { valor: 9, n: 40, desde: '01/01/2026' } });
+  const svg = cont.querySelector('svg');
+  assert.ok(svg, 'no se dibujó el SVG');
+  const alto = Number(svg.getAttribute('viewBox').split(' ')[3]);
+  const cy = Number(cont.querySelector('.ing-serie-pt-prom').getAttribute('cy'));
+  const cyDia = Number(cont.querySelector('.ing-serie-pt[data-serie="dia"]').getAttribute('cy'));
+  assert.ok(cy >= 20 && cy < cyDia && cy < alto, `la recta (${cy}) cae dentro del lienzo y por encima de los puntos (${cyDia})`);
+});
+
+test('renderMetricasSemanales corre las tres métricas con el promedio general y un corte común (dos pasadas)', () => {
   const cuerpo = extraerFuncion(grande, 'renderMetricasSemanales');
-  assert.equal((cuerpo.match(/promedioSemana: true/g) || []).length, 3);
+  assert.equal((cuerpo.match(/promediar: true/g) || []).length, 3);
   for (const id of ['mAtaquesChart', 'mPuntajeChart', 'mBarcosChart']) assert.ok(cuerpo.includes(`'${id}'`));
+  assert.ok(cuerpo.includes('soloCalcular: true') && cuerpo.includes('corteExceso'));
+  assert.ok(!cuerpo.includes('promedioSemana'), 'ya no hay promedio por semana en las gráficas grandes');
+  assert.ok(!/promedioSemana/.test(grande), 'ningún resto del promedio por semana en perfil.html');
 });
 
 // ---------------------------------------------------------------- minigráficas (_dispersionMiniHtml) y su armado en renderExtendido

@@ -12,6 +12,10 @@ Lista corta de lo que se hizo, de más reciente a más antiguo y, dentro de cada
 
 **Los pendientes del frontend ya no se llevan aquí: están en `Pendientes.md` del repo `Backend`** (grupo C, «Solo falta probar en navegador o celular», y los de Apps Script que también tocan a `Web`). Al abrir uno nuevo se agrega allí con su `§PF`; al cerrarlo se borra de allí y se anota en su sección del contexto. La lista anterior de esta sección (93 entradas) sigue en git: `git show 3c35049:CHANGELOG.md`. `[→ Contexto_Base_Web.md §PF547]`
 
+## 24-nov-2026
+
+- **`perfil.html` (`perfilLineChartSvg()`, `leyendaPuntosGraficaHtml()`, `pintarGraficaPerfil()`, `renderMetricaSemanal()` y `renderMetricasSemanales()`), `test/perfil-promedio-semana-grafica.test.js`, `sw.js` v337:** corrige §PF566 punto 3: en las gráficas grandes de Ataques, Medallas y Barcos el promedio ya no es una recta por semana sino UNA recta constante con el promedio general de los registros diarios con dato, contando solo las semanas posteriores a la última que supera algún tope (corte común a las tres métricas; se descarta la semana completa). Las minigráficas y los cuadritos de Ingresos recientes siguen con el promedio de los días con dato de la semana. → §PF574
+
 ## 23-nov-2026
 
 - **`assets/js/features/mini-historial.js` (función nueva `histListaNotasHtml()`; `histNotasPieHtml()` y `histPintarComparacion()` la usan; retirada `histNotasDiaEnCurso()`), `assets/styles.css` (`.atq-ayuda-lista`, `.atq-filtro .btn-solo-cero`), `test/guerra-pastillas-ataques-dom.test.js`, `test/mini-historial-dom.test.js`, `sw.js` v334:** la nota del pie de «Comparar con» también va una entrada por línea (antes era un párrafo con todo junto); hoja de estilo de la lista de ayuda de Valores diarios y semanales. Detalle en `Contexto_Base_Web.md §PF562`.
