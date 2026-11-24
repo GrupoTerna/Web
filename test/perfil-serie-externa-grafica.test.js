@@ -36,7 +36,7 @@ const NOMBRES = ['parseFechaDDMMYYYY', 'fmtFechaLargaDDMMYYYYPerfil', 'semanaLab
 const CODIGO = NOMBRES.map(n => extraerFuncion(grande, n)).join('\n') +
   "\nconst TOPE_ATAQUES_DIA = 4; const TOPE_MEDALLAS_DIA = 900; const TOPE_ATAQUES_SEMANA_PERFIL = 16; const TOPE_MEDALLAS_SEMANA_PERFIL = 3600; const TOPE_BARCOS_SEMANA_PERFIL = 16; const PERFIL_ENTRENAMIENTO_CONTADO_HASTA = { temporadaRoyaleApi: 104, semana: 2 }; const TOPE_ATAQUES_SEMANA_CON_ENTRENAMIENTO_PERFIL = 28; const PERFIL_ATAQUES_SIN_DATO_HASTA_TEMPORADA_RAPI = 68; const PERFIL_ESCALA_FAMA_ANTIGUA_HASTA_TEMPORADA_RAPI = 72; const TOPE_MEDALLAS_SEMANA_ESCALA_ANTIGUA_PERFIL = 9000;" +
   " const PERFIL_VISTA = { ultimas6: true, zoom: 1 }; const PERFIL_ZOOMS = [1, 1.5, 2, 3, 4, 6]; const PERFIL_TEMPORADAS_VISTA = 6; const PERFIL_GRAFICAS_PINTADAS = new Map();" +
-  " const COLOR_SERIE_PERFIL = '#a239ff'; const COLOR_SERIE_ACUMULADO_PERFIL = '#3ddc97'; const COLOR_SERIE_EXTERNA_PERFIL = '#4ea1ff';" +
+  " const COLOR_SERIE_PERFIL = '#a239ff'; const COLOR_SERIE_ACUMULADO_PERFIL = '#3ddc97'; const COLOR_SERIE_EXTERNA_PERFIL = '#4ea1ff'; const COLOR_SERIE_PROMEDIO_PERFIL = '#00d4ff';" +
   " let perfilGraficaCtx = { nombre: 'Chistris', tag: '#2GG8PJ8GC', clan: 'Terna' };" +
   '\nwindow.__t = { renderMetricaSemanal, renderMetricasSemanales, filtrarUltimasTemporadasPerfil, etiquetaPuntoPerfil, htmlTooltipPuntoPerfil };';
 

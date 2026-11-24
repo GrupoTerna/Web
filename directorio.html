@@ -489,6 +489,8 @@
   /* 6-nov-2026 (pedido de la usuaria, §PF396): en «Semana actual» el emoji de «⚔️ Ataques», «⭐ Medallas» y «🚢 Barcos» bajaba solo a otra línea porque la etiqueta partía en el espacio. Ahora la etiqueta va en UNA línea (nowrap) y su letra se ajusta al ancho de la cuadrícula (unidades cqw; 11px de respaldo si el navegador no las soporta). */
   .nuevo-card .nc-stats-semana{container-type:inline-size;}
   .nuevo-card .nc-stat-semana span{white-space:nowrap; overflow-wrap:normal; letter-spacing:0; font-size:11px; font-size:clamp(8px, calc(4.7cqw - 2px), 13px);}
+  /* 23-nov-2026 (pedido de la usuaria): los cuadritos «Ataques / Medallas / Barcos promedio» llevan una etiqueta más larga: pueden partirse en dos líneas (el emoji va pegado a la primera palabra con un espacio de no ruptura, así nunca queda solo en una línea). [→ Contexto_Base_Web.md §PF566] */
+  .nuevo-card .nc-stat-semana.nc-stat-prom span{white-space:normal;}
   .nuevo-card .nc-subtitulo{font-family:var(--f-mono); font-size:13px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:var(--purple-light); margin-top:12px;}
   .nuevo-card .nc-subtitulo + .nc-stats-grid{margin-top:6px;}
   /* Desglose diario (jueves a domingo) de la semana actual, igual al de index: una fila por métrica, una columna por día. Un día sin jugar llega como null y se muestra "—". */
@@ -2834,7 +2836,7 @@ function renderComparativaSemanal(container, miembrosTodos){
  */
 function ingresoStatHtml(valor, label, opts){
   const txt = (valor === undefined || valor === null || valor === '') ? '—' : fmtNum(valor);
-  const cls = (opts && opts.semana) ? ' nc-stat-semana' : '';
+  const cls = ((opts && opts.semana) ? ' nc-stat-semana' : '') + ((opts && opts.promedio) ? ' nc-stat-prom' : ''); // 23-nov-2026: opts.promedio = cuadrito de promedio por día (etiqueta en dos líneas)
   return `<div class="nc-stat${cls}"><b>${esc(txt)}</b><span>${esc(label)}</span></div>`;
 }
 
@@ -2921,6 +2923,13 @@ function nuevoCardHtml(n){
   const wspOk = n.tieneWsp === true; // 22-oct-2026: solo llega con sesión de admin (el backend lo quita para el público); es un ícono informativo, sin enlace ni número
   const incluido = ingresoIncluido(n);
   const sem = n.guerraSemana || {};
+  // 23-nov-2026 (pedido de la usuaria, «agrega un cuadrito para ataques promedio, medallas promedio y barcos promedio»): promedio POR DÍA de la semana que muestra la tarjeta (la actual, o la última guerra si está congelada)
+  // = media de los días jugados que traen dato en guerraSemanaDias (un día no jugado, null, no cuenta; un 0 real sí), a 2 decimales. Sin ningún día con dato: null y el cuadrito dice «—». Va aquí dentro (sin helper de nivel superior) porque las pruebas extraen esta función por nombre. [→ Contexto_Base_Web.md §PF566]
+  const promDiasSemana = campo => {
+    const gd = n.guerraSemanaDias;
+    const v = (gd && Array.isArray(gd[campo])) ? gd[campo].filter(x => x !== null && x !== undefined && x !== '').map(Number).filter(x => isFinite(x)) : [];
+    return v.length ? Math.round(v.reduce((a, b) => a + b, 0) / v.length * 100) / 100 : null;
+  };
   const fecha = fechaIngresoTexto(n);
   return `
       <div class="card nuevo-card js-nuevo-card${incluido ? '' : ' excluido'}${ingresosOcultarAdmins && esCuentaAdminIngreso(n) ? ' oculto-admin' : ''}${ingresosOcultarConWsp && tieneWspIngreso(n) ? ' oculto-wsp' : ''}${ingresosOcultarSinPendientes && sinPendientesIngreso(n) ? ' oculto-pend' : ''}${ocultoPorFiltrosIngreso(n) ? ' oculto-filtro' : ''}${ingresosClanesOcultos.has(claveClanMiembro(n)) ? ' oculto-clan' : ''}" data-tag="${esc(claveIngreso(n))}" data-letra="${esc(primeraLetraFiltro(n.nombre))}" style="cursor:pointer; position:relative;">
@@ -2951,6 +2960,9 @@ function nuevoCardHtml(n){
           ${ingresoStatHtml(sem.ataques, '⚔️ Ataques', { semana: true })}
           ${ingresoStatHtml(sem.puntaje, '⭐ Medallas', { semana: true })}
           ${ingresoStatHtml(sem.barcos, '🚢 Barcos', { semana: true })}
+          ${ingresoStatHtml(promDiasSemana('ataques'), '⚔️\u00a0Ataques promedio', { semana: true, promedio: true })}
+          ${ingresoStatHtml(promDiasSemana('puntaje'), '⭐\u00a0Medallas promedio', { semana: true, promedio: true })}
+          ${ingresoStatHtml(promDiasSemana('barcos'), '🚢\u00a0Barcos promedio', { semana: true, promedio: true })}
         </div>
         ${desgloseDiasHtml(n.guerraSemanaDias)}
       </div>`;
