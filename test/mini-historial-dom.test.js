@@ -584,3 +584,12 @@ test('CSS: los encabezados «Día de la semana» y «Tipo de día» van centrado
   assert.match(css, /\.hist-filtro \.hist-pastilla\[data-hist-barcos="con"\]\{color:var\(--h-cian\);?\}/);
   assert.match(css, /\.hist-nota-lista\{list-style:none/);
 });
+
+test('La comparación con otro jugador también lleva sus notas del pie una por línea', async () => {
+  const w = await arranque();
+  w.histPintarComparacion(DATA_INC.a, DATA_INC.a, 'Otro');
+  const items = [...w.document.querySelectorAll('#histCuerpo ul.hist-nota-lista > li')].map(li => li.textContent);
+  assert.ok(items.some(t => /^Celda vacía: /.test(t)));
+  assert.ok(items.some(t => /^Un 0 en rojo es que estuvo y no atacó/.test(t)));
+  assert.equal(w.document.querySelector('#histCuerpo p.hist-nota'), null);
+});

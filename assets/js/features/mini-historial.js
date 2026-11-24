@@ -345,10 +345,6 @@ const histEsFalta = r => !r.ataques && r.opcional !== true;
 function histHoyIso(){ const h = new Date(); return `${h.getFullYear()}-${String(h.getMonth()+1).padStart(2,'0')}-${String(h.getDate()).padStart(2,'0')}`; }
 const histPendiente = (r, hoyIso) => !!r && r.fecha === hoyIso && r.opcional !== true && (r.ataques || 0) < HIST_ATAQUES_MAX;
 const HIST_ASTERISCO = '<sup class="hist-ast" title="Día en curso: todavía tiene ataques pendientes" aria-hidden="true">*</sup><span class="hist-sr"> (día en curso, con ataques pendientes)</span>';
-function histNotasDiaEnCurso(hayHoy, hayPend){
-  return (hayHoy ? ' La fila sombreada es el día en curso: todavía no se cierra.' : '')
-       + (hayPend ? '</p><p class="hist-nota"><sup class="hist-ast" aria-hidden="true">*</sup> Día en curso: todavía tiene ataques pendientes.' : '');
-}
 function histStats(regs){
   const n = regs.length;
   const t = (k) => regs.reduce((a, r) => a + (r[k] || 0), 0);
@@ -664,6 +660,12 @@ function histEnlazarSelector(){
 }
 /* 23-oct-2026 (tanda 5, parte 1): resumen + tabla de días + «Ver más» + nota, SIN el selector «Comparar con», para que lo usen la ventana del mini historial y la tarjeta «Historial de guerra» del perfil con la MISMA fuente y el MISMO armado (así los números coinciden; P6: 28 filas al abrir y 28 más por «Ver más»). `registros` ya pasó por histSoloGuerra(). `limite` = cuántas filas se ven. [→ Contexto_Base_Web.md §PF181] */
 /* 23-nov-2026 (pedido de la usuaria): las notas del pie van una por línea (lista) y no en un solo párrafo; incluyen las del día en curso. */
+function histListaNotasHtml(notas, hayHoy, hayPend){
+  const todas = notas.slice();
+  if (hayHoy) todas.push('La fila sombreada es el día en curso: todavía no se cierra.');
+  if (hayPend) todas.push('<sup class="hist-ast" aria-hidden="true">*</sup> Día en curso: todavía tiene ataques pendientes.');
+  return `<ul class="hist-nota hist-nota-lista">${todas.map(n => `<li>${n}</li>`).join('')}</ul>`;
+}
 function histNotasPieHtml(filtrado, hayHoy, hayPend){
   const notas = [
     'Un 0 es un día de guerra en el que estuvo registrado y no atacó.',
@@ -679,9 +681,7 @@ function histNotasPieHtml(filtrado, hayHoy, hayPend){
     '«Barcos» son los ataques a barcos del día, como los manda el backend.'
   );
   notas.push('Con los botones de cada encabezado puedes ordenar y filtrar la tabla.');
-  if (hayHoy) notas.push('La fila sombreada es el día en curso: todavía no se cierra.');
-  if (hayPend) notas.push('<sup class="hist-ast" aria-hidden="true">*</sup> Día en curso: todavía tiene ataques pendientes.');
-  return `<ul class="hist-nota hist-nota-lista">${notas.map(n => `<li>${n}</li>`).join('')}</ul>`;
+  return histListaNotasHtml(notas, hayHoy, hayPend);
 }
 function histCuerpoDiaHtml(registros, limite){
   const desc = registros.slice().sort((a, b) => b.fecha.localeCompare(a.fecha));
@@ -814,7 +814,7 @@ function histPintarComparacion(ra, rb, nombre2, limite){
     </tbody></table></div>
     <div class="hist-tabla-scroll"><table class="hist-tabla hist-tabla-dia" style="margin-top:12px;"><thead><tr><th rowspan="2">N°</th><th rowspan="2">Fecha</th><th rowspan="2">Temporada</th><th rowspan="2">Semana</th><th rowspan="2">Día</th><th colspan="2">Ataques</th><th colspan="2">Medallas</th></tr><tr><th>${na}</th><th>${nb}</th><th>${na}</th><th>${nb}</th></tr></thead><tbody>${filasDia || '<tr><td colspan="9">Sin registros</td></tr>'}</tbody></table></div>
     ${fechas.length > visibles.length ? `<button type="button" class="btn-solo-cero hist-mas" id="histMas">Ver más</button>` : ''}
-    <p class="hist-nota">Celda vacía: ese jugador no tenía registro ese día (aún no estaba en el clan). Un 0 en rojo es que estuvo y no atacó.${histNotasDiaEnCurso(hayHoy, hayPend)}</p>`;
+    ${histListaNotasHtml(['Celda vacía: ese jugador no tenía registro ese día (aún no estaba en el clan).', 'Un 0 en rojo es que estuvo y no atacó.'], hayHoy, hayPend)}`;
   histEnlazarSelector();
   const mas = document.getElementById('histMas');
   if (mas) mas.addEventListener('click', () => histPintarComparacion(ra, rb, nombre2, lim + HIST_FILAS_MAS));

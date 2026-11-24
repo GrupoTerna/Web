@@ -122,3 +122,21 @@ test('guerra.html: cada cuadrícula tiene su grupo de pastillas con ayuda y sus 
   assert.match(html, /data-atq-estado="\$\{estadoAtaquesFilaDiaria\(f, colHoyDia,/);
   assert.match(html, /data-atq-estado="\$\{estadoAtaquesFilaSemanal\(f, colHoySem,/);
 });
+
+// NUEVO (23-nov-2026, pedido de la usuaria): «Solo con 0 ataques» va en la misma fila que las pastillas Todos / Completos / Incompletos,
+// y la ayuda va una entrada por línea (Completo e Incompleto en líneas separadas), en Valores diarios y en Valores semanales.
+test('guerra.html: «Solo con 0 ataques» está dentro del grupo de pastillas y la ayuda es una lista con una entrada por línea', () => {
+  const { JSDOM } = require('jsdom');
+  const doc = new JSDOM(html).window.document;
+  for (const [grupo, solo] of [['filtroAtaquesActivos', 'soloCeroActivosBtn'], ['filtroAtaquesTemporada', 'soloCeroTemporadaBtn']]) {
+    const g = doc.getElementById(grupo);
+    assert.ok(g.querySelector(`#${solo}`), `${solo} debe ir en la misma fila que las pastillas`);
+    assert.equal(g.querySelectorAll('[data-atq-filtro]').length, 3);
+    const ayuda = g.nextElementSibling;
+    assert.equal(ayuda.tagName, 'UL', 'la ayuda es una lista, no un párrafo');
+    const li = [...ayuda.querySelectorAll('li')].map(x => x.textContent);
+    assert.ok(li.length >= 4);
+    assert.ok(/^Completo:/.test(li[0]) && /^Incompleto:/.test(li[1]), 'Completo e Incompleto en líneas separadas');
+    li.forEach(t => assert.ok(!/Completo:.*Incompleto:/.test(t), 'ninguna línea mezcla las dos definiciones'));
+  }
+});
