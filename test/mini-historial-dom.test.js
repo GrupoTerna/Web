@@ -441,80 +441,122 @@ test('Pastillas de barcos: cuentan, filtran los días y se reinician al abrir ot
   assert.equal(w.document.querySelector('[data-hist-barcos="todos"]').getAttribute('aria-pressed'), 'true');
 });
 
-test('Cada encabezado de las tablas lleva botón de orden y de filtro, y su texto sigue siendo solo el nombre', async () => {
+const embudo = (w, k) => w.document.querySelector(`.rt-filtro-btn[data-col="${k}"]`);
+const popover = w => w.document.querySelector('.rt-filtro-pop');
+
+test('Cada encabezado de las tablas lleva el widget estándar (embudo + indicador de orden) y su texto sigue siendo solo el nombre', async () => {
   const w = await arranque();
   w.document.querySelector('[data-hist-filtro="incompletos"]').click();
   const tablas = w.document.querySelectorAll('#histCuerpo table');
   assert.equal(tablas.length, 3, 'por día de la semana, por tipo de día y los días');
   tablas.forEach(t => t.querySelectorAll('thead th').forEach(th => {
-    assert.ok(th.querySelector('[data-hist-ord]'), `sin botón de orden en ${th.textContent}`);
-    assert.ok(th.querySelector('[data-hist-fil]'), `sin botón de filtro en ${th.textContent}`);
-    assert.equal(th.querySelector('[data-hist-ord]').textContent, '', 'el ícono sale por CSS');
+    assert.ok(th.querySelector('.rt-th-inner .rt-orden-indicador'), `sin indicador en ${th.textContent}`);
+    const b = th.querySelector('.rt-filtro-btn');
+    assert.ok(b && b.querySelector('svg'), `sin embudo en ${th.textContent}`);
+    assert.equal(b.getAttribute('aria-haspopup'), 'dialog');
+    assert.equal(b.getAttribute('title'), 'Ordenar o filtrar por ' + th.querySelector('span').textContent);
   }));
   assert.deepEqual([...tablas[2].querySelectorAll('thead th')].map(th => th.textContent), ['N°', 'Fecha', 'Temporada', 'Semana', 'Día', 'Ataques', 'Barcos', 'Medallas']);
 });
 
-test('Orden por encabezado: de menor a mayor, de mayor a menor y sin orden; N° sigue siendo la posición original', async () => {
+test('Orden desde el desplegable del embudo: menor a mayor, mayor a menor y quitar orden; N° sigue siendo la posición original', async () => {
   const w = await arranque();
-  const ord = () => w.document.querySelector('[data-hist-ord="dia:5"]');
   assert.deepEqual(ataquesDia(w), ['4', '3', '4', '4', '4', '0', '2', '4']);
-  ord().click();
+  embudo(w, 'dia:5').click();
+  const pop = popover(w);
+  assert.ok(pop && pop.classList.contains('rt-filtro-pop'), 'el desplegable es el estándar de la web');
+  assert.match(pop.textContent, /Menor a mayor/);
+  assert.equal(pop.querySelector('.rt-orden-quitar'), null, 'sin orden activo no hay «Quitar orden»');
+  pop.querySelector('.rt-orden-btn[data-dir="asc"]').click();
+  assert.equal(popover(w), null, 'ordenar cierra el desplegable');
   assert.deepEqual(ataquesDia(w).slice(0, 3), ['0', '2', '3']);
-  assert.equal(ord().dataset.dir, 'asc');
-  assert.equal(ord().closest('th').getAttribute('aria-sort'), 'ascending');
+  assert.equal(w.document.querySelector('.rt-orden-indicador[data-col="dia:5"]').textContent, '↑');
+  assert.equal(embudo(w, 'dia:5').closest('th').getAttribute('aria-sort'), 'ascending');
   assert.equal(celdas(w, '#histCuerpo .hist-tabla-dia tbody tr')[0][0], '6', 'el día con 0 ataques era el sexto de la lista');
-  ord().click();
+  embudo(w, 'dia:5').click();
+  popover(w).querySelector('.rt-orden-btn[data-dir="desc"]').click();
   assert.equal(ataquesDia(w)[0], '4');
-  assert.equal(ord().dataset.dir, 'desc');
-  ord().click();
-  assert.deepEqual(ataquesDia(w), ['4', '3', '4', '4', '4', '0', '2', '4'], 'el tercer clic quita el orden');
-  assert.equal(ord().dataset.dir, '');
+  assert.equal(w.document.querySelector('.rt-orden-indicador[data-col="dia:5"]').textContent, '↓');
+  embudo(w, 'dia:5').click();
+  popover(w).querySelector('.rt-orden-quitar').click();
+  assert.deepEqual(ataquesDia(w), ['4', '3', '4', '4', '4', '0', '2', '4']);
+  assert.equal(w.document.querySelector('.rt-orden-indicador[data-col="dia:5"]').textContent, '');
 });
 
-test('Filtro por encabezado: mínimo y máximo en los números, casillas en el Día, y «Quitar orden y filtros» lo deshace', async () => {
+test('Filtro desde el embudo: condición de comparación en los números y lista de valores en el Día, con Aceptar y Cancelar', async () => {
   const w = await arranque();
-  w.document.querySelector('[data-hist-fil="dia:5"]').click();
-  const panel = () => w.document.querySelector('[data-hist-panel="dia:5"]');
-  assert.ok(panel(), 'el panel se abre sobre la tabla');
-  panel().querySelector('[data-hist-campo="min"]').value = '3';
-  panel().querySelector('[data-hist-aplicar]').click();
-  assert.equal(w.document.querySelector('[data-hist-panel]'), null, 'al aplicar se cierra');
+  embudo(w, 'dia:5').click();
+  let pop = popover(w);
+  pop.querySelector('.rt-comparar-operador').value = 'gte';
+  pop.querySelector('.rt-comparar-valor').value = '3';
+  pop.querySelector('.rt-filtro-cancelar').click();
+  assert.equal(ataquesDia(w).length, 8, 'Cancelar no filtra');
+  embudo(w, 'dia:5').click();
+  pop = popover(w);
+  pop.querySelector('.rt-comparar-operador').value = 'gte';
+  pop.querySelector('.rt-comparar-valor').value = '3';
+  pop.querySelector('.rt-filtro-aceptar').click();
+  assert.equal(popover(w), null);
   assert.deepEqual(ataquesDia(w).sort(), ['3', '4', '4', '4', '4', '4']);
-  assert.equal(w.document.querySelector('[data-hist-fil="dia:5"]').dataset.activo, '1', 'el botón avisa que hay filtro');
-  w.document.querySelector('[data-hist-fil="dia:4"]').click();
-  const cks = [...w.document.querySelectorAll('[data-hist-panel="dia:4"] input[type="checkbox"]')];
-  assert.deepEqual(cks.map(c => c.value), ['J', 'V', 'S', 'D'], 'en el orden de la semana de guerra');
-  cks.find(c => c.value === 'S').checked = false;
-  w.document.querySelector('[data-hist-panel="dia:4"] [data-hist-aplicar]').click();
-  assert.deepEqual(ataquesDia(w), ['4', '4', '4', '4', '4'], 'sin los sábados (el 3 y el 10 de octubre)');
-  w.document.querySelector('[data-hist-reset="dia"]').click();
-  assert.equal(ataquesDia(w).length, 8);
-  assert.equal(w.document.querySelector('[data-hist-reset]'), null);
+  assert.ok(embudo(w, 'dia:5').classList.contains('activo'), 'el embudo se pinta como activo');
+  assert.match(embudo(w, 'dia:5').getAttribute('aria-label'), /\(con filtro\)/);
+  embudo(w, 'dia:4').click();
+  pop = popover(w);
+  assert.equal(pop.querySelector('.rt-filtro-comparar'), null, 'el Día es una lista: no tiene comparación');
+  const items = [...pop.querySelectorAll('.rt-filtro-item')];
+  assert.deepEqual(items.map(l => l.textContent.trim()), ['Jueves', 'Viernes', 'Sábado', 'Domingo']);
+  items.find(l => /Sábado/.test(l.textContent)).querySelector('input').click();
+  pop.querySelector('.rt-filtro-aceptar').click();
+  assert.deepEqual(ataquesDia(w), ['4', '4', '4', '4', '4'], 'sin el sábado del 10 de octubre (con 3)');
+  embudo(w, 'dia:5').click();
+  popover(w).querySelector('.rt-comparar-operador').value = '';
+  popover(w).querySelector('[data-modo="todo"]').click();
+  popover(w).querySelector('.rt-filtro-aceptar').click();
+  assert.ok(!embudo(w, 'dia:5').classList.contains('activo'), 'sin condición y con todo marcado la columna queda sin filtro');
 });
 
-test('Un filtro sin coincidencias avisa y deja a la vista el botón para quitarlo', async () => {
+test('El desplegable busca valores, marca o desmarca todo y se cierra con Esc sin cerrar la ventana del historial', async () => {
   const w = await arranque();
-  w.document.querySelector('[data-hist-fil="dia:5"]').click();
-  w.document.querySelector('[data-hist-campo="min"]').value = '9';
-  w.document.querySelector('[data-hist-aplicar]').click();
-  assert.match(w.document.getElementById('histCuerpo').textContent, /Ningún día coincide con los filtros elegidos/);
-  assert.ok(w.document.querySelector('[data-hist-reset="dia"]'));
+  embudo(w, 'dia:1').click();
+  const pop = popover(w);
+  pop.querySelector('.rt-filtro-buscar').value = '10/2026';
+  pop.querySelector('.rt-filtro-buscar').dispatchEvent(new w.Event('input', { bubbles: true }));
+  assert.equal(pop.querySelectorAll('.rt-filtro-item').length, 8, 'las fechas se ven como dd/mm/aaaa');
+  pop.querySelector('.rt-filtro-buscar').value = '10/10';
+  pop.querySelector('.rt-filtro-buscar').dispatchEvent(new w.Event('input', { bubbles: true }));
+  assert.equal(pop.querySelectorAll('.rt-filtro-item').length, 1);
+  await new Promise(r => setTimeout(r, 5));
+  w.document.dispatchEvent(new w.KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+  assert.equal(popover(w), null, 'Esc cierra el desplegable');
+  assert.ok(w.document.getElementById('histFondo').classList.contains('abierto'), 'y no cierra la ventana');
+  assert.equal(embudo(w, 'dia:1').getAttribute('aria-expanded'), 'false');
 });
 
-test('Las tablas de análisis también se ordenan y filtran por fila', async () => {
+test('Un filtro sin coincidencias avisa dentro de la tabla y deja los encabezados para quitarlo', async () => {
+  const w = await arranque();
+  embudo(w, 'dia:5').click();
+  popover(w).querySelector('.rt-comparar-operador').value = 'gt';
+  popover(w).querySelector('.rt-comparar-valor').value = '9';
+  popover(w).querySelector('.rt-filtro-aceptar').click();
+  assert.match(w.document.getElementById('histCuerpo').textContent, /Ningún día coincide con los filtros elegidos/);
+  assert.ok(embudo(w, 'dia:5'), 'el embudo sigue a la vista');
+});
+
+test('Las tablas de análisis también se ordenan y filtran desde el embudo', async () => {
   const w = await arranque();
   w.document.querySelector('[data-hist-filtro="incompletos"]').click();
-  w.document.querySelector('[data-hist-ord="sem:2"]').click();
-  w.document.querySelector('[data-hist-ord="sem:2"]').click();
   const sem = () => [...w.document.querySelectorAll('#histCuerpo .hist-tabla-incompletos')][0];
   const nombres = () => [...sem().querySelectorAll('tbody tr')].map(tr => tr.children[0].textContent);
+  embudo(w, 'sem:2').click();
+  popover(w).querySelector('.rt-orden-btn[data-dir="desc"]').click();
   assert.equal(nombres()[0], 'Sábado', 'de mayor a menor por días incompletos: el sábado tiene 2 y el viernes 1');
   assert.equal(nombres().length, 4);
-  w.document.querySelector('[data-hist-fil="sem:0"]').click();
-  const cks = [...w.document.querySelectorAll('[data-hist-panel="sem:0"] input[type="checkbox"]')];
-  assert.deepEqual(cks.map(c => c.value), ['Jueves', 'Viernes', 'Sábado', 'Domingo']);
-  cks.forEach(c => { c.checked = c.value === 'Sábado'; });
-  w.document.querySelector('[data-hist-panel="sem:0"] [data-hist-aplicar]').click();
+  embudo(w, 'sem:0').click();
+  const pop = popover(w);
+  assert.deepEqual([...pop.querySelectorAll('.rt-filtro-item')].map(l => l.textContent.trim()), ['Jueves', 'Viernes', 'Sábado', 'Domingo']);
+  pop.querySelector('[data-modo="ninguno"]').click();
+  [...pop.querySelectorAll('.rt-filtro-item')].find(l => /Sábado/.test(l.textContent)).querySelector('input').click();
+  pop.querySelector('.rt-filtro-aceptar').click();
   assert.deepEqual(nombres(), ['Sábado']);
   assert.ok(sem().querySelector('tbody tr').classList.contains('hist-top'), 'el día con más incompletos sigue resaltado aunque se filtre');
   assert.equal(w.document.querySelectorAll('#histCuerpo .hist-an-conclusion').length, 2, 'las conclusiones no dependen del filtro');
@@ -537,7 +579,7 @@ test('Las notas del pie van una por línea, en una lista', async () => {
 test('CSS: los encabezados «Día de la semana» y «Tipo de día» van centrados y las tablas ya no son todo blanco', () => {
   const css = require('node:fs').readFileSync(require('node:path').join(__dirname, '..', 'assets', 'styles.css'), 'utf8');
   assert.match(css, /\.hist-tabla-incompletos thead th:first-child\{text-align:center;?\}/);
-  assert.match(css, /\.hist-th-t\{[^}]*flex:0 0 100%/);
+  assert.match(css, /\.rt-filtro-pop\.hist-filtro-pop\{z-index:1100/, 'el desplegable va por encima de la ventana (z-index 1000)');
   assert.match(css, /--h-mute:#7d8aa6/);
   assert.match(css, /\.hist-filtro \.hist-pastilla\[data-hist-barcos="con"\]\{color:var\(--h-cian\);?\}/);
   assert.match(css, /\.hist-nota-lista\{list-style:none/);
