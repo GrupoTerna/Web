@@ -2494,9 +2494,8 @@ async function cargarGuerraLog(){
     const filasLog = [...filasMap.values()].sort((a, b) => (b.temporada - a.temporada) || (b.semana - a.semana));
     const hayEstimado = filasLog.some(f => Object.values(f.porClan).some(s => s.rankEstimado && Number(s.rank) > 0));
     const hayColiseo  = filasLog.some(f => Object.values(f.porClan).some(s => s.coliseo));
-    const notaLog = (hayEstimado || hayColiseo)
-      ? `<div class="tlp-nota">${hayEstimado ? NOTA_PUESTO_ESTIMADO + ' ' : ''}${hayColiseo ? 'Coliseo: los barcos no avanzan, por eso la columna Barcos va en —.' : ''}</div>`
-      : '';
+    // 23-nov-2026 (pedido de la usuaria): la tabla toma el aspecto del modal del historial de guerra (.hist-tabla): encabezado morado, columnas de colores y filas sombreadas de forma alterna POR TEMPORADA (cada fila ya es una semana; el sombreado agrupa las semanas de una misma temporada). El sombreado sale del número de temporada (par / impar), no de la posición de la fila, así se conserva con cualquier orden o filtro. [→ Contexto_Base_Web.md §PF567]
+    const notaLog = `<div class="tlp-nota">${hayEstimado ? NOTA_PUESTO_ESTIMADO + ' ' : ''}${hayColiseo ? 'Coliseo: los barcos no avanzan, por eso la columna Barcos va en —. ' : ''}Las filas se sombrean de forma alterna por temporada; el embudo de cada encabezado filtra y ordena.</div>`;
     const colsLog = [
       { key:'temp', raw: f => f.temporada },
       { key:'sem', raw: f => f.semana },
@@ -2507,26 +2506,26 @@ async function cargarGuerraLog(){
       colsLog.push({ key:`c${ci}-trofeos`, raw: f => { const s = f.porClan[ci]; return (s && s.trophy !== null && s.trophy !== undefined) ? (Number(s.trophy) || 0) : null; } });
     });
     const renderFilaLog = f => {
+      // Clases de color de las celdas (las mismas del modal del historial: .hist-c-tem, .hist-c-sem, .hist-c-bar, .hist-c-med; Puesto en azul: .hist-c-pue; sin dato: .hist-c-cero). Sombreado: fila con temporada impar = .hist-sem-b.
       const celdas = clanesLog.map((c, ci) => {
         const s = f.porClan[ci];
-        const sep = ' class="log-sep"';
-        if (!s) return `<td${sep} data-col="c${ci}-puesto" data-raw="">—</td><td data-col="c${ci}-barcos" data-raw="">—</td><td data-col="c${ci}-trofeos" data-raw="">—</td>`;
-        const rank = Number(s.rank) > 0 ? Number(s.rank) : null;
-        const delta = Number(s.trophyDelta) || 0;
+        const rank = s && Number(s.rank) > 0 ? Number(s.rank) : null;
+        const delta = s ? (Number(s.trophyDelta) || 0) : 0;
         const deltaHtml = delta
           ? ` <span style="font-family:var(--f-mono); font-size:13px; color:${delta > 0 ? 'var(--ok)' : 'var(--danger)'};">(${delta > 0 ? '+' : ''}${fmtNum(delta)})</span>`
           : '';
-        const boat = colsLog.find(x => x.key === `c${ci}-barcos`).raw(f);
-        const trof = colsLog.find(x => x.key === `c${ci}-trofeos`).raw(f);
-        return `<td${sep} data-col="c${ci}-puesto" data-raw="${rank === null ? '' : rank}"${s.rankEstimado && rank ? ' title="Puesto estimado"' : ''}>${rank ? (s.rankEstimado ? '~' : '') + '#' + fmtNum(rank) : '—'}</td>`
-          + `<td data-col="c${ci}-barcos" data-raw="${boat === null ? '' : boat}">${boat === null ? '—' : fmtNum(boat)}</td>`
-          + `<td data-col="c${ci}-trofeos" data-raw="${trof === null ? '' : trof}">${trof === null ? (deltaHtml ? deltaHtml.trim() : '—') : fmtNum(trof) + deltaHtml}</td>`;
+        const boat = s ? colsLog.find(x => x.key === `c${ci}-barcos`).raw(f) : null;
+        const trof = s ? colsLog.find(x => x.key === `c${ci}-trofeos`).raw(f) : null;
+        const cPue = rank ? 'hist-c-pue' : 'hist-c-cero', cBar = boat === null ? 'hist-c-cero' : (boat === 0 ? 'hist-c-cero' : 'hist-c-bar'), cMed = trof === null ? 'hist-c-cero' : 'hist-c-med';
+        return `<td class="log-sep ${cPue}" data-col="c${ci}-puesto" data-raw="${rank === null ? '' : rank}"${s && s.rankEstimado && rank ? ' title="Puesto estimado"' : ''}>${rank ? (s.rankEstimado ? '~' : '') + '#' + fmtNum(rank) : '—'}</td>`
+          + `<td class="${cBar}" data-col="c${ci}-barcos" data-raw="${boat === null ? '' : boat}">${boat === null ? '—' : fmtNum(boat)}</td>`
+          + `<td class="${cMed}" data-col="c${ci}-trofeos" data-raw="${trof === null ? '' : trof}">${trof === null ? (deltaHtml ? deltaHtml.trim() : '—') : fmtNum(trof) + deltaHtml}</td>`;
       }).join('');
-      return `<tr><td class="col-n"></td><td data-col="temp" data-raw="${f.temporada}">${fmtNum(f.temporada)}</td><td data-col="sem" data-raw="${f.semana}">${fmtNum(f.semana)}</td>${celdas}</tr>`;
+      return `<tr${f.temporada % 2 ? ' class="hist-sem-b"' : ''}><td class="col-n"></td><td class="hist-c-tem" data-col="temp" data-raw="${f.temporada}">${fmtNum(f.temporada)}</td><td class="hist-c-sem" data-col="sem" data-raw="${f.semana}">${fmtNum(f.semana)}</td>${celdas}</tr>`;
     };
     if (filasLog.length){
       tableWrap.innerHTML = `
-        <div class="card" style="padding:12px;"><div class="table-scroll"><table class="tbl-log-guerra" data-grid-id="log:todos" data-sin-totales>
+        <div class="card" style="padding:12px;"><div class="table-scroll"><table class="hist-tabla hist-tabla-dia tbl-log-guerra" data-grid-id="log:todos" data-sin-totales>
           <thead>
             <tr>
               <th class="col-n" rowspan="2" scope="col">N°</th>
