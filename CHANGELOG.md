@@ -14,6 +14,8 @@ Lista corta de lo que se hizo, de más reciente a más antiguo y, dentro de cada
 
 ## 24-nov-2026
 
+- **`assets/styles.css` (`.tabla-scroll-wrap .tbl-log-guerra.hist-tabla thead th` y su variante `th.log-sep`), `test/guerra-log-aspecto-historial.test.js`, `sw.js` v340:** en «Log de Guerra (Histórico)» de `guerra.html`, el encabezado fijo ya no deja ver los valores al desplazar: el fondo morado translúcido de `.hist-tabla thead th` pisaba el fondo opaco del encabezado inmovilizado; ahora el tinte va sobre una base opaca. `§PF583`.
+
 - **`admin.html` (`_tablaCruce()`, `_activarTablasCruce()`, `_tablaCoincidencias()`, `_tablaExMiembros()`, `_tablaActivosClan()`, `_claveSemanaEx()`), `test/admin-infiltrado-en-ficha-dom.test.js`, `sw.js` v339:** en el cruce de roster de «Buscar clan», las tres tablas (miembros actuales, activos e inactivos) llevan embudo de orden y filtro por columna; el cuadro del filtro de `admin.html` pasa a ser opaco. `§PF582`.
 
 - **`guerra.html` (leyendas `.grid-leyenda` de Valores diarios y Valores semanales), `clan.html` (leyenda de Valores semanales), `sw.js` v338:** cada entrada de la leyenda va en su propia fila (`flex-direction:column`) en vez de fluir en línea.

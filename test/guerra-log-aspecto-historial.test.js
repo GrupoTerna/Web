@@ -105,3 +105,14 @@ test('el CSS compartido da color al Puesto con la misma especificidad que las de
   assert.match(css, /\.hist-tabla\.hist-tabla-dia tr td\.hist-c-pue\{color:var\(--h-azul\)/);
   assert.match(css, /\.hist-tabla-dia tr\.hist-sem-b td\{background:/);
 });
+
+// NUEVO (24-nov-2026, pedido de la usuaria; Contexto_Base_Web.md §PF583): al desplazar el Log de Guerra los valores atravesaban el
+// encabezado fijo porque `.hist-tabla thead th` (fondo morado translúcido) pisaba el fondo opaco de `.tabla-scroll-wrap thead th`.
+// LÍMITE: solo comprueba que la regla existe y es opaca; el dibujo real se midió en Chromium emulado.
+test('PF583: el encabezado fijo del Log de Guerra lleva una base opaca bajo el tinte morado', () => {
+  const m = css.match(/\.tabla-scroll-wrap \.tbl-log-guerra\.hist-tabla thead th\{([^}]*)\}/);
+  assert.ok(m, 'falta la regla del encabezado opaco del log');
+  assert.match(m[1], /background-color:\s*#0e111c/);
+  assert.match(m[1], /background-image:\s*linear-gradient/);
+  assert.doesNotMatch(m[1], /background:\s*rgba/);
+});
