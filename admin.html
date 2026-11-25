@@ -243,6 +243,9 @@
   .inf-panel .roster-table thead th, .inf-panel .tabla-coincidencias-wrap thead th{font-size:13px; letter-spacing:.06em; background:#252b43; /* 19-nov-2026: fondo OPACO; con rgba(255,255,255,.05) las filas se veían pasar por detrás del encabezado fijo al desplazar la tabla de inactivos (pisaba el #0e111c de .tabla-scroll-wrap en styles.css) */}
   .inf-panel .tabla-coincidencias-wrap tbody td, .inf-panel .ex-activos-tabla .roster-table tbody td{font-size:14px;}
   .inf-panel .roster-table tbody tr:hover td, .inf-panel .tabla-coincidencias-wrap tbody tr:hover td{background:rgba(162,57,255,.14);}
+  .rt-filtro-pop{background:var(--bg-2);} /* §PF582: opaco; con el fondo semitransparente de styles.css se leía la tabla por debajo, sobre todo en celular */
+  .inf-panel .tabla-coincidencias-wrap .rt-th-inner{justify-content:flex-start;}
+  .inf-panel .ex-activos-tabla .roster-table thead th:not(:nth-child(2)) .rt-th-inner{justify-content:center;}
   .inf-panel .inf-pie{margin-top:22px; padding-top:12px; border-top:1px solid var(--line);}
   @media (max-width:640px){ .inf-panel{padding:16px;} .inf-panel .inf-titulo{font-size:17px;} }
   /* FIX (19-sep-2026, Fase 0 re-verificada): .btn-icono (+ .btn-icono.copiado)
@@ -2468,16 +2471,19 @@ function _tablaCoincidencias(filas, conColumnaOrigenClan){
   if(!filas.length) return '<div class="empty">Sin coincidencias con nuestro propio roster.</div>';
   const colExtra = conColumnaOrigenClan ? '<th scope="col">En clan rival</th><th scope="col">Rol</th>' : '';
   // El link al perfil solo se agrega cuando f.origen === "Directorio" (perfil.html no busca en Inactivos/Vetados); el clan rival nunca se linkea. Historial en CHANGELOG.md.
-  const filasHtml = filas.map(f => `
-    <tr>
-      ${conColumnaOrigenClan ? `<td>${esc(f.nombreEnClanRival)} <span class="text-faint">(${esc(f.tagEnClanRival)})</span></td><td>${esc(f.rolEnClanRival)}</td>` : ''}
-      <td>${esc(f.origen)}</td>
-      <td>${f.origen === 'Directorio' ? enlaceJugador(f.nombre, f.tag) : esc(f.nombre || '—')} <span class="text-faint">(${esc(f.tag)})</span></td>
-      <td>${f.clan ? enlaceClan(f.clan, { tag: f.clanTag }) : '—'}</td>
-      <td>${esc(f.razon || '—')}</td>
-    </tr>`).join('');
+  const rival = f => `${esc(f.nombreEnClanRival)} <span class="text-faint">(${esc(f.tagEnClanRival)})</span>`;
+  const celdas = [
+    ...(conColumnaOrigenClan ? [{ key: 'rival', label: 'En clan rival', html: rival }, { key: 'rol', label: 'Rol', html: f => esc(f.rolEnClanRival) }] : []),
+    { key: 'origen', label: 'Origen', html: f => esc(f.origen) },
+    { key: 'roster', label: 'Nuestro roster', html: _celdaRosterEx },
+    { key: 'clan', label: 'Clan', html: f => f.clan ? enlaceClan(f.clan, { tag: f.clanTag }) : '—' },
+    { key: 'razon', label: 'Razón', html: f => esc(f.razon || '—') }
+  ];
+  // §PF582: el cruce de un clan (con las columnas del clan revisado) lleva embudo de orden y filtro; la tabla de la ficha de un jugador queda como estaba.
+  if(conColumnaOrigenClan) return _tablaCruce('cx-coinc', 'Miembros actuales que figuran en nuestro roster', celdas, filas);
+  const filasHtml = filas.map(f => `<tr>${celdas.map(c => `<td>${c.html(f)}</td>`).join('')}</tr>`).join('');
   return `<div class="tabla-coincidencias-wrap" style="overflow-x:auto;"><table>
-    <thead><tr>${colExtra}<th scope="col">Origen</th><th scope="col">Nuestro roster</th><th scope="col">Clan</th><th scope="col">Razón</th></tr></thead>
+    <thead><tr>${celdas.map(c => `<th scope="col">${esc(c.label)}</th>`).join('')}</tr></thead>
     <tbody>${filasHtml}</tbody>
   </table></div>`;
 }
@@ -2534,6 +2540,13 @@ function _etiquetaPuntoClan(p){
   return `T${esc(p.temporada)} S${esc(p.semana)}`;
 }
 
+/** Clave numérica para ordenar «Primera → última» por la primera semana (§PF286, §PF582): las temporadas internas (T…) van después de las anteriores a ellas (año-mes de Supercell). */
+function _claveSemanaEx(p){
+  if(!p) return null;
+  if(p.supercell && Number(p.temporada) <= 0){ const m = String(p.supercell).match(/^(\d{4})-(\d{1,2})$/); return m ? (Number(m[1]) * 100 + Number(m[2])) * 100 + (Number(p.semana) || 0) : null; }
+  return 1e9 + (Number(p.temporada) || 0) * 100 + (Number(p.semana) || 0);
+}
+
 /** Tabla de «pasaron por este clan» (§PF372). activos: los de Directorio, ya agrupados por clan nuestro (sin columna Origen, Clan ni Razón); inactivos: Inactivos, Vetados y fuera del roster. */
 /** Celda «Nuestro roster» y texto «Primera → última» de las tablas de «pasaron por este clan» (§PF372, compartidas con la tabla de activos de §PF374). */
 function _celdaRosterEx(f){
@@ -2543,11 +2556,23 @@ function _periodoEx(f){
   return (f.primera || f.ultima) ? `${_etiquetaPuntoClan(f.primera)} → ${_etiquetaPuntoClan(f.ultima)}` : '—';
 }
 
+/** Columnas de «Semanas en este clan» y «Primera → última» (§PF582): se ordenan por número y por la primera semana, no por el texto. */
+function _columnasSemanasEx(){
+  return [
+    { key: 'semanas', label: 'Semanas en este clan', tipo: 'numero', ord: v => Number(String(v).replace(/,/g, '')), clase: 'rt-semanas', html: f => f.semanas ? esc(f.semanas) : '—' },
+    { key: 'periodo', label: 'Primera → última', tipo: 'fecha', claveFila: f => _claveSemanaEx(f.primera), clase: 'rt-periodo', html: _periodoEx }
+  ];
+}
+
 /** Tabla de los inactivos de «pasaron por este clan» (§PF372): Inactivos, Vetados y fuera del roster. Los activos van en _tablaActivosClan() (§PF374). */
 function _tablaExMiembros(filas){
-  const filasHtml = filas.map(f => `<tr><td>${esc(f.origen)}</td><td>${_celdaRosterEx(f)}</td><td>${f.clan ? enlaceClan(f.clan, { tag: f.clanTag }) : '—'}</td><td>${esc(f.razon || '—')}</td><td>${f.semanas ? esc(f.semanas) : '—'}</td><td>${_periodoEx(f)}</td></tr>`).join('');
-  const cabecera = '<th scope="col">Origen</th><th scope="col">Nuestro roster</th><th scope="col">Último clan nuestro</th><th scope="col">Razón</th><th scope="col">Semanas en este clan</th><th scope="col">Primera → última</th>';
-  return `<div class="tabla-coincidencias-wrap" style="overflow-x:auto;"><table><thead><tr>${cabecera}</tr></thead><tbody>${filasHtml}</tbody></table></div>`;
+  return _tablaCruce('cx-inact', 'Inactivos que pasaron por este clan', [
+    { key: 'origen', label: 'Origen', html: f => esc(f.origen) },
+    { key: 'roster', label: 'Nuestro roster', html: _celdaRosterEx },
+    { key: 'clan', label: 'Último clan nuestro', html: f => f.clan ? enlaceClan(f.clan, { tag: f.clanTag }) : '—' },
+    { key: 'razon', label: 'Razón', html: f => esc(f.razon || '—') },
+    ..._columnasSemanasEx()
+  ], filas);
 }
 
 /** Activos de «pasaron por este clan» agrupados por clan nuestro (§PF374): primero los de CLANES_REQUISITOS (salen siempre, aunque estén vacíos), luego cualquier otro nombre que traiga el Directorio. */
@@ -2561,12 +2586,16 @@ function _gruposActivosClan(data){
 }
 
 /** Una sola tabla, la del clan nuestro elegido en las pastillas (§PF374), con la misma estructura que el roster de directorio.html: título del clan con su cantidad, N° a la izquierda y las columnas de «pasaron por este clan». */
-function _tablaActivosClan(clan, filas){
+function _tablaActivosClan(clan, filas, idx){
   const n = filas.length;
   const titulo = `<div class="roster-clan-header"><h3 class="roster-clan-title">${esc(clan)} <span class="inf-count">(${n} miembro${n === 1 ? '' : 's'})</span></h3></div>`;
   if(!n) return titulo + '<div class="text-faint ex-activos-vacio">Ninguno.</div>';
-  const filasHtml = filas.map((f, i) => `<tr><td class="rt-num">${i + 1}</td><td class="rt-nombre">${_celdaRosterEx(f)}</td><td class="rt-semanas">${f.semanas ? esc(f.semanas) : '—'}</td><td class="rt-periodo">${_periodoEx(f)}</td></tr>`).join('');
-  return titulo + `<div class="tabla-coincidencias-wrap roster-table-wrap" style="overflow-x:auto;"><table class="roster-table"><thead><tr><th scope="col">N°</th><th scope="col">Nuestro roster</th><th scope="col">Semanas en este clan</th><th scope="col">Primera → última</th></tr></thead><tbody>${filasHtml}</tbody></table></div>`;
+  const [semanas, periodo] = _columnasSemanasEx();
+  return titulo + _tablaCruce('cx-activos-' + idx, 'Activos de ' + clan, [
+    { key: 'num', label: 'N°', sinFiltro: true, clase: 'rt-num', html: (f, i) => i + 1 },
+    { key: 'roster', label: 'Nuestro roster', clase: 'rt-nombre', html: _celdaRosterEx },
+    semanas, periodo
+  ], filas, { claseWrap: ' roster-table-wrap', claseTabla: 'roster-table' });
 }
 
 /** Pastillas de clan (con su cantidad entre paréntesis) y la tabla del clan activo. Arranca en el primer clan que tenga activos; si ninguno tiene, en el primero. */
@@ -2574,18 +2603,20 @@ function _bloqueActivosClan(g){
   if(!g.orden.length) return '<div class="empty">Ninguno.</div>';
   const inicial = g.orden.find(k => (g.grupos[k] || []).length) || g.orden[0];
   const pastillas = g.orden.map(k => `<button type="button" class="ex-clan-pill${k === inicial ? ' active' : ''}" data-clan="${esc(k)}" aria-pressed="${k === inicial}">${esc(k)} <span class="ex-clan-pill-count">(${(g.grupos[k] || []).length})</span></button>`).join('');
-  return `<div data-ex-activos><div class="ex-clan-pills" role="group" aria-label="Clan nuestro">${pastillas}</div><div class="ex-activos-tabla">${_tablaActivosClan(inicial, g.grupos[inicial] || [])}</div></div>`;
+  return `<div data-ex-activos><div class="ex-clan-pills" role="group" aria-label="Clan nuestro">${pastillas}</div><div class="ex-activos-tabla">${_tablaActivosClan(inicial, g.grupos[inicial] || [], g.orden.indexOf(inicial))}</div></div>`;
 }
 
 /** Hace que cada pastilla cambie la tabla de activos al clan elegido (§PF374). Se llama después de pintar el resultado en el contenedor. */
 function _enlazarActivosClan(cont, data){
   const bloque = cont.querySelector('[data-ex-activos]');
   if(!bloque) return;
-  const grupos = _gruposActivosClan(data).grupos;
+  const { grupos, orden } = _gruposActivosClan(data);
   const caja = bloque.querySelector('.ex-activos-tabla');
   bloque.querySelectorAll('.ex-clan-pill').forEach(btn => btn.addEventListener('click', () => {
     bloque.querySelectorAll('.ex-clan-pill').forEach(b => { const on = b === btn; b.classList.toggle('active', on); b.setAttribute('aria-pressed', String(on)); });
-    caja.innerHTML = _tablaActivosClan(btn.dataset.clan, grupos[btn.dataset.clan] || []);
+    _cerrarPopVerifCR();
+    caja.innerHTML = _tablaActivosClan(btn.dataset.clan, grupos[btn.dataset.clan] || [], orden.indexOf(btn.dataset.clan));
+    _activarTablasCruce(caja); // antes de la barra: un filtro guardado de este clan cambia el ancho de la tabla
     caja.querySelectorAll('.tabla-coincidencias-wrap').forEach(w => activarBarraScrollTabla(w));
   }));
 }
@@ -2617,6 +2648,8 @@ function _seccionExMiembrosClan(data){
     + pie;
 }
 function renderInfiltrado(data, cont, conVeredicto = false){
+  _cerrarPopVerifCR();
+  Object.keys(_tablasCruce).forEach(k => { delete _tablasCruce[k]; }); // §PF582: datos nuevos, el orden y los filtros anteriores no valen
   if(data.tipo === 'clan'){
     const c = data.clan;
     let filas = [];
@@ -2630,6 +2663,7 @@ function renderInfiltrado(data, cont, conVeredicto = false){
         ? `<span class="badge badge-warn">${n === 1 ? '1 miembro actual figura' : n + ' miembros actuales figuran'} en nuestro roster</span><div class="inf-nota">Son miembros de este clan que también están en Directorio, Inactivos o Vetados.</div>`
         : '<span class="badge">Ningún miembro actual está en nuestro roster</span><div class="inf-nota">Ninguno de los que hoy están en este clan figura en Directorio, Inactivos ni Vetados. Esta revisión no incluye a los jugadores nuestros que jugaron guerra aquí y ya salieron: esos están más abajo.</div>';
       cont.innerHTML = `<div class="inf-sub">Miembros actuales de este clan que figuran en nuestro roster</div><div class="inf-veredicto">${veredictoClan}</div>` + (n ? `<div style="margin-top:14px;">${_tablaCoincidencias(filas, true)}</div>` : '') + _seccionExMiembrosClan(data);
+      _activarTablasCruce(cont);
       cont.querySelectorAll('.tabla-coincidencias-wrap').forEach(w => activarBarraScrollTabla(w));
       _enlazarActivosClan(cont, data);
       return;
@@ -2643,6 +2677,7 @@ function renderInfiltrado(data, cont, conVeredicto = false){
         <div>${_badgeRival(data.infoRival)}</div>
       </div>
       <div style="margin-top:14px;">${_tablaCoincidencias(filas, true)}</div>`;
+    _activarTablasCruce(cont);
   } else if(data.tipo === 'jugador'){
     const j = data.jugador;
     const externos = data.clanesExternos || [];
@@ -2925,15 +2960,10 @@ function _ceTablaJugadores(c){
   /* 19-nov-2026 (pedido de la usuaria): cada columna (menos «Enlaces») lleva el embudo de orden y filtro de la rama «verificar». El orden predeterminado es el de arriba (activos, semanas, nombre) y «Quitar orden» vuelve a él. */
   const vacio = v => { const t = String(v == null ? '' : v).trim(); return t === '' ? '—' : t; };
   const plano = html => _textoPlanoVerifCR(html);
-  const claveSemana = p => { // para ordenar «Primera → última» por la primera semana; las temporadas internas (T…) van después de las anteriores a ellas (año-mes de Supercell)
-    if(!p) return null;
-    if(p.supercell && Number(p.temporada) <= 0){ const m = String(p.supercell).match(/^(\d{4})-(\d{1,2})$/); return m ? (Number(m[1]) * 100 + Number(m[2])) * 100 + (Number(p.semana) || 0) : null; }
-    return 1e9 + (Number(p.temporada) || 0) * 100 + (Number(p.semana) || 0);
-  };
   const clavePorTexto = new Map();
   const filas = js.map(j => {
     const rango = plano(_etiquetaPuntoClan(j.primera)) + ' → ' + plano(_etiquetaPuntoClan(j.ultima));
-    clavePorTexto.set(rango, claveSemana(j.primera));
+    clavePorTexto.set(rango, _claveSemanaEx(j.primera));
     const vals = [vacio(j.nombre || j.tag), vacio(j.tag), j.activo ? 'Activo' : 'Inactivo', vacio(j.clanActual || j.clanActualTag), vacio(_ceNum(j.semanas)), rango];
     return { j, vals, buscar: vals.join(' ') };
   });
@@ -7139,7 +7169,41 @@ function _detalleRequisitosCR(x){
 const _tablasVerifCR = {}; // clave de tabla -> { titulo, cols, filas, estado:{ filtros:{colKey:Set}, orden:{colKey,dir}|null }, busqueda }
 /* 19-nov-2026 (pedido de la usuaria): las tablas de jugadores de «Clanes externos» usan este mismo desplegable de orden y filtro. Sus tablas viven aparte en _tablasCE (clave 'ce-<TAG>'), para que una nueva verificación no las borre; _tablaFiltrable() busca en los dos almacenes. Una tabla puede traer `filaHtml(fila)` (cómo pintar su fila; por defecto la de la verificación) y columnas con `sinFiltro:true` (sin embudo) o `tipo:'numero'|'fecha'|'texto'` (rotula el orden). [→ Contexto_Base_Web.md §PF286] */
 const _tablasCE = {};
-function _tablaFiltrable(clave){ return _tablasVerifCR[clave] || _tablasCE[clave] || null; }
+const _tablasCruce = {}; // §PF582: tablas del cruce de roster de un clan (claves 'cx-…')
+function _tablaFiltrable(clave){ return _tablasVerifCR[clave] || _tablasCE[clave] || _tablasCruce[clave] || null; }
+
+/** _tablaCruce(clave, titulo, columnas, datos, opciones) → HTML de una tabla del cruce de roster con embudo en cada columna (menos las `sinFiltro`). Cada columna trae `html(fila, posición)`; se filtra y ordena por el texto visible, salvo que traiga `ord` o `claveFila(fila)` (número para ordenar). Conserva el orden y los filtros si la tabla se vuelve a pintar (cambio de pastilla). Después hay que llamar a _activarTablasCruce(). */
+function _tablaCruce(clave, titulo, columnas, datos, opciones = {}){
+  const porTexto = columnas.map(() => new Map());
+  const filas = datos.map(d => {
+    const vals = columnas.map((c, i) => {
+      if(c.sinFiltro) return '';
+      const v = _textoPlanoVerifCR(String(c.html(d))) || '—';
+      if(c.claveFila) porTexto[i].set(v, c.claveFila(d));
+      return v;
+    });
+    return { d, vals, buscar: vals.join(' ') };
+  });
+  const cols = columnas.map((c, i) => c.claveFila ? Object.assign({}, c, { ord: v => { const k = porTexto[i].get(v); return k == null ? null : k; } }) : c);
+  const filaHtml = (f, pos) => `<tr>${cols.map(c => `<td${c.clase ? ` class="${c.clase}"` : ''}>${c.html(f.d, pos)}</td>`).join('')}</tr>`;
+  const previo = _tablasCruce[clave];
+  _tablasCruce[clave] = { titulo, cols, filas, estado: previo ? previo.estado : { filtros: {}, orden: null }, busqueda: '', filaHtml };
+  const encabezados = cols.map(k => k.sinFiltro
+    ? `<th scope="col">${esc(k.label)}</th>`
+    : `<th scope="col" aria-sort="none"><div class="rt-th-inner"><span>${esc(k.label)}</span><span class="rt-orden-indicador" data-col="${k.key}"></span><button type="button" class="rt-filtro-btn" data-col="${k.key}" title="Ordenar o filtrar por ${esc(k.label)}" aria-label="Ordenar o filtrar por ${esc(k.label)}" aria-haspopup="dialog" aria-expanded="false">${ICONO_FILTRO_VERIF_CR}</button></div></th>`).join('');
+  return `<div class="tabla-coincidencias-wrap${opciones.claseWrap || ''}" style="overflow-x:auto;" data-crv="${clave}"><table${opciones.claseTabla ? ` class="${opciones.claseTabla}"` : ''} aria-label="${esc(titulo)}"><thead><tr>${encabezados}</tr></thead><tbody>${filas.map(filaHtml).join('')}</tbody></table></div>`;
+}
+
+/** _activarTablasCruce(cont) → engancha los embudos de las tablas del cruce recién escritas en `cont` y reaplica su orden y sus filtros, si tenían. */
+function _activarTablasCruce(cont){
+  cont.querySelectorAll('[data-crv^="cx-"]').forEach(wrap => {
+    const clave = wrap.getAttribute('data-crv');
+    const t = _tablasCruce[clave];
+    if(!t) return;
+    wrap.querySelectorAll('.rt-filtro-btn').forEach(btn => btn.addEventListener('click', () => _abrirFiltroVerifCR(clave, btn.dataset.col, btn)));
+    if(t.estado.orden || Object.keys(t.estado.filtros).length) _repintarTablaVerifCR(clave);
+  });
+}
 let _popVerifCREl = null;
 let _popVerifCRBtn = null; // el embudo que abrió el cuadro (para devolverle el foco y su aria-expanded)
 const ICONO_FILTRO_VERIF_CR = '<svg viewBox="0 0 16 16" fill="currentColor" xmlns="http://www.w3.org/2000/svg"><path d="M1 2.5A.5.5 0 0 1 1.5 2h13a.5.5 0 0 1 .4.8L10 9.4V13a.5.5 0 0 1-.2.4l-2 1.5A.5.5 0 0 1 7 14.5v-5.1L1.1 2.8A.5.5 0 0 1 1 2.5z"/></svg>';

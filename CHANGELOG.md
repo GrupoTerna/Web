@@ -14,6 +14,8 @@ Lista corta de lo que se hizo, de más reciente a más antiguo y, dentro de cada
 
 ## 24-nov-2026
 
+- **`admin.html` (`_tablaCruce()`, `_activarTablasCruce()`, `_tablaCoincidencias()`, `_tablaExMiembros()`, `_tablaActivosClan()`, `_claveSemanaEx()`), `test/admin-infiltrado-en-ficha-dom.test.js`, `sw.js` v339:** en el cruce de roster de «Buscar clan», las tres tablas (miembros actuales, activos e inactivos) llevan embudo de orden y filtro por columna; el cuadro del filtro de `admin.html` pasa a ser opaco. `§PF582`.
+
 - **`guerra.html` (leyendas `.grid-leyenda` de Valores diarios y Valores semanales), `clan.html` (leyenda de Valores semanales), `sw.js` v338:** cada entrada de la leyenda va en su propia fila (`flex-direction:column`) en vez de fluir en línea.
 
 - **`perfil.html` (`perfilLineChartSvg()`, `leyendaPuntosGraficaHtml()`, `pintarGraficaPerfil()`, `renderMetricaSemanal()` y `renderMetricasSemanales()`), `test/perfil-promedio-semana-grafica.test.js`, `sw.js` v337:** corrige §PF566 punto 3: en las gráficas grandes de Ataques, Medallas y Barcos el promedio ya no es una recta por semana sino UNA recta constante con el promedio general de los registros diarios con dato, contando solo las semanas posteriores a la última que supera algún tope (corte común a las tres métricas; se descarta la semana completa). Las minigráficas y los cuadritos de Ingresos recientes siguen con el promedio de los días con dato de la semana. → §PF574

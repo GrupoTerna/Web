@@ -28,6 +28,9 @@ const CODIGO_CLAN = trozo('let clanActual = null;', '/* 5-nov-2026 (pedido de la
 const TARJETA_CLAN = trozo('<div class="card pf-cinta" id="cardBuscarClan"', '<!-- 5-nov-2026 (pedido de la usuaria): el grupo «Directorio»', 'tarjeta «Buscar clan»');
 const CODIGO_FICHA = trozo('function reiniciarInfiltradoFicha(j){', "document.getElementById('btnGuardar').addEventListener", 'reiniciarInfiltradoFicha()/verificarInfiltradoFicha()/pastilla');
 
+// §PF582: las tablas del cruce usan el desplegable de orden y filtro de la rama «verificar».
+const CODIGO_FILTRO = trozo('const _tablasVerifCR = {};', '/** _activarTablasVerifCR(cont)', 'desplegable de orden y filtro');
+const FILTROS_JS = fs.readFileSync(path.join(__dirname, '..', 'assets', 'js', 'ui', 'filters.js'), 'utf8');
 const DIALOGO_VETO = trozo('<div class="ce-veto-fondo"', '<script', 'diálogo de vetos de «Clanes externos»'); // el código de CODIGO_CLAN llega hasta la tarjeta «Clanes externos» y su diálogo
 const ESTRUCTURA = `
   ${DIALOGO_VETO}
@@ -64,6 +67,8 @@ function montar({ respuestas = [], falla = false, respuestasPost = [], confirma 
       if(typeof r === 'function') return new Promise(res => pendientes.push(() => res(r())));
       return Promise.resolve(r);
     }
+    ${FILTROS_JS}
+    ${CODIGO_FILTRO}
     ${CODIGO_RENDER}
     ${CODIGO_CLAN}
     ${CODIGO_FICHA}
@@ -636,4 +641,41 @@ test('estructura de admin.html: «Buscar clan» es una tarjeta aparte, del mismo
   assert.ok(g('clanInfiltradoPanel').compareDocumentPosition(g('clanVetarBox')) & 4, 'el panel va antes del formulario de vetar');
   assert.equal(g('cardInfiltrados'), null);
   assert.ok(HTML.includes("'webAdminBuscarClan'") && HTML.includes("'webAdminVetarClan'"), 'usa los endpoints nuevos');
+});
+
+test('cruce de roster: cada columna lleva embudo; ordena por número, filtra, renumera, conserva el filtro entre pastillas y se reinicia con datos nuevos (§PF582)', () => {
+  const w = montar();
+  w.eval("var CLANES_REQUISITOS = ['Terna', 'Terna 2'];");
+  const cont = id(w, 'clanInfResultado');
+  const act = (nombre, tag, semanas) => ({ origen: 'Directorio', tag, nombre, clan: 'Terna', razon: '', semanas, primera: pt(5, 1), ultima: pt(5, 1) });
+  const datos = { ok: true, tipo: 'clan', clan: { tag: '#CLAN1', nombre: 'Clan X', miembros: 1 }, infoRival: null, indiceClanesDisponible: true,
+    coincidencias: [{ tagEnClanRival: '#M1', nombreEnClanRival: 'Actual', rolEnClanRival: 'Miembro', coincidencias: [{ origen: 'Directorio', nombre: 'Nuestro', tag: '#M1', clan: 'Terna', razon: '' }] }],
+    exMiembros: [act('Alfa', '#A1', 2), act('Beta', '#B1', 7),
+      { origen: 'Inactivos', tag: '#I1', nombre: 'Nueve', clan: '', razon: '', semanas: 9, primera: pt(30, 1), ultima: pt(30, 2) },
+      { origen: 'Vetados', tag: '#I2', nombre: 'Doce', clan: '', razon: 'x', semanas: 12, primera: pt(4, 1), ultima: pt(4, 2) }] };
+  w.renderInfiltrado(datos, cont, true);
+  const tabla = c => cont.querySelector(`[data-crv="${c}"]`);
+  assert.equal(tabla('cx-coinc').querySelectorAll('.rt-filtro-btn').length, 6);
+  assert.equal(tabla('cx-inact').querySelectorAll('.rt-filtro-btn').length, 6);
+  assert.equal(tabla('cx-activos-0').querySelectorAll('.rt-filtro-btn').length, 3, '«N°» no lleva embudo');
+  const filasDe = c => [...tabla(c).querySelectorAll('tbody tr')].map(tr => [...tr.cells].map(td => td.textContent));
+  const abrir = (c, col) => tabla(c).querySelector(`.rt-filtro-btn[data-col="${col}"]`).click();
+  const pop = () => w.document.querySelector('.rt-filtro-pop');
+  abrir('cx-inact', 'semanas'); pop().querySelector('[data-dir="asc"]').click();
+  assert.deepEqual(filasDe('cx-inact').map(f => f[4]), ['9', '12']);
+  abrir('cx-inact', 'periodo'); pop().querySelector('[data-dir="asc"]').click();
+  assert.deepEqual(filasDe('cx-inact').map(f => f[4]), ['12', '9'], 'T4 va antes que T30');
+  abrir('cx-activos-0', 'semanas'); pop().querySelector('[data-dir="desc"]').click();
+  assert.deepEqual(filasDe('cx-activos-0').map(f => [f[0], f[2]]), [['1', '7'], ['2', '2']]);
+  abrir('cx-activos-0', 'semanas');
+  pop().querySelector('[data-modo="ninguno"]').click();
+  const casilla = pop().querySelector('.rt-filtro-item input[value="2"]'); casilla.checked = true; casilla.dispatchEvent(new w.Event('change'));
+  pop().querySelector('.rt-filtro-aceptar').click();
+  assert.deepEqual(filasDe('cx-activos-0').map(f => [f[0], f[2]]), [['1', '2']]);
+  const pastilla = n => [...cont.querySelectorAll('.ex-clan-pill')].find(b => b.dataset.clan === n);
+  pastilla('Terna 2').click(); pastilla('Terna').click();
+  assert.equal(filasDe('cx-activos-0').length, 1, 'el filtro se conserva al volver a la pastilla');
+  assert.equal(tabla('cx-activos-0').querySelector('.rt-filtro-btn[data-col="semanas"]').classList.contains('activo'), true);
+  w.renderInfiltrado(datos, cont, true);
+  assert.equal(filasDe('cx-activos-0').length, 2, 'con datos nuevos no quedan filtros');
 });
